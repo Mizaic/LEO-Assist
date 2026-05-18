@@ -1,0 +1,45 @@
+---
+description: Ground Atlas Design Outputs in real repo implementation evidence
+alwaysApply: false
+---
+
+# Atlas DO Implementation Mapping
+
+Use this rule when creating, updating, or reviewing Atlas Design
+Outputs (DOs), especially during release-by-release design-control
+rebuilds.
+
+## Core Rule
+
+- A DO must describe implemented behaviour in this repo, not intended or
+  planned behaviour.
+- Before linking a DO to a DI, find the concrete implementation surface:
+  source files, key functions/classes, API routes, Cypher queries, UI
+  components, scripts, and relevant tests.
+- Keep `source_reference` specific. Prefer paths to modules/files over
+  broad directories unless the implementation is genuinely distributed.
+- Do not use placeholder DOs to hide missing implementation. If a DI is
+  partial or not found, leave the missing `IMPLEMENTS` traceability gap
+  visible for QA review.
+- If only part of a DI is implemented, link a DO only when the remaining
+  gap is not material to the DI's requirement and acceptance criteria.
+  Otherwise leave it unlinked and report the unsupported behaviour.
+
+## Release Rebuild Workflow
+
+1. Retrieve the target DIs and existing DO links from Atlas.
+2. Build a DI-to-implementation matrix before mutating Atlas.
+3. Cluster DOs by real implementation surface, not by legacy product
+   structure.
+4. Update or create DOs with narrow claims and concrete source references.
+5. Remove `IMPLEMENTS` links that overstate coverage.
+6. Run Atlas stats, traceability gaps, acceptance-criteria coverage, and
+   representative spot checks after relinking.
+
+## Common Pitfalls
+
+- Do not copy legacy DO wording when the target codebase does not contain
+  the same implementation.
+- Do not claim binary file upload, OCR, conversion, thumbnails, text to
+  speech, or compliance dashboards unless those exact surfaces are present.
+- Do not mark target VTs or VALs passed using source-product evidence.

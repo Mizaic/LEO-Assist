@@ -28,6 +28,9 @@ Usage::
 
     from libs.domains.ncda_concept_sets import FAST_TRACK_REFERRAL_IDS, CANCER_TYPE_IDS
 
+    # Disorder-labelled malignancies observed on DOCUMENTS (narrower audit cohort):
+    # ``libs.domains.documents_disorder_malignancy_ids.DOCUMENTS_DISORDER_MALIGNANCY_IDS``
+
     # In Cypher: WHERE c.conceptId IN $ids
     referral_rows = session.run(
         "MATCH (p:Patient {id: $pid})-[:HAS_ENCOUNTER]->(e:Encounter)"

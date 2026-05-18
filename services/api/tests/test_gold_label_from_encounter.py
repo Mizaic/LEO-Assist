@@ -270,6 +270,102 @@ def test_second_call_is_idempotent(client):
     assert [q for q, _ in kcalls if "MERGE (g:GoldLabel" in q] == []
 
 
+# -- VT-192-TC-002b -- uncoded encounter ignores stale gold entities ----
+
+
+def test_uncoded_encounter_returns_live_entities_not_stale_gold(client):
+    """Reproduces the "Edit codes on uncoded encounter shows pre-populated
+    terms" bug. The GoldLabel for this de-identified text was previously
+    populated (either on another encounter that shares the same template
+    text, or on this encounter before "Reset and recode"). The editor
+    MUST open against the live :DOCUMENTS state, not the stored gold,
+    otherwise a silent save writes the stale terms onto a live encounter
+    that the card correctly shows as "0 coded concepts".
+    """
+
+    raw = "Seen in fast track suspected breast cancer clinic (XaPyQ)"
+    deid = raw
+    candidate_id = hashlib.sha256(deid.encode()).hexdigest()
+
+    encounter_row = {
+        "encounter_id": "enc-uncoded",
+        "date": "2025-09-01",
+        "text": raw,
+        "coded_count": 0,
+    }
+    link_rows: list[dict[str, Any]] = []
+
+    stale_gold_entities = [
+        {
+            "text": "Seen in fast track suspected breast cancer clinic",
+            "label": "finding",
+            "start": 0,
+            "end": 50,
+            "semantic_tag": "finding",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": (
+                "Seen in fast track suspected breast cancer clinic (finding)"
+            ),
+            "assertion": "present",
+        }
+    ]
+    existing_label_row = {
+        "label_id": "manual-stale-0001",
+        "text": deid,
+        "entities_json": json.dumps(stale_gold_entities),
+        "quality_score": None,
+        "source": "live_encounter_correction",
+        "verified_by": "",
+        "verified_at": None,
+        "candidate_id": candidate_id,
+        "schema_version": "v4",
+        "created_at": None,
+        "updated_at": None,
+    }
+
+    pgc, _ = _patient_session_with(encounter_row, link_rows)
+    kg, _ = _kg_session_capture(
+        {
+            "MATCH (c:TrainingCandidate {candidate_id: $candidate_id})": {
+                "candidate_id": candidate_id,
+                "text": deid,
+                "entities_json": "[]",
+                "source": "live_encounter_correction",
+                "status": "pending",
+                "schema_version": "v4",
+            },
+            "MATCH (g:GoldLabel {candidate_id: $candidate_id})": {
+                "label_id": "manual-stale-0001",
+            },
+            "MATCH (g:GoldLabel {label_id: $label_id})": existing_label_row,
+        }
+    )
+
+    with (
+        caller_scope_override(client.app),
+        patch("app.routers.training.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training.deidentify_text", return_value=deid),
+        patch("app.routers.training.require_patient_in_scope", return_value=None),
+    ):
+        r = client.post(
+            "/training/gold-labels/from-encounter",
+            json={"patient_id": "pat-1", "encounter_id": "enc-uncoded"},
+        )
+
+    assert r.status_code == 200, r.text
+    payload = r.json()
+    # The uncoded live encounter has no baseline -- the editor needs
+    # to open empty so the reviewer starts from a blank slate.
+    assert payload["baseline_concept_ids"] == []
+    assert payload["entity_count"] == 0
+    assert payload["source_coded_links_count"] == 0
+    # Regression guard: the stored gold entities_json must NOT leak
+    # into the editor's initial state for an uncoded encounter.
+    returned_entities = json.loads(payload["gold_label"]["entities_json"])
+    assert returned_entities == []
+
+
 # -- VT-192-TC-003 -- missing encounter returns 404 ----------------------
 
 

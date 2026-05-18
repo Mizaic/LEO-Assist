@@ -1,9 +1,9 @@
 """Pin surface forms and write DOCUMENTS for the 3 confirmed cancer-exclusion encounters.
 
 Confirmed encounters (manually reviewed against full encounter text):
-  1. 4209455806 / 15911be4  - post-OGD: "no malignancy found"
-  2. 4245896566 / 1783873c  - Brain Triage: "Cancer excluded - discharge to GP"
-  3. 4842019832 / 8fbb5daf  - post-colonoscopy: "no malignancy detected"
+  1. 9990010025 / 15911be4  - post-OGD: "no malignancy found"
+  2. 9990010029 / 1783873c  - Brain Triage: "Cancer excluded - discharge to GP"
+  3. 9990010043 / 8fbb5daf  - post-colonoscopy: "no malignancy detected"
 
 Run:
     python scripts/investigations/_code_no_cancer_confirmed.py --dry-run
@@ -37,19 +37,19 @@ REL_TYPE = "HAS_SITUATION"
 # The 3 confirmed encounters: (patient_id, encounter_id, evidence_text)
 CONFIRMED = [
     (
-        "4209455806",
+        "9990010025",
         "15911be4-fc30-4de8-bb0c-8f54f3cb50f0",
         "no malignancy found",
         "OGD result: recent upper GI referral, OGD okay, hiatus hernia found, no malignancy found.",
     ),
     (
-        "4245896566",
+        "9990010029",
         "1783873c-6be2-4682-874d-21f17d905e1f",
         "cancer excluded",
         "Brain Triage: Cancer excluded - discharge to GP. No structural cause for symptoms demonstrated.",
     ),
     (
-        "4842019832",
+        "9990010043",
         "8fbb5daf-7bb7-411b-97f0-00c50b82ca1d",
         "no malignancy detected",
         "Screening colonoscopy-polypectomy August 2019: no malignancy detected.",

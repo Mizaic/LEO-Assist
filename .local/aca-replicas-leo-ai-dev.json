@@ -1,0 +1,47 @@
+[
+  {
+    "maxReplicas": 3,
+    "minReplicas": 1,
+    "name": "core-api"
+  },
+  {
+    "maxReplicas": 1,
+    "minReplicas": 0,
+    "name": "training-worker"
+  },
+  {
+    "maxReplicas": 3,
+    "minReplicas": 1,
+    "name": "terminology-api"
+  },
+  {
+    "maxReplicas": 3,
+    "minReplicas": 1,
+    "name": "analytics-api"
+  },
+  {
+    "maxReplicas": 3,
+    "minReplicas": 1,
+    "name": "fhir-api"
+  },
+  {
+    "maxReplicas": 2,
+    "minReplicas": 0,
+    "name": "model-inference"
+  },
+  {
+    "maxReplicas": 2,
+    "minReplicas": 1,
+    "name": "ui"
+  },
+  {
+    "maxReplicas": 5,
+    "minReplicas": 1,
+    "name": "pipeline-worker"
+  },
+  {
+    "maxReplicas": 2,
+    "minReplicas": 0,
+    "name": "research-worker"
+  }
+]

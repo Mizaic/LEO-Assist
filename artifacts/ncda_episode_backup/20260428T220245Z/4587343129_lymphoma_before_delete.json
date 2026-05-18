@@ -1,0 +1,22 @@
+[
+  {
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5488",
+    "cancer_type": "Lymphoma",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268722544",
+    "encounter_id": "dd76d5f5-dbd6-475b-bfc4-bcb37b5c51ca",
+    "date": "2024-10-28",
+    "mt": "treatment_started",
+    "outcome": null,
+    "text": "14:01 - Surgery: [STAFF] (Pharmacist) \nRuxolitinib 20mg tablets - 1 BD\n Drug Review\n   Entries from previous template version\n      Medication reconciliation (XaXfG)\n      Medication reconciliation (XaXfG) - Haematology letter 27/09/24\n      Comment note (XaIg6) - pt supplied with ruxolitinib 20mg BD by hospital for 3months\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nMedication reconciliation (XaXfG)\nMedication reconciliation (XaXfG) - Haematology letter 27/09/24\nComment note (XaIg6) - pt supplied with ruxolitinib 20mg BD by hospital for 3months"
+  },
+  {
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5488",
+    "cancer_type": "Lymphoma",
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6933321313150834032",
+    "encounter_id": "440aa75d-feda-49f9-be17-36a664264f26",
+    "date": "2025-07-21",
+    "mt": "diagnosis_confirmed",
+    "outcome": null,
+    "text": "08:40 - Surgery: [STAFF] (Nurse Access Role) \nProblem: Myeloproliferative disorder (Xa0SP) - JAK2-positive myeloproliferative neoplasm; immunotherapy with ruxolitinib\n Phlebotomy Test\n   Entries from previous template version\n      Infectious disease : prevention/control (XE1Sf)\n      Informed consent given (XaLQR)\n      Use of aseptic technique (Ua1Rc)\n Phlebotomy Service\n   0214 006 Phlebotomy Service\n      Blood test type: Urgent (X78uK)\n      ^Referral source (CBS claim): Phlebotomy generated from secondary care done by practice (XaK2I)\n      ^Blood sample taken (CBS claim): Yes\n      Fasting sample: Yes\n      ^Seen by practice phlebotomist: Yes\n      Phlebotomy generated from secondary care done by practice: Yes\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nInformed consent given (XaLQR)\nUse of aseptic technique (Ua1Rc)\nInfectious disease : prevention/control (XE1Sf)\nUrgent (X78uK)\nPhlebotomy generated from secondary care done by practice (XaK2I)\nBlood sample taken (XaEJK)\nFasting sample (XaaEP)\nSeen by practice phlebotomist (9N2S.)\nPhlebotomy generated from secondary care done by practice (XaK2I)"
+  }
+]

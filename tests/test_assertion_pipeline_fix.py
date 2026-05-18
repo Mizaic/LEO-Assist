@@ -123,6 +123,20 @@ class TestSchemaMapperAssertionAllowlist:
         assert self._map_entity("planned") == "planned"
 
 
+class TestSchemaMapperModelLabelAliases:
+    """spaCy model labels lowercased by inference must map to canonical tags."""
+
+    def test_observable_alias_maps_to_observable_entity(self):
+        from libs.ner.schema_mapper import normalise_label
+
+        assert normalise_label("observable") == "observable_entity"
+
+    def test_qualifier_alias_maps_to_qualifier_value(self):
+        from libs.ner.schema_mapper import normalise_label
+
+        assert normalise_label("qualifier") == "qualifier_value"
+
+
 # ---------------------------------------------------------------------------
 # 3. Documents Queries
 # ---------------------------------------------------------------------------

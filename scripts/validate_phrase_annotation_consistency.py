@@ -35,10 +35,10 @@ sys.path.insert(0, str(ROOT / "services" / "api"))
 
 load_dotenv(ROOT / "secrets" / ".env.config", override=False)
 load_dotenv(ROOT / "secrets" / ".env", override=False)
+load_dotenv(ROOT / "secrets" / ".env.secrets", override=False)
 
 from libs.keyvault.loader import load_keyvault_secrets
 from libs.neo4j_client.client import KnowledgeGraphClient
-
 
 _GET_TRAINING_GOLD_LABELS = """
 MATCH (c:TrainingCandidate)-[:PRODUCED]->(g:GoldLabel)
@@ -125,7 +125,9 @@ def _load_phrase_multilabel_policy() -> dict[str, set[str]]:
         phrase = _normalise_phrase(str(row.get("phrase_norm") or ""))
         if not phrase:
             continue
-        labels = {str(label).strip().upper() for label in (row.get("allowed_labels") or [])}
+        labels = {
+            str(label).strip().upper() for label in (row.get("allowed_labels") or [])
+        }
         labels = {label for label in labels if label}
         if len(labels) >= 2:
             policy[phrase] = labels

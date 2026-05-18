@@ -1,4 +1,4 @@
-"""Hybrid coding resolution endpoint.
+"""Lexical coding resolution endpoint.
 
 Atlas trace:
   DO: DO-77A48DBC
@@ -6,7 +6,7 @@ Atlas trace:
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-77A48DBC")
 
 Accepts a list of clinical terms and returns ranked SNOMED candidates
-using the three-branch hybrid resolver.
+using exact surface-form + fulltext lexical retrieval.
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ from pydantic import BaseModel, Field
 
 from libs.neo4j_client.client import KnowledgeGraphClient
 from services.terminology_api.app.services.coding_resolver import CodingResolver
-from services.terminology_api.app.services.text_embedder import TerminologyTextEmbedder
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +28,9 @@ router = APIRouter()
 
 # Module-level singletons — driver connection pool and resolver are created
 # once at startup and reused across all requests, avoiding repeated TCP
-# handshakes to AuraDB and repeated embedder warm-up.
-_embedder = TerminologyTextEmbedder()
+# handshakes to AuraDB.
 _kg_client = KnowledgeGraphClient()
-_resolver = CodingResolver(embedder=_embedder)
+_resolver = CodingResolver()
 _RESOLVE_RETRYABLE_EXCEPTIONS = (
     ServiceUnavailable,
     SessionExpired,

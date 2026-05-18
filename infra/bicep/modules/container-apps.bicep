@@ -1,4 +1,10 @@
-// -- Container Apps Environment + 8 apps ---------------------------------
+// -- Container Apps Environment + all 9 apps ------------------------------
+//
+// Ingress policy (do not change without security review):
+//   Only core-api and ui use external ingress (public FQDN).
+//   All other Container Apps must stay internal (ACA env DNS only).
+//   CI enforces this in tests/test_infra_security.py (TestContainerAppsIngressPolicy).
+//
 param location string = resourceGroup().location
 param environment string
 param managedIdentityId string
@@ -36,6 +42,13 @@ param allowedOrigins string
 param cookieSecure string
 param sessionTtlHours string
 param frontendUrl string
+// Optional UI ingress custom domain (same hostname users open in the browser).
+// If set with uiManagedCertificateId, Bicep declares customDomains on each deploy so
+// GitHub Actions / az deployment group create does not drop a portal-only binding.
+param uiCustomHostname string = ''
+// ARM resource ID of the managed certificate in this Container Apps environment, e.g.
+// /subscriptions/.../managedEnvironments/leoai-dev-cae/managedCertificates/<name>
+param uiManagedCertificateId string = ''
 param snomedTerminologyServer string = ''
 
 // Optional UI hostname + env-scoped certificate (see ACA Custom domains blade).
@@ -80,13 +93,19 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-// -- Internal service URLs (resolved by ACA DNS within the environment) ---
-var termApiUrl = 'http://terminology-api'
-var fhirApiUrl = 'http://fhir-api'
-var analyticsApiUrl = 'http://analytics-api'
-var modelInferenceUrl = 'http://model-inference'
-var pipelineWorkerUrl = 'http://pipeline-worker'
-var researchWorkerUrl = 'http://research-worker'
+// -- Internal service URLs (same Container Apps environment) ---------------
+// Microsoft documents http://<app-name> for in-mesh calls, but short names can
+// fail to resolve or flake under load; full hostnames using the environment
+// defaultDomain are reliable (see ACA "Communicate between container apps").
+var acaDefaultDomain = cae.properties.defaultDomain
+var termApiUrl = 'http://terminology-api.${acaDefaultDomain}'
+var fhirApiUrl = 'http://fhir-api.${acaDefaultDomain}'
+var analyticsApiUrl = 'http://analytics-api.${acaDefaultDomain}'
+var modelInferenceUrl = 'http://model-inference.${acaDefaultDomain}'
+var pipelineWorkerUrl = 'http://pipeline-worker.${acaDefaultDomain}'
+var trainingWorkerUrl = 'http://training-worker.${acaDefaultDomain}'
+var researchWorkerUrl = 'http://research-worker.${acaDefaultDomain}'
+var coreApiInternalUrl = 'http://core-api.${acaDefaultDomain}'
 
 // -- Session namespace ----------------------------------------------------
 // Every backend service that calls libs/redis_client/session.py::load_session
@@ -108,6 +127,7 @@ var _frontendHostPart = split(
 var sessionKeyNamespace = split(_frontendHostPart, '.')[0]
 
 var hasUiTlsCustomDomain = !empty(uiCustomDomainHost) && !empty(uiIngressCertificateName)
+var hasUiManagedCustomDomain = !empty(uiCustomHostname) && !empty(uiManagedCertificateId)
 // Inner ternary: managed free cert vs uploaded / imported cert on the environment.
 var uiIngressCertificateResourceId = hasUiTlsCustomDomain
   ? uiIngressCertificateIsManaged
@@ -130,7 +150,15 @@ var uiIngressCustomDomains = hasUiTlsCustomDomain
         certificateId: uiIngressCertificateResourceId
       }
     ]
-  : []
+  : hasUiManagedCustomDomain
+      ? [
+          {
+            name: uiCustomHostname
+            bindingType: 'SniEnabled'
+            certificateId: uiManagedCertificateId
+          }
+        ]
+      : []
 
 // -- Shared env vars injected into every app -------------------------------
 var sharedEnv = [
@@ -215,6 +243,26 @@ var sharedEnv = [
   { name: 'ALLOWED_ORIGINS', value: allowedOrigins }
   { name: 'CORS_ORIGINS', value: allowedOrigins }
 
+  // -- Concurrency tuning (Phase 6 backend overhaul) -----------------------
+  // Lift the anyio default threadpool ceiling so sync FastAPI handlers
+  // (and any libs/auth call into Neo4j) do not bottleneck on Starlette's
+  // default of 40 worker threads. Set per service in lifespan() too, but
+  // putting it in the env keeps the value visible from `az containerapp
+  // show` and overridable without a code change.
+  { name: 'ANYIO_THREADPOOL_TOKENS', value: '200' }
+  // Singleton Neo4j driver pool. NEO4J_MAX_POOL_SIZE bounds connections
+  // per (uri, user); NEO4J_ACQUIRE_TIMEOUT keeps callers from waiting
+  // forever when the pool is exhausted.
+  { name: 'NEO4J_MAX_POOL_SIZE', value: '50' }
+  { name: 'NEO4J_ACQUIRE_TIMEOUT', value: '60' }
+  // CallerScope cache TTL -- 60s is the right balance between freshness
+  // (org membership changes) and protecting Neo4j on every request.
+  { name: 'CALLER_SCOPE_CACHE_TTL_SECONDS', value: '60' }
+  // Audit dashboards fan out three scope queries (practice / alliance /
+  // England) per endpoint; running them in a 3-wide threadpool roughly
+  // thirds the wall-clock latency.
+  { name: 'AUDIT_SCOPE_PARALLELISM', value: '3' }
+
   // Key Vault secret references -- injected as env vars at runtime
   { name: 'NEO4J_PASSWORD', secretRef: 'neo4j-patient-password' }
   { name: 'NEO4J_URI', secretRef: 'neo4j-patient-uri' }
@@ -283,6 +331,9 @@ var identityConfig = {
 }
 
 // -- core-api (external ingress) ------------------------------------------
+// Sized for production: 1 vCPU lets uvicorn run with 2 workers comfortably,
+// and the HTTP autoscale rule lets ACA add replicas when concurrent
+// requests climb (target = 50 in-flight requests per replica).
 resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'core-api'
   location: location
@@ -302,7 +353,7 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [{
         name: 'core-api'
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/core-api:${imageTag}'
-        resources: { cpu: json('0.5'), memory: '1Gi' }
+        resources: { cpu: json('1.0'), memory: '2Gi' }
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
@@ -319,6 +370,11 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'FRONTEND_URL', value: frontendUrl }
           { name: 'AUTH_REDIRECT_URI', value: '${frontendUrl}/auth/callback' }
           { name: 'MAIL_FROM_ADDRESS', value: 'leo.support@healthcarecopilot.ai' }
+          // Multi-worker uvicorn: 2 workers per 1.0 vCPU container is the
+          // sweet spot before context-switching dominates. Distroless image
+          // has no shell so we set UVICORN_WORKERS instead of using
+          // shell-expanded WEB_CONCURRENCY.
+          { name: 'UVICORN_WORKERS', value: '2' }
         ])
         probes: [
           {
@@ -337,7 +393,18 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ]
       }]
-      scale: { minReplicas: 1, maxReplicas: 3 }
+      scale: {
+        minReplicas: 1
+        maxReplicas: 6
+        rules: [{
+          name: 'core-api-http'
+          http: {
+            metadata: {
+              concurrentRequests: '50'
+            }
+          }
+        }]
+      }
     }
   }
 }
@@ -363,18 +430,35 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [{
         name: 'ui'
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/ui:${imageTag}'
-        resources: { cpu: json('0.25'), memory: '0.5Gi' }
+        resources: { cpu: json('0.5'), memory: '1Gi' }
         env: union(sharedEnv, [
-          { name: 'INTERNAL_API_BASE', value: 'http://core-api' }
+          { name: 'INTERNAL_API_BASE', value: coreApiInternalUrl }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
-          { name: 'TRAINING_WORKER_URL', value: 'http://training-worker' }
+          { name: 'TRAINING_WORKER_URL', value: trainingWorkerUrl }
           { name: 'NODE_ENV', value: 'production' }
           // NextAuth needs the public base URL of this environment
           { name: 'AUTH_URL', value: frontendUrl }
           { name: 'NEXT_PUBLIC_API_BASE', value: '' }
+          // Tune the shared undici Agent used by Next.js Route Handlers
+          // (see services/ui/src/lib/serverFetch.ts). 16 keep-alive
+          // connections per upstream is enough headroom for a busy
+          // dashboard hitting 5+ APIs in parallel.
+          { name: 'UI_FETCH_CONNECTIONS_PER_HOST', value: '16' }
+          { name: 'UI_FETCH_KEEPALIVE_MS', value: '30000' }
         ])
       }]
-      scale: { minReplicas: 1, maxReplicas: 2 }
+      scale: {
+        minReplicas: 1
+        maxReplicas: 4
+        rules: [{
+          name: 'ui-http'
+          http: {
+            metadata: {
+              concurrentRequests: '100'
+            }
+          }
+        }]
+      }
     }
   }
 }
@@ -400,9 +484,10 @@ resource terminologyApi 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [{
         name: 'terminology-api'
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/terminology-api:${imageTag}'
-        resources: { cpu: json('0.25'), memory: '0.5Gi' }
+        resources: { cpu: json('0.5'), memory: '1Gi' }
         env: union(sharedEnv, [
           { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
+          { name: 'UVICORN_WORKERS', value: '2' }
         ])
         probes: [
           {
@@ -447,10 +532,11 @@ resource fhirApi 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [{
         name: 'fhir-api'
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/fhir-api:${imageTag}'
-        resources: { cpu: json('0.25'), memory: '0.5Gi' }
+        resources: { cpu: json('0.5'), memory: '1Gi' }
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
+          { name: 'UVICORN_WORKERS', value: '2' }
         ])
         probes: [
           {
@@ -495,10 +581,14 @@ resource analyticsApi 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [{
         name: 'analytics-api'
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/analytics-api:${imageTag}'
-        resources: { cpu: json('0.25'), memory: '0.5Gi' }
+        resources: { cpu: json('1.0'), memory: '2Gi' }
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
+          // Audit + dashboard pages drive the bulk of synchronous Neo4j
+          // load. Two uvicorn workers + lifted threadpool ceiling lets us
+          // service ~60 concurrent dashboard requests per replica.
+          { name: 'UVICORN_WORKERS', value: '2' }
         ])
         probes: [
           {
@@ -517,7 +607,18 @@ resource analyticsApi 'Microsoft.App/containerApps@2024-03-01' = {
           }
         ]
       }]
-      scale: { minReplicas: 1, maxReplicas: 3 }
+      scale: {
+        minReplicas: 1
+        maxReplicas: 6
+        rules: [{
+          name: 'analytics-api-http'
+          http: {
+            metadata: {
+              concurrentRequests: '50'
+            }
+          }
+        }]
+      }
     }
   }
 }
@@ -642,6 +743,20 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'PIPELINE_WORKER_PORT', value: '8006' }
           { name: 'PIPELINE_QUEUE_NAME', value: 'pipeline-jobs' }
           { name: 'SB_MAX_LOCK_RENEWAL_SECONDS', value: sbMaxLockRenewalSeconds }
+          // -- Concurrency tuning for the pipeline worker --
+          // The Service Bus consumer now dispatches handlers concurrently
+          // (libs/message_bus/azure_adapter.py); 8 in-flight messages per
+          // replica matches the per-encounter LLM/Neo4j fan-out budget.
+          { name: 'SB_MAX_CONCURRENT_CALLS', value: '8' }
+          // Per-patient encounter dispatch parallelism (services/coding_worker
+          // /app/services/job_handler.py).
+          { name: 'CODING_ENCOUNTER_PARALLELISM', value: '4' }
+          // Episode engine candidate fan-out (services/analysis_worker
+          // /app/episode_engine/chain.py).
+          { name: 'EPISODE_ENGINE_CANDIDATE_PARALLELISM', value: '8' }
+          // Match the model_inference cap so we never queue more LLM
+          // extracts than the inference service can absorb.
+          { name: 'MODEL_INFERENCE_MAX_CONCURRENCY', value: '4' }
         ])
         probes: [
           {
@@ -662,7 +777,7 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
       }]
       scale: {
         minReplicas: 1
-        maxReplicas: 5
+        maxReplicas: 10
         rules: [{
           name: 'pipeline-jobs-keda'
           custom: {
@@ -670,7 +785,9 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
             metadata: {
               queueName: 'pipeline-jobs'
               namespace: sbNamespaceFqdn
-              messageCount: '5'
+              // Trigger a new replica for every 16 queued messages
+              // (~2 in-flight per replica * SB_MAX_CONCURRENT_CALLS).
+              messageCount: '16'
             }
             auth: [{
               secretRef: 'azure-service-bus-connection-string'
@@ -735,3 +852,5 @@ resource researchWorker 'Microsoft.App/containerApps@2024-03-01' = {
 
 output coreApiFqdn string = coreApi.properties.configuration.ingress.fqdn
 output uiFqdn string = ui.properties.configuration.ingress.fqdn
+// Environment DNS suffix for in-mesh HTTP (e.g. proudriver-82c5b80a.uksouth.azurecontainerapps.io)
+output acaDefaultDomain string = cae.properties.defaultDomain

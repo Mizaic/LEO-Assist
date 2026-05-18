@@ -1,0 +1,149 @@
+{
+  "Content": "<div class=\"chapter\" title=\"Terms used in this guideline\" id=\"ng12-terms-used-in-this-guideline\" xmlns=\"http://www.w3.org/1999/xhtml\">\r\n  <h2 class=\"title\" id=\"terms-used-in-this-guideline\">Terms used in this guideline</h2>\r\n  <p>This section defines terms that have been used in a particular way for this guideline. </p>\r\n</div>",
+  "GuidanceNumber": "NG12",
+  "MetadataApplicationProfile": {
+    "AlternativeTitle": null,
+    "Audiences": [],
+    "Creator": "NICE",
+    "Description": null,
+    "Identifier": "tag:api.nice.org.uk,2015-06-23:/services/guidance/documents/NG12/terms-used-in-this-guideline",
+    "Language": null,
+    "Modified": "/Date(1776237435079+0100)/",
+    "Issued": "/Date(1435014000000+0100)/",
+    "Publisher": "NICE",
+    "Title": "Terms used in this guideline",
+    "Types": [],
+    "Subjects": [],
+    "Contributors": [],
+    "Source": "NICE",
+    "ParentSection": null,
+    "Breadcrumb": null
+  },
+  "Resources": [
+    {
+      "Rel": "self",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline",
+      "Title": "Terms used in this guideline",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/children",
+      "Title": "Children",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/children-and-young-people-4",
+      "Title": "Children and young people",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/consistent-with",
+      "Title": "Consistent with",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/direct-access",
+      "Title": "Direct access",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/hormone-replacement-therapy-hrt",
+      "Title": "Hormone replacement therapy (HRT)",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/immediate",
+      "Title": "Immediate",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/nonurgent",
+      "Title": "Non‑urgent",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/non-specific-symptoms-pathway",
+      "Title": "Non-specific symptoms pathway",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/persistent",
+      "Title": "Persistent",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/raises-the-suspicion-of",
+      "Title": "Raises the suspicion of",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/safety-netting-2",
+      "Title": "Safety netting",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/suspected-cancer-pathway-referral",
+      "Title": "Suspected cancer pathway referral",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/unexplained",
+      "Title": "Unexplained",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/unexplained-postmenopausal-bleeding",
+      "Title": "Unexplained post‑menopausal bleeding",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/unscheduled-vaginal-bleeding-on-hrt",
+      "Title": "Unscheduled vaginal bleeding on HRT",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/urgent",
+      "Title": "Urgent",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/very-urgent",
+      "Title": "Very urgent",
+      "TitleContent": null
+    },
+    {
+      "Rel": "/linkrels/guidance/section",
+      "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline/young-people",
+      "Title": "Young people",
+      "TitleContent": null
+    },
+    {
+      "Rel": "alternate",
+      "Type": "application/xhtml+xml",
+      "Uri": "https://publications.nice.org.uk/NG12/terms-used-in-this-guideline",
+      "Title": "Terms used in this guideline",
+      "TitleContent": null
+    }
+  ],
+  "LastModified": "/Date(1776237435079+0100)/",
+  "Uri": "https://api.nice.org.uk/services/guidance/documents/NG12/terms-used-in-this-guideline",
+  "Title": "Terms used in this guideline",
+  "TitleContent": null
+}

@@ -66,6 +66,9 @@ VALID_LABELS: frozenset[str] = frozenset(
 
 # Map legacy / alternate label spellings to canonical form
 _LABEL_NORMALISATION: dict[str, str] = {
+    # spaCy spancat labels are stored as uppercase model labels and the model
+    # inference service lowercases them before schema mapping.
+    "observable": "observable_entity",
     "observation": "observable_entity",
     "obs": "observable_entity",
     "clinical_finding": "finding",

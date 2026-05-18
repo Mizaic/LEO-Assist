@@ -229,6 +229,81 @@ Age:
 Sex:
 - `{"kind":"demographic","field":"sex","operator":"=","value":"female","raw_term":"female sex"}`
 
+## Lab values and numeric thresholds (observation leaves)
+
+When NICE gives a numeric threshold on a named lab value or clinical \
+reading (for example "haemoglobin less than 110 g/L", "platelet count \
+at or above 400 x10^9/L", "eGFR less than 60 mL/min/1.73m2", "FIT at \
+or above 10 microgram/g", "systolic blood pressure at or above 140 \
+mmHg"), emit a single `observation` leaf instead of a `concept` leaf.
+
+Shape:
+```
+{
+  "kind": "observation",
+  "term": {
+    "text": "<observable name, GP-codeable>",
+    "source_text": "<NICE phrase, if useful>",
+    "search_terms": ["<up to 5 SNOMED observable search terms>"]
+  },
+  "operator": ">=" | "<=" | ">" | "<" | "=" | "between",
+  "value": <number> OR [<low>, <high>] when operator == "between",
+  "unit": "<UCUM-ish unit string, e.g. 10*9/L, g/L, mL/min/1.73m2, mmHg, microgram/g>",
+  "within_days": <integer number of days, typically 365 for labs and 90 for vitals>
+}
+```
+
+Rules:
+- Only use `observation` when the recommendation specifies an exact \
+  comparison ("at or above", "less than", "between X and Y"). If the \
+  text just says "raised platelet count" with no number, emit a \
+  `concept` leaf instead so the rule stays a presence check.
+- Pick the plain GP-codeable observable name for `term.text`: \
+  "Platelet count", "Haemoglobin", "Serum creatinine", "eGFR", \
+  "HbA1c", "Systolic blood pressure", "Body mass index".
+- Keep the unit as close to UCUM as possible: use `10*9/L` for cell \
+  counts, `g/L` for haemoglobin, `mL/min/1.73m2` for eGFR, `mmol/mol` \
+  for HbA1c, `mmHg` for blood pressure, `microgram/g` for FIT.
+- Default `within_days` to 365 for labs and 90 for vitals and \
+  measurements. If NICE gives an explicit recency window (e.g. \
+  "repeated 6 months apart"), set `within_days` to match.
+- For ranges, set `operator` to `"between"` and `value` to a \
+  two-element array `[low, high]`.
+
+Worked examples:
+
+`platelet count of 400 x10^9/L or more` ->
+```
+{
+  "kind": "observation",
+  "term": {"text": "Platelet count", "search_terms": ["platelet count", "thrombocyte count"]},
+  "operator": ">=",
+  "value": 400,
+  "unit": "10*9/L",
+  "within_days": 365
+}
+```
+
+`eGFR less than 60 mL/min/1.73m2` ->
+```
+{
+  "kind": "observation",
+  "term": {"text": "eGFR", "search_terms": ["estimated glomerular filtration rate", "eGFR"]},
+  "operator": "<",
+  "value": 60,
+  "unit": "mL/min/1.73m2",
+  "within_days": 365
+}
+```
+
+`blood pressure of 140/90 mmHg or higher` -> emit two observation \
+leaves inside an `AND` (systolic >= 140 mmHg AND diastolic >= 90 mmHg). \
+Do NOT try to encode "140/90" as a single number.
+
+If you are not sure whether a NICE phrase is an observable with a \
+canonical unit, fall back to a `concept` leaf -- the downstream \
+validator will still surface the rule for a reviewer.
+
 ## Imaging finding decomposition
 
 Some NICE phrases describe radiological findings rather than clinical signs:

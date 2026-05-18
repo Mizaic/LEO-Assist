@@ -12,6 +12,12 @@ All writes stamp source='audit_remediation' and remediated_at so the
 provenance of every automated fix is visible in the graph.
 """
 
+from .cleanup_queries import PATIENT_SEMANTIC_SHORTCUT_REL_TYPES
+
+_REMEDIATION_SHORTCUT_TYPE_LIST = ", ".join(
+    f"'{name}'" for name in PATIENT_SEMANTIC_SHORTCUT_REL_TYPES
+)
+
 # -- Read encounter text + current DOCUMENTS ----------------------------------
 
 GET_ENCOUNTER_FOR_REMEDIATION = """
@@ -51,11 +57,10 @@ RETURN deleted_count, remaining AS remaining_encounter_docs
 
 # Separate pass to clean up patient shortcuts when no encounters remain.
 # Called after DELETE_OVERCODED_DOCUMENTS when remaining_encounter_docs = 0.
-CLEANUP_PATIENT_SHORTCUT = """
-MATCH (p:Patient {id: $patient_id})-[pr]->(s)
+CLEANUP_PATIENT_SHORTCUT = f"""
+MATCH (p:Patient {{id: $patient_id}})-[pr]->(s)
 WHERE toString(s.conceptId) = $concept_id
-  AND type(pr) IN ['HAS_FINDING', 'HAS_DISORDER', 'HAS_SITUATION',
-                   'HAS_OBSERVABLE', 'HAS_PROCEDURE', 'HAS_CONCEPT']
+  AND type(pr) IN [{_REMEDIATION_SHORTCUT_TYPE_LIST}]
 DELETE pr
 RETURN count(pr) AS shortcuts_removed
 """

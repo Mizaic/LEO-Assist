@@ -36,6 +36,9 @@ from services.analytics_api.app.routers.cohorts import (
     seed_nhs_cohorts,
 )
 from services.analytics_api.app.routers.dashboards import router as dashboard_router
+from services.analytics_api.app.routers.episode_crud import (
+    router as episode_crud_router,
+)
 from services.analytics_api.app.routers.domains import router as domain_router
 from services.analytics_api.app.routers.imd import router as imd_router
 from services.analytics_api.app.routers.cci import router as cci_router
@@ -55,6 +58,7 @@ from services.analytics_api.app.routers.patient_finder import (
     router as patient_finder_router,
 )
 from services.analytics_api.app.routers.research import router as research_router
+from services.analytics_api.app.routers.variation import router as variation_router
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -75,6 +79,18 @@ def _check_service_auth_secret():
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("Analytics API starting")
+    # Lift the anyio threadpool ceiling so sync `def` endpoints (and sync I/O
+    # called via `to_thread`) do not bottleneck on Starlette's default 40
+    # tokens. See plan: backend-concurrency-overhaul Phase 0.
+    try:
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "200"))
+        _limiter.total_tokens = _tokens
+        logger.info("anyio threadpool ceiling set to %d", _tokens)
+    except Exception as exc:
+        logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
     _check_service_auth_secret()
     try:
         n = seed_nhs_cohorts()
@@ -126,8 +142,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from libs.observability import ServerTimingMiddleware  # noqa: E402
+
+app.add_middleware(ServerTimingMiddleware)
+
 app.include_router(org_context_router, prefix="/analytics", tags=["auth"])
 app.include_router(dashboard_router, prefix="/analytics", tags=["dashboards"])
+app.include_router(
+    episode_crud_router, prefix="/analytics", tags=["episode-crud"]
+)
 app.include_router(cohort_router, prefix="/analytics", tags=["cohorts"])
 app.include_router(domain_router, prefix="/analytics", tags=["domains"])
 app.include_router(imd_router, prefix="/analytics", tags=["imd"])
@@ -144,6 +167,7 @@ app.include_router(research_router, prefix="/analytics", tags=["pathway-explorer
 app.include_router(
     patient_finder_router, prefix="/analytics", tags=["patient-finder"]
 )
+app.include_router(variation_router, prefix="/analytics", tags=["variation"])
 
 
 @app.get("/health")

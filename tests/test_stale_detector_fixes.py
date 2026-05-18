@@ -628,14 +628,14 @@ class TestRegressionMissedCancers:
     we must now catch."""
 
     def test_prostate_x78y6_problem_line(self):
-        # eps a6c093d2702d379f / e7c8b99ad0ae77ab
+        # Gold sign-off encoders
         text = "Major: Carcinoma of prostate (X78Y6)"
         _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
         assert diagnoses[0]["site_key"] == "prostate"
 
     def test_invasive_breast_ya0ln_problem_line(self):
-        # eps 1ecfb55618c2a6d2
+        # Ya0ln problem-line corpus
         text = "Major: Invasive carcinoma of breast (Ya0ln)"
         _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) == 1
@@ -713,7 +713,7 @@ class TestSilentBenignClosureProvenance:
 
 class TestSkinMelanomaInventory:
     """DI-LEO-AI-175: skin/melanoma vocabulary that was missing in the
-    2026-04-17 audit of patient 4921442355 (Lentigo maligna melanoma)."""
+    2026-04-17 audit of patient 9990003002 (Lentigo maligna melanoma)."""
 
     def test_xamea_in_fast_track(self):
         assert FAST_TRACK_REFERRAL_READ_CODES.get("XaMeA") == "melanoma"
@@ -870,7 +870,7 @@ class TestCancerFollowUpTemplate:
 # ---------------------------------------------------------------------------
 
 
-# The exact CKD encounter text from patient 4921442355 / 2024-11-18 that
+# The exact CKD encounter text from patient 9990003002 / 2024-11-18 that
 # triggered the silent benign closure of the parallel skin-cancer
 # episode. This is the regression fixture for R-LEO-AI-173.
 _HAROLD_CKD_TEXT = """\
@@ -1006,11 +1006,11 @@ class TestBenignPhraseScopeGuard:
 
 
 # ---------------------------------------------------------------------------
-# Regression: patient 4921442355 (Mr Harold Allwyn, Lentigo maligna melanoma)
+# Regression: skin lentigo maligna melanoma (CKD comorbidity context)
 # ---------------------------------------------------------------------------
 
 
-class TestRegressionHaroldAllwyn:
+class TestRegressionLentigoMalignaSkin:
     """End-to-end-ish regression for the 2026-04-17 audit case. We
     cannot reach into the full episode builder here without a Neo4j
     fixture, but we CAN verify that each post-referral encounter the

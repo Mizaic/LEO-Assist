@@ -1135,11 +1135,44 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
         The leaf is excluded (returns None) on any registry / unit
         error -- the parent rule will not be compiled, and the error
         is logged for the operator. Fail-closed by default.
+
+        Accepts two equivalent input shapes so the compiler can be
+        called both from the pipeline (flat) and from the API's
+        Pydantic LogicNode (nested under ``observation``):
+
+        Flat (pipeline, after ``_finalise_observations``)::
+
+            {"kind": "observation", "observable_id": ..., "operator": ...,
+             "value": ..., "unit": ..., "within_days": ..., ...}
+
+        Nested (API ``LogicNode.model_dump()``)::
+
+            {"kind": "OBSERVATION", "observation": {"observable_id": ...,
+             ...}}
         """
-        observation = dict(node.get("observation") or {})
+        nested = node.get("observation")
+        if isinstance(nested, dict) and nested:
+            observation = dict(nested)
+        else:
+            observation = {
+                k: node.get(k)
+                for k in (
+                    "observable_id",
+                    "observable_term",
+                    "operator",
+                    "value",
+                    "unit",
+                    "within_days",
+                    "temporal",
+                    "reference_range",
+                    "trend",
+                    "aggregation",
+                )
+                if node.get(k) is not None
+            }
         if not observation:
             logger.error(
-                "OBSERVATION leaf %r is missing the 'observation' payload "
+                "OBSERVATION leaf %r is missing its payload "
                 "-- rule will be excluded from compilation.",
                 node.get("node_id"),
             )

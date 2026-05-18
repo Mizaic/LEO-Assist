@@ -9,17 +9,12 @@ Atlas trace:
 from __future__ import annotations
 
 import logging
-import random
-import time
 from contextlib import contextmanager
 from typing import Any
 
-from neo4j import GraphDatabase
-from neo4j.exceptions import (
-    ConfigurationError,
-    ServiceUnavailable,
-    SessionExpired,
-    TransientError,
+from libs.neo4j_client.client import (
+    _get_or_create_driver,
+    run_with_retry as _shared_run_with_retry,
 )
 
 from app.config import get_settings
@@ -30,45 +25,25 @@ from app.models.neo4j_schema import (
 
 logger = logging.getLogger(__name__)
 
-_RETRYABLE_EXCEPTIONS = (ServiceUnavailable, SessionExpired, TransientError, OSError)
-_MAX_RETRIES = 4
-_BASE_DELAY = 1.0
-_MAX_DELAY = 15.0
-
 
 def run_with_retry(
     client: "_BaseClient",
     query: str,
     **params: Any,
 ) -> list[dict[str, Any]]:
-    """Execute a Cypher query with automatic retry on transient connection errors.
-
-    Opens a fresh session per attempt so stale connections are discarded.
-    """
-    last_exc: BaseException | None = None
-    for attempt in range(_MAX_RETRIES):
-        try:
-            with client.session() as s:
-                return [dict(r) for r in s.run(query, **params)]
-        except _RETRYABLE_EXCEPTIONS as exc:
-            last_exc = exc
-            if attempt == _MAX_RETRIES - 1:
-                raise
-            delay = min(_MAX_DELAY, _BASE_DELAY * (2**attempt)) + random.uniform(0, 0.5)
-            logger.warning(
-                "Neo4j transient error (attempt %d/%d): %s — retrying in %.1fs",
-                attempt + 1,
-                _MAX_RETRIES,
-                exc,
-                delay,
-            )
-            time.sleep(delay)
-    if last_exc is not None:
-        raise last_exc
-    raise RuntimeError("Neo4j request failed after retries")
+    """Re-export of the shared retry runner so existing imports keep working."""
+    return _shared_run_with_retry(client, query, **params)
 
 
 class _BaseClient:
+    """Thin wrapper that re-uses the process-wide Neo4j driver pool.
+
+    Constructing this class previously created a fresh ``GraphDatabase.driver``
+    -- and a full TLS handshake to Aura -- per FastAPI request. The driver is
+    designed to be a long-lived singleton, so we cache it in
+    :mod:`libs.neo4j_client.client` and resolve the cached driver here.
+    """
+
     def __init__(
         self,
         uri: str,
@@ -79,17 +54,18 @@ class _BaseClient:
     ) -> None:
         if not all([uri, username, password]):
             raise RuntimeError(f"Neo4j credentials missing for {uri or 'unknown'}")
-        try:
-            self._driver = GraphDatabase.driver(
-                uri,
-                auth=(username, password),
-                notifications_min_severity=notifications_min_severity,
-            )
-        except ConfigurationError:
-            self._driver = GraphDatabase.driver(uri, auth=(username, password))
+        self._driver = _get_or_create_driver(
+            uri,
+            username,
+            password,
+            notifications_min_severity=notifications_min_severity,
+        )
 
     def close(self) -> None:
-        self._driver.close()
+        # The shared driver pool is closed at interpreter exit. Keep this a
+        # no-op so legacy ``client.close()`` calls do not tear down the
+        # process-wide pool out from under concurrent callers.
+        return None
 
     @contextmanager
     def session(self):

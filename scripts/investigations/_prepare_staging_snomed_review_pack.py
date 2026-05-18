@@ -27,7 +27,7 @@ OUT = (
 
 OVERRIDES: dict[str, dict[str, Any]] = {
     "stage 3a": {
-        "recommended_concept_id": "1222802001",
+        "recommended_concept_id": "9990010006",
         "recommended_term": "American Joint Committee on Cancer stage IIIA (qualifier value)",
         "confidence": "medium",
         "note": "Generic surface form; use AJCC IIIA as oncology-safe default.",

@@ -15,7 +15,7 @@ load_keyvault_secrets()
 from libs.neo4j_client.client import PatientGraphClient
 
 CANDIDATES = {
-    "6142203497 - no mets (minor injuries, hip pain)": "984b01e4-67b4-4b8f-93ce-282e0273df81",
+    "9990010054 - no mets (minor injuries, hip pain)": "984b01e4-67b4-4b8f-93ce-282e0273df81",
 }
 
 client = PatientGraphClient()

@@ -10,6 +10,7 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { type NextRequest, NextResponse } from "next/server";
+import { serverFetch } from "@/lib/serverFetch";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export async function GET(
 
   let upstream: Response;
   try {
-    upstream = await fetch(
+    upstream = await serverFetch(
       `${CORE_API_BASE}/sbar/assessments/${encodeURIComponent(assessmentId)}`,
       { method: "GET", headers },
     );

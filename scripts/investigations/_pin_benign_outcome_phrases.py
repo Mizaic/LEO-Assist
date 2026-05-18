@@ -56,7 +56,7 @@ SESSION.headers.update(get_service_auth_header())
 # Only for use within an active cancer investigation pathway context.
 # ---------------------------------------------------------------------------
 _BENIGN_OUTCOME_PHRASES: list[tuple[str, str, str]] = [
-    # -- Haematology reassurance phrases (patient 4621680811) -----------------
+    # -- Haematology reassurance phrases (patient 9990010035) -----------------
     (
         "nil concerns raised about malignancy",
         "395100000",
@@ -77,7 +77,7 @@ _BENIGN_OUTCOME_PHRASES: list[tuple[str, str, str]] = [
         "395100000",
         "No evidence of cancer found (finding)",
     ),
-    # -- Primary-care MDT outcome letters (patient 4245139757) ----------------
+    # -- Primary-care MDT outcome letters (patient 9990010028) ----------------
     (
         "no evidence of malignancy found on investigations",
         "395100000",
@@ -133,7 +133,7 @@ _BENIGN_OUTCOME_PHRASES: list[tuple[str, str, str]] = [
         "395100000",
         "No evidence of cancer found (finding)",
     ),
-    # -- Biopsy / pathology negatives (patient 4983118659) --------------------
+    # -- Biopsy / pathology negatives (patient 9990010051) --------------------
     (
         "no dysplasia or malignancy",
         "395100000",
@@ -210,7 +210,7 @@ _BENIGN_OUTCOME_PHRASES: list[tuple[str, str, str]] = [
         "395100000",
         "No evidence of cancer found (finding)",
     ),
-    # -- Nursing/admin 2WW closure notes (patient 7343840665) -----------------
+    # -- Nursing/admin 2WW closure notes (patient 9990010074) -----------------
     (
         "was seen on 2ww, nad",
         "395100000",
@@ -226,13 +226,13 @@ _BENIGN_OUTCOME_PHRASES: list[tuple[str, str, str]] = [
         "395100000",
         "No evidence of cancer found (finding)",
     ),
-    # -- Benign pathology found (patient 6519337463) ---------------------------
+    # -- Benign pathology found (patient 9990010063) ---------------------------
     (
         "benign pathology found",
         "395100000",
         "No evidence of cancer found (finding)",
     ),
-    # -- US / imaging NAD in 2WW context (patients 7319972905, 4883794091) ----
+    # -- US / imaging NAD in 2WW context (patients 9990010069, 9990010047) ----
     (
         "us scan of neck - nad",
         "395100000",

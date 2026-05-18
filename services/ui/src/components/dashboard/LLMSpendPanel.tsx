@@ -229,8 +229,8 @@ export default function LLMSpendPanel({ orgId, from, to }: LLMSpendPanelProps) {
                   RECENT RUNS (showing {Math.min(runs.length, 50)} of {totals.runCount ?? runs.length})
                 </Typography>
                 <Box sx={{ maxHeight: 240, overflow: "auto" }}>
-                  {runs.slice(0, 50).map((run) => (
-                    <Stack key={run.runId} direction="row" alignItems="center" spacing={1}
+                  {runs.slice(0, 50).map((run, i) => (
+                    <Stack key={run.runId ?? `run-${i}`} direction="row" alignItems="center" spacing={1}
                       sx={{ py: 0.5, borderBottom: "1px solid", borderColor: "divider" }}>
                       <Chip size="small" label={run.status}
                         color={run.status === "completed" ? "success" : run.status === "error" ? "error" : "default"}

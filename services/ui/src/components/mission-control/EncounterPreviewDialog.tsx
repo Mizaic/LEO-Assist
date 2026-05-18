@@ -57,6 +57,8 @@ import {
   type GoldLabel,
 } from "@/components/gold-editor";
 import type { EncounterListItem } from "@/lib/missionControlApi";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskEncounterText, maskPatientId } from "@/lib/demoMode";
 import {
   HighlightedText,
   collectHighlightTerms,
@@ -87,8 +89,10 @@ function formatDateLong(dateStr: string | null): string {
 
 function MatchRationaleHeader({
   item,
+  isDemoMode,
 }: {
   item: EncounterListItem;
+  isDemoMode: boolean;
 }) {
   return (
     <Stack spacing={1} data-testid="encounter-preview-rationale">
@@ -98,7 +102,7 @@ function MatchRationaleHeader({
           component="span"
           sx={{ fontFamily: "monospace", fontSize: "0.8rem" }}
         >
-          {item.patient_id}
+          {isDemoMode ? maskPatientId(item.patient_id) : item.patient_id}
         </Box>
       </Typography>
       <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
@@ -122,7 +126,7 @@ function MatchRationaleHeader({
           variant={item.coded_count > 0 ? "filled" : "outlined"}
         />
       </Stack>
-      {!!item.match_rationale?.length && (
+      {!!item.match_rationale?.length && !isDemoMode && (
         <Box>
           <Typography
             variant="caption"
@@ -197,9 +201,13 @@ export default function EncounterPreviewDialog({
   searchQuery,
   onCodingChanged,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const highlightTerms = useMemo(
-    () => collectHighlightTerms(searchQuery, item?.match_rationale),
-    [searchQuery, item?.match_rationale],
+    () =>
+      isDemoMode
+        ? []
+        : collectHighlightTerms(searchQuery, item?.match_rationale),
+    [isDemoMode, searchQuery, item?.match_rationale],
   );
   // Edit-mode state: only set once the reviewer clicks "Edit codes".
   const [editLoading, setEditLoading] = useState(false);
@@ -277,7 +285,7 @@ export default function EncounterPreviewDialog({
         onAfterSave={() => {
           onCodingChanged?.();
         }}
-        headerChrome={<MatchRationaleHeader item={item} />}
+        headerChrome={<MatchRationaleHeader item={item} isDemoMode={isDemoMode} />}
       />
     );
   }
@@ -287,7 +295,7 @@ export default function EncounterPreviewDialog({
       <DialogTitle>Encounter detail</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
-          <MatchRationaleHeader item={item} />
+          <MatchRationaleHeader item={item} isDemoMode={isDemoMode} />
           <Divider flexItem />
           <Typography
             variant="caption"
@@ -296,7 +304,10 @@ export default function EncounterPreviewDialog({
           >
             Encounter text
           </Typography>
-          <EncounterTextBlock text={item.text} terms={highlightTerms} />
+          <EncounterTextBlock
+            text={isDemoMode ? maskEncounterText(item.text) : item.text}
+            terms={highlightTerms}
+          />
           {editError && (
             <Typography
               variant="body2"

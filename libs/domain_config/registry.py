@@ -233,7 +233,7 @@ NCDA_DOMAIN_CONFIGS: Dict[str, NCDADomain] = {
         name="stage_of_diagnosis",
         file="snomed_ncda_stage_of_diagnosis_mapping.json",
         description="Cancer stage at diagnosis including staging systems and stage findings used in cancer audit reporting.",
-        semantic_tags=["Clinical_finding", "Tumor_staging"],
+        semantic_tags=["Clinical_finding", "Tumor_staging", "Observable_entity", "Staging_scale"],
         milestone_type="diagnosis",
     ),
     "screening": NCDADomain(
@@ -251,8 +251,8 @@ NCDA_DOMAIN_CONFIGS: Dict[str, NCDADomain] = {
     "ethnicity": NCDADomain(
         name="ethnicity",
         file="snomed_ncda_ethnicity_mapping.json",
-        description="Ethnicity codes",
-        semantic_tags=["Ethnic_group"],
+        description="NCDA ethnicity categories mapped to SNOMED CT UK (England & Wales census findings)",
+        semantic_tags=["Clinical_finding", "Ethnic_group"],
     ),
     "housebound_status": NCDADomain(
         name="housebound_status",

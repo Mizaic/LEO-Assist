@@ -1,0 +1,3147 @@
+{
+  "summary": {
+    "2WW": {
+      "total_text_or_entity_matches": 95,
+      "with_relevant_entity": 65,
+      "text_only_or_unannotated": 30
+    },
+    "Seen in Fast Track": {
+      "total_text_or_entity_matches": 20,
+      "with_relevant_entity": 20,
+      "text_only_or_unannotated": 0
+    },
+    "Fast Track Referral": {
+      "total_text_or_entity_matches": 52,
+      "with_relevant_entity": 52,
+      "text_only_or_unannotated": 0
+    }
+  },
+  "items": {
+    "2WW": [
+      {
+        "label_id": "GL-e70b21dff7973a33",
+        "candidate_id": "1b435d0ab543c6532ee016ce4a9ac35ad4ffd5f8c9545301f7d29120c27b1f2d",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.241Z",
+        "text_preview": "07:52 - Surgery: Auto-filed Serum ferritin level (XE24r) 6 ng/ml [22 - 322] - Outside reference range Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: 2ww nss bloods.",
+        "relevant_entities": [
+          {
+            "text": "2ww nss bloods",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 192,
+            "end": 206
+          }
+        ]
+      },
+      {
+        "label_id": "GL-bc07e867c669d600",
+        "candidate_id": "686844fbe54dd100f783242736b818eab80530e5fa73ea6926b85692e016afb0",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.217Z",
+        "text_preview": "10:50 - Surgery: Auto-filed Serum ferritin level (XE24r) 236 ng/ml [22 - 322] Clinical Information: Reasons for Request: 2WW LGI.",
+        "relevant_entities": [
+          {
+            "text": "2WW LGI",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315274008",
+            "snomed_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "start": 128,
+            "end": 135
+          }
+        ]
+      },
+      {
+        "label_id": "GL-0ff90ed253722573",
+        "candidate_id": "018b6a73d074e5944751526fb4674cbf7ec4225b168e796046dafb1ace3c7d91",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.192Z",
+        "text_preview": "Red blood cell count (426..) 3.68 10^12/L [3.9 - 6.5] - Outside reference range Haemoglobin concentration (Xa96v) 115 g/L [130 - 180] - Outside reference range Haematocrit (X76tb) 0.356 [0.4 - 0.54] - Outside reference range Mean cell volume (42A..) 97 fL [80 - 99] Mean cell haemoglobin level (XE2pb) 31.2 pg [27 - 32] Platelet count - observation (42P..) 206 10^9/L [140 - 400] Neutrophil count (42J..) 5.55 10^9/L [1.5 - 7.5] Monocyte count - observation (42N..) 0.3 10^9/L [0.2 - 0.8] Full blood count (424..) Total white blood count (XaIdY) 7.4 10^9/L [4 - 11] Clinical Information: Reasons for Request: 2WW LGI.",
+        "relevant_entities": [
+          {
+            "text": "2WW LGI",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315274008",
+            "snomed_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "start": 615,
+            "end": 622
+          }
+        ]
+      },
+      {
+        "label_id": "GL-192260ce998c02af",
+        "candidate_id": "6b577f6427cb3a0356dde3db5f4eeae8be12f54459ac476c870f28631415e067",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.167Z",
+        "text_preview": "07:52 - Surgery: Auto-filed Serum total protein level (XE2e9) 75 g/L [57 - 82] Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: 2ww nss bloods.",
+        "relevant_entities": [
+          {
+            "text": "2ww nss bloods",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 169,
+            "end": 183
+          }
+        ]
+      },
+      {
+        "label_id": "GL-3842cbb680941c72",
+        "candidate_id": "4a0b8a6c79490c7ed6d8b4b06d4e144a4901d04733953215292bcdfee8449e81",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.145Z",
+        "text_preview": "07:52 - Surgery: Auto-filed Plasma C-reactive protein level (XE2dy) < 5 mg/L [< 10] Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: 2ww nss bloods.",
+        "relevant_entities": [
+          {
+            "text": "2ww nss bloods",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 174,
+            "end": 188
+          }
+        ]
+      },
+      {
+        "label_id": "GL-699f80e0d358f2e7",
+        "candidate_id": "b62e46b14a207d4fc9770ae9127ad8ff07aec5a349f65eba940c13e7687a16b6",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.113Z",
+        "text_preview": "07:52 - Surgery: Auto-filed Haemoglobin A1c level (X772q) 8.1 % [4 - 5.9] - Outside reference range Clinical Information: Clinical Details: Not on Thyroid Tx Reasons for Request: 2ww nss bloods.",
+        "relevant_entities": [
+          {
+            "text": "2ww nss bloods",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 190,
+            "end": 204
+          }
+        ]
+      },
+      {
+        "label_id": "GL-124ec37489a265c6",
+        "candidate_id": "f93c4f429e4d8c8cccec5ecd88aefbff9e4288866a549eb965f245026ea64515",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.089Z",
+        "text_preview": "11:22 - Surgery: Auto-filed Serum ferritin level (XE24r) 19 ng/ml [22 - 322] Outside reference range; Please note change to method-specific reference range from 16th April 2024 Clinical Information: Reasons for Request: for Lower GI 2ww referral.",
+        "relevant_entities": [
+          {
+            "text": "for Lower GI 2ww referral",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315274008",
+            "snomed_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "start": 227,
+            "end": 252
+          }
+        ]
+      },
+      {
+        "label_id": "GL-404571329b7c805c",
+        "candidate_id": "09bf60090b444f3a9749f3f2700be2dd4b3c3736b3fb5a0fc6a276e3631ea335",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T09:09:34.034Z",
+        "text_preview": "12:46 - Surgery: Auto-filed Serum total protein level (XE2e9) 66 g/L [57 - 82] Clinical Information: Reasons for Request: Urology 2ww for hard prostate.",
+        "relevant_entities": [
+          {
+            "text": "Urology 2ww for hard prostate",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315268008",
+            "snomed_term": "Malignant neoplasm of prostate suspected (situation)",
+            "start": 129,
+            "end": 158
+          }
+        ]
+      },
+      {
+        "label_id": "manual-dbc9914a6015491f8394b9496972e8dd",
+        "candidate_id": "fa53674a326e632bc7ecaf323d50121952b01dcd803952bdec0d6a7c9677ebe9",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T09:09:33.971Z",
+        "text_preview": "11:18 - Surgery: Auto-filed Serum urea level (XM0lt) 5.8 mmol/L [2.5 - 7.8] Serum creatinine level (XE2q5) 88 umol/L [60 - 120] eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 74 mL/min Urine ACR should be checked on at least an annual basis for all individuals with CKD. NICE recommends the Kidney failure Risk Equation www.kfre.co.uk to predict the risk of endstage kidney disease in CKD stages 3a to 5. KFRE is not valid in the presence of acute kidney injury. Urea and electrolytes (X77Wi) Serum sodium level (XE2q0) 140 mmol/L [133 - 146] Serum potassium level (XE2pz) 4.2 mmol/L [3.5 - 5.3] Clinical Information: Reasons for Request: 2ww bloods. Urea and electrolytes Report,ï¿½Normal,ï¿½No Further Action (Patient Informed). Review done by [PERSON] - [DATE] 08:31",
+        "relevant_entities": [
+          {
+            "text": "2ww bloods",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 664,
+            "end": 674
+          }
+        ]
+      },
+      {
+        "label_id": "GL-270fc245ecd3f2b9",
+        "candidate_id": "3a8b2fa0166862a4a50489ce726ce638257f781cba9d998318315fc1ba858bcd",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T08:42:14.601Z",
+        "text_preview": "11:26 - Surgery: Auto-filed Serum ferritin level (XE24r) 19 ng/ml [22 - 322] - Outside reference range Serum ferritin level Report,ï¿½Satisfactory,ï¿½Need to speak to doctor: improved Hb post iron- note 2ww pathway - routine GP app to form plan ongoing re: iron replacement pls (Patient Informed).",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-7fa111d2c1424ac484fde1210d0e4c5e",
+        "candidate_id": "ba13c2acaa0b37d6f6e9e139db71c4cf9a5ebe4ef33f26c5bb9383a314edb523",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T08:42:07.861Z",
+        "text_preview": "12:06 - Surgery: Auto-filed Prostate-specific antigen level (XE25C) 12 ng/ml [0 - 6.5] Outside reference range; PSA values are typically elevated following UTI: Please perform repeat PSA testing approximately 4-6 weeks after treatment. If the PSA value remains elevated above the age specific threshold, refer as a 2WW (Please note that referrals made at the time of UTI will be rejected). For men taking 5-alpha reductase inhibitors e.g. finasteride, dutasteride: The blood PSA value should be doubled to give an approximation of the true serum PSA value. In men with significant co-morbidities, performance status >3 or life expectancy <10 years: Please involve patient & family/carers in discussion regarding the appropriateness of referral. Clinical Information: Reasons for Request: high psa rep",
+        "relevant_entities": [
+          {
+            "text": "repeat psa high will need 2ww",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315268008",
+            "snomed_term": "Malignant neoplasm of prostate suspected (situation)",
+            "start": 924,
+            "end": 953
+          }
+        ]
+      },
+      {
+        "label_id": "manual-9ad9e6c56c154b16965fcdb163011fb5",
+        "candidate_id": "f037adce2ec47db3d76a064d2bff0601aa8d3564b9f263b4ff2f433c243fbc30",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T08:42:07.833Z",
+        "text_preview": "08:58 - Surgery: Auto-filed Prostate-specific antigen level (XE25C) 12 ng/ml [0 - 6.5] Outside reference range; PSA values are typically elevated following UTI: Please perform repeat PSA testing approximately 4-6 weeks after treatment. If the PSA value remains elevated above the age specific threshold, refer as a 2WW (Please note that referrals made at the time of UTI will be rejected). For men taking 5-alpha reductase inhibitors e.g. finasteride, dutasteride: The blood PSA value should be doubled to give an approximation of the true serum PSA value. In men with significant co-morbidities, performance status >3 or life expectancy <10 years: Please involve patient & family/carers in discussion regarding the appropriateness of referral. Clinical Information: Reasons for Request: ?BPH. Prosta",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-d17c3e07dfa942f69bd57278a39d55dd",
+        "candidate_id": "cdd45185fe8047887c98fa1aef62d6e4fef3bbfb350f49994c328b97a91122b1",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T08:42:07.703Z",
+        "text_preview": "09:12 - Surgery: Auto-filed Prostate-specific antigen level (XE25C) 129 ng/ml [0 - 6.5] Outside reference range; PSA values are typically elevated following UTI: Please perform repeat PSA testing approximately 4-6 weeks after treatment. If the PSA value remains elevated above the age specific threshold, refer as a 2WW (Please note that referrals made at the time of UTI will be rejected). For men taking 5-alpha reductase inhibitors e.g. finasteride, dutasteride: The blood PSA value should be doubled to give an approximation of the true serum PSA value. In men with significant co-morbidities, performance status >3 or life expectancy <10 years: Please involve patient & family/carers in discussion regarding the appropriateness of referral. Clinical Information: Reasons for Request: Severe L gr",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-cec4f14fa6415990",
+        "candidate_id": "TC-cec4f14fa6415990",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.922Z",
+        "text_preview": "Acid reflux for 3 months, worse at night, relieved partially by Gaviscon. Also dysphagia to solids over the past 4 weeks, getting worse. Weight loss 4 kg. 58M, ex-smoker. Upper GI 2WW - query oesophageal malignancy.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-aa1dbc713d4113c2",
+        "candidate_id": "TC-aa1dbc713d4113c2",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.902Z",
+        "text_preview": "22M presenting with painless right testicular swelling over the past 4 weeks. Heaviness in the scrotum. No fever. Examination: firm, irregular right testicular mass. USS testis: solid heterogeneous mass 3 cm. AFP and beta-hCG tumour markers requested. Urgent urology 2WW - query testicular malignancy.",
+        "relevant_entities": [
+          {
+            "text": "Urgent urology 2WW",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "planned",
+            "snomed_concept_id": "397657005",
+            "snomed_term": "Malignant neoplasm of urinary system suspected (situation)",
+            "start": 252,
+            "end": 270
+          }
+        ]
+      },
+      {
+        "label_id": "GL-62386db98319549e",
+        "candidate_id": "TC-62386db98319549e",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.879Z",
+        "text_preview": "65M smoker with recurrent chest infections over past 6 months. Now presenting with haemoptysis - small amounts of blood-stained sputum. CXR: right hilar mass. Chest clinic 2WW - urgent CT thorax planned.",
+        "relevant_entities": [
+          {
+            "text": "Chest clinic 2WW",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162573006",
+            "snomed_term": "Malignant neoplasm of lung suspected (situation)",
+            "start": 159,
+            "end": 175
+          }
+        ]
+      },
+      {
+        "label_id": "GL-cd1e4dc9efd48417",
+        "candidate_id": "TC-cd1e4dc9efd48417",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.857Z",
+        "text_preview": "48F notices nipple inversion on the right breast over the past 6 weeks. Also reports blood-stained nipple discharge. No discrete lump palpable but skin tethering present. 2WW breast referral - query Paget disease or carcinoma.",
+        "relevant_entities": [
+          {
+            "text": "2WW breast referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 171,
+            "end": 190
+          },
+          {
+            "text": "2WW breast referral",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)",
+            "start": 171,
+            "end": 190
+          }
+        ]
+      },
+      {
+        "label_id": "GL-1e3786427c204b88",
+        "candidate_id": "TC-1e3786427c204b88",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.812Z",
+        "text_preview": "28M with cervical lymphadenopathy for 10 weeks. Reports pain in the lymph nodes when drinking alcohol - classical symptom. Night sweats and pruritus. No fever. Urgent haematology 2WW - query Hodgkin lymphoma.",
+        "relevant_entities": [
+          {
+            "text": "Urgent haematology 2WW",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315275009",
+            "snomed_term": "Hematological malignancy suspected (situation)",
+            "start": 160,
+            "end": 182
+          }
+        ]
+      },
+      {
+        "label_id": "GL-a2c81a71f2518390",
+        "candidate_id": "TC-a2c81a71f2518390",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.791Z",
+        "text_preview": "Penile lesion present for 8 weeks. Painless, firm mass on the glans. Not responding to topical antifungal. Inguinal lymphadenopathy palpable bilaterally. 2WW urology referral - query penile carcinoma.",
+        "relevant_entities": [
+          {
+            "text": "2WW urology referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 154,
+            "end": 174
+          },
+          {
+            "text": "2WW urology referral",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397657005",
+            "snomed_term": "Malignant neoplasm of urinary system suspected (situation)",
+            "start": 154,
+            "end": 174
+          }
+        ]
+      },
+      {
+        "label_id": "GL-3eff7599524a8860",
+        "candidate_id": "TC-3eff7599524a8860",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.771Z",
+        "text_preview": "68M presenting with 3 months of erectile dysfunction and visible haematuria. No dysuria. No loin pain. CT urogram: bladder mass 3 cm, no upper tract abnormality. Referred to urology 2WW.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-572995a3b9a736ac",
+        "candidate_id": "TC-572995a3b9a736ac",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.749Z",
+        "text_preview": "62M presenting with a changing skin lesion on the back. Noticed 6 months ago. Now larger, irregular border, mixed pigmentation. Diameter approximately 12 mm. No satellite lesions. One firm inguinal lymph node palpable. Urgent dermatology 2WW - query melanoma.",
+        "relevant_entities": [
+          {
+            "text": "dermatology 2WW - query melanoma",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276281000000104",
+            "snomed_term": "Fast track referral for suspected skin cancer (procedure)",
+            "start": 226,
+            "end": 258
+          },
+          {
+            "text": "dermatology 2WW - query melanoma",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315276005",
+            "snomed_term": "Malignant neoplasm of skin suspected (situation)",
+            "start": 226,
+            "end": 258
+          }
+        ]
+      },
+      {
+        "label_id": "GL-2b76f3943a809b09",
+        "candidate_id": "TC-2b76f3943a809b09",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.664Z",
+        "text_preview": "6-week history of a lump on the left side of the neck. Not painful. Slowly increasing in size. Night sweats and weight loss. Examination: firm, non-tender neck mass 2 cm. Referred 2WW head and neck.",
+        "relevant_entities": [
+          {
+            "text": "2WW head and neck",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 180,
+            "end": 197
+          },
+          {
+            "text": "2WW head and neck",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315277001",
+            "snomed_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+            "start": 180,
+            "end": 197
+          }
+        ]
+      },
+      {
+        "label_id": "GL-a197f1e86322b4fc",
+        "candidate_id": "TC-a197f1e86322b4fc",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.638Z",
+        "text_preview": "4-week history of a lump on the lower lip. Initially a small ulcer, now a firm raised lesion. Outdoor worker, high sun exposure. No pain. Examination: indurated, irregular mass of the lower lip, 1 cm. 2WW head and neck - query squamous cell carcinoma of lip.",
+        "relevant_entities": [
+          {
+            "text": "2WW head and neck",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 201,
+            "end": 218
+          },
+          {
+            "text": "2WW head and neck",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315277001",
+            "snomed_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+            "start": 201,
+            "end": 218
+          }
+        ]
+      },
+      {
+        "label_id": "GL-2cee2525b704e5d4",
+        "candidate_id": "TC-2cee2525b704e5d4",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.615Z",
+        "text_preview": "3-week history of a lump inside the mouth on the left buccal mucosa. Not painful initially, now ulcerated and bleeds on contact. Smoker, 40 pack years. Heavy alcohol use. Examination: firm 1.5 cm mass of buccal mucosa. 2WW head and neck referral.",
+        "relevant_entities": [
+          {
+            "text": "2WW head and neck referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 219,
+            "end": 245
+          },
+          {
+            "text": "2WW head and neck referral",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315277001",
+            "snomed_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+            "start": 219,
+            "end": 245
+          }
+        ]
+      },
+      {
+        "label_id": "GL-43e9048611a377f3",
+        "candidate_id": "TC-43e9048611a377f3",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.593Z",
+        "text_preview": "Postmenopausal woman presenting with vaginal ulceration. Painful lesion on anterior vaginal wall for 3 weeks. No HRT. No vaginal discharge. Examination under colposcopy: irregular vaginal ulcer, biopsy taken. 2WW gynaecology - vaginal malignancy suspected.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-7d415d6d1f7345f8",
+        "candidate_id": "TC-7d415d6d1f7345f8",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.551Z",
+        "text_preview": "Examination: patient looks pale, conjunctival pallor noted. Haemoglobin 78 g/L - outside reference range. Reports tiredness for 4 months, some weight loss, dysphagia to solids. Upper GI 2WW referral raised.",
+        "relevant_entities": [
+          {
+            "text": "Upper GI 2WW referral raised",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 177,
+            "end": 205
+          },
+          {
+            "text": "Upper GI 2WW",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315273002",
+            "snomed_term": "Malignant neoplasm of upper gastrointestinal tract suspected (situation)",
+            "start": 177,
+            "end": 189
+          }
+        ]
+      },
+      {
+        "label_id": "GL-0aa73595e3222bd8",
+        "candidate_id": "TC-0aa73595e3222bd8",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.506Z",
+        "text_preview": "72M presenting with haematemesis - two episodes of vomiting fresh blood today. Background of alcohol excess and known varices. PR: no melaena. Pallor and tachycardia on examination. Referred acutely to hospital. Upper GI 2WW also raised.",
+        "relevant_entities": [
+          {
+            "text": "Upper GI 2WW",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315273002",
+            "snomed_term": "Malignant neoplasm of upper gastrointestinal tract suspected (situation)",
+            "start": 212,
+            "end": 224
+          },
+          {
+            "text": "Upper GI 2WW",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 212,
+            "end": 224
+          }
+        ]
+      },
+      {
+        "label_id": "GL-2284be527e8a402f",
+        "candidate_id": "TC-2284be527e8a402f",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.465Z",
+        "text_preview": "Presenting with anal mass noticed 3 weeks ago. Not painful. Associated itch. Examination: firm mass at anal margin, irregular surface. Referred urgently via 2WW lower GI pathway. FIT requested.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-02ecc3e241d2bb80",
+        "candidate_id": "TC-02ecc3e241d2bb80",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.442Z",
+        "text_preview": "DRE with consent - rectal mass palpable at 4 cm from anal margin, hard, irregular, not mobile. Fresh blood on glove. Referred via 2WW lower GI pathway. FIT test >200. Change in bowel habit over 6 weeks.",
+        "relevant_entities": [
+          {
+            "text": "2WW lower GI pathway",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315274008",
+            "snomed_term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+            "start": 130,
+            "end": 150
+          }
+        ]
+      },
+      {
+        "label_id": "GL-d98a2a677b2c5ff9",
+        "candidate_id": "TC-d98a2a677b2c5ff9",
+        "source": "encounter_d3286fd1",
+        "updated_at": "2026-04-25T07:58:48.312Z",
+        "text_preview": "Feeling weak and tired all the time. Spontaneous bruising. Bones ache. Night sweats - drenching, ongoing for 6 months. Loss of appetite. No weight loss. Needs face-to-face for abdominal exam and check for hepatosplenomegaly and lymph nodes. Query 2WW lymphoma pathway.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-bf1ae4e43365c1de",
+        "candidate_id": "TC-bf1ae4e43365c1de",
+        "source": "encounter_5c4a9ce1",
+        "updated_at": "2026-04-25T07:58:48.251Z",
+        "text_preview": "63F with abnormal FIT test (91.2) and persistently raised platelet count. Epigastric tenderness, intermittent, feels full. Mostly constipated. Increasing fatigue when walking. Current smoker 15 per day. 2WW referral to bowel cancer screening programme.",
+        "relevant_entities": [
+          {
+            "text": "2WW referral to bowel cancer",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "868252007",
+            "snomed_term": "Malignant neoplasm of gastrointestinal tract suspected (situation)",
+            "start": 203,
+            "end": 231
+          },
+          {
+            "text": "2WW referral to bowel cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "892201000000106",
+            "snomed_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+            "start": 203,
+            "end": 231
+          }
+        ]
+      },
+      {
+        "label_id": "GL-84f390facb559142",
+        "candidate_id": "TC-84f390facb559142",
+        "source": "encounter_2e4f9efa",
+        "updated_at": "2026-04-25T07:58:48.206Z",
+        "text_preview": "White patch with ulcer on right side of tongue for 6-8 weeks. Not painful, not bleeding. Smoker 25-30 per day for 30 years. Heavy alcohol use. Abdominal exam: palpable spleen, no other masses. DRE: large haemorrhoid visible, multiple internal piles palpable, no rectal masses. Referred to head and neck 2WW.",
+        "relevant_entities": [
+          {
+            "text": "Referred to head and neck 2WW",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315277001",
+            "snomed_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+            "start": 277,
+            "end": 306
+          }
+        ]
+      },
+      {
+        "label_id": "GL-5980bcbee6e89595",
+        "candidate_id": "TC-5980bcbee6e89595",
+        "source": "encounter_91384838",
+        "updated_at": "2026-04-25T07:58:48.18Z",
+        "text_preview": "Menopausal for 8-9 years. One episode of spotting over 2 days. Period-like cramping abdominal pain. No HRT. Examination: whitening of anterior vulva with eschar and ulcer at clitoral hood. Cervix NAD. No obvious masses. Plan: 2WW gynaecology - vulva and endometrium pathways.",
+        "relevant_entities": [
+          {
+            "text": "2WW gynaecology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 226,
+            "end": 241
+          }
+        ]
+      },
+      {
+        "label_id": "GL-c2e14174a77c8a67",
+        "candidate_id": "TC-c2e14174a77c8a67",
+        "source": "encounter_4c190ee8",
+        "updated_at": "2026-04-25T07:58:48.065Z",
+        "text_preview": "Nocturia x2-3. Poor stream. Dribbling. Urgency and failed voiding. No weight loss. DRE with consent - prostate significantly enlarged, smooth and symmetrical, but hard and with minimal sulcus. Plan: 2WW urology in view of hard prostate.",
+        "relevant_entities": [
+          {
+            "text": "2WW urology",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397657005",
+            "snomed_term": "Malignant neoplasm of urinary system suspected (situation)",
+            "start": 199,
+            "end": 210
+          }
+        ]
+      },
+      {
+        "label_id": "GL-9cb97992f4a9a26d",
+        "candidate_id": "3e521b12a9571696e626b101304c20951fa9744147530135891bc84ebf1faab2",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T07:58:41.067Z",
+        "text_preview": "15:21 - Surgery: Auto-filed Quantitative faecal immunochemical test (Xaf0H) 130 ug/g Assay performed by:- Bowel Cancer Screening Programme Eastern Hub, Queen's Medical Centre, Nottingham. >=10 Refer via 2WW LGI Pathway.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-24f6a58c57b6f287",
+        "candidate_id": "ab5bb524f487752b918c38449614f645e4771006fe7da6d9bca75dce33479c53",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T07:58:36.469Z",
+        "text_preview": "Temperature (X75Xk) 36.4 C Respiratory rate (X774f) 16 breath/min Pulse rate (X773s) 69 bpm Pulse regular (XM02J) Plan (XaIVg) Assessment: - Unintentional wt loss >10% with upper GI symptoms - Meets criteria for urgent 2WW upper GI",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "GL-09051e2c0f146210",
+        "candidate_id": "ad594b40deabcf652f5ca02c4a17a1e9189ed89078d36aaf12e31afeb21b38ae",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-25T07:58:21.387Z",
+        "text_preview": "Respiratory rate (X774f) 16 breath/min Oxygen saturation at periphery (X770D) 99 % Capillary refill time (XSFup) < 2 Seconds Pulse rate (X773s) 98 bpm Pulse regular (XM02J) Plan (XaIVg) - 2ww children pathway ?cause of sx.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-c420f72edc2e4c3894586cf43a4576fd",
+        "candidate_id": "4f3d7482c883ede615f922582e846813133089b5e20c9a4a72349740c994c064",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.346Z",
+        "text_preview": "15:12 - Surgery: [PERSON] (Clinical Practitioner Access Role) Problem: Pain of breast (Xa4in) History: see prev breast FHx maternal side matenal great aunt ca breast, and x2 of her children subsequently died of this, maternal grandmother ca endometrium mum and remainder of 1st and second deg relatives no hx note awaiting genetics teams screening stopped breast feeding in march did ok initially then since sept 24 bilateral breast pain daily worse premenstrually and over menstrual phase of cycle note her own health anxiety so remains unconfident re: self exam and ? lump - feels L axilla ? lump nil tried inc NSAIDs so far, but reports discomfort \"too much\" and worried Outbound referral (XaY59) Examination: nil lumps palp breast bilaterally - soreness felt lateral aspect L breast sore fullness",
+        "relevant_entities": [
+          {
+            "text": "2WW Breast Female",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)"
+          }
+        ]
+      },
+      {
+        "label_id": "manual-73762860cce440b08e1719ea7f80e87b",
+        "candidate_id": "38f33876e09316b13fea5be8fa0811c0a334477396a717433113e4d6e4181321",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.322Z",
+        "text_preview": "09:49 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) [DATE] Summary Care Record Update",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": "Seen in fast track suspected breast cancer clinic (finding)",
+            "start": 62,
+            "end": 140
+          }
+        ]
+      },
+      {
+        "label_id": "manual-318da13fa04a45b58355893a46f3c916",
+        "candidate_id": "e0895121bc2188fd5be797343f7c2478ae25f6fefebbfb481f41a696e42384bb",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.257Z",
+        "text_preview": "15:30 - Surgery: [PERSON] Fast track referral for suspected breast cancer (XaMeC) Choice and booking enhanced services administration (XaMJa) 2WW Patient awaiting OPD appt.: Yes 2ww [LOCATION] Hospital Fast track referral for suspected breast cancer 2WW Breast Female PRISM to [LOCATION] Hospital Fast track referral for suspected breast cancer updated: Waiting For Information Patient awaiting OPD appt. (9R52.) - 2ww Breast",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-03418b86023345fdaf539467029dc6e0",
+        "candidate_id": "66d3d10ec89e710c1a75fa7edba7fbfd4518c7d281261a93d2095d11ed35bb75",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.236Z",
+        "text_preview": "14:49 - Surgery: [PERSON] (Clinical Practitioner Access Role) - PRISM 2WW Breast Female - questionnaire started - (finalised: [DATE] 14:49) Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire) Consultation. General Encounter: Consultation (Xa1qL) H: - Reports a lump in the breast, initially noticed some time ago. This was previously mentioned to a nurse during early pregnancy, who suggested it might be related to breast changes. Was advised to follow up with a doctor but did not due to being busy. The lump was mentioned again to a midwife in hospital after giving birth on [DATE], due to concerns it might be a blocked milk duct and affecting milk production in that breast. The midwife advised that a blocked duct should have resolved with massage and a pump, a",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Breast Female",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 65,
+            "end": 88
+          },
+          {
+            "text": "PRISM 2WW Breast Female",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)",
+            "start": 65,
+            "end": 88
+          }
+        ]
+      },
+      {
+        "label_id": "manual-5998e5e9b98f40dfa980f233bc5c727f",
+        "candidate_id": "1d345c2e555be4b5f97eee94a872670024d0a04f913a905fb00fc4787f68fdfa",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.215Z",
+        "text_preview": "13:09 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: duty admin - task, hospital team (just delivered baby) was reported by the pt to be doing a 2ww, nothing on d/c paperwork to reflect this. breast lump, limited info on task trail to clarify this further, needs exam. for prebookable apt within 1w released and task sent back to reception.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-d61882402b3a4ec186d7281e309601a8",
+        "candidate_id": "099ccdf1d61d237aad5b5a8df5a5ae2ee0e075ff5fed5b0f7de26b092124e3e2",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.149Z",
+        "text_preview": "09:45 - Surgery: [PERSON] (Nurse Access Role) 120 / 80 Consultation. General Encounter: Consultation (Xa1qL) H: Subjective: - Pt c/o bloating, loose watery stools, bright red blood in stool, and mucus when passing gas. Symptoms began 2 weeks ago, specifically the day before Father's Day when pt felt sudden onset while out for dinner. Initially experienced watery diarrhoea with urgency. - Loose watery stools occurring multiple times daily with urgency. Blood present in 90% of bowel movements, sometimes bright red. - Reports constant bloating and abdominal discomfort. Describes abdominal gurgling and bubbling sensation not associated with normal hunger. - Previous similar episode occurred within last 2 years but resolved spontaneously. - No appetite since symptoms began. Denies vomiting but ",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-326b67633ed74c5d9afad475f9821428",
+        "candidate_id": "fd84b311fee06133641d2789f1f57c3c025e8678fb488da0eb45f57ce674ef74",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.688Z",
+        "text_preview": "10:06 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382841000000109",
+            "snomed_term": "Seen in fast track suspected urological cancer clinic (finding)",
+            "start": 62,
+            "end": 144
+          }
+        ]
+      },
+      {
+        "label_id": "manual-d54203747c204143a53e93ff0afd0e0f",
+        "candidate_id": "543425d86d9f1f56e183062ed621e935bc9b0779894eb7f62035e0ef3000e427",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.536Z",
+        "text_preview": "11:04 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: Telephone triage encounter (XaIvd) duty doctor review of paths repeat PSA 12 prev seen by me 13.06 and 04.07 had enlarged prostate reports qworsening BOO sx- poor streem, heistsncy and frequency denies dysuria, fever , urgency or hematuria no weight loss no night sweats reports backache for week unsure if pulled a muscle or not Outbound referral (XaY59) Diagnosis: [D] Raised prostatic specific antigen (XaC0j)Benign prostatic hyperplasia (XE0e6) PRISM 2WW Urology Pathway Accessed Plan: explained raised PSA may suggest prostate malig thus 2ww uro referral wararnted has obvious BOO sx+ enlarged prostate , offered tamsulosin for sx relief- happy to try this after we discussed main side effect- postural hypotension safety nt",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)"
+          },
+          {
+            "text": "PRISM 2WW Urology",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397657005",
+            "snomed_term": "Malignant neoplasm of urinary system suspected (situation)"
+          }
+        ]
+      },
+      {
+        "label_id": "manual-a4492241dbe64677b0c12ed46590e17c",
+        "candidate_id": "dc7cba0f415218b59e5413e5904924d3ce56471a4101e0eb1fbce6d9a706dd4e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.491Z",
+        "text_preview": "10:39 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: Telephone triage encounter (XaIvd) duty doctor review of path PSA high 12 prev seen by me on 13.06 with LUTS and suspected BPH explained PSA high which may suggest BPH but eqaully Ca will need ruling out confirmed that at time of test had not had sexual intercourse/vigorous exercise and UTI sx denies B sx of malig only reports poor stream and post mic dribbling as before Diagnosis: Prostate-specific antigen level (XE25C) Plan: discussed options agreed 2ww would be prudent r/o ca- explained timelines and expected mx by uro i later checked referral criteria-would need repeat if level less than 20 i called the patient to explain that repeat will be warranted before considering urgent uro referral I will task reception to g",
+        "relevant_entities": [
+          {
+            "text": "2ww would be prudent r/o ca- explained timelines and expected mx by uro",
+            "label": "regime_therapy",
+            "semantic_tag": "regime_therapy",
+            "assertion": "present",
+            "snomed_concept_id": "1239431000000107",
+            "snomed_term": "Cancer safety netting (regime/therapy)",
+            "start": 528,
+            "end": 599
+          }
+        ]
+      },
+      {
+        "label_id": "manual-54b09dd1520e449b83c5dc771b2cd7fa",
+        "candidate_id": "de86520a9435365809f8082043d664e2054757455e8240a47489f1b35f22d14b",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.422Z",
+        "text_preview": "14:34 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": "Seen in fast track suspected breast cancer clinic (finding)",
+            "start": 62,
+            "end": 140
+          }
+        ]
+      },
+      {
+        "label_id": "manual-cde14c551dd840a48ccdec971467ab8a",
+        "candidate_id": "229ad28c949263cbf329202cd55a7189b904641ef98a7665f233a9af4150e1cc",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.401Z",
+        "text_preview": "14:30 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected upper GI cancer clinic (XaPyj) [DATE] Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected upper GI cancer clinic (XaPyj)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382811000000108",
+            "snomed_term": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)",
+            "start": 62,
+            "end": 142
+          }
+        ]
+      },
+      {
+        "label_id": "manual-cdb6b2ed99224990838ced0dd04eeb12",
+        "candidate_id": "751d7b0ca6d3ba7e647b40a43333a8dbda1670c7aeaeb88c301bd0735db59a0f",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.539Z",
+        "text_preview": "18:14 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: Duty doctor f2f review.... Noticed lump 2 weeks ago left side of breast. Not painful. Noticed by chance. Does not check breasts regularly. No FH of breast cancer. Feels well in self. Outbound referral (XaY59) Examination: Alert. Appears well. Consented for breast exam. Chaperoned by staff member Kisty Ingle... Breast symmetrical. No abnormallity on inspection. No redness or nipple abnormalities. Firm lump left side breast noted. Diagnosis: 2WW Breast Female Referral Pathway/[LOCATION] Clinic accessed Plan: Refer 2ww breast. Advised to call surgery back if not heard anything by 2-3 weeks. - PRISM 2WW Breast Female - questionnaire started - (finalised: [DATE] 18:14) Fast track referral for suspected breast cancer (XaMeC) ",
+        "relevant_entities": [
+          {
+            "text": "2ww breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)"
+          },
+          {
+            "text": "2ww breast",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)"
+          }
+        ]
+      },
+      {
+        "label_id": "manual-6258306f34c54fb78403088a78ad825d",
+        "candidate_id": "62aaf1f7eb3cee9bf2795e1496fd6d9d4f0564a2f55bd55fa01c5200050c80dd",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.519Z",
+        "text_preview": "17:44 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: On call Duty id confirmed noted left breast lump for last few weeks - not painful - no skin changes - no bleed or discharge from nipple feels ok herself - no night fever or night sweat - at night during last few days with hot weather feels more sweaty Mum had skin cancer before at breast - no other family history smoker ICE :mammogram Plan: advised to attend for F2F for examination - PRISM 2WW Breast Female - questionnaire started PRISM Pathway & Referral Impl SysteM V3 2WW - PRISM 2WW Breast Female - questionnaire started",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-c13fc978d00548f581bcdcf871561fda",
+        "candidate_id": "b2ea007dc8036642de1e48d23e18157bdb8b24a1ba0f1a90cc77dd090f0371e1",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.499Z",
+        "text_preview": "14:42 - Surgery: [PERSON] Fast track referral for suspected upper GI cancer (XaMeJ) Choice and booking enhanced services administration (XaMJa) 2WW Patient awaiting OPD appt.: Yes 2ww [LOCATION] Hospital Fast track referral for suspected upper GI cancer 2WW Upper GI PRISM to [LOCATION] Hospital Fast track referral for suspected upper GI cancer updated: Waiting For Information Patient awaiting OPD appt. (9R52.) - 2ww Upper GI",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-dc79b7d2102f487ab19af92d93ce6bbc",
+        "candidate_id": "4152eda67b74826ca3f3b10a820d16879b42ab0af061b4d20d635d84ebfd7bc8",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.479Z",
+        "text_preview": "12:43 - Surgery: [PERSON] (Clinical Practitioner Access Role) - PRISM 2WW Upper GI - questionnaire started - (finalised: [DATE] 12:43) Fast track referral for suspected upper GI cancer (XaMeJ) - (Added from Questionnaire) Edinburgh Dysphagia Score (Y29c0) 24 - (Added from Questionnaire)",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-3fea82b91bed478dba16a8eb86f28257",
+        "candidate_id": "1c7b6223028c15e947684973d9a2467322664b0e74264b7403d74094a17a3557",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.275Z",
+        "text_preview": "08:45 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: F2F review. Reflux. Cough after eating much improved. Vomiting resolved. Occasional dysphagia. Much improved. Occurs most often with new potatoes. Globulous sensation. No indigestion. 2 pounds weight loss. Has increased activity. Good energy levels. Discussed options incl upper GI referral given some ongoing symptoms despite PPI. Possible causes discusssed incl HH, gastritis, Ca. Diagnosis: Persistent dyspepsia and dysphagia. Plan: Continue lansoprazole at 15mg OD. If Sx worsen then can increase back to 30mg. Upper GI 2ww referral. Has appt for bloods later this am. Review if new Sx.",
+        "relevant_entities": [
+          {
+            "text": "Upper GI 2ww referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 589,
+            "end": 610
+          },
+          {
+            "text": "Upper GI 2ww referral",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315273002",
+            "snomed_term": "Malignant neoplasm of upper gastrointestinal tract suspected (situation)",
+            "start": 589,
+            "end": 610
+          }
+        ]
+      },
+      {
+        "label_id": "manual-20a4d3c96b544d47b9039079987d05fe",
+        "candidate_id": "f460bd4571d9e42f246689898c7280ae155548b605a1ba246ed37742fb96680e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.149Z",
+        "text_preview": "14:48 - Surgery: FERRERA [PERSON] (Clinical Practitioner Access Role) History: F2F review in regards of PSA result 129 Reports urine went dark after taking naproxen for pain in legs Reports increased frequency at night 2-3 nights for the last year Denies any recent infection Mentions to be feeling well on himself Denies any weight loss recently Denies visible blood in urine or stools - normal colour darksih yellow no dysuria, no fever, no night sweats Reports loss of apetitite for past few days but relates it to the use of naproxen on tamsulosin for BPH Outbound referral (XaY59) Outbound referral (XaY59) Outbound referral (XaY59) Examination: Urine dip negative for leukocytes or nitrates, traces of proteins and positive non hemolysis, pH 6 Diagnosis: PR exam prostate noted enlarged but smo",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-7d40d8340bf948d09c693a61d3661370",
+        "candidate_id": "ad2aad411d8de2962381fbadaa6dc8c5ddc0f0490c4c5295da59e60c547cb271",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.128Z",
+        "text_preview": "08:29 - Surgery: [PERSON] (Clinical Practitioner Access Role) Problem: Hip pain (X75rv) History: Booked to discuss MRI but I note that his PSA is very raised. Does get LUTs, including nocturia. Note Hx leg/hip pain- has spoken with specialist about this and awaits nerve conduction studies. Plan: Concerning that he has ongoing leg pain and raised PSA. Booked with [PERSON] this afternoon - will need urinalysis and DRE please. If urinalysis NAD, will need 2ww referral urology.",
+        "relevant_entities": [
+          {
+            "text": "2ww referral urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "hypothetical",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 462,
+            "end": 482
+          }
+        ]
+      },
+      {
+        "label_id": "manual-e01522d4b5c448fbba1856f97e7fd323",
+        "candidate_id": "b4368e12bbc467f7cdc3f9f1f1cc06e601a57ec53b10e515ae459117de578a5c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:06.226Z",
+        "text_preview": "History: ca breast confirmed by breast team yesterday following my 2ww referral july 25",
+        "relevant_entities": [
+          {
+            "text": "2ww referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 67,
+            "end": 79
+          }
+        ]
+      },
+      {
+        "label_id": "manual-7ec05e367a3b434c987c2c9c6d7f4031",
+        "candidate_id": "d6ccb758551a2d886a9569fe4f934461439e00f11942861378c76429f3eefaed",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:06.205Z",
+        "text_preview": "Plan: discussed - in light of hoarseness and thyroid mass with dysphagia refer ENT 2ww - happy with plan",
+        "relevant_entities": [
+          {
+            "text": "ENT 2ww",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer",
+            "start": 79,
+            "end": 86
+          }
+        ]
+      },
+      {
+        "label_id": "manual-1a6303b1f9f04c5396c6bffb90ea40df",
+        "candidate_id": "907d4e8fc6ba515b1d2bd38008730230935e243b772ecb3ce56db059ec83204e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:06.185Z",
+        "text_preview": "Needs urgent 2ww breast review - happy and understands why",
+        "relevant_entities": [
+          {
+            "text": "2ww breast review",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 13,
+            "end": 30
+          },
+          {
+            "text": "2ww breast review",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)",
+            "start": 13,
+            "end": 30
+          }
+        ]
+      },
+      {
+        "label_id": "manual-a8061159c7f84128b0d8505b63aaac90",
+        "candidate_id": "591f0d5d26051e976f581833b0dbe09a318516ac66112c375364c649ffe1e532",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.751Z",
+        "text_preview": "Urgent 2WW referral for upper GI endoscopy",
+        "relevant_entities": [
+          {
+            "text": "2WW referral for upper GI endoscopy",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 7,
+            "end": 42
+          },
+          {
+            "text": "2WW referral for upper GI",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315273002",
+            "snomed_term": "Malignant neoplasm of upper gastrointestinal tract suspected (situation)",
+            "start": 7,
+            "end": 32
+          }
+        ]
+      },
+      {
+        "label_id": "manual-b1d56ce227404c1d8436e6b5cba2aa12",
+        "candidate_id": "61a0755f7d39de6d0aec98647ec411a9ffe42b87f2bfcf68b823d237a81dde10",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.732Z",
+        "text_preview": "PRISM 2WW Gynaecology - questionnaire started - (finalised: [DATE] 14:41)",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Gynaecology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer",
+            "start": 0,
+            "end": 21
+          },
+          {
+            "text": "2WW Gynaecology",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397682005",
+            "snomed_term": "Malignant neoplasm of female genital organ suspected (situation)",
+            "start": 6,
+            "end": 21
+          }
+        ]
+      },
+      {
+        "label_id": "manual-ef329bd3a12f4f7493cf1ffa9f0de871",
+        "candidate_id": "f9a0c24ab76f9b64fb5736fc2ede52f3c39ac53fa9030488ed9e6d330f2fdd86",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.711Z",
+        "text_preview": "(9R52.) - 2ww Gynaecology",
+        "relevant_entities": [
+          {
+            "text": "2ww Gynaecology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 10,
+            "end": 25
+          },
+          {
+            "text": "2ww Gynaecology",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397682005",
+            "snomed_term": "Malignant neoplasm of female genital organ suspected (situation)",
+            "start": 10,
+            "end": 25
+          }
+        ]
+      },
+      {
+        "label_id": "manual-f8636420ae0f440fa547e03b94af9c51",
+        "candidate_id": "a420ffb487036d9a9906dea26daee670fd7693ba52007dcd994b3cfffdbd5fc7",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.691Z",
+        "text_preview": "Plan: 2ww gynae referral as advised by private gynaecologist.",
+        "relevant_entities": [
+          {
+            "text": "2ww gynae referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 6,
+            "end": 24
+          },
+          {
+            "text": "2ww gynae",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397682005",
+            "snomed_term": "Malignant neoplasm of female genital organ suspected (situation)",
+            "start": 6,
+            "end": 15
+          }
+        ]
+      },
+      {
+        "label_id": "manual-fdc666b7364d42f68487831947710885",
+        "candidate_id": "06d1cd41d55820a1858a7f4ed42367f3a51d8ccda9c349c98273c52d65e98a41",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.667Z",
+        "text_preview": "noted 2ww earlier this year based on anemia and fit + - had grade 2 hemorrhoids on scope and normal histology",
+        "relevant_entities": [
+          {
+            "text": "2ww earlier this year",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "historical",
+            "snomed_concept_id": "199251000000107",
+            "snomed_term": "Fast track cancer referral (procedure)",
+            "start": 6,
+            "end": 27
+          }
+        ]
+      },
+      {
+        "label_id": "manual-c49aa2b601ee460faec35f87babdae0d",
+        "candidate_id": "702b6d71f3779f8cc855018054fc12ead0fe8aadb5d33a9a3b6a793267e13d33",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.647Z",
+        "text_preview": "Plan: agreed 2ww breast",
+        "relevant_entities": [
+          {
+            "text": "2ww breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 13,
+            "end": 23
+          },
+          {
+            "text": "2ww breast",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)",
+            "start": 13,
+            "end": 23
+          }
+        ]
+      },
+      {
+        "label_id": "manual-d0917b2eeb0843e5a3f658bc9a75d0a0",
+        "candidate_id": "702b6d71f3779f8cc855018054fc12ead0fe8aadb5d33a9a3b6a793267e13d33",
+        "source": "manual_gold_draft",
+        "updated_at": "2026-04-25T07:58:04.627Z",
+        "text_preview": "Plan: agreed 2ww breast",
+        "relevant_entities": [
+          {
+            "text": "2ww breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 13,
+            "end": 23
+          }
+        ]
+      },
+      {
+        "label_id": "manual-157c48992fdc46fbacbd14aeb7e599d4",
+        "candidate_id": "95f776c148cbaecc27ef7084bbd6498004c857ffe9a9536ea677fd927060fa2e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.601Z",
+        "text_preview": "Problem - whole event: Prostate-specific antigen monitoring (XaIqh) - if PSA >= 7ng/ml refer via 2WW prostate pathway",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-ce53df79027744aaa1c11d58982af3fb",
+        "candidate_id": "c9fd01d4fbc9bac3132d4eeca763e94e21f5b80f0454be7bf53a75c1f6aae9a6",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.579Z",
+        "text_preview": "Refer to 2WW",
+        "relevant_entities": [
+          {
+            "text": "Refer to 2WW",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "199251000000107",
+            "snomed_term": "Fast track cancer referral (procedure)",
+            "start": 0,
+            "end": 12
+          },
+          {
+            "text": "Refer to 2WW",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 0,
+            "end": 12
+          }
+        ]
+      },
+      {
+        "label_id": "manual-c3c7981ed5cb40b687809a1acb661443",
+        "candidate_id": "257dff6ce14efea1f66ca9f0f6548c8b632151d09843ce060306449f0ce52ad5",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.56Z",
+        "text_preview": "Patient awaiting OPD appt.: Yes 2ww head and neck",
+        "relevant_entities": [
+          {
+            "text": "2ww head and neck",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "possible",
+            "snomed_concept_id": "315277001",
+            "snomed_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+            "start": 32,
+            "end": 49
+          },
+          {
+            "text": "2ww head and neck",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 32,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-ce27c5770ad348cea825655f90fbfe3c",
+        "candidate_id": "257dff6ce14efea1f66ca9f0f6548c8b632151d09843ce060306449f0ce52ad5",
+        "source": "manual_gold_draft",
+        "updated_at": "2026-04-25T07:58:04.539Z",
+        "text_preview": "Patient awaiting OPD appt.: Yes 2ww head and neck",
+        "relevant_entities": [
+          {
+            "text": "2ww head and neck",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "possible",
+            "snomed_term": "2ww head and neck",
+            "start": 32,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-1362dd9dc9a84204a2bd3053b2c8c0e8",
+        "candidate_id": "d5a72dfef09eced8c1877ad83978eb8eeb67a5950b1330d05742701cffff955b",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.52Z",
+        "text_preview": "Diagnosis: 2WW Dermatology Pathway accessed",
+        "relevant_entities": [
+          {
+            "text": "2WW Dermatology Pathway",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276281000000104",
+            "snomed_term": "Fast track referral for suspected skin cancer (procedure)",
+            "start": 11,
+            "end": 34
+          },
+          {
+            "text": "2WW Dermatology",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315276005",
+            "snomed_term": "Malignant neoplasm of skin suspected (situation)",
+            "start": 11,
+            "end": 26
+          }
+        ]
+      },
+      {
+        "label_id": "manual-483224d2dee64615b59b39f8a71e7df8",
+        "candidate_id": "df5aa5041716f38337ec6e67a4a441b68a89e57bf3d77983febeae80b8297b2c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.498Z",
+        "text_preview": "(9R52.) - 2ww gynae",
+        "relevant_entities": [
+          {
+            "text": "2ww gynae",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 10,
+            "end": 19
+          },
+          {
+            "text": "2ww gynae",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397682005",
+            "snomed_term": "Malignant neoplasm of female genital organ suspected (situation)",
+            "start": 10,
+            "end": 19
+          }
+        ]
+      },
+      {
+        "label_id": "manual-71775f9e59c642fea00f896221eab73b",
+        "candidate_id": "8f4371f9ebdbc7881b78e695e8fd2beb9fc0c38c26aa13dc3364c1b06045f10d",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.479Z",
+        "text_preview": "PRISM 2WW Urology Pathway Accessed",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "possible",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 0,
+            "end": 17
+          },
+          {
+            "text": "2WW Urology",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397657005",
+            "snomed_term": "Malignant neoplasm of urinary system suspected (situation)",
+            "start": 6,
+            "end": 17
+          }
+        ]
+      },
+      {
+        "label_id": "manual-f2d52554d5b34fefb00ccfa03187d66d",
+        "candidate_id": "b7c4f7bff01c180238045cc96bc7da3ded313dc56599d758d6acd4d14ec7ff52",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.458Z",
+        "text_preview": "PRISM 2WW Breast Female - questionnaire started - (finalised: [DATE] 14:49)",
+        "relevant_entities": [
+          {
+            "text": "2WW Breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 6,
+            "end": 16
+          },
+          {
+            "text": "2WW Breast",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)",
+            "start": 6,
+            "end": 16
+          }
+        ]
+      },
+      {
+        "label_id": "manual-ad622ad60c1d4c87b1d3d36c129a3a9d",
+        "candidate_id": "6749d52cd7c96461cbc84228b176f3ae4d610b8da27421eb813fa38973ef713c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.439Z",
+        "text_preview": "Private clinician has now sent an email requesting referral to 2ww for full excision",
+        "relevant_entities": [
+          {
+            "text": "referral to 2ww",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 51,
+            "end": 66
+          }
+        ]
+      },
+      {
+        "label_id": "manual-be7922e9e8bf4847bc70fb782b0243c3",
+        "candidate_id": "4a018ecfb2d4e0120e9993d47a4b5db0fba8783cb9c0122b6dee791b454965c8",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.418Z",
+        "text_preview": "happy to cont with 2ww referral under NHS.",
+        "relevant_entities": [
+          {
+            "text": "2ww referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "199251000000107",
+            "snomed_term": "Fast track cancer referral (procedure)",
+            "start": 19,
+            "end": 31
+          },
+          {
+            "text": "2ww referral",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "162572001",
+            "snomed_term": "Malignant neoplastic disease suspected (situation)",
+            "start": 19,
+            "end": 31
+          }
+        ]
+      },
+      {
+        "label_id": "manual-cebc2951943041759b23370b37d8a191",
+        "candidate_id": "d6cad915518cc348444365a8c92c3c5ad4aaf082689bb98798a7361814926b28",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.377Z",
+        "text_preview": "Plan: explained raised PSA may suggest prostate malig thus 2ww uro referral wararnted",
+        "relevant_entities": [
+          {
+            "text": "2ww uro referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 59,
+            "end": 75
+          }
+        ]
+      },
+      {
+        "label_id": "manual-beb622dee0d34fddaa296bf8546bd9ef",
+        "candidate_id": "d132200b997ff0a2c3afaa8e65c81fd10bd31f9861cf2e0938ac985ec602c1a8",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.336Z",
+        "text_preview": "Referred by me on 2ww earlier this year, confirmed breast cancer",
+        "relevant_entities": [
+          {
+            "text": "Referred by me on 2ww",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "historical",
+            "snomed_concept_id": "199251000000107",
+            "snomed_term": "Fast track cancer referral (procedure)",
+            "start": 0,
+            "end": 21
+          }
+        ]
+      },
+      {
+        "label_id": "manual-f5b5213e9d69441792ebb23b29839cbc",
+        "candidate_id": "da6afd63baecdd219d117aab061c555640583b7de9ad8b316af3a1c2b7ee342c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:02.815Z",
+        "text_preview": "P: Needs biopsy - refer urology 2ww.",
+        "relevant_entities": [
+          {
+            "text": "urology 2ww",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397657005",
+            "snomed_term": "Malignant neoplasm of urinary system suspected (situation)",
+            "start": 24,
+            "end": 35
+          }
+        ]
+      },
+      {
+        "label_id": "manual-1495b9f10fae4085bcde31c9b6800691",
+        "candidate_id": "0378006bbbcdddba9ace0cacebfb39dcee6346dd65cdc91358d849022104bf4c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:02.397Z",
+        "text_preview": "CXR as part of 2ww head and neck pathway",
+        "relevant_entities": [
+          {
+            "text": "2ww head and neck pathway",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315277001",
+            "snomed_term": "Malignant neoplasm of head and/or neck suspected (situation)",
+            "start": 15,
+            "end": 40
+          }
+        ]
+      },
+      {
+        "label_id": "manual-bb11e569bffc47318e7c6dd0df8052c2",
+        "candidate_id": "5c01521f2ffd73fa071b021aa5a0fdbfe10213ded1040264803af1f8986d96fd",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.467Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected cancer clinic (XaPyg) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-1fe0ad7bd2b6444fa52fec982c2afdba",
+        "candidate_id": "5ad404a324c654b03601f1a0576a74f2602653e758c995d3cbc4f0f80a874dfa",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.448Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected skin cancer clinic (XaPyd) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-da7da03f1f924a239483b93c66ee2b7d",
+        "candidate_id": "cbe24f85d97f91c82199a52d36beaf74c849d4e5e2df8628543e8cd795fb74db",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.427Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected brain tumour clinic (XaPyP) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-eff063d960c2459989f07d494b073684",
+        "candidate_id": "7696d06d9800ff9d0087206d98c33919fea27f0b7fbba2add28c3e612e39380a",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.405Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected colorectal cancer clinic (XaPyb) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-f13cd60031964dcf8b3fb09b85ed2073",
+        "candidate_id": "55aa61db8af7ef26e911522d50f9c552079a32454e219bbfbd9d2786e8e77ed9",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.386Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-49f5bfc707284c1e8d03ce2ddb7b579a",
+        "candidate_id": "6de25905fd3ee35347690502e79a690e8722930517dd94a3a0180130950162ab",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.364Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected head and neck cancer clinic (XaPya) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-236a18abd6d1475299cbe8fc0842fdbb",
+        "candidate_id": "ef847f149b339f1403636fd8c19fd619effcfe2bbed67aa87cf9b92c2a5d3b34",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.344Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected gynaecological cancer clinic (XaPyV) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-12173c7ff39d48faa64e4f217ae3d978",
+        "candidate_id": "6ee5d80b6e0d301e5580496153d42d739f9b5d391155aef831043a8bdb10c01a",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.323Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected lung cancer clinic (XaPyc) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-4a2320fbc6c24c4fb98394a86eb3f8c3",
+        "candidate_id": "9fdbf169e5ebcc35ed28682ba43b3eb18def49286c7eb09e904c133c7cef166e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.261Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) [DATE]",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-6cbf756c66eb445dbff081cf36b32d95",
+        "candidate_id": "5f0199d41ca3c3c2c2322b36e5f5d1f71cc7c53d6b36731e5443374c3a1642ac",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.125Z",
+        "text_preview": "'- PRISM 2WW Urology' - questionnaire amended",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 3,
+            "end": 20
+          }
+        ]
+      },
+      {
+        "label_id": "manual-31401d51c52e4a3891718fdc3ab5ee7d",
+        "candidate_id": "450e9c92caf038f5ff8599f08a7efe52507b554066984a77348c6a0055cdd623",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:58.887Z",
+        "text_preview": "Plan: In light of new anterior vulval ulceration and eschar - 2ww Gynae vulva",
+        "relevant_entities": [
+          {
+            "text": "2ww Gynae vulva",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 62,
+            "end": 77
+          }
+        ]
+      },
+      {
+        "label_id": "GL-eccc861786ed32d4",
+        "candidate_id": "6966aef40788b62ca905f109a27cdd26d3528b8b3c4245acd95b3bbdfc1d34a1",
+        "source": "lab_coder_v1",
+        "updated_at": "2026-04-24T17:48:00.913Z",
+        "text_preview": "10:00 - Surgery: Auto-filed Quantitative faecal immunochemical test (Xaf0H) 193 ug/g Assay performed by:- Bowel Cancer Screening Programme Eastern Hub, Queen's Medical Centre, Nottingham. >=10 Refer via 2WW LGI Pathway.",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-643c63aafbdc47e597551f79a841f081",
+        "candidate_id": "3bcc8fd238cbebf499e4cf7877c20e173ab12e6aa35c5e84d279df0192d3fe4a",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-22T12:07:13.107Z",
+        "text_preview": "09:47 - Surgery: [PERSON] (Clinical Practitioner Access Role) Scheduled Task Creation (Completed) - 2WW task (Wed [DATE]:00 - Sent automatically by SystmOne Hi I reviewed pat with BOO sx , clinically BPH did PSA - 12 which was high for his age group organised a repeat in [DATE] however I will have likely rotated out of the surgery to review results . Just wanted to hand this over to you as you are his named GP) to be sent to [PERSON] on [DATE].",
+        "relevant_entities": []
+      },
+      {
+        "label_id": "manual-e76186eb25d643e3aa9a4ba63422ba16",
+        "candidate_id": "977463fb837bfe98c995700eb00ffe2361d1d6d7e27c1a18f24fad31bdee654c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-22T12:07:00.681Z",
+        "text_preview": "12:43 - Surgery: [PERSON] Fast track referral for suspected urological cancer (XaMeF) Choice and booking enhanced services administration (XaMJa) 2WW Patient awaiting OPD appt.: Yes 2ww urology Hospital Fast track referral for suspected urological cancer Hospital Fast track referral for suspected urological cancer updated: Waiting For Information Patient awaiting OPD appt. (9R52.) - 2ww urology",
+        "relevant_entities": [
+          {
+            "text": "2ww urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)"
+          },
+          {
+            "text": "2ww urology",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "397657005",
+            "snomed_term": "Malignant neoplasm of urinary system suspected (situation)"
+          }
+        ]
+      },
+      {
+        "label_id": "GL-c270239cd822d8cb",
+        "candidate_id": "ace89766405af1928999ef8e1d486151dad6f9a7eb30d181b43ff76aafb15588",
+        "source": "manual_gold_seed_2026_04_17",
+        "updated_at": "2026-04-17T17:13:14.241Z",
+        "text_preview": "Was seen on 2WW, nad so safe to administer live vaccine.",
+        "relevant_entities": [
+          {
+            "text": "2WW",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "historical",
+            "snomed_concept_id": "1083791000000105",
+            "snomed_term": "Suspected cancer two week wait referral (procedure)",
+            "start": 12,
+            "end": 15
+          }
+        ]
+      },
+      {
+        "label_id": "GL-22f116e3bb0cf3b2",
+        "candidate_id": "04026ca5697bc0e2250133efba7e1b4b8fd0d1b078a8eb32223e8e8278f1ae0b",
+        "source": "manual_gold_seed_2026_04_17",
+        "updated_at": "2026-04-17T17:13:14.159Z",
+        "text_preview": "Diagnosis: Haemorrhoids. Plan: Haemorrhoid referral. Lower GI 2ww referral for colonoscopy.",
+        "relevant_entities": [
+          {
+            "text": "Lower GI 2ww referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "1083791000000105",
+            "snomed_term": "Suspected cancer two week wait referral (procedure)",
+            "start": 53,
+            "end": 74
+          }
+        ]
+      }
+    ],
+    "Seen in Fast Track": [
+      {
+        "label_id": "manual-73762860cce440b08e1719ea7f80e87b",
+        "candidate_id": "38f33876e09316b13fea5be8fa0811c0a334477396a717433113e4d6e4181321",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.322Z",
+        "text_preview": "09:49 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) [DATE] Summary Care Record Update",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": "Seen in fast track suspected breast cancer clinic (finding)",
+            "start": 62,
+            "end": 140
+          }
+        ]
+      },
+      {
+        "label_id": "manual-326b67633ed74c5d9afad475f9821428",
+        "candidate_id": "fd84b311fee06133641d2789f1f57c3c025e8678fb488da0eb45f57ce674ef74",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.688Z",
+        "text_preview": "10:06 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382841000000109",
+            "snomed_term": "Seen in fast track suspected urological cancer clinic (finding)",
+            "start": 62,
+            "end": 144
+          }
+        ]
+      },
+      {
+        "label_id": "manual-35ee9eda6b18460db96f218ae1a16568",
+        "candidate_id": "d66f2661b767a279bd1becaee78ad28c74df6c580e381526f756afd80a8ca21d",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.643Z",
+        "text_preview": "00:00 - Surgery: [PERSON] (Receptionist Access Role) Seen in fast track suspected urological cancer clinic (XaPyk)",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected urological cancer clinic (XaPyk)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382841000000109",
+            "snomed_term": "Seen in fast track suspected urological cancer clinic (finding)",
+            "start": 54,
+            "end": 115
+          }
+        ]
+      },
+      {
+        "label_id": "manual-54b09dd1520e449b83c5dc771b2cd7fa",
+        "candidate_id": "de86520a9435365809f8082043d664e2054757455e8240a47489f1b35f22d14b",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.422Z",
+        "text_preview": "14:34 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": "Seen in fast track suspected breast cancer clinic (finding)",
+            "start": 62,
+            "end": 140
+          }
+        ]
+      },
+      {
+        "label_id": "manual-cde14c551dd840a48ccdec971467ab8a",
+        "candidate_id": "229ad28c949263cbf329202cd55a7189b904641ef98a7665f233a9af4150e1cc",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.401Z",
+        "text_preview": "14:30 - Surgery: [PERSON] (Receptionist Access Role) 2WW Seen in 2WW Clinic?: Seen in fast track suspected upper GI cancer clinic (XaPyj) [DATE] Summary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.",
+        "relevant_entities": [
+          {
+            "text": "Seen in 2WW Clinic?: Seen in fast track suspected upper GI cancer clinic (XaPyj)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382811000000108",
+            "snomed_term": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)",
+            "start": 62,
+            "end": 142
+          }
+        ]
+      },
+      {
+        "label_id": "manual-8df97ccc171c404ab3aa00b99e92326f",
+        "candidate_id": "8c54ff291c4db5f56fb8582140fe707dc9ca9fca215a1b5584b695eb77244524",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.011Z",
+        "text_preview": "00:00 - Surgery: [PERSON] (Receptionist Access Role) Seen in fast track suspected breast cancer clinic (XaPyQ)",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected breast cancer clinic (XaPyQ)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": "Seen in fast track suspected breast cancer clinic (finding)",
+            "start": 54,
+            "end": 111
+          }
+        ]
+      },
+      {
+        "label_id": "manual-e6ace54116744ce9b1de6bf59df5b2ca",
+        "candidate_id": "e66c1dfcbf8f41b2db1a24ec27e0b38d601ec22841e522d470f27d68e661ceb5",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.991Z",
+        "text_preview": "00:00 - Surgery: [PERSON] (Receptionist Access Role) Seen in fast track suspected upper GI cancer clinic (XaPyj)",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected upper GI cancer clinic (XaPyj)",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382811000000108",
+            "snomed_term": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)",
+            "start": 54,
+            "end": 113
+          }
+        ]
+      },
+      {
+        "label_id": "manual-d5e94e8527154a2cae1fe4c70aea1337",
+        "candidate_id": "029225d80db528c44dadbb574049b6e57e853059491bce91548322076c0b23ac",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:02.656Z",
+        "text_preview": "Seen in fast track suspected skin cancer clinic (XaPyd)",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected skin cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382711000000103",
+            "snomed_term": "Seen in fast track suspected skin cancer clinic (finding)",
+            "start": 0,
+            "end": 47
+          }
+        ]
+      },
+      {
+        "label_id": "manual-f6f472acd6c44792b2fef3b9cd31064f",
+        "candidate_id": "fca22070b11efaebc10b7a779b9b066600d9838911fc6e84e17711e49feb1e6e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:02.636Z",
+        "text_preview": "Seen in fast track suspected cancer clinic (XaPyg)",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected cancer",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382761000000101",
+            "snomed_term": "Seen in fast track suspected cancer clinic (finding)",
+            "start": 0,
+            "end": 35
+          }
+        ]
+      },
+      {
+        "label_id": "manual-2bab37a43f91406488b67068b6375d1a",
+        "candidate_id": "9f705e1224dbe9e3e6101fc4473cab79d8ef7cd43e42467ff9aba888c3ffbe46",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:02.616Z",
+        "text_preview": "Seen in fast track suspected breast cancer clinic (XaPyQ)",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected breast cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": "Seen in fast track suspected breast cancer clinic (finding)",
+            "start": 0,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-bb11e569bffc47318e7c6dd0df8052c2",
+        "candidate_id": "5c01521f2ffd73fa071b021aa5a0fdbfe10213ded1040264803af1f8986d96fd",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.467Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected cancer clinic (XaPyg) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "possible",
+            "snomed_concept_id": "382761000000101",
+            "snomed_term": "Seen in fast track suspected cancer clinic (finding)",
+            "start": 21,
+            "end": 63
+          }
+        ]
+      },
+      {
+        "label_id": "manual-1fe0ad7bd2b6444fa52fec982c2afdba",
+        "candidate_id": "5ad404a324c654b03601f1a0576a74f2602653e758c995d3cbc4f0f80a874dfa",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.448Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected skin cancer clinic (XaPyd) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected skin cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382711000000103",
+            "snomed_term": "Seen in fast track suspected skin cancer clinic (finding)",
+            "start": 21,
+            "end": 68
+          }
+        ]
+      },
+      {
+        "label_id": "manual-da7da03f1f924a239483b93c66ee2b7d",
+        "candidate_id": "cbe24f85d97f91c82199a52d36beaf74c849d4e5e2df8628543e8cd795fb74db",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.427Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected brain tumour clinic (XaPyP) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected brain tumour clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382401000000109",
+            "snomed_term": "Seen in fast track suspected brain tumour clinic (finding)",
+            "start": 21,
+            "end": 69
+          }
+        ]
+      },
+      {
+        "label_id": "manual-eff063d960c2459989f07d494b073684",
+        "candidate_id": "7696d06d9800ff9d0087206d98c33919fea27f0b7fbba2add28c3e612e39380a",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.405Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected colorectal cancer clinic (XaPyb) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected colorectal cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382651000000108",
+            "snomed_term": "Seen in fast track suspected colorectal cancer clinic (finding)",
+            "start": 21,
+            "end": 74
+          }
+        ]
+      },
+      {
+        "label_id": "manual-f13cd60031964dcf8b3fb09b85ed2073",
+        "candidate_id": "55aa61db8af7ef26e911522d50f9c552079a32454e219bbfbd9d2786e8e77ed9",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.386Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected urological cancer clinic (XaPyk) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected urological cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "start": 21,
+            "end": 74
+          }
+        ]
+      },
+      {
+        "label_id": "manual-49f5bfc707284c1e8d03ce2ddb7b579a",
+        "candidate_id": "6de25905fd3ee35347690502e79a690e8722930517dd94a3a0180130950162ab",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.364Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected head and neck cancer clinic (XaPya) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected head and neck cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382621000000103",
+            "snomed_term": "Seen in fast track suspected head and neck cancer clinic (finding)",
+            "start": 21,
+            "end": 77
+          }
+        ]
+      },
+      {
+        "label_id": "manual-236a18abd6d1475299cbe8fc0842fdbb",
+        "candidate_id": "ef847f149b339f1403636fd8c19fd619effcfe2bbed67aa87cf9b92c2a5d3b34",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.344Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected gynaecological cancer clinic (XaPyV) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected gynaecological cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382511000000105",
+            "snomed_term": "Seen in fast track suspected gynaecological cancer clinic (finding)",
+            "start": 21,
+            "end": 78
+          }
+        ]
+      },
+      {
+        "label_id": "manual-12173c7ff39d48faa64e4f217ae3d978",
+        "candidate_id": "6ee5d80b6e0d301e5580496153d42d739f9b5d391155aef831043a8bdb10c01a",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.323Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected lung cancer clinic (XaPyc) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected lung cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382681000000102",
+            "snomed_term": "Seen in fast track suspected lung cancer clinic (finding)",
+            "start": 21,
+            "end": 68
+          }
+        ]
+      },
+      {
+        "label_id": "manual-8d4813ce479641f19f6d7356191a6c4d",
+        "candidate_id": "eab75dc27746ba79aa6323e2ead239af061b823071c5dda811509bdf3568243b",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.282Z",
+        "text_preview": "Seen in fast track suspected upper GI cancer clinic (XaPyj)",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected upper GI cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382811000000108",
+            "snomed_term": "Seen in fast track suspected upper gastrointestinal cancer clinic (finding)",
+            "start": 0,
+            "end": 51
+          }
+        ]
+      },
+      {
+        "label_id": "manual-4a2320fbc6c24c4fb98394a86eb3f8c3",
+        "candidate_id": "9fdbf169e5ebcc35ed28682ba43b3eb18def49286c7eb09e904c133c7cef166e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.261Z",
+        "text_preview": "Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) [DATE]",
+        "relevant_entities": [
+          {
+            "text": "Seen in fast track suspected breast cancer clinic",
+            "label": "finding",
+            "semantic_tag": "finding",
+            "assertion": "present",
+            "snomed_concept_id": "382431000000103",
+            "snomed_term": "Seen in fast track suspected breast cancer clinic (finding)",
+            "start": 21,
+            "end": 70
+          }
+        ]
+      }
+    ],
+    "Fast Track Referral": [
+      {
+        "label_id": "GL-cd1e4dc9efd48417",
+        "candidate_id": "TC-cd1e4dc9efd48417",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.857Z",
+        "text_preview": "48F notices nipple inversion on the right breast over the past 6 weeks. Also reports blood-stained nipple discharge. No discrete lump palpable but skin tethering present. 2WW breast referral - query Paget disease or carcinoma.",
+        "relevant_entities": [
+          {
+            "text": "2WW breast referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 171,
+            "end": 190
+          }
+        ]
+      },
+      {
+        "label_id": "GL-a2c81a71f2518390",
+        "candidate_id": "TC-a2c81a71f2518390",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.791Z",
+        "text_preview": "Penile lesion present for 8 weeks. Painless, firm mass on the glans. Not responding to topical antifungal. Inguinal lymphadenopathy palpable bilaterally. 2WW urology referral - query penile carcinoma.",
+        "relevant_entities": [
+          {
+            "text": "2WW urology referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 154,
+            "end": 174
+          }
+        ]
+      },
+      {
+        "label_id": "GL-572995a3b9a736ac",
+        "candidate_id": "TC-572995a3b9a736ac",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.749Z",
+        "text_preview": "62M presenting with a changing skin lesion on the back. Noticed 6 months ago. Now larger, irregular border, mixed pigmentation. Diameter approximately 12 mm. No satellite lesions. One firm inguinal lymph node palpable. Urgent dermatology 2WW - query melanoma.",
+        "relevant_entities": [
+          {
+            "text": "dermatology 2WW - query melanoma",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276281000000104",
+            "snomed_term": "Fast track referral for suspected skin cancer (procedure)",
+            "start": 226,
+            "end": 258
+          }
+        ]
+      },
+      {
+        "label_id": "GL-2b76f3943a809b09",
+        "candidate_id": "TC-2b76f3943a809b09",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.664Z",
+        "text_preview": "6-week history of a lump on the left side of the neck. Not painful. Slowly increasing in size. Night sweats and weight loss. Examination: firm, non-tender neck mass 2 cm. Referred 2WW head and neck.",
+        "relevant_entities": [
+          {
+            "text": "2WW head and neck",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 180,
+            "end": 197
+          }
+        ]
+      },
+      {
+        "label_id": "GL-a197f1e86322b4fc",
+        "candidate_id": "TC-a197f1e86322b4fc",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.638Z",
+        "text_preview": "4-week history of a lump on the lower lip. Initially a small ulcer, now a firm raised lesion. Outdoor worker, high sun exposure. No pain. Examination: indurated, irregular mass of the lower lip, 1 cm. 2WW head and neck - query squamous cell carcinoma of lip.",
+        "relevant_entities": [
+          {
+            "text": "2WW head and neck",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 201,
+            "end": 218
+          }
+        ]
+      },
+      {
+        "label_id": "GL-2cee2525b704e5d4",
+        "candidate_id": "TC-2cee2525b704e5d4",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.615Z",
+        "text_preview": "3-week history of a lump inside the mouth on the left buccal mucosa. Not painful initially, now ulcerated and bleeds on contact. Smoker, 40 pack years. Heavy alcohol use. Examination: firm 1.5 cm mass of buccal mucosa. 2WW head and neck referral.",
+        "relevant_entities": [
+          {
+            "text": "2WW head and neck referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 219,
+            "end": 245
+          }
+        ]
+      },
+      {
+        "label_id": "GL-7d415d6d1f7345f8",
+        "candidate_id": "TC-7d415d6d1f7345f8",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.551Z",
+        "text_preview": "Examination: patient looks pale, conjunctival pallor noted. Haemoglobin 78 g/L - outside reference range. Reports tiredness for 4 months, some weight loss, dysphagia to solids. Upper GI 2WW referral raised.",
+        "relevant_entities": [
+          {
+            "text": "Upper GI 2WW referral raised",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 177,
+            "end": 205
+          }
+        ]
+      },
+      {
+        "label_id": "GL-0aa73595e3222bd8",
+        "candidate_id": "TC-0aa73595e3222bd8",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.506Z",
+        "text_preview": "72M presenting with haematemesis - two episodes of vomiting fresh blood today. Background of alcohol excess and known varices. PR: no melaena. Pallor and tachycardia on examination. Referred acutely to hospital. Upper GI 2WW also raised.",
+        "relevant_entities": [
+          {
+            "text": "Upper GI 2WW",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 212,
+            "end": 224
+          }
+        ]
+      },
+      {
+        "label_id": "GL-518abc8babb4862c",
+        "candidate_id": "TC-518abc8babb4862c",
+        "source": "synthetic",
+        "updated_at": "2026-04-25T07:58:48.485Z",
+        "text_preview": "Clinical examination: hepatosplenomegaly noted. Liver edge 4 cm below costal margin. Spleen tip palpable. Night sweats and 8 kg weight loss over 3 months. FBC: anaemia and raised LDH. Lymphoma suspected - urgent haematology referral.",
+        "relevant_entities": [
+          {
+            "text": "Lymphoma suspected - urgent haematology referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276461000000107",
+            "snomed_term": "Fast track referral for suspected haematology malignancy (procedure)",
+            "start": 184,
+            "end": 232
+          }
+        ]
+      },
+      {
+        "label_id": "GL-bf1ae4e43365c1de",
+        "candidate_id": "TC-bf1ae4e43365c1de",
+        "source": "encounter_5c4a9ce1",
+        "updated_at": "2026-04-25T07:58:48.251Z",
+        "text_preview": "63F with abnormal FIT test (91.2) and persistently raised platelet count. Epigastric tenderness, intermittent, feels full. Mostly constipated. Increasing fatigue when walking. Current smoker 15 per day. 2WW referral to bowel cancer screening programme.",
+        "relevant_entities": [
+          {
+            "text": "2WW referral to bowel cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "892201000000106",
+            "snomed_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+            "start": 203,
+            "end": 231
+          }
+        ]
+      },
+      {
+        "label_id": "GL-5980bcbee6e89595",
+        "candidate_id": "TC-5980bcbee6e89595",
+        "source": "encounter_91384838",
+        "updated_at": "2026-04-25T07:58:48.18Z",
+        "text_preview": "Menopausal for 8-9 years. One episode of spotting over 2 days. Period-like cramping abdominal pain. No HRT. Examination: whitening of anterior vulva with eschar and ulcer at clitoral hood. Cervix NAD. No obvious masses. Plan: 2WW gynaecology - vulva and endometrium pathways.",
+        "relevant_entities": [
+          {
+            "text": "2WW gynaecology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 226,
+            "end": 241
+          }
+        ]
+      },
+      {
+        "label_id": "manual-318da13fa04a45b58355893a46f3c916",
+        "candidate_id": "e0895121bc2188fd5be797343f7c2478ae25f6fefebbfb481f41a696e42384bb",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.257Z",
+        "text_preview": "15:30 - Surgery: [PERSON] Fast track referral for suspected breast cancer (XaMeC) Choice and booking enhanced services administration (XaMJa) 2WW Patient awaiting OPD appt.: Yes 2ww [LOCATION] Hospital Fast track referral for suspected breast cancer 2WW Breast Female PRISM to [LOCATION] Hospital Fast track referral for suspected breast cancer updated: Waiting For Information Patient awaiting OPD appt. (9R52.) - 2ww Breast",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected breast cancer (XaMeC)",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 27,
+            "end": 82
+          },
+          {
+            "text": "Fast track referral for suspected breast cancer (XaMeC)",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "134405005",
+            "snomed_term": "Malignant neoplasm of breast suspected (situation)",
+            "start": 27,
+            "end": 82
+          }
+        ]
+      },
+      {
+        "label_id": "manual-03418b86023345fdaf539467029dc6e0",
+        "candidate_id": "66d3d10ec89e710c1a75fa7edba7fbfd4518c7d281261a93d2095d11ed35bb75",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:16.236Z",
+        "text_preview": "14:49 - Surgery: [PERSON] (Clinical Practitioner Access Role) - PRISM 2WW Breast Female - questionnaire started - (finalised: [DATE] 14:49) Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire) Consultation. General Encounter: Consultation (Xa1qL) H: - Reports a lump in the breast, initially noticed some time ago. This was previously mentioned to a nurse during early pregnancy, who suggested it might be related to breast changes. Was advised to follow up with a doctor but did not due to being busy. The lump was mentioned again to a midwife in hospital after giving birth on [DATE], due to concerns it might be a blocked milk duct and affecting milk production in that breast. The midwife advised that a blocked duct should have resolved with massage and a pump, a",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Breast Female",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 65,
+            "end": 88
+          }
+        ]
+      },
+      {
+        "label_id": "manual-d54203747c204143a53e93ff0afd0e0f",
+        "candidate_id": "543425d86d9f1f56e183062ed621e935bc9b0779894eb7f62035e0ef3000e427",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:15.536Z",
+        "text_preview": "11:04 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: Telephone triage encounter (XaIvd) duty doctor review of paths repeat PSA 12 prev seen by me 13.06 and 04.07 had enlarged prostate reports qworsening BOO sx- poor streem, heistsncy and frequency denies dysuria, fever , urgency or hematuria no weight loss no night sweats reports backache for week unsure if pulled a muscle or not Outbound referral (XaY59) Diagnosis: [D] Raised prostatic specific antigen (XaC0j)Benign prostatic hyperplasia (XE0e6) PRISM 2WW Urology Pathway Accessed Plan: explained raised PSA may suggest prostate malig thus 2ww uro referral wararnted has obvious BOO sx+ enlarged prostate , offered tamsulosin for sx relief- happy to try this after we discussed main side effect- postural hypotension safety nt",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)"
+          }
+        ]
+      },
+      {
+        "label_id": "manual-cdb6b2ed99224990838ced0dd04eeb12",
+        "candidate_id": "751d7b0ca6d3ba7e647b40a43333a8dbda1670c7aeaeb88c301bd0735db59a0f",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.539Z",
+        "text_preview": "18:14 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: Duty doctor f2f review.... Noticed lump 2 weeks ago left side of breast. Not painful. Noticed by chance. Does not check breasts regularly. No FH of breast cancer. Feels well in self. Outbound referral (XaY59) Examination: Alert. Appears well. Consented for breast exam. Chaperoned by staff member Kisty Ingle... Breast symmetrical. No abnormallity on inspection. No redness or nipple abnormalities. Firm lump left side breast noted. Diagnosis: 2WW Breast Female Referral Pathway/[LOCATION] Clinic accessed Plan: Refer 2ww breast. Advised to call surgery back if not heard anything by 2-3 weeks. - PRISM 2WW Breast Female - questionnaire started - (finalised: [DATE] 18:14) Fast track referral for suspected breast cancer (XaMeC) ",
+        "relevant_entities": [
+          {
+            "text": "2ww breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)"
+          }
+        ]
+      },
+      {
+        "label_id": "manual-c13fc978d00548f581bcdcf871561fda",
+        "candidate_id": "b2ea007dc8036642de1e48d23e18157bdb8b24a1ba0f1a90cc77dd090f0371e1",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.499Z",
+        "text_preview": "14:42 - Surgery: [PERSON] Fast track referral for suspected upper GI cancer (XaMeJ) Choice and booking enhanced services administration (XaMJa) 2WW Patient awaiting OPD appt.: Yes 2ww [LOCATION] Hospital Fast track referral for suspected upper GI cancer 2WW Upper GI PRISM to [LOCATION] Hospital Fast track referral for suspected upper GI cancer updated: Waiting For Information Patient awaiting OPD appt. (9R52.) - 2ww Upper GI",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected upper GI cancer (XaMeJ)",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 27,
+            "end": 84
+          },
+          {
+            "text": "Fast track referral for suspected upper GI cancer (XaMeJ)",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315273002",
+            "snomed_term": "Malignant neoplasm of upper gastrointestinal tract suspected (situation)",
+            "start": 27,
+            "end": 84
+          }
+        ]
+      },
+      {
+        "label_id": "manual-dc79b7d2102f487ab19af92d93ce6bbc",
+        "candidate_id": "4152eda67b74826ca3f3b10a820d16879b42ab0af061b4d20d635d84ebfd7bc8",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.479Z",
+        "text_preview": "12:43 - Surgery: [PERSON] (Clinical Practitioner Access Role) - PRISM 2WW Upper GI - questionnaire started - (finalised: [DATE] 12:43) Fast track referral for suspected upper GI cancer (XaMeJ) - (Added from Questionnaire) Edinburgh Dysphagia Score (Y29c0) 24 - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected upper GI cancer (XaMeJ)",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 137,
+            "end": 194
+          },
+          {
+            "text": "Fast track referral for suspected upper GI cancer (XaMeJ)",
+            "label": "situation",
+            "semantic_tag": "situation",
+            "assertion": "present",
+            "snomed_concept_id": "315273002",
+            "snomed_term": "Malignant neoplasm of upper gastrointestinal tract suspected (situation)",
+            "start": 137,
+            "end": 194
+          }
+        ]
+      },
+      {
+        "label_id": "manual-3fea82b91bed478dba16a8eb86f28257",
+        "candidate_id": "1c7b6223028c15e947684973d9a2467322664b0e74264b7403d74094a17a3557",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.275Z",
+        "text_preview": "08:45 - Surgery: [PERSON] (Clinical Practitioner Access Role) History: F2F review. Reflux. Cough after eating much improved. Vomiting resolved. Occasional dysphagia. Much improved. Occurs most often with new potatoes. Globulous sensation. No indigestion. 2 pounds weight loss. Has increased activity. Good energy levels. Discussed options incl upper GI referral given some ongoing symptoms despite PPI. Possible causes discusssed incl HH, gastritis, Ca. Diagnosis: Persistent dyspepsia and dysphagia. Plan: Continue lansoprazole at 15mg OD. If Sx worsen then can increase back to 30mg. Upper GI 2ww referral. Has appt for bloods later this am. Review if new Sx.",
+        "relevant_entities": [
+          {
+            "text": "Upper GI 2ww referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 589,
+            "end": 610
+          }
+        ]
+      },
+      {
+        "label_id": "manual-20a4d3c96b544d47b9039079987d05fe",
+        "candidate_id": "f460bd4571d9e42f246689898c7280ae155548b605a1ba246ed37742fb96680e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.149Z",
+        "text_preview": "14:48 - Surgery: FERRERA [PERSON] (Clinical Practitioner Access Role) History: F2F review in regards of PSA result 129 Reports urine went dark after taking naproxen for pain in legs Reports increased frequency at night 2-3 nights for the last year Denies any recent infection Mentions to be feeling well on himself Denies any weight loss recently Denies visible blood in urine or stools - normal colour darksih yellow no dysuria, no fever, no night sweats Reports loss of apetitite for past few days but relates it to the use of naproxen on tamsulosin for BPH Outbound referral (XaY59) Outbound referral (XaY59) Outbound referral (XaY59) Examination: Urine dip negative for leukocytes or nitrates, traces of proteins and positive non hemolysis, pH 6 Diagnosis: PR exam prostate noted enlarged but smo",
+        "relevant_entities": [
+          {
+            "text": "2 ww urgent urology referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 954,
+            "end": 982
+          }
+        ]
+      },
+      {
+        "label_id": "manual-7d40d8340bf948d09c693a61d3661370",
+        "candidate_id": "ad2aad411d8de2962381fbadaa6dc8c5ddc0f0490c4c5295da59e60c547cb271",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:14.128Z",
+        "text_preview": "08:29 - Surgery: [PERSON] (Clinical Practitioner Access Role) Problem: Hip pain (X75rv) History: Booked to discuss MRI but I note that his PSA is very raised. Does get LUTs, including nocturia. Note Hx leg/hip pain- has spoken with specialist about this and awaits nerve conduction studies. Plan: Concerning that he has ongoing leg pain and raised PSA. Booked with [PERSON] this afternoon - will need urinalysis and DRE please. If urinalysis NAD, will need 2ww referral urology.",
+        "relevant_entities": [
+          {
+            "text": "2ww referral urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "hypothetical",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 462,
+            "end": 482
+          }
+        ]
+      },
+      {
+        "label_id": "manual-e01522d4b5c448fbba1856f97e7fd323",
+        "candidate_id": "b4368e12bbc467f7cdc3f9f1f1cc06e601a57ec53b10e515ae459117de578a5c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:06.226Z",
+        "text_preview": "History: ca breast confirmed by breast team yesterday following my 2ww referral july 25",
+        "relevant_entities": [
+          {
+            "text": "2ww referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 67,
+            "end": 79
+          }
+        ]
+      },
+      {
+        "label_id": "manual-7ec05e367a3b434c987c2c9c6d7f4031",
+        "candidate_id": "d6ccb758551a2d886a9569fe4f934461439e00f11942861378c76429f3eefaed",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:06.205Z",
+        "text_preview": "Plan: discussed - in light of hoarseness and thyroid mass with dysphagia refer ENT 2ww - happy with plan",
+        "relevant_entities": [
+          {
+            "text": "ENT 2ww",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer",
+            "start": 79,
+            "end": 86
+          }
+        ]
+      },
+      {
+        "label_id": "manual-1a6303b1f9f04c5396c6bffb90ea40df",
+        "candidate_id": "907d4e8fc6ba515b1d2bd38008730230935e243b772ecb3ce56db059ec83204e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:06.185Z",
+        "text_preview": "Needs urgent 2ww breast review - happy and understands why",
+        "relevant_entities": [
+          {
+            "text": "2ww breast review",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 13,
+            "end": 30
+          }
+        ]
+      },
+      {
+        "label_id": "manual-a8061159c7f84128b0d8505b63aaac90",
+        "candidate_id": "591f0d5d26051e976f581833b0dbe09a318516ac66112c375364c649ffe1e532",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.751Z",
+        "text_preview": "Urgent 2WW referral for upper GI endoscopy",
+        "relevant_entities": [
+          {
+            "text": "2WW referral for upper GI endoscopy",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 7,
+            "end": 42
+          }
+        ]
+      },
+      {
+        "label_id": "manual-b1d56ce227404c1d8436e6b5cba2aa12",
+        "candidate_id": "61a0755f7d39de6d0aec98647ec411a9ffe42b87f2bfcf68b823d237a81dde10",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.732Z",
+        "text_preview": "PRISM 2WW Gynaecology - questionnaire started - (finalised: [DATE] 14:41)",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Gynaecology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer",
+            "start": 0,
+            "end": 21
+          }
+        ]
+      },
+      {
+        "label_id": "manual-ef329bd3a12f4f7493cf1ffa9f0de871",
+        "candidate_id": "f9a0c24ab76f9b64fb5736fc2ede52f3c39ac53fa9030488ed9e6d330f2fdd86",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.711Z",
+        "text_preview": "(9R52.) - 2ww Gynaecology",
+        "relevant_entities": [
+          {
+            "text": "2ww Gynaecology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 10,
+            "end": 25
+          }
+        ]
+      },
+      {
+        "label_id": "manual-f8636420ae0f440fa547e03b94af9c51",
+        "candidate_id": "a420ffb487036d9a9906dea26daee670fd7693ba52007dcd994b3cfffdbd5fc7",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.691Z",
+        "text_preview": "Plan: 2ww gynae referral as advised by private gynaecologist.",
+        "relevant_entities": [
+          {
+            "text": "2ww gynae referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 6,
+            "end": 24
+          }
+        ]
+      },
+      {
+        "label_id": "manual-c49aa2b601ee460faec35f87babdae0d",
+        "candidate_id": "702b6d71f3779f8cc855018054fc12ead0fe8aadb5d33a9a3b6a793267e13d33",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.647Z",
+        "text_preview": "Plan: agreed 2ww breast",
+        "relevant_entities": [
+          {
+            "text": "2ww breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 13,
+            "end": 23
+          }
+        ]
+      },
+      {
+        "label_id": "manual-d0917b2eeb0843e5a3f658bc9a75d0a0",
+        "candidate_id": "702b6d71f3779f8cc855018054fc12ead0fe8aadb5d33a9a3b6a793267e13d33",
+        "source": "manual_gold_draft",
+        "updated_at": "2026-04-25T07:58:04.627Z",
+        "text_preview": "Plan: agreed 2ww breast",
+        "relevant_entities": [
+          {
+            "text": "2ww breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 13,
+            "end": 23
+          }
+        ]
+      },
+      {
+        "label_id": "manual-c3c7981ed5cb40b687809a1acb661443",
+        "candidate_id": "257dff6ce14efea1f66ca9f0f6548c8b632151d09843ce060306449f0ce52ad5",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.56Z",
+        "text_preview": "Patient awaiting OPD appt.: Yes 2ww head and neck",
+        "relevant_entities": [
+          {
+            "text": "2ww head and neck",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 32,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-1362dd9dc9a84204a2bd3053b2c8c0e8",
+        "candidate_id": "d5a72dfef09eced8c1877ad83978eb8eeb67a5950b1330d05742701cffff955b",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.52Z",
+        "text_preview": "Diagnosis: 2WW Dermatology Pathway accessed",
+        "relevant_entities": [
+          {
+            "text": "2WW Dermatology Pathway",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276281000000104",
+            "snomed_term": "Fast track referral for suspected skin cancer (procedure)",
+            "start": 11,
+            "end": 34
+          }
+        ]
+      },
+      {
+        "label_id": "manual-483224d2dee64615b59b39f8a71e7df8",
+        "candidate_id": "df5aa5041716f38337ec6e67a4a441b68a89e57bf3d77983febeae80b8297b2c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.498Z",
+        "text_preview": "(9R52.) - 2ww gynae",
+        "relevant_entities": [
+          {
+            "text": "2ww gynae",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 10,
+            "end": 19
+          }
+        ]
+      },
+      {
+        "label_id": "manual-71775f9e59c642fea00f896221eab73b",
+        "candidate_id": "8f4371f9ebdbc7881b78e695e8fd2beb9fc0c38c26aa13dc3364c1b06045f10d",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.479Z",
+        "text_preview": "PRISM 2WW Urology Pathway Accessed",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "possible",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 0,
+            "end": 17
+          }
+        ]
+      },
+      {
+        "label_id": "manual-f2d52554d5b34fefb00ccfa03187d66d",
+        "candidate_id": "b7c4f7bff01c180238045cc96bc7da3ded313dc56599d758d6acd4d14ec7ff52",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.458Z",
+        "text_preview": "PRISM 2WW Breast Female - questionnaire started - (finalised: [DATE] 14:49)",
+        "relevant_entities": [
+          {
+            "text": "2WW Breast",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 6,
+            "end": 16
+          }
+        ]
+      },
+      {
+        "label_id": "manual-cebc2951943041759b23370b37d8a191",
+        "candidate_id": "d6cad915518cc348444365a8c92c3c5ad4aaf082689bb98798a7361814926b28",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.377Z",
+        "text_preview": "Plan: explained raised PSA may suggest prostate malig thus 2ww uro referral wararnted",
+        "relevant_entities": [
+          {
+            "text": "2ww uro referral",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 59,
+            "end": 75
+          }
+        ]
+      },
+      {
+        "label_id": "manual-95a38a41992e47749c273bdf9385fd98",
+        "candidate_id": "7b34923af5b2a50fb33ec01e07c9a538df006c195e4c6ec296c3845c389526b9",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:04.089Z",
+        "text_preview": "Fast track referral for suspected upper GI cancer (XaMeJ) - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected upper GI cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer (procedure)",
+            "start": 0,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-9b7938813b7548feb6d8a8a0f77e800f",
+        "candidate_id": "7b34923af5b2a50fb33ec01e07c9a538df006c195e4c6ec296c3845c389526b9",
+        "source": "manual_gold_draft",
+        "updated_at": "2026-04-25T07:58:04.069Z",
+        "text_preview": "Fast track referral for suspected upper GI cancer (XaMeJ) - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected upper GI cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer",
+            "start": 0,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-e2bfd90bf13e4c8fb2adff7b0bc16279",
+        "candidate_id": "9067e23697b4b6638cef0fa24d5f8a777b6d20bbbbc841fdaa16f9016f827a02",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:03.886Z",
+        "text_preview": "Fast track referral for suspected head and neck cancer (XaMkD) - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected head and neck cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "280521000000108",
+            "snomed_term": "Fast track referral for suspected head and neck cancer (procedure)",
+            "start": 0,
+            "end": 54
+          }
+        ]
+      },
+      {
+        "label_id": "manual-12602123b4c54d32a73d6d6320e9ee34",
+        "candidate_id": "125ff91faba56fc578c3265c949f5fac47edf2c8a1c322519f921a92bdfc414e",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:03.863Z",
+        "text_preview": "Fast track referral for suspected lower GI cancer (Xaalp)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected lower GI cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "892201000000106",
+            "snomed_term": "Fast track referral for suspected lower gastrointestinal cancer (procedure)",
+            "start": 0,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-6607a86d2db24d51b6ee8961e7a2d2be",
+        "candidate_id": "43601b844d73a7d8421d22c567c7e6ba6e197e39a7ebf9f85c94adeb192f7072",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:03.6Z",
+        "text_preview": "Fast track referral for suspected breast cancer (XaMeC) - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected breast cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer",
+            "start": 0,
+            "end": 47
+          }
+        ]
+      },
+      {
+        "label_id": "manual-a8068ace3918483f8dcd3b4ee6435ae6",
+        "candidate_id": "627fa398380fc62c6b56895b14a5416a4d43b2bb18fa9c5a4e0d4188a8c3fc01",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:58:00.935Z",
+        "text_preview": "Urgent referral to breast clinic at [LOCATION] Hospital.",
+        "relevant_entities": [
+          {
+            "text": "Urgent referral to breast clinic",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "planned",
+            "snomed_concept_id": "276341000000100",
+            "snomed_term": "Fast track referral for suspected breast cancer (procedure)",
+            "start": 0,
+            "end": 32
+          }
+        ]
+      },
+      {
+        "label_id": "manual-a5e99b535a0740cd9a4feea216d73b45",
+        "candidate_id": "82ca55d9f75ecdd6658f3f12e0b41fb19e9f606724c59994c798fc202c5d5cfe",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.302Z",
+        "text_preview": "Fast track referral for suspected upper GI cancer (XaMeJ)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected upper GI cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276551000000108",
+            "snomed_term": "Fast track referral for suspected upper gastrointestinal cancer",
+            "start": 0,
+            "end": 49
+          }
+        ]
+      },
+      {
+        "label_id": "manual-78722b7f18cc469896dbb9cec46442f5",
+        "candidate_id": "6c2122851ded51576be1f6dd0bb45ae3f14cedb54932f4b10c939556b8e3f19b",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.238Z",
+        "text_preview": "Hospital Fast track referral for suspected skin cancer updated: Waiting For Information",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected skin cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276281000000104",
+            "snomed_term": "Fast track referral for suspected skin cancer",
+            "start": 9,
+            "end": 54
+          }
+        ]
+      },
+      {
+        "label_id": "manual-15f6b50662474fff845b182e5f9486f5",
+        "candidate_id": "73586be490cd54bde0b8cfb613ebaafe8b6761116fa2c1904e99317955ed8900",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.189Z",
+        "text_preview": "Fast track referral for suspected lung cancer (XaMeH)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected lung cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276491000000101",
+            "snomed_term": "Fast track referral for suspected lung cancer",
+            "start": 0,
+            "end": 45
+          }
+        ]
+      },
+      {
+        "label_id": "manual-c1decb90ab884242ad39d7c832e30985",
+        "candidate_id": "baeea6e4bd0ff4ab797271fac00fd99b67d954a161293b227c51b2a7203c76df",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.146Z",
+        "text_preview": "Fast track referral for suspected urological cancer (XaMeF) - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected urological cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer",
+            "start": 0,
+            "end": 51
+          }
+        ]
+      },
+      {
+        "label_id": "manual-6cbf756c66eb445dbff081cf36b32d95",
+        "candidate_id": "5f0199d41ca3c3c2c2322b36e5f5d1f71cc7c53d6b36731e5443374c3a1642ac",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.125Z",
+        "text_preview": "'- PRISM 2WW Urology' - questionnaire amended",
+        "relevant_entities": [
+          {
+            "text": "PRISM 2WW Urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)",
+            "start": 3,
+            "end": 20
+          }
+        ]
+      },
+      {
+        "label_id": "manual-684dbd77e71340ff9d40f3e266fb18b4",
+        "candidate_id": "61c7a49c3f42a440439257be53b2cecc8c8f124aa94aba0a93fb4fd4f50a4630",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:59.055Z",
+        "text_preview": "Fast track referral for suspected cancer due to non-site-specific symptoms (Y3dd2) - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected cancer due to non-site-specific symptoms",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "1556551000000104",
+            "snomed_term": "Fast track referral for suspected cancer due to non-site-specific symptoms",
+            "start": 0,
+            "end": 74
+          }
+        ]
+      },
+      {
+        "label_id": "manual-b1d00df29a8d49aa857839ef2084abf7",
+        "candidate_id": "404e42f566a0381189125e0459eefa083f69f709f9b54b704bacca1ab99a4ca1",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:58.97Z",
+        "text_preview": "Fast track referral for suspected skin cancer (XaMeA)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected skin cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276281000000104",
+            "snomed_term": "Fast track referral for suspected skin cancer",
+            "start": 0,
+            "end": 45
+          }
+        ]
+      },
+      {
+        "label_id": "manual-e505bab6920449f1a60b8f4ab1cb8aca",
+        "candidate_id": "a29fa24b4afe894ded2475c406581906422befeb3ca56d01d3a20c041ac7ba2c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:58.928Z",
+        "text_preview": "Fast track referral for suspected colorectal cancer (XaMeE)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected colorectal cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276401000000108",
+            "snomed_term": "Fast track referral for suspected colorectal cancer",
+            "start": 0,
+            "end": 51
+          }
+        ]
+      },
+      {
+        "label_id": "manual-31401d51c52e4a3891718fdc3ab5ee7d",
+        "candidate_id": "450e9c92caf038f5ff8599f08a7efe52507b554066984a77348c6a0055cdd623",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:58.887Z",
+        "text_preview": "Plan: In light of new anterior vulval ulceration and eschar - 2ww Gynae vulva",
+        "relevant_entities": [
+          {
+            "text": "2ww Gynae vulva",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer (procedure)",
+            "start": 62,
+            "end": 77
+          }
+        ]
+      },
+      {
+        "label_id": "manual-43c6b868190d498eaa058bc710851a42",
+        "candidate_id": "85275e9fc3d43c8e9ab0c2849e3860221f8ddcd63127761963b3a1ed9764a782",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-25T07:57:58.864Z",
+        "text_preview": "Fast track referral for suspected gynaecological cancer (XaMeB) - (Added from Questionnaire)",
+        "relevant_entities": [
+          {
+            "text": "Fast track referral for suspected gynaecological cancer",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276311000000101",
+            "snomed_term": "Fast track referral for suspected gynaecological cancer",
+            "start": 0,
+            "end": 55
+          }
+        ]
+      },
+      {
+        "label_id": "manual-e76186eb25d643e3aa9a4ba63422ba16",
+        "candidate_id": "977463fb837bfe98c995700eb00ffe2361d1d6d7e27c1a18f24fad31bdee654c",
+        "source": "manual_gold_editor",
+        "updated_at": "2026-04-22T12:07:00.681Z",
+        "text_preview": "12:43 - Surgery: [PERSON] Fast track referral for suspected urological cancer (XaMeF) Choice and booking enhanced services administration (XaMJa) 2WW Patient awaiting OPD appt.: Yes 2ww urology Hospital Fast track referral for suspected urological cancer Hospital Fast track referral for suspected urological cancer updated: Waiting For Information Patient awaiting OPD appt. (9R52.) - 2ww urology",
+        "relevant_entities": [
+          {
+            "text": "2ww urology",
+            "label": "procedure",
+            "semantic_tag": "procedure",
+            "assertion": "present",
+            "snomed_concept_id": "276431000000102",
+            "snomed_term": "Fast track referral for suspected urological cancer (procedure)"
+          }
+        ]
+      }
+    ]
+  }
+}

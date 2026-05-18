@@ -15,6 +15,7 @@ import { PipelineProvider } from "@/context/PipelineContext";
 import { OrgProvider } from "@/context/OrgContext";
 import { AnalyticsDateFilterProvider } from "@/context/AnalyticsDateFilterContext";
 import { DensityProvider } from "@/context/DensityContext";
+import { DemoModeProvider } from "@/context/DemoModeContext";
 import AppShell from "@/components/AppShell";
 import AuthProviderWrapper from "@/components/AuthProviderWrapper";
 import RoleShellProvider from "@/components/RoleShellProvider";
@@ -59,13 +60,15 @@ export default async function RootLayout({
           <RoleShellProvider>
             <ThemeRegistry>
               <DensityProvider>
-                <OrgProvider>
-                  <AnalyticsDateFilterProvider>
-                    <PipelineProvider>
-                      <AppShell>{children}</AppShell>
-                    </PipelineProvider>
-                  </AnalyticsDateFilterProvider>
-                </OrgProvider>
+                <DemoModeProvider>
+                  <OrgProvider>
+                    <AnalyticsDateFilterProvider>
+                      <PipelineProvider>
+                        <AppShell>{children}</AppShell>
+                      </PipelineProvider>
+                    </AnalyticsDateFilterProvider>
+                  </OrgProvider>
+                </DemoModeProvider>
               </DensityProvider>
             </ThemeRegistry>
           </RoleShellProvider>

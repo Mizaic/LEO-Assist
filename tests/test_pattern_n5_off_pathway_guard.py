@@ -7,7 +7,7 @@ without cancer context, etc.) and the body's cancer mention is
 incidental, the detector MUST NOT emit a ``care_obstruction``
 milestone even if the underlying _RE_CARE_OBSTRUCTION regex hits.
 
-The canonical failing case is patient 4802892365's 2025-07-01
+The canonical failing case is patient 9990003001's 2025-07-01
 MMR/Mexico travel-vaccine encounter:
 
     Problem: Advice on foreign travel (67E..)
@@ -151,7 +151,7 @@ class TestCareObstructionSuppressionUnderOffPathwayHeader:
             "patient_id": "P-test",
         }
 
-    def test_canonical_4802892365_2025_07_01_emits_no_care_obstruction(
+    def test_canonical_9990003001_2025_07_01_emits_no_care_obstruction(
         self, detector
     ):
         text = (

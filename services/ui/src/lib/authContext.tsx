@@ -46,6 +46,8 @@ export interface Session {
   idleTimeoutMinutes: number;
   selectedRole: string | null;
   allowedRoles: string[];
+  /** Multi-role: true until PATCH /auth/session/role for this browser session. */
+  needsRoleChoice: boolean;
   densityPreference: DensityPreference | null;
 }
 
@@ -99,6 +101,7 @@ export function AuthProvider({
           allowedRoles: Array.isArray(data.allowed_roles)
             ? data.allowed_roles
             : [],
+          needsRoleChoice: data.needs_role_choice === true,
           densityPreference: density,
         });
         setStatus("authenticated");

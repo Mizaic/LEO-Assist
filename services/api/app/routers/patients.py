@@ -922,10 +922,38 @@ def get_encounter_coded_links(
                     row["modifiers"] = {}
             elif mod is None:
                 row["modifiers"] = {}
+            _hydrate_observable_measurement(row)
             result.append(row)
         return result
     finally:
         client.close()
+
+
+def _hydrate_observable_measurement(row: dict[str, Any]) -> None:
+    """Backfill value/unit on read for older observable DOCUMENTS links."""
+
+    if not _is_observable_tag(row.get("semantic_tag")):
+        return
+    if row.get("value") is not None or row.get("unit"):
+        return
+
+    evidence = str(row.get("evidence") or row.get("evidence_sentence") or "")
+    if not evidence.strip():
+        return
+
+    from libs.training.lab_span_detector import detect_lab_pattern
+
+    pattern = detect_lab_pattern(evidence)
+    if not pattern.matched:
+        return
+    row["value"] = pattern.numeric_value
+    row["unit"] = pattern.unit
+    row["reference_range"] = row.get("reference_range") or pattern.reference_range
+
+
+def _is_observable_tag(raw: Any) -> bool:
+    normalized = "".join(ch for ch in str(raw or "").lower() if ch.isalnum())
+    return normalized in {"observable", "observableentity"}
 
 
 @router.delete("/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}")

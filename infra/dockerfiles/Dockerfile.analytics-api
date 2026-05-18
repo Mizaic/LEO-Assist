@@ -20,7 +20,8 @@ COPY libs/ /app/libs/
 COPY services/analytics_api/ /app/services/analytics_api/
 COPY services/analysis_worker/ /app/services/analysis_worker/
 WORKDIR /app
-ENV PYTHONPATH=/app:/app/services/analytics_api
+ENV PYTHONPATH=/app:/app/services/analytics_api \
+    UVICORN_WORKERS=4
 EXPOSE 8003
 ENTRYPOINT ["/venv/bin/python3", "-m", "uvicorn", "services.analytics_api.app.main:app", \
             "--host", "0.0.0.0", "--port", "8003"]

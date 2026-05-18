@@ -118,6 +118,13 @@ export const BREACH_TARGETS: BreachTarget[] = [
     endMilestone: "diagnosis",
   },
   {
+    // NCDA Decision-To-Treatment 31-day standard. Diagnosis -> first treatment.
+    label: "Decision to treatment",
+    standardDays: 31,
+    startMilestone: "diagnosis",
+    endMilestone: "first_treatment",
+  },
+  {
     label: "Treatment target",
     standardDays: 62,
     startMilestone: "referral",

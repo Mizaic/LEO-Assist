@@ -10,7 +10,7 @@ Reports:
   - distinct Patient nodes implicated for each
   - per-patient breakdown for the top 10 patients (by edge count)
     for each milestone type
-  - inspection of patient 4802892365's referral / first_seen
+  - inspection of patient 9990003001's referral / first_seen
     milestones (canonical N3 regression anchor: should equal 1 / 1
     after the N3 rebuild)
 """
@@ -109,7 +109,7 @@ def _report(client, mtype: str, pid: str) -> None:
 def main() -> None:
     from libs.neo4j_client.client import PatientGraphClient
 
-    pid = "4802892365"
+    pid = "9990003001"
     client = PatientGraphClient()
     try:
         _report(client, "referral", pid)

@@ -33,6 +33,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
 import Pagination from "@mui/material/Pagination";
 import Skeleton from "@mui/material/Skeleton";
+import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import MenuItem from "@mui/material/MenuItem";
@@ -3412,6 +3413,9 @@ export default function GoldDatasetPanel() {
   const [openingCandidateLabelId, setOpeningCandidateLabelId] = useState<string | null>(null);
   const [candidateGoldLabel, setCandidateGoldLabel] = useState<GoldLabel | null>(null);
   const [markingGoldCandidateId, setMarkingGoldCandidateId] = useState<string | null>(null);
+  const [goldSaveInFlightCount, setGoldSaveInFlightCount] = useState(0);
+  const [goldRefreshInFlight, setGoldRefreshInFlight] = useState(false);
+  const [findSimilarAfterGold, setFindSimilarAfterGold] = useState(false);
   const [similarDialogOpen, setSimilarDialogOpen] = useState(false);
   const [similarCandidates, setSimilarCandidates] = useState<SimilarCandidateItem[]>([]);
   const [similarSelected, setSimilarSelected] = useState<Record<string, boolean>>({});
@@ -3420,7 +3424,6 @@ export default function GoldDatasetPanel() {
   const [similarReviewedIds, setSimilarReviewedIds] = useState<Set<string>>(new Set());
   const [loadingReviewId, setLoadingReviewId] = useState<string | null>(null);
   const [similarCandidateLabel, setSimilarCandidateLabel] = useState<GoldLabel | null>(null);
-  const [pendingNextCandidateId, setPendingNextCandidateId] = useState<string | null>(null);
   const [pruneDialogOpen, setPruneDialogOpen] = useState(false);
   const [aiFirstPassDialogOpen, setAiFirstPassDialogOpen] = useState(false);
   const [dedupeDialogOpen, setDedupeDialogOpen] = useState(false);
@@ -3515,6 +3518,21 @@ export default function GoldDatasetPanel() {
       setStatsError(e instanceof Error ? e.message : "Could not load stats");
     } finally {
       setStatsLoading(false);
+    }
+  }, []);
+
+  const silentRefreshStats = useCallback(async () => {
+    try {
+      const [cs, gs, ss] = await Promise.all([
+        jsonFetch<CandidateStats>("/api/training/candidates/stats"),
+        jsonFetch<GoldStats>("/api/training/gold-labels/stats"),
+        jsonFetch<SyntheticStats>("/api/training/synthetic-gold/stats"),
+      ]);
+      setCandidateStats(cs);
+      setGoldStats(gs);
+      setSyntheticStats(ss);
+    } catch {
+      // Keep optimistic counts until the next normal stats refresh.
     }
   }, []);
 
@@ -3831,25 +3849,6 @@ export default function GoldDatasetPanel() {
     }
   }
 
-  function flushPendingNextCandidate() {
-    setPendingNextCandidateId((pending) => {
-      if (pending) void openCandidateLabelEditor(pending);
-      return null;
-    });
-  }
-
-  function getNextCandidateId(afterCandidateId: string): string | null {
-    const rows = items as Candidate[];
-    const index = rows.findIndex((row) => row.candidate_id === afterCandidateId);
-    if (index < 0) return null;
-    return rows.slice(index + 1).find((row) => row.status !== "completed")?.candidate_id ?? null;
-  }
-
-  function openNextCandidate(afterCandidateId: string) {
-    const nextId = getNextCandidateId(afterCandidateId);
-    if (nextId) void openCandidateLabelEditor(nextId);
-  }
-
   async function findSimilarCandidates(
     candidateId: string,
     sourceEntitiesJson: string | null = null,
@@ -3916,6 +3915,35 @@ export default function GoldDatasetPanel() {
     }
   }
 
+  function optimisticallyAcceptCandidate(candidateId: string) {
+    setItems((prev) =>
+      prev.filter(
+        (item) =>
+          !("candidate_id" in item) || item.candidate_id !== candidateId,
+      ),
+    );
+    setTotal((prev) => Math.max(0, prev - 1));
+    setCandidateStats((prev) =>
+      prev
+        ? {
+            ...prev,
+            pending: Math.max(0, prev.pending - 1),
+            completed: prev.completed + 1,
+          }
+        : prev,
+    );
+    setGoldStats((prev) =>
+      prev ? { ...prev, total: prev.total + 1 } : prev,
+    );
+  }
+
+  function refreshGoldReviewDataInBackground() {
+    setGoldRefreshInFlight(true);
+    void Promise.all([silentRefreshList(), silentRefreshStats()]).finally(() => {
+      setGoldRefreshInFlight(false);
+    });
+  }
+
   async function applySimilarSelections() {
     // Exclude candidates already individually reviewed and marked gold.
     const selectedIds = similarCandidates
@@ -3952,45 +3980,45 @@ export default function GoldDatasetPanel() {
       setSimilarCandidates([]);
       setSimilarSelected({});
       setSimilarReviewedIds(new Set());
-      flushPendingNextCandidate();
       await Promise.all([loadList(), loadStats()]);
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Could not apply similar updates");
       setSimilarDialogOpen(false);
       setSimilarReviewedIds(new Set());
-      flushPendingNextCandidate();
     } finally {
       setSimilarApplying(false);
     }
   }
 
   async function markCandidateAsGold(candidateId: string) {
-    if (!candidateId || markingGoldCandidateId) return;
+    if (!candidateId) return;
     setMarkingGoldCandidateId(candidateId);
+    setGoldSaveInFlightCount((count) => count + 1);
     setActionMsg(null);
     setListError(null);
     // Capture entity JSON now -- candidateGoldLabel may be cleared before the
     // async findSimilarCandidates call resolves.
     const sourceEntitiesJson = candidateGoldLabel?.entities_json ?? null;
+    optimisticallyAcceptCandidate(candidateId);
+    setMarkingGoldCandidateId(null);
     try {
       await jsonFetch<{ candidate_id: string; status: string; gold_label_id: string | null }>(
         `/api/training/candidates/${encodeURIComponent(candidateId)}/mark-completed`,
         { method: "POST" },
       );
       setActionMsg("Saved as gold data. Candidate status updated to completed.");
-      await Promise.all([loadList(), loadStats()]);
-      const similarOpened = await findSimilarCandidates(candidateId, sourceEntitiesJson);
-      if (similarOpened) {
-        // Defer opening the next candidate until the similar dialog is dismissed.
-        const nextId = getNextCandidateId(candidateId);
-        if (nextId) setPendingNextCandidateId(nextId);
-      } else {
-        openNextCandidate(candidateId);
+      refreshGoldReviewDataInBackground();
+      const similarOpened = findSimilarAfterGold
+        ? await findSimilarCandidates(candidateId, sourceEntitiesJson)
+        : false;
+      if (!similarOpened && findSimilarAfterGold) {
+        setActionMsg("Saved as gold data. No similar candidates were found.");
       }
     } catch (e) {
       setListError(e instanceof Error ? e.message : "Could not mark candidate as gold data");
+      refreshGoldReviewDataInBackground();
     } finally {
-      setMarkingGoldCandidateId(null);
+      setGoldSaveInFlightCount((count) => Math.max(0, count - 1));
     }
   }
 
@@ -4223,6 +4251,23 @@ export default function GoldDatasetPanel() {
 
       {exportMsg && <Alert severity="success" sx={{ mb: 1.5 }} onClose={() => setExportMsg(null)}>{exportMsg}</Alert>}
       {actionMsg && <Alert severity="success" sx={{ mb: 1.5 }} onClose={() => setActionMsg(null)}>{actionMsg}</Alert>}
+      <Snackbar
+        open={
+          tab === "candidates" &&
+          (goldSaveInFlightCount > 0 || goldRefreshInFlight)
+        }
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="info"
+          icon={<CircularProgress size={18} aria-label="Saving gold label" />}
+          sx={{ width: "100%", boxShadow: 3 }}
+        >
+          {goldSaveInFlightCount > 0
+            ? "Saving gold label..."
+            : "Refreshing the review queue..."}
+        </Alert>
+      </Snackbar>
 
       {/* Segmented tabs (design-system SegmentedTabs with keyboard nav + pill styling) */}
       <Box sx={{ mb: 1.5 }}>
@@ -4231,7 +4276,14 @@ export default function GoldDatasetPanel() {
           value={tab}
           onChange={(id) => handleTabChange({} as React.SyntheticEvent, id as typeof tab)}
           tabs={[
-            { id: "candidates", label: "Candidates", count: candidateStats?.total },
+            {
+              id: "candidates",
+              label: "Candidates",
+              count:
+                candidateStats != null
+                  ? candidateStats.total - candidateStats.completed
+                  : undefined,
+            },
             { id: "gold", label: "Verified gold", count: goldStats?.total },
             { id: "synthetic", label: "Synthetic", count: syntheticStats?.synthetic_gold_labels },
           ]}
@@ -4349,6 +4401,30 @@ export default function GoldDatasetPanel() {
           },
         }}
       />
+      {tab === "candidates" && (
+        <FormControlLabel
+          control={
+            <Switch
+              checked={findSimilarAfterGold}
+              onChange={(event) => setFindSimilarAfterGold(event.target.checked)}
+              inputProps={{
+                "aria-label": "Look for similar candidates after accepting",
+              }}
+            />
+          }
+          label={
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                Look for similar candidates after accepting
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Off by default. Turn this on to review matching candidates before moving on.
+              </Typography>
+            </Box>
+          }
+          sx={{ mb: 1.25, alignItems: "flex-start" }}
+        />
+      )}
 
       {/* List */}
       {listError && <Alert severity="error" sx={{ mb: 1.25 }} onClose={() => setListError(null)}>{listError}</Alert>}
@@ -4466,9 +4542,6 @@ export default function GoldDatasetPanel() {
             setCandidateGoldLabel(null);
             void markCandidateAsGold(candidateGoldLabel.candidate_id ?? "");
           }}
-          onNextCandidate={() =>
-            openNextCandidate(candidateGoldLabel.candidate_id ?? "")
-          }
           onDeleteCandidate={(suppressText) => {
             const id = candidateGoldLabel.candidate_id ?? "";
             const text = candidateGoldLabel.text ?? "";
@@ -4492,7 +4565,6 @@ export default function GoldDatasetPanel() {
           setSimilarCandidates([]);
           setSimilarSelected({});
           setSimilarReviewedIds(new Set());
-          flushPendingNextCandidate();
         }}
         onToggle={(candidateId, checked) =>
           setSimilarSelected((prev) => ({ ...prev, [candidateId]: checked }))

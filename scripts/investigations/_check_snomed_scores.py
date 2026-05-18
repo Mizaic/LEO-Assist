@@ -37,7 +37,7 @@ from libs.auth.service_auth import get_service_auth_header
 SESSION = requests.Session()
 SESSION.headers.update(get_service_auth_header())
 
-for form, cid in [("NAFLD", "1231824009"), ("type 2 diabetes", "44054006")]:
+for form, cid in [("NAFLD", "9990010007"), ("type 2 diabetes", "44054006")]:
     body = {
         "form": form,
         "normalized": form.lower().strip(),

@@ -1,0 +1,31 @@
+---
+description: Atomic sprint tasks and planning breakdown (1-4h, independent, shippable slices)
+alwaysApply: true
+---
+
+# Atomic Sprint Planning
+
+**Scope:** Apply when decomposing work, drafting a plan or sprint backlog, estimating, or turning a feature into tasks. Do not over-apply to trivial one-step requests.
+
+## What “atomic” means
+
+- **Small:** Roughly 1-4 hours of focused work per person (ideal, uninterrupted time is the guide, not a stopwatch).
+- **Independent:** Tasks should avoid hard ordering bottlenecks so different people can work in parallel when possible.
+- **Production-safe:** Finishing a task should leave the repo in a **stable, tested, and plausibly deployable** state (no “broken main until the next task”).
+- **Validated:** Each task has **clear acceptance criteria** (what “done” means). Prefer explicit checks; Gherkin-style (Given / When / Then) is fine when it clarifies behavior.
+
+## Decomposition pattern
+
+- Prefer vertical slices (e.g. one endpoint + contract + test) over a single mega-task (“implement checkout”).
+- Split **implementation** and **automated test** when that keeps units small and reviewable; avoid one task that is “code + every kind of test” if that blows past 1-4h.
+- Use a **spike** when unknowns dominate (new integration, unclear API): time-box research, then replace with concrete build tasks.
+- **Do not** split into meaningless micro-tasks; keep flexibility for the engineer to choose the “how” inside the criteria.
+
+## Example (not atomic vs atomic)
+
+- **Too large:** “Implement the checkout page.”
+- **Atomic-style breakdown:** Add migration for order status; add API handler + schema; add payment-provider tokenization wrapper; add card field UI component; unit tests for validation; wire API response handling in client.
+
+## Focus
+
+- Every task should tie to the **sprint or milestone goal** (value), not decompose for its own sake.

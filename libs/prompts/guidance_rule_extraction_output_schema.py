@@ -28,7 +28,24 @@ _LOGIC_NODE_SCHEMA = {
     "properties": {
         "kind": {
             "type": "string",
-            "enum": ["AND", "OR", "AT_LEAST", "NOT", "concept", "demographic"],
+            "enum": [
+                "AND",
+                "OR",
+                "AT_LEAST",
+                "NOT",
+                "concept",
+                "demographic",
+                # Phase 6c: a numeric threshold on a lab value or
+                # clinical reading. The LLM should emit this kind when
+                # a NICE recommendation compares a named observable to
+                # a number (e.g. "platelet count >= 400 x10*9/L",
+                # "eGFR < 60 mL/min/1.73m2"). ``term`` carries the
+                # observable name (resolved to SNOMED downstream);
+                # ``operator`` / ``value`` / ``unit`` carry the
+                # numeric threshold; ``within_days`` is optional and
+                # defaults to 365.
+                "observation",
+            ],
         },
         "children": {
             "type": "array",
@@ -38,8 +55,24 @@ _LOGIC_NODE_SCHEMA = {
         "term": _TERM_SCHEMA,
         "field": {"type": ["string", "null"]},
         "operator": {"type": ["string", "null"]},
-        "value": {"type": ["number", "string", "null"]},
+        "value": {
+            # Permit a two-element array for "between" thresholds
+            # (e.g. blood pressure 140-160 mmHg). Numeric / string
+            # remain for back-compat with the demographic branch.
+            "oneOf": [
+                {"type": "number"},
+                {"type": "string"},
+                {"type": "null"},
+                {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 2,
+                    "maxItems": 2,
+                },
+            ],
+        },
         "unit": {"type": ["string", "null"]},
+        "within_days": {"type": ["integer", "null"]},
         "raw_term": {"type": ["string", "null"]},
     },
 }

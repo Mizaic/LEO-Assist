@@ -1,0 +1,869 @@
+{
+  "patient_id": "4742236882",
+  "row_count": 12,
+  "rows": [
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "16a84797-2eec-4b3b-a51b-e79c3594cb7d",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-03-14",
+        "flags": "Letter\nThis event was back-dated and entered on: 28 Mar 2025 15:09",
+        "id": "16a84797-2eec-4b3b-a51b-e79c3594cb7d",
+        "processed_at": "2026-01-16T00:22:17.829039",
+        "text": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nBreast Surgeon to Dr Medical Woodbrook",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) Breast Surgeon to Dr Medical Woodbrook",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "SnomedConcept"
+          ],
+          "name": "Left breast structure (body structure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "SnomedConcept"
+          ],
+          "name": "Structure of lymph node of left axilla (body structure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Biopsy of breast (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Mammography (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Ultrasonography of breast (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Biopsy of axillary lymph node (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Biopsy of breast (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Mammography (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Biopsy of axillary lymph node (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Ultrasonography of breast (procedure)"
+        }
+      ],
+      "encounter_id": "f2351bf7-001f-4262-9d88-d0ff4aa68a55",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-03-14",
+        "flags": "This event was back-dated and entered on: 13 Apr 2025 16:27",
+        "id": "f2351bf7-001f-4262-9d88-d0ff4aa68a55",
+        "processed_at": "2026-01-16T00:22:17.905141",
+        "text": "Surgery: SAYADIAN, Leanna (Miss) (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr)\nBiopsy of breast (7135.) - left (New Episode)\nMammogram (537..) (New Episode)\nUS scan of breast (585C.) - and axilla - left (New Episode)\nBiopsy of axillary lymph node (X20AR) - left (New Episode)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: SAYADIAN, Leanna (Miss) (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr) Biopsy of breast (7135.) - left (New Episode) Mammogram (537..) (New Episode) US scan of breast (585C.) - and axilla - left (New Episode) B",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "specialist_diagnostics",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Ultrasonography (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Biopsy of breast (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Infiltrating duct carcinoma of breast (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Computed tomography of abdomen and pelvis (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Mammography (procedure)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Disease"
+          ],
+          "name": "Infiltrating duct carcinoma of breast (disorder)"
+        }
+      ],
+      "encounter_id": "4d64bea6-d651-4838-a087-411313f0758e",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-03-24",
+        "flags": "This event was back-dated and entered on: 13 Apr 2025 16:18\nThis consultation was hidden from the Online Patient Record when created.",
+        "id": "4d64bea6-d651-4838-a087-411313f0758e",
+        "processed_at": "2026-01-16T00:22:18.666947",
+        "text": "Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) , Entered By: AMIN, Kunal (Dr)\nUltrasound scan (X70lf) - axilla - malignant looking LNs (New Episode)\nBiopsy of breast (7135.) - core biopsy (New Episode)\nMajor: Infiltrating duct carcinoma (BB91.) (New Episode)\nCT (computed tomography) of abdomen and pelvis (XaW9C) (New Episode)\nMammogram (537..) (New Episode)\nInfiltrating duct carcinoma (BB91.)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "surgery: rai, enju (miss) (admin/clinical support access role) , entered by: amin, kunal (dr) ultrasound scan (x70lf) - axilla - malignant looking lns (new episode) biopsy of breast (7135.) - core biopsy (new episode) major: infiltrating du",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "diagnosis_confirmed",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "a19d66b0-57dd-4929-9027-c62014dcf036",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-03-24",
+        "flags": "Letter\nThis event was back-dated and entered on: 07 Apr 2025 11:52",
+        "id": "a19d66b0-57dd-4929-9027-c62014dcf036",
+        "processed_at": "2026-01-16T00:22:18.467794",
+        "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast Surgeon to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) Breast Surgeon to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "e4df23eb-cd31-45d8-a68d-eaef43c07612",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-03-24",
+        "flags": "Letter\nThis event was back-dated and entered on: 28 Mar 2025 13:40\nThis consultation was hidden from the Online Patient Record when created.",
+        "id": "e4df23eb-cd31-45d8-a68d-eaef43c07612",
+        "processed_at": "2026-01-16T00:22:18.467794",
+        "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast Surgeon to Woodbrook Medical Centre",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) Breast Surgeon to Woodbrook Medical Centre",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Biopsy of breast (procedure)"
+        }
+      ],
+      "encounter_id": "46afa0a6-5a93-4858-bcb8-f4bb319ce26e",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-04-03",
+        "flags": "This event was back-dated and entered on: 06 Jun 2025 11:59",
+        "id": "46afa0a6-5a93-4858-bcb8-f4bb319ce26e",
+        "processed_at": "2026-01-16T00:22:19.975439",
+        "text": "Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) \nBiopsy of breast (7135.) (Ongoing Episode)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) Biopsy of breast (7135.) (Ongoing Episode)",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "specialist_diagnostics",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "970aa447-b438-4eaa-913a-db345e61f52e",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-04-18",
+        "flags": "Face to face\nThis event was back-dated and entered on: 18 Apr 2025 14:59\nEvent was entered at: LLR Community Therapy Service (Leicestershire Partnership NHS Trust)\nReferral: 17 Apr 2025 16:44 - Reablement Intermediate Care Service. for Rehabilitation (Primary Reason), Ended 15 May 2025 10:21\nLinked to Visit\nTeam: Technical Instructor\nOnline visibility of this data is controlled by the unit where it was recorded.",
+        "id": "970aa447-b438-4eaa-913a-db345e61f52e",
+        "processed_at": "2026-01-16T00:22:22.091860",
+        "text": "13:40 - WIGNALL, Melanie (Admin/Clinical Support Access Role) Entered at: LLR Community Therapy Service\nCHS - First Contact Review completed on 18 Apr 2025\n\nScheduled Obs Performed: NEWS2 Community - Score: 0\nFalls Risk Assessment Tool (FRAT) -  questionnaire started - (finalised: 18 Apr 2025 13:40)\nFalls risk assessment tool (XaZP6) 2  - (Added from Questionnaire)\n Waterlow Assessment Tool (LPT) v1\n   Entries from previous template version\n      Waterlow pressure sore risk score (Xa0t1) 9  - \nSex: Female\nAge: 81+\nBuild/Weight for Height: Average BMI = 20-24.9\nContinence: Complete/ Catheterised\nSkin Type/ Visual Risk Areas: Tissue Paper & Oedematous\nSkin Type/ Visual Risk Areas Cont.: N/A\nMobility: Fully\nWeight A - Has Patient Lost weight Recently: No - Go To C\nWeight B  - Weight Loss Score: N/A\nWeight C  - Patient Eating Poorly or Lack of Appetite: No\nTissue Malnutrition: N/A\nNeurological / Sensory Deficit -  e.g. Diabetes, MS, CVA, Huntingdons, Dementia, PMLD (Select the appropriate deficit and corresponding score): N/A\nMajor Surgery of Trauma: N/A\nMedication - Cytotoxics, Long Term/ High Dose Steroids, Anti- Inflammatory, Neuroleptics, Benzodiazepines (Max of 4): N/A: 18 Apr 2025 13:40\n SSKIN\n   SSKIN\n      Provision of pressure relief equipment:  normal bed and mattress \nno pressure reliving equipment identified\n      Observation of appearance of skin:  declined visual check. reports no concerns \nFeet slightly swollen,advised to elevate during the day. Advised to contact her GP if she feels they are getting worse.\nASSKING leaflet provided\n   SSKIN Cont......\n      Pressure area care:  Independently mobile using wheeled zimmer frame (wzf)\nAdvised to aim to stand every 1-2 hours\n      Continence assessment:  Continent\n      Nutritional observation:  Normal diet and fluids - reports no concerns\n Consent For Treatment, Intervention & Examination\n   Consent for Treatment Intervention & Examination\n      Confidentiality discussed with patient:  yes\n      Informed consent given for treatment:  verbal consent gained to complete holistic assessment\n      Examination declined:  declined visual pressure area heck\n Community Integrated Holistic Assessment\n    1 \n      Reason for referral:  mobility and transfer assessment following hospital admission\n      Patient perception of problem:  Reports that she struggles but can manage all transfers with identified equipment. \nStruggling with stairs due to faulty rail and not having one the other side.Only completes them when Daughter is present\n      Carer perception of problem:  social services have measured up for a stair rail and a wider step to the front door. \nNo formal care support in place\n    2 \n      Residence and accommodation circumstances:  lives alone in council 2 story property\n    3 \n      Past medical history:  breast cancer \nBone Metastatic - spinal cord compression \nAtrial fibrillation \nGallstones \nsee syterm 1 for full details\n      Treatment outcome expected by patient:  complete the stairs safely \n? progression back to walking stick\n      Cardiovascular observations:  known AF\nNo concerns during visit\n      Respiratory observation:  No concerns during visits\n      Eating drinking and feeding functions:  see sskin template\n      Advice about maintaining safety:  patient is aware of how and when to escalate any medical concerns. \nAdvised to continue using the frame until re assessed by therapist\n    4 \n      Ability to manage medication:  Daughter supports putting them in pill box\n    5 \n      Ability to perform activities of everyday life:  Indpendent with personal care. \nDaughter visits to support with meals and stair transfers. Patient is Independent with light meals and fluids\n      Equipment:  perching stool ordered - 27768094\n      Equipment in use:  kitchen trolley \nbed lever  \nframes x2 \ntoilet frames\n      Maintaining a safe environment:  Warm clean environment. \nStair rail is loose. awaiting a new one. Daughter supports with stair transfers until new one is fitted\n      Observation of mobility:  Functional range of movement in upper and lower limbs.\nPatient reports which daughter confirms is Independent with bed and toilet transfers. \nDaughter supports with stair transfers due to patient being fearful due to rail being loose.\n    6 \n      Emotional state observations:  Reports pleased to be home. Did not have a good hospital experience\n      Feeling lonely:  Has good support from her daughter\n      Urinary function:  continent\n      Digestive system functions:  continent.\n   Summary & Plan\n      Plan:  send referral for stair lift assessment\nchase up stair rail \ntelephone review \narrange visit ?\n      Summary report:  Therapy visit to complete holistic assessment. Daughter Jane present during visit. Patient returned home wearing a back brace (spinal cord compression) due to bone metastatic. \nPatient has been issued relevant equipment. perching stool identified and ordered onto existing order. Patient is Indpendent with transfers. Struggling with the stairs,fearful ++ due to rail being loose. Social services have measured up for a second rail and a repair of the old one. Daughter is supporting with stair transfers in the mean time. \nPatient unsure if she wants to progress back to her walking stick as she feels safe using the frame. \n\nStatus Update for Reablement Intermediate Care Service. Referral In: Receiving Care, Status changed: 18 Apr 2025 15:44\nActivity: Assessment - CHS - First Contact (Care Plan) (60 minutes) Face to face with Patient\nActivity: Record Keeping (60 minutes) Administration with No Patient/No Proxy present\nMWIOM - Transfers Care Plan Created\nConfidentiality discussed with patient (Y4854) - yes\nInformed consent given for treatment (XaXHK) - verbal consent gained to complete holistic assessment\nExamination declined (XaLTH) - declined visual pressure area heck\nProvision of pressure relief equipment (Ub0sN)\nnormal bed and mattress \nno pressure reliving equipment identified\nObservation of appearance of skin (Ua1c1)\ndeclined visual check. reports no concerns \nFeet slightly swollen,advised to elevate during the day. Advised to contact her GP if she feels they are getting worse.\nASSKING leaflet provided\nPressure area care (Ua1R3)\nIndependently mobile using wheeled zimmer frame (wzf)\nAdvised to aim to stand every 1-2 hours\nContinence assessment (XaKdS) - Continent\nNutritional observation (Xa7k6) - Normal diet and fluids - reports no concerns\nWaterlow pressure sore risk score (Xa0t1) 9  - \nSex: Female\nAge: 81+\nBuild/Weight for Height: Average BMI = 20-24.9\nContinence: Complete/ Catheterised\nSkin Type/ Visual Risk Areas: Tissue Paper & Oedematous\nSkin Type/ Visual Risk Areas Cont.: N/A\nMobility: Fully\nWeight A - Has Patient Lost weight Recently: No - Go To C\nWeight B  - Weight Loss Score: N/A\nWeight C  - Patient Eating Poorly or Lack of Appetite: No\nTissue Malnutrition: N/A\nNeurological / Sensory Deficit -  e.g. Diabetes, MS, CVA, Huntingdons, Dementia, PMLD (Select the appropriate deficit and corresponding score): N/A\nMajor Surgery of Trauma: N/A\nMedication - Cytotoxics, Long Term/ High Dose Steroids, Anti- Inflammatory, Neuroleptics, Benzodiazepines (Max of 4): N/A\nReason for referral (XaIpS) - mobility and transfer assessment following hospital admission\nPatient perception of problem (Xaab3)\nReports that she struggles but can manage all transfers with identified equipment. \nStruggling with stairs due to faulty rail and not having one the other side.Only completes them when Daughter is present\nCarer perception of problem (Xaauq)\nsocial services have measured up for a stair rail and a wider step to the front door. \nNo formal care support in place\nResidence and accommodation circumstances (Ua0LO) - lives alone in council 2 story property\nPast medical history (14...)\nbreast cancer \nBone Metastatic - spinal cord compression \nAtrial fibrillation \nGallstones \nsee syterm 1 for full details\nTreatment outcome expected by patient (XaX8K)\ncomplete the stairs safely \n? progression back to walking stick\nCardiovascular observations (XM02q)\nknown AF\nNo concerns during visit\nRespiratory observation (Xa05Y) - No concerns during visits\nEating drinking and feeding functions (Xa4Ho) - see sskin template\nAdvice about maintaining safety (Ua02t)\npatient is aware of how and when to escalate any medical concerns. \nAdvised to continue using the frame until re assessed by therapist\nAbility to manage medication (Xa2yB) - Daughter supports putting them in pill box\nAbility to perform activities of everyday life (Xa2l5)\nIndpendent with personal care. \nDaughter visits to support with meals and stair transfers. Patient is Independent with light meals and fluids\nEquipment (X75Oh) - perching stool ordered - 27768094\nEquipment in use (XaZsF)\nkitchen trolley \nbed lever  \nframes x2 \ntoilet frames\nMaintaining a safe environment (Ua2E5)\nWarm clean environment. \nStair rail is loose. awaiting a new one. Daughter supports with stair transfers until new one is fitted\nObservation of mobility (Xa8Ai)\nFunctional range of movement in upper and lower limbs.\nPatient reports which daughter confirms is Independent with bed and toilet transfers. \nDaughter supports with stair transfers due to patient being fearful due to rail being loose.\nEmotional state observations (Ua16B) - Reports pleased to be home. Did not have a good hospital experience\nFeeling lonely (XE0rk) - Has good support from her daughter\nUrinary function (X76XU) - continent\nDigestive system functions (Xa8J5) - continent.\nPlan (XaIVg)\nsend referral for stair lift assessment\nchase up stair rail \ntelephone review \narrange visit ?\nSummary report (XaX2s)\nTherapy visit to complete holistic assessment. Daughter Jane present during visit. Patient returned home wearing a back brace (spinal cord compression) due to bone metastatic. \nPatient has been issued relevant equipment. perching stool identified and ordered onto existing order. Patient is Indpendent with transfers. Struggling with the stairs,fearful ++ due to rail being loose",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "13:40 - WIGNALL, Melanie (Admin/Clinical Support Access Role) Entered at: LLR Community Therapy Service CHS - First Contact Review completed on 18 Apr 2025 Scheduled Obs Performed: NEWS2 Community - Score: 0 Falls Risk Assessment Tool (FRAT",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "related_correspondence",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "700d3a3a-cb9f-4b51-9734-f180f4598e37",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-05-08",
+        "flags": "Administration",
+        "id": "700d3a3a-cb9f-4b51-9734-f180f4598e37",
+        "processed_at": "2026-01-16T00:22:24.694442",
+        "text": "15:42 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nHistory: cqc searches - possible CKD  \nnote Ca breast with spinal mets and spinal cord compression - under oncol ongoing  \nICE reviewed  \neGFR 5/2/25 = 35 and has remained below 60 (now 44 on 15/4/25) since\nfirst bloods on ICE feb 25 - ideally needs 3/12 interval with eGFRs < 60, but given ongoing ca breast work up and oncol care, it is likely the UEs will be monitored again in May 25\ntask to KA as registered GP FYI oncol picture here  and ongoing oversight pls  \ni will send scheduled task to myself to review the ICE rpt bloods in 1/12 re: the CKD coding, but clearly sec care have the ongoing management lead here atm\nScheduled Task Creation (Completed) - 2WW task (cqc searches possible KD - review ICE bloods and ? code) to be sent to BROCKHURST, Nikki (Dr) on 30 May 2025.",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "15:42 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) History: cqc searches - possible CKD note Ca breast with spinal mets and spinal cord compression - under oncol ongoing ICE reviewed eGFR 5/2/25 = 35 and has remaine",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "related_correspondence",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "1c44a796-49e7-4a00-a25b-673d0c56b7f7",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-05-30",
+        "flags": "Administration",
+        "id": "1c44a796-49e7-4a00-a25b-673d0c56b7f7",
+        "processed_at": "2026-01-16T00:22:26.562894",
+        "text": "07:52 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nProblem: Chronic kidney disease stage 3 (XaLHI)\nHistory: cqc CKD searches  \neGFR on ICE 38\nno recent acr available, but there is context re: background diagnosis\nhas been <60 for some months now  \nnote remains open to oncol  - c breast with spinal mets - palliative intent rx\nhas KA app 3/6 for cancer care review - KA pls, discuss this new coding added today in light of eGFR- thanks\nMajor: Chronic kidney disease stage 3 (XaLHI) (New Episode)\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nChronic kidney disease stage 3 (XaLHI)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "07:52 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) Problem: Chronic kidney disease stage 3 (XaLHI) History: cqc CKD searches eGFR on ICE 38 no recent acr available, but there is context re: background diagnosis has ",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "related_correspondence",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": null,
+          "name": null
+        }
+      ],
+      "encounter_id": "4baf9d4b-4bc7-4edb-9b19-324cf873932e",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-06-03",
+        "flags": "Face to face\nLinked to Appointment\nAmended by: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)  on 03 Jun 2025 18:30",
+        "id": "4baf9d4b-4bc7-4edb-9b19-324cf873932e",
+        "processed_at": "2026-01-16T00:22:26.962437",
+        "text": "15:31 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) \nHistory: Seen with daughter...\nEvents noted - admission February for gallstones.\nFound on scans to have breast lesion with mets. Also new AF.\n8 May 2025 oncology letter noted - given furosemide 20mg for ankle oedema.\nHad RT and on denosumab, tolerated well. \nDaughter provided share care form from hospital to me about this.\nNext dose due 26th June. Daughter not working Wednesdays and would like next dose a day earlier.\nPatient would like this to as daughter has to keep taking time off work and can't carry on every Thursday.\nCame to terms with diagnosis and doing well.\nWas not provided mcmillan support. Offerred today but patient declined.\nDaughter reports patient brighter and more positive.\nOncology letter also noticed improvements too.\nHad couple nosebleeds, on edoxaban. Not long bleeds.\nWas given naseptin in hospital, would like this again.\nRegarding furosemide, oncologist increased to 40mg once daily.\nHas been helping but still legs feel heavy and swollen. No sob or sobe. No pnd.\nExamination: Alert. Appears well.\nMobilising with stick.\nIn good spiritis.\nBilateral pitting oedema to both legs to mid shins.\nPlan: Furosemide increased to 40mg BD.\nDenosumab SCA received.\nPatient to book next blood test due - need to monitor renal function in view of sca and furosemide.\nNaseptin issued.\nAdvsied to book review with GP if any further concerns arise.\nFurosemide 40mg tablets - 56 tablet - take 1 in morning and 1 at lunchtime. Alternatively can take 2 tablets (80mg) in mornings\nNaseptin nasal cream (Alliance Pharmaceuticals Ltd) - 15 gram - Apply four times daily for 10 days\nETP2 FP10: Not Yet Printed - Signed\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "15:31 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) History: Seen with daughter... Events noted - admission February for gallstones. Found on scans to have breast lesion with mets. Also new AF. 8 May 2025 oncology letter n",
+        "linked_at": "2026-04-25T15:34:27.393000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "outcome_letter",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Infiltrating duct carcinoma of breast (disorder)"
+        }
+      ],
+      "encounter_id": "5bb24a83-6252-44ec-9bd9-ba0050ae78a6",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-06-10",
+        "flags": "Administration\nAmended by: AMIN, Kunal (Dr) (Clinical Practitioner Access Role)  on 10 Jun 2025 18:00",
+        "id": "5bb24a83-6252-44ec-9bd9-ba0050ae78a6",
+        "processed_at": "2026-01-16T00:22:28.159800",
+        "text": "18:00 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) \nHistory: SCA received for denosumab 120mg once a month.\nUnable to prescribe as comes up orange with red cross next to it - no generic prescribing.\nChecked with pharmacy - informed will need to prescribe as brand name Xgeva or Prolia.\nDiagnosis: Infiltrating duct carcinoma (BB91.)\nPlan: Denosumab added to repeats.\nSCA signed.\nXgeva 120mg/1ml solution for injection pre-filled syringes (Amgen Ltd) - 1 pre-filled disposable injection - once a month - as per oncology\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "18:00 - surgery: amin, kunal (dr) (clinical practitioner access role)  history: sca received for denosumab 120mg once a month. unable to prescribe as comes up orange with red cross next to it - no generic prescribing. checked with pharmacy ",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "diagnosis_confirmed",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    },
+    {
+      "coded_concepts": [
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Measurement of oxygen saturation at periphery"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Observable_entity"
+          ],
+          "name": "Peripheral blood oxygen saturation on room air at rest"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Observable_entity"
+          ],
+          "name": "Heart rate (observable entity)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Heart rate measured at systemic artery (observable entity)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Procedure"
+          ],
+          "name": "Respiratory rate (observable entity)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Metastatic malignant neoplasm to bone (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Infiltrating duct carcinoma of breast (disorder)"
+        },
+        {
+          "assertion": "",
+          "code": null,
+          "labels": [
+            "Concept"
+          ],
+          "name": "Atrial fibrillation (disorder)"
+        }
+      ],
+      "encounter_id": "3debd78a-ce7c-4ad6-bd72-a0056beb1074",
+      "encounter_properties": {
+        "coding_status": "uncoded",
+        "date": "2025-07-24",
+        "flags": "Administration Event\nLinked to Appointment",
+        "id": "3debd78a-ce7c-4ad6-bd72-a0056beb1074",
+        "processed_at": "2026-01-16T00:22:33.645354",
+        "text": "15:26 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nProblem - whole event: Atrial fibrillation (G5730)\nProblem - whole event: Metastasis to bone of unknown primary (Xa3AJ)\nProblem - whole event: Infiltrating duct carcinoma (BB91.)\n135 / 93\n(R) Bisoprolol 5mg tablets - 28 tablet - take one tablet daily\nStopped 30 Jul 2025 Change to medication treatment regime by PATEL, Krishan (Dr)\n Consultation.\n   General\n      Encounter: Consultation (Xa1qL)\n      H:  with daughter. \nrecent bt showing drop in hb, on doac, having recurrent nose bleeds left nostril, on and off for a few weeks now.  hb 110.  on ice, bloods from oncology 110 x3 now, so no drop for a few months. \nct cap in june showing stable appearance of mets, some partial response to the breast mass. \nno bowel issues reported on scan. \nrecently cut leg whilst on holday, this has healed.  seen by nurse recently. \nhas restarted the duiretics. \n\nfeels well, no cp, palps, dizziness.  walking and mobility generally best its been for months currently.\ndoesnt want to go to hospital, would rather end things than go there as always sets her back.\n      RR: 17 breath/min\n      Sats: 99 %\n      BP: 135 / 93\n      HR: 141 bpm\n      Pulse: Pulse regularly irregular (XM02L)\n      P:  increase bisoprolol to 5mg. \ndiscussed pleural effusion, no sob.  sats fine.  ?af related ?malignancy related.  to discuss with onc on next rv . \nrv next week for pulse.\nBisoprolol 5mg tablets - 28 tablet - take one tablet daily\n Ended 30 Jul 2025 Change to medication treatment regime by PATEL, Krishan (Dr)\nETP2 FP10: Not Yet Printed - Signed\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nPlan (XaIVg)\nincrease bisoprolol to 5mg. \ndiscussed pleural effusion, no sob.  sats fine.  ?af related ?malignancy related.  to discuss with onc on next rv . \nrv next week for pulse.\nConsultation (Xa1qL)\nClinical history and observations (X76sV)\nwith daughter. \nrecent bt showing drop in hb, on doac, having recurrent nose bleeds left nostril, on and off for a few weeks now.  hb 110.  on ice, bloods from oncology 110 x3 now, so no drop for a few months. \nct cap in june showing stable appearance of mets, some partial response to the breast mass. \nno bowel issues reported on scan. \nrecently cut leg whilst on holday, this has healed.  seen by nurse recently. \nhas restarted the duiretics. \n\nfeels well, no cp, palps, dizziness.  walking and mobility generally best its been for months currently.\ndoesnt want to go to hospital, would rather end things than go there as always sets her back.\nRespiratory rate (X774f) 17 breath/min\nOxygen saturation at periphery (X770D) 99 %\nPulse rate (X773s) 141 bpm\nPulse regularly irregular (XM02L)",
+        "vector_dim": 768
+      },
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "episode_properties": {
+        "cancer_type": "breast",
+        "confidence_tier": "suggest",
+        "detector_version": "v2",
+        "engine_version": "episode-detector-v2",
+        "episode_id": "ep-v2-5ea0807f7eb86a43",
+        "intent": "confirmed",
+        "last_updated": "2026-04-25T15:34:27.393000000+00:00",
+        "needs_human_review": true,
+        "needs_review": true,
+        "review_reasons": [
+          "context_milestone_requires_review",
+          "breast_candidate_writeback_for_review"
+        ],
+        "site_key": "breast",
+        "start_date": "2025-03-24",
+        "status": "review",
+        "status_source": "episode_detector_v2_review_writeback",
+        "status_updated_at": "2026-04-25T15:27:59.794000000+00:00",
+        "suspected_site": "breast"
+      },
+      "patient_id": "4742236882",
+      "patient_properties": {
+        "birthDate": "1943-01-24",
+        "created_at": "2026-01-16T00:22:03.992000000+00:00",
+        "gender": "female",
+        "id": "4742236882"
+      },
+      "relationship_properties": {
+        "evidence_quote": "15:26 - surgery: patel, krishan (dr) (clinical practitioner access role)  problem - whole event: atrial fibrillation (g5730) problem - whole event: metastasis to bone of unknown primary (xa3aj) problem - whole event: infiltrating duct carci",
+        "linked_at": "2026-04-25T15:34:49.166000000+00:00",
+        "linked_by": "episode_detector_v2_review_writeback",
+        "milestone_type": "diagnosis_confirmed",
+        "source": "episode_detector_v2_review_writeback",
+        "updated_at": "2026-04-25T15:27:59.794000000+00:00"
+      }
+    }
+  ],
+  "snapshot_created_at": "20260425T170129Z"
+}

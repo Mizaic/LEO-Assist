@@ -5,7 +5,7 @@ for review.  Highlights lines that mention the relevant cancer site.
 Run:
     python scripts/investigations/_investigate_referral_only_episodes.py
     python scripts/investigations/_investigate_referral_only_episodes.py --out referral_only_review.txt
-    python scripts/investigations/_investigate_referral_only_episodes.py --pid 4185994966
+    python scripts/investigations/_investigate_referral_only_episodes.py --pid 9990010021
 """
 
 from __future__ import annotations

@@ -26,52 +26,52 @@ kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 # (display_form, concept_id, fsn, semantic_tag)
 RAW_FORMS = [
-    # 1290960005 Plain X-ray of chest abnormal (finding)
+    # 9990010014 Plain X-ray of chest abnormal (finding)
     (
         "chest X-ray findings suggestive of mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "chest X-ray findings consistent with mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "CXR findings suggestive of mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "pleural abnormality on chest X-ray",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "pleural thickening on chest X-ray",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "pleural mass on chest X-ray",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "chest X-ray pleural finding",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "abnormal chest X-ray mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),

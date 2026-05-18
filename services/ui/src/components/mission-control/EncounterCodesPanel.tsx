@@ -146,6 +146,17 @@ function TagLegend({
   );
 }
 
+function _isObservable(semanticTag: string | undefined): boolean {
+  const norm = (semanticTag ?? "").toLowerCase().replace(/[\s_]/g, "");
+  return norm === "observableentity" || norm === "observable";
+}
+
+function _obsValueLabel(link: CodedLink): string {
+  const v = link.value != null ? String(link.value) : "";
+  const u = link.unit ?? "";
+  return [v, u].filter(Boolean).join(" ");
+}
+
 function CodeChips({
   enc,
   links,
@@ -157,8 +168,11 @@ function CodeChips({
     <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
       {links.map((link, linkIndex) => {
         const style = getTagStyle(link.semantic_tag) ?? DEFAULT_TAG_STYLE;
+        const isObs = _isObservable(link.semantic_tag);
+        const obsValue = isObs ? _obsValueLabel(link) : "";
         const sentenceEvidence =
           link.evidence_sentence ?? deriveEvidenceSentence(enc.text, link.evidence);
+
         const tooltipRows = [
           `Coded term: ${link.term || "Unknown term"}`,
           `Concept ID: ${link.concept_id}`,
@@ -166,6 +180,10 @@ function CodeChips({
         if (link.semantic_tag) tooltipRows.push(`Type: ${link.semantic_tag}`);
         const assertion = getLinkAssertion(link);
         if (assertion) tooltipRows.push(`Assertion: ${assertion}`);
+        if (isObs && obsValue) {
+          tooltipRows.push(`Value: ${obsValue}`);
+          if (link.reference_range) tooltipRows.push(`Ref range: ${link.reference_range}`);
+        }
         if (sentenceEvidence) tooltipRows.push(`Sentence: ${sentenceEvidence}`);
         if (link.evidence) tooltipRows.push(`Mention: ${link.evidence}`);
         if (
@@ -177,7 +195,12 @@ function CodeChips({
         if (typeof link.sentence_index === "number") {
           tooltipRows.push(`Sentence index: ${link.sentence_index}`);
         }
+
         const negatedOrAbsent = isNegatedOrAbsent(link);
+        const chipLabel = obsValue
+          ? `${link.term || "Unknown term"} \u00b7 ${obsValue}`
+          : `${link.term || "Unknown term"} (${link.concept_id})`;
+
         return (
           <Tooltip
             key={`${enc.encounter_id}-${link.concept_id}-${link.sentence_index ?? "na"}-${linkIndex}`}
@@ -191,7 +214,7 @@ function CodeChips({
             <Chip
               size="small"
               variant="outlined"
-              label={`${link.term || "Unknown term"} (${link.concept_id})`}
+              label={chipLabel}
               sx={{
                 borderColor: negatedOrAbsent ? "#dc2626" : style.borderColor,
                 borderWidth: negatedOrAbsent ? 1.25 : 1,

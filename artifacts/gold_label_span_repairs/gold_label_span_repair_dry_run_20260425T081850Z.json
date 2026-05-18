@@ -1,0 +1,2778 @@
+{
+  "applied_labels": 0,
+  "apply": false,
+  "drop_unrepairable": false,
+  "items": [
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 8,
+              "start": 3,
+              "text": "chest"
+            },
+            {
+              "end": 136,
+              "start": 131,
+              "text": "chest"
+            }
+          ],
+          "entity_text": "chest",
+          "index": 4,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "c857438ecf0a9de3155cb59d945d59db20db2a16e6fc37d79be42e959748c935",
+      "dropped_unrepairable_count": 0,
+      "label_id": "603d53909e843c40eade7968d02a97dceb9c362738f814cd4668164b8e6bed82",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "pipeline_gold",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 199,
+              "start": 193,
+              "text": "biopsy"
+            },
+            {
+              "end": 236,
+              "start": 230,
+              "text": "biopsy"
+            }
+          ],
+          "entity_text": "biopsy",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "424a8f4d0eb0cfa121753f75f9c1a5780abe3ab8a85acd29a5e464fa87243e4d",
+      "dropped_unrepairable_count": 0,
+      "label_id": "dd9d1add256ea1f9b6878c9620a28a0d1d036533fe674865fc8a84d16978c90c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "pipeline_gold",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 21,
+              "start": 13,
+              "text": "hip pain"
+            },
+            {
+              "end": 50,
+              "start": 42,
+              "text": "hip pain"
+            }
+          ],
+          "entity_text": "hip pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": 349,
+          "old_start": 341,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "5f013285e3dabba7b2f18a82e8966f6aefb444c2e96faaec202b808c46d77b82",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-6860bcd7949645f39a3b90fc87d60985",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 22,
+              "start": 0,
+              "text": "MRI Head with contrast"
+            },
+            {
+              "end": 46,
+              "start": 24,
+              "text": "MRI Head with contrast"
+            }
+          ],
+          "entity_text": "MRI Head with contrast",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "db487fc5592dd341754ffe9509d20cc8cb826fa4e3834167c1e0f0782909b823",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-2382b009ffca428291f9b62f5885875c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 57,
+              "start": 51,
+              "text": "normal"
+            },
+            {
+              "end": 132,
+              "start": 126,
+              "text": "normal"
+            },
+            {
+              "end": 182,
+              "start": 176,
+              "text": "normal"
+            }
+          ],
+          "entity_text": "normal",
+          "index": 3,
+          "label": "qualifier_value",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "5e0c15e76d9212dc3b98cfe1dffe6ff9610cb83b2df80706a1c17883c54218d1",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-02d51d7bc50e45d1bac9cfd47e59141d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 62,
+              "start": 50,
+              "text": "radiotherapy"
+            },
+            {
+              "end": 129,
+              "start": 117,
+              "text": "radiotherapy"
+            }
+          ],
+          "entity_text": "radiotherapy",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 49,
+              "start": 41,
+              "text": "prostate"
+            },
+            {
+              "end": 96,
+              "start": 88,
+              "text": "prostate"
+            }
+          ],
+          "entity_text": "prostate",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "8ee137cd3f4eea9ffea0db67a7f1660d37f2717498a6171046baa568f6e0590f",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-b79a3ebea5e84f948ec9689f02832284",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 20,
+              "start": 0,
+              "text": "Upper abdominal pain"
+            },
+            {
+              "end": 42,
+              "start": 22,
+              "text": "Upper abdominal pain"
+            }
+          ],
+          "entity_text": "Upper abdominal pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": 3573,
+          "old_start": 3553,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "5941b29c7a8194e6a5ea20a5c0836f2bd5aef9d189ff1b4dfb015f7356240e8e",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-8750bf1f9bdc491da0646d27c92aba33",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 46,
+              "start": 41,
+              "text": "vulva"
+            },
+            {
+              "end": 130,
+              "start": 125,
+              "text": "vulva"
+            }
+          ],
+          "entity_text": "vulva",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "d1f2636668637384e8b9305b765f9352518a7eb22c6e7f6ba4b190b73d3ffcdb",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-3765ba02205d4000bee5d40e378cbbff",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 82,
+              "start": 75,
+              "text": "thyroid"
+            },
+            {
+              "end": 144,
+              "start": 137,
+              "text": "thyroid"
+            },
+            {
+              "end": 185,
+              "start": 178,
+              "text": "thyroid"
+            }
+          ],
+          "entity_text": "thyroid",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "d8d6ed4e650dbdee07f664f680d31c2c53be4050000760df0a7b0ad6536f4054",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-6ddd511b54ed4b2390f99f0ecd699902",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 236,
+              "start": 232,
+              "text": "pain"
+            },
+            {
+              "end": 322,
+              "start": 318,
+              "text": "pain"
+            }
+          ],
+          "entity_text": "pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 184,
+              "start": 175,
+              "text": "right arm"
+            },
+            {
+              "end": 386,
+              "start": 377,
+              "text": "Right arm"
+            },
+            {
+              "end": 437,
+              "start": 428,
+              "text": "right arm"
+            }
+          ],
+          "entity_text": "right arm",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "a5b00004b0afa8d477b1b6da159a67fda442ad4f109aecb3a7ee3937dae18218",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-8f231cb633054ab791dd3bb9d9aa9e4d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 6,
+          "candidates": [
+            {
+              "end": 330,
+              "start": 325,
+              "text": "scalp"
+            },
+            {
+              "end": 400,
+              "start": 395,
+              "text": "scalp"
+            },
+            {
+              "end": 610,
+              "start": 605,
+              "text": "scalp"
+            },
+            {
+              "end": 719,
+              "start": 714,
+              "text": "scalp"
+            },
+            {
+              "end": 790,
+              "start": 785,
+              "text": "scalp"
+            },
+            {
+              "end": 979,
+              "start": 974,
+              "text": "scalp"
+            }
+          ],
+          "entity_text": "scalp",
+          "index": 0,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 477,
+              "start": 462,
+              "text": "lymphadenopathy"
+            },
+            {
+              "end": 867,
+              "start": 852,
+              "text": "lymphadenopathy"
+            }
+          ],
+          "entity_text": "lymphadenopathy",
+          "index": 1,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 236,
+              "start": 215,
+              "text": "Skin Cancer Follow Up"
+            },
+            {
+              "end": 261,
+              "start": 240,
+              "text": "Skin Cancer Follow Up"
+            }
+          ],
+          "entity_text": "Skin Cancer Follow Up",
+          "index": 2,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 400,
+              "start": 365,
+              "text": "Extensive erosions across the scalp"
+            },
+            {
+              "end": 790,
+              "start": 755,
+              "text": "Extensive erosions across the scalp"
+            }
+          ],
+          "entity_text": "Extensive erosions across the scalp",
+          "index": 3,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 440,
+              "start": 402,
+              "text": "No evidence of infection or malignancy"
+            },
+            {
+              "end": 830,
+              "start": 792,
+              "text": "No evidence of infection or malignancy"
+            }
+          ],
+          "entity_text": "No evidence of infection or malignancy",
+          "index": 4,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 5,
+      "candidate_id": "839dff752d070552164af8dcc9712e97bf47332fdef558407765b81ea4b7f978",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-f05c788e9ab14b9eaa570e574635afa4",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 546,
+              "start": 529,
+              "text": "epigastric hernia"
+            },
+            {
+              "end": 670,
+              "start": 653,
+              "text": "Epigastric hernia"
+            },
+            {
+              "end": 724,
+              "start": 707,
+              "text": "epigastric hernia"
+            }
+          ],
+          "entity_text": "Epigastric hernia",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 681,
+              "start": 672,
+              "text": "Dyspepsia"
+            },
+            {
+              "end": 960,
+              "start": 951,
+              "text": "dyspepsia"
+            }
+          ],
+          "entity_text": "Dyspepsia",
+          "index": 1,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "1a26fb6140d1f5833166fce40c4337e5dcfe6ac6131d8ea493add3ef3b04a629",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-d2143d75c0454b6d9531afaa8bf96c20",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 231,
+              "start": 222,
+              "text": "dysphagia"
+            },
+            {
+              "end": 446,
+              "start": 437,
+              "text": "dysphagia"
+            }
+          ],
+          "entity_text": "dysphagia",
+          "index": 1,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "c0fb6d495e18f1af7325e982c3c4eaaae52cdb1a90501375ad62a024b01d37ce",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-9f45614c2d774d27b4f364fa48d8bc8d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 84,
+              "start": 78,
+              "text": "Smoker"
+            },
+            {
+              "end": 282,
+              "start": 276,
+              "text": "Smoker"
+            }
+          ],
+          "entity_text": "Smoker",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "2cbbb16a84590c079ae4d17be727589280451a9050b39451dc5176ea08d0ebaf",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-c2b250c0d58a47218e26449b3c001e9a",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 167,
+              "start": 157,
+              "text": "dysphagia."
+            },
+            {
+              "end": 503,
+              "start": 493,
+              "text": "dysphagia."
+            }
+          ],
+          "entity_text": "dysphagia.",
+          "index": 1,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "1c7b6223028c15e947684973d9a2467322664b0e74264b7403d74094a17a3557",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-3fea82b91bed478dba16a8eb86f28257",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 51,
+              "start": 30,
+              "text": "Haemoglobin A1c level"
+            },
+            {
+              "end": 248,
+              "start": 227,
+              "text": "Haemoglobin A1c level"
+            }
+          ],
+          "entity_text": "Haemoglobin A1c level",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "21a21075c261667eb691b924bc2070e0bad2ffd3efed2f89204a3f7d71231ca2",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-e03bad22f4894c0788803b28f0d51f7b",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 116,
+              "start": 98,
+              "text": "Breast examination"
+            },
+            {
+              "end": 499,
+              "start": 481,
+              "text": "Breast examination"
+            }
+          ],
+          "entity_text": "Breast examination",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "21e0dddd248ce619d89b893bb4b317c67fdae8400f86ba8bbf8ccb776e69593d",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-7ba88a6cdc614b5e95052c967ee9465f",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 7,
+          "candidates": [
+            {
+              "end": 526,
+              "start": 516,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 600,
+              "start": 590,
+              "text": "2ww breast"
+            },
+            {
+              "end": 685,
+              "start": 675,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 896,
+              "start": 886,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 947,
+              "start": 937,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1027,
+              "start": 1017,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1058,
+              "start": 1048,
+              "text": "2WW Breast"
+            }
+          ],
+          "entity_text": "2ww breast",
+          "index": 2,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 7,
+          "candidates": [
+            {
+              "end": 526,
+              "start": 516,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 600,
+              "start": 590,
+              "text": "2ww breast"
+            },
+            {
+              "end": 685,
+              "start": 675,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 896,
+              "start": 886,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 947,
+              "start": 937,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1027,
+              "start": 1017,
+              "text": "2WW Breast"
+            },
+            {
+              "end": 1058,
+              "start": 1048,
+              "text": "2WW Breast"
+            }
+          ],
+          "entity_text": "2ww breast",
+          "index": 3,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "751d7b0ca6d3ba7e647b40a43333a8dbda1670c7aeaeb88c301bd0735db59a0f",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-cdb6b2ed99224990838ced0dd04eeb12",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 95,
+              "start": 48,
+              "text": "Intraductal carcinoma in situ of breast (X78WW)"
+            },
+            {
+              "end": 164,
+              "start": 117,
+              "text": "Intraductal carcinoma in situ of breast (X78WW)"
+            }
+          ],
+          "entity_text": "Intraductal carcinoma in situ of breast (X78WW)",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 102,
+              "start": 81,
+              "text": "breast (X78WW) - Left"
+            },
+            {
+              "end": 171,
+              "start": 150,
+              "text": "breast (X78WW) - Left"
+            }
+          ],
+          "entity_text": "breast (X78WW) - Left",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "b42493031d296f5d279fd12c85e1ca059762cb5ce41a09ba7847873eb0021add",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-0487e84148784437a521765af962c434",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 67,
+              "start": 50,
+              "text": "Pathology Request"
+            },
+            {
+              "end": 143,
+              "start": 126,
+              "text": "Pathology Request"
+            }
+          ],
+          "entity_text": "Pathology Request",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "1efcf39e0ab22e919d48f86960c301eb9e90dc397fd0484be7c6b281afecb157",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-8a433d281493460db88a461ab1c3b508",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 149,
+              "start": 102,
+              "text": "Heavy cigarette smoker (20-39 cigs/day) (1375.)"
+            },
+            {
+              "end": 197,
+              "start": 150,
+              "text": "Heavy cigarette smoker (20-39 cigs/day) (1375.)"
+            }
+          ],
+          "entity_text": "Heavy cigarette smoker (20-39 cigs/day) (1375.)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "37333458682cdd936bea442616460fc81d1863936a34381ed89d4cfd52ee771e",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-ffae5ac1a0724810984c61d52f6b7e76",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 203,
+              "start": 186,
+              "text": "enlarged prostate"
+            },
+            {
+              "end": 681,
+              "start": 664,
+              "text": "enlarged prostate"
+            }
+          ],
+          "entity_text": "enlarged prostate",
+          "index": 1,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 540,
+              "start": 523,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 895,
+              "start": 878,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 1229,
+              "start": 1212,
+              "text": "PRISM 2WW Urology"
+            }
+          ],
+          "entity_text": "PRISM 2WW Urology",
+          "index": 4,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 540,
+              "start": 523,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 895,
+              "start": 878,
+              "text": "PRISM 2WW Urology"
+            },
+            {
+              "end": 1229,
+              "start": 1212,
+              "text": "PRISM 2WW Urology"
+            }
+          ],
+          "entity_text": "PRISM 2WW Urology",
+          "index": 5,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 3,
+      "candidate_id": "543425d86d9f1f56e183062ed621e935bc9b0779894eb7f62035e0ef3000e427",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-d54203747c204143a53e93ff0afd0e0f",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 198,
+              "start": 187,
+              "text": "2ww urology"
+            },
+            {
+              "end": 402,
+              "start": 391,
+              "text": "2ww urology"
+            }
+          ],
+          "entity_text": "2ww urology",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 198,
+              "start": 187,
+              "text": "2ww urology"
+            },
+            {
+              "end": 402,
+              "start": 391,
+              "text": "2ww urology"
+            }
+          ],
+          "entity_text": "2ww urology",
+          "index": 1,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "977463fb837bfe98c995700eb00ffe2361d1d6d7e27c1a18f24fad31bdee654c",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-e76186eb25d643e3aa9a4ba63422ba16",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 131,
+              "start": 109,
+              "text": "follow up after biopsy"
+            },
+            {
+              "end": 518,
+              "start": 496,
+              "text": "follow up after biopsy"
+            }
+          ],
+          "entity_text": "follow up after biopsy",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "50629817cd028f1067c73663375ce773508db4e8a0574534daa4e6af9ddf1c58",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-89ad105ab36144eeba9362f68305ca76",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 111,
+              "start": 75,
+              "text": "Malignant tumour of prostate (B46..)"
+            },
+            {
+              "end": 1006,
+              "start": 970,
+              "text": "Malignant tumour of prostate (B46..)"
+            },
+            {
+              "end": 1164,
+              "start": 1128,
+              "text": "Malignant tumour of prostate (B46..)"
+            }
+          ],
+          "entity_text": "Malignant tumour of prostate (B46..)",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 5,
+          "candidates": [
+            {
+              "end": 103,
+              "start": 95,
+              "text": "prostate"
+            },
+            {
+              "end": 148,
+              "start": 140,
+              "text": "prostate"
+            },
+            {
+              "end": 837,
+              "start": 829,
+              "text": "prostate"
+            },
+            {
+              "end": 998,
+              "start": 990,
+              "text": "prostate"
+            },
+            {
+              "end": 1156,
+              "start": 1148,
+              "text": "prostate"
+            }
+          ],
+          "entity_text": "prostate",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "5e0a275743e4c709b4e840b4bed5525c1a0118a582ecc31856ca5f67ff123a06",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-742de58c8c64474bb22088860cdf0d81",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 79,
+              "start": 48,
+              "text": "Ischaemic heart disease (XE2uV)"
+            },
+            {
+              "end": 125,
+              "start": 94,
+              "text": "Ischaemic heart disease (XE2uV)"
+            }
+          ],
+          "entity_text": "Ischaemic heart disease (XE2uV)",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "3fa64177ea3e8c5fa3a2a2534ce53e2438cd9335c625fceef7a106697e08b675",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-c9c3109a5f4b4818bfd2f4759b3a1305",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 165,
+              "start": 151,
+              "text": "urology letter"
+            },
+            {
+              "end": 396,
+              "start": 382,
+              "text": "Urology letter"
+            }
+          ],
+          "entity_text": "Urology letter",
+          "index": 2,
+          "label": "record_artifact",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "18f7449d648e9d777757faf9c2c173c6295d419c50a48875b07c22858a6543d2",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-f14f8c85a5c14638915584223c501122",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 204,
+              "start": 194,
+              "text": "suprapubic"
+            },
+            {
+              "end": 223,
+              "start": 213,
+              "text": "suprapubic"
+            },
+            {
+              "end": 272,
+              "start": 262,
+              "text": "Suprapubic"
+            },
+            {
+              "end": 574,
+              "start": 564,
+              "text": "Suprapubic"
+            }
+          ],
+          "entity_text": "suprapubic",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 936,
+              "start": 910,
+              "text": "Trimethoprim 200mg tablets"
+            },
+            {
+              "end": 1094,
+              "start": 1068,
+              "text": "Trimethoprim 200mg tablets"
+            }
+          ],
+          "entity_text": "Trimethoprim 200mg tablets",
+          "index": 4,
+          "label": "medicinal_product",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "771d91097306effd718502ef3f833d821ff65211e435e96584aafac1b714c40f",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-bfa470034b3349d7ae7de3a7ba5e995d",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 159,
+              "start": 151,
+              "text": "bloating"
+            },
+            {
+              "end": 564,
+              "start": 556,
+              "text": "bloating"
+            },
+            {
+              "end": 2635,
+              "start": 2627,
+              "text": "bloating"
+            },
+            {
+              "end": 3040,
+              "start": 3032,
+              "text": "bloating"
+            }
+          ],
+          "entity_text": "bloating",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 1324,
+              "start": 1272,
+              "text": "Family hx: Great aunt (paternal) died of cervical CA"
+            },
+            {
+              "end": 3800,
+              "start": 3748,
+              "text": "Family hx: Great aunt (paternal) died of cervical CA"
+            }
+          ],
+          "entity_text": "Family hx: Great aunt (paternal) died of cervical CA",
+          "index": 1,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 1873,
+              "start": 1846,
+              "text": "? infective gastroenteritis"
+            },
+            {
+              "end": 4371,
+              "start": 4344,
+              "text": "? infective gastroenteritis"
+            }
+          ],
+          "entity_text": "? infective gastroenteritis",
+          "index": 3,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 1952,
+              "start": 1913,
+              "text": "Stool sample requested for microbiology"
+            },
+            {
+              "end": 4450,
+              "start": 4411,
+              "text": "Stool sample requested for microbiology"
+            }
+          ],
+          "entity_text": "Stool sample requested for microbiology",
+          "index": 4,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 4,
+      "candidate_id": "099ccdf1d61d237aad5b5a8df5a5ae2ee0e075ff5fed5b0f7de26b092124e3e2",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-d61882402b3a4ec186d7281e309601a8",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 75,
+              "start": 56,
+              "text": "Breast lump (K3171)"
+            },
+            {
+              "end": 474,
+              "start": 455,
+              "text": "Breast lump (K3171)"
+            },
+            {
+              "end": 521,
+              "start": 502,
+              "text": "Breast lump (K3171)"
+            }
+          ],
+          "entity_text": "Breast lump (K3171)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        },
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 134,
+              "start": 122,
+              "text": "right breast"
+            },
+            {
+              "end": 205,
+              "start": 193,
+              "text": "Right breast"
+            }
+          ],
+          "entity_text": "right breast",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 2,
+      "candidate_id": "e9c7caf4ef3714b8eb75b49e23d2145e4ceb4a830990452ddde9a42db8c73c7e",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-79595a59328344189a5209d2ceabd654",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 331,
+              "start": 313,
+              "text": "lump in the breast"
+            },
+            {
+              "end": 2848,
+              "start": 2830,
+              "text": "lump in the breast"
+            }
+          ],
+          "entity_text": "lump in the breast",
+          "index": 2,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "66d3d10ec89e710c1a75fa7edba7fbfd4518c7d281261a93d2095d11ed35bb75",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-03418b86023345fdaf539467029dc6e0",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 869,
+              "start": 852,
+              "text": "2WW Breast Female"
+            },
+            {
+              "end": 1041,
+              "start": 1024,
+              "text": "2WW Breast Female"
+            },
+            {
+              "end": 1216,
+              "start": 1199,
+              "text": "2WW Breast Female"
+            },
+            {
+              "end": 1247,
+              "start": 1230,
+              "text": "2WW Breast Female"
+            }
+          ],
+          "entity_text": "2WW Breast Female",
+          "index": 4,
+          "label": "situation",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "4f3d7482c883ede615f922582e846813133089b5e20c9a4a72349740c994c064",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-c420f72edc2e4c3894586cf43a4576fd",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 4,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 141,
+              "start": 119,
+              "text": "Full blood count - FBC"
+            },
+            {
+              "end": 2104,
+              "start": 2082,
+              "text": "Full blood count - FBC"
+            }
+          ],
+          "entity_text": "Full blood count - FBC",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "15b087e4e22df1cc7988f2085fd2c5acbfc3dc4c7f07d22be5d002b81cf5722f",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-e3a531f650134fee9841abb58fe8d508",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 823,
+              "start": 811,
+              "text": "Hypertension"
+            },
+            {
+              "end": 871,
+              "start": 859,
+              "text": "Hypertension"
+            },
+            {
+              "end": 2394,
+              "start": 2382,
+              "text": "Hypertension"
+            },
+            {
+              "end": 2460,
+              "start": 2448,
+              "text": "Hypertension"
+            }
+          ],
+          "entity_text": "Hypertension",
+          "index": 3,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "b5689e7828862cdc3f242fab7310475b3aa7db6d413019584f09f94e45aa8a95",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-2d420f57b0584123932a6c4e39b1ca3c",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 271,
+              "start": 260,
+              "text": "Lymphoedema"
+            },
+            {
+              "end": 333,
+              "start": 322,
+              "text": "Lymphoedema"
+            }
+          ],
+          "entity_text": "Lymphoedema",
+          "index": 2,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "da3ffdd3a60f19ccf3d273bb1d92e8169c53617f091b2929228d52a2b1090fbe",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-26e2658b816d4bf783a904d9aa6131ff",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 221,
+              "start": 170,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            },
+            {
+              "end": 461,
+              "start": 410,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            }
+          ],
+          "entity_text": "White British - ethnic category 2001 census (XaQEa)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "70fa8a418e622e2f632336845846aad3a094d96fe84748209d83dd3ef3bd1ead",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-0dac99f3cb2d4125b3df54ba0d097a45",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 484,
+              "start": 433,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            },
+            {
+              "end": 962,
+              "start": 911,
+              "text": "White British - ethnic category 2001 census (XaQEa)"
+            }
+          ],
+          "entity_text": "White British - ethnic category 2001 census (XaQEa)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "424c10351c477be8b1ca7d9ad38f950a582153234ecde640c5ce03ef4a56bfb9",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-020d996dd72547b19b4caf9912a80686",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 121,
+              "start": 110,
+              "text": "breast pain"
+            },
+            {
+              "end": 603,
+              "start": 592,
+              "text": "breast pain"
+            },
+            {
+              "end": 759,
+              "start": 748,
+              "text": "Breast Pain"
+            }
+          ],
+          "entity_text": "breast pain",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "3adbd762b34117b9b0c04b1ad5df305f8b3dff561c6560ef9ace3fc1d0b3013a",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-4e860b39daa148db99b7de7ec0f0c04a",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 89,
+              "start": 72,
+              "text": "Mastalgia (X40Fi)"
+            },
+            {
+              "end": 727,
+              "start": 710,
+              "text": "Mastalgia (X40Fi)"
+            }
+          ],
+          "entity_text": "Mastalgia (X40Fi)",
+          "index": 0,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "8cf3dad84f1694c7490b3fea527603a5433fea41068c1e20b0450c64dba3c0aa",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-a5cb5ad993344f9a9c8ab64506988870",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 32,
+              "start": 9,
+              "text": "Iron deficiency anaemia"
+            },
+            {
+              "end": 66,
+              "start": 43,
+              "text": "Iron deficiency anaemia"
+            }
+          ],
+          "entity_text": "Iron deficiency anaemia",
+          "index": 0,
+          "label": "disorder",
+          "old_end": 108,
+          "old_start": 85,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "a8740fb399ed6fecf58e87b930a7f9eaa080da499239608a418be9d5d811733d",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-7ee448f68be24fcc92c21e12b8941722",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 18,
+              "start": 14,
+              "text": "Xray"
+            },
+            {
+              "end": 31,
+              "start": 27,
+              "text": "Xray"
+            }
+          ],
+          "entity_text": "Xray",
+          "index": 0,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "c7453c3bbcd29cf697445f42674760e2edf25d4ff6fe5a29daf6d0fe69b81730",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-7905101060524e2fb2b4884deb368f15",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 25,
+              "start": 19,
+              "text": "weight"
+            },
+            {
+              "end": 60,
+              "start": 54,
+              "text": "weight"
+            }
+          ],
+          "entity_text": "weight",
+          "index": 0,
+          "label": "procedure",
+          "old_end": 25,
+          "old_start": 0,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "edc84b546588d3eea3a896b6544946bde55844e76fb83d70440c46f09fa14667",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-b77ce64599e59b84",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 622,
+              "start": 597,
+              "text": "pulse rate (242..) 92 bpm"
+            },
+            {
+              "end": 1182,
+              "start": 1157,
+              "text": "Pulse rate (X773s) 92 bpm"
+            }
+          ],
+          "entity_text": "Pulse rate 92 bpm",
+          "index": 6,
+          "label": "observable_entity",
+          "old_end": 1182,
+          "old_start": 1157,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "07fafafac5ccf36a98bd560db30b17e7355a382e2806b90dad9639c06e943285",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-7c1db54763c4ae51",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "lab_coder_v1",
+      "unchanged_count": 10,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "24ca019c22e58cfc376b6a838a8b9c06c279c43a6c6221dde5ee1e93652f8913",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-7307b3123af61ca3",
+      "repaired": [
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 61,
+            "label": "procedure",
+            "relations": [],
+            "semantic_tag": "procedure",
+            "snomed_concept_id": "1030791000000100",
+            "snomed_term": "Prostate specific antigen level (observable entity)",
+            "start": 30,
+            "text": "Prostate-specific antigen level"
+          },
+          "entity_text": "Prostate-specific antigen level",
+          "index": 0,
+          "label": "procedure",
+          "new_end": 61,
+          "new_start": 30,
+          "new_text": "Prostate-specific antigen level",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 90,
+            "label": "observable_entity",
+            "relations": [],
+            "semantic_tag": "observable_entity",
+            "snomed_concept_id": "1030791000000100",
+            "snomed_term": "Prostate specific antigen level (observable entity)",
+            "start": 30,
+            "text": "Prostate-specific antigen level (XE25C) 0.57 ng/ml [0 - 4.5]"
+          },
+          "entity_text": "Prostate-specific antigen level (XE25C) 0.57 ng/ml [0 - 4.5]",
+          "index": 1,
+          "label": "observable_entity",
+          "new_end": 90,
+          "new_start": 30,
+          "new_text": "Prostate-specific antigen level (XE25C) 0.57 ng/ml [0 - 4.5]",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        }
+      ],
+      "repaired_count": 2,
+      "source": "lab_coder_v1",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "32f5cc312a007dbc112d07f09d4b117e94348db70b04405a0be76a0dbf6c662d",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-d8fe77672f45abe4",
+      "repaired": [
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 61,
+            "label": "procedure",
+            "relations": [],
+            "semantic_tag": "procedure",
+            "snomed_concept_id": "1030791000000100",
+            "snomed_term": "Prostate specific antigen level (observable entity)",
+            "start": 30,
+            "text": "Prostate-specific antigen level"
+          },
+          "entity_text": "Prostate-specific antigen level",
+          "index": 0,
+          "label": "procedure",
+          "new_end": 61,
+          "new_start": 30,
+          "new_text": "Prostate-specific antigen level",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 90,
+            "label": "observable_entity",
+            "relations": [],
+            "semantic_tag": "observable_entity",
+            "snomed_concept_id": "1030791000000100",
+            "snomed_term": "Prostate specific antigen level (observable entity)",
+            "start": 30,
+            "text": "Prostate-specific antigen level (XE25C) 0.85 ng/ml [0 - 4.5]"
+          },
+          "entity_text": "Prostate-specific antigen level (XE25C) 0.85 ng/ml [0 - 4.5]",
+          "index": 1,
+          "label": "observable_entity",
+          "new_end": 90,
+          "new_start": 30,
+          "new_text": "Prostate-specific antigen level (XE25C) 0.85 ng/ml [0 - 4.5]",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        }
+      ],
+      "repaired_count": 2,
+      "source": "lab_coder_v1",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "8dbb0ef5ac4745ca21a55646c42410f51697987cb342d349189a3f5b83589ab0",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-86b84ed3baddd779",
+      "repaired": [
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 46,
+            "label": "procedure",
+            "relations": [],
+            "semantic_tag": "procedure",
+            "snomed_concept_id": "71960002",
+            "snomed_term": "Eosinophil count (procedure)",
+            "start": 30,
+            "text": "Eosinophil count"
+          },
+          "entity_text": "Eosinophil count",
+          "index": 0,
+          "label": "procedure",
+          "new_end": 46,
+          "new_start": 30,
+          "new_text": "Eosinophil count",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 107,
+            "label": "procedure",
+            "relations": [],
+            "semantic_tag": "procedure",
+            "snomed_concept_id": "42351005",
+            "snomed_term": "Basophil count",
+            "start": 93,
+            "text": "Basophil count"
+          },
+          "entity_text": "Basophil count",
+          "index": 1,
+          "label": "procedure",
+          "new_end": 107,
+          "new_start": 93,
+          "new_text": "Basophil count",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 140,
+            "label": "observable_entity",
+            "relations": [],
+            "semantic_tag": "observable_entity",
+            "snomed_concept_id": "1106091000000103",
+            "snomed_term": "Basophil count in blood (observable entity)",
+            "start": 93,
+            "text": "Basophil count (42L..) 0.03 10^9/L [0.02 - 0.1]"
+          },
+          "entity_text": "Basophil count (42L..) 0.03 10^9/L [0.02 - 0.1]",
+          "index": 2,
+          "label": "observable_entity",
+          "new_end": 140,
+          "new_start": 93,
+          "new_text": "Basophil count (42L..) 0.03 10^9/L [0.02 - 0.1]",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 157,
+            "label": "procedure",
+            "relations": [],
+            "semantic_tag": "procedure",
+            "snomed_concept_id": "74765001",
+            "snomed_term": "Lymphocyte count",
+            "start": 141,
+            "text": "Lymphocyte count"
+          },
+          "entity_text": "Lymphocyte count",
+          "index": 3,
+          "label": "procedure",
+          "new_end": 157,
+          "new_start": 141,
+          "new_text": "Lymphocyte count",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 185,
+            "label": "observable_entity",
+            "relations": [],
+            "semantic_tag": "observable_entity",
+            "snomed_concept_id": "1022581000000105",
+            "snomed_term": "Lymphocyte count",
+            "start": 141,
+            "text": "Lymphocyte count (42M..) 1.64 10^9/L [1 - 4]"
+          },
+          "entity_text": "Lymphocyte count (42M..) 1.64 10^9/L [1 - 4]",
+          "index": 4,
+          "label": "observable_entity",
+          "new_end": 185,
+          "new_start": 141,
+          "new_text": "Lymphocyte count (42M..) 1.64 10^9/L [1 - 4]",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 216,
+            "label": "procedure",
+            "relations": [],
+            "semantic_tag": "procedure",
+            "snomed_concept_id": "165426009",
+            "snomed_term": "Nucleated red blood cell count procedure",
+            "start": 186,
+            "text": "Nucleated red blood cell count"
+          },
+          "entity_text": "Nucleated red blood cell count",
+          "index": 5,
+          "label": "procedure",
+          "new_end": 216,
+          "new_start": 186,
+          "new_text": "Nucleated red blood cell count",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 247,
+            "label": "observable_entity",
+            "relations": [],
+            "semantic_tag": "observable_entity",
+            "snomed_concept_id": "1022461000000100",
+            "snomed_term": "Nucleated red blood cell count",
+            "start": 186,
+            "text": "Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]"
+          },
+          "entity_text": "Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]",
+          "index": 6,
+          "label": "observable_entity",
+          "new_end": 247,
+          "new_start": 186,
+          "new_text": "Nucleated red blood cell count (4266.) < 0.2 10^9/L [0 - 0.2]",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 92,
+            "label": "observable_entity",
+            "relations": [],
+            "semantic_tag": "observable_entity",
+            "snomed_concept_id": "1107391000000104",
+            "snomed_term": "Eosinophil count in blood (observable entity)",
+            "start": 30,
+            "text": "Eosinophil count - observation (42K..) 0.3 10^9/L [0.04 - 0.4]"
+          },
+          "entity_text": "Eosinophil count - observation (42K..) 0.3 10^9/L [0.04 - 0.4]",
+          "index": 7,
+          "label": "observable_entity",
+          "new_end": 92,
+          "new_start": 30,
+          "new_text": "Eosinophil count - observation (42K..) 0.3 10^9/L [0.04 - 0.4]",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        }
+      ],
+      "repaired_count": 8,
+      "source": "lab_coder_v1",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [],
+      "ambiguous_count": 0,
+      "candidate_id": "f39111b31abbb48fae1a760390ba7c6e7d66be1630daa96fb7472cc6432ce369",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-fe8f090e1a0289c3",
+      "repaired": [
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 61,
+            "label": "procedure",
+            "relations": [],
+            "semantic_tag": "procedure",
+            "snomed_concept_id": "1030791000000100",
+            "snomed_term": "Prostate specific antigen level (observable entity)",
+            "start": 30,
+            "text": "Prostate-specific antigen level"
+          },
+          "entity_text": "Prostate-specific antigen level",
+          "index": 0,
+          "label": "procedure",
+          "new_end": 61,
+          "new_start": 30,
+          "new_text": "Prostate-specific antigen level",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        },
+        {
+          "entity": {
+            "assertion": "present",
+            "end": 89,
+            "label": "observable_entity",
+            "relations": [],
+            "semantic_tag": "observable_entity",
+            "snomed_concept_id": "1030791000000100",
+            "snomed_term": "Prostate specific antigen level (observable entity)",
+            "start": 30,
+            "text": "Prostate-specific antigen level (XE25C) 0.13 ng/ml [0 - 20]"
+          },
+          "entity_text": "Prostate-specific antigen level (XE25C) 0.13 ng/ml [0 - 20]",
+          "index": 1,
+          "label": "observable_entity",
+          "new_end": 89,
+          "new_start": 30,
+          "new_text": "Prostate-specific antigen level (XE25C) 0.13 ng/ml [0 - 20]",
+          "old_end": null,
+          "old_start": null,
+          "reason": "realigned",
+          "status": "repaired"
+        }
+      ],
+      "repaired_count": 2,
+      "source": "lab_coder_v1",
+      "unchanged_count": 0,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 84,
+              "start": 30,
+              "text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres"
+            },
+            {
+              "end": 535,
+              "start": 481,
+              "text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres"
+            }
+          ],
+          "entity_text": "eGFR using creatinine (CKD-EPI) per 1.73 square metres",
+          "index": 1,
+          "label": "procedure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "231b0254930104e66abfaea0c5c50a280a139db4b9c7e0fafaa0f892214195b1",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-231b0254930104e66abfaea0c5c50a28",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual_gold_editor",
+      "unchanged_count": 1,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 3,
+          "candidates": [
+            {
+              "end": 3,
+              "start": 2,
+              "text": "l"
+            },
+            {
+              "end": 30,
+              "start": 29,
+              "text": "L"
+            },
+            {
+              "end": 46,
+              "start": 45,
+              "text": "l"
+            }
+          ],
+          "entity_text": "L",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "tc-b2d54070f6eba815c3f51e63b0544ba6",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-f0828fd0f22a4187fddb4122b340a750",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 4,
+          "candidates": [
+            {
+              "end": 1,
+              "start": 0,
+              "text": "L"
+            },
+            {
+              "end": 17,
+              "start": 16,
+              "text": "l"
+            },
+            {
+              "end": 47,
+              "start": 46,
+              "text": "L"
+            },
+            {
+              "end": 59,
+              "start": 58,
+              "text": "l"
+            }
+          ],
+          "entity_text": "L",
+          "index": 1,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "tc-9db9fb2fc0649063dc1c690c383dce6d",
+      "dropped_unrepairable_count": 0,
+      "label_id": "manual-f4b57b2c7269b078d77814549659b756",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "manual",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 167,
+              "start": 163,
+              "text": "hard"
+            },
+            {
+              "end": 226,
+              "start": 222,
+              "text": "hard"
+            }
+          ],
+          "entity_text": "hard",
+          "index": 1,
+          "label": "finding",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-c2e14174a77c8a67",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-c2e14174a77c8a67",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "encounter_4c190ee8",
+      "unchanged_count": 2,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 148,
+              "start": 143,
+              "text": "vulva"
+            },
+            {
+              "end": 249,
+              "start": 244,
+              "text": "vulva"
+            }
+          ],
+          "entity_text": "vulva",
+          "index": 3,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-5980bcbee6e89595",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-5980bcbee6e89595",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "encounter_91384838",
+      "unchanged_count": 3,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 50,
+              "start": 37,
+              "text": "vaginal ulcer"
+            },
+            {
+              "end": 193,
+              "start": 180,
+              "text": "vaginal ulcer"
+            }
+          ],
+          "entity_text": "vaginal ulcer",
+          "index": 0,
+          "label": "disorder",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-43e9048611a377f3",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-43e9048611a377f3",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "synthetic",
+      "unchanged_count": 5,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    },
+    {
+      "ambiguous": [
+        {
+          "candidate_count": 2,
+          "candidates": [
+            {
+              "end": 41,
+              "start": 32,
+              "text": "lower lip"
+            },
+            {
+              "end": 193,
+              "start": 184,
+              "text": "lower lip"
+            }
+          ],
+          "entity_text": "lower lip",
+          "index": 2,
+          "label": "body_structure",
+          "old_end": null,
+          "old_start": null,
+          "reason": "multiple_candidates",
+          "status": "ambiguous"
+        }
+      ],
+      "ambiguous_count": 1,
+      "candidate_id": "TC-a197f1e86322b4fc",
+      "dropped_unrepairable_count": 0,
+      "label_id": "GL-a197f1e86322b4fc",
+      "repaired": [],
+      "repaired_count": 0,
+      "source": "synthetic",
+      "unchanged_count": 5,
+      "unrepairable": [],
+      "unrepairable_count": 0
+    }
+  ],
+  "limit": null,
+  "source": null,
+  "summary": {
+    "entities_ambiguous": 68,
+    "entities_dropped_unrepairable": 0,
+    "entities_repaired": 14,
+    "entities_unrepairable": 0,
+    "labels_scanned": 2849,
+    "labels_with_changes": 4,
+    "labels_with_repairs": 4,
+    "labels_with_unrepairable_drops": 0
+  }
+}

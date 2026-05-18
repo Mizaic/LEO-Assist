@@ -45,6 +45,7 @@ azure-keyvault-secrets>=4.8.0
 
 # --- Terminology loader utilities ---
 jsonschema>=4.23
+numpy>=1.26.0,<2.4
 scikit-learn>=1.6
 scipy>=1.14
 joblib>=1.4

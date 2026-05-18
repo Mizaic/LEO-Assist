@@ -31,7 +31,7 @@ from libs.neo4j_client.client import (
 from libs.workflow.engine import WorkflowEngine, WorkflowEvent
 from app.services.reset_service import reset_encounter
 
-DEFAULT_PATIENT_ID = os.environ.get("TRACE_PATIENT_ID", "4181221113")
+DEFAULT_PATIENT_ID = os.environ.get("TRACE_PATIENT_ID", "9990001006")
 DEFAULT_ENCOUNTER_ID = os.environ.get(
     "TRACE_ENCOUNTER_ID", "643b423a-bd67-4a1f-9b00-5337ca45b6dd"
 )

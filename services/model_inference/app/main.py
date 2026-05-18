@@ -111,6 +111,25 @@ def _resolve_startup_version() -> str:
     return ""
 
 
+def _bound_extract_concurrency() -> int:
+    """Cap concurrent /extract calls at CPU count (default <=4) to stop spaCy
+    thrashing under burst. Override with MODEL_INFERENCE_MAX_CONCURRENCY."""
+    override = os.getenv("MODEL_INFERENCE_MAX_CONCURRENCY")
+    if override:
+        try:
+            return max(1, int(override))
+        except ValueError:
+            pass
+    try:
+        cpu = os.cpu_count() or 1
+    except Exception:
+        cpu = 1
+    return max(1, min(cpu, 4))
+
+
+_EXTRACT_LIMITER: Optional["asyncio.Semaphore"] = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(
@@ -120,13 +139,29 @@ async def lifespan(app: FastAPI):
         _INFERENCE_ACCEL.fallback_applied,
         _INFERENCE_ACCEL.fallback_reason or "none",
     )
+    global _EXTRACT_LIMITER
+    _EXTRACT_LIMITER = asyncio.Semaphore(_bound_extract_concurrency())
+    logger.info(
+        "Bounded /extract concurrency to %d", _bound_extract_concurrency()
+    )
+    # Lift the anyio threadpool ceiling so the bounded semaphore -- not the
+    # default 40-slot threadpool -- is the limiter for CPU work.
+    try:
+        import anyio
+
+        _limiter = anyio.to_thread.current_default_thread_limiter()
+        _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "100"))
+        _limiter.total_tokens = _tokens
+        logger.info("anyio threadpool ceiling set to %d", _tokens)
+    except Exception as exc:
+        logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
     version = _resolve_startup_version()
     if version:
         try:
             await asyncio.to_thread(_loader.load_version, version)
         except Exception:
             logger.warning(
-                "Inference service: startup model load failed — serving degraded",
+                "Inference service: startup model load failed - serving degraded",
                 exc_info=True,
             )
     yield
@@ -204,17 +239,7 @@ def health() -> dict[str, Any]:
     }
 
 
-@app.post(
-    "/extract",
-    response_model=ExtractResponse,
-    dependencies=[Depends(verify_service_token)],
-)
-def extract(req: ExtractRequest) -> ExtractResponse:
-    """Run NER extraction on a batch of sentences.
-
-    The coding worker sends this request; the response is parsed by
-    ``ModelExtractorProvider._parse_service_response()``.
-    """
+def _extract_sync(req: ExtractRequest) -> ExtractResponse:
     nlp = _loader.nlp
     if nlp is None:
         raise HTTPException(
@@ -226,12 +251,47 @@ def extract(req: ExtractRequest) -> ExtractResponse:
         )
 
     from libs.deid import deidentify
+    from libs.nlp.sentence_splitter import SentenceChunk, build_context_window
+    from libs.training_ext.drift_monitor import get_sink, summarise_predictions
+    from libs.training_ext.inference_calibration import (
+        InferenceCalibration,
+        filter_and_rescore,
+    )
 
-    entities: list[EntityOut] = []
+    calibration = _loader.calibration or InferenceCalibration()
 
+    _short_threshold = int(os.getenv("NER_SHORT_CONTEXT_THRESHOLD", "50"))
+
+    # Build SentenceChunk list once so build_context_window can look up
+    # neighbours.  We deidentify each chunk independently to keep per-piece
+    # offsets stable (deidentify may change string lengths).
+    deid_chunks: list[SentenceChunk] = []
     for sent in req.sentences:
         deid = deidentify(sent.text)
-        doc = nlp(deid.text)
+        deid_chunks.append(
+            SentenceChunk(
+                sentence_id=sent.sentence_id,
+                text=deid.text,
+                start=sent.start,
+                end=sent.end,
+            )
+        )
+
+    entities: list[EntityOut] = []
+    below_threshold_total = 0
+    all_filtered = []
+
+    for i, sent in enumerate(req.sentences):
+        deid_chunk = deid_chunks[i]
+
+        context_text, anchor_offset = build_context_window(
+            deid_chunks,
+            i,
+            threshold=_short_threshold,
+        )
+        anchor_end = anchor_offset + len(deid_chunk.text.strip())
+
+        doc = nlp(context_text)
         spans = doc.spans.get("sc")
         if spans is None:
             logger.warning(
@@ -239,22 +299,50 @@ def extract(req: ExtractRequest) -> ExtractResponse:
                 "falling back to doc.ents. Retrain with spancat config."
             )
             spans = doc.ents
-        for ent in spans:
-            label = ent.label_
-            confidence = float(getattr(ent, "kb_id_", 0.0) or 0.0)
+        filtered = filter_and_rescore(spans, calibration)
+        below_threshold_total += max(0, len(list(spans)) - len(filtered))
+        all_filtered.extend(filtered)
+        for ent in filtered:
+            # When context was prepended, skip entities that fall outside the
+            # target sentence's range in the wider context string.
+            if anchor_offset > 0:
+                if ent.end_char <= anchor_offset or ent.start_char >= anchor_end:
+                    continue
+
+            local_start = ent.start_char - anchor_offset
+            local_end = ent.end_char - anchor_offset
+
             entities.append(
                 EntityOut(
                     sentence_id=sent.sentence_id,
                     text=ent.text,
-                    label=label,
-                    semantic_tag=label.lower(),
-                    span_start=sent.start + ent.start_char,
-                    span_end=sent.start + ent.end_char,
-                    confidence=round(confidence, 4),
+                    label=ent.label,
+                    semantic_tag=ent.label.lower(),
+                    span_start=sent.start + local_start,
+                    span_end=sent.start + local_end,
+                    confidence=ent.calibrated_score,
                     normalized=ent.text,
-                    source_meta={"model_label": label},
+                    source_meta={
+                        "model_label": ent.label,
+                        "raw_score": ent.raw_score,
+                        "threshold": calibration.threshold_for(ent.label),
+                        "context_window": anchor_offset > 0,
+                    },
                 )
             )
+
+    try:
+        sink = get_sink()
+        if sink.enabled():
+            sink.write(
+                summarise_predictions(
+                    _loader.active_version or "unknown",
+                    all_filtered,
+                    below_threshold_spans=below_threshold_total,
+                )
+            )
+    except Exception as exc:
+        logger.debug("Drift sink failed silently: %s", exc)
 
     return ExtractResponse(
         model_name=_loader.model_name,
@@ -262,6 +350,23 @@ def extract(req: ExtractRequest) -> ExtractResponse:
         entity_count=len(entities),
         entities=entities,
     )
+
+
+@app.post(
+    "/extract",
+    response_model=ExtractResponse,
+    dependencies=[Depends(verify_service_token)],
+)
+async def extract(req: ExtractRequest) -> ExtractResponse:
+    """Run NER extraction on a batch of sentences.
+
+    Uses an asyncio Semaphore (sized to CPU count, max 4) to prevent
+    spaCy thrashing under burst. The CPU-bound work runs in a thread.
+    """
+    if _EXTRACT_LIMITER is None:
+        return await asyncio.to_thread(_extract_sync, req)
+    async with _EXTRACT_LIMITER:
+        return await asyncio.to_thread(_extract_sync, req)
 
 
 @app.post("/reload", dependencies=[Depends(verify_service_token)])

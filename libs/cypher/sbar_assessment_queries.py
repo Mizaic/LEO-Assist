@@ -70,6 +70,37 @@ MATCH (e:Encounter {id: $encounter_id})
 MERGE (e)-[:HAS_ASSESSMENT]->(a)
 """
 
+# Phase 3 (DI-CC0BD732): per-episode SBAR. Each Episode SBAR is linked
+# to its EpisodeOfCare via HAS_ASSESSMENT so the UI can render the
+# section under the EpisodeDetailPanel. The orchestrator also tags the
+# Assessment with assessment_scope = 'episode' so the patient rollup
+# can pick all per-episode summaries up in one query.
+LINK_ASSESSMENT_TO_EPISODE = """
+MATCH (a:Assessment {id: $assessment_id})
+MATCH (eoc:Episode {episode_id: $episode_id})
+MERGE (eoc)-[:HAS_ASSESSMENT]->(a)
+SET a.episode_id       = $episode_id,
+    a.assessment_scope = coalesce(a.assessment_scope, 'episode'),
+    a.updated_at       = datetime()
+RETURN a.id AS id
+"""
+
+# Phase 3: list every episode-scoped Assessment for a patient. Used
+# by the rollup orchestrator to gather inputs for the cross-episode
+# Recommendation prompt.
+LIST_PATIENT_EPISODE_ASSESSMENTS = """
+MATCH (p:Patient {id: $patient_id})-[:HAS_ASSESSMENT]->(a:Assessment)
+WHERE a.assessment_scope = 'episode'
+RETURN a.id              AS assessment_id,
+       a.episode_id      AS episode_id,
+       a.situation       AS situation,
+       a.background      AS background,
+       a.assessment      AS assessment,
+       a.recommendation  AS recommendation,
+       a.created_at      AS created_at
+ORDER BY a.created_at DESC
+"""
+
 
 # Per-section updates. Each is a SET so the orchestrator can persist
 # incrementally without overwriting earlier sections.

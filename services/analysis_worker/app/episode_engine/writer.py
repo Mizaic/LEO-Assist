@@ -31,11 +31,13 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from libs.episodes.status import EpisodeStatus
 from libs.neo4j_client.client import PatientGraphClient
 from libs.oncology.cancer_types import normalise_cancer_type
 from services.analysis_worker.app.episode_engine.schemas import (
+    CONTEXT_MILESTONE_TYPES,
     Episode,
     Provenance,
     ReconciledEpisode,
@@ -96,7 +98,7 @@ SET ep.patient_id                       = $patient_id,
                                                 ELSE date($treatment_started_date) END,
     ep.treatment_completed_date         = CASE WHEN $treatment_completed_date IS NULL
                                                 THEN null
-                                                ELSE date($treatment_completed_date) END,
+                                                ELSE date($treatment_completed_date) END,  # noqa: E501
     ep.safety_netting_recorded          = $safety_netting_recorded,
     ep.safety_netting_evidence          = $safety_netting_evidence,
     ep.safety_netting_encounter_id      = $safety_netting_encounter_id,
@@ -172,6 +174,17 @@ def deterministic_episode_id(
     return f"ep-{digest}"
 
 
+def _has_context_tier_milestone(ep: ReconciledEpisode) -> bool:
+    """Return True when any AI-written context-tier milestone is present.
+
+    DI-2C015ADE: an episode that carries AI-proposed context milestones
+    MUST go through human review before it reaches a clinical consumer.
+    The presence of any context-tier type is sufficient to force the
+    status to REVIEW regardless of pathway-milestone confidence.
+    """
+    return any(m.type in CONTEXT_MILESTONE_TYPES for m in ep.milestones)
+
+
 def _episode_status(ep: ReconciledEpisode) -> str:
     """Map a reconciled episode to a canonical EpisodeOfCare.status value.
 
@@ -182,6 +195,12 @@ def _episode_status(ep: ReconciledEpisode) -> str:
     cancer; a treatment_completed milestone outranks needs_human_review;
     review outranks active.
 
+    DI-2C015ADE: context-tier milestones are only AI-eligible under the
+    condition that the episode is never auto-published. Any context-tier
+    milestone forces REVIEW here so the reviewer gate cannot be bypassed
+    even when the pathway-tier evidence alone would merit ACTIVE or
+    COMPLETED.
+
     See ``libs/episodes/status.py`` for the full vocabulary and the
     consumer-side OPEN/CLOSED groupings the dashboard uses.
     """
@@ -190,7 +209,7 @@ def _episode_status(ep: ReconciledEpisode) -> str:
     types = {m.type for m in ep.milestones}
     if "treatment_completed" in types:
         return EpisodeStatus.COMPLETED.value
-    if ep.needs_human_review:
+    if ep.needs_human_review or _has_context_tier_milestone(ep):
         return EpisodeStatus.REVIEW.value
     return EpisodeStatus.ACTIVE.value
 

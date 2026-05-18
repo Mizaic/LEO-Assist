@@ -30,7 +30,8 @@ export function RoleGate({
   enabled = true,
   autoFetch = false,
 }: RoleGateProps) {
-  const { refetch, selectedRole, allowedRoles, error } = useRole();
+  const { refetch, selectedRole, allowedRoles, needsSessionRoleChoice, error } =
+    useRole();
 
   useEffect(() => {
     if (autoFetch) {
@@ -41,7 +42,9 @@ export function RoleGate({
   if (!enabled) return <>{children}</>;
 
   const pickerNeeded =
-    error == null && selectedRole == null && allowedRoles.length > 0;
+    error == null &&
+    allowedRoles.length > 0 &&
+    (selectedRole == null || needsSessionRoleChoice);
 
   return (
     <>

@@ -8,6 +8,7 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { NextRequest, NextResponse } from "next/server";
+import { serverFetch } from "@/lib/serverFetch";
 
 const API_BASE = (process.env.INTERNAL_API_BASE ?? "http://localhost:8000").replace(/\/+$/, "");
 
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
   const cookie = request.headers.get("cookie") ?? "";
   const body = await request.text();
 
-  const res = await fetch(`${API_BASE}/agent/interpret`, {
+  const res = await serverFetch(`${API_BASE}/agent/interpret`, {
     method: "POST",
     headers: {
       "Content-Type": request.headers.get("content-type") ?? "application/json",

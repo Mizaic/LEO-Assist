@@ -56,7 +56,14 @@ import {
 import { rebuildPatientEpisodes } from "@/lib/analyticsApi";
 import type { EncounterSearchResult } from "@/lib/api";
 import type { CodedLink, EncounterSummary, ReviewTaskSummary } from "@/lib/types";
+import { useDemoMode } from "@/context/DemoModeContext";
 import { usePipeline } from "@/context/PipelineContext";
+import {
+  maskAge,
+  maskBirthDate,
+  maskEncounterText,
+  maskPatientId,
+} from "@/lib/demoMode";
 import AssertionChip from "./AssertionChip";
 import ConfirmDialog from "./ConfirmDialog";
 
@@ -186,6 +193,7 @@ function ReviewProgressBar({
 }
 
 export default function EncounterList({ patientId }: Props) {
+  const { isDemoMode } = useDemoMode();
   const [patient, setPatient] = useState<PatientInfo | null>(null);
   const [tasks, setTasks] = useState<ReviewTaskSummary[]>([]);
   const [encounters, setEncounters] = useState<EncounterSummary[]>([]);
@@ -508,8 +516,19 @@ export default function EncounterList({ patientId }: Props) {
   ];
 
   const patientContext = patient
-    ? formatPatientContext(patient.gender, patient.birth_date)
+    ? isDemoMode
+      ? [
+          patient.gender
+            ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)
+            : null,
+          patient.birth_date ? maskBirthDate(patient.birth_date) : null,
+          patient.birth_date ? maskAge(patient.birth_date) : null,
+        ]
+          .filter(Boolean)
+          .join(" - ")
+      : formatPatientContext(patient.gender, patient.birth_date)
     : null;
+  const displayPatientId = isDemoMode ? maskPatientId(patientId) : patientId;
 
   return (
     <Box sx={{ maxWidth: 1100, mx: "auto", p: 3 }}>
@@ -519,13 +538,13 @@ export default function EncounterList({ patientId }: Props) {
               <Link key="pathways" component="button" underline="hover" onClick={() => router.push("/care/encounters")} sx={{ fontSize: 14 }}>
                 Referral Pathways
               </Link>,
-              <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,
+              <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {displayPatientId}</Typography>,
             ]
           : [
               <Link key="patients" component="button" underline="hover" onClick={() => router.push("/care/patients")} sx={{ fontSize: 14 }}>
                 Patients
               </Link>,
-              <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {patientId}</Typography>,
+              <Typography key="patient" sx={{ fontSize: 14 }} color="text.primary">Patient {displayPatientId}</Typography>,
             ]}
       </Breadcrumbs>
 
@@ -533,7 +552,7 @@ export default function EncounterList({ patientId }: Props) {
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 2 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
-            Patient {patientId}
+            Patient {displayPatientId}
           </Typography>
           {patientContext && (
             <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
@@ -1075,7 +1094,9 @@ export default function EncounterList({ patientId }: Props) {
                     borderRadius: 1,
                   }}
                 >
-                  {sidebarData.encounter.text || "(No text)"}
+                  {isDemoMode
+                    ? maskEncounterText(sidebarData.encounter.text)
+                    : sidebarData.encounter.text || "(No text)"}
                 </Typography>
                 <Box>
                   <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
@@ -1104,7 +1125,12 @@ export default function EncounterList({ patientId }: Props) {
                                 sx={{ display: "block", color: "text.secondary", fontSize: "0.75rem", mt: 0.25, pl: 1 }}
                               >
                                 {[
-                                  link.evidence && `evidence: "${link.evidence}"`,
+                                  link.evidence &&
+                                    `evidence: "${
+                                      isDemoMode
+                                        ? maskEncounterText(link.evidence)
+                                        : link.evidence
+                                    }"`,
                                   link.confidence != null && `confidence: ${Math.round(link.confidence * 100)}%`,
                                   link.domain && `domain: ${link.domain}`,
                                   link.coded_at && `coded_at: ${link.coded_at}`,

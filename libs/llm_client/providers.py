@@ -16,6 +16,7 @@ import logging
 import os
 import random
 import time
+from functools import lru_cache
 from typing import Any, List, Optional, Sequence
 
 logger = logging.getLogger("libs.llm_client.providers")
@@ -65,10 +66,13 @@ async def get_bedrock_model():
 
 
 def get_azure_model():
-    """Create an AzureChatOpenAI instance from environment variables."""
-    from langchain_openai import AzureChatOpenAI
-    from pydantic import SecretStr
+    """Return a process-wide cached AzureChatOpenAI instance.
 
+    The underlying httpx client / connection pool is expensive to spin
+    up on each call, so we memoise the wrapper keyed on the configured
+    endpoint, deployment, and api version. Any change to env vars
+    (test reload, key rotation) invalidates the cache automatically.
+    """
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
     deployment = os.getenv("AZURE_OPENAI_BIG_MODEL", "gpt-4o")
@@ -77,12 +81,32 @@ def get_azure_model():
     if not endpoint or not api_key:
         raise ValueError("Azure OpenAI credentials not configured")
 
+    return _cached_azure_model(
+        endpoint=endpoint,
+        api_key=api_key,
+        deployment=deployment,
+        api_version=api_version,
+    )
+
+
+@lru_cache(maxsize=8)
+def _cached_azure_model(
+    *, endpoint: str, api_key: str, deployment: str, api_version: str
+):
+    from langchain_openai import AzureChatOpenAI
+    from pydantic import SecretStr
+
     return AzureChatOpenAI(
         azure_endpoint=endpoint,
         api_key=SecretStr(api_key),
         azure_deployment=deployment,
         api_version=api_version,
     )
+
+
+def reset_azure_model_cache() -> None:
+    """Clear cached AzureChatOpenAI wrappers (test hook)."""
+    _cached_azure_model.cache_clear()
 
 
 async def invoke_with_retry(

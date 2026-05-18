@@ -1,0 +1,14 @@
+{
+  "generated_at": "20260428T230310Z",
+  "mode": "dry_run_no_graph_writes",
+  "window_days": 180,
+  "diagnosis_patient_count": 1,
+  "episode_candidate_count": 0,
+  "raw_pathway_count": 0,
+  "open_referral_count": 0,
+  "patients_with_no_pathways": 1,
+  "route_counts": {},
+  "cohort_counts": {},
+  "raw_cohort_counts": {},
+  "site_counts": {}
+}

@@ -133,6 +133,17 @@ def is_referral_procedure_phrase(text: str) -> bool:
     return bool(_REFERRAL_PROCEDURE_RE.search(stripped))
 
 
+SHORT_SENTENCE_THRESHOLD: int = 50
+"""Sentences shorter than this (chars, stripped) are considered context-starved.
+
+Both the inference service and the training candidate creation path use this
+constant to decide when to widen the context window to include neighbouring
+sentences, giving the transformer enough surrounding text to build useful
+embeddings for very short clinical abbreviations (e.g. "SOB", "HTN").
+Override via NER_SHORT_CONTEXT_THRESHOLD env-var at runtime.
+"""
+
+
 @dataclass(frozen=True)
 class SentenceChunk:
     sentence_id: str
@@ -153,7 +164,98 @@ def deduplicate_lines(text: str) -> str:
     return "\n".join(deduped)
 
 
-_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
+# DI-D3391745 (DO-1DB93C8E): only treat blank lines, sentence-terminating
+# punctuation, and end-of-line semicolons as hard sentence boundaries.
+# Single newlines are soft wraps (EHR line wrapping) and stay inside one
+# SentenceChunk so downstream NER/post-processing can recognise lab
+# observable + interpretation phrases that span line breaks.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n{2,}|(?<=;)[ \t]*\n")
+_SOFT_WRAP_GAP_RE = re.compile(r"^[ \t]*\n[ \t]*$")
+_SENTENCE_TERMINATOR_TAIL_RE = re.compile(r"""[.!?][\"')\]]?\s*$""")
+
+
+def _rejoin_soft_wraps(
+    text: str, chunks: list["SentenceChunk"]
+) -> list["SentenceChunk"]:
+    """Merge adjacent chunks separated only by a single newline (soft wrap).
+
+    PyRuSH treats every newline as a hard sentence boundary, but EHR exports
+    routinely wrap long lines (e.g. lab result lines) on single newlines. A
+    chunk pair is merged when:
+      - the gap between them contains exactly one '\\n' (no blank line), and
+      - the leading chunk does not end with sentence-terminating punctuation.
+    Blank-line separated paragraphs and full sentences are left untouched.
+    """
+    if len(chunks) <= 1:
+        return chunks
+    merged: list["SentenceChunk"] = []
+    current = chunks[0]
+    for nxt in chunks[1:]:
+        gap = text[current.end : nxt.start]
+        is_soft_wrap = (
+            _SOFT_WRAP_GAP_RE.fullmatch(gap) is not None
+            and _SENTENCE_TERMINATOR_TAIL_RE.search(current.text) is None
+        )
+        if is_soft_wrap:
+            merged_text = text[current.start : nxt.end].strip()
+            current = SentenceChunk(
+                sentence_id=current.sentence_id,
+                text=merged_text,
+                start=current.start,
+                end=nxt.end,
+            )
+        else:
+            merged.append(current)
+            current = nxt
+    merged.append(current)
+    return merged
+
+
+def build_context_window(
+    chunks: list[SentenceChunk],
+    index: int,
+    *,
+    threshold: int = SHORT_SENTENCE_THRESHOLD,
+    context_sents: int = 2,
+) -> tuple[str, int]:
+    """Return a context-enriched string for a potentially short sentence.
+
+    When ``chunks[index].text`` is shorter than *threshold* characters, the
+    function attaches up to *context_sents* neighbouring sentences on each
+    side so the transformer has sufficient surrounding text.
+
+    Returns ``(context_text, anchor_offset)`` where *anchor_offset* is the
+    character position of the target sentence within *context_text*.  When no
+    expansion is needed, *anchor_offset* is 0 and *context_text* equals the
+    original sentence text.
+
+    Each neighbour is deidentified separately before joining so that the
+    per-piece offsets remain stable and predictable (deidentification can
+    change string lengths).  Callers that need entity positions relative to the
+    original encounter text should subtract *anchor_offset* from model-reported
+    char positions after filtering to ``[anchor_offset, anchor_offset +
+    len(target_text)]``.
+    """
+    target = chunks[index]
+    if len(target.text.strip()) >= threshold:
+        return target.text, 0
+
+    parts: list[str] = []
+
+    for j in range(max(0, index - context_sents), index):
+        prev = chunks[j].text.strip()
+        if prev:
+            parts.append(prev)
+
+    anchor_offset = sum(len(p) + 1 for p in parts)  # +1 per joining space
+    parts.append(target.text.strip())
+
+    for j in range(index + 1, min(len(chunks), index + context_sents + 1)):
+        nxt = chunks[j].text.strip()
+        if nxt:
+            parts.append(nxt)
+
+    return " ".join(parts), anchor_offset
 
 
 class SentenceSplitter:
@@ -178,7 +280,7 @@ class SentenceSplitter:
             return nlp
         except Exception:
             logger.debug(
-                "PyRuSH sentence splitter unavailable — falling back to regex",
+                "PyRuSH sentence splitter unavailable -- falling back to regex",
                 exc_info=True,
             )
             return None
@@ -190,7 +292,7 @@ class SentenceSplitter:
             chunks = self._split_pyrush(text)
             if len(chunks) <= 1 and _SENTENCE_SPLIT.search(text):
                 return self._split_regex(text)
-            return chunks
+            return _rejoin_soft_wraps(text, chunks)
         return self._split_regex(text)
 
     def _split_pyrush(self, text: str) -> list[SentenceChunk]:

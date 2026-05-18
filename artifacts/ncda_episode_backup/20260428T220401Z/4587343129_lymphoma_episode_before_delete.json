@@ -1,0 +1,46 @@
+[
+  {
+    "patient_id": "4587343129",
+    "episode_eid": "4:dafe4b2d-c442-4569-a008-4e77971ec05c:5488",
+    "episode_props": {
+      "end_date": "2025-07-21",
+      "last_updated": "2026-04-27T15:18:28.565000000+00:00",
+      "review_reasons": [
+        "site_not_auto_eligible_in_v1",
+        "context_milestone_requires_review"
+      ],
+      "reviewed_by": "auditor@nhs.net",
+      "site_key": "haematology",
+      "reviewed_at": "2026-04-27T15:18:28.565000000+00:00",
+      "condition_type": "Lymphoma",
+      "cancer_type": "Lymphoma",
+      "audit_flag": false,
+      "intent": "confirmed",
+      "dates_updated_at": "2026-04-28T21:32:48.994000000+00:00",
+      "needs_review": false,
+      "status_source": "curator_signoff",
+      "suspected_site": "haematology",
+      "episode_id": "ep-v2-fed13792c0698548",
+      "needs_human_review": false,
+      "detector_version": "v2",
+      "engine_version": "episode-detector-v2",
+      "confidence_tier": "suggest",
+      "audit_notes": "",
+      "review_verdict": "confirmed_completed",
+      "status": "completed",
+      "status_updated_at": "2026-04-27T15:18:28.565000000+00:00",
+      "start_date": "2024-09-27"
+    },
+    "rel_eid": "5:dafe4b2d-c442-4569-a008-4e77971ec05c:6919810514268722544",
+    "rel_props": {
+      "linked_by": "episode_detector_v2",
+      "linked_at": "2026-04-27T15:05:06.044000000+00:00",
+      "confidence": 0.8,
+      "milestone_type": "treatment_started",
+      "evidence_quote": "Ruxolitinib 20mg tablets - 1 BD"
+    },
+    "encounter_id": "dd76d5f5-dbd6-475b-bfc4-bcb37b5c51ca",
+    "date": "2024-10-28",
+    "text": "14:01 - Surgery: [STAFF] (Pharmacist) \nRuxolitinib 20mg tablets - 1 BD\n Drug Review\n   Entries from previous template version\n      Medication reconciliation (XaXfG)\n      Medication reconciliation (XaXfG) - Haematology letter 27/09/24\n      Comment note (XaIg6) - pt supplied with ruxolitinib 20mg BD by hospital for 3months\nSummary Care Record Update - This patient's preference is for only core items to be included in their Summary Care Record. This has been overridden so that additional items will be included in this patient's Summary Care Record.\nMedication reconciliation (XaXfG)\nMedication reconciliation (XaXfG) - Haematology letter 27/09/24\nComment note (XaIg6) - pt supplied with ruxolitinib 20mg BD by hospital for 3months"
+  }
+]

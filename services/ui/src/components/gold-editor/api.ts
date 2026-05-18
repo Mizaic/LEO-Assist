@@ -14,8 +14,13 @@
  */
 import type { GoldLabel, SavedGoldEntity } from "./types";
 
-const API_BASE =
-  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE) || "";
+// All requests are issued from "use client" components in the browser
+// and must hit the Next.js proxy at the same origin (port 3000 in
+// local dev, the Container App ingress in cloud). The proxy in
+// services/ui/src/proxy.ts strips the /api/ prefix and forwards to
+// the Core API. Prepending NEXT_PUBLIC_API_BASE here would bypass the
+// proxy and 404 against the Core API (which does not mount routes
+// under /api/), so we deliberately keep these paths origin-relative.
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -48,7 +53,7 @@ export async function patchGoldLabelEntities(
   entities: SavedGoldEntity[],
 ): Promise<{ label_id: string; entities: SavedGoldEntity[] }> {
   return fetchJson(
-    `${API_BASE}/api/training/gold-labels/${encodeURIComponent(labelId)}/entities`,
+    `/api/training/gold-labels/${encodeURIComponent(labelId)}/entities`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -73,7 +78,7 @@ export async function createGoldLabelFromDryRun(payload: {
   source_run_id?: string | null;
   source_model_version?: string | null;
 }): Promise<DryRunGoldLabelResponse> {
-  return fetchJson(`${API_BASE}/api/training/candidates/from-dry-run`, {
+  return fetchJson(`/api/training/candidates/from-dry-run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -97,7 +102,7 @@ export async function createGoldLabelFromEncounter(payload: {
   patient_id: string;
   encounter_id: string;
 }): Promise<EncounterGoldLabelResponse> {
-  return fetchJson(`${API_BASE}/api/training/gold-labels/from-encounter`, {
+  return fetchJson(`/api/training/gold-labels/from-encounter`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -121,7 +126,7 @@ export async function syncCodedLinksFromGold(payload: {
 }): Promise<SyncCodedLinksResponse> {
   const { patient_id, encounter_id, ...body } = payload;
   return fetchJson(
-    `${API_BASE}/api/patients/${encodeURIComponent(
+    `/api/patients/${encodeURIComponent(
       patient_id,
     )}/encounters/${encodeURIComponent(encounter_id)}/coded-links/sync-from-gold`,
     {

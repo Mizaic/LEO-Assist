@@ -46,11 +46,32 @@ export interface GuidelinePickerProps {
   helperText?: string;
 }
 
+// Module-level cache so repeat mounts (or repeat dialog opens) don't keep
+// hitting /api/nice/loaded. The list of loaded NICE guidelines barely
+// changes within a session; a 5-minute TTL is plenty fresh.
+const _GUIDELINE_TTL_MS = 5 * 60 * 1000;
+let _guidelineCache: { fetchedAt: number; rows: LoadedGuideline[] } | null = null;
+let _guidelineInflight: Promise<LoadedGuideline[]> | null = null;
+
 async function defaultLoader(): Promise<LoadedGuideline[]> {
-  const r = await fetch("/api/nice/loaded");
-  if (!r.ok) throw new Error("Could not load guidelines");
-  const data = (await r.json()) as Array<LoadedGuideline & Record<string, unknown>>;
-  return data.map((d) => ({ code: d.code, title: d.title }));
+  const now = Date.now();
+  if (_guidelineCache && now - _guidelineCache.fetchedAt < _GUIDELINE_TTL_MS) {
+    return _guidelineCache.rows;
+  }
+  if (_guidelineInflight) return _guidelineInflight;
+  _guidelineInflight = (async () => {
+    try {
+      const r = await fetch("/api/nice/loaded");
+      if (!r.ok) throw new Error("Could not load guidelines");
+      const data = (await r.json()) as Array<LoadedGuideline & Record<string, unknown>>;
+      const rows = data.map((d) => ({ code: d.code, title: d.title }));
+      _guidelineCache = { fetchedAt: Date.now(), rows };
+      return rows;
+    } finally {
+      _guidelineInflight = null;
+    }
+  })();
+  return _guidelineInflight;
 }
 
 export function GuidelinePicker({

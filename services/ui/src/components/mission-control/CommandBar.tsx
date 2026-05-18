@@ -26,9 +26,10 @@ interface Props {
   onChange: (patch: Partial<MissionControlFilters>, applyNow?: boolean) => void;
   onApply: () => void;
   onClear: () => void;
+  cancerTypeCounts?: Record<string, number>;
 }
 
-export default function CommandBar({ draft, onChange, onApply, onClear }: Props) {
+export default function CommandBar({ draft, onChange, onApply, onClear, cancerTypeCounts }: Props) {
   return (
     <Paper
       elevation={0}
@@ -118,6 +119,7 @@ export default function CommandBar({ draft, onChange, onApply, onClear }: Props)
           closureReasons={draft.closureReasons}
           onCancerTypesChange={(v) => onChange({ cancerTypes: v }, true)}
           onClosureReasonsChange={(v) => onChange({ closureReasons: v }, true)}
+          cancerTypeCounts={cancerTypeCounts}
         />
 
         <Box>

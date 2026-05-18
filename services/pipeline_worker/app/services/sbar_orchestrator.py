@@ -16,6 +16,7 @@ See DI-LEO-AI-186, DI-LEO-AI-188, DI-LEO-AI-189.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -164,8 +165,15 @@ class SBAROrchestrator:
             self._create_draft(session, payload, assessment_id)
             self._link_artefacts(session, payload, assessment_id)
 
-            # -- Stage 1: Situation --------------------------------------
+            # -- Stages 1 + 2: Situation + Background (parallel) ---------
+            # Both LLM calls are independent; running them concurrently
+            # cuts wall-clock time roughly in half. We resolve the
+            # required graph data first (sync), emit the start events,
+            # then await both LLM coroutines via asyncio.gather.
             resolved_situation = resolve_situation(session, payload.situation)
+            resolved_sources = resolve_background_sources(session, payload.background)
+            aggregated = aggregate_codes(resolved_sources)
+
             self._emit(
                 run_id,
                 "sbar_stage_started",
@@ -174,47 +182,6 @@ class SBAROrchestrator:
                     "assessment_id": assessment_id,
                 },
             )
-            try:
-                sit_result = await self._call_situation(
-                    resolved_situation,
-                    extra_context={
-                        "guideline_ids": payload.guideline_ids,
-                        "concern": (payload.concern or "").strip() or None,
-                    },
-                    patient_id=payload.situation.patient_id,
-                )
-            except Exception as exc:
-                logger.exception("SBAR situation call failed")
-                friendly = translate_error("situation", str(exc))
-                sit_result = {
-                    "markdown": "",
-                    "raw": {},
-                    "error": friendly["message"],
-                    "error_code": friendly["code"],
-                }
-            situation_md = sit_result.get("markdown") or ""
-            sit_friendly = self._record_stage_error(
-                "situation", sit_result, errors, errors_detail
-            )
-            session.run(
-                SET_SITUATION,
-                assessment_id=assessment_id,
-                situation=situation_md,
-            )
-            self._emit(
-                run_id,
-                "sbar_stage_completed",
-                {
-                    "stage": "situation",
-                    "assessment_id": assessment_id,
-                    "preview": _preview(situation_md),
-                    "error": sit_friendly,
-                },
-            )
-
-            # -- Stage 2: Background -------------------------------------
-            resolved_sources = resolve_background_sources(session, payload.background)
-            aggregated = aggregate_codes(resolved_sources)
             self._emit(
                 run_id,
                 "sbar_stage_started",
@@ -237,17 +204,61 @@ class SBAROrchestrator:
                     },
                 )
 
-            try:
-                bg_result = await self._call_background(
-                    resolved_sources,
-                    aggregated,
-                    referring_specialty=_first_specialty(resolved_situation),
-                    patient_id=payload.situation.patient_id,
-                    progress_cb=_on_part_progress,
+            sit_task = self._call_situation(
+                resolved_situation,
+                extra_context={
+                    "guideline_ids": payload.guideline_ids,
+                    "concern": (payload.concern or "").strip() or None,
+                },
+                patient_id=payload.situation.patient_id,
+            )
+            bg_task = self._call_background(
+                resolved_sources,
+                aggregated,
+                referring_specialty=_first_specialty(resolved_situation),
+                patient_id=payload.situation.patient_id,
+                progress_cb=_on_part_progress,
+            )
+            sit_raw, bg_raw = await asyncio.gather(
+                sit_task, bg_task, return_exceptions=True
+            )
+
+            if isinstance(sit_raw, Exception):
+                logger.exception(
+                    "SBAR situation call failed", exc_info=sit_raw
                 )
-            except Exception as exc:
-                logger.exception("SBAR background call failed")
-                friendly = translate_error("background", str(exc))
+                friendly = translate_error("situation", str(sit_raw))
+                sit_result = {
+                    "markdown": "",
+                    "raw": {},
+                    "error": friendly["message"],
+                    "error_code": friendly["code"],
+                }
+            else:
+                sit_result = sit_raw
+            situation_md = sit_result.get("markdown") or ""
+            sit_friendly = self._record_stage_error(
+                "situation", sit_result, errors, errors_detail
+            )
+            session.run(
+                SET_SITUATION,
+                assessment_id=assessment_id,
+                situation=situation_md,
+            )
+            self._emit(
+                run_id,
+                "sbar_stage_completed",
+                {
+                    "stage": "situation",
+                    "assessment_id": assessment_id,
+                    "preview": _preview(situation_md),
+                    "error": sit_friendly,
+                },
+            )
+
+            if isinstance(bg_raw, Exception):
+                logger.exception("SBAR background call failed", exc_info=bg_raw)
+                friendly = translate_error("background", str(bg_raw))
                 bg_result = {
                     "markdown": "",
                     "raw": {},
@@ -255,6 +266,8 @@ class SBAROrchestrator:
                     "error_code": friendly["code"],
                     "parts": [],
                 }
+            else:
+                bg_result = bg_raw
             background_md = bg_result.get("markdown") or ""
             bg_friendly = self._record_stage_error(
                 "background", bg_result, errors, errors_detail

@@ -28,60 +28,60 @@ kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
 # All pins needed for NG12 fixes - using correct schema
 PINS = [
-    # Mesothelioma CXR - 1290960005 Plain X-ray of chest abnormal (finding)
+    # Mesothelioma CXR - 9990010014 Plain X-ray of chest abnormal (finding)
     (
         "chest x-ray findings suggestive of mesothelioma",
         "chest X-ray findings suggestive of mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "chest x-ray findings consistent with mesothelioma",
         "chest X-ray findings consistent with mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "cxr findings suggestive of mesothelioma",
         "CXR findings suggestive of mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "pleural abnormality on chest x-ray",
         "pleural abnormality on chest X-ray",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "pleural thickening on chest x-ray",
         "pleural thickening on chest X-ray",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "pleural mass on chest x-ray",
         "pleural mass on chest X-ray",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "chest x-ray pleural finding",
         "chest X-ray pleural finding",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),
     (
         "abnormal chest x-ray mesothelioma",
         "abnormal chest X-ray mesothelioma",
-        "1290960005",
+        "9990010014",
         "Plain X-ray of chest abnormal (finding)",
         "finding",
     ),

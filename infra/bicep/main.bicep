@@ -36,6 +36,11 @@ param snomedTerminologyServer string = ''
 // Controls OAuth post-login redirects, the auth callback URI sent to Entra,
 // and the sign-in link in invite emails. Must match an Entra redirect URI.
 param frontendUrl string
+// Optional: bind UI custom domain in Bicep so CD redeploys do not clear portal bindings.
+// Set both, or leave both empty (hostname only, no scheme). Certificate = managed cert
+// resource ID under the Container Apps environment.
+param uiCustomHostname string = ''
+param uiManagedCertificateId string = ''
 
 // UI custom domain on the `ui` Container App (DNS + cert must exist; cert on the ACA environment).
 param uiCustomDomainHost string = ''
@@ -147,10 +152,13 @@ module containerApps 'modules/container-apps.bicep' = {
     uiCustomDomainHost: uiCustomDomainHost
     uiIngressCertificateName: uiIngressCertificateName
     uiIngressCertificateIsManaged: uiIngressCertificateIsManaged
+    uiCustomHostname: uiCustomHostname
+    uiManagedCertificateId: uiManagedCertificateId
   }
 }
 
 output coreApiFqdn string = containerApps.outputs.coreApiFqdn
 output uiFqdn string = containerApps.outputs.uiFqdn
+output acaDefaultDomain string = containerApps.outputs.acaDefaultDomain
 output kvUri string = keyvault.outputs.kvUri
 output sbNamespaceFqdn string = servicebus.outputs.sbNamespaceFqdn

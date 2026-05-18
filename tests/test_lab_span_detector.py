@@ -224,3 +224,12 @@ def test_diagnose_reports_non_lab_row_as_not_lab() -> None:
 def test_parametrized_real_gold_examples(text: str, expected_labels: list[str]) -> None:
     plan = plan_triple_backfill(text, [])
     assert [e["label"] for e in plan.proposed] == expected_labels
+
+
+def test_detect_lab_pattern_extracts_structured_measurement() -> None:
+    pattern = detect_lab_pattern("Haemoglobin A1c level (X772q) 5.6 % [4 - 5.9]")
+
+    assert pattern.matched is True
+    assert pattern.numeric_value == "5.6"
+    assert pattern.unit == "%"
+    assert pattern.reference_range == "4 - 5.9"

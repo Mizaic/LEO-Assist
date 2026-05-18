@@ -21,12 +21,15 @@
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 
 import AreaIntro from "@/components/AreaIntro";
+import { useDemoMode } from "@/context/DemoModeContext";
 import { DENSITY_TIERS, useDensity } from "@/context/DensityContext";
 import type { DensityTier } from "@/theme/tokens";
 
@@ -52,6 +55,7 @@ const DENSITY_COPY: Record<
 
 export default function SettingsPreferencesPage() {
   const { density, setDensity, isRouteForced, isPersisting } = useDensity();
+  const { isDemoMode, setDemoMode } = useDemoMode();
 
   const handleChange = (
     _event: React.MouseEvent<HTMLElement>,
@@ -68,61 +72,95 @@ export default function SettingsPreferencesPage() {
         Preferences
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Personal settings that follow you across LEO. Saved to your account
-        and applied on every device after sign-in.
+        Personal settings for how LEO appears while you work. Some settings
+        follow your account; device-only settings are saved in this browser.
       </Typography>
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Display density
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Choose how tightly LEO packs information on the page. The
-                default keeps every button easy to tap.
-              </Typography>
-            </Box>
+      <Stack spacing={2}>
+        <Card>
+          <CardContent>
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  Display density
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Choose how tightly LEO packs information on the page. The
+                  default keeps every button easy to tap.
+                </Typography>
+              </Box>
 
-            <ToggleButtonGroup
-              value={density}
-              exclusive
-              onChange={handleChange}
-              aria-label="display density"
-              disabled={isPersisting}
-              sx={{ alignSelf: "flex-start" }}
-            >
-              {DENSITY_TIERS.map((tier) => (
-                <ToggleButton
-                  key={tier}
-                  value={tier}
-                  aria-label={DENSITY_COPY[tier].label}
-                  sx={{ textTransform: "none", px: 2 }}
-                >
-                  {DENSITY_COPY[tier].label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-
-            <Typography variant="body2" color="text.secondary">
-              {DENSITY_COPY[density].helper}
-            </Typography>
-
-            {isRouteForced ? (
-              <Typography
-                variant="caption"
-                color="warning.main"
-                sx={{ fontStyle: "italic" }}
+              <ToggleButtonGroup
+                value={density}
+                exclusive
+                onChange={handleChange}
+                aria-label="display density"
+                disabled={isPersisting}
+                sx={{ alignSelf: "flex-start" }}
               >
-                You are on a patient-facing page, so spacious density is
-                being used right now. Your saved preference still applies
-                everywhere else.
+                {DENSITY_TIERS.map((tier) => (
+                  <ToggleButton
+                    key={tier}
+                    value={tier}
+                    aria-label={DENSITY_COPY[tier].label}
+                    sx={{ textTransform: "none", px: 2 }}
+                  >
+                    {DENSITY_COPY[tier].label}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+
+              <Typography variant="body2" color="text.secondary">
+                {DENSITY_COPY[density].helper}
               </Typography>
-            ) : null}
-          </Stack>
-        </CardContent>
-      </Card>
+
+              {isRouteForced ? (
+                <Typography
+                  variant="caption"
+                  color="warning.main"
+                  sx={{ fontStyle: "italic" }}
+                >
+                  You are on a patient-facing page, so spacious density is
+                  being used right now. Your saved preference still applies
+                  everywhere else.
+                </Typography>
+              ) : null}
+            </Stack>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Stack spacing={1.5}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  Demo mode
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Hide patient identifiers, organisation names, and encounter
+                  text on shared screens. This display setting is saved only in
+                  this browser.
+                </Typography>
+              </Box>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isDemoMode}
+                    onChange={(event) => setDemoMode(event.target.checked)}
+                    inputProps={{ "aria-label": "Enable demo mode" }}
+                  />
+                }
+                label={isDemoMode ? "Demo mode on" : "Demo mode off"}
+              />
+
+              <Typography variant="caption" color="text.secondary">
+                Demo mode changes what is rendered on screen. It does not change
+                API responses, stored patient records, or account preferences.
+              </Typography>
+            </Stack>
+          </CardContent>
+        </Card>
+      </Stack>
     </Box>
   );
 }

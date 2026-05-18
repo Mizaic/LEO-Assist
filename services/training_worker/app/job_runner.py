@@ -44,6 +44,7 @@ _run_training_fn: Optional[Callable] = None
 _run_relation_training_fn: Optional[Callable] = None
 _evaluate_model_fn: Optional[Callable] = None
 _evaluate_relation_model_fn: Optional[Callable] = None
+_calibrate_model_fn: Optional[Callable] = None
 _model_store_cls = None
 _model_registry_cls = None
 
@@ -77,6 +78,19 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
         work_dir = Path(tmp)
         started_t = time.perf_counter()
         try:
+            from libs.training_ext.mlflow_logger import MlflowRunContext
+
+            mlflow_ctx = MlflowRunContext(
+                job_id=job.job_id,
+                run_name=f"training-{job.job_id[:8]}",
+                tags={"triggered_by": job.triggered_by or "unknown"},
+            )
+        except Exception:
+            mlflow_ctx = None
+
+        try:
+            if mlflow_ctx is not None:
+                mlflow_ctx.__enter__()
             store.append_log(job, "Phase 0/5 — Preparing training pipeline…")
             _phase_export(job, store, work_dir)
             export_meta = job.metrics.get("export", {})
@@ -87,6 +101,9 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             )
             train_path = work_dir / "train.spacy"
             dev_path = work_dir / "dev.spacy"
+            val_path = work_dir / "val.spacy"
+            if not val_path.exists():
+                val_path = dev_path
 
             train_t = time.perf_counter()
             model_dir = _phase_train(job, store, work_dir, train_path, dev_path)
@@ -94,8 +111,17 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             store.append_log(
                 job, f"Phase train complete in {time.perf_counter() - train_t:.1f}s"
             )
+
+            calib_t = time.perf_counter()
+            calibration = _phase_calibrate(job, store, model_dir, val_path)
+            store.append_log(
+                job, f"Phase calibrate complete in {time.perf_counter() - calib_t:.1f}s"
+            )
             eval_t = time.perf_counter()
             metrics = _phase_evaluate(job, store, model_dir, dev_path)
+            if calibration:
+                metrics = {**metrics, "calibration": calibration}
+                store.update(job, metrics={**job.metrics, "ner": metrics})
             relation_metrics = _phase_evaluate_relations(
                 job, store, relation_model_path, work_dir
             )
@@ -109,33 +135,46 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
             relation_gate_passed = bool(
                 relation_metrics.get("passed_gates", True)
             )
+            # Collect all gate failures into a human-readable warning. The
+            # model is still uploaded and registered so it can be inspected in
+            # the Evaluate stage. Promotion is blocked there unless the user
+            # explicitly overrides. A hard fail is reserved for catastrophic
+            # errors (training subprocess crash, upload failure, etc.).
+            gate_warning: str | None = None
             if (not metrics["passed_gates"]) or (not relation_gate_passed):
                 g_f = metrics.get("golden_f1")
                 min_g = metrics.get("min_golden_f1")
                 if not relation_gate_passed:
-                    err = (
+                    gate_warning = (
                         f"Relation model gate failed: F1={float(relation_metrics.get('f1') or 0.0):.3f} "
                         f"(min={float(relation_metrics.get('min_f1') or 0.6):.3f})."
                     )
                 elif g_f is not None and g_f < (min_g or 0):
-                    err = (
+                    gate_warning = (
                         f"Golden set F1={g_f:.3f} below threshold {min_g}. "
                         "Model regressed on frozen benchmark."
                     )
+                elif metrics.get("label_gate_failures"):
+                    failures = metrics["label_gate_failures"]
+                    summary = "; ".join(failures[:3])
+                    tail = f" (+{len(failures) - 3} more)" if len(failures) > 3 else ""
+                    gate_warning = f"Per-label F1 gate failed: {summary}{tail}"
                 else:
-                    err = (
+                    gate_warning = (
                         f"Precision/recall below thresholds: "
                         f"P={metrics['precision']:.3f} R={metrics['recall']:.3f}"
                     )
-                store.update(
+                store.append_log(
                     job,
-                    status="failed",
-                    phase="evaluate",
-                    error=err,
-                    finished_at=time.time(),
+                    f"GATE WARNING — {gate_warning} "
+                    "Model will be uploaded for inspection but cannot be promoted until resolved.",
                 )
-                return
 
+            bundle_t = time.perf_counter()
+            _phase_bundle(job, store, work_dir, model_dir, export_meta)
+            store.append_log(
+                job, f"Phase bundle complete in {time.perf_counter() - bundle_t:.1f}s"
+            )
             upload_t = time.perf_counter()
             artifact_uri, version = _phase_upload(job, store, model_dir, export_meta)
             store.append_log(
@@ -156,13 +195,22 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
                 phase="",
                 artifact_uri=artifact_uri,
                 model_version=version,
+                error=gate_warning or "",
                 finished_at=time.time(),
             )
-            store.append_log(
-                job,
-                f"Training complete — version {version} registered and ready for promotion. "
-                f"Total elapsed {time.perf_counter() - started_t:.1f}s.",
-            )
+            if gate_warning:
+                store.append_log(
+                    job,
+                    f"Training complete with gate warnings — version {version} registered. "
+                    "Check Evaluate stage before promoting. "
+                    f"Total elapsed {time.perf_counter() - started_t:.1f}s.",
+                )
+            else:
+                store.append_log(
+                    job,
+                    f"Training complete — version {version} registered and ready for promotion. "
+                    f"Total elapsed {time.perf_counter() - started_t:.1f}s.",
+                )
 
         except Exception as exc:
             logger.exception("Training job %s failed: %s", job.job_id, exc)
@@ -173,7 +221,186 @@ def _run_job(job: TrainingJob, store: TrainingJobStore) -> None:
                 finished_at=time.time(),
             )
         finally:
+            if mlflow_ctx is not None:
+                try:
+                    metrics = (job.metrics or {}).get("ner", {})
+                    if isinstance(metrics, dict) and metrics:
+                        mlflow_ctx.log_metrics(
+                            {
+                                k: v
+                                for k, v in metrics.items()
+                                if k in {"precision", "recall", "f1", "calibrated_f1"}
+                                and isinstance(v, (int, float))
+                            }
+                        )
+                    mlflow_ctx.__exit__(None, None, None)
+                except Exception:
+                    pass
             _semaphore.release()
+
+
+# ------------------------------------------------------------------
+# Orphaned-subprocess recovery
+# ------------------------------------------------------------------
+
+
+def recover_orphaned_jobs(store: TrainingJobStore) -> list[str]:
+    """Scan for running spaCy training subprocesses that survived a worker restart.
+
+    For each orphaned process found, a synthetic ``TrainingJob`` is created in
+    the store with status ``running``.  A background thread waits for the
+    subprocess to exit and then runs the calibrate → evaluate → bundle →
+    upload → register post-training phases automatically.
+
+    Returns a list of recovered job IDs (empty when nothing was found).
+    """
+    import re
+    import subprocess as _sp
+
+    try:
+        ps = _sp.run(["ps", "aux"], capture_output=True, text=True, timeout=5)
+    except Exception as exc:
+        logger.warning("[recovery] ps aux failed: %s", exc)
+        return []
+
+    recovered: list[str] = []
+    for line in ps.stdout.splitlines():
+        if "run_spacy_train_cli" not in line or "grep" in line:
+            continue
+        try:
+            parts = line.split(None, 10)
+            pid = int(parts[1])
+            cmdline = parts[10] if len(parts) > 10 else ""
+        except (ValueError, IndexError):
+            continue
+
+        # Verify the process still exists (ps can be slightly stale).
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            continue
+
+        # Extract output dir from --output <path>
+        m = re.search(r"--output\s+(\S+)", cmdline)
+        if not m:
+            logger.warning("[recovery] Could not parse --output from PID %d cmdline", pid)
+            continue
+        output_dir = Path(m.group(1))
+        work_dir = output_dir.parent
+        if not work_dir.exists():
+            logger.warning("[recovery] Work dir missing for PID %d: %s", pid, work_dir)
+            continue
+
+        # Grab the semaphore so new jobs are blocked while we recover this one.
+        _semaphore.acquire(blocking=False)
+
+        job = store.create(triggered_by="recovery")
+        store.update(job, status="running", phase="train", started_at=time.time())
+        store.append_log(
+            job,
+            f"[recovery] Re-attached orphaned spaCy training subprocess "
+            f"PID {pid}. Waiting for it to finish before running "
+            f"calibrate / evaluate / upload / register.",
+        )
+        store.append_log(job, f"[recovery] Work dir: {work_dir}")
+        logger.info(
+            "[recovery] Re-attached PID %d -> job %s (work_dir=%s)",
+            pid,
+            job.job_id,
+            work_dir,
+        )
+
+        t = threading.Thread(
+            target=_watch_orphaned,
+            args=(job, store, pid, work_dir, output_dir),
+            daemon=True,
+            name=f"recovery-{job.job_id[:8]}",
+        )
+        t.start()
+        recovered.append(job.job_id)
+
+    return recovered
+
+
+def _watch_orphaned(
+    job: TrainingJob,
+    store: TrainingJobStore,
+    pid: int,
+    work_dir: Path,
+    output_dir: Path,
+) -> None:
+    """Wait for an orphaned spaCy subprocess to finish, then run post-training phases."""
+    try:
+        # Poll until process exits — gentle 10-second heartbeat.
+        while True:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(10)
+
+        store.append_log(
+            job,
+            f"[recovery] Subprocess PID {pid} exited. "
+            "Running calibrate → evaluate → bundle → upload → register…",
+        )
+
+        model_best = output_dir / "model-best"
+        model_last = output_dir / "model-last"
+        model_dir = model_best if (model_best / "meta.json").exists() else model_last
+        if not (model_dir / "meta.json").exists():
+            raise FileNotFoundError(
+                f"No trained model found in {output_dir}. "
+                "Training may have crashed before saving any checkpoint."
+            )
+
+        val_path = work_dir / "val.spacy"
+        dev_path = work_dir / "dev.spacy"
+        if not val_path.exists():
+            val_path = dev_path
+
+        job_started_at = job.started_at or time.time()
+
+        calibration = _phase_calibrate(job, store, model_dir, val_path)
+
+        metrics = _phase_evaluate(job, store, model_dir, dev_path)
+        if calibration:
+            metrics = {**metrics, "calibration": calibration}
+        store.update(job, metrics={**job.metrics, "ner": metrics})
+
+        export_meta: dict = {}
+        _phase_bundle(job, store, work_dir, model_dir, export_meta)
+
+        artifact_uri, version = _phase_upload(job, store, model_dir, export_meta)
+
+        _phase_register(
+            job, store, version, artifact_uri, metrics, export_meta, job_started_at
+        )
+
+        store.update(
+            job,
+            status="done",
+            phase="",
+            artifact_uri=artifact_uri,
+            model_version=version,
+            error="" if metrics.get("passed_gates") else "Gate warning — check Evaluate tab.",
+            finished_at=time.time(),
+        )
+        store.append_log(
+            job,
+            f"[recovery] Complete — version {version} registered and ready for promotion.",
+        )
+    except Exception as exc:
+        logger.exception("[recovery] Post-training phases failed for job %s: %s", job.job_id, exc)
+        store.update(
+            job,
+            status="failed",
+            phase="",
+            error=str(exc),
+            finished_at=time.time(),
+        )
+    finally:
+        _semaphore.release()
 
 
 # ------------------------------------------------------------------
@@ -284,6 +511,55 @@ def _phase_train_relations(
     return relation_model
 
 
+def _phase_calibrate(
+    job: TrainingJob,
+    store: TrainingJobStore,
+    model_dir: Path,
+    val_path: Path,
+) -> dict:
+    """Run per-label threshold calibration against the validation split.
+
+    Skipped (returns {}) when ``TRAINING_SKIP_CALIBRATION=true``. A failure is
+    logged but non-fatal — the model is still evaluated at default thresholds
+    so an isolated calibration bug cannot block promotion.
+    """
+    if os.getenv("TRAINING_SKIP_CALIBRATION", "false").lower() in ("1", "true", "yes"):
+        store.append_log(job, "Calibration skipped (TRAINING_SKIP_CALIBRATION set).")
+        return {}
+    if not val_path.exists():
+        store.append_log(
+            job,
+            f"Calibration skipped — validation split missing ({val_path}). "
+            "Run exporter with split_ratios including a val fold to enable calibration.",
+        )
+        return {}
+    store.update(job, phase="calibrate")
+    store.append_log(job, "Phase 2.5/5 — Preparing calibrator…")
+    try:
+        calibrate_model = _get_calibrate_model()
+    except Exception as exc:
+        store.append_log(job, f"Calibrator import failed ({exc}) — skipping.")
+        return {}
+    store.append_log(job, "Phase 2.5/5 — Running per-label threshold sweep on validation split…")
+    try:
+        result = calibrate_model(
+            model_dir,
+            val_path,
+            log_fn=lambda line: store.append_log(job, line),
+        )
+    except Exception as exc:
+        store.append_log(job, f"Calibration failed ({exc}) — continuing without calibration.")
+        return {}
+    summary = result.to_dict()
+    store.update(job, metrics={**job.metrics, "calibration": summary})
+    store.append_log(
+        job,
+        f"Calibration complete — macro-F1 {summary['macro_f1_before']:.3f} -> "
+        f"{summary['macro_f1_after']:.3f} across {len(summary['per_label'])} labels.",
+    )
+    return summary
+
+
 def _phase_evaluate(
     job: TrainingJob,
     store: TrainingJobStore,
@@ -331,6 +607,45 @@ def _phase_evaluate_relations(
             ),
         )
     return metrics
+
+
+def _phase_bundle(
+    job: TrainingJob,
+    store: TrainingJobStore,
+    work_dir: Path,
+    model_dir: Path,
+    export_meta: dict,
+) -> None:
+    """Assemble the Wave 5 artifact bundle under ``model_dir``.
+
+    Copies calibration.json, span_alignment_report.json, orth_variants.json
+    (if present in ``work_dir``) next to the model files, then writes
+    bundle_manifest.json with SHA256 hashes.
+    """
+    store.update(job, phase="bundle")
+    store.append_log(job, "Phase 4/5 — Assembling model artifact bundle…")
+    try:
+        from libs.training_ext.bundle import assemble_bundle
+
+        manifest = assemble_bundle(
+            model_dir,
+            version="pending",
+            source_dir=work_dir,
+            dataset_hash=str(export_meta.get("train_split_hash", "")),
+            extras={
+                "exported_at": str(export_meta.get("exported_at", "")),
+                "label_set": ",".join(export_meta.get("label_set", [])),
+            },
+        )
+        store.append_log(
+            job,
+            f"Bundle manifest: {len(manifest.file_hashes)} files recorded.",
+        )
+    except Exception as exc:
+        store.append_log(
+            job,
+            f"Bundle assembly failed ({exc}) — uploading without manifest.",
+        )
 
 
 def _phase_upload(
@@ -433,6 +748,7 @@ def _phase_register(
                 "gate_min_precision": metrics.get("min_precision"),
                 "gate_min_recall": metrics.get("min_recall"),
                 "gate_passed": metrics.get("passed_gates"),
+                "label_gate_failures": metrics.get("label_gate_failures", []),
                 "relation_export_total": metrics.get("relation_export", {}).get("total", 0),
                 "relation_f1": metrics.get("relation_model", {}).get("f1"),
                 "relation_precision": metrics.get("relation_model", {}).get("precision"),
@@ -493,10 +809,19 @@ def _get_export_labels():
 def _get_run_training():
     global _run_training_fn
     if _run_training_fn is None:
-        from app.trainer import run_training
+        from app.trainer import run_training_with_seeds
 
-        _run_training_fn = run_training
+        _run_training_fn = run_training_with_seeds
     return _run_training_fn
+
+
+def _get_calibrate_model():
+    global _calibrate_model_fn
+    if _calibrate_model_fn is None:
+        from app.calibrator import calibrate_model
+
+        _calibrate_model_fn = calibrate_model
+    return _calibrate_model_fn
 
 
 def _get_export_relations():

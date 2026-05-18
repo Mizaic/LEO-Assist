@@ -1,0 +1,1351 @@
+[
+  {
+    "episode_id": "75cecc6b8af7d394",
+    "patient_id": "4187508279",
+    "cancer_type": "Breast",
+    "cohort": "1a",
+    "referral_date": "2025-03-10",
+    "end_date": "2025-04-14",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "3bea758b-0949-447d-becf-954e682c85e8",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "91662cc4-5e9d-41b1-b555-47bbdde8485d",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "08d9ea07-81a7-48cf-aac1-f6dcab0ce890",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "39e6eb3c-aa41-4254-b33f-31830458a406",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "e79e6956a7a244bc",
+    "patient_id": "4200186896",
+    "cancer_type": "Melanoma",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2025-05-12",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "a841c9de-58b5-4449-847a-21e68f265382",
+        "milestone_type": "treatment_started"
+      },
+      {
+        "encounter_id": "bff06127-b56f-4f65-81ab-b546de35d06d",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "917073658c9c0dc4",
+    "patient_id": "4200779633",
+    "cancer_type": "Unknown Primary",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2024-07-10",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "56f252de-ee2d-4425-86c5-c5b8263b933f",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "eb988eae-a4e0-4143-9db9-ef520410f4fe",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "5d43df5d9871a991",
+    "patient_id": "4200779633",
+    "cancer_type": "Breast",
+    "cohort": "1b",
+    "referral_date": "2025-04-28",
+    "end_date": "2025-05-20",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "879cfb1d-b2a9-4d0e-adad-3d36474b0f29",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "dcb25a95-3878-4574-9db4-ca7b902f78bd",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "79444321-fbaa-4f28-a806-b3b277b5a86d",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "cb9c347dc929a963",
+    "patient_id": "4200797127",
+    "cancer_type": "Lymphoma",
+    "cohort": "1a",
+    "referral_date": "2024-12-05",
+    "end_date": "2024-12-09",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "a4c84d40-2a93-4dfe-9b8d-9b06da00f00a",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "0151e562-d8c4-4bba-8c4e-4c0399542003",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "981f8ad74128cf0d",
+    "patient_id": "4469113522",
+    "cancer_type": "Colorectal",
+    "cohort": "1a",
+    "referral_date": "2025-01-23",
+    "end_date": "2025-05-12",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "8aabad81-fa25-4533-9fcd-812fbdc1ff4b",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "7837c6fe-284b-4d20-bb6d-1539cdd35531",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "e9861d89-ae14-4021-a8fc-5f850e6a2b15",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "9eb576b11b65d5a8",
+    "patient_id": "4505618269",
+    "cancer_type": "Melanoma",
+    "cohort": "1b",
+    "referral_date": "2024-02-28",
+    "end_date": "2024-03-20",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "babca43c-585e-4321-9ebc-ef3b2f6487bc",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "d317a432-d4ce-4ee3-a430-c2cce349e338",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "486f8c6f-2e28-4126-bfa8-b6cc16e57eda",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "2cf97f254890c056",
+    "patient_id": "4505618269",
+    "cancer_type": "Prostate",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2024-05-21",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "812133cf-ed23-4534-a8f5-38a0d5365135",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "b6a5abf116627710",
+    "patient_id": "4505618269",
+    "cancer_type": "Colorectal",
+    "cohort": "1b",
+    "referral_date": "2025-01-17",
+    "end_date": "2025-07-14",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "7957026f-572e-44a9-ac28-43e6de5853c1",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "1f3fc6e2-262f-4c7f-a521-bf0d2e16add6",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "e463d4d649d097ac",
+    "patient_id": "4560488509",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2024-06-17",
+    "end_date": "2024-09-23",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "ea20038b-1d88-4325-b1be-e35f57435432",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "41709fad-9451-4811-a49d-6bad73a0114a",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "006f8927-0205-4258-af33-22db88f9f013",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "fc2122eb1b8cd44b",
+    "patient_id": "4562218347",
+    "cancer_type": "Breast",
+    "cohort": "1a",
+    "referral_date": "2024-04-24",
+    "end_date": "2024-05-31",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "33f4664c-b670-49a3-af12-36f2adbc2e56",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "d88c402d-d4c5-48fc-b17f-e7699a49c415",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "7c8cd27b-083c-41a4-aa1c-004539431de7",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "cb81bd7c94350864",
+    "patient_id": "4563591157",
+    "cancer_type": "Oesophageal",
+    "cohort": "1a",
+    "referral_date": "2024-09-12",
+    "end_date": "2025-02-14",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "e861a99d-430a-4b8c-8c9b-71c4e7fe2734",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "9cccdc20-85fb-4572-97f6-031f1f15a733",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "22a2c6c9-ff33-4e07-8d8e-1851fb0089a6",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "41d26456-9e9e-4256-b503-d61ee1f4658e",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "d7e326a6ff8daaf0",
+    "patient_id": "4563706582",
+    "cancer_type": "Stomach",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2025-01-14",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "44875ead-0161-40c5-8924-0f2a7a6bc07c",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "c9fd4df1-a861-4251-b1b0-59fa471a4587",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "e0de01bdf4225aec",
+    "patient_id": "4587069337",
+    "cancer_type": "Breast",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2024-05-31",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "1bbaa1cb-ca7a-4082-a5e7-b9b41b75220b",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "cc7c99b5-0bf5-4628-abc9-102b7a8906d2",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "ecc34851288bbe82",
+    "patient_id": "4587070033",
+    "cancer_type": "Prostate",
+    "cohort": "1a",
+    "referral_date": "2024-05-21",
+    "end_date": "2024-07-22",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "242c90f5-63cc-4511-8749-725b7e22860c",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "98374d85-05d1-493f-9f4a-424ab9982bd2",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "6c92a3ba-e374-439a-9fad-98145b49d85b",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "53758cee-f732-4a50-9ace-5706171eb1ce",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "ef5169b77482b05d",
+    "patient_id": "4587343129",
+    "cancer_type": "Breast",
+    "cohort": "1b",
+    "referral_date": "2025-05-30",
+    "end_date": "2025-06-18",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "b1b73a0e-c67b-4a0b-b8fa-bde3219534ac",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "71f27817-9e24-43c4-bd1d-69f57a16beb0",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "8e6f8779-b65a-4ee8-a97a-202888434cfc",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "46d29e8647d9edfe",
+    "patient_id": "4640519532",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2024-08-16",
+    "end_date": "2025-01-15",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "1f107093-e087-4b9f-8e5b-cbbcfc5065cc",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "c50bfccf-4969-401f-b330-53dc47e15f44",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "3e6eeec36c7e7103",
+    "patient_id": "4742236882",
+    "cancer_type": "Breast",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2025-03-14",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "f2351bf7-001f-4262-9d88-d0ff4aa68a55",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "9c41db87-f846-4a45-acec-531dc7273af6",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "d0757825e03de1e3",
+    "patient_id": "4802241127",
+    "cancer_type": "Endometrial",
+    "cohort": "1a",
+    "referral_date": "2025-02-07",
+    "end_date": "2025-03-10",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "f703e498-c2e7-49c6-a17b-0b093cb0a042",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "70530975-b9f9-4a94-86ab-675ecf7a5d4b",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "0fcdbfb4-d261-4724-8ca7-a24ab549b980",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "e56a804a-6978-478b-b6a3-115ba594fc2c",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "52b889a13d153cbf",
+    "patient_id": "4802241127",
+    "cancer_type": "Thyroid",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2025-11-26",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "53fc14ec-06ad-45c7-8d86-0b19788cd2b0",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "407ad5e53e5bea35",
+    "patient_id": "4802297327",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2024-12-11",
+    "end_date": "2025-02-07",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "0895ad95-a7bb-4a92-9786-2f5063019950",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "c47aba72-3b5b-442d-92a4-e18f79a4c2d9",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "2a2a77d3-9744-44c4-bdbb-390d12c35f02",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "d1d4ef89-666b-4695-a9fd-9ee113df25e1",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "7c96992b78a5c1c8",
+    "patient_id": "4802892365",
+    "cancer_type": "Breast",
+    "cohort": "1a",
+    "referral_date": "2025-03-26",
+    "end_date": "2025-03-26",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "dae7cc81-d783-4111-bfa1-2f42431757d5",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "2e96eda1-449c-426a-97a0-64253a0de9f7",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "aa8d55b9-2520-4b58-84ea-4133b62f5fb1",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "da6f12872dbdf9ef",
+    "patient_id": "4821512173",
+    "cancer_type": "Breast",
+    "cohort": "1b",
+    "referral_date": "2025-02-26",
+    "end_date": "2025-03-13",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "a77f7568-b540-4184-9b51-aafc779b57eb",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "96546382-1e57-4214-a157-d78d90201258",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "a2bc1677-051f-418c-9ad9-8379c364ea00",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "ca1c5bae21bfe9f6",
+    "patient_id": "4822977102",
+    "cancer_type": "Colorectal",
+    "cohort": "1a",
+    "referral_date": "2024-03-20",
+    "end_date": "2024-03-20",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "9c1d277a-f933-46e7-841e-28b3e458d980",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "c23e206b-123c-4c8f-9501-a10cf1dc0e38",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "62501f2e-d4b4-4cab-84fc-dbaeee7b9c5a",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "d2fcf401671b64e4",
+    "patient_id": "4845533782",
+    "cancer_type": "Renal",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2025-02-25",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "6ed7fab2-5980-4dad-9103-ece17167154a",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "54605990-964f-44d7-955d-57b54f704b68",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "7918a21b71fd59fd",
+    "patient_id": "4867552062",
+    "cancer_type": "Prostate",
+    "cohort": "1a",
+    "referral_date": "2025-04-11",
+    "end_date": "2025-06-20",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "4c190ee8-7af2-42bf-b01a-adaace4d723c",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "0066c508-0939-4b6e-a712-19c6e41806ac",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "b2b0ab38-76cb-4a04-9731-ab7d6920cea5",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "daa57eed-dc1e-4b63-a0cb-8b08ea8e2b4d",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "ace68af9e6899a26",
+    "patient_id": "4920262426",
+    "cancer_type": "Breast",
+    "cohort": "1a",
+    "referral_date": "2025-08-12",
+    "end_date": "2025-09-18",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "397c57db-c9ab-48ac-a233-cdafc6f61d0b",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "8a739bf0-0795-4ffa-a1c1-91907705d487",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "33b3f3cf-5fcf-4f26-8336-4a3808aa56b6",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "076b11d76924b114",
+    "patient_id": "4921442355",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2024-11-01",
+    "end_date": "2025-01-28",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "76a5c095-48ca-49ba-a934-af20b24310c7",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "6db6bfbd-1345-403e-9a59-d3869d8e50b0",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "77a96495-ff6a-49fe-8922-15efe5ca9d7d",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "e18004d2-8739-4350-8272-7a69d75bcc1c",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "f8e78bc2a6f2bf0a",
+    "patient_id": "4926916703",
+    "cancer_type": "Melanoma",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2024-10-23",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "b20bd8fe-6fb6-4a01-8eca-299da6fa9a45",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "5ac62e43-fb6e-483a-8bd2-f43bf6df211e",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "d16cc2686b829058",
+    "patient_id": "4926940965",
+    "cancer_type": "Bladder",
+    "cohort": "1a",
+    "referral_date": "2024-07-15",
+    "end_date": "2024-12-11",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "99d703dd-914d-4bd1-a72b-856b3252370f",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "a74bc2bf-c304-4da7-8a12-5a6c50efaaa7",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "401e2687-5b3b-451f-b411-ea051244fa9f",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "c556b337-e8c6-41ce-8315-028b15f94e8d",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "688abd1c834cad61",
+    "patient_id": "4926940965",
+    "cancer_type": "Bladder",
+    "cohort": "1b",
+    "referral_date": "2024-08-06",
+    "end_date": "2025-01-16",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "fc8df232-295e-4b39-afee-8ee964d5b85d",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "a74bc2bf-c304-4da7-8a12-5a6c50efaaa7",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "b355783a-4c12-427a-84af-79cbf12bb261",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "f0e428dfae0626bd",
+    "patient_id": "4926975998",
+    "cancer_type": "Breast",
+    "cohort": "1a",
+    "referral_date": "2024-03-14",
+    "end_date": "2024-04-15",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "1575f928-2aba-4c5d-a832-dc5e16a8e2ae",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "6719ae19-ddc6-4232-80fa-304bb8ddb7a0",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "a1a67260-5cda-488c-a0fc-c4a318bd5cad",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "5738d6a8-1117-48d6-90ec-6f9b07716634",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "f4483763596aa3cd",
+    "patient_id": "4926975998",
+    "cancer_type": "Breast",
+    "cohort": "1b",
+    "referral_date": "2025-05-01",
+    "end_date": "2025-07-07",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "9802736f-97bb-4dcb-8fe2-dc0f4b613d35",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "2ff80b4f-df00-4f28-b67a-a28c908738a4",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "acf8a1930d351295",
+    "patient_id": "4940120139",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2024-03-01",
+    "end_date": "2024-03-27",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "b4069d44-76e0-45c4-ad64-072991d87a3e",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "170d7cfd-fe62-4e26-9e78-033db349b411",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "494708bd-3d5e-4f9d-9fad-94ad6a03a734",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "a15665920aae3823",
+    "patient_id": "4940120139",
+    "cancer_type": "Colorectal",
+    "cohort": "1a",
+    "referral_date": "2025-06-27",
+    "end_date": "2025-07-22",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "74f306ca-4686-4e77-ad80-1a653e3b2915",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "abb76b06-784c-4589-94dc-fd6914c637cd",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "4e6afa6d-fd68-4bfd-9b33-49b078c835ef",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "34f16956-34e4-4cc8-a38b-da0938af815e",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "67ed45d5240733d5",
+    "patient_id": "4940120139",
+    "cancer_type": "Other",
+    "cohort": "1a",
+    "referral_date": "2025-06-27",
+    "end_date": "2025-10-24",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "64887000-25b2-46d8-898c-0ed7a9fb72f2",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "abb76b06-784c-4589-94dc-fd6914c637cd",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "0ca7e0f3-7cff-4f8d-b007-2b3d68c3bf47",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "34f16956-34e4-4cc8-a38b-da0938af815e",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "c6fda50be64296f2",
+    "patient_id": "4940144844",
+    "cancer_type": "Colorectal",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2025-05-20",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "a493af63-c7fa-43e8-879d-504e235f500f",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "98c1f38f362f77e2",
+    "patient_id": "6040304227",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2024-09-26",
+    "end_date": "2024-11-13",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "196aa382-a101-4974-9197-d48b83026233",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "37eb1273-2bd0-498f-acba-4ec89775f9d6",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "8f2e7ac8-6e21-47f3-9010-89158a81f1c8",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "c9f0984f-fde7-46d5-a025-c098699defcc",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "cb7ee00a99f53e93",
+    "patient_id": "6040304227",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2024-09-26",
+    "end_date": "2024-11-18",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "519c8013-0051-40c9-81be-6b86d77d28c0",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "be5c63e8-7019-45a7-866f-a0d4110911c1",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "c9f0984f-fde7-46d5-a025-c098699defcc",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "b6c4b34da351e3f2",
+    "patient_id": "6040304227",
+    "cancer_type": "Melanoma",
+    "cohort": "1b",
+    "referral_date": "2024-10-01",
+    "end_date": "2025-01-22",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "c6152474-8cd9-41dd-9738-d92f96007632",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "b28c652f-bf40-41e2-b15d-48a9470c472c",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "3c9f48afd436d744",
+    "patient_id": "6040304227",
+    "cancer_type": "Other",
+    "cohort": "1b",
+    "referral_date": "2024-10-07",
+    "end_date": "2025-03-04",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "9bc4fc1d-743f-4eb5-b1bf-4a5e8c9313ab",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "436f537a-b355-4a9c-a3a6-6ab52f52209b",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "16f8cd1f93fc2842",
+    "patient_id": "6044092682",
+    "cancer_type": "Prostate",
+    "cohort": "1a",
+    "referral_date": "2025-08-18",
+    "end_date": "2025-09-06",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "48f9ea2c-f003-40b2-8aec-4c0b6c2e3350",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "704b5c4e-1c99-45b0-9dbd-c881162e19d1",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "09bb058b-7953-42b0-af00-c5d62fb629af",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "9713c579-a2b4-46d9-a27e-5146ca9e1cf2",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "706b81a7841b9b44",
+    "patient_id": "6044092682",
+    "cancer_type": "Colorectal",
+    "cohort": "1a",
+    "referral_date": "2025-06-14",
+    "end_date": "2025-10-13",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "dde2ad82-de17-450e-b868-259e496beaf9",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "f6a91c33-f579-4e05-ad20-da4c89a036a3",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "5545a400-afd5-4149-bc54-7528d0d3b604",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "60f1f58611f5740c",
+    "patient_id": "6142203497",
+    "cancer_type": "Prostate",
+    "cohort": "1a",
+    "referral_date": "2024-07-11",
+    "end_date": "2024-07-29",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "188d4f04-8b5c-4f10-93ab-aa63eed74746",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "fd11a99f-f475-4cf0-9ea3-d2974892dda8",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "0afb3b1a-e706-4990-ad99-ef44d7c0cba0",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "ff9a549d-50e3-4fd3-8243-65aa6cb4d698",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "6062b74a264403e9",
+    "patient_id": "6220044894",
+    "cancer_type": "Endometrial",
+    "cohort": "1b",
+    "referral_date": "2024-05-07",
+    "end_date": "2024-06-10",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "91384838-b386-4cc5-85a2-efa73d234423",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "9aac4601-10e0-4bcd-aa6d-d0f70e390730",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "0b65dd0ea031108a",
+    "patient_id": "6220044894",
+    "cancer_type": "Endometrial",
+    "cohort": "1a",
+    "referral_date": "2024-05-07",
+    "end_date": "2024-06-18",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "0fb779d6-39b5-4cc2-9561-01f158ca47da",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "f2639f47-e424-40c3-9c68-913c6fec4c11",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "b4aae3ae-af45-49e9-93a8-a93e2bc603ef",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "c071e222-efc7-4c8e-81e5-3ad7b3c9d6a8",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "794f57048ce839c9",
+    "patient_id": "6243439488",
+    "cancer_type": "Colorectal",
+    "cohort": "1a",
+    "referral_date": "2024-06-14",
+    "end_date": "2024-08-13",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "d4749ae8-d51e-4346-95b3-e07528dc808e",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "6e284e3d-2d69-473a-84f4-08d24c46aff2",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "f4025b49-c6b2-42d0-9fb6-a5c376a3fb13",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "b2e37c06-3975-4220-8b33-e779b09e4145",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "932c7e07bf8d305d",
+    "patient_id": "6243439488",
+    "cancer_type": "Colorectal",
+    "cohort": "1a",
+    "referral_date": "2024-09-11",
+    "end_date": "2025-01-22",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "a1562de2-49f0-404f-890a-c0eb6b7f0350",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "472c57b7-1d8d-40d9-8a45-406b45a1fab8",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "bb4b1b13-9035-4d74-abf7-0c0494908c12",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "8219c88bc4b39fa6",
+    "patient_id": "6282779235",
+    "cancer_type": "Prostate",
+    "cohort": "1a",
+    "referral_date": "2025-08-04",
+    "end_date": "2025-09-01",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "72e8095f-5ff0-439b-90c3-dc524da6babd",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "727f1407-a5d1-464f-8017-f1b692644c62",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "af8b7dbf-b243-4991-bd90-6ddf35b49d13",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "c1160954-e8f7-4d66-bb19-b54205c9f84c",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "d4322bf4a37cf06d",
+    "patient_id": "6283876811",
+    "cancer_type": "Cervical",
+    "cohort": "1a",
+    "referral_date": "2024-10-04",
+    "end_date": "2024-12-19",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "e73fca80-0291-43eb-a4be-0077592b5908",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "0a5aea73-0966-4374-8d1d-e2c72b3778d6",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "b3f12562-b694-4320-a88f-6d017151f426",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "e81f6786-01c2-47de-a244-d4108d82fb03",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "615dba54cf2e6e82",
+    "patient_id": "6309359401",
+    "cancer_type": "Other",
+    "cohort": "1b",
+    "referral_date": "2024-06-14",
+    "end_date": "2024-07-10",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "aa98e369-be71-41c9-83ec-537fb621956d",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "204bdefd-24db-4cfb-9658-438a61909215",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "5996abef88eff2b5",
+    "patient_id": "6309359401",
+    "cancer_type": "Prostate",
+    "cohort": "1a",
+    "referral_date": "2024-04-30",
+    "end_date": "2024-10-08",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "de0fe875-aa99-40e4-b969-0ad7f1c1d325",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "d1d74e6f-e0f8-4a17-9cdb-abcce6a5c67e",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "e5dc0067-2530-4fe1-953a-48347e25430e",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "f0774c66-e529-425c-bd2d-dd1ee7450527",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "900b46e77b6dc0f2",
+    "patient_id": "6310920987",
+    "cancer_type": "Leukaemia",
+    "cohort": "1a",
+    "referral_date": "2024-02-09",
+    "end_date": "2024-05-24",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "8f4d6768-a7d1-4bb4-94a5-5e0333644fb5",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "5a10e746-8707-444c-a698-e36982f03ab4",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "8c3ce52a-12df-41fb-a591-a994c942d3b5",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "c470f3781486a4a3",
+    "patient_id": "6310920987",
+    "cancer_type": "Breast",
+    "cohort": "1b",
+    "referral_date": "2024-11-21",
+    "end_date": "2024-12-05",
+    "status": "closed_benign",
+    "encounters": [
+      {
+        "encounter_id": "f0e9401d-a649-4fc4-9bcd-f784debb62dd",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "4107a10f-b790-4bbb-a450-eaf892f4aa91",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "8a48710d-679b-4777-a5a8-f0e588c914a5",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "fb468acfc78991c2",
+    "patient_id": "6310920987",
+    "cancer_type": "Lymphoma",
+    "cohort": "3",
+    "referral_date": "",
+    "end_date": "2025-07-28",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "682cd4b0-8eb3-4f5e-9234-46f52c4d353e",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "354cb549-30d5-4a6b-8324-d833be9cada8",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "e20d34e0931a7074",
+    "patient_id": "7306752529",
+    "cancer_type": "Thyroid",
+    "cohort": "1a",
+    "referral_date": "2024-03-07",
+    "end_date": "2024-06-12",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "281ce94e-24e7-40e2-b66b-1f2e00b050a3",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "6b45513b-1b92-4cee-9668-beb64cd15cd1",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "df4b00f9-a09a-4154-9549-c2499f65e0f4",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  },
+  {
+    "episode_id": "96146d829b659842",
+    "patient_id": "7324271383",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2025-04-14",
+    "end_date": "2025-08-29",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "4da787b8-4c59-4384-85d4-d1658d3bbaab",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "e5b6fe50-912a-4d15-b5b8-84c1d77e2b19",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "48e5022e-cf15-4382-a4dd-d083ebcc4e0b",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "c2aa082f52d616ff",
+    "patient_id": "7324271383",
+    "cancer_type": "Melanoma",
+    "cohort": "1a",
+    "referral_date": "2025-08-22",
+    "end_date": "2025-09-05",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "27a3f225-d4c1-4485-9a5e-d612dc864dc6",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "be9e645a-e04c-42bf-974b-9894cedd5fa9",
+        "milestone_type": "first_seen"
+      },
+      {
+        "encounter_id": "4960cd68-45d7-4015-8cb3-6c28747e7e5f",
+        "milestone_type": "diagnosis_confirmed"
+      }
+    ]
+  },
+  {
+    "episode_id": "2b6d85876f9c9519",
+    "patient_id": "6261656266",
+    "cancer_type": "Thyroid",
+    "cohort": "1a",
+    "referral_date": "2024-10-24",
+    "end_date": "2025-07-21",
+    "status": "closed",
+    "encounters": [
+      {
+        "encounter_id": "800ed426-3af3-461c-96f5-bb593514bbd2",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "64a7bee5-de05-4e47-be76-b4cf318d4038",
+        "milestone_type": "referral"
+      },
+      {
+        "encounter_id": "6510d652-2a95-4a9d-8e23-c971a85c40c3",
+        "milestone_type": "diagnosis_confirmed"
+      },
+      {
+        "encounter_id": "51cdec3d-d047-470b-9ed1-6b21e7fb0911",
+        "milestone_type": "treatment_started"
+      }
+    ]
+  }
+]

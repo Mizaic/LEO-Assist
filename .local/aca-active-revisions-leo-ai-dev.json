@@ -1,0 +1,8 @@
+ERROR: the following arguments are required: --name/-n
+
+Examples from AI knowledge base:
+az containerapp revision list -n my-containerapp -g MyResourceGroup
+List a container app's revisions.
+
+https://aka.ms/cli_ref
+Read more about the command in reference docs

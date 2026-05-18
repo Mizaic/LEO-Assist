@@ -10,7 +10,7 @@ attach to, the episode builder still synthesises a floating
 diagnosis-led EpisodeOfCare, producing a phantom episode with no real
 clinical events.
 
-Canonical patient 4802892365 case (phantom episode 862a306e1ee82616):
+Canonical N1 case (phantom episode without referral anchor):
 
   2024-06-04 pharmacist failed-encounter (no diagnosis evidence)
   2025-09-24 "Cancer care review" with problem-list malignancy codes
@@ -183,7 +183,7 @@ class TestAnchorDetectorTagsRestatementDiagnoses:
             pytest.skip(
                 "No diagnosis_confirmed anchor was emitted from this "
                 "encounter -- N1 tag is moot. Real-world canonical "
-                "encounter for patient 4802892365 emits one via Pattern "
+                "encounter for patient 9990003001 emits one via Pattern "
                 "K's cancer_follow_up_template path; this test verifies "
                 "the tag IF an anchor is emitted."
             )
@@ -199,7 +199,7 @@ class TestAnchorDetectorTagsRestatementDiagnoses:
         self, detector
     ):
         # Mirrors the canonical 2025-09-24 encounter for patient
-        # 4802892365 -- a "Cancer care review and general catch up"
+        # 9990003001 -- a "Cancer care review and general catch up"
         # that restates the previous mastectomy and lobular carcinoma.
         #
         # Under N1 alone, the diagnosis_confirmed anchor would be

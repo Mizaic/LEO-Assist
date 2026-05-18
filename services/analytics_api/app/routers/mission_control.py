@@ -30,8 +30,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from libs.analytics import confirmed_cancer_where
+from libs.oncology.cancer_types import synonyms_for
 from libs.auth.org_scope import ORG_PATIENT_FILTER, CallerScope, get_caller_scope
-from libs.episodes.lifecycle import HERO_BUCKETS, build_hero_bucket_case
+from libs.episodes.lifecycle import (
+    HERO_BUCKETS,
+    REVIEW_VERDICT_VALUES,
+    SIGNOFF_SET_FRAGMENT,
+    build_hero_bucket_case,
+    canonical_signoff_props,
+)
 from libs.episodes.status import (
     ALWAYS_EXCLUDE_STATUSES,
     CLOSURE_REASON_STATUSES,
@@ -41,6 +48,7 @@ from libs.redis_client.rebuild_status import get_rebuild_status
 from services.analytics_api.app.routers._audit_helpers import (
     _add_date_filters,
     _episode_base,
+    _patient_base,
 )
 from services.analytics_api.app.services.reconcile_pathway import (
     BucketFlipNotConfirmedError,
@@ -75,6 +83,22 @@ _MISSION_EPISODE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 class ReviewRequest(BaseModel):
+    reviewed_by: str
+    audit_notes: Optional[str] = None
+    audit_flag: bool = False
+
+
+class SignOffRequest(BaseModel):
+    """Atomic curator sign-off payload (DI-E2498DF6).
+
+    Carries the reviewer's verdict and any audit notes. The server
+    writes the verdict, the mapped status, the reviewed_by / reviewed_at
+    stamps, and the cleared needs_human_review / needs_review flags in
+    a single Cypher transaction so the episode cannot be left in a
+    half-reviewed state.
+    """
+
+    verdict: str
     reviewed_by: str
     audit_notes: Optional[str] = None
     audit_flag: bool = False
@@ -197,10 +221,16 @@ def _no_pathway_patients_cypher(
 def _apply_cancer_type_filter(
     base: str, params: dict, cancer_types: list[str]
 ) -> tuple[str, dict]:
-    """Append cancer_type IN filter when cancer_types list is non-empty."""
+    """Append cancer_type IN filter when cancer_types list is non-empty.
+
+    Expands canonical names to all known raw synonyms (e.g. 'Breast' also
+    catches 'breast') so legacy episodes with non-canonical casing are not
+    silently excluded.
+    """
     if not cancer_types:
         return base, params
-    params = {**params, "cancer_types": cancer_types}
+    expanded = synonyms_for(cancer_types)
+    params = {**params, "cancer_types": expanded}
     base = base.rstrip() + " AND ep.cancer_type IN $cancer_types "
     return base, params
 
@@ -372,6 +402,82 @@ def _build_filtered_base(
     return base, params
 
 
+def _has_episode_bound_filters(
+    date_from: Optional[str],
+    date_to: Optional[str],
+    pathway_filter: str,
+    cancer_types: list[str],
+    closure_reasons: list[str],
+    review_status: str,
+    lifecycle_bucket: str,
+) -> bool:
+    """Return True when patient rows should require a matching episode."""
+    return any(
+        [
+            bool(date_from),
+            bool(date_to),
+            pathway_filter != "all",
+            bool(cancer_types),
+            bool(closure_reasons),
+            review_status != "all",
+            lifecycle_bucket in HERO_BUCKETS,
+        ]
+    )
+
+
+def _episode_list_predicate(
+    *,
+    date_from: Optional[str],
+    date_to: Optional[str],
+    pathway_filter: str,
+    cancer_types: list[str],
+    closure_reasons: list[str],
+    review_status: str,
+    lifecycle_bucket: str,
+    params: dict,
+    alias: str = "episode",
+) -> tuple[str, dict]:
+    """Build the per-episode predicate for rows attached to patient results."""
+    predicates = [f"{alias} IS NOT NULL"]
+    if pathway_filter == "confirmed":
+        predicates.append(confirmed_cancer_where(alias))
+    elif pathway_filter == "closures":
+        predicates.append(f"{alias}.status IN {_CLOSURE_STATUSES!r}")
+    else:
+        predicates.append(f"NOT {alias}.status IN {_ALWAYS_EXCLUDE!r}")
+
+    if date_from:
+        predicates.append(f"{alias}.referral_date >= $date_from")
+        params = {**params, "date_from": date_from}
+    if date_to:
+        predicates.append(f"{alias}.referral_date <= $date_to")
+        params = {**params, "date_to": date_to}
+    if lifecycle_bucket in HERO_BUCKETS:
+        predicates.append(f"{build_hero_bucket_case(alias)} = $lifecycle_bucket")
+        params = {**params, "lifecycle_bucket": lifecycle_bucket}
+    if cancer_types:
+        predicates.append(f"{alias}.cancer_type IN $cancer_types")
+        params = {**params, "cancer_types": synonyms_for(cancer_types)}
+    if closure_reasons:
+        predicates.append(f"{alias}.status IN $closure_reasons")
+        params = {**params, "closure_reasons": closure_reasons}
+    if review_status == "unreviewed":
+        predicates.append(f"{alias}.reviewed_at IS NULL")
+    elif review_status == "reviewed":
+        predicates.append(f"{alias}.reviewed_at IS NOT NULL")
+    return " AND ".join(predicates), params
+
+
+def _build_patient_list_base(
+    org_id: Optional[str],
+    scope: CallerScope,
+    patient_id: Optional[str] = None,
+) -> tuple[str, dict]:
+    """Build the patient-scoped base used by the all-patients list."""
+    base, params = _patient_base(org_id, scope)
+    return _apply_patient_id_filter(base, params, patient_id)
+
+
 def _sort_clause(sort_by: str, sort_dir: str) -> str:
     """Return ORDER BY clause for supported sort fields."""
     allowed = {
@@ -390,6 +496,55 @@ def _sort_clause(sort_by: str, sort_dir: str) -> str:
 # ---------------------------------------------------------------------------
 # Patients query
 # ---------------------------------------------------------------------------
+
+
+# Per-episode projection shared between the cohort list and the
+# per-patient drawer endpoint (DI-5E47FA5D). Both surfaces MUST return
+# identical episode shapes so the UI can swap one for the other
+# without per-field translation.
+_EPISODE_PROJECTION = (
+    "{ "
+    "  episode_id: ep.episode_id, "
+    "  cancer_type: ep.cancer_type, "
+    "  condition_type: ep.condition_type, "
+    "  status: ep.status, "
+    "  cancer_stage: ep.cancer_stage, "
+    "  referral_date: toString(ep.referral_date), "
+    "  end_date: toString(ep.end_date), "
+    "  specialist_visit_date: toString(ep.specialist_visit_date), "
+    "  diagnostic_interval_days: ep.diagnostic_interval_days, "
+    "  benign_interval_days: ep.benign_interval_days, "
+    "  primary_care_interval_days: ep.primary_care_interval_days, "
+    "  inferred_outcome: ep.inferred_outcome, "
+    "  auto_close_reason: ep.auto_close_reason, "
+    "  reviewed_by: ep.reviewed_by, "
+    "  reviewed_at: toString(ep.reviewed_at), "
+    "  review_verdict: ep.review_verdict, "
+    "  audit_notes: ep.audit_notes, "
+    "  audit_flag: coalesce(ep.audit_flag, false), "
+    "  variation_flag: coalesce(ep.variation_flag, false), "
+    "  variation_score: ep.variation_score, "
+    "  variation_first_divergence: ep.variation_first_divergence, "
+    "  variation_attributed_node_name: ep.variation_attributed_node_name, "
+    "  variation_attributed_node_type: ep.variation_attributed_node_type, "
+    "  variation_community_id: ep.variation_community_id, "
+    "  linked_encounter_ids: [ "
+    "    (ep)<-[:IS_PART_OF]-(enc_all:Encounter) "
+    "    | toString(enc_all.id) "
+    "  ], "
+    "  milestones: [ "
+    "    (ep)<-[r:IS_PART_OF]-(enc:Encounter) "
+    "    WHERE r.milestone_type IS NOT NULL "
+    "    | { "
+    "        milestone_type: r.milestone_type, "
+    "        encounter_id: toString(enc.id), "
+    "        date: toString(enc.date), "
+    "        linked_by: coalesce(r.linked_by, 'manual'), "
+    "        evidence_quote: coalesce(r.evidence_quote, '') "
+    "      } "
+    "  ] "
+    "}"
+)
 
 
 def _patients_cypher(
@@ -413,37 +568,52 @@ def _patients_cypher(
         "  p.gender AS gender, "
         "  p.birthDate AS birth_date, "
         "  gp.name AS practice_name, "
-        "  [ep IN episodes | { "
-        "    episode_id: ep.episode_id, "
-        "    cancer_type: ep.cancer_type, "
-        "    condition_type: ep.condition_type, "
-        "    status: ep.status, "
-        "    cancer_stage: ep.cancer_stage, "
-        "    referral_date: toString(ep.referral_date), "
-        "    end_date: toString(ep.end_date), "
-        "    specialist_visit_date: toString(ep.specialist_visit_date), "
-        "    diagnostic_interval_days: ep.diagnostic_interval_days, "
-        "    primary_care_interval_days: ep.primary_care_interval_days, "
-        "    inferred_outcome: ep.inferred_outcome, "
-        "    auto_close_reason: ep.auto_close_reason, "
-        "    reviewed_by: ep.reviewed_by, "
-        "    reviewed_at: toString(ep.reviewed_at), "
-        "    audit_notes: ep.audit_notes, "
-        "    audit_flag: coalesce(ep.audit_flag, false), "
-        "    linked_encounter_ids: [ "
-        "      (ep)<-[:IS_PART_OF]-(enc_all:Encounter) "
-        "      | toString(enc_all.id) "
-        "    ], "
-        "    milestones: [ "
-        "      (ep)<-[r:IS_PART_OF]-(enc:Encounter) "
-        "      WHERE r.milestone_type IS NOT NULL "
-        "      | { "
-        "          milestone_type: r.milestone_type, "
-        "          encounter_id: toString(enc.id), "
-        "          date: toString(enc.date) "
-        "        } "
-        "    ] "
-        "  }] AS episodes "
+        f"  [ep IN episodes | {_EPISODE_PROJECTION}] AS episodes "
+    )
+    params = {**params, "skip": skip, "limit": limit}
+    return count_q, data_q, params
+
+
+def _all_patients_cypher(
+    base: str,
+    params: dict,
+    episode_predicate: str,
+    require_episode_match: bool,
+    sort_by: str,
+    sort_dir: str,
+    skip: int,
+    limit: int,
+) -> tuple[str, str, dict]:
+    """Return patient-list queries that do not require EpisodeOfCare rows."""
+    filtered_episodes = (
+        f"[episode IN collect(DISTINCT ep) WHERE {episode_predicate}] AS episodes "
+    )
+    episode_match = "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    require_match = "WHERE size(episodes) > 0 " if require_episode_match else ""
+    count_q = (
+        f"{base}"
+        f"{episode_match}"
+        f"WITH p, {filtered_episodes}"
+        f"{require_match}"
+        "RETURN count(DISTINCT p) AS total"
+    )
+    sort = _sort_clause(sort_by, sort_dir)
+    data_q = (
+        f"{base}"
+        f"{episode_match}"
+        f"WITH p, {filtered_episodes}"
+        f"{require_match}"
+        "WITH p, episodes, episodes[0] AS ep "
+        f"{sort} "
+        "WITH p, episodes "
+        "SKIP $skip LIMIT $limit "
+        "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
+        "RETURN "
+        "  p.id AS patient_id, "
+        "  p.gender AS gender, "
+        "  p.birthDate AS birth_date, "
+        "  gp.name AS practice_name, "
+        f"  [ep IN episodes | {_EPISODE_PROJECTION}] AS episodes "
     )
     params = {**params, "skip": skip, "limit": limit}
     return count_q, data_q, params
@@ -501,6 +671,23 @@ def _patient_only_query(
 # ---------------------------------------------------------------------------
 
 
+def _cancer_type_counts_cypher(base: str, params: dict) -> tuple[str, dict]:
+    """Count distinct patients per non-null cancer type for the filter chip strip.
+
+    Runs against a base built WITHOUT the cancer_type filter so all types are
+    visible and their counts reflect the other active filters (date, org,
+    pathway, review status, lifecycle bucket).
+    """
+    q = (
+        f"{base}"
+        "WITH ep.cancer_type AS cancer_type, p "
+        "WHERE cancer_type IS NOT NULL "
+        "RETURN cancer_type, count(DISTINCT p) AS patient_count "
+        "ORDER BY patient_count DESC"
+    )
+    return q, params
+
+
 def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
     """Return (query, params) for the Mission Control KPI aggregation.
 
@@ -529,9 +716,10 @@ def _kpis_cypher(base: str, params: dict) -> tuple[str, dict]:
         "  count(DISTINCT CASE WHEN ep.status IN "
         f"    {_CLOSURE_STATUSES!r} THEN p END) AS pathway_closure_patients, "
         "  percentileCont(toFloat(ep.diagnostic_interval_days), 0.5) AS median_diagnostic_interval_days, "
+        "  percentileCont(toFloat(ep.benign_interval_days), 0.5) AS median_benign_interval_days, "
         "  toFloat(count(DISTINCT CASE WHEN ep.safety_netting_milestone IS NOT NULL "
         "    AND ep.safety_netting_milestone <> '' THEN ep END)) / "
-        "  CASE WHEN count(ep) > 0 THEN toFloat(count(ep)) ELSE 1.0 END AS safety_netting_rate, "
+        "  CASE WHEN count(DISTINCT ep) > 0 THEN toFloat(count(DISTINCT ep)) ELSE 1.0 END AS safety_netting_rate, "
         "  count(DISTINCT CASE WHEN ep.reviewed_at IS NULL THEN ep END) AS needs_review_count "
     )
     return q, params
@@ -626,7 +814,7 @@ def _cohort_denominator_cypher(
 
 
 @router.get("/mission-control/patients")
-async def get_mission_control_patients(
+def get_mission_control_patients(
     org_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -680,20 +868,34 @@ async def get_mission_control_patients(
             np_base, np_params, skip, page_size
         )
     else:
-        base, params = _build_filtered_base(
-            org_id,
-            scope,
-            date_from,
-            date_to,
-            pathway_filter,
-            cancer_type_list,
-            closure_reason_list,
-            review_status,
-            patient_id,
+        base, params = _build_patient_list_base(org_id, scope, patient_id)
+        episode_predicate, params = _episode_list_predicate(
+            date_from=date_from,
+            date_to=date_to,
+            pathway_filter=pathway_filter,
+            cancer_types=cancer_type_list,
+            closure_reasons=closure_reason_list,
+            review_status=review_status,
             lifecycle_bucket=lifecycle_bucket,
+            params=params,
         )
-        count_q, data_q, qparams = _patients_cypher(
-            base, params, sort_by, sort_dir, skip, page_size
+        count_q, data_q, qparams = _all_patients_cypher(
+            base,
+            params,
+            episode_predicate,
+            _has_episode_bound_filters(
+                date_from,
+                date_to,
+                pathway_filter,
+                cancer_type_list,
+                closure_reason_list,
+                review_status,
+                lifecycle_bucket,
+            ),
+            sort_by,
+            sort_dir,
+            skip,
+            page_size,
         )
 
     client = PatientGraphClient()
@@ -724,7 +926,7 @@ async def get_mission_control_patients(
 
 
 @router.get("/mission-control/kpis")
-async def get_mission_control_kpis(
+def get_mission_control_kpis(
     org_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -784,10 +986,12 @@ async def get_mission_control_kpis(
                 "pathway_closures": 0,
                 "pathway_closure_patients": 0,
                 "median_diagnostic_interval_days": None,
+                "median_benign_interval_days": None,
                 "safety_netting_rate": 0.0,
                 "needs_review_count": 0,
             }
         ]
+        cancer_type_counts: dict[str, int] = {}
     else:
         base, params = _build_filtered_base(
             org_id,
@@ -802,12 +1006,32 @@ async def get_mission_control_kpis(
             lifecycle_bucket=lifecycle_bucket,
         )
         q, qparams = _kpis_cypher(base, params)
+        # Build a second base without cancer_type filter so all types show counts.
+        counts_base, counts_params = _build_filtered_base(
+            org_id,
+            scope,
+            date_from,
+            date_to,
+            pathway_filter,
+            [],  # no cancer_type filter
+            closure_reason_list,
+            review_status,
+            patient_id,
+            lifecycle_bucket=lifecycle_bucket,
+        )
+        counts_q, counts_qparams = _cancer_type_counts_cypher(counts_base, counts_params)
         client = PatientGraphClient()
         try:
             rows = client.run(q, **qparams)
             cohort_rows = client.run(cohort_q, **cohort_params)
+            cancer_type_counts_rows = client.run(counts_q, **counts_qparams)
         finally:
             client.close()
+        cancer_type_counts: dict[str, int] = {
+            row["cancer_type"]: int(row.get("patient_count") or 0)
+            for row in (cancer_type_counts_rows or [])
+            if row.get("cancer_type")
+        }
 
     cohort = cohort_rows[0] if cohort_rows else {}
     cohort_block = {
@@ -828,8 +1052,10 @@ async def get_mission_control_kpis(
             "pathway_closures": 0,
             "pathway_closure_patients": 0,
             "median_diagnostic_interval_days": None,
+            "median_benign_interval_days": None,
             "safety_netting_rate": 0.0,
             "needs_review_count": 0,
+            "cancer_type_counts": cancer_type_counts,
             "cohort": cohort_block,
         }
 
@@ -841,8 +1067,10 @@ async def get_mission_control_kpis(
         "pathway_closures": row.get("pathway_closures", 0),
         "pathway_closure_patients": row.get("pathway_closure_patients", 0),
         "median_diagnostic_interval_days": row.get("median_diagnostic_interval_days"),
+        "median_benign_interval_days": row.get("median_benign_interval_days"),
         "safety_netting_rate": float(row.get("safety_netting_rate") or 0.0),
         "needs_review_count": row.get("needs_review_count", 0),
+        "cancer_type_counts": cancer_type_counts,
         "cohort": cohort_block,
     }
 
@@ -957,6 +1185,105 @@ async def get_patient_pipeline_events(
     return {"patient_id": pid, "episode_id": eid, "events": events}
 
 
+def _row_to_manual_event(row: dict[str, Any]) -> dict[str, Any]:
+    """Coerce a manual EpisodeManual* AuditEvent row into a JSON-safe
+    dict for the audit trail tab. Mirrors _row_to_pipeline_event but
+    surfaces the actor / before / after fields the curator dialogs
+    write via write_episode_audit_event."""
+    return {
+        "id": row.get("id"),
+        "event_type": row.get("event_type"),
+        "subtype": row.get("subtype"),
+        "created_at": row.get("created_at"),
+        "actor_email": row.get("actor_email") or "",
+        "actor_role": row.get("actor_role") or "",
+        "episode_id": row.get("episode_id") or "",
+        "patient_id": row.get("patient_id") or "",
+        "notes": row.get("notes") or "",
+        # before/after JSON blobs are written by
+        # write_episode_audit_event for full traceability of every
+        # property change. The UI only renders a short summary of
+        # them so we truncate aggressively for safety.
+        "before_json": _truncate_audit_text(row.get("before_json")),
+        "after_json": _truncate_audit_text(row.get("after_json")),
+    }
+
+
+@router.get("/mission-control/patients/{patient_id}/manual-events")
+async def get_patient_manual_events(
+    patient_id: str,
+    org_id: Optional[str] = Query(None),
+    episode_id: Optional[str] = Query(
+        None,
+        description=(
+            "When set, only manual events targeting this episode are "
+            "returned (so each episode tab only shows its own audit "
+            "trail). Patient-wide manual events (e.g. episode CREATE) "
+            "are also returned so the create event of the in-focus "
+            "episode is visible."
+        ),
+    ),
+    limit: int = Query(50, ge=1, le=200),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return EpisodeManual* AuditEvent rows for the audit trail tab.
+
+    Manual events are written by the EpisodeOfCare CRUD endpoints in
+    services/analytics_api/app/routers/episode_crud.py via
+    write_episode_audit_event. They carry the curator's email/role
+    and a before/after property snapshot so QA / RA leads can
+    reconstruct any human change to a pathway.
+
+    DI-3A19BE12 (audit trail visibility), R-A737EE12 (no untracked
+    manual mutation).
+    """
+    pid = _normalise_mission_patient_id(patient_id)
+    if not pid:
+        raise HTTPException(status_code=400, detail="Invalid patient_id")
+
+    eid = _normalise_mission_episode_id(episode_id)
+    prefix, extra = _patient_pipeline_audit_prefix(scope, org_id)
+
+    # Filter on the EpisodeManual* family of event_type values
+    # (Create / Update / Delete / Attach / Detach / Replace). Using a
+    # STARTS WITH filter keeps the endpoint forward-compatible if we
+    # add more verbs later.
+    episode_clause = (
+        "AND (ae.episode_id = $episode_id OR coalesce(ae.episode_id, '') = '') "
+        if eid
+        else ""
+    )
+
+    full_q = (
+        f"{prefix}"
+        "WITH p "
+        "MATCH (ae:AuditEvent)-[:AUDIT_FOR]->(p) "
+        "WHERE coalesce(ae.`type`, '') STARTS WITH 'EpisodeManual' "
+        f"{episode_clause}"
+        "RETURN ae.id AS id, ae.`type` AS event_type, ae.subtype AS subtype, "
+        "toString(ae.created_at) AS created_at, "
+        "ae.actor_email AS actor_email, ae.actor_role AS actor_role, "
+        "ae.episode_id AS episode_id, ae.patient_id AS patient_id, "
+        "ae.notes AS notes, "
+        "ae.before_json AS before_json, ae.after_json AS after_json "
+        "ORDER BY ae.created_at DESC "
+        "LIMIT $limit"
+    )
+
+    params: dict[str, Any] = {**extra, "patient_id": pid, "limit": limit}
+    if eid:
+        params["episode_id"] = eid
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(full_q, **params)
+    finally:
+        client.close()
+
+    events = [_row_to_manual_event(r) for r in rows]
+    return {"patient_id": pid, "episode_id": eid, "events": events}
+
+
 @router.get("/mission-control/patients/{patient_id}/rebuild-status")
 async def get_patient_rebuild_status(
     patient_id: str,
@@ -1013,6 +1340,61 @@ async def get_patient_rebuild_status(
     }
 
 
+@router.get("/mission-control/patients/{patient_id}/episodes")
+async def get_patient_episodes(
+    patient_id: str,
+    org_id: Optional[str] = Query(None),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    """Return every EpisodeOfCare attached to ``patient_id``.
+
+    Mirrors the per-episode shape used by the cohort list endpoint
+    (``_EPISODE_PROJECTION``) but applies NO cohort filters
+    (lifecycle_bucket / pathway_filter / review_status / cancer_types
+    / closure_reasons). Used by the Mission Control patient drawer so
+    a manually-created in_review episode is visible to the curator
+    immediately, even when the dashboard is filtered to a different
+    bucket (DI-5E47FA5D, mitigates R-A737EE12).
+
+    Same org-scope contract as get_patient_pipeline_events:
+      - in-scope patient -> 200 with episodes (possibly empty)
+      - out-of-scope or unknown patient -> 404
+      - malformed patient_id -> 400
+    """
+    pid = _normalise_mission_patient_id(patient_id)
+    if not pid:
+        raise HTTPException(status_code=400, detail="Invalid patient_id")
+
+    prefix, extra = _patient_pipeline_audit_prefix(scope, org_id)
+    query = (
+        f"{prefix}"
+        "WITH p "
+        "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+        "WITH p, ep "
+        "ORDER BY ep.referral_date DESC, ep.episode_id ASC "
+        "WITH p, collect(DISTINCT ep) AS raw_episodes "
+        "WITH p, [ep IN raw_episodes WHERE ep IS NOT NULL] AS episodes "
+        f"RETURN [ep IN episodes | {_EPISODE_PROJECTION}] AS episodes, "
+        "  p.id AS patient_id"
+    )
+    params: dict[str, Any] = {**extra, "patient_id": pid}
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(query, **params)
+    finally:
+        client.close()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    row = rows[0]
+    return {
+        "patient_id": row.get("patient_id") or pid,
+        "episodes": row.get("episodes") or [],
+    }
+
+
 @router.patch("/mission-control/episodes/{episode_id}/review")
 async def patch_episode_review(
     episode_id: str,
@@ -1027,12 +1409,20 @@ async def patch_episode_review(
     if not scope.email:
         raise HTTPException(status_code=401, detail="Authentication required")
 
+    # Clear BOTH the legacy ``needs_review`` and the canonical
+    # ``needs_human_review`` flags when a curator signs off so the
+    # two parallel fields cannot drift (DI-C4CEFA32). The v2 detector
+    # reads needs_human_review; the legacy dashboards still read
+    # needs_review; keeping both in lockstep until the legacy field
+    # can be removed.
     q = (
         "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
         "SET ep.reviewed_by = $reviewed_by, "
         "    ep.reviewed_at = datetime(), "
         "    ep.audit_notes = $audit_notes, "
-        "    ep.audit_flag = $audit_flag "
+        "    ep.audit_flag = $audit_flag, "
+        "    ep.needs_review = false, "
+        "    ep.needs_human_review = false "
         "RETURN ep.episode_id AS episode_id"
     )
 
@@ -1052,6 +1442,101 @@ async def patch_episode_review(
         raise HTTPException(status_code=404, detail=f"Episode {episode_id!r} not found")
 
     return {"episode_id": episode_id, "status": "reviewed"}
+
+
+# ---------------------------------------------------------------------------
+# PATCH /mission-control/episodes/{episode_id}/sign-off  (DI-E2498DF6)
+# ---------------------------------------------------------------------------
+#
+# The atomic sign-off endpoint. Replaces the pre-verdict "mark reviewed
+# + override status" dual path with a single transaction that writes
+# the reviewer's verdict, the mapped EpisodeStatus, the reviewed_at /
+# reviewed_by stamp, and the cleared needs_human_review / needs_review
+# flags together. The curator UI MUST use this endpoint; the legacy
+# /review endpoint above is kept for backwards compatibility with
+# existing clients and the reconcile flow only.
+
+_SIGNOFF_QUERY = (
+    "MATCH (ep:EpisodeOfCare {episode_id: $episode_id}) "
+    + SIGNOFF_SET_FRAGMENT
+    + "RETURN ep.episode_id AS episode_id, "
+    "  ep.review_verdict AS review_verdict, "
+    "  ep.status AS status, "
+    "  toString(ep.reviewed_at) AS reviewed_at, "
+    "  ep.reviewed_by AS reviewed_by"
+)
+
+
+@router.patch("/mission-control/episodes/{episode_id}/sign-off")
+async def patch_episode_sign_off(
+    episode_id: str,
+    body: SignOffRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, str]:
+    """Record a curator's verdict and apply the matching status in one write.
+
+    The verdict MUST be a member of
+    :data:`libs.episodes.lifecycle.REVIEW_VERDICT_VALUES`; any other
+    value returns 400. The request MUST be authenticated; missing
+    caller email returns 401. The endpoint is idempotent: signing
+    off the same episode twice with the same verdict is a no-op
+    semantically (re-writes the same values).
+    """
+
+    if not scope.email:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    try:
+        props = canonical_signoff_props(
+            verdict=body.verdict,
+            reviewer_email=body.reviewed_by or scope.email,
+            audit_notes=body.audit_notes,
+            audit_flag=body.audit_flag,
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+
+    params = {
+        "episode_id": episode_id,
+        "review_verdict": props["review_verdict"],
+        "status": props["status"],
+        "status_source": props["status_source"],
+        "reviewed_by": props["reviewed_by"],
+        "audit_notes": props.get("audit_notes") or "",
+        "audit_flag": props["audit_flag"],
+    }
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(_SIGNOFF_QUERY, **params)
+    finally:
+        client.close()
+
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Episode {episode_id!r} not found",
+        )
+    row = rows[0]
+    return {
+        "episode_id": row.get("episode_id") or episode_id,
+        "review_verdict": row.get("review_verdict") or props["review_verdict"],
+        "status": row.get("status") or props["status"],
+        "reviewed_at": row.get("reviewed_at") or "",
+        "reviewed_by": row.get("reviewed_by") or props["reviewed_by"],
+    }
+
+
+# Sanity check at import time: the verdict list the router advertises
+# stays in lockstep with the canonical enum. Any drift surfaces as a
+# hard import failure in CI rather than a silent runtime 400.
+assert set(REVIEW_VERDICT_VALUES) == {
+    "confirmed_active",
+    "confirmed_completed",
+    "confirmed_benign",
+    "confirmed_merged",
+    "rejected",
+}
 
 
 # ---------------------------------------------------------------------------

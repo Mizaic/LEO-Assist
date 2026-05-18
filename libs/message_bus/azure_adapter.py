@@ -82,6 +82,14 @@ _MAX_RECONNECT_BACKOFF_SECONDS = max(
     int(os.getenv("SB_MAX_RECONNECT_BACKOFF_SECONDS", "60")),
 )
 
+# Default max concurrent message handlers per receiver. Container Apps
+# replicas are vertically scaled (multiple cores), so processing one
+# message at a time per replica leaves CPU + LLM I/O parallelism on the
+# table. Tunable via SB_MAX_CONCURRENT_CALLS.
+_MAX_CONCURRENT_CALLS = max(
+    1, int(os.getenv("SB_MAX_CONCURRENT_CALLS", "8"))
+)
+
 
 def _reconnect_backoff_seconds(attempt: int) -> int:
     if attempt <= 1:
@@ -157,58 +165,69 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         from azure.servicebus.aio import AutoLockRenewer
         from azure.servicebus.exceptions import MessageLockLostError, ServiceBusError
 
+        sem = asyncio.Semaphore(_MAX_CONCURRENT_CALLS)
+        in_flight: set[asyncio.Task[Any]] = set()
+
+        async def _process_one(receiver: Any, sb_msg: Any) -> None:
+            try:
+                body = json.loads(str(sb_msg))
+                msg = Message(
+                    body=body,
+                    message_id=sb_msg.message_id or "",
+                    correlation_id=sb_msg.correlation_id,
+                    subject=sb_msg.subject,
+                )
+                logger.info(
+                    (
+                        "Message %s received from %s -- "
+                        "lock auto-renewal active (max %ds)"
+                    ),
+                    sb_msg.message_id,
+                    queue_or_topic,
+                    _MAX_LOCK_RENEWAL_SECONDS,
+                )
+                result = handler(msg)
+                if hasattr(result, "__await__"):
+                    await result
+                await receiver.complete_message(sb_msg)
+                logger.info("Message %s completed", sb_msg.message_id)
+            except MessageLockLostError:
+                logger.warning(
+                    "Message %s lock expired before settlement -- "
+                    "Service Bus will redeliver (delivery count will increment)",
+                    sb_msg.message_id,
+                )
+            except Exception:
+                logger.exception(
+                    "Handler failed for message %s -- abandoning (will retry)",
+                    sb_msg.message_id,
+                )
+                try:
+                    await receiver.abandon_message(sb_msg)
+                except MessageLockLostError:
+                    logger.warning(
+                        "Message %s lock also expired during abandon -- "
+                        "Service Bus will redeliver",
+                        sb_msg.message_id,
+                    )
+            finally:
+                sem.release()
+
         async def _handle_receiver_messages(receiver: Any, renewer: Any) -> None:
+            # Pull messages off the receiver and dispatch them concurrently
+            # up to _MAX_CONCURRENT_CALLS. Each message is registered with
+            # the AutoLockRenewer immediately so locks survive the wait
+            # for a free semaphore slot.
             async for sb_msg in receiver:
-                # Register this message for automatic lock renewal.
-                # If the worker crashes, renewal stops and the lock
-                # expires naturally so another replica can pick it up.
                 renewer.register(
                     receiver,
                     sb_msg,
                     max_lock_renewal_duration=_MAX_LOCK_RENEWAL_SECONDS,
                 )
-                try:
-                    body = json.loads(str(sb_msg))
-                    msg = Message(
-                        body=body,
-                        message_id=sb_msg.message_id or "",
-                        correlation_id=sb_msg.correlation_id,
-                        subject=sb_msg.subject,
-                    )
-                    logger.info(
-                        (
-                            "Message %s received from %s -- "
-                            "lock auto-renewal active (max %ds)"
-                        ),
-                        sb_msg.message_id,
-                        queue_or_topic,
-                        _MAX_LOCK_RENEWAL_SECONDS,
-                    )
-                    result = handler(msg)
-                    if hasattr(result, "__await__"):
-                        await result
-                    await receiver.complete_message(sb_msg)
-                    logger.info("Message %s completed", sb_msg.message_id)
-                except MessageLockLostError:
-                    # Lock expired -- Service Bus will redeliver automatically.
-                    logger.warning(
-                        "Message %s lock expired before settlement -- "
-                        "Service Bus will redeliver (delivery count will increment)",
-                        sb_msg.message_id,
-                    )
-                except Exception:
-                    logger.exception(
-                        "Handler failed for message %s -- abandoning (will retry)",
-                        sb_msg.message_id,
-                    )
-                    try:
-                        await receiver.abandon_message(sb_msg)
-                    except MessageLockLostError:
-                        logger.warning(
-                            "Message %s lock also expired during abandon -- "
-                            "Service Bus will redeliver",
-                            sb_msg.message_id,
-                        )
+                await sem.acquire()
+                task = asyncio.create_task(_process_one(receiver, sb_msg))
+                in_flight.add(task)
+                task.add_done_callback(in_flight.discard)
 
         async def _loop() -> None:
             attempts = 0

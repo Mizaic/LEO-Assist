@@ -73,6 +73,9 @@ if ($Environment -eq 'shared') {
     Write-Host "Deployment complete."
     Write-Host "  core-api:  https://$($outputs.coreApiFqdn.value)"
     Write-Host "  ui:        https://$($outputs.uiFqdn.value)"
+    if ($outputs.acaDefaultDomain.value) {
+        Write-Host "  aca mesh:  http://<app>.$($outputs.acaDefaultDomain.value) (internal service URLs)"
+    }
     Write-Host "  kv:        $($outputs.kvUri.value)"
     Write-Host "  sb:        $($outputs.sbNamespaceFqdn.value)"
     Write-Host ""

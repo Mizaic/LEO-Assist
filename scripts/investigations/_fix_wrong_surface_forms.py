@@ -114,7 +114,7 @@ _SITUATION_BEATS_DISORDER = [
     (
         "Fatty liver",
         "161535005",  # History of liver disease (situation)
-        "1231824009",  # Metabolic dysfunction-associated steatotic liver disease
+        "9990010007",  # Metabolic dysfunction-associated steatotic liver disease
         "Metabolic dysfunction-associated steatotic liver disease (disorder)",
     ),
     (

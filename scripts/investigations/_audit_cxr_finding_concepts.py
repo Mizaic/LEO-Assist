@@ -43,7 +43,7 @@ CONCEPTS = [
     # -- Physical exam (n8) - separate criterion --
     ("272016000", "On examination - chest finding (physical exam n8)"),
     # -- Abnormal CXR (broad fallback) --
-    ("1290960005", "Plain X-ray of chest abnormal (finding)"),
+    ("9990010014", "Plain X-ray of chest abnormal (finding)"),
 ]
 
 _Q = """

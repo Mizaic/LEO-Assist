@@ -16,25 +16,25 @@ from libs.neo4j_client.client import PatientGraphClient
 
 # All uncoded, non-excluded, non-remission encounters from the inventory
 CANDIDATES = [
-    ("4187508279", "8feea974-ab6a-4b12-a737-fda7e4b3afa8", "no malignancy"),
-    ("4209455806", "15911be4-fc30-4de8-bb0c-8f54f3cb50f0", "no malignancy (OGD)"),
-    ("4245896566", "1783873c-6be2-4682-874d-21f17d905e1f", "cancer excluded"),
+    ("9990010022", "8feea974-ab6a-4b12-a737-fda7e4b3afa8", "no malignancy"),
+    ("9990010025", "15911be4-fc30-4de8-bb0c-8f54f3cb50f0", "no malignancy (OGD)"),
+    ("9990010029", "1783873c-6be2-4682-874d-21f17d905e1f", "cancer excluded"),
     (
-        "4802241127",
+        "9990010039",
         "99da05a8-8cfa-40d6-b227-d58524ff1f95",
         "no evidence of metastatic disease",
     ),
     (
-        "4842019832",
+        "9990010043",
         "8fbb5daf-7bb7-411b-97f0-00c50b82ca1d",
         "no malignancy (colonoscopy)",
     ),
-    ("4867552062", "b2b0ab38-76cb-4a04-9731-ab7d6920cea5", "no mets"),
-    ("6142203497", "984b01e4-67b4-4b8f-93ce-282e0273df81", "no mets (hip pain)"),
-    ("6261656266", "64a7bee5-de05-4e47-be76-b4cf318d4038", "no metastatic disease"),
-    ("6507904570", "0f1d01ac-9f7c-40a1-aeec-b58ecdb2756e", "benign histology (T2)"),
+    ("9990010046", "b2b0ab38-76cb-4a04-9731-ab7d6920cea5", "no mets"),
+    ("9990010054", "984b01e4-67b4-4b8f-93ce-282e0273df81", "no mets (hip pain)"),
+    ("9990002012", "64a7bee5-de05-4e47-be76-b4cf318d4038", "no metastatic disease"),
+    ("9990010061", "0f1d01ac-9f7c-40a1-aeec-b58ecdb2756e", "benign histology (T2)"),
     (
-        "7324271383",
+        "9990010072",
         "60d51cc3-2492-4e75-8a05-47577e14414c",
         "no metastatic disease (dermatology)",
     ),

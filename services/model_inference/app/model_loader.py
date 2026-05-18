@@ -90,6 +90,7 @@ class ModelLoader:
         self._load_lock = threading.Lock()
         self._nlp: Any = None
         self._active_version: Optional[str] = None
+        self._calibration: Any = None
         self._model_name = os.getenv("CODING_MODEL_NAME", "medspacy_clinical_ner")
         self._accelerator = accelerator
         self._mps_fail_fast = mps_fail_fast
@@ -103,6 +104,11 @@ class ModelLoader:
     def active_version(self) -> Optional[str]:
         with self._lock:
             return self._active_version
+
+    @property
+    def calibration(self) -> Any:
+        with self._lock:
+            return self._calibration
 
     @property
     def model_name(self) -> str:
@@ -160,11 +166,24 @@ class ModelLoader:
                     f"ModelLoader: spaCy failed to load model from {local_model_dir}: {exc}"
                 ) from exc
 
+            new_calibration = None
+            try:
+                from libs.training_ext.inference_calibration import load_calibration
+
+                new_calibration = load_calibration(Path(str(local_model_dir)))
+            except Exception as exc:
+                logger.warning(
+                    "ModelLoader: could not load calibration sidecar (%s) — "
+                    "falling back to raw probabilities",
+                    exc,
+                )
+
             # Atomic swap.
             with self._lock:
                 old_version = self._active_version
                 self._nlp = new_nlp
                 self._active_version = version
+                self._calibration = new_calibration
 
             logger.info(
                 "ModelLoader: hot-swapped v%s → v%s (pipes: %s)",

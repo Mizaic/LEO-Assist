@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LEO widget VT host - dual variant</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      h1 { font-size: 18px; margin: 0 0 8px 0; }
+      h2 { font-size: 14px; margin: 24px 0 8px 0; color: #475569; }
+      .frame {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: white;
+        padding: 12px;
+        margin-bottom: 24px;
+      }
+      iframe { width: 100%; height: 520px; border: 0; }
+      /*
+       * Hostile host CSS for the trust-boundary VT (DI-85C95E53 AC2).
+       * These rules attempt to hide the source-record disclosure. The
+       * VT verifies they have NO effect on either variant.
+       */
+      .leo-disclosure { display: none !important; }
+      [data-leo-disclosure] { visibility: hidden !important; }
+      [data-leo-disclosure="source-records"] {
+        opacity: 0 !important;
+        transform: scale(0) !important;
+        pointer-events: none !important;
+      }
+      .leo-source-chip { display: none !important; }
+      /*
+       * Hostile host CSS for the brand-lock VT (DI-85944331 AC4).
+       * The widget MUST render the locked LEO-by-Mizaic typography,
+       * palette, and disclosure trigger styling regardless.
+       */
+      .leo-mark, leo-sbar .leo-mark { color: magenta !important; }
+      .leo-product, leo-sbar .leo-product {
+        font-family: "Comic Sans MS" !important;
+        font-size: 30px !important;
+        color: lime !important;
+      }
+      .leo-disclosure-toggle, leo-sbar .leo-disclosure-toggle {
+        color: hotpink !important;
+        font-family: "Comic Sans MS" !important;
+        text-decoration: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Hostile host page - DI-85C95E53 trust boundary VT fixture</h1>
+    <p>
+      This page applies hostile CSS attempting to hide the LEO source-
+      record disclosure. The widget MUST render the disclosure visibly
+      regardless. It also includes a script that tries to mutate widget
+      DOM after mount; the assertion runs in Playwright.
+    </p>
+
+    <h2>Variant A - Shadow-DOM web component</h2>
+    <div class="frame" id="web-component-frame">
+      <leo-sbar
+        id="wc-widget"
+        assessment-id="ass-2WW-001"
+        widget-token="dev-stub-token"
+        proxy-origin="http://localhost:5173"
+      ></leo-sbar>
+    </div>
+
+    <h2>Variant B - hardened iframe</h2>
+    <div class="frame" id="iframe-frame">
+      <iframe
+        id="iframe-widget"
+        title="LEO SBAR (iframe variant)"
+        sandbox="allow-scripts"
+        src="/demo/iframe-shell/index.html?assessment-id=ass-2WW-001&widget-token=dev-stub-token"
+      ></iframe>
+    </div>
+
+    <script type="module">
+      // Wire the dev-stub fetcher: both variants share the data shape
+      // and the VT does not need a real backend. We MUST configure the
+      // fetcher BEFORE importing /src/index.ts, because that import
+      // synchronously registers the custom element, which then upgrades
+      // the existing <leo-sbar> in the DOM and starts fetching during
+      // its connectedCallback. Static imports are hoisted, so we use a
+      // dynamic import to enforce the ordering.
+      import { configureFetcher } from "/src/data/fetcher.ts";
+      const PAYLOAD = {
+        assessmentId: "ass-2WW-001",
+        tenantId: "tenant-demo",
+        generatedAt: "2026-04-20T15:00:00Z",
+        markdown:
+          "# SBAR\n## Situation\n2WW lower GI referral; 65y M with new IDA.\n" +
+          "## Background\n6 weeks fatigue, MCV 78, ferritin 8.\n" +
+          "## Assessment\nIron-deficiency anaemia; rule out colorectal cancer.\n" +
+          "## Recommendation\nUrgent colonoscopy within 2 weeks.\n",
+        backgroundParts: [
+          {
+            index: 1,
+            total: 1,
+            recordCount: 3,
+            recordRange: [1, 3],
+            sourceIds: ["enc-A001", "enc-A002", "enc-A003"],
+            status: "completed",
+          },
+        ],
+      };
+      configureFetcher(async () => PAYLOAD);
+      await import("/src/index.ts");
+
+      // Hostile host JS attempting to mutate widget internals.
+      // For the web component the closed shadow root must reject this.
+      // For the iframe the cross-origin policy must reject this.
+      window.__leoHostMutationLog = [];
+      window.requestAnimationFrame(() => {
+        const wc = document.getElementById("wc-widget");
+        try {
+          const sr = wc.shadowRoot;
+          window.__leoHostMutationLog.push({
+            kind: "wc-shadowRoot",
+            value: sr === null ? "null" : "exposed",
+          });
+        } catch (err) {
+          window.__leoHostMutationLog.push({
+            kind: "wc-shadowRoot",
+            value: "throws:" + String(err),
+          });
+        }
+        const iframe = document.getElementById("iframe-widget");
+        try {
+          const doc = iframe.contentDocument;
+          window.__leoHostMutationLog.push({
+            kind: "iframe-contentDocument",
+            value: doc === null ? "null" : "accessible",
+          });
+        } catch (err) {
+          window.__leoHostMutationLog.push({
+            kind: "iframe-contentDocument",
+            value: "throws:" + (err && err.name ? err.name : String(err)),
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

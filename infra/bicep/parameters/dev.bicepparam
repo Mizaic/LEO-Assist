@@ -52,3 +52,10 @@ param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'
 param uiCustomDomainHost = 'leo-ai-audit.healthcarecopilot.ai'
 param uiIngressCertificateName = 'healthcarecopilot-origin-cert'
 param uiIngressCertificateIsManaged = false
+
+// Optional: keep UI custom domain binding when GitHub Actions runs Bicep (see cd-deploy.yml).
+// Hostname only (no https). Certificate ID from Portal (Container Apps env -> Certificates)
+// or: az containerapp show -g leo-ai-dev -n ui --query properties.configuration.ingress.customDomains
+// Leave empty until the managed certificate resource ID is filled in.
+param uiCustomHostname = ''
+param uiManagedCertificateId = ''

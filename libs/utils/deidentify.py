@@ -12,15 +12,16 @@ encounter text is sent to external LLMs or stored in training artefacts.
 Patterns covered:
     - SURNAME, Forename (SystmOne Role)  →  [PERSON]
     - SURNAME, Forename (Title)          →  [PERSON]
-    - Dr/Mr/Mrs/Ms/Miss/Prof Surname     →  [PERSON]
+    - Dr/Mr/Mrs/Ms/Miss/Prof Surname(s)  →  [PERSON]
     - ALL-CAPS SURNAME, Forename         →  [PERSON]  (handles O'NEILL, hyphenated)
+    - Contextual names in salutations, pharmacy lines, sign-offs, and staff IDs
     - Local organisations (deployment-specific list)  →  [ORGANISATION]
     - NHS numbers (10-digit)             →  [NHS_NUMBER]
     - UK postcodes                       →  [POSTCODE]
     - UK phone numbers                   →  [PHONE]
     - Email addresses                    →  [EMAIL]
     - UK street addresses                →  [ADDRESS]
-    - Dates (DD/MM/YYYY, DD.MM.YYYY, YYYY-MM-DD)  →  [DATE]
+    - Dates (DD/MM/YYYY, DD.MM.YYYY, DD-MM-YYYY, YYYY-MM-DD)  →  [DATE]
 
 Intentionally NOT stripped (preserves clinical utility):
     - Coded terms (XaBC1, SNOMED codes)
@@ -98,12 +99,26 @@ NAME_STYLE_RE = re.compile(
     r"\b[A-Z][A-Z\-']+,\s*[A-Z][a-zA-Z\-']+\s*\((?:Mr|Mrs|Ms|Miss|Dr|Prof)\)"
 )
 
+# Referred to SURNAME, INITIALS (Title) — e.g. MEHTA, RK (MISS)
+REFERRED_INITIALS_RE = re.compile(
+    r"\bReferred to\s+[A-Z][A-Z'\-]+,\s*[A-Z]{1,6}(?:\s*\([A-Za-z .'\-]+\))?",
+    re.IGNORECASE,
+)
+
+# Title followed by one or more name tokens — e.g. Dr Asha Patel,
+# Mrs Priya Carlton. Kept separate from HONORIFIC_NAME_RE so multi-token
+# names are consumed before the shorter legacy pattern can partially redact.
+HONORIFIC_FULL_NAME_RE = re.compile(
+    r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+"
+    r"[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){0,2}\b"
+)
+
 # Title Surname — e.g. Dr Smith, Mrs Jones
 HONORIFIC_NAME_RE = re.compile(r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof)\s+[A-Z][a-zA-Z\-']+\b")
 
 # ALL-CAPS surname followed by comma and first name — catches:
 #   HEUNIS, JAN          (all-caps firstname)
-#   ATKIN, Sharon        (TitleCase firstname, no standard title suffix)
+#   LARKIN, Sharon       (TitleCase firstname, no standard title suffix)
 #   MACLEOD-BROWN, Alice (hyphenated surname)
 #   O'NEILL, Siobhan     (apostrophe surname — [A-Z'][A-Z'\\-]{2,} covers this)
 # Requires 3+ chars (including apostrophe/hyphen) in surname to reduce false positives.
@@ -113,6 +128,49 @@ CAPS_NAME_RE = re.compile(r"\b[A-Z][A-Z'\-]{2,},\s+[A-Z][a-zA-Z]{2,}\b")
 # multi-word CAPS name (e.g. "KOK LEE, Ming") was only partially matched and the
 # leading element was not consumed.
 STRAY_CAPS_PREFIX_RE = re.compile(r"\b[A-Z]{2,5}\s+(?=\[PERSON\])")
+
+# Salutation / letter recipient contexts are patient-name heavy, but broad
+# two-token title-case matching would over-redact clinical text. These patterns
+# only fire after explicit letter/leaflet phrases.
+SALUTATION_NAME_RE = re.compile(
+    r"\b(?P<prefix>Dear\s+)"
+    r"(?!(?:Patient|Sir|Madam)\b)"
+    r"(?:[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){0,2})\b"
+)
+LEAFLET_RECIPIENT_RE = re.compile(
+    r"\b(?P<prefix>Patient Leaflet to\s+)"
+    r"(?:[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){0,2})\b"
+)
+
+# Contextual pharmacy staff lines from encounter exports, e.g.
+# "Boots: Mina Carter" or "Hms Pharmacy: Ravi1 (Ravi Shah)".
+PHARMACY_STAFF_RE = re.compile(
+    r"\b(?P<prefix>(?:Boots|"
+    r"[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){0,2}\s+Pharmacy):\s*)"
+    r"(?:Unknown Staff Member|"
+    r"[A-Z][a-zA-Z'\-]+\d*(?:\s+[A-Z][a-zA-Z'\-]+){0,2}"
+    r"(?:\s+\([A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){1,2}\))?)"
+    r"(?=\b|$)"
+)
+
+# Named pharmacy organisations can identify the dispensing site.
+PHARMACY_ORG_RE = re.compile(
+    r"\b(?:Boots|[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){0,2}\s+Pharmacy):"
+)
+
+# Sign-off names without a title, e.g. "Thanks, Alex Harper".
+SIGNOFF_NAME_RE = re.compile(
+    r"\b(?P<prefix>Thanks,\s+)"
+    r"[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-]+){1,2}\b"
+)
+
+# Radiographer names and registration-style staff identifiers.
+RADIOGRAPHER_ID_RE = re.compile(
+    r"\b[A-Z][a-zA-Z'\-]+\s+[A-Z][a-zA-Z'\-]+\s*/\s*RA\d{4,}\b"
+)
+REPORTING_RADIOGRAPHER_RE = re.compile(
+    r"\b[A-Z][A-Z'\-]+\s+[A-Z][A-Z'\-]+\s+REPORTING RADIOGRAPHER\s+RA\d{4,}\b"
+)
 
 # NHS number: 10 digits optionally split by spaces or hyphens
 NHS_RE = re.compile(r"\b\d{3}[\s\-]?\d{3}[\s\-]?\d{4}\b")
@@ -193,6 +251,9 @@ EMAIL_RE = re.compile(r"\b[\w.\-+]+@[\w.\-]+\.\w+\b", re.IGNORECASE)
 DATE_SLASH_RE = re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b")
 DATE_DOT_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b")
 DATE_ISO_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+# DD-MM-YYYY (or DD-MM-YY) with hyphens — common in EHR exports (e.g. "DOB: 04-01-1978").
+# Distinct from ISO (YYYY-MM-DD) which is 4-digit year first and already covered above.
+DATE_HYPHEN_RE = re.compile(r"\b\d{1,2}-\d{1,2}-\d{2,4}\b")
 DATE_NATURAL_RE = re.compile(
     r"\b\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4}\b",
     re.IGNORECASE,
@@ -276,8 +337,19 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     out = FACILITY_NAME_RE.sub(
         r"[LOCATION] \g<ftype>", out
     )  # City Hospital → [LOCATION] Hospital
+    out = REPORTING_RADIOGRAPHER_RE.sub(
+        "[PERSON] REPORTING RADIOGRAPHER [STAFF_ID]", out
+    )
+    out = RADIOGRAPHER_ID_RE.sub("[PERSON] / [STAFF_ID]", out)
+    out = PHARMACY_STAFF_RE.sub(r"\g<prefix>[PERSON]", out)
+    out = PHARMACY_ORG_RE.sub("[ORGANISATION]:", out)
+    out = REFERRED_INITIALS_RE.sub("Referred to [PERSON]", out)
+    out = LEAFLET_RECIPIENT_RE.sub(r"\g<prefix>[PERSON]", out)
+    out = SALUTATION_NAME_RE.sub(r"\g<prefix>[PERSON]", out)
+    out = SIGNOFF_NAME_RE.sub(r"\g<prefix>[PERSON]", out)
     out = NAME_ROLE_RE.sub("[PERSON]", out)  # SURNAME, Firstname (SystmOne Role)
     out = NAME_STYLE_RE.sub("[PERSON]", out)  # SURNAME, Firstname (Mr/Mrs/Dr)
+    out = HONORIFIC_FULL_NAME_RE.sub("[PERSON]", out)  # Dr/Mrs First Surname
     out = HONORIFIC_NAME_RE.sub("[PERSON]", out)  # Dr/Mr Surname
     out = CAPS_NAME_RE.sub("[PERSON]", out)  # SURNAME, Firstname (bare)
     out = STRAY_CAPS_PREFIX_RE.sub("", out)  # KOK [PERSON] → [PERSON]
@@ -289,6 +361,7 @@ def deidentify_text(text: str, *, ner: bool | None = None) -> str:
     out = DATE_SLASH_RE.sub("[DATE]", out)
     out = DATE_DOT_RE.sub("[DATE]", out)
     out = DATE_ISO_RE.sub("[DATE]", out)
+    out = DATE_HYPHEN_RE.sub("[DATE]", out)
     out = DATE_NATURAL_RE.sub("[DATE]", out)
 
     # Optional NER second pass — catches residual first names in free narrative
@@ -337,11 +410,21 @@ def detect_phi(text: str) -> list[str]:
         found.append("organisation")
     if FACILITY_NAME_RE.search(text):
         found.append("facility_name")
+    if PHARMACY_ORG_RE.search(text):
+        found.append("organisation")
     if (
         NAME_ROLE_RE.search(text)
         or NAME_STYLE_RE.search(text)
+        or REFERRED_INITIALS_RE.search(text)
+        or HONORIFIC_FULL_NAME_RE.search(text)
         or HONORIFIC_NAME_RE.search(text)
         or CAPS_NAME_RE.search(text)
+        or SALUTATION_NAME_RE.search(text)
+        or LEAFLET_RECIPIENT_RE.search(text)
+        or PHARMACY_STAFF_RE.search(text)
+        or SIGNOFF_NAME_RE.search(text)
+        or RADIOGRAPHER_ID_RE.search(text)
+        or REPORTING_RADIOGRAPHER_RE.search(text)
     ):
         found.append("name")
     if ADDRESS_RE.search(text):
@@ -358,6 +441,8 @@ def detect_phi(text: str) -> list[str]:
         found.append("postcode")
     if DATE_ISO_RE.search(text):
         found.append("iso_date")
+    if DATE_HYPHEN_RE.search(text):
+        found.append("hyphen_date")
     if DATE_NATURAL_RE.search(text):
         found.append("natural_date")
     return found

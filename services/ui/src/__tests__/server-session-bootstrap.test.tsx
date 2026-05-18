@@ -25,6 +25,7 @@ const SAMPLE_SESSION: Session = {
   idleTimeoutMinutes: 30,
   selectedRole: "clinician",
   allowedRoles: ["clinician"],
+  needsRoleChoice: false,
   densityPreference: "comfortable",
 };
 
@@ -111,6 +112,7 @@ describe("VT-LEO-AI-218 SSR session bootstrap", () => {
         idleTimeoutMinutes: 30,
         selected_role: "clinician",
         allowed_roles: ["clinician"],
+        needs_role_choice: false,
         density_preference: "comfortable",
       }),
     });

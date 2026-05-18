@@ -24,10 +24,11 @@ Usage in FastAPI endpoints::
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-from dataclasses import dataclass, field
-from typing import List, Literal, Optional
+from dataclasses import asdict, dataclass, field
+from typing import Any, List, Literal, Optional
 
 from fastapi import Header, HTTPException
 
@@ -83,6 +84,122 @@ class CallerScope:
         return {"scope_org_ids": self.org_ids}
 
 
+# -- Redis-backed CallerScope cache -----------------------------------------
+# Resolving a CallerScope previously fired 2-3 sequential Aura queries on every
+# authenticated request. The result is stable for a given user email until org
+# membership changes (rare), so we cache it in Redis with a short TTL. A
+# tenant-admin invalidator (see :func:`invalidate_caller_scope_cache`) flushes
+# the cache when memberships are mutated.
+_SCOPE_CACHE_PREFIX_DEFAULT = "auth:caller-scope:"
+_SCOPE_CACHE_TTL_SECONDS = int(os.getenv("CALLER_SCOPE_CACHE_TTL_SECONDS", "60"))
+
+
+def _scope_cache_prefix() -> str:
+    ns = (
+        os.getenv("SESSION_KEY_NAMESPACE")
+        or os.getenv("ENVIRONMENT")
+        or os.getenv("APP_ENV")
+        or "default"
+    )
+    ns = ns.strip().lower() or "default"
+    return f"auth:{ns}:caller-scope:"
+
+
+def _scope_cache_key(email: str) -> str:
+    return f"{_scope_cache_prefix()}{email.strip().lower()}"
+
+
+def _get_redis_for_scope():
+    """Return a redis client (or None) using the same URL as the session store."""
+    if os.getenv("DISABLE_REDIS") in ("true", "1"):
+        return None
+    url = os.getenv("REDIS_URL") or None
+    if not url:
+        return None
+    try:
+        import redis  # type: ignore
+
+        return redis.from_url(url, decode_responses=True, socket_connect_timeout=2)
+    except Exception as exc:
+        logger.debug("CallerScope cache: redis unavailable (%s)", exc)
+        return None
+
+
+def _serialize_scope(scope: "CallerScope") -> str:
+    return json.dumps(asdict(scope))
+
+
+def _deserialize_scope(raw: str) -> Optional["CallerScope"]:
+    try:
+        data: dict[str, Any] = json.loads(raw)
+        return CallerScope(
+            email=str(data.get("email", "")),
+            is_admin=bool(data.get("is_admin", False)),
+            org_ids=list(data.get("org_ids", []) or []),
+            scope_type=data.get("scope_type"),
+            primary_org_id=data.get("primary_org_id"),
+        )
+    except Exception:
+        return None
+
+
+def _cache_get(email: str) -> Optional["CallerScope"]:
+    if _SCOPE_CACHE_TTL_SECONDS <= 0:
+        return None
+    rc = _get_redis_for_scope()
+    if rc is None:
+        return None
+    try:
+        raw = rc.get(_scope_cache_key(email))
+    except Exception:
+        return None
+    if not raw:
+        return None
+    return _deserialize_scope(raw)
+
+
+def _cache_put(scope: "CallerScope") -> None:
+    if _SCOPE_CACHE_TTL_SECONDS <= 0:
+        return
+    rc = _get_redis_for_scope()
+    if rc is None:
+        return
+    try:
+        rc.setex(
+            _scope_cache_key(scope.email),
+            _SCOPE_CACHE_TTL_SECONDS,
+            _serialize_scope(scope),
+        )
+    except Exception:
+        return
+
+
+def invalidate_caller_scope_cache(email: Optional[str] = None) -> int:
+    """Invalidate cached CallerScope entries.
+
+    Call from any code path that mutates a Practitioner's WORKS_AT, role
+    assignment, or platform-admin flag (admin / onboarding routers).
+    Returns the number of keys deleted (0 if Redis unavailable).
+    """
+    rc = _get_redis_for_scope()
+    if rc is None:
+        return 0
+    try:
+        if email:
+            return int(rc.delete(_scope_cache_key(email)) or 0)
+        # Bulk wipe under prefix; SCAN to avoid blocking on big keyspaces.
+        deleted = 0
+        prefix = _scope_cache_prefix() + "*"
+        for key in rc.scan_iter(match=prefix, count=500):
+            try:
+                deleted += int(rc.delete(key) or 0)
+            except Exception:
+                continue
+        return deleted
+    except Exception:
+        return 0
+
+
 def resolve_caller_scope(
     client: PatientGraphClient,
     email: str,
@@ -93,8 +210,15 @@ def resolve_caller_scope(
     For ICB users: returns the ICB id + all child GPs + parent Alliance.
     For Alliance users: returns the Alliance id + all child ICBs + all child GPs.
     Platform admins: is_admin=True, empty org_ids (meaning unrestricted).
+
+    Results are cached in Redis for a short TTL to avoid the 2-3 sequential
+    Aura queries on every authenticated request. Mutating endpoints must
+    call :func:`invalidate_caller_scope_cache` after changing membership.
     """
     normalized = email.lower().strip()
+    cached = _cache_get(normalized)
+    if cached is not None:
+        return cached
 
     practitioner = client.run(
         "MATCH (pr:Practitioner {email: $email}) "
@@ -109,13 +233,15 @@ def resolve_caller_scope(
     is_admin = bool(user.get("is_platform_admin", False))
 
     if is_admin:
-        return CallerScope(
+        scope = CallerScope(
             email=normalized,
             is_admin=True,
             org_ids=[],
             scope_type=None,
             primary_org_id=None,
         )
+        _cache_put(scope)
+        return scope
 
     # Fetch the org the practitioner WORKS_AT and determine scope type.
     orgs = client.run(
@@ -149,13 +275,15 @@ def resolve_caller_scope(
     else:
         all_ids = _expand_alliance_scope(client, primary_id)
 
-    return CallerScope(
+    scope = CallerScope(
         email=normalized,
         is_admin=False,
         org_ids=all_ids,
         scope_type=scope_type,
         primary_org_id=primary_id,
     )
+    _cache_put(scope)
+    return scope
 
 
 def _expand_gp_scope(client: PatientGraphClient, gp_id: str) -> list[str]:

@@ -1,0 +1,28 @@
+{
+  "latest_report": "artifacts/terminology_2ww_audits/terminology_2ww_audit_20260425T093216Z.json",
+  "input": "/Users/robsmith/Documents/github/LEO-AI-CORE/artifacts/encounters_2ww_related_terms.json",
+  "encounters_scanned": 740,
+  "unique_terms_tested": 39,
+  "status_counts": {
+    "pass": 39
+  },
+  "source_counts": {
+    "fast_referral": 15,
+    "tww_situation": 13,
+    "seen_fast_track": 11
+  },
+  "site_counts": {
+    "generic": 8,
+    "breast": 4,
+    "lower_gi": 4,
+    "urology": 4,
+    "gynae": 3,
+    "head_neck": 3,
+    "lung": 3,
+    "skin": 3,
+    "upper_gi": 3,
+    "haematology": 2,
+    "lymphoma": 1,
+    "prostate": 1
+  }
+}

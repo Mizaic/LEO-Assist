@@ -237,7 +237,7 @@ SURFACE_FORMS: list[tuple[str, str, str, str, str]] = [
     ("myalgia", "68962001", "Muscle pain", "Pain", ""),
     ("muscle pain", "68962001", "Muscle pain", "Pain", ""),
     ("hip pain", "49218002", "Pain of hip region", "Pain", ""),
-    ("knee pain", "1003722009", "Pain of knee region", "Pain", ""),
+    ("knee pain", "9990010001", "Pain of knee region", "Pain", ""),
     ("shoulder pain", "45326000", "Pain of shoulder region", "Pain", ""),
     ("neck pain", "81680005", "Neck pain", "Pain", ""),
     # -- Mental health --

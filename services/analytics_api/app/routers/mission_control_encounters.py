@@ -381,7 +381,7 @@ def _write_query_audit(
 
 
 @router.get("/mission-control/encounters")
-async def get_mission_control_encounters(
+def get_mission_control_encounters(
     org_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -681,7 +681,7 @@ async def get_mission_control_encounters(
 
 
 @router.get("/mission-control/encounters/kpis")
-async def get_mission_control_encounter_kpis(
+def get_mission_control_encounter_kpis(
     org_id: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
@@ -753,7 +753,7 @@ def _compute_uniqueness(
 
 
 @router.post("/mission-control/encounters/uniqueness")
-async def post_encounter_uniqueness(
+def post_encounter_uniqueness(
     body: UniquenessRequest = Body(...),
     scope: CallerScope = Depends(get_caller_scope),
 ) -> list[dict[str, Any]]:
@@ -769,7 +769,7 @@ async def post_encounter_uniqueness(
 
 
 @router.get("/mission-control/encounters/quality-metrics")
-async def get_encounter_case_finding_quality_metrics(
+def get_encounter_case_finding_quality_metrics(
     org_id: Optional[str] = Query(None),
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:

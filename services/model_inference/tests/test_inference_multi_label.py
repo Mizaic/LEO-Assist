@@ -82,11 +82,13 @@ class TestInferenceMultiLabel(unittest.TestCase):
             mock_loader.nlp = nlp
             mock_loader.active_version = "v0.9"
             mock_loader.model_name = "test"
-            with patch("app.main.deidentify") as mock_deid:
+            with patch("libs.deid.deidentify") as mock_deid:
                 mock_deid.return_value = MagicMock(text="diabetes")
                 from fastapi.testclient import TestClient
                 from app.main import app
+                from libs.auth.service_auth import verify_service_token
 
+                app.dependency_overrides[verify_service_token] = lambda: None
                 client = TestClient(app)
                 resp = client.post(
                     "/extract",
@@ -118,11 +120,13 @@ class TestInferenceMultiLabel(unittest.TestCase):
             mock_loader.nlp = nlp
             mock_loader.active_version = "v1.0"
             mock_loader.model_name = "test"
-            with patch("app.main.deidentify") as mock_deid:
+            with patch("libs.deid.deidentify") as mock_deid:
                 mock_deid.return_value = MagicMock(text=text)
                 from fastapi.testclient import TestClient
                 from app.main import app
+                from libs.auth.service_auth import verify_service_token
 
+                app.dependency_overrides[verify_service_token] = lambda: None
                 client = TestClient(app)
                 resp = client.post(
                     "/extract",

@@ -14,21 +14,31 @@ In ACA (production): AZURE_KEYVAULT_URL is injected by the Bicep template.
 The Bicep also wires secrets directly via secretRef, so this loader acts as
 a belt-and-braces fallback and for the local development path.
 
-Locally: set AZURE_KEYVAULT_URL=https://leoai-dev-kv.vault.azure.net in
-your shell (or in secrets/.env.config) and run az login once. The function
-will pull all secrets from Key Vault into os.environ, replacing the need for
-a secrets/.env file with hard-coded credentials.
-
-If AZURE_KEYVAULT_URL is not set the function is a no-op and secrets
-continue to come from the .env file (legacy local dev path).
+Locally: two supported paths.
+1. Set AZURE_KEYVAULT_URL=https://leoai-dev-kv.vault.azure.net in your
+   shell (or in secrets/.env.config) and run az login once. The function
+   will pull all secrets from Key Vault into os.environ.
+2. Run `scripts/sync-secrets-local.ps1` (Windows) or otherwise populate
+   secrets/.env.secrets from KV. When AZURE_KEYVAULT_URL is NOT set, this
+   loader falls back to reading secrets/.env.secrets (without overriding
+   anything already exported in the shell). This is the path used by
+   scripts/start_leo-ai-core.sh, because macOS osascript "do script"
+   does not propagate env vars from the calling shell to spawned Terminal
+   windows -- without this fallback, services like model-inference would
+   start without SERVICE_AUTH_SECRET and inter-service auth would 401.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Repo root: libs/keyvault/loader.py -> ../../
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_LOCAL_SECRETS_FILE = _REPO_ROOT / "secrets" / ".env.secrets"
 
 # Maps os.environ key -> Key Vault secret name (kebab-case)
 SECRET_MAP: dict[str, str] = {
@@ -74,22 +84,85 @@ SECRET_MAP: dict[str, str] = {
 }
 
 
+def _load_local_secrets_fallback() -> int:
+    """Load secrets/.env.secrets into os.environ when KV is disabled.
+
+    Used in local development when AZURE_KEYVAULT_URL is not set. Existing
+    env vars are NOT overwritten (override=False) so anything explicitly
+    exported in the shell still wins.
+
+    Returns the number of vars loaded (0 if the file does not exist).
+
+    This is the local-dev fallback path called out in the module docstring;
+    without it, services started under macOS Terminal.app via osascript do
+    not inherit secrets exported by the start script (osascript "do script"
+    does not propagate env), and inter-service auth fails with 401.
+    """
+    if not _LOCAL_SECRETS_FILE.is_file():
+        return 0
+    loaded = 0
+    try:
+        with _LOCAL_SECRETS_FILE.open("r", encoding="utf-8") as fh:
+            for raw in fh:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+                if not key:
+                    continue
+                if key in os.environ:
+                    continue
+                os.environ[key] = value
+                loaded += 1
+    except OSError as exc:
+        logger.warning("Could not read %s: %s", _LOCAL_SECRETS_FILE, exc)
+    return loaded
+
+
 def load_keyvault_secrets() -> None:
     """Pull secrets from Azure Key Vault into os.environ.
 
-    Safe to call even when AZURE_KEYVAULT_URL is not set -- becomes a no-op.
-    KV values overwrite whatever dotenv already put into os.environ so that
-    production values always win over local fallback .env files.
+    When AZURE_KEYVAULT_URL is set: pull every name in SECRET_MAP from KV and
+    overwrite os.environ so production values always win over local .env files.
+
+    When AZURE_KEYVAULT_URL is not set: fall back to loading
+    ``secrets/.env.secrets`` (without overriding anything already in the
+    environment). This is the documented local-dev path -- it ensures every
+    service has a consistent environment, including SERVICE_AUTH_SECRET so
+    that inter-service auth works.
     """
     vault_url = os.environ.get("AZURE_KEYVAULT_URL", "")
     if not vault_url:
-        logger.debug(
-            "AZURE_KEYVAULT_URL not set -- skipping Key Vault load (local .env mode)"
-        )
+        loaded = _load_local_secrets_fallback()
+        if loaded:
+            logger.info(
+                "AZURE_KEYVAULT_URL not set -- loaded %d secrets from %s "
+                "(local dev fallback)",
+                loaded,
+                _LOCAL_SECRETS_FILE,
+            )
+        else:
+            logger.debug(
+                "AZURE_KEYVAULT_URL not set and no %s present -- "
+                "running with shell-env secrets only",
+                _LOCAL_SECRETS_FILE,
+            )
         return
 
-    from azure.keyvault.secrets import SecretClient
-    from libs.azure.credentials import get_credential
+    try:
+        from azure.keyvault.secrets import SecretClient
+        from libs.azure.credentials import get_credential
+    except ModuleNotFoundError as exc:
+        logger.warning(
+            "AZURE_KEYVAULT_URL is set but Azure SDK is not installed (%s). "
+            "Install azure-keyvault-secrets or unset AZURE_KEYVAULT_URL and "
+            "use secrets/.env.secrets. Falling back to local secrets file only.",
+            exc,
+        )
+        _load_local_secrets_fallback()
+        return
 
     client = SecretClient(vault_url=vault_url, credential=get_credential())
     loaded = 0

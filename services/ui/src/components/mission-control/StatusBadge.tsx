@@ -19,7 +19,7 @@ interface Props {
 
 const COLOUR_MAP = {
   success: "#4caf50",
-  warning: "#ff9800",
+  warning: "#facc15",
   error: "#f44336",
   default: "#9e9e9e",
 };

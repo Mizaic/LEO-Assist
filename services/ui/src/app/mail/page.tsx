@@ -9,7 +9,7 @@
 "use client";
 
 import DOMPurify from "dompurify";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -113,7 +113,6 @@ export default function MailPage() {
   const [sending, setSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [search, setSearch] = useState("");
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -150,6 +149,15 @@ export default function MailPage() {
         });
     return sortByIsoDateDesc(filtered, (m) => m.received_at);
   }, [baseVisible, search]);
+
+  const safeHtml = useMemo(() => {
+    if (!selected?.body_html) return "";
+    return DOMPurify.sanitize(selected.body_html, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "meta", "base"],
+      FORBID_ATTR: ["onerror", "onload", "onclick", "onfocus", "onblur"],
+    });
+  }, [selected?.body_html]);
 
   const handleSelect = async (msg: MailMessage) => {
     if (selected?.id === msg.id) return;
@@ -214,26 +222,6 @@ export default function MailPage() {
     setReplyOpen(false);
     setSearch("");
   };
-
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !selected?.body_html) return;
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) return;
-    // Sanitise inbound mail HTML before rendering. Mail bodies are
-    // attacker-controlled (any external sender can craft them) and the
-    // iframe shares no allow-scripts permission, but we still strip
-    // scripts/iframes/forms/event handlers as defence-in-depth in case the
-    // sandbox attribute is ever loosened in the future.
-    const safeHtml = DOMPurify.sanitize(selected.body_html, {
-      USE_PROFILES: { html: true },
-      FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "meta", "base"],
-      FORBID_ATTR: ["onerror", "onload", "onclick", "onfocus", "onblur"],
-    });
-    doc.open();
-    doc.write(safeHtml);
-    doc.close();
-  }, [selected?.body_html]);
 
   return (
     <Box sx={{ display: "flex", height: "100vh", bgcolor: "background.default", overflow: "hidden" }}>
@@ -705,12 +693,13 @@ export default function MailPage() {
             {/* Email body */}
             <Box sx={{ flex: 1, overflow: "hidden", bgcolor: "#fff" }}>
               <iframe
-                ref={iframeRef}
-                // No sandbox flags = maximum restriction (no scripts, no
-                // forms, no top-level navigation, opaque origin). Combined
-                // with DOMPurify on the HTML written into the document,
-                // this prevents reflected XSS from attacker-controlled
-                // mail bodies.
+                key={selected.id}
+                srcDoc={safeHtml}
+                // No sandbox allow-* flags (no scripts, forms, top-level nav).
+                // DOMPurify on srcDoc is defence in depth. We use srcDoc instead
+                // of contentDocument.write so the parent never touches a
+                // sandboxed opaque-origin document (that access throws in
+                // conforming browsers).
                 sandbox=""
                 referrerPolicy="no-referrer"
                 style={{ width: "100%", height: "100%", border: "none" }}

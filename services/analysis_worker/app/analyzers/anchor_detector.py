@@ -1391,7 +1391,7 @@ def _classify_text_encounters(
         # unambiguously non-cancer (foreign travel, vaccination, repeat
         # prescription, sick note, etc.) and the body's cancer mention
         # is incidental, do NOT emit care_obstruction even if the
-        # regex hits. Closes the patient 4802892365 2025-07-01 MMR /
+        # regex hits. Closes the Pattern N5 travel-vaccine exemplar 2025-07-01 MMR /
         # Mexico travel-vaccine misfire.
         if _RE_CARE_OBSTRUCTION.search(text) and not encounter_problem_is_off_pathway(
             text

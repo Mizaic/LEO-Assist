@@ -39,10 +39,10 @@ ALL_MAPPINGS = [
     ("folate deficiency", "190633005", "Folic acid deficiency"),
     ("macrocytosis", "72826005", "Macrocytosis"),
     ("hypertriglyceridaemia", "302870006", "Hypertriglyceridemia"),
-    ("NAFLD", "1231824009", "Metabolic steatotic liver disease"),
+    ("NAFLD", "9990010007", "Metabolic steatotic liver disease"),
     (
         "non-alcoholic fatty liver disease",
-        "1231824009",
+        "9990010007",
         "Metabolic steatotic liver disease",
     ),
     # Batch 7 - cardiovascular

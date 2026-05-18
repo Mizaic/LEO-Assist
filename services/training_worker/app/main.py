@@ -49,7 +49,7 @@ from libs.auth.service_auth import verify_service_token
 from libs.utils.logging import configure_logging
 
 from app.job_store import REDIS_URL, get_store
-from app.job_runner import preload_training_modules, submit_job
+from app.job_runner import preload_training_modules, recover_orphaned_jobs, submit_job
 
 configure_logging(service_name="training-worker")
 logger = logging.getLogger(__name__)
@@ -73,6 +73,16 @@ async def _lifespan(app: FastAPI):
             logger.warning(
                 "Startup warmup failed after %.2fs: %s", time.perf_counter() - t0, exc
             )
+
+    # Re-attach any spaCy training subprocesses that survived a worker restart.
+    store = get_store()
+    recovered = recover_orphaned_jobs(store)
+    if recovered:
+        logger.info(
+            "[recovery] Re-attached %d orphaned training job(s): %s",
+            len(recovered),
+            recovered,
+        )
     yield
 
 
@@ -137,6 +147,23 @@ def start_training_job(body: StartJobRequest) -> dict[str, Any]:
         "status": job.status,
         "stream_path": f"/train/progress/{job.job_id}",
     }
+
+
+# ------------------------------------------------------------------
+# POST /train/jobs/recover
+# ------------------------------------------------------------------
+
+
+@app.post("/train/jobs/recover", dependencies=[Depends(verify_service_token)])
+def recover_jobs() -> dict[str, Any]:
+    """Scan for orphaned spaCy training subprocesses and re-attach them.
+
+    Safe to call at any time.  Returns the list of recovered job IDs (empty
+    when no orphaned processes were found).
+    """
+    store = get_store()
+    recovered = recover_orphaned_jobs(store)
+    return {"recovered_job_ids": recovered, "count": len(recovered)}
 
 
 # ------------------------------------------------------------------

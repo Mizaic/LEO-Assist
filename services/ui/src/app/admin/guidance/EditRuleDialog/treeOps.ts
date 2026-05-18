@@ -439,7 +439,7 @@ export function applyUpdate(
     case "add_observation":
       return mapNode(root, (n) =>
         n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeObservationNode())
+          ? appendChild(n, makeObservationNode(update.seed))
           : n,
       );
     case "set_observation":
@@ -586,19 +586,26 @@ function makeDemographicNode(): EditableLogicNode {
  * friendly message until the reviewer picks an observable and unit
  * via the concept-search popover (Phase 6b).
  */
-function makeObservationNode(): EditableLogicNode {
+function makeObservationNode(
+  seed?: Partial<EditableObservationPayload>,
+): EditableLogicNode {
+  const base: EditableObservationPayload = {
+    kind: "OBSERVATION",
+    observable_id: "",
+    observable_term: "",
+    operator: ">=",
+    value: 0,
+    unit: "",
+    within_days: 365,
+  };
+  // Phase 6b: when the reviewer picks an observable concept in the
+  // search panel, we preload the observable_id / observable_term /
+  // unit so the reviewer only has to type the threshold. The seed is
+  // shallow-merged on top of the blank defaults.
   return {
     node_id: freshNodeId(),
     kind: "OBSERVATION",
-    observation: {
-      kind: "OBSERVATION",
-      observable_id: "",
-      observable_term: "",
-      operator: ">=",
-      value: 0,
-      unit: "",
-      within_days: 365,
-    },
+    observation: seed ? { ...base, ...seed } : base,
   };
 }
 

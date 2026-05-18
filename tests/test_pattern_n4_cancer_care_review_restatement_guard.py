@@ -8,7 +8,7 @@ encounters whose only "evidence" is the GP keeping the problem list
 current and writing a narrative that restates the already-known
 cancer history.
 
-Canonical patient 4802892365 case (real episode 1ecfb55618c2a6d2):
+Canonical N4 case (cancer-care review restatement, real referral-anchored episode):
 
   2025-09-24 "Cancer care review and general catch up given recent
               events. Referred by me on 2ww earlier this year,
@@ -20,8 +20,8 @@ Canonical patient 4802892365 case (real episode 1ecfb55618c2a6d2):
                  active_cancer_care_code / problem_list_code path.
               -> N4 must suppress the emission entirely. The 2025-09-24
                  anchor must NOT pollute the timeline of the real
-                 episode 1ecfb55618c2a6d2 (whose genuine diagnosis
-                 happened in mid-May 2025).
+                 real referral-anchored episode (whose genuine diagnosis
+                 happened earlier in the same year).
 
 N1 (DI-LEO-AI-401) is the floating-group safety net; N4 is the
 emission-time guard that prevents the anchor from being created in
@@ -211,8 +211,8 @@ class TestAnchorDetectorSuppressesCancerReviewRestatement:
             "patient_id": "P-test",
         }
 
-    def test_canonical_4802892365_2025_09_24_suppressed(self, detector):
-        # The canonical patient 4802892365 2025-09-24 cancer-care-review
+    def test_canonical_9990003001_2025_09_24_suppressed(self, detector):
+        # The canonical patient 9990003001 2025-09-24 cancer-care-review
         # encounter MUST NOT emit a diagnosis_confirmed anchor under N4.
         text = (
             "08:30 - Surgery: BRIDGES, Kirstie (Dr) "

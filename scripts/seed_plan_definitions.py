@@ -400,30 +400,20 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-extraction-check",
-                "title": "Extraction Quality Check",
+                "id": "act-extraction-route",
+                "title": "Route Extraction Outcome",
                 "_sequence": 4,
-                "_subgraphId": "extraction_check",
-                "definitionCanonical": "ActivityDefinition/ad-extraction-check",
+                "_subgraphId": "condition",
+                "_nodeType": "condition",
+                "definitionCanonical": "ActivityDefinition/ad-condition-extraction-route",
                 "relatedAction": [
                     {"actionId": "act-relation-link", "relationship": "after-end"}
                 ],
             },
             {
-                "id": "act-extraction-route",
-                "title": "Route Extraction Outcome",
-                "_sequence": 5,
-                "_subgraphId": "condition",
-                "_nodeType": "condition",
-                "definitionCanonical": "ActivityDefinition/ad-condition-extraction-route",
-                "relatedAction": [
-                    {"actionId": "act-extraction-check", "relationship": "after-end"}
-                ],
-            },
-            {
                 "id": "act-hitl-ner-queue",
                 "title": "Queue NER HITL",
-                "_sequence": 6,
+                "_sequence": 5,
                 "_subgraphId": "hitl_ner_queue",
                 "definitionCanonical": "ActivityDefinition/ad-hitl-ner-queue",
                 "relatedAction": [
@@ -436,7 +426,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-terminology",
                 "title": "Resolve Terminology",
-                "_sequence": 7,
+                "_sequence": 6,
                 "_subgraphId": "terminology",
                 "definitionCanonical": "ActivityDefinition/ad-terminology",
                 "relatedAction": [
@@ -450,30 +440,20 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-coding-check",
-                "title": "Coding Quality Check",
-                "_sequence": 8,
-                "_subgraphId": "coding_check",
-                "definitionCanonical": "ActivityDefinition/ad-coding-check",
+                "id": "act-coding-route",
+                "title": "Route Coding Outcome",
+                "_sequence": 7,
+                "_subgraphId": "condition",
+                "_nodeType": "condition",
+                "definitionCanonical": "ActivityDefinition/ad-condition-coding-route",
                 "relatedAction": [
                     {"actionId": "act-terminology", "relationship": "after-end"}
                 ],
             },
             {
-                "id": "act-coding-route",
-                "title": "Route Coding Outcome",
-                "_sequence": 9,
-                "_subgraphId": "condition",
-                "_nodeType": "condition",
-                "definitionCanonical": "ActivityDefinition/ad-condition-coding-route",
-                "relatedAction": [
-                    {"actionId": "act-coding-check", "relationship": "after-end"}
-                ],
-            },
-            {
                 "id": "act-hitl-coding-queue",
                 "title": "Queue Coding HITL",
-                "_sequence": 10,
+                "_sequence": 8,
                 "_subgraphId": "hitl_coding_queue",
                 "definitionCanonical": "ActivityDefinition/ad-hitl-coding-queue",
                 "relatedAction": [
@@ -486,7 +466,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-tier-classify",
                 "title": "Classify Tiers",
-                "_sequence": 11,
+                "_sequence": 9,
                 "_subgraphId": "tier_classify",
                 "definitionCanonical": "ActivityDefinition/ad-tier-classify",
                 "relatedAction": [
@@ -499,7 +479,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-persist",
                 "title": "Persist to Patient Graph and Gold Training",
-                "_sequence": 12,
+                "_sequence": 10,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-both",
                 "relatedAction": [
@@ -509,7 +489,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-anchor",
                 "title": "Detect Anchors",
-                "_sequence": 13,
+                "_sequence": 11,
                 "_subgraphId": "anchor_detect",
                 "definitionCanonical": "ActivityDefinition/ad-anchor-detect",
                 "relatedAction": [
@@ -519,7 +499,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-episode",
                 "title": "Build Episodes",
-                "_sequence": 14,
+                "_sequence": 12,
                 "_subgraphId": "episode_build",
                 "definitionCanonical": "ActivityDefinition/ad-episode-build",
                 "relatedAction": [
@@ -529,7 +509,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-safety-net",
                 "title": "Safety Netting",
-                "_sequence": 15,
+                "_sequence": 13,
                 "_subgraphId": "safety_net",
                 "definitionCanonical": "ActivityDefinition/ad-safety-net",
                 "relatedAction": [
@@ -539,7 +519,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-quality",
                 "title": "Quality Check",
-                "_sequence": 16,
+                "_sequence": 14,
                 "_subgraphId": "quality_check",
                 "definitionCanonical": "ActivityDefinition/ad-quality-check",
                 "relatedAction": [

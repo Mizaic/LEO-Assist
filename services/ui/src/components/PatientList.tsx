@@ -25,8 +25,11 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { Virtuoso } from "react-virtuoso";
 import { fetchPatients } from "@/lib/api";
 import type { Patient } from "@/lib/types";
+import { useDemoMode } from "@/context/DemoModeContext";
+import { maskPatientId } from "@/lib/demoMode";
 
 export default function PatientList() {
+  const { isDemoMode } = useDemoMode();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -130,7 +133,7 @@ export default function PatientList() {
                     >
                       <Box>
                         <Typography variant="subtitle1" sx={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
-                          {p.patient_id}
+                          {isDemoMode ? maskPatientId(p.patient_id) : p.patient_id}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {p.encounter_count} encounters

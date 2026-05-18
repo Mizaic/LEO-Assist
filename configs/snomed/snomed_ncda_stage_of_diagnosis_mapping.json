@@ -1,11 +1,11 @@
 {
   "metadata": {
     "domain": "stage_of_diagnosis",
-    "total_terms": 27,
-    "successful_mappings": 27,
+    "total_terms": 33,
+    "successful_mappings": 33,
     "failed_mappings": 0,
     "llm_disambiguations": 0,
-    "generated_at": "2026-04-08T00:00:00Z",
+    "generated_at": "2026-04-28T00:00:00Z",
     "focus": "Cancer staging systems and stage findings used at diagnosis",
     "source_note": "Codes compiled from NHS Data Dictionary staging attributes and HL7 mCODE value set expansions that include SNOMED CT concepts.",
     "unmapped_requested_systems": [
@@ -326,6 +326,87 @@
         "Wilms stage 5"
       ],
       "guideline_name": "National Wilms Tumor Study Group Stage V"
+    },
+    "integrated_tnm_category": {
+      "concept_id": 399703000,
+      "preferred_term": "Integrated TNM category (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "TNM",
+        "TNM8 category",
+        "Integrated TNM",
+        "pT",
+        "cT"
+      ],
+      "guideline_name": "Integrated TNM category"
+    },
+    "breslow_depth_staging_melanoma": {
+      "concept_id": 106243009,
+      "preferred_term": "Breslow depth staging for melanoma of skin (observable entity)",
+      "semantic_tag": "Observable_entity",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Breslow thickness",
+        "Breslow depth",
+        "Breslow"
+      ],
+      "guideline_name": "Breslow depth staging for melanoma of skin"
+    },
+    "clark_melanoma_level_3": {
+      "concept_id": 21165006,
+      "preferred_term": "Clark melanoma level 3 (morphologic abnormality)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Clark level III",
+        "Clark level 3",
+        "Clark III"
+      ],
+      "guideline_name": "Clark melanoma level 3"
+    },
+    "stage_4_qualifier": {
+      "concept_id": 258232002,
+      "preferred_term": "Stage 4 (qualifier value)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "stage 4",
+        "stage IV",
+        "Stage four",
+        "stage four cancer"
+      ],
+      "guideline_name": "Stage 4"
+    },
+    "nottingham_combined_grade_ii": {
+      "concept_id": 369791003,
+      "preferred_term": "Nottingham Combined Grade II: 6-7 points (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "grade 2 ductal",
+        "Nottingham grade 2",
+        "NHG 2"
+      ],
+      "guideline_name": "Nottingham combined histologic grade II"
+    },
+    "gleason_grade_score_7": {
+      "concept_id": 57403001,
+      "preferred_term": "Gleason grade score 7 out of 10 (finding)",
+      "semantic_tag": "Clinical_finding",
+      "score": 1.0,
+      "llm_disambiguated": false,
+      "guideline_synonyms": [
+        "Gleason 7",
+        "Gleason 3+4",
+        "Gleason 3+4=7"
+      ],
+      "guideline_name": "Gleason grade score 7"
     }
   }
 }

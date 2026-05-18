@@ -21,12 +21,12 @@ def main() -> None:
     client = PatientGraphClient()
 
     pids = [
-        "6261656266",
-        "6509504022",  # breast cancer via FP anchor
-        "4587343129",
-        "4822890058",  # haematological / haematuria
-        "7319972905",
-        "4246870471",  # bowel / carcinoid
+        "9990002012",
+        "9990002015",  # breast cancer via FP anchor
+        "9990010034",
+        "9990010042",  # haematological / haematuria
+        "9990010069",
+        "9990010031",  # bowel / carcinoid
     ]
     rows = client.run(
         "MATCH (ep:EpisodeOfCare) "

@@ -24,8 +24,12 @@ from __future__ import annotations
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.episode_engine._shared import (
     BREAST_REFERENCE_CASE,
+    COLORECTAL_FOBT_BCSP_FIRST_REFERENCE,
+    COLORECTAL_SCREENING_SAME_DAY_REFERENCE,
+    CONTEXT_MILESTONE_RULES,
+    CONTEXT_MILESTONE_TYPE_LIST,
     DISRUPTION_CATEGORY_LIST,
-    MILESTONE_TYPE_LIST,
+    PATHWAY_MILESTONE_TYPE_LIST,
     PRESENTATION_PLACE_LIST,
     RULES_OF_THE_ROAD,
     TREATMENT_TYPE_LIST,
@@ -37,24 +41,41 @@ TOOL_NAME = "submit_milestones"
 SYSTEM = INJECTION_GUARD + (
     "You are a UK primary care cancer pathway analyst. You are given the\n"
     "full text of every encounter within ONE candidate episode window.\n"
-    "Extract the canonical milestones from the window:\n"
-    f"  {MILESTONE_TYPE_LIST}\n\n"
-    "Rules for milestones:\n"
+    "Extract milestones from the window. There are TWO tiers:\n\n"
+    "  PATHWAY tier (anchor the episode timeline, feed date roll-ups):\n"
+    f"    {PATHWAY_MILESTONE_TYPE_LIST}\n\n"
+    "  CONTEXT tier (supporting evidence for the reviewer narrative,\n"
+    "    NEVER feed date roll-ups):\n"
+    f"    {CONTEXT_MILESTONE_TYPE_LIST}\n\n"
+    "You MAY emit both pathway and context milestones for the same\n"
+    "encounter when both apply (e.g. a biopsy-result letter can be\n"
+    "both 'diagnosis_confirmed' and 'related_correspondence').\n\n"
+    "Rules for PATHWAY milestones:\n"
     "  - first_presentation    : the FIRST encounter on this pathway where\n"
-    "                            the patient presented in PRIMARY CARE\n"
-    "                            with the symptom(s) that ultimately led\n"
-    "                            to the cancer referral. ALWAYS\n"
-    "                            pre-referral. Almost always a GP / nurse\n"
-    "                            face-to-face, telephone consult, or home\n"
-    "                            visit; sometimes A&E / walk-in / OOH.\n"
-    "                            HARD RULE: any pre-referral primary-care\n"
-    "                            encounter where the patient first reports\n"
-    "                            the presenting symptom (lump, bleeding,\n"
-    "                            cough, weight loss, etc.) is ALWAYS\n"
-    "                            first_presentation. It is NEVER first_seen.\n"
-    "                            If the GP duty call on the day of the 2WW\n"
-    "                            captures the symptom report, that call is\n"
-    "                            still first_presentation, not first_seen.\n"
+    "                            the patient first presents to the NHS (or is\n"
+    "                            first documented) with the symptom, sign, or\n"
+    "                            abnormality that led to this cancer\n"
+    "                            investigation. This is the INDEX clinical\n"
+    "                            contact -- not limited to a GP practice.\n"
+    "                            Valid places include: general practice (F2F,\n"
+    "                            telephone, video, home visit), OUT-OF-HOURS\n"
+    "                            and extended hours primary care, WALK-IN / UC,\n"
+    '                            A&E or ED, "other" primary / community\n'
+    "                            care (NHS 111, community pharmacist, district\n"
+    "                            or community nurse, health visitor) where they\n"
+    "                            are the first clinical assessment. SCREENING\n"
+    "                            recall / programme entry uses\n"
+    "                            presentation_place=from_screening.\n"
+    "                            ALWAYS pre-specialist in time order for that\n"
+    "                            line of care (but an A&E attendance IS still\n"
+    "                            'first' even though it is not primary care in\n"
+    "                            a narrow sense). HARD RULE: any pre-specialist\n"
+    "                            encounter where the patient first reports the\n"
+    "                            presenting symptom (lump, bleeding, haematuria,\n"
+    "                            cough, etc.) is ALWAYS first_presentation.\n"
+    "                            It is NEVER first_seen. If a GP duty call on the\n"
+    "                            day of a 2WW captures the symptom, that call is\n"
+    "                            first_presentation, not first_seen.\n"
     "                            presentation_place is MANDATORY when this\n"
     "                            milestone is fired. Pick the closest match\n"
     "                            from this list:\n"
@@ -73,10 +94,30 @@ SYSTEM = INJECTION_GUARD + (
     "                            Use 'not_known' ONLY if the encounter is\n"
     "                            present but the place truly cannot be\n"
     "                            inferred. Never omit the field.\n"
-    "  - referral              : the source 2WW / fast-track / urgent\n"
-    "                            cancer referral. Pick ONE -- the highest\n"
-    "                            fidelity (PRISM / structured form) over\n"
-    "                            free-text restatements on the same day.\n"
+    "  - referral              : the first action that places the patient on\n"
+    "                            the urgent suspected-cancer (or\n"
+    "                            direct-to-assessment) pathway for this\n"
+    "                            site. This is **NOT only** a GP-issued 2WW.\n"
+    "                            It may be: (a) a PRISM / 2WW / e-RS fast-track\n"
+    "                            from primary care; (b) a HOSPITAL-GENERATED\n"
+    "                            handoff, e.g. A&E/AMU clerking: 'referred to\n"
+    "                            urology CNS / breast MDT / booked urgent OP',\n"
+    "                            'advised to attend cancer clinic from ED';\n"
+    "                            (c) a SCREENING-PROGRAMME next step, e.g.\n"
+    "                            assessment centre booking from abnormal\n"
+    "                            screen; (d) a specialist clinic letter that\n"
+    "                            is the first structured urgent referral. Pick\n"
+    "                            ONE encounter -- the highest-fidelity (coded\n"
+    "                            or structured) source over a same-day\n"
+    "                            admin echo. If the pathway truly began at\n"
+    "                            A&E with no prior GP referral and the first\n"
+    "                            handoff to specialty is a single documented\n"
+    "                            'refer' line, that IS the 'referral'\n"
+    "                            milestone. If there is no discrete referral\n"
+    "                            at all, OMIT 'referral' and explain in the\n"
+    "                            first milestone reasoning (set\n"
+    "                            needs_human_review as appropriate) -- do not\n"
+    "                            fabricate a GP 2WW.\n"
     "  - first_seen            : first SPECIALIST contact AFTER the\n"
     "                            referral (hospital outpatient clinic,\n"
     "                            specialist telephone clinic, ENT/breast/\n"
@@ -184,9 +225,15 @@ SYSTEM = INJECTION_GUARD + (
     "    the disruption (not an admin echo).\n"
     "  - If no disruptions are evident in the window, return an\n"
     "    empty disruptions list. Do not invent.\n\n"
+    + CONTEXT_MILESTONE_RULES
+    + "\n"
     + RULES_OF_THE_ROAD
     + "\n\n"
     + BREAST_REFERENCE_CASE
+    + "\n\n"
+    + COLORECTAL_SCREENING_SAME_DAY_REFERENCE
+    + "\n\n"
+    + COLORECTAL_FOBT_BCSP_FIRST_REFERENCE
     + "\n\nRespond by calling the submit_milestones tool.\n"
 )
 
@@ -202,13 +249,15 @@ USER_TEMPLATE = (
     "<encounters>\n"
     "{window_full_text}\n"
     "</encounters>\n"
+    "{context_hints_block}\n"
     "\n"
-    "Extract THREE things from these encounters. ALL THREE are\n"
+    "Extract FOUR things from these encounters. ALL FOUR are\n"
     "REQUIRED in your response (the schema rejects payloads that\n"
     "omit any of them):\n"
     "\n"
-    "  1. milestones -- the canonical pathway events. Each milestone\n"
-    "     needs encounter_id and a literal evidence_quote. If no\n"
+    "  1. milestones -- the canonical pathway events AND context\n"
+    "     milestones (see step 4 below). Each milestone needs\n"
+    "     encounter_id and a literal evidence_quote. If no\n"
     "     milestones are present, return milestones=[].\n"
     "\n"
     "  2. safety_netting -- BEFORE you decide, you MUST scan EVERY\n"
@@ -256,7 +305,8 @@ USER_TEMPLATE = (
     "       'staff sickness ... cancelled'        -> appointment_cancelled_by_trust\n"
     "       'awaiting result' / 'result not back' /\n"
     "       'no result yet' / 'chasing histology' /\n"
-    "       'awaiting biopsy'                     -> result_not_received_in_primary_care\n"
+    "       'awaiting biopsy'         "
+    "            -> result_not_received_in_primary_care\n"
     "       'letter dated ... received' /\n"
     "       'late letter'                         -> letter_received_late\n"
     "       'unable to contact' / 'no answer' /\n"
@@ -275,6 +325,32 @@ USER_TEMPLATE = (
     "     at UK reading age 9-11), encounter_id, evidence_quote\n"
     "     (literal substring), and confidence. If after a deliberate\n"
     "     scan you find no matches, return disruptions=[].\n"
+    "\n"
+    "  4. context milestones -- YOU MUST do this step. If a\n"
+    "     CONTEXT MILESTONE HINTS block appears above, work through\n"
+    "     EVERY line. For each listed encounter ID, apply this\n"
+    "     three-gate test before emitting:\n"
+    "       GATE A -- date: the encounter date must fall within\n"
+    "         window_start to window_end. Skip out-of-window hints.\n"
+    "       GATE B -- literal evidence: find the exact encounter text\n"
+    "         in the <encounters> block above. You MUST be able to\n"
+    "         quote a literal substring that clearly matches the\n"
+    "         named context type (e.g. 'Fast track referral' for\n"
+    "         referral_sent, '(New Episode)' biopsy code for\n"
+    "         specialist_diagnostics, 'Clinic Letter to' for\n"
+    "         related_correspondence). If no such substring exists\n"
+    "         in that encounter's text, SKIP -- do not force it.\n"
+    "       GATE C -- episode relevance (advisory, err toward\n"
+    "         recall): only skip if the encounter is OBVIOUSLY about\n"
+    "         a completely different, unrelated condition (e.g. a\n"
+    "         diabetes annual review hinted as specialist_diagnostics\n"
+    "         on a breast cancer pathway). If it is plausible that\n"
+    "         the encounter relates to this episode, include it.\n"
+    "         When in doubt, include rather than skip.\n"
+    "     Only gate A and gate B are hard gates. Gate C is advisory.\n"
+    "     Failed gate A or B = skip. Uncertain gate C = include.\n"
+    "     If no CONTEXT MILESTONE HINTS block is present, scan the\n"
+    "     encounters yourself for any context-tier milestones.\n"
     "\n"
     "Respond by calling the submit_milestones tool ONCE with a single\n"
     "JSON object. Array fields ('milestones', 'disruptions') MUST be\n"
@@ -375,6 +451,7 @@ SCHEMA: dict = {
                     "type": {
                         "type": "string",
                         "enum": [
+                            # Pathway tier -- feed date roll-ups
                             "first_presentation",
                             "referral",
                             "first_seen",
@@ -383,6 +460,15 @@ SCHEMA: dict = {
                             "treatment_started",
                             "treatment_completed",
                             "benign_closure",
+                            # Context tier -- reviewer narrative
+                            # (DI-2C015ADE, never feed date roll-ups)
+                            "related_gp_visit",
+                            "primary_care_investigations",
+                            "referral_admin",
+                            "referral_sent",
+                            "related_specialist_visit",
+                            "specialist_diagnostics",
+                            "related_correspondence",
                         ],
                     },
                     "date": {"type": "string", "description": "YYYY-MM-DD"},

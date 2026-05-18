@@ -2,7 +2,7 @@
 
 From the 39-episode referral-only audit, two episodes need coding fixes:
 
-  E14  pid=4709023328  breast  2025-09-05
+  E14  pid=9990002008  breast  2025-09-05
        FINDING: Malignant neoplasm of breast (254837009) is ALREADY CODED
        on encounter a40cf282-af2 by the pipeline. The episode builder is NOT
        detecting it because the IS_A expansion from the cancer_types parent
@@ -10,7 +10,7 @@ From the 39-episode referral-only audit, two episodes need coding fixes:
        FIX: Rerun episode detector after the benign_closure ValueSet changes.
             Ensure 254837009 is within 5 IS_A hops of the cancer_types parent.
 
-  E20  pid=6040304227  skin  2024-11-18
+  E20  pid=9990002009  skin  2024-11-18
        FINDING: SCC of scalp confirmed on histology but NEVER EXTRACTED by
        the coding pipeline. Concept nodes for confirmed SCC (402815007 etc.)
        do NOT exist in the KG as `:Concept` nodes, so direct write-back is
@@ -125,18 +125,18 @@ def _resolve_term(term: str) -> dict | None:
 
 def _check_e14(session) -> None:
     print("=" * 60)
-    print("  E14 -- breast cancer (pid=4709023328)")
+    print("  E14 -- breast cancer (pid=9990002008)")
     print()
 
     rows = list(
         session.run(
             _Q_DOCS_WINDOW,
-            patient_id="4709023328",
+            patient_id="9990002008",
             after="2025-09-04",
             before="2025-09-06",
         )
     )
-    breast_ids = {254837009, 1306292009, 363346000}
+    breast_ids = {254837009, 9990010017, 363346000}
     found = [r for r in rows if r["concept_id"] in breast_ids]
 
     if found:
@@ -154,14 +154,14 @@ def _check_e14(session) -> None:
 
 def _fix_e20(session) -> None:
     print("=" * 60)
-    print("  E20 -- SCC scalp (pid=6040304227)")
+    print("  E20 -- SCC scalp (pid=9990002009)")
     print()
 
     # What's currently coded in Nov-Dec 2024?
     rows = list(
         session.run(
             _Q_DOCS_WINDOW,
-            patient_id="6040304227",
+            patient_id="9990002009",
             after="2024-11-01",
             before="2024-12-31",
         )
@@ -182,7 +182,7 @@ def _fix_e20(session) -> None:
     encs = list(
         session.run(
             _Q_ENCOUNTERS_WINDOW,
-            patient_id="6040304227",
+            patient_id="9990002009",
             after="2024-11-15",
             before="2024-11-20",
         )
@@ -242,7 +242,7 @@ def _fix_e20(session) -> None:
             # Add HAS_SITUATION to patient graph
             session.run(
                 _Q_ADD_PATIENT_SITUATION,
-                patient_id="6040304227",
+                patient_id="9990002009",
                 concept_id=cid,
             )
             print("  [WRITTEN] HAS_SITUATION added to patient graph.")

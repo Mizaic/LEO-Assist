@@ -19,9 +19,10 @@ interface MultiChipProps {
   options: Array<{ value: string; label: string }>;
   selected: string[];
   onChange: (next: string[]) => void;
+  counts?: Record<string, number>;
 }
 
-function MultiChipSelect({ label, options, selected, onChange }: MultiChipProps) {
+function MultiChipSelect({ label, options, selected, onChange, counts }: MultiChipProps) {
   const toggle = (value: string) => {
     if (selected.includes(value)) {
       onChange(selected.filter((v) => v !== value));
@@ -30,23 +31,31 @@ function MultiChipSelect({ label, options, selected, onChange }: MultiChipProps)
     }
   };
 
+  const visibleOptions = counts
+    ? options.filter((opt) => (counts[opt.value] ?? 0) > 0)
+    : options;
+
   return (
     <Box>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
         {label}
       </Typography>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-        {options.map((opt) => (
-          <Chip
-            key={opt.value}
-            label={opt.label}
-            size="small"
-            variant={selected.includes(opt.value) ? "filled" : "outlined"}
-            color={selected.includes(opt.value) ? "primary" : "default"}
-            onClick={() => toggle(opt.value)}
-            sx={{ fontSize: "0.7rem" }}
-          />
-        ))}
+        {visibleOptions.map((opt) => {
+          const count = counts?.[opt.value];
+          const chipLabel = count != null ? `${opt.label} (${count})` : opt.label;
+          return (
+            <Chip
+              key={opt.value}
+              label={chipLabel}
+              size="small"
+              variant={selected.includes(opt.value) ? "filled" : "outlined"}
+              color={selected.includes(opt.value) ? "primary" : "default"}
+              onClick={() => toggle(opt.value)}
+              sx={{ fontSize: "0.7rem" }}
+            />
+          );
+        })}
       </Box>
     </Box>
   );
@@ -58,6 +67,7 @@ interface Props {
   closureReasons: string[];
   onCancerTypesChange: (v: string[]) => void;
   onClosureReasonsChange: (v: string[]) => void;
+  cancerTypeCounts?: Record<string, number>;
 }
 
 export default function PathwayFilterChips({
@@ -66,6 +76,7 @@ export default function PathwayFilterChips({
   closureReasons,
   onCancerTypesChange,
   onClosureReasonsChange,
+  cancerTypeCounts,
 }: Props) {
   if (pathwayFilter === "confirmed") {
     return (
@@ -74,6 +85,7 @@ export default function PathwayFilterChips({
         options={CANCER_TYPE_OPTIONS}
         selected={cancerTypes}
         onChange={onCancerTypesChange}
+        counts={cancerTypeCounts}
       />
     );
   }

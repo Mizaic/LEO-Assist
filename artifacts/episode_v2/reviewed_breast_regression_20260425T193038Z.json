@@ -1,0 +1,440 @@
+{
+  "generated_at": "2026-04-25T19:30:47.642607+00:00",
+  "cohort": "reviewed_breast",
+  "count": 11,
+  "mean_jaccard": 0.7748,
+  "total_missing": 9,
+  "total_extra": 29,
+  "rows": [
+    {
+      "patient_id": "4187508279",
+      "episode_id": "ep-v2-eec5f0def7c967b4",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-03-10",
+      "detector_start": "2025-03-10",
+      "reviewed_links": 24,
+      "detector_links": 22,
+      "overlap": 21,
+      "missing": 3,
+      "extra": 1,
+      "jaccard": 0.84,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [
+        {
+          "encounter_id": "642f5f7d-fd3e-40b1-8b7d-ce0299b42cbc",
+          "date": "2025-03-10",
+          "milestone_type": "referral_sent",
+          "text": "16:34 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fa"
+        },
+        {
+          "encounter_id": "e2e52c31-da9e-4a41-81cc-66809ddfcc5a",
+          "date": "2025-08-13",
+          "milestone_type": "related_correspondence",
+          "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nOncology to Woodbrook Medical Centre"
+        },
+        {
+          "encounter_id": "5abc1b62-a09a-4e10-9397-81328a4582f3",
+          "date": "2025-09-24",
+          "milestone_type": "related_correspondence",
+          "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nOncology to Woodbrook Medical Centre (document workflow not completed)"
+        }
+      ],
+      "extra_details": [
+        {
+          "encounter_id": "e82d56d8-2450-409f-bf85-a90053c72e7b",
+          "date": "2025-10-27",
+          "text": "16:04 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) \neMED3 (2010) new statement issued, not fit for work (XaX1E)\nPNG Image: MED3Statement.png\nNew MED3 statement issued: Not fit for work - Valid from 23 Oct 2025 to 22 Nov 2"
+        }
+      ]
+    },
+    {
+      "patient_id": "4220526579",
+      "episode_id": "ep-v2-4f51671f9baabd36",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-01-27",
+      "detector_start": "2025-01-27",
+      "reviewed_links": 7,
+      "detector_links": 6,
+      "overlap": 6,
+      "missing": 1,
+      "extra": 0,
+      "jaccard": 0.8571,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [
+        {
+          "encounter_id": "2dc2fb87-47a7-4574-8fe7-7b5771ac7494",
+          "date": "2025-01-27",
+          "milestone_type": "referral_sent",
+          "text": "14:19 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww breast\nHospital Fa"
+        }
+      ],
+      "extra_details": []
+    },
+    {
+      "patient_id": "4246627143",
+      "episode_id": "ep-v2-1cce52d10227d789",
+      "matched": true,
+      "candidate_count": 2,
+      "reviewed_start": "2024-04-30",
+      "detector_start": "2024-04-30",
+      "reviewed_links": 6,
+      "detector_links": 6,
+      "overlap": 6,
+      "missing": 0,
+      "extra": 0,
+      "jaccard": 1.0,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [],
+      "extra_details": []
+    },
+    {
+      "patient_id": "4246627143",
+      "episode_id": "ep-v2-b370af68cef1164c",
+      "matched": true,
+      "candidate_count": 2,
+      "reviewed_start": "2025-05-15",
+      "detector_start": "2025-05-15",
+      "reviewed_links": 6,
+      "detector_links": 6,
+      "overlap": 6,
+      "missing": 0,
+      "extra": 0,
+      "jaccard": 1.0,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [],
+      "extra_details": []
+    },
+    {
+      "patient_id": "4246897485",
+      "episode_id": "ep-3b16d19e1a2a1615",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-03-13",
+      "detector_start": "2025-03-13",
+      "reviewed_links": 2,
+      "detector_links": 7,
+      "overlap": 2,
+      "missing": 0,
+      "extra": 5,
+      "jaccard": 0.2857,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [],
+      "extra_details": [
+        {
+          "encounter_id": "65dbcd87-55c4-4fd8-9f5d-c1a61fd485a1",
+          "date": "2025-07-23",
+          "text": "13:09 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nHistory: duty admin - task, hospital team (just delivered baby) was reported by the pt to be doing a 2ww, nothing on d/c paperwork to reflect this. \nbreast lump, limi"
+        },
+        {
+          "encounter_id": "fab36c79-935f-4920-8980-578656ae0cca",
+          "date": "2025-07-24",
+          "text": "14:49 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \n- PRISM 2WW Breast Female -  questionnaire started - (finalised: 24 Jul 2025 14:49)\nFast track referral for suspected breast cancer (XaMeC) - (Added from Questionnair"
+        },
+        {
+          "encounter_id": "44b84c7c-3bbc-4512-a24a-ad5ffc3da71f",
+          "date": "2025-09-01",
+          "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast Clinic to Woodbrook Medical Centre"
+        },
+        {
+          "encounter_id": "61aceb67-3dcc-4f30-91d6-0a1712da43e4",
+          "date": "2025-09-01",
+          "text": "00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        },
+        {
+          "encounter_id": "aed8defa-40fb-4b43-9d1b-3f08a61baea7",
+          "date": "2025-09-16",
+          "text": "09:49 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 01 Sep 2025\nSummary Care Record Update"
+        }
+      ]
+    },
+    {
+      "patient_id": "4562218347",
+      "episode_id": "ep-manual-7d674900f746",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": null,
+      "detector_start": "2024-10-02",
+      "reviewed_links": 10,
+      "detector_links": 16,
+      "overlap": 8,
+      "missing": 2,
+      "extra": 8,
+      "jaccard": 0.4444,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [
+        {
+          "encounter_id": "7c8cd27b-083c-41a4-aa1c-004539431de7",
+          "date": "2024-05-31",
+          "milestone_type": "treatment_started",
+          "text": "Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nSurgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) \nMajor: Radiotherapy (Xa8SI) (New Episode)\nMajor: Endocrine therapy (XaBtn) (New Episode)\nRadiotherapy (Xa8S"
+        },
+        {
+          "encounter_id": "d88c402d-d4c5-48fc-b17f-e7699a49c415",
+          "date": "2024-05-31",
+          "milestone_type": "diagnosis_confirmed",
+          "text": "Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nInfiltrating duct carcinoma (BB91.)\nInfiltrating duct carcinoma (BB91.)"
+        }
+      ],
+      "extra_details": [
+        {
+          "encounter_id": "4b6775d6-e5be-4e37-ae5d-9e2c4dd8d2b7",
+          "date": "2024-10-02",
+          "text": "15:04 - Surgery: BROCKHURST, Nikki (Dr) (Clinical Practitioner Access Role) \nProblem: Invasive carcinoma of breast (Ya0ln) - Right\nHistory: see breast clinic review  - Dr Sampson  \ndiscussed letrozole  \nMrs reynolds keen to understand the s"
+        },
+        {
+          "encounter_id": "fb73b0d0-5344-4661-add7-d4fe80c82c2d",
+          "date": "2024-10-03",
+          "text": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nBreast Surgeon to Woodbrook Medical Centre"
+        },
+        {
+          "encounter_id": "50e7a787-10f2-4fbc-b945-e5bfd262abff",
+          "date": "2024-12-06",
+          "text": "16:19 - Surgery: PATEL, Krishan (Dr) (Clinical Practitioner Access Role) \nHistory: letter from pt asking for script for flamigel rt, topical pain relief for radiation dermattis following radio for breast ca.\nhas fu with oncology upcoming.\nF"
+        },
+        {
+          "encounter_id": "87abde27-4bb6-40d2-9e8a-5d65c358bff3",
+          "date": "2025-03-14",
+          "text": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nBreast Clinic to Dr Medical Woodbrook"
+        },
+        {
+          "encounter_id": "811d2d7a-f58c-4d88-bb9b-ad73f96a69c6",
+          "date": "2025-03-27",
+          "text": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) \nUS scan of breast (585C.) (New Episode)"
+        },
+        {
+          "encounter_id": "2e9dd2a7-75de-4ac0-b6a6-18be95489de3",
+          "date": "2025-03-28",
+          "text": "Surgery: BEGUM, Senuara (Medical Secretary Access Role) \nBreast Clinic to Woodbrook Medical Centre"
+        },
+        {
+          "encounter_id": "45b4a82d-df96-4953-a05f-034338716a17",
+          "date": "2025-05-20",
+          "text": "Surgery: O'NEILL, Anna-Louise (Admin/Clinical Support Access Role) \nMammogram (537..) - no sign disease recurrence (Ongoing Episode)"
+        },
+        {
+          "encounter_id": "d72545b1-f6dd-437b-aaff-a82b8dbcbf6b",
+          "date": "2025-08-04",
+          "text": "09:49 - Surgery: SUMNER, Emily (Miss) (Nurse Access Role) \nExamination: Attended for Shingrix vaccination.\nCompleted radiotherapy for breast ca in nov 2024. \nAdvised re side effects.\nPlan: Recall added for 2nd dose after 6m.\n Shingles Immun"
+        }
+      ]
+    },
+    {
+      "patient_id": "4587069337",
+      "episode_id": "ep-v2-5b1274e57cf9efd7",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2024-05-31",
+      "detector_start": "2024-05-31",
+      "reviewed_links": 19,
+      "detector_links": 22,
+      "overlap": 17,
+      "missing": 2,
+      "extra": 5,
+      "jaccard": 0.7083,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [
+        {
+          "encounter_id": "f082e573-a97e-4fb5-9390-547241143fce",
+          "date": "2024-05-09",
+          "milestone_type": "first_presentation",
+          "text": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nAs per GP report list from the NHS Breast Screening Programme.\nBreast neoplasm screening normal (68620)"
+        },
+        {
+          "encounter_id": "59486031-e268-4c34-afc2-0c8480dbcdbb",
+          "date": "2024-09-10",
+          "milestone_type": "related_correspondence",
+          "text": "Surgery: BAILEY, Christopher (Receptionist Access Role) \nOncology to Woodbrook Medical Centre"
+        }
+      ],
+      "extra_details": [
+        {
+          "encounter_id": "809182ae-55ef-4bd6-b09e-6c0cf19e0b82",
+          "date": "2024-09-20",
+          "text": "10:29 - Surgery: JONES, Emma (Medical Secretary Access Role) \nHistory: Patient has been referred to the gastroenterology service as per Dr Patel. Letter sent to patient with details of an appointment.\nReferral to gastroenterology service (8"
+        },
+        {
+          "encounter_id": "dc75297a-bed1-4d4c-8455-fea4aec4e5d7",
+          "date": "2024-10-22",
+          "text": "Surgery: SAYADIAN, Leanna (Miss) (Admin/Clinical Support Access Role) , Entered By: KETHEESWARAN, Arthika (Dr)\nMajor: Chemotherapy started (XaKwV) (New Episode)\nChemotherapy started (XaKwV)"
+        },
+        {
+          "encounter_id": "1a693ba8-9c24-4362-989c-6a6dc230e0b3",
+          "date": "2024-10-26",
+          "text": "Admission to University Hospitals of Leicester NHS Trust - EPR (University Hospitals of Leicester NHS Trust): Referred to KANCHERLA, K (DR) @ University Hospitals of Leicester NHS Trust - EPR on 26 Oct 2024 08:58\nDischarged on 26 Oct 2024 1"
+        },
+        {
+          "encounter_id": "50584a65-4f83-4ff9-9630-74e4cb6c4f2e",
+          "date": "2025-08-21",
+          "text": "12:57 - Lymphoedema Clinic: HANWELL, Victoria (Nurse Access Role) Entered at: LOROS Hospice\n Lymphoedema Outcomes\n   Outcome of Assessment\n      Outcome of assessment:  Diagnosis/problem  Lymphoedema to left arm and hand following treatment"
+        },
+        {
+          "encounter_id": "e4e93cb2-540a-4298-a065-71bbe8228a24",
+          "date": "2025-12-10",
+          "text": "08:46 - Surgery: BRIDGES, Kirstie (Dr) (Clinical Practitioner Access Role) \nProblem: Depressed mood (XE0re)\nProblem: Malignant tumour of breast (X78WM)\nHistory: Been feeling very tired and quite low\nBeen through a lot - breat cancer, chemo,"
+        }
+      ]
+    },
+    {
+      "patient_id": "4742236882",
+      "episode_id": "ep-v2-5ea0807f7eb86a43",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-01-21",
+      "detector_start": "2025-01-21",
+      "reviewed_links": 17,
+      "detector_links": 20,
+      "overlap": 16,
+      "missing": 1,
+      "extra": 4,
+      "jaccard": 0.7619,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [
+        {
+          "encounter_id": "093465fa-26aa-4048-bbe0-f0f0b6ee7e96",
+          "date": "2025-01-29",
+          "milestone_type": "related_gp_visit",
+          "text": "14:23 - GP Surgery: VADHER, Kishan (Dr) (Clinical Practitioner Access Role) \nHistory: F2F appt. - with daughter \n\n2/52 hx ongoing back pains still - r/v\n \nTried co-codamol 8/500 with topical ibuprofen \nNo improvement with the above analgesi"
+        }
+      ],
+      "extra_details": [
+        {
+          "encounter_id": "38d31aa8-169f-4f3d-be0b-739dc8e9b59a",
+          "date": "2025-02-10",
+          "text": "Surgery: RAI, Enju (Miss) (Admin/Clinical Support Access Role) \nSeen in urgent care centre (XaNwS) (New Episode)\nMinor: Lumbar sprain (S572.) (New Episode)\nLumbar sprain (S572.)"
+        },
+        {
+          "encounter_id": "5ee63e5e-ae02-45fb-b47a-e523c88d75ea",
+          "date": "2025-02-10",
+          "text": "Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nUrgent Care Centre to Woodbrook Medical Centre"
+        },
+        {
+          "encounter_id": "ec95c6fe-2c11-44b5-a7c3-a03fea4a516f",
+          "date": "2025-03-24",
+          "text": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) , Entered By: KETHEESWARAN, Arthika (Dr)\nUltrasound scan (X70lf) - axillary (New Episode)\nMajor: Metastasis to lymph node (Xa980) (New Episode)\nMetastasis to lymph node (Xa980)"
+        },
+        {
+          "encounter_id": "0ecf1ad0-f0d6-4a99-86b2-7d2c0548eeb7",
+          "date": "2025-06-19",
+          "text": "09:43 - Surgery: DAWSON, Claire (Nurse) (Nurse Access Role) \nHistory: Attended with daughter for pre chemo b/t and bloods prior to Denosumab injection - bloods all included on hosp form.\n Phlebotomy Service\n   0214 006 Phlebotomy Service\n  "
+        }
+      ]
+    },
+    {
+      "patient_id": "4802892365",
+      "episode_id": "ep-v2-cc2c1a2e049e732a",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-03-26",
+      "detector_start": "2025-03-26",
+      "reviewed_links": 28,
+      "detector_links": 28,
+      "overlap": 28,
+      "missing": 0,
+      "extra": 0,
+      "jaccard": 1.0,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [],
+      "extra_details": []
+    },
+    {
+      "patient_id": "4920262426",
+      "episode_id": "ep-a7b277076470141f",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2025-08-12",
+      "detector_start": "2025-08-12",
+      "reviewed_links": 10,
+      "detector_links": 16,
+      "overlap": 10,
+      "missing": 0,
+      "extra": 6,
+      "jaccard": 0.625,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [],
+      "extra_details": [
+        {
+          "encounter_id": "73f77444-9343-428d-b4ce-13c37121a2c0",
+          "date": "2025-08-12",
+          "text": "18:14 - Surgery: AMIN, Kunal (Dr) (Clinical Practitioner Access Role) \nHistory: Duty doctor f2f review....\nNoticed lump 2 weeks ago left side of breast.\nNot painful. Noticed by chance.\nDoes not check breasts regularly.\nNo FH of breast cance"
+        },
+        {
+          "encounter_id": "5f5d0a42-db18-41f2-b88e-e99f9218d3b6",
+          "date": "2025-08-13",
+          "text": "13:36 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected breast cancer (XaMeC)\nChoice and booking enhanced services administration (XaMJa)\n 2WW\n   Patient awaiting OPD appt.: Yes 2ww Breast\nHospital Fa"
+        },
+        {
+          "encounter_id": "8a739bf0-0795-4ffa-a1c1-91907705d487",
+          "date": "2025-09-11",
+          "text": "00:00 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \nSeen in fast track suspected breast cancer clinic (XaPyQ)"
+        },
+        {
+          "encounter_id": "f9003d44-734e-4adc-b2bd-3260af8a1e83",
+          "date": "2025-09-11",
+          "text": "Surgery: SILK-MOORE, Karen (Mrs) (Medical Secretary Access Role) \nBreast Clinic to Dr Medical Woodbrook"
+        },
+        {
+          "encounter_id": "2ed5f19f-42fd-40e5-b2cb-2118cbaf94a8",
+          "date": "2025-09-29",
+          "text": "Surgery: BROWN, Nicola (Admin/Clinical Support Access Role) \nMinor: Microcalcifications of the breast (XSEB7) (New Episode)\nMicrocalcifications of the breast (XSEB7)"
+        },
+        {
+          "encounter_id": "6daf697b-7d4b-4f57-b7e6-89a8cb117e24",
+          "date": "2025-10-13",
+          "text": "14:34 - Surgery: SILK-MOORE, Karen (Mrs) (Receptionist Access Role) \n 2WW\n   Seen in 2WW Clinic?: Seen in fast track suspected breast cancer clinic (XaPyQ) 11 Sep 2025"
+        }
+      ]
+    },
+    {
+      "patient_id": "4926975998",
+      "episode_id": "ep-v2-2003c490791e15da",
+      "matched": true,
+      "candidate_count": 1,
+      "reviewed_start": "2024-03-14",
+      "detector_start": "2024-03-14",
+      "reviewed_links": 26,
+      "detector_links": 26,
+      "overlap": 26,
+      "missing": 0,
+      "extra": 0,
+      "jaccard": 1.0,
+      "tier": "suggest",
+      "review_reasons": [
+        "context_milestone_requires_review"
+      ],
+      "missing_details": [],
+      "extra_details": []
+    }
+  ]
+}

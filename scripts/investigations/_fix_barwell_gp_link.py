@@ -1,4 +1,4 @@
-"""Fix: re-link patient 6012067550 from C82061 (Barwell) to C82070 (Woodbrook).
+"""Fix: re-link patient 9990010053 from C82061 (Barwell) to C82070 (Woodbrook).
 
 This patient was erroneously registered at Barwell & Hollycroft.
 All episodes belong to the Woodbrook cohort.
@@ -11,7 +11,7 @@ Steps:
 
 from libs.neo4j_client.client import PatientGraphClient
 
-PATIENT_ID = "6012067550"
+PATIENT_ID = "9990010053"
 OLD_GP = "C82061"
 NEW_GP = "C82070"
 

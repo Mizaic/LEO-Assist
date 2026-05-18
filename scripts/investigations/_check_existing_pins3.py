@@ -18,7 +18,7 @@ kg_uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "bolt://localhost:7688")
 kg_user = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "neo4j")
 kg_pass = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "knowledge-dev")
 
-CONCEPT_IDS = ["1290960005", "272016000", "405749004"]
+CONCEPT_IDS = ["9990010014", "272016000", "405749004"]
 
 QUERY = """
 MATCH (sf:SurfaceForm)-[m:MAPS_TO]->(c:SNOMEDConcept {concept_id: $cid})

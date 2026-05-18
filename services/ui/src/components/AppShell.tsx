@@ -9,7 +9,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -60,6 +60,8 @@ import StorageOutlinedIcon from "@mui/icons-material/StorageOutlined";
 import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import LinearProgress from "@mui/material/LinearProgress";
 import Chip from "@mui/material/Chip";
 import { useAuth } from "@/lib/authContext";
@@ -72,10 +74,20 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import Menu from "@mui/material/Menu";
+import { useDemoMode } from "@/context/DemoModeContext";
 import { useOrg } from "@/context/OrgContext";
+import { maskOrgName } from "@/lib/demoMode";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
+
+const SIDEBAR_PREF_STORAGE_KEY = "leo-sidebar-pref";
+
+/** Lets users reach portaled menus without the drawer snapping shut mid-move */
+const RAIL_HOVER_LEAVE_MS = 240;
+
+type SidebarPref = "follow-breakpoint" | "expanded" | "collapsed";
 
 type NavItem = {
   label: string;
@@ -163,9 +175,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { session, status, signIn, signOut } = useAuth();
   const { currentOrg, organizations, isPlatformAdmin, switchOrg, viewAll } = useOrg();
+  const { isDemoMode } = useDemoMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const prefersCollapsedDesktop = useMediaQuery(theme.breakpoints.down("lg"), { defaultMatches: false });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarPref, setSidebarPref] = useState<SidebarPref>("follow-breakpoint");
+  const [orgMenuAnchor, setOrgMenuAnchor] = useState<HTMLElement | null>(null);
+  const [railHoverExpanded, setRailHoverExpanded] = useState(false);
+  const railHoverLeaveTimerRef = useRef<number | null>(null);
   // Default shell is care; admin is restored from localStorage after mount (SSR-safe).
   const [uiMode, setUiMode] = useState<"care" | "admin">("care");
 
@@ -182,6 +200,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       setUiMode("care");
     } catch {
       setUiMode("care");
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SIDEBAR_PREF_STORAGE_KEY);
+      if (raw === "expanded" || raw === "collapsed" || raw === "follow-breakpoint") {
+        setSidebarPref(raw);
+      }
+    } catch {
+      // ignore
     }
   }, []);
 
@@ -210,6 +239,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   const visibleNavItems = navItemsForMode.filter((item) => !item.adminOnly || isPlatformAdmin);
 
+  const sortedOrganizations = useMemo(
+    () =>
+      [...organizations].sort((a, b) =>
+        (a.shortName || a.name).localeCompare(b.shortName || b.name, "en", {
+          sensitivity: "base",
+        }),
+      ),
+    [organizations],
+  );
+
+  const handleNav = useCallback(
+    (path: string) => {
+      router.push(path);
+      if (isMobile) setMobileOpen(false);
+    },
+    [router, isMobile],
+  );
+
   const toggleUiMode = useCallback(() => {
     setUiMode((prev) => {
       const next = prev === "care" ? "admin" : "care";
@@ -220,7 +267,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const persistSidebarPref = useCallback((pref: SidebarPref) => {
+    setSidebarPref(pref);
+    try {
+      window.localStorage.setItem(SIDEBAR_PREF_STORAGE_KEY, pref);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const isEditor = isEditorRoute(pathname);
+  const dockCollapsed =
+    !isMobile &&
+    !isEditor &&
+    (sidebarPref === "collapsed" ||
+      (sidebarPref === "follow-breakpoint" && prefersCollapsedDesktop));
+
+  const collapseChromeFromMainClick = useCallback(() => {
+    if (isMobile) {
+      if (mobileOpen) setMobileOpen(false);
+      return;
+    }
+    if (isEditor) return;
+    if (dockCollapsed) return;
+    persistSidebarPref("collapsed");
+  }, [dockCollapsed, isEditor, isMobile, mobileOpen, persistSidebarPref]);
+
+  useEffect(() => {
+    if (!dockCollapsed) setRailHoverExpanded(false);
+  }, [dockCollapsed]);
+
+  useEffect(() => {
+    return () => {
+      if (railHoverLeaveTimerRef.current !== null) {
+        window.clearTimeout(railHoverLeaveTimerRef.current);
+        railHoverLeaveTimerRef.current = null;
+      }
+    };
+  }, []);
+
   // Listing public exceptions is safer than enumerating every protected path.
   const isPublicPage =
     pathname === "/" ||
@@ -260,14 +345,50 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const handleNav = (path: string) => {
-    router.push(path);
-    if (isMobile) setMobileOpen(false);
-  };
+  const drawerShowsFullChrome =
+    !isMobile && !isEditor && (!dockCollapsed || railHoverExpanded);
 
-  const currentWidth = isEditor ? RAIL_WIDTH : DRAWER_WIDTH;
+  const currentWidth =
+    isMobile ? DRAWER_WIDTH : isEditor ? RAIL_WIDTH : drawerShowsFullChrome ? DRAWER_WIDTH : RAIL_WIDTH;
 
   const homeRoute = uiMode === "admin" ? "/admin/console" : "/care/dashboard";
+
+  const sidebarNavRail = (
+    <Box component="nav" aria-label="Main navigation" sx={{ width: "100%" }}>
+      <List sx={{ p: 0, width: "100%" }}>
+        {visibleNavItems.map((item) => {
+          const isActive = pathname
+            ? (item.activePrefix
+                ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
+                : pathname === item.path || pathname.startsWith(item.path + "/"))
+            : false;
+          const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
+          return (
+            <Tooltip key={item.path} title={item.label} placement="right">
+              <ListItemButton
+                selected={isActive}
+                onClick={() => handleNav(item.path)}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={item.label}
+                sx={{
+                  justifyContent: "center",
+                  px: 0,
+                  py: 1,
+                  minHeight: 44,
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, color: isActive ? "primary.main" : "text.secondary" }}>
+                  <Badge badgeContent={badgeCount} color="warning" max={99}>
+                    {item.icon}
+                  </Badge>
+                </ListItemIcon>
+              </ListItemButton>
+            </Tooltip>
+          );
+        })}
+      </List>
+    </Box>
+  );
 
   const railContent = (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", py: 1.5 }}>
@@ -287,40 +408,120 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </IconButton>
       </Tooltip>
       <Divider sx={{ width: "80%", mb: 1 }} />
-      <Box component="nav" aria-label="Main navigation" sx={{ width: "100%" }}>
-        <List sx={{ p: 0, width: "100%" }}>
-          {visibleNavItems.map((item) => {
-            const isActive = pathname
-              ? (item.activePrefix
-                  ? item.activePrefix.some((p) => pathname === p || pathname.startsWith(p + "/"))
-                  : pathname === item.path || pathname.startsWith(item.path + "/"))
-              : false;
-            const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
-            return (
-              <Tooltip key={item.path} title={item.label} placement="right">
-                <ListItemButton
-                  selected={isActive}
-                  onClick={() => handleNav(item.path)}
-                  aria-current={isActive ? "page" : undefined}
-                  aria-label={item.label}
-                  sx={{
-                    justifyContent: "center",
-                    px: 0,
-                    py: 1,
-                    minHeight: 44,
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 0, color: isActive ? "primary.main" : "text.secondary" }}>
-                    <Badge badgeContent={badgeCount} color="warning" max={99}>
-                      {item.icon}
-                    </Badge>
-                  </ListItemIcon>
-                </ListItemButton>
-              </Tooltip>
-            );
-          })}
-        </List>
-      </Box>
+      {sidebarNavRail}
+      {session?.user && (
+        <Box sx={{ mt: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, pb: 0.5 }}>
+          <Tooltip title={session.user.name ?? "User"} placement="right">
+            <Avatar
+              src={session.user.image ?? undefined}
+              sx={{ width: 28, height: 28, fontSize: "0.7rem", bgcolor: "primary.main" }}
+            >
+              {session.user.name?.charAt(0) ?? "U"}
+            </Avatar>
+          </Tooltip>
+          <Tooltip title="Sign out" placement="right">
+            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()}>
+              <LogoutIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
+    </Box>
+  );
+
+  const compactDrawerContent = (
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", height: "100%", py: 1.5 }}>
+      <Tooltip title="LEO by Mizaic - go to home" placement="right">
+        <IconButton
+          aria-label="LEO by Mizaic - go to home"
+          onClick={() => handleNav(homeRoute)}
+          sx={{ width: 40, height: 40, mb: 0.5, p: 0.5 }}
+        >
+          <Box
+            component="img"
+            src="/leo-icon.svg"
+            alt=""
+            aria-hidden="true"
+            sx={{ width: 28, height: 28 }}
+          />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="Expand sidebar" placement="right">
+        <IconButton
+          aria-label="Expand sidebar"
+          size="small"
+          onClick={() => persistSidebarPref("expanded")}
+          sx={{ mb: 1 }}
+        >
+          <ChevronRightIcon sx={{ fontSize: 20 }} />
+        </IconButton>
+      </Tooltip>
+      <Divider sx={{ width: "80%", mb: 1 }} />
+      {(organizations.length > 0 || isPlatformAdmin) && (
+        <>
+          <Tooltip title="Select organisation" placement="right">
+            <IconButton
+              aria-label="Select organisation"
+              aria-haspopup="true"
+              aria-expanded={orgMenuAnchor ? "true" : "false"}
+              size="small"
+              sx={{ mb: 0.5 }}
+              onClick={(e) => setOrgMenuAnchor(e.currentTarget)}
+            >
+              <BusinessOutlinedIcon sx={{ color: "text.secondary" }} />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            anchorEl={orgMenuAnchor}
+            open={Boolean(orgMenuAnchor)}
+            onClose={() => {
+              setOrgMenuAnchor(null);
+              setRailHoverExpanded(false);
+            }}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+          >
+            {isPlatformAdmin && (
+              <MenuItem
+                selected={viewAll}
+                onClick={() => {
+                  switchOrg("__all__");
+                  setOrgMenuAnchor(null);
+                }}
+              >
+                All Organisations
+              </MenuItem>
+            )}
+            {sortedOrganizations.map((org) => (
+              <MenuItem
+                key={org.id}
+                selected={!viewAll && currentOrg?.id === org.id}
+                onClick={() => {
+                  switchOrg(org.id);
+                  setOrgMenuAnchor(null);
+                }}
+              >
+                {isDemoMode ? maskOrgName(org.shortName || org.name) : org.shortName || org.name}
+              </MenuItem>
+            ))}
+          </Menu>
+        </>
+      )}
+      {(organizations.length > 0 || isPlatformAdmin) && <Divider sx={{ width: "80%", mb: 1 }} />}
+      {sidebarNavRail}
+      {isPlatformAdmin && (
+        <Box sx={{ mt: 1, display: "flex", justifyContent: "center", width: "100%" }}>
+          <Tooltip title={uiMode === "care" ? "Switch to Admin" : "Switch to Care"} placement="right">
+            <IconButton
+              aria-label={uiMode === "care" ? "Switch to Admin" : "Switch to Care"}
+              size="small"
+              onClick={toggleUiMode}
+            >
+              <SwapHorizIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
       {session?.user && (
         <Box sx={{ mt: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, pb: 0.5 }}>
           <Tooltip title={session.user.name ?? "User"} placement="right">
@@ -357,13 +558,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             sx={{ width: 32, height: 32 }}
           />
         </IconButton>
-        <Typography component="span" sx={{ fontSize: "1rem", lineHeight: 1.3, color: "text.primary", fontWeight: 600 }}>
+        <Typography component="span" sx={{ fontSize: "1rem", lineHeight: 1.3, color: "text.primary", fontWeight: 600, flex: 1, minWidth: 0 }}>
           LEO
           <br />
           <Typography component="span" sx={{ fontSize: "0.8rem", color: "text.secondary", fontWeight: 400 }}>
             by Mizaic
           </Typography>
         </Typography>
+        {!isMobile && !isEditor && (
+          <Tooltip title="Collapse sidebar">
+            <IconButton
+              aria-label="Collapse sidebar"
+              size="small"
+              onClick={() => persistSidebarPref("collapsed")}
+              sx={{ flexShrink: 0 }}
+            >
+              <ChevronLeftIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Box>
 
       <Divider />
@@ -401,17 +614,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   All Organisations
                 </MenuItem>
               )}
-              {[...organizations]
-                .sort((a, b) =>
-                  (a.shortName || a.name).localeCompare(b.shortName || b.name, "en", {
-                    sensitivity: "base",
-                  }),
-                )
-                .map((org) => (
+              {sortedOrganizations.map((org) => (
                   <MenuItem key={org.id} value={org.id} sx={{ fontSize: "0.9rem" }}>
-                    {org.shortName || org.name}
+                    {isDemoMode
+                      ? maskOrgName(org.shortName || org.name)
+                      : org.shortName || org.name}
                   </MenuItem>
-                ))}
+              ))}
             </Select>
           </FormControl>
         </Box>
@@ -512,6 +721,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     </>
   );
 
+  const drawerChildren =
+    isMobile ? fullDrawerContent : isEditor ? railContent : drawerShowsFullChrome ? fullDrawerContent : compactDrawerContent;
+
+  const drawerPaperListeners =
+    !isMobile && !isEditor && dockCollapsed
+      ? {
+          onMouseEnter: () => {
+            if (railHoverLeaveTimerRef.current !== null) {
+              window.clearTimeout(railHoverLeaveTimerRef.current);
+              railHoverLeaveTimerRef.current = null;
+            }
+            setRailHoverExpanded(true);
+          },
+          onMouseLeave: () => {
+            if (orgMenuAnchor) return;
+            if (railHoverLeaveTimerRef.current !== null) {
+              window.clearTimeout(railHoverLeaveTimerRef.current);
+            }
+            railHoverLeaveTimerRef.current = window.setTimeout(() => {
+              setRailHoverExpanded(false);
+              railHoverLeaveTimerRef.current = null;
+            }, RAIL_HOVER_LEAVE_MS);
+          },
+        }
+      : undefined;
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       {/* Idle timeout warning dialog */}
@@ -556,6 +791,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         open={isMobile ? mobileOpen : true}
         onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
+        PaperProps={drawerPaperListeners}
         sx={{
           width: isMobile ? DRAWER_WIDTH : currentWidth,
           flexShrink: 0,
@@ -570,12 +806,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           },
         }}
       >
-        {isMobile || !isEditor ? fullDrawerContent : railContent}
+        {drawerChildren}
       </Drawer>
 
       <Box
         component="main"
         id="main-content"
+        onClick={collapseChromeFromMainClick}
         sx={{
           flexGrow: 1,
           minWidth: 0,
@@ -618,25 +855,59 @@ function TrainingProgressBanner() {
 
   useEffect(() => {
     let cancelled = false;
-    const poll = async () => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const ACTIVE_INTERVAL_MS = 5000;
+    const IDLE_INTERVAL_MS = 60000;
+
+    const schedule = (delay: number) => {
+      if (cancelled) return;
+      timer = setTimeout(tick, delay);
+    };
+
+    const tick = async () => {
+      let active: { job_id: string; phase: string; f1?: number; status: string } | null = null;
       try {
+        if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+          // Skip polling when the tab is hidden; resume when visible.
+          schedule(IDLE_INTERVAL_MS);
+          return;
+        }
         const res = await fetch("/api/training-worker/jobs");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
-        const active = (data.jobs ?? data ?? []).find(
-          (j: { status: string }) => j.status === "running" || j.status === "evaluating" || j.status === "uploading"
-        );
-        setRunningJob(active ?? null);
+        if (res.ok) {
+          const data = await res.json();
+          active = (data.jobs ?? data ?? []).find(
+            (j: { status: string }) =>
+              j.status === "running" ||
+              j.status === "evaluating" ||
+              j.status === "uploading"
+          ) ?? null;
+        }
       } catch {
         // ignore
       }
+      if (cancelled) return;
+      setRunningJob(active);
+      schedule(active ? ACTIVE_INTERVAL_MS : IDLE_INTERVAL_MS);
     };
-    poll();
-    const id = setInterval(poll, 5000);
+
+    const onVisibility = () => {
+      if (typeof document === "undefined") return;
+      if (document.visibilityState === "visible") {
+        if (timer) clearTimeout(timer);
+        schedule(0);
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
+
+    schedule(0);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      if (timer) clearTimeout(timer);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
     };
   }, []);
 

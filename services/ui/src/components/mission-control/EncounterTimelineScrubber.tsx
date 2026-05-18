@@ -23,7 +23,6 @@ import {
   type ScrubberEncounter,
   type TimelineBin,
 } from "./timelineBins";
-import TimelineBinPopover from "./TimelineBinPopover";
 import TimelineRangeBrush from "./TimelineRangeBrush";
 import HistogramBar, {
   HoverPreview,
@@ -40,13 +39,23 @@ import {
 // Encounter text tab. Bars represent date bins (auto-granularity).
 // Each bar is a stack of "linked-to-focused-episode" + "other"
 // counts so the reviewer sees linked density vs total density at a
-// glance. Hover/focus reveals a preview; click jumps directly when
-// the bin contains one encounter, or opens a popover otherwise. A
-// brush rail below the bars supports zoom; a "Reset zoom" button
+// glance. Hover/focus reveals a preview. Clicking a bar always
+// filters the encounter list below to that bar's date range -- a
+// single, predictable action regardless of how many encounters the
+// bin contains (DI-15E0094F).
+//
+// When the reviewer types in the search field above, the scrubber
+// is told which encounter ids matched (`searchMatchEncounterIds`)
+// and overlays an amber outline on bins that contain hits while
+// dimming bins that do not. This lets the reviewer scan the whole
+// patient timeline for term density without leaving the search box
+// (DI-15E0094F).
+//
+// A brush rail below the bars supports zoom; a "Reset zoom" button
 // appears when zoomed in.
 //
-// Design Controls: UN-LEO-AI-077, DI-LEO-AI-179, DO-LEO-AI-178,
-// R-LEO-AI-174, VT-LEO-AI-173.
+// Design Controls: UN-LEO-AI-077, DI-LEO-AI-179, DI-15E0094F,
+// DO-LEO-AI-178, R-LEO-AI-174, VT-LEO-AI-173, VT-827AA57F.
 
 export type { ScrubberEncounter } from "./timelineBins";
 
@@ -67,9 +76,20 @@ interface Props {
   // window).
   visibleFromMs?: number | null;
   visibleToMs?: number | null;
-  // Called whenever the user drags the brush. Pass nulls when the
-  // user clicks "Reset zoom" so the parent can clear the filter.
+  // Called whenever the user drags the brush, or clicks a bar (in
+  // which case the scrubber sets the visible range to that bar's
+  // bin range so the encounter list below filters to that slice).
+  // Pass nulls when the user clicks "Reset zoom" so the parent can
+  // clear the filter.
   onVisibleRangeChange?: (fromMs: number | null, toMs: number | null) => void;
+  // When provided, the scrubber treats free-text search as active
+  // and overlays the amber search-match indicator on every bin that
+  // contains at least one of these encounter ids. Pass `undefined`
+  // (not an empty Set) when no search is active so the bars render
+  // at full opacity. Pass an empty Set when the user has typed a
+  // term that has zero hits -- the scrubber will dim every bin to
+  // make the "no matches anywhere" state visible.
+  searchMatchEncounterIds?: Set<string>;
 }
 
 const MIN_ENCOUNTERS_FOR_SCRUBBER = 5;
@@ -136,13 +156,14 @@ export default function EncounterTimelineScrubber({
   visibleFromMs: visibleFromMsProp,
   visibleToMs: visibleToMsProp,
   onVisibleRangeChange,
+  searchMatchEncounterIds,
 }: Props) {
   const motionState = useMotion();
   const reducedMotion = motionState.reducedMotion;
   const hoverDuration = motionState.transitions.hover.duration;
   const stuck = useStickyShadow();
   const [hoverBinKey, setHoverBinKey] = useState<string | null>(null);
-  const [popoverBinKey, setPopoverBinKey] = useState<string | null>(null);
+  const searchActive = searchMatchEncounterIds !== undefined;
 
   const dated = useMemo(
     () => buildDated(encounters, linkedEncounterIds),
@@ -163,7 +184,6 @@ export default function EncounterTimelineScrubber({
   useEffect(() => {
     if (isControlled) return;
     setInternalZoom(null);
-    setPopoverBinKey(null);
     setHoverBinKey(null);
   }, [encounters.length, fullMinMs, fullMaxMs, isControlled]);
 
@@ -202,6 +222,22 @@ export default function EncounterTimelineScrubber({
       widthPct,
     }));
   }, [bins]);
+
+  // Per-bin count of encounters whose ids are in
+  // `searchMatchEncounterIds`. Recomputed only when the matching
+  // set or the bin layout changes.
+  const searchMatchCountByBin = useMemo<number[]>(() => {
+    if (!searchMatchEncounterIds) return bars.map(() => 0);
+    return bars.map((bar) => {
+      let count = 0;
+      for (const dated of bar.bin.encounters) {
+        if (searchMatchEncounterIds.has(String(dated.enc.encounter_id))) {
+          count += 1;
+        }
+      }
+      return count;
+    });
+  }, [bars, searchMatchEncounterIds]);
 
   const linkedTicks = useMemo<LinkedTick[]>(
     () =>
@@ -245,14 +281,16 @@ export default function EncounterTimelineScrubber({
     return null;
   }
 
+  // Click-to-filter: every bar click sets the visible range to the
+  // bin's [startMs, endMs], so the encounter list below filters to
+  // that slice. This is intentionally consistent across single- and
+  // multi-encounter bins (DI-15E0094F) -- the reviewer never needs
+  // to distinguish between "click a bar" and "click a popover row".
   const handleBarActivate = (bar: BarRect) => {
     if (bar.bin.total === 0) return;
-    if (bar.bin.total === 1) {
-      onJumpToEncounter(String(bar.bin.encounters[0].enc.encounter_id));
-      setPopoverBinKey(null);
-      return;
-    }
-    setPopoverBinKey((prev) => (prev === bar.bin.label ? null : bar.bin.label));
+    const next = clampRange(bar.bin.startMs, bar.bin.endMs, fullMinMs, fullMaxMs);
+    if (isControlled) onVisibleRangeChange?.(next.fromMs, next.toMs);
+    else setInternalZoom(next);
   };
 
   const handleBrushChange = (fromMs: number, toMs: number) => {
@@ -266,7 +304,6 @@ export default function EncounterTimelineScrubber({
     else setInternalZoom(null);
   };
 
-  const popoverBar = popoverBinKey ? bars.find((b) => b.bin.label === popoverBinKey) ?? null : null;
   const hoverBar = hoverBinKey ? bars.find((b) => b.bin.label === hoverBinKey) ?? null : null;
 
   return (
@@ -307,7 +344,7 @@ export default function EncounterTimelineScrubber({
             </Button>
           )}
           <Typography variant="caption" sx={{ color: "text.disabled", fontSize: "0.65rem" }}>
-            Click a bar to jump - drag the focus band to widen or narrow your view
+            Click a bar to filter the list to that period - drag the focus band to widen or narrow your view
           </Typography>
         </Box>
       </Box>
@@ -371,7 +408,7 @@ export default function EncounterTimelineScrubber({
           fullMaxMs={fullMaxMs}
           onJumpToEncounter={onJumpToEncounter}
         />
-        {bars.map((bar) => (
+        {bars.map((bar, idx) => (
           <HistogramBar
             key={`bar-${bar.bin.label}`}
             bar={bar}
@@ -388,6 +425,9 @@ export default function EncounterTimelineScrubber({
             }
             maxTotal={maxTotal}
             hoverDuration={hoverDuration}
+            searchActive={searchActive}
+            hasSearchMatch={searchMatchCountByBin[idx] > 0}
+            searchMatchCount={searchMatchCountByBin[idx]}
             onActivate={() => handleBarActivate(bar)}
             onArrow={(direction) =>
               jumpFromBin({
@@ -410,22 +450,8 @@ export default function EncounterTimelineScrubber({
           fullMaxMs={fullMaxMs}
         />
         <AnimatePresence>
-          {hoverBar && popoverBinKey === null && (
+          {hoverBar && (
             <HoverPreview bar={hoverBar} trackHeight={TRACK_HEIGHT} />
-          )}
-          {popoverBar && (
-            <TimelineBinPopover
-              key={`popover-${popoverBar.bin.label}`}
-              bin={popoverBar.bin}
-              anchorPct={popoverBar.centerPct}
-              trackHeight={TRACK_HEIGHT}
-              reducedMotion={reducedMotion}
-              onJump={(encounterId) => {
-                onJumpToEncounter(encounterId);
-                setPopoverBinKey(null);
-              }}
-              onClose={() => setPopoverBinKey(null)}
-            />
           )}
         </AnimatePresence>
       </Box>

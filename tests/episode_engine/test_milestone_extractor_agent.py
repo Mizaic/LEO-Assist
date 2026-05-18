@@ -307,9 +307,9 @@ def test_milestone_extractor_runs_unchanged_inside_partitioner_pass_through():
     assert result.milestones[0].encounter_id == "enc-1"
     assert trace.stage == "milestone_extractor"
     user_msg = llm.calls[0]["messages"][0]["content"]
-    assert "Part 1 of" not in user_msg, (
-        "single-partition pass-through must not add per-part headings"
-    )
+    assert (
+        "Part 1 of" not in user_msg
+    ), "single-partition pass-through must not add per-part headings"
 
 
 def test_milestone_extractor_requires_evidence_quote():
@@ -333,3 +333,34 @@ def test_milestone_extractor_requires_evidence_quote():
     llm = FakeLLM(FakeLLMResponse(tool_uses=[tool_use("submit_milestones", payload)]))
     with pytest.raises(StageError):
         _run(llm)
+
+
+def test_milestone_extractor_prompt_allows_non_gp_a_and_e_entry():
+    """VT-503-TC-006: non-GP / A&E / OOH entry is explicit in the SYSTEM prompt.
+
+    Regression guard: first_presentation and referral must not be GP-only
+    in copy, or ED-first pathways will miss milestones.
+    """
+    from libs.prompts.episode_engine import _shared, milestone_extractor_v1
+
+    assert (
+        "NOT only" in milestone_extractor_v1.SYSTEM
+    ), "Pathway 'referral' may not be limited to a GP-issued 2WW"
+    assert (
+        "A&E" in milestone_extractor_v1.SYSTEM
+    ), "Milestone copy must name A&E as a valid first_presentation locus"
+    assert (
+        "14. NON-GP" in _shared.RULES_OF_THE_ROAD
+    ), "Rules of the road should document non-GP and A&E entry (rule 14)"
+    assert (
+        "15. SAME-DAY SCREENING" in _shared.RULES_OF_THE_ROAD
+    ), "Rules of the road should document same-day screening + malignancy (rule 15)"
+    assert (
+        "SYN-EE-003" in milestone_extractor_v1.SYSTEM
+    ), "Milestone SYSTEM must include colorectal same-day reference (SYN-EE-003)"
+    assert (
+        "16. BCSP" in _shared.RULES_OF_THE_ROAD
+    ), "Rules of the road should document BCSP/FOBT first presentation (rule 16)"
+    assert (
+        "SYN-EE-004" in milestone_extractor_v1.SYSTEM
+    ), "Milestone SYSTEM must include BCSP/FOBT reference (SYN-EE-004)"

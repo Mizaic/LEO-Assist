@@ -18,7 +18,7 @@ import os
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.deps import require_admin
 from libs.auth.org_scope import CallerScope
@@ -41,6 +41,10 @@ class DeletePatientBody(BaseModel):
 class DeleteEpisodesBody(BaseModel):
     status: Optional[str] = None
     site: Optional[str] = None
+    unreviewed_only: bool = Field(
+        default=False,
+        description="When True, only episodes with reviewed_at IS NULL (not signed off).",
+    )
     dry_run: bool = True
 
 
@@ -545,7 +549,11 @@ def remediation_delete_episodes(
     client = _patient_client()
     try:
         return delete_episodes(
-            client, status=body.status, site=body.site, dry_run=body.dry_run
+            client,
+            status=body.status,
+            site=body.site,
+            unreviewed_only=body.unreviewed_only,
+            dry_run=body.dry_run,
         ).model_dump()
     finally:
         client.close()

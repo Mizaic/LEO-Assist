@@ -28,41 +28,26 @@ logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Resolver input normalisation
-# Strips trailing numeric lab-value suffixes and EMIS local code suffixes
-# from evidence phrases before they are sent to /terminology/resolve.
-# The original text is preserved in Neo4j; only the lookup query is cleaned.
+# Surface forms are trained with Read/EMIS codes and lab values included,
+# so only whitespace is normalised before lookup. The full text is sent to
+# the terminology server as-is so each (surface, entity-type) pair resolves
+# to the correct SNOMED concept.
 # ---------------------------------------------------------------------------
-
-# Matches: " 1.05 mmol/L", " 160 g/L", " 1.3 mIU/L", " 10^9/L" etc.
-_LAB_VALUE_RE = re.compile(
-    r"\s+\d[\d.,]*\s*" r"(?:10\^[0-9]+/[a-zA-Z]+|[a-zA-Z/%][a-zA-Z0-9/^.]*)" r"\s*$",
-    re.IGNORECASE,
-)
-
-# Matches trailing EMIS local code: " (X78gA)", " (Y41c9)", " (N1402)" etc.
-_EMIS_CODE_RE = re.compile(r"\s*\([A-Z][a-zA-Z0-9]{3,6}\)\s*$")
-_OBS_VALUE_RE = re.compile(
-    r"\b(?:[<>]?\s*\d+(?:\.\d+)?(?:\s*/\s*\d+(?:\.\d+)?)?)\b",
-    re.IGNORECASE,
-)
 
 
 def _normalise_for_resolve(text: str) -> str:
-    """Strip lab-value suffixes and EMIS local codes before resolver lookup.
+    """Normalise whitespace only -- never strip Read codes or lab values.
 
-    Never returns an empty string -- falls back to the stripped original.
+    Surface forms in the terminology store are indexed with Read codes and
+    numeric values present, so stripping them before lookup would produce a
+    worse (or wrong) match.  Callers pass the entity type via expected_tags
+    to drive the correct semantic-tag filter on the server.
     """
-    cleaned = _EMIS_CODE_RE.sub("", text.strip()).strip()
-    cleaned = _LAB_VALUE_RE.sub("", cleaned).strip()
-    return cleaned or text.strip()
+    return " ".join(str(text or "").split())
 
 
 def _normalise_tag(tag: str | None) -> str:
     return str(tag or "").strip().lower().replace(" ", "_").replace("-", "_")
-
-
-def _has_observation_value(text: str) -> bool:
-    return bool(_OBS_VALUE_RE.search(str(text or "")))
 
 
 def _candidate_tag(candidate: Any) -> str:
@@ -70,23 +55,6 @@ def _candidate_tag(candidate: Any) -> str:
         raw = candidate.get("semantic_tag") or candidate.get("semanticTag")
         return _normalise_tag(str(raw or ""))
     return _normalise_tag(str(getattr(candidate, "semantic_tag", "") or ""))
-
-
-def _filter_observable_without_value(
-    original_text: str,
-    candidates: list[Any],
-) -> list[Any]:
-    """Drop observable_entity candidates when text has no measurable value."""
-    if _has_observation_value(original_text):
-        return candidates
-    filtered = [c for c in candidates if _candidate_tag(c) != "observable_entity"]
-    if len(filtered) < len(candidates):
-        logger.debug(
-            "Suppressed observable_entity without value for '%s' (%d removed)",
-            original_text,
-            len(candidates) - len(filtered),
-        )
-    return filtered
 
 
 # ---------------------------------------------------------------------------
@@ -133,9 +101,13 @@ _ALWAYS_IGNORE_PATTERNS: tuple[re.Pattern[str], ...] = (
 # Applied after resolver returns results to suppress mismatches.
 # ---------------------------------------------------------------------------
 _ABBREV_BLOCKED_CONCEPTS: dict[str, set[str]] = {
-    # No entries currently -- NAD is handled by _ALWAYS_IGNORE_TERMS above.
-    # Add entries here for abbreviations where SOME concepts are correct and
-    # only specific wrong concepts need suppressing.
+    # NAD is handled by _ALWAYS_IGNORE_TERMS above.
+    #
+    # PSA: in UK primary care oncology context, "PSA" always means
+    # "Prostate Specific Antigen" (lab test), never "Psoriatic arthritis".
+    # Block the psoriatic arthritis concept so the correct observable entity
+    # (SNOMED 63476009 / 1016981000000101) surfaces as the top candidate.
+    "psa": {"156370009", "9946009"},  # Psoriatic arthritis concepts
 }
 
 
@@ -611,7 +583,9 @@ class TerminologyClient:
 
         unique = list(dict.fromkeys(terms))
 
-        # Build normalised-term -> [original terms] mapping for re-keying.
+        # Normalise whitespace only (surface forms include Read codes and lab
+        # values, so nothing is stripped).  Build the reverse mapping so we can
+        # re-key results back to original terms after the batch call.
         norm_to_originals: dict[str, list[str]] = {}
         normalised_unique: list[str] = []
         for orig in unique:
@@ -620,16 +594,13 @@ class TerminologyClient:
                 normalised_unique.append(norm)
             norm_to_originals.setdefault(norm, []).append(orig)
 
-        # Rebuild expected_tags with normalised keys.
+        # Rebuild expected_tags with whitespace-normalised keys.
         norm_tags: dict[str, str] | None = None
         if expected_tags:
-            norm_tags = {}
-            for key, value in expected_tags.items():
-                if _normalise_tag(
-                    str(value or "")
-                ) == "observable_entity" and not _has_observation_value(key):
-                    continue
-                norm_tags[_normalise_for_resolve(key)] = value
+            norm_tags = {
+                _normalise_for_resolve(k): str(v or "").strip()
+                for k, v in expected_tags.items()
+            }
 
         runtime = _load_runtime_config()
         runtime["timeout_seconds"] = float(
@@ -647,14 +618,11 @@ class TerminologyClient:
                 return {}
             aggregated.update(batch_results)
 
-        # Re-key results from normalised terms back to original terms.
-        # Apply abbreviation noise filter during re-keying so both paths
-        # (NER and LLM) benefit from the guard.
         rekeyed: dict[str, list[ResolvedTerm]] = {}
         for norm_key, candidates in aggregated.items():
             base_clean = _filter_abbrev_noise(norm_key, candidates)
             for orig in norm_to_originals.get(norm_key, [norm_key]):
-                rekeyed[orig] = _filter_observable_without_value(orig, base_clean)
+                rekeyed[orig] = base_clean
         return rekeyed
 
     def resolve_one(
@@ -906,13 +874,10 @@ class AsyncTerminologyClient:
 
         norm_tags: dict[str, str] | None = None
         if expected_tags:
-            norm_tags = {}
-            for key, value in expected_tags.items():
-                if _normalise_tag(
-                    str(value or "")
-                ) == "observable_entity" and not _has_observation_value(key):
-                    continue
-                norm_tags[_normalise_for_resolve(key)] = value
+            norm_tags = {
+                _normalise_for_resolve(k): str(v or "").strip()
+                for k, v in expected_tags.items()
+            }
 
         runtime = _load_runtime_config()
         runtime["timeout_seconds"] = float(
@@ -931,5 +896,5 @@ class AsyncTerminologyClient:
         for norm_key, candidates in aggregated.items():
             base_clean = _filter_abbrev_noise(norm_key, candidates)
             for orig in norm_to_originals.get(norm_key, [norm_key]):
-                rekeyed[orig] = _filter_observable_without_value(orig, base_clean)
+                rekeyed[orig] = base_clean
         return rekeyed

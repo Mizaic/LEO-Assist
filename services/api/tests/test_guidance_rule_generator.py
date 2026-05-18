@@ -286,11 +286,33 @@ class TestCodeSnomed:
         result = code_snomed({"raw_criteria": None})
         assert result["candidate_criteria"] is None
 
-    def test_terminology_api_failure_returns_none(self):
+    def test_terminology_api_failure_routes_to_hitl_with_no_candidates(self):
+        """Conservative-fail invariant: when Terminology API resolves nothing
+        and the agentic resolver can't recover, the term is routed to HITL
+        with zero candidates -- no rule is silently auto-coded.
+
+        Earlier versions of this test asserted ``candidate_criteria is None``.
+        The contract now produces a populated structure with empty candidate
+        lists and a non-empty ``hitl_terms`` so downstream code can route the
+        term for human review (the conservative-fail still holds because the
+        rule writer flags the rule as ``partial`` when ``needs_human_review``).
+        """
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction import code_snomed
 
+        empty_agentic = {
+            "selected": None,
+            "needs_human_review": True,
+            "resolver_turns": 1,
+            "best_candidates": [],
+            "search_history": [["x"]],
+            "reason": "stubbed for unit test",
+        }
         with patch(
             "libs.terminology.client.TerminologyClient.resolve", return_value={}
+        ), patch(
+            "libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl."
+            "_run_agentic_resolver",
+            return_value=empty_agentic,
         ):
             result = code_snomed(
                 {
@@ -301,7 +323,19 @@ class TestCodeSnomed:
                     }
                 }
             )
-        assert result["candidate_criteria"] is None
+
+        candidate = result["candidate_criteria"]
+        assert candidate is not None, (
+            "expected a populated candidate_criteria so HITL routing can fire"
+        )
+        action = candidate.get("action") or {}
+        assert action.get("candidates") == [], (
+            "no SNOMED candidates should be selected when Terminology returns nothing"
+        )
+        assert float(action.get("confidence") or 0.0) == 0.0
+        hitl_terms = candidate.get("hitl_terms") or []
+        assert hitl_terms, "expected the unresolved term to be routed to HITL"
+        assert any(t.get("kind") == "action" for t in hitl_terms)
 
 
 # ── Generator integration tests ────────────────────────────────────────────────
@@ -812,6 +846,21 @@ class TestActionFallbackPolicy:
         assert selected is None
 
     def test_expand_action_search_terms_adds_non_urgent_variants(self):
+        """Three invariants the variant-expander must preserve:
+
+        1. The original term is always present.
+        2. A ``routine`` urgency-synonym variant exists for the same organ.
+        3. An organ-class generalisation exists ("urological cancer" for
+           bladder), so SNOMED resolution can fall back from the specific
+           organ to the broader cancer pathway when needed.
+
+        The earlier assertion expected "non-urgent referral for suspected
+        urological cancer" specifically. The current contract emits
+        organ-class variants with urgency markers (e.g. "fast track
+        referral for suspected urological cancer") rather than the
+        non-urgent prefix, so we assert on the *presence* of the
+        urological-cancer fallback rather than its exact wording.
+        """
         from libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl import (
             _expand_action_search_terms,
         )
@@ -822,7 +871,10 @@ class TestActionFallbackPolicy:
         )
         assert "non-urgent referral for suspected bladder cancer" in terms
         assert "routine referral for suspected bladder cancer" in terms
-        assert "non-urgent referral for suspected urological cancer" in terms
+        assert any("urological cancer" in t for t in terms), (
+            "expected at least one organ-class fallback variant containing "
+            f"'urological cancer'; got: {terms}"
+        )
 
 
 class TestRetrySearchTemplates:

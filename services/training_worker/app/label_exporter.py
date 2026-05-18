@@ -40,6 +40,7 @@ import json
 import logging
 import os
 import random
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,22 @@ from libs.pipeline.label_filter import (
     filter_and_realign as _filter_and_realign,
     get_excluded_assertions as _get_excluded_assertions,
     realign_entity as _realign_entity,
+)
+from libs.training_ext.corpus_balancer import (
+    BalanceConfig,
+    TierOneLabelStarvationError,
+    balance_corpus,
+)
+from libs.training_ext.stratified_split import (
+    SplitRatios,
+    iterative_multilabel_split,
+)
+
+_ORTH_VARIANTS_SOURCE = (
+    Path(__file__).resolve().parents[3]
+    / "libs"
+    / "training_ext"
+    / "orth_variants_en_clinical.json"
 )
 
 logger = logging.getLogger(__name__)
@@ -105,13 +122,24 @@ def _normalise_label(raw: str) -> str:
     return _LABEL_MAP.get(raw, raw.upper())
 
 
-def _record_to_spacy_doc(nlp, text: str, entities: list[dict[str, Any]]):
+def _record_to_spacy_doc(
+    nlp,
+    text: str,
+    entities: list[dict[str, Any]],
+    *,
+    alignment_report: list[dict[str, Any]] | None = None,
+    label_id: str = "",
+):
     """Convert a single training record to a spaCy Doc with entity spans.
 
     Entities passed here must already be assertion-filtered and span-realigned.
     Overlapping and co-located spans with different labels are all written to
     doc.spans["sc"] to support multi-label spancat training. The seen_tokens
     dedup guard used by the legacy NER pipeline is intentionally absent.
+
+    When ``alignment_report`` is provided, any span whose char offsets are
+    silently expanded by ``alignment_mode="expand"`` to token boundaries has
+    its before/after surface forms recorded (Wave 2 / F24).
     """
     doc = nlp.make_doc(text)
     spans = []
@@ -128,6 +156,22 @@ def _record_to_spacy_doc(nlp, text: str, entities: list[dict[str, Any]]):
         if span is None:
             continue
 
+        if alignment_report is not None and (
+            span.start_char != start_char or span.end_char != end_char
+        ):
+            alignment_report.append(
+                {
+                    "label_id": label_id,
+                    "label": label,
+                    "requested_start": start_char,
+                    "requested_end": end_char,
+                    "resolved_start": span.start_char,
+                    "resolved_end": span.end_char,
+                    "requested_surface": text[start_char:end_char],
+                    "resolved_surface": span.text,
+                }
+            )
+
         spans.append(span)
 
     doc.spans["sc"] = spans
@@ -137,21 +181,35 @@ def _record_to_spacy_doc(nlp, text: str, entities: list[dict[str, Any]]):
 def export_labels(
     output_dir: Path,
     *,
-    train_ratio: float = 0.8,
+    train_ratio: float | None = None,
     seed: int = 42,
+    split_ratios: SplitRatios | None = None,
     log_fn=None,
 ) -> dict[str, Any]:
-    """Fetch all exportable GoldLabel nodes and write train/dev DocBins.
+    """Fetch all exportable GoldLabel nodes and write train/val/dev/test DocBins.
+
+    Wave 2 (F6, F20) replaces the previous random 80/20 split with a multi-
+    label iterative stratified split producing four named partitions:
+
+      * ``train`` (default 0.7) — optimiser training corpus
+      * ``val``   (default 0.1) — drives early stopping during training
+      * ``dev``   (default 0.1) — drives threshold calibration
+      * ``test``  (default 0.1) — reported once after promotion
 
     Args:
-        output_dir: Directory to write train.spacy, dev.spacy, meta.json.
-        train_ratio: Fraction of records to use for training (rest = dev).
+        output_dir: Directory to write *.spacy and meta.json.
+        train_ratio: Back-compat shorthand — if set, interpreted as the train
+            fraction with the remainder split equally between val/dev/test.
+            Prefer ``split_ratios`` for explicit control.
         seed: Random seed for reproducible split.
+        split_ratios: Named ratios; must sum to 1.0.  Defaults to
+            ``SplitRatios(0.7, 0.1, 0.1, 0.1)``.
         log_fn: Optional callable(str) for progress logging.
 
     Returns:
-        dict with keys: total, train_count, dev_count, labels_found,
-        train_path, dev_path.
+        dict with keys: total, per-split counts (``train_count``, ``val_count``,
+        ``dev_count``, ``test_count``), per-split paths, labels_found,
+        stratification warnings.
 
     Raises:
         ValueError: If fewer records than TRAINING_MIN_LABEL_COUNT.
@@ -247,78 +305,229 @@ def export_labels(
             "(surface text not found in sentence)."
         )
 
+    # Corpus rebalancing -- collapse exact-duplicate text, cap per-source
+    # surface dupes, cap any single source's share, and abort if tier-1
+    # safety-critical labels are starved.  Without this guard a single bulk
+    # seeder (historically: lab_coder_v1) can dominate the corpus and produce
+    # a model that only fires on lab-test surfaces.
+    balance_cfg = BalanceConfig.from_env()
+    _log(
+        "Corpus rebalancer config: "
+        f"max_source_share={balance_cfg.max_source_share} "
+        f"max_surface_dupes_per_source={balance_cfg.max_surface_dupes_per_source} "
+        f"max_records_per_text={balance_cfg.max_records_per_text} "
+        f"min_per_label={balance_cfg.min_per_label} "
+        f"tier1={sorted(balance_cfg.tier1_labels)}"
+    )
+    try:
+        records, balance_report = balance_corpus(records, balance_cfg)
+    except TierOneLabelStarvationError as exc:
+        # Re-raise as ValueError so existing job runner failure handling
+        # surfaces the message verbatim to the user.
+        raise ValueError(str(exc)) from exc
+
+    for warning in balance_report.warnings:
+        _log(f"Corpus balancer warning: {warning}")
+    if balance_report.text_dedupe_dropped:
+        _log(
+            "Corpus balancer: dropped "
+            f"{balance_report.text_dedupe_dropped} duplicate-text records."
+        )
+    if balance_report.surface_dedupe_dropped:
+        _log(
+            "Corpus balancer: dropped "
+            f"{balance_report.surface_dedupe_dropped} repeated entity spans "
+            "(per-source surface cap)."
+        )
+    if balance_report.source_cap_dropped:
+        for action in balance_report.source_cap_actions:
+            _log(
+                "Corpus balancer: capped source "
+                f"{action['source']!r} {action['before']} -> {action['after']} "
+                f"(share {action['share_before']:.3f} -> "
+                f"<= {action['share_target']:.3f})."
+            )
+    if balance_report.other_under_min:
+        _log(
+            "Corpus balancer: non-tier1 labels under minimum "
+            f"({balance_cfg.min_per_label}): "
+            + "; ".join(balance_report.other_under_min)
+        )
+    _log(
+        f"Corpus balancer: {balance_report.pre_record_count} -> "
+        f"{balance_report.post_record_count} records after rebalancing."
+    )
+
     if len(records) < min_count:
         raise ValueError(
-            f"Only {len(records)} GoldLabel records — minimum is {min_count}. "
-            "Add more verified gold labels before training."
+            f"Only {len(records)} GoldLabel records after rebalancing -- "
+            f"minimum is {min_count}. Add more verified gold labels (or relax "
+            "TRAINING_CORPUS_* limits) before training."
         )
 
-    # Deterministic split
-    random.seed(seed)
-    shuffled = records[:]
-    random.shuffle(shuffled)
-    split_idx = max(1, int(len(shuffled) * train_ratio))
-    train_records = shuffled[:split_idx]
-    dev_records = shuffled[split_idx:] or shuffled[:1]  # at least 1 dev record
-    train_label_ids = sorted(
-        [str(r.get("label_id") or "") for r in train_records if str(r.get("label_id") or "").strip()]
-    )
-    dev_label_ids = sorted(
-        [str(r.get("label_id") or "") for r in dev_records if str(r.get("label_id") or "").strip()]
-    )
+    ratios = _resolve_split_ratios(train_ratio, split_ratios)
+    label_sets: list[set[str]] = []
+    for rec in records:
+        label_sets.append(
+            {
+                _normalise_label(str(ent.get("label", "")))
+                for ent in rec["entities"]
+                if _normalise_label(str(ent.get("label", "")))
+            }
+        )
 
-    _log(f"Split: {len(train_records)} train / {len(dev_records)} dev")
+    split = iterative_multilabel_split(label_sets, ratios=ratios, seed=seed)
+    for warning in split.warnings:
+        _log(f"Stratified split warning: {warning}")
+
+    split_records: dict[str, list[dict[str, Any]]] = {
+        name: [records[i] for i in indices]
+        for name, indices in split.indices.items()
+    }
+    _log(
+        "Split: "
+        + " / ".join(f"{len(v)} {k}" for k, v in split_records.items())
+        + f" (seed={seed})"
+    )
 
     nlp = spacy.blank("en")
-
     output_dir.mkdir(parents=True, exist_ok=True)
-    train_bin = DocBin()
-    dev_bin = DocBin()
+
+    per_split_bins: dict[str, DocBin] = {name: DocBin() for name in split_records}
+    per_split_label_counts: dict[str, dict[str, int]] = {
+        name: {} for name in split_records
+    }
+    per_split_label_ids: dict[str, list[str]] = {name: [] for name in split_records}
     all_labels: set[str] = set()
     skipped = 0
+    alignment_report: list[dict[str, Any]] = []
 
-    for is_train, rec in [(True, r) for r in train_records] + [
-        (False, r) for r in dev_records
-    ]:
-        for ent in rec["entities"]:
-            all_labels.add(_normalise_label(str(ent.get("label", ""))))
-        try:
-            doc = _record_to_spacy_doc(nlp, rec["text"], rec["entities"])
-            (train_bin if is_train else dev_bin).add(doc)
-        except Exception:
-            skipped += 1
+    for split_name, recs in split_records.items():
+        for rec in recs:
+            label_id_value = str(rec.get("label_id") or "")
+            if label_id_value.strip():
+                per_split_label_ids[split_name].append(label_id_value)
+            counts = per_split_label_counts[split_name]
+            for ent in rec["entities"]:
+                label = _normalise_label(str(ent.get("label", "")))
+                all_labels.add(label)
+                if label:
+                    counts[label] = counts.get(label, 0) + 1
+            try:
+                doc = _record_to_spacy_doc(
+                    nlp,
+                    rec["text"],
+                    rec["entities"],
+                    alignment_report=alignment_report,
+                    label_id=label_id_value,
+                )
+                per_split_bins[split_name].add(doc)
+            except Exception:
+                skipped += 1
 
-    train_path = output_dir / "train.spacy"
-    dev_path = output_dir / "dev.spacy"
-    train_bin.to_disk(train_path)
-    dev_bin.to_disk(dev_path)
+    split_paths: dict[str, Path] = {}
+    for split_name, bin_ in per_split_bins.items():
+        path = output_dir / f"{split_name}.spacy"
+        bin_.to_disk(path)
+        split_paths[split_name] = path
+
+    # Stable aliases for legacy callers (trainer and older tests).
+    train_path = split_paths["train"]
+    dev_path = split_paths["dev"]
+
+    # Copy the clinical orth-variants table next to the corpora so the spaCy
+    # trainer can resolve ${paths.orth_variants}.
+    orth_variants_path = output_dir / "orth_variants.json"
+    try:
+        shutil.copyfile(_ORTH_VARIANTS_SOURCE, orth_variants_path)
+    except OSError as exc:
+        _log(
+            "Warning: failed to copy orth_variants table "
+            f"({_ORTH_VARIANTS_SOURCE} -> {orth_variants_path}): {exc}"
+        )
+        orth_variants_path.write_text(
+            json.dumps({"single": [], "paired": []}),
+            encoding="utf-8",
+        )
 
     if skipped:
         _log(f"Warning: {skipped} records skipped during DocBin conversion.")
+    if alignment_report:
+        _log(
+            f"Span alignment report: {len(alignment_report)} entities had "
+            "char offsets silently expanded to token boundaries."
+        )
+
+    all_label_keys = sorted(all_labels)
+    _log("Per-label entity counts (" + " / ".join(split_records.keys()) + "):")
+    for label in all_label_keys:
+        parts = [f"{per_split_label_counts[n].get(label, 0)} {n}" for n in split_records]
+        warn = (
+            " <-- LOW"
+            if per_split_label_counts.get("dev", {}).get(label, 0) < 5
+            else ""
+        )
+        _log(f"  {label}: " + " / ".join(parts) + warn)
 
     exported_at = datetime.datetime.utcnow().isoformat()
-    train_split_hash = hashlib.sha256("\n".join(train_label_ids).encode("utf-8")).hexdigest()
-    dev_split_hash = hashlib.sha256("\n".join(dev_label_ids).encode("utf-8")).hexdigest()
+    per_split_hashes = {
+        name: hashlib.sha256("\n".join(sorted(ids)).encode("utf-8")).hexdigest()
+        for name, ids in per_split_label_ids.items()
+    }
     holdback_split_hash = hashlib.sha256(
         "\n".join(holdback_label_ids).encode("utf-8")
     ).hexdigest()
+    per_label_counts_meta = {
+        label: {
+            name: per_split_label_counts[name].get(label, 0)
+            for name in split_records
+        }
+        for label in all_label_keys
+    }
+
+    balance_report_dict = balance_report.to_dict()
+    (output_dir / "corpus_balance_report.json").write_text(
+        json.dumps(balance_report_dict, indent=2),
+        encoding="utf-8",
+    )
+
     meta = {
         "exported_at": exported_at,
         "total_records": len(records),
-        "train_records": len(train_records),
-        "dev_records": len(dev_records),
-        "train_label_ids": train_label_ids,
-        "dev_label_ids": dev_label_ids,
+        "split_ratios": ratios.as_mapping(),
+        "split_counts": {name: len(recs) for name, recs in split_records.items()},
+        "split_paths": {name: str(p) for name, p in split_paths.items()},
+        "split_label_ids": {
+            name: sorted(ids) for name, ids in per_split_label_ids.items()
+        },
+        "split_hashes": per_split_hashes,
+        "stratification_warnings": split.warnings,
+        "corpus_balance": {
+            "pre_record_count": balance_report.pre_record_count,
+            "post_record_count": balance_report.post_record_count,
+            "text_dedupe_dropped": balance_report.text_dedupe_dropped,
+            "surface_dedupe_dropped": balance_report.surface_dedupe_dropped,
+            "source_cap_dropped": balance_report.source_cap_dropped,
+            "tier1_under_min": list(balance_report.tier1_under_min),
+            "other_under_min": list(balance_report.other_under_min),
+            "warnings": list(balance_report.warnings),
+        },
+        # --- Legacy fields kept for back-compat with existing consumers --------
+        "train_records": len(split_records["train"]),
+        "dev_records": len(split_records["dev"]),
+        "train_label_ids": sorted(per_split_label_ids["train"]),
+        "dev_label_ids": sorted(per_split_label_ids["dev"]),
         "holdback_label_ids": holdback_label_ids,
-        "train_split_hash": train_split_hash,
-        "dev_split_hash": dev_split_hash,
+        "train_split_hash": per_split_hashes["train"],
+        "dev_split_hash": per_split_hashes["dev"],
         "holdback_split_hash": holdback_split_hash,
         "skipped": skipped,
         "assertion_filtered": total_assertion_filtered,
         "span_misaligned": total_span_misaligned,
+        "span_alignment_expanded": len(alignment_report),
         "excluded_assertions": sorted(excluded_assertions),
         "label_set": sorted(all_labels),
-        "train_ratio": train_ratio,
+        "per_label_counts": per_label_counts_meta,
         "seed": seed,
         "schema_version": _SCHEMA_VERSION,
     }
@@ -330,27 +539,71 @@ def export_labels(
         "summary": {
             "assertion_filtered_count": total_assertion_filtered,
             "span_misaligned_count": total_span_misaligned,
+            "span_alignment_expanded_count": len(alignment_report),
         },
         "assertion_filtered": [
             d for d in diagnostics if d["reason"] == "assertion_filtered"
         ],
         "span_misaligned": [d for d in diagnostics if d["reason"] == "span_misaligned"],
+        "span_alignment_expanded": alignment_report,
     }
     (output_dir / "export_diagnostics.json").write_text(
         json.dumps(diag_payload, indent=2)
     )
+
+    # Dedicated span_alignment_report.json — Wave 5 artifact bundle consumes
+    # this as-is.
+    (output_dir / "span_alignment_report.json").write_text(
+        json.dumps(
+            {
+                "summary": {"expanded_count": len(alignment_report)},
+                "entries": alignment_report,
+            },
+            indent=2,
+        )
+    )
+
     _log(f"DocBins written to {output_dir}")
 
     return {
         "total": len(records),
-        "train_count": len(train_records),
-        "dev_count": len(dev_records),
+        "split_counts": {name: len(recs) for name, recs in split_records.items()},
+        "split_paths": {name: str(p) for name, p in split_paths.items()},
+        "stratification_warnings": split.warnings,
+        # --- Back-compat keys consumed by job_runner and tests -----------------
+        "train_count": len(split_records["train"]),
+        "val_count": len(split_records.get("val", [])),
+        "dev_count": len(split_records["dev"]),
+        "test_count": len(split_records.get("test", [])),
         "skipped": skipped,
         "assertion_filtered": total_assertion_filtered,
         "span_misaligned": total_span_misaligned,
+        "span_alignment_expanded": len(alignment_report),
         "labels_found": sorted(all_labels),
         "label_set": sorted(all_labels),
+        "per_label_counts": per_label_counts_meta,
         "exported_at": exported_at,
         "train_path": str(train_path),
         "dev_path": str(dev_path),
+        "val_path": str(split_paths.get("val", dev_path)),
+        "test_path": str(split_paths.get("test", dev_path)),
+        "orth_variants_path": str(orth_variants_path),
     }
+
+
+def _resolve_split_ratios(
+    train_ratio: float | None,
+    split_ratios: SplitRatios | None,
+) -> SplitRatios:
+    """Resolve Wave 2 ratios with a back-compat shim for the old kwarg."""
+    if split_ratios is not None:
+        return split_ratios
+    if train_ratio is None:
+        return SplitRatios()
+    if not 0.0 < train_ratio < 1.0:
+        raise ValueError(
+            f"train_ratio must be strictly between 0 and 1, got {train_ratio!r}"
+        )
+    remainder = 1.0 - train_ratio
+    third = remainder / 3.0
+    return SplitRatios(train=train_ratio, val=third, dev=third, test=remainder - 2 * third)
