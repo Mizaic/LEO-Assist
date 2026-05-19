@@ -36,6 +36,7 @@ _ANNOTATION_GUIDELINES_VERSION = 1
 _ANNOTATION_TARGET_PROMPTS = frozenset(
     {
         "extraction",
+        "referral_extraction",
         "label_verification",
         "extraction_check",
         "coding_check",

@@ -21,12 +21,16 @@ from app.label_exporter import (
     _DEFAULT_EXCLUDED_ASSERTIONS,
     _add_doc_candidate_coverage,
     _candidate_coverage_report,
+    _filter_entities_to_training_labels,
     _new_candidate_coverage,
     _filter_and_realign,
     _get_excluded_assertions,
+    _excluded_training_sources,
+    _included_training_labels,
     _realign_entity,
     _record_to_spacy_doc,
 )
+from libs.training_data.gold_granularity import safe_for_training_export
 
 
 class TestRealignEntity(unittest.TestCase):
@@ -224,6 +228,68 @@ class TestCandidateCoverageDiagnostics(unittest.TestCase):
         self.assertEqual(report["narrow"]["val"]["OBSERVABLE"]["covered"], 0)
         self.assertEqual(report["broad_1_24"]["val"]["OBSERVABLE"]["covered"], 1)
         self.assertEqual(report["balanced"]["val"]["PROCEDURE"]["covered"], 1)
+
+
+class TestTrainingLabelScope(unittest.TestCase):
+    def test_default_scope_includes_target_labels_only(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("TRAINING_INCLUDED_LABELS", None)
+            labels = _included_training_labels()
+
+        self.assertEqual(labels, {"PROCEDURE", "OBSERVABLE", "FINDING", "SITUATION"})
+
+    def test_default_scope_excludes_synthetic_and_lab_coder_sources(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("TRAINING_EXCLUDED_SOURCES", None)
+            sources = _excluded_training_sources()
+
+        self.assertEqual(
+            sources,
+            {
+                "lab_coder_v1",
+                "synthetic",
+                "synthetic_rare_label_remediation_20260428",
+            },
+        )
+
+    def test_filters_entities_to_target_labels(self):
+        entities = [
+            {"label": "PROCEDURE", "text": "CT"},
+            {"label": "observable_entity", "text": "haemoglobin"},
+            {"label": "DISORDER", "text": "asthma"},
+        ]
+
+        kept = _filter_entities_to_training_labels(
+            entities,
+            {"PROCEDURE", "OBSERVABLE"},
+        )
+
+        self.assertEqual([ent["text"] for ent in kept], ["CT", "haemoglobin"])
+        self.assertEqual([ent["label"] for ent in kept], ["PROCEDURE", "OBSERVABLE"])
+
+    def test_export_guard_blocks_quarantined_and_long_partial_records(self):
+        entities = [{"label": "PROCEDURE", "text": "xray", "start": 20, "end": 24}]
+
+        self.assertFalse(
+            safe_for_training_export(
+                "History: cough\nPlan: xray requested",
+                entities,
+            )
+        )
+        self.assertFalse(
+            safe_for_training_export(
+                "xray requested",
+                entities,
+                training_quarantined=True,
+            )
+        )
+        self.assertTrue(
+            safe_for_training_export(
+                "Plan: xray requested",
+                [{"label": "PROCEDURE", "text": "xray", "start": 6, "end": 10}],
+                annotation_completeness="derived_sentence",
+            )
+        )
 
 
 class TestFilterAndRealignDiagnostics(unittest.TestCase):

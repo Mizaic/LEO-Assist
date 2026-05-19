@@ -9,10 +9,10 @@ POST /extraction-scenarios/runs               Trigger background phrase-level F1
 GET  /extraction-scenarios/runs/:run_id       Poll run progress / results
 
 Atlas trace:
-  DI: DI-1B3B5375, DI-B492CAFD
+  DI: DI-1B3B5375, DI-B492CAFD, DI-B5C78811
   DO: DO-416BA91D
   Risk: R-80E8BD96
-  VT: VT-24D7A846
+  VT: VT-24D7A846, VT-C0D7D50C
   VAL-87173594  phrase-level F1 validation
   VT-29880CC8   extraction scenario verification
 """
@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -43,6 +45,60 @@ _runs_lock = threading.Lock()
 _runs: dict[str, dict[str, Any]] = {}
 
 _PASS_THRESHOLD = 0.95
+_PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
+_PRODUCTION_PLAN_ID = "pd-val-key-fact-extraction"
+_NON_CLINICAL_NOISE_MARKERS = (
+    "referral criteria and clinical information",
+    "decision to refer date",
+    "practice email",
+    "nhs number",
+    "synthetic patient",
+    "template source",
+    "clinician review note",
+    "completed by",
+)
+_VALUE_UNIT_TAIL_RE = re.compile(
+    r"""
+    \s*[:=-]?\s*
+    [<>]?\d+(?:\.\d+)?\s*
+    (?:
+      x10\^?\d+/?l|
+      mmol/?l|
+      umol/?l|
+      g/?l|
+      mg/?l|
+      ng/?ml|
+      iu/?l|
+      u/?l|
+      ml/?min(?:/1\.73m2)?|
+      f(?:l|L)|
+      pg|
+      %
+    )
+    (?:\s*\([^)]*\))?
+    \s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+_COMMON_LAB_ALIASES = {
+    "haemoglobin": "hb",
+    "hemoglobin": "hb",
+    "white blood cell count": "wcc",
+    "platelet count": "plts",
+    "mean corpuscular volume": "mcv",
+    "sodium": "na",
+    "potassium": "k",
+    "creatinine": "creat",
+    "alanine aminotransferase": "alt",
+    "alkaline phosphatase": "alk phos",
+    "bilirubin": "bili",
+    "albumin": "alb",
+    "c reactive protein": "crp",
+    "erythrocyte sedimentation rate": "esr",
+    "hba1c": "hba1c",
+    "ferritin": "ferritin",
+    "calcium": "ca",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -105,6 +161,77 @@ def _normalise_row(row: dict[str, Any]) -> dict[str, Any]:
     return {k: (_json_loads_safe(v) if k in json_fields else v) for k, v in row.items()}
 
 
+def _normalise_alias_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", value.casefold()).strip()
+
+
+def _build_case_alias_map(case: dict[str, Any] | None) -> dict[str, str]:
+    aliases: dict[str, str] = {
+        _normalise_alias_key(key): val for key, val in _COMMON_LAB_ALIASES.items()
+    }
+    if not isinstance(case, dict):
+        return aliases
+    observables = case.get("expected_observables")
+    if not isinstance(observables, list):
+        return aliases
+    for observable in observables:
+        if not isinstance(observable, dict):
+            continue
+        canonical = str(observable.get("display_name") or "").strip()
+        if not canonical:
+            canonical = str(observable.get("test_name") or "").strip()
+        source_names = {
+            canonical,
+            str(observable.get("test_name") or "").strip(),
+            str(observable.get("display_name") or "").strip(),
+        }
+        for source_name in source_names:
+            if not source_name:
+                continue
+            aliases[_normalise_alias_key(source_name)] = canonical
+    return aliases
+
+
+def _normalise_validation_term(term: str, alias_map: dict[str, str]) -> str:
+    candidate = re.sub(r"\s+", " ", term).strip().strip(".,;:()[]{}")
+    if not candidate:
+        return ""
+    lowered = candidate.casefold()
+    if any(marker in lowered for marker in _NON_CLINICAL_NOISE_MARKERS):
+        return ""
+    if len(candidate) > 100:
+        return ""
+    if not re.search(r"[a-z]", lowered):
+        return ""
+    if re.fullmatch(r"[<>]?\d+(?:\.\d+)?(?:\s*[%/\-\^0-9a-z]+)?", lowered):
+        return ""
+    stripped = _VALUE_UNIT_TAIL_RE.sub("", candidate).strip().strip(".,;:()[]{}")
+    if stripped:
+        candidate = stripped
+    alias = alias_map.get(_normalise_alias_key(candidate))
+    if alias:
+        return alias
+    return candidate
+
+
+def _normalise_validation_terms(
+    extracted_strings: list[str], case: dict[str, Any] | None
+) -> list[str]:
+    alias_map = _build_case_alias_map(case)
+    normalised: list[str] = []
+    seen: set[str] = set()
+    for term in extracted_strings:
+        clean = _normalise_validation_term(term, alias_map)
+        if not clean:
+            continue
+        key = clean.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        normalised.append(clean)
+    return normalised
+
+
 # ---------------------------------------------------------------------------
 # GET /extraction-scenarios
 # ---------------------------------------------------------------------------
@@ -163,6 +290,10 @@ def get_run(
     with _runs_lock:
         job = _runs.get(run_id)
     if job:
+        if job.get("status") == "running" and job.get("production_path"):
+            _refresh_production_run(run_id, job)
+            with _runs_lock:
+                job = _runs.get(run_id, job)
         return job
 
     # Completed runs may have been evicted from memory; read from Neo4j.
@@ -306,7 +437,7 @@ def _execute_run(run_id: str, scope: str, triggered_at: str) -> None:
 
 
 def _run_scoring(run_id: str, scope: str, triggered_at: str) -> None:
-    """Inner scorer -- separated from exception wrapper to keep depth <= 3."""
+    """Publish scenario validation jobs to the production pipeline queue."""
     from libs.cypher.extraction_scenario_queries import (
         CREATE_VALIDATION_RUN,
         LIST_EXTRACTION_SCENARIOS,
@@ -339,17 +470,24 @@ def _run_scoring(run_id: str, scope: str, triggered_at: str) -> None:
         _finalise_run(run_id, [], 0, 0, 0, triggered_at)
         return
 
-    per_case: list[dict[str, Any]] = []
-    for idx, case in enumerate(cases):
-        score = _score_case_from_node(case)
-        per_case.append(score)
-        _set_run(run_id, {"progress": int((idx + 1) / total * 100)})
-
-    _finalise_run(run_id, per_case, total, cases, triggered_at)
+    child_runs = _publish_production_validation_jobs(run_id, cases)
+    _set_run(
+        run_id,
+        {
+            "status": "running",
+            "progress": 0,
+            "production_path": True,
+            "plan_definition_id": _PRODUCTION_PLAN_ID,
+            "model_version": "production-config",
+            "case_count": total,
+            "cases": cases,
+            "child_runs": child_runs,
+        },
+    )
 
 
 def _score_case_from_node(case: dict[str, Any]) -> dict[str, Any]:
-    """Score a single case node (no live extraction -- scores 0 until wired to LLM)."""
+    """Score a case by running the UN-89E2AE36 extraction workflow."""
     from tests.helpers.clinical_extraction_scenario_loader import score_case
 
     rules = {
@@ -358,7 +496,177 @@ def _score_case_from_node(case: dict[str, Any]) -> dict[str, Any]:
         "collapse_whitespace": True,
         "strip_terminal_punctuation": True,
     }
-    return score_case(case, [], rules)
+    extracted_strings = _extract_terms_for_validation(case)
+    return score_case(case, extracted_strings, rules)
+
+
+def _score_case_from_terms(case: dict[str, Any], extracted_strings: list[str]) -> dict:
+    from tests.helpers.clinical_extraction_scenario_loader import score_case
+
+    cleaned_terms = _normalise_validation_terms(extracted_strings, case)
+    return score_case(
+        case,
+        cleaned_terms,
+        {
+            "casefold": True,
+            "trim": True,
+            "collapse_whitespace": True,
+            "strip_terminal_punctuation": True,
+        },
+    )
+
+
+def _publish_production_validation_jobs(
+    run_id: str,
+    cases: list[dict[str, Any]],
+) -> dict[str, str]:
+    import asyncio
+
+    return asyncio.run(_publish_production_validation_jobs_async(run_id, cases))
+
+
+async def _publish_production_validation_jobs_async(
+    run_id: str,
+    cases: list[dict[str, Any]],
+) -> dict[str, str]:
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    bus = create_message_bus()
+    child_runs: dict[str, str] = {}
+    try:
+        for case in cases:
+            case_id = str(case.get("case_id") or "")
+            child_run_id = f"{run_id}:{case_id}"
+            child_runs[case_id] = child_run_id
+            await bus.send(
+                _PIPELINE_QUEUE,
+                Message(
+                    body={
+                        "event_type": "validation-run-requested",
+                        "patient_id": f"validation-{case_id}",
+                        "encounter_id": case_id,
+                        "run_id": child_run_id,
+                        "plan_definition_id": _PRODUCTION_PLAN_ID,
+                        "context": {
+                            "case_id": case_id,
+                            "source_node_type": "ExtractionScenario",
+                            "source_node_id": case_id,
+                            "source_text_property": "markdown_body",
+                            "dry_run": True,
+                            "capture_validation_output": True,
+                            "validation_parent_run_id": run_id,
+                            "validation_un_id": "UN-89E2AE36",
+                            "validation_val_id": "VAL-87173594",
+                        },
+                    },
+                    correlation_id=child_run_id,
+                    subject="validation-run-requested",
+                ),
+            )
+    finally:
+        await bus.close()
+    return child_runs
+
+
+def _refresh_production_run(run_id: str, job: dict[str, Any]) -> None:
+    cases = job.get("cases") if isinstance(job.get("cases"), list) else []
+    child_runs = (
+        job.get("child_runs") if isinstance(job.get("child_runs"), dict) else {}
+    )
+    if not cases or not child_runs:
+        return
+    audit_rows = _read_validation_audit_rows(list(child_runs.values()))
+    completed = {str(row.get("run_id") or ""): row for row in audit_rows}
+    progress = int(len(completed) / len(child_runs) * 100) if child_runs else 0
+    _set_run(run_id, {"progress": progress})
+    if len(completed) < len(child_runs):
+        return
+
+    per_case: list[dict[str, Any]] = []
+    for case in cases:
+        case_id = str(case.get("case_id") or "")
+        row = completed.get(child_runs.get(case_id, ""))
+        terms = _terms_from_validation_output(row, case)
+        scored = _score_case_from_terms(case, terms)
+        scored["model_provider"] = row.get("extraction_provider", "")
+        scored["model_tier"] = row.get("extraction_model_tier", "")
+        scored["prompt_hash"] = row.get("extraction_prompt_hash", "")
+        scored["worker_status"] = row.get("status", "")
+        per_case.append(scored)
+    _finalise_run(
+        run_id, per_case, len(cases), cases, str(job.get("triggered_at") or "")
+    )
+
+
+def _read_validation_audit_rows(child_run_ids: list[str]) -> list[dict[str, Any]]:
+    from app.db.neo4j_client import PatientGraphClient
+
+    if not child_run_ids:
+        return []
+    query = """
+    MATCH (ae:AuditEvent)
+    WHERE ae.run_id IN $run_ids
+    RETURN ae.run_id AS run_id,
+           ae.status AS status,
+           ae.validation_output AS validation_output,
+           ae.extraction_provider AS extraction_provider,
+           ae.extraction_model_tier AS extraction_model_tier,
+           ae.extraction_prompt_hash AS extraction_prompt_hash
+    """
+    client = PatientGraphClient()
+    try:
+        return [dict(row) for row in client.run(query, run_ids=child_run_ids)]
+    finally:
+        client.close()
+
+
+def _terms_from_validation_output(
+    row: dict[str, Any] | None, case: dict[str, Any] | None = None
+) -> list[str]:
+    if not row:
+        return []
+    payload = _json_loads_safe(row.get("validation_output"))
+    if not isinstance(payload, dict):
+        return []
+    terms = payload.get("terms")
+    if not isinstance(terms, list):
+        return []
+    raw_terms = [
+        str(term.get("text") or "").strip()
+        for term in terms
+        if isinstance(term, dict) and str(term.get("text") or "").strip()
+    ]
+    return _normalise_validation_terms(raw_terms, case)
+
+
+def _extract_terms_for_validation(case: dict[str, Any]) -> list[str]:
+    from app.services.validation_workflow_runner import execute_validation_workflow_sync
+
+    text = str(case.get("markdown_body") or case.get("source_text") or "")
+    result = execute_validation_workflow_sync(
+        un_id="UN-89E2AE36",
+        initial_state={
+            "case_id": case.get("case_id"),
+            "encounter_text": text,
+            "source_text": text,
+        },
+    )
+    final_state = result.get("final_state", {})
+    return _entity_texts(final_state.get("entities", []))
+
+
+def _entity_texts(entities: Any) -> list[str]:
+    if not isinstance(entities, list):
+        return []
+    texts: list[str] = []
+    for entity in entities:
+        if not isinstance(entity, dict):
+            continue
+        text = entity.get("text") or entity.get("surface_form")
+        if isinstance(text, str) and text.strip():
+            texts.append(text.strip())
+    return texts
 
 
 def _finalise_run(
@@ -424,6 +732,4 @@ def _finalise_run(
         "completed_at": completed_at,
     }
     _set_run(run_id, result)
-    logger.info(
-        "[ExtractionRun:%s] Completed. F1=%.3f passed=%s", run_id, f1, passed
-    )
+    logger.info("[ExtractionRun:%s] Completed. F1=%.3f passed=%s", run_id, f1, passed)

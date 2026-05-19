@@ -28,7 +28,7 @@ Date of decision to refer: 2026-05-18
 
 This 39-year-old patient is being referred on the 2WW lower GI pathway on clinical grounds, despite a faecal immunochemical test result that is FIT below threshold. She has a six-week history of intermittent fresh rectal bleeding mixed with stool, on most days. Over the same period her bowel habit has changed from one formed stool daily to four to five looser stools per day, with associated lower abdominal cramping. She has lost approximately 2.5kg.
 
-Her FIT result from 2026-04-28 was reported by the pathology service as "FIT below threshold" with a numeric value of 5 ug Hb/g, against the local 10 ug Hb/g cut-off. To be explicit: this is NOT a FIT above threshold result; the value is well under the cut-off. However, given the new symptoms and a strong family history (mother diagnosed at 47, brother at 44), I am referring on clinical grounds in line with NG12 and local guidance for young patients with strong family histories.
+FIT result (2026-04-28): FIT below threshold, 5 ug Hb/g. Given the new symptoms and a strong family history (mother diagnosed at 47, brother at 44), I am referring on clinical grounds in line with NG12.
 
 Examination: Soft abdomen, mild left iliac fossa tenderness, no palpable abdominal mass. DRE: small internal haemorrhoids, no rectal mass identifiable.
 

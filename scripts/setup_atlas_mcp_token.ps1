@@ -62,10 +62,7 @@ function Invoke-Atlas([string]$path, [string]$json = '{}') {
 }
 
 function Patch-McpJson([string]$accessToken) {
-    $cfg = Get-Content $MCP_CONFIG -Raw | ConvertFrom-Json
-    $cfg.mcpServers.'atlas-design-controls'.headers.Authorization = "Bearer $accessToken"
-    $cfg | ConvertTo-Json -Depth 10 | Set-Content $MCP_CONFIG -Encoding UTF8
-    Write-Host "   mcp.json updated." -ForegroundColor Green
+    throw "Legacy bearer-token MCP writes are disabled. Use https://atlas-mcp.healthcarecopilot.ai/mcp with X-MCP-Api-Key instead."
 }
 
 # ---------------------------------------------------------------------------

@@ -47,7 +47,7 @@ def _ent(surface: str, label: str, start: int = 0, end: int | None = None) -> di
     }
 
 
-_TIER1 = frozenset({"DISORDER", "FINDING", "MEDICINAL_PRODUCT", "PROCEDURE"})
+_TIER1 = frozenset({"FINDING", "OBSERVABLE", "PROCEDURE"})
 
 
 def _balanced_corpus_with_tier1(records: list[dict]) -> list[dict]:
@@ -461,6 +461,13 @@ class TestDeterminism(unittest.TestCase):
 
 class TestEnvOverrides(unittest.TestCase):
     """``BalanceConfig.from_env`` honours the documented env vars."""
+
+    def test_default_source_share_keeps_manual_gold_after_cleanup(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("TRAINING_CORPUS_MAX_SOURCE_SHARE", None)
+            cfg = BalanceConfig.from_env()
+
+        self.assertEqual(cfg.max_source_share, 0.80)
 
     def test_env_overrides_applied(self):
         with patch.dict(

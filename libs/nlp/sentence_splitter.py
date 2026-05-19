@@ -14,10 +14,32 @@ All pipeline code should import from here — do NOT duplicate.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+
+def _suppress_pyrush_debug_noise() -> None:
+    """Mute PyRuSH debug spam unless explicitly enabled.
+
+    PyRuSH emits verbose token-by-token debug logs via both stdlib logging and
+    loguru in some runtime paths. Those logs can dominate validation output and
+    slow local runs. Set PYRUSH_DEBUG_LOGS=1 to keep full debug output.
+    """
+    if os.getenv("PYRUSH_DEBUG_LOGS", "").strip().lower() in {"1", "true", "yes"}:
+        return
+
+    logging.getLogger("PyRuSH").setLevel(logging.WARNING)
+    try:
+        from loguru import logger as _loguru_logger
+
+        _loguru_logger.disable("PyRuSH")
+        _loguru_logger.disable("PyRuSH.PyRuSHSentencizer")
+    except Exception:
+        # loguru is optional in some environments
+        pass
 
 # ---------------------------------------------------------------------------
 # Administrative header detection
@@ -271,6 +293,7 @@ class SentenceSplitter:
     @staticmethod
     def _try_load_pyrush():
         try:
+            _suppress_pyrush_debug_noise()
             import spacy
 
             nlp = spacy.blank("en")

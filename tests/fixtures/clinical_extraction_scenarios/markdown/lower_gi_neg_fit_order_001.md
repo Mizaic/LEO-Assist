@@ -7,11 +7,11 @@ Dear Lower GI urgent suspected cancer team,
 
 Re: Synthetic Given 094 Synthetic Family 094, DOB 1984-11-14, NHS SYN-NHS-000094
 
-I am writing to refer this 41-year-old woman under the 2WW lower GI pathway on clinical grounds despite a neg FIT result.
+I am writing to refer this 41-year-old woman under the 2WW lower GI pathway.
 
 She has a six-week history of new-onset rectal bleeding -- bright red, mixed with stool, on most days. Her bowel habit has changed: previously formed once daily, now loose and three times daily. She reports left iliac fossa discomfort and tenesmus. She has lost approximately 2kg over the past month. Family history: a sister was diagnosed with colorectal cancer at age 38, raising concern for a hereditary pattern.
 
-Her faecal immunochemical test from 2026-05-01 was reported as: "neg FIT, 5 ug Hb/g, below the 10 ug Hb/g referral threshold." Note that the laboratory reports the result with the word order "neg FIT" rather than "FIT neg"; both forms describe the same below-threshold value. To be clear, this is NOT a positive FIT -- the index test in this episode is unambiguously a neg FIT below threshold. I am referring on clinical grounds given the new symptoms, the change in bowel habit, and the strong family history of early-onset colorectal cancer.
+Faecal immunochemical test (2026-05-01): neg FIT, 5 ug Hb/g. I am referring on clinical grounds given the new symptoms, change in bowel habit, and strong family history of early-onset colorectal cancer.
 
 On examination the abdomen is soft with mild left iliac fossa tenderness. There is no palpable abdominal mass. DRE: no rectal mass; no haemorrhoids identifiable.
 

@@ -61,6 +61,7 @@ from libs.training_ext.stratified_split import (
 )
 from libs.training_ext.suggesters import _DEFAULT_CLINICAL_SIZES
 from libs.training_ext.training_quality import summarise_export_support
+from libs.training_data.gold_granularity import safe_for_training_export
 
 _ORTH_VARIANTS_SOURCE = (
     Path(__file__).resolve().parents[3]
@@ -78,6 +79,17 @@ _CANDIDATE_SIZE_CONTRACTS: dict[str, tuple[int, ...]] = {
     "balanced": _DEFAULT_CLINICAL_SIZES,
     "broad_1_24": tuple(range(1, 25)),
 }
+_DEFAULT_INCLUDED_LABELS: tuple[str, ...] = (
+    "PROCEDURE",
+    "OBSERVABLE",
+    "FINDING",
+    "SITUATION",
+)
+_DEFAULT_EXCLUDED_SOURCES: tuple[str, ...] = (
+    "lab_coder_v1",
+    "synthetic",
+    "synthetic_rare_label_remediation_20260428",
+)
 
 # Label normalisation -- maps stored labels to canonical uppercase spaCy labels.
 # Includes both underscore form (current canonical) and legacy space form (SNOMED
@@ -128,6 +140,36 @@ _LABEL_MAP: dict[str, str] = {
 
 def _normalise_label(raw: str) -> str:
     return _LABEL_MAP.get(raw, raw.upper())
+
+
+def _csv_env_set(name: str, default: tuple[str, ...]) -> set[str]:
+    raw = os.getenv(name, "")
+    values = tuple(raw.split(",")) if raw.strip() else default
+    return {str(value).strip() for value in values if str(value).strip()}
+
+
+def _included_training_labels() -> set[str]:
+    labels = _csv_env_set("TRAINING_INCLUDED_LABELS", _DEFAULT_INCLUDED_LABELS)
+    return {_normalise_label(label) for label in labels}
+
+
+def _excluded_training_sources() -> set[str]:
+    return _csv_env_set("TRAINING_EXCLUDED_SOURCES", _DEFAULT_EXCLUDED_SOURCES)
+
+
+def _filter_entities_to_training_labels(
+    entities: list[dict[str, Any]],
+    included_labels: set[str],
+) -> list[dict[str, Any]]:
+    kept: list[dict[str, Any]] = []
+    for ent in entities:
+        label = _normalise_label(str(ent.get("label", "")))
+        if included_labels and label not in included_labels:
+            continue
+        normalised = dict(ent)
+        normalised["label"] = label
+        kept.append(normalised)
+    return kept
 
 
 def _new_candidate_coverage(
@@ -324,11 +366,17 @@ def export_labels(
 
     _log("Phase 1/5 — Fetching GoldLabel records from Neo4j…")
     excluded_assertions = _get_excluded_assertions()
+    included_labels = _included_training_labels()
+    excluded_sources = _excluded_training_sources()
+    _log(f"Training export included labels: {sorted(included_labels)}")
+    if excluded_sources:
+        _log(f"Training export excluded sources: {sorted(excluded_sources)}")
     kg_client = KnowledgeGraphClient()
     records = []
     holdback_label_ids: list[str] = []
     total_assertion_filtered = 0
     total_span_misaligned = 0
+    total_granularity_filtered = 0
     diagnostics: list[dict[str, Any]] = []
     try:
         patient_client = PatientGraphClient()
@@ -350,6 +398,8 @@ def export_labels(
                 entities = json.loads(row["entities_json"] or "[]")
                 label_id = str(row.get("label_id") or "")
                 source = str(row.get("source") or "")
+                if source in excluded_sources:
+                    continue
                 if rules:
                     entities = apply_rules_to_entities(text, entities, rules)
 
@@ -363,6 +413,19 @@ def export_labels(
                 )
                 total_assertion_filtered += n_assert
                 total_span_misaligned += n_span
+                entities = _filter_entities_to_training_labels(
+                    entities,
+                    included_labels,
+                )
+
+                if not safe_for_training_export(
+                    text,
+                    entities,
+                    training_quarantined=bool(row.get("training_quarantined")),
+                    annotation_completeness=row.get("annotation_completeness"),
+                ):
+                    total_granularity_filtered += 1
+                    continue
 
                 if not entities:
                     continue
@@ -395,6 +458,11 @@ def export_labels(
         _log(
             f"Span realignment: {total_span_misaligned} entities dropped "
             "(surface text not found in sentence)."
+        )
+    if total_granularity_filtered:
+        _log(
+            "Gold granularity guard: skipped "
+            f"{total_granularity_filtered} partial, quarantined, or overlong records."
         )
 
     # Corpus rebalancing -- collapse exact-duplicate text, cap per-source

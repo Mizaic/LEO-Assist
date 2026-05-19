@@ -9,9 +9,9 @@ Re: Synthetic Given 033 Synthetic Family 033, DOB 1973-10-07, NHS SYN-NHS-000033
 
 I am writing to refer this patient under the non-site-specific symptoms suspected cancer pathway. She presents with new symptoms developing over the past eight weeks.
 
-Background for context only: she was managed for depression three years ago with fatigue, loss of motivation, and weight fluctuations at that time. Her depression is now fully resolved. This historical fatigue and historical weight is background only.
+She was managed for depression three years ago with fatigue, loss of motivation, and weight fluctuations; her depression has since fully resolved.
 
-Current clinical picture: she has new unintentional weight loss of approximately 6 kilograms over two months, unexplained. She also has persistent back pain that is new, constant, and not attributable to a musculoskeletal cause. Her blood tests show a raised calcium level of 2.81 mmol/L, elevated above the normal range. Fasting glucose level was 5.4 mmol/L on recent testing, within normal limits. The current weight loss and back pain are new and separate from her past episode of depression.
+She now presents with new unintentional weight loss of approximately 6 kilograms over two months, unexplained. She also has persistent back pain that is new, constant, and not attributable to a musculoskeletal cause. Her blood tests show a raised calcium level of 2.81 mmol/L. Fasting glucose level was 5.4 mmol/L on recent testing.
 
 ## Blood Results (Last 2m)
 

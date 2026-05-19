@@ -172,6 +172,10 @@ from libs.nlp.sentence_splitter import (
     is_non_evidence_line,
     is_referral_procedure_phrase,
 )
+from libs.training_data.gold_granularity import (
+    classify_gold_record,
+    parse_entities_json,
+)
 from libs.prompts.synthetic_ner_sentences import (
     build_synthetic_sentence_prompts,
     _strip_snomed_qualifier,
@@ -5094,13 +5098,18 @@ def mark_training_candidate_completed(
                     detail="Cannot mark completed until a linked gold label exists.",
                 )
 
+            text = gold_row.get("text", "") or candidate_row.get("text", "")
+            entities_json = (
+                gold_row.get("entities_json")
+                or candidate_row.get("entities_json")
+                or "[]"
+            )
+            label_id = gold_row.get("label_id") or f"manual-{uuid.uuid4().hex}"
             session.run(
                 UPSERT_GOLD_LABEL,
-                label_id=gold_row.get("label_id") or f"manual-{uuid.uuid4().hex}",
-                text=gold_row.get("text", "") or candidate_row.get("text", ""),
-                entities_json=gold_row.get("entities_json")
-                or candidate_row.get("entities_json")
-                or "[]",
+                label_id=label_id,
+                text=text,
+                entities_json=entities_json,
                 quality_score=gold_row.get("quality_score"),
                 source="manual_gold_editor",
                 verified_by=getattr(scope, "email", "operations_ui"),
@@ -5108,6 +5117,13 @@ def mark_training_candidate_completed(
                 schema_version=gold_row.get("schema_version")
                 or candidate_row.get("schema_version")
                 or "v4",
+            )
+            _apply_gold_granularity_metadata(
+                session,
+                candidate_id=candidate_id,
+                label_id=label_id,
+                text=text,
+                entities_json=entities_json,
             )
             update_row = session.run(
                 UPDATE_TRAINING_CANDIDATE_STATUS,
@@ -5791,6 +5807,13 @@ def ensure_gold_label_for_candidate(
                 candidate_id=candidate_id,
                 schema_version=candidate_row.get("schema_version") or "v4",
             )
+            _apply_gold_granularity_metadata(
+                session,
+                candidate_id=candidate_id,
+                label_id=label_id,
+                text=candidate_row.get("text", "") or "",
+                entities_json=candidate_row.get("entities_json") or "[]",
+            )
             created = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
             if not created:
                 raise HTTPException(
@@ -5811,6 +5834,44 @@ _DRY_RUN_SOURCE_HINT_MAX = 64
 # lets retraining filters distinguish dry-run audits from real clinical
 # corrections (the latter are higher-trust signal).
 _LIVE_ENCOUNTER_SOURCE = "live_encounter_correction"
+
+
+def _apply_gold_granularity_metadata(
+    session: Any,
+    *,
+    candidate_id: str,
+    label_id: str,
+    text: str,
+    entities_json: str,
+) -> None:
+    """Mark gold records that are unsafe for direct training export."""
+    granularity = classify_gold_record(text, parse_entities_json(entities_json))
+    if granularity.safe_for_training:
+        completeness = granularity.classification
+        quarantined = False
+        reason = None
+    else:
+        completeness = granularity.classification
+        quarantined = True
+        reason = granularity.reason
+    session.run(
+        """
+        MATCH (c:TrainingCandidate {candidate_id: $candidate_id})
+        MATCH (g:GoldLabel {label_id: $label_id})
+        SET c.training_quarantined = $training_quarantined,
+            c.training_quarantine_reason = $reason,
+            c.annotation_completeness = $annotation_completeness,
+            g.training_quarantined = $training_quarantined,
+            g.training_quarantine_reason = $reason,
+            g.annotation_completeness = $annotation_completeness
+        """,
+        candidate_id=candidate_id,
+        label_id=label_id,
+        training_quarantined=quarantined,
+        reason=reason,
+        annotation_completeness=completeness,
+    )
+
 
 # Reverse lookup: SNOMED semantic tag (as stored on the concept node /
 # coded link, e.g. "disorder", "observable entity") -> NER stored label
@@ -6038,6 +6099,13 @@ def candidate_from_dry_run(
                     candidate_id=candidate_id,
                     schema_version="v4",
                 )
+                _apply_gold_granularity_metadata(
+                    session,
+                    candidate_id=candidate_id,
+                    label_id=label_id,
+                    text=deidentified,
+                    entities_json=entities_json,
+                )
 
             # -- Surface the full GoldLabel payload (DI-LEO-AI-222) --
             # Lets the Evaluate-stage UI mount the shared
@@ -6194,6 +6262,13 @@ def gold_label_from_encounter(
                     candidate_id=candidate_id,
                     schema_version="v4",
                 )
+                _apply_gold_granularity_metadata(
+                    session,
+                    candidate_id=candidate_id,
+                    label_id=label_id,
+                    text=deidentified,
+                    entities_json=entities_json,
+                )
 
             label_row = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
             if not label_row:
@@ -6329,6 +6404,13 @@ def approve_dry_run_extraction_as_gold(
                 verified_by=verified_by,
                 candidate_id=candidate_id,
                 schema_version="v4",
+            )
+            _apply_gold_granularity_metadata(
+                session,
+                candidate_id=candidate_id,
+                label_id=label_id,
+                text=deidentified,
+                entities_json=entities_json,
             )
     finally:
         client.close()

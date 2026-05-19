@@ -27,7 +27,7 @@ Date of decision to refer: 2026-05-18
 
 This 45-year-old patient has been referred under the 2WW lower GI pathway. He has a five-week history of painless fresh rectal bleeding mixed with stool, accompanied by a change in bowel habit (looser stools, four to five per day, from his baseline of one daily). He reports left iliac fossa cramping pain over the same period. He has not lost weight.
 
-His faecal immunochemical test was sent on 2026-05-06. The pathology report annotates the result as "FIT abnormal" with a numeric value of 132 ug Hb/g (the local laboratory uses the phrasing "FIT abnormal" interchangeably with "FIT positive" for values above the 10 ug/g referral threshold). The FIT abnormal result was reviewed and accepted by the lab without re-test; no sample rejected event has occurred at any stage of this episode.
+Faecal immunochemical test (2026-05-06): FIT abnormal, 132 ug Hb/g.
 
 On examination the abdomen is soft. There is no palpable abdominal mass. Digital rectal examination shows no rectal mass and no haemorrhoids identifiable.
 

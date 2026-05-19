@@ -6,9 +6,10 @@ The default `spacy.ngram_range_suggester.v1` enumerates every span from
 `min_size` to `max_size`. With `max_size=24`, that produces a large volume of
 negative candidates that can drown the head in false-positive signal.
 
-This suggester emits a bounded clinical set:
-  * short to medium spans (1..10 tokens) - covers p95 of curated gold spans
-  * selected long lab spans (15, 20..24 tokens) - covers known lab triples
+This suggester emits spans from 1..24 tokens. The training exporter now scopes
+the model to the production extraction labels only, so the wider candidate set
+is needed to keep long observable/finding spans proposable without asking the
+head to learn every historical semantic type.
 
 The default size buckets can be overridden via the spaCy config ``sizes``
 list.
@@ -22,24 +23,7 @@ from spacy.pipeline.spancat import Suggester, build_ngram_suggester
 from spacy.util import registry
 
 
-_DEFAULT_CLINICAL_SIZES: tuple[int, ...] = (
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    15,
-    20,
-    21,
-    22,
-    23,
-    24,
-)
+_DEFAULT_CLINICAL_SIZES: tuple[int, ...] = tuple(range(1, 25))
 
 
 def build_clinical_ngram_suggester(

@@ -29,7 +29,7 @@ Date of decision to refer: 2026-05-18
 
 This 49-year-old patient presents with a seven-week history of painless fresh rectal bleeding, almost daily, mixed with stool. Over the same period her bowel habit has changed, with looser and more frequent stools (three to four per day from her baseline of one daily). She has lost approximately 3kg without intentional dietary change.
 
-Her faecal immunochemical test was sent on 2026-05-10 and the result has returned as FIT positive at 88 ug Hb/g, well above the local 10 ug/g referral threshold. Bowel screening history: her last NHS Bowel Cancer Screening Programme sample was 2024 and was reported by the screening hub as FOBT normal at that time (the screening hub still uses the older "FOBT" wording on its result letters). The 2024 screening result is historical and is not the index test for this referral; the current FIT positive result is the basis for this referral.
+Faecal immunochemical test (2026-05-10): FIT positive, 88 ug Hb/g. Her last NHS bowel cancer screening (2024) was reported as FOBT normal.
 
 On examination the abdomen is soft, non-tender, and without palpable mass. Digital rectal examination revealed no rectal mass and no haemorrhoids.
 

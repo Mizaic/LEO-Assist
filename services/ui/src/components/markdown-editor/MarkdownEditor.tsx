@@ -74,7 +74,13 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
     const editor = useEditor({
       immediatelyRender: false,
       extensions: [
-        StarterKit.configure({ codeBlock: { languageClassPrefix: "language-" } }),
+        StarterKit.configure({
+          codeBlock: { languageClassPrefix: "language-" },
+          // Disable StarterKit's built-in copies; we configure these explicitly
+          // below so our options (openOnClick: false, etc.) take effect.
+          link: false,
+          underline: false,
+        }),
         Underline,
         Link.configure({ openOnClick: false }),
         Table.configure({ resizable: false }),

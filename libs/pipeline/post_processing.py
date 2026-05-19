@@ -1,10 +1,11 @@
 """Canonical post-processing stack applied identically to training and runtime.
 
 Atlas trace:
-  DO: DO-16FFE9D3
-  Also implements: DO-19EB27A0, DO-36C09C0E, DO-54397CCD, DO-8620A68B, DO-88BE3CD9, DO-95B6BBAB
-  DI: DI-04105500, DI-4247C7E5, DI-5A802C83, DI-6E6E985B, DI-6EFD68D0, DI-9D967259, DI-F0B8A7B0, DI-F298AE65
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-16FFE9D3")
+  UN: UN-89E2AE36
+  DI: DI-B5C78811
+  DO: DO-728930A1, DO-416BA91D
+  VT: VT-29880CC8
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-B5C78811")
 
 All 9 layers execute in a fixed order on plain entity dicts.  Both the
 training verification pipeline (label_verifier) and the runtime coding
@@ -24,7 +25,7 @@ Layer order
                              lab request reason text.
 we h3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
                              (68621) as a finding (SNOMED 171176006).
-3d. Cross-Line Lab Finding Merge -- DI-D3391745 / DO-1DB93C8E. Extend an
+3d. Cross-Line Lab Finding Merge -- DI-B5C78811 / DO-728930A1. Extend an
                              observable_entity span forward across at most
                              one blank line when the next non-blank line
                              starts with a recognised result-interpretation
@@ -407,7 +408,7 @@ def _has_nearby_observable(
 
 
 # -- Layer 3c: Cross-Line Lab Finding Merge --
-# DI-D3391745, DO-1DB93C8E, VT-835D4BBC.
+# DI-B5C78811, DO-728930A1, VT-29880CC8.
 # EHR exports often place a lab observable's value/units on one line and the
 # trailing result-interpretation phrase ("Outside reference range", "High",
 # "Within normal limits", ...) on the next physical line, sometimes after a
@@ -1296,8 +1297,8 @@ def run_post_processing_with_trace(
         ),
     )
 
-    # Layer 3d: Cross-Line Lab Finding Merge (DI-D3391745, DO-1DB93C8E,
-    # VT-835D4BBC). Extend an observable_entity span forward across at
+    # Layer 3d: Cross-Line Lab Finding Merge (DI-B5C78811, DO-728930A1,
+    # VT-29880CC8). Extend an observable_entity span forward across at
     # most one blank line when the next non-blank line begins with a
     # recognised result-interpretation phrase. This lets Layer 4 emit the
     # matching `finding` sub-entity from one merged span instead of leaving

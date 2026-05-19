@@ -216,6 +216,15 @@ class WorkflowEngine:
             )
             step_result.output = effective_output
             self._merge_step_output(pipeline_state, effective_output)
+            persist_error = self._persist_failure(action, effective_output)
+            if persist_error:
+                final_status = "error"
+                step_result.status = "error"
+                step_result.error = persist_error
+                logger.error(
+                    "Pipeline halted at %s: %s", action.action_id, persist_error
+                )
+                break
 
             entities = pipeline_state.get("entities") or []
             if action.subgraph_id == "extraction" and not entities:
@@ -259,11 +268,7 @@ class WorkflowEngine:
                 )
                 queue.extend(next_targets)
 
-            if (
-                not queue
-                and not fallback_enqueued
-                and not has_graph_edges
-            ):
+            if not queue and not fallback_enqueued and not has_graph_edges:
                 remainder = sorted(
                     (a.action_id for a in all_actions if a.action_id not in executed),
                     key=lambda aid: action_by_id[aid].sequence,
@@ -369,6 +374,19 @@ class WorkflowEngine:
         if action.subgraph_id not in _ANALYSIS_SUBGRAPHS:
             return False
         return not bool(pipeline_state.get("trigger_analysis", False))
+
+    @staticmethod
+    def _persist_failure(
+        action: ActionDefinition, step_output: dict[str, Any]
+    ) -> str | None:
+        if action.subgraph_id != "persist":
+            return None
+        errors = step_output.get("errors") or []
+        for raw in errors:
+            text = str(raw)
+            if text.startswith(("persist_patient_graph:", "persist_gold_training:")):
+                return text
+        return None
 
     @staticmethod
     def _build_outgoing_edges(
@@ -1192,11 +1210,7 @@ class WorkflowEngine:
                 )
                 queue.extend(next_targets)
 
-            if (
-                not queue
-                and not fallback_enqueued
-                and not has_graph_edges
-            ):
+            if not queue and not fallback_enqueued and not has_graph_edges:
                 remainder = sorted(
                     (a.action_id for a in actions if a.action_id not in executed),
                     key=lambda aid: action_by_id[aid].sequence,
@@ -1336,6 +1350,19 @@ class WorkflowEngine:
                         sorted({s.llm_prompt_hash for s in steps if s.llm_prompt_hash})
                     ),
                 }
+                if pipeline_state.get("capture_validation_output"):
+                    audit["validation_output"] = json.dumps(
+                        {
+                            "case_id": pipeline_state.get("case_id", ""),
+                            "terms": [
+                                {"text": str(e.get("text") or "").strip()}
+                                for e in (pipeline_state.get("entities") or [])
+                                if isinstance(e, dict)
+                                and str(e.get("text") or "").strip()
+                            ],
+                            "errors": errors[:50],
+                        }
+                    )
                 query = """
                 MERGE (ae:AuditEvent {id: $id})
                 SET ae += $props,

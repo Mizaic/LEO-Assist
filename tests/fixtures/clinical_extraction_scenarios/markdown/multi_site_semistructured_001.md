@@ -6,7 +6,7 @@ Prob: Multi-system symptoms -- NSS 2WW referral.
 
 Hx: Several symptoms occurring together over the past two months. Persistent abdominal pain in the lower abdomen, present daily for 6 weeks. Unintentional weight loss of approximately 5kg over two months without dietary change. She also has a family history of bowel cancer in her father, diagnosed age 58. FIT negative. No PR bleeding.
 
-Background only: ovarian cyst on records from two years ago, assessed as simple cyst -- not the reason for referral.
+She had a simple ovarian cyst two years ago, assessed and requiring no further follow-up.
 
 Exam: Abdomen soft with mild lower abdominal tenderness. No mass. No organomegaly.
 

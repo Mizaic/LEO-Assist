@@ -8,7 +8,7 @@ Hx: Four-week history of right-sided breast pain, described as a persistent dull
 
 Exam: No discrete palpable lump. Right nipple expressed producing a small amount of serosanguinous fluid. No skin changes. No axillary lymphadenopathy.
 
-Plan: 2WW breast referral placed. Family history of breast cancer is negative and is not the reason for this referral.
+Plan: 2WW breast referral placed.
 
 ## Blood Results (Last 2m)
 

@@ -8,7 +8,7 @@ Hx: Background: patient was referred to urology last year for visible haematuria
 
 Exam: Abdomen soft. No renal angle tenderness.
 
-Plan: 2WW urology re-referral for visible haematuria. Cancelled ultrasound is background only; new visible haematuria is the reason for this referral.
+Plan: 2WW urology re-referral for visible haematuria.
 
 ## Blood Results (Last 2m)
 

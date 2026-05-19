@@ -8,7 +8,7 @@ Hx: Seven-week history of persistent cough. He was given amoxicillin two months 
 
 Exam: Decreased air entry at right base. No wheeze. No crepitations.
 
-Plan: 2WW lung referral. Chest X-ray arranged urgently. Patient aware this is a suspected cancer referral. Previous chest infection history is noted above as background only; cough resolved is not documented as the cough has not resolved.
+Plan: 2WW lung referral. Chest X-ray arranged urgently. Patient aware this is a suspected cancer referral.
 
 ## Blood Results (Last 2m)
 

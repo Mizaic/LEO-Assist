@@ -77,6 +77,7 @@ from app.routers.ncda_pathway_config import router as ncda_pathway_config_router
 from app.routers.audit_quality import router as audit_quality_router
 from app.routers.sbar import router as sbar_router
 from app.routers.extraction_scenarios import router as extraction_scenarios_router
+from app.routers.validation_runs import router as validation_runs_router
 from app.routers.sdk_auth import router as sdk_auth_router
 from app.routers.sdk_governance import router as sdk_governance_router
 from app.routers.sdk_release import router as sdk_release_router
@@ -139,9 +140,7 @@ async def lifespan(app: object):
         _limiter = anyio.to_thread.current_default_thread_limiter()
         _tokens = int(os.getenv("ANYIO_THREADPOOL_TOKENS", "200"))
         _limiter.total_tokens = _tokens
-        logging.getLogger(__name__).info(
-            "anyio threadpool ceiling set to %d", _tokens
-        )
+        logging.getLogger(__name__).info("anyio threadpool ceiling set to %d", _tokens)
     except Exception as exc:
         logging.getLogger(__name__).warning(
             "Failed to lift anyio threadpool ceiling: %s", exc
@@ -379,6 +378,7 @@ app.include_router(audit_quality_router)
 app.include_router(data_quality_router)
 app.include_router(sbar_router)
 app.include_router(extraction_scenarios_router)
+app.include_router(validation_runs_router)
 app.include_router(sdk_auth_router)
 app.include_router(sdk_telemetry_router)
 app.include_router(sdk_release_router)

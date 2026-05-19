@@ -265,6 +265,35 @@ def test_production_run_refresh_scores_worker_audit_output(monkeypatch):
     assert captured["per_case"][0]["model_tier"] == "small"
 
 
+def test_validation_output_normalises_value_unit_terms_before_scoring():
+    case = {
+        "case_id": "case-1",
+        "expected_strings": ["Alb", "CRP", "weight loss"],
+        "expected_observables": [
+            {"test_name": "Albumin", "display_name": "Alb"},
+            {"test_name": "C reactive protein", "display_name": "CRP"},
+        ],
+    }
+    row = {
+        "validation_output": {
+            "terms": [
+                {"text": "Albumin 43.9 g/L"},
+                {"text": "C reactive protein 7 mg/L"},
+                {"text": "weight loss"},
+                {"text": "Referral criteria and clinical information"},
+                {"text": "11.2 g/L"},
+            ]
+        }
+    }
+
+    terms = extraction_scenarios._terms_from_validation_output(row, case)
+    score = extraction_scenarios._score_case_from_terms(case, terms)
+
+    assert terms == ["Alb", "CRP", "weight loss"]
+    assert score["f1"] == 1.0
+    assert score["false_positive"] == 0
+
+
 def test_worker_audit_captures_validation_terms_only_when_requested():
     engine = WORKFLOW_ENGINE.read_text(encoding="utf-8")
 

@@ -11,7 +11,7 @@ I am writing to refer this patient urgently. She presents with a six-week histor
 
 Her CA125 level was measured last week and has returned elevated. I have arranged a pelvic ultrasound scan as part of this referral.
 
-Background (provided for specialist awareness only): she has a family history of ovarian cancer -- her mother was diagnosed with ovarian cancer in her mid-sixties. This family history of ovarian cancer is provided here as context only; the referral is made on the clinical grounds of abdominal bloating and early satiety in their own right. A previous diagnosis of ovarian cyst two years ago was a simple cyst and does not account for the current presentation.
+She has a family history of ovarian cancer -- her mother was diagnosed with ovarian cancer in her mid-sixties. She had a simple ovarian cyst two years ago, previously assessed and requiring no further follow-up.
 
 ## Blood Results (Last 2m)
 

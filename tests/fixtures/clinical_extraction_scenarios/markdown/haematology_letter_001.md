@@ -9,7 +9,7 @@ Re: Synthetic Given 023 Synthetic Family 023, DOB 1963-12-24, NHS SYN-NHS-000023
 
 I am writing to refer this patient urgently under the haematology suspected cancer pathway. She has a six-week history of unexplained bruising on her forearms and lower legs, occurring without significant trauma. She also reports drenching night sweats approximately four nights per week over the past month.
 
-On examination I have found palpable cervical lymphadenopathy bilaterally, with lymph nodes approximately 2cm in the anterior cervical chains. Her most recent blood count shows a low haemoglobin of 88 g/L, a new finding; her Hb was 128 g/L eighteen months ago. I am aware her recent record notes a Hb 88 g/L value -- this refers to the current result documented above and is not a historical finding.
+On examination I have found palpable cervical lymphadenopathy bilaterally, with lymph nodes approximately 2cm in the anterior cervical chains. Her most recent blood count shows a low haemoglobin of 88 g/L, a new finding; her Hb was 128 g/L eighteen months ago.
 
 ## Blood Results (Last 2m)
 

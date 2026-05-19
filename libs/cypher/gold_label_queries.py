@@ -172,7 +172,9 @@ RETURN
     g.entities_json AS entities_json,
     g.source AS source,
     g.quality_score AS quality_score,
-    toString(g.verified_at) AS verified_at
+    toString(g.verified_at) AS verified_at,
+    coalesce(g.training_quarantined, false) AS training_quarantined,
+    g.annotation_completeness AS annotation_completeness
 ORDER BY g.created_at ASC
 """
 

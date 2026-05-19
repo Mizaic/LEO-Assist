@@ -4,7 +4,7 @@ Subject: Head and Neck USC -- persistent sore throat x8 weeks -- SYN-NHS-000040
 
 Please triage Synthetic Given 040 Synthetic Family 040 (DOB 1980-05-14, NHS SYN-NHS-000040) for a head and neck urgent suspected cancer referral. The presenting concern is a persistent sore throat present for eight weeks, not improving, and not responding to two courses of antibiotics. He has a significant smoking history of 30 pack-years and is a current smoker.
 
-For background awareness only: comorbidities include well-controlled COPD managed with inhalers (no recent exacerbation) and hypertension on amlodipine (stable). COPD is background and is not the reason for this referral. The smoking history is relevant to both conditions but the COPD is unrelated to the current throat symptoms.
+For background awareness only: comorbidities include well-controlled COPD managed with inhalers (no recent exacerbation) and hypertension on amlodipine (stable).
 
 ## Blood Results (Last 2m)
 

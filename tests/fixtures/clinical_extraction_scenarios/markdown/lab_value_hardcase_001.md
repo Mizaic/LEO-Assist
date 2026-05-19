@@ -8,7 +8,7 @@ Hx: PSA six months ago was 6.8 ng/mL (borderline for age). His Prostate specific
 
 Exam: Prostate enlarged, firm, hard nodule on digital rectal examination -- abnormal prostate examination confirmed.
 
-Plan: 2WW urology referral placed. Note: PSA value of 12.4 ng/mL refers to the current result documented above.
+Plan: 2WW urology referral placed.
 
 ## Blood Results (Last 2m)
 

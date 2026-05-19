@@ -6,7 +6,7 @@ Prob: Progressive dysphagia -- 2WW upper GI referral.
 
 Hx: Six-week history of progressive dysphagia affecting first solids and now semi-solids. She has lost approximately 3kg over the same period. Food sticking mid-sternum. No haematemesis. Appetite reduced.
 
-Background (past history only): she received previous helicobacter treatment four years ago following a positive CLO test; eradicated on breath testing two years later and confirmed negative. No recent symptom recurrence from H. pylori. Gastric ulcer history is similarly historical and not the reason for this referral.
+She received helicobacter treatment four years ago following a positive CLO test, eradicated on breath testing two years later. She had a gastric ulcer in the same period, now resolved.
 
 Exam: Abdomen soft, non-tender. No lymphadenopathy. No jaundice.
 

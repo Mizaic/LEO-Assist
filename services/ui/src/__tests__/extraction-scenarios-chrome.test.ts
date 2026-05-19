@@ -12,10 +12,11 @@
  *   - /admin/extraction-scenarios redirect exists in next.config.mjs
  *
  * Atlas:
- *   DI: DI-1B3B5375, DI-B492CAFD
+ *   DI: DI-1B3B5375, DI-B492CAFD (AC1 and AC4 via this VT)
  *   DO: DO-416BA91D
  *   Risk: R-80E8BD96
- *   VT-24D7A846  extraction scenarios admin UI chrome
+ *   VT-24D7A846  extraction scenarios admin UI chrome (5 ACs)
+ *   VT-C0D7D50C  run lifecycle + Neo4j persistence (DI-B492CAFD AC2-AC3)
  *   VT-29880CC8   extraction scenario verification
  *   VAL-87173594  phrase-level F1 validation
  */
@@ -96,13 +97,17 @@ describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
     expect(panel).toMatch(/data-testid="extraction-scenario-panel"/);
   });
 
-  test("TC-010: review surface is a dialog with raw Markdown payload and values", () => {
+  test("TC-010: review surface is a dialog with rendered Markdown and expected values", () => {
     const drawer = src(CASE_DRAWER);
     expect(drawer).toMatch(/data-testid="approve-button"/);
     expect(drawer).toMatch(/data-testid="markdown-viewer"/);
+    expect(drawer).toMatch(/data-view-mode="rendered"/);
     expect(drawer).toMatch(/data-view-mode="raw"/);
-    expect(drawer).toMatch(/Raw Markdown sent to pipeline/);
-    expect(drawer).toMatch(/exact document payload from markdown_body/);
+    expect(drawer).toMatch(/data-testid="markdown-view-toggle"/);
+    expect(drawer).toMatch(/Clinical document/);
+    expect(drawer).toMatch(/markdown_body payload sent to the extraction pipeline/);
+    expect(drawer).toMatch(/MarkdownEditor/);
+    expect(drawer).toMatch(/data-testid="expected-phrases-panel"/);
     expect(drawer).toMatch(/data-testid="case-review-dialog"/);
     expect(drawer).toMatch(/<Dialog/);
     expect(drawer).not.toMatch(/<Drawer/);

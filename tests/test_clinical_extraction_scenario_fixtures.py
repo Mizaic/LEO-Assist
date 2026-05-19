@@ -91,7 +91,7 @@ def _read_fixture_text(path: pathlib.Path) -> str:
 
 
 def test_expected_strings_contract_is_locked() -> None:
-    """Gold fixture declares traceability, scope, normalisation, and threshold."""
+    """Gold fixture declares traceability, scope, raw matching, and threshold."""
     doc = load_expected_strings()
     assert doc["schema_version"] == 1
     assert doc["traceability"] == {
@@ -102,10 +102,10 @@ def test_expected_strings_contract_is_locked() -> None:
     assert doc["validation_scope"] == "extraction_only_terms_text_before_coding"
     assert doc["pass_threshold"]["overall_phrase_f1"] == 0.95
     assert doc["normalisation"] == {
-        "casefold": True,
-        "trim": True,
-        "collapse_whitespace": True,
-        "strip_terminal_punctuation": True,
+        "casefold": False,
+        "trim": False,
+        "collapse_whitespace": False,
+        "strip_terminal_punctuation": False,
     }
 
 
@@ -214,7 +214,7 @@ def test_expected_clinical_phrases_are_present_in_documents() -> None:
 
 
 def test_scenarios_include_blood_results_with_values_and_units() -> None:
-    """Markdown shows result values only; JSON keeps ranges and flags."""
+    """Markdown shows raw result labels; JSON keeps ranges and flags."""
     base = fixture_dir().parent.parent.parent
     for case in iter_cases():
         blood_results = case["blood_results"]
@@ -235,7 +235,7 @@ def test_scenarios_include_blood_results_with_values_and_units() -> None:
             assert result["unit"] == observable["unit"]
             assert result["flag"] in {"high", "low", "normal"}
             assert result["unit"]
-            assert result["test_name"] in case["expected_strings"]
+            assert result["display_name"] in case["expected_strings"]
             rendered = f"{result['display_name']} {result['value']} {result['unit']}"
             assert rendered in text
 

@@ -167,6 +167,34 @@ def test_upsert_uses_dry_run_correction_source_and_pending_status(client):
     ]
 
 
+def test_whole_note_dry_run_gold_is_quarantined_until_repaired(client):
+    deid = "History: cough\nPlan: chest xray requested"
+    kg, calls = _kg_session_capture({})
+
+    with (
+        caller_scope_override(client.app),
+        patch("app.routers.training.deidentify_text", return_value=deid),
+        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+    ):
+        r = client.post(
+            "/training/candidates/from-dry-run",
+            json={
+                "encounter_text": "raw text",
+                "entities": [{"text": "chest xray", "label": "PROCEDURE"}],
+            },
+        )
+
+    assert r.status_code == 200
+    metadata = [
+        kwargs
+        for q, kwargs in calls
+        if "training_quarantined = $training_quarantined" in q
+    ]
+    assert metadata
+    assert metadata[-1]["training_quarantined"] is True
+    assert metadata[-1]["annotation_completeness"] == "needs_split"
+
+
 # -- VT-191-TC-003 -- entity re-anchoring with unmappable drop --------------
 
 

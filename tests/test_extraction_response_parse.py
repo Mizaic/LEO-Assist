@@ -60,3 +60,52 @@ def test_invalid_not_prose():
     data, src = parse_extraction_terms_response("not json at all")
     assert data == {}
     assert src == "failed"
+
+
+def test_salvages_complete_terms_from_truncated_json():
+    raw = """```json
+{
+  "terms": [
+    {
+      "sentence_id": "s1",
+      "text": "rectal bleeding",
+      "semantic_tag": "finding"
+    },
+    {
+      "sentence_id": "s2",
+      "text": "positive FIT",
+      "semantic_tag":
+"""
+    data, src = parse_extraction_terms_response(raw)
+
+    assert src == "json_salvaged"
+    assert data["terms"] == [
+        {
+            "sentence_id": "s1",
+            "text": "rectal bleeding",
+            "semantic_tag": "finding",
+        },
+        {"sentence_id": "s2", "text": "positive FIT"},
+    ]
+
+
+def test_salvages_log_shape_when_json_cuts_off_after_text():
+    raw = """```json
+{
+  "terms": [
+    {
+      "sentence_id": "s9",
+      "text": "urgent haematology suspected cancer referral",
+      "lookup_term": "suspected haematological malignancy",
+      "semantic_tag":
+"""
+    data, src = parse_extraction_terms_response(raw)
+
+    assert src == "json_salvaged"
+    assert data["terms"] == [
+        {
+            "sentence_id": "s9",
+            "text": "urgent haematology suspected cancer referral",
+            "lookup_term": "suspected haematological malignancy",
+        }
+    ]

@@ -219,6 +219,59 @@ def test_happy_path_maps_live_links_to_gold_entities(client):
     assert "type 2 diabetes mellitus" in diabetes["text"]
 
 
+def test_from_encounter_quarantines_whole_note_gold_until_repaired(client):
+    raw = "History: cough\nPlan: chest xray requested"
+    deid = raw
+
+    encounter_row = {
+        "encounter_id": "enc-1",
+        "date": "2026-04-18",
+        "text": raw,
+        "coded_count": 1,
+    }
+    link_rows = [
+        {
+            "encounter_id": "enc-1",
+            "node_labels": ["Procedure"],
+            "concept_id": "168537006",
+            "term": "Chest X-ray",
+            "read_code": None,
+            "semantic_tag": "procedure",
+            "evidence": "chest xray",
+            "evidence_sentence": "chest xray",
+            "context": None,
+            "modifiers": None,
+            "body_site_concept_id": None,
+            "body_site_term": None,
+        },
+    ]
+
+    pgc, _pcalls = _patient_session_with(encounter_row, link_rows)
+    kg, kcalls = _kg_session_capture({})
+
+    with (
+        caller_scope_override(client.app),
+        patch("app.routers.training.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training.deidentify_text", return_value=deid),
+        patch("app.routers.training.require_patient_in_scope", return_value=None),
+    ):
+        r = client.post(
+            "/training/gold-labels/from-encounter",
+            json={"patient_id": "pat-1", "encounter_id": "enc-1"},
+        )
+
+    assert r.status_code == 200, r.text
+    metadata = [
+        kwargs
+        for q, kwargs in kcalls
+        if "training_quarantined = $training_quarantined" in q
+    ]
+    assert metadata
+    assert metadata[-1]["training_quarantined"] is True
+    assert metadata[-1]["annotation_completeness"] == "needs_split"
+
+
 # -- VT-192-TC-002 -- second call is idempotent (no re-upsert) ----------
 
 

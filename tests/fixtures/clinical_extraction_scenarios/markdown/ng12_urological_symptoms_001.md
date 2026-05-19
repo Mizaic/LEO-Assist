@@ -8,7 +8,7 @@ Hx: Three episodes of visible haematuria over the past month. Episodes are painl
 
 Exam: Abdomen soft. No flank tenderness. Bladder not palpable.
 
-Plan: 2WW urology referral. Prostate specific antigen to be checked. Background UTI resolved on the basis of negative MSU -- previous UTI history is noted as background only; current presentation is visible haematuria without infection.
+Plan: 2WW urology referral. Prostate specific antigen to be checked. Previous UTI history noted; current MSU negative, no active infection.
 
 ## Blood Results (Last 2m)
 

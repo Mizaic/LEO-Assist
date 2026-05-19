@@ -12,11 +12,9 @@ import os
 from typing import Any
 
 DEFAULT_EXPECTED_LABELS: tuple[str, ...] = (
-    "DISORDER",
-    "FINDING",
     "PROCEDURE",
     "OBSERVABLE",
-    "MEDICINAL_PRODUCT",
+    "FINDING",
 )
 
 _LABEL_ALIASES: dict[str, str] = {

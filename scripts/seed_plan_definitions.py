@@ -31,6 +31,8 @@ from dotenv import load_dotenv
 
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_ROOT / "secrets" / ".env", override=False)
+from libs.workflow.validation_workflows import all_validation_plan_definitions
+
 try:
     from libs.keyvault.loader import load_keyvault_secrets
 
@@ -62,6 +64,23 @@ ACTIVITY_DEFINITIONS = [
             {"path": "extraction_method", "expression": {"expression": "llm"}},
             {"path": "prompt_config_id", "expression": {"expression": ""}},
             {"path": "prompt_config_name", "expression": {"expression": "extraction"}},
+            {"path": "prompt_config_version", "expression": {"expression": "1"}},
+        ],
+    },
+    {
+        "id": "ad-extraction-referral",
+        "resourceType": "ActivityDefinition",
+        "name": "Referral LLM Entity Extraction",
+        "status": "active",
+        "description": "Extract referral-focused clinical entities using dedicated prompt",
+        "_subgraphId": "extraction",
+        "dynamicValue": [
+            {"path": "extraction_method", "expression": {"expression": "llm"}},
+            {"path": "prompt_config_id", "expression": {"expression": ""}},
+            {
+                "path": "prompt_config_name",
+                "expression": {"expression": "referral_extraction"},
+            },
             {"path": "prompt_config_version", "expression": {"expression": "1"}},
         ],
     },
@@ -349,6 +368,14 @@ ACTIVITY_DEFINITIONS = [
         "status": "active",
         "description": "Recommend clinical next-best-action based on patient state",
         "_subgraphId": "next_best_action",
+    },
+    {
+        "id": "ad-human-review-gate",
+        "resourceType": "ActivityDefinition",
+        "name": "Human Review Gate",
+        "status": "active",
+        "description": "Pause workflow output for human clinical review",
+        "_subgraphId": "human_review_gate",
     },
 ]
 
@@ -698,7 +725,7 @@ PLAN_DEFINITIONS = [
             },
         ],
     },
-]
+] + all_validation_plan_definitions()
 
 
 def _to_ui_format(pd_def: dict) -> dict:
@@ -759,9 +786,11 @@ def _to_ui_format(pd_def: dict) -> dict:
                         "id": f"rule_{i}",
                         "field": r.get("field", ""),
                         "operator": r.get("operator", "=="),
-                        "value": str(r.get("value", "")).lower()
-                        if isinstance(r.get("value"), bool)
-                        else str(r.get("value", "")),
+                        "value": (
+                            str(r.get("value", "")).lower()
+                            if isinstance(r.get("value"), bool)
+                            else str(r.get("value", ""))
+                        ),
                         "outputPort": r.get("outputPort", ""),
                     }
                     for i, r in enumerate(raw_rules)

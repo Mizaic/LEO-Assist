@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from libs.training_ext.training_quality import (
+    DEFAULT_EXPECTED_LABELS,
     evaluate_label_coverage,
     macro_f1,
     summarise_export_support,
@@ -19,6 +20,10 @@ def test_export_support_gate_fails_single_label_collapse() -> None:
     assert report["passed"] is False
     assert report["missing_expected_labels"] == ["DISORDER", "FINDING"]
     assert report["support_total"]["PROCEDURE"] == 130
+
+
+def test_default_expected_labels_match_v1_extraction_scope() -> None:
+    assert DEFAULT_EXPECTED_LABELS == ("PROCEDURE", "OBSERVABLE", "FINDING")
 
 
 def test_export_support_normalises_canonical_label_aliases() -> None:

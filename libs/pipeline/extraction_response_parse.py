@@ -19,7 +19,9 @@ from typing import Any, Literal
 
 logger = logging.getLogger(__name__)
 
-ParseSource = Literal["empty_input", "json_ok", "prose_empty", "failed"]
+ParseSource = Literal[
+    "empty_input", "json_ok", "json_salvaged", "prose_empty", "failed"
+]
 
 
 def _strip_markdown_fences(raw: str) -> str:
@@ -56,6 +58,75 @@ def _try_load_json_object(raw: str) -> dict[str, Any] | None:
     return None
 
 
+def _decode_json_string(value: str) -> str:
+    try:
+        return str(json.loads(f'"{value}"'))
+    except json.JSONDecodeError:
+        return value
+
+
+def _term_from_fragment(fragment: str) -> dict[str, Any] | None:
+    try:
+        parsed = json.loads(fragment)
+        if isinstance(parsed, dict) and str(parsed.get("text") or "").strip():
+            return parsed
+    except json.JSONDecodeError:
+        pass
+
+    term: dict[str, Any] = {}
+    for key, value in re.findall(
+        r'"(sentence_id|text|lookup_term|semantic_tag|assertion)"\s*:\s*"((?:\\.|[^"\\])*)"',
+        fragment,
+    ):
+        term[key] = _decode_json_string(value)
+    confidence = re.search(r'"confidence"\s*:\s*([0-9]+(?:\.[0-9]+)?)', fragment)
+    if confidence:
+        term["confidence"] = float(confidence.group(1))
+    return term if str(term.get("text") or "").strip() else None
+
+
+def _term_fragments(raw: str) -> list[str]:
+    match = re.search(r'"terms"\s*:\s*\[', raw)
+    if not match:
+        return []
+    fragments: list[str] = []
+    start: int | None = None
+    depth = 0
+    in_string = False
+    escaped = False
+    for idx, char in enumerate(raw[match.end() :], start=match.end()):
+        if in_string:
+            escaped = char == "\\" and not escaped
+            if char == '"' and not escaped:
+                in_string = False
+            elif char != "\\":
+                escaped = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            if depth == 0:
+                start = idx
+            depth += 1
+        elif char == "}" and depth:
+            depth -= 1
+            if depth == 0 and start is not None:
+                fragments.append(raw[start : idx + 1])
+                start = None
+    if start is not None:
+        fragments.append(raw[start:])
+    return fragments
+
+
+def _salvage_terms_payload(raw: str) -> dict[str, Any] | None:
+    terms = []
+    for fragment in _term_fragments(raw):
+        term = _term_from_fragment(fragment)
+        if term is not None:
+            terms.append(term)
+    return {"terms": terms} if terms else None
+
+
 def _looks_like_no_entities_prose(text: str) -> bool:
     low = text.lower()
     needles = (
@@ -74,6 +145,7 @@ def parse_extraction_terms_response(raw: str) -> tuple[dict[str, Any], ParseSour
 
     * ``empty_input`` -- empty string; returns ``{}`` (legacy behaviour).
     * ``json_ok`` -- parsed JSON object; ``terms`` key added if missing.
+    * ``json_salvaged`` -- recovered complete term fields from malformed JSON.
     * ``prose_empty`` -- markdown / prose indicating nothing to code; ``{"terms": []}``.
     * ``failed`` -- unrecoverable; returns ``{}``.
     """
@@ -86,6 +158,10 @@ def parse_extraction_terms_response(raw: str) -> tuple[dict[str, Any], ParseSour
         if "terms" not in data:
             data["terms"] = []
         return data, "json_ok"
+    salvaged = _salvage_terms_payload(cleaned)
+    if salvaged is not None:
+        logger.info("Recovered extraction terms from malformed LLM JSON")
+        return salvaged, "json_salvaged"
     if _looks_like_no_entities_prose(original):
         logger.info("LLM returned prose instead of JSON; treating as empty extraction")
         return {"terms": []}, "prose_empty"

@@ -59,14 +59,7 @@ def _read_suggester_sizes() -> list[int]:
 def test_spancat_suggester_covers_completed_gold_lab_lengths() -> None:
     """The model must be able to suggest known positive lab span lengths."""
     sizes = set(_read_suggester_sizes())
-    assert set(range(1, 11)) <= sizes
-    assert {15, 20, 21, 22, 24} <= sizes
-
-
-def test_spancat_suggester_avoids_full_middle_band() -> None:
-    """Full 1..24 coverage needs separate pruning before reintroduction."""
-    sizes = set(_read_suggester_sizes())
-    assert not ({11, 12, 13, 14, 16, 17, 18, 19} & sizes)
+    assert set(range(1, 25)) <= sizes
 
 
 def test_spancat_suggester_min_size_is_one() -> None:

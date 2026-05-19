@@ -11,7 +11,7 @@ I am writing to refer this patient under the lower GI suspected cancer pathway. 
 
 She has also experienced unintentional weight loss of around five kilograms over the past three months without dietary change. Her FIT test returned a positive FIT result at 185 micrograms of haemoglobin per gram.
 
-For context only: she has a family history of bowel cancer in a first-degree relative; this is noted as past history and is not the primary reason for referral.
+She has a family history of bowel cancer in a first-degree relative.
 
 ## Blood Results (Last 2m)
 

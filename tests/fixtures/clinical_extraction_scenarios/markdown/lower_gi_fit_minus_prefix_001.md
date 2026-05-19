@@ -8,10 +8,7 @@ Please can you accept Synthetic Given 093 Synthetic Family 093 (DOB 1983-10-13, 
 
 He presents with a five-week history of intermittent fresh rectal bleeding on most days, mixed with stool rather than on the paper. Bowel habit has shifted from once daily to two to three loose stools per day. He reports no abdominal pain and has not lost weight. There is a strong family history of colorectal cancer (mother diagnosed at 51, maternal uncle at 56).
 
-Faecal immunochemical test result, copied verbatim from the regional pathology feed:
-"Result: -FIT (3 ug Hb/g) below 10 ug Hb/g referral threshold."
-
-The "-FIT" prefix is the local laboratory's shorthand for a result below the referral threshold, equivalent to a negative FIT. I am referring on clinical grounds because of the combination of new ongoing rectal bleeding, change in bowel habit, and a strong family history of early-onset colorectal cancer, in line with NG12 and our local pathway for strong family history. Although the result is -FIT, the clinical picture warrants endoscopic assessment. Please note this is NOT a "FIT+" result -- the lab reading is unambiguously below threshold.
+Faecal immunochemical test (2026-05-03): -FIT (3 ug Hb/g). I am referring on clinical grounds given the new rectal bleeding, change in bowel habit, and a strong family history of early-onset colorectal cancer, in line with NG12 and our local pathway.
 
 Examination: Abdomen soft, no organomegaly, no palpable mass. DRE: small internal haemorrhoid identified, no rectal mass.
 

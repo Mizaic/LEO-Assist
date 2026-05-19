@@ -9,6 +9,7 @@
 #   ./scripts/start_leo-ai-core.sh --no-model-inference
 #   ./scripts/start_leo-ai-core.sh --no-training-worker
 #   ./scripts/start_leo-ai-core.sh --no-research-worker
+#   ./scripts/start_leo-ai-core.sh --mcp
 #   ./scripts/start_leo-ai-core.sh --no-mcp
 #   ./scripts/start_leo-ai-core.sh --services api,ui
 #   ./scripts/start_leo-ai-core.sh --pipeline-workers 3
@@ -45,7 +46,7 @@ NO_WORKERS=0
 NO_MODEL_INFERENCE=0
 NO_TRAINING_WORKER=0
 NO_RESEARCH_WORKER=0
-SKIP_MCP_REGISTER=0
+SKIP_MCP_REGISTER=1
 SERVICES_FILTER=""
 
 usage() {
@@ -60,6 +61,7 @@ while [[ $# -gt 0 ]]; do
     --no-model-inference) NO_MODEL_INFERENCE=1; shift ;;
     --no-training-worker) NO_TRAINING_WORKER=1; shift ;;
     --no-research-worker) NO_RESEARCH_WORKER=1; shift ;;
+    --mcp) SKIP_MCP_REGISTER=0; shift ;;
     --no-mcp) SKIP_MCP_REGISTER=1; shift ;;
     --services)
       [[ $# -lt 2 ]] && usage
@@ -184,11 +186,11 @@ if [[ "$SKIP_MCP_REGISTER" -eq 0 ]]; then
   MCP_JSON="${HOME}/.cursor/mcp.json"
   "$PY_BOOTSTRAP" "$SCRIPT_DIR/register_mcp.py" \
     --mcp-json "$MCP_JSON" \
-    --name "leo-neo4j" \
+    --name "user-leo-neo4j" \
     --cwd "$REPO_ROOT"
-  echo "  [mcp]  Registered leo-neo4j in ${MCP_JSON}"
+  echo "  [mcp]  Registered user-leo-neo4j in ${MCP_JSON} (leo-neo4j alias kept for compatibility)"
 else
-  echo "  [mcp]  Skipped leo-neo4j registration (--no-mcp)"
+  echo "  [mcp]  Skipped user-leo-neo4j registration (--no-mcp)"
 fi
 
 if [[ -n "${AZURE_KEYVAULT_URL:-}" ]]; then

@@ -61,6 +61,9 @@ _LAB_NAME_HINTS = (
 class ExtractionState(TypedDict, total=False):
     encounter_id: str
     encounter_text: str
+    source_node_type: str
+    source_node_id: str
+    source_text_property: str
     extraction_method: str
     requested_model_version: str
     strict_model_version: bool
@@ -72,6 +75,40 @@ class ExtractionState(TypedDict, total=False):
     extraction_model_requested_version: str
     extraction_model_version_mismatch: bool
     errors: list[str]
+
+
+_SOURCE_NODE_CONFIG = {
+    "Encounter": {
+        "graph": "patient",
+        "id_property": "id",
+        "text_properties": ("text",),
+    },
+    "Document": {
+        "graph": "patient",
+        "id_property": "id",
+        "text_properties": ("text", "content", "body"),
+    },
+    "DocumentReference": {
+        "graph": "patient",
+        "id_property": "id",
+        "text_properties": ("text", "content", "body", "description"),
+    },
+    "Chunk": {
+        "graph": "patient",
+        "id_property": "id",
+        "text_properties": ("text",),
+    },
+    "ExtractionScenario": {
+        "graph": "knowledge",
+        "id_property": "case_id",
+        "text_properties": ("markdown_body", "source_template_markdown"),
+    },
+    "TrainingCandidate": {
+        "graph": "knowledge",
+        "id_property": "id",
+        "text_properties": ("text", "source_text"),
+    },
+}
 
 
 def _normalise_item_label(semantic_tag: str) -> str:
@@ -124,6 +161,10 @@ def _hydrate_encounter_text_if_missing(state: ExtractionState) -> str:
     if text:
         return text
 
+    source_text = _hydrate_source_node_text(state)
+    if source_text:
+        return source_text
+
     encounter_id = str(state.get("encounter_id") or "").strip()
     if not encounter_id:
         return ""
@@ -153,6 +194,84 @@ def _hydrate_encounter_text_if_missing(state: ExtractionState) -> str:
             encounter_id,
         )
     return hydrated
+
+
+def _hydrate_source_node_text(state: ExtractionState) -> str:
+    source_type = str(state.get("source_node_type") or "").strip()
+    source_id = str(state.get("source_node_id") or "").strip()
+    if not source_type or not source_id:
+        return ""
+    config = _SOURCE_NODE_CONFIG.get(source_type)
+    if not config:
+        logger.warning("Unsupported extraction source_node_type=%s", source_type)
+        return ""
+
+    text_properties = _source_text_properties(state, config)
+    client = _source_graph_client(str(config["graph"]))
+    try:
+        rows = client.run(
+            _source_text_query(
+                source_type,
+                str(config["id_property"]),
+                text_properties,
+            ),
+            source_id=source_id,
+        )
+    finally:
+        client.close()
+
+    hydrated = str((rows or [{}])[0].get("text") or "").strip()
+    if hydrated:
+        logger.info(
+            "Hydrated extraction text from %s(%s) properties=%s",
+            source_type,
+            source_id,
+            ",".join(text_properties),
+        )
+    else:
+        logger.warning(
+            "Extraction source text missing for %s(%s) properties=%s",
+            source_type,
+            source_id,
+            ",".join(text_properties),
+        )
+    return hydrated
+
+
+def _source_text_properties(
+    state: ExtractionState,
+    config: dict[str, Any],
+) -> tuple[str, ...]:
+    allowed = tuple(str(item) for item in config["text_properties"])
+    requested = str(state.get("source_text_property") or "").strip()
+    if requested and requested in allowed:
+        return (requested,)
+    if requested:
+        logger.warning(
+            "Ignoring unsupported source_text_property=%s for source_node_type",
+            requested,
+        )
+    return allowed
+
+
+def _source_graph_client(graph: str):
+    from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
+
+    if graph == "knowledge":
+        return KnowledgeGraphClient()
+    return PatientGraphClient()
+
+
+def _source_text_query(
+    label: str,
+    id_property: str,
+    text_properties: tuple[str, ...],
+) -> str:
+    coalesce_args = ", ".join(f"n.{prop}" for prop in text_properties)
+    return (
+        f"MATCH (n:{label} {{{id_property}: $source_id}}) "
+        f"RETURN coalesce({coalesce_args}, '') AS text"
+    )
 
 
 def _extract_lab_fallback_entities(
@@ -317,10 +436,9 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
         logger.warning("Extractor unavailable: %s", e)
         return {"entities": [], "errors": [str(e)]}
     except Exception as e:
-        strict_requested_ner = (
-            str(state.get("extraction_method") or "llm").lower() == "ner"
-            and bool(state.get("strict_model_version", False))
-        )
+        strict_requested_ner = str(
+            state.get("extraction_method") or "llm"
+        ).lower() == "ner" and bool(state.get("strict_model_version", False))
         if strict_requested_ner:
             raise
         logger.exception("Entity extraction failed")

@@ -137,7 +137,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
                 "Extract Key Facts",
                 0,
                 "extraction",
-                "ad-extraction-llm",
+                "ad-extraction-referral",
                 trigger="validation-run-requested",
             ),
             _action(
@@ -162,7 +162,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
                 "Extract Referral Facts",
                 0,
                 "extraction",
-                "ad-extraction-llm",
+                "ad-extraction-referral",
                 trigger="validation-run-requested",
             ),
             _action(
@@ -203,7 +203,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
                 "Extract Triage Facts",
                 0,
                 "extraction",
-                "ad-extraction-llm",
+                "ad-extraction-referral",
                 trigger="validation-run-requested",
             ),
             _action(
@@ -236,7 +236,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
                 "Extract Facts",
                 0,
                 "extraction",
-                "ad-extraction-llm",
+                "ad-extraction-referral",
                 trigger="validation-run-requested",
             ),
             _action(
@@ -277,7 +277,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
                 "Extract Facts",
                 0,
                 "extraction",
-                "ad-extraction-llm",
+                "ad-extraction-referral",
                 trigger="validation-run-requested",
             ),
             _action(
@@ -321,7 +321,7 @@ REFERRAL_TRIAGE_PLAN_DEFINITION: dict[str, Any] = {
             "Extract Key Facts",
             0,
             "extraction",
-            "ad-extraction-llm",
+            "ad-extraction-referral",
             trigger="referral-triage-requested",
         ),
         _action(

@@ -24,9 +24,7 @@ Date of decision to refer: 2026-05-09
 
 ## Clinical justification
 
-This patient has been experiencing progressive dysphagia for approximately eight weeks. She also reports a bitter reflux sensation and unintentional weight loss of approximately 3kg. She has not responded to a trial of PPI at standard dosing. Amylase is enclosed and within normal range. PSA, prostate cancer and digital rectal examination are not relevant to this referral.
-
-Note: Patients with isolated heartburn that has previously responded to treatment and no alarm features should be managed in primary care. This patient presents with alarm features and meets referral criteria.
+This patient has been experiencing progressive dysphagia for approximately eight weeks. She also reports a bitter reflux sensation and unintentional weight loss of approximately 3kg. She has not responded to a trial of PPI at standard dosing. Amylase is enclosed and within normal range.
 
 ## Blood Results (Last 2m)
 

@@ -79,6 +79,7 @@ def _add(
 # ── Extraction — structured output schema + example library ─────────────────
 from libs.prompts.extraction_output_schema import EXTRACTION_OUTPUT_SCHEMA
 from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
+from libs.prompts.referral_extraction_v1 import REFERRAL_EXTRACTION_SYSTEM_V1
 from libs.prompts.extraction_check_v1 import EXTRACTION_CHECK_EXAMPLES_V2
 from libs.prompts.coding_check_v1 import CODING_CHECK_EXAMPLES_V1
 from libs.prompts.relation_linking_v1 import RELATION_LINKING_EXAMPLES_V1
@@ -106,6 +107,69 @@ _add(
         "Extracts SNOMED CT-codable clinical entities from de-identified GP "
         "consultation text. Produces surface forms, semantic tags, assertions, "
         "and structured measurement fields for observable entities and staging scales."
+    ),
+)
+
+_REFERRAL_EXAMPLE_CATEGORIES = {
+    "situation:referral",
+    "assertion:planned",
+    "assertion:hypothetical",
+    "assertion:declined",
+    "assertion:cancelled",
+}
+_REFERRAL_EXAMPLE_TERMS = (
+    "2ww",
+    "two week wait",
+    "fast track",
+    "urgent suspected cancer",
+    "referral",
+    "pathway",
+)
+_REFERRAL_RED_FLAG_TERMS = (
+    "haematuria",
+    "hematuria",
+    "rectal bleeding",
+    "change in bowel habit",
+    "dysphagia",
+    "weight loss",
+    "neck lump",
+    "abnormal bleeding",
+    "iron deficiency",
+    "anaemia",
+    "anemia",
+)
+_REFERRAL_EXTRACTION_EXAMPLES = []
+for _i, _ex in enumerate(EXTRACTION_EXAMPLES):
+    _category = str(_ex.get("category", ""))
+    _input = str(_ex.get("input", "")).lower()
+    _is_referral = _category in _REFERRAL_EXAMPLE_CATEGORIES or any(
+        _term in _input for _term in _REFERRAL_EXAMPLE_TERMS
+    )
+    _is_red_flag_support = any(_term in _input for _term in _REFERRAL_RED_FLAG_TERMS)
+    if _is_referral or _is_red_flag_support:
+        _REFERRAL_EXTRACTION_EXAMPLES.append(
+            {
+                "id": f"seed_referral_ex_{_i:03d}",
+                "input": _ex["input"],
+                "output": _ex["output"],
+                "deidentified": True,
+                "category": _category,
+                "model_scope": _ex.get("model_scope", "any"),
+                "description": _ex.get("description", ""),
+                "core": bool(_ex.get("core", False)),
+            }
+        )
+
+_add(
+    "referral_extraction",
+    1,
+    "libs.prompts.referral_extraction_v1.REFERRAL_EXTRACTION_SYSTEM_V1",
+    output_schema=json.dumps(EXTRACTION_OUTPUT_SCHEMA),
+    few_shot_examples=_REFERRAL_EXTRACTION_EXAMPLES,
+    max_few_shot=12,
+    description=(
+        "Referral-focused extraction prompt for 2WW/fast-track trigger language "
+        "and supporting clinical evidence, with administrative noise suppression."
     ),
 )
 

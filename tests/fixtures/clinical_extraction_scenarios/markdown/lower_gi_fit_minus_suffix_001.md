@@ -28,7 +28,7 @@ Date of decision to refer: 2026-05-18
 
 This 40-year-old patient is being referred on the iron deficiency anaemia pathway under NICE NG12 with a borderline-low Hb (117.5 g/L) and a ferritin below the reference range on his recent panel. He has also had a five-week history of altered bowel habit with looser stools three to four times daily. He has had no overt rectal bleeding and no abdominal pain. He has lost 2kg in the same period.
 
-His faecal immunochemical test from 2026-04-29 returned as "FIT-" with a quantitative value of 4 ug Hb/g, which the pathology service reports as below the 10 ug Hb/g referral threshold. The trailing minus sign on FIT- is the local laboratory's notation for a result below threshold; the result was reviewed once and not repeated. This referral is therefore made on the basis of iron deficiency anaemia and altered bowel habit rather than on a positive FIT. To avoid confusion: the result is FIT-, not "FIT pos"; the laboratory naming convention should not be misread as a positive result.
+Faecal immunochemical test (2026-04-29): FIT-, 4 ug Hb/g. This referral is made on the basis of iron deficiency anaemia and altered bowel habit.
 
 Examination: Soft, non-tender abdomen. No palpable abdominal mass. Digital rectal examination shows no rectal mass and no haemorrhoids identifiable.
 

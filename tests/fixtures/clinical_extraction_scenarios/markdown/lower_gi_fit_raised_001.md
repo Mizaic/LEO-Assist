@@ -9,7 +9,7 @@ Re: Synthetic Given 091 Synthetic Family 091, DOB 1981-08-11, NHS SYN-NHS-000091
 
 I am writing to refer this 44-year-old man under the 2WW lower GI pathway. He presents with a six-week history of intermittent rectal bleeding -- bright red, on the toilet paper and occasionally in the pan, occurring most days. He also reports a change in bowel habit with looser stools and increased urgency, and intermittent crampy lower abdominal discomfort relieved by defaecation. He has lost approximately 3kg.
 
-His faecal immunochemical test was sent on 2026-05-04 and the report from the regional pathology service reads: "FIT raised -- 116 ug Hb/g, above the 10 ug Hb/g referral threshold." The phrasing "FIT raised" is the local laboratory's terminology for a result above threshold and equates to a positive FIT for the purposes of 2WW referral. There has been no quantitative faecal immunochemical test result on this patient before today; in particular, a QFIT negative result documented in his SystmOne record dated 2022 was from a previous unrelated episode of self-limiting diarrhoea and is not the index test for this referral.
+Faecal immunochemical test (2026-05-04): FIT raised -- 116 ug Hb/g. A QFIT negative result in 2022 related to a previous episode of self-limiting diarrhoea.
 
 Examination today: Abdomen soft, mild left iliac fossa tenderness, no palpable mass. DRE: no rectal mass, no haemorrhoids identifiable.
 

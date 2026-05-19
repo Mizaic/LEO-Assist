@@ -2,7 +2,7 @@ From: synthetic.practice07@example.invalid
 To: nss.usc@example.invalid
 Subject: NSS 2WW -- loss of appetite, back pain, type 2 diabetes -- SYN-NHS-000028
 
-Please review Synthetic Given 028 Synthetic Family 028 (DOB 1968-05-02, SYN-NHS-000028) under the non-site-specific pathway. She is a known type 2 diabetes patient on metformin, previously well-controlled -- this is background. The reason for referral is new onset loss of appetite over the past 8 weeks with a 5kg unintentional weight loss, and persistent back pain that is new, constant, and different from her previous mechanical back pain, with no musculoskeletal or inflammatory arthritis explanation. Fasting glucose level is 7.2 mmol/L, within expected range for her diabetes. Bowel cancer screening was normal 3 years ago.
+Please review Synthetic Given 028 Synthetic Family 028 (DOB 1968-05-02, SYN-NHS-000028) under the non-site-specific pathway. She is a known type 2 diabetes patient on metformin, previously well-controlled. The reason for referral is new onset loss of appetite over the past 8 weeks with a 5kg unintentional weight loss, and persistent back pain that is new, constant, and different from her previous mechanical back pain, with no musculoskeletal or inflammatory arthritis explanation. Fasting glucose level is 7.2 mmol/L, within expected range for her diabetes. Bowel cancer screening was normal 3 years ago.
 
 ## Blood Results (Last 2m)
 

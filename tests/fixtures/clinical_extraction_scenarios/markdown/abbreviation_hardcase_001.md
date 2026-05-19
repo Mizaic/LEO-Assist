@@ -8,7 +8,7 @@ Hx: 3-week hx haemoptysis, moderate volume. Prev dx COPD (stable, no recent exac
 
 Exam: Reduced AE R base. No cervical lymphadenopathy. No clubbing. SpO2 94% on air.
 
-Plan: Urgent suspected cancer referral placed -- 2WW lung pathway. COPD review deferred pending outcome. abnormal CXR documented and filed. COPD is background and is not the reason for this referral.
+Plan: Urgent suspected cancer referral placed -- 2WW lung pathway. COPD review deferred pending outcome. Abnormal CXR documented and filed.
 
 ## Blood Results (Last 2m)
 

@@ -8,11 +8,11 @@ Please can you accept Synthetic Given 084 Synthetic Family 084 (DOB 1974-01-04, 
 
 She presents with a six-week history of fresh rectal bleeding mixed with stool and a change in bowel habit (looser stools, increased frequency). On digital rectal examination there is no palpable mass and no haemorrhoids identifiable. She has lost approximately 4kg without dietary change.
 
-The faecal immunochemical test result line copied from the pathology system reads exactly as: "+FIT" (above referral threshold, quantitative value 165 ug Hb/g faeces). The "+" prefix is the local laboratory's shorthand for a positive result. The +FIT result was reported on 2026-05-14 and has been actioned today.
+Faecal immunochemical test (2026-05-14): +FIT, 165 ug Hb/g.
 
-Past medical history (for awareness only):
-- Childhood note dated 1979: "Fit - convulsion" recorded as a single febrile convulsion aged 5; no recurrence and no anti-epileptic medication. This is historical and unrelated.
-- Employment record dated 2023: "fit note issued" for two weeks following a back strain; this is a Med 3 work-capability note and is not related to the bowel investigation.
+Past medical history:
+- Childhood note dated 1979: "Fit - convulsion" -- single febrile convulsion aged 5; no recurrence, no anti-epileptic medication.
+- 2023: fit note issued for two weeks following a back strain.
 
 Current medications: amlodipine 5mg OD, atorvastatin 20mg OD.
 Allergies: none known.

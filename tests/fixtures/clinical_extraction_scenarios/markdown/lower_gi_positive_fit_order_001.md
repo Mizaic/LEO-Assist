@@ -8,9 +8,7 @@ Please can you accept Synthetic Given 088 Synthetic Family 088 (DOB 1978-05-08, 
 
 She presents with a five-week history of fresh painless rectal bleeding and a change in bowel habit (looser, more frequent stools). She has not lost weight. There is no family history of bowel cancer.
 
-She returned a positive FIT result on 2026-05-09 -- the laboratory report uses the wording "positive FIT" with a numeric value of 78 ug Hb/g, above the referral threshold of 10 ug/g. This is the index test that prompts the current referral.
-
-Screening history: her most recent NHS Bowel Cancer Screening Programme test, from 2023, was reported by the screening hub as BCSP FIT normal. That historic screening result is included here for completeness; it is not relevant to the current symptomatic presentation, which is supported by the new positive FIT result.
+Faecal immunochemical test (2026-05-09): positive FIT, 78 ug Hb/g. Her last NHS bowel cancer screening (2023) was BCSP FIT normal.
 
 Examination today: soft abdomen, no palpable mass, DRE unremarkable, no haemorrhoids identified, no rectal mass.
 

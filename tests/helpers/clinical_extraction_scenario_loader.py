@@ -32,7 +32,7 @@ def iter_cases() -> list[dict[str, Any]]:
 
 
 def normalise_phrase(value: str, rules: dict[str, bool]) -> str:
-    """Apply the fixture's phrase matching normalisation rules."""
+    """Apply only explicitly enabled raw-surface matching rules."""
     phrase = value.casefold() if rules.get("casefold") else value
     if rules.get("trim"):
         phrase = phrase.strip()
@@ -59,7 +59,7 @@ def _f1(precision: float, recall: float) -> float:
 def score_case(
     case: dict[str, Any], extracted_strings: list[str], rules: dict[str, bool]
 ) -> dict[str, Any]:
-    """Score one case against extracted ``terms[].text`` strings."""
+    """Score one case against raw extracted ``terms[].text`` strings."""
     expected = _normalised_set(case["expected_strings"], rules)
     extracted = _normalised_set(extracted_strings, rules)
     true_positive = expected & extracted

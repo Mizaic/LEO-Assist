@@ -32,9 +32,7 @@ Date of decision to refer: 2026-05-08
 
 ## Clinical justification
 
-This patient has haemoptysis on three separate occasions in the past two weeks. His chest X-ray shows a right upper lobe opacity reported as an abnormal chest X-ray. He has significant occupational asbestos exposure spanning approximately 20 years as a lagging worker. No acute infection. Background asthma is noted but is not the reason for referral.
-
-Note: PSA, raised PSA, prostate specific antigen, and digital rectal examination are not relevant to this referral and should not be extracted in this context. This pathway is for lung malignancy referrals only.
+This patient has haemoptysis on three separate occasions in the past two weeks. His chest X-ray shows a right upper lobe opacity reported as an abnormal chest X-ray. He has significant occupational asbestos exposure spanning approximately 20 years as a lagging worker. No acute infection. He has a background of asthma, stable and well-controlled.
 
 ## Blood Results (Last 2m)
 

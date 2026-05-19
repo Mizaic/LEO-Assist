@@ -33,7 +33,7 @@ All thresholds are configurable via env vars and have safe defaults.
 
 Environment variables
 ---------------------
-TRAINING_CORPUS_MAX_SOURCE_SHARE       float in (0, 1], default 0.40
+TRAINING_CORPUS_MAX_SOURCE_SHARE       float in (0, 1], default 0.80
 TRAINING_CORPUS_MAX_SURFACE_DUPES      int >= 1, default 3
 TRAINING_CORPUS_MAX_RECORDS_PER_TEXT   int >= 1, default 1
 TRAINING_CORPUS_MIN_PER_LABEL          int >= 0, default 30
@@ -56,9 +56,7 @@ from typing import Any, Iterable, Sequence
 logger = logging.getLogger(__name__)
 
 
-_DEFAULT_TIER1_LABELS = frozenset(
-    {"DISORDER", "FINDING", "MEDICINAL_PRODUCT", "PROCEDURE"}
-)
+_DEFAULT_TIER1_LABELS = frozenset({"FINDING", "OBSERVABLE", "PROCEDURE"})
 
 
 def _normalise_label(raw: Any) -> str:
@@ -76,7 +74,7 @@ def _normalise_label(raw: Any) -> str:
 class BalanceConfig:
     """Knobs controlling the corpus rebalancer."""
 
-    max_source_share: float = 0.40
+    max_source_share: float = 0.80
     max_surface_dupes_per_source: int = 3
     max_records_per_text: int = 1
     min_per_label: int = 30
@@ -114,7 +112,7 @@ class BalanceConfig:
             tier1 = _DEFAULT_TIER1_LABELS
         return cls(
             max_source_share=float(
-                os.getenv("TRAINING_CORPUS_MAX_SOURCE_SHARE", "0.40")
+                os.getenv("TRAINING_CORPUS_MAX_SOURCE_SHARE", "0.80")
             ),
             max_surface_dupes_per_source=int(
                 os.getenv("TRAINING_CORPUS_MAX_SURFACE_DUPES", "3")

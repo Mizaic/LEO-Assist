@@ -1,0 +1,219 @@
+[
+  {
+    "case_id": "rw_fasttrack_referral_2025-08-18_009",
+    "site": "urology",
+    "symptoms": [
+      "lower urinary tract symptoms",
+      "nocturia"
+    ],
+    "labs": [
+      "raised PSA"
+    ],
+    "snippet": "08:29 - Surgery: Problem: Hip pain (X75rv) History: Booked to discuss MRI but I note that his PSA is very raised. Does get LUTs, including nocturia. Note Hx leg/hip pain- has spoken with specialist about this and awaits "
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2025-08-12_011",
+    "site": "lower_gi",
+    "symptoms": [
+      "dysphagia",
+      "persistent cough",
+      "unintentional weight loss"
+    ],
+    "labs": [
+      "Hb",
+      "Plts",
+      "Creat",
+      "Na",
+      "K",
+      "Alb",
+      "HbA1c"
+    ],
+    "snippet": "08:28 - Surgery: (Healthcare Assistant) Pathology Request (Awaiting Sample): Urine Microalbumin Profile (Postponed) Pathology Request (Complete): HbA1c (Requested), Vitamin B12 (Requested), Full Blood Count (Requested), "
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2025-07-04_029",
+    "site": "urology",
+    "symptoms": [
+      "unintentional weight loss",
+      "persistent hoarseness"
+    ],
+    "labs": [
+      "Hb",
+      "Plts",
+      "Creat",
+      "Na",
+      "K",
+      "Alb",
+      "Ca"
+    ],
+    "snippet": "09:46 - Surgery: Auto-filed Tissue transglutaminase IgA level (XaJg2) < 1 u/mL Anti-tTG antibodies equals Coeliac Disease serology If on gluten free diet Coeliac Disease is not excluded Patients should be advised to eat "
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2025-04-15_057",
+    "site": "urology",
+    "symptoms": [
+      "diarrhoea",
+      "rectal bleeding"
+    ],
+    "labs": [
+      "positive FIT",
+      "Hb",
+      "Plts",
+      "Creat",
+      "Na",
+      "K"
+    ],
+    "snippet": "Surgery: Diarrhoea (19F2.) Diarrhoea (19F2.)"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2025-03-10_069",
+    "site": "urology",
+    "symptoms": [
+      "abdominal pain",
+      "dysphagia",
+      "persistent cough",
+      "unintentional weight loss",
+      "reduced appetite"
+    ],
+    "labs": [
+      "raised PSA",
+      "Hb"
+    ],
+    "snippet": "13:29 - GP Surgery: History: Tel. appt Discussed ongoing anaemia since Oct 2024 Hb has been borderline 115-123 over past 4 months Unclear cause as feels well in himself and eating well PSA normal, FIT <4 normal, CXR norm"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2025-02-28_071",
+    "site": "lower_gi",
+    "symptoms": [
+      "change in bowel habit",
+      "constipation",
+      "abdominal pain",
+      "fatigue"
+    ],
+    "labs": [
+      "positive FIT",
+      "Plts",
+      "CRP"
+    ],
+    "snippet": "09:24 - Surgery: Problem: Platelet count abnormal (42P4.) History: 63F presenting with bloods review. FIT test came back abnormal. 91.2 Abdominal pain - epigastric tenderness - intermittent - just uncomfortable- feels li"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2025-02-26_072",
+    "site": "breast",
+    "symptoms": [
+      "rectal bleeding",
+      "persistent cough"
+    ],
+    "labs": [
+      "Hb",
+      "HbA1c"
+    ],
+    "snippet": "12:03 - Surgery: Clinical Supervision Discussed with supervisor: Yes Notes: 1) agree with referral to breast clinic. 2) ongoing cough - CXR is important given previous smoking hx. 3) FIT test. add on bloods. need to re-r"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2024-12-05_098",
+    "site": "breast",
+    "symptoms": [
+      "persistent cough",
+      "unintentional weight loss"
+    ],
+    "labs": [
+      "Alk Phos"
+    ],
+    "snippet": "Surgery: Referral and Booking Service to Woodbrook Medical Centre"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2024-12-04_099",
+    "site": "breast",
+    "symptoms": [
+      "dysphagia",
+      "persistent cough",
+      "reduced appetite"
+    ],
+    "labs": [
+      "Alk Phos"
+    ],
+    "snippet": "15:03 - Surgery: 113 / 83 Consultation. ENT+Oral H: Described a feeling of fullness around thyroid gland for the past 3 months. Feels like it has been getting worse over the months but not painful Feeling is worse at nig"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2024-11-21_103",
+    "site": "urology",
+    "symptoms": [
+      "nocturia",
+      "dysphagia",
+      "reduced appetite"
+    ],
+    "labs": [
+      "Alk Phos"
+    ],
+    "snippet": "Repeat stopped - see entry on 18 Sep 2024 19:44 Amlodipine 5mg tablets - 28 tablet - take one daily Ended 21 Nov 2024 Clinical grounds by"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2024-09-25_115",
+    "site": "urology",
+    "symptoms": [
+      "diarrhoea",
+      "constipation",
+      "abdominal pain",
+      "nocturia",
+      "dysphagia"
+    ],
+    "labs": [
+      "raised PSA",
+      "Hb",
+      "HbA1c"
+    ],
+    "snippet": "13:54 - Surgery: History: Came in with wife Not happy wih investigations and management being explained to him Explained recent blood test results notably hba1c and thyroid function tests Explained abdominal USS and CTTA"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2024-09-17_117",
+    "site": "breast",
+    "symptoms": [
+      "change in bowel habit",
+      "diarrhoea",
+      "constipation",
+      "abdominal pain",
+      "persistent cough",
+      "reduced appetite"
+    ],
+    "labs": [
+      "positive FIT",
+      "Hb",
+      "Plts",
+      "Creat",
+      "Na",
+      "K",
+      "Alb",
+      "Ca",
+      "HbA1c",
+      "Alk Phos"
+    ],
+    "snippet": "09:34 - Surgery: 169 / 83 Consultation. General Encounter: Consultation (Xa1qL) H: F2F consult - confirmed ID BG hx of thyroid cancer - had thyroidectomy 2021 recently seen GP in Aug for altered bowel habits - FIT test n"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2024-05-21_134",
+    "site": "urology",
+    "symptoms": [
+      "lower urinary tract symptoms",
+      "visible haematuria"
+    ],
+    "labs": [
+      "raised PSA"
+    ],
+    "snippet": "08:57 - Surgery: Problem: Blood in urine - haematuria (XE0rU) History: See prev, 2y LUTS (normal PSA). Episode of visible haematuria 2/12 ago. Dropped sample off for MSU (NAD) which was pink with blood. Had visible haema"
+  },
+  {
+    "case_id": "rw_fasttrack_referral_2024-01-25_152",
+    "site": "lower_gi",
+    "symptoms": [
+      "change in bowel habit",
+      "diarrhoea",
+      "abdominal pain",
+      "rectal bleeding"
+    ],
+    "labs": [
+      "Alk Phos"
+    ],
+    "snippet": "** Care started and ended at LLR Charnwood DN **"
+  }
+]

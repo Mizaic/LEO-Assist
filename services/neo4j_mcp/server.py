@@ -78,7 +78,7 @@ def _handle_initialize(req: dict) -> dict:
         "id": req.get("id"),
         "result": {
             "protocolVersion": "2024-11-05",
-            "serverInfo": {"name": "leo-neo4j", "version": "1.0.0"},
+            "serverInfo": {"name": "user-leo-neo4j", "version": "1.0.0"},
             "capabilities": {"tools": {}},
         },
     }

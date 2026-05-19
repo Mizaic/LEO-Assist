@@ -9,7 +9,7 @@ Re: Synthetic Given 034 Synthetic Family 034, DOB 1974-11-08, NHS SYN-NHS-000034
 
 I am writing to refer this patient for assessment of a new skin lesion. For background: he had a melanoma excised from his right upper arm four years ago, confirmed as completely excised, and has been in surveillance since. He has had no recurrence on surveillance imaging.
 
-He now presents with a new concern. He has noticed a changing mole in the central upper back region over the past two months. On examination the lesion is approximately 8mm, with an irregular border, variable pigmentation, and recent onset bleeding: the patient reports it is a bleeding mole that catches on his clothing. I am concerned this may represent a new primary melanoma. The lesion is anatomically separate from the previous excision site. The mole has not been unchanged -- it has clearly grown and changed colour over two months. The previous melanoma history is noted above as background only.
+He now presents with a new concern. He has noticed a changing mole in the central upper back region over the past two months. On examination the lesion is approximately 8mm, with an irregular border, variable pigmentation, and recent onset bleeding: the patient reports it is a bleeding mole that catches on his clothing. I am concerned this may represent a new primary melanoma. The lesion is anatomically separate from the previous excision site and has clearly grown and changed colour over two months.
 
 ## Blood Results (Last 2m)
 

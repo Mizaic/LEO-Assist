@@ -24,7 +24,7 @@ Date of decision to refer: 2026-05-18
 
 ## Clinical justification
 
-This patient has progressive dysphagia over six weeks, initially affecting solids and now also liquids, with approximately 3kg weight loss. Blood tests including Amylase are enclosed. This is an urgent suspected cancer referral meeting NICE criteria. Patients with isolated heartburn that has responded to treatment, with no alarm features, should not be referred via this pathway -- this patient has alarm features and meets criteria.
+This patient has progressive dysphagia over six weeks, initially affecting solids and now also liquids, with approximately 3kg weight loss. Blood tests including Amylase are enclosed.
 
 ## Blood Results (Last 2m)
 

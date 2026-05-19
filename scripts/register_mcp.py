@@ -1,4 +1,4 @@
-"""Register or update the leo-neo4j MCP entry in Cursor config."""
+"""Register or update the user-leo-neo4j MCP entry in Cursor config."""
 
 from __future__ import annotations
 
@@ -53,19 +53,25 @@ def _register_server(config: dict[str, Any], name: str, cwd: str) -> dict[str, A
     py = repo / ".venv" / "bin" / "python"
     env = {**_build_env(), "PYTHONPATH": str(repo)}
     servers = config.setdefault("mcpServers", {})
-    servers[name] = {
+    entry = {
         "command": str(py),
         "args": ["-m", "services.neo4j_mcp.server"],
         "cwd": str(repo),
         "env": env,
     }
+    servers[name] = entry
+    # Keep both MCP keys in sync so existing local setups continue to work.
+    if name == "user-leo-neo4j":
+        servers["leo-neo4j"] = entry
+    elif name == "leo-neo4j":
+        servers["user-leo-neo4j"] = entry
     return config
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mcp-json", required=True, help="Path to Cursor mcp.json")
-    parser.add_argument("--name", default="leo-neo4j", help="MCP server name")
+    parser.add_argument("--name", default="user-leo-neo4j", help="MCP server name")
     parser.add_argument("--cwd", required=True, help="Repo root for the MCP server")
     return parser.parse_args()
 

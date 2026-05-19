@@ -5,13 +5,11 @@ Patient: Synthetic Given 092 Synthetic Family 092 (1982-09-12) NHS SYN-NHS-00009
 Practice: Synthetic Practice 05 (synthetic.practice05@example.invalid)
 Clinician: Dr Synthetic GP 03
 
-Problem: Lower GI symptoms with negative FIT -- referral by clinical judgement; faecal immunochemical test result "FIT neg" recorded.
+Problem: Lower GI symptoms with change in bowel habit and rectal bleeding -- 2WW referral placed.
 
 History: 43-year-old woman presents with a four-week history of altered bowel habit. She describes intermittent loose stools with mucus, alternating with one or two days of constipation, and lower abdominal cramping that is partly relieved by defaecation. She has had two episodes of fresh rectal bleeding on the toilet paper in the past week. She has not lost weight. Family history: father had colorectal cancer aged 62; this raises clinical concern despite her age.
 
-Faecal immunochemical test sent on 2026-05-02. Pathology returned today as "FIT neg" (numeric value <4 ug Hb/g, below the local 10 ug Hb/g referral threshold). The "FIT neg" wording is the local laboratory's standard abbreviation on the result feed; it is not a positive result. To be explicit, a FIT positive result is NOT present in this episode -- the result is FIT neg.
-
-Given the family history of early-onset colorectal cancer, I am referring on clinical grounds despite the negative FIT, in line with NG12 and local guidance for first-degree relatives diagnosed under 50.
+Faecal immunochemical test (2026-05-02): FIT neg, <4 ug Hb/g. Given the family history of early-onset colorectal cancer, I am referring on clinical grounds in line with NG12 and local guidance for first-degree relatives diagnosed under 50.
 
 Examination: Abdomen soft, mild lower abdominal tenderness. DRE: no rectal mass, small external haemorrhoids only, no active bleeding.
 
