@@ -27,7 +27,7 @@ import logging
 from typing import Any, Callable, Sequence
 
 from libs.terminology.client import TerminologyClient
-from scripts.lib.gold_label_snomed_check import (
+from libs.training.gold_label_snomed_check import (
     ValidationResult,
     validate_proposal,
 )

@@ -56,7 +56,7 @@ from dotenv import load_dotenv  # noqa: E402
 load_dotenv(_REPO_ROOT / "secrets" / ".env.config")
 load_dotenv(_REPO_ROOT / "secrets" / ".env.secrets")
 
-from scripts.lib.gold_label_snomed_check import (  # noqa: E402
+from libs.training.gold_label_snomed_check import (  # noqa: E402
     ENTITY_AUDIT_ISSUE_CODES,
     audit_gold_label_entities,
 )

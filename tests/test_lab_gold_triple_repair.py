@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from libs.training.lab_concept_lookup import lab_lookup_texts
-from scripts.lib.gold_label_snomed_check import ValidationResult
+from libs.training.gold_label_snomed_check import ValidationResult
 from scripts.repair_lab_gold_triples import RowPlan, _finalise_plan
 
 

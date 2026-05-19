@@ -21,7 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from libs.terminology.client import ResolvedTerm
-from scripts.lib.gold_label_snomed_check import (
+from libs.training.gold_label_snomed_check import (
     surface_match_score,
     validate_proposal,
     validate_proposals_batch,

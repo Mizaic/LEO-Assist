@@ -59,7 +59,7 @@ load_dotenv(_REPO_ROOT / "secrets" / ".env.config")
 load_dotenv(_REPO_ROOT / "secrets" / ".env.secrets")
 
 from libs.terminology.client import TerminologyClient  # noqa: E402
-from scripts.lib.gold_label_snomed_check import (  # noqa: E402
+from libs.training.gold_label_snomed_check import (  # noqa: E402
     ValidationResult,
     validate_proposals_batch,
 )

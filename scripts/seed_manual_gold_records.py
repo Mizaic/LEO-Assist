@@ -57,7 +57,7 @@ from libs.cypher.training_candidate_queries import (  # noqa: E402
 from libs.ner.deid_validator import DeIdValidator  # noqa: E402
 from libs.ner.span_finder import find_span  # noqa: E402
 from libs.utils.deidentify import deidentify_text  # noqa: E402
-from scripts.lib.gold_label_snomed_check import (  # noqa: E402
+from libs.training.gold_label_snomed_check import (  # noqa: E402
     _CLINICAL_LABELS,
     _NON_CLINICAL_SEMANTIC_TAGS,
     _TAG_SYNONYMS,

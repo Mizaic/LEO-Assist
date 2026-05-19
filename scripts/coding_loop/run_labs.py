@@ -221,7 +221,7 @@ def process_sentence(
     from libs.training.lab_span_detector import detect_lab_pattern
     from libs.training.lab_concept_lookup import lab_lookup_texts
     from scripts.lib.gold_label_extractors import extract_deterministic
-    from scripts.lib.gold_label_snomed_check import validate_proposals_batch
+    from libs.training.gold_label_snomed_check import validate_proposals_batch
 
     pattern = detect_lab_pattern(sentence_text)
     if not pattern.matched:

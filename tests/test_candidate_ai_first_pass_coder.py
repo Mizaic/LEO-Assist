@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from scripts.lib.gold_label_snomed_check import ValidationResult
+from libs.training.gold_label_snomed_check import ValidationResult
 from services.api.app.services.candidate_ai_first_pass import _coder
 from services.api.app.services.candidate_ai_first_pass._coder import ai_code_entity
 from services.api.app.services.candidate_ai_first_pass._types import ExtractedEntity

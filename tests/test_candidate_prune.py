@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from services.api.app.services import candidate_prune as cp
-from scripts.lib.gold_label_snomed_check import ValidationResult
+from libs.training.gold_label_snomed_check import ValidationResult
 
 
 # ---------- helpers ----------------------------------------------------------

@@ -3,7 +3,7 @@
 Atlas trace:
   DI: DI-LEO-AI-LABCODER-001
 
-Called ONLY when ``scripts.lib.gold_label_snomed_check.validate_proposals_batch``
+Called ONLY when ``libs.training.gold_label_snomed_check.validate_proposals_batch``
 returns ``accepted=False`` for one or more entities in a lab triple.  Haiku
 receives the raw lab line, parsed measurement fields, the failing entity, and
 the top-10 SNOMED candidates from the resolver.

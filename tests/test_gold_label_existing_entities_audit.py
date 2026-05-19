@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import json
 
-from scripts.lib.gold_label_snomed_check import (
+from libs.training.gold_label_snomed_check import (
     ENTITY_AUDIT_ISSUE_CODES,
     EntityAuditResult,
     audit_existing_entity,

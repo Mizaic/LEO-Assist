@@ -47,7 +47,7 @@ from libs.cypher.training_candidate_queries import (
     GET_TRAINING_CANDIDATE_BY_ID,
 )
 from libs.terminology.client import TerminologyClient
-from scripts.lib.gold_label_snomed_check import (
+from libs.training.gold_label_snomed_check import (
     ValidationResult,
     validate_proposal,
 )

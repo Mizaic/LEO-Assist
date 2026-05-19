@@ -30,7 +30,7 @@ from libs.ner.request_reason_recovery import (
 )  # noqa: E402
 from libs.terminology.surface_normalize import normalize_surface  # noqa: E402
 from libs.training.lab_concept_lookup import lab_lookup_texts  # noqa: E402
-from scripts.lib.gold_label_snomed_check import ValidationResult  # noqa: E402
+from libs.training.gold_label_snomed_check import ValidationResult  # noqa: E402
 from services.terminology_api.app.queries.terminology import (  # noqa: E402
     BATCH_EXACT_QUERY,
 )
