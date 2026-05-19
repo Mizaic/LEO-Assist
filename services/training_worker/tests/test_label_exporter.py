@@ -19,6 +19,9 @@ from libs.pipeline.label_filter import (
 )
 from app.label_exporter import (
     _DEFAULT_EXCLUDED_ASSERTIONS,
+    _add_doc_candidate_coverage,
+    _candidate_coverage_report,
+    _new_candidate_coverage,
     _filter_and_realign,
     _get_excluded_assertions,
     _realign_entity,
@@ -198,6 +201,29 @@ class TestRecordToSpacyDocMultiLabel(unittest.TestCase):
         doc = _record_to_spacy_doc(self.nlp, text, [])
         self.assertIn("sc", doc.spans)
         self.assertEqual(len(doc.spans["sc"]), 0)
+
+
+class TestCandidateCoverageDiagnostics(unittest.TestCase):
+    """Candidate coverage proves whether gold spans are proposable."""
+
+    def setUp(self):
+        self.nlp = spacy.blank("en")
+
+    def test_reports_contract_coverage_by_label_and_split(self):
+        text = " ".join(f"w{i}" for i in range(12))
+        entities = [
+            {"label": "OBSERVABLE", "start": 0, "end": len(text)},
+            {"label": "PROCEDURE", "start": 0, "end": len("w0 w1")},
+        ]
+        doc = _record_to_spacy_doc(self.nlp, text, entities)
+        coverage = _new_candidate_coverage(["val"])
+
+        _add_doc_candidate_coverage(coverage, "val", doc)
+        report = _candidate_coverage_report(coverage)
+
+        self.assertEqual(report["narrow"]["val"]["OBSERVABLE"]["covered"], 0)
+        self.assertEqual(report["broad_1_24"]["val"]["OBSERVABLE"]["covered"], 1)
+        self.assertEqual(report["balanced"]["val"]["PROCEDURE"]["covered"], 1)
 
 
 class TestFilterAndRealignDiagnostics(unittest.TestCase):

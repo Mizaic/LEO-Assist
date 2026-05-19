@@ -220,6 +220,28 @@ class TestConfigHygieneOverrides(unittest.TestCase):
         self.assertRegex(text, r"(?m)^window\s*=\s*256$")
         self.assertRegex(text, r"(?m)^stride\s*=\s*192$")
 
+    def test_pre_e313_dynamics_profile_restores_training_values(self):
+        import os
+
+        with patch.dict(
+            os.environ,
+            {
+                "TRAINING_ABLATION_PROFILE": "pre_e313_dynamics",
+                "TRAINING_MAX_STEPS": "",
+                "TRAINING_WINDOW_TOKENS": "",
+                "TRAINING_STRIDE_TOKENS": "",
+            },
+        ):
+            text = self._write()
+
+        self.assertRegex(text, r"(?m)^hidden_size\s*=\s*128$")
+        self.assertRegex(text, r"(?m)^dropout\s*=\s*0.1$")
+        self.assertRegex(text, r"(?m)^accumulate_gradient\s*=\s*1$")
+        self.assertRegex(text, r"(?m)^patience\s*=\s*1600$")
+        self.assertRegex(text, r"(?m)^max_steps\s*=\s*20000$")
+        self.assertRegex(text, r"(?m)^initial_rate\s*=\s*0.00005$")
+        self.assertIn("frozen_components = [\"transformer\"]", text)
+
 
 class TestTrainingWallTimeout(unittest.TestCase):
     """TRAINING_JOB_TIMEOUT_S parsing keeps local runs uncapped by default."""

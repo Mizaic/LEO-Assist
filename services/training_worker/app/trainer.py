@@ -47,6 +47,23 @@ _BASE_MODEL_VERSION = os.getenv("TRAINING_BASE_MODEL_VERSION", "").strip()
 
 _VALID_LR_SCHEDULES = {"warmup_linear", "cosine"}
 
+_PRE_E313_DYNAMICS: dict[str, str] = {
+    "window": "128",
+    "stride": "96",
+    "hidden_size": "128",
+    "dropout": "0.1",
+    "accumulate_gradient": "1",
+    "patience": "1600",
+    "max_steps": "20000",
+    "eval_frequency": "200",
+    "start": "64",
+    "stop": "256",
+    "use_averages": "false",
+    "warmup_steps": "250",
+    "total_steps": "20000",
+    "initial_rate": "0.00005",
+}
+
 
 def _parse_training_wall_timeout_s() -> int:
     """Return wall-clock cap in seconds for one ``spacy train`` subprocess.
@@ -141,6 +158,36 @@ def _resolve_lr_schedule() -> str:
         )
         return "warmup_linear"
     return raw
+
+
+def _resolve_ablation_profile() -> str:
+    raw = os.getenv("TRAINING_ABLATION_PROFILE", "").strip().lower()
+    if raw in {"", "current"}:
+        return "current"
+    if raw == "pre_e313_dynamics":
+        return raw
+    logger.warning(
+        "[trainer] Ignoring invalid TRAINING_ABLATION_PROFILE=%r", raw
+    )
+    return "current"
+
+
+def _replace_config_scalar(config_text: str, key: str, value: str) -> str:
+    return re.sub(
+        rf"(?m)^{re.escape(key)}\s*=\s*.+$",
+        f"{key} = {value}",
+        config_text,
+        count=1,
+    )
+
+
+def _apply_ablation_profile(config_text: str) -> str:
+    profile = _resolve_ablation_profile()
+    if profile != "pre_e313_dynamics":
+        return config_text
+    for key, value in _PRE_E313_DYNAMICS.items():
+        config_text = _replace_config_scalar(config_text, key, value)
+    return config_text
 
 
 def _register_nvidia_dll_dirs() -> None:
@@ -580,6 +627,7 @@ def _write_filled_config(
         f"annotating_components = {annotating_str}",
         config_text,
     )
+    config_text = _apply_ablation_profile(config_text)
 
     # F2: window/stride overrides.
     window = _env_int("TRAINING_WINDOW_TOKENS", 0)

@@ -59,6 +59,7 @@ from libs.training_ext.stratified_split import (
     SplitRatios,
     iterative_multilabel_split,
 )
+from libs.training_ext.suggesters import _DEFAULT_CLINICAL_SIZES
 from libs.training_ext.training_quality import summarise_export_support
 
 _ORTH_VARIANTS_SOURCE = (
@@ -71,6 +72,12 @@ _ORTH_VARIANTS_SOURCE = (
 logger = logging.getLogger(__name__)
 
 _SCHEMA_VERSION = "1.0"
+
+_CANDIDATE_SIZE_CONTRACTS: dict[str, tuple[int, ...]] = {
+    "narrow": (1, 2, 3, 4, 5, 22, 23, 24),
+    "balanced": _DEFAULT_CLINICAL_SIZES,
+    "broad_1_24": tuple(range(1, 25)),
+}
 
 # Label normalisation -- maps stored labels to canonical uppercase spaCy labels.
 # Includes both underscore form (current canonical) and legacy space form (SNOMED
@@ -121,6 +128,90 @@ _LABEL_MAP: dict[str, str] = {
 
 def _normalise_label(raw: str) -> str:
     return _LABEL_MAP.get(raw, raw.upper())
+
+
+def _new_candidate_coverage(
+    split_names: list[str],
+) -> dict[str, dict[str, dict[str, dict[str, int]]]]:
+    return {
+        name: {split: {} for split in split_names}
+        for name in _CANDIDATE_SIZE_CONTRACTS
+    }
+
+
+def _add_span_coverage(
+    bucket: dict[str, dict[str, int]],
+    *,
+    label: str,
+    token_length: int,
+    sizes: tuple[int, ...],
+) -> None:
+    row = bucket.setdefault(label, {"total": 0, "covered": 0})
+    row["total"] += 1
+    if token_length in sizes:
+        row["covered"] += 1
+
+
+def _add_doc_candidate_coverage(
+    coverage: dict[str, dict[str, dict[str, dict[str, int]]]],
+    split_name: str,
+    doc,
+) -> None:
+    for span in doc.spans.get("sc", []):
+        label = str(span.label_)
+        token_length = int(span.end - span.start)
+        for contract, sizes in _CANDIDATE_SIZE_CONTRACTS.items():
+            _add_span_coverage(
+                coverage[contract][split_name],
+                label=label,
+                token_length=token_length,
+                sizes=sizes,
+            )
+
+
+def _candidate_coverage_report(
+    coverage: dict[str, dict[str, dict[str, dict[str, int]]]],
+) -> dict[str, Any]:
+    return {
+        contract: {
+            split: {
+                label: _coverage_row(row)
+                for label, row in sorted(labels.items())
+            }
+            for split, labels in split_rows.items()
+        }
+        for contract, split_rows in coverage.items()
+    }
+
+
+def _coverage_row(row: dict[str, int]) -> dict[str, Any]:
+    total = int(row.get("total", 0))
+    covered = int(row.get("covered", 0))
+    return {
+        "total": total,
+        "covered": covered,
+        "missed": max(0, total - covered),
+        "coverage": round(covered / total, 4) if total else 0.0,
+    }
+
+
+def _format_candidate_coverage(
+    report: dict[str, Any],
+    *,
+    split_name: str = "val",
+    labels: tuple[str, ...] = ("OBSERVABLE", "PROCEDURE", "FINDING"),
+) -> list[str]:
+    lines = []
+    for contract in ("narrow", "balanced", "broad_1_24"):
+        split = report.get(contract, {}).get(split_name, {})
+        parts = []
+        for label in labels:
+            row = split.get(label, {})
+            parts.append(
+                f"{label}={row.get('covered', 0)}/{row.get('total', 0)}"
+            )
+        lines.append(f"{contract}: " + ", ".join(parts))
+    return lines
 
 
 def _record_to_spacy_doc(
@@ -402,6 +493,7 @@ def export_labels(
     all_labels: set[str] = set()
     skipped = 0
     alignment_report: list[dict[str, Any]] = []
+    candidate_coverage = _new_candidate_coverage(list(split_records))
 
     for split_name, recs in split_records.items():
         for rec in recs:
@@ -422,6 +514,7 @@ def export_labels(
                     alignment_report=alignment_report,
                     label_id=label_id_value,
                 )
+                _add_doc_candidate_coverage(candidate_coverage, split_name, doc)
                 per_split_bins[split_name].add(doc)
             except Exception:
                 skipped += 1
@@ -485,11 +578,20 @@ def export_labels(
         }
         for label in all_label_keys
     }
+    candidate_coverage_meta = _candidate_coverage_report(candidate_coverage)
+    for line in _format_candidate_coverage(candidate_coverage_meta, split_name="val"):
+        _log("Candidate coverage (val) " + line)
+    for line in _format_candidate_coverage(candidate_coverage_meta, split_name="dev"):
+        _log("Candidate coverage (dev) " + line)
     training_quality = summarise_export_support(per_label_counts_meta)
 
     balance_report_dict = balance_report.to_dict()
     (output_dir / "corpus_balance_report.json").write_text(
         json.dumps(balance_report_dict, indent=2),
+        encoding="utf-8",
+    )
+    (output_dir / "candidate_coverage_report.json").write_text(
+        json.dumps(candidate_coverage_meta, indent=2),
         encoding="utf-8",
     )
 
@@ -530,6 +632,7 @@ def export_labels(
         "excluded_assertions": sorted(excluded_assertions),
         "label_set": sorted(all_labels),
         "per_label_counts": per_label_counts_meta,
+        "candidate_coverage": candidate_coverage_meta,
         "training_quality": training_quality,
         "seed": seed,
         "schema_version": _SCHEMA_VERSION,
@@ -549,6 +652,7 @@ def export_labels(
         ],
         "span_misaligned": [d for d in diagnostics if d["reason"] == "span_misaligned"],
         "span_alignment_expanded": alignment_report,
+        "candidate_coverage": candidate_coverage_meta,
     }
     (output_dir / "export_diagnostics.json").write_text(
         json.dumps(diag_payload, indent=2)
@@ -585,6 +689,7 @@ def export_labels(
         "labels_found": sorted(all_labels),
         "label_set": sorted(all_labels),
         "per_label_counts": per_label_counts_meta,
+        "candidate_coverage": candidate_coverage_meta,
         "training_quality": training_quality,
         "exported_at": exported_at,
         "train_path": str(train_path),

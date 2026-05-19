@@ -27,17 +27,17 @@ def test_only_configured_sizes_are_emitted():
     assert lengths == {1, 3}
 
 
-def test_default_sizes_exclude_middle_band_to_limit_false_positives():
-    """Default sizes avoid the full 1..24 negative-candidate blow-up."""
+def test_default_sizes_cover_core_and_known_lab_lengths():
+    """Default sizes cover p95 gold spans and selected long lab triples."""
     suggester = build_clinical_ngram_suggester()
     doc = _make_doc(30)
     output = suggester([doc])
     rows = output.dataXd.tolist()
     lengths = {end - start for start, end in rows}
-    expected = {1, 2, 3, 4, 5, 22, 23, 24}
+    expected = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 21, 22, 23, 24}
     assert set(_DEFAULT_CLINICAL_SIZES) == expected
     assert lengths == expected
-    assert not (set(range(6, 22)) & lengths)
+    assert not ({11, 12, 13, 14, 16, 17, 18, 19} & lengths)
 
 
 def test_short_multi_entity_sentence_candidates_are_still_emitted():
