@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path(__file__).parent / "config" / "base.cfg"
 _TRAINING_APP_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 _HF_MODEL = os.getenv("TRAINING_HF_BASE_MODEL", "emilyalsentzer/Bio_ClinicalBERT")
 _FROZEN = os.getenv("TRAINING_FROZEN_COMPONENTS", "transformer")
 _BASE_MODEL_VERSION = os.getenv("TRAINING_BASE_MODEL_VERSION", "").strip()
@@ -277,6 +278,7 @@ def _build_env() -> dict:
     Rely on CuPy 14's own _setup_win32_dll_directory() for CUDA DLL discovery.
     """
     env = dict(os.environ)
+    _ensure_subprocess_pythonpath(env)
 
     # --- Strip bad CUDA_PATH ------------------------------------------------
     # If CUDA_PATH points somewhere without a bin/ subdir CuPy's
@@ -296,6 +298,15 @@ def _build_env() -> dict:
         else training_root
     )
     return env
+
+
+def _ensure_subprocess_pythonpath(env: dict) -> None:
+    """Ensure spaCy subprocesses can import both app.* and libs.* packages."""
+    current = env.get("PYTHONPATH", "")
+    entries = [str(_TRAINING_APP_ROOT), str(_REPO_ROOT)]
+    if current:
+        entries.append(current)
+    env["PYTHONPATH"] = os.pathsep.join(entries)
 
 
 def _fetch_warm_start_model(version: str, log: Callable[[str], None]) -> Optional[Path]:

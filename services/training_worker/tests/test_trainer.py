@@ -243,6 +243,17 @@ class TestConfigHygieneOverrides(unittest.TestCase):
         self.assertIn("frozen_components = [\"transformer\"]", text)
 
 
+class TestTrainingSubprocessEnv(unittest.TestCase):
+    def test_build_env_includes_repo_and_training_worker_paths(self):
+        from app.trainer import _build_env
+
+        env = _build_env()
+        pythonpath = env.get("PYTHONPATH", "")
+
+        self.assertIn("services/training_worker", pythonpath)
+        self.assertIn("LEO-AI-CORE", pythonpath)
+
+
 class TestTrainingWallTimeout(unittest.TestCase):
     """TRAINING_JOB_TIMEOUT_S parsing keeps local runs uncapped by default."""
 
