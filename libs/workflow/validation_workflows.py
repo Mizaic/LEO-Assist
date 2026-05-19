@@ -1,0 +1,387 @@
+"""UN-scoped validation workflow definitions.
+
+Atlas trace:
+  UN: UN-89E2AE36, UN-5F3BF083, UN-AF530E8E, UN-CBF42476, UN-F8819A42
+  VAL: VAL-87173594
+
+These PlanDefinitions are validation and orchestration entry points. They reuse
+the production subgraphs but stop at the user-need boundary that each VAL needs.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class ValidationWorkflowSpec:
+    un_id: str
+    val_id: str
+    plan_definition_id: str
+    metric: str
+    output_contract: tuple[str, ...]
+
+
+def _action(
+    action_id: str,
+    title: str,
+    sequence: int,
+    subgraph_id: str,
+    definition: str,
+    *,
+    trigger: str | None = None,
+    after: str | None = None,
+) -> dict[str, Any]:
+    action: dict[str, Any] = {
+        "id": action_id,
+        "title": title,
+        "_sequence": sequence,
+        "_subgraphId": subgraph_id,
+        "definitionCanonical": f"ActivityDefinition/{definition}",
+    }
+    if trigger:
+        action["trigger"] = [{"type": "data-changed", "name": trigger}]
+    if after:
+        action["relatedAction"] = [{"actionId": after, "relationship": "after-end"}]
+    return action
+
+
+VALIDATION_WORKFLOW_SPECS: dict[str, ValidationWorkflowSpec] = {
+    "UN-89E2AE36": ValidationWorkflowSpec(
+        un_id="UN-89E2AE36",
+        val_id="VAL-87173594",
+        plan_definition_id="pd-val-key-fact-extraction",
+        metric="phrase_level_f1",
+        output_contract=(
+            "case_id",
+            "terms[].text",
+            "missed_strings",
+            "extra_strings",
+            "precision",
+            "recall",
+            "f1",
+        ),
+    ),
+    "UN-5F3BF083": ValidationWorkflowSpec(
+        un_id="UN-5F3BF083",
+        val_id="VAL-pathway-criteria",
+        plan_definition_id="pd-val-pathway-criteria",
+        metric="criteria_suitability_accuracy",
+        output_contract=(
+            "case_id",
+            "pathway_id",
+            "suitability",
+            "matched_criteria",
+            "failed_criteria",
+            "needs_review_reason",
+        ),
+    ),
+    "UN-AF530E8E": ValidationWorkflowSpec(
+        un_id="UN-AF530E8E",
+        val_id="VAL-triage-completeness",
+        plan_definition_id="pd-val-triage-completeness",
+        metric="required_field_recall",
+        output_contract=(
+            "case_id",
+            "required_fields",
+            "present_fields",
+            "missing_fields",
+            "unclear_fields",
+        ),
+    ),
+    "UN-CBF42476": ValidationWorkflowSpec(
+        un_id="UN-CBF42476",
+        val_id="VAL-terminology-mapping",
+        plan_definition_id="pd-val-terminology-mapping",
+        metric="concept_mapping_accuracy",
+        output_contract=(
+            "case_id",
+            "source_text",
+            "concept_id",
+            "preferred_term",
+            "semantic_tag",
+            "confidence",
+            "resolution_status",
+        ),
+    ),
+    "UN-F8819A42": ValidationWorkflowSpec(
+        un_id="UN-F8819A42",
+        val_id="VAL-sbar-summary",
+        plan_definition_id="pd-val-sbar-summary",
+        metric="sbar_section_completeness",
+        output_contract=(
+            "case_id",
+            "sbar_sections",
+            "source_references",
+            "unsupported_claims",
+            "completion_status",
+        ),
+    ),
+}
+
+
+VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
+    {
+        "id": "pd-val-key-fact-extraction",
+        "resourceType": "PlanDefinition",
+        "name": "VAL Key Fact Extraction",
+        "status": "active",
+        "description": (
+            "Validation workflow for UN-89E2AE36: run extraction and shared "
+            "pre-coding post-processing, then stop before coding."
+        ),
+        "action": [
+            _action(
+                "act-val-extract",
+                "Extract Key Facts",
+                0,
+                "extraction",
+                "ad-extraction-llm",
+                trigger="validation-run-requested",
+            ),
+            _action(
+                "act-val-post",
+                "Post-Process",
+                1,
+                "post_processing",
+                "ad-post-processing",
+                after="act-val-extract",
+            ),
+        ],
+    },
+    {
+        "id": "pd-val-pathway-criteria",
+        "resourceType": "PlanDefinition",
+        "name": "VAL Pathway Criteria Suitability",
+        "status": "active",
+        "description": "Validation workflow for UN-5F3BF083: map referral reason and assess pathway criteria.",
+        "action": [
+            _action(
+                "act-val-criteria-extract",
+                "Extract Referral Facts",
+                0,
+                "extraction",
+                "ad-extraction-llm",
+                trigger="validation-run-requested",
+            ),
+            _action(
+                "act-val-criteria-post",
+                "Post-Process",
+                1,
+                "post_processing",
+                "ad-post-processing",
+                after="act-val-criteria-extract",
+            ),
+            _action(
+                "act-val-criteria-terminology",
+                "Resolve Terminology",
+                2,
+                "terminology",
+                "ad-terminology",
+                after="act-val-criteria-post",
+            ),
+            _action(
+                "act-val-criteria-compliance",
+                "Assess Criteria",
+                3,
+                "compliance",
+                "ad-compliance",
+                after="act-val-criteria-terminology",
+            ),
+        ],
+    },
+    {
+        "id": "pd-val-triage-completeness",
+        "resourceType": "PlanDefinition",
+        "name": "VAL Triage Completeness",
+        "status": "active",
+        "description": "Validation workflow for UN-AF530E8E: extract referral facts and assess missing or unclear triage information.",
+        "action": [
+            _action(
+                "act-val-complete-extract",
+                "Extract Triage Facts",
+                0,
+                "extraction",
+                "ad-extraction-llm",
+                trigger="validation-run-requested",
+            ),
+            _action(
+                "act-val-complete-post",
+                "Post-Process",
+                1,
+                "post_processing",
+                "ad-post-processing",
+                after="act-val-complete-extract",
+            ),
+            _action(
+                "act-val-complete-quality",
+                "Assess Completeness",
+                2,
+                "quality_check",
+                "ad-quality-check",
+                after="act-val-complete-post",
+            ),
+        ],
+    },
+    {
+        "id": "pd-val-terminology-mapping",
+        "resourceType": "PlanDefinition",
+        "name": "VAL Terminology Mapping",
+        "status": "active",
+        "description": "Validation workflow for UN-CBF42476: map extracted facts to recognised clinical terminology.",
+        "action": [
+            _action(
+                "act-val-term-extract",
+                "Extract Facts",
+                0,
+                "extraction",
+                "ad-extraction-llm",
+                trigger="validation-run-requested",
+            ),
+            _action(
+                "act-val-term-post",
+                "Post-Process",
+                1,
+                "post_processing",
+                "ad-post-processing",
+                after="act-val-term-extract",
+            ),
+            _action(
+                "act-val-term-resolve",
+                "Resolve Terminology",
+                2,
+                "terminology",
+                "ad-terminology",
+                after="act-val-term-post",
+            ),
+            _action(
+                "act-val-term-surface",
+                "Validate Surface Forms",
+                3,
+                "surface_form_validation",
+                "ad-surface-form-validation",
+                after="act-val-term-resolve",
+            ),
+        ],
+    },
+    {
+        "id": "pd-val-sbar-summary",
+        "resourceType": "PlanDefinition",
+        "name": "VAL SBAR Summary",
+        "status": "active",
+        "description": "Validation workflow for UN-F8819A42: generate a grounded SBAR summary from referral facts.",
+        "action": [
+            _action(
+                "act-val-sbar-extract",
+                "Extract Facts",
+                0,
+                "extraction",
+                "ad-extraction-llm",
+                trigger="validation-run-requested",
+            ),
+            _action(
+                "act-val-sbar-post",
+                "Post-Process",
+                1,
+                "post_processing",
+                "ad-post-processing",
+                after="act-val-sbar-extract",
+            ),
+            _action(
+                "act-val-sbar-terminology",
+                "Resolve Terminology",
+                2,
+                "terminology",
+                "ad-terminology",
+                after="act-val-sbar-post",
+            ),
+            _action(
+                "act-val-sbar-generate",
+                "Generate SBAR",
+                3,
+                "sbar",
+                "ad-sbar",
+                after="act-val-sbar-terminology",
+            ),
+        ],
+    },
+]
+
+
+REFERRAL_TRIAGE_PLAN_DEFINITION: dict[str, Any] = {
+    "id": "pd-referral-triage-e2e",
+    "resourceType": "PlanDefinition",
+    "name": "Referral Triage End to End",
+    "status": "active",
+    "description": "End-to-end referral triage workflow composed from UN-scoped stages.",
+    "action": [
+        _action(
+            "act-triage-extract",
+            "Extract Key Facts",
+            0,
+            "extraction",
+            "ad-extraction-llm",
+            trigger="referral-triage-requested",
+        ),
+        _action(
+            "act-triage-post",
+            "Post-Process",
+            1,
+            "post_processing",
+            "ad-post-processing",
+            after="act-triage-extract",
+        ),
+        _action(
+            "act-triage-terminology",
+            "Map Terminology",
+            2,
+            "terminology",
+            "ad-terminology",
+            after="act-triage-post",
+        ),
+        _action(
+            "act-triage-criteria",
+            "Assess Pathway Criteria",
+            3,
+            "compliance",
+            "ad-compliance",
+            after="act-triage-terminology",
+        ),
+        _action(
+            "act-triage-completeness",
+            "Assess Completeness",
+            4,
+            "quality_check",
+            "ad-quality-check",
+            after="act-triage-criteria",
+        ),
+        _action(
+            "act-triage-sbar",
+            "Generate SBAR",
+            5,
+            "sbar",
+            "ad-sbar",
+            after="act-triage-completeness",
+        ),
+        _action(
+            "act-triage-review",
+            "Pause For Human Review",
+            6,
+            "human_review_gate",
+            "ad-human-review-gate",
+            after="act-triage-sbar",
+        ),
+    ],
+}
+
+
+def get_validation_spec(un_id: str) -> ValidationWorkflowSpec:
+    try:
+        return VALIDATION_WORKFLOW_SPECS[un_id]
+    except KeyError as exc:
+        raise KeyError(f"No validation workflow configured for {un_id}") from exc
+
+
+def all_validation_plan_definitions() -> list[dict[str, Any]]:
+    return [*VALIDATION_PLAN_DEFINITIONS, REFERRAL_TRIAGE_PLAN_DEFINITION]
