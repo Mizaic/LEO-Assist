@@ -157,10 +157,23 @@ export default function NSSOutcomeSankeyDialog({ open, onClose }: Props) {
                     margin={{ top: 10, right: 160, bottom: 10, left: 10 }}
                   >
                     <RechartsTooltip
-                      formatter={(value: number, _name: string, props: { payload?: { source?: { name?: string }; target?: { name?: string } } }) => {
-                        const source = props?.payload?.source?.name ?? "";
-                        const target = props?.payload?.target?.name ?? "";
-                        return [`${value} patient${value !== 1 ? "s" : ""}`, `${source} \u2192 ${target}`];
+                      formatter={(value, _name, item) => {
+                        const payload = (
+                          item as {
+                            payload?: {
+                              source?: { name?: string };
+                              target?: { name?: string };
+                            };
+                          }
+                        )?.payload;
+                        const source = payload?.source?.name ?? "";
+                        const target = payload?.target?.name ?? "";
+                        const numeric =
+                          typeof value === "number" ? value : Number(value ?? 0);
+                        return [
+                          `${numeric} patient${numeric !== 1 ? "s" : ""}`,
+                          `${source} -> ${target}`,
+                        ];
                       }}
                     />
                   </Sankey>

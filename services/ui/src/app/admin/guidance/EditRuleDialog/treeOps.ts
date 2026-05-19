@@ -107,20 +107,21 @@ const ALLOWED_CRITERION_KEYS = new Set<keyof LogicCriterion>([
   "primary_concept_id",
 ]);
 
-const ALLOWED_SEED_KEYS = new Set<keyof LogicSeed>([
-  "snomed_concept_id",
-  "preferred_term",
-  "semantic_tag",
-  "include_descendants",
-  "distance_child",
-]);
-
 function sanitiseSeed(seed: LogicSeed): LogicSeed {
-  const out = {} as Record<string, unknown>;
-  for (const [k, v] of Object.entries(seed)) {
-    if (ALLOWED_SEED_KEYS.has(k as keyof LogicSeed)) out[k] = v;
+  const out: LogicSeed = {
+    snomed_concept_id: seed.snomed_concept_id,
+    preferred_term: seed.preferred_term,
+  };
+  if (seed.semantic_tag !== undefined) {
+    out.semantic_tag = seed.semantic_tag;
   }
-  return out as LogicSeed;
+  if (seed.include_descendants !== undefined) {
+    out.include_descendants = seed.include_descendants;
+  }
+  if (seed.distance_child !== undefined) {
+    out.distance_child = seed.distance_child;
+  }
+  return out;
 }
 
 /**

@@ -135,6 +135,7 @@ function maybePendingKindChange(
   if (update.nodeId !== tree.node_id) return null;
   if (!isDestructiveRootKindChange(tree.kind, update.newKind)) return null;
   const afterTree = applyUpdate(tree, update);
+  if (!afterTree) return null;
   return {
     update,
     beforeTree: tree,

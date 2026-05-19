@@ -486,12 +486,12 @@ export default function TestPatientLibraryKnowledgeTab() {
           >
             <Checkbox
               size="small"
+              data-testid="select-all-checkbox"
               checked={allSelected}
               indeterminate={someSelected}
               onChange={toggleAll}
               inputProps={{
                 "aria-label": "Select all visible test patients",
-                "data-testid": "select-all-checkbox",
               }}
             />
           </Tooltip>
@@ -500,11 +500,11 @@ export default function TestPatientLibraryKnowledgeTab() {
         render: (row) => (
           <Checkbox
             size="small"
+            data-testid={`select-row-${row.id}`}
             checked={selectedIds.has(row.id)}
             onChange={() => toggleRow(row.id)}
             inputProps={{
               "aria-label": `Select ${row.name}`,
-              "data-testid": `select-row-${row.id}`,
             }}
           />
         ),

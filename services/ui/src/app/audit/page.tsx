@@ -249,9 +249,13 @@ export default function AuditPage() {
   const summaryFetcher = useCallback(
     async (o: string | undefined, from: string, to: string) => {
       const data = await fetchAuditSummary(o, from, to);
-      return { scopes: { practice: data as AuditSummary }, benchmark: undefined } as {
-        scopes: { practice: AuditSummary };
-        benchmark: undefined;
+      return {
+        scopes: {
+          practice: data,
+          alliance_live: null,
+          england_live: null,
+        },
+        benchmark: null,
       };
     },
     [],

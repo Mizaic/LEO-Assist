@@ -228,11 +228,19 @@ export function TrainStage({
                 tick={{ fontSize: 11 }}
               />
               <RTooltip
-                formatter={(value: number, name: string) => {
-                  if (name === "Loss NER") {
-                    return [value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toFixed(2), name];
+                formatter={(value, name) => {
+                  const numeric =
+                    typeof value === "number" ? value : Number(value ?? 0);
+                  const label = String(name ?? "");
+                  if (label === "Loss NER") {
+                    return [
+                      numeric >= 1000
+                        ? `${(numeric / 1000).toFixed(1)}k`
+                        : numeric.toFixed(2),
+                      label,
+                    ];
                   }
-                  return [`${(value * 100).toFixed(1)}%`, name];
+                  return [`${(numeric * 100).toFixed(1)}%`, label];
                 }}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />

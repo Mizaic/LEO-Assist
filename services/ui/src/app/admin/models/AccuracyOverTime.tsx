@@ -160,10 +160,11 @@ export default function AccuracyOverTime({
               }
             />
             <RTooltip
-              formatter={(value: number) => [
-                `${Math.round(value * 100)}%`,
-                METRIC_LABELS[metric],
-              ]}
+              formatter={(value) => {
+                const numeric =
+                  typeof value === "number" ? value : Number(value ?? 0);
+                return [`${Math.round(numeric * 100)}%`, METRIC_LABELS[metric]];
+              }}
               labelFormatter={(label, items) => {
                 const item = items?.[0]?.payload as
                   | { version?: string; label?: string }

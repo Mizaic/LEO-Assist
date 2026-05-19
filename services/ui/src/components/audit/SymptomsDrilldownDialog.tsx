@@ -23,7 +23,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { forceCollide, forceRadial } from "d3-force";
+import { forceCollide, forceRadial, type SimulationNodeDatum } from "d3-force";
 import {
   sankey as d3sankey,
   sankeyLinkHorizontal,
@@ -59,7 +59,7 @@ type ViewMode = "referral" | "diagnosis" | "compare";
 type OverlayKey = "age" | "gender";
 type LayoutMode = "sankey" | "flow" | "network";
 
-interface GraphNode {
+interface GraphNode extends SimulationNodeDatum {
   id: string;
   label: string;
   group: "symptom" | "cancer" | "age" | "gender";
