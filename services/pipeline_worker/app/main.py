@@ -311,6 +311,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     pass
                 raise
 
+        if isinstance(body, dict) and body.get("event_type") == "hccp_chunks_ready":
+            try:
+                from services.pipeline_worker.app.services.hccp_bridge_orchestrator import (
+                    handle_hccp_chunks_message,
+                )
+
+                await handle_hccp_chunks_message(body)
+                return
+            except Exception:
+                logger.exception("HCCP chunks-ready handoff failed")
+                raise
+
         # Wire a step_callback so WorkflowEngine emits step_completed and
         # run_completed events to Redis pub/sub for the SSE stream
         # /pipeline/progress/{run_id}. Without this, the patient-drawer
