@@ -23,33 +23,45 @@ EXPECTED_SUBGRAPHS = {
     "pd-val-key-fact-extraction": [
         "extraction",
         "post_processing",
+        "relation_linking",
+        "extraction_check",
     ],
     "pd-val-pathway-criteria": [
         "extraction",
         "post_processing",
+        "relation_linking",
+        "extraction_check",
         "terminology",
         "compliance",
     ],
     "pd-val-triage-completeness": [
         "extraction",
         "post_processing",
+        "relation_linking",
+        "extraction_check",
         "quality_check",
     ],
     "pd-val-terminology-mapping": [
         "extraction",
         "post_processing",
+        "relation_linking",
+        "extraction_check",
         "terminology",
         "surface_form_validation",
     ],
     "pd-val-sbar-summary": [
         "extraction",
         "post_processing",
+        "relation_linking",
+        "extraction_check",
         "terminology",
         "sbar",
     ],
     "pd-referral-triage-e2e": [
         "extraction",
         "post_processing",
+        "relation_linking",
+        "extraction_check",
         "terminology",
         "compliance",
         "quality_check",
@@ -87,6 +99,8 @@ def test_e2e_referral_triage_composes_un_scoped_stages():
     assert action_ids == [
         "act-triage-extract",
         "act-triage-post",
+        "act-triage-relation-link",
+        "act-triage-extraction-check",
         "act-triage-terminology",
         "act-triage-criteria",
         "act-triage-completeness",
@@ -117,6 +131,8 @@ async def test_runner_maps_un_to_expected_plan_and_actions(monkeypatch):
     assert [action.subgraph_id for action in captured["actions"]] == [
         "extraction",
         "post_processing",
+        "relation_linking",
+        "extraction_check",
     ]
     assert captured["state"]["case_id"] == "case-1"
 

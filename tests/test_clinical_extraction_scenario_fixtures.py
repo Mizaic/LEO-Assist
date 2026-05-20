@@ -102,10 +102,11 @@ def test_expected_strings_contract_is_locked() -> None:
     assert doc["validation_scope"] == "extraction_only_terms_text_before_coding"
     assert doc["pass_threshold"]["overall_phrase_f1"] == 0.95
     assert doc["normalisation"] == {
-        "casefold": False,
-        "trim": False,
-        "collapse_whitespace": False,
-        "strip_terminal_punctuation": False,
+        "casefold": True,
+        "trim": True,
+        "collapse_whitespace": True,
+        "strip_terminal_punctuation": True,
+        "containment_match": True,
     }
 
 

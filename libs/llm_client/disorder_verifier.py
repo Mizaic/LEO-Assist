@@ -35,7 +35,11 @@ import logging
 import re
 from enum import Enum
 
-from libs.llm_client.consensus import ConsensusResult, run_consensus
+from libs.llm_client.consensus import (
+    ConsensusResult,
+    _consensus_verifier_tier,
+    run_consensus,
+)
 from libs.llm_client.prompt_safety import (
     INJECTION_GUARD,
     cap_llm_response,
@@ -175,6 +179,7 @@ def verify_disorder(
         parse_fn=_parse_verdict,
         fail_verdict=fail_v,
         max_tokens=150,
+        tier=_consensus_verifier_tier(),
     )
 
     raw = result.verdict

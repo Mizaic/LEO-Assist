@@ -1,9 +1,9 @@
 """TRUD terminology sync: download, extract, and load into Neo4j.
 
 Atlas trace:
-  DO: DO-92F92EFB
-  DI: DI-88C1715A
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+  DO: DO-95090147
+  DI: DI-B8C57B22 (load), DI-698EE6EE (fail-safe), DI-81022210 (staleness), DI-2AD4CCC3 (audit log)
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-95090147")
 
 Orchestrates:
   1. Fetch latest release metadata from the TRUD API.

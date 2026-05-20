@@ -175,4 +175,4 @@ def _raw_score(span, *, fallback_score: float | None = None) -> float:
     try:
         return float(raw)
     except ValueError:
-        return float(fallback_score) if fallback_score is not None else 0.0
+        return float(fallback_score) if fallback_score is not None else 1.0

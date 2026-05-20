@@ -3,10 +3,12 @@
 Usage:
     python -m scripts.seed_prompt_configs          # seed/update all prompts
     python -m scripts.seed_prompt_configs --missing # seed only absent prompts
+    python -m scripts.seed_prompt_configs --force   # overwrite all factory prompts
 
 Idempotent — uses MERGE on (name, version), so re-running is safe.
-Only overwrites prompt text for nodes whose ``source`` is still ``seed``;
-user-edited prompts (source='user') are left untouched.
+By default only overwrites prompt text for nodes whose ``source`` is still
+``seed``; user-edited prompts (source='user') are left untouched unless
+``--force`` is passed.
 
 ``seed_if_missing()`` is the function called by the API at startup to ensure
 all factory prompts are present without overwriting user edits.
@@ -39,6 +41,7 @@ except Exception:
 from libs.cypher.prompt_config_queries import (
     CREATE_CONSTRAINT,
     CREATE_INDEX_NAME,
+    FORCE_UPSERT_SEED_PROMPT,
     UPSERT_SEED_PROMPT,
 )
 
@@ -1120,8 +1123,9 @@ def seed_if_missing() -> None:
         driver.close()
 
 
-def main(missing_only: bool = False) -> None:
+def main(missing_only: bool = False, *, force: bool = False) -> None:
     driver = _get_driver()
+    upsert_query = FORCE_UPSERT_SEED_PROMPT if force else UPSERT_SEED_PROMPT
 
     with driver.session() as session:
         session.run(CREATE_CONSTRAINT)
@@ -1141,7 +1145,7 @@ def main(missing_only: bool = False) -> None:
                 )
                 continue
             result = session.run(
-                UPSERT_SEED_PROMPT,
+                upsert_query,
                 id=str(uuid.uuid4()),
                 name=prompt["name"],
                 version=prompt["version"],
@@ -1153,7 +1157,10 @@ def main(missing_only: bool = False) -> None:
                 max_few_shot=int(prompt.get("max_few_shot", 20)),
             ).single()
             source = result["source"] if result else "unknown"
-            action = "created" if source == "seed" else "skipped (user-edited)"
+            if force:
+                action = "forced"
+            else:
+                action = "created" if source == "seed" else "skipped (user-edited)"
             n_examples = len(prompt.get("few_shot_examples", []))
             logger.info(
                 "  %s v%d — %s (%d examples)",
@@ -1165,7 +1172,7 @@ def main(missing_only: bool = False) -> None:
             seeded += 1
 
     driver.close()
-    logger.info("Done. %d prompts processed.", seeded)
+    logger.info("Done. %d prompts processed (force=%s).", seeded, force)
 
 
 if __name__ == "__main__":
@@ -1175,5 +1182,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--missing", action="store_true", help="Only seed prompts not yet in Neo4j"
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite all factory prompts (including previously user-edited)",
+    )
     args = parser.parse_args()
-    main(missing_only=args.missing)
+    main(missing_only=args.missing, force=args.force)

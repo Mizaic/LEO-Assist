@@ -87,6 +87,10 @@ function CaseResultsTable({ rows }: { rows: CaseScore[] }) {
             <TableCell align="right" sx={{ fontWeight: 600 }}>
               R
             </TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600 }}>
+              Obs R
+            </TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Pipeline stages</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Missed phrases</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Extra phrases</TableCell>
           </TableRow>
@@ -114,6 +118,26 @@ function CaseResultsTable({ rows }: { rows: CaseScore[] }) {
               </TableCell>
               <TableCell align="right">{f1Pct(row.precision)}</TableCell>
               <TableCell align="right">{f1Pct(row.recall)}</TableCell>
+              <TableCell align="right">{f1Pct(row.observable_recall)}</TableCell>
+              <TableCell>
+                {row.stage_snapshots ? (
+                  <Tooltip
+                    title={Object.entries(row.stage_snapshots)
+                      .map(([stage, snap]) => `${stage}: ${snap.entity_count}`)
+                      .join(" | ")}
+                  >
+                    <Typography variant="caption" color="text.secondary" component="span">
+                      {Object.entries(row.stage_snapshots)
+                        .map(([stage, snap]) => `${stage}:${snap.entity_count}`)
+                        .join(" ")}
+                    </Typography>
+                  </Tooltip>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    -
+                  </Typography>
+                )}
+              </TableCell>
               <TableCell>
                 <Typography variant="caption" color="text.secondary">
                   {row.missed_strings?.join(", ") || "-"}

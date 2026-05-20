@@ -164,7 +164,11 @@ class TestDualModelConsensus:
         assert result.arbitrator_verdict == ""
         assert mock_call.call_count == 2
 
-    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "true"}, clear=False)
+    @patch.dict(
+        "os.environ",
+        {"CONSENSUS_DUAL_MODEL": "true", "CONSENSUS_AWS_TIER": "big"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
     def test_disagreement_triggers_arbitrator(self, mock_call):
         def route(provider, tier, *_args, **_kwargs):
@@ -235,3 +239,24 @@ class TestSingleModelIsDefault:
         )
         assert mock_call.call_count == 1
         assert mock_call.call_args[0][0] == "aws"
+
+    @patch.dict(
+        "os.environ",
+        {
+            "CONSENSUS_DUAL_MODEL": "false",
+            "PIPELINE_CONSENSUS_MODE": "false",
+            "CONSENSUS_AWS_TIER": "",
+            "PIPELINE_MODEL_TIER": "small",
+        },
+        clear=False,
+    )
+    @patch("libs.llm_client.consensus._call_provider")
+    def test_default_tier_is_small_haiku(self, mock_call):
+        mock_call.return_value = _make_response("yes", "haiku")
+        run_consensus(
+            system_prompt="s",
+            user_msg="m",
+            parse_fn=_simple_parse,
+            fail_verdict="fail",
+        )
+        assert mock_call.call_args[0][1] == "small"

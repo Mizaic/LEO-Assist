@@ -118,3 +118,20 @@ ON MATCH SET
   p.updated_at = datetime()
 RETURN p.id AS id, p.source AS source
 """
+
+FORCE_UPSERT_SEED_PROMPT = """
+MERGE (p:PromptConfig {name: $name, version: $version})
+ON CREATE SET
+  p.id = $id,
+  p.created_at = datetime()
+SET
+  p.description = $description,
+  p.system_prompt = $system_prompt,
+  p.output_schema = $output_schema,
+  p.verification = $verification,
+  p.few_shot_examples = $few_shot_examples,
+  p.max_few_shot = $max_few_shot,
+  p.source = 'seed',
+  p.updated_at = datetime()
+RETURN p.id AS id, p.source AS source
+"""

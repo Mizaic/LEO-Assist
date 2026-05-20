@@ -145,6 +145,27 @@ EPISODE_PIPELINE = register_flag(
 )
 
 
+EXTRACTION_MODEL_MODE = register_flag(
+    FeatureFlag(
+        name="extraction_model_mode",
+        default="llm",
+        allowed=("llm", "ner", "auto"),
+        description=(
+            "Selects which extractor the extraction subgraph runs when the "
+            "action does not pin a method. "
+            "llm: always use the LLM extractor (current production default). "
+            "ner: use the trained NER model; raises if the backend is "
+            "unavailable when strict_model_version is set, otherwise falls "
+            "back to LLM. "
+            "auto: prefer NER when MODEL_MODE_NER_ENABLED is true and the "
+            "backend is available; fall back to LLM on 0 entities or any "
+            "NER error. Per-request override via the model_mode state key "
+            "(propagated through pub/sub payload context.model_mode)."
+        ),
+    )
+)
+
+
 NCDA_DETECTOR = register_flag(
     FeatureFlag(
         name="ncda_detector",

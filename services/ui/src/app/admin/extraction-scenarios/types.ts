@@ -68,6 +68,8 @@ export interface CaseScore {
   false_negative: number;
   missed_strings: string[];
   extra_strings: string[];
+  observable_recall?: number;
+  stage_snapshots?: Record<string, { entity_count: number; terms: string[] }>;
 }
 
 export interface ValidationRunStatus {

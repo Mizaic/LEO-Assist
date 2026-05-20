@@ -4,10 +4,11 @@ Atlas trace:
   UN: UN-89E2AE36
   DI: DI-B5C78811
   DO: DO-728930A1, DO-416BA91D
-  VT: VT-29880CC8
+  VT: VT-88920DAA, VT-29AF2163, VT-2A7C5322, VT-4231B0A0,
+      VT-E425D17E, VT-CC118874, VT-7AC15E8B, VT-29880CC8
   Look up via: get_design_control(dc_type="design-input", dc_id="DI-B5C78811")
 
-All 9 layers execute in a fixed order on plain entity dicts.  Both the
+All layers execute in a fixed order on plain entity dicts (including 2b Referral Routing Guard).  Both the
 training verification pipeline (label_verifier) and the runtime coding
 pipeline (pipeline_service) call ``run_post_processing()`` so that gold
 training data and production inference share exactly the same
@@ -17,6 +18,7 @@ Layer order
 -----------
 1. Post-Processor Rules   -- DB-driven text/label rewrites
 2. Lab-Value Guard        -- suppress disorders inferred from lab results
+2b. Referral Routing Guard -- drop informational 2WW/pathway routing prose
 3. Scope Guard            -- reclassify assertions in safety-netting /
                              recommendation / hedged-diagnosis text
 3b. Lab Triple Recovery   -- add missing procedure / observable / finding
@@ -31,8 +33,16 @@ we h3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
                              starts with a recognised result-interpretation
                              phrase ("Outside reference range", "High", ...).
 4. Observable Norm.       -- clean observable spans, attach value/unit/ref
-5. Entity-Type Norm.      -- deterministic label corrections
-6. Value-Unit Linking     -- attach numeric values to nearby observables
+4b. Observable Surface Cleanup -- DI-B5C78811. Strip trailing value+unit (and
+                             optional ref range) tokens from
+                             observable_entity.text so downstream
+                             stringification (validation scoring, training
+                             label exports, audit) sees a single canonical
+                             surface form across both pipelines.
+5. Value-Unit Linking     -- attach numeric values to nearby observables
+6. Entity-Type Norm.      -- deterministic label corrections (runs after
+                             linking so observables with structured value/unit
+                             are not mis-tagged as qualifier_value)
 7. ConText Assertion Det. -- MedSpaCy negation/historical/family detection
 7b. Referral Proc Guard   -- keep referral procedures as present
 7c. Observable Trend Split -- split current vs historical result values
@@ -52,8 +62,13 @@ from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.context_detector import normalize_situation_lookup
 from libs.ner.lab_triple_recovery import recover_lab_triples
 from libs.ner.lab_value_guard import should_suppress_disorder
+from libs.ner.referral_routing_guard import should_suppress_referral_routing_entity
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
+from libs.pipeline.extraction_term_normaliser import (
+    clean_observable_surface_text,
+    is_bare_numeric,
+)
 from libs.ner.breast_screening_outcome_recovery import (
     recover_breast_screening_outcome_finding,
 )
@@ -552,6 +567,49 @@ def merge_cross_line_lab_findings(
     return entities
 
 
+# ── Layer 4b: Observable Surface Cleanup ──
+# DI-B5C78811, DO-728930A1.
+# Strip trailing value/unit (and optional reference-range) tokens from
+# observable_entity surface forms once Layer 4 has parsed them out into
+# dedicated fields. Production stringification (terminology lookup, audit
+# events) and validation scoring then see the same canonical name (e.g.
+# "Haemoglobin" instead of "Haemoglobin 124 g/L (115-160)"), which avoids
+# train/validate skew on phrase-level F1.
+
+
+def clean_observable_surface_forms(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Apply the shared surface-form cleanup to every observable_entity.
+
+    Idempotent. Records the original surface form under ``__raw_text`` for
+    audit. Entities that collapse to a bare numeric token are dropped --
+    they carry no clinical meaning once their value/unit has been linked.
+    """
+    kept: list[dict[str, Any]] = []
+    for ent in entities:
+        if str(ent.get("label", "")) != "observable_entity":
+            kept.append(ent)
+            continue
+        raw = str(ent.get("text", "") or "")
+        cleaned = clean_observable_surface_text(raw)
+        if not cleaned:
+            logger.debug(
+                "Layer 4b: dropping observable with no name after cleanup: %r",
+                raw,
+            )
+            continue
+        if cleaned != raw and "__raw_text" not in ent:
+            ent["__raw_text"] = raw
+        ent["text"] = cleaned
+        for alias_key in ("normalized", "lookup_term"):
+            value = ent.get(alias_key)
+            if isinstance(value, str) and value.strip():
+                normalised_alias = clean_observable_surface_text(value)
+                if normalised_alias and not is_bare_numeric(normalised_alias):
+                    ent[alias_key] = normalised_alias
+        kept.append(ent)
+    return kept
+
+
 # ── Layer 5: Entity-Type Normalisation ──
 
 
@@ -563,6 +621,19 @@ def _normalized_value(ent: dict[str, Any]) -> str:
     """
     raw = ent.get("normalized") or ent.get("lookup_term") or ent.get("text") or ""
     return str(raw).strip().lower()
+
+
+def _observable_has_structured_measurement(ent: dict[str, Any]) -> bool:
+    """True when Layer 4/6 already attached a measurement to this observable."""
+    if str(ent.get("label", "")) != "observable_entity":
+        return False
+    value = str(ent.get("value") or "").strip()
+    if not value:
+        return False
+    unit = str(ent.get("unit") or "").strip()
+    if unit:
+        return True
+    return _is_string_result_text(value)
 
 
 def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
@@ -579,7 +650,11 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
         if label == "X_DOSAGE" and _is_lab_value_text(text):
             ent["label"] = "qualifier_value"
 
-        if label == "observable_entity" and _is_numeric_measurement_text(text):
+        if (
+            label == "observable_entity"
+            and _is_numeric_measurement_text(text)
+            and not _observable_has_structured_measurement(ent)
+        ):
             ent["label"] = "qualifier_value"
 
         if label in {"finding", "situation"} and _is_result_descriptor(text):
@@ -1255,6 +1330,16 @@ def run_post_processing_with_trace(
 
     _run_layer("layer_2", "Lab-Value Guard", _layer_2)
 
+    # Layer 2b: Referral Routing Guard (DI-B5C78811 / UN-89E2AE36)
+    def _layer_2b(current: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for ent in current:
+            if should_suppress_referral_routing_entity(ent):
+                ent["__suppress__"] = True
+                ent["_routing_guard"] = "informational_referral"
+        return [e for e in current if not e.get("__suppress__")]
+
+    _run_layer("layer_2b", "Referral Routing Guard", _layer_2b)
+
     # Layer 3: Scope Guard
     _run_layer(
         "layer_3",
@@ -1321,21 +1406,28 @@ def run_post_processing_with_trace(
         ),
     )
 
-    # Layer 5: Entity-Type Normalisation
+    # Layer 4b: Observable Surface Cleanup (DI-B5C78811 / DO-728930A1)
     _run_layer(
-        "layer_5",
-        "Entity-Type Normalisation",
-        lambda current: (normalise_entity_types(current), current)[1],
+        "layer_4b",
+        "Observable Surface Cleanup",
+        clean_observable_surface_forms,
     )
 
-    # Layer 6: Value-Unit Linking
+    # Layer 5: Value-Unit Linking (before entity-type norm -- see module docstring)
     _run_layer(
-        "layer_6",
+        "layer_5",
         "Value-Unit Linking",
         lambda current: (
             link_observable_value_units(current, encounter_text),
             current,
         )[1],
+    )
+
+    # Layer 6: Entity-Type Normalisation
+    _run_layer(
+        "layer_6",
+        "Entity-Type Normalisation",
+        lambda current: (normalise_entity_types(current), current)[1],
     )
 
     # Layer 7: ConText Assertion Detection

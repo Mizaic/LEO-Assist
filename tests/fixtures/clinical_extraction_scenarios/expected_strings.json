@@ -10,10 +10,11 @@
     "overall_phrase_f1": 0.95
   },
   "normalisation": {
-    "casefold": false,
-    "trim": false,
-    "collapse_whitespace": false,
-    "strip_terminal_punctuation": false
+    "casefold": true,
+    "trim": true,
+    "collapse_whitespace": true,
+    "strip_terminal_punctuation": true,
+    "containment_match": true
   },
   "cases": [
     {
@@ -428,7 +429,20 @@
         "TIBC"
       ],
       "must_not_extract": [
-        "bowel cancer screening"
+        "bowel cancer screening",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -802,7 +816,19 @@
         "TIBC"
       ],
       "must_not_extract": [
-        "not known"
+        "not known",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -1530,7 +1556,19 @@
         "Amylase"
       ],
       "must_not_extract": [
-        "gallstones"
+        "gallstones",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -2222,7 +2260,20 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
       "source_template_markdown": "tests/fixtures/clinical_extraction_scenarios/template_markdown/final_eoe_lung_usc_referral_form_21_05_25.md",
@@ -2559,7 +2610,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "cough resolved"
+        "cough resolved",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -3232,7 +3295,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "nipple discharge"
+        "nipple discharge",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -3924,7 +3999,19 @@
         "PSA"
       ],
       "must_not_extract": [
-        "renal colic"
+        "renal colic",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -4635,7 +4722,20 @@
         "PSA"
       ],
       "must_not_extract": [
-        "benign prostatic enlargement"
+        "benign prostatic enlargement",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -5344,7 +5444,20 @@
         "HbA1c",
         "CA125"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
       "source_template_markdown": "tests/fixtures/clinical_extraction_scenarios/template_markdown/uscp_gynaecology_referral_form_v8.md",
@@ -6033,7 +6146,20 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
       "source_template_markdown": "tests/fixtures/clinical_extraction_scenarios/template_markdown/eoe_skin_usc_proforma_final_2024.md",
@@ -6706,7 +6832,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "dental abscess"
+        "dental abscess",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -7379,7 +7517,19 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "refer this patient under",
+        "suspected cancer referral",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
       "source_template_markdown": "tests/fixtures/clinical_extraction_scenarios/template_markdown/brain_cns_cancer_referral_form_no_merge_fields_v3_feb_2026.md",
@@ -8112,7 +8262,20 @@
         "Iron"
       ],
       "must_not_extract": [
-        "fever"
+        "fever",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -8836,7 +8999,20 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
       "source_template_markdown": "tests/fixtures/clinical_extraction_scenarios/template_markdown/sarcoma_referral_form_v3_0.md",
@@ -9547,7 +9723,20 @@
         "Fasting glucose"
       ],
       "must_not_extract": [
-        "screening"
+        "screening",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -9921,7 +10110,18 @@
         "Fasting glucose"
       ],
       "must_not_extract": [
-        "ovarian cyst"
+        "ovarian cyst",
+        "2WW referral submitted",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -10293,7 +10493,19 @@
       ],
       "must_not_extract": [
         "rectal bleeding",
-        "weight loss"
+        "weight loss",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -10662,10 +10874,23 @@
         "ESR",
         "Ferritin",
         "Ca",
-        "HbA1c"
+        "HbA1c",
+        "right parahilar opacity",
+        "COPD"
       ],
       "must_not_extract": [
-        "COPD"
+        "COPD",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -11004,7 +11229,19 @@
       ],
       "must_not_extract": [
         "12.4 ng/mL",
-        "PSA 12.4 ng/mL"
+        "PSA 12.4 ng/mL",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -12069,7 +12306,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "nipple discharge"
+        "nipple discharge",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -12407,7 +12656,19 @@
         "Amylase"
       ],
       "must_not_extract": [
-        "gastric ulcer"
+        "gastric ulcer",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -13118,7 +13379,19 @@
         "PSA"
       ],
       "must_not_extract": [
-        "cancelled ultrasound"
+        "cancelled ultrasound",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
@@ -13809,7 +14082,20 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "review_status": "draft_for_clinician_approval",
       "notes_for_clinician_review": "Template-backed synthetic scenario with fake patient details prepared for clinician approval before scored validation use.",
       "source_template_markdown": "tests/fixtures/clinical_extraction_scenarios/template_markdown/headandneckcancerreferralform_v6.md",
@@ -14157,7 +14443,20 @@
         "patient details",
         "practice email",
         "hospital to complete",
-        "UBRN"
+        "UBRN",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:2WW-Non-site-specific-SystmOne.docx",
@@ -14539,7 +14838,20 @@
       ],
       "must_not_extract": [
         "MRI safety checklist",
-        "not pregnant"
+        "not pregnant",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:2WW-Non-site-specific-SystmOne.docx",
@@ -14920,7 +15232,20 @@
         "MERGE FIELD",
         "Numeric FIT Value",
         "____",
-        "field"
+        "field",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:LowerGI_Cancer-Referral-Form-V6.docx",
@@ -15301,7 +15626,19 @@
         "PSA",
         "raised PSA",
         "prostate specific antigen",
-        "digital rectal examination"
+        "digital rectal examination",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Final__-_EOE_Lung_USC_referral_form._21.05.25.docx",
@@ -15644,7 +15981,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "lung mass"
+        "lung mass",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Final__-_EOE_Lung_USC_referral_form._21.05.25.docx",
@@ -15991,7 +16340,20 @@
       ],
       "must_not_extract": [
         "0.62",
-        "1.9 L"
+        "1.9 L",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:LungCancerReferralFormS1_V3.0.docx",
@@ -16335,7 +16697,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "CT booking note"
+        "CT booking note",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Final__-_EOE_Lung_USC_referral_form._21.05.25.docx",
@@ -16684,7 +17058,21 @@
         "LDH",
         "Iron"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "template:Haematological-Cancer-Referral-Form-S1s.docx",
         "ng12:back pain/bone pain myeloma investigations",
@@ -17082,7 +17470,20 @@
         "Iron"
       ],
       "must_not_extract": [
-        "CLL not 2WW"
+        "CLL not 2WW",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Haematological-Cancer-Referral-Form-S1s.docx",
@@ -17478,7 +17879,19 @@
         "CA125"
       ],
       "must_not_extract": [
-        "CA125 48 U/mL"
+        "CA125 48 U/mL",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:EoE_CA_Gynae_Referral_Form_Feb_25_.docx",
@@ -17838,7 +18251,21 @@
         "HbA1c",
         "CA125"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "template:USCP-Gynaecology-Referral-Form-V8.docx",
         "ng12:vaginal discharge with thrombocytosis or haematuria",
@@ -18202,7 +18629,19 @@
       "must_not_extract": [
         "Numeric FIT Value",
         "MERGE FIELD",
-        "FIT ____"
+        "FIT ____",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:LowerGI_Cancer-Referral-Form-V6.docx",
@@ -18580,7 +19019,20 @@
         "Iron",
         "TIBC"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "template:20230523_EoE_USC_Proforma_LOWER_GI_FINAL_V6_1.docx",
         "template:LowerGI_Cancer-Referral-Form-V6.docx"
@@ -18958,7 +19410,19 @@
       "must_not_extract": [
         "Plymouth-only pathway",
         "administrative advice",
-        "non-urgent referral"
+        "non-urgent referral",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Upper-GI-Cancers-Referral-Form-S1s.docx",
@@ -19680,7 +20144,20 @@
         "Ca"
       ],
       "must_not_extract": [
-        "cancer concern high"
+        "cancer concern high",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Skin-cancer-suspected-referral-form-Devon-v4.1.1-S1.dotm"
@@ -20022,7 +20499,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "image quality note"
+        "image quality note",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:EoE_Skin_USC_Proforma_Final_2024.docx"
@@ -20366,7 +20855,19 @@
       ],
       "must_not_extract": [
         "MRI contraindicated",
-        "routine CT"
+        "routine CT",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Brain-CNS-Cancer-Referral-Form-No-Merge-fields-V3-Feb-2026.docx",
@@ -21051,7 +21552,20 @@
         "HbA1c",
         "PSA"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "template:UrologicalCancerReferralForm-V5.0.docx",
         "ng12:lumps and masses penile mass"
@@ -21410,7 +21924,20 @@
         "PSA"
       ],
       "must_not_extract": [
-        "renal colic"
+        "renal colic",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:UrologicalCancerReferralForm-V5.0.docx",
@@ -21772,7 +22299,19 @@
         "PSA"
       ],
       "must_not_extract": [
-        "Rockwood image link"
+        "Rockwood image link",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:UrologicalCancerReferralForm-V5.0.docx",
@@ -22133,7 +22672,19 @@
       "must_not_extract": [
         "PSA",
         "prostate cancer",
-        "digital rectal examination"
+        "digital rectal examination",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:20250319_EoE_USC_Proforma_UGI__002.docx",
@@ -22832,7 +23383,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "breast cancer recurrence"
+        "breast cancer recurrence",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Breast-Cancer-Referral-FormS1-v3.5.docx"
@@ -23174,7 +23737,20 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "template:HeadAndNeckCancerReferralForm-V6.docx",
         "ng12:oral lesions"
@@ -23514,7 +24090,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "sensorineural hearing loss"
+        "sensorineural hearing loss",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:HeadAndNeckCancerReferralForm-V6.docx",
@@ -23856,7 +24444,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "telephone local team"
+        "telephone local team",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:Sarcoma-Referral-Form_V3.0.docx"
@@ -24195,7 +24795,21 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "template:Sarcoma-Referral-Form_V3.0.docx",
         "ng12:lump increasing in size soft tissue sarcoma"
@@ -24536,7 +25150,19 @@
         "Iron",
         "TIBC"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "ng12:abdominal mass offer quantitative FIT",
         "surface_forms:FIT present but multi-mapped"
@@ -25306,7 +25932,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "dental caries"
+        "dental caries",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "ng12:oral lesions urgent dental assessment"
@@ -25643,9 +26281,30 @@
         "ESR",
         "Ferritin",
         "Ca",
-        "HbA1c"
+        "HbA1c",
+        "left arm weakness",
+        "difficulty gripping",
+        "fine motor impairment",
+        "expressive dysphasia",
+        "word-finding difficulty",
+        "progressive neurological symptoms",
+        "progressive neurological",
+        "Progressive left arm weakness"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "ng12:neurological symptoms in adults"
       ],
@@ -25987,9 +26646,24 @@
         "HbA1c",
         "PV",
         "LDH",
-        "Iron"
+        "Iron",
+        "Calcium elevated"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "ng12:bone/back pain myeloma investigations",
         "surface_forms:Bence Jones present"
@@ -26380,7 +27054,20 @@
         "Ca",
         "HbA1c"
       ],
-      "must_not_extract": [],
+      "must_not_extract": [
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
+      ],
       "source_basis": [
         "ng12:respiratory symptoms cough/chest X-ray",
         "surface_forms:chest X-ray present"
@@ -27400,7 +28087,20 @@
         "PSA"
       ],
       "must_not_extract": [
-        "UTI resolved"
+        "UTI resolved",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "ng12:urological symptoms",
@@ -28138,7 +28838,19 @@
         "HbA1c"
       ],
       "must_not_extract": [
-        "appointment booking line"
+        "appointment booking line",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "ng12:primary care investigations ovarian cancer",
@@ -28522,7 +29234,20 @@
         "unexplained DVT",
         "PSA (Men)",
         "transport is required",
-        "<Main spoken language>"
+        "<Main spoken language>",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:2WW-Non-site-specific-SystmOne.docx",
@@ -28914,7 +29639,20 @@
         "no pleural effusions",
         "no destructive bone lesions",
         "no acute cardiopulmonary process",
-        "lung pathway"
+        "lung pathway",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:2WW-Non-site-specific-SystmOne.docx",
@@ -29310,7 +30048,20 @@
         "all filter investigations",
         "consultant upgrade",
         "new cancer identified",
-        "internal referral"
+        "internal referral",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "template:2WW-Non-site-specific-SystmOne.docx",
@@ -29685,7 +30436,18 @@
       ],
       "must_not_extract": [
         "fit note",
-        "Fit - convulsion"
+        "Fit - convulsion",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -30042,7 +30804,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "FIT+",
         "Hb",
         "WCC",
         "Plts",
@@ -30051,19 +30812,30 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "fresh rectal bleeding",
+        "Bowel habit has changed",
+        "lower abdominal discomfort",
+        "Unintentional weight loss",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
-        "fit for work"
+        "fit for work",
+        "2WW referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -30419,7 +31191,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "FIT pos",
         "Hb",
         "WCC",
         "Plts",
@@ -30428,16 +31199,18 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "rectal bleeding",
+        "lower abdominal cramping",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
         "FIT requested"
@@ -30817,7 +31590,19 @@
         "TIBC"
       ],
       "must_not_extract": [
-        "FOBT normal"
+        "FOBT normal",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -31194,7 +31979,18 @@
         "TIBC"
       ],
       "must_not_extract": [
-        "BCSP FIT normal"
+        "BCSP FIT normal",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -31551,7 +32347,6 @@
         "ambiguous_phrase"
       ],
       "expected_strings": [
-        "FIT posotive",
         "Hb",
         "WCC",
         "Plts",
@@ -31560,19 +32355,31 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "fresh rectal bleeding",
+        "change in bowel habit",
+        "incomplete evacuation",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
-        "fit note issued"
+        "fit note issued",
+        "2WW referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -31928,7 +32735,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "FIT abnormal",
         "Hb",
         "WCC",
         "Plts",
@@ -31937,19 +32743,33 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "fresh rectal bleeding",
+        "change in bowel habit",
+        "left iliac fossa cramping pain",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
-        "sample rejected"
+        "sample rejected",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -32305,7 +33125,6 @@
         "dense_paragraph"
       ],
       "expected_strings": [
-        "FIT raised",
         "Hb",
         "WCC",
         "Plts",
@@ -32314,16 +33133,19 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "rectal bleeding",
+        "change in bowel habit",
+        "lower abdominal discomfort",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
         "QFIT negative"
@@ -32683,7 +33505,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "FIT neg",
         "Hb",
         "WCC",
         "Plts",
@@ -32692,19 +33513,32 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "change in bowel habit",
+        "altered bowel habit",
+        "fresh rectal bleeding",
+        "lower abdominal cramping",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
-        "FIT positive"
+        "FIT positive",
+        "2WW referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "suspected cancer referral",
+        "Urgent 2WW",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -33061,7 +33895,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "-FIT",
         "Hb",
         "WCC",
         "Plts",
@@ -33070,19 +33903,33 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "fresh rectal bleeding",
+        "change in bowel habit",
+        "strong family history",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
-        "FIT+"
+        "FIT+",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -33439,7 +34286,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "neg FIT",
         "Hb",
         "WCC",
         "Plts",
@@ -33448,16 +34294,20 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "rectal bleeding",
+        "bowel habit has changed",
+        "tenesmus",
+        "left iliac fossa discomfort",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
         "positive FIT"
@@ -33817,7 +34667,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "FIT-",
         "Hb",
         "WCC",
         "Plts",
@@ -33826,19 +34675,32 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "altered bowel habit",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
-        "FIT pos"
+        "FIT pos",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -34195,7 +35057,6 @@
         "fit_surface_form_variant"
       ],
       "expected_strings": [
-        "FIT below threshold",
         "Hb",
         "WCC",
         "Plts",
@@ -34204,19 +35065,35 @@
         "K",
         "Creat",
         "ALT",
-        "Alk Phos",
         "Bili",
         "Alb",
         "CRP",
         "ESR",
-        "Ferritin",
         "Ca",
         "HbA1c",
         "Iron",
-        "TIBC"
+        "TIBC",
+        "Rectal bleeding",
+        "Change in bowel habit",
+        "fresh rectal bleeding",
+        "lower abdominal cramping",
+        "strong family history",
+        "Alk Phos",
+        "Ferritin"
       ],
       "must_not_extract": [
-        "FIT above threshold"
+        "FIT above threshold",
+        "2WW referral submitted",
+        "2WW referral placed",
+        "2WW lower GI referral submitted",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "referral submitted",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",
@@ -34593,7 +35470,16 @@
         "TIBC"
       ],
       "must_not_extract": [
-        "FIT positive"
+        "FIT positive",
+        "2WW referral placed",
+        "2WW lower GI pathway",
+        "2WW brain/CNS referral",
+        "refer this patient under",
+        "Urgent 2WW",
+        "referral placed",
+        "e-Referral",
+        "suspected lower GI cancer referral",
+        "refer under the"
       ],
       "source_basis": [
         "surface_forms:FIT positive/negative shorthand variants from knowledge graph",

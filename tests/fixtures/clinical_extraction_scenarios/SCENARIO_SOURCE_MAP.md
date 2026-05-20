@@ -106,8 +106,21 @@ For the new validation, keep only what is needed for extraction F1:
 
 - `source_markdown`.
 - `expected_strings`.
-- Optional `must_not_extract`.
+- Optional `must_not_extract` (see routing patterns below).
 - Optional `notes_for_clinician_review`.
+
+### Informational referral routing (`must_not_extract`)
+
+Phrase-level validation targets clinical facts (symptoms, investigation
+results, labs, named arranged tests). These routing phrases may appear
+verbatim in referral templates but are documented as must-not-extract for
+clinician review; post-processing drops them via
+`libs/ner/referral_routing_guard.py`:
+
+- `2WW referral submitted` / `2WW referral placed`
+- `Urgent 2WW` / `2WW brain/CNS referral` / site pathway labels
+- `refer this patient under` / `suspected cancer referral`
+- `e-Referral` transport lines
 
 FIT shorthand surface forms from the knowledge graph are tested as separate lower-GI cases, including `+FIT`, `FIT+`, `FIT pos`, `FIT positive`, `positive FIT`, `FIT posotive`, `FIT abnormal`, `FIT raised`, `FIT neg`, `-FIT`, `neg FIT`, `FIT-`, `FIT below threshold`, and `FIT declined`.
 

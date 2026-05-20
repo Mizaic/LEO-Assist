@@ -65,6 +65,7 @@ class ExtractionState(TypedDict, total=False):
     source_node_id: str
     source_text_property: str
     extraction_method: str
+    model_mode: str
     requested_model_version: str
     strict_model_version: bool
     prompt_config: dict[str, Any]
@@ -74,7 +75,62 @@ class ExtractionState(TypedDict, total=False):
     extraction_model_version: str
     extraction_model_requested_version: str
     extraction_model_version_mismatch: bool
+    extraction_route: str
     errors: list[str]
+
+
+_VALID_MODEL_MODES = {"llm", "ner", "auto"}
+_NER_ENABLED_ENV = "MODEL_MODE_NER_ENABLED"
+
+
+def _ner_backend_enabled() -> bool:
+    """True when the NER inference backend is feature-gated on.
+
+    Reads MODEL_MODE_NER_ENABLED first (explicit, per-environment opt-in
+    while the NER model is being trained). Falls back to the existing
+    CODING_MODEL_PROVIDER_ENABLED so deployments that already enable the
+    backend do not regress.
+    """
+    import os
+
+    primary = os.getenv(_NER_ENABLED_ENV, "").strip().lower()
+    if primary in {"1", "true", "yes", "on"}:
+        return True
+    if primary in {"0", "false", "no", "off"}:
+        return False
+    secondary = os.getenv("CODING_MODEL_PROVIDER_ENABLED", "").strip().lower()
+    return secondary in {"1", "true", "yes", "on"}
+
+
+def _resolve_model_mode(state: dict[str, Any]) -> str:
+    """Resolve the active model mode for this extraction step.
+
+    Precedence (highest first):
+      1. state.requested_model_mode (per-request override; promoted from the
+         pub/sub payload `context.model_mode` by the workflow engine so that
+         action-level config cannot clobber the caller's intent).
+      2. state.model_mode (action-level config; defaults like
+         ad-extraction-auto pin "auto" here).
+      3. state.extraction_method (legacy action config: 'llm' or 'ner').
+      4. extraction_model_mode feature flag (process-wide default).
+
+    Returns one of: ``llm``, ``ner``, ``auto``.
+    """
+    for key in ("requested_model_mode", "model_mode"):
+        raw = str(state.get(key) or "").strip().lower()
+        if raw in _VALID_MODEL_MODES:
+            return raw
+    legacy = str(state.get("extraction_method") or "").strip().lower()
+    if legacy in {"llm", "ner"}:
+        return legacy
+    if legacy == "auto":
+        return "auto"
+    try:
+        from libs.feature_flags import EXTRACTION_MODEL_MODE, resolve
+
+        return resolve(EXTRACTION_MODEL_MODE.name)
+    except Exception:
+        return "llm"
 
 
 _SOURCE_NODE_CONFIG = {
@@ -333,10 +389,138 @@ def _resolve_system_prompt(state: ExtractionState) -> str:
     return get_prompt("extraction", version=1)
 
 
+def _run_ner_extraction(
+    encounter_text: str,
+    chunks: list[SentenceChunk],
+    state: dict[str, Any],
+) -> dict[str, Any]:
+    """Invoke the NER extractor and shape its output for state merge.
+
+    Caller decides what to do on empty output -- this function never falls
+    back to the LLM. Returns the same dict shape as the LLM branch with an
+    extra ``extraction_route="ner"`` annotation.
+    """
+    from services.coding_worker.app.pipeline.providers.model_provider import (
+        ModelExtractorProvider,
+    )
+
+    extractor = ModelExtractorProvider()
+    requested_model_version = str(state.get("requested_model_version") or "").strip()
+    strict_model_version = bool(state.get("strict_model_version", False))
+    items = extractor.extract_batch(
+        encounter_text,
+        chunks,
+        requested_model_version=requested_model_version or None,
+        strict_model_version=strict_model_version,
+    )
+    actual_model_version = str(extractor.model_version or "").strip()
+    mismatch = bool(
+        requested_model_version
+        and actual_model_version
+        and requested_model_version != actual_model_version
+    )
+    entities = _items_to_dicts(items)
+    return {
+        "entities": entities,
+        "extraction_model_name": str(extractor.model_name or ""),
+        "extraction_model_version": actual_model_version,
+        "extraction_model_requested_version": requested_model_version,
+        "extraction_model_version_mismatch": mismatch,
+        "extraction_route": "ner",
+        "llm_tokens": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "cached_tokens": 0,
+            "cost_usd": 0.0,
+        },
+    }
+
+
+def _run_llm_extraction(
+    encounter_text: str,
+    chunks: list[SentenceChunk],
+    state: dict[str, Any],
+) -> dict[str, Any]:
+    """Invoke the LLM extractor and shape its output for state merge."""
+    from libs.pipeline_graph.subgraphs._extractor import build_extractor
+
+    cfg = state.get("prompt_config") or {}
+    system_prompt = _resolve_system_prompt(state)
+
+    output_schema_json: str | None = cfg.get("outputSchema") or None
+    try:
+        max_few_shot = int(cfg.get("maxFewShot") or 20)
+    except (TypeError, ValueError):
+        max_few_shot = 20
+    few_shot_raw = cfg.get("fewShotExamples")
+    few_shot_examples: list[dict] | None = None
+    if few_shot_raw:
+        import json as _json
+
+        try:
+            few_shot_examples = (
+                _json.loads(few_shot_raw)
+                if isinstance(few_shot_raw, str)
+                else few_shot_raw
+            )
+        except Exception:
+            few_shot_examples = None
+
+    try:
+        prompt_version = int(cfg.get("version") or 1)
+    except (TypeError, ValueError):
+        prompt_version = 1
+
+    import os
+
+    tier = str(state.get("model_tier") or os.getenv("PIPELINE_MODEL_TIER") or "small")
+    if tier not in {"small", "big", "max"}:
+        tier = "small"
+
+    extractor = build_extractor(
+        system_prompt=system_prompt,
+        tier=tier,
+        output_schema_json=output_schema_json,
+        few_shot_examples=few_shot_examples,
+        max_few_shot=max_few_shot,
+        prompt_name=str(cfg.get("name") or "extraction"),
+        prompt_version=prompt_version,
+    )
+    items, llm_tokens = extractor.extract_batch_with_usage(encounter_text, chunks)
+    return {
+        "entities": _items_to_dicts(items),
+        "llm_tokens": llm_tokens,
+        "extraction_route": "llm",
+    }
+
+
+def _enrich_with_blood_panel_entities(
+    result: dict[str, Any],
+    encounter_text: str,
+    chunks: list[SentenceChunk],
+) -> dict[str, Any]:
+    from libs.pipeline.blood_panel_table import (
+        extract_blood_panel_table_entities,
+        merge_blood_panel_entities,
+    )
+
+    panel = extract_blood_panel_table_entities(encounter_text, chunks)
+    if not panel:
+        return result
+    merged = merge_blood_panel_entities(list(result.get("entities") or []), panel)
+    if len(merged) > len(result.get("entities") or []):
+        route = str(result.get("extraction_route") or "")
+        suffix = "+blood-panel" if route else "blood-panel"
+        result = dict(result)
+        result["entities"] = merged
+        result["extraction_route"] = f"{route}{suffix}" if route else suffix
+    return result
+
+
 def extract_entities(state: ExtractionState) -> dict[str, Any]:
     encounter_text = state.get("encounter_text") or ""
     raw_sentences = state.get("sentences") or []
-    extraction_method = str(state.get("extraction_method") or "llm").lower()
+    model_mode = _resolve_model_mode(state)
     try:
         chunks = [
             SentenceChunk(
@@ -347,98 +531,55 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             )
             for s in raw_sentences
         ]
-        if extraction_method == "ner":
-            from services.coding_worker.app.pipeline.providers.model_provider import (
-                ModelExtractorProvider,
-            )
 
-            extractor = ModelExtractorProvider()
-            requested_model_version = str(
-                state.get("requested_model_version") or ""
-            ).strip()
-            strict_model_version = bool(state.get("strict_model_version", False))
-            items = extractor.extract_batch(
-                encounter_text,
-                chunks,
-                requested_model_version=requested_model_version or None,
-                strict_model_version=strict_model_version,
-            )
-            actual_model_version = str(extractor.model_version or "").strip()
-            mismatch = bool(
-                requested_model_version
-                and actual_model_version
-                and requested_model_version != actual_model_version
-            )
-            entities = _items_to_dicts(items)
-            if not entities:
-                entities = _extract_lab_fallback_entities(encounter_text, chunks)
-                if entities:
+        if model_mode == "ner":
+            result = _run_ner_extraction(encounter_text, chunks, state)
+            if not result.get("entities"):
+                fallback = _extract_lab_fallback_entities(encounter_text, chunks)
+                if fallback:
                     logger.warning(
-                        "NER extraction returned 0 entities; deterministic lab fallback "
-                        "generated %d entities",
-                        len(entities),
+                        "NER extraction returned 0 entities; deterministic lab "
+                        "fallback generated %d entities",
+                        len(fallback),
                     )
-            return {
-                "entities": entities,
-                "extraction_model_name": str(extractor.model_name or ""),
-                "extraction_model_version": actual_model_version,
-                "extraction_model_requested_version": requested_model_version,
-                "extraction_model_version_mismatch": mismatch,
-                "llm_tokens": {
-                    "input_tokens": 0,
-                    "output_tokens": 0,
-                    "cached_tokens": 0,
-                    "cost_usd": 0.0,
-                },
-            }
+                    result["entities"] = fallback
+                    result["extraction_route"] = "ner+lab-fallback"
+            return _enrich_with_blood_panel_entities(result, encounter_text, chunks)
 
-        from libs.pipeline_graph.subgraphs._extractor import build_extractor
+        if model_mode == "auto":
+            if _ner_backend_enabled():
+                try:
+                    ner_result = _run_ner_extraction(encounter_text, chunks, state)
+                except Exception as exc:
+                    logger.warning(
+                        "Auto mode: NER extraction failed (%s); falling back to LLM",
+                        exc,
+                    )
+                else:
+                    if ner_result.get("entities"):
+                        ner_result["extraction_route"] = "auto-ner"
+                        return _enrich_with_blood_panel_entities(
+                            ner_result, encounter_text, chunks
+                        )
+                    logger.info(
+                        "Auto mode: NER returned 0 entities; falling back to LLM"
+                    )
+            else:
+                logger.debug("Auto mode: NER backend not enabled; using LLM extractor")
+            llm_result = _run_llm_extraction(encounter_text, chunks, state)
+            llm_result["extraction_route"] = "auto-llm"
+            return _enrich_with_blood_panel_entities(llm_result, encounter_text, chunks)
 
-        cfg = state.get("prompt_config") or {}
-        system_prompt = _resolve_system_prompt(state)
-
-        # Pass output schema + examples so the extractor can assemble the full prompt
-        output_schema_json: str | None = cfg.get("outputSchema") or None
-        try:
-            max_few_shot = int(cfg.get("maxFewShot") or 20)
-        except (TypeError, ValueError):
-            max_few_shot = 20
-        few_shot_raw = cfg.get("fewShotExamples")
-        few_shot_examples: list[dict] | None = None
-        if few_shot_raw:
-            import json as _json
-
-            try:
-                few_shot_examples = (
-                    _json.loads(few_shot_raw)
-                    if isinstance(few_shot_raw, str)
-                    else few_shot_raw
-                )
-            except Exception:
-                few_shot_examples = None
-
-        try:
-            prompt_version = int(cfg.get("version") or 1)
-        except (TypeError, ValueError):
-            prompt_version = 1
-
-        extractor = build_extractor(
-            system_prompt=system_prompt,
-            output_schema_json=output_schema_json,
-            few_shot_examples=few_shot_examples,
-            max_few_shot=max_few_shot,
-            prompt_name=str(cfg.get("name") or "extraction"),
-            prompt_version=prompt_version,
-        )
-        items, llm_tokens = extractor.extract_batch_with_usage(encounter_text, chunks)
-        return {"entities": _items_to_dicts(items), "llm_tokens": llm_tokens}
+        # default: model_mode == "llm"
+        result = _run_llm_extraction(encounter_text, chunks, state)
+        return _enrich_with_blood_panel_entities(result, encounter_text, chunks)
     except ImportError as e:
         logger.warning("Extractor unavailable: %s", e)
         return {"entities": [], "errors": [str(e)]}
     except Exception as e:
-        strict_requested_ner = str(
-            state.get("extraction_method") or "llm"
-        ).lower() == "ner" and bool(state.get("strict_model_version", False))
+        strict_requested_ner = model_mode == "ner" and bool(
+            state.get("strict_model_version", False)
+        )
         if strict_requested_ner:
             raise
         logger.exception("Entity extraction failed")
@@ -456,6 +597,7 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
         "extraction_model_version_mismatch": bool(
             state.get("extraction_model_version_mismatch", False)
         ),
+        "extraction_route": state.get("extraction_route", ""),
         "errors": state.get("errors", []),
     }
 

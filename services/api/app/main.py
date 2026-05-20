@@ -10,6 +10,7 @@ Atlas trace:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from contextlib import asynccontextmanager
@@ -248,7 +249,27 @@ async def lifespan(app: object):
     t5.start()
     t6 = threading.Thread(target=_extraction_scenario_seed, daemon=True)
     t6.start()
-    yield
+
+    sweeper_task = None
+    if os.getenv("EXTRACTION_RUN_SWEEPER_DISABLED") not in ("1", "true"):
+        try:
+            from app.services.extraction_run_sweeper import run_sweeper_loop
+
+            sweeper_task = asyncio.create_task(run_sweeper_loop())
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "[ExtractionRunSweeper] start failed (non-fatal): %s", exc
+            )
+
+    try:
+        yield
+    finally:
+        if sweeper_task is not None and not sweeper_task.done():
+            sweeper_task.cancel()
+            try:
+                await sweeper_task
+            except (asyncio.CancelledError, Exception):
+                pass
 
 
 app = FastAPI(

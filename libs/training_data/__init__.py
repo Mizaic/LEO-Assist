@@ -5,12 +5,21 @@ This package wires manual reviewer reconciliation events into the
 pipelines. See ``reconcile_promoter`` for the entry point.
 """
 
-from libs.training_data.reconcile_promoter import (
-    EncounterContext,
-    promote_lock_to_gold,
-)
-
 __all__ = [
     "EncounterContext",
     "promote_lock_to_gold",
 ]
+
+
+def __getattr__(name: str):
+    if name in __all__:
+        from libs.training_data.reconcile_promoter import (
+            EncounterContext,
+            promote_lock_to_gold,
+        )
+
+        return {
+            "EncounterContext": EncounterContext,
+            "promote_lock_to_gold": promote_lock_to_gold,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

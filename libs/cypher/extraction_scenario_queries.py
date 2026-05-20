@@ -11,7 +11,7 @@ Atlas trace:
   DI: DI-1B3B5375, DI-B492CAFD
   DO: DO-416BA91D
   Risk: R-80E8BD96
-  VT: VT-24D7A846
+  VT: VT-24D7A846, VT-C9325761
 """
 
 # -- Schema ------------------------------------------------------------------
@@ -161,18 +161,55 @@ RETURN s.case_id AS case_id, s.review_status AS review_status
 """
 
 # -- Validation run (create) -------------------------------------------------
+#
+# NOTE on resilience fields (added 2026-05-20):
+#   case_ids, child_run_ids, plan_definition_id, case_count, publish_state,
+#   published_count are persisted up-front so an API restart, a daemon-thread
+#   kill, or a user logout cannot strand a run in "running" with no way to
+#   recover. The sweeper (see FIND_STALE_VALIDATION_RUNS) and the GET fallback
+#   in extraction_scenarios.get_run both rely on these fields to either
+#   finalise the run from AuditEvent rows or mark it failed with a reason.
+#
+# publish_state vocabulary:
+#   "publishing"     - publisher thread is still sending bus messages
+#   "published"      - publisher sent every planned message successfully
+#   "publish_failed" - publisher thread raised before finishing
 
 CREATE_VALIDATION_RUN = """
 MERGE (r:ExtractionValidationRun {run_id: $run_id})
 ON CREATE SET
-  r.run_id          = $run_id,
-  r.triggered_by    = $triggered_by,
-  r.status          = $status,
-  r.pass_threshold  = $pass_threshold,
-  r.model_version   = $model_version,
-  r.triggered_at    = $triggered_at,
-  r.atlas_vt_recorded  = false,
-  r.atlas_val_recorded = false
+  r.run_id              = $run_id,
+  r.triggered_by        = $triggered_by,
+  r.status              = $status,
+  r.pass_threshold      = $pass_threshold,
+  r.model_version       = $model_version,
+  r.triggered_at        = $triggered_at,
+  r.plan_definition_id  = $plan_definition_id,
+  r.model_mode          = $model_mode,
+  r.case_ids            = $case_ids,
+  r.child_run_ids       = $child_run_ids,
+  r.case_count          = $case_count,
+  r.publish_state       = $publish_state,
+  r.published_count     = $published_count,
+  r.atlas_vt_recorded   = false,
+  r.atlas_val_recorded  = false
+"""
+
+# -- Validation run (publish progress) ---------------------------------------
+
+MARK_VALIDATION_PUBLISH_COMPLETE = """
+MATCH (r:ExtractionValidationRun {run_id: $run_id})
+SET
+  r.publish_state   = 'published',
+  r.published_count = $published_count
+"""
+
+MARK_VALIDATION_PUBLISH_FAILED = """
+MATCH (r:ExtractionValidationRun {run_id: $run_id})
+SET
+  r.publish_state   = 'publish_failed',
+  r.published_count = $published_count,
+  r.failure_reason  = $failure_reason
 """
 
 # -- Validation run (complete) -----------------------------------------------
@@ -189,6 +226,21 @@ SET
   r.completed_at      = $completed_at
 """
 
+# -- Validation run (mark failed) --------------------------------------------
+# Used by the sweeper and by the synchronous get_run fallback to clear stuck
+# rows so the UI does not show phantom "running" indefinitely.
+
+FAIL_VALIDATION_RUN = """
+MATCH (r:ExtractionValidationRun {run_id: $run_id})
+WHERE r.status IN ['queued','running'] AND r.completed_at IS NULL
+SET
+  r.status         = 'failed',
+  r.completed_at   = $completed_at,
+  r.failure_reason = $failure_reason,
+  r.passed         = false
+RETURN r.run_id AS run_id, r.failure_reason AS failure_reason
+"""
+
 CREATE_RAN_AGAINST_EDGE = """
 MATCH (r:ExtractionValidationRun {run_id: $run_id})
 MATCH (s:ExtractionScenario {case_id: $case_id})
@@ -200,20 +252,47 @@ MERGE (r)-[:RAN_AGAINST]->(s)
 GET_VALIDATION_RUN = """
 MATCH (r:ExtractionValidationRun {run_id: $run_id})
 RETURN
-  r.run_id            AS run_id,
-  r.triggered_by      AS triggered_by,
-  r.status            AS status,
-  r.overall_f1        AS overall_f1,
-  r.overall_precision AS overall_precision,
-  r.overall_recall    AS overall_recall,
-  r.pass_threshold    AS pass_threshold,
-  r.passed            AS passed,
-  r.per_case_results  AS per_case_results,
-  r.model_version     AS model_version,
-  r.triggered_at      AS triggered_at,
-  r.completed_at      AS completed_at,
-  r.atlas_vt_recorded AS atlas_vt_recorded,
-  r.atlas_val_recorded AS atlas_val_recorded
+  r.run_id              AS run_id,
+  r.triggered_by        AS triggered_by,
+  r.status              AS status,
+  r.overall_f1          AS overall_f1,
+  r.overall_precision   AS overall_precision,
+  r.overall_recall      AS overall_recall,
+  r.pass_threshold      AS pass_threshold,
+  r.passed              AS passed,
+  r.per_case_results    AS per_case_results,
+  r.model_version       AS model_version,
+  r.model_mode          AS model_mode,
+  r.plan_definition_id  AS plan_definition_id,
+  r.case_ids            AS case_ids,
+  r.child_run_ids       AS child_run_ids,
+  r.case_count          AS case_count,
+  r.publish_state       AS publish_state,
+  r.published_count     AS published_count,
+  r.failure_reason      AS failure_reason,
+  r.triggered_at        AS triggered_at,
+  r.completed_at        AS completed_at,
+  r.atlas_vt_recorded   AS atlas_vt_recorded,
+  r.atlas_val_recorded  AS atlas_val_recorded
+"""
+
+# -- Sweeper: find stuck runs older than $cutoff_at --------------------------
+
+FIND_STALE_VALIDATION_RUNS = """
+MATCH (r:ExtractionValidationRun)
+WHERE r.status IN ['queued','running']
+  AND r.completed_at IS NULL
+  AND r.triggered_at < $cutoff_at
+RETURN
+  r.run_id              AS run_id,
+  r.triggered_at        AS triggered_at,
+  r.case_ids            AS case_ids,
+  r.child_run_ids       AS child_run_ids,
+  r.case_count          AS case_count,
+  r.publish_state       AS publish_state,
+  r.published_count     AS published_count
+ORDER BY r.triggered_at
+LIMIT 50
 """
 
 LATEST_COMPLETED_RUN = """

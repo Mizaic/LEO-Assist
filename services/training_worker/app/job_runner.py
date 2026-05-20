@@ -753,6 +753,11 @@ def _phase_register(
                 "offline_f1": metrics.get("f1"),
                 "offline_precision": metrics.get("precision"),
                 "offline_recall": metrics.get("recall"),
+                "raw_offline_f1": metrics.get("raw_f1"),
+                "raw_offline_precision": metrics.get("raw_precision"),
+                "raw_offline_recall": metrics.get("raw_recall"),
+                "operating_threshold_source": metrics.get("operating_threshold_source"),
+                "operating_thresholds": metrics.get("operating_thresholds", {}),
                 "per_label_metrics": metrics.get("per_label", {}),
                 "dev_doc_count": metrics.get("dev_doc_count", 0),
                 # Gate thresholds recorded at time of validation

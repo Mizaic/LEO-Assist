@@ -187,9 +187,9 @@ PIPELINE_CONFIG = {
     "tier": os.getenv("PIPELINE_MODEL_TIER", "small"),
     "extractor_backend": os.getenv("CODING_EXTRACTOR_BACKEND", "llm"),
     "strict": os.getenv("CODING_EXTRACTOR_STRICT", "false").lower() == "true",
-    # consensus_mode: run two cheap models in parallel; only use big model if they disagree.
-    # Recommended for accuracy. Defaults to True.
-    "consensus_mode": os.getenv("PIPELINE_CONSENSUS_MODE", "true").lower() == "true",
+    # consensus_mode: dual-model judge (AWS + Azure small, arbitrator on disagree).
+    # Opt-in only; single Haiku judge is the production default.
+    "consensus_mode": os.getenv("PIPELINE_CONSENSUS_MODE", "false").lower() == "true",
 }
 
 

@@ -26,8 +26,8 @@ All 9 layers live in `libs/pipeline/post_processing.py`.
 | 2 -- Lab-Value Guard | `libs/ner/lab_value_guard.py` |
 | 3 -- Scope Guard | `libs/ner/scope_guard.py` |
 | 4 -- Observable Normalisation | `libs/ner/observable_post_processor.py` |
-| 5 -- Entity-Type Normalisation | `libs/pipeline/post_processing.py` (`normalise_entity_types`) |
-| 6 -- Value-Unit Linking | `libs/pipeline/post_processing.py` (`link_observable_value_units`) |
+| 5 -- Value-Unit Linking | `libs/pipeline/post_processing.py` (`link_observable_value_units`) |
+| 6 -- Entity-Type Normalisation | `libs/pipeline/post_processing.py` (`normalise_entity_types`) |
 | 7 -- ConText Assertion Detection | `libs/ner/context_engine.py` |
 | 8 -- Situation Lookup Normalisation | `libs/ner/context_detector.py` |
 | 9 -- Disorder Gate (optional) | `libs/llm_client/disorder_verifier.py` |

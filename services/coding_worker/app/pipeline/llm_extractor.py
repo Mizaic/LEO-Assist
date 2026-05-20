@@ -6,6 +6,7 @@ Atlas trace:
   DI: DI-48AD06E5, DI-88C8BBCD, DI-A0579B64, DI-A0C90595, DI-F298AE65
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-0289F3A5")
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -204,6 +205,21 @@ _VALID_ASSERTIONS = {
 }
 
 _DEFAULT_CONFIDENCE = 0.75
+_EXTRACTION_MAX_TOKENS_CAP = 8192
+_EXTRACTION_MAX_TOKENS_FLOOR = 2048
+
+
+def _extraction_max_tokens(sentence_count: int) -> int:
+    """Scale output budget with batch size to reduce JSON truncation."""
+    import os
+
+    raw = os.getenv("EXTRACTION_MAX_TOKENS", "").strip()
+    if raw.isdigit():
+        return max(
+            _EXTRACTION_MAX_TOKENS_FLOOR, min(int(raw), _EXTRACTION_MAX_TOKENS_CAP)
+        )
+    scaled = 200 + 80 * max(sentence_count, 1)
+    return max(_EXTRACTION_MAX_TOKENS_FLOOR, min(scaled, _EXTRACTION_MAX_TOKENS_CAP))
 
 
 def _parse_assertion(raw: Any) -> str:
@@ -347,19 +363,26 @@ class LLMExtractor:
         if not self.enabled or not sentences or not self._system_prompt:
             return []
         user_msg = self._build_user_prompt(encounter_text, sentences)
+        max_tokens = _extraction_max_tokens(len(sentences))
         try:
             resp = self.client.converse(
                 system=self._system_prompt,
                 messages=[{"role": "user", "content": user_msg}],
-                max_tokens=2048,
+                max_tokens=max_tokens,
                 temperature=0.0,
                 agent_task="coding_worker_llm_extractor",
             )
-            payload = self._parse_json(resp.text)
+            payload, parse_source = self._parse_json_with_source(resp.text)
         except Exception as exc:
             logger.error("LLMExtractor.extract_batch failed: %s", exc)
             return []
         terms = self._parse_terms(payload, sentences, encounter_text)
+        if parse_source == "json_salvaged" and len(terms) < max(3, len(sentences) // 4):
+            logger.warning(
+                "LLM extraction JSON salvaged with low term count (%d terms, %d sentences)",
+                len(terms),
+                len(sentences),
+            )
         return [
             extracted_term_to_item(
                 t,
@@ -371,12 +394,16 @@ class LLMExtractor:
         ]
 
     @staticmethod
-    def _parse_json(raw: str) -> dict[str, Any]:
+    def _parse_json_with_source(raw: str) -> tuple[dict[str, Any], str]:
         from libs.pipeline.extraction_response_parse import (
             parse_extraction_terms_response,
         )
 
-        data, _src = parse_extraction_terms_response(raw)
+        return parse_extraction_terms_response(raw)
+
+    @staticmethod
+    def _parse_json(raw: str) -> dict[str, Any]:
+        data, _src = LLMExtractor._parse_json_with_source(raw)
         return data
 
     @staticmethod
@@ -426,11 +453,7 @@ class LLMExtractor:
             text = str(term.get("text") or "").strip()
             if not text:
                 continue
-            # DI-LEO-AI-103: LLM extractor MUST NOT assign assertion. All
-            # entities are initialised to "present" so that ConText and the
-            # post-processing scope guards are the sole authority for
-            # non-present assertions.
-            assertion = "present"
+            assertion = _parse_assertion(term.get("assertion"))
             dedup_key = (text.lower(), str(term.get("semantic_tag") or ""), assertion)
             if dedup_key in seen:
                 continue

@@ -74,9 +74,13 @@ async def _run_actions(
     actions: list[ActionDefinition],
     initial_state: dict[str, Any],
 ) -> dict[str, Any]:
+    from libs.workflow.model_defaults import apply_single_model_defaults
+
     pipeline_state = dict(initial_state)
     pipeline_state.setdefault("dry_run", True)
     pipeline_state.setdefault("errors", [])
+    pipeline_state.setdefault("capture_validation_output", True)
+    apply_single_model_defaults(pipeline_state)
     steps: list[dict[str, Any]] = []
 
     for action in sorted(actions, key=lambda item: item.sequence):

@@ -29,10 +29,13 @@ Dual-model consensus (opt-in)
 Tier selection
 --------------
 ``CONSENSUS_AWS_TIER`` -- AWS tier for single-model mode and the dual-model
-    arbitrator (default ``big``).
+    arbitrator (default ``small`` / Haiku). When unset, falls back to
+    ``PIPELINE_MODEL_TIER`` (also ``small`` in container defaults).
 ``CONSENSUS_VERIFIER_TIER`` -- tier used when the caller passes the verifier
     override (``tier=_consensus_verifier_tier()``). Falls back to
     ``CONSENSUS_AWS_TIER`` if unset.
+``PIPELINE_CONSENSUS_MODE`` -- when ``true``, enables dual-model mode (same as
+    ``CONSENSUS_DUAL_MODEL=true``). Defaults to ``false``.
 
 ``ConsensusResult`` fields are kept for API compatibility -- in single-model
 mode ``azure_verdict``, ``arbitrator_verdict``, and ``arbitrator_model_id``
@@ -54,9 +57,16 @@ logger = logging.getLogger(__name__)
 _VALID_CONSENSUS_TIERS = frozenset({"small", "big", "max"})
 
 
+def _pipeline_model_tier() -> str:
+    raw = (os.getenv("PIPELINE_MODEL_TIER") or "small").strip().lower()
+    return raw if raw in _VALID_CONSENSUS_TIERS else "small"
+
+
 def _consensus_aws_tier() -> str:
-    raw = (os.getenv("CONSENSUS_AWS_TIER") or "big").strip().lower()
-    return raw if raw in _VALID_CONSENSUS_TIERS else "big"
+    raw = (os.getenv("CONSENSUS_AWS_TIER") or "").strip().lower()
+    if raw in _VALID_CONSENSUS_TIERS:
+        return raw
+    return _pipeline_model_tier()
 
 
 def _consensus_verifier_tier() -> str:
@@ -66,13 +76,23 @@ def _consensus_verifier_tier() -> str:
     return _consensus_aws_tier()
 
 
-def _dual_model_enabled() -> bool:
-    return (os.getenv("CONSENSUS_DUAL_MODEL") or "false").strip().lower() in {
+def _env_flag(name: str, default: str = "false") -> bool:
+    return (os.getenv(name) or default).strip().lower() in {
         "1",
         "true",
         "yes",
         "on",
     }
+
+
+def _dual_model_enabled() -> bool:
+    """Dual-model (AWS + Azure small, big arbitrator) is opt-in only."""
+    explicit = (os.getenv("CONSENSUS_DUAL_MODEL") or "").strip().lower()
+    if explicit in {"0", "false", "no", "off"}:
+        return False
+    if explicit in {"1", "true", "yes", "on"}:
+        return True
+    return _env_flag("PIPELINE_CONSENSUS_MODE", "false")
 
 
 @dataclass
@@ -324,10 +344,9 @@ def run_consensus(
 ) -> ConsensusResult:
     """Run the LLM judge in single-model or dual-model mode.
 
-    Dual-model mode is opt-in via ``CONSENSUS_DUAL_MODEL=true``. The
-    arbitrator always uses ``CONSENSUS_AWS_TIER`` (default ``big``) regardless
-    of the ``tier`` override, so a Sonnet arbitrator resolves Haiku + GPT-5
-    mini disagreements.
+    Dual-model mode is opt-in via ``CONSENSUS_DUAL_MODEL=true`` or
+    ``PIPELINE_CONSENSUS_MODE=true``. The arbitrator uses ``CONSENSUS_AWS_TIER``
+    (default ``small`` / Haiku, aligned with ``PIPELINE_MODEL_TIER``).
 
     Args:
         system_prompt: System prompt for the judge.

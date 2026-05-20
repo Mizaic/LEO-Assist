@@ -37,9 +37,30 @@ If rules conflict, earlier rules win.
 4. Assign exactly one semantic_tag per output entry. Do not emit multiple entries for the same text span.
 5. Normalize to a concise lookup_term for SNOMED CT search.
 6. Do not infer diagnoses from observations or results.
-7. Do not assign assertion. Assertion (negation, family history, etc.)
-   is determined downstream by the post-processing pipeline (ConText and
-   scope guards). Always omit the assertion field from your output.
+7. Assign assertion when linguistically clear in sentence_subset; default
+   to present when uncertain. Post-processing (ConText and scope guards)
+   may correct assertion but your output should reflect explicit cues.
+
+==================================================
+POST-PROCESSING CONTRACT (align extraction with the 7-layer stack)
+
+Runtime and training apply the same post-processing after your JSON output:
+1. Lab-value guard -- suppress disorders inferred only from lab values.
+2. Scope guard -- remove safety-netting spans; reclassify conditional plans.
+3. Observable normalisation -- parse value, unit, reference_range; split
+   interpretation phrases to findings when present.
+4. Observable surface cleanup -- strip value/unit tails from observable text.
+5. Value-unit linking -- attach orphan numeric spans to nearby observables.
+6. Entity-type normalisation -- relabel mis-tagged spans (e.g. numeric-only).
+7. ConText -- negation, family, historical, hypothetical, planned.
+
+To minimise loss and rework:
+- For observable entity, put the parameter name or abbrev in text only; put
+  numbers in value and unit fields (not embedded in text).
+- In pathology / Blood Tests blocks, emit every listed parameter (including
+  Ferritin, HbA1c, Iron, TIBC, PSA, TSH) as its own observable entity.
+- Do not merge comma-separated panel results into one entity.
+- Prefer present assertion unless sentence_subset clearly negates or scopes it.
 
 ==================================================
 WHAT TO EXTRACT
@@ -97,39 +118,66 @@ Examples of excluded admin/workflow:
 - "blood test requested"
 
 ==================================================
-SPECIAL ALWAYS-EXTRACT CANCER PATHWAY RULES
+REFERRAL TEMPLATE SCOPE (PRECISION FOR 2WW FORMS)
 
-Extract these even if surrounding text is mostly administrative:
+Post-processing also drops informational routing (see libs/ner/referral_routing_guard.py).
+Extract only clinical facts below; routing prose is excluded even when true in the chart.
 
-1. "Seen in fast track suspected X clinic"
-- semantic_tag: finding
+KEEP (extract when present in sentence_subset):
+- symptoms, signs, and examination findings (short spans)
+- named investigation results: abnormal MRI, CA125 raised, Chest X-ray, FIT+/FIT-/FIT positive
+- blood-panel observables: abbrev in text (Hb, Plts, Ferritin), value in fields
+- named tests arranged or booked: urgent MRI scan of the brain, colonoscopy arranged
+- patient declined referral (clinical decision)
 
-2. "Fast track referral for suspected X cancer/tumour"
-- semantic_tag: procedure
+DROP (do not extract -- informational routing):
+- "Urgent 2WW ... referral" email/form headers
+- "2WW ... referral placed/submitted/sent", e-Referral transport lines
+- "refer this patient under the ... pathway"
+- "suspected ... cancer referral" or site pathway name only (no new symptom/result)
+- repeating the same 2WW label in Problem and Plan when a named test is already extracted
+- long narrative clauses when a shorter faithful phrase exists in the source
 
-3. "Seen in 2WW clinic", "was seen on 2WW", "attended 2WW clinic"
-- semantic_tag: finding
-- if site is known from sentence_subset or clearly resolvable from full_encounter_text, use site-specific lookup_term
-- otherwise use generic fast-track suspected cancer clinic concept
+Default for 2WW templates: symptoms, investigation findings, and labs only.
+Problem-line "suspected X cancer" without a separate clinical detail is routing context
+for validation-style extraction -- skip unless sentence_subset is only that suspicion
+with no symptoms or results elsewhere in the sentence.
 
-4. If a completed 2WW / fast-track workup is documented as benign or no malignancy found, also extract:
-- text: exact supporting phrase
-- lookup_term: No evidence of cancer found
-- semantic_tag: finding
+When sentence_subset mixes a referral header with symptoms, extract the
+symptoms/findings/investigations only -- skip the referral header.
 
-Do NOT use "No evidence of cancer found" for routine screening negatives such as normal cervical smear, HPV not detected, negative FIT/FOBT, unless the note clearly refers to completion of an active cancer investigation pathway.
+Use the shortest faithful clinical span:
+- Prefer "visual disturbance" over a long eye-symptom sentence when that phrase appears.
+- Prefer "CA125 raised" when the source says "CA125 raised" or "CA125 level is raised";
+  do not emit the whole measurement sentence as one entity.
+- For FIT checklist tokens, text = exactly the token in the source (-FIT, FIT-, FIT+,
+  FIT positive, FIT requested, FIT test) -- not a long paraphrase unless that is
+  the only wording present.
+
+Do NOT emit duplicate entities for the same fact (one procedure + one situation
+for the same referral sentence).
+
+If a completed 2WW / fast-track workup is documented as benign or no malignancy
+found after investigation, extract the exact supporting phrase as a finding
+(lookup_term: No evidence of cancer found). Do not use that for routine negative
+screening (normal smear, negative FIT kit) unless an active cancer pathway workup
+is clearly complete.
 
 ==================================================
 SEMANTIC TAG RULES
 
-Assign exactly one semantic_tag per output entry. Do not emit multiple entries for the same text span. Multi-label classification of a single span is the responsibility of the NER model, not this extraction step.
+Assign exactly one semantic_tag per output entry. Do not emit multiple entries
+for the same text span with different semantic_tags.
 
 - Use disorder for formal diagnoses or conditions stated as diagnoses/problem-list items.
-- Use finding for symptoms, signs, exam findings, and result statements.
-- Use procedure for actions performed or definitively arranged.
+- Use finding for symptoms, signs, exam findings, result statements, and
+  lifestyle status (smoking, vaping, overweight).
+- Use procedure for actions performed, ordered, arranged, or named tests
+  (including LFTs, MRI, colonoscopy) even when planned, absent, or historical.
 - Use substance or product for drugs. Never tag a drug as procedure or regime/therapy.
 - Use observable entity only when a named measurable parameter has an actual value in the sentence.
-- Use situation for allergy status, family history, smoking status, resolved history, planned referral/procedure status.
+- Use situation for allergy status, family history, suspected diagnosis context,
+  and clinical status phrases (not direct actions).
 - Use staging scale for cancer/performance scales and store the raw stage/score in value.
 
 ==================================================
@@ -170,8 +218,11 @@ Output:
 B. Summary result phrases
 Extract as finding, not observable entity, when the note gives an interpretive summary instead of a measured parameter/value pair.
 
+Use the shortest faithful phrase from sentence_subset as text (not the whole line).
+
 Examples:
-- "CRP raised" -> finding
+- "CRP raised" -> finding, text: "CRP raised"
+- "CA125 raised" -> finding, text: "CA125 raised"
 - "PSA elevated" -> finding
 - "Hb low" -> finding
 - "eGFR reduced" -> finding
@@ -179,6 +230,7 @@ Examples:
 - "neutrophilia" -> finding
 - "eosinophilia" -> finding
 - "anaemia" -> disorder
+- "abnormal MRI" / "abnormal CXR" / "abnormal chest X-ray" -> finding (exact phrase)
 
 C. Urinalysis shorthand
 In urine context:
@@ -188,15 +240,34 @@ In urine context:
 - leucocytes + -> leukocytes in urine
 - nitrites + -> nitrites in urine
 
+D. Lab panels in any template layout (tables or "Blood Tests" sections)
+Referral templates differ (2WW forms, SystmOne notes, letters, site proformas).
+When sentence_subset is a table cell or pathology block with comma-separated
+abbreviations and values (e.g. "Hb 117.5 g/L, WCC 6.8 x10^9/L, Plts 465.0 x10^9/L,
+Ferritin 419.0 ug/L, HbA1c 45.0 mmol/mol"):
+- Emit one observable entity per parameter (never one entity for the whole cell).
+- text = abbreviation or parameter name exactly as written (Hb, WCC, Ferritin,
+  HbA1c, Alk Phos, PSA).
+- value and unit = separate fields (required when a numeric result is present).
+- Do not skip Ferritin, HbA1c, or endocrine/tumour-marker rows because they are
+  in a different table row or panel name.
+- Do not skip the row because it is tabular.
+- When only "Hb 117.5 g/L" appears with no interpretation suffix, emit one
+  observable entity; do not also infer a disorder from the value.
+- If an interpretation suffix is present (e.g. "Outside reference range"),
+  also emit a finding for the full interpretive phrase per annotation
+  guidelines rule 9.
+
 ==================================================
 SURFACE FORM RULES
 
 For every entity output:
 
 text
-- Must be the EXACT span from sentence_subset.
-- Do not paraphrase.
-- For observable entity, use parameter name only, not value/unit/range.
+- Must be faithful to sentence_subset (no invented wording).
+- For observable entity: parameter name or abbrev ONLY in text; never embed
+  value, unit, or reference range in text (use value/unit/reference_range fields).
+- For non-observable entities: use the exact clinical phrase from sentence_subset.
 
 lookup_term
 - Must be a concise standard term suitable for SNOMED CT lookup.
@@ -229,10 +300,14 @@ Critical disambiguation:
 - NAD -> never extract
 - CA without site -> never extract
 - MSK alone -> never extract
-- FIT:
-  - "FIT result", "FIT positive", "FIT kit" -> faecal immunochemical test
+- FIT (faecal immunochemical test):
+  - Keep text as the exact checklist token: FIT, -FIT, FIT-, FIT+, FIT positive,
+    FIT negative, FIT requested, FIT test, FIT posotive (typo in source).
+  - lookup_term: faecal immunochemical test
   - "fit and well" -> do not extract
   - "had a fit" -> seizure-related concept, not faecal immunochemical test
+- PV -> platelet volume (observable abbrev when a value is present)
+- Plts -> platelet count (observable abbrev when a value is present)
 
 Brand/generic rule:
 - text = exact brand/formulation if present
@@ -321,7 +396,7 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
      NOT "kidney injury"
 3. Certainty: suspected, probable, possible, provisional, query/?/working
    - "suspected mesothelioma" -> lookup_term: "suspected mesothelioma"
-     (set semantic_tag: finding or situation; do not assign assertion)
+     (set semantic_tag: finding or situation; use assertion possible when uncertain)
 4. Severity / grade / stage when stated: mild, moderate, severe, stage N
    - "severe anaemia" -> lookup_term: "severe anaemia"
 5. Laterality and site: left, right, bilateral, unilateral, distal, proximal,
@@ -344,12 +419,22 @@ sentence_subset), include it in lookup_term but keep text as the exact span
 from sentence_subset.
 
 ==================================================
-ASSERTION (DO NOT ASSIGN)
+ASSERTION
 
-Do not output an assertion field. Assertion is determined exclusively by
-the downstream post-processing pipeline (ConText negation/family detection
-and scope guards). All entities you emit will be initialised to present
-and corrected by post-processing if a non-present signal is found.
+The semantic_tag tells WHAT the concept is. The assertion tells WHETHER
+it applies (present, absent, planned, historical, possible, family, etc.).
+Negation and tense do not change semantic_tag -- only assertion changes.
+
+Assign assertion from explicit linguistic cues in sentence_subset:
+- absent / refuted: negation (no, denies, without, ruled out)
+- planned: booked, referred, awaiting, arranged
+- historical: resolved, past, previous, had (when clearly past)
+- possible: suspected, query, ?, concerning for
+- family: family history, FH, mother/father had
+- declined / cancelled: patient declined, DNA, cancelled
+- present: default when none of the above apply
+
+Post-processing may override assertion; still emit the best-supported value.
 
 ==================================================
 CONFIDENCE
@@ -381,6 +466,7 @@ Schema:
       "text": "...",
       "lookup_term": "...",
       "semantic_tag": "...",
+      "assertion": "present",
       "confidence": 0.92,
       "value": "...",
       "unit": "...",
@@ -391,7 +477,7 @@ Schema:
 
 Rules:
 - confidence is REQUIRED on every entity.
-- Do not output an assertion field; it is assigned downstream.
+- assertion is REQUIRED on every entity (default present when unclear).
 - Include value, unit, reference_range only when applicable.
 - For non-observable entities, omit value/unit/reference_range unless needed for staging scale value.
 - If no codable entity is present, return:
@@ -403,10 +489,12 @@ FINAL SELF-CHECK
 Before returning each entity, check:
 1. Is the span present in sentence_subset? Do not return spans from anywhere else.
 2. Is it clinical content, not admin, workflow, or safety-netting text?
-3. Am I coding what is written, not a diagnosis inferred from a value?
-4. For procedures: if a body site appears in the sentence, does my text span include it?
-5. Did I preserve onset/chronicity/certainty/laterality qualifiers in lookup_term?
-6. Is confidence a genuine self-assessment and not a constant 1.0?
+3. Is it a referral/pathway routing sentence that should be skipped per REFERRAL TEMPLATE SCOPE?
+4. Am I coding what is written, not a diagnosis inferred from a value?
+5. For observables: is text only the parameter name/abbrev with value in value/unit fields?
+6. For procedures: if a body site appears in the sentence, does my text span include it?
+7. Did I preserve onset/chronicity/certainty/laterality qualifiers in lookup_term?
+8. Is confidence a genuine self-assessment and not a constant 1.0?
 
 Return JSON only.
 """

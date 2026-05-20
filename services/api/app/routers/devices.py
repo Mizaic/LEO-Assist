@@ -111,7 +111,7 @@ def get_pipeline_config(
                 "extractor_backend": os.getenv("CODING_EXTRACTOR_BACKEND", "llm"),
                 "strict": os.getenv("CODING_EXTRACTOR_STRICT", "false").lower()
                 == "true",
-                "consensus_mode": os.getenv("PIPELINE_CONSENSUS_MODE", "true").lower()
+                "consensus_mode": os.getenv("PIPELINE_CONSENSUS_MODE", "false").lower()
                 == "true",
                 "source": "env",
             }
@@ -187,9 +187,7 @@ class PipelineConfigRequest(BaseModel):
     tier: str  # "small" | "big" | "max"
     extractor_backend: str  # "llm" | "model" | "auto"
     strict: bool = False
-    consensus_mode: bool = (
-        True  # dual-model parallel consensus with big-model arbitration
-    )
+    consensus_mode: bool = False  # opt-in dual-model judge; default is Haiku only
 
 
 @router.put("/pipeline-config")

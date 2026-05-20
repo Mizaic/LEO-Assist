@@ -452,6 +452,101 @@ def _score_with_calibration(
     return round(P, 4), round(R, 4), round(F1, 4), per_label
 
 
+def _score_docs_with_calibration(nlp, gold_docs, calibration_payload: dict) -> dict:
+    """Score predictions after applying inference-time calibration thresholds."""
+    from libs.training_ext.inference_calibration import (
+        InferenceCalibration,
+        filter_and_rescore,
+    )
+
+    calibration = InferenceCalibration(
+        default_threshold=float(calibration_payload.get("default_threshold", 0.5)),
+        per_label={
+            str(label).upper(): meta
+            for label, meta in (calibration_payload.get("per_label") or {}).items()
+        },
+        is_verified=True,
+    )
+    counts: dict[str, dict[str, int]] = {}
+    pred_docs = list(nlp.pipe([doc.text for doc in gold_docs]))
+    for pred_doc, gold_doc in zip(pred_docs, gold_docs):
+        gold_keys = _span_keys(gold_doc.spans.get("sc", []))
+        pred_spans = pred_doc.spans.get("sc") if hasattr(pred_doc.spans, "get") else None
+        pred_keys = {
+            (span.start_char, span.end_char, span.label)
+            for span in filter_and_rescore(pred_spans or [], calibration)
+        }
+        for key in gold_keys | pred_keys:
+            label = key[2]
+            row = counts.setdefault(label, {"tp": 0, "fp": 0, "fn": 0, "support": 0})
+            if key in gold_keys:
+                row["support"] += 1
+            if key in gold_keys and key in pred_keys:
+                row["tp"] += 1
+            elif key in pred_keys:
+                row["fp"] += 1
+            else:
+                row["fn"] += 1
+    return _metrics_from_counts(counts)
+
+
+def _span_keys(spans) -> set[tuple[int, int, str]]:
+    return {
+        (int(span.start_char), int(span.end_char), str(span.label_).upper())
+        for span in spans
+    }
+
+
+def _metrics_from_counts(counts: dict[str, dict[str, int]]) -> dict:
+    per_label: dict[str, dict] = {}
+    total_tp = total_fp = total_fn = 0
+    for label, row in sorted(counts.items()):
+        tp, fp, fn = row["tp"], row["fp"], row["fn"]
+        total_tp += tp
+        total_fp += fp
+        total_fn += fn
+        p, r, f = _prf(tp, fp, fn)
+        per_label[label] = {
+            "precision": p,
+            "recall": r,
+            "f1": f,
+            "support": row["support"],
+            "true_positive": tp,
+            "false_positive": fp,
+            "false_negative": fn,
+        }
+    p, r, f = _prf(total_tp, total_fp, total_fn)
+    return {"precision": p, "recall": r, "f1": f, "per_label": per_label}
+
+
+def _prf(tp: int, fp: int, fn: int) -> tuple[float, float, float]:
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+    return round(precision, 4), round(recall, 4), round(f1, 4)
+
+
+def _apply_primary_gate_results(result: dict, per_label: dict[str, dict]) -> None:
+    label_coverage = evaluate_label_coverage(per_label)
+    label_gate_skips: list[str] = []
+    label_failures = _check_label_gates(
+        per_label,
+        _load_label_min_f1(),
+        min_support=_MIN_LABEL_GATE_SUPPORT,
+        skipped=label_gate_skips,
+    )
+    result["macro_f1"] = label_coverage["macro_f1"]
+    result["label_coverage"] = label_coverage
+    result["label_gate_failures"] = label_failures
+    result["label_gate_skips"] = label_gate_skips
+    result["passed_gates"] = (
+        result["precision"] >= _MIN_PRECISION
+        and result["recall"] >= _MIN_RECALL
+        and not label_failures
+        and not label_coverage["failures"]
+    )
+
+
 def evaluate_model(
     model_dir: Path,
     dev_path: Path,
@@ -558,29 +653,39 @@ def evaluate_model(
     }
 
     # --- Optional pass: calibrated evaluation ----------------------------
-    # If a calibration.json is present in the model dir, apply per-label
-    # thresholds and record the calibrated metrics as a diagnostic. Gates
-    # continue to run against the raw (non-calibrated) metrics so the
-    # calibration payload is transparent rather than load-bearing until the
-    # inference service knows how to honour it.
+    # Inference honours calibration.json, so calibration is the operating
+    # threshold set for model acceptance. Raw 0.5-threshold scores remain in
+    # the result as diagnostics.
     calibration_payload = _apply_calibration_thresholds(nlp, model_dir, _log)
     if calibration_payload is not None:
         _log("Running calibrated evaluation pass…")
         try:
-            cal_scores = _score_examples(nlp, gold_docs)
-            thresholds = {
-                label: float(meta.get("threshold", 0.5))
-                for label, meta in (calibration_payload.get("per_label") or {}).items()
-            }
-            cal_p, cal_r, cal_f, cal_per_label = _score_with_calibration(
-                cal_scores, thresholds
-            )
+            calibrated = _score_docs_with_calibration(nlp, gold_docs, calibration_payload)
+            cal_p = calibrated["precision"]
+            cal_r = calibrated["recall"]
+            cal_f = calibrated["f1"]
+            cal_per_label = calibrated["per_label"]
+            result["raw_precision"] = result["precision"]
+            result["raw_recall"] = result["recall"]
+            result["raw_f1"] = result["f1"]
+            result["raw_macro_f1"] = result["macro_f1"]
+            result["raw_per_label"] = result["per_label"]
             result["calibrated_precision"] = cal_p
             result["calibrated_recall"] = cal_r
             result["calibrated_f1"] = cal_f
             result["calibrated_per_label"] = cal_per_label
+            result["precision"] = cal_p
+            result["recall"] = cal_r
+            result["f1"] = cal_f
+            result["per_label"] = cal_per_label
+            result["operating_thresholds"] = {
+                label: float(meta.get("threshold", 0.5))
+                for label, meta in (calibration_payload.get("per_label") or {}).items()
+            }
+            result["operating_threshold_source"] = "calibration.json"
+            _apply_primary_gate_results(result, cal_per_label)
             _log(
-                f"Calibrated pass: P={cal_p:.3f}  R={cal_r:.3f}  F1={cal_f:.3f}"
+                f"Calibrated operating pass: P={cal_p:.3f}  R={cal_r:.3f}  F1={cal_f:.3f}"
             )
         except Exception as exc:
             _log(f"Calibrated evaluation failed ({exc}) — skipping diagnostic")

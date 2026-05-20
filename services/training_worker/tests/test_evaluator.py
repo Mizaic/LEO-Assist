@@ -173,6 +173,69 @@ class TestGoldenGate(unittest.TestCase):
         self.assertEqual(result["f1"], 0.8)
         self.assertEqual(result["per_label"]["problem"]["precision"], 0.0)
 
+    def test_calibrated_metrics_become_primary_operating_metrics(self):
+        from app import evaluator
+
+        dev_docs = [_make_mock_doc() for _ in range(2)]
+        raw_scores = {
+            "spans_sc_p": 1.0,
+            "spans_sc_r": 0.1,
+            "spans_sc_f": 0.18,
+            "spans_sc_per_type": {
+                "PROCEDURE": {"p": 1.0, "r": 0.1, "f": 0.18, "support": 10},
+            },
+        }
+        calibrated = {
+            "precision": 0.5,
+            "recall": 0.4,
+            "f1": 0.4444,
+            "per_label": {
+                "PROCEDURE": {
+                    "precision": 0.5,
+                    "recall": 0.4,
+                    "f1": 0.4444,
+                    "support": 10,
+                    "true_positive": 4,
+                    "false_positive": 4,
+                    "false_negative": 6,
+                }
+            },
+        }
+        with (
+            patch.object(evaluator, "_register_training_architectures"),
+            patch("spacy.load", return_value=MagicMock()),
+            patch("spacy.tokens.DocBin") as mock_docbin_cls,
+            patch.object(evaluator, "_score_examples", return_value=raw_scores),
+            patch.object(evaluator, "_fetch_golden_set_docs", return_value=[]),
+            patch.object(
+                evaluator,
+                "_apply_calibration_thresholds",
+                return_value={
+                    "default_threshold": 0.5,
+                    "per_label": {"PROCEDURE": {"threshold": 0.1}},
+                },
+            ),
+            patch.object(
+                evaluator,
+                "_score_docs_with_calibration",
+                return_value=calibrated,
+            ),
+        ):
+            instance = MagicMock()
+            instance.get_docs.return_value = iter(dev_docs)
+            mock_docbin_cls.return_value = instance
+            instance.from_disk.return_value = instance
+            result = evaluator.evaluate_model(
+                Path("/tmp/model-best"), Path("/tmp/dev.spacy")
+            )
+
+        self.assertEqual(result["precision"], 0.5)
+        self.assertEqual(result["recall"], 0.4)
+        self.assertEqual(result["f1"], 0.4444)
+        self.assertEqual(result["raw_precision"], 1.0)
+        self.assertEqual(result["raw_recall"], 0.1)
+        self.assertEqual(result["operating_threshold_source"], "calibration.json")
+
 
 class TestCheckLabelGates(unittest.TestCase):
     """Unit tests for _check_label_gates() and _load_label_min_f1().
@@ -332,6 +395,9 @@ class TestCheckLabelGates(unittest.TestCase):
             "ents_r": 0.88,
             "ents_f": 0.90,
             "ents_per_type": {
+                "FINDING": {"p": 0.95, "r": 0.95, "f": 0.95, "support": 30},
+                "OBSERVABLE": {"p": 0.95, "r": 0.95, "f": 0.95, "support": 30},
+                "PROCEDURE": {"p": 0.95, "r": 0.95, "f": 0.95, "support": 30},
                 "RECORD_ARTIFACT": {"p": 0.0, "r": 0.0, "f": 0.0, "support": 3},
             },
         }
@@ -342,6 +408,7 @@ class TestCheckLabelGates(unittest.TestCase):
             patch("spacy.tokens.DocBin") as mock_docbin_cls,
             patch.object(evaluator, "_score_examples", return_value=dev_scores),
             patch.object(evaluator, "_fetch_golden_set_docs", return_value=[]),
+            patch.object(evaluator, "_apply_calibration_thresholds", return_value=None),
             patch.object(evaluator, "_MIN_LABEL_GATE_SUPPORT", 25),
         ):
             instance = MagicMock()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from libs.pipeline_graph.subgraphs.terminology import _merge_resolution, _resolve_terms
-from libs.terminology.client import ResolvedTerm
+from libs.terminology.client import ResolvedTerm, TerminologyClient
 
 
 def test_merge_resolution_blocks_over_specific_spinal_operation() -> None:
@@ -54,8 +54,6 @@ def test_multi_classification_triple_each_gets_own_tag_hint() -> None:
     carries the correct tag for each key so the server applies the right
     semantic-tag filter per term.
     """
-    from libs.terminology.client import TerminologyClient
-
     entities = [
         {"text": "Haemoglobin", "label": "procedure", "semantic_tag": "procedure"},
         {
@@ -134,3 +132,70 @@ def test_merge_resolution_blocks_nerve_compression_to_malignant_neoplasm() -> No
     assert merged["terminology_unresolved"] is True
     assert merged["concept_id"] is None
     assert merged["term"] is None
+
+
+def test_merge_resolution_attaches_snomed_when_safe_match() -> None:
+    entity = {"text": "Type 2 diabetes mellitus", "label": "disorder"}
+    candidates = [
+        ResolvedTerm(
+            text="Type 2 diabetes mellitus",
+            concept_id="44054006",
+            term="Diabetes mellitus type 2",
+            semantic_tag="disorder",
+            score=0.92,
+            read_code="C10..",
+        )
+    ]
+
+    merged = _merge_resolution(entity, candidates, min_score=0.55)
+
+    assert merged["terminology_unresolved"] is False
+    assert merged["concept_id"] == "44054006"
+    assert merged["term"] == "Diabetes mellitus type 2"
+    assert merged["read_code"] == "C10.."
+
+
+def test_merge_resolution_rejects_below_threshold() -> None:
+    entity = {"text": "fatigue", "label": "finding"}
+    candidates = [
+        ResolvedTerm(
+            text="fatigue",
+            concept_id="84229001",
+            term="Fatigue",
+            semantic_tag="finding",
+            score=0.40,
+        )
+    ]
+
+    merged = _merge_resolution(entity, candidates, min_score=0.55)
+
+    assert merged["terminology_unresolved"] is True
+    assert merged["concept_id"] is None
+
+
+def test_resolve_terms_logs_terminology_low_confidence_for_unresolved() -> None:
+    entities = [{"text": "fatigue", "label": "finding"}]
+
+    def _fake_batch(self, terms, expected_tags, runtime):
+        return {
+            "fatigue": [
+                ResolvedTerm(
+                    text="fatigue",
+                    concept_id="84229001",
+                    term="Fatigue",
+                    semantic_tag="finding",
+                    score=0.40,
+                )
+            ]
+        }
+
+    with patch.object(TerminologyClient, "_resolve_batch", _fake_batch):
+        result = _resolve_terms(
+            {"entities": entities, "expected_tags": {}, "confidence_threshold": 0.55}
+        )
+
+    assert result["resolved_entities"][0]["terminology_unresolved"] is True
+    assert any(
+        err.startswith("terminology_low_confidence:")
+        for err in result.get("errors") or []
+    )

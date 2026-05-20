@@ -35,6 +35,11 @@ logger = logging.getLogger(__name__)
 
 _ENTITY_KEY_ALIASES = {"processed_entities", "resolved_entities"}
 
+_VALIDATION_SNAPSHOT_SUBGRAPHS = frozenset(
+    {"extraction", "post_processing", "relation_linking", "extraction_check"}
+)
+_MAX_VALIDATION_SNAPSHOT_TERMS = 200
+
 HALT_SUBGRAPHS = frozenset()
 _ANALYSIS_SUBGRAPHS = frozenset(
     {"anchor_detect", "episode_build", "safety_net", "quality_check"}
@@ -130,6 +135,14 @@ class WorkflowEngine:
             "errors": [],
         }
         pipeline_state.update(event.context)
+        from libs.workflow.model_defaults import apply_single_model_defaults
+
+        apply_single_model_defaults(pipeline_state)
+        # Promote pub/sub model_mode override to requested_model_mode so per-action
+        # configs cannot clobber the caller's intent. The extraction subgraph reads
+        # requested_model_mode first via _resolve_model_mode().
+        if "model_mode" in event.context and event.context["model_mode"]:
+            pipeline_state["requested_model_mode"] = event.context["model_mode"]
 
         step_results: list[StepResult] = []
         final_status = "completed"
@@ -216,6 +229,9 @@ class WorkflowEngine:
             )
             step_result.output = effective_output
             self._merge_step_output(pipeline_state, effective_output)
+            self._record_validation_stage_snapshot(
+                pipeline_state, action.subgraph_id or ""
+            )
             persist_error = self._persist_failure(action, effective_output)
             if persist_error:
                 final_status = "error"
@@ -651,6 +667,32 @@ class WorkflowEngine:
                     )
 
         return state
+
+    @staticmethod
+    def _record_validation_stage_snapshot(
+        pipeline_state: dict[str, Any], subgraph_id: str
+    ) -> None:
+        """Capture entity texts after each validation pipeline stage."""
+        if not pipeline_state.get("capture_validation_output"):
+            return
+        if subgraph_id not in _VALIDATION_SNAPSHOT_SUBGRAPHS:
+            return
+        entities = pipeline_state.get("entities") or []
+        terms: list[str] = []
+        for entity in entities:
+            if not isinstance(entity, dict):
+                continue
+            text = str(entity.get("text") or "").strip()
+            if text:
+                terms.append(text)
+        snapshots = pipeline_state.setdefault("validation_stage_snapshots", {})
+        if not isinstance(snapshots, dict):
+            snapshots = {}
+            pipeline_state["validation_stage_snapshots"] = snapshots
+        snapshots[subgraph_id] = {
+            "entity_count": len(terms),
+            "terms": terms[:_MAX_VALIDATION_SNAPSHOT_TERMS],
+        }
 
     @staticmethod
     def _merge_step_output(
@@ -1351,6 +1393,9 @@ class WorkflowEngine:
                     ),
                 }
                 if pipeline_state.get("capture_validation_output"):
+                    stage_snapshots = pipeline_state.get("validation_stage_snapshots")
+                    if not isinstance(stage_snapshots, dict):
+                        stage_snapshots = {}
                     audit["validation_output"] = json.dumps(
                         {
                             "case_id": pipeline_state.get("case_id", ""),
@@ -1361,6 +1406,7 @@ class WorkflowEngine:
                                 and str(e.get("text") or "").strip()
                             ],
                             "errors": errors[:50],
+                            "stage_snapshots": stage_snapshots,
                         }
                     )
                 query = """

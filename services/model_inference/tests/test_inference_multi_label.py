@@ -11,14 +11,14 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 
-def _make_span(text: str, label: str, start: int, end: int):
+def _make_span(text: str, label: str, start: int, end: int, score: str = ""):
     """Build a minimal spaCy-like span mock."""
     span = MagicMock()
     span.text = text
     span.label_ = label
     span.start_char = start
     span.end_char = end
-    span.kb_id_ = ""
+    span.kb_id_ = score
     return span
 
 
@@ -82,6 +82,7 @@ class TestInferenceMultiLabel(unittest.TestCase):
             mock_loader.nlp = nlp
             mock_loader.active_version = "v0.9"
             mock_loader.model_name = "test"
+            mock_loader.calibration = None
             with patch("libs.deid.deidentify") as mock_deid:
                 mock_deid.return_value = MagicMock(text="diabetes")
                 from fastapi.testclient import TestClient
@@ -120,6 +121,7 @@ class TestInferenceMultiLabel(unittest.TestCase):
             mock_loader.nlp = nlp
             mock_loader.active_version = "v1.0"
             mock_loader.model_name = "test"
+            mock_loader.calibration = None
             with patch("libs.deid.deidentify") as mock_deid:
                 mock_deid.return_value = MagicMock(text=text)
                 from fastapi.testclient import TestClient
@@ -148,3 +150,55 @@ class TestInferenceMultiLabel(unittest.TestCase):
         labels = {e["label"] for e in data["entities"]}
         self.assertIn("MEDICINAL_PRODUCT", labels)
         self.assertIn("PROCEDURE", labels)
+
+    def test_calibration_threshold_filters_low_scoring_spans(self):
+        from libs.training_ext.inference_calibration import InferenceCalibration
+
+        text = "chest xray requested"
+        high = _make_span("chest xray", "PROCEDURE", 0, 10, score="0.20")
+        low = _make_span("requested", "FINDING", 11, len(text), score="0.05")
+        doc = _make_doc(spans_sc=[high, low])
+        nlp = _make_nlp(doc)
+        calibration = InferenceCalibration(
+            default_threshold=0.5,
+            per_label={
+                "PROCEDURE": {"threshold": 0.10},
+                "FINDING": {"threshold": 0.10},
+            },
+            is_verified=True,
+        )
+
+        with patch("app.main._loader") as mock_loader:
+            mock_loader.nlp = nlp
+            mock_loader.active_version = "v1.0"
+            mock_loader.model_name = "test"
+            mock_loader.calibration = calibration
+            with patch("libs.deid.deidentify") as mock_deid:
+                mock_deid.return_value = MagicMock(text=text)
+                from fastapi.testclient import TestClient
+                from app.main import app
+                from libs.auth.service_auth import verify_service_token
+
+                app.dependency_overrides[verify_service_token] = lambda: None
+                client = TestClient(app)
+                resp = client.post(
+                    "/extract",
+                    json={
+                        "text": text,
+                        "sentences": [
+                            {
+                                "sentence_id": "s0",
+                                "text": text,
+                                "start": 0,
+                                "end": len(text),
+                            }
+                        ],
+                    },
+                )
+
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["entity_count"], 1)
+        entity = data["entities"][0]
+        self.assertEqual(entity["label"], "PROCEDURE")
+        self.assertEqual(entity["source_meta"]["threshold"], 0.1)
