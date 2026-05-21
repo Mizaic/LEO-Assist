@@ -189,7 +189,7 @@ set per-environment secrets in the GitHub repo:
 ```
 WIDGET_PUBLIC_HOST           = widget.leo-ai-audit.healthcarecopilot.ai
 AZURE_WIDGET_STORAGE_ACCOUNT = leoaiwidgetcdnprod
-CLOUDFLARE_API_TOKEN         = <token with Cache Purge: zone>
+CLOUDFLARE_API_TOKEN         = <token with Cache Purge + Origin Rules Edit>
 CLOUDFLARE_ZONE_ID           = <zone id of healthcarecopilot.ai>
 ```
 

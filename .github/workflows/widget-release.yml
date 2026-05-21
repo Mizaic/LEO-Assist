@@ -22,7 +22,7 @@ name: Widget release - build, gate, deploy
 # What it requires (per environment secrets)
 #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC)
 #   AZURE_WIDGET_STORAGE_ACCOUNT                             (e.g. leoaiwidgetcdnprod)
-#   CLOUDFLARE_API_TOKEN                                     (zone-scoped, cache:purge)
+#   CLOUDFLARE_API_TOKEN                                     (zone-scoped: Cache Purge + Origin Rules Edit)
 #   CLOUDFLARE_ZONE_ID                                       (zone id of the WIDGET_PUBLIC_HOST parent, e.g. healthcarecopilot.ai)
 #   WIDGET_PUBLIC_HOST                                       (e.g. widget.leo-ai-audit.healthcarecopilot.ai)
 
@@ -210,12 +210,24 @@ jobs:
           echo "Azure origin host: $ORIGIN_HOST"
 
       - name: Ensure Cloudflare origin Host override
+        id: cloudflare_origin
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           WIDGET_PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
           AZURE_WIDGET_ORIGIN_HOST: ${{ steps.origin.outputs.host }}
-        run: python scripts/apply_widget_cloudflare_origin.py
+        run: |
+          set +e
+          python scripts/apply_widget_cloudflare_origin.py
+          EXIT=$?
+          if [ $EXIT -eq 0 ]; then
+            echo "applied=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "applied=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Cloudflare origin Host override was not applied. Add Zone > Origin Rules > Edit to CLOUDFLARE_API_TOKEN, or create the origin rule manually in the Cloudflare dashboard (see infra/widget-cdn/README.md section 3)."
+            exit 0
+          fi
 
       - name: Stage mutable v1 metadata blobs
         env:
@@ -330,10 +342,28 @@ jobs:
             "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
             -d "$BODY"
 
-      - name: Smoke check the public CDN
+      - name: Smoke check Azure origin
+        env:
+          ORIGIN_HOST: ${{ steps.origin.outputs.host }}
+        run: |
+          ORIGIN="https://${ORIGIN_HOST}"
+          for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
+            echo "Checking ${ORIGIN}${path}"
+            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+                 --output /dev/null --write-out "HTTP %{http_code}\n" \
+                 "${ORIGIN}${path}"
+          done
+
+      - name: Smoke check public CDN edge
         env:
           HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+          ORIGIN_APPLIED: ${{ steps.cloudflare_origin.outputs.applied }}
         run: |
+          if [ "$ORIGIN_APPLIED" != "true" ]; then
+            echo "::warning::Skipping strict public CDN smoke check because the Cloudflare origin Host override is missing."
+            echo "Configure the origin rule, then verify: https://${HOST}/v1/leo-widget.js"
+            exit 0
+          fi
           for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
             echo "Checking https://${HOST}${path}"
             curl --fail --silent --show-error --retry 5 --retry-delay 2 \

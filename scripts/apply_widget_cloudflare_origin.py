@@ -37,8 +37,13 @@ def _request(method: str, url: str, token: str, body: dict | None = None) -> dic
             "Content-Type": "application/json",
         },
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        print(f"Cloudflare API {exc.code} for {url}: {detail}", file=sys.stderr)
+        raise
 
 
 def _build_rule(public_host: str, origin_host: str) -> dict:
