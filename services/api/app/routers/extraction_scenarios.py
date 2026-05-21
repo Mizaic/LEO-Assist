@@ -279,20 +279,21 @@ def _normalise_validation_term(term: str, alias_map: dict[str, str]) -> str:
 
 
 def _normalise_validation_terms(
-    extracted_strings: list[str], case: dict[str, Any] | None
-) -> list[str]:
+    extracted_entities: list[dict[str, str]], case: dict[str, Any] | None
+) -> list[dict[str, str]]:
     alias_map = _build_case_alias_map(case)
-    normalised: list[str] = []
+    normalised: list[dict[str, str]] = []
     seen: set[str] = set()
-    for term in extracted_strings:
+    for entity in extracted_entities:
+        term = entity.get("text", "")
         clean = _normalise_validation_term(term, alias_map)
         if not clean:
             continue
-        key = clean.casefold()
+        key = clean.casefold() + "::" + entity.get("semantic_tag", "")
         if key in seen:
             continue
         seen.add(key)
-        normalised.append(clean)
+        normalised.append({"text": clean, "semantic_tag": entity.get("semantic_tag", "")})
     return normalised
 
 
@@ -813,14 +814,14 @@ def _score_case_from_node(case: dict[str, Any]) -> dict[str, Any]:
     """Score a case by running the UN-89E2AE36 extraction workflow."""
     from tests.helpers.clinical_extraction_scenario_loader import score_case
 
-    extracted_strings = _extract_terms_for_validation(case)
-    return score_case(case, extracted_strings, _scoring_rules())
+    extracted_entities = _extract_terms_for_validation(case)
+    return score_case(case, extracted_entities, _scoring_rules())
 
 
-def _score_case_from_terms(case: dict[str, Any], extracted_strings: list[str]) -> dict:
+def _score_case_from_terms(case: dict[str, Any], extracted_entities: list[dict[str, str]]) -> dict:
     from tests.helpers.clinical_extraction_scenario_loader import score_case
 
-    cleaned_terms = _normalise_validation_terms(extracted_strings, case)
+    cleaned_terms = _normalise_validation_terms(extracted_entities, case)
     return score_case(case, cleaned_terms, _scoring_rules())
 
 
@@ -978,7 +979,7 @@ def _stage_snapshots_from_validation_output(
 
 def _terms_from_validation_output(
     row: dict[str, Any] | None, case: dict[str, Any] | None = None
-) -> list[str]:
+) -> list[dict[str, str]]:
     if not row:
         return []
     payload = _json_loads_safe(row.get("validation_output"))
@@ -987,19 +988,19 @@ def _terms_from_validation_output(
     terms = payload.get("terms")
     if not isinstance(terms, list):
         return []
-    raw_terms = [
-        str(term.get("text") or "").strip()
+    raw_entities = [
+        {"text": str(term.get("text") or "").strip(), "semantic_tag": str(term.get("semantic_tag") or "finding")}
         for term in terms
         if isinstance(term, dict) and str(term.get("text") or "").strip()
     ]
-    return _normalise_validation_terms(raw_terms, case)
+    return _normalise_validation_terms(raw_entities, case)
 
 
 def _extract_terms_for_validation(
     case: dict[str, Any],
     *,
     model_mode: str | None = None,
-) -> list[str]:
+) -> list[dict[str, str]]:
     from app.services.validation_workflow_runner import execute_validation_workflow_sync
 
     text = str(case.get("markdown_body") or case.get("source_text") or "")
@@ -1018,16 +1019,19 @@ def _extract_terms_for_validation(
     return _entity_texts(final_state.get("entities", []))
 
 
-def _entity_texts(entities: Any) -> list[str]:
+def _entity_texts(entities: Any) -> list[dict[str, str]]:
     if not isinstance(entities, list):
         return []
-    texts: list[str] = []
+    texts: list[dict[str, str]] = []
     for entity in entities:
         if not isinstance(entity, dict):
             continue
         text = entity.get("text") or entity.get("surface_form")
         if isinstance(text, str) and text.strip():
-            texts.append(text.strip())
+            texts.append({
+                "text": text.strip(), 
+                "semantic_tag": str(entity.get("semantic_tag") or "finding")
+            })
     return texts
 
 

@@ -120,6 +120,14 @@ const PREFIX_RULES: PrefixRule[] = [
     prefix: "/api/extraction-scenarios",
     rewrite: () => `${coreApi()}/extraction-scenarios`,
   },
+  {
+    prefix: "/api/coding-validation/",
+    rewrite: (r) => `${coreApi()}/coding-validation/${r}`,
+  },
+  {
+    prefix: "/api/coding-validation",
+    rewrite: () => `${coreApi()}/coding-validation`,
+  },
   { prefix: "/api/analytics/", rewrite: (r) => `${coreApi()}/analytics/${r}` },
   { prefix: "/api/pricing/", rewrite: (r) => `${coreApi()}/pricing/${r}` },
   { prefix: "/api/pricing", rewrite: () => `${coreApi()}/pricing` },
@@ -227,6 +235,8 @@ export const config = {
     "/api/training-worker/:path*",
     "/api/extraction-scenarios",
     "/api/extraction-scenarios/:path*",
+    "/api/coding-validation",
+    "/api/coding-validation/:path*",
     "/api/analytics/:path*",
     "/api/pricing",
     "/api/pricing/:path*",

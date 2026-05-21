@@ -46,10 +46,11 @@ from __future__ import annotations
 import logging
 import re
 import time
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 from libs.terminology.surface_normalize import TOKEN_RE, normalize_surface
+from services.terminology_api.app.services.cache import TerminologyCache
 from services.terminology_api.app.queries.terminology import (
     BATCH_EXACT_QUERY,
     BATCH_FULLTEXT_QUERY,
@@ -352,6 +353,7 @@ class CodingResolver:
         self.k_fulltext = k_fulltext
         self._surface_form_fulltext_ok: bool | None = None
         self._surface_form_exact_ok: bool | None = None
+        self._cache = TerminologyCache()
 
     @staticmethod
     def get_related_concepts(concept_id: str, neo4j_session) -> list[dict[str, str]]:
@@ -422,26 +424,54 @@ class CodingResolver:
         t0 = time.perf_counter()
         unique_texts = list(dict.fromkeys(term_texts))
 
+        # ── 1. Cache Interception ─────────────────────────────────────────────
+        cache_keys: dict[str, str] = {}
+        for text in unique_texts:
+            tag = (expected_tags or {}).get(text)
+            cache_keys[text] = self._cache.generate_key(text, tag, enrich_lab_domain)
+
+        cached_payloads = self._cache.mget(list(cache_keys.values()))
+
+        results: dict[str, list[CodingCandidate]] = {}
+        misses: list[str] = []
+        for text in unique_texts:
+            key = cache_keys[text]
+            if key in cached_payloads:
+                results[text] = [CodingCandidate(**c) for c in cached_payloads[key]]
+            else:
+                misses.append(text)
+
+        t_cache = time.perf_counter()
+        logger.debug(
+            "[resolver] cache  hits=%d  misses=%d  elapsed=%.3fs",
+            len(unique_texts) - len(misses),
+            len(misses),
+            t_cache - t0,
+        )
+
+        if not misses:
+            return {text: results.get(text, []) for text in term_texts}
+
         # merged[term][concept_id] = {lexical_raw, ...}
-        merged_all: dict[str, dict[str, dict[str, Any]]] = {t: {} for t in unique_texts}
+        merged_all: dict[str, dict[str, dict[str, Any]]] = {t: {} for t in misses}
 
         # ── Batch exact branch (Term + SurfaceForm, 1 round trip) ──────────────
-        normalized_map: dict[str, str] = {t: normalize_surface(t) for t in unique_texts}
+        normalized_map: dict[str, str] = {t: normalize_surface(t) for t in misses}
         exact_hit_terms: set[str] = self._batch_exact(
-            unique_texts, normalized_map, neo4j_session, merged_all
+            misses, normalized_map, neo4j_session, merged_all
         )
         t_exact = time.perf_counter()
         logger.debug(
             "[resolver] exact  terms=%d  hits=%d  elapsed=%.3fs",
-            len(unique_texts),
+            len(misses),
             len(exact_hit_terms),
-            t_exact - t0,
+            t_exact - t_cache,
         )
 
         # ── Batch fulltext branch (1-3 round trips total) ──────────────────────
         # Only run fulltext for terms that were NOT fully resolved by exact.
         # Short-circuit: skip if a term got exact hits from BOTH Term and SurfaceForm.
-        fulltext_needed = [t for t in unique_texts if t not in exact_hit_terms]
+        fulltext_needed = [t for t in misses if t not in exact_hit_terms]
         if fulltext_needed:
             self._batch_fulltext(fulltext_needed, neo4j_session, merged_all)
         t_fulltext = time.perf_counter()
@@ -452,27 +482,15 @@ class CodingResolver:
         )
 
         # ── Score fusion and candidate ranking (pure Python, no I/O) ───────────
-        results: dict[str, list[CodingCandidate]] = {}
-        for text in unique_texts:
+        for text in misses:
             tag = (expected_tags or {}).get(text)
             results[text] = self._fuse_and_rank(merged_all[text], expected_tag=tag)
-
-        resolved = sum(1 for v in results.values() if v)
-        t_fuse = time.perf_counter()
-        logger.info(
-            "[resolver] exact+fulltext  terms=%d  resolved=%d  exact=%.3fs  fulltext=%.3fs  fuse=%.3fs  total=%.3fs",
-            len(unique_texts),
-            resolved,
-            t_exact - t0,
-            t_fulltext - t_exact,
-            t_fuse - t_fulltext,
-            t_fuse - t0,
-        )
 
         # ── Batch lab-domain enrichment (1 round trip for all lab concepts) ────
         if enrich_lab_domain:
             lab_concept_ids: list[str] = []
-            for candidates in results.values():
+            for text in misses:
+                candidates = results.get(text, [])
                 if (
                     candidates
                     and (candidates[0].semantic_tag or "").lower() in LAB_DOMAIN_TAGS
@@ -486,7 +504,8 @@ class CodingResolver:
                     lab_concept_ids, neo4j_session
                 )
                 enriched = 0
-                for candidates in results.values():
+                for text in misses:
+                    candidates = results.get(text, [])
                     if not candidates:
                         continue
                     top = candidates[0]
@@ -501,6 +520,26 @@ class CodingResolver:
                     enriched,
                     time.perf_counter() - t_enrich_start,
                 )
+
+        # ── Cache Writeback ────────────────────────────────────────────────────
+        cache_writes: dict[str, Any] = {}
+        for text in misses:
+            key = cache_keys[text]
+            cache_writes[key] = [asdict(c) for c in results.get(text, [])]
+            
+        self._cache.msetex(cache_writes)
+        
+        resolved = sum(1 for text in misses if results.get(text))
+        t_fuse = time.perf_counter()
+        logger.info(
+            "[resolver] exact+fulltext  terms=%d  resolved=%d  exact=%.3fs  fulltext=%.3fs  fuse=%.3fs  total=%.3fs",
+            len(misses),
+            resolved,
+            t_exact - t_cache,
+            t_fulltext - t_exact,
+            t_fuse - t_fulltext,
+            t_fuse - t_cache,
+        )
 
         return {text: results.get(text, []) for text in term_texts}
 

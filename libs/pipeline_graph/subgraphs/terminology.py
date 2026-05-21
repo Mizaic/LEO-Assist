@@ -43,6 +43,8 @@ _TERM_CONCEPT_BLOCKLIST: dict[str, set[str]] = {
     "not sleeping well": {"367391008"},
     # Mechanical wording in patient advice; not malignant neoplasm of nervous system.
     "nerve compression": {"372063002"},
+    # FIT is a test (Faecal Immunochemical Test), not a seizure.
+    "fit": {"91175000"},
 }
 
 

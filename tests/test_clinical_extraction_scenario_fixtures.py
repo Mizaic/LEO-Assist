@@ -205,9 +205,9 @@ def test_expected_clinical_phrases_are_present_in_documents() -> None:
     for case in iter_cases():
         observable_names = {item["text"] for item in case["expected_observables"]}
         clinical_phrases = [
-            phrase
+            phrase.get("text", "") if isinstance(phrase, dict) else str(phrase)
             for phrase in case["expected_strings"]
-            if phrase not in observable_names
+            if (phrase.get("text", "") if isinstance(phrase, dict) else str(phrase)) not in observable_names
         ]
         text = _read_fixture_text(base / case["source_markdown"]).casefold()
         for phrase in clinical_phrases:
@@ -228,6 +228,12 @@ def test_scenarios_include_blood_results_with_values_and_units() -> None:
         assert "| Flag |" not in text
         assert len(results) >= 16
         assert len(results) == len(observables)
+        
+        expected_texts = [
+            s.get("text", "") if isinstance(s, dict) else str(s)
+            for s in case["expected_strings"]
+        ]
+        
         for result, observable in zip(results, observables):
             assert set(result) == _BLOOD_RESULT_KEYS
             assert set(observable) == _OBSERVABLE_KEYS
@@ -236,7 +242,7 @@ def test_scenarios_include_blood_results_with_values_and_units() -> None:
             assert result["unit"] == observable["unit"]
             assert result["flag"] in {"high", "low", "normal"}
             assert result["unit"]
-            assert result["display_name"] in case["expected_strings"]
+            assert result["display_name"] in expected_texts
             rendered = f"{result['display_name']} {result['value']} {result['unit']}"
             assert rendered in text
 
@@ -289,7 +295,13 @@ def test_phrase_f1_scorer_matches_terms_text_contract() -> None:
     """Scorer compares extraction ``terms[].text`` strings before coding."""
     doc = load_expected_strings()
     cases = doc["cases"][:2]
-    extracted = {case["case_id"]: list(case["expected_strings"]) for case in cases}
+    extracted = {
+        case["case_id"]: [
+            s if isinstance(s, dict) else {"text": s, "semantic_tag": "finding"}
+            for s in case["expected_strings"]
+        ] 
+        for case in cases
+    }
     result = score_extraction_cases(cases, extracted, doc["normalisation"])
     assert result["overall"]["precision"] == 1.0
     assert result["overall"]["recall"] == 1.0
@@ -300,7 +312,12 @@ def test_phrase_f1_scorer_reports_misses_and_extras() -> None:
     """Scorer records false positives and false negatives for reports."""
     doc = load_expected_strings()
     case = doc["cases"][0]
-    extracted = {case["case_id"]: ["rectal bleeding", "extra phrase"]}
+    extracted = {
+        case["case_id"]: [
+            {"text": "rectal bleeding", "semantic_tag": "disorder"}, 
+            {"text": "extra phrase", "semantic_tag": "finding"}
+        ]
+    }
     result = score_extraction_cases([case], extracted, doc["normalisation"])
     row = result["by_case"][0]
     assert row["false_positive"] == 1

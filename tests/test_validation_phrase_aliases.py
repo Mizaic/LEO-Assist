@@ -18,15 +18,16 @@ from app.routers.extraction_scenarios import (  # noqa: E402
 
 def test_phrase_alias_mri_and_ca125() -> None:
     case = {"expected_observables": []}
-    out = _normalise_validation_terms(
+    out_entities = _normalise_validation_terms(
         [
-            "MRI scan of the brain",
-            "CA125 level is raised at 92 U/mL",
-            "Glycated haemoglobin",
-            "Plasma viscosity",
+            {"text": "MRI scan of the brain", "semantic_tag": "procedure"},
+            {"text": "CA125 level is raised at 92 U/mL", "semantic_tag": "observable_entity"},
+            {"text": "Glycated haemoglobin", "semantic_tag": "observable_entity"},
+            {"text": "Plasma viscosity", "semantic_tag": "observable_entity"},
         ],
         case,
     )
+    out = [e["text"] for e in out_entities]
     assert "urgent MRI scan of the brain" in out
     assert "CA125 raised" in out
     assert "HbA1c" in out

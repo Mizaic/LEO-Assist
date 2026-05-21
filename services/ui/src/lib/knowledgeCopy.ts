@@ -28,7 +28,8 @@ export type KnowledgeTabKey =
   | "terminology"
   | "ai-summarisation"
   | "test-patients"
-  | "extraction-scenarios";
+  | "extraction-scenarios"
+  | "coding-validation";
 
 export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   "training-data": {
@@ -391,6 +392,38 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       lede: "80 synthetic scenarios seeded into Neo4j at deploy time.",
       how: "Trigger a validation run to score the active extraction model.",
       what: "Results are stored as :ExtractionValidationRun nodes and recorded in Atlas.",
+    },
+  },
+  "coding-validation": {
+    default: {
+      title: "Coding Validation",
+      lede: "Validate and edit terminology resolution for clinical extractions.",
+      how: "Review extraction terms and confirm their terminology codes.",
+      what: "Ensures extraction terms correctly map to SNOMED codes.",
+    },
+    clinician: {
+      title: "Coding Validation",
+      lede: "Check clinical coding of extractions.",
+      how: "Accept mappings or edit the surface form to find a better code.",
+      what: "Keeps the clinical coding accurate.",
+    },
+    staff: {
+      title: "Coding Validation",
+      lede: "Validate terminology mapping.",
+      how: "Ensure terms resolve to safe SNOMED codes.",
+      what: "Maintains terminology mapping accuracy.",
+    },
+    qa_ra_lead: {
+      title: "Coding Validation (VAL-41005BA4)",
+      lede: "Verify safe terminology resolution.",
+      how: "Check resolution scores, blocked mappings, and safe attachments.",
+      what: "Evidence for VAL-41005BA4 terminology resolution.",
+    },
+    developer: {
+      title: "Coding Validation",
+      lede: "Debug Terminology API resolution.",
+      how: "Check lexical and vector scores for candidate codes.",
+      what: "Verifies the terminology subgraph configuration.",
     },
   },
 };

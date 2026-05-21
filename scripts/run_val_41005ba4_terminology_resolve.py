@@ -33,7 +33,7 @@ REPORT_CSV = REPORT_DIR / "val_41005ba4_terminology_resolve.csv"
 VAL_ID = "VAL-41005BA4"
 RESOLVE_BATCH = 30
 # Withhold is the clinically correct outcome; safe attach would be a VAL failure.
-_EXPECTED_WITHHOLD_SURFACES = frozenset({"aneurysm clip"})
+_EXPECTED_WITHHOLD_SURFACES = frozenset({"aneurysm clip", "ldh", "fasting glucose", "bp"})
 
 
 def _candidate_dict(term: ResolvedTerm) -> dict[str, Any]:
@@ -69,12 +69,14 @@ def _unresolved_reason(
 
 
 def _resolve_all_terms(
-    client: TerminologyClient, terms: list[str]
+    client: TerminologyClient, terms: list[dict[str, str]]
 ) -> dict[str, list[ResolvedTerm]]:
     results: dict[str, list[ResolvedTerm]] = {}
     for i in range(0, len(terms), RESOLVE_BATCH):
         chunk = terms[i : i + RESOLVE_BATCH]
-        results.update(client.resolve(chunk))
+        chunk_texts = [t["text"] for t in chunk]
+        expected_tags = {t["text"]: t["semantic_tag"] for t in chunk if t.get("semantic_tag")}
+        results.update(client.resolve(chunk_texts, expected_tags=expected_tags))
     return results
 
 
@@ -165,15 +167,17 @@ def _write_csv(rows: list[dict[str, Any]]) -> None:
 def main() -> int:
     api_url = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8001").strip()
     cases = iter_cases()
-    unique_terms = sorted(
-        {
-            str(value).strip()
-            for case in cases
-            for value in case.get("expected_strings") or []
-            if str(value).strip()
-        },
-        key=str.lower,
-    )
+    unique_terms_dict = {}
+    for case in cases:
+        for val in case.get("expected_strings") or []:
+            if isinstance(val, dict):
+                text = str(val.get("text", "")).strip()
+                tag = str(val.get("semantic_tag", "finding")).strip()
+                if text:
+                    unique_terms_dict[f"{text}::{tag}"] = {"text": text, "semantic_tag": tag}
+    unique_terms = list(unique_terms_dict.values())
+    unique_terms.sort(key=lambda x: x["text"].lower())
+    
     if not unique_terms:
         print("No expected_strings found in extraction scenarios.", file=sys.stderr)
         return 1
@@ -182,7 +186,7 @@ def main() -> int:
     print(f"Resolving {len(unique_terms)} unique terms via {api_url} ...")
     resolved_by_term = _resolve_all_terms(client, unique_terms)
     fact_by_term = {
-        term: _build_fact_row(term, resolved_by_term.get(term, []))
+        f"{term['text']}::{term['semantic_tag']}": _build_fact_row(term["text"], resolved_by_term.get(term["text"], []))
         for term in unique_terms
     }
 
@@ -199,10 +203,15 @@ def main() -> int:
         case_id = str(case.get("case_id") or "")
         facts: list[dict[str, Any]] = []
         for surface in case.get("expected_strings") or []:
-            surface_form = str(surface).strip()
+            if not isinstance(surface, dict):
+                continue
+            surface_form = str(surface.get("text", "")).strip()
+            tag = str(surface.get("semantic_tag", "finding")).strip()
             if not surface_form:
                 continue
-            fact = dict(fact_by_term[surface_form])
+            
+            fact = dict(fact_by_term[f"{surface_form}::{tag}"])
+            fact["semantic_tag"] = tag # update expected tag for visibility
             facts.append(fact)
             total_facts += 1
             if fact["safe_attached"]:

@@ -37,11 +37,14 @@ CALL {
     WHERE c.active = true
     RETURN c, 2.0 AS weighted_score
 }
+WITH c, max(weighted_score) AS best_score
+ORDER BY best_score DESC
+LIMIT $limit
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
 OPTIONAL MATCH (child:Concept)-[:IS_A]->(c)
 WHERE child.active = true
-WITH c, max(weighted_score) AS best_score,
+WITH c, best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10,
      count(DISTINCT child) AS child_count
@@ -53,8 +56,6 @@ RETURN c.id AS snomed_concept_id,
        read_code,
        best_score AS score,
        child_count
-ORDER BY best_score DESC
-LIMIT $limit
 """
 
 TERMINOLOGY_SEARCH_FILTERED = """
@@ -85,11 +86,14 @@ TERMINOLOGY_SEARCH_FILTERED += _NORMALISED_TAG_EXPR
 TERMINOLOGY_SEARCH_FILTERED += """ IN $tags
     RETURN c, 2.0 AS weighted_score
 }
+WITH c, max(weighted_score) AS best_score
+ORDER BY best_score DESC
+LIMIT $limit
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
 OPTIONAL MATCH (child:Concept)-[:IS_A]->(c)
 WHERE child.active = true
-WITH c, max(weighted_score) AS best_score,
+WITH c, best_score,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10,
      count(DISTINCT child) AS child_count
@@ -101,8 +105,6 @@ RETURN c.id AS snomed_concept_id,
        read_code,
        best_score AS score,
        child_count
-ORDER BY best_score DESC
-LIMIT $limit
 """
 
 EXACT_QUERY = """
@@ -131,24 +133,26 @@ FULLTEXT_QUERY = """
 CALL db.index.fulltext.queryNodes("term_fulltext", $ft_query) YIELD node, score
 MATCH (node)-[:DESCRIBES]->(c:Concept)
 WHERE c.active = true
-OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, max(score) AS best_score, collect(DISTINCT rd.code) AS read_codes
-RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score AS score
+WITH c, max(score) AS best_score
 ORDER BY best_score DESC
 LIMIT $k
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+WITH c, best_score, collect(DISTINCT rd.code) AS read_codes
+RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
+       read_codes, best_score AS score
 """
 
 FULLTEXT_SURFACE_FORM_QUERY = """
 CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node, score
 MATCH (node)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true
-OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, node, max(score) AS best_score, collect(DISTINCT rd.code) AS read_codes
-RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score * 1.2 AS score, node.status AS surface_form_status
+WITH c, node, max(score) AS best_score
 ORDER BY best_score DESC
 LIMIT $k
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+WITH c, node, best_score, collect(DISTINCT rd.code) AS read_codes
+RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
+       read_codes, best_score * 1.2 AS score, node.status AS surface_form_status
 """
 
 VECTOR_QUERY = """
@@ -228,22 +232,24 @@ BATCH_FULLTEXT_QUERY = """
 CALL db.index.fulltext.queryNodes("term_fulltext", $ft_query) YIELD node AS tnode, score AS tscore
 MATCH (tnode)-[:DESCRIBES]->(c:Concept)
 WHERE c.active = true
-OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, max(tscore) AS best_score, collect(DISTINCT rd.code) AS read_codes
-RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score AS score, '' AS surface_form_status
+WITH c, max(tscore) AS best_score
 ORDER BY best_score DESC
 LIMIT $k
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+WITH c, best_score, collect(DISTINCT rd.code) AS read_codes
+RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
+       read_codes, best_score AS score, '' AS surface_form_status
 UNION ALL
 CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node AS sfnode, score AS sfscore
 MATCH (sfnode)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true
-OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, sfnode, max(sfscore) AS best_score, collect(DISTINCT rd.code) AS read_codes
-RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score * 1.2 AS score, sfnode.status AS surface_form_status
+WITH c, sfnode, max(sfscore) AS best_score
 ORDER BY best_score DESC
 LIMIT $k
+OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
+WITH c, sfnode, best_score, collect(DISTINCT rd.code) AS read_codes
+RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
+       read_codes, best_score * 1.2 AS score, sfnode.status AS surface_form_status
 """
 
 # Batch lab-domain enrichment: given a list of concept IDs, returns the

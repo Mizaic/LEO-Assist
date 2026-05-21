@@ -160,6 +160,65 @@ SET
 RETURN s.case_id AS case_id, s.review_status AS review_status
 """
 
+# -- CRUD --------------------------------------------------------------------
+
+GET_EXTRACTION_SCENARIO_EXISTS = """
+MATCH (s:ExtractionScenario {case_id: $case_id})
+RETURN s.case_id AS case_id
+LIMIT 1
+"""
+
+CREATE_EXTRACTION_SCENARIO = """
+CREATE (s:ExtractionScenario {case_id: $case_id})
+SET
+  s.site                  = $site,
+  s.format                = $format,
+  s.phrase_classes        = $phrase_classes,
+  s.difficulty            = $difficulty,
+  s.review_status         = $review_status,
+  s.expected_strings      = $expected_strings,
+  s.expected_observables  = $expected_observables,
+  s.must_not_extract      = $must_not_extract,
+  s.markdown_body         = $markdown_body,
+  s.source_template_markdown = $source_template_markdown,
+  s.notes_for_clinician_review = $notes_for_clinician_review,
+  s.synthetic_patient     = $synthetic_patient,
+  s.blood_results         = $blood_results,
+  s.schema_version        = $schema_version,
+  s.source                = $source,
+  s.created_at            = $created_at,
+  s.updated_at            = $created_at
+RETURN s.case_id AS case_id
+"""
+
+UPDATE_EXTRACTION_SCENARIO = """
+MATCH (s:ExtractionScenario {case_id: $case_id})
+SET
+  s.site                  = $site,
+  s.format                = $format,
+  s.phrase_classes        = $phrase_classes,
+  s.difficulty            = $difficulty,
+  s.review_status         = 'draft_for_clinician_approval',
+  s.expected_strings      = $expected_strings,
+  s.expected_observables  = $expected_observables,
+  s.must_not_extract      = $must_not_extract,
+  s.markdown_body         = $markdown_body,
+  s.source_template_markdown = $source_template_markdown,
+  s.notes_for_clinician_review = $notes_for_clinician_review,
+  s.synthetic_patient     = $synthetic_patient,
+  s.blood_results         = $blood_results,
+  s.reviewed_by           = null,
+  s.reviewed_at           = null,
+  s.updated_at            = $updated_at
+RETURN s.case_id AS case_id, s.review_status AS review_status
+"""
+
+DELETE_EXTRACTION_SCENARIO = """
+MATCH (s:ExtractionScenario {case_id: $case_id})
+DETACH DELETE s
+RETURN $case_id AS case_id
+"""
+
 # -- Validation run (create) -------------------------------------------------
 #
 # NOTE on resilience fields (added 2026-05-20):

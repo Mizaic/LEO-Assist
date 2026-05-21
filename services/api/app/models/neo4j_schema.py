@@ -184,11 +184,13 @@ CALL {
     WHERE c.active = true
     RETURN c, 2.0 AS weighted_score, false AS sf_match
 }
+WITH c, max(weighted_score) AS best_score, collect(DISTINCT sf_match) AS sf_set
+ORDER BY best_score DESC
+LIMIT $limit
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
 OPTIONAL MATCH (c)-[:MAPS_TO_OPCS4]->(op:OpcsCode)
-WITH c, max(weighted_score) AS best_score,
-     collect(DISTINCT sf_match) AS sf_set,
+WITH c, best_score, sf_set,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10,
      collect(DISTINCT icd.title)[0] AS icd10_term,
@@ -205,8 +207,6 @@ RETURN c.id AS snomed_concept_id,
        read_code,
        best_score AS score,
        true IN sf_set AS from_surface_form
-ORDER BY best_score DESC
-LIMIT $limit
 """
 
 TERMINOLOGY_SEARCH_FILTERED = """
@@ -229,11 +229,13 @@ CALL {
     WHERE c.active = true AND c.semantic_tag IN $tags
     RETURN c, 2.0 AS weighted_score, false AS sf_match
 }
+WITH c, max(weighted_score) AS best_score, collect(DISTINCT sf_match) AS sf_set
+ORDER BY best_score DESC
+LIMIT $limit
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
 OPTIONAL MATCH (c)-[:MAPS_TO_OPCS4]->(op:OpcsCode)
-WITH c, max(weighted_score) AS best_score,
-     collect(DISTINCT sf_match) AS sf_set,
+WITH c, best_score, sf_set,
      collect(DISTINCT rd.code)[0] AS read_code,
      collect(DISTINCT icd.code)[0] AS icd10,
      collect(DISTINCT icd.title)[0] AS icd10_term,
@@ -250,8 +252,6 @@ RETURN c.id AS snomed_concept_id,
        read_code,
        best_score AS score,
        true IN sf_set AS from_surface_form
-ORDER BY best_score DESC
-LIMIT $limit
 """
 
 LIST_SURFACE_FORMS = """

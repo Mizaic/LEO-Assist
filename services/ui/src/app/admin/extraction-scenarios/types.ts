@@ -17,7 +17,7 @@ export interface ExtractionScenarioRow {
   phrase_classes: string[];
   difficulty: string[];
   review_status: ReviewStatus;
-  expected_strings: string[];
+  expected_strings: Array<{ text: string; semantic_tag: string }>;
   must_not_extract: string[];
   notes_for_clinician_review: string | null;
   reviewed_by: string | null;
