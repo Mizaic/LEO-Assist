@@ -10,6 +10,11 @@
 
 export type ReviewStatus = "draft_for_clinician_approval" | "approved";
 
+export interface ExpectedPhrase {
+  text: string;
+  semantic_tag: string;
+}
+
 export interface ExtractionScenarioRow {
   case_id: string;
   site: string;
@@ -17,7 +22,7 @@ export interface ExtractionScenarioRow {
   phrase_classes: string[];
   difficulty: string[];
   review_status: ReviewStatus;
-  expected_strings: Array<{ text: string; semantic_tag: string }>;
+  expected_strings: Array<string | ExpectedPhrase>;
   must_not_extract: string[];
   notes_for_clinician_review: string | null;
   reviewed_by: string | null;
