@@ -11,9 +11,13 @@ name: Widget release - build, gate, deploy
 #      pass/fail per VT (this is the contract the gate enforces).
 #   3. Run scripts/widget_release_gate.py with that input. The gate
 #      refuses PROMOTE if ANY disclosure VT is failing.
-#   4. Only on PROMOTE: upload to Azure Storage Static Website
-#      (origin) and purge the immutable paths from Cloudflare so the
-#      new bundle goes live globally within ~5s.
+#   4. Only on PROMOTE: upload to Azure Storage Static Website origin
+#      and smoke-check the public widget URL.
+#
+# Dev uses the Azure Static Website hostname directly (no custom
+# domain, no Cloudflare). Val/prod may set WIDGET_PUBLIC_HOST to a
+# custom domain; when it differs from the storage web endpoint, the
+# workflow also deploys a Cloudflare Worker proxy and purges cache.
 #
 # How to trigger
 #   - workflow_dispatch with environment=dev|val|prod (manual)
@@ -22,10 +26,9 @@ name: Widget release - build, gate, deploy
 # What it requires (per environment secrets)
 #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC)
 #   AZURE_WIDGET_STORAGE_ACCOUNT                             (e.g. leoaiwidgetcdnprod)
-#   CLOUDFLARE_API_TOKEN                                     (zone: Cache Purge; account: Workers Scripts Edit)
-#   CLOUDFLARE_ACCOUNT_ID                                    (Cloudflare account id)
-#   CLOUDFLARE_ZONE_ID                                       (zone id of the WIDGET_PUBLIC_HOST parent, e.g. healthcarecopilot.ai)
-#   WIDGET_PUBLIC_HOST                                       (e.g. widget.leo-ai-audit.healthcarecopilot.ai)
+#   WIDGET_PUBLIC_HOST                                       (dev: storage web hostname, e.g. leoaiwidgetcdndev.z33.web.core.windows.net)
+# Optional (only when WIDGET_PUBLIC_HOST is a custom Cloudflare domain):
+#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_ZONE_ID
 
 on:
   workflow_dispatch:
@@ -210,8 +213,23 @@ jobs:
           echo "host=$ORIGIN_HOST" >> "$GITHUB_OUTPUT"
           echo "Azure origin host: $ORIGIN_HOST"
 
+      - name: Detect widget edge mode
+        id: edge
+        env:
+          PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+          ORIGIN_HOST: ${{ steps.origin.outputs.host }}
+        run: |
+          if [ "$PUBLIC_HOST" = "$ORIGIN_HOST" ]; then
+            echo "mode=direct" >> "$GITHUB_OUTPUT"
+            echo "Widget edge mode: direct Azure origin"
+          else
+            echo "mode=cloudflare" >> "$GITHUB_OUTPUT"
+            echo "Widget edge mode: Cloudflare custom domain"
+          fi
+
       - name: Deploy Cloudflare Worker proxy
         id: cloudflare_worker
+        if: steps.edge.outputs.mode == 'cloudflare'
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -323,6 +341,7 @@ jobs:
             --overwrite
 
       - name: Purge Cloudflare immutable paths
+        if: steps.edge.outputs.mode == 'cloudflare'
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ZONE: ${{ secrets.CLOUDFLARE_ZONE_ID }}
@@ -345,40 +364,37 @@ jobs:
             "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
             -d "$BODY"
 
-      - name: Smoke check Azure origin
+      - name: Smoke check widget URLs
         env:
           ORIGIN_HOST: ${{ steps.origin.outputs.host }}
+          PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+          EDGE_MODE: ${{ steps.edge.outputs.mode }}
         run: |
+          check_host() {
+            local base="$1"
+            local path="$2"
+            echo "Checking ${base}${path}"
+            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
+                 --output /dev/null --write-out "HTTP %{http_code}\n" \
+                 "${base}${path}"
+          }
           ORIGIN="https://${ORIGIN_HOST}"
           for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
-            echo "Checking ${ORIGIN}${path}"
-            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-                 --output /dev/null --write-out "HTTP %{http_code}\n" \
-                 "${ORIGIN}${path}"
+            check_host "$ORIGIN" "$path"
           done
-
-      - name: Smoke check public CDN edge
-        env:
-          HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
-          WORKER_DEPLOYED: ${{ steps.cloudflare_worker.outputs.deployed }}
-        run: |
-          if [ "$WORKER_DEPLOYED" != "true" ]; then
-            echo "::warning::Skipping public CDN smoke check because the Cloudflare Worker proxy is not deployed."
-            echo "Deploy the worker (see infra/widget-cdn/README.md section 3), then verify: https://${HOST}/v1/leo-widget.js"
-            exit 0
+          if [ "$EDGE_MODE" = "cloudflare" ]; then
+            PUBLIC="https://${PUBLIC_HOST}"
+            for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
+              check_host "$PUBLIC" "$path"
+            done
           fi
-          for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
-            echo "Checking https://${HOST}${path}"
-            curl --fail --silent --show-error --retry 5 --retry-delay 2 \
-                 --output /dev/null --write-out "HTTP %{http_code}\n" \
-                 "https://${HOST}${path}"
-          done
 
       - name: Report deploy summary
         env:
           LABEL: ${{ needs.build-and-gate.outputs.build_label }}
           ENV: ${{ github.event.inputs.environment || 'dev' }}
           HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+          EDGE_MODE: ${{ steps.edge.outputs.mode }}
         run: |
           {
             echo "## LEO widget deploy"
@@ -386,6 +402,7 @@ jobs:
             echo "| Field | Value |"
             echo "| --- | --- |"
             echo "| Environment | ${ENV} |"
+            echo "| Edge mode | ${EDGE_MODE} |"
             echo "| Build label | ${LABEL} |"
             echo "| CDN host    | https://${HOST}/v1/leo-widget.js |"
             echo "| Manifest    | https://${HOST}/v1/manifest.json |"

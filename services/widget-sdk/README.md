@@ -30,7 +30,7 @@ The same source tree under `src/` produces two artefacts:
 - `dist/iframe/...` - hardened iframe variant served from the
   LEO-controlled CDN origin pinned by `WIDGET_PUBLIC_HOST` (see
   `infra/widget-cdn/README.md`). Per environment:
-  - dev:  `https://sbar-widget-dev.healthcarecopilot.ai`
+  - dev:  `https://leoaiwidgetcdndev.z33.web.core.windows.net`
   - val:  `https://widget.leo-ai-val.healthcarecopilot.ai`
   - prod: `https://widget.leo-ai-audit.healthcarecopilot.ai`
 
@@ -112,7 +112,7 @@ Each environment exposes a hosted test card with synthetic SBAR data only:
 
 | Env  | URL |
 | ---- | --- |
-| dev  | `https://sbar-widget-dev.healthcarecopilot.ai/demo/` |
+| dev  | `https://leoaiwidgetcdndev.z33.web.core.windows.net/demo/` |
 | val  | `https://widget.leo-ai-val.healthcarecopilot.ai/demo/` |
 | prod | `https://widget.leo-ai-audit.healthcarecopilot.ai/demo/` |
 

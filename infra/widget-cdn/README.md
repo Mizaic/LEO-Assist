@@ -1,10 +1,9 @@
-# LEO widget CDN -- Cloudflare in front of Azure Storage
+# LEO widget CDN -- Azure Storage origin
 
 Atlas trace: DO-3B62F38E (DI-3C06AFD0).
 
-This directory deploys the production-grade origin and explains the
-edge configuration for the LEO widget CDN. The customer-facing FQDN
-is **NEVER hardcoded**; it lives in three places only:
+This directory deploys the widget Static Website origin on Azure Storage.
+The public widget URL is **NEVER hardcoded**; it lives in three places:
 
 | Surface             | Where to set                                              |
 | -----               | ----                                                      |
@@ -14,40 +13,46 @@ is **NEVER hardcoded**; it lives in three places only:
 
 The current per-environment values are:
 
-| Env  | FQDN                                                |
-| ---- | ----                                                |
-| dev  | `sbar-widget-dev.healthcarecopilot.ai`            |
-| val  | `widget.leo-ai-val.healthcarecopilot.ai`            |
-| prod | `widget.leo-ai-audit.healthcarecopilot.ai`          |
+| Env  | `WIDGET_PUBLIC_HOST`                                  | Edge |
+| ---- | ----                                                  | ---- |
+| dev  | `leoaiwidgetcdndev.z33.web.core.windows.net`        | Azure origin only (no custom domain) |
+| val  | `widget.leo-ai-val.healthcarecopilot.ai`            | Optional Cloudflare custom domain |
+| prod | `widget.leo-ai-audit.healthcarecopilot.ai`          | Optional Cloudflare custom domain |
 
-If hosting moves (a different CDN, a different DNS host, a different
-Azure region), change the value in those three places only -- no
+If hosting moves, change the value in those three places only -- no
 code change is needed.
 
 ## Topology
+
+### Dev (direct Azure origin)
+
+```
+Embedding host page
+        |
+        |  <script src="https://leoaiwidgetcdndev.z33.web.core.windows.net/v1/leo-widget.js">
+        v
+Azure Storage Static Website
+   leoaiwidgetcdndev.z33.web.core.windows.net
+```
+
+No Cloudflare DNS, Worker, or custom domain is required for dev.
+Azure serves HTTPS on the storage web endpoint directly.
+
+### Val / prod (optional Cloudflare custom domain)
+
+When `WIDGET_PUBLIC_HOST` is a custom domain (not the storage web
+hostname), the deploy workflow uses a Cloudflare Worker to fetch Azure
+with the correct Host header. See section 3 below.
 
 ```
 Embedding host page
         |
         |  <script src="https://${WIDGET_PUBLIC_HOST}/v1/leo-widget.js">
         v
-Cloudflare edge (Free tier)
-   (zone: parent of WIDGET_PUBLIC_HOST,
-    e.g. healthcarecopilot.ai)
-        |  Workers route on WIDGET_PUBLIC_HOST/*
-        |  fetches Azure origin with the correct Host header
+Cloudflare Worker route on WIDGET_PUBLIC_HOST/*
         v
-Azure Storage Static Website
-   leoaiwidgetcdn{env}.z33.web.core.windows.net  (origin only, never
-                                                  hit by browsers directly)
+Azure Storage Static Website (leoaiwidgetcdn{env}.z33.web.core.windows.net)
 ```
-
-Cloudflare gives us global edge caching, DDoS protection, free TLS
-on the customer hostname, and the rule engine that lets us split
-TTL behaviour between the immutable bundle and the mutable
-manifest/advisory. Azure Storage Static Website gives us the
-smallest possible blast-radius origin: a public-read storage account
-that holds zero PII by construction.
 
 ## What lives at the origin
 
@@ -101,10 +106,32 @@ az storage blob service-properties update \
 ```
 
 Note the `primaryEndpoints.web` URL it prints
-(`https://leoaiwidgetcdn{env}.z6.web.core.windows.net/`). That is
-the **origin** Cloudflare will pull from.
+(`https://leoaiwidgetcdn{env}.z33.web.core.windows.net/`). For dev,
+set `WIDGET_PUBLIC_HOST` to that hostname (without `https://`).
 
-### 2. Create the Cloudflare DNS record
+### 2. Dev: set `WIDGET_PUBLIC_HOST` to the Azure origin
+
+```
+WIDGET_PUBLIC_HOST=leoaiwidgetcdndev.z33.web.core.windows.net
+```
+
+Verify:
+
+```
+curl -sI https://leoaiwidgetcdndev.z33.web.core.windows.net/v1/leo-widget.js
+curl -sI https://leoaiwidgetcdndev.z33.web.core.windows.net/demo/
+```
+
+No Cloudflare setup is required. The widget-release workflow detects
+`WIDGET_PUBLIC_HOST` matching the storage web hostname and skips all
+Cloudflare steps automatically.
+
+### 3. Val / prod only: optional Cloudflare custom domain
+
+Skip this section for dev. Use it when `WIDGET_PUBLIC_HOST` is a
+branded hostname under `healthcarecopilot.ai`.
+
+#### 3a. Create the Cloudflare DNS record
 
 In the Cloudflare zone that owns `WIDGET_PUBLIC_HOST` (for the
 production value `widget.leo-ai-audit.healthcarecopilot.ai`, that
@@ -117,7 +144,7 @@ target:  leoaiwidgetcdnprod.z6.web.core.windows.net
 proxied: yes (orange cloud)
 ```
 
-### 3. Deploy the Cloudflare Worker proxy (Free tier)
+#### 3b. Deploy the Cloudflare Worker proxy (Free tier)
 
 Origin Rules that rewrite the Host header require a paid Cloudflare plan.
 On Free tier, use a **Cloudflare Worker** instead. The worker runs on
@@ -142,7 +169,7 @@ Manual setup (dashboard):
 2. Settings > Variables > add plain-text `ORIGIN_HOST` =
    `leoaiwidgetcdndev.z33.web.core.windows.net` (your storage web host)
 3. Triggers > Add route:
-   `sbar-widget-dev.healthcarecopilot.ai/*` (your `WIDGET_PUBLIC_HOST`)
+   `widget.leo-ai-audit.healthcarecopilot.ai/*` (your `WIDGET_PUBLIC_HOST`)
 
 Or run locally:
 
@@ -150,9 +177,9 @@ Or run locally:
 export CLOUDFLARE_API_TOKEN=...
 export CLOUDFLARE_ACCOUNT_ID=...
 export CLOUDFLARE_ZONE_ID=...
-export WIDGET_PUBLIC_HOST=sbar-widget-dev.healthcarecopilot.ai
-export AZURE_WIDGET_ORIGIN_HOST=leoaiwidgetcdndev.z33.web.core.windows.net
-export WIDGET_ENVIRONMENT=dev
+export WIDGET_PUBLIC_HOST=widget.leo-ai-audit.healthcarecopilot.ai
+export AZURE_WIDGET_ORIGIN_HOST=leoaiwidgetcdnprod.z33.web.core.windows.net
+export WIDGET_ENVIRONMENT=prod
 python scripts/deploy_widget_cloudflare_worker.py
 ```
 
@@ -163,10 +190,10 @@ Cloudflare > SSL/TLS > Edge Certificates: ensure
 `Always Use HTTPS` is on and Min TLS = 1.2. SSL mode = Full
 (strict) is fine once the worker is in place.
 
-Without the worker route, the public CDN hostname returns HTTP 400/403
+Without the worker route, a proxied custom domain returns HTTP 400/403
 even when the Azure origin serves the blobs correctly.
 
-### 4. Apply cache rules
+#### 3c. Apply cache rules (optional)
 
 The complete set of cache rules lives in `cloudflare-cache-rules.json`
 and is host-agnostic (rules match on `http.request.uri.path`, not on
@@ -199,14 +226,18 @@ The four rules together implement:
 - Anything outside `/v1/` or `/iframe/` bypasses cache so a
   misconfigured origin never accidentally caches sensitive data.
 
-### 5. Set the GitHub Actions secrets
+### 4. Set the GitHub Actions secrets
 
-For the deploy workflow (`.github/workflows/widget-release.yml`),
-set per-environment secrets in the GitHub repo:
+Required for every environment:
 
 ```
-WIDGET_PUBLIC_HOST           = widget.leo-ai-audit.healthcarecopilot.ai
-AZURE_WIDGET_STORAGE_ACCOUNT = leoaiwidgetcdnprod
+AZURE_WIDGET_STORAGE_ACCOUNT = leoaiwidgetcdndev   # or val/prod account name
+WIDGET_PUBLIC_HOST           = leoaiwidgetcdndev.z33.web.core.windows.net  # dev: storage web hostname
+```
+
+Optional (only when `WIDGET_PUBLIC_HOST` is a Cloudflare custom domain):
+
+```
 CLOUDFLARE_API_TOKEN         = <token: Workers Scripts Edit + Workers Routes Edit + Cache Purge>
 CLOUDFLARE_ACCOUNT_ID        = <Cloudflare account id>
 CLOUDFLARE_ZONE_ID           = <zone id of healthcarecopilot.ai>
