@@ -29,6 +29,7 @@ class TestListDomains:
                 "name": "Cancer Audit",
                 "description": "NCDA domains",
                 "subdomain_count": 5,
+                "minimum_dataset_subdomain_count": 2,
             },
         ]
 
@@ -37,6 +38,8 @@ class TestListDomains:
         assert result[0].id == "cancer_audit"
         assert result[0].name == "Cancer Audit"
         assert result[0].subdomain_count == 5
+        assert result[0].minimum_dataset_domain is True
+        assert result[0].minimum_dataset_subdomain_count == 2
         MockKG.return_value.close.assert_called_once()
 
     @patch("services.analytics_api.app.routers.domains._ensure_default_domain")
@@ -118,6 +121,18 @@ class TestGetDomain:
                     "milestoneType": "diagnosis",
                     "timeWindowMonths": None,
                     "semanticTags": ["Disease"],
+                    "completeness_schema": json.dumps(
+                        {
+                            "groups": [
+                                {
+                                    "name": "Diagnosis",
+                                    "required": True,
+                                    "semantic_categories": ["disorder"],
+                                    "concept_ids": [254837009],
+                                }
+                            ]
+                        }
+                    ),
                     "rawJson": raw,
                 }
             ],
@@ -132,6 +147,8 @@ class TestGetDomain:
         assert sub.milestone_type == "diagnosis"
         assert sub.semantic_tags == ["Disease"]
         assert sub.concept_count == 1
+        assert result.minimum_dataset_domain is True
+        assert result.minimum_dataset_subdomain_count == 1
 
     @patch("services.analytics_api.app.routers.domains._ensure_default_domain")
     @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
@@ -182,8 +199,8 @@ class TestDeleteDomain:
         ]
 
         delete_domain("test_audit")
-        assert MockKG.return_value.run.call_count == 2
-        assert "DETACH DELETE" in MockKG.return_value.run.call_args_list[1][0][0]
+        calls = [call[0][0] for call in MockKG.return_value.run.call_args_list]
+        assert any("DETACH DELETE" in query for query in calls)
 
     @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
     def test_404_when_not_found(self, MockKG):
@@ -264,6 +281,7 @@ class TestUpdateSubdomain:
 
         MockKG.return_value.run.side_effect = [
             [],  # SET result
+            [],  # audit write
             [
                 {
                     "name": "cancer_types",
@@ -584,6 +602,191 @@ class TestEnsureDefaultDomain:
         assert MockKG.return_value.run.call_count == 2
         cleanup_call = MockKG.return_value.run.call_args_list[1]
         assert "HAS_SUBDOMAIN" in cleanup_call[0][0]
+
+
+# -- Completeness schema ---------------------------------------------------
+
+
+class TestCompletenessSchema:
+
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
+    def test_save_schema_persists_json_and_audit(self, MockKG, mock_guard):
+        from libs.auth.org_scope import CallerScope
+        from services.analytics_api.app.routers.domains import (
+            CompletenessConceptGroup,
+            CompletenessSchemaRequest,
+            save_completeness_schema,
+        )
+
+        body = CompletenessSchemaRequest(
+            groups=[
+                CompletenessConceptGroup(
+                    name="Diagnosis", required=True, concept_ids=[254837009]
+                )
+            ]
+        )
+        scope = CallerScope(email="admin@example.com", is_admin=True)
+
+        result = save_completeness_schema("cancer_audit", "breast", body, scope)
+
+        assert result.groups[0]["name"] == "Diagnosis"
+        calls = MockKG.return_value.run.call_args_list
+        assert "completeness_schema" in calls[0][0][0]
+        assert calls[0][1]["schema"]
+        assert "DomainConfigAuditLog" in calls[1][0][0]
+        assert calls[1][1]["actor"] == "admin@example.com"
+
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    def test_rejects_schema_without_required_group(self, mock_guard):
+        from services.analytics_api.app.routers.domains import (
+            CompletenessConceptGroup,
+            CompletenessSchemaRequest,
+            save_completeness_schema,
+        )
+
+        body = CompletenessSchemaRequest(
+            groups=[
+                CompletenessConceptGroup(
+                    name="Optional", required=False, concept_ids=[123]
+                )
+            ]
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            save_completeness_schema("cancer_audit", "breast", body)
+
+        assert exc_info.value.status_code == 422
+        assert "at least one required group" in exc_info.value.detail
+
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
+    def test_missing_schema_returns_explicit_error(self, MockKG, mock_guard):
+        from services.analytics_api.app.routers.domains import get_completeness_schema
+
+        MockKG.return_value.run.return_value = [{"completeness_schema": None}]
+
+        with pytest.raises(HTTPException) as exc_info:
+            get_completeness_schema("cancer_audit", "breast")
+
+        assert exc_info.value.status_code == 422
+        assert "No active completeness schema configured" in exc_info.value.detail
+
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
+    def test_preview_reports_matched_and_missing_without_persisting(
+        self, MockKG, mock_guard
+    ):
+        from services.analytics_api.app.routers.domains import (
+            CompletenessConceptGroup,
+            CompletenessPreviewRequest,
+            CompletenessSchemaRequest,
+            preview_completeness_schema,
+        )
+
+        MockKG.return_value.run.return_value = []
+        body = CompletenessPreviewRequest(
+            concept_ids=[111],
+            candidate_schema=CompletenessSchemaRequest(
+                groups=[
+                    CompletenessConceptGroup(
+                        name="Presenting symptom", required=True, concept_ids=[111]
+                    ),
+                    CompletenessConceptGroup(
+                        name="Diagnosis", required=True, concept_ids=[222]
+                    ),
+                ]
+            ),
+        )
+
+        result = preview_completeness_schema("cancer_audit", "breast", body)
+
+        assert result.complete is False
+        assert result.matched_groups[0].name == "Presenting symptom"
+        assert result.missing_groups[0].missing_concept_ids == [222]
+
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    @patch("services.analytics_api.app.routers.domains.KnowledgeGraphClient")
+    def test_preview_matches_semantic_category(self, MockKG, mock_guard):
+        from services.analytics_api.app.routers.domains import (
+            CompletenessConceptGroup,
+            CompletenessPreviewRequest,
+            CompletenessSchemaRequest,
+            preview_completeness_schema,
+        )
+
+        MockKG.return_value.run.return_value = [
+            {"id": "111", "semantic_tag": "disorder"}
+        ]
+        body = CompletenessPreviewRequest(
+            concept_ids=[111],
+            candidate_schema=CompletenessSchemaRequest(
+                groups=[
+                    CompletenessConceptGroup(
+                        name="Any disorder",
+                        required=True,
+                        semantic_categories=["disorder"],
+                    )
+                ]
+            ),
+        )
+
+        result = preview_completeness_schema("cancer_audit", "breast", body)
+
+        assert result.complete is True
+        assert result.matched_groups[0].name == "Any disorder"
+
+    @patch("services.analytics_api.app.routers.domains._semantic_tags_for_concepts")
+    @patch("services.analytics_api.app.routers.domains._load_completeness_schema")
+    @patch("services.analytics_api.app.routers.domains._ensure_domain_owns_subdomain")
+    def test_runtime_lower_gi_completeness_ignores_extra_codes(
+        self, mock_guard, mock_load_schema, mock_tags
+    ):
+        from services.analytics_api.app.routers.domains import (
+            CompletenessPreviewRequest,
+            preview_completeness_schema,
+        )
+
+        mock_load_schema.return_value = [
+            {
+                "name": "FIT result",
+                "required": True,
+                "semantic_categories": [],
+                "concept_ids": [123],
+            },
+            {
+                "name": "Blood results",
+                "required": True,
+                "semantic_categories": [],
+                "concept_ids": [101],
+            },
+            {
+                "name": "Presenting symptom",
+                "required": True,
+                "semantic_categories": ["finding"],
+                "concept_ids": [],
+            },
+        ]
+        mock_tags.side_effect = lambda ids: {
+            cid: "finding" for cid in ids if cid == 201
+        }
+
+        cases = [
+            ([123, 101, 201], True, []),
+            ([123, 201], False, ["Blood results"]),
+            ([123, 101, 201, 999], True, []),
+            ([123, 999], False, ["Blood results", "Presenting symptom"]),
+        ]
+        for concept_ids, expected_complete, missing_names in cases:
+            result = preview_completeness_schema(
+                "cancer_referrals",
+                "lower_gi",
+                CompletenessPreviewRequest(concept_ids=concept_ids),
+            )
+            assert result.complete is expected_complete
+            assert [group.name for group in result.missing_groups] == missing_names
+
+        mock_load_schema.assert_called_with("ncda-lower-gi", "lower_gi")
 
 
 # ── Helper functions ──────────────────────────────────────────────────────

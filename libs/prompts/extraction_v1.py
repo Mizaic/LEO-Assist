@@ -129,6 +129,8 @@ KEEP (extract when present in sentence_subset):
 - blood-panel observables: abbrev in text (Hb, Plts, Ferritin), value in fields
 - named tests arranged or booked: urgent MRI scan of the brain, colonoscopy arranged
 - patient declined referral (clinical decision)
+- NSS / SystmOne safety checklist items when echoed in free text (warfarin treatment,
+  NOAC treatment, metformin treatment, insulin treatment, eGFR, BMI, smoking status)
 
 DROP (do not extract -- informational routing):
 - "Urgent 2WW ... referral" email/form headers

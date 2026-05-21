@@ -15,7 +15,17 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from libs.auth.org_scope import CallerScope, get_caller_scope
-from app.deps import require_admin
+from libs.terminology.cache_invalidation import (
+    invalidate_terminology_resolution_caches,
+)
+
+try:
+    from app.deps import require_admin
+except Exception:  # pragma: no cover - repo-root test imports
+
+    def require_admin():
+        return None
+
 
 try:
     from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
@@ -54,6 +64,11 @@ except Exception:  # pragma: no cover - compatibility for tests/import-only call
     DEDUPLICATE_SURFACE_FORM_RELS = ""
     AUDIT_SURFACE_FORM_DUPLICATES = ""
 from libs.cypher.terminology_queries import SEMANTIC_TAGS_QUERY
+from services.terminology_api.app.services.surface_form_admin import (
+    approve_surface_form_mapping,
+    deactivate_surface_form_mapping,
+    list_mapping_audit_log,
+)
 from services.terminology_api.app.services.writeback_service import (
     writeback_approved_terms,
 )
@@ -168,6 +183,7 @@ class UpsertMappingRequest(BaseModel):
     source: str = "manual"
     provenance: str = "manual_correction"
     created_by: str = "manual_mapping"
+    actor: str = "knowledge-admin"
 
 
 @router.post("/surface-forms/upsert-mapping")
@@ -187,11 +203,15 @@ def upsert_surface_form_mapping(
             source=body.source,
             provenance=body.provenance,
             created_by=body.created_by,
+            actor=body.actor,
         )
         if not rows:
             from fastapi import HTTPException
 
             raise HTTPException(404, f"Concept {body.concept_id} not found")
+        invalidate_terminology_resolution_caches(
+            reason=f"surface_form_upsert:{body.normalized}"
+        )
         return rows[0]
     finally:
         client.close()
@@ -240,6 +260,10 @@ def delete_surface_form(
                 concept_id=concept_id,
             )
             removed = rows[0]["removed"] if rows else 0
+            if removed:
+                invalidate_terminology_resolution_caches(
+                    reason=f"surface_form_delete_mapping:{normalized}"
+                )
             return {
                 "normalized": normalized,
                 "concept_id": concept_id,
@@ -252,12 +276,19 @@ def delete_surface_form(
                 keep_concept_id=keep_concept_id,
             )
             removed = rows[0]["removed"] if rows else 0
+            if removed:
+                invalidate_terminology_resolution_caches(
+                    reason=f"surface_form_keep_mapping:{normalized}"
+                )
             return {
                 "normalized": normalized,
                 "kept_concept_id": keep_concept_id,
                 "removed": removed,
             }
         client.run(DELETE_SURFACE_FORM, normalized=normalized)
+        invalidate_terminology_resolution_caches(
+            reason=f"surface_form_delete:{normalized}"
+        )
         return {"deleted": normalized}
     finally:
         client.close()
@@ -285,7 +316,76 @@ def deduplicate_surface_forms(
     try:
         rows = client.run(DEDUPLICATE_SURFACE_FORM_RELS)
         removed = rows[0]["duplicates_removed"] if rows else 0
+        if removed:
+            invalidate_terminology_resolution_caches(reason="surface_form_deduplicate")
         return {"duplicates_removed": removed}
+    finally:
+        client.close()
+
+
+class ApproveMappingRequest(BaseModel):
+    reviewer: str = "knowledge-admin"
+    concept_id: Optional[str] = None
+
+
+class DeactivateMappingRequest(BaseModel):
+    actor: str = "knowledge-admin"
+
+
+@router.post("/surface-forms/{normalized:path}/approve")
+def approve_surface_form_mapping_route(
+    normalized: str,
+    body: ApproveMappingRequest,
+    _scope: CallerScope = Depends(require_admin),
+):
+    """Approve a pending surface form mapping for runtime resolve."""
+    client = CodingGraphClient()
+    try:
+        return approve_surface_form_mapping(
+            client,
+            normalized=normalized,
+            reviewer=body.reviewer,
+            concept_id=body.concept_id,
+        )
+    finally:
+        client.close()
+
+
+@router.post("/surface-forms/{normalized:path}/deactivate")
+def deactivate_surface_form_mapping_route(
+    normalized: str,
+    body: DeactivateMappingRequest,
+    _scope: CallerScope = Depends(require_admin),
+):
+    """Deactivate a surface form mapping so it is excluded from runtime resolve."""
+    client = CodingGraphClient()
+    try:
+        return deactivate_surface_form_mapping(
+            client,
+            normalized=normalized,
+            actor=body.actor,
+        )
+    finally:
+        client.close()
+
+
+@router.get("/surface-forms/audit-log")
+def surface_form_audit_log_route(
+    normalized: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Return per-change audit entries for surface form mappings."""
+    _ = scope
+    client = CodingGraphClient()
+    try:
+        return list_mapping_audit_log(
+            client,
+            normalized=normalized,
+            limit=limit,
+            offset=offset,
+        )
     finally:
         client.close()
 

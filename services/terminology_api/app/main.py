@@ -1,9 +1,9 @@
 """Terminology API service.
 
-Atlas trace:
-  DO: DO-0F8F8E02
-  DI: DI-5EECDA58
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F8F8E02")
+Atlas trace (local clinical language mappings):
+  UN: UN-72B60B2D
+  DI: DI-47D2CD86
+  DO: DO-5A88E0B9
 
 Owns SNOMED search, hybrid coding resolution, terminology writeback,
 ValueSet/ConceptMap CRUD, and Redis-cached terminology lookups,

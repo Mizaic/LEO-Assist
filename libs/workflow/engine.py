@@ -669,6 +669,22 @@ class WorkflowEngine:
         return state
 
     @staticmethod
+    def _validation_terms_from_entities(entities: Any) -> list[dict[str, str]]:
+        """Build phrase-level validation terms with text and semantic_tag."""
+        terms: list[dict[str, str]] = []
+        if not isinstance(entities, list):
+            return terms
+        for entity in entities:
+            if not isinstance(entity, dict):
+                continue
+            text = str(entity.get("text") or "").strip()
+            if not text:
+                continue
+            tag = str(entity.get("label") or entity.get("semantic_tag") or "finding")
+            terms.append({"text": text, "semantic_tag": tag})
+        return terms
+
+    @staticmethod
     def _record_validation_stage_snapshot(
         pipeline_state: dict[str, Any], subgraph_id: str
     ) -> None:
@@ -1399,12 +1415,9 @@ class WorkflowEngine:
                     audit["validation_output"] = json.dumps(
                         {
                             "case_id": pipeline_state.get("case_id", ""),
-                            "terms": [
-                                {"text": str(e.get("text") or "").strip()}
-                                for e in (pipeline_state.get("entities") or [])
-                                if isinstance(e, dict)
-                                and str(e.get("text") or "").strip()
-                            ],
+                            "terms": WorkflowEngine._validation_terms_from_entities(
+                                pipeline_state.get("entities")
+                            ),
                             "errors": errors[:50],
                             "stage_snapshots": stage_snapshots,
                         }

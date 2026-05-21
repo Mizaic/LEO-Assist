@@ -107,6 +107,8 @@ def seed_if_missing(client: object) -> None:  # type: ignore[type-arg]
             "review_status": case.get("review_status", "draft_for_clinician_approval"),
             "expected_strings": json.dumps(case.get("expected_strings", [])),
             "expected_observables": json.dumps(case.get("expected_observables", [])),
+            "expected_analysis": json.dumps(case.get("expected_analysis") or {}),
+            "expected_sbar": json.dumps(case.get("expected_sbar") or {}),
             "must_not_extract": json.dumps(case.get("must_not_extract", [])),
             "markdown_body": _markdown_body(case),
             "source_template_markdown": case.get("source_template_markdown", ""),

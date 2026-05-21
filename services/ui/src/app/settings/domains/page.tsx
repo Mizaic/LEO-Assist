@@ -174,47 +174,63 @@ function DomainCard({
             {domain.name}
           </Typography>
         </Box>
-        {isNice ? (
-          <Chip
-            icon={<MenuBookOutlinedIcon sx={{ fontSize: 12 }} />}
-            label="NICE"
-            size="small"
-            sx={{
-              height: 22,
-              fontSize: "0.7rem",
-              bgcolor: "#DBEAFE",
-              color: "#1E40AF",
-              border: "1px solid #BFDBFE",
-              flexShrink: 0,
-            }}
-          />
-        ) : isPlatform ? (
-          <Chip
-            label="Built in"
-            size="small"
-            sx={{
-              height: 22,
-              fontSize: "0.7rem",
-              bgcolor: "#F1F5F9",
-              color: "#475569",
-              border: "1px solid #E2E8F0",
-              flexShrink: 0,
-            }}
-          />
-        ) : (
-          <Chip
-            label="Your org"
-            size="small"
-            sx={{
-              height: 22,
-              fontSize: "0.7rem",
-              bgcolor: "#ECFDF5",
-              color: "#047857",
-              border: "1px solid #A7F3D0",
-              flexShrink: 0,
-            }}
-          />
-        )}
+        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {domain.minimum_dataset_domain ? (
+            <Chip
+              label="Minimum dataset"
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: "0.7rem",
+                bgcolor: "#EEF2FF",
+                color: "#3730A3",
+                border: "1px solid #C7D2FE",
+                flexShrink: 0,
+              }}
+            />
+          ) : null}
+          {isNice ? (
+            <Chip
+              icon={<MenuBookOutlinedIcon sx={{ fontSize: 12 }} />}
+              label="NICE"
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: "0.7rem",
+                bgcolor: "#DBEAFE",
+                color: "#1E40AF",
+                border: "1px solid #BFDBFE",
+                flexShrink: 0,
+              }}
+            />
+          ) : isPlatform ? (
+            <Chip
+              label="Built in"
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: "0.7rem",
+                bgcolor: "#F1F5F9",
+                color: "#475569",
+                border: "1px solid #E2E8F0",
+                flexShrink: 0,
+              }}
+            />
+          ) : (
+            <Chip
+              label="Your org"
+              size="small"
+              sx={{
+                height: 22,
+                fontSize: "0.7rem",
+                bgcolor: "#ECFDF5",
+                color: "#047857",
+                border: "1px solid #A7F3D0",
+                flexShrink: 0,
+              }}
+            />
+          )}
+        </Box>
       </Box>
       {domain.description ? (
         <Typography
@@ -256,6 +272,9 @@ function DomainCard({
         >
           {domain.subdomain_count} subdomain
           {domain.subdomain_count !== 1 ? "s" : ""}
+          {domain.minimum_dataset_domain
+            ? ` - ${domain.minimum_dataset_subdomain_count ?? 0} minimum dataset`
+            : ""}
         </Typography>
         <ChevronRightIcon sx={{ fontSize: 18, color: "#94A3B8" }} />
       </Box>

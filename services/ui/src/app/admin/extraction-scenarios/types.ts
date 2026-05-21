@@ -13,6 +13,35 @@ export type ReviewStatus = "draft_for_clinician_approval" | "approved";
 export interface ExpectedPhrase {
   text: string;
   semantic_tag: string;
+  value?: string;
+  unit?: string;
+  concept_id?: string;
+  preferred_term?: string;
+}
+
+export interface ObservableValue {
+  value?: string;
+  unit?: string;
+}
+
+/** Placeholder for roaring-bitmap / guideline analysis expectations. */
+export interface ExpectedAnalysis {
+  matched_rule_ids: string[];
+  expect_no_rules_fired: boolean;
+  expected_action_priority: string | null;
+  reviewer_notes: string;
+}
+
+/** Placeholder for expected SBAR transcript expectations. */
+export interface ExpectedSbar {
+  situation_md: string;
+  background_md: string;
+  recommendation_md: string;
+  matched_rule_ids: string[];
+  required_phrases: string[];
+  banned_phrases: string[];
+  expected_action_priority: string | null;
+  reviewer_focus: string;
 }
 
 export interface ExtractionScenarioRow {
@@ -46,6 +75,7 @@ export interface ExtractionScenarioDetail extends ExtractionScenarioRow {
     | {
         results?: Array<{
           test_name: string;
+          display_name?: string;
           value?: number | string;
           unit?: string;
           flag?: string;
@@ -53,6 +83,8 @@ export interface ExtractionScenarioDetail extends ExtractionScenarioRow {
       }
     | unknown[]
     | null;
+  expected_analysis?: ExpectedAnalysis | null;
+  expected_sbar?: ExpectedSbar | null;
 }
 
 export interface ScenarioListResponse {
@@ -108,6 +140,8 @@ export interface ScenarioWritePayload {
   difficulty: string[];
   notes_for_clinician_review?: string | null;
   expected_observables?: ExtractionScenarioDetail["expected_observables"];
+  expected_analysis?: ExtractionScenarioDetail["expected_analysis"];
+  expected_sbar?: ExtractionScenarioDetail["expected_sbar"];
   synthetic_patient?: ExtractionScenarioDetail["synthetic_patient"];
   blood_results?: ExtractionScenarioDetail["blood_results"];
   source_template_markdown?: string | null;

@@ -84,6 +84,7 @@ export default function ChipSearchPopover({
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}
+      disableRestoreFocus
       anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       slotProps={{

@@ -174,7 +174,7 @@ describe("RuleDetailPanel - multi-pathway tree (NG12-like)", () => {
 
   it("still renders the demographic chip alongside the pathway cards", () => {
     renderTree(NG12_LIKE_TREE);
-    expect(screen.getByText(/age >= 40 years/i)).toBeInTheDocument();
+    expect(screen.getByText(/age is at least 40 years/i)).toBeInTheDocument();
   });
 
   it("uses a group landmark with the 'Patient pathways' label", () => {

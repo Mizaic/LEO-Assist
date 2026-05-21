@@ -461,9 +461,18 @@ export async function upsertSurfaceFormMapping(
   normalized: string,
   form: string,
   conceptId: string,
-  options?: { confidence?: number; provenance?: string; source?: string },
+  options?: { confidence?: number; provenance?: string; source?: string; actor?: string },
 ) {
-  return fetchJson<{ normalized: string; form: string; concept_id: string; concept_fsn: string }>(
+  return fetchJson<{
+    normalized: string;
+    form: string;
+    concept_id: string;
+    concept_fsn: string;
+    status?: string;
+    reviewer?: string;
+    reviewed_at?: string;
+    effective_at?: string;
+  }>(
     `${API_BASE}/api/terminology/surface-forms/upsert-mapping`,
     {
       method: "POST",
@@ -475,7 +484,69 @@ export async function upsertSurfaceFormMapping(
         confidence: options?.confidence ?? 1.0,
         provenance: options?.provenance ?? "manual_correction",
         source: options?.source ?? "manual",
+        actor: options?.actor ?? "knowledge-admin",
       }),
+    },
+  );
+}
+
+export interface SurfaceFormAuditEntry {
+  id: string;
+  normalized: string;
+  action: string;
+  actor: string;
+  outcome: string;
+  detail?: string;
+  concept_id?: string;
+  created_at?: string;
+}
+
+export interface SurfaceFormAuditPage {
+  items: SurfaceFormAuditEntry[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export async function fetchSurfaceFormAuditLog(
+  normalized?: string,
+  limit = 50,
+  offset = 0,
+): Promise<SurfaceFormAuditPage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (normalized) params.set("normalized", normalized);
+  return fetchJson<SurfaceFormAuditPage>(
+    `${API_BASE}/api/terminology/surface-forms/audit-log?${params}`,
+  );
+}
+
+export async function approveSurfaceFormMapping(
+  normalized: string,
+  options?: { reviewer?: string; conceptId?: string },
+) {
+  return fetchJson<GroupedSurfaceForm & { concept_id: string; concept_fsn: string }>(
+    `${API_BASE}/api/terminology/surface-forms/${encodeURIComponent(normalized)}/approve`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reviewer: options?.reviewer ?? "knowledge-admin",
+        concept_id: options?.conceptId,
+      }),
+    },
+  );
+}
+
+export async function deactivateSurfaceFormMapping(
+  normalized: string,
+  options?: { actor?: string },
+) {
+  return fetchJson<GroupedSurfaceForm & { concept_id: string; concept_fsn: string }>(
+    `${API_BASE}/api/terminology/surface-forms/${encodeURIComponent(normalized)}/deactivate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actor: options?.actor ?? "knowledge-admin" }),
     },
   );
 }
@@ -557,6 +628,10 @@ export interface GroupedSurfaceForm {
   normalized: string;
   form: string;
   source?: string;
+  status?: string;
+  reviewer?: string;
+  reviewed_at?: string;
+  effective_at?: string;
   created_by?: string;
   created_at?: string;
   confidence?: number;

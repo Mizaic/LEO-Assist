@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE
@@ -187,6 +187,7 @@ _VALUESET_READ_QUERY = (
     "       v.semanticTags AS semanticTags, "
     "       coalesce(v.assertionFilter, []) AS assertionFilter, "
     "       coalesce(v.constructs, []) AS constructs, "
+    "       v.completeness_schema AS completeness_schema, "
     "       v.rawJson AS rawJson"
 )
 
@@ -216,6 +217,70 @@ def _parse_constructs_prop(val: Any) -> List[Dict[str, Any]]:
     if not isinstance(parsed, list):
         return []
     return [row for row in parsed if isinstance(row, dict)]
+
+
+def _parse_completeness_schema_prop(val: Any) -> List[Dict[str, Any]]:
+    """Coerce the stored completeness schema JSON to group rows."""
+    if not val:
+        return []
+    parsed = val
+    if isinstance(parsed, str):
+        try:
+            parsed = json.loads(parsed)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    if isinstance(parsed, dict):
+        parsed = parsed.get("groups", [])
+    if not isinstance(parsed, list):
+        return []
+    return [row for row in parsed if isinstance(row, dict)]
+
+
+def _normalise_completeness_schema(
+    groups: List[CompletenessConceptGroup],
+) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    for group in groups:
+        rows.append(
+            {
+                "name": group.name.strip(),
+                "required": bool(group.required),
+                "semantic_categories": [s.strip() for s in group.semantic_categories],
+                "concept_ids": [int(cid) for cid in group.concept_ids if int(cid) > 0],
+            }
+        )
+    if not any(row["required"] for row in rows):
+        raise HTTPException(422, "Completeness schema needs at least one required group")
+    return rows
+
+
+def _record_domain_config_audit(
+    action: str,
+    target_type: str,
+    target_id: str,
+    actor: str,
+    new_values: Dict[str, Any],
+) -> None:
+    client = KnowledgeGraphClient()
+    try:
+        client.run(
+            "CREATE (:DomainConfigAuditLog {id: randomUUID(), action: $action, "
+            "targetType: $target_type, targetId: $target_id, actor: $actor, "
+            "timestamp: datetime(), newValues: $new_values})",
+            action=action,
+            target_type=target_type,
+            target_id=target_id,
+            actor=actor,
+            new_values=json.dumps(new_values, sort_keys=True),
+        )
+    except Exception as exc:
+        logger.warning("Domain config audit write failed: %s", exc)
+    finally:
+        client.close()
+
+
+def _actor_email(scope: Any) -> str:
+    return str(getattr(scope, "email", "system"))
 
 
 def _batch_child_counts(concept_ids: List[str], depth: int = 3) -> Dict[str, int]:
@@ -268,6 +333,9 @@ def _valueset_row_to_subdomain_detail(
         semantic_tags=_parse_list_prop(vr.get("semanticTags")),
         assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
         constructs=constructs,
+        completeness_schema=_parse_completeness_schema_prop(
+            vr.get("completeness_schema")
+        ),
         construct_count=len(constructs),
         concepts=concepts,
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
@@ -345,6 +413,7 @@ class SubdomainSummary(BaseModel):
     semantic_tags: List[str] = []
     assertion_filter: List[str] = []
     constructs: List[Dict[str, Any]] = []
+    completeness_schema: List[Dict[str, Any]] = []
     construct_count: int = 0
     concept_count: int = 0
     descendant_count: int = 0
@@ -361,6 +430,8 @@ class DomainSummary(BaseModel):
     subdomain_count: int = 0
     source: str = "tenant"
     episode_detector: bool = False
+    minimum_dataset_domain: bool = False
+    minimum_dataset_subdomain_count: int = 0
 
 
 class DomainDetail(DomainSummary):
@@ -396,6 +467,44 @@ class SubdomainUpdateRequest(BaseModel):
     semantic_tags: Optional[List[str]] = None
     assertion_filter: Optional[List[str]] = None
     constructs: Optional[List[Dict[str, Any]]] = None
+
+
+class CompletenessConceptGroup(BaseModel):
+    name: str = Field(..., min_length=1)
+    required: bool = True
+    semantic_categories: List[str] = []
+    concept_ids: List[int] = []
+
+
+class CompletenessSchemaRequest(BaseModel):
+    groups: List[CompletenessConceptGroup] = []
+
+
+class CompletenessSchemaResponse(BaseModel):
+    groups: List[Dict[str, Any]]
+
+
+class CompletenessPreviewRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    concept_ids: List[int] = []
+    candidate_schema: Optional[CompletenessSchemaRequest] = Field(
+        default=None, alias="schema"
+    )
+
+
+class CompletenessGroupResult(BaseModel):
+    name: str
+    required: bool
+    matched: bool
+    matched_concept_ids: List[int]
+    missing_concept_ids: List[int]
+
+
+class CompletenessPreviewResponse(BaseModel):
+    matched_groups: List[CompletenessGroupResult]
+    missing_groups: List[CompletenessGroupResult]
+    complete: bool
 
 
 class AddConceptRequest(BaseModel):
@@ -447,7 +556,11 @@ def list_domains(
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
                 "coalesce(d.episodeDetector, false) AS episode_detector, "
-                "count(DISTINCT v) AS subdomain_count "
+                "count(DISTINCT v) AS subdomain_count, "
+                "count(DISTINCT CASE WHEN "
+                "coalesce(v.completeness_schema_active, false) = true "
+                "OR v.completeness_schema IS NOT NULL THEN v END) "
+                "AS minimum_dataset_subdomain_count "
                 "ORDER BY d.name"
             )
             rows = client.run(cypher, source=source)
@@ -458,7 +571,11 @@ def list_domains(
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
                 "coalesce(d.episodeDetector, false) AS episode_detector, "
-                "count(DISTINCT v) AS subdomain_count "
+                "count(DISTINCT v) AS subdomain_count, "
+                "count(DISTINCT CASE WHEN "
+                "coalesce(v.completeness_schema_active, false) = true "
+                "OR v.completeness_schema IS NOT NULL THEN v END) "
+                "AS minimum_dataset_subdomain_count "
                 "ORDER BY d.name"
             )
         return [
@@ -469,6 +586,12 @@ def list_domains(
                 subdomain_count=r.get("subdomain_count", 0),
                 source=r.get("source", "tenant"),
                 episode_detector=bool(r.get("episode_detector", False)),
+                minimum_dataset_domain=bool(
+                    r.get("minimum_dataset_subdomain_count", 0)
+                ),
+                minimum_dataset_subdomain_count=r.get(
+                    "minimum_dataset_subdomain_count", 0
+                ),
             )
             for r in rows
         ]
@@ -557,6 +680,13 @@ def create_domain(
             desc=body.description,
             ep_det=body.episode_detector,
         )
+        _record_domain_config_audit(
+            "create_domain",
+            "AuditDomain",
+            domain_id,
+            _actor_email(scope),
+            body.model_dump(),
+        )
         return DomainSummary(
             id=domain_id,
             name=body.name,
@@ -564,6 +694,8 @@ def create_domain(
             subdomain_count=0,
             source="tenant",
             episode_detector=body.episode_detector,
+            minimum_dataset_domain=False,
+            minimum_dataset_subdomain_count=0,
         )
     finally:
         client.close()
@@ -596,6 +728,7 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
             "       v.semanticTags AS semanticTags, "
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       coalesce(v.constructs, []) AS constructs, "
+            "       v.completeness_schema AS completeness_schema, "
             "       v.rawJson AS rawJson "
             "ORDER BY v.name",
             id=domain_id,
@@ -627,12 +760,18 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
                     semantic_tags=_parse_list_prop(vr.get("semanticTags")),
                     assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
                     constructs=constructs,
+                    completeness_schema=_parse_completeness_schema_prop(
+                        vr.get("completeness_schema")
+                    ),
                     construct_count=len(constructs),
                     concept_count=len(concept_ids),
                     descendant_count=desc_count,
                 )
             )
 
+        minimum_dataset_subdomain_count = sum(
+            1 for subdomain in subdomains if subdomain.completeness_schema
+        )
         return DomainDetail(
             id=d["id"],
             name=d["name"] or d["id"],
@@ -641,6 +780,8 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
             subdomains=subdomains,
             source=d.get("source", "tenant"),
             episode_detector=bool(d.get("episode_detector", False)),
+            minimum_dataset_domain=minimum_dataset_subdomain_count > 0,
+            minimum_dataset_subdomain_count=minimum_dataset_subdomain_count,
         )
     finally:
         client.close()
@@ -677,13 +818,25 @@ def update_domain(
             client.run(
                 f"MATCH (d:AuditDomain {{id: $id}}) SET {', '.join(sets)}", **params
             )
+            _record_domain_config_audit(
+                "update_domain",
+                "AuditDomain",
+                domain_id,
+                _actor_email(scope),
+                body.model_dump(exclude_none=True),
+            )
 
         rows = client.run(
             "MATCH (d:AuditDomain {id: $id}) "
             "OPTIONAL MATCH (d)-[:HAS_SUBDOMAIN]->(v:ValueSet) "
             "RETURN d.id AS id, d.name AS name, d.description AS description, "
+            "coalesce(d.source, 'tenant') AS source, "
             "coalesce(d.episodeDetector, false) AS episode_detector, "
-            "count(v) AS subdomain_count",
+            "count(v) AS subdomain_count, "
+            "count(DISTINCT CASE WHEN "
+            "coalesce(v.completeness_schema_active, false) = true "
+            "OR v.completeness_schema IS NOT NULL THEN v END) "
+            "AS minimum_dataset_subdomain_count",
             id=domain_id,
         )
         r = rows[0]
@@ -692,7 +845,12 @@ def update_domain(
             name=r["name"] or r["id"],
             description=r.get("description") or "",
             subdomain_count=r.get("subdomain_count", 0),
+            source=r.get("source", "tenant"),
             episode_detector=bool(r.get("episode_detector", False)),
+            minimum_dataset_domain=bool(r.get("minimum_dataset_subdomain_count", 0)),
+            minimum_dataset_subdomain_count=r.get(
+                "minimum_dataset_subdomain_count", 0
+            ),
         )
     finally:
         client.close()
@@ -722,6 +880,13 @@ def delete_domain(domain_id: str, scope: CallerScope = Depends(_require_admin)):
                 "You can manage its concepts, but you cannot delete it.",
             )
         client.run("MATCH (d:AuditDomain {id: $id}) DETACH DELETE d", id=domain_id)
+        _record_domain_config_audit(
+            "delete_domain",
+            "AuditDomain",
+            domain_id,
+            _actor_email(scope),
+            {"source": domain_source},
+        )
     finally:
         client.close()
 
@@ -746,6 +911,13 @@ def delete_subdomain(
         )
     finally:
         client.close()
+    _record_domain_config_audit(
+        "delete_subdomain",
+        "ValueSet",
+        vs_id,
+        _actor_email(scope),
+        {"domain_id": domain_id, "subdomain_name": subdomain_name},
+    )
     DomainRegistry.reset_instance()
 
 
@@ -810,6 +982,13 @@ def create_subdomain(
         )
     finally:
         client.close()
+    _record_domain_config_audit(
+        "create_subdomain",
+        "ValueSet",
+        vs_id,
+        _actor_email(scope),
+        {"domain_id": domain_id, **body.model_dump()},
+    )
 
     DomainRegistry.reset_instance()
 
@@ -847,6 +1026,7 @@ def get_subdomain(
             "       v.semanticTags AS semanticTags, "
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       coalesce(v.constructs, []) AS constructs, "
+            "       v.completeness_schema AS completeness_schema, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )
@@ -901,6 +1081,13 @@ def update_subdomain(
             client.run(
                 f"MATCH (v:ValueSet {{id: $id}}) SET {', '.join(sets)}", **params
             )
+            _record_domain_config_audit(
+                "update_subdomain",
+                "ValueSet",
+                vs_id,
+                _actor_email(scope),
+                {"domain_id": domain_id, **body.model_dump(exclude_none=True)},
+            )
 
         rows = client.run(
             "MATCH (v:ValueSet {id: $id}) "
@@ -910,6 +1097,7 @@ def update_subdomain(
             "       v.semanticTags AS semanticTags, "
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       coalesce(v.constructs, []) AS constructs, "
+            "       v.completeness_schema AS completeness_schema, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )
@@ -942,9 +1130,170 @@ def update_subdomain(
         semantic_tags=tags,
         assertion_filter=af,
         constructs=_parse_constructs_prop(vr.get("constructs")),
+        completeness_schema=_parse_completeness_schema_prop(
+            vr.get("completeness_schema")
+        ),
         construct_count=len(_parse_constructs_prop(vr.get("constructs"))),
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
     )
+
+
+def _load_completeness_schema(vs_id: str, subdomain_name: str) -> List[Dict[str, Any]]:
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (v:ValueSet {id: $id}) "
+            "RETURN v.completeness_schema AS completeness_schema",
+            id=vs_id,
+        )
+    finally:
+        client.close()
+    if not rows:
+        raise HTTPException(404, f"Subdomain '{subdomain_name}' not found")
+    schema = _parse_completeness_schema_prop(rows[0].get("completeness_schema"))
+    if not schema:
+        raise HTTPException(
+            422,
+            f"No active completeness schema configured for subdomain '{subdomain_name}'",
+        )
+    return schema
+
+
+def _semantic_tags_for_concepts(concept_ids: List[int]) -> Dict[int, str]:
+    ids = [str(cid) for cid in concept_ids if int(cid) > 0]
+    if not ids:
+        return {}
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(
+            "MATCH (c:Concept) WHERE c.id IN $ids "
+            "RETURN c.id AS id, "
+            "coalesce(c.semantic_tag, c.semanticTag, c.tag, '') AS semantic_tag",
+            ids=ids,
+        )
+    except Exception as exc:
+        logger.warning("Completeness preview semantic-tag lookup failed: %s", exc)
+        return {}
+    finally:
+        client.close()
+    out: Dict[int, str] = {}
+    for row in rows or []:
+        try:
+            cid = int(row.get("id"))
+        except (TypeError, ValueError):
+            continue
+        tag = str(row.get("semantic_tag") or "").strip()
+        if tag:
+            out[cid] = tag
+    return out
+
+
+def _preview_completeness(
+    schema: List[Dict[str, Any]], concept_ids: List[int]
+) -> CompletenessPreviewResponse:
+    fact_ids = {int(cid) for cid in concept_ids if int(cid) > 0}
+    fact_tags = _semantic_tags_for_concepts(list(fact_ids))
+    matched: List[CompletenessGroupResult] = []
+    missing: List[CompletenessGroupResult] = []
+    for group in schema:
+        required_ids = [int(cid) for cid in group.get("concept_ids", [])]
+        categories = {
+            str(tag).strip()
+            for tag in group.get("semantic_categories", [])
+            if str(tag).strip()
+        }
+        hits = [cid for cid in required_ids if cid in fact_ids]
+        misses = [cid for cid in required_ids if cid not in fact_ids]
+        category_hits = [
+            cid for cid, tag in fact_tags.items() if tag in categories and cid not in hits
+        ]
+        category_missing = bool(categories) and not category_hits
+        matched_ids = hits + category_hits
+        missing_ids = misses + ([-1] if category_missing else [])
+        result = CompletenessGroupResult(
+            name=str(group.get("name") or ""),
+            required=bool(group.get("required")),
+            matched=not missing_ids,
+            matched_concept_ids=matched_ids,
+            missing_concept_ids=missing_ids,
+        )
+        (matched if result.matched else missing).append(result)
+    return CompletenessPreviewResponse(
+        matched_groups=matched,
+        missing_groups=missing,
+        complete=not any(group.required for group in missing),
+    )
+
+
+@router.get(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/schema",
+    response_model=CompletenessSchemaResponse,
+)
+def get_completeness_schema(
+    domain_id: str,
+    subdomain_name: str,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+    schema = _load_completeness_schema(
+        _subdomain_to_valueset_id(subdomain_name), subdomain_name
+    )
+    return CompletenessSchemaResponse(groups=schema)
+
+
+@router.put(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/schema",
+    response_model=CompletenessSchemaResponse,
+)
+def save_completeness_schema(
+    domain_id: str,
+    subdomain_name: str,
+    body: CompletenessSchemaRequest,
+    scope: CallerScope = Depends(_require_admin),
+):
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+    schema = _normalise_completeness_schema(body.groups)
+    vs_id = _subdomain_to_valueset_id(subdomain_name)
+    client = KnowledgeGraphClient()
+    try:
+        client.run(
+            "MATCH (v:ValueSet {id: $id}) "
+            "SET v.completeness_schema = $schema, "
+            "    v.completeness_schema_active = true, "
+            "    v.completeness_schema_updated_at = datetime()",
+            id=vs_id,
+            schema=json.dumps(schema, sort_keys=True),
+        )
+    finally:
+        client.close()
+    _record_domain_config_audit(
+        "save_completeness_schema",
+        "ValueSet",
+        vs_id,
+        _actor_email(scope),
+        {"groups": schema},
+    )
+    return CompletenessSchemaResponse(groups=schema)
+
+
+@router.post(
+    "/domains/{domain_id}/subdomains/{subdomain_name}/schema/preview",
+    response_model=CompletenessPreviewResponse,
+)
+def preview_completeness_schema(
+    domain_id: str,
+    subdomain_name: str,
+    body: CompletenessPreviewRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    _ensure_domain_owns_subdomain(domain_id, subdomain_name)
+    if body.candidate_schema is not None:
+        schema = _normalise_completeness_schema(body.candidate_schema.groups)
+    else:
+        schema = _load_completeness_schema(
+            _subdomain_to_valueset_id(subdomain_name), subdomain_name
+        )
+    return _preview_completeness(schema, body.concept_ids)
 
 
 def _normalise_construct_rows(
@@ -1028,6 +1377,13 @@ def replace_constructs(
         vs = {}
     vs["constructs"] = _normalise_construct_rows(body)
     _upsert_valueset_flat(vs_id, vs)
+    _record_domain_config_audit(
+        "replace_constructs",
+        "ValueSet",
+        vs_id,
+        _actor_email(scope),
+        {"domain_id": domain_id, "constructs": vs["constructs"]},
+    )
     DomainRegistry.reset_instance()
     client = KnowledgeGraphClient()
     try:

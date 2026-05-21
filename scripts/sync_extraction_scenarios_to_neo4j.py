@@ -26,6 +26,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+_API_DIR = REPO_ROOT / "services" / "api"
+if str(_API_DIR) not in sys.path:
+    sys.path.insert(0, str(_API_DIR))
+
 FIXTURE_PATH = (
     REPO_ROOT
     / "tests"
@@ -67,6 +73,8 @@ def _case_params(case: dict, fixture: dict, now: str) -> dict:
         "review_status": case.get("review_status", "draft_for_clinician_approval"),
         "expected_strings": json.dumps(case.get("expected_strings", [])),
         "expected_observables": json.dumps(case.get("expected_observables", [])),
+        "expected_analysis": json.dumps(case.get("expected_analysis") or {}),
+        "expected_sbar": json.dumps(case.get("expected_sbar") or {}),
         "must_not_extract": json.dumps(case.get("must_not_extract", [])),
         "markdown_body": _markdown_body(case),
         "source_template_markdown": case.get("source_template_markdown", ""),

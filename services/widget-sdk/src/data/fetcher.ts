@@ -13,7 +13,12 @@
  * /sdk/sbar/ assessment-id check.
  */
 
-import type { SbarAssessmentPayload } from "./types";
+import type {
+  CompletenessFinding,
+  GuidelineMatch,
+  SbarAssessmentPayload,
+  SbarBackgroundPart,
+} from "./types";
 
 export interface FetchAssessmentArgs {
   assessmentId: string;
@@ -30,6 +35,48 @@ export interface FetchAssessmentArgs {
 export type FetchAssessmentFn = (
   args: FetchAssessmentArgs,
 ) => Promise<SbarAssessmentPayload>;
+
+/**
+ * Normalise a raw snake_case API response into the camelCase widget
+ * payload. The LEO API uses Python snake_case conventions; the widget
+ * contract is camelCase. This is the single place where the mapping
+ * is applied so the rest of the widget never sees raw API field names.
+ */
+export function normalisePayload(
+  raw: Record<string, unknown>,
+): SbarAssessmentPayload {
+  const rawMatches = (
+    (raw["guideline_matches"] ?? []) as Array<Record<string, unknown>>
+  ).map(
+    (m): GuidelineMatch => ({
+      ruleId: m["rule_id"] as string,
+      name: m["name"] as string,
+      strength: m["strength"] as string,
+      guidelineId: m["guideline_id"] as string,
+      recommendationVerbatim: (m["recommendation_verbatim"] ?? null) as
+        | string
+        | null,
+    }),
+  );
+
+  const rawCompleteness = raw["completeness_findings"] as
+    | CompletenessFinding
+    | null
+    | undefined;
+
+  return {
+    assessmentId: raw["assessment_id"] as string,
+    tenantId: raw["tenant_id"] as string,
+    generatedAt: raw["generated_at"] as string,
+    markdown: raw["markdown"] as string,
+    backgroundParts: (raw["background_parts"] ?? []) as SbarBackgroundPart[],
+    patientReferenceLabel: raw["patient_reference_label"] as
+      | string
+      | undefined,
+    guidelineMatches: rawMatches,
+    completenessFinding: rawCompleteness ?? null,
+  };
+}
 
 let _impl: FetchAssessmentFn | null = null;
 
@@ -75,8 +122,8 @@ async function _defaultFetcher(
   if (!res.ok) {
     throw new Error(`leo-widget: assessment fetch failed (${res.status})`);
   }
-  const body = (await res.json()) as SbarAssessmentPayload;
-  return body;
+  const raw = (await res.json()) as Record<string, unknown>;
+  return normalisePayload(raw);
 }
 
 export async function fetchAssessment(

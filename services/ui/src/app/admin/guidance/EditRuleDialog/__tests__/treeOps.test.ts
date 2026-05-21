@@ -9,7 +9,9 @@ import {
   applyUpdate,
   assignNodeIds,
   findValidationError,
+  isTreeVisuallyEmpty,
   stripNodeIds,
+  wrapRootInAnd,
 } from "../treeOps";
 import type { EditableLogicNode } from "../types";
 
@@ -322,5 +324,41 @@ describe("treeOps", () => {
     expect(seed.distance_child).toBe(2);
     expect("node_id" in seed).toBe(false);
     expect("candidates" in seed).toBe(false);
+  });
+
+  it("isTreeVisuallyEmpty treats a leaf at the root as non-empty", () => {
+    const leaf = assignNodeIds({
+      kind: "CONCEPT",
+      criterion: {
+        snomed_concept_id: "49727002",
+        preferred_term: "Cough (finding)",
+      },
+    });
+    expect(isTreeVisuallyEmpty(leaf)).toBe(false);
+    expect(isTreeVisuallyEmpty(assignNodeIds({ kind: "AND", children: [] }))).toBe(
+      true,
+    );
+  });
+
+  it("wrapRootInAnd wraps a leaf root so add_concept can attach siblings", () => {
+    const leaf = assignNodeIds({
+      kind: "CONCEPT",
+      criterion: {
+        snomed_concept_id: "49727002",
+        preferred_term: "Cough (finding)",
+      },
+    });
+    const wrapped = wrapRootInAnd(leaf);
+    expect(wrapped.kind).toBe("AND");
+    expect(wrapped.children).toHaveLength(1);
+    const withSibling = applyUpdate(wrapped, {
+      kind: "add_concept",
+      parentNodeId: wrapped.node_id,
+      criterion: {
+        snomed_concept_id: "84229001",
+        preferred_term: "Fatigue (finding)",
+      },
+    });
+    expect(withSibling?.children).toHaveLength(2);
   });
 });

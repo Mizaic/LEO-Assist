@@ -1,9 +1,9 @@
 """LEO widget SDK auth + SBAR proxy endpoints.
 
 Atlas trace:
-  DO: DO-5C88CA8F
-  DI: DI-A1206416
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-5C88CA8F")
+  DO: DO-5C88CA8F, DO-6D21096F
+  DI: DI-A1206416, DI-AF2C3996
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6D21096F")
 
 Two endpoints:
 
@@ -18,19 +18,24 @@ POST /sdk/auth/exchange
 GET /sdk/sbar/{assessment_id}
     Browser-facing. The widget calls this with the widget token in
     the Authorization header. The token's assessment_id claim MUST
-    match the path. Mismatch returns 403.
+    match the path. Mismatch returns 403. Returns the combined SBAR
+    payload: markdown content, guideline matches (with verbatim text),
+    and completeness findings (or null if not yet available).
 """
 
 from __future__ import annotations
 
 import hmac
+import json
 import logging
 import os
+from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.services import host_governance
+from libs.cypher.sbar_assessment_queries import GET_ASSESSMENT, assessment_to_dict
 from libs.sdk_auth import (
     WIDGET_TOKEN_MAX_TTL_SECONDS,
     WidgetTokenError,
@@ -64,6 +69,8 @@ class SbarPayload(BaseModel):
     generated_at: str
     markdown: str
     background_parts: list[dict] = []
+    guideline_matches: list[dict] = []
+    completeness_findings: dict | None = None
 
 
 def _expected_host_secret() -> str:
@@ -177,22 +184,67 @@ def proxy_sbar(
     return _load_sbar_payload(assessment_id, claims.tenant_id)
 
 
-def _load_sbar_payload(assessment_id: str, tenant_id: str) -> SbarPayload:
-    """Load an SBAR payload for the proxy response.
+def _decode_assessment_rules(raw: Any) -> list[dict]:
+    """Decode the assessment_rules field into a list of rule dicts.
 
-    Slice 2 returns a deterministic placeholder so the auth contract
-    can be verified end-to-end. Slice 3+ wires this into the existing
-    Neo4j-backed assessment store via libs/cypher/sbar_assessment_queries.
+    The orchestrator stores this as a JSON-encoded string. Tolerates
+    both a pre-decoded list (graph driver may return it directly) and a
+    raw JSON string, and returns [] on any decode failure.
     """
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, TypeError):
+            return []
+    return []
 
+
+def _query_assessment_from_neo4j(assessment_id: str) -> dict | None:
+    """Run GET_ASSESSMENT against Neo4j and return the decoded dict.
+
+    Returns None when no matching Assessment node is found. Extracted
+    as a module-level callable so tests can monkeypatch without a live
+    Neo4j connection.
+    """
+    from libs.neo4j_client.client import PatientGraphClient
+
+    client = PatientGraphClient()
+    try:
+        with client.session() as session:
+            row = session.run(GET_ASSESSMENT, assessment_id=assessment_id).single()
+    finally:
+        client.close()
+
+    if row is None:
+        return None
+    return assessment_to_dict(row)
+
+
+def _load_sbar_payload(assessment_id: str, tenant_id: str) -> SbarPayload:
+    """Load an SBAR payload from Neo4j for the proxy response.
+
+    Combines the core SBAR markdown from the :Assessment node with
+    guideline rule matches (verbatim recommendation text already stored
+    in assessment_rules) and completeness findings (null until the
+    pipeline persists them -- the widget will emit leo:completeness-
+    unavailable in that case).
+    """
+    record = _query_assessment_from_neo4j(assessment_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    generated_at = record.get("updated_at") or record.get("created_at") or ""
     return SbarPayload(
         assessment_id=assessment_id,
         tenant_id=tenant_id,
-        generated_at="2026-04-20T00:00:00Z",
-        markdown=(
-            "# Situation\nWidget proxy slice-2 placeholder.\n\n"
-            "# Background\n## Presenting complaint\nN/A\n\n"
-            "# Assessment\nN/A\n\n# Recommendation\nN/A\n"
-        ),
-        background_parts=[],
+        generated_at=str(generated_at),
+        markdown=record.get("content") or "",
+        background_parts=record.get("background_parts", []),
+        guideline_matches=_decode_assessment_rules(record.get("assessment_rules")),
+        completeness_findings=None,
     )

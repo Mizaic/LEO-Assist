@@ -1,19 +1,12 @@
-"""VT-LEO-AI-043 — Surface Forms Management API Verification.
+"""VT-8DE34E84 -- Surface Forms Management API Verification.
 
-Covers all 12 test cases specified in the verification test protocol:
-  TC-001  Grouped list returns concepts with surface_forms arrays
-  TC-002  Grouped list filters by search query
-  TC-003  Flat list returns paginated surface forms with concept join
-  TC-004  Upsert creates SurfaceForm node when absent
-  TC-005  DELETE (no params) removes SurfaceForm node entirely
-  TC-006  DELETE ?concept_id removes only named MAPS_TO relationship
-  TC-007  DELETE ?keep_concept_id removes all MAPS_TO except named
-  TC-008  Duplicate audit returns forms with multiple mappings
-  TC-009  Deduplicate retains highest-confidence mapping, correct count
-  TC-010  Upsert returns 404 for unknown concept_id
-  TC-011  Upsert is idempotent — repeated calls don't duplicate nodes
-  TC-012  Deduplicate on clean graph returns duplicates_removed=0
+Atlas trace:
+  UN: UN-72B60B2D
+  DI: DI-47D2CD86
+  DO: DO-5A88E0B9
+  VT: VT-8DE34E84
 
+Covers surface-form CRUD, duplicate audit, approval workflow, and audit log.
 All tests mock KnowledgeGraphClient so no live Neo4j is required.
 """
 
@@ -232,13 +225,17 @@ class TestUpsertMapping:
         """TC-004: POST /surface-forms/upsert-mapping creates node and returns it."""
         mock_client = MagicMock()
         MockKG.return_value = mock_client
-        mock_client.run.return_value = [
-            {
-                "normalized": "t2dm",
-                "form": "T2DM",
-                "concept_id": "44054006",
-                "concept_fsn": "Diabetes mellitus type 2 (disorder)",
-            }
+        mock_client.run.side_effect = [
+            [
+                {
+                    "normalized": "t2dm",
+                    "form": "T2DM",
+                    "concept_id": "44054006",
+                    "concept_fsn": "Diabetes mellitus type 2 (disorder)",
+                    "status": "pending",
+                }
+            ],
+            [{"id": "log-1"}],
         ]
 
         from services.terminology_api.app.routers.surface_forms import (
@@ -253,13 +250,14 @@ class TestUpsertMapping:
             confidence=1.0,
             source="manual",
             provenance="manual_correction",
-            created_by="admin",
+            actor="admin",
         )
         result = upsert_surface_form_mapping(body)
 
         assert result["normalized"] == "t2dm"
         assert result["concept_id"] == "44054006"
         assert result["concept_fsn"] == "Diabetes mellitus type 2 (disorder)"
+        assert mock_client.run.call_count == 2
 
     @patch(_KG_PATH)
     def test_upsert_raises_404_for_unknown_concept(self, MockKG):
@@ -295,7 +293,12 @@ class TestUpsertMapping:
         mock_client = MagicMock()
         MockKG.return_value = mock_client
         # Both calls return the same record — MERGE ensures no duplicate node
-        mock_client.run.return_value = [expected]
+        mock_client.run.side_effect = [
+            [expected],
+            [{"id": "log-1"}],
+            [expected],
+            [{"id": "log-2"}],
+        ]
 
         from services.terminology_api.app.routers.surface_forms import (
             upsert_surface_form_mapping,
@@ -310,9 +313,42 @@ class TestUpsertMapping:
         result2 = upsert_surface_form_mapping(body)
 
         assert result1["normalized"] == result2["normalized"] == "t2dm"
-        assert (
-            mock_client.run.call_count == 2
-        )  # called twice, not zero (idempotency is in Cypher MERGE)
+        assert mock_client.run.call_count == 4  # upsert + audit twice
+
+    @patch(
+        "services.terminology_api.app.routers.surface_forms."
+        "invalidate_terminology_resolution_caches"
+    )
+    @patch(_KG_PATH)
+    def test_upsert_invalidates_terminology_cache(self, MockKG, mock_invalidate):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.side_effect = [
+            [
+                {
+                    "normalized": "ferritin",
+                    "form": "Ferritin",
+                    "concept_id": "993381000000106",
+                    "concept_fsn": "Serum ferritin level (observable entity)",
+                }
+            ],
+            [{"id": "log-1"}],
+        ]
+
+        from services.terminology_api.app.routers.surface_forms import (
+            UpsertMappingRequest,
+            upsert_surface_form_mapping,
+        )
+
+        upsert_surface_form_mapping(
+            UpsertMappingRequest(
+                normalized="ferritin",
+                form="Ferritin",
+                concept_id="993381000000106",
+            )
+        )
+
+        mock_invalidate.assert_called_once_with(reason="surface_form_upsert:ferritin")
 
 
 # ---------------------------------------------------------------------------
@@ -327,7 +363,7 @@ class TestDeleteSurfaceForm:
         """TC-005: DELETE with no params removes SurfaceForm node (DETACH DELETE)."""
         mock_client = MagicMock()
         MockKG.return_value = mock_client
-        mock_client.run.return_value = None  # DETACH DELETE returns nothing
+        mock_client.run.side_effect = [None, [{"id": "log-1"}]]
 
         from services.terminology_api.app.routers.surface_forms import (
             delete_surface_form,
@@ -336,14 +372,14 @@ class TestDeleteSurfaceForm:
         result = delete_surface_form("t2dm", concept_id=None, keep_concept_id=None)
 
         assert result == {"deleted": "t2dm"}
-        mock_client.run.assert_called_once()
+        assert mock_client.run.call_count == 2
 
     @patch(_KG_PATH)
     def test_delete_specific_mapping(self, MockKG):
         """TC-006: DELETE ?concept_id removes only the named MAPS_TO relationship."""
         mock_client = MagicMock()
         MockKG.return_value = mock_client
-        mock_client.run.return_value = [{"removed": 1}]
+        mock_client.run.side_effect = [[{"removed": 1}], [{"id": "log-1"}]]
 
         from services.terminology_api.app.routers.surface_forms import (
             delete_surface_form,
@@ -362,7 +398,7 @@ class TestDeleteSurfaceForm:
         """TC-007: DELETE ?keep_concept_id removes all MAPS_TO except the named concept."""
         mock_client = MagicMock()
         MockKG.return_value = mock_client
-        mock_client.run.return_value = [{"removed": 1}]
+        mock_client.run.side_effect = [[{"removed": 1}], [{"id": "log-1"}]]
 
         from services.terminology_api.app.routers.surface_forms import (
             delete_surface_form,
@@ -392,6 +428,48 @@ class TestDeleteSurfaceForm:
         )
 
         assert result["removed"] == 0
+
+    @patch(
+        "services.terminology_api.app.routers.surface_forms."
+        "invalidate_terminology_resolution_caches"
+    )
+    @patch(_KG_PATH)
+    def test_delete_mapping_invalidates_cache_when_removed(
+        self, MockKG, mock_invalidate
+    ):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.side_effect = [[{"removed": 1}], [{"id": "log-1"}]]
+
+        from services.terminology_api.app.routers.surface_forms import (
+            delete_surface_form,
+        )
+
+        delete_surface_form("ferritin", concept_id="489004", keep_concept_id=None)
+
+        mock_invalidate.assert_called_once_with(
+            reason="surface_form_delete_mapping:ferritin"
+        )
+
+    @patch(
+        "services.terminology_api.app.routers.surface_forms."
+        "invalidate_terminology_resolution_caches"
+    )
+    @patch(_KG_PATH)
+    def test_delete_mapping_does_not_invalidate_when_nothing_removed(
+        self, MockKG, mock_invalidate
+    ):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.return_value = []
+
+        from services.terminology_api.app.routers.surface_forms import (
+            delete_surface_form,
+        )
+
+        delete_surface_form("ferritin", concept_id="489004", keep_concept_id=None)
+
+        mock_invalidate.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -513,6 +591,26 @@ class TestDeduplicate:
         issued_query = mock_client.run.call_args[0][0]
         assert issued_query == DEDUPLICATE_SURFACE_FORM_RELS
 
+    @patch(
+        "services.terminology_api.app.routers.surface_forms."
+        "invalidate_terminology_resolution_caches"
+    )
+    @patch(_KG_PATH)
+    def test_deduplicate_invalidates_cache_when_rows_removed(
+        self, MockKG, mock_invalidate
+    ):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.return_value = [{"duplicates_removed": 2}]
+
+        from services.terminology_api.app.routers.surface_forms import (
+            deduplicate_surface_forms,
+        )
+
+        deduplicate_surface_forms()
+
+        mock_invalidate.assert_called_once_with(reason="surface_form_deduplicate")
+
 
 # ---------------------------------------------------------------------------
 # Cypher query content guards
@@ -605,3 +703,134 @@ class TestCypherQueryContent:
         assert "c.fsn" in GET_CONCEPT_FOR_SUGGESTION
         assert "c.semantic_tag" in GET_CONCEPT_FOR_SUGGESTION
         assert "collect(sf.form)" in GET_CONCEPT_FOR_SUGGESTION
+
+
+# ---------------------------------------------------------------------------
+# Approval workflow + resolve filter
+# ---------------------------------------------------------------------------
+
+
+class TestApprovalWorkflow:
+
+    @patch(_KG_PATH)
+    def test_approve_mapping_records_audit(self, MockKG):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.side_effect = [
+            [
+                {
+                    "normalized": "t2dm",
+                    "form": "T2DM",
+                    "status": "approved",
+                    "concept_id": "44054006",
+                    "concept_fsn": "Diabetes mellitus type 2 (disorder)",
+                }
+            ],
+            [{"id": "log-1"}],
+        ]
+
+        from services.terminology_api.app.routers.surface_forms import (
+            approve_mapping,
+            ApproveMappingRequest,
+        )
+
+        result = approve_mapping("t2dm", ApproveMappingRequest(reviewer="qa-lead"))
+
+        assert result["status"] == "approved"
+        assert mock_client.run.call_count == 2
+
+    @patch(
+        "services.terminology_api.app.services.surface_form_admin."
+        "invalidate_terminology_resolution_caches"
+    )
+    @patch(_KG_PATH)
+    def test_approve_mapping_invalidates_cache(self, MockKG, mock_invalidate):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.side_effect = [
+            [
+                {
+                    "normalized": "ferritin",
+                    "form": "Ferritin",
+                    "status": "approved",
+                    "concept_id": "993381000000106",
+                }
+            ],
+            [{"id": "log-1"}],
+        ]
+
+        from services.terminology_api.app.routers.surface_forms import (
+            ApproveMappingRequest,
+            approve_mapping,
+        )
+
+        approve_mapping("ferritin", ApproveMappingRequest(reviewer="qa-lead"))
+
+        mock_invalidate.assert_called_once_with(reason="surface_form_approve:ferritin")
+
+    @patch(_KG_PATH)
+    def test_deactivate_mapping_records_audit(self, MockKG):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.side_effect = [
+            [
+                {
+                    "normalized": "t2dm",
+                    "form": "T2DM",
+                    "status": "deactivated",
+                    "concept_id": "44054006",
+                }
+            ],
+            [{"id": "log-1"}],
+        ]
+
+        from services.terminology_api.app.routers.surface_forms import (
+            deactivate_mapping,
+            DeactivateMappingRequest,
+        )
+
+        result = deactivate_mapping("t2dm", DeactivateMappingRequest(actor="qa-lead"))
+
+        assert result["status"] == "deactivated"
+        assert mock_client.run.call_count == 2
+
+    @patch(_KG_PATH)
+    def test_audit_log_list_paginates(self, MockKG):
+        mock_client = MagicMock()
+        MockKG.return_value = mock_client
+        mock_client.run.side_effect = [
+            [{"id": "log-1", "action": "approve", "normalized": "t2dm"}],
+            [{"total": 1}],
+        ]
+
+        from services.terminology_api.app.routers.surface_forms import (
+            surface_form_audit_log,
+        )
+
+        result = surface_form_audit_log(normalized=None, limit=50, offset=0)
+
+        assert result["total"] == 1
+        assert len(result["items"]) == 1
+
+
+class TestCypherResolvableFilter:
+
+    def test_exact_surface_form_query_filters_unapproved(self):
+        from services.terminology_api.app.queries.terminology import (
+            EXACT_SURFACE_FORM_QUERY,
+        )
+
+        assert "approved" in EXACT_SURFACE_FORM_QUERY
+        assert "active" in EXACT_SURFACE_FORM_QUERY
+
+    def test_batch_exact_query_filters_unapproved(self):
+        from services.terminology_api.app.queries.terminology import BATCH_EXACT_QUERY
+
+        assert "approved" in BATCH_EXACT_QUERY
+
+    def test_upsert_sets_pending_status(self):
+        from services.terminology_api.app.queries.terminology import (
+            UPSERT_SURFACE_FORM_MAPPING,
+        )
+
+        assert "'pending'" in UPSERT_SURFACE_FORM_MAPPING

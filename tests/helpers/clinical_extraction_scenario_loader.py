@@ -57,6 +57,23 @@ def _f1(precision: float, recall: float) -> float:
 
 
 _MIN_CONTAINMENT_LEN = 3
+_CLINICAL_FINDING_FAMILY = frozenset(
+    {
+        "finding",
+        "disorder",
+        "situation",
+        "morphologic_abnormality",
+    }
+)
+
+
+def _tags_compatible(expected_tag: str, extracted_tag: str) -> bool:
+    if expected_tag == extracted_tag:
+        return True
+    return (
+        expected_tag in _CLINICAL_FINDING_FAMILY
+        and extracted_tag in _CLINICAL_FINDING_FAMILY
+    )
 
 
 def _phrase_matches(
@@ -66,9 +83,11 @@ def _phrase_matches(
         return True
     if not containment_match:
         return False
-    if len(expected_norm) < _MIN_CONTAINMENT_LEN:
-        return False
-    return expected_norm in extracted_norm
+    if len(expected_norm) >= _MIN_CONTAINMENT_LEN and expected_norm in extracted_norm:
+        return True
+    if len(extracted_norm) >= _MIN_CONTAINMENT_LEN and extracted_norm in expected_norm:
+        return True
+    return False
 
 
 def _greedy_phrase_match(
@@ -78,17 +97,25 @@ def _greedy_phrase_match(
 ) -> tuple[int, list[dict[str, str]], list[dict[str, str]]]:
     """Return (tp_count, matched_extracted, missed_expected)."""
     containment = bool(rules.get("containment_match"))
-    
+
     # Store normalized text but keep original dict
     expected_parsed = [
-        {"orig": e, "norm": normalise_phrase(e.get("text", ""), rules), "tag": e.get("semantic_tag", "finding")}
+        {
+            "orig": e,
+            "norm": normalise_phrase(e.get("text", ""), rules),
+            "tag": e.get("semantic_tag", "finding"),
+        }
         for e in expected_list
     ]
     extracted_parsed = [
-        {"orig": x, "norm": normalise_phrase(x.get("text", ""), rules), "tag": x.get("semantic_tag", "finding")}
+        {
+            "orig": x,
+            "norm": normalise_phrase(x.get("text", ""), rules),
+            "tag": x.get("semantic_tag", "finding"),
+        }
         for x in extracted_list
     ]
-    
+
     matched_expected: set[int] = set()
     matched_extracted: set[int] = set()
     for e_idx, exp in enumerate(expected_parsed):
@@ -99,7 +126,7 @@ def _greedy_phrase_match(
         for x_idx, ext in enumerate(extracted_parsed):
             if x_idx in matched_extracted or not ext["norm"]:
                 continue
-            if exp["tag"] != ext["tag"]:
+            if not _tags_compatible(exp["tag"], ext["tag"]):
                 continue
             if _phrase_matches(exp["norm"], ext["norm"], containment_match=containment):
                 if len(exp["norm"]) > best_len:
@@ -119,7 +146,9 @@ def _greedy_phrase_match(
     return len(matched_expected), extra, missed
 
 
-def _observable_recall(case: dict[str, Any], extracted_entities: list[dict[str, str]]) -> float:
+def _observable_recall(
+    case: dict[str, Any], extracted_entities: list[dict[str, str]]
+) -> float:
     observables = case.get("expected_observables")
     if not isinstance(observables, list) or not observables:
         return 1.0
@@ -144,16 +173,19 @@ def _observable_recall(case: dict[str, Any], extracted_entities: list[dict[str, 
 
 
 def score_case(
-    case: dict[str, Any], extracted_entities: list[dict[str, str]], rules: dict[str, bool]
+    case: dict[str, Any],
+    extracted_entities: list[dict[str, str]],
+    rules: dict[str, bool],
 ) -> dict[str, Any]:
     """Score one case against extracted entities (text + semantic_tag)."""
     expected = list(case.get("expected_strings", []))
     # Ensure they are dicts (in case some weren't migrated)
-    expected_dicts = [e if isinstance(e, dict) else {"text": e, "semantic_tag": "finding"} for e in expected]
-    
-    tp, extra, missed = _greedy_phrase_match(
-        expected_dicts, extracted_entities, rules
-    )
+    expected_dicts = [
+        e if isinstance(e, dict) else {"text": e, "semantic_tag": "finding"}
+        for e in expected
+    ]
+
+    tp, extra, missed = _greedy_phrase_match(expected_dicts, extracted_entities, rules)
     precision = _metric(tp, tp + len(extra))
     recall = _metric(tp, len(expected_dicts))
     return {
@@ -166,6 +198,8 @@ def score_case(
         "f1": _f1(precision, recall),
         "missed_strings": [m.get("text", "") for m in missed],
         "extra_strings": [x.get("text", "") for x in extra],
+        "missed_strings_raw": missed,
+        "extra_strings_raw": extra,
         "observable_recall": _observable_recall(case, extracted_entities),
     }
 

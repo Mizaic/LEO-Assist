@@ -61,25 +61,33 @@ def _normalise_phrase_list(raw: list[Any]) -> list[dict[str, str]]:
         if isinstance(item, str):
             text = item.strip()
             tag = "finding"
+            phrase: dict[str, str] = {"text": text, "semantic_tag": tag}
         elif isinstance(item, dict):
             text = str(item.get("text", "")).strip()
             tag = str(item.get("semantic_tag", "finding")).strip() or "finding"
+            phrase = {"text": text, "semantic_tag": tag}
+            concept_id = str(item.get("concept_id") or "").strip()
+            preferred_term = str(item.get("preferred_term") or "").strip()
+            if concept_id:
+                phrase["concept_id"] = concept_id
+            if preferred_term:
+                phrase["preferred_term"] = preferred_term
         else:
             raise ScenarioValidationError(
                 "Each expected phrase must be text or an object."
             )
-        if not text:
+        if not phrase["text"]:
             raise ScenarioValidationError("Expected phrases cannot be blank.")
-        if tag not in _VALID_SEMANTIC_TAGS:
+        if phrase["semantic_tag"] not in _VALID_SEMANTIC_TAGS:
             raise ScenarioValidationError(
-                f"Unsupported semantic tag {tag!r}. "
+                f"Unsupported semantic tag {phrase['semantic_tag']!r}. "
                 f"Use one of: {', '.join(sorted(_VALID_SEMANTIC_TAGS))}."
             )
-        key = text.casefold()
+        key = phrase["text"].casefold()
         if key in seen:
             continue
         seen.add(key)
-        normalised.append({"text": text, "semantic_tag": tag})
+        normalised.append(phrase)
     if not normalised:
         raise ScenarioValidationError("At least one expected phrase is required.")
     return normalised
@@ -106,6 +114,73 @@ def _json_dump(value: Any) -> str:
     return json.dumps(value if value is not None else [])
 
 
+def _clean_string_list(raw: Any) -> list[str]:
+    if not isinstance(raw, list):
+        return []
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(text)
+    return cleaned
+
+
+def _normalise_expected_analysis(raw: Any) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    matched_rule_ids = _clean_string_list(raw.get("matched_rule_ids"))
+    expect_no_rules = bool(raw.get("expect_no_rules_fired"))
+    priority_raw = raw.get("expected_action_priority")
+    priority = str(priority_raw).strip() if priority_raw is not None else ""
+    reviewer_notes = str(raw.get("reviewer_notes") or "").strip()
+    if not matched_rule_ids and not expect_no_rules and not priority and not reviewer_notes:
+        return None
+    payload: dict[str, Any] = {
+        "matched_rule_ids": matched_rule_ids,
+        "expect_no_rules_fired": expect_no_rules,
+        "expected_action_priority": priority or None,
+        "reviewer_notes": reviewer_notes,
+    }
+    return payload
+
+
+def _normalise_expected_sbar(raw: Any) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    payload = {
+        "situation_md": str(raw.get("situation_md") or "").strip(),
+        "background_md": str(raw.get("background_md") or "").strip(),
+        "recommendation_md": str(raw.get("recommendation_md") or "").strip(),
+        "matched_rule_ids": _clean_string_list(raw.get("matched_rule_ids")),
+        "required_phrases": _clean_string_list(raw.get("required_phrases")),
+        "banned_phrases": _clean_string_list(raw.get("banned_phrases")),
+        "expected_action_priority": (
+            str(raw.get("expected_action_priority") or "").strip() or None
+        ),
+        "reviewer_focus": str(raw.get("reviewer_focus") or "").strip(),
+    }
+    if not any(
+        [
+            payload["situation_md"],
+            payload["background_md"],
+            payload["recommendation_md"],
+            payload["matched_rule_ids"],
+            payload["required_phrases"],
+            payload["banned_phrases"],
+            payload["expected_action_priority"],
+            payload["reviewer_focus"],
+        ]
+    ):
+        return None
+    return payload
+
+
 def validate_write_payload(body: dict[str, Any]) -> dict[str, Any]:
     """Validate and normalise a create/update payload."""
     site = _require_text(str(body.get("site", "")), "site")
@@ -127,6 +202,8 @@ def validate_write_payload(body: dict[str, Any]) -> dict[str, Any]:
         "difficulty": difficulty,
         "notes_for_clinician_review": notes_text or None,
         "expected_observables": body.get("expected_observables") or [],
+        "expected_analysis": _normalise_expected_analysis(body.get("expected_analysis")),
+        "expected_sbar": _normalise_expected_sbar(body.get("expected_sbar")),
         "synthetic_patient": body.get("synthetic_patient") or {},
         "blood_results": body.get("blood_results") or [],
         "source_template_markdown": body.get("source_template_markdown") or "",
@@ -154,6 +231,8 @@ def create_scenario(client: Any, case_id: str, body: dict[str, Any]) -> dict[str
         **payload,
         "expected_strings": _json_dump(payload["expected_strings"]),
         "expected_observables": _json_dump(payload["expected_observables"]),
+        "expected_analysis": json.dumps(payload["expected_analysis"] or {}),
+        "expected_sbar": json.dumps(payload["expected_sbar"] or {}),
         "must_not_extract": _json_dump(payload["must_not_extract"]),
         "phrase_classes": _json_dump(payload["phrase_classes"]),
         "difficulty": _json_dump(payload["difficulty"]),
@@ -183,6 +262,8 @@ def update_scenario(client: Any, case_id: str, body: dict[str, Any]) -> dict[str
         **payload,
         "expected_strings": _json_dump(payload["expected_strings"]),
         "expected_observables": _json_dump(payload["expected_observables"]),
+        "expected_analysis": json.dumps(payload["expected_analysis"] or {}),
+        "expected_sbar": json.dumps(payload["expected_sbar"] or {}),
         "must_not_extract": _json_dump(payload["must_not_extract"]),
         "phrase_classes": _json_dump(payload["phrase_classes"]),
         "difficulty": _json_dump(payload["difficulty"]),

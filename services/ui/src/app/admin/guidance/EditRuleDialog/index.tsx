@@ -86,8 +86,10 @@ import {
 import {
   applyUpdate,
   assignNodeIds,
+  canHaveChildren,
   findValidationError,
   stripNodeIds,
+  wrapRootInAnd,
 } from "./treeOps";
 import { findDuplicateConceptGroups } from "./namedSets";
 import { treeToSentence } from "./treeToSentence";
@@ -423,12 +425,24 @@ export default function EditRuleDialog({
       setSearchTarget(IDLE_TARGET);
       return;
     }
-    if (searchTarget.mode === "add" && searchTarget.parentNodeId) {
-      handleUpdate({
-        kind: "add_concept",
-        parentNodeId: searchTarget.parentNodeId,
-        criterion,
-      });
+    if (searchTarget.mode === "add" && searchTarget.parentNodeId && tree) {
+      const parent = findNode(tree, searchTarget.parentNodeId);
+      if (parent && canHaveChildren(parent.kind)) {
+        handleUpdate({
+          kind: "add_concept",
+          parentNodeId: searchTarget.parentNodeId,
+          criterion,
+        });
+      } else if (parent && parent.node_id === tree.node_id) {
+        const groupRoot = wrapRootInAnd(tree);
+        setTree(
+          applyUpdate(groupRoot, {
+            kind: "add_concept",
+            parentNodeId: groupRoot.node_id,
+            criterion,
+          }),
+        );
+      }
       setSearchTarget(IDLE_TARGET);
     }
   }
@@ -445,12 +459,24 @@ export default function EditRuleDialog({
     observable_term?: string;
     unit?: string;
   }) {
-    if (searchTarget.mode !== "add" || !searchTarget.parentNodeId) return;
-    handleUpdate({
-      kind: "add_observation",
-      parentNodeId: searchTarget.parentNodeId,
-      seed,
-    });
+    if (searchTarget.mode !== "add" || !searchTarget.parentNodeId || !tree) return;
+    const parent = findNode(tree, searchTarget.parentNodeId);
+    if (parent && canHaveChildren(parent.kind)) {
+      handleUpdate({
+        kind: "add_observation",
+        parentNodeId: searchTarget.parentNodeId,
+        seed,
+      });
+    } else if (parent && parent.node_id === tree.node_id) {
+      const groupRoot = wrapRootInAnd(tree);
+      setTree(
+        applyUpdate(groupRoot, {
+          kind: "add_observation",
+          parentNodeId: groupRoot.node_id,
+          seed,
+        }),
+      );
+    }
     setSearchTarget(IDLE_TARGET);
   }
 
@@ -476,6 +502,7 @@ export default function EditRuleDialog({
       fullWidth
       fullScreen={fullscreen}
       maxWidth="xl"
+      disableEnforceFocus
       aria-labelledby="edit-rule-dialog-title"
       PaperProps={{
         sx: fullscreen

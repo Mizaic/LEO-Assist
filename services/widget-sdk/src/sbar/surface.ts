@@ -27,6 +27,8 @@
  */
 
 import type {
+  CompletenessFinding,
+  GuidelineMatch,
   SbarAssessmentPayload,
   SbarBackgroundPart,
   SbarSection,
@@ -50,6 +52,8 @@ export interface SurfaceEvent {
     assessmentId: string;
     stage?: SbarStageName;
     sourceId?: string;
+    missingFields?: string[];
+    unclearFields?: string[];
   };
 }
 
@@ -106,6 +110,84 @@ function _renderAdvisory(advisory: string | null | undefined): string {
   );
 }
 
+function _renderCompletenessPanel(
+  finding: CompletenessFinding | null | undefined,
+): string {
+  if (!finding) return "";
+  const items: string[] = [
+    ...finding.presentFields.map(
+      (f) =>
+        `<li class="leo-field leo-field--present" data-testid="leo-field-present">${_escape(f)}</li>`,
+    ),
+    ...finding.missingFields.map(
+      (f) =>
+        `<li class="leo-field leo-field--missing" data-testid="leo-field-missing">${_escape(f)}</li>`,
+    ),
+    ...finding.unclearFields.map(
+      (f) =>
+        `<li class="leo-field leo-field--unclear" data-testid="leo-field-unclear">${_escape(f)}</li>`,
+    ),
+  ];
+  if (items.length === 0) return "";
+  return (
+    `<section class="leo-completeness" data-testid="leo-completeness">` +
+    `<header class="leo-stage-header">Referral completeness</header>` +
+    `<ul class="leo-field-list">${items.join("")}</ul>` +
+    `</section>`
+  );
+}
+
+function _renderGuidelineMatches(matches: GuidelineMatch[] | undefined): string {
+  if (!matches || matches.length === 0) return "";
+  const items = matches.map((m) => {
+    const verbatim = m.recommendationVerbatim
+      ? `<details class="leo-verbatim" data-testid="leo-verbatim-details">` +
+        `<summary class="leo-verbatim-toggle">Source text</summary>` +
+        `<p class="leo-verbatim-text">${_escape(m.recommendationVerbatim)}</p>` +
+        `</details>`
+      : "";
+    return (
+      `<li class="leo-guideline-match" data-testid="leo-guideline-match">` +
+      `<span class="leo-guideline-name">${_escape(m.name)}</span>` +
+      `<span class="leo-guideline-strength leo-guideline-strength--${_escape(m.strength)}">${_escape(m.strength)}</span>` +
+      verbatim +
+      `</li>`
+    );
+  });
+  return (
+    `<section class="leo-guideline-matches" data-testid="leo-guideline-matches">` +
+    `<header class="leo-stage-header">Matched guidelines</header>` +
+    `<ul class="leo-guideline-list">${items.join("")}</ul>` +
+    `</section>`
+  );
+}
+
+function _emitCompletenessEvents(
+  payload: SbarAssessmentPayload,
+  emit: (e: SurfaceEvent) => void,
+): void {
+  const finding = payload.completenessFinding;
+  if (finding == null) {
+    emit({
+      type: LEO_EVENT_NAMES.completenessUnavailable,
+      detail: { assessmentId: payload.assessmentId },
+    });
+    return;
+  }
+  const hasMissing = finding.missingFields.length > 0;
+  const hasUnclear = finding.unclearFields.length > 0;
+  if (hasMissing || hasUnclear) {
+    emit({
+      type: LEO_EVENT_NAMES.completenessIncomplete,
+      detail: {
+        assessmentId: payload.assessmentId,
+        missingFields: finding.missingFields,
+        unclearFields: finding.unclearFields,
+      },
+    });
+  }
+}
+
 /**
  * Render the LEO surface into the given root, wire interaction
  * handlers, and return a teardown callback. The root MUST be a node
@@ -117,6 +199,11 @@ export function renderSurface(
   options: RenderSurfaceOptions,
 ): () => void {
   const { payload, emit, advisory } = options;
+
+  // Emit completeness events before any DOM mutation so the host can
+  // intercept and show a confirmation dialog before the widget paints.
+  _emitCompletenessEvents(payload, emit);
+
   const sections = splitFinalSbar(payload.markdown ?? "");
   const partsByStage: Record<SbarStageName, SbarBackgroundPart[]> = {
     situation: [],
@@ -128,6 +215,7 @@ export function renderSurface(
   let inner = "";
   inner += _renderHeader(payload);
   inner += _renderAdvisory(advisory ?? null);
+  inner += _renderCompletenessPanel(payload.completenessFinding);
   if (sections.length === 0) {
     inner +=
       '<div class="leo-empty" data-testid="leo-empty">' +
@@ -135,6 +223,7 @@ export function renderSurface(
   } else {
     inner += sections.map((s) => _renderStage(s, partsByStage)).join("");
   }
+  inner += _renderGuidelineMatches(payload.guidelineMatches);
 
   const wrapper =
     (root as Element).querySelector?.(".leo-root") ?? null;

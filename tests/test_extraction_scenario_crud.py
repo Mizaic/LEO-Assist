@@ -28,18 +28,40 @@ def test_validate_write_payload_normalises_phrases():
             "format": "referral_letter",
             "markdown_body": "Patient has cough.",
             "expected_strings": [
-                {"text": " cough ", "semantic_tag": "finding"},
+                {
+                    "text": " cough ",
+                    "semantic_tag": "finding",
+                    "concept_id": " 49727002 ",
+                    "preferred_term": " Cough (finding) ",
+                },
                 "weight loss",
             ],
             "must_not_extract": [" boilerplate ", "boilerplate"],
+            "expected_analysis": {
+                "matched_rule_ids": ["R-LUNG-001", "R-LUNG-001"],
+                "expect_no_rules_fired": False,
+                "expected_action_priority": "2ww",
+                "reviewer_notes": "Should fire lung rule.",
+            },
+            "expected_sbar": {
+                "situation_md": "2WW referral.",
+                "matched_rule_ids": ["R-LUNG-001"],
+            },
         }
     )
     assert payload["site"] == "lung"
     assert payload["expected_strings"] == [
-        {"text": "cough", "semantic_tag": "finding"},
+        {
+            "text": "cough",
+            "semantic_tag": "finding",
+            "concept_id": "49727002",
+            "preferred_term": "Cough (finding)",
+        },
         {"text": "weight loss", "semantic_tag": "finding"},
     ]
     assert payload["must_not_extract"] == ["boilerplate"]
+    assert payload["expected_analysis"]["matched_rule_ids"] == ["R-LUNG-001"]
+    assert payload["expected_sbar"]["situation_md"] == "2WW referral."
 
 
 class _FakeClient:

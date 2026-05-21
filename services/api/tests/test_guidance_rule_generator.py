@@ -1015,7 +1015,7 @@ class TestAgenticExpansionAndPartial:
         term = expanded["logic_tree"]["term"]
         action = expanded["action"]
         assert term["original_phrase"] == "chest signs compatible with pleural disease"
-        assert term["expansion_source"] == "abstract_phrase"
+        assert term["expansion_source"] == "abstract_phrase+semantic_llm"
         assert "pleural disease signs" in term["search_terms"]
         assert (
             "fast track referral for suspected upper gastrointestinal cancer"

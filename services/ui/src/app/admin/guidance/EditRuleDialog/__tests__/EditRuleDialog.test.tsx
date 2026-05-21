@@ -269,4 +269,48 @@ describe("EditRuleDialog", () => {
       screen.getByLabelText(/why are you changing this rule/i)
     ).toBeInTheDocument();
   });
+
+  it("adds the first symptom to an empty rule via the chip search popover", async () => {
+    mockSearch([
+      {
+        snomed_concept_id: "399208008",
+        term: "Plain X-ray of chest",
+        semantic_tag: "procedure",
+      },
+    ]);
+    const emptyRule = {
+      ...SAMPLE_RULE,
+      logic_tree: { kind: "AND", children: [] },
+    };
+    render(
+      <EditRuleDialog rule={emptyRule} open onClose={() => {}} onSave={() => {}} />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /add the first symptom or sign/i }),
+    );
+
+    const searchField = await screen.findByLabelText(/search clinical terms/i);
+    fireEvent.change(searchField, { target: { value: "chest x" } });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /^Use Plain X-ray of chest$/i }),
+      ).toBeInTheDocument();
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Use Plain X-ray of chest$/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/this rule has no symptoms yet/i),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", {
+        name: /^Plain X-ray of chest\. Click to swap, X to remove\.$/i,
+      }),
+    ).toBeInTheDocument();
+  });
 });

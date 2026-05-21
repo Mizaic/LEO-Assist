@@ -46,6 +46,31 @@ export interface SbarBackgroundPart {
   errorMessage?: string | null;
 }
 
+/**
+ * A single guideline recommendation that matched the patient's presentation.
+ * The verbatim text is the exact wording from the NICE guideline document,
+ * stored during guideline ingestion. This is what the clinician should see.
+ */
+export interface GuidelineMatch {
+  ruleId: string;
+  name: string;
+  strength: string;
+  guidelineId: string;
+  recommendationVerbatim: string | null;
+}
+
+/**
+ * Referral completeness findings for the patient's referral information.
+ * Missing and unclear fields prompt the host system to show a confirmation
+ * dialog to the clinician before they proceed.
+ */
+export interface CompletenessFinding {
+  requiredFields: string[];
+  presentFields: string[];
+  missingFields: string[];
+  unclearFields: string[];
+}
+
 export interface SbarAssessmentPayload {
   assessmentId: string;
   tenantId: string;
@@ -53,6 +78,14 @@ export interface SbarAssessmentPayload {
   markdown: string;
   backgroundParts: SbarBackgroundPart[];
   generatedAt: string;
+  /** Guideline recommendations that matched this patient's presentation. */
+  guidelineMatches?: GuidelineMatch[];
+  /**
+   * Completeness findings for the referral information.
+   * Null means the completeness check has not run yet -- the widget will
+   * emit leo:completeness-unavailable so the host can decide what to do.
+   */
+  completenessFinding?: CompletenessFinding | null;
 }
 
 /**
@@ -69,6 +102,17 @@ export const LEO_EVENT_NAMES = {
   disclosureOpened: "leo:disclosure-opened",
   disclosureClosed: "leo:disclosure-closed",
   sourceClicked: "leo:source-clicked",
+  /**
+   * Fires before the widget renders when completeness findings show
+   * missing or unclear fields. The host SHOULD show a confirmation dialog.
+   */
+  completenessIncomplete: "leo:completeness-incomplete",
+  /**
+   * Fires when no completeness findings are in the payload -- either
+   * because the pipeline has not run the check yet, or no schema is
+   * configured for this healthcare service.
+   */
+  completenessUnavailable: "leo:completeness-unavailable",
 } as const;
 
 export type LeoEventName =

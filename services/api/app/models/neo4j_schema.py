@@ -302,17 +302,22 @@ MATCH (c:Concept {id: $concept_id})
 MERGE (sf:SurfaceForm {normalized: $normalized})
 ON CREATE SET sf.form = $form,
               sf.source = $source,
-              sf.status = 'active',
-              sf.created_at = datetime(),
-              sf.created_by = $created_by
+              sf.status = 'pending',
+              sf.created_at = datetime()
+ON MATCH SET sf.form = $form,
+             sf.source = $source,
+             sf.status = 'pending',
+             sf.updated_at = datetime(),
+             sf.updated_by = coalesce($actor, coalesce($created_by, 'system'))
 MERGE (sf)-[m:MAPS_TO]->(c)
 ON CREATE SET m.created_at = datetime(),
-              m.created_by = $created_by,
-              m.approved_at = datetime()
+              m.created_by = coalesce($created_by, coalesce($actor, 'system'))
 SET m.confidence = $confidence,
     m.provenance = $provenance
 RETURN sf.normalized AS normalized,
        sf.form       AS form,
+       sf.status     AS status,
+       sf.reviewer   AS reviewer,
        c.id          AS concept_id,
        c.fsn         AS concept_fsn
 """

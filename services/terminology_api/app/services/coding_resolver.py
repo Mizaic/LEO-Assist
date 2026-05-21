@@ -197,6 +197,9 @@ def _build_fulltext_queries(mention: str) -> list[str]:
     return queries
 
 
+from libs.terminology.surface_form_policy import is_resolvable_surface_form_status
+
+
 def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -> None:
     """Merge one Neo4j result row into the per-term accumulator dict.
 
@@ -225,6 +228,8 @@ def _push(merged: dict[str, dict[str, Any]], rec: dict[str, Any], branch: str) -
         },
     )
     sf_status = rec.get("surface_form_status") or ""
+    if sf_status and not is_resolvable_surface_form_status(sf_status):
+        return
     if sf_status:
         base["surface_form_status"] = sf_status
     score = float(rec.get("score", 0.0))

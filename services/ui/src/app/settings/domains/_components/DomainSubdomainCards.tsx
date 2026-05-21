@@ -115,6 +115,14 @@ export default function DomainSubdomainCards({
                       color="secondary"
                       variant="outlined"
                     />
+                    {(sub.completeness_schema?.length ?? 0) > 0 && (
+                      <Chip
+                        label={`${sub.completeness_schema?.length ?? 0} minimum dataset item${(sub.completeness_schema?.length ?? 0) !== 1 ? "s" : ""}`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    )}
                     {(sub.descendant_count ?? 0) > 0 && (
                       <Tooltip title="Additional codes matched automatically via IS_A hierarchy">
                         <Chip

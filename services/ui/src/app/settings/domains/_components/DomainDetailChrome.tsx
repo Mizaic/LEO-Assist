@@ -18,6 +18,7 @@ import Link from "@mui/material/Link";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Tooltip from "@mui/material/Tooltip";
+import Chip from "@mui/material/Chip";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import type { DomainDetail } from "@/lib/analyticsApi";
 
@@ -75,6 +76,23 @@ export default function DomainDetailChrome({
         <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
           {domain?.name ?? "Loading\u2026"}
         </Typography>
+        {domain?.minimum_dataset_domain ? (
+          <Tooltip
+            title={`${domain.minimum_dataset_subdomain_count ?? 0} subdomain${
+              (domain.minimum_dataset_subdomain_count ?? 0) === 1 ? "" : "s"
+            } have completeness criteria.`}
+          >
+            <Chip
+              label="Minimum dataset"
+              size="small"
+              sx={{
+                bgcolor: "#EEF2FF",
+                color: "#3730A3",
+                border: "1px solid #C7D2FE",
+              }}
+            />
+          </Tooltip>
+        ) : null}
       </Box>
       {domain?.description && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>

@@ -29,9 +29,13 @@ import {
   addConceptToSubdomain,
   removeConceptFromSubdomain,
   exportSubdomain,
+  saveCompletenessSchema,
+  previewCompletenessSchema,
   type DomainDetail,
   type SubdomainSummary,
   type SubdomainDetail,
+  type CompletenessConceptGroup,
+  type CompletenessPreviewResult,
 } from "@/lib/analyticsApi";
 import { searchTerms, fetchSemanticTags, fetchDescendants } from "@/lib/api";
 import { useOrg } from "@/context/OrgContext";
@@ -259,6 +263,34 @@ export default function DomainDetailPage() {
     }
   };
 
+  const handleSaveCompletenessSchema = async (
+    groups: CompletenessConceptGroup[],
+  ) => {
+    if (!configSub) return;
+    setConfigSubmitting(true);
+    try {
+      const saved = await saveCompletenessSchema(domainId, configSub.name, groups);
+      setConfigSub((prev) =>
+        prev ? { ...prev, completeness_schema: saved.groups } : null,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save completeness criteria");
+      throw e;
+    } finally {
+      setConfigSubmitting(false);
+    }
+  };
+
+  const handlePreviewCompletenessSchema = async (
+    conceptIds: number[],
+    groups: CompletenessConceptGroup[],
+  ): Promise<CompletenessPreviewResult> => {
+    if (!configSub) {
+      throw new Error("No subdomain selected");
+    }
+    return previewCompletenessSchema(domainId, configSub.name, conceptIds, groups);
+  };
+
   const handleFetchDescendants = async (conceptId: string, term: string) => {
     if (!configSub) return;
     setDescendantLoading(conceptId);
@@ -413,6 +445,8 @@ export default function DomainDetailPage() {
         onRemoveConcept={handleRemoveConcept}
         exportLoading={exportLoading}
         onExport={handleExport}
+        onSaveCompletenessSchema={handleSaveCompletenessSchema}
+        onPreviewCompletenessSchema={handlePreviewCompletenessSchema}
         searchPanelProps={{
           activeTags,
           searchQuery,

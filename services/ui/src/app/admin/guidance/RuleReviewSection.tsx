@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -33,6 +33,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EditRuleDialog, { type EditableRule } from "./EditRuleDialog";
+import { STRENGTH_LABELS } from "./EditRuleDialog/copy";
 import type { LogicCriterion } from "./EditRuleDialog/types";
 import { compareIsoDateTimeAsc } from "@/lib/dateSort";
 import {
@@ -227,6 +228,11 @@ function ruleToEditable(rule: Rule): EditableRule {
     logic_tree: rule.logic_tree,
     action,
   };
+}
+
+function strengthChipLabel(strength: string): string {
+  const hit = STRENGTH_LABELS.find((row) => row.value === strength);
+  return hit?.label ?? strength.replace(/_/g, " ");
 }
 
 /** Colour-coded chip for a diff criterion. */
@@ -478,14 +484,20 @@ function RuleAccordionCard({
               {rule.guideline_version && rule.guideline_version > 1 && (
                 <Chip label={`v${rule.guideline_version}`} size="small" color="warning" variant="outlined" />
               )}
-              {rule.strength && (
-                <Chip label={rule.strength} size="small" variant="outlined" />
+              {!expanded && rule.strength && rule.strength !== "unspecified" && (
+                <Tooltip title={strengthChipLabel(rule.strength)} arrow>
+                  <Chip
+                    label={rule.strength.replace(/_/g, " ")}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Tooltip>
               )}
               {rule.has_predecessor && (
                 <Chip icon={<CompareArrowsIcon />} label="Updated" size="small" color="warning" variant="outlined" />
               )}
               {rule.chapter_title && (
-                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: "0.75rem" }}>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
                   {rule.chapter_title}
                 </Typography>
               )}
@@ -519,33 +531,31 @@ function RuleAccordionCard({
 
         {/* -- Expanded body -- */}
         <Collapse in={expanded}>
-          <Box sx={{ mt: 1.5, ml: 3 }}>
-            {/* Full NICE recommendation text */}
+          <Box sx={{ mt: 1.75, ml: { xs: 0, sm: 3 } }}>
             {rule.recommendation_text && (
               <Box
                 sx={{
-                  p: 1.5,
-                  bgcolor: "grey.50",
-                  borderRadius: 1,
+                  p: 2,
+                  bgcolor: "background.paper",
+                  borderRadius: 1.5,
                   border: "1px solid",
-                  borderColor: "grey.200",
+                  borderColor: "divider",
                   mb: 0.5,
                 }}
               >
                 <Typography
-                  variant="caption"
+                  variant="overline"
                   color="text.secondary"
-                  sx={{ fontWeight: 600, display: "block", mb: 0.5 }}
+                  sx={{ fontWeight: 700, display: "block", mb: 0.75, letterSpacing: 0.6 }}
                 >
                   NICE recommendation
                 </Typography>
-                <Typography variant="body2" sx={{ lineHeight: 1.7, fontStyle: "italic" }}>
-                  &ldquo;{rule.recommendation_text}&rdquo;
+                <Typography variant="body2" sx={{ lineHeight: 1.7, color: "text.primary" }}>
+                  {rule.recommendation_text}
                 </Typography>
               </Box>
             )}
 
-            {/* Structured criteria */}
             <RuleDetailPanel rule={rule} />
 
             {/* Version diff */}
@@ -556,7 +566,19 @@ function RuleAccordionCard({
             )}
 
             {/* Action buttons */}
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 2 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{
+                mt: 2.5,
+                pt: 2,
+                borderTop: "1px solid",
+                borderColor: "divider",
+              }}
+            >
               {onApprove && (
                 <Button
                   variant="contained"
@@ -726,6 +748,11 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [promoteError, setPromoteError] = useState<string | null>(null);
 
   const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
+
+  const editableRule = useMemo(
+    () => (editRule ? ruleToEditable(editRule) : null),
+    [editRule],
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -900,7 +927,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   return (
     <Box>
       <EditRuleDialog
-        rule={editRule ? ruleToEditable(editRule) : null}
+        rule={editableRule}
         open={!!editRule}
         saving={editSaving}
         onClose={() => {

@@ -2,9 +2,10 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-CFA1ED55
- *   DI: DI-340279C1
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CFA1ED55")
+ *   UN: UN-72B60B2D
+ *   DI: DI-47D2CD86
+ *   DO: DO-5A88E0B9
+ *   VT: VT-8DE34E84
  */
 "use client";
 
@@ -22,8 +23,6 @@
  * add-alias editor + AI-suggestion behaviour because no design-system
  * primitive captures that interaction shape; they are re-styled to
  * match the rest of Knowledge through the wrapping layout.
- *
- * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -56,6 +55,8 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import InputAdornment from "@mui/material/InputAdornment";
+import HistoryIcon from "@mui/icons-material/History";
+import BlockIcon from "@mui/icons-material/Block";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import {
   FilterBar,
@@ -73,14 +74,32 @@ import {
   deleteSurfaceFormMapping,
   keepSurfaceFormMapping,
   upsertSurfaceFormMapping,
+  approveSurfaceFormMapping,
+  deactivateSurfaceFormMapping,
+  fetchSurfaceFormAuditLog,
   suggestAliases,
   searchTerms,
   type ConceptGroup,
   type GroupedSurfaceForm,
   type SurfaceFormDuplicate,
+  type SurfaceFormAuditEntry,
 } from "@/lib/api";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
+
+function aliasStatusColor(
+  status?: string,
+): "default" | "success" | "warning" | "error" {
+  if (!status || status === "approved" || status === "active") return "success";
+  if (status === "pending") return "warning";
+  if (status === "deactivated" || status === "revoked") return "error";
+  return "default";
+}
+
+function aliasStatusLabel(status?: string): string {
+  if (!status || status === "active") return "approved";
+  return status;
+}
 
 /** Client-side normalisation matching the server's _normalize() function. */
 function normalize(text: string): string {
@@ -152,6 +171,12 @@ export default function SurfaceFormsPage() {
   const [deduping, setDeduping] = useState(false);
   const [dedupeResult, setDedupeResult] = useState<number | null>(null);
   const [mappingActioning, setMappingActioning] = useState<string | null>(null);
+
+  // -- Approval workflow + change audit ------------------------------------
+  const [actioningAlias, setActioningAlias] = useState<string | null>(null);
+  const [auditLogOpen, setAuditLogOpen] = useState(false);
+  const [auditLogLoading, setAuditLogLoading] = useState(false);
+  const [auditLogEntries, setAuditLogEntries] = useState<SurfaceFormAuditEntry[]>([]);
 
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -261,6 +286,43 @@ export default function SurfaceFormsPage() {
       setDuplicates(results);
       if (results.length === 0) setDuplicatesOpen(false);
     } catch { /* silent */ }
+  };
+
+  const handleOpenAuditLog = async () => {
+    setAuditLogLoading(true);
+    setAuditLogOpen(true);
+    try {
+      const result = await fetchSurfaceFormAuditLog(undefined, 100, 0);
+      setAuditLogEntries(result.items);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load audit log");
+    } finally {
+      setAuditLogLoading(false);
+    }
+  };
+
+  const handleApproveAlias = async (sf: GroupedSurfaceForm, conceptId: string) => {
+    setActioningAlias(sf.normalized);
+    try {
+      await approveSurfaceFormMapping(sf.normalized, { conceptId });
+      load(query, page, rowsPerPage);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to approve alias");
+    } finally {
+      setActioningAlias(null);
+    }
+  };
+
+  const handleDeactivateAlias = async (sf: GroupedSurfaceForm) => {
+    setActioningAlias(sf.normalized);
+    try {
+      await deactivateSurfaceFormMapping(sf.normalized);
+      load(query, page, rowsPerPage);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to deactivate alias");
+    } finally {
+      setActioningAlias(null);
+    }
   };
 
   const handleRemoveMapping = async (normalized: string, conceptId: string) => {
@@ -485,6 +547,19 @@ export default function SurfaceFormsPage() {
   );
 
   const toolbarActions: ToolbarAction[] = [
+    {
+      id: "audit-log",
+      label: auditLogLoading ? "Loading log" : "Change log",
+      icon: auditLogLoading ? (
+        <CircularProgress size={14} aria-label="Loading" />
+      ) : (
+        <HistoryIcon fontSize="small" />
+      ),
+      variant: "secondary",
+      onClick: handleOpenAuditLog,
+      disabled: auditLogLoading,
+      loading: auditLogLoading,
+    },
     {
       id: "audit-duplicates",
       label: duplicatesLoading ? "Auditing" : "Audit duplicates",
@@ -809,25 +884,73 @@ export default function SurfaceFormsPage() {
 
               {/* Alias chips */}
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
-                {group.surface_forms.map((sf) => (
-                  <Chip
-                    key={sf.normalized}
-                    label={sf.form}
-                    size="small"
-                    variant="outlined"
-                    onDelete={
-                      deletingAlias === sf.normalized
-                        ? undefined
-                        : () => handleDeleteAlias(sf)
-                    }
-                    deleteIcon={
-                      deletingAlias === sf.normalized
-                        ? <CircularProgress aria-label="Loading" size={12} />
-                        : undefined
-                    }
-                    title={`${sf.normalized}${sf.source ? ` · ${sf.source}` : ""}${sf.confidence != null ? ` · ${(sf.confidence * 100).toFixed(0)}%` : ""}`}
-                  />
-                ))}
+                {group.surface_forms.map((sf) => {
+                  const status = aliasStatusLabel(sf.status);
+                  const busy = actioningAlias === sf.normalized || deletingAlias === sf.normalized;
+                  const canApprove = status === "pending";
+                  const canDeactivate = status === "approved" || status === "active";
+                  return (
+                    <Box
+                      key={sf.normalized}
+                      sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}
+                    >
+                      <Chip
+                        label={`${sf.form}${status !== "approved" ? ` (${status})` : ""}`}
+                        size="small"
+                        variant="outlined"
+                        color={aliasStatusColor(sf.status)}
+                        onDelete={
+                          busy
+                            ? undefined
+                            : () => handleDeleteAlias(sf)
+                        }
+                        deleteIcon={
+                          deletingAlias === sf.normalized
+                            ? <CircularProgress aria-label="Loading" size={12} />
+                            : undefined
+                        }
+                        title={[
+                          sf.normalized,
+                          sf.source ? `source: ${sf.source}` : "",
+                          sf.reviewer ? `reviewer: ${sf.reviewer}` : "",
+                          sf.reviewed_at ? `reviewed: ${sf.reviewed_at}` : "",
+                          sf.effective_at ? `effective: ${sf.effective_at}` : "",
+                          sf.confidence != null ? `${(sf.confidence * 100).toFixed(0)}%` : "",
+                        ].filter(Boolean).join(" · ")}
+                      />
+                      {canApprove && (
+                        <Tooltip title="Approve this alias for runtime resolve">
+                          <span>
+                            <IconButton
+                              aria-label={`Approve alias ${sf.form}`}
+                              size="small"
+                              color="success"
+                              disabled={busy}
+                              onClick={() => handleApproveAlias(sf, group.concept_id)}
+                            >
+                              {busy ? <CircularProgress aria-label="Loading" size={14} /> : <CheckIcon fontSize="small" />}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                      {canDeactivate && (
+                        <Tooltip title="Deactivate this alias">
+                          <span>
+                            <IconButton
+                              aria-label={`Deactivate alias ${sf.form}`}
+                              size="small"
+                              color="warning"
+                              disabled={busy}
+                              onClick={() => handleDeactivateAlias(sf)}
+                            >
+                              {busy ? <CircularProgress aria-label="Loading" size={14} /> : <BlockIcon fontSize="small" />}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  );
+                })}
 
                 {/* LLM-suggested alias chips */}
                 {(suggestions[group.concept_id] ?? [])
@@ -929,6 +1052,49 @@ export default function SurfaceFormsPage() {
           sx={{ mt: 1 }}
         />
       )}
+
+      {/* -- Change audit log ------------------------------------------------ */}
+      <Dialog
+        open={auditLogOpen}
+        onClose={() => setAuditLogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Surface form change log</DialogTitle>
+        <DialogContent dividers>
+          {auditLogLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress aria-label="Loading" />
+            </Box>
+          ) : auditLogEntries.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No audit entries yet.
+            </Typography>
+          ) : (
+            <List dense>
+              {auditLogEntries.map((entry) => (
+                <ListItem key={entry.id} alignItems="flex-start" sx={{ flexDirection: "column", alignItems: "stretch" }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {entry.action} · {entry.normalized}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {entry.actor}
+                    {entry.created_at ? ` · ${entry.created_at}` : ""}
+                    {entry.concept_id ? ` · ${entry.concept_id}` : ""}
+                  </Typography>
+                  {entry.detail && (
+                    <Typography variant="caption">{entry.detail}</Typography>
+                  )}
+                  <Divider sx={{ mt: 1 }} />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAuditLogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Delete concept confirmation ───────────────────────── */}
       <Dialog open={!!deleteTarget} onClose={() => !deleting && setDeleteTarget(null)}>

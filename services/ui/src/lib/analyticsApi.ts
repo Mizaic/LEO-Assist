@@ -563,6 +563,8 @@ export interface DomainSummary {
   subdomain_count: number;
   source?: "nice" | "platform" | "tenant";
   episode_detector?: boolean;
+  minimum_dataset_domain?: boolean;
+  minimum_dataset_subdomain_count?: number;
 }
 
 export interface SubdomainSummary {
@@ -573,6 +575,7 @@ export interface SubdomainSummary {
   semantic_tags: string[];
   assertion_filter?: string[];
   constructs?: SubdomainConstruct[];
+  completeness_schema?: CompletenessConceptGroup[];
   construct_count?: number;
   concept_count: number;
   /** Total IS_A descendants across all stored concepts. 0 means all concepts are leaf nodes. */
@@ -608,6 +611,31 @@ export interface SubdomainConstruct {
   description?: string;
   logic: "ALL" | "ANY";
   roles: SubdomainConstructRole[];
+}
+
+export interface CompletenessConceptGroup {
+  name: string;
+  required: boolean;
+  semantic_categories: string[];
+  concept_ids: number[];
+}
+
+export interface CompletenessSchema {
+  groups: CompletenessConceptGroup[];
+}
+
+export interface CompletenessGroupResult {
+  name: string;
+  required: boolean;
+  matched: boolean;
+  matched_concept_ids: number[];
+  missing_concept_ids: number[];
+}
+
+export interface CompletenessPreviewResult {
+  matched_groups: CompletenessGroupResult[];
+  missing_groups: CompletenessGroupResult[];
+  complete: boolean;
 }
 
 export interface SubdomainDetail extends SubdomainSummary {
@@ -782,6 +810,49 @@ export async function replaceSubdomainConstructs(
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(constructs),
+    },
+  );
+}
+
+export async function fetchCompletenessSchema(
+  domainId: string,
+  subdomainName: string,
+): Promise<CompletenessSchema> {
+  return fetchJson<CompletenessSchema>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/schema`,
+  );
+}
+
+export async function saveCompletenessSchema(
+  domainId: string,
+  subdomainName: string,
+  groups: CompletenessConceptGroup[],
+): Promise<CompletenessSchema> {
+  return fetchJson<CompletenessSchema>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/schema`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groups }),
+    },
+  );
+}
+
+export async function previewCompletenessSchema(
+  domainId: string,
+  subdomainName: string,
+  conceptIds: number[],
+  groups?: CompletenessConceptGroup[],
+): Promise<CompletenessPreviewResult> {
+  return fetchJson<CompletenessPreviewResult>(
+    `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}/subdomains/${encodeURIComponent(subdomainName)}/schema/preview`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        concept_ids: conceptIds,
+        ...(groups ? { schema: { groups } } : {}),
+      }),
     },
   );
 }

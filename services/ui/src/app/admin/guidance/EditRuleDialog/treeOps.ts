@@ -530,8 +530,32 @@ function renameGroup(
   return { ...node, name: trimmed };
 }
 
-function canHaveChildren(kind: LogicNodeKind): boolean {
+export function canHaveChildren(kind: LogicNodeKind): boolean {
   return kind === "AND" || kind === "OR" || kind === "NOT" || kind === "AT_LEAST";
+}
+
+/**
+ * True when Step 1 should show the dashed "no symptoms yet" empty state.
+ * A leaf node at the root (single CONCEPT / DEMOGRAPHIC / OBSERVATION)
+ * is editable content even though it has no ``children``.
+ */
+export function isTreeVisuallyEmpty(node: EditableLogicNode | null): boolean {
+  if (!node) return true;
+  if ((node.children ?? []).length > 0) return false;
+  return !(
+    node.kind === "CONCEPT" ||
+    node.kind === "DEMOGRAPHIC" ||
+    node.kind === "OBSERVATION"
+  );
+}
+
+/**
+ * When the persisted rule is a single leaf at the root, wrap it in an
+ * AND group so reviewers can attach more conditions via + Add.
+ */
+export function wrapRootInAnd(root: EditableLogicNode): EditableLogicNode {
+  if (canHaveChildren(root.kind)) return root;
+  return assignNodeIds({ kind: "AND", children: [root] });
 }
 
 function appendChild(

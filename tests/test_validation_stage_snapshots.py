@@ -51,3 +51,5 @@ def test_validation_output_json_includes_stage_snapshots_key() -> None:
     source = Path("libs/workflow/engine.py").read_text(encoding="utf-8")
     assert '"stage_snapshots": stage_snapshots' in source
     assert "_record_validation_stage_snapshot" in source
+    assert "_validation_terms_from_entities" in source
+    assert '"semantic_tag": tag' in source

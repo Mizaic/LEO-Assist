@@ -1811,6 +1811,10 @@ def resolve_coding_review(
                 reviewer=body.reviewer,
             )
         else:
+            from libs.terminology.cache_invalidation import (
+                invalidate_terminology_resolution_caches,
+            )
+
             normalized = re.sub(r"\s+", " ", entity_text.strip().lower())
             try:
                 coding_client = CodingGraphClient()
@@ -1823,6 +1827,9 @@ def resolve_coding_review(
                     source="coding_review",
                     provenance="coding_review_resolution",
                     created_by="coding_review",
+                )
+                invalidate_terminology_resolution_caches(
+                    reason=f"coding_review_surface_form:{normalized}"
                 )
                 coding_client.close()
                 logger.info(
@@ -1969,6 +1976,10 @@ def batch_resolve_coding_review(
 
     normalized = re.sub(r"\s+", " ", body.entity_text.strip().lower())
     try:
+        from libs.terminology.cache_invalidation import (
+            invalidate_terminology_resolution_caches,
+        )
+
         coding_client = CodingGraphClient()
         coding_client.run(
             UPSERT_SURFACE_FORM_MAPPING,
@@ -1979,6 +1990,9 @@ def batch_resolve_coding_review(
             source="batch_coding_review",
             provenance="batch_coding_review_resolution",
             created_by="batch_coding_review",
+        )
+        invalidate_terminology_resolution_caches(
+            reason=f"batch_coding_review_surface_form:{normalized}"
         )
         coding_client.close()
     except Exception:
@@ -2247,6 +2261,13 @@ def _writeback_recheck_surface_form(
             source="coding_review_recheck",
             provenance="coding_review_recheck_llm_alt",
             created_by="coding_review_recheck",
+        )
+        from libs.terminology.cache_invalidation import (
+            invalidate_terminology_resolution_caches,
+        )
+
+        invalidate_terminology_resolution_caches(
+            reason=f"coding_review_recheck_surface_form:{normalized}"
         )
         logger.info(
             "RECHECK: [WRITEBACK_OK] term=%r -> concept=%r provenance=%s",
@@ -3082,6 +3103,7 @@ def approve_surface_form(
             row = session.run(
                 APPROVE_SURFACE_FORM,
                 normalized=normalized,
+                reviewer=scope.email,
             ).single()
         if not row:
             raise HTTPException(

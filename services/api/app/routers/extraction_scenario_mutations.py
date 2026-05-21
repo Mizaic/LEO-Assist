@@ -34,6 +34,26 @@ router = APIRouter(prefix="/extraction-scenarios", tags=["extraction-scenarios"]
 class ExpectedPhrase(BaseModel):
     text: str
     semantic_tag: str = "finding"
+    concept_id: str | None = None
+    preferred_term: str | None = None
+
+
+class ExpectedAnalysisBody(BaseModel):
+    matched_rule_ids: list[str] = Field(default_factory=list)
+    expect_no_rules_fired: bool = False
+    expected_action_priority: str | None = None
+    reviewer_notes: str = ""
+
+
+class ExpectedSbarBody(BaseModel):
+    situation_md: str = ""
+    background_md: str = ""
+    recommendation_md: str = ""
+    matched_rule_ids: list[str] = Field(default_factory=list)
+    required_phrases: list[str] = Field(default_factory=list)
+    banned_phrases: list[str] = Field(default_factory=list)
+    expected_action_priority: str | None = None
+    reviewer_focus: str = ""
 
 
 class ScenarioWriteBody(BaseModel):
@@ -46,6 +66,8 @@ class ScenarioWriteBody(BaseModel):
     difficulty: list[str] = Field(default_factory=list)
     notes_for_clinician_review: str | None = None
     expected_observables: list[dict[str, Any]] | None = None
+    expected_analysis: ExpectedAnalysisBody | None = None
+    expected_sbar: ExpectedSbarBody | None = None
     synthetic_patient: dict[str, Any] | None = None
     blood_results: Any | None = None
     source_template_markdown: str | None = None

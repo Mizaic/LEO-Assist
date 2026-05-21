@@ -1,11 +1,18 @@
 """Cypher queries for terminology operations against the Knowledge Graph.
 
-Atlas trace:
-  DO: DO-0F8F8E02
-  Also implements: DO-14D58359, DO-A00CD165
-  DI: DI-3FDBB57B, DI-5EECDA58, DI-F8634363
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0F8F8E02")
+Atlas trace (local clinical language mappings):
+  UN: UN-72B60B2D
+  DI: DI-47D2CD86
+  DO: DO-5A88E0B9
+  VT: VT-8DE34E84
+
+Atlas trace (terminology resolve):
+  DO: DO-14D58359
+  DI: DI-F8634363
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14D58359")
 """
+
+_SF_RESOLVABLE = "coalesce(sf.status, 'approved') IN ['approved', 'active']"
 
 _NORMALISED_TAG_EXPR = (
     "toLower("
@@ -123,7 +130,9 @@ LIMIT $k
 
 EXACT_SURFACE_FORM_QUERY = """
 MATCH (sf:SurfaceForm {normalized: $normalized})-[m:MAPS_TO]->(c:Concept)
-WHERE c.active = true
+WHERE c.active = true AND """
+EXACT_SURFACE_FORM_QUERY += _SF_RESOLVABLE
+EXACT_SURFACE_FORM_QUERY += """
 WITH sf, c, max(coalesce(m.confidence, 0.0)) AS best_confidence
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 WITH c, sf, best_confidence, collect(DISTINCT rd.code) AS read_codes
@@ -149,16 +158,18 @@ RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
 
 FULLTEXT_SURFACE_FORM_QUERY = """
 CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node, score
-WITH node, score LIMIT 200
-MATCH (node)-[:MAPS_TO]->(c:Concept)
-WHERE c.active = true
-WITH c, node, max(score) AS best_score
+WITH node AS sf, score LIMIT 200
+MATCH (sf)-[:MAPS_TO]->(c:Concept)
+WHERE c.active = true AND """
+FULLTEXT_SURFACE_FORM_QUERY += _SF_RESOLVABLE
+FULLTEXT_SURFACE_FORM_QUERY += """
+WITH c, sf, max(score) AS best_score
 ORDER BY best_score DESC
 LIMIT $k
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
-WITH c, node, best_score, collect(DISTINCT rd.code) AS read_codes
+WITH c, sf, best_score, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
-       read_codes, best_score * 1.2 AS score, node.status AS surface_form_status
+       read_codes, best_score * 1.2 AS score, sf.status AS surface_form_status
 """
 
 VECTOR_QUERY = """
@@ -174,9 +185,11 @@ LIMIT $k
 """
 
 VECTOR_SURFACE_FORM_QUERY = """
-CALL db.index.vector.queryNodes($index_name, $k, $embedding) YIELD node, score
-MATCH (node:SurfaceForm)-[:MAPS_TO]->(c:Concept)
-WHERE c.active = true
+CALL db.index.vector.queryNodes($index_name, $k, $embedding) YIELD node AS sf, score
+MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept)
+WHERE c.active = true AND """
+VECTOR_SURFACE_FORM_QUERY += _SF_RESOLVABLE
+VECTOR_SURFACE_FORM_QUERY += """
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 WITH c, max(score) AS best_score, collect(DISTINCT rd.code) AS read_codes
 RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
@@ -211,6 +224,7 @@ WITH norm, [x IN raw_term_hits WHERE x IS NOT NULL] AS term_hits
 
 OPTIONAL MATCH (sf:SurfaceForm {normalized: norm})-[m:MAPS_TO]->(cs:Concept)
 WHERE cs.active = true
+  AND coalesce(sf.status, 'approved') IN ['approved', 'active']
 WITH norm, term_hits, sf, cs, max(coalesce(m.confidence, 0.0)) AS best_conf
 OPTIONAL MATCH (cs)-[:MAPS_TO_READ]->(rds:ReadCode)
 WITH norm, term_hits, cs, sf, best_conf, collect(DISTINCT rds.code) AS rds_codes
@@ -251,6 +265,7 @@ CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node
 WITH sfnode, sfscore LIMIT 200
 MATCH (sfnode)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true
+  AND coalesce(sfnode.status, 'approved') IN ['approved', 'active']
 WITH c, sfnode, max(sfscore) AS best_score
 ORDER BY best_score DESC
 LIMIT $k
@@ -336,10 +351,102 @@ RETURN norm AS normalized,
 
 APPROVE_SURFACE_FORM = """
 MATCH (sf:SurfaceForm {normalized: $normalized})
-WHERE sf.status = 'pending'
+WHERE coalesce(sf.status, 'pending') IN ['pending', 'active']
 SET sf.status = 'approved',
-    sf.approved_at = datetime()
+    sf.reviewer = coalesce($reviewer, 'system'),
+    sf.reviewed_at = datetime(),
+    sf.effective_at = coalesce(sf.effective_at, datetime()),
+    sf.updated_at = datetime()
 RETURN sf.normalized AS normalized, sf.status AS status
+"""
+
+APPROVE_SURFACE_FORM_MAPPING = """
+MATCH (sf:SurfaceForm {normalized: $normalized})-[m:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+  AND coalesce(sf.status, 'pending') IN ['pending', 'active']
+  AND ($concept_id IS NULL OR c.id = $concept_id)
+SET sf.status = 'approved',
+    sf.reviewer = $reviewer,
+    sf.reviewed_at = datetime(),
+    sf.effective_at = coalesce(sf.effective_at, datetime()),
+    sf.updated_at = datetime(),
+    sf.updated_by = $reviewer
+RETURN sf.normalized AS normalized,
+       sf.form AS form,
+       sf.status AS status,
+       sf.reviewer AS reviewer,
+       toString(sf.reviewed_at) AS reviewed_at,
+       toString(sf.effective_at) AS effective_at,
+       c.id AS concept_id,
+       c.fsn AS concept_fsn,
+       m.confidence AS confidence
+"""
+
+DEACTIVATE_SURFACE_FORM_MAPPING = """
+MATCH (sf:SurfaceForm {normalized: $normalized})-[m:MAPS_TO]->(c:Concept)
+WHERE c.active = true
+  AND coalesce(sf.status, 'approved') IN ['approved', 'active', 'pending']
+SET sf.status = 'deactivated',
+    sf.updated_at = datetime(),
+    sf.updated_by = $actor
+RETURN sf.normalized AS normalized,
+       sf.form AS form,
+       sf.status AS status,
+       sf.reviewer AS reviewer,
+       toString(sf.reviewed_at) AS reviewed_at,
+       toString(sf.effective_at) AS effective_at,
+       c.id AS concept_id,
+       c.fsn AS concept_fsn,
+       m.confidence AS confidence
+"""
+
+GET_SURFACE_FORM_MAPPING = """
+MATCH (sf:SurfaceForm {normalized: $normalized})-[m:MAPS_TO]->(c:Concept)
+RETURN sf.normalized AS normalized,
+       sf.form AS form,
+       sf.status AS status,
+       sf.reviewer AS reviewer,
+       toString(sf.reviewed_at) AS reviewed_at,
+       toString(sf.effective_at) AS effective_at,
+       c.id AS concept_id,
+       c.fsn AS concept_fsn,
+       m.confidence AS confidence
+LIMIT 1
+"""
+
+APPEND_SURFACE_FORM_AUDIT_LOG = """
+CREATE (log:SurfaceFormAuditLog {
+    id: $log_id,
+    normalized: $normalized,
+    action: $action,
+    actor: $actor,
+    outcome: $outcome,
+    detail: $detail,
+    concept_id: $concept_id,
+    created_at: datetime()
+})
+RETURN log.id AS id
+"""
+
+LIST_SURFACE_FORM_AUDIT_LOG = """
+MATCH (log:SurfaceFormAuditLog)
+WHERE $normalized IS NULL OR log.normalized = $normalized
+RETURN log.id AS id,
+       log.normalized AS normalized,
+       log.action AS action,
+       log.actor AS actor,
+       log.outcome AS outcome,
+       log.detail AS detail,
+       log.concept_id AS concept_id,
+       toString(log.created_at) AS created_at
+ORDER BY log.created_at DESC
+SKIP $offset LIMIT $limit
+"""
+
+COUNT_SURFACE_FORM_AUDIT_LOG = """
+MATCH (log:SurfaceFormAuditLog)
+WHERE $normalized IS NULL OR log.normalized = $normalized
+RETURN count(log) AS total
 """
 
 LIST_SURFACE_FORMS = """
@@ -353,6 +460,9 @@ RETURN sf.normalized    AS normalized,
        sf.form          AS form,
        sf.source        AS source,
        sf.status        AS status,
+       sf.reviewer      AS reviewer,
+       toString(sf.reviewed_at) AS reviewed_at,
+       toString(sf.effective_at) AS effective_at,
        toString(sf.created_at)    AS created_at,
        toString(sf.last_seen_at)  AS last_seen_at,
        c.id             AS concept_id,
@@ -389,6 +499,10 @@ WITH c,
        normalized:  sf.normalized,
        form:        sf.form,
        source:      sf.source,
+       status:      sf.status,
+       reviewer:    sf.reviewer,
+       reviewed_at: toString(sf.reviewed_at),
+       effective_at: toString(sf.effective_at),
        created_at:  toString(sf.created_at),
        confidence:  m.confidence
      }) AS surface_forms
@@ -446,15 +560,23 @@ MATCH (c:Concept {id: $concept_id})
 MERGE (sf:SurfaceForm {normalized: $normalized})
 ON CREATE SET sf.form = $form,
               sf.source = $source,
-              sf.status = 'active',
+              sf.status = 'pending',
               sf.created_at = datetime()
+ON MATCH SET sf.form = $form,
+             sf.source = $source,
+             sf.status = 'pending',
+             sf.updated_at = datetime(),
+             sf.updated_by = coalesce($actor, 'system')
 MERGE (sf)-[m:MAPS_TO]->(c)
-ON CREATE SET m.created_at = datetime(),
-              m.approved_at = datetime()
+ON CREATE SET m.created_at = datetime()
 SET m.confidence = $confidence,
     m.provenance = $provenance
 RETURN sf.normalized AS normalized,
        sf.form       AS form,
+       sf.status     AS status,
+       sf.reviewer   AS reviewer,
+       toString(sf.reviewed_at) AS reviewed_at,
+       toString(sf.effective_at) AS effective_at,
        c.id          AS concept_id,
        c.fsn         AS concept_fsn
 """

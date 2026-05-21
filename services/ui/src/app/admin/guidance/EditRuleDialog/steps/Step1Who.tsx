@@ -45,6 +45,7 @@ import {
   STEP_HELPERS,
   STEP_TITLES,
 } from "../copy";
+import { isTreeVisuallyEmpty } from "../treeOps";
 import { useConfirmEdits } from "../useConfirmEdits";
 import type {
   EditableLogicNode,
@@ -90,10 +91,7 @@ export default function Step1Who({
   onAddFirstSymptom,
   sandboxBadge,
 }: Props) {
-  const treeIsEmpty =
-    !tree ||
-    !Array.isArray(tree.children) ||
-    tree.children.length === 0;
+  const treeIsEmpty = isTreeVisuallyEmpty(tree);
 
   const { wrappedOnUpdate, confirmDialogs } = useConfirmEdits({
     tree,

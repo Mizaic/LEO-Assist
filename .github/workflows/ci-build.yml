@@ -164,6 +164,9 @@ jobs:
           fi
           exit 0
 
+      - name: Playwright - surface form approval workflow (VT-8DE34E84)
+        run: npx playwright test e2e/surface-forms-approval.spec.ts --project=chromium --reporter=line
+
   build-push:
     name: Build ${{ matrix.service }}
     needs: [test]

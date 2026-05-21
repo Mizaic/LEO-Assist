@@ -23,7 +23,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -34,10 +33,12 @@ from pydantic import BaseModel
 
 from app.deps import require_admin
 from libs.auth.org_scope import CallerScope, get_caller_scope
-from libs.pipeline.extraction_term_normaliser import (
-    BARE_NUMERIC_RE as _BARE_NUMERIC_RE,
-    VALUE_UNIT_TAIL_RE as _VALUE_UNIT_TAIL_RE,
-    strip_value_unit_tail as _strip_value_unit_tail,
+from libs.validation.extraction_phrase_scoring import (
+    build_case_alias_map as _build_case_alias_map,
+    normalise_alias_key as _normalise_alias_key,
+    normalise_expected_strings as _normalise_expected_strings,
+    normalise_validation_term as _normalise_validation_term,
+    normalise_validation_terms as _normalise_validation_terms,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,114 +54,6 @@ _runs: dict[str, dict[str, Any]] = {}
 _PASS_THRESHOLD = 0.95
 _PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 _PRODUCTION_PLAN_ID = "pd-val-key-fact-extraction"
-_NON_CLINICAL_NOISE_MARKERS = (
-    "referral criteria and clinical information",
-    "decision to refer date",
-    "practice email",
-    "nhs number",
-    "synthetic patient",
-    "template source",
-    "clinician review note",
-    "completed by",
-)
-_COMMON_LAB_ALIASES = {
-    "haemoglobin": "Hb",
-    "hemoglobin": "Hb",
-    "hb": "Hb",
-    "white blood cell count": "WCC",
-    "wcc": "WCC",
-    "platelet count": "Plts",
-    "plts": "Plts",
-    "mean corpuscular volume": "MCV",
-    "mcv": "MCV",
-    "sodium": "Na",
-    "na": "Na",
-    "potassium": "K",
-    "k": "K",
-    "creatinine": "Creat",
-    "creat": "Creat",
-    "alanine aminotransferase": "ALT",
-    "alt": "ALT",
-    "alkaline phosphatase": "Alk Phos",
-    "alk phos": "Alk Phos",
-    "bilirubin": "Bili",
-    "bili": "Bili",
-    "albumin": "Alb",
-    "alb": "Alb",
-    "c reactive protein": "CRP",
-    "crp": "CRP",
-    "erythrocyte sedimentation rate": "ESR",
-    "esr": "ESR",
-    "hba1c": "HbA1c",
-    "ferritin": "Ferritin",
-    "calcium": "Ca",
-    "ca": "Ca",
-    "ca125": "CA125",
-    "prostate specific antigen": "PSA",
-    "psa": "PSA",
-    "glycated haemoglobin": "HbA1c",
-    "glycated hemoglobin": "HbA1c",
-    "plasma viscosity": "PV",
-    "white cell count": "WCC",
-    "platelets": "Plts",
-    "mean cell volume": "MCV",
-    "full blood count": "FBC",
-    "serum protein electrophoresis": "SPE",
-    "thyroid function test": "TFT",
-    "thyroid function tests": "TFT",
-    "chest x-ray": "Chest X-ray",
-    "chest x ray": "Chest X-ray",
-    "abnormal cxr": "Abnormal CXR",
-    "fit test": "FIT requested",
-    "faecal immunochemical test": "FIT",
-    # myeloma bundle tests (source uses abbreviated names in prose)
-    "full blood count": "full blood count",
-    "serum protein electrophoresis": "serum protein electrophoresis",
-    "bence jones protein urine test": "Bence-Jones protein urine test",
-    "bence-jones protein urine test": "Bence-Jones protein urine test",
-    "plasma viscosity": "PV",
-    "pv": "PV",
-    "ldh": "LDH",
-    "lactate dehydrogenase": "LDH",
-    "urine culture": "urine culture",
-    "mid stream urine": "urine culture",
-    "msu": "urine culture",
-}
-
-# Phrase-level aliases for validation F1 (long model spans -> short gold strings).
-_PHRASE_F1_ALIASES = {
-    "mri scan of the brain": "urgent MRI scan of the brain",
-    "ca125 level is raised": "CA125 raised",
-    "ca125 is raised": "CA125 raised",
-    "ca125 level has returned elevated": "CA125 raised",
-    "glycated haemoglobin level": "HbA1c",
-    "raised psa": "raised PSA",
-    # lab_value_hardcase: model emits short form; gold wants long form
-    "abnormal prostate": "abnormal prostate examination",
-    "abnormal prostate examination confirmed": "abnormal prostate examination",
-    # abbreviation_hardcase: model emits CXR; gold wants Abnormal CXR
-    "cxr": "Abnormal CXR",
-    "abnormal cxr": "Abnormal CXR",
-    "right parahilar opacity": "Abnormal CXR",
-    # ng12_bone: verbose lab name -> gold short form
-    "serum protein electrophoresis paraprotein band": "serum protein electrophoresis",
-    # urology_uti: model may emit culture result phrase
-    "urine cultures": "urine culture",
-    "mid-stream urine cultures": "urine culture",
-    "mid-stream urine sample": "urine culture",
-    # rw_fasttrack variants
-    "altered bowel symptoms": "altered bowel function",
-    "urinary symptoms": "lower urinary tract symptoms",
-    "raised platelets": "Plts",
-    "lost approximately 3kg": "weight loss",
-    "approximately 2cm": "-",
-    "approximately 3cm": "-",
-    "fasting glucose": "-",
-    "ldh": "-",
-    "bp": "-",
-}
-
-
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -219,88 +112,13 @@ def _normalise_row(row: dict[str, Any]) -> dict[str, Any]:
         "difficulty",
         "expected_strings",
         "expected_observables",
+        "expected_analysis",
+        "expected_sbar",
         "must_not_extract",
         "synthetic_patient",
         "blood_results",
     )
     return {k: (_json_loads_safe(v) if k in json_fields else v) for k, v in row.items()}
-
-
-def _normalise_alias_key(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", value.casefold()).strip()
-
-
-def _build_case_alias_map(case: dict[str, Any] | None) -> dict[str, str]:
-    aliases: dict[str, str] = {
-        _normalise_alias_key(key): val
-        for key, val in {**_COMMON_LAB_ALIASES, **_PHRASE_F1_ALIASES}.items()
-    }
-    if not isinstance(case, dict):
-        return aliases
-    observables = case.get("expected_observables")
-    if not isinstance(observables, list):
-        return aliases
-    for observable in observables:
-        if not isinstance(observable, dict):
-            continue
-        canonical = str(observable.get("display_name") or "").strip()
-        if not canonical:
-            canonical = str(observable.get("test_name") or "").strip()
-        source_names = {
-            canonical,
-            str(observable.get("test_name") or "").strip(),
-            str(observable.get("display_name") or "").strip(),
-        }
-        for source_name in source_names:
-            if not source_name:
-                continue
-            aliases[_normalise_alias_key(source_name)] = canonical
-    return aliases
-
-
-def _normalise_validation_term(term: str, alias_map: dict[str, str]) -> str:
-    candidate = re.sub(r"\s+", " ", term).strip().strip(".,;:()[]{}")
-    if not candidate:
-        return ""
-    lowered = candidate.casefold()
-    if any(marker in lowered for marker in _NON_CLINICAL_NOISE_MARKERS):
-        return ""
-    if len(candidate) > 100:
-        return ""
-    if not re.search(r"[a-z]", lowered):
-        return ""
-    if _BARE_NUMERIC_RE.fullmatch(lowered):
-        return ""
-    stripped = _strip_value_unit_tail(candidate)
-    if stripped:
-        candidate = stripped
-    norm_key = _normalise_alias_key(candidate)
-    alias = alias_map.get(norm_key)
-    if alias:
-        return alias
-    for key, val in sorted(alias_map.items(), key=lambda item: -len(item[0])):
-        if len(key) >= 8 and norm_key.startswith(key):
-            return val
-    return candidate
-
-
-def _normalise_validation_terms(
-    extracted_entities: list[dict[str, str]], case: dict[str, Any] | None
-) -> list[dict[str, str]]:
-    alias_map = _build_case_alias_map(case)
-    normalised: list[dict[str, str]] = []
-    seen: set[str] = set()
-    for entity in extracted_entities:
-        term = entity.get("text", "")
-        clean = _normalise_validation_term(term, alias_map)
-        if not clean:
-            continue
-        key = clean.casefold() + "::" + entity.get("semantic_tag", "")
-        if key in seen:
-            continue
-        seen.add(key)
-        normalised.append({"text": clean, "semantic_tag": entity.get("semantic_tag", "")})
-    return normalised
 
 
 # ---------------------------------------------------------------------------
@@ -828,7 +646,8 @@ def _score_case_from_terms(case: dict[str, Any], extracted_entities: list[dict[s
     from tests.helpers.clinical_extraction_scenario_loader import score_case
 
     cleaned_terms = _normalise_validation_terms(extracted_entities, case)
-    return score_case(case, cleaned_terms, _scoring_rules())
+    scoring_case = {**case, "expected_strings": _normalise_expected_strings(case)}
+    return score_case(scoring_case, cleaned_terms, _scoring_rules())
 
 
 def _publish_production_validation_jobs(

@@ -38,8 +38,13 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
 
 import { approveScenario, getScenario } from "./api";
-import { phraseTag, phraseText } from "./phraseHelpers";
-import type { ExtractionScenarioDetail } from "./types";
+import {
+  buildObservableValueLookup,
+  normaliseObservableKey,
+  phraseTag,
+  phraseText,
+} from "./phraseHelpers";
+import type { ExtractionScenarioDetail, ObservableValue } from "./types";
 
 interface Props {
   caseId: string | null;
@@ -49,36 +54,12 @@ interface Props {
   onEdit?: (caseId: string) => void;
 }
 
-interface ValueInfo {
-  value?: string;
-  unit?: string;
-}
+interface ValueInfo extends ObservableValue {}
 
 type DocumentViewMode = "rendered" | "raw";
 
-function normaliseKey(value: string): string {
-  return value.trim().toLowerCase();
-}
-
 function buildValueLookup(detail: ExtractionScenarioDetail): Map<string, ValueInfo> {
-  const lookup = new Map<string, ValueInfo>();
-  for (const obs of detail.expected_observables ?? []) {
-    lookup.set(normaliseKey(obs.text), {
-      value: obs.value,
-      unit: obs.unit,
-    });
-  }
-
-  const blood = detail.blood_results;
-  if (blood && !Array.isArray(blood) && Array.isArray(blood.results)) {
-    for (const result of blood.results) {
-      lookup.set(normaliseKey(result.test_name), {
-        value: result.value == null ? undefined : String(result.value),
-        unit: result.unit,
-      });
-    }
-  }
-  return lookup;
+  return buildObservableValueLookup(detail.expected_observables, detail.blood_results);
 }
 
 function RawMarkdownPane({ body }: { body: string }) {
@@ -247,7 +228,7 @@ function PhrasesPane({
             {detail.expected_strings.map((phrase, i) => {
               const label = phraseText(phrase);
               const tag = phraseTag(phrase);
-              const value = valueLookup.get(normaliseKey(label));
+              const value = valueLookup.get(normaliseObservableKey(label));
               return (
                 <TableRow key={i} data-testid={`expected-phrase-${i}`}>
                   <TableCell sx={{ color: "text.secondary" }}>{i + 1}</TableCell>

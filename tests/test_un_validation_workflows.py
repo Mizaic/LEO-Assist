@@ -284,7 +284,11 @@ def test_production_run_refresh_scores_worker_audit_output(monkeypatch):
 def test_validation_output_normalises_value_unit_terms_before_scoring():
     case = {
         "case_id": "case-1",
-        "expected_strings": ["Alb", "CRP", "weight loss"],
+        "expected_strings": [
+            {"text": "Alb", "semantic_tag": "observable_entity"},
+            {"text": "CRP", "semantic_tag": "observable_entity"},
+            {"text": "weight loss", "semantic_tag": "finding"},
+        ],
         "expected_observables": [
             {"test_name": "Albumin", "display_name": "Alb"},
             {"test_name": "C reactive protein", "display_name": "CRP"},
@@ -305,9 +309,45 @@ def test_validation_output_normalises_value_unit_terms_before_scoring():
     terms = extraction_scenarios._terms_from_validation_output(row, case)
     score = extraction_scenarios._score_case_from_terms(case, terms)
 
-    assert terms == ["Alb", "CRP", "weight loss"]
+    assert terms == [
+        {"text": "Alb", "semantic_tag": "observable_entity"},
+        {"text": "CRP", "semantic_tag": "observable_entity"},
+        {"text": "weight loss", "semantic_tag": "finding"},
+    ]
     assert score["f1"] == 1.0
     assert score["false_positive"] == 0
+
+
+def test_validation_output_preserves_semantic_tags_for_scoring():
+    """Production audit terms must include semantic_tag, not default all to finding."""
+    from pathlib import Path
+
+    source = Path("libs/workflow/engine.py").read_text(encoding="utf-8")
+    assert "_validation_terms_from_entities" in source
+    assert 'entity.get("label") or entity.get("semantic_tag")' in source
+
+    case = {
+        "case_id": "brain_cns_email_001",
+        "expected_strings": [
+            {"text": "Hb", "semantic_tag": "observable_entity"},
+            {"text": "disinhibition", "semantic_tag": "finding"},
+        ],
+        "expected_observables": [],
+    }
+    row = {
+        "validation_output": {
+            "terms": [
+                {"text": "Hb", "semantic_tag": "observable_entity"},
+                {"text": "disinhibition", "semantic_tag": "finding"},
+            ]
+        }
+    }
+    score = extraction_scenarios._score_case_from_terms(
+        case, extraction_scenarios._terms_from_validation_output(row, case)
+    )
+    assert score["f1"] == 1.0
+    assert score["false_positive"] == 0
+    assert score["false_negative"] == 0
 
 
 def test_worker_audit_captures_validation_terms_only_when_requested():
@@ -315,7 +355,7 @@ def test_worker_audit_captures_validation_terms_only_when_requested():
 
     assert 'pipeline_state.get("capture_validation_output")' in engine
     assert 'audit["validation_output"]' in engine
-    assert '"terms": [' in engine
+    assert "_validation_terms_from_entities" in engine
     assert '"case_id": pipeline_state.get("case_id", "")' in engine
 
 

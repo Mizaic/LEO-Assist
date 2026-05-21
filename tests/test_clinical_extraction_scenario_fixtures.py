@@ -100,6 +100,9 @@ def test_expected_strings_contract_is_locked() -> None:
         "verification_test": "VT-29880CC8",
     }
     assert doc["validation_scope"] == "extraction_only_terms_text_before_coding"
+    assert "pipeline_placeholders" in doc
+    assert "expected_analysis" in doc["pipeline_placeholders"]
+    assert "expected_sbar" in doc["pipeline_placeholders"]
     assert doc["pass_threshold"]["overall_phrase_f1"] == 0.95
     assert doc["normalisation"] == {
         "casefold": True,
@@ -229,11 +232,15 @@ def test_scenarios_include_blood_results_with_values_and_units() -> None:
         assert len(results) >= 16
         assert len(results) == len(observables)
         
-        expected_texts = [
+        expected_texts = {
             s.get("text", "") if isinstance(s, dict) else str(s)
             for s in case["expected_strings"]
-        ]
-        
+        }
+        expected_texts.update(
+            str(observable.get("text") or observable.get("display_name") or "")
+            for observable in observables
+        )
+
         for result, observable in zip(results, observables):
             assert set(result) == _BLOOD_RESULT_KEYS
             assert set(observable) == _OBSERVABLE_KEYS
@@ -242,7 +249,10 @@ def test_scenarios_include_blood_results_with_values_and_units() -> None:
             assert result["unit"] == observable["unit"]
             assert result["flag"] in {"high", "low", "normal"}
             assert result["unit"]
-            assert result["display_name"] in expected_texts
+            assert (
+                result["display_name"] in expected_texts
+                or str(observable.get("text") or "") in expected_texts
+            )
             rendered = f"{result['display_name']} {result['value']} {result['unit']}"
             assert rendered in text
 

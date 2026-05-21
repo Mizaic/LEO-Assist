@@ -29,6 +29,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
+import { STRENGTH_LABELS, friendlyTerm } from "./EditRuleDialog/copy";
 import type { LogicSeed } from "./EditRuleDialog/types";
 
 /**
@@ -169,25 +170,43 @@ function pathwayAccent(index: number) {
 
 // -- Leaf renderers ---------------------------------------------------------
 
+function strengthPlainLabel(strength: string): string {
+  const hit = STRENGTH_LABELS.find((row) => row.value === strength);
+  return hit?.label ?? strength.replace(/_/g, " ");
+}
+
 function SnomedChip({ item }: { item: CriterionResult }) {
   const resolved = !!item.snomed_concept_id;
-  const tag = item.semantic_tag ?? "concept";
-  const fallbackLabel = item.term || item.preferred_term || "unknown concept";
+  const rawLabel = item.preferred_term || item.term || "unknown concept";
+  const label = resolved ? friendlyTerm(rawLabel) : `? ${friendlyTerm(rawLabel)}`;
   return (
     <Tooltip
       title={
         resolved
-          ? `SNOMED: ${item.snomed_concept_id} | ${tag}`
+          ? `${rawLabel} (SNOMED ${item.snomed_concept_id})`
           : "No SNOMED match found"
       }
       arrow
     >
       <Chip
-        label={resolved ? item.preferred_term : `? ${fallbackLabel}`}
+        label={label}
         size="small"
         color={resolved ? "success" : "warning"}
         variant={resolved ? "filled" : "outlined"}
-        sx={{ height: 20, fontSize: "0.68rem", mr: 0.4, mb: 0.4 }}
+        sx={{
+          height: "auto",
+          minHeight: 24,
+          maxWidth: "100%",
+          fontSize: "0.72rem",
+          mr: 0.4,
+          mb: 0.4,
+          "& .MuiChip-label": {
+            display: "block",
+            whiteSpace: "normal",
+            lineHeight: 1.35,
+            py: 0.35,
+          },
+        }}
       />
     </Tooltip>
   );
@@ -210,15 +229,21 @@ function PathwayCardsView({ node, depth }: PathwayCardsViewProps) {
     >
       <Typography
         variant="body2"
-        sx={{ fontWeight: 600, color: "text.primary", mb: 1, lineHeight: 1.4 }}
+        sx={{ fontWeight: 600, color: "text.primary", mb: 1.25, lineHeight: 1.4 }}
       >
         The rule fires if the patient matches any one of these pathways:
       </Typography>
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        spacing={2}
-        useFlexGap
-        sx={{ alignItems: "stretch", flexWrap: "wrap" }}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, minmax(0, 1fr))",
+            lg: "repeat(3, minmax(0, 1fr))",
+          },
+          gap: 2,
+          alignItems: "stretch",
+        }}
       >
         {children.map((child, i) => (
           <PathwayCard
@@ -226,10 +251,11 @@ function PathwayCardsView({ node, depth }: PathwayCardsViewProps) {
             node={child}
             index={i}
             isLast={i === children.length - 1}
+            showOrConnector={children.length <= 3}
             depth={depth + 1}
           />
         ))}
-      </Stack>
+      </Box>
     </Box>
   );
 }
@@ -238,10 +264,17 @@ interface PathwayCardProps {
   node: LogicTreeNode;
   index: number;
   isLast: boolean;
+  showOrConnector: boolean;
   depth: number;
 }
 
-function PathwayCard({ node, index, isLast, depth }: PathwayCardProps) {
+function PathwayCard({
+  node,
+  index,
+  isLast,
+  showOrConnector,
+  depth,
+}: PathwayCardProps) {
   const accent = pathwayAccent(index);
   const letter = String.fromCharCode(65 + index);
   const namedRaw = typeof node.name === "string" ? node.name.trim() : "";
@@ -249,18 +282,19 @@ function PathwayCard({ node, index, isLast, depth }: PathwayCardProps) {
   return (
     <Box
       sx={{
-        flex: 1,
-        minWidth: { xs: "100%", md: 260 },
+        minWidth: 0,
         position: "relative",
         borderRadius: 2,
         border: "1px solid",
         borderColor: "divider",
         bgcolor: "background.paper",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <Box aria-hidden sx={{ height: 4, width: "100%", bgcolor: accent.stripe }} />
-      <Box sx={{ p: 1.5 }}>
+      <Box sx={{ p: 1.75, flex: 1 }}>
         <Box
           sx={{
             display: "inline-flex",
@@ -275,14 +309,8 @@ function PathwayCard({ node, index, isLast, depth }: PathwayCardProps) {
             fontSize: "0.7rem",
             fontWeight: 700,
             letterSpacing: 0.4,
-            // Named pathways render as sentence-case so the label
-            // reads like a clinical pathway title rather than a code.
-            // Fallback letters stay uppercase for visual consistency.
             textTransform: namedRaw ? "none" : "uppercase",
             maxWidth: "100%",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
           }}
           title={titleLabel}
         >
@@ -290,7 +318,7 @@ function PathwayCard({ node, index, isLast, depth }: PathwayCardProps) {
         </Box>
         <PathwayCardBody node={node} depth={depth} />
       </Box>
-      {!isLast && (
+      {showOrConnector && !isLast && (
         <Tooltip title="Either pathway is enough on its own" arrow>
           <Box
             role="img"
@@ -381,7 +409,18 @@ export function LogicNodePanel({
   }
 
   if (kind === "DEMOGRAPHIC") {
-    const label = `${node.field ?? "?"} ${node.operator ?? "="} ${
+    const field = (node.field ?? "detail").replace(/_/g, " ");
+    const op =
+      node.operator === ">="
+        ? "is at least"
+        : node.operator === "<="
+          ? "is at most"
+          : node.operator === ">"
+            ? "is more than"
+            : node.operator === "<"
+              ? "is less than"
+              : "is";
+    const label = `${field.charAt(0).toUpperCase()}${field.slice(1)} ${op} ${
       node.value ?? "?"
     }${node.unit ? ` ${node.unit}` : ""}`;
     return (
@@ -390,7 +429,14 @@ export function LogicNodePanel({
         size="small"
         variant="filled"
         color="secondary"
-        sx={{ mr: 0.4, mb: 0.4, fontSize: "0.68rem", height: 20 }}
+        sx={{
+          height: "auto",
+          minHeight: 24,
+          mr: 0.4,
+          mb: 0.4,
+          fontSize: "0.72rem",
+          "& .MuiChip-label": { whiteSpace: "normal", lineHeight: 1.35, py: 0.35 },
+        }}
       />
     );
   }
@@ -420,10 +466,13 @@ export function LogicNodePanel({
     <Box
       sx={{
         ml: depth ? 1.5 : 0,
-        mt: 0.5,
-        pl: 1,
+        mt: 0.75,
+        pl: 1.25,
+        py: 0.75,
         borderLeft: "2px solid",
         borderColor: "divider",
+        bgcolor: depth === 0 ? "background.paper" : "transparent",
+        borderRadius: depth === 0 ? 1 : 0,
       }}
     >
       <Typography
@@ -432,7 +481,10 @@ export function LogicNodePanel({
           fontWeight: 700,
           color: "text.secondary",
           display: "block",
-          mb: 0.4,
+          mb: 0.5,
+          textTransform: "uppercase",
+          letterSpacing: 0.4,
+          fontSize: "0.68rem",
         }}
       >
         {title}
@@ -762,54 +814,67 @@ function V1CriteriaFallback({
 
 export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
   const hasLogicTree = !!rule.logic_tree;
+  const strengthText =
+    rule.strength && rule.strength !== "unspecified"
+      ? strengthPlainLabel(rule.strength)
+      : null;
   return (
     <Box
       sx={{
         mt: 1.5,
-        p: 1.5,
-        bgcolor: "primary.50",
+        p: 2,
+        bgcolor: "grey.50",
         border: "1px solid",
-        borderColor: "primary.200",
-        borderRadius: 1,
+        borderColor: "divider",
+        borderRadius: 1.5,
       }}
     >
       <Typography
-        variant="caption"
+        variant="subtitle2"
         sx={{
           fontWeight: 700,
-          color: "primary.dark",
+          color: "text.primary",
           display: "block",
-          mb: 1,
+          mb: 1.25,
         }}
       >
         Exact rule logic
       </Typography>
 
-      {hasLogicTree ? (
-        <LogicNodePanel node={rule.logic_tree!} />
-      ) : (
-        <V1CriteriaFallback
-          present={rule.present_criteria}
-          absent={rule.absent_criteria}
-        />
-      )}
-
-      {rule.strength && rule.strength !== "unspecified" && (
-        <Box sx={{ mt: 1.5 }}>
-          <Typography
-            variant="caption"
-            color="info.dark"
-            sx={{ fontWeight: 600, display: "block", mb: 0.3 }}
-          >
-            Recommended action
-          </Typography>
-          <Chip
-            label={rule.strength}
-            size="small"
-            variant="outlined"
-            color="info"
-            sx={{ fontSize: "0.68rem", height: 20 }}
+      <Box
+        sx={{
+          p: 1.5,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 1.5,
+        }}
+      >
+        {hasLogicTree ? (
+          <LogicNodePanel node={rule.logic_tree!} />
+        ) : (
+          <V1CriteriaFallback
+            present={rule.present_criteria}
+            absent={rule.absent_criteria}
           />
+        )}
+      </Box>
+
+      {strengthText && (
+        <Box
+          sx={{
+            mt: 1.5,
+            pt: 1.5,
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+            When this rule matches, the system should:{" "}
+            <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+              {strengthText}
+            </Box>
+          </Typography>
         </Box>
       )}
     </Box>

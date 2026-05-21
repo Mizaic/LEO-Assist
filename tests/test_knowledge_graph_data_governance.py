@@ -162,3 +162,35 @@ class TestManualMappingDefaultCreatedBy:
         )
         assert req.created_by == "manual_mapping"
         assert "@" not in req.created_by
+
+    def test_upsert_passes_actor_to_neo4j(self):
+        """Core-api upsert must supply $actor expected by UPSERT_SURFACE_FORM_MAPPING."""
+        from unittest.mock import MagicMock, patch
+
+        from services.api.app.routers.terminology import (
+            UpsertMappingRequest,
+            upsert_surface_form_mapping,
+        )
+
+        mock_client = MagicMock()
+        mock_client.run.return_value = [
+            {
+                "normalized": "t2dm",
+                "form": "T2DM",
+                "concept_id": "44054006",
+                "concept_fsn": "Diabetes mellitus type 2 (disorder)",
+            }
+        ]
+        with patch(
+            "services.api.app.routers.terminology.CodingGraphClient",
+            return_value=mock_client,
+        ):
+            body = UpsertMappingRequest(
+                normalized="t2dm",
+                form="T2DM",
+                concept_id="44054006",
+                actor="knowledge-admin",
+            )
+            upsert_surface_form_mapping(body, _scope=MagicMock())
+
+        assert mock_client.run.call_args.kwargs["actor"] == "knowledge-admin"
