@@ -20,4 +20,5 @@ boto3>=1.42.64
 botocore>=1.42.64
 langchain-aws>=0.3
 langchain-openai>=0.3
+langgraph>=0.4
 beautifulsoup4>=4.12
