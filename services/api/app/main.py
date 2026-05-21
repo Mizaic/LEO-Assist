@@ -78,6 +78,9 @@ from app.routers.ncda_pathway_config import router as ncda_pathway_config_router
 from app.routers.audit_quality import router as audit_quality_router
 from app.routers.sbar import router as sbar_router
 from app.routers.extraction_scenarios import router as extraction_scenarios_router
+from app.routers.extraction_scenario_mutations import (
+    router as extraction_scenario_mutations_router,
+)
 from app.routers.coding_validation import router as coding_validation_router
 from app.routers.validation_runs import router as validation_runs_router
 from app.routers.sdk_auth import router as sdk_auth_router
@@ -400,6 +403,7 @@ app.include_router(audit_quality_router)
 app.include_router(data_quality_router)
 app.include_router(sbar_router)
 app.include_router(extraction_scenarios_router)
+app.include_router(extraction_scenario_mutations_router)
 app.include_router(coding_validation_router)
 app.include_router(validation_runs_router)
 app.include_router(sdk_auth_router)
