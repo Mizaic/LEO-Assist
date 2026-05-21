@@ -995,7 +995,7 @@ def _terms_from_validation_output(
     if not isinstance(terms, list):
         return []
     raw_entities = [
-        {"text": str(term.get("text") or "").strip(), "semantic_tag": str(term.get("semantic_tag") or "finding")}
+        {"text": str(term.get("text") or "").strip(), "semantic_tag": str(term.get("label") or term.get("semantic_tag") or "finding")}
         for term in terms
         if isinstance(term, dict) and str(term.get("text") or "").strip()
     ]
@@ -1036,7 +1036,7 @@ def _entity_texts(entities: Any) -> list[dict[str, str]]:
         if isinstance(text, str) and text.strip():
             texts.append({
                 "text": text.strip(), 
-                "semantic_tag": str(entity.get("semantic_tag") or "finding")
+                "semantic_tag": str(entity.get("label") or entity.get("semantic_tag") or "finding")
             })
     return texts
 
