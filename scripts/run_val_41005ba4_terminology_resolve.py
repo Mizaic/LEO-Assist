@@ -173,8 +173,14 @@ def main() -> int:
             if isinstance(val, dict):
                 text = str(val.get("text", "")).strip()
                 tag = str(val.get("semantic_tag", "finding")).strip()
-                if text:
-                    unique_terms_dict[f"{text}::{tag}"] = {"text": text, "semantic_tag": tag}
+            elif isinstance(val, str):
+                text = val.strip()
+                tag = "observable_entity" if text in {"Ferritin", "Hb", "Iron", "WCC", "Plts", "MCV", "Na", "K", "Creat", "ALT", "Alk Phos", "Bili", "Alb", "CRP", "ESR", "Ca", "HbA1c", "TIBC", "PSA", "PV", "LDH", "Amylase", "Fasting glucose"} else "finding"
+            else:
+                continue
+                
+            if text:
+                unique_terms_dict[f"{text}::{tag}"] = {"text": text, "semantic_tag": tag}
     unique_terms = list(unique_terms_dict.values())
     unique_terms.sort(key=lambda x: x["text"].lower())
     
@@ -203,10 +209,15 @@ def main() -> int:
         case_id = str(case.get("case_id") or "")
         facts: list[dict[str, Any]] = []
         for surface in case.get("expected_strings") or []:
-            if not isinstance(surface, dict):
+            if isinstance(surface, dict):
+                surface_form = str(surface.get("text", "")).strip()
+                tag = str(surface.get("semantic_tag", "finding")).strip()
+            elif isinstance(surface, str):
+                surface_form = surface.strip()
+                tag = "observable_entity" if surface_form in {"Ferritin", "Hb", "Iron", "WCC", "Plts", "MCV", "Na", "K", "Creat", "ALT", "Alk Phos", "Bili", "Alb", "CRP", "ESR", "Ca", "HbA1c", "TIBC", "PSA", "PV", "LDH", "Amylase", "Fasting glucose"} else "finding"
+            else:
                 continue
-            surface_form = str(surface.get("text", "")).strip()
-            tag = str(surface.get("semantic_tag", "finding")).strip()
+                
             if not surface_form:
                 continue
             
