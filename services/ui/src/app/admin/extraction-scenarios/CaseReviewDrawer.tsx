@@ -38,7 +38,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
 
 import { approveScenario, getScenario } from "./api";
-import { phraseText } from "./phraseHelpers";
+import { phraseTag, phraseText } from "./phraseHelpers";
 import type { ExtractionScenarioDetail } from "./types";
 
 interface Props {
