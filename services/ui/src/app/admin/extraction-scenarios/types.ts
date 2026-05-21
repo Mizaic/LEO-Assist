@@ -91,3 +91,20 @@ export interface ValidationRunStatus {
 }
 
 export type StatusFilter = "all" | "approved" | "draft";
+
+export interface ScenarioWritePayload {
+  case_id?: string;
+  site: string;
+  format: string;
+  markdown_body: string;
+  expected_strings: ExpectedPhrase[];
+  must_not_extract: string[];
+  phrase_classes: string[];
+  difficulty: string[];
+  notes_for_clinician_review?: string | null;
+  expected_observables?: ExtractionScenarioDetail["expected_observables"];
+  synthetic_patient?: ExtractionScenarioDetail["synthetic_patient"];
+  blood_results?: ExtractionScenarioDetail["blood_results"];
+  source_template_markdown?: string | null;
+  schema_version?: number;
+}
