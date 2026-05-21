@@ -52,6 +52,10 @@ _REFERRAL_ROUTING_RE = re.compile(
     r"refer\s+this\s+patient\s+under\s+the\b|"
     r"referred\s+under\s+the\s+.+\s+(?:pathway|referral\s+form)|"
     r"suspected\s+.+\s+cancer\s+referral\b|"
+    r"(?:urgent\s+)?(?:.+?\s+)?suspected\s+cancer\s+referral\b|"
+    r"(?:suspected\s+)?.+?\s+cancer\s+pathway\b|"
+    r"(?:urgent\s+)?(?:2\s*ww|two-?week\s+wait|fast\s+track)\s+pathway\b|"
+    r"^suspected\s+(?:head\s+and\s+neck|brain\s+and\s+cns|lung|breast|lower\s+gi|upper\s+gi|urology|gynaecology|haematology|skin)\s+cancer$|"
     r".+\s+suspected\s+cancer\s+pathway\b|"
     r"2ww\s+.+\s+referral\s+(?:placed|submitted|sent)?|"
     r"(?:2\s*ww|two\s+week\s+wait|fast\s+track)\s+.+\s+referral\b|"
@@ -64,11 +68,11 @@ _REFERRAL_ROUTING_RE = re.compile(
 
 _GENERIC_REFERRAL_ONLY_RE = re.compile(
     r"^(?:"
-    r"(?:urgent\s+)?(?:2\s*ww|two\s+week\s+wait|fast\s+track)\s+.+?\s+referral\b|"
+    r"(?:urgent\s+)?(?:2\s*ww|two-?week\s+wait|fast\s+track)\s+(?:.+?\s+)?(?:referral|pathway)\b|"
     r".+?\s+referral\s+(?:placed|submitted)\b|"
     r"refer\s+this\s+patient\b|"
-    r"suspected\s+cancer\s+referral\b|"
-    r".+?\s+suspected\s+cancer\s+pathway\b"
+    r"(?:urgent\s+)?(?:.+?\s+)?suspected\s+cancer\s+(?:referral|pathway)\b|"
+    r"^suspected\s+(?:head\s+and\s+neck|brain\s+and\s+cns|lung|breast|lower\s+gi|upper\s+gi|urology|gynaecology|haematology|skin)\s+cancer$"
     r")\.?$",
     re.IGNORECASE,
 )

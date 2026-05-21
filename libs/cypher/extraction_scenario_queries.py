@@ -70,6 +70,45 @@ ON CREATE SET
   s.updated_at            = $created_at
 """
 
+SYNC_EXTRACTION_SCENARIO = """
+MERGE (s:ExtractionScenario {case_id: $case_id})
+ON CREATE SET
+  s.case_id               = $case_id,
+  s.site                  = $site,
+  s.format                = $format,
+  s.phrase_classes        = $phrase_classes,
+  s.difficulty            = $difficulty,
+  s.review_status         = $review_status,
+  s.expected_strings      = $expected_strings,
+  s.expected_observables  = $expected_observables,
+  s.must_not_extract      = $must_not_extract,
+  s.markdown_body         = $markdown_body,
+  s.source_template_markdown = $source_template_markdown,
+  s.notes_for_clinician_review = $notes_for_clinician_review,
+  s.synthetic_patient     = $synthetic_patient,
+  s.blood_results         = $blood_results,
+  s.schema_version        = $schema_version,
+  s.source                = $source,
+  s.created_at            = $created_at,
+  s.updated_at            = $created_at
+ON MATCH SET
+  s.site                  = $site,
+  s.format                = $format,
+  s.phrase_classes        = $phrase_classes,
+  s.difficulty            = $difficulty,
+  s.expected_strings      = $expected_strings,
+  s.expected_observables  = $expected_observables,
+  s.must_not_extract      = $must_not_extract,
+  s.markdown_body         = $markdown_body,
+  s.source_template_markdown = $source_template_markdown,
+  s.notes_for_clinician_review = $notes_for_clinician_review,
+  s.synthetic_patient     = $synthetic_patient,
+  s.blood_results         = $blood_results,
+  s.schema_version        = $schema_version,
+  s.updated_at            = $updated_at
+RETURN s.case_id AS case_id
+"""
+
 REFRESH_EXTRACTION_SCENARIO_MARKDOWN_BODY = """
 MATCH (s:ExtractionScenario {case_id: $case_id})
 WHERE

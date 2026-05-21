@@ -22,7 +22,8 @@ name: Widget release - build, gate, deploy
 # What it requires (per environment secrets)
 #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC)
 #   AZURE_WIDGET_STORAGE_ACCOUNT                             (e.g. leoaiwidgetcdnprod)
-#   CLOUDFLARE_API_TOKEN                                     (zone-scoped: Cache Purge + Origin Rules Edit)
+#   CLOUDFLARE_API_TOKEN                                     (zone: Cache Purge; account: Workers Scripts Edit)
+#   CLOUDFLARE_ACCOUNT_ID                                    (Cloudflare account id)
 #   CLOUDFLARE_ZONE_ID                                       (zone id of the WIDGET_PUBLIC_HOST parent, e.g. healthcarecopilot.ai)
 #   WIDGET_PUBLIC_HOST                                       (e.g. widget.leo-ai-audit.healthcarecopilot.ai)
 
@@ -209,23 +210,25 @@ jobs:
           echo "host=$ORIGIN_HOST" >> "$GITHUB_OUTPUT"
           echo "Azure origin host: $ORIGIN_HOST"
 
-      - name: Ensure Cloudflare origin Host override
-        id: cloudflare_origin
+      - name: Deploy Cloudflare Worker proxy
+        id: cloudflare_worker
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           WIDGET_PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
           AZURE_WIDGET_ORIGIN_HOST: ${{ steps.origin.outputs.host }}
+          WIDGET_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
         run: |
           set +e
-          python scripts/apply_widget_cloudflare_origin.py
+          python scripts/deploy_widget_cloudflare_worker.py
           EXIT=$?
           if [ $EXIT -eq 0 ]; then
-            echo "applied=true" >> "$GITHUB_OUTPUT"
+            echo "deployed=true" >> "$GITHUB_OUTPUT"
           else
-            echo "applied=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Cloudflare origin Host override was not applied. Add Zone > Origin Rules > Edit to CLOUDFLARE_API_TOKEN, or create the origin rule manually in the Cloudflare dashboard (see infra/widget-cdn/README.md section 3)."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Cloudflare Worker proxy was not deployed. Grant Account > Workers Scripts > Edit and Zone > Workers Routes > Edit on CLOUDFLARE_API_TOKEN, or deploy the worker manually (see infra/widget-cdn/README.md section 3)."
             exit 0
           fi
 
@@ -357,11 +360,11 @@ jobs:
       - name: Smoke check public CDN edge
         env:
           HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
-          ORIGIN_APPLIED: ${{ steps.cloudflare_origin.outputs.applied }}
+          WORKER_DEPLOYED: ${{ steps.cloudflare_worker.outputs.deployed }}
         run: |
-          if [ "$ORIGIN_APPLIED" != "true" ]; then
-            echo "::warning::Skipping strict public CDN smoke check because the Cloudflare origin Host override is missing."
-            echo "Configure the origin rule, then verify: https://${HOST}/v1/leo-widget.js"
+          if [ "$WORKER_DEPLOYED" != "true" ]; then
+            echo "::warning::Skipping public CDN smoke check because the Cloudflare Worker proxy is not deployed."
+            echo "Deploy the worker (see infra/widget-cdn/README.md section 3), then verify: https://${HOST}/v1/leo-widget.js"
             exit 0
           fi
           for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do

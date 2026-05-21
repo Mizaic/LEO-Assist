@@ -65,7 +65,9 @@ def _normalise_phrase_list(raw: list[Any]) -> list[dict[str, str]]:
             text = str(item.get("text", "")).strip()
             tag = str(item.get("semantic_tag", "finding")).strip() or "finding"
         else:
-            raise ScenarioValidationError("Each expected phrase must be text or an object.")
+            raise ScenarioValidationError(
+                "Each expected phrase must be text or an object."
+            )
         if not text:
             raise ScenarioValidationError("Expected phrases cannot be blank.")
         if tag not in _VALID_SEMANTIC_TAGS:
@@ -197,7 +199,7 @@ def update_scenario(client: Any, case_id: str, body: dict[str, Any]) -> dict[str
     }
 
 
-def delete_scenario(client: Any, case_id: str) -> dict[str, str]:
+def delete_scenario(client: Any, case_id: str) -> dict[str, Any]:
     """Delete one ExtractionScenario node."""
     from libs.cypher.extraction_scenario_queries import DELETE_EXTRACTION_SCENARIO
 

@@ -167,11 +167,13 @@ LIMIT $limit
 TERMINOLOGY_SEARCH = """
 CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:DESCRIBES]->(c:Concept)
     WHERE c.active = true
     RETURN c, score AS weighted_score, false AS sf_match
     UNION
     CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:MAPS_TO]->(c:Concept)
     WHERE c.active = true
     RETURN c, score * 1.2 AS weighted_score, true AS sf_match
@@ -212,11 +214,13 @@ RETURN c.id AS snomed_concept_id,
 TERMINOLOGY_SEARCH_FILTERED = """
 CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:DESCRIBES]->(c:Concept)
     WHERE c.active = true AND c.semantic_tag IN $tags
     RETURN c, score AS weighted_score, false AS sf_match
     UNION
     CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:MAPS_TO]->(c:Concept)
     WHERE c.active = true AND c.semantic_tag IN $tags
     RETURN c, score * 1.2 AS weighted_score, true AS sf_match

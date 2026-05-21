@@ -38,6 +38,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
 
 import { approveScenario, getScenario } from "./api";
+import { phraseText } from "./phraseHelpers";
 import type { ExtractionScenarioDetail } from "./types";
 
 interface Props {
@@ -45,6 +46,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onApproved: () => void;
+  onEdit?: (caseId: string) => void;
 }
 
 interface ValueInfo {
@@ -243,11 +245,20 @@ function PhrasesPane({
           </TableHead>
           <TableBody>
             {detail.expected_strings.map((phrase, i) => {
-              const value = valueLookup.get(normaliseKey(phrase));
+              const label = phraseText(phrase);
+              const tag = phraseTag(phrase);
+              const value = valueLookup.get(normaliseKey(label));
               return (
                 <TableRow key={i} data-testid={`expected-phrase-${i}`}>
                   <TableCell sx={{ color: "text.secondary" }}>{i + 1}</TableCell>
-                  <TableCell sx={{ wordBreak: "break-word" }}>{phrase}</TableCell>
+                  <TableCell sx={{ wordBreak: "break-word" }}>
+                    {label}
+                    {tag && (
+                      <Typography component="span" variant="caption" sx={{ ml: 1, color: "text.secondary" }}>
+                        ({tag})
+                      </Typography>
+                    )}
+                  </TableCell>
                   <TableCell data-testid={`expected-value-${i}`}>
                     {value?.value
                       ? `${value.value} ${value.unit ?? ""}`.trim()
@@ -328,7 +339,13 @@ function PhrasesPane({
 }
 
 // LONG FUNCTION: dialog coordinates fetch, approve, and two-pane review layout.
-export default function CaseReviewDrawer({ caseId, open, onClose, onApproved }: Props) {
+export default function CaseReviewDrawer({
+  caseId,
+  open,
+  onClose,
+  onApproved,
+  onEdit,
+}: Props) {
   const [detail, setDetail] = useState<ExtractionScenarioDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -464,6 +481,15 @@ export default function CaseReviewDrawer({ caseId, open, onClose, onApproved }: 
           Approving means the expected phrases and values look correct.
         </Typography>
         <Stack direction="row" spacing={1}>
+          {onEdit && caseId ? (
+            <Button
+              variant="outlined"
+              onClick={() => onEdit(caseId)}
+              data-testid="edit-scenario-button"
+            >
+              Edit scenario
+            </Button>
+          ) : null}
           <Button onClick={onClose}>Close</Button>
           {!isApproved ? (
             <Button

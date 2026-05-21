@@ -5,6 +5,7 @@ import sys
 sys.path.insert(0, os.path.join(os.getcwd(), 'services/api'))
 sys.path.insert(0, os.getcwd())
 
+import app.config  # Load KeyVault secrets
 from libs.neo4j_client.client import KnowledgeGraphClient
 
 def update_neo4j():
@@ -18,11 +19,11 @@ def update_neo4j():
             case_id = case["case_id"]
             expected_strings = case.get("expected_strings", [])
             query = """
-            MATCH (c:ClinicalScenario {scenario_id: $case_id})
+            MATCH (c:ExtractionScenario {case_id: $case_id})
             SET c.expected_strings = $expected_strings
-            RETURN c.scenario_id
+            RETURN c.case_id
             """
-            res = session.run(query, case_id=case_id, expected_strings=expected_strings).single()
+            res = session.run(query, case_id=case_id, expected_strings=json.dumps(expected_strings)).single()
             if res:
                 updated += 1
                 

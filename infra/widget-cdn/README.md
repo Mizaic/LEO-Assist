@@ -31,14 +31,15 @@ Embedding host page
         |
         |  <script src="https://${WIDGET_PUBLIC_HOST}/v1/leo-widget.js">
         v
-Cloudflare edge
+Cloudflare edge (Free tier)
    (zone: parent of WIDGET_PUBLIC_HOST,
     e.g. healthcarecopilot.ai)
-        |  origin pull, HTTPS, Host header rewritten
+        |  Workers route on WIDGET_PUBLIC_HOST/*
+        |  fetches Azure origin with the correct Host header
         v
 Azure Storage Static Website
-   leoaiwidgetcdn{env}.z6.web.core.windows.net  (origin only, never
-                                                  hit by browsers)
+   leoaiwidgetcdn{env}.z33.web.core.windows.net  (origin only, never
+                                                  hit by browsers directly)
 ```
 
 Cloudflare gives us global edge caching, DDoS protection, free TLS
@@ -116,37 +117,54 @@ target:  leoaiwidgetcdnprod.z6.web.core.windows.net
 proxied: yes (orange cloud)
 ```
 
-### 3. Configure the origin in Cloudflare
+### 3. Deploy the Cloudflare Worker proxy (Free tier)
 
-Cloudflare > SSL/TLS > Edge Certificates: ensure
-`Always Use HTTPS` is on and Min TLS = 1.2. SSL mode = Full
-(strict), because Storage Static Website serves a valid certificate.
-
-Azure Static Website only accepts requests whose `Host` header matches
-the storage account web endpoint (for example
-`leoaiwidgetcdndev.z33.web.core.windows.net`). Cloudflare must
-therefore rewrite the origin Host header on every request to the
-widget FQDN.
+Origin Rules that rewrite the Host header require a paid Cloudflare plan.
+On Free tier, use a **Cloudflare Worker** instead. The worker runs on
+`WIDGET_PUBLIC_HOST/*`, fetches Azure Static Website with the correct
+storage web endpoint Host header, and caches responses at the edge.
 
 The deploy workflow applies this automatically via
-`scripts/apply_widget_cloudflare_origin.py`. To apply manually:
+`scripts/deploy_widget_cloudflare_worker.py`. Required API token
+permissions:
+
+- Account > Workers Scripts > Edit
+- Zone > Workers Routes > Edit
+- Zone > Cache Purge > Purge
+
+Set `CLOUDFLARE_ACCOUNT_ID` in the GitHub environment secrets alongside
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ZONE_ID`.
+
+Manual setup (dashboard):
+
+1. Workers & Pages > Create > paste
+   `infra/widget-cdn/cloudflare-worker/widget-proxy.js`
+2. Settings > Variables > add plain-text `ORIGIN_HOST` =
+   `leoaiwidgetcdndev.z33.web.core.windows.net` (your storage web host)
+3. Triggers > Add route:
+   `sbar-widget-dev.healthcarecopilot.ai/*` (your `WIDGET_PUBLIC_HOST`)
+
+Or run locally:
 
 ```
 export CLOUDFLARE_API_TOKEN=...
+export CLOUDFLARE_ACCOUNT_ID=...
 export CLOUDFLARE_ZONE_ID=...
 export WIDGET_PUBLIC_HOST=sbar-widget-dev.healthcarecopilot.ai
 export AZURE_WIDGET_ORIGIN_HOST=leoaiwidgetcdndev.z33.web.core.windows.net
-python scripts/apply_widget_cloudflare_origin.py
+export WIDGET_ENVIRONMENT=dev
+python scripts/deploy_widget_cloudflare_worker.py
 ```
 
-In the dashboard: Rules > Origin Rules > Create rule
+Keep the DNS record from section 2 (proxied CNAME is fine). The worker
+route handles traffic before Cloudflare would pull from Azure directly.
 
-- Expression: `(http.host eq "sbar-widget-dev.healthcarecopilot.ai")`
-- Host header override: `leoaiwidgetcdndev.z33.web.core.windows.net`
-- DNS record override: `leoaiwidgetcdndev.z33.web.core.windows.net`
+Cloudflare > SSL/TLS > Edge Certificates: ensure
+`Always Use HTTPS` is on and Min TLS = 1.2. SSL mode = Full
+(strict) is fine once the worker is in place.
 
-Without this rule, the public CDN hostname returns HTTP 400/403 even
-when the Azure origin serves the blobs correctly.
+Without the worker route, the public CDN hostname returns HTTP 400/403
+even when the Azure origin serves the blobs correctly.
 
 ### 4. Apply cache rules
 
@@ -189,7 +207,8 @@ set per-environment secrets in the GitHub repo:
 ```
 WIDGET_PUBLIC_HOST           = widget.leo-ai-audit.healthcarecopilot.ai
 AZURE_WIDGET_STORAGE_ACCOUNT = leoaiwidgetcdnprod
-CLOUDFLARE_API_TOKEN         = <token with Cache Purge + Origin Rules Edit>
+CLOUDFLARE_API_TOKEN         = <token: Workers Scripts Edit + Workers Routes Edit + Cache Purge>
+CLOUDFLARE_ACCOUNT_ID        = <Cloudflare account id>
 CLOUDFLARE_ZONE_ID           = <zone id of healthcarecopilot.ai>
 ```
 
@@ -292,4 +311,6 @@ free / pro tier and is in-network for the pro/business tiers.
 | Origin bicep         | `infra/widget-cdn/widget-cdn.bicep`                     |
 | Bicep params (env)   | `infra/widget-cdn/parameters/{env}.bicepparam`          |
 | Edge cache rules     | `infra/widget-cdn/cloudflare-cache-rules.json`          |
+| Edge worker          | `infra/widget-cdn/cloudflare-worker/widget-proxy.js`    |
+| Worker deploy script | `scripts/deploy_widget_cloudflare_worker.py`            |
 | Local dev env var    | `secrets/.env.config` -> `WIDGET_PUBLIC_HOST`           |

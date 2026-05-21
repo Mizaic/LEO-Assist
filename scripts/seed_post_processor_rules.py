@@ -4,6 +4,7 @@ import sys
 sys.path.insert(0, os.path.join(os.getcwd(), 'services/api'))
 sys.path.insert(0, os.getcwd())
 
+import app.config  # Load KeyVault secrets
 from libs.neo4j_client.client import KnowledgeGraphClient
 from libs.cypher.post_processor_rule_queries import UPSERT_POST_PROCESSOR_RULE
 

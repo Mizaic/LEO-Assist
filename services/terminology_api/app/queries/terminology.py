@@ -20,11 +20,13 @@ _NORMALISED_TAG_EXPR = (
 TERMINOLOGY_SEARCH = """
 CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:DESCRIBES]->(c:Concept)
     WHERE c.active = true
     RETURN c, score AS weighted_score
     UNION
     CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:MAPS_TO]->(c:Concept)
     WHERE c.active = true
     RETURN c, score * 1.2 AS weighted_score
@@ -61,6 +63,7 @@ RETURN c.id AS snomed_concept_id,
 TERMINOLOGY_SEARCH_FILTERED = """
 CALL {
     CALL db.index.fulltext.queryNodes("term_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:DESCRIBES]->(c:Concept)
     WHERE c.active = true AND """
 TERMINOLOGY_SEARCH_FILTERED += _NORMALISED_TAG_EXPR
@@ -68,6 +71,7 @@ TERMINOLOGY_SEARCH_FILTERED += """ IN $tags
     RETURN c, score AS weighted_score
     UNION
     CALL db.index.fulltext.queryNodes("surface_form_fulltext", $q) YIELD node, score
+    WITH node, score LIMIT 200
     MATCH (node)-[:MAPS_TO]->(c:Concept)
     WHERE c.active = true AND """
 TERMINOLOGY_SEARCH_FILTERED += _NORMALISED_TAG_EXPR
@@ -131,6 +135,7 @@ LIMIT $k
 
 FULLTEXT_QUERY = """
 CALL db.index.fulltext.queryNodes("term_fulltext", $ft_query) YIELD node, score
+WITH node, score LIMIT 200
 MATCH (node)-[:DESCRIBES]->(c:Concept)
 WHERE c.active = true
 WITH c, max(score) AS best_score
@@ -144,6 +149,7 @@ RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
 
 FULLTEXT_SURFACE_FORM_QUERY = """
 CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node, score
+WITH node, score LIMIT 200
 MATCH (node)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true
 WITH c, node, max(score) AS best_score
@@ -230,6 +236,7 @@ RETURN norm AS input_term,
 #          surface_form_status
 BATCH_FULLTEXT_QUERY = """
 CALL db.index.fulltext.queryNodes("term_fulltext", $ft_query) YIELD node AS tnode, score AS tscore
+WITH tnode, tscore LIMIT 200
 MATCH (tnode)-[:DESCRIBES]->(c:Concept)
 WHERE c.active = true
 WITH c, max(tscore) AS best_score
@@ -241,6 +248,7 @@ RETURN c.id AS concept_id, c.fsn AS fsn, c.semantic_tag AS semantic_tag,
        read_codes, best_score AS score, '' AS surface_form_status
 UNION ALL
 CALL db.index.fulltext.queryNodes("surface_form_fulltext", $ft_query) YIELD node AS sfnode, score AS sfscore
+WITH sfnode, sfscore LIMIT 200
 MATCH (sfnode)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true
 WITH c, sfnode, max(sfscore) AS best_score

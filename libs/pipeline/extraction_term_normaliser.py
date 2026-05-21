@@ -53,7 +53,7 @@ VALUE_UNIT_TAIL_RE = re.compile(
 # Pure numeric tokens like "5.2", "<10", "120/80" must never survive as
 # observable surface forms once Layer 6 has linked them to a parameter.
 BARE_NUMERIC_RE = re.compile(
-    r"^[<>]?\d+(?:\.\d+)?(?:\s*[%/\-\^0-9a-z]+)?$",
+    r"^[<>]?\d+(?:\.\d+)?(?:\s*[%/\-\^0-9a-z]+)?(?:\s*Hb/g)?$",
     re.IGNORECASE,
 )
 

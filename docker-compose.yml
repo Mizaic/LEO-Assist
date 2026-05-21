@@ -109,7 +109,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - ./services/terminology-api:/app/services/terminology-api
+      - ./services/terminology_api:/app/services/terminology_api
       - ./libs:/app/libs
 
   pipeline-worker:

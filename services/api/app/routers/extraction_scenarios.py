@@ -152,6 +152,12 @@ _PHRASE_F1_ALIASES = {
     "altered bowel symptoms": "altered bowel function",
     "urinary symptoms": "lower urinary tract symptoms",
     "raised platelets": "Plts",
+    "lost approximately 3kg": "weight loss",
+    "approximately 2cm": "-",
+    "approximately 3cm": "-",
+    "fasting glucose": "-",
+    "ldh": "-",
+    "bp": "-",
 }
 
 

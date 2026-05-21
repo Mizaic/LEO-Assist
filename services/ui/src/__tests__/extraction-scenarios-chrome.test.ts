@@ -34,11 +34,13 @@ const KNOWLEDGE_PAGE = "services/ui/src/app/admin/knowledge/page.tsx";
 const KNOWLEDGE_COPY = "services/ui/src/lib/knowledgeCopy.ts";
 const PANEL = "services/ui/src/app/admin/extraction-scenarios/ExtractionScenarioPanel.tsx";
 const CASE_DRAWER = "services/ui/src/app/admin/extraction-scenarios/CaseReviewDrawer.tsx";
+const EDITOR_DIALOG = "services/ui/src/app/admin/extraction-scenarios/ScenarioEditorDialog.tsx";
 const RUN_DRAWER = "services/ui/src/app/admin/extraction-scenarios/RunResultsDrawer.tsx";
 const NEXT_CONFIG = "services/ui/next.config.mjs";
 const PROXY = "services/ui/src/proxy.ts";
 const API_FILE = "services/ui/src/app/admin/extraction-scenarios/api.ts";
 const FAST_API_ROUTER = "services/api/app/routers/extraction_scenarios.py";
+const MUTATIONS_ROUTER = "services/api/app/routers/extraction_scenario_mutations.py";
 const CYPHER = "libs/cypher/extraction_scenario_queries.py";
 
 describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
@@ -81,6 +83,9 @@ describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
     expect(api).toMatch(/listScenarios/);
     expect(api).toMatch(/getScenario/);
     expect(api).toMatch(/approveScenario/);
+    expect(api).toMatch(/createScenario/);
+    expect(api).toMatch(/updateScenario/);
+    expect(api).toMatch(/deleteScenario/);
     expect(api).toMatch(/triggerRun/);
     expect(api).toMatch(/getRunStatus/);
   });
@@ -94,7 +99,17 @@ describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
     const panel = src(PANEL);
     expect(panel).toMatch(/Run validation/);
     expect(panel).toMatch(/run-validation/);
+    expect(panel).toMatch(/New scenario/);
+    expect(panel).toMatch(/new-scenario/);
     expect(panel).toMatch(/data-testid="extraction-scenario-panel"/);
+  });
+
+  test("TC-009b: panel exposes edit and delete row actions", () => {
+    const panel = src(PANEL);
+    expect(panel).toMatch(/edit-btn-/);
+    expect(panel).toMatch(/delete-btn-/);
+    expect(panel).toMatch(/ScenarioEditorDialog/);
+    expect(panel).toMatch(/ConfirmDialog/);
   });
 
   test("TC-010: review surface is a dialog with rendered Markdown and expected values", () => {
@@ -140,12 +155,16 @@ describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
 
   test("TC-014: FastAPI router exposes all required endpoints", () => {
     const router = src(FAST_API_ROUTER);
+    const mutations = src(MUTATIONS_ROUTER);
     expect(router).toMatch(/prefix.*extraction-scenarios/);
     expect(router).toMatch(/@router\.get\(""\)/);
     expect(router).toMatch(/@router\.get\("\/{case_id}"\)/);
     expect(router).toMatch(/@router\.patch\("\/{case_id}"\)/);
     expect(router).toMatch(/@router\.post\("\/runs"\)/);
     expect(router).toMatch(/@router\.get\("\/runs\/{run_id}"\)/);
+    expect(mutations).toMatch(/@router\.post\(""\)/);
+    expect(mutations).toMatch(/@router\.put\("\/{case_id}"\)/);
+    expect(mutations).toMatch(/@router\.delete\("\/{case_id}"\)/);
   });
 
   test("TC-015: FastAPI router uses threading.Thread for background runs", () => {
@@ -167,7 +186,13 @@ describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
   test("TC-017: API detail includes expected observables for phrase values", () => {
     const cypher = src(CYPHER);
     const router = src(FAST_API_ROUTER);
+    const editor = src(EDITOR_DIALOG);
     expect(cypher).toMatch(/s\.expected_observables\s+AS expected_observables/);
+    expect(cypher).toMatch(/CREATE_EXTRACTION_SCENARIO/);
+    expect(cypher).toMatch(/UPDATE_EXTRACTION_SCENARIO/);
+    expect(cypher).toMatch(/DELETE_EXTRACTION_SCENARIO/);
     expect(router).toMatch(/"expected_observables"/);
+    expect(editor).toMatch(/data-testid="scenario-editor-dialog"/);
+    expect(editor).toMatch(/data-testid="scenario-save-button"/);
   });
 });

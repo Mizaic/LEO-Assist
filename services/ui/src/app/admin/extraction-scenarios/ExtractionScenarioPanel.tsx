@@ -24,6 +24,12 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import SearchIcon from "@mui/icons-material/Search";
+import AddIcon from "@mui/icons-material/Add";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import IconButton from "@mui/material/IconButton";
+
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 import {
   DataGridCard,
@@ -35,7 +41,7 @@ import {
   type ToolbarAction,
 } from "@leo/design-system";
 
-import { listScenarios, triggerRun } from "./api";
+import { deleteScenario, listScenarios, triggerRun } from "./api";
 import type {
   ExtractionScenarioRow,
   ScenarioListResponse,
@@ -44,6 +50,7 @@ import type {
 } from "./types";
 import CaseReviewDrawer from "./CaseReviewDrawer";
 import RunResultsDrawer from "./RunResultsDrawer";
+import ScenarioEditorDialog from "./ScenarioEditorDialog";
 
 const EMPTY_LIST: ScenarioListResponse = {
   total: 0,
@@ -94,6 +101,11 @@ export default function ExtractionScenarioPanel() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<"create" | "edit">("create");
+  const [editorCaseId, setEditorCaseId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [runDrawerOpen, setRunDrawerOpen] = useState(false);
   const [currentRun, setCurrentRun] = useState<ValidationRunStatus | null>(null);
   const [triggering, setTriggering] = useState(false);
@@ -137,6 +149,33 @@ export default function ExtractionScenarioPanel() {
     }
   }, [data.pass_threshold]);
 
+  const openCreateEditor = useCallback(() => {
+    setEditorMode("create");
+    setEditorCaseId(null);
+    setEditorOpen(true);
+  }, []);
+
+  const openEditEditor = useCallback((caseId: string) => {
+    setEditorMode("edit");
+    setEditorCaseId(caseId);
+    setEditorOpen(true);
+  }, []);
+
+  const handleDeleteScenario = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteScenario(deleteTarget);
+      setDeleteTarget(null);
+      setRefreshKey((n) => n + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete this scenario.");
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget]);
+
   const stats: StatTile[] = useMemo(
     () => [
       { id: "total", label: "Total cases", value: data.total, tone: "neutral" },
@@ -174,6 +213,13 @@ export default function ExtractionScenarioPanel() {
   const toolbarActions: ToolbarAction[] = useMemo(
     () => [
       {
+        id: "new-scenario",
+        label: "New scenario",
+        icon: <AddIcon fontSize="small" />,
+        variant: "primary",
+        onClick: openCreateEditor,
+      },
+      {
         id: "run-validation",
         label: triggering ? "Starting..." : "Run validation",
         icon: triggering ? (
@@ -181,12 +227,11 @@ export default function ExtractionScenarioPanel() {
         ) : (
           <PlayCircleOutlineIcon fontSize="small" />
         ),
-        variant: "primary",
         onClick: handleRunValidation,
         disabled: triggering,
       },
     ],
-    [handleRunValidation, triggering],
+    [handleRunValidation, openCreateEditor, triggering],
   );
 
   const columns: DataGridColumn<ExtractionScenarioRow>[] = useMemo(
@@ -236,25 +281,43 @@ export default function ExtractionScenarioPanel() {
         id: "actions",
         header: "",
         align: "right" as const,
-        width: "120px",
+        width: "180px",
         render: (row) => (
-          <Typography
-            variant="body2"
-            sx={{
-              cursor: "pointer",
-              color: "primary.main",
-              fontWeight: 500,
-              "&:hover": { textDecoration: "underline" },
-            }}
-            onClick={() => setReviewingId(row.case_id)}
-            data-testid={`review-btn-${row.case_id}`}
-          >
-            Review
-          </Typography>
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+            <Typography
+              variant="body2"
+              sx={{
+                cursor: "pointer",
+                color: "primary.main",
+                fontWeight: 500,
+                "&:hover": { textDecoration: "underline" },
+              }}
+              onClick={() => setReviewingId(row.case_id)}
+              data-testid={`review-btn-${row.case_id}`}
+            >
+              Review
+            </Typography>
+            <IconButton
+              aria-label={`Edit ${row.case_id}`}
+              size="small"
+              onClick={() => openEditEditor(row.case_id)}
+              data-testid={`edit-btn-${row.case_id}`}
+            >
+              <EditOutlinedIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              aria-label={`Delete ${row.case_id}`}
+              size="small"
+              onClick={() => setDeleteTarget(row.case_id)}
+              data-testid={`delete-btn-${row.case_id}`}
+            >
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Stack>
         ),
       },
     ],
-    [],
+    [openEditEditor],
   );
 
   const emptyState = (
@@ -339,6 +402,10 @@ export default function ExtractionScenarioPanel() {
           setReviewingId(null);
           setRefreshKey((n) => n + 1);
         }}
+        onEdit={(id) => {
+          setReviewingId(null);
+          openEditEditor(id);
+        }}
       />
 
       <RunResultsDrawer
@@ -347,6 +414,25 @@ export default function ExtractionScenarioPanel() {
         onClose={() => setRunDrawerOpen(false)}
         onRunUpdate={setCurrentRun}
       />
+
+      <ScenarioEditorDialog
+        open={editorOpen}
+        mode={editorMode}
+        caseId={editorCaseId}
+        onClose={() => setEditorOpen(false)}
+        onSaved={() => setRefreshKey((n) => n + 1)}
+      />
+
+      {deleteTarget ? (
+        <ConfirmDialog
+          title="Delete extraction scenario?"
+          body={`This permanently removes ${deleteTarget} from the validation corpus.`}
+          confirmLabel={deleting ? "Deleting..." : "Delete scenario"}
+          variant="danger"
+          onConfirm={handleDeleteScenario}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      ) : null}
     </Box>
   );
 }
