@@ -57,6 +57,9 @@ param uiCustomDomainHost string = ''
 param uiIngressCertificateName string = ''
 param uiIngressCertificateIsManaged bool = false
 
+// Azure Static Website hostname for the LEO widget CDN (DI-3C06AFD0).
+param widgetPublicHost string = ''
+
 var prefix = 'leoai-${environment}'
 var caeName = '${prefix}-cae'
 var logWorkspaceName = '${prefix}-logs'
@@ -369,6 +372,7 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           // URL of the UI -- controls OAuth redirects and invite email links.
           { name: 'FRONTEND_URL', value: frontendUrl }
           { name: 'AUTH_REDIRECT_URI', value: '${frontendUrl}/auth/callback' }
+          { name: 'WIDGET_PUBLIC_HOST', value: widgetPublicHost }
           { name: 'MAIL_FROM_ADDRESS', value: 'leo.support@healthcarecopilot.ai' }
           // Multi-worker uvicorn: 2 workers per 1.0 vCPU container is the
           // sweet spot before context-switching dominates. Distroless image

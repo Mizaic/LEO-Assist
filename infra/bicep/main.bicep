@@ -47,6 +47,11 @@ param uiCustomDomainHost string = ''
 param uiIngressCertificateName string = ''
 param uiIngressCertificateIsManaged bool = false
 
+// Azure Static Website hostname for the LEO widget CDN (no Cloudflare).
+// Must match infra/widget-cdn/parameters/{env}.bicepparam widgetPublicHost
+// and the GitHub WIDGET_PUBLIC_HOST secret.
+param widgetPublicHost string = ''
+
 // Shared resources live in the leo-ai platform RG
 param acrResourceGroup string = 'leo-ai'
 param acrName string = 'leoaicr'
@@ -154,6 +159,7 @@ module containerApps 'modules/container-apps.bicep' = {
     uiIngressCertificateIsManaged: uiIngressCertificateIsManaged
     uiCustomHostname: uiCustomHostname
     uiManagedCertificateId: uiManagedCertificateId
+    widgetPublicHost: widgetPublicHost
   }
 }
 

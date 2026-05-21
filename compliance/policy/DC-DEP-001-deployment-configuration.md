@@ -161,7 +161,8 @@ The following security-relevant parameters are set per environment in
 
 | Parameter           | Production                                  | Validation                                | Development                                                |
 | ------------------- | ------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------- |
-| `allowedOrigins`    | `https://leo-ai-audit.healthcarecopilot.ai` | `https://atlas-val.healthcarecopilot.ai`  | `https://atlas-dev.healthcarecopilot.ai,http://localhost:3000` |
+| `allowedOrigins`    | `https://leo-ai-audit.healthcarecopilot.ai,https://leoaiwidgetcdnprod.z33.web.core.windows.net` | `https://atlas-val.healthcarecopilot.ai,https://leoaiwidgetcdnval.z33.web.core.windows.net` | `https://leo-ai-audit.healthcarecopilot.ai,...,https://leoaiwidgetcdndev.z33.web.core.windows.net,http://localhost:3000` |
+| `WIDGET_PUBLIC_HOST`| `leoaiwidgetcdnprod.z33.web.core.windows.net` | `leoaiwidgetcdnval.z33.web.core.windows.net` | `leoaiwidgetcdndev.z33.web.core.windows.net` |
 | `cookieSecure`      | `true`                                      | `true`                                    | `true`                                                     |
 | `sessionTtlHours`   | `24`                                        | `12`                                      | `12`                                                       |
 | `frontendUrl`       | `https://leo-ai-audit.healthcarecopilot.ai` | `https://atlas-val.healthcarecopilot.ai`  | `https://atlas-dev.healthcarecopilot.ai`                   |

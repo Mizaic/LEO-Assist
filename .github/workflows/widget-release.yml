@@ -14,10 +14,9 @@ name: Widget release - build, gate, deploy
 #   4. Only on PROMOTE: upload to Azure Storage Static Website origin
 #      and smoke-check the public widget URL.
 #
-# Dev uses the Azure Static Website hostname directly (no custom
-# domain, no Cloudflare). Val/prod may set WIDGET_PUBLIC_HOST to a
-# custom domain; when it differs from the storage web endpoint, the
-# workflow also deploys a Cloudflare Worker proxy and purges cache.
+# Widget CDN is Azure Storage Static Website only (no Cloudflare).
+# WIDGET_PUBLIC_HOST must match the account primaryEndpoints.web
+# hostname (same value in infra/widget-cdn/parameters/{env}.bicepparam).
 #
 # How to trigger
 #   - workflow_dispatch with environment=dev|val|prod (manual)
@@ -26,9 +25,7 @@ name: Widget release - build, gate, deploy
 # What it requires (per environment secrets)
 #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC)
 #   AZURE_WIDGET_STORAGE_ACCOUNT                             (e.g. leoaiwidgetcdnprod)
-#   WIDGET_PUBLIC_HOST                                       (dev: storage web hostname, e.g. leoaiwidgetcdndev.z33.web.core.windows.net)
-# Optional (only when WIDGET_PUBLIC_HOST is a custom Cloudflare domain):
-#   CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_ZONE_ID
+#   WIDGET_PUBLIC_HOST                                       (Azure Static Website hostname, e.g. leoaiwidgetcdndev.z33.web.core.windows.net)
 
 on:
   workflow_dispatch:
@@ -213,42 +210,21 @@ jobs:
           echo "host=$ORIGIN_HOST" >> "$GITHUB_OUTPUT"
           echo "Azure origin host: $ORIGIN_HOST"
 
-      - name: Detect widget edge mode
-        id: edge
+      - name: Validate WIDGET_PUBLIC_HOST matches Azure origin
         env:
           PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
           ORIGIN_HOST: ${{ steps.origin.outputs.host }}
         run: |
-          if [ "$PUBLIC_HOST" = "$ORIGIN_HOST" ]; then
-            echo "mode=direct" >> "$GITHUB_OUTPUT"
-            echo "Widget edge mode: direct Azure origin"
-          else
-            echo "mode=cloudflare" >> "$GITHUB_OUTPUT"
-            echo "Widget edge mode: Cloudflare custom domain"
+          if [ -z "$PUBLIC_HOST" ]; then
+            echo "WIDGET_PUBLIC_HOST secret is not set for this environment" >&2
+            exit 1
           fi
-
-      - name: Deploy Cloudflare Worker proxy
-        id: cloudflare_worker
-        if: steps.edge.outputs.mode == 'cloudflare'
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-          WIDGET_PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
-          AZURE_WIDGET_ORIGIN_HOST: ${{ steps.origin.outputs.host }}
-          WIDGET_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
-        run: |
-          set +e
-          python scripts/deploy_widget_cloudflare_worker.py
-          EXIT=$?
-          if [ $EXIT -eq 0 ]; then
-            echo "deployed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "deployed=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Cloudflare Worker proxy was not deployed. Grant Account > Workers Scripts > Edit and Zone > Workers Routes > Edit on CLOUDFLARE_API_TOKEN, or deploy the worker manually (see infra/widget-cdn/README.md section 3)."
-            exit 0
+          if [ "$PUBLIC_HOST" != "$ORIGIN_HOST" ]; then
+            echo "WIDGET_PUBLIC_HOST ($PUBLIC_HOST) must match the Azure Static Website hostname ($ORIGIN_HOST)." >&2
+            echo "Widget CDN does not use Cloudflare. Set the secret to primaryEndpoints.web (see infra/widget-cdn/README.md)." >&2
+            exit 1
           fi
+          echo "Widget CDN host: https://${PUBLIC_HOST}"
 
       - name: Stage mutable v1 metadata blobs
         env:
@@ -340,61 +316,54 @@ jobs:
             --content-cache "public, max-age=3600, must-revalidate" \
             --overwrite
 
-      - name: Purge Cloudflare immutable paths
-        if: steps.edge.outputs.mode == 'cloudflare'
+      - name: Upload static website error document
         env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ZONE: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-          HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
         run: |
-          BODY=$(cat <<JSON
-          { "files": [
-              "https://${HOST}/v1/leo-widget.js",
-              "https://${HOST}/v1/manifest.json",
-              "https://${HOST}/v1/advisory.json",
-              "https://${HOST}/iframe/index.html",
-              "https://${HOST}/demo/index.html"
-          ] }
-          JSON
-          )
-          curl --fail --silent --show-error \
-            -X POST \
-            -H "Authorization: Bearer ${CF_TOKEN}" \
-            -H "Content-Type: application/json" \
-            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
-            -d "$BODY"
+          az storage blob upload \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --container-name '$web' \
+            --name 404.html \
+            --file infra/widget-cdn/static-website/404.html \
+            --content-type text/html \
+            --content-cache "public, max-age=3600" \
+            --overwrite
 
       - name: Smoke check widget URLs
         env:
-          ORIGIN_HOST: ${{ steps.origin.outputs.host }}
           PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
-          EDGE_MODE: ${{ steps.edge.outputs.mode }}
         run: |
-          check_host() {
-            local base="$1"
-            local path="$2"
-            echo "Checking ${base}${path}"
+          check_ok() {
+            local path="$1"
+            echo "Checking https://${PUBLIC_HOST}${path}"
             curl --fail --silent --show-error --retry 5 --retry-delay 2 \
                  --output /dev/null --write-out "HTTP %{http_code}\n" \
-                 "${base}${path}"
+                 "https://${PUBLIC_HOST}${path}"
           }
-          ORIGIN="https://${ORIGIN_HOST}"
+          check_404() {
+            local path="$1"
+            echo "Checking 404 for https://${PUBLIC_HOST}${path}"
+            code=$(curl --silent --show-error --retry 3 --retry-delay 2 \
+                 --output /dev/null --write-out "%{http_code}" \
+                 "https://${PUBLIC_HOST}${path}")
+            if [ "$code" != "404" ]; then
+              echo "Expected HTTP 404 for ${path}, got ${code}" >&2
+              exit 1
+            fi
+          }
+          BASE="https://${PUBLIC_HOST}"
           for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
-            check_host "$ORIGIN" "$path"
+            check_ok "$path"
           done
-          if [ "$EDGE_MODE" = "cloudflare" ]; then
-            PUBLIC="https://${PUBLIC_HOST}"
-            for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
-              check_host "$PUBLIC" "$path"
-            done
-          fi
+          check_404 "/index.html"
+          check_404 "/secrets.txt"
 
       - name: Report deploy summary
         env:
           LABEL: ${{ needs.build-and-gate.outputs.build_label }}
           ENV: ${{ github.event.inputs.environment || 'dev' }}
           HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
-          EDGE_MODE: ${{ steps.edge.outputs.mode }}
         run: |
           {
             echo "## LEO widget deploy"
@@ -402,7 +371,7 @@ jobs:
             echo "| Field | Value |"
             echo "| --- | --- |"
             echo "| Environment | ${ENV} |"
-            echo "| Edge mode | ${EDGE_MODE} |"
+            echo "| CDN | Azure Storage Static Website |"
             echo "| Build label | ${LABEL} |"
             echo "| CDN host    | https://${HOST}/v1/leo-widget.js |"
             echo "| Manifest    | https://${HOST}/v1/manifest.json |"

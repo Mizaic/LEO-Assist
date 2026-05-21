@@ -34,8 +34,11 @@ param modelMinRecall = '0.75'
 // Service Bus
 param sbMaxLockRenewalSeconds = '14400'
 
-// Security
-param allowedOrigins = 'https://atlas-val.healthcarecopilot.ai'
+// Security (include widget Static Website origin for /sdk/* from CDN surfaces)
+param allowedOrigins = 'https://atlas-val.healthcarecopilot.ai,https://leoaiwidgetcdnval.z33.web.core.windows.net'
+
+// LEO widget CDN (Azure Static Website; confirm suffix via primaryEndpoints.web)
+param widgetPublicHost = 'leoaiwidgetcdnval.z33.web.core.windows.net'
 param cookieSecure = 'true'
 param sessionTtlHours = '12'
 

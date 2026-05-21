@@ -34,8 +34,11 @@ param modelMinRecall = '0.80'
 // Service Bus
 param sbMaxLockRenewalSeconds = '14400'
 
-// Security (longer sessions for clinical users)
-param allowedOrigins = 'https://leo-ai-audit.healthcarecopilot.ai'
+// Security (longer sessions for clinical users; widget Static Website for /sdk/*)
+param allowedOrigins = 'https://leo-ai-audit.healthcarecopilot.ai,https://leoaiwidgetcdnprod.z33.web.core.windows.net'
+
+// LEO widget CDN (Azure Static Website; confirm suffix via primaryEndpoints.web)
+param widgetPublicHost = 'leoaiwidgetcdnprod.z33.web.core.windows.net'
 param cookieSecure = 'true'
 param sessionTtlHours = '24'
 

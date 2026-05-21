@@ -10,7 +10,7 @@
  *
  * The iframe is served from the LEO-controlled origin pinned by the
  * `WIDGET_PUBLIC_HOST` env var at deploy time (e.g.
- * https://widget.leo-ai-audit.healthcarecopilot.ai). Same-origin
+ * https://leoaiwidgetcdnprod.z33.web.core.windows.net). Same-origin
  * policy keeps host JS and host CSS out of this document. Lifecycle
  * events are posted back to window.parent via postMessage; the host
  * listens for them. This script reads ALL configurable URLs from

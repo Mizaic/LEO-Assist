@@ -6,10 +6,9 @@
 //   Look up via: get_design_control(dc_type="design-output", dc_id="DO-3B62F38E")
 //
 // Architecture
-//   Cloudflare DNS + edge cache (param widgetPublicHost; e.g.
-//   widget.leo-ai-audit.healthcarecopilot.ai)
-//        |  HTTPS, origin pull
-//        v
+//   Azure Storage Static Website (param widgetPublicHost is the
+//   primaryEndpoints.web hostname, e.g.
+//   leoaiwidgetcdndev.z33.web.core.windows.net)
 //   Azure Storage Account (this resource), Static Website hosting
 //     - $web/v1/leo-widget.js   (immutable per release)
 //     - $web/v1/manifest.json   (mutable; CSO-controlled active hash)
@@ -19,16 +18,13 @@
 //
 // Why a separate storage account
 //   Public, anonymous read for widget assets must NEVER share an
-//   account with patient-data blobs. Allowed network ACL is left
-//   permissive (origin must be reachable by Cloudflare's IP ranges)
-//   but the account holds no PII / PD by construction.
+//   account with patient-data blobs. The account holds no PII / PD
+//   by construction. Deploy uses RBAC (OIDC); shared keys disabled.
 //
 // Why static website (not Azure CDN / Front Door)
-//   Cloudflare is the customer-facing CDN. The Azure side is just
-//   the origin: Storage Static Website is the smallest blast-radius
-//   surface that satisfies the requirement and supports rapid CSO
-//   rollback (PUT a different blob, Cloudflare must-revalidate
-//   picks it up within max-age=60).
+//   Storage Static Website is the smallest blast-radius surface for
+//   public widget assets and supports rapid CSO rollback via
+//   manifest.json (Cache-Control: max-age=60, must-revalidate).
 
 targetScope = 'resourceGroup'
 
@@ -41,12 +37,10 @@ param location string = resourceGroup().location
 @description('Pinned major version directory (e.g. v1).')
 param pinnedMajor string = 'v1'
 
-// The customer-facing FQDN that Cloudflare proxies to this origin.
-// Set per environment in the bicepparam files. Used for output only;
-// nothing in this module bakes the hostname into a resource. Hosting
-// can move (different DNS host, different CDN, second origin) by
-// changing this one parameter.
-@description('Public widget FQDN (Cloudflare-proxied). e.g. widget.leo-ai-audit.healthcarecopilot.ai')
+// The public widget FQDN (Azure Static Website hostname). Set per
+// environment in the bicepparam files. Used for output only; nothing
+// in this module bakes the hostname into a resource.
+@description('Public widget FQDN (Azure Static Website). e.g. leoaiwidgetcdndev.z33.web.core.windows.net')
 param widgetPublicHost string
 
 // GitHub Actions OIDC service principal object ID. Required for
@@ -76,7 +70,7 @@ resource originAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
       defaultAction: 'Allow'
       bypass: 'AzureServices'
     }
-    allowSharedKeyAccess: true
+    allowSharedKeyAccess: false
   }
 }
 

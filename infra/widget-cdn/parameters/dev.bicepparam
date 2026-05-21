@@ -2,9 +2,10 @@ using '../widget-cdn.bicep'
 
 // Atlas trace: DO-3B62F38E (DI-3C06AFD0)
 //
-// Dev serves the widget directly from the Azure Static Website origin
-// (no custom domain or Cloudflare edge). Update WIDGET_PUBLIC_HOST
-// in GitHub dev secrets to match this hostname.
+// Widget CDN is Azure Storage Static Website only (no Cloudflare).
+// Set widgetPublicHost and WIDGET_PUBLIC_HOST to the storage web
+// hostname from: az storage account show -n leoaiwidgetcdndev
+//   --query primaryEndpoints.web -o tsv
 
 param environment = 'dev'
 param pinnedMajor = 'v1'

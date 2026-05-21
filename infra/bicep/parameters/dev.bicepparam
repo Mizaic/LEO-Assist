@@ -35,7 +35,11 @@ param modelMinRecall = '0.75'
 param sbMaxLockRenewalSeconds = '14400'
 
 // Security (custom domain first; keep ACA hostname for direct access; local dev)
-param allowedOrigins = 'https://leo-ai-audit.healthcarecopilot.ai,https://ui.proudriver-82c5b80a.uksouth.azurecontainerapps.io,https://atlas-dev.healthcarecopilot.ai,http://localhost:3000'
+// Include the widget Static Website origin for /sdk/* browser calls from the CDN demo.
+param allowedOrigins = 'https://leo-ai-audit.healthcarecopilot.ai,https://ui.proudriver-82c5b80a.uksouth.azurecontainerapps.io,https://atlas-dev.healthcarecopilot.ai,https://leoaiwidgetcdndev.z33.web.core.windows.net,http://localhost:3000'
+
+// LEO widget CDN (Azure Storage Static Website; must match widget-release WIDGET_PUBLIC_HOST)
+param widgetPublicHost = 'leoaiwidgetcdndev.z33.web.core.windows.net'
 param cookieSecure = 'true'
 param sessionTtlHours = '12'
 
