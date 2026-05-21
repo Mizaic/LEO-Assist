@@ -122,6 +122,32 @@ Cloudflare > SSL/TLS > Edge Certificates: ensure
 `Always Use HTTPS` is on and Min TLS = 1.2. SSL mode = Full
 (strict), because Storage Static Website serves a valid certificate.
 
+Azure Static Website only accepts requests whose `Host` header matches
+the storage account web endpoint (for example
+`leoaiwidgetcdndev.z33.web.core.windows.net`). Cloudflare must
+therefore rewrite the origin Host header on every request to the
+widget FQDN.
+
+The deploy workflow applies this automatically via
+`scripts/apply_widget_cloudflare_origin.py`. To apply manually:
+
+```
+export CLOUDFLARE_API_TOKEN=...
+export CLOUDFLARE_ZONE_ID=...
+export WIDGET_PUBLIC_HOST=sbar-widget-dev.healthcarecopilot.ai
+export AZURE_WIDGET_ORIGIN_HOST=leoaiwidgetcdndev.z33.web.core.windows.net
+python scripts/apply_widget_cloudflare_origin.py
+```
+
+In the dashboard: Rules > Origin Rules > Create rule
+
+- Expression: `(http.host eq "sbar-widget-dev.healthcarecopilot.ai")`
+- Host header override: `leoaiwidgetcdndev.z33.web.core.windows.net`
+- DNS record override: `leoaiwidgetcdndev.z33.web.core.windows.net`
+
+Without this rule, the public CDN hostname returns HTTP 400/403 even
+when the Azure origin serves the blobs correctly.
+
 ### 4. Apply cache rules
 
 The complete set of cache rules lives in `cloudflare-cache-rules.json`

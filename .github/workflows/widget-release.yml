@@ -198,17 +198,87 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Resolve Azure origin hostname
+        id: origin
+        env:
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
+        run: |
+          ORIGIN=$(az storage account show --name "$ACCOUNT" --query primaryEndpoints.web -o tsv)
+          ORIGIN_HOST="${ORIGIN#https://}"
+          ORIGIN_HOST="${ORIGIN_HOST%/}"
+          echo "host=$ORIGIN_HOST" >> "$GITHUB_OUTPUT"
+          echo "Azure origin host: $ORIGIN_HOST"
+
+      - name: Ensure Cloudflare origin Host override
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          WIDGET_PUBLIC_HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
+          AZURE_WIDGET_ORIGIN_HOST: ${{ steps.origin.outputs.host }}
+        run: python scripts/apply_widget_cloudflare_origin.py
+
+      - name: Stage mutable v1 metadata blobs
+        env:
+          LABEL: ${{ needs.build-and-gate.outputs.build_label }}
+        run: |
+          PKG_VERSION=$(python -c "import json; print(json.load(open('services/widget-sdk/package.json'))['version'])")
+          RELEASED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cp services/widget-sdk/static/v1/advisory.json services/widget-sdk/dist/v1/advisory.json
+          cat > services/widget-sdk/dist/v1/manifest.json <<EOF
+          {
+            "major": 1,
+            "active": "1.0.0",
+            "released_at": "${RELEASED_AT}",
+            "notes": "Deployed by widget-release (${LABEL}, package ${PKG_VERSION})"
+          }
+          EOF
+
       - name: Upload web-component bundle to Azure Storage origin
         env:
           ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
         run: |
-          az storage blob upload-batch \
+          az storage blob upload \
             --account-name "$ACCOUNT" \
             --auth-mode login \
-            --destination '$web' \
-            --source services/widget-sdk/dist/v1 \
-            --destination-path v1/ \
+            --container-name '$web' \
+            --name v1/leo-widget.js \
+            --file services/widget-sdk/dist/v1/leo-widget.js \
+            --content-type application/javascript \
             --content-cache "public, max-age=31536000, immutable" \
+            --overwrite
+          if [ -f services/widget-sdk/dist/v1/leo-widget.js.map ]; then
+            az storage blob upload \
+              --account-name "$ACCOUNT" \
+              --auth-mode login \
+              --container-name '$web' \
+              --name v1/leo-widget.js.map \
+              --file services/widget-sdk/dist/v1/leo-widget.js.map \
+              --content-type application/json \
+              --content-cache "public, max-age=31536000, immutable" \
+              --overwrite
+          fi
+
+      - name: Upload mutable v1 metadata blobs
+        env:
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
+        run: |
+          az storage blob upload \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --container-name '$web' \
+            --name v1/manifest.json \
+            --file services/widget-sdk/dist/v1/manifest.json \
+            --content-type application/json \
+            --content-cache "public, max-age=60, must-revalidate" \
+            --overwrite
+          az storage blob upload \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --container-name '$web' \
+            --name v1/advisory.json \
+            --file services/widget-sdk/dist/v1/advisory.json \
+            --content-type application/json \
+            --content-cache "public, max-age=60, must-revalidate" \
             --overwrite
 
       - name: Upload hardened iframe to Azure Storage origin
@@ -246,8 +316,9 @@ jobs:
           BODY=$(cat <<JSON
           { "files": [
               "https://${HOST}/v1/leo-widget.js",
+              "https://${HOST}/v1/manifest.json",
+              "https://${HOST}/v1/advisory.json",
               "https://${HOST}/iframe/index.html",
-              "https://${HOST}/iframe/shell.js",
               "https://${HOST}/demo/index.html"
           ] }
           JSON
