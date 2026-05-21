@@ -5,6 +5,7 @@
 import type {
   ExtractionScenarioDetail,
   ScenarioListResponse,
+  ScenarioWritePayload,
   ValidationRunStatus,
 } from "./types";
 
