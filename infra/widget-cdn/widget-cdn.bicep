@@ -49,6 +49,11 @@ param pinnedMajor string = 'v1'
 @description('Public widget FQDN (Cloudflare-proxied). e.g. widget.leo-ai-audit.healthcarecopilot.ai')
 param widgetPublicHost string
 
+// GitHub Actions OIDC service principal object ID. Required for
+// widget-release.yml uploads (--auth-mode login needs data-plane RBAC).
+@description('Object ID of the GitHub Actions deploy service principal.')
+param githubActionsPrincipalId string
+
 // -- Storage account (origin) ---------------------------------------------
 // Naming: leoaiwidgetcdn{env} (must be globally unique, 3-24 chars,
 // lowercase, no dashes).
@@ -111,6 +116,14 @@ resource webContainer 'Microsoft.Storage/storageAccounts/blobServices/containers
   name: '$web'
   properties: {
     publicAccess: 'Blob'
+  }
+}
+
+module githubBlobRole '../bicep/modules/blob-role.bicep' = {
+  name: 'widget-cdn-github-blob-role'
+  params: {
+    storageAccountName: originAccount.name
+    principalId: githubActionsPrincipalId
   }
 }
 

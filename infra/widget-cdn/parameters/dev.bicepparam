@@ -9,3 +9,5 @@ using '../widget-cdn.bicep'
 param environment = 'dev'
 param pinnedMajor = 'v1'
 param widgetPublicHost = 'widget.leo-ai-dev.healthcarecopilot.ai'
+// leo-ai-github-deploy (OIDC for Healthcare-Copilot/LEO-AI-CORE:environment:dev)
+param githubActionsPrincipalId = '617679ab-c524-46e2-b6e8-a620754bc942'
