@@ -1,21 +1,21 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
 
-// Hardened iframe variant build. Emits a static index.html at
-// dist/iframe/sbar/index.html that boots the same widget surface
-// without a Shadow DOM (the iframe IS the trust boundary).
-//
-// Atlas trace: DI-85C95E53 acceptance criterion 1 (one source tree,
-// two variants).
+// Hardened iframe variant build. Emits index.html at dist/iframe/index.html.
+
+const rootDir = resolve(__dirname, "src/iframe-shell");
+const outDir = resolve(__dirname, "dist/iframe");
 
 export default defineConfig({
+  root: rootDir,
+  base: "./",
   build: {
-    outDir: "dist/iframe",
+    outDir,
     emptyOutDir: true,
     sourcemap: true,
     target: "es2020",
     rollupOptions: {
-      input: resolve(__dirname, "src/iframe-shell/index.html"),
+      input: resolve(rootDir, "index.html"),
     },
   },
   resolve: {

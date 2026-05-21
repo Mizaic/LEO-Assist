@@ -14,7 +14,8 @@
   "scripts": {
     "build": "vite build",
     "build:iframe": "vite build --config vite.iframe.config.ts",
-    "build:all": "npm run build && npm run build:iframe",
+    "build:demo-cdn": "vite build --config vite.demo-cdn.config.ts",
+    "build:all": "npm run build && npm run build:iframe && npm run build:demo-cdn",
     "test": "jest",
     "test:no-coverage": "jest --no-coverage",
     "e2e": "playwright test",

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LEO widget integrator demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      .banner {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+      }
+      .banner h1 {
+        font-size: 20px;
+        margin: 0 0 8px 0;
+      }
+      .banner p {
+        margin: 0;
+        line-height: 1.5;
+        color: #334155;
+      }
+      h2 {
+        font-size: 14px;
+        margin: 24px 0 8px 0;
+        color: #475569;
+      }
+      .frame {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #ffffff;
+        padding: 12px;
+        margin-bottom: 24px;
+      }
+      iframe {
+        width: 100%;
+        height: 520px;
+        border: 0;
+      }
+      .status {
+        margin-top: 8px;
+        font-size: 14px;
+        color: #475569;
+      }
+      code {
+        font-size: 13px;
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner">
+      <h1>LEO widget integrator demo</h1>
+      <p>
+        Synthetic SBAR only -- no real patient data. Use this page to
+        confirm the CDN bundle, iframe shell, disclosure, and lifecycle
+        events before connecting your host proxy and live assessments.
+      </p>
+    </div>
+
+    <h2>Variant A - web component (Shadow DOM)</h2>
+    <div class="frame">
+      <leo-sbar
+        id="leo-widget"
+        assessment-id="ass-2WW-demo"
+        widget-token="demo-stub-token"
+      ></leo-sbar>
+      <p class="status" id="wc-status" role="status">Waiting for LEO widget...</p>
+    </div>
+
+    <h2>Variant B - hardened iframe</h2>
+    <div class="frame">
+      <iframe
+        id="iframe-widget"
+        title="LEO SBAR (iframe demo)"
+        sandbox="allow-scripts"
+        src="/iframe/index.html?demo=1&amp;assessment-id=ass-2WW-demo&amp;widget-token=demo-stub-token"
+      ></iframe>
+      <p class="status" id="iframe-status" role="status">
+        Waiting for iframe variant...
+      </p>
+    </div>
+
+    <p>
+      Script source for production hosts:
+      <code>/v1/leo-widget.js</code> on your environment
+      <code>WIDGET_PUBLIC_HOST</code>.
+    </p>
+
+    <script type="module" src="./boot.ts"></script>
+  </body>
+</html>

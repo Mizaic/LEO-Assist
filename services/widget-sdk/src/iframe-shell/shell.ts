@@ -22,6 +22,7 @@
 import { LEO_EVENT_NAMES } from "../data/types";
 import type { SbarAssessmentPayload } from "../data/types";
 import { fetchAssessment } from "../data/fetcher";
+import { configureDemoFetcher } from "../demo/fixture";
 import { buildShadowStylesheet } from "../branding/stylesheet";
 import { renderSurface } from "../sbar/surface";
 
@@ -30,6 +31,10 @@ const ASSESSMENT_ID = PARAMS.get("assessment-id") ?? "";
 const WIDGET_TOKEN = PARAMS.get("widget-token") ?? "";
 const PROXY_ORIGIN = PARAMS.get("proxy-origin") ?? window.location.origin;
 const ADVISORY = PARAMS.get("advisory");
+
+if (PARAMS.get("demo") === "1") {
+  configureDemoFetcher(ASSESSMENT_ID || undefined);
+}
 
 function _ensureBaseStyles(): void {
   const existing = document.head.querySelector("style[data-leo='shell']");

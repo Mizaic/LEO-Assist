@@ -168,6 +168,7 @@ jobs:
           path: |
             services/widget-sdk/dist/v1/
             services/widget-sdk/dist/iframe/
+            services/widget-sdk/dist/demo/
           retention-days: 30
 
   deploy:
@@ -223,6 +224,19 @@ jobs:
             --content-cache "public, max-age=31536000, immutable" \
             --overwrite
 
+      - name: Upload integrator demo card to Azure Storage origin
+        env:
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
+        run: |
+          az storage blob upload-batch \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --destination '$web' \
+            --source services/widget-sdk/dist/demo \
+            --destination-path demo/ \
+            --content-cache "public, max-age=3600, must-revalidate" \
+            --overwrite
+
       - name: Purge Cloudflare immutable paths
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -233,7 +247,8 @@ jobs:
           { "files": [
               "https://${HOST}/v1/leo-widget.js",
               "https://${HOST}/iframe/index.html",
-              "https://${HOST}/iframe/shell.js"
+              "https://${HOST}/iframe/shell.js",
+              "https://${HOST}/demo/index.html"
           ] }
           JSON
           )
@@ -248,7 +263,7 @@ jobs:
         env:
           HOST: ${{ secrets.WIDGET_PUBLIC_HOST }}
         run: |
-          for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html; do
+          for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
             echo "Checking https://${HOST}${path}"
             curl --fail --silent --show-error --retry 5 --retry-delay 2 \
                  --output /dev/null --write-out "HTTP %{http_code}\n" \
@@ -272,4 +287,5 @@ jobs:
             echo "| Manifest    | https://${HOST}/v1/manifest.json |"
             echo "| Advisory    | https://${HOST}/v1/advisory.json |"
             echo "| Iframe      | https://${HOST}/iframe/index.html |"
+            echo "| Demo card   | https://${HOST}/demo/ |"
           } >> "$GITHUB_STEP_SUMMARY"

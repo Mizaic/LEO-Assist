@@ -30,7 +30,7 @@ The same source tree under `src/` produces two artefacts:
 - `dist/iframe/...` - hardened iframe variant served from the
   LEO-controlled CDN origin pinned by `WIDGET_PUBLIC_HOST` (see
   `infra/widget-cdn/README.md`). Per environment:
-  - dev:  `https://widget.leo-ai-dev.healthcarecopilot.ai`
+  - dev:  `https://sbar-widget-dev.healthcarecopilot.ai`
   - val:  `https://widget.leo-ai-val.healthcarecopilot.ai`
   - prod: `https://widget.leo-ai-audit.healthcarecopilot.ai`
 
@@ -104,6 +104,26 @@ Lifecycle events are identical. Web-component variant emits
 ```
 npm run test:no-coverage          # jest
 npm run e2e                       # Playwright (boots demo server)
+```
+
+### CDN integrator demo (after deploy)
+
+Each environment exposes a hosted test card with synthetic SBAR data only:
+
+| Env  | URL |
+| ---- | --- |
+| dev  | `https://sbar-widget-dev.healthcarecopilot.ai/demo/` |
+| val  | `https://widget.leo-ai-val.healthcarecopilot.ai/demo/` |
+| prod | `https://widget.leo-ai-audit.healthcarecopilot.ai/demo/` |
+
+The page exercises both distribution variants (web component + iframe)
+without a host proxy or live assessment data. Iframe-only demo mode:
+`/iframe/index.html?demo=1&assessment-id=ass-2WW-demo&widget-token=demo-stub-token`.
+
+Build locally:
+
+```
+npm run build:demo-cdn
 ```
 
 The Playwright suite covers DI-85C95E53 acceptance criteria 2, 3, 4

@@ -16,7 +16,7 @@ The current per-environment values are:
 
 | Env  | FQDN                                                |
 | ---- | ----                                                |
-| dev  | `widget.leo-ai-dev.healthcarecopilot.ai`            |
+| dev  | `sbar-widget-dev.healthcarecopilot.ai`            |
 | val  | `widget.leo-ai-val.healthcarecopilot.ai`            |
 | prod | `widget.leo-ai-audit.healthcarecopilot.ai`          |
 
@@ -57,6 +57,11 @@ that holds zero PII by construction.
 | `/v1/advisory.json`   | mutable     | Active CSO safety advisory or empty body.   |
 | `/iframe/index.html`  | per release | Hardened iframe entry document.            |
 | `/iframe/shell.js`    | per release | Hardened iframe entry script.              |
+| `/demo/index.html`    | per release | Integrator test card (synthetic SBAR, both variants). |
+
+`/demo/` is the hosted end-to-end smoke page for integrators. It uses
+stub data only (no live assessments). Append `?demo=1` to the iframe
+shell URL for the iframe-only demo mode.
 
 `/v1/leo-widget.js` is the only path the embedding host's
 `<script src=...>` references. Cloudflare caches it for 1 year
