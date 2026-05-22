@@ -281,77 +281,6 @@ em, i { font-style: italic; }
   outline-offset: 2px;
 }
 
-/* ------ Guideline matches section ------ */
-
-.leo-guideline-matches {
-  border: 1px solid ${BRAND.light.border};
-  border-left: 4px solid #6366f1;
-  border-radius: 8px;
-  overflow: hidden;
-  background: ${BRAND.light.surface};
-}
-
-.leo-guideline-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.leo-guideline-match {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 10px 14px;
-  border-bottom: 1px solid ${BRAND.light.border};
-}
-
-.leo-guideline-match:last-child { border-bottom: none; }
-
-.leo-guideline-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: ${BRAND.light.text};
-  line-height: 1.4;
-}
-
-.leo-guideline-strength {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: 999px;
-  letter-spacing: 0.2px;
-  align-self: flex-start;
-  background: #f1f5f9;
-  color: ${BRAND.light.textMuted};
-}
-
-.leo-guideline-strength--consider { background: #fffbeb; color: #92400e; }
-.leo-guideline-strength--offer     { background: #eff6ff; color: #1e3a8a; }
-.leo-guideline-strength--refer     { background: #f0fdfa; color: #115e59; }
-.leo-guideline-strength--recommend { background: #f0fdf4; color: #14532d; }
-
-.leo-verbatim { margin-top: 4px; }
-
-.leo-verbatim-toggle {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: ${BRAND.light.primary};
-  cursor: pointer;
-  letter-spacing: 0.1px;
-  padding: 0;
-}
-
-.leo-verbatim-text {
-  margin: 4px 0 0;
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.55;
-  color: ${BRAND.light.textMuted};
-  background: ${BRAND.light.surfaceMuted};
-  border-radius: 6px;
-  border-left: 3px solid #6366f1;
-}
 
 /* ------ Completeness panel ------ */
 
@@ -454,25 +383,6 @@ em, i { font-style: italic; }
   .leo-disclosure-toggle { color: ${BRAND.dark.primary}; }
 
   .leo-empty, .leo-source-part-label { color: ${BRAND.dark.textMuted}; }
-
-  .leo-guideline-matches {
-    border-color: ${BRAND.dark.border};
-    background: ${BRAND.dark.surface};
-  }
-
-  .leo-guideline-match { border-bottom-color: ${BRAND.dark.border}; }
-
-  .leo-guideline-name { color: ${BRAND.dark.text}; }
-
-  .leo-guideline-strength {
-    background: ${BRAND.dark.surfaceMuted};
-    color: ${BRAND.dark.textMuted};
-  }
-
-  .leo-verbatim-text {
-    background: ${BRAND.dark.surfaceMuted};
-    color: ${BRAND.dark.textMuted};
-  }
 
   .leo-completeness {
     border-color: ${BRAND.dark.border};

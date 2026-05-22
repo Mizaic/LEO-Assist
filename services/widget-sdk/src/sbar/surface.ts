@@ -28,7 +28,6 @@
 
 import type {
   CompletenessFinding,
-  GuidelineMatch,
   SbarAssessmentPayload,
   SbarBackgroundPart,
   SbarSection,
@@ -38,6 +37,7 @@ import { LEO_EVENT_NAMES } from "../data/types";
 import { MIZAIC_MARK_SVG } from "../branding/tokens";
 import { splitFinalSbar, stripSourceComments } from "./split";
 import { attachDisclosureHandlers, renderDisclosureHtml } from "./disclosure";
+import { renderMarkdownToHtml } from "./markdown";
 
 const STAGE_LABELS: Record<SbarStageName, string> = {
   situation: "Situation",
@@ -76,7 +76,7 @@ function _renderStage(
   section: SbarSection,
   partsByStage: Record<SbarStageName, SbarBackgroundPart[]>,
 ): string {
-  const cleaned = stripSourceComments(section.body);
+  const rendered = renderMarkdownToHtml(stripSourceComments(section.body));
   const disclosure = renderDisclosureHtml({
     stage: section.stage,
     parts: partsByStage[section.stage] ?? [],
@@ -85,7 +85,7 @@ function _renderStage(
     `<section class="leo-stage" data-stage="${section.stage}" ` +
     `data-testid="leo-stage-${section.stage}">` +
     `<header class="leo-stage-header">${STAGE_LABELS[section.stage]}</header>` +
-    `<div class="leo-stage-body">${_escape(cleaned)}</div>` +
+    `<div class="leo-stage-body leo-stage-body--md">${rendered}</div>` +
     disclosure +
     "</section>"
   );
@@ -137,30 +137,6 @@ function _renderCompletenessPanel(
   );
 }
 
-function _renderGuidelineMatches(matches: GuidelineMatch[] | undefined): string {
-  if (!matches || matches.length === 0) return "";
-  const items = matches.map((m) => {
-    const verbatim = m.recommendationVerbatim
-      ? `<details class="leo-verbatim" data-testid="leo-verbatim-details">` +
-        `<summary class="leo-verbatim-toggle">Source text</summary>` +
-        `<p class="leo-verbatim-text">${_escape(m.recommendationVerbatim)}</p>` +
-        `</details>`
-      : "";
-    return (
-      `<li class="leo-guideline-match" data-testid="leo-guideline-match">` +
-      `<span class="leo-guideline-name">${_escape(m.name)}</span>` +
-      `<span class="leo-guideline-strength leo-guideline-strength--${_escape(m.strength)}">${_escape(m.strength)}</span>` +
-      verbatim +
-      `</li>`
-    );
-  });
-  return (
-    `<section class="leo-guideline-matches" data-testid="leo-guideline-matches">` +
-    `<header class="leo-stage-header">Matched guidelines</header>` +
-    `<ul class="leo-guideline-list">${items.join("")}</ul>` +
-    `</section>`
-  );
-}
 
 function _emitCompletenessEvents(
   payload: SbarAssessmentPayload,
@@ -223,7 +199,6 @@ export function renderSurface(
   } else {
     inner += sections.map((s) => _renderStage(s, partsByStage)).join("");
   }
-  inner += _renderGuidelineMatches(payload.guidelineMatches);
 
   const wrapper =
     (root as Element).querySelector?.(".leo-root") ?? null;
