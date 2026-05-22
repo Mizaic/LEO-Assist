@@ -816,6 +816,7 @@ function topKeysFromMappings(rows: FieldMappingRow[]): string[] {
 
 function hydrateActionConfig(action: {
   subgraphId: string;
+  durableEventType?: string;
   label?: string;
   config?: unknown;
 }): ActionConfig {
@@ -835,6 +836,7 @@ function hydrateActionConfig(action: {
   return {
     ...DEFAULT_CONFIG,
     subgraphId: action.subgraphId,
+    durableEventType: action.durableEventType || String(rawConfig.durableEventType || ""),
     label: action.label || action.subgraphId,
     ...(rawConfig as Partial<ActionConfig>),
     params: rawParams,
@@ -3026,6 +3028,7 @@ function useValidationWarnings(
   edges: Edge[],
   nodeConfigs: Record<string, ActionConfig>,
   triggerEvent: string,
+  workflowMode: string,
 ): ValidationWarning[] {
   return useMemo(() => {
     const warnings: ValidationWarning[] = [];
@@ -3038,6 +3041,7 @@ function useValidationWarnings(
     }
 
     const ordered = [...nodes].sort((a, b) => (a.position?.y ?? 0) - (b.position?.y ?? 0));
+    const durable = workflowMode === "durable_pubsub";
 
     // Global keys always available at pipeline start
     const GLOBAL_KEYS = new Set(["encounter_text", "patient_id", "encounter_id", "run_id"]);
@@ -3076,9 +3080,27 @@ function useValidationWarnings(
       if (node.type === "source") continue; // source nodes provide, never consume
       const cfg = nodeConfigs[node.id];
       const inputSource = cfg?.inputSource ?? "previous_step";
+      if (durable && inputSource === "previous_step") {
+        warnings.push({
+          severity: "error",
+          message: `"${(node.data as unknown as ActionNodeData).label}" is in durable mode but still uses previous-step memory. Use graph-backed loads and persisted outputs.`,
+        });
+      }
       if (inputSource !== "previous_step") continue;
 
       const subgraphId = (node.data as unknown as ActionNodeData)?.subgraphId || "";
+      if (durable && subgraphId === "sbar") {
+        warnings.push({
+          severity: "error",
+          message: "Durable workflows cannot use the legacy SBAR subgraph. Use the sbar_requested durable step.",
+        });
+      }
+      if (durable && subgraphId === "durable_step" && !cfg?.durableEventType) {
+        warnings.push({
+          severity: "error",
+          message: `"${(node.data as unknown as ActionNodeData).label}" must declare the event it handles.`,
+        });
+      }
       const io = SUBGRAPH_IO[subgraphId];
       if (!io) continue;
 
@@ -3144,6 +3166,17 @@ function useValidationWarnings(
         });
       }
     }
+    if (durable) {
+      const eventOrder = ordered.map((n) => nodeConfigs[n.id]?.durableEventType || "");
+      const sbarIdx = eventOrder.indexOf("sbar_requested");
+      const persistIdx = eventOrder.indexOf("clinical_facts_persist_requested");
+      if (sbarIdx >= 0 && (persistIdx < 0 || persistIdx > sbarIdx)) {
+        warnings.push({
+          severity: "error",
+          message: "SBAR must run after clinical facts are persisted, so the orchestrator can reload graph-backed evidence.",
+        });
+      }
+    }
 
     const orphaned = nodes.filter(n => {
       const hasIncoming = edges.some(e => e.target === n.id);
@@ -3163,7 +3196,7 @@ function useValidationWarnings(
       warnings.push({ severity: "info", message: "Pipeline looks good. All steps are connected and I/O keys are consistent." });
     }
     return warnings;
-  }, [nodes, edges, nodeConfigs, triggerEvent]);
+  }, [nodes, edges, nodeConfigs, triggerEvent, workflowMode]);
 }
 
 function ValidationPanel({ warnings }: { warnings: ValidationWarning[] }) {
@@ -3612,6 +3645,8 @@ export default function PathwayBuilderPage() {
   const [planName, setPlanName] = useState("");
   const [planDescription, setPlanDescription] = useState("");
   const [planStatus, setPlanStatus] = useState("draft");
+  const [workflowMode, setWorkflowMode] = useState<"legacy_in_process" | "durable_pubsub">("legacy_in_process");
+  const [durableSteps, setDurableSteps] = useState<PlanData["_durableSteps"]>([]);
   const [triggerEvent, setTriggerEvent] = useState("");
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -3714,7 +3749,13 @@ export default function PathwayBuilderPage() {
     initialState: {},
   });
 
-  const validationWarnings = useValidationWarnings(nodes, edges, nodeConfigs, triggerEvent);
+  const validationWarnings = useValidationWarnings(
+    nodes,
+    edges,
+    nodeConfigs,
+    triggerEvent,
+    workflowMode,
+  );
 
   const dirtyInputs = useMemo(
     () => ({
@@ -3748,6 +3789,8 @@ export default function PathwayBuilderPage() {
           setPlanName(data.name || "");
           setPlanDescription(data.description || "");
           setPlanStatus(data.status || "draft");
+          setWorkflowMode(data._workflowMode === "durable_pubsub" ? "durable_pubsub" : "legacy_in_process");
+          setDurableSteps(data._durableSteps || []);
           const trig = (data as any).trigger;
           if (trig?.event) setTriggerEvent(trig.event);
           const configs: Record<string, ActionConfig> = {};
@@ -3755,6 +3798,22 @@ export default function PathwayBuilderPage() {
             .filter((a) => !isCanvasOnlyNodeType(a.nodeType)) // legacy guard: skip old canvas-only nodes saved as actions
             .map((a, i) => {
               const cfg = hydrateActionConfig(a);
+              const durableMeta = (data._durableSteps || []).find(
+                (step) => step.event_type === (a.durableEventType || cfg.durableEventType),
+              );
+              if (durableMeta) {
+                cfg.workflowMode = data._workflowMode || "durable_pubsub";
+                cfg.durableEventType = durableMeta.event_type;
+                cfg.inputSource = "graph";
+                cfg.params = {
+                  ...cfg.params,
+                  durableLoads: durableMeta.loads || [],
+                  durablePersists: durableMeta.persists || [],
+                  emitsOnSuccess: durableMeta.emits_on_success || "",
+                  emitsOnFailure: durableMeta.emits_on_failure || "",
+                  idempotencyKey: durableMeta.idempotency_key || "",
+                };
+              }
               configs[a.id] = cfg;
               const resolvedNodeType = a.nodeType || cfg.nodeType || "action";
               return {
@@ -3979,7 +4038,15 @@ export default function PathwayBuilderPage() {
     const option = SUBGRAPH_OPTIONS.find((s) => s.id === subgraphId);
     if (!option) return;
     const id = `${subgraphId}_${Date.now()}`;
-    const cfg: ActionConfig = { ...DEFAULT_CONFIG, subgraphId, label: option.label, description: option.description, nodeType: "action" };
+    const cfg: ActionConfig = {
+      ...DEFAULT_CONFIG,
+      subgraphId,
+      label: option.label,
+      description: option.description,
+      nodeType: "action",
+      workflowMode,
+      inputSource: workflowMode === "durable_pubsub" ? "graph" : DEFAULT_CONFIG.inputSource,
+    };
     setNodeConfigs((prev) => ({ ...prev, [id]: cfg }));
     const newNode: Node = {
       id,
@@ -3994,7 +4061,7 @@ export default function PathwayBuilderPage() {
       },
     };
     setNodes((nds) => [...nds, newNode]);
-  }, [nodes.length, setNodes, openConfigurator, triggerEvent]);
+  }, [nodes.length, setNodes, openConfigurator, triggerEvent, workflowMode]);
 
   // ── Source node ─────────────────────────────────────────────────────────────
   const [sourceConfigOpen, setSourceConfigOpen] = useState<string | null>(null); // nodeId being configured
@@ -4751,6 +4818,8 @@ export default function PathwayBuilderPage() {
       name: planName,
       status: effectiveStatus,
       description: planDescription,
+      _workflowMode: workflowMode,
+      ...(workflowMode === "durable_pubsub" ? { _durableSteps: durableSteps } : {}),
       // Include version notes when publishing so the backend can snapshot them.
       ...(effectiveStatus === "active" && versionNotes ? { versionNotes } : {}),
       trigger: triggerEvent ? { event: triggerEvent, type: "data-changed" } : undefined,
@@ -4782,6 +4851,7 @@ export default function PathwayBuilderPage() {
         return {
           id: n.id,
           subgraphId,
+          durableEventType: cfg.durableEventType || "",
           label: (n.data as unknown as ActionNodeData).label,
           nodeType: (cfg.nodeType || n.type || "action"),
           position: n.position,
@@ -4832,7 +4902,7 @@ export default function PathwayBuilderPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [planName, planStatus, planDescription, triggerEvent, versionNotes, isNew, planId, router, markSaved]);
+  }, [planName, planStatus, planDescription, workflowMode, durableSteps, triggerEvent, versionNotes, isNew, planId, router, markSaved]);
 
   const handlePublish = useCallback(() => {
     const errCount = validationWarnings.filter((w) => w.severity === "error").length;
@@ -4901,6 +4971,8 @@ export default function PathwayBuilderPage() {
       setPlanName(data.name || "");
       setPlanDescription(data.description || "");
       setPlanStatus(data.status || "active");
+          setWorkflowMode(data._workflowMode === "durable_pubsub" ? "durable_pubsub" : "legacy_in_process");
+          setDurableSteps(data._durableSteps || []);
       const trig = (data as any).trigger;
       if (trig?.event) setTriggerEvent(trig.event);
       const configs: Record<string, ActionConfig> = {};
@@ -4908,6 +4980,22 @@ export default function PathwayBuilderPage() {
         .filter((a) => !isCanvasOnlyNodeType(a.nodeType))
         .map((a, i) => {
         const cfg = hydrateActionConfig(a);
+        const durableMeta = (data._durableSteps || []).find(
+          (step) => step.event_type === (a.durableEventType || cfg.durableEventType),
+        );
+        if (durableMeta) {
+          cfg.workflowMode = data._workflowMode || "durable_pubsub";
+          cfg.durableEventType = durableMeta.event_type;
+          cfg.inputSource = "graph";
+          cfg.params = {
+            ...cfg.params,
+            durableLoads: durableMeta.loads || [],
+            durablePersists: durableMeta.persists || [],
+            emitsOnSuccess: durableMeta.emits_on_success || "",
+            emitsOnFailure: durableMeta.emits_on_failure || "",
+            idempotencyKey: durableMeta.idempotency_key || "",
+          };
+        }
         configs[a.id] = cfg;
         return {
           id: a.id,
@@ -5041,6 +5129,43 @@ export default function PathwayBuilderPage() {
         onDescriptionChange={setPlanDescription}
       />
 
+      <Paper variant="outlined" sx={{ mx: 2, mt: 1, p: 1.5, borderRadius: 2 }}>
+        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel id="workflow-mode-label">Workflow mode</InputLabel>
+            <Select
+              labelId="workflow-mode-label"
+              label="Workflow mode"
+              value={workflowMode}
+              onChange={(event) => {
+                const value = event.target.value === "durable_pubsub"
+                  ? "durable_pubsub"
+                  : "legacy_in_process";
+                setWorkflowMode(value);
+              }}
+            >
+              <MenuItem value="legacy_in_process">Legacy in-process</MenuItem>
+              <MenuItem value="durable_pubsub">Durable pub/sub</MenuItem>
+            </Select>
+          </FormControl>
+          <Box sx={{ flex: 1, minWidth: 280 }}>
+            <Typography variant="body2" fontWeight={700}>
+              {workflowMode === "durable_pubsub"
+                ? "Edges publish the next event after a persisted stage completes."
+                : "Edges pass in-memory state from one subgraph to the next."}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Durable mode shows graph loads, persisted artefacts, idempotency, and retry metadata for each step.
+            </Typography>
+          </Box>
+          <Chip
+            size="small"
+            color={workflowMode === "durable_pubsub" ? "info" : "default"}
+            label={workflowMode === "durable_pubsub" ? "Durable" : "Legacy"}
+          />
+        </Stack>
+      </Paper>
+
       <ValidationPanel warnings={validationWarnings} />
 
       {selectedNode && (
@@ -5049,7 +5174,37 @@ export default function PathwayBuilderPage() {
             <Box sx={{ minWidth: 220 }}>
               <Typography variant="caption" color="text.secondary">Selected step</Typography>
               <Typography variant="body2" fontWeight={700}>{selectedNodeLabel}</Typography>
+              {workflowMode === "durable_pubsub" ? (
+                <Stack spacing={0.25} sx={{ mt: 0.75 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Triggered by {selectedConfig.durableEventType || "No event set"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Idempotency {String(selectedConfig.params.idempotencyKey || "run_id:step_id")}
+                  </Typography>
+                </Stack>
+              ) : null}
             </Box>
+            {workflowMode === "durable_pubsub" ? (
+              <Box sx={{ minWidth: 280 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                  Graph artefacts
+                </Typography>
+                <Typography variant="caption" sx={{ display: "block" }}>
+                  Loads: {Array.isArray(selectedConfig.params.durableLoads)
+                    ? selectedConfig.params.durableLoads.join(", ")
+                    : "PipelineStageRun"}
+                </Typography>
+                <Typography variant="caption" sx={{ display: "block" }}>
+                  Persists: {Array.isArray(selectedConfig.params.durablePersists)
+                    ? selectedConfig.params.durablePersists.join(", ")
+                    : "PipelineStageRun"}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  Success emits {String(selectedConfig.params.emitsOnSuccess || "None")}
+                </Typography>
+              </Box>
+            ) : null}
             <Box sx={{ minWidth: 280 }}>
               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
                 Incoming wires

@@ -24,6 +24,7 @@ from typing import Any, Awaitable, Callable
 from libs.llm_client.json_helper import invoke_llm_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.prompts.registry import get_prompt
+from libs.sbar.assessment_formatter import STRENGTH_RANK
 from libs.sbar.background_partitioner import (
     Partition,
     partition_background_sources,
@@ -78,6 +79,31 @@ def _serialise_situation_context(
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
 
 
+def _select_primary_rule_id(rules: list[dict[str, Any]]) -> str | None:
+    """Deterministically pick the rule that anchors bullet-1.
+
+    Sort order (lower = preferred):
+      1. action.priority: 2ww (0) > urgent (1) > routine (2) > other (9)
+      2. strength: refer (0) > offer (1) > consider (2) > other (9)
+
+    This is evaluated in Python so the LLM never makes this judgement.
+    """
+    priority_rank = {"2ww": 0, "urgent": 1, "routine": 2}
+
+    def _sort_key(r: dict[str, Any]) -> tuple[int, int]:
+        action = r.get("action") or {}
+        p = priority_rank.get(
+            (action.get("priority") or "").lower(), 9
+        )
+        s = STRENGTH_RANK.get((r.get("strength") or "").lower(), 9)
+        return (p, s)
+
+    if not rules:
+        return None
+    best = min(rules, key=_sort_key)
+    return best.get("rule_id")
+
+
 def _serialise_recommendation_context(
     *,
     situation_md: str,
@@ -87,11 +113,13 @@ def _serialise_recommendation_context(
     guideline_titles: list[str],
     guidelines: list[str],
 ) -> str:
+    primary_rule_id = _select_primary_rule_id(assessment_rules)
     body = {
         "situation": situation_md,
         "background": background_md,
         "assessment": assessment_md,
         "assessment_rules": assessment_rules,
+        "primary_rule_id": primary_rule_id,
         "guideline_titles": guideline_titles,
         "guidelines": guidelines,
     }

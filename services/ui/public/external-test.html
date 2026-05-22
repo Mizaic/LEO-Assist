@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LEO SBAR Widget - External Integration Test</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .header p {
+      font-size: 12px;
+      color: #666;
+      margin-left: auto;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 0;
+      height: calc(100vh - 57px);
+    }
+
+    .sidebar {
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 12px; font-weight: 500; color: #444; }
+    .field input, .field select {
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: ui-monospace, monospace;
+      width: 100%;
+      background: #fafafa;
+      outline: none;
+    }
+    .field input:focus, .field select:focus {
+      border-color: #1976d2;
+      background: #fff;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 4px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn-primary { background: #1976d2; color: #fff; }
+    .btn-primary:hover { background: #1565c0; }
+    .btn-primary:disabled { background: #90caf9; cursor: not-allowed; }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-idle     { background: #bbb; }
+    .dot-loading  { background: #fb8c00; }
+    .dot-ok       { background: #43a047; }
+    .dot-error    { background: #e53935; }
+
+    .event-log {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      background: #fafafa;
+    }
+    .event-row {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      border-bottom: 1px solid #ebebeb;
+      line-height: 1.5;
+    }
+    .event-row:last-child { border-bottom: none; }
+    .event-time { color: #999; margin-right: 6px; }
+    .event-name { font-weight: 600; }
+    .event-name.ok     { color: #2e7d32; }
+    .event-name.warn   { color: #e65100; }
+    .event-name.error  { color: #c62828; }
+    .event-name.info   { color: #1565c0; }
+
+    .main {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .info-bar {
+      background: #e3f2fd;
+      border: 1px solid #bbdefb;
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #1565c0;
+      display: none;
+    }
+    .info-bar.visible { display: block; }
+
+    .widget-frame {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 0;
+      min-height: 200px;
+      display: none;
+    }
+    .widget-frame.visible { display: block; }
+
+    leo-sbar {
+      display: block;
+    }
+
+    .placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: #aaa;
+      font-size: 13px;
+      border: 2px dashed #e0e0e0;
+      border-radius: 6px;
+    }
+
+    hr { border: none; border-top: 1px solid #e0e0e0; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-badge">External Dev Test</span>
+  <h1>Acme Health System &mdash; LEO SBAR Widget Integration</h1>
+  <p>proxy-origin: <code id="proxy-origin-display">http://localhost:3000</code></p>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-title">Assessment</div>
+      <div class="field">
+        <label for="assessment-id">Assessment ID</label>
+        <input id="assessment-id"
+          value="d47da6fc3e78b93233c93738cd41deee"
+          placeholder="32-char hex" />
+      </div>
+    </div>
+
+    <div>
+      <button class="btn btn-primary" id="load-btn" onclick="loadWidget()">
+        Load Widget
+      </button>
+    </div>
+
+    <div>
+      <div class="section-title">Status</div>
+      <div class="status-row">
+        <span class="dot dot-idle" id="status-dot"></span>
+        <span id="status-text">Idle</span>
+      </div>
+    </div>
+
+    <hr />
+
+    <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+      <div class="section-title">Widget events</div>
+      <div class="event-log" id="event-log">
+        <div class="event-row" style="color:#bbb;">-- waiting --</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <main class="main">
+
+    <div class="info-bar" id="info-bar"></div>
+
+    <div class="placeholder" id="placeholder">
+      Enter an assessment ID and click Load Widget
+    </div>
+
+    <div class="widget-frame" id="widget-frame">
+      <leo-sbar id="leo-widget"></leo-sbar>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="https://leoaiwidgetcdndev.z33.web.core.windows.net/v1/leo-widget.js"></script>
+
+<script>
+  const proxyOrigin = window.location.origin;
+  document.getElementById("proxy-origin-display").textContent = proxyOrigin;
+
+  // Pre-fill from query string if present
+  const qp = new URLSearchParams(location.search);
+  if (qp.get("assessment-id")) {
+    document.getElementById("assessment-id").value = qp.get("assessment-id");
+  }
+
+  function setStatus(state, text) {
+    const dot = document.getElementById("status-dot");
+    dot.className = "dot dot-" + state;
+    document.getElementById("status-text").textContent = text;
+  }
+
+  function logEvent(name, cls, detail) {
+    const log = document.getElementById("event-log");
+    // Clear placeholder row on first real event
+    if (log.children.length === 1 && log.children[0].style.color === "rgb(187, 187, 187)") {
+      log.innerHTML = "";
+    }
+    const now = new Date().toLocaleTimeString("en-GB", { hour12: false });
+    const row = document.createElement("div");
+    row.className = "event-row";
+    row.innerHTML =
+      `<span class="event-time">${now}</span>` +
+      `<span class="event-name ${cls}">${name}</span>` +
+      (detail ? `<span style="color:#555;"> &mdash; ${detail}</span>` : "");
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function showInfo(msg) {
+    const bar = document.getElementById("info-bar");
+    bar.textContent = msg;
+    bar.classList.add("visible");
+  }
+
+  async function loadWidget() {
+    const assessmentId = document.getElementById("assessment-id").value.trim();
+    if (!assessmentId) { alert("Enter an assessment ID."); return; }
+
+    const btn = document.getElementById("load-btn");
+    btn.disabled = true;
+
+    // Reset UI
+    document.getElementById("widget-frame").classList.remove("visible");
+    document.getElementById("placeholder").style.display = "flex";
+    document.getElementById("info-bar").classList.remove("visible");
+    document.getElementById("event-log").innerHTML = "";
+
+    try {
+      // Step 1: Exchange host secret for widget token (server-side, secret never in browser)
+      setStatus("loading", "Exchanging host token...");
+      logEvent("token-exchange", "info", "POST /api/sdk/widget-token");
+
+      const tokenRes = await fetch("/api/sdk/widget-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assessment_id: assessmentId }),
+      });
+
+      if (!tokenRes.ok) {
+        const err = await tokenRes.json().catch(() => ({ detail: tokenRes.statusText }));
+        throw new Error("Token exchange failed: " + (err.detail || tokenRes.status));
+      }
+
+      const { widget_token, ttl_seconds } = await tokenRes.json();
+      logEvent("token-obtained", "ok", `TTL ${ttl_seconds}s`);
+      showInfo(
+        "Token obtained (" + ttl_seconds + "s TTL). " +
+        "Widget fetching SBAR from " + proxyOrigin + "/sdk/sbar/" + assessmentId
+      );
+
+      // Step 2: Mount the widget
+      setStatus("loading", "Mounting widget...");
+      const widget = document.getElementById("leo-widget");
+      widget.setAttribute("assessment-id", assessmentId);
+      widget.setAttribute("widget-token", widget_token);
+      widget.setAttribute("proxy-origin", proxyOrigin);
+
+      // Wire events before making visible
+      ["leo:loaded", "leo:error", "leo:completeness-incomplete",
+       "leo:completeness-unavailable", "leo:disclosure-opened",
+       "leo:disclosure-closed", "leo:source-clicked"].forEach((evtName) => {
+        widget.addEventListener(evtName, (e) => {
+          const cls =
+            evtName === "leo:loaded"    ? "ok"   :
+            evtName === "leo:error"     ? "error" :
+            evtName.includes("unavailable") ? "warn" :
+            evtName.includes("incomplete")  ? "warn" : "info";
+          const detail = e.detail ? JSON.stringify(e.detail).slice(0, 80) : "";
+          logEvent(evtName, cls, detail);
+          if (evtName === "leo:loaded") {
+            setStatus("ok", "Loaded");
+            btn.disabled = false;
+          }
+          if (evtName === "leo:error") {
+            setStatus("error", "Widget error");
+            btn.disabled = false;
+          }
+        });
+      });
+
+      document.getElementById("placeholder").style.display = "none";
+      document.getElementById("widget-frame").classList.add("visible");
+      logEvent("widget-mount", "info", "leo-sbar element updated");
+
+    } catch (err) {
+      setStatus("error", err.message);
+      logEvent("error", "error", err.message);
+      btn.disabled = false;
+    }
+  }
+
+  // Auto-load if assessment-id is in query string
+  if (qp.get("assessment-id")) {
+    loadWidget();
+  }
+</script>
+
+</body>
+</html>

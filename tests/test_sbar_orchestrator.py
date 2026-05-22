@@ -32,6 +32,11 @@ from services.pipeline_worker.app.services.sbar_orchestrator import (
     SBAROrchestrator,
 )
 
+_RESOLVE_BG = (
+    "services.pipeline_worker.app.services.sbar_orchestrator."
+    "resolve_background_sources"
+)
+
 
 @dataclass
 class _FakeSession:
@@ -61,6 +66,10 @@ class _FakeClient:
     @contextmanager
     def session(self):
         yield self._session
+
+    def run(self, query: str, **kwargs):
+        self._session.run(query, **kwargs)
+        return []
 
 
 def _first_keyword(query: str) -> str:
@@ -149,7 +158,7 @@ def orchestrator_with_mocks(monkeypatch):
         _fake_resolve_situation,
     )
     monkeypatch.setattr(
-        "services.pipeline_worker.app.services.sbar_orchestrator.resolve_background_sources",
+        _RESOLVE_BG,
         _fake_resolve_background,
     )
 
@@ -192,6 +201,76 @@ def test_orchestrator_runs_all_stages_and_persists(orchestrator_with_mocks):
     stage_completed = [t for t in types if t == "sbar_stage_completed"]
     assert len(stage_completed) == 4
     assert types[-1] == "sbar_completed"
+
+
+def test_orchestrator_passes_patient_demographics_to_guideline_evaluator(
+    monkeypatch,
+) -> None:
+    session = _FakeSession()
+    client = _FakeClient(session)
+    captured: dict[str, Any] = {}
+
+    async def _fake_situation(*_a, **_kw):
+        return {"markdown": "Patient context.", "raw": {}, "error": None}
+
+    async def _fake_background(*_a, **_kw):
+        return {"markdown": "- Recent finding.", "raw": {}, "error": None}
+
+    async def _fake_recommendation(*_a, **_kw):
+        return {"markdown": "Clinical review required.", "actions": [], "raw": {}}
+
+    def _fake_evaluate(**kwargs):
+        captured.update(kwargs)
+        return {"matched_rules": [], "active_version": "v1"}
+
+    def _fake_resolve_situation(_session, _input):
+        from libs.sbar.source_resolver import ResolvedSituation
+
+        return ResolvedSituation(
+            patient_id="pat-1",
+            patient_summary={
+                "id": "pat-1",
+                "birth_date": "1945-06-06",
+                "gender": "Male",
+            },
+            artifacts=[],
+        )
+
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator.resolve_situation",
+        _fake_resolve_situation,
+    )
+    monkeypatch.setattr(
+        _RESOLVE_BG,
+        lambda _s, _r: [
+            ResolvedSource(
+                source_label="Encounter",
+                source_id="enc-1",
+                codes=[
+                    ResolvedCode(
+                        concept_id="123",
+                        term="Weight loss",
+                        assertion="present",
+                    )
+                ],
+            )
+        ],
+    )
+
+    orch = SBAROrchestrator(
+        patient_graph_client=client,
+        publish_progress=MagicMock(),
+        situation_caller=_fake_situation,
+        background_caller=_fake_background,
+        recommendation_caller=_fake_recommendation,
+        evaluator=_fake_evaluate,
+    )
+
+    asyncio.run(orch.run(_make_payload()))
+
+    assert captured["patient_sex"] == "male"
+    assert captured["patient_age"] >= 80
+    assert captured["patient_codes"] == ["123"]
 
 
 def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
@@ -252,7 +331,7 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
         lambda _s, _i: _make_resolved_situation(),
     )
     monkeypatch.setattr(
-        "services.pipeline_worker.app.services.sbar_orchestrator.resolve_background_sources",
+        _RESOLVE_BG,
         lambda _s, _r: [],
     )
 
@@ -326,7 +405,7 @@ def test_orchestrator_records_error_when_situation_call_fails(monkeypatch):
         lambda _s, _i: _make_resolved_situation(),
     )
     monkeypatch.setattr(
-        "services.pipeline_worker.app.services.sbar_orchestrator.resolve_background_sources",
+        _RESOLVE_BG,
         lambda _s, _r: [],
     )
 

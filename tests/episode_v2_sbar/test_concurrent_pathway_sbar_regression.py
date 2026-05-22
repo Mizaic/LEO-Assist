@@ -98,6 +98,9 @@ class FakeClient:
     def session(self):
         yield self.session_inst
 
+    def run(self, query, **params):
+        return self.session_inst.run(query, **params)
+
 
 class CapturingSBAR:
     def __init__(self, episode_id: str):

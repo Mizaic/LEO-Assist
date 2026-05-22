@@ -33,6 +33,8 @@ export interface ActionConfig {
   promptConfigId: string;
   promptConfigName: string;
   params: Record<string, unknown>;
+  workflowMode?: "legacy_in_process" | "durable_pubsub" | string;
+  durableEventType?: string;
   nodeType?: "action" | "condition" | "rest_connector" | "queue_publish" | "trigger" | "parallel" | "merge" | "transform";
 }
 
@@ -51,6 +53,8 @@ export const DEFAULT_CONFIG: ActionConfig = {
   promptConfigId: "",
   promptConfigName: "",
   params: {},
+  workflowMode: "legacy_in_process",
+  durableEventType: "",
   nodeType: "action",
 };
 
@@ -84,6 +88,7 @@ export interface PlanData {
   actions: Array<{
     id: string;
     subgraphId: string;
+    durableEventType?: string;
     label: string;
     nodeType?: string;
     position?: { x: number; y: number };
@@ -95,6 +100,17 @@ export interface PlanData {
     sourceHandle?: string;
     targetHandle?: string;
   }>;
+  _workflowMode?: "legacy_in_process" | "durable_pubsub" | string;
+  _durableSteps?: Array<{
+    step_id: string;
+    event_type: string;
+    loads?: string[];
+    persists?: string[];
+    emits_on_success?: string | null;
+    emits_on_failure?: string | null;
+    idempotency_key?: string;
+  }>;
+  _deprecatedSubgraphs?: string[];
 }
 
 export interface ModelPreset {

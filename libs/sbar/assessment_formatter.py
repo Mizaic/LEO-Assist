@@ -200,9 +200,11 @@ def format_assessment(
         by_priority.setdefault(prio, []).append(rule)
 
     lines: list[str] = []
+    scope = (
+        "guidelines " + ", ".join(guideline_ids) if guideline_ids else "global"
+    )
     lines.append(
-        f"**{len(rules_sorted)} guideline rule(s) fired** "
-        f"(scope: {'guidelines ' + ', '.join(guideline_ids) if guideline_ids else 'global'})."
+        f"**{len(rules_sorted)} guideline rule(s) fired** (scope: {scope})."
     )
 
     for prio in ("2ww", "urgent", "routine"):
@@ -245,7 +247,6 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
     parts = [f"- **{title}**"]
     if strength:
         parts.append(f" _(strength: {strength})_")
-    parts.append(f" -- rule `{rule.get('rule_id', '?')}`")
     out = "".join(parts)
     if rec:
         out += f"\n  - Recommendation: {rec}"
@@ -259,8 +260,8 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
             out += f"\n  - Action: {action_name}"
     gid = rule.get("guideline_id")
     gtitle = rule.get("guideline_title")
-    if gid or gtitle:
-        out += f"\n  - Guideline: {gtitle or gid} (`{gid}`)"
+    if gtitle or gid:
+        out += f"\n  - Guideline: {gtitle or gid}"
     return out
 
 
@@ -274,7 +275,7 @@ def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
     Examples:
         - One leaf, one hit, exact match  -> "Smoker"
         - One leaf, one hit, descendant   -> "Cigarette smoker (a kind of Smoker)"
-        - One leaf, two hits              -> "Cigarette smoker, Pipe smoker (kinds of Smoker)"
+        - One leaf, two hits -> "Cigarette smoker, Pipe smoker (kinds of Smoker)"
         - Two leaves                      -> "Smoker; History of asbestos exposure"
     """
     if not matched_via:
@@ -293,31 +294,41 @@ def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
             fragments.append(chip_label)
             continue
         if len(hits) == 1:
-            fragments.append(f"`{hits[0]}` (a kind of {chip_label})")
+            fragments.append(f"a related coded finding for {chip_label}")
         else:
-            joined = ", ".join(f"`{h}`" for h in hits)
-            fragments.append(f"{joined} (kinds of {chip_label})")
+            fragments.append(f"related coded findings for {chip_label}")
     return "; ".join(fragments)
+
+
+# Strength hierarchy for deterministic bullet-1 selection (lower = higher
+# priority). "refer" > "offer" > "consider". Unknown values sort last.
+STRENGTH_RANK: dict[str, int] = {"refer": 0, "offer": 1, "consider": 2}
 
 
 def _rule_snapshot(rule: dict[str, Any]) -> dict[str, Any]:
     """Trim the rule payload to a JSON-serialisable snapshot.
 
+    ``name`` and ``strength`` are included so the widget "Matched
+    guidelines" panel can display them and the recommendation LLM can
+    use ``name`` in bullet-1 citations.  ``recommendation_verbatim``
+    and ``action.name`` remain excluded -- they are verbose source text
+    that cause the model to anchor and paraphrase rather than distil.
+
     ``matched_via`` (DI-LEO-AI-510) is preserved so downstream renderers
-    and audit tooling can show *which* synonym seed on the patient caused
-    the rule to fire (e.g. "matched on Cigarette smoker (a kind of
-    Smoker)") rather than only naming the rule.
+    and audit tooling can show which synonym seed caused the rule to fire.
     """
-    snapshot = {
+    action = rule.get("action") or {}
+    snapshot: dict[str, Any] = {
         "rule_id": rule.get("rule_id"),
         "name": rule.get("name"),
         "strength": rule.get("strength"),
         "guideline_id": rule.get("guideline_id"),
         "guideline_title": rule.get("guideline_title"),
         "chapter_title": rule.get("chapter_title"),
-        "recommendation_verbatim": rule.get("recommendation_verbatim"),
-        "action": rule.get("action"),
-        "confidence": rule.get("confidence"),
+        "action": {
+            "priority": action.get("priority"),
+            "due_days": action.get("due_days"),
+        },
     }
     matched_via = rule.get("matched_via")
     if matched_via:

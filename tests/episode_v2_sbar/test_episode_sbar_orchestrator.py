@@ -64,6 +64,9 @@ class FakeClient:
     def session(self):
         yield self.session_inst
 
+    def run(self, query, **params):
+        return self.session_inst.run(query, **params)
+
 
 def test_episode_sbar_requires_at_least_one_encounter():
     orch = EpisodeSBAROrchestrator(

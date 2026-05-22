@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
@@ -74,6 +75,10 @@ class _FakeClient:
     @contextmanager
     def session(self):
         yield self._session
+
+    def run(self, query: str, **kwargs):
+        self._session.run(query, **kwargs)
+        return []
 
 
 def _make_payload() -> SBARRequestPayload:
@@ -217,6 +222,10 @@ def test_orchestrator_writes_pipeline_run_audit_event(monkeypatch):
 def test_orchestrator_swallows_telemetry_write_failure(monkeypatch, caplog):
     session = _FakeSession()
     orch = _build_orchestrator(monkeypatch, session, telemetry_failure=True)
+    caplog.set_level(
+        logging.WARNING,
+        logger="services.pipeline_worker.app.services.sbar_orchestrator",
+    )
 
     result = asyncio.run(orch.run(_make_payload()))
 

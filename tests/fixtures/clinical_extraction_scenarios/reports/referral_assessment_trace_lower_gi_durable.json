@@ -1,0 +1,412 @@
+{
+  "setup": {
+    "completeness_seeded": "lower_gi",
+    "guideline_compile": {
+      "version": "trace-ng12-1779453397",
+      "rule_count": 20,
+      "compile_timestamp": "2026-05-22T12:37:44.330243+00:00",
+      "scope_type": "guideline",
+      "scope_id": "NG12",
+      "policy_mode": "advisory",
+      "compile_stats": {
+        "rules_seen": 21,
+        "rules_included": 20,
+        "rules_excluded": 1,
+        "policy_violations": 0,
+        "out_of_scope_concepts": 0,
+        "out_of_scope_actions": 0
+      }
+    }
+  },
+  "runs": [
+    {
+      "case_id": "lower_gi_letter_001",
+      "patient_id": "trace-lower-gi-lower_gi_letter_001",
+      "encounter_id": "lower_gi_letter_001-encounter",
+      "mode": "durable_pubsub",
+      "status": "completed",
+      "steps": [
+        {
+          "step_id": "durable-ref-extraction",
+          "subgraph_id": "extraction",
+          "label": "extraction_requested",
+          "status": "completed",
+          "duration_ms": 32632,
+          "entity_count": 25,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-post-processing",
+          "subgraph_id": "post_processing",
+          "label": "post_processing_requested",
+          "status": "completed",
+          "duration_ms": 374,
+          "entity_count": 25,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-relation-linking",
+          "subgraph_id": "relation_linking",
+          "label": "relation_linking_requested",
+          "status": "completed",
+          "duration_ms": 89,
+          "entity_count": 25,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-extraction-check",
+          "subgraph_id": "extraction_check",
+          "label": "extraction_check_requested",
+          "status": "completed",
+          "duration_ms": 6019,
+          "entity_count": 27,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-terminology",
+          "subgraph_id": "terminology",
+          "label": "terminology_requested",
+          "status": "completed",
+          "duration_ms": 1005,
+          "entity_count": 27,
+          "errors": [
+            "terminology_low_confidence: 2 entity/entities below score threshold 0.55 \u2014 \"stools becoming looser and more frequent\" (score 0.00), \"positive FIT result\" (score 0.50)"
+          ],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-clinical-facts-persist",
+          "subgraph_id": "persist",
+          "label": "clinical_facts_persist_requested",
+          "status": "completed",
+          "duration_ms": 1424,
+          "entity_count": 27,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": 25,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-compliance",
+          "subgraph_id": "compliance",
+          "label": "compliance_requested",
+          "status": "completed",
+          "duration_ms": 382,
+          "entity_count": 27,
+          "errors": [],
+          "guideline_result": {
+            "matched_rules": [],
+            "active_version": "trace-ng12-1779453397",
+            "not_compiled": false,
+            "compile_timestamp": "2026-05-22T12:37:44.330243+00:00",
+            "scope_type": "guideline",
+            "scope_id": "NG12",
+            "patient_code_count": 25,
+            "patient_observation_count": 18,
+            "is_compliant": false
+          },
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-completeness",
+          "subgraph_id": "quality_check",
+          "label": "completeness_requested",
+          "status": "completed",
+          "duration_ms": 158,
+          "entity_count": 27,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": {
+            "matched_groups": [
+              {
+                "name": "FIT result",
+                "required": true,
+                "matched": true,
+                "matched_concept_ids": [
+                  71711000112103
+                ],
+                "missing_concept_ids": [],
+                "matched_semantic_category": false
+              },
+              {
+                "name": "Blood results",
+                "required": true,
+                "matched": true,
+                "matched_concept_ids": [],
+                "missing_concept_ids": [],
+                "matched_semantic_category": true
+              },
+              {
+                "name": "Presenting symptom",
+                "required": true,
+                "matched": true,
+                "matched_concept_ids": [],
+                "missing_concept_ids": [],
+                "matched_semantic_category": true
+              }
+            ],
+            "missing_groups": [],
+            "complete": true,
+            "concept_ids": [
+              88111009,
+              300392005,
+              315274008,
+              405729008,
+              448765001,
+              71711000112103,
+              758811000000100,
+              993381000000106,
+              999691000000104,
+              1000621000000104,
+              1000691000000101,
+              1000731000000107,
+              1000821000000103,
+              1001371000000100,
+              1003671000000109,
+              1012671000000103,
+              1012681000000101,
+              1015451000000101,
+              1018251000000107,
+              1019351000000105,
+              1022491000000106,
+              1022511000000103,
+              1022651000000100,
+              1107511000000100,
+              1110441000000100
+            ],
+            "domain": "cancer_referrals",
+            "subdomain": "lower_gi",
+            "configured": true
+          },
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": null
+        },
+        {
+          "step_id": "durable-ref-sbar",
+          "subgraph_id": "sbar_orchestrator",
+          "label": "sbar_requested",
+          "status": "completed",
+          "duration_ms": 14481,
+          "entity_count": 0,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": {
+            "situation": "This patient has been referred on the 2-week wait pathway for suspected lower gastrointestinal cancer. The patient's age and sex are not recorded in the available information. The trigger event is a suspected cancer referral requiring assessment and triage by the receiving specialist team.",
+            "background": "- Patient referred on lower GI suspected cancer pathway with positive faecal immunochemical test (185 micrograms haemoglobin per gram) [2026-05-01]\n- Rectal bleeding progressed from blood on wiping to blood mixed with stool over 6 weeks, with altered bowel habit (looser, more frequent stools) [2026-05-01]\n- Unintentional weight loss of approximately 5 kilograms over 3 months [2026-05-01]\n- Family history of bowel cancer in a first-degree relative [2026-05-01]\n- Anaemia with haemoglobin 102.5 g/L and iron deficiency (ferritin 0 micrograms per litre, iron 6.5 micromoles per litre) [2026-05-01]\n- Raised ALT 68.8 units per litre and alkaline phosphatase 155 units per litre [2026-05-01]\n- Low albumin 31.2 grams per litre [2026-05-01]\n- Raised platelets 465 x10^9 per litre [2026-05-01]",
+            "assessment": "_No matching guideline rules fired for this patient's coded evidence._\n\nReviewed against 26 SNOMED concept(s).",
+            "recommendation": "Insufficient documented evidence to suggest a recommendation -- clinical judgement required.\n\nAlthough the patient has been referred on the 2-week wait pathway for suspected lower gastrointestinal cancer with multiple concerning features (positive faecal immunochemical test, rectal bleeding, weight loss, iron deficiency anaemia, and family history), no formal guideline rules have matched the coded evidence in the electronic record. The receiving specialist team must assess urgently and arrange appropriate investigations (typically colonoscopy) within the two-week wait standard. Clinical judgement should guide the investigation plan and any onward referral.",
+            "assessment_id": "ae051ebb07e537ddeb95b8ba21e34174",
+            "actions": [],
+            "rules": []
+          },
+          "documents_written": null,
+          "review_status": "pending_review"
+        },
+        {
+          "step_id": "durable-ref-human-review",
+          "subgraph_id": "human_review_gate",
+          "label": "human_review_requested",
+          "status": "completed",
+          "duration_ms": 179,
+          "entity_count": 0,
+          "errors": [],
+          "guideline_result": null,
+          "completeness_result": null,
+          "sbar_report": null,
+          "documents_written": null,
+          "review_status": "pending_review"
+        }
+      ],
+      "final_errors": [],
+      "persisted_documents": [
+        {
+          "concept_id": "1022491000000106",
+          "term": "Mean corpuscular volume (observable entity)",
+          "evidence": "MCV",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1001371000000100",
+          "term": "Serum C reactive protein level (observable entity)",
+          "evidence": "CRP",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1018251000000107",
+          "term": "Serum alanine aminotransferase level (observable entity)",
+          "evidence": "ALT",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "999691000000104",
+          "term": "Serum bilirubin level (observable entity)",
+          "evidence": "Bili",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1012681000000101",
+          "term": "Blood sodium level (observable entity)",
+          "evidence": "Na",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1012671000000103",
+          "term": "Blood potassium level (observable entity)",
+          "evidence": "K",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "71711000112103",
+          "term": "Occult blood detected in feces by immunoassay (finding)",
+          "evidence": "positive FIT result",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "758811000000100",
+          "term": "No family history of bowel cancer (situation)",
+          "evidence": "family history of bowel cancer",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1110441000000100",
+          "term": "White blood cell count in blood (observable entity)",
+          "evidence": "WCC",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1022511000000103",
+          "term": "Erythrocyte sedimentation rate (observable entity)",
+          "evidence": "ESR",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1019351000000105",
+          "term": "Serum iron level (observable entity)",
+          "evidence": "Iron",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1015451000000101",
+          "term": "Serum total iron binding capacity (observable entity)",
+          "evidence": "TIBC",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1003671000000109",
+          "term": "Haemoglobin A1c level (observable entity)",
+          "evidence": "HbA1c",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "88111009",
+          "term": "Altered bowel function (finding)",
+          "evidence": "change in bowel habit",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "448765001",
+          "term": "Unintentional weight loss (finding)",
+          "evidence": "unintentional weight loss",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "315274008",
+          "term": "Malignant neoplasm of lower gastrointestinal tract suspected (situation)",
+          "evidence": "lower GI suspected cancer pathway",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1022651000000100",
+          "term": "Platelet count (observable entity)",
+          "evidence": "Plts",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "993381000000106",
+          "term": "Serum ferritin level (observable entity)",
+          "evidence": "Ferritin",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1000731000000107",
+          "term": "Serum creatinine level (observable entity)",
+          "evidence": "Creat",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "149421000000109",
+          "term": "Provision of faecal immunochemical test kit (procedure)",
+          "evidence": "FIT test",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1000621000000104",
+          "term": "Serum alkaline phosphatase level (observable entity)",
+          "evidence": "Alk Phos",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1000821000000103",
+          "term": "Serum albumin level (observable entity)",
+          "evidence": "Alb",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1000691000000101",
+          "term": "Serum calcium level (observable entity)",
+          "evidence": "Ca",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "1107511000000100",
+          "term": "Mass concentration of haemoglobin in blood (observable entity)",
+          "evidence": "Hb",
+          "confidence": 1.0
+        },
+        {
+          "concept_id": "405729008",
+          "term": "Hematochezia (finding)",
+          "evidence": "rectal bleeding on wiping",
+          "confidence": 0.9921
+        },
+        {
+          "concept_id": "300392005",
+          "term": "Stool flecked with blood (finding)",
+          "evidence": "blood mixed with stool",
+          "confidence": 0.9896
+        }
+      ]
+    }
+  ]
+}

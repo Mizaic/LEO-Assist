@@ -363,7 +363,8 @@ def apply_plan_definition(plan_id: str, body: Dict[str, Any]):
             "OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition) "
             "RETURN a.id AS actionId, a.trigger_type AS triggerType, "
             "       a.trigger_name AS triggerName, a.condition AS condition, "
-            "       ad.subgraphId AS subgraphId, ad.id AS activityId "
+            "       coalesce(a.subgraphId, ad.subgraphId) AS subgraphId, "
+            "       a.durableEventType AS durableEventType, ad.id AS activityId "
             "ORDER BY a.sequence",
             pid=plan_id,
             evt=event_type,
@@ -375,6 +376,7 @@ def apply_plan_definition(plan_id: str, body: Dict[str, Any]):
                 "triggerName": r["triggerName"],
                 "condition": r.get("condition"),
                 "subgraphId": r.get("subgraphId"),
+                "durableEventType": r.get("durableEventType"),
                 "activityDefinitionId": r.get("activityId"),
             }
             for r in action_rows
@@ -422,6 +424,8 @@ def _ui_actions_to_fhir(
             "title": ua.get("label", ua.get("subgraphId", "")),
             "_sequence": i,
             "_subgraphId": ua.get("subgraphId", ""),
+            "_durableEventType": ua.get("durableEventType")
+            or config.get("durableEventType", ""),
             "_nodeType": ua.get("nodeType", "action"),
             "definitionCanonical": f"ActivityDefinition/{definition_id}",
             "_dynamicValues": config,
@@ -501,6 +505,7 @@ def _upsert_action(
         "SET a.canvas_id = $canvas_id, "
         "    a.trigger_type = $tt, a.trigger_name = $tn, "
         "    a.condition = $cond, a.sequence = $seq, a.subgraphId = $sgid, "
+        "    a.durableEventType = $durable_event_type, "
         "    a.nodeType = $ntype, a.relatedActions = $related, "
         "    a.relatedActionEdges = $related_edges "
         "MERGE (pd)-[:HAS_ACTION]->(a)",
@@ -512,6 +517,7 @@ def _upsert_action(
         cond=condition_expr,
         seq=action.get("_sequence", 0),
         sgid=action.get("_subgraphId", ""),
+        durable_event_type=action.get("_durableEventType", ""),
         ntype=action.get("_nodeType", "action"),
         related=related_ids,
         related_edges=json.dumps(related_edges),

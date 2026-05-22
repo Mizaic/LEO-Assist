@@ -614,74 +614,195 @@ PLAN_DEFINITIONS = [
         "resourceType": "PlanDefinition",
         "name": "Referral Assessment",
         "status": "active",
-        "description": "Referral document processing: extract entities, resolve terminology, check compliance against guidance graph, generate SBAR summary with next-best-action recommendation.",
+        "description": "Durable referral document processing: each clinical step is pub/sub triggered, reloads graph-backed inputs, persists outputs, and emits completion before the next step runs.",
+        "_workflowMode": "durable_pubsub",
+        "_deprecatedSubgraphs": ["sbar"],
+        "_durableSteps": [
+            {
+                "step_id": "durable-ref-extraction",
+                "event_type": "extraction_requested",
+                "loads": ["Encounter.text"],
+                "persists": ["ExtractionResult"],
+                "emits_on_success": "post_processing_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-post-processing",
+                "event_type": "post_processing_requested",
+                "loads": ["ExtractionResult"],
+                "persists": ["PostProcessingResult"],
+                "emits_on_success": "relation_linking_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-relation-linking",
+                "event_type": "relation_linking_requested",
+                "loads": ["PostProcessingResult"],
+                "persists": ["RelationLinkingResult"],
+                "emits_on_success": "extraction_check_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-extraction-check",
+                "event_type": "extraction_check_requested",
+                "loads": ["RelationLinkingResult"],
+                "persists": ["ExtractionCheckResult"],
+                "emits_on_success": "terminology_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-terminology",
+                "event_type": "terminology_requested",
+                "loads": ["ExtractionCheckResult"],
+                "persists": ["TerminologyResult"],
+                "emits_on_success": "clinical_facts_persist_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-clinical-facts-persist",
+                "event_type": "clinical_facts_persist_requested",
+                "loads": ["TerminologyResult"],
+                "persists": ["DOCUMENTS", "CodingDecision"],
+                "emits_on_success": "compliance_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-compliance",
+                "event_type": "compliance_requested",
+                "loads": ["DOCUMENTS", "TerminologyResult"],
+                "persists": ["GuidelineResult"],
+                "emits_on_success": "completeness_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-completeness",
+                "event_type": "completeness_requested",
+                "loads": ["DOCUMENTS", "GuidelineResult"],
+                "persists": ["CompletenessResult", "QualityReport"],
+                "emits_on_success": "sbar_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-sbar",
+                "event_type": "sbar_requested",
+                "loads": ["DOCUMENTS", "GuidelineResult", "CompletenessResult"],
+                "persists": ["Assessment"],
+                "emits_on_success": "referral_assessment_completed",
+                "emits_on_success_queue": "referral-assessments-output",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+        ],
         "action": [
             {
-                "id": "act-ref-extract",
-                "title": "Extract Entities",
+                "id": "act-ref-durable-start",
+                "title": "Start Durable Referral Workflow",
                 "_sequence": 0,
-                "_subgraphId": "extraction",
+                "_subgraphId": "durable_referral_workflow",
                 "trigger": [{"type": "data-changed", "name": "referral-received"}],
-                "definitionCanonical": "ActivityDefinition/ad-extraction-llm",
+                "definitionCanonical": "ActivityDefinition/ad-referral-durable-start",
+            },
+            {
+                "id": "act-ref-extract",
+                "title": "Extract Key Facts",
+                "_sequence": 1,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "extraction_requested",
+                "relatedAction": [
+                    {"actionId": "act-ref-durable-start", "relationship": "after-end"}
+                ],
             },
             {
                 "id": "act-ref-post-process",
                 "title": "Post-Process",
-                "_sequence": 1,
-                "_subgraphId": "post_processing",
-                "definitionCanonical": "ActivityDefinition/ad-post-processing",
+                "_sequence": 2,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "post_processing_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-extract", "relationship": "after-end"}
                 ],
             },
             {
-                "id": "act-ref-terminology",
-                "title": "Resolve Terminology",
-                "_sequence": 2,
-                "_subgraphId": "terminology",
-                "definitionCanonical": "ActivityDefinition/ad-terminology",
+                "id": "act-ref-relation-link",
+                "title": "Link Entity Relations",
+                "_sequence": 3,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "relation_linking_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-post-process", "relationship": "after-end"}
                 ],
             },
             {
-                "id": "act-ref-compliance",
-                "title": "Compliance Check",
-                "_sequence": 3,
-                "_subgraphId": "compliance",
-                "definitionCanonical": "ActivityDefinition/ad-compliance",
+                "id": "act-ref-extraction-check",
+                "title": "Extraction Quality Check",
+                "_sequence": 4,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "extraction_check_requested",
+                "relatedAction": [
+                    {"actionId": "act-ref-relation-link", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ref-terminology",
+                "title": "Resolve Terminology",
+                "_sequence": 5,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "terminology_requested",
+                "relatedAction": [
+                    {
+                        "actionId": "act-ref-extraction-check",
+                        "relationship": "after-end",
+                    }
+                ],
+            },
+            {
+                "id": "act-ref-persist-facts",
+                "title": "Persist Clinical Facts",
+                "_sequence": 6,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "clinical_facts_persist_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-terminology", "relationship": "after-end"}
                 ],
             },
             {
-                "id": "act-ref-sbar",
-                "title": "Generate SBAR",
-                "_sequence": 4,
-                "_subgraphId": "sbar",
-                "definitionCanonical": "ActivityDefinition/ad-sbar",
+                "id": "act-ref-compliance",
+                "title": "Compliance Check",
+                "_sequence": 7,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "compliance_requested",
+                "relatedAction": [
+                    {"actionId": "act-ref-persist-facts", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ref-completeness",
+                "title": "Assess Completeness",
+                "_sequence": 8,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "completeness_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-compliance", "relationship": "after-end"}
                 ],
             },
             {
-                "id": "act-ref-nba",
-                "title": "Next Best Action",
-                "_sequence": 5,
-                "_subgraphId": "next_best_action",
-                "definitionCanonical": "ActivityDefinition/ad-next-best-action",
+                "id": "act-ref-sbar",
+                "title": "Generate SBAR",
+                "_sequence": 9,
+                "_subgraphId": "durable_step",
+                "_durableEventType": "sbar_requested",
+                "_completionQueue": "referral-assessments-output",
+                "_completionEventType": "referral_assessment_completed",
                 "relatedAction": [
-                    {"actionId": "act-ref-sbar", "relationship": "after-end"}
-                ],
-            },
-            {
-                "id": "act-ref-persist",
-                "title": "Persist Results",
-                "_sequence": 6,
-                "_subgraphId": "persist",
-                "definitionCanonical": "ActivityDefinition/ad-persist-patient",
-                "relatedAction": [
-                    {"actionId": "act-ref-nba", "relationship": "after-end"}
+                    {"actionId": "act-ref-completeness", "relationship": "after-end"}
                 ],
             },
         ],
@@ -856,10 +977,15 @@ def _to_ui_format(pd_def: dict) -> dict:
             {
                 "id": act["id"],
                 "subgraphId": act.get("_subgraphId", ""),
+                "durableEventType": act.get("_durableEventType", ""),
                 "label": act.get("title", act.get("_subgraphId", "")),
                 "nodeType": act.get("_nodeType", "action"),
                 "position": {"x": 250, "y": 80 + i * 160},
-                "config": config,
+                "config": {
+                    **config,
+                    "workflowMode": pd_def.get("_workflowMode", "legacy_in_process"),
+                    "durableEventType": act.get("_durableEventType", ""),
+                },
             }
         )
 
@@ -957,6 +1083,7 @@ CREATE (pd)-[:HAS_ACTION]->(a:Action {
   condition: $condition,
   sequence: $sequence,
   subgraphId: $subgraph_id,
+  durableEventType: $durable_event_type,
   relatedActions: $related_actions,
   relatedActionEdges: $related_action_edges
 })
@@ -1082,6 +1209,7 @@ def seed_with_client(client, *, force: bool = False) -> None:
                     condition=None,
                     sequence=action.get("_sequence", 0),
                     subgraph_id=action.get("_subgraphId", ""),
+                    durable_event_type=action.get("_durableEventType", ""),
                     related_actions=related_ids,
                     related_action_edges=json.dumps(related_edges),
                 )
@@ -1212,6 +1340,7 @@ def main() -> None:
                     condition=None,
                     sequence=action.get("_sequence", 0),
                     subgraph_id=action.get("_subgraphId", ""),
+                    durable_event_type=action.get("_durableEventType", ""),
                     related_actions=related_ids,
                     related_action_edges=json.dumps(related_edges),
                 )

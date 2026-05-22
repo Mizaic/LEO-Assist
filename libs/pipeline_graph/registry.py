@@ -300,15 +300,6 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'quality_check': %s", exc)
 
     try:
-        from libs.pipeline_graph.subgraphs.sbar import build_sbar_subgraph
-
-        registry.register(
-            "sbar", build_sbar_subgraph, description="SBAR report generation"
-        )
-    except Exception as exc:
-        logger.error("Failed to register subgraph 'sbar': %s", exc)
-
-    try:
         from libs.pipeline_graph.subgraphs.compliance import build_compliance_subgraph
 
         registry.register(

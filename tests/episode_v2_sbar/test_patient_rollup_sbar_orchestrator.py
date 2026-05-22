@@ -39,6 +39,9 @@ class FakeClient:
     def session(self):
         yield self.session_inst
 
+    def run(self, query, **params):
+        return self.session_inst.run(query, **params)
+
 
 async def _capturing_caller(episodes):
     _capturing_caller.captured = list(episodes)

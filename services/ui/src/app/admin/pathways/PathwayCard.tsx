@@ -82,6 +82,12 @@ function isSeededPathway(plan: Pick<PlanDefinition, "meta" | "source">): boolean
   return Boolean(plan.meta?.seeded || plan.source === "seed");
 }
 
+function workflowModeLabel(mode: string | undefined): string {
+  if (mode === "durable_pubsub") return "Durable";
+  if (mode === "legacy_in_process") return "Legacy";
+  return mode ? mode.replace(/_/g, " ") : "Legacy";
+}
+
 export default function PathwayCard({
   plan,
   index,
@@ -96,8 +102,11 @@ export default function PathwayCard({
   const accent = statusAccent(plan.status);
   const chip = statusChipStyle(plan.status);
   const actionCount = plan.actionCount ?? plan.actions?.length ?? 0;
+  const durableStepCount = plan._durableSteps?.length ?? 0;
   const triggerLabel = plan.trigger?.event?.replace(/-/g, " ") ?? null;
   const isSeeded = isSeededPathway(plan);
+  const workflowMode = plan._workflowMode || "legacy_in_process";
+  const deprecatedCount = plan._deprecatedSubgraphs?.length ?? 0;
 
   return (
     <fm.div
@@ -165,6 +174,22 @@ export default function PathwayCard({
                 sx={{ height: 22, fontSize: "0.7rem" }}
               />
             ) : null}
+            <Chip
+              label={workflowModeLabel(workflowMode)}
+              size="small"
+              color={workflowMode === "durable_pubsub" ? "info" : "default"}
+              variant={workflowMode === "durable_pubsub" ? "filled" : "outlined"}
+              sx={{ height: 22, fontSize: "0.7rem" }}
+            />
+            {deprecatedCount > 0 ? (
+              <Chip
+                label={`${deprecatedCount} deprecated step${deprecatedCount !== 1 ? "s" : ""}`}
+                size="small"
+                color="warning"
+                variant="outlined"
+                sx={{ height: 22, fontSize: "0.7rem" }}
+              />
+            ) : null}
             {plan.version ? (
               <Typography variant="caption" color="text.disabled">
                 v{plan.version}
@@ -203,7 +228,9 @@ export default function PathwayCard({
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <AccountTreeIcon sx={{ fontSize: "0.85rem", color: "text.disabled" }} />
             <Typography variant="caption" color="text.disabled">
-              {actionCount} step{actionCount !== 1 ? "s" : ""}
+              {workflowMode === "durable_pubsub" && durableStepCount > 0
+                ? `${durableStepCount} durable step${durableStepCount !== 1 ? "s" : ""}`
+                : `${actionCount} step${actionCount !== 1 ? "s" : ""}`}
             </Typography>
           </Stack>
         ) : null}

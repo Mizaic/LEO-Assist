@@ -24,4 +24,15 @@ export interface PlanDefinition {
   trigger?: { event?: string };
   actions?: Array<{ id: string }>;
   actionCount?: number;
+  _workflowMode?: "legacy_in_process" | "durable_pubsub" | string;
+  _durableSteps?: Array<{
+    step_id: string;
+    event_type: string;
+    loads?: string[];
+    persists?: string[];
+    emits_on_success?: string | null;
+    emits_on_failure?: string | null;
+    idempotency_key?: string;
+  }>;
+  _deprecatedSubgraphs?: string[];
 }

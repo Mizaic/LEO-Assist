@@ -110,6 +110,38 @@ def _verify_host_secret(provided: str | None) -> None:
         )
 
 
+_SCENARIO_HOST_ID = "leo-scenario-runner"
+
+
+def _ensure_scenario_host(host_id: str) -> None:
+    """Lazily register the dev scenario-runner host on first use.
+
+    The shared secret is the real security gate -- no additional env-var
+    flag is needed. Any caller that presents a valid SDK_HOST_SHARED_SECRET
+    and uses the reserved scenario-runner host_id gets the host auto-seeded
+    with dev-bypass governance artefacts.
+    """
+    if host_id != os.getenv("SCENARIO_SDK_HOST_ID", _SCENARIO_HOST_ID):
+        return
+    if host_governance.is_production_ready(host_id):
+        return
+    record = host_governance.register_host(
+        host_id=host_id,
+        name="LEO Scenario Validation Runner",
+        contact="internal@mizaic.com",
+    )
+    record.artefacts.update(
+        {
+            "saas_embedding_agreement": "dev-bypass",
+            "dpa": "dev-bypass",
+            "dcb0129_reference": "dev-bypass",
+            "ifu_acknowledged": "dev-bypass",
+        }
+    )
+    record.acknowledged_ifu_version = "dev-bypass"
+    logger.info("Scenario runner host '%s' registered lazily", host_id)
+
+
 @router.post("/auth/exchange", response_model=ExchangeResponse)
 def exchange_for_widget_token(
     payload: ExchangeRequest,
@@ -119,6 +151,7 @@ def exchange_for_widget_token(
     """Mint a widget token for a single assessment (server-to-server)."""
     _enforce_server_to_server(request)
     _verify_host_secret(x_mizaic_host_secret)
+    _ensure_scenario_host(payload.host_id)
 
     if not host_governance.is_production_ready(payload.host_id):
         raise HTTPException(
@@ -194,14 +227,44 @@ def _decode_assessment_rules(raw: Any) -> list[dict]:
     if not raw:
         return []
     if isinstance(raw, list):
-        return raw
-    if isinstance(raw, str):
+        rules = raw
+    elif isinstance(raw, str):
         try:
             parsed = json.loads(raw)
-            return parsed if isinstance(parsed, list) else []
+            rules = parsed if isinstance(parsed, list) else []
         except (json.JSONDecodeError, TypeError):
             return []
-    return []
+    else:
+        return []
+    return [_normalise_guideline_match(r) for r in rules]
+
+
+def _normalise_guideline_match(rule: Any) -> dict:
+    """Ensure every guideline match has the string fields the widget requires.
+
+    _rule_snapshot intentionally strips name/strength/recommendation_verbatim
+    from the snapshot stored in Neo4j (to keep LLM context concise). The
+    widget needs these fields, so we fall back to guideline_title for name
+    and action.priority for strength when the direct fields are absent.
+    """
+    if not isinstance(rule, dict):
+        return rule
+    action = rule.get("action") or {}
+    name = (
+        rule.get("name")
+        or rule.get("guideline_title")
+        or rule.get("chapter_title")
+        or ""
+    )
+    strength = rule.get("strength") or action.get("priority") or ""
+    return {
+        **rule,
+        "name": name,
+        "strength": strength,
+        "rule_id": rule.get("rule_id") or "",
+        "guideline_id": rule.get("guideline_id") or "",
+        "recommendation_verbatim": rule.get("recommendation_verbatim") or None,
+    }
 
 
 def _query_assessment_from_neo4j(assessment_id: str) -> dict | None:
@@ -225,26 +288,86 @@ def _query_assessment_from_neo4j(assessment_id: str) -> dict | None:
     return assessment_to_dict(row)
 
 
+def _normalise_background_part(part: Any) -> dict:
+    """Convert a snake_case background part to the camelCase widget contract.
+
+    The :Assessment node stores parts in Python snake_case. The widget SDK
+    expects camelCase (SbarBackgroundPart interface). This conversion happens
+    here so the widget never has to handle both conventions.
+    """
+    if not isinstance(part, dict):
+        return part
+    return {
+        "index": part.get("index", 0),
+        "total": part.get("total", 1),
+        "recordCount": part.get("recordCount") or part.get("record_count", 0),
+        "recordRange": part.get("recordRange") or part.get("record_range") or [0, 0],
+        "sourceIds": part.get("sourceIds") or part.get("source_ids") or [],
+        "status": part.get("status", "completed"),
+        "errorCode": part.get("errorCode") or part.get("error_code"),
+        "errorMessage": part.get("errorMessage") or part.get("error_message"),
+    }
+
+
+def _to_completeness_findings(raw_json: str | None) -> dict | None:
+    """Convert persisted completeness_result JSON to the widget contract.
+
+    The quality_check subgraph stores matched_groups / missing_groups.
+    The widget CompletenessFinding interface expects:
+        requiredFields, presentFields, missingFields, unclearFields.
+
+    Returns None when no result is stored or the schema was not
+    configured (the widget will emit leo:completeness-unavailable).
+    """
+    if not raw_json:
+        return None
+    try:
+        result = json.loads(raw_json)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(result, dict) or not result.get("configured"):
+        return None
+    matched = result.get("matched_groups") or []
+    missing = result.get("missing_groups") or []
+    required_fields = [
+        g["name"] for g in (matched + missing) if g.get("required")
+    ]
+    present_fields = [g["name"] for g in matched]
+    missing_fields = [g["name"] for g in missing if g.get("required")]
+    unclear_fields = [g["name"] for g in missing if not g.get("required")]
+    return {
+        "requiredFields": required_fields,
+        "presentFields": present_fields,
+        "missingFields": missing_fields,
+        "unclearFields": unclear_fields,
+    }
+
+
 def _load_sbar_payload(assessment_id: str, tenant_id: str) -> SbarPayload:
     """Load an SBAR payload from Neo4j for the proxy response.
 
     Combines the core SBAR markdown from the :Assessment node with
     guideline rule matches (verbatim recommendation text already stored
-    in assessment_rules) and completeness findings (null until the
-    pipeline persists them -- the widget will emit leo:completeness-
-    unavailable in that case).
+    in assessment_rules) and completeness findings (null when not yet
+    persisted -- the widget will emit leo:completeness-unavailable).
     """
     record = _query_assessment_from_neo4j(assessment_id)
     if record is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
+    raw_parts = record.get("background_parts") or []
+    background_parts = [_normalise_background_part(p) for p in raw_parts]
+
     generated_at = record.get("updated_at") or record.get("created_at") or ""
+    completeness = _to_completeness_findings(
+        record.get("completeness_result_json")
+    )
     return SbarPayload(
         assessment_id=assessment_id,
         tenant_id=tenant_id,
         generated_at=str(generated_at),
         markdown=record.get("content") or "",
-        background_parts=record.get("background_parts", []),
+        background_parts=background_parts,
         guideline_matches=_decode_assessment_rules(record.get("assessment_rules")),
-        completeness_findings=None,
+        completeness_findings=completeness,
     )

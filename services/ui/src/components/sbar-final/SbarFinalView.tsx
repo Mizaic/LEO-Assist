@@ -196,6 +196,30 @@ function _formatRecordRange(start: number, end: number): string {
   return `records ${start}-${end}`;
 }
 
+const UUID_PREFIX_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:/i;
+
+/**
+ * Strip the leading patient UUID from a composite source ID and present
+ * the remainder in a readable form.
+ *
+ * e.g. "e337c274-...:upper_gi_form_001:encounter"
+ *   -> "upper_gi_form_001 (encounter)"
+ *
+ * IDs that do not start with a UUID are returned unchanged.
+ */
+function _formatSourceId(id: string): string {
+  const stripped = id.replace(UUID_PREFIX_RE, "");
+  if (stripped === id) return id;
+  const parts = stripped.split(":");
+  if (parts.length >= 2) {
+    const label = parts.slice(0, -1).join(":");
+    const type = parts[parts.length - 1];
+    return `${label} (${type})`;
+  }
+  return stripped;
+}
+
 function _partLabel(part: SbarBackgroundPart): string {
   const range = _formatRecordRange(
     part.recordRange?.[0] ?? 0,
@@ -269,13 +293,9 @@ function SectionSourcesPanel({
                     key={id}
                     size="small"
                     variant="outlined"
-                    label={id}
-                    sx={{
-                      height: 20,
-                      fontSize: "0.65rem",
-                      fontFamily:
-                        "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    }}
+                    label={_formatSourceId(id)}
+                    title={id}
+                    sx={{ height: 20, fontSize: "0.65rem" }}
                   />
                 ))}
               </Stack>

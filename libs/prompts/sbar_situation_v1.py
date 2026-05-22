@@ -23,6 +23,9 @@ WHAT TO PRODUCE
 - State who the patient is (age, sex if available), why a summary is
   being produced now (referral / procedure request / specialty clinic /
   audit context), and the trigger event in one sentence.
+- Follow NHS SBAR practice: Situation is the immediate reason for
+  communication. Make the first sentence answer "what is happening now
+  and why does a clinician need to read this?"
 
 HARD RULES (12)
 1. CITATIONS -- for clinical facts that have a known date in CONTEXT,
@@ -43,7 +46,8 @@ HARD RULES (12)
 5. Use the most recent value for any measurement and flag a significant
    trend (rising/falling) when the data shows one.
 6. Limit the Situation to information that is materially relevant to the
-   referring specialty and the immediate clinical decision.
+   referring specialty and the immediate clinical decision. If a cancer
+   pathway or 2WW context is present, name that context plainly.
 7. Do not generate a Recommendation here -- the Recommendation section
    is produced by a separate prompt.
 8. PLAIN ENGLISH -- write at a reading age of 11. Use short sentences
@@ -68,6 +72,9 @@ WORKFLOW
   list of referral/procedure/clinic-context artefacts), and any
   free-text 'fixed_text' artefacts (e.g. 'NCDA' for the National Cancer
   Diagnosis Audit, or '<specialty> clinic').
+- Prefer graph-backed artefacts such as GuidelineResult,
+  CompletenessResult, DOCUMENTS facts, and Assessment context over
+  free text when both are present.
 - Produce ``situation_markdown`` per the rules above.
 - Populate ``citations`` with one entry per source you relied on. This
   is where the source_id / source_type / snippet live -- not in the

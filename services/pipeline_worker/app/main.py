@@ -274,37 +274,42 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     async def on_message(msg: Message) -> None:
         _consumer_state["last_message_at"] = _utc_now_iso()
-        # Inspect body cheaply for SBAR jobs and dispatch directly to the
-        # SBAROrchestrator. Other event_types continue through the workflow
-        # engine. See DI-LEO-AI-186.
         try:
             body = msg.body
             if isinstance(body, (str, bytes)):
                 body = json.loads(body)
         except Exception:
             body = None
-        if isinstance(body, dict) and body.get("event_type") == "sbar_requested":
+        if isinstance(body, dict):
             try:
-                from services.pipeline_worker.app.services.sbar_orchestrator import (
-                    handle_sbar_message,
+                from services.coding_worker.app.services.progress_publisher import (
+                    publish_progress,
+                )
+                from services.pipeline_worker.app.services.durable_dispatcher import (
+                    handle_durable_message,
                 )
 
-                await handle_sbar_message(body)
-                return
+                handled = await handle_durable_message(
+                    body,
+                    bus=bus,
+                    publish_progress=publish_progress,
+                    queue_name=QUEUE_NAME,
+                )
+                if handled:
+                    return
             except Exception:
-                logger.exception("SBAR job failed")
+                logger.exception("Durable workflow job failed")
                 try:
-                    from services.coding_worker.app.services.progress_publisher import (
-                        publish_progress,
+                    run_id = str(
+                        msg.correlation_id or msg.message_id or body.get("run_id") or ""
                     )
-                    run_id = str(msg.correlation_id or msg.message_id or body.get("run_id") or "")
                     if run_id:
                         publish_progress(
                             run_id,
                             {
-                                "type": "sbar_failed",
+                                "type": "durable_step_failed",
                                 "run_id": run_id,
-                                "message": "SBAR orchestrator raised an exception. See worker logs.",
+                                "message": "Durable workflow handler raised an exception. See worker logs.",
                             },
                         )
                 except Exception:
@@ -326,9 +331,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         step_callback = None
         if run_id:
-            step_callback = _build_progress_callback(
-                run_id, patient_id=patient_id
-            )
+            step_callback = _build_progress_callback(run_id, patient_id=patient_id)
 
         try:
             await handler.handle_message(msg, step_callback=step_callback)
@@ -1145,8 +1148,8 @@ async def model_registry_worker_trace(body: WorkerTraceRequest) -> dict[str, Any
                 if isinstance(final_entities_raw, list)
                 else []
             )
-            final_entities, suppressed_entities, deduplicated_entities = _diff_provenance(
-                extraction_entities, final_entities_clean
+            final_entities, suppressed_entities, deduplicated_entities = (
+                _diff_provenance(extraction_entities, final_entities_clean)
             )
             extraction_model_requested_version = str(
                 final_state.get("extraction_model_requested_version")
@@ -1196,9 +1199,11 @@ async def model_registry_worker_trace(body: WorkerTraceRequest) -> dict[str, Any
                     "patient_id": enc.patient_id,
                     "encounter_date": enc.encounter_date,
                     "text": processed_text,
-                    "text_length": len(processed_text)
-                    if processed_text
-                    else len(str(enc.text or "")),
+                    "text_length": (
+                        len(processed_text)
+                        if processed_text
+                        else len(str(enc.text or ""))
+                    ),
                     "ner_entities": extraction_entities,
                     "final_entities": final_entities,
                     "suppressed_entities": suppressed_entities,

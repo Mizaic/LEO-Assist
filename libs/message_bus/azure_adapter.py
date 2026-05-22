@@ -136,6 +136,7 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         schedule_after_seconds: int | None = None,
     ) -> None:
         from azure.servicebus import ServiceBusMessage
+        from azure.servicebus.exceptions import ServiceBusAuthenticationError
 
         if queue_or_topic not in self._senders:
             self._senders[queue_or_topic] = self._client.get_queue_sender(
@@ -153,7 +154,26 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                 else None
             ),
         )
-        await sender.send_messages(sb_msg)
+        try:
+            await sender.send_messages(sb_msg)
+        except ServiceBusAuthenticationError:
+            # Evict the cached sender so the next retry opens a fresh AMQP
+            # link rather than reusing a broken one.  Auth errors are most
+            # commonly caused by a queue-level SAS token that lacks Send
+            # permission for this queue, or a token that has expired.
+            # Fix: use a namespace-level connection string
+            # (SharedAccessKeyName=RootManageSharedAccessKey) or a SAS
+            # policy that grants Send on all queues including %r.
+            self._senders.pop(queue_or_topic, None)
+            logger.error(
+                "Service Bus auth error sending to %r -- sender evicted from "
+                "cache. Check that AZURE_SERVICE_BUS_CONNECTION_STRING uses a "
+                "namespace-level SAS key with Send permission, or that the "
+                "managed identity has Azure Service Bus Data Sender role on "
+                "this queue.",
+                queue_or_topic,
+            )
+            raise
 
     async def subscribe(
         self,

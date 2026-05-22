@@ -107,7 +107,8 @@ def _validate_startup_deps():
         from jose import jwt  # noqa: F401
     except ImportError as e:
         raise RuntimeError(
-            "python-jose[cryptography] is required for auth. Install it: pip install python-jose[cryptography]"
+            "python-jose[cryptography] is required for auth. "
+            "Install it: pip install python-jose[cryptography]"
         ) from e
 
     # Redis: required when REDIS_URL is set (session store)
@@ -128,7 +129,8 @@ def _validate_startup_deps():
                 ) from e
             except Exception as e:
                 raise RuntimeError(
-                    f"Redis unreachable at REDIS_URL. Session store required for auth. Error: {e}"
+                    "Redis unreachable at REDIS_URL. "
+                    f"Session store required for auth. Error: {e}"
                 ) from e
 
 
@@ -271,6 +273,45 @@ async def lifespan(app: object):
     t7 = threading.Thread(target=_lab_result_config_seed, daemon=True)
     t7.start()
 
+    def _scenario_host_seed():
+        """Register the dev scenario-runner host when SCENARIO_SDK_HOST_ENABLED=1.
+
+        This host is purely for internal validation runs (scenario panel).
+        All four governance artefacts are pre-populated with dev-bypass
+        placeholders so the widget token mint path succeeds without going
+        through the full production onboarding flow.
+        """
+        if os.getenv("SCENARIO_SDK_HOST_ENABLED", "0") not in ("1", "true"):
+            return
+        try:
+            from app.services import host_governance
+
+            host_id = os.getenv("SCENARIO_SDK_HOST_ID", "leo-scenario-runner")
+            record = host_governance.register_host(
+                host_id=host_id,
+                name="LEO Scenario Validation Runner",
+                contact="internal@mizaic.com",
+            )
+            record.artefacts.update(
+                {
+                    "saas_embedding_agreement": "dev-bypass",
+                    "dpa": "dev-bypass",
+                    "dcb0129_reference": "dev-bypass",
+                    "ifu_acknowledged": "dev-bypass",
+                }
+            )
+            record.acknowledged_ifu_version = "dev-bypass"
+            logging.getLogger(__name__).info(
+                "[ScenarioHost] Registered scenario runner host '%s'", host_id
+            )
+        except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "[ScenarioHost] Seed failed (non-fatal): %s", exc
+            )
+
+    t8 = threading.Thread(target=_scenario_host_seed, daemon=True)
+    t8.start()
+
     sweeper_task = None
     if os.getenv("EXTRACTION_RUN_SWEEPER_DISABLED") not in ("1", "true"):
         try:
@@ -346,7 +387,7 @@ async def require_xhr_for_mutations(request: Request, call_next):
     Skip for GET, HEAD, OPTIONS, and auth/OAuth routes.
     """
     safe_methods = {"GET", "HEAD", "OPTIONS"}
-    skip_prefixes = ("/auth/", "/health")
+    skip_prefixes = ("/auth/", "/health", "/sdk/")
     path = request.url.path
     skip_xhr_paths = (
         "/api/events/lab-result",

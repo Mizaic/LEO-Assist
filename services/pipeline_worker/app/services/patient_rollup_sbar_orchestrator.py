@@ -36,6 +36,8 @@ from libs.cypher.sbar_assessment_queries import (
     SET_SITUATION,
 )
 
+from .sbar_orchestrator import SBAROrchestrator
+
 logger = logging.getLogger(__name__)
 
 
@@ -96,67 +98,73 @@ class PatientRollupSBAROrchestrator:
 
         with client.session() as session:
             episodes = self._load_episode_assessments(session, req.patient_id)
-            self._create_draft(session, req, assessment_id)
-            session.run(SET_ASSESSMENT_SCOPE_ROLLUP, assessment_id=assessment_id)
 
-            situation_md = self._compose_situation(episodes)
-            background_md = self._compose_background(episodes)
-            assessment_md = self._compose_assessment(episodes)
+        self._create_draft(client, req, assessment_id)
+        SBAROrchestrator._run_cypher(
+            client, SET_ASSESSMENT_SCOPE_ROLLUP, assessment_id=assessment_id
+        )
 
-            session.run(
-                SET_SITUATION,
-                assessment_id=assessment_id,
-                situation=situation_md,
-            )
-            session.run(
-                SET_BACKGROUND,
-                assessment_id=assessment_id,
-                background=background_md,
-                background_parts=json.dumps([]),
-            )
-            session.run(
-                SET_ASSESSMENT_NARRATIVE,
-                assessment_id=assessment_id,
-                assessment=assessment_md,
-                assessment_codes=[],
-                assessment_rules=json.dumps([]),
-            )
+        situation_md = self._compose_situation(episodes)
+        background_md = self._compose_background(episodes)
+        assessment_md = self._compose_assessment(episodes)
 
-            try:
-                rollup = await self._call_rollup(episodes)
-            except Exception as exc:
-                logger.exception("Rollup recommendation call failed")
-                rollup = RollupResult(
-                    markdown=(
-                        f"_Rollup recommendation unavailable: {exc!s}_"
-                    ),
-                    actions=(),
-                )
+        SBAROrchestrator._run_cypher(
+            client,
+            SET_SITUATION,
+            assessment_id=assessment_id,
+            situation=situation_md,
+        )
+        SBAROrchestrator._run_cypher(
+            client,
+            SET_BACKGROUND,
+            assessment_id=assessment_id,
+            background=background_md,
+            background_parts=json.dumps([]),
+        )
+        SBAROrchestrator._run_cypher(
+            client,
+            SET_ASSESSMENT_NARRATIVE,
+            assessment_id=assessment_id,
+            assessment=assessment_md,
+            assessment_codes=[],
+            assessment_rules=json.dumps([]),
+        )
 
-            session.run(
-                SET_RECOMMENDATION,
-                assessment_id=assessment_id,
-                recommendation=rollup.markdown,
-                recommendation_actions=json.dumps(list(rollup.actions)),
+        try:
+            rollup = await self._call_rollup(episodes)
+        except Exception as exc:
+            logger.exception("Rollup recommendation call failed")
+            rollup = RollupResult(
+                markdown=(f"_Rollup recommendation unavailable: {exc!s}_"),
+                actions=(),
             )
 
-            content = self._compose_markdown(
-                situation_md, background_md, assessment_md, rollup.markdown
-            )
-            status = "completed" if episodes else "draft"
-            session.run(
-                FINALISE_ASSESSMENT,
-                assessment_id=assessment_id,
-                content=content,
-                status=status,
-                errors=[],
-                stt=None,
-                stt_evidence=None,
-                alternative_pathway=None,
-                alternative_pathway_evidence=None,
-                rtr=None,
-                rtr_evidence=None,
-            )
+        SBAROrchestrator._run_cypher(
+            client,
+            SET_RECOMMENDATION,
+            assessment_id=assessment_id,
+            recommendation=rollup.markdown,
+            recommendation_actions=json.dumps(list(rollup.actions)),
+        )
+
+        content = self._compose_markdown(
+            situation_md, background_md, assessment_md, rollup.markdown
+        )
+        status = "completed" if episodes else "draft"
+        SBAROrchestrator._run_cypher(
+            client,
+            FINALISE_ASSESSMENT,
+            assessment_id=assessment_id,
+            content=content,
+            status=status,
+            errors=[],
+            stt=None,
+            stt_evidence=None,
+            alternative_pathway=None,
+            alternative_pathway_evidence=None,
+            rtr=None,
+            rtr_evidence=None,
+        )
 
         duration = time.time() - started
         return PatientRollupResponse(
@@ -186,9 +194,10 @@ class PatientRollupSBAROrchestrator:
 
     @staticmethod
     def _create_draft(
-        session, req: PatientRollupRequest, assessment_id: str
+        client, req: PatientRollupRequest, assessment_id: str
     ) -> None:
-        session.run(
+        SBAROrchestrator._run_cypher(
+            client,
             CREATE_ASSESSMENT,
             patient_id=req.patient_id,
             assessment_id=assessment_id,

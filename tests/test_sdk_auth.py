@@ -299,6 +299,51 @@ def test_sbar_returns_guideline_verbatim(client: TestClient) -> None:
     assert "mesothelioma" in match["recommendation_verbatim"]
 
 
+def test_sbar_returns_completeness_findings_when_persisted(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proxy converts stored completeness_result_json to widget contract."""
+    import app.routers.sdk_auth as sdk_auth_module
+
+    completeness_json = json.dumps(
+        {
+            "configured": True,
+            "complete": False,
+            "domain": "cancer_referrals",
+            "subdomain": "lower_gi",
+            "matched_groups": [
+                {"name": "Diagnosis", "required": True, "matched": True},
+            ],
+            "missing_groups": [
+                {"name": "Urgency", "required": True, "matched": False},
+                {"name": "GP name", "required": False, "matched": False},
+            ],
+            "concept_ids": [12345],
+        }
+    )
+    record_with_completeness = {**_SAMPLE_RECORD, "completeness_result_json": completeness_json}
+    monkeypatch.setattr(
+        sdk_auth_module,
+        "_query_assessment_from_neo4j",
+        lambda _id: record_with_completeness,
+    )
+
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-1",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    cf = body["completeness_findings"]
+    assert cf is not None
+    assert cf["requiredFields"] == ["Diagnosis", "Urgency"]
+    assert cf["presentFields"] == ["Diagnosis"]
+    assert cf["missingFields"] == ["Urgency"]
+    assert cf["unclearFields"] == ["GP name"]
+
+
 # ---------------------------------------------------------------------------
 # VT-80BC0C00 - GET /sdk/sbar/{id} returns 404 for unknown assessment
 # ---------------------------------------------------------------------------

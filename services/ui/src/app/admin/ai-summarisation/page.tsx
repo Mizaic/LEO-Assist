@@ -8,12 +8,32 @@
  */
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
+import Box from "@mui/material/Box";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 
 const SbarPlayground = dynamic(() => import("./SbarPlayground"), {
   ssr: false,
 });
+const ScenarioRunPanel = dynamic(() => import("./ScenarioRunPanel"), {
+  ssr: false,
+});
 
 export default function AiSummarisationPage() {
-  return <SbarPlayground />;
+  const [tab, setTab] = useState<"playground" | "scenarios">("playground");
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <Tabs
+        value={tab}
+        onChange={(_, value) => setTab(value)}
+        aria-label="AI summarisation views"
+      >
+        <Tab value="playground" label="Manual SBAR playground" />
+        <Tab value="scenarios" label="Scenario runs" />
+      </Tabs>
+      {tab === "playground" ? <SbarPlayground /> : <ScenarioRunPanel />}
+    </Box>
+  );
 }

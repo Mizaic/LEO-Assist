@@ -21,7 +21,8 @@ const SUBGRAPH_OPTIONS_RAW = [
   { id: "compliance",        label: "Check Compliance",       color: "#795548", category: "Quality",         description: "Compare the results against clinical guidelines and flag any gaps." },
   { id: "quality_check",     label: "Quality Check",          color: "#009688", category: "Quality",         description: "Check for missing data, inconsistencies, and NHS target compliance." },
   { id: "persist",           label: "Save Results",           color: "#607D8B", category: "Data",            description: "Write the final clinical facts to the patient record or gold training dataset." },
-  { id: "sbar",              label: "Write SBAR Summary",     color: "#00BCD4", category: "Reports",         description: "Generate a Situation-Background-Assessment-Recommendation clinical summary." },
+  { id: "durable_referral_workflow", label: "Start Durable Referral Workflow", color: "#00ACC1", category: "Integration", description: "Start a graph-backed referral workflow where each step is triggered by pub/sub and persists its output." },
+  { id: "durable_step",      label: "Durable Workflow Step",   color: "#00BCD4", category: "Integration",     description: "Run a reusable pub/sub step that loads inputs from Neo4j, persists outputs, and emits the next event." },
   { id: "anchor_detect",     label: "Detect Key Findings",    color: "#E91E63", category: "Reports",         description: "Identify the significant clinical findings that start a new episode of care." },
   { id: "episode_build",     label: "Build Episode",          color: "#3F51B5", category: "Reports",         description: "Group related encounters together into a timeline episode of care." },
   { id: "episode_engine",    label: "Find Episodes (AI)",     color: "#1A237E", category: "Reports",         description: "Read the patient timeline with an AI agent chain and identify cancer episodes and their milestones." },
@@ -90,10 +91,13 @@ export const SUBGRAPH_IO: Record<string, {
     writes: ["documents_written", "training_labels_written"],
     requiredFields: { entities: ["text", "lookup_term", "semantic_tag", "assertion"] },
   },
-  sbar: {
-    reads: ["entities", "encounter_text", "patient_id"],
-    writes: ["sbar_report"],
-    requiredFields: { entities: ["text", "semantic_tag", "assertion"] },
+  durable_referral_workflow: {
+    reads: ["patient_id", "encounter_id", "run_id"],
+    writes: ["PipelineRun", "extraction_requested"],
+  },
+  durable_step: {
+    reads: ["PipelineStageRun", "patient_id", "encounter_id", "run_id"],
+    writes: ["PipelineStageRun", "durable_step_completed"],
   },
   compliance: {
     reads: ["entities"],
@@ -170,7 +174,8 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   extraction_check: "llm",
   verification: "llm",
   coding_check: "llm",
-  sbar: "llm",
+  durable_referral_workflow: "generic",
+  durable_step: "generic",
   anchor_detect: "llm",
   episode_build: "llm",
   episode_engine: "llm",

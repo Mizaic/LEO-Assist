@@ -42,6 +42,7 @@ EXTRACTION_STAGES: tuple[str, ...] = (
 
 # Plans that share the production extraction front-end.
 ALIGNED_VALIDATION_PLAN_IDS: tuple[str, ...] = (
+    "pd-referral-assessment",
     "pd-val-key-fact-extraction",
     "pd-val-pathway-criteria",
     "pd-val-triage-completeness",
@@ -84,7 +85,7 @@ def test_validation_plan_front_end_matches_production(plan_id):
 
 
 def test_validation_plan_extraction_uses_llm_referral_activity():
-    """Validation extraction must use LLM-only referral prompt (no NER auto-route)."""
+    """Referral extraction must use LLM-only referral prompt (no NER auto-route)."""
     expected = "ActivityDefinition/ad-extraction-referral"
     for plan_id in ALIGNED_VALIDATION_PLAN_IDS:
         plan = _plan_by_id(plan_id)
@@ -97,3 +98,24 @@ def test_validation_plan_extraction_uses_llm_referral_activity():
             f"{extract_actions[0]['definitionCanonical']} but the audit "
             f"expects {expected}"
         )
+
+
+def test_production_referral_assessment_uses_full_clinical_chain():
+    """Production referral runs the full graph-backed triage chain."""
+    plan = _plan_by_id("pd-referral-assessment")
+
+    assert _action_subgraphs(plan) == [
+        "extraction",
+        "post_processing",
+        "relation_linking",
+        "extraction_check",
+        "terminology",
+        "compliance",
+        "quality_check",
+        "sbar",
+        "human_review_gate",
+        "persist",
+    ]
+    assert plan["action"][0]["trigger"] == [
+        {"type": "data-changed", "name": "referral-received"}
+    ]

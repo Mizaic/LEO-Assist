@@ -98,10 +98,9 @@ class EpisodeSBAROrchestrator:
         sbar = await self._inner.run(payload)
 
         client = self._client_or_default()
-        with client.session() as session:
-            self._link_episode(session, sbar.assessment_id, req.episode_id)
-            flags = self._run_coherence(req, sbar)
-            self._persist_coherence(session, sbar.assessment_id, flags)
+        self._link_episode(client, sbar.assessment_id, req.episode_id)
+        flags = self._run_coherence(req, sbar)
+        self._persist_coherence(client, sbar.assessment_id, flags)
 
         return EpisodeSBARResult(
             episode_id=req.episode_id,
@@ -148,9 +147,10 @@ class EpisodeSBAROrchestrator:
         )
 
     @staticmethod
-    def _link_episode(session, assessment_id: str, episode_id: str) -> None:
+    def _link_episode(client, assessment_id: str, episode_id: str) -> None:
         try:
-            session.run(
+            SBAROrchestrator._run_cypher(
+                client,
                 LINK_ASSESSMENT_TO_EPISODE,
                 assessment_id=assessment_id,
                 episode_id=episode_id,
@@ -164,7 +164,7 @@ class EpisodeSBAROrchestrator:
 
     @staticmethod
     def _persist_coherence(
-        session, assessment_id: str, flags: list[CoherenceFlag]
+        client, assessment_id: str, flags: list[CoherenceFlag]
     ) -> None:
         severity_rank = {"low": 1, "medium": 2, "high": 3}
         severity_max = "low"
@@ -172,7 +172,8 @@ class EpisodeSBAROrchestrator:
             worst = max(flags, key=lambda f: severity_rank.get(f.severity, 0))
             severity_max = worst.severity
         try:
-            session.run(
+            SBAROrchestrator._run_cypher(
+                client,
                 SET_ASSESSMENT_COHERENCE_FLAGS,
                 assessment_id=assessment_id,
                 coherence_flags_json=json.dumps([f.to_dict() for f in flags]),

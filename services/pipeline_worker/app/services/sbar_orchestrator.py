@@ -22,6 +22,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import date, datetime, timezone
 from typing import Any, Callable
 
 from libs.cypher.sbar_assessment_queries import (
@@ -161,17 +162,24 @@ class SBAROrchestrator:
         # invoke_llm_json -> the active recorder, so we accumulate token
         # usage and latency for Situation, Background, and Recommendation
         # in one place.
-        with LLMUsageRecorder() as usage_recorder, client.session() as session:
-            self._create_draft(session, payload, assessment_id)
-            self._link_artefacts(session, payload, assessment_id)
+        #
+        # Neo4j sessions are kept short: load graph inputs, then close the
+        # session before LLM calls. Writes use client.run() so stale Aura
+        # connections retry on a fresh pool connection.
+        with LLMUsageRecorder() as usage_recorder:
+            self._create_draft(client, payload, assessment_id)
+            self._link_artefacts(client, payload, assessment_id)
 
             # -- Stages 1 + 2: Situation + Background (parallel) ---------
             # Both LLM calls are independent; running them concurrently
             # cuts wall-clock time roughly in half. We resolve the
             # required graph data first (sync), emit the start events,
             # then await both LLM coroutines via asyncio.gather.
-            resolved_situation = resolve_situation(session, payload.situation)
-            resolved_sources = resolve_background_sources(session, payload.background)
+            with client.session() as session:
+                resolved_situation = resolve_situation(session, payload.situation)
+                resolved_sources = resolve_background_sources(
+                    session, payload.background
+                )
             aggregated = aggregate_codes(resolved_sources)
 
             self._emit(
@@ -224,9 +232,7 @@ class SBAROrchestrator:
             )
 
             if isinstance(sit_raw, Exception):
-                logger.exception(
-                    "SBAR situation call failed", exc_info=sit_raw
-                )
+                logger.exception("SBAR situation call failed", exc_info=sit_raw)
                 friendly = translate_error("situation", str(sit_raw))
                 sit_result = {
                     "markdown": "",
@@ -240,7 +246,8 @@ class SBAROrchestrator:
             sit_friendly = self._record_stage_error(
                 "situation", sit_result, errors, errors_detail
             )
-            session.run(
+            self._run_cypher(
+                client,
                 SET_SITUATION,
                 assessment_id=assessment_id,
                 situation=situation_md,
@@ -275,7 +282,8 @@ class SBAROrchestrator:
             bg_notices = self._record_background_notices(bg_result, notices)
             self._record_background_part_errors(bg_result, errors, errors_detail)
             background_parts = list(bg_result.get("parts") or [])
-            session.run(
+            self._run_cypher(
+                client,
                 SET_BACKGROUND,
                 assessment_id=assessment_id,
                 background=background_md,
@@ -305,10 +313,13 @@ class SBAROrchestrator:
                 },
             )
             patient_codes = sorted({c.concept_id for c in aggregated})
+            demographics = _assessment_demographics(resolved_situation.patient_summary)
             try:
                 eval_payload = self._evaluate(
                     patient_codes=patient_codes,
                     guideline_ids=payload.guideline_ids or None,
+                    patient_age=demographics.get("patient_age"),
+                    patient_sex=demographics.get("patient_sex"),
                 )
                 narrative: AssessmentNarrative = self._format(
                     matched_rules=eval_payload.get("matched_rules") or [],
@@ -333,7 +344,8 @@ class SBAROrchestrator:
                         "rtr_evidence": str(exc),
                     },
                 )
-            session.run(
+            self._run_cypher(
+                client,
                 SET_ASSESSMENT_NARRATIVE,
                 assessment_id=assessment_id,
                 assessment=narrative.markdown,
@@ -392,7 +404,8 @@ class SBAROrchestrator:
             rec_friendly = self._record_stage_error(
                 "recommendation", rec_result, errors, errors_detail
             )
-            session.run(
+            self._run_cypher(
+                client,
                 SET_RECOMMENDATION,
                 assessment_id=assessment_id,
                 recommendation=recommendation_md,
@@ -416,7 +429,8 @@ class SBAROrchestrator:
             )
             status = "draft" if errors else "completed"
             hints = narrative.pathway_hints or {}
-            session.run(
+            self._run_cypher(
+                client,
                 FINALISE_ASSESSMENT,
                 assessment_id=assessment_id,
                 content=content,
@@ -435,7 +449,7 @@ class SBAROrchestrator:
             # DI-LEO-AI-506: best-effort cost telemetry. Failures are
             # logged at WARNING and do not fail the run.
             self._record_telemetry(
-                session=session,
+                client=client,
                 payload=payload,
                 assessment_id=assessment_id,
                 run_id=run_id,
@@ -571,6 +585,14 @@ class SBAROrchestrator:
 
         return PatientGraphClient()
 
+    @staticmethod
+    def _run_cypher(client: Any, query: str, **params: Any) -> list[dict[str, Any]]:
+        """Run Cypher via client.run() so transient connection errors retry."""
+        if hasattr(client, "run"):
+            return client.run(query, **params)
+        with client.session() as session:
+            return [dict(record) for record in session.run(query, **params)]
+
     def _emit(self, run_id: str, event_type: str, body: dict[str, Any]) -> None:
         try:
             payload = {"type": event_type, "run_id": run_id, **body}
@@ -580,11 +602,12 @@ class SBAROrchestrator:
 
     def _create_draft(
         self,
-        session: Any,
+        client: Any,
         payload: SBARRequestPayload,
         assessment_id: str,
     ) -> None:
-        session.run(
+        self._run_cypher(
+            client,
             CREATE_ASSESSMENT,
             patient_id=payload.situation.patient_id,
             assessment_id=assessment_id,
@@ -596,20 +619,22 @@ class SBAROrchestrator:
 
     def _link_artefacts(
         self,
-        session: Any,
+        client: Any,
         payload: SBARRequestPayload,
         assessment_id: str,
     ) -> None:
         for ref in payload.situation.artifacts:
             try:
                 if ref.type is SituationArtifactType.referral_request and ref.id:
-                    session.run(
+                    self._run_cypher(
+                        client,
                         LINK_ASSESSMENT_TO_REFERRAL_REQUEST,
                         assessment_id=assessment_id,
                         artifact_id=ref.id,
                     )
                 elif ref.type is SituationArtifactType.procedure_request and ref.id:
-                    session.run(
+                    self._run_cypher(
+                        client,
                         LINK_ASSESSMENT_TO_PROCEDURE_REQUEST,
                         assessment_id=assessment_id,
                         artifact_id=ref.id,
@@ -623,7 +648,8 @@ class SBAROrchestrator:
                 )
         if payload.encounter_id:
             try:
-                session.run(
+                self._run_cypher(
+                    client,
                     LINK_ASSESSMENT_TO_ENCOUNTER,
                     assessment_id=assessment_id,
                     encounter_id=payload.encounter_id,
@@ -638,7 +664,7 @@ class SBAROrchestrator:
     def _record_telemetry(
         self,
         *,
-        session: Any,
+        client: Any,
         payload: SBARRequestPayload,
         assessment_id: str,
         run_id: str,
@@ -667,7 +693,8 @@ class SBAROrchestrator:
             usage_dict["run_id"] = run_id
             usage_dict["calls"] = [c.to_dict() for c in recorder.calls]
             cost_usd = float(usage_dict.get("cost_usd") or 0.0)
-            session.run(
+            self._run_cypher(
+                client,
                 SET_ASSESSMENT_USAGE,
                 assessment_id=assessment_id,
                 llm_usage_json=json.dumps(usage_dict, default=str),
@@ -691,7 +718,8 @@ class SBAROrchestrator:
 
         try:
             first_error = errors[0][:400] if errors else None
-            session.run(
+            self._run_cypher(
+                client,
                 WRITE_SBAR_AUDIT_EVENT,
                 id=f"audit-{run_id}",
                 plan_definition_id="sbar",
@@ -741,6 +769,50 @@ def _first_specialty(resolved) -> str | None:
             if spec:
                 return spec
     return None
+
+
+def _assessment_demographics(patient_summary: dict[str, Any]) -> dict[str, Any]:
+    """Return age/sex values suitable for deterministic guideline evaluation."""
+    birth_date = patient_summary.get("birth_date") or patient_summary.get("birthDate")
+    gender = patient_summary.get("gender") or patient_summary.get("sex")
+    return {
+        "patient_age": _age_years(birth_date),
+        "patient_sex": _normalise_sex(gender),
+    }
+
+
+def _normalise_sex(value: Any) -> str | None:
+    text = str(value or "").strip().lower()
+    if text in {"female", "f", "woman"}:
+        return "female"
+    if text in {"male", "m", "man"}:
+        return "male"
+    return text or None
+
+
+def _age_years(value: Any, *, today: date | None = None) -> float | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        birth = value.date()
+    elif isinstance(value, date):
+        birth = value
+    else:
+        text = str(value).strip()
+        if not text:
+            return None
+        try:
+            birth = datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            try:
+                birth = date.fromisoformat(text[:10])
+            except ValueError:
+                return None
+    today = today or datetime.now(timezone.utc).date()
+    years = today.year - birth.year
+    if (today.month, today.day) < (birth.month, birth.day):
+        years -= 1
+    return float(max(years, 0))
 
 
 def _compose_markdown(

@@ -17,7 +17,8 @@ Schema:
         situation, background, assessment, recommendation, content,
         stt, stt_evidence, alternative_pathway, alternative_pathway_evidence,
         rtr, rtr_evidence,
-        guideline_ids, errors
+        guideline_ids, errors,
+        completeness_result_json
     })
 
 Relationships (incoming):
@@ -225,6 +226,14 @@ RETURN ae.id AS id
 """
 
 
+SET_ASSESSMENT_COMPLETENESS = """
+MATCH (a:Assessment {id: $assessment_id})
+SET a.completeness_result_json = $completeness_result_json,
+    a.updated_at               = datetime()
+RETURN a.id AS id
+"""
+
+
 GET_ASSESSMENT = """
 MATCH (a:Assessment {id: $assessment_id})
 OPTIONAL MATCH (p:Patient)-[:HAS_ASSESSMENT]->(a)
@@ -253,6 +262,7 @@ RETURN a.id                            AS id,
        a.rtr                           AS rtr,
        a.rtr_evidence                  AS rtr_evidence,
        a.errors                        AS errors,
+       a.completeness_result_json      AS completeness_result_json,
        p.id                            AS patient_id
 """
 
@@ -268,7 +278,7 @@ def _decode_background_parts(raw: Any) -> list[dict[str, Any]]:
     if not raw:
         return []
     if isinstance(raw, list):
-        return raw
+        return [part for part in raw if isinstance(part, dict)]
     if isinstance(raw, (bytes, bytearray)):
         try:
             raw = raw.decode("utf-8")
@@ -280,7 +290,9 @@ def _decode_background_parts(raw: Any) -> list[dict[str, Any]]:
         parsed = json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return []
-    return parsed if isinstance(parsed, list) else []
+    if not isinstance(parsed, list):
+        return []
+    return [part for part in parsed if isinstance(part, dict)]
 
 
 def assessment_to_dict(record: Any) -> dict[str, Any]:
@@ -314,4 +326,5 @@ def assessment_to_dict(record: Any) -> dict[str, Any]:
         "rtr": record["rtr"],
         "rtr_evidence": record["rtr_evidence"],
         "errors": record["errors"] or [],
+        "completeness_result_json": record.get("completeness_result_json"),
     }

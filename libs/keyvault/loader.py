@@ -81,6 +81,9 @@ SECRET_MAP: dict[str, str] = {
     # Auth
     "AUTH_SECRET": "auth-secret",
     "SERVICE_AUTH_SECRET": "service-auth-secret",
+    # Widget SDK
+    "SDK_HOST_SHARED_SECRET": "sdk-host-shared-secret",
+    "SDK_WIDGET_TOKEN_SECRET": "sdk-widget-token-secret",
 }
 
 

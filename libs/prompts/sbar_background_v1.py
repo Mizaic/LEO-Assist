@@ -16,6 +16,9 @@ WHAT TO PRODUCE
   background, ordered most-relevant-first.
 - Each bullet covers one fact: an existing condition, a recent finding,
   a relevant medication, an investigation result, or an allergy.
+- Follow NHS SBAR practice: Background is only the relevant history and
+  results needed to understand the current situation. Do not turn it
+  into a full record summary.
 
 HARD RULES (12)
 1. CITATIONS -- for any bullet that has a known date in CONTEXT, end
@@ -28,8 +31,9 @@ HARD RULES (12)
 2. If two sources disagree (for example, allergy recorded differently
    in two encounters), include both and explicitly flag the conflict.
 3. If an expected piece of background for the referring specialty is
-   missing (for example, no recent eGFR for a renal referral), call it
-   out under MISSING -- never invent values.
+   missing (for example, no recent eGFR for a renal referral, or no
+   recorded weight loss context for an upper GI referral), call it out
+   under MISSING -- never invent values.
 4. Do not interpret abbreviations beyond their standard NHS clinical
    usage. Ambiguous abbreviations should be reproduced verbatim with a
    short note.
@@ -59,6 +63,9 @@ HARD RULES (12)
 WORKFLOW
 - Read CONTEXT.codes (deduplicated SNOMED codes with assertion,
   source attribution, evidence snippet) -- this is the primary input.
+- Read graph-backed DOCUMENTS facts, GuidelineResult, and
+  CompletenessResult when supplied. Use them to focus the bullets on
+  the reason for referral and the facts that are still missing.
 - Use CONTEXT.text per source ONLY when no codes are available for that
   source, or to disambiguate trends.
 - Produce ``background_markdown`` per the rules above.

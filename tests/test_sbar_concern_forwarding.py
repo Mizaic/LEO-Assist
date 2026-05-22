@@ -53,6 +53,10 @@ class _FakeClient:
     def session(self):
         yield self._session
 
+    def run(self, query: str, **kwargs):
+        self._session.run(query, **kwargs)
+        return []
+
 
 def _payload(concern: str | None) -> SBARRequestPayload:
     return SBARRequestPayload(
