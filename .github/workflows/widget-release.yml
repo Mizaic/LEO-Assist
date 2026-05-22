@@ -55,6 +55,7 @@ jobs:
     outputs:
       promote: ${{ steps.gate.outputs.promote }}
       build_label: ${{ steps.label.outputs.label }}
+      bundle_name: ${{ steps.bundle.outputs.name }}
 
     steps:
       - name: Checkout
@@ -161,6 +162,15 @@ jobs:
         working-directory: services/widget-sdk
         run: npm run build:all
 
+      - name: Read hashed bundle filename
+        if: steps.gate.outputs.promote == 'true'
+        id: bundle
+        working-directory: services/widget-sdk
+        run: |
+          BUNDLE=$(cat dist/v1/.bundle)
+          echo "name=$BUNDLE" >> "$GITHUB_OUTPUT"
+          echo "Hashed bundle: $BUNDLE"
+
       - name: Upload bundle artefact
         if: steps.gate.outputs.promote == 'true'
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4
@@ -170,6 +180,7 @@ jobs:
             services/widget-sdk/dist/v1/
             services/widget-sdk/dist/iframe/
             services/widget-sdk/dist/demo/
+            services/widget-sdk/static/v1/leo-loader.js
           retention-days: 30
 
   deploy:
@@ -229,6 +240,7 @@ jobs:
       - name: Stage mutable v1 metadata blobs
         env:
           LABEL: ${{ needs.build-and-gate.outputs.build_label }}
+          BUNDLE: ${{ needs.build-and-gate.outputs.bundle_name }}
         run: |
           PKG_VERSION=$(python -c "import json; print(json.load(open('services/widget-sdk/package.json'))['version'])")
           RELEASED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -237,12 +249,40 @@ jobs:
           {
             "major": 1,
             "active": "1.0.0",
+            "bundle": "${BUNDLE}",
             "released_at": "${RELEASED_AT}",
             "notes": "Deployed by widget-release (${LABEL}, package ${PKG_VERSION})"
           }
           EOF
 
-      - name: Upload web-component bundle to Azure Storage origin
+      - name: Upload content-addressed bundle (immutable)
+        env:
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
+          BUNDLE: ${{ needs.build-and-gate.outputs.bundle_name }}
+        run: |
+          az storage blob upload \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --container-name '$web' \
+            --name "v1/${BUNDLE}" \
+            --file "services/widget-sdk/dist/v1/${BUNDLE}" \
+            --content-type application/javascript \
+            --content-cache "public, max-age=31536000, immutable" \
+            --overwrite
+          MAP_FILE="services/widget-sdk/dist/v1/${BUNDLE}.map"
+          if [ -f "$MAP_FILE" ]; then
+            az storage blob upload \
+              --account-name "$ACCOUNT" \
+              --auth-mode login \
+              --container-name '$web' \
+              --name "v1/${BUNDLE}.map" \
+              --file "$MAP_FILE" \
+              --content-type application/json \
+              --content-cache "public, max-age=31536000, immutable" \
+              --overwrite
+          fi
+
+      - name: Upload un-hashed bundle alias (backward compat, no-cache)
         env:
           ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
         run: |
@@ -253,19 +293,22 @@ jobs:
             --name v1/leo-widget.js \
             --file services/widget-sdk/dist/v1/leo-widget.js \
             --content-type application/javascript \
-            --content-cache "public, max-age=31536000, immutable" \
+            --content-cache "public, no-cache, must-revalidate" \
             --overwrite
-          if [ -f services/widget-sdk/dist/v1/leo-widget.js.map ]; then
-            az storage blob upload \
-              --account-name "$ACCOUNT" \
-              --auth-mode login \
-              --container-name '$web' \
-              --name v1/leo-widget.js.map \
-              --file services/widget-sdk/dist/v1/leo-widget.js.map \
-              --content-type application/json \
-              --content-cache "public, max-age=31536000, immutable" \
-              --overwrite
-          fi
+
+      - name: Upload loader script (short cache)
+        env:
+          ACCOUNT: ${{ secrets.AZURE_WIDGET_STORAGE_ACCOUNT }}
+        run: |
+          az storage blob upload \
+            --account-name "$ACCOUNT" \
+            --auth-mode login \
+            --container-name '$web' \
+            --name v1/leo-loader.js \
+            --file services/widget-sdk/static/v1/leo-loader.js \
+            --content-type application/javascript \
+            --content-cache "public, max-age=60, must-revalidate" \
+            --overwrite
 
       - name: Upload mutable v1 metadata blobs
         env:
@@ -353,7 +396,8 @@ jobs:
             fi
           }
           BASE="https://${PUBLIC_HOST}"
-          for path in /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
+          BUNDLE="${{ needs.build-and-gate.outputs.bundle_name }}"
+          for path in /v1/leo-loader.js "/v1/${BUNDLE}" /v1/leo-widget.js /v1/manifest.json /v1/advisory.json /iframe/index.html /demo/ /demo/index.html; do
             check_ok "$path"
           done
           check_404 "/index.html"

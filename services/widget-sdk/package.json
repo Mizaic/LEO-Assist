@@ -13,9 +13,10 @@
   },
   "scripts": {
     "build": "vite build",
+    "hash": "node scripts/hash-bundle.mjs",
     "build:iframe": "vite build --config vite.iframe.config.ts",
     "build:demo-cdn": "vite build --config vite.demo-cdn.config.ts",
-    "build:all": "npm run build && npm run build:iframe && npm run build:demo-cdn",
+    "build:all": "npm run build && npm run hash && npm run build:iframe && npm run build:demo-cdn",
     "test": "jest",
     "test:no-coverage": "jest --no-coverage",
     "e2e": "playwright test",

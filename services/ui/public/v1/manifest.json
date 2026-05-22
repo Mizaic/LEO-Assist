@@ -1,0 +1,7 @@
+{
+  "major": 1,
+  "active": "dev",
+  "bundle": "leo-widget.js",
+  "released_at": "local",
+  "notes": "Local dev build - run npm run build in services/widget-sdk to refresh"
+}
