@@ -115,6 +115,9 @@ def _build_driver(
     # from exhausting the cluster-wide quota.
     _pool_kwargs: dict = {
         "liveness_check_timeout": 5,
+        "max_connection_lifetime": int(
+            os.getenv("NEO4J_MAX_CONNECTION_LIFETIME", "240")
+        ),
         "max_connection_pool_size": int(
             os.getenv("NEO4J_MAX_POOL_SIZE", "50")
         ),
