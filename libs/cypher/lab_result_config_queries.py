@@ -20,11 +20,18 @@ OPTIONAL MATCH (cfg)-[:CONFIGURES_OBSERVABLE]->(obs)
 WHERE $q IS NULL
    OR toLower(cfg.conceptId) CONTAINS toLower($q)
    OR toLower(coalesce(cfg.display_name, obs.fsn, obs.preferred_term, '')) CONTAINS toLower($q)
+WITH cfg, obs
+OPTIONAL MATCH (cfg)-[:HAS_UNIT_CONVERSION]->(conv)
+OPTIONAL MATCH (cfg)-[:HAS_REFERENCE_RANGE]->(rr)
+OPTIONAL MATCH (cfg)-[:INTERPRETS_AS]->(finding)
 RETURN cfg.conceptId AS concept_id,
        coalesce(cfg.display_name, obs.fsn, obs.preferred_term, cfg.conceptId) AS display_name,
        cfg.canonical_unit AS canonical_unit,
        cfg.source AS source,
-       toString(cfg.updated_at) AS updated_at
+       toString(cfg.updated_at) AS updated_at,
+       count(DISTINCT conv) AS conversion_count,
+       count(DISTINCT rr) AS range_count,
+       count(DISTINCT finding) AS interpretation_count
 ORDER BY display_name, concept_id
 LIMIT $limit
 """

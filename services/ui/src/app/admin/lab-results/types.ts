@@ -28,6 +28,9 @@ export interface LabResultConfigSummary {
   canonical_unit: string;
   source?: string | null;
   updated_at?: string | null;
+  conversion_count?: number;
+  range_count?: number;
+  interpretation_count?: number;
 }
 
 export interface LabResultConfig extends LabResultConfigSummary {

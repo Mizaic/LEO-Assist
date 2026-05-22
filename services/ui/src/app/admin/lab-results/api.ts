@@ -82,4 +82,25 @@ export async function saveInterpretation(
   );
 }
 
+export async function deleteUnitConversion(conceptId: string, unit: string) {
+  return apiJson(
+    `/api/lab-result-configs/${encodeURIComponent(conceptId)}/conversions/${encodeURIComponent(unit)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function deleteReferenceRange(conceptId: string, rangeId: string) {
+  return apiJson(
+    `/api/lab-result-configs/${encodeURIComponent(conceptId)}/ranges/${encodeURIComponent(rangeId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function deleteInterpretation(conceptId: string, classification: string) {
+  return apiJson(
+    `/api/lab-result-configs/${encodeURIComponent(conceptId)}/interpretations/${encodeURIComponent(classification)}`,
+    { method: "DELETE" },
+  );
+}
+
 export type { LabInterpretation, LabReferenceRange, LabResultConfigSummary };
