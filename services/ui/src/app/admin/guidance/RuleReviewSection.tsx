@@ -77,6 +77,9 @@ interface Rule {
   updated_at?: string;
   reviewed_at?: string;
   reviewed_by?: string;
+  generation_outcome?: string | null;
+  needs_human_review?: boolean;
+  generation_errors?: string[];
 }
 
 interface PromoteResult {
@@ -120,6 +123,12 @@ interface DiffData {
 
 interface Props {
   refreshKey?: number;
+}
+
+export interface RuleReviewIdentity {
+  rule_id: string;
+  guideline_id?: string;
+  recommendation_text?: string;
 }
 
 /**
@@ -204,6 +213,58 @@ export function mergeEditedRuleIntoCache(
   };
 }
 
+function normaliseRecommendationText(value: string | undefined): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[^\w. ]+/g, "")
+    .trim();
+}
+
+export function ruleReviewKey(rule: RuleReviewIdentity): string {
+  const text = normaliseRecommendationText(rule.recommendation_text);
+  const recommendationNumber = text.match(/^(\d+(?:\.\d+)+)\b/)?.[1];
+  if (recommendationNumber) {
+    return `${rule.guideline_id || ""}:${recommendationNumber}`;
+  }
+  return `${rule.guideline_id || ""}:${text || rule.rule_id}`;
+}
+
+export function upsertApprovedRule<T extends RuleReviewIdentity>(
+  current: T[],
+  next: T,
+): T[] {
+  const nextKey = ruleReviewKey(next);
+  return [
+    ...current.filter(
+      (rule) => rule.rule_id !== next.rule_id && ruleReviewKey(rule) !== nextKey,
+    ),
+    next,
+  ];
+}
+
+export function filterRulesForReview<T extends RuleReviewIdentity>(
+  rules: T[],
+  sessionApproved: RuleReviewIdentity[],
+  statusFilter: RuleStatusFilter,
+): T[] {
+  const approvedKeys = new Set(sessionApproved.map(ruleReviewKey));
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const rule of rules) {
+    const key = ruleReviewKey(rule);
+    if (statusFilter === "pending_review" && approvedKeys.has(key)) {
+      continue;
+    }
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(rule);
+  }
+  return out;
+}
+
 // EditRuleDialog uses a narrower LogicCriterion shape (snomed_concept_id is
 // required and non-null) than the wire Rule shape (where actions can carry a
 // null SNOMED id while awaiting coding). Drop the action when it has no
@@ -233,6 +294,19 @@ function ruleToEditable(rule: Rule): EditableRule {
 function strengthChipLabel(strength: string): string {
   const hit = STRENGTH_LABELS.find((row) => row.value === strength);
   return hit?.label ?? strength.replace(/_/g, " ");
+}
+
+function generationOutcomeLabel(outcome: string): string {
+  switch (outcome) {
+    case "extraction_failed":
+      return "Needs manual authoring";
+    case "subgraph_unavailable":
+      return "Generation unavailable";
+    case "no_rule_expected":
+      return "Confirm no rule needed";
+    default:
+      return outcome.replace(/_/g, " ");
+  }
 }
 
 /** Colour-coded chip for a diff criterion. */
@@ -496,6 +570,17 @@ function RuleAccordionCard({
               {rule.has_predecessor && (
                 <Chip icon={<CompareArrowsIcon />} label="Updated" size="small" color="warning" variant="outlined" />
               )}
+              {rule.generation_outcome && rule.generation_outcome !== "success" && (
+                <Chip
+                  label={generationOutcomeLabel(rule.generation_outcome)}
+                  size="small"
+                  color="warning"
+                  variant="filled"
+                />
+              )}
+              {rule.needs_human_review && !rule.generation_outcome && (
+                <Chip label="Needs review" size="small" color="warning" variant="outlined" />
+              )}
               {rule.chapter_title && (
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
                   {rule.chapter_title}
@@ -554,6 +639,20 @@ function RuleAccordionCard({
                   {rule.recommendation_text}
                 </Typography>
               </Box>
+            )}
+
+            {!!rule.generation_errors?.length && (
+              <Alert severity="warning" sx={{ mb: 1.5 }}>
+                AI generation did not finish for this recommendation. Open Edit rule
+                to author criteria manually.
+                <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
+                  {rule.generation_errors.slice(0, 5).map((err) => (
+                    <Typography key={err} component="li" variant="caption" sx={{ display: "list-item" }}>
+                      {err}
+                    </Typography>
+                  ))}
+                </Box>
+              </Alert>
             )}
 
             <RuleDetailPanel rule={rule} />
@@ -749,6 +848,11 @@ export default function RuleReviewSection({ refreshKey }: Props) {
 
   const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
 
+  const visibleRules = useMemo(
+    () => filterRulesForReview(rules, sessionApproved, statusFilter),
+    [rules, sessionApproved, statusFilter],
+  );
+
   const editableRule = useMemo(
     () => (editRule ? ruleToEditable(editRule) : null),
     [editRule],
@@ -780,10 +884,9 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         });
         if (!resp.ok) throw new Error(await resp.text());
         if (action === "approve" || action === "edit") {
-          setSessionApproved((prev) => [
-            ...prev.filter((r) => r.rule_id !== rule.rule_id),
-            { ...rule, status: "active" },
-          ]);
+          setSessionApproved((prev) =>
+            upsertApprovedRule(prev, { ...rule, status: "active" }),
+          );
         }
         setEditRule((prev) => (prev?.rule_id === rule.rule_id ? null : prev));
         setInternalKey((n) => n + 1);
@@ -849,10 +952,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           newRuleId,
           payload,
         );
-        setSessionApproved((prev) => [
-          ...prev.filter((r) => r.rule_id !== editRule.rule_id),
-          mergedRule,
-        ]);
+        setSessionApproved((prev) => upsertApprovedRule(prev, mergedRule));
         setEditRule(null);
         setInternalKey((n) => n + 1);
       } catch (err) {
@@ -876,17 +976,19 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         { method: "POST" }
       );
       if (!resp.ok) throw new Error(await resp.text());
-      setSessionApproved((prev) => [
-        ...prev,
-        ...rules.map((r) => ({ ...r, status: "active" })),
-      ]);
+      setSessionApproved((prev) =>
+        visibleRules.reduce(
+          (acc, rule) => upsertApprovedRule(acc, { ...rule, status: "active" }),
+          prev,
+        ),
+      );
       setInternalKey((n) => n + 1);
     } catch {
       setActionError("Could not approve all rules. Please try again.");
     } finally {
       setBusy(null);
     }
-  }, [rules]);
+  }, [visibleRules]);
 
   const handlePromote = useCallback(async (rule: Rule) => {
     setPromoteConfirmRule(null);
@@ -1050,7 +1152,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       </Stack>
 
       {/* ---- Rules accordion list (filtered by status) ---- */}
-      {rules.length === 0 ? (
+      {visibleRules.length === 0 ? (
         <Typography color="text.secondary">
           {statusFilter === "pending_review"
             ? "No rules waiting for review. Load a guideline first, then generate rules."
@@ -1067,8 +1169,8 @@ export default function RuleReviewSection({ refreshKey }: Props) {
             sx={{ mb: 1.5 }}
           >
             <Typography variant="body2" color="text.secondary">
-              {rules.length} {statusFilter === "pending_review" ? "rule" : statusFilter === "active" ? "active rule" : "superseded rule"}
-              {rules.length !== 1 ? "s" : ""}
+              {visibleRules.length} {statusFilter === "pending_review" ? "rule" : statusFilter === "active" ? "active rule" : "superseded rule"}
+              {visibleRules.length !== 1 ? "s" : ""}
               {statusFilter === "pending_review" ? " to check" : ""}
               {" "}— click a row to read in full
             </Typography>
@@ -1086,7 +1188,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           </Stack>
 
           <Stack spacing={1}>
-            {sortRulesForStatus(rules, statusFilter).map((rule) => (
+            {sortRulesForStatus(visibleRules, statusFilter).map((rule) => (
               <RuleAccordionCard
                 key={rule.rule_id}
                 rule={rule}
@@ -1118,7 +1220,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       {approveAllOpen && (
         <ConfirmDialog
           title="Approve all rules?"
-          body={`This will approve all ${rules.length} rules and make them ready to compile. Only approve rules you have read and checked.`}
+          body={`This will approve all ${visibleRules.length} rules and make them ready to compile. Only approve rules you have read and checked.`}
           confirmLabel="Yes, approve all"
           cancelLabel="Cancel"
           variant="primary"

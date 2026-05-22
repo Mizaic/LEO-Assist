@@ -41,6 +41,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 
+import { SEARCH_PANEL } from "./copy";
 import ConceptSearchPanel, { type ObservationSeed } from "./ConceptSearchPanel";
 import type { LogicCriterion } from "./types";
 
@@ -48,6 +49,8 @@ interface Props {
   open: boolean;
   anchorEl: HTMLElement | null;
   mode: "replace" | "add" | "replace_action";
+  /** When ``mode`` is ``replace``, distinguishes symptom vs lab-value chips. */
+  replaceKind?: "concept" | "observation" | null;
   focusLabel: string | null;
   initialQuery: string;
   onPick: (criterion: LogicCriterion) => void;
@@ -66,6 +69,7 @@ export default function ChipSearchPopover({
   open,
   anchorEl,
   mode,
+  replaceKind = null,
   focusLabel,
   initialQuery,
   onPick,
@@ -74,10 +78,12 @@ export default function ChipSearchPopover({
 }: Props) {
   const heading =
     mode === "replace_action"
-      ? "Swap the recommended procedure"
-      : mode === "replace"
-        ? "Swap this symptom or sign"
-        : "Add a symptom or sign";
+      ? SEARCH_PANEL.headings.replace_action
+      : mode === "replace" && replaceKind === "observation"
+        ? SEARCH_PANEL.headings.replace_observation
+        : mode === "replace"
+          ? SEARCH_PANEL.headings.replace
+          : SEARCH_PANEL.headings.add;
 
   return (
     <Popover

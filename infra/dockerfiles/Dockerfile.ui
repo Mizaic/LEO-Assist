@@ -1,7 +1,7 @@
 # -- Stage 1: install production dependencies ------------------------------
 # Pin base images: override via --build-arg in CI for reproducible builds.
-ARG BASE_IMAGE_NODE=node:22-bookworm-slim
-ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs22-debian13:nonroot
+ARG BASE_IMAGE_NODE=node:20-bookworm-slim
+ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs20-debian12:nonroot
 FROM ${BASE_IMAGE_NODE} AS deps
 WORKDIR /app
 # The UI is an npm workspace package that depends on @leo/design-system,

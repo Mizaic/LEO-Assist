@@ -128,7 +128,11 @@ export default function SentenceCanvas(props: Props) {
   return (
     <Stack spacing={2} role="region" aria-label="Sentence canvas">
       {model.whoCard && (
-        <WhoCardView card={model.whoCard} {...props} />
+        <WhoCardView
+          card={model.whoCard}
+          showAlternativesButton={!model.pathwayParentNodeId}
+          {...props}
+        />
       )}
       {model.pathwayParentNodeId && model.pathways && (
         <PathwaysSection
@@ -294,10 +298,12 @@ function CardShell({
 
 interface WhoCardViewProps extends Props {
   card: import("./treeToCanvas").WhoCard;
+  showAlternativesButton?: boolean;
 }
 
 function WhoCardView({
   card,
+  showAlternativesButton = false,
   selectedNodeId,
   onSelectNode,
   onRequestAdd,
@@ -337,6 +343,7 @@ function WhoCardView({
         parentNodeId={card.parentNodeId}
         onRequestAdd={onRequestAdd}
         onUpdate={onUpdate}
+        showAlternativesButton={showAlternativesButton}
       />
     </CardShell>
   );
@@ -650,6 +657,8 @@ interface CanvasAddBarProps {
   onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
   compact?: boolean;
+  /** When true, show a chip that inserts an OR group for alternative pathways. */
+  showAlternativesButton?: boolean;
 }
 
 function CanvasAddBar({
@@ -657,6 +666,7 @@ function CanvasAddBar({
   onRequestAdd,
   onUpdate,
   compact,
+  showAlternativesButton = false,
 }: CanvasAddBarProps) {
   const addChipSx = {
     height: 26,
@@ -712,6 +722,23 @@ function CanvasAddBar({
         }
         sx={addChipSx}
       />
+      {showAlternativesButton && (
+        <Chip
+          icon={<AddIcon sx={{ fontSize: 14 }} />}
+          label={ADD_BAR_LABELS.alternatives}
+          size="small"
+          variant="outlined"
+          color="primary"
+          onClick={() =>
+            onUpdate({
+              kind: "add_group",
+              parentNodeId,
+              groupKind: "OR",
+            })
+          }
+          sx={addChipSx}
+        />
+      )}
     </Stack>
   );
 }

@@ -1,12 +1,14 @@
 """Admin endpoints for TRUD terminology sync.
 
 Atlas trace:
-  DO: DO-EC41233C
-  DI: DI-9D0DF618
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+  DO: DO-EC41233C (sync router)
+  DO: DO-669D6A69 (terminology audit log)
+  DI: DI-9D0DF618 (sync trigger/stream)
+  DI: DI-2AD4CCC3 (audit log of admin actions)
 
 GET  /admin/terminology/status        - TRUD package versions + Neo4j counts
 GET  /admin/terminology/sync/stream   - SSE stream: download, extract, load
+GET  /admin/terminology/audit-log     - Immutable audit log of admin actions
 """
 
 from __future__ import annotations
@@ -24,6 +26,12 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from app.deps import require_admin
+from app.services.terminology_audit import (
+    ACTION_SYNC_TRIGGER,
+    get_entries,
+    run_sync_with_audit,
+    write_entry,
+)
 from app.services.trud_sync import PACKAGES, full_sync, get_status
 from libs.auth.org_scope import CallerScope
 
@@ -52,6 +60,21 @@ def terminology_status(
 
 
 # ---------------------------------------------------------------------------
+# Audit log
+# ---------------------------------------------------------------------------
+
+
+@router.get("/audit-log")
+def terminology_audit_log(
+    scope: Annotated[CallerScope, Depends(require_admin)],
+    since: Annotated[str | None, Query(description="ISO 8601 lower bound (inclusive)")] = None,
+    until: Annotated[str | None, Query(description="ISO 8601 upper bound (inclusive)")] = None,
+):
+    """Return immutable audit entries for terminology administrator actions."""
+    return {"entries": get_entries(since=since, until=until)}
+
+
+# ---------------------------------------------------------------------------
 # SSE sync stream
 # ---------------------------------------------------------------------------
 
@@ -66,20 +89,12 @@ def _derive_phases(packages: list[str]) -> set[int]:
 
 
 def _run_sync_thread(
+    user: str,
     packages: list[str],
     phases: set[int],
     events: "queue.Queue[dict | None]",
 ) -> None:
-    def emit(event: dict) -> None:
-        events.put(event)
-
-    try:
-        full_sync(EXTERNAL_CONTENT, packages, phases, emit)
-    except Exception as exc:
-        logger.exception("Unexpected error in TRUD sync thread")
-        events.put({"type": "sync_error", "msg": str(exc)})
-    finally:
-        events.put(None)  # sentinel
+    run_sync_with_audit(user, packages, phases, events, full_sync, EXTERNAL_CONTENT)
 
 
 def _event_generator(events: "queue.Queue[dict | None]"):
@@ -96,7 +111,7 @@ def _event_generator(events: "queue.Queue[dict | None]"):
 
 @router.get("/sync/stream")
 def terminology_sync_stream(
-    _: Annotated[CallerScope, Depends(require_admin)],
+    scope: Annotated[CallerScope, Depends(require_admin)],
     packages: Annotated[
         str, Query(description="Comma-separated: snomed,dmd")
     ] = "snomed,dmd",
@@ -111,10 +126,22 @@ def terminology_sync_stream(
     else:
         phase_set = {int(p.strip()) for p in phases.split(",") if p.strip().isdigit()}
 
+    user = getattr(scope, "email", "unknown")
+    try:
+        write_entry(
+            user=user,
+            action_type=ACTION_SYNC_TRIGGER,
+            packages=pkg_list,
+            outcome="in_progress",
+            detail=f"phases={sorted(phase_set)}",
+        )
+    except Exception:
+        logger.warning("audit: failed to write sync trigger entry", exc_info=True)
+
     events: queue.Queue[dict | None] = queue.Queue()
     threading.Thread(
         target=_run_sync_thread,
-        args=(pkg_list, phase_set, events),
+        args=(user, pkg_list, phase_set, events),
         daemon=True,
     ).start()
 

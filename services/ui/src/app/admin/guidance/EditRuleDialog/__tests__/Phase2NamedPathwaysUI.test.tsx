@@ -136,4 +136,31 @@ describe("Phase 2: pathway name input UI", () => {
       }),
     );
   });
+
+  it("shows ALL vs ANY selector on each pathway card", () => {
+    renderEditor(pathwayTree());
+    const selectors = screen.getAllByRole("combobox", {
+      name: /What this group means/i,
+    });
+    expect(selectors.length).toBeGreaterThanOrEqual(2);
+    expect(selectors[0]).toHaveTextContent(/ALL of these/i);
+    expect(selectors[1]).toHaveTextContent(/ALL of these/i);
+  });
+
+  it("emits change_kind when the pathway match mode is changed", () => {
+    const { onUpdate } = renderEditor(pathwayTree());
+    const selector = screen.getAllByRole("combobox", {
+      name: /What this group means/i,
+    })[0];
+    fireEvent.mouseDown(selector);
+    fireEvent.click(
+      screen.getByRole("option", { name: "Patient must have ANY of these" }),
+    );
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "change_kind",
+        newKind: "OR",
+      }),
+    );
+  });
 });

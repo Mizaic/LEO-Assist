@@ -3,7 +3,7 @@
 | Field            | Value                                               |
 | ---------------- | --------------------------------------------------- |
 | Document ID      | DC-DEP-001                                          |
-| Version          | 1.0.0                                               |
+| Version          | 1.1.0                                               |
 | Status           | Draft                                               |
 | Date             | 2026-03-03                                          |
 | Standard         | IEC 81001-5-1:2021 (5.3), NHS DSPT                  |
@@ -183,16 +183,43 @@ The following security-relevant parameters are set per environment in
 
 ### 5.1  Required Secrets (Azure Key Vault)
 
-| Secret Name                | Purpose                              | Source                      |
-| -------------------------- | ------------------------------------ | --------------------------- |
-| `azure-ad-client-secret`   | OAuth token exchange                 | Azure AD app registration   |
-| `neo4j-password`           | Patient graph database               | Neo4j admin                 |
-| `knowledge-neo4j-password` | Knowledge graph database             | Neo4j admin                 |
-| `redis-password`           | Session store                        | Redis admin                 |
-| `service-auth-secret`      | Inter-service HMAC authentication    | Generated via `migrate-secrets.ps1` |
-| `aws-access-key-id`        | AWS Bedrock LLM access               | AWS IAM                     |
-| `aws-secret-access-key`    | AWS Bedrock LLM access               | AWS IAM                     |
-| `azure-openai-api-key`     | Azure OpenAI LLM access              | Azure OpenAI resource       |
+Secret names use kebab-case in Key Vault. The canonical mapping is defined in
+`libs/keyvault/loader.py` (`SECRET_MAP`) and pushed by
+`infra/scripts/migrate-secrets.ps1` from `secrets/.env`.
+
+| Secret Name                         | Env var                              | Purpose                              | Source                      |
+| ----------------------------------- | ------------------------------------ | ------------------------------------ | --------------------------- |
+| `azure-ad-client-id`                | `AZURE_AD_CLIENT_ID`                 | OAuth client ID                      | Entra app registration      |
+| `azure-ad-client-secret`            | `AZURE_AD_CLIENT_SECRET`             | OAuth token exchange                 | Entra app registration      |
+| `azure-ad-tenant-id`                | `AZURE_AD_TENANT_ID`                 | Entra tenant                         | Entra directory             |
+| `neo4j-patient-uri`                 | `NEO4J_URI`                          | Patient graph connection             | Neo4j admin                 |
+| `neo4j-patient-password`            | `NEO4J_PASSWORD`                     | Patient graph password               | Neo4j admin                 |
+| `neo4j-knowledge-uri`               | `KNOWLEDGE_GRAPH_NEO4J_URI`          | Knowledge graph connection           | Neo4j admin                 |
+| `neo4j-knowledge-password`          | `KNOWLEDGE_GRAPH_NEO4J_PASSWORD`     | Knowledge graph password             | Neo4j admin                 |
+| `neo4j-guideline-uri`               | `GUIDELINE_NEO4J_URI`                | Guideline graph connection (optional)| Neo4j admin                 |
+| `neo4j-guideline-password`          | `GUIDELINE_NEO4J_PASSWORD`           | Guideline graph password (optional)  | Neo4j admin                 |
+| `redis-url`                         | `REDIS_URL`                          | Redis connection string (TLS)        | Redis Enterprise admin        |
+| `azure-openai-api-key`              | `AZURE_OPENAI_API_KEY`               | Azure OpenAI LLM access              | Azure OpenAI resource       |
+| `azure-openai-endpoint`             | `AZURE_OPENAI_ENDPOINT`              | Azure OpenAI endpoint URL            | Azure OpenAI resource       |
+| `azure-storage-connection-string`   | `AZURE_STORAGE_CONNECTION_STRING`    | Blob model store                     | Storage account admin       |
+| `azure-service-bus-connection-string` | `AZURE_SERVICE_BUS_CONNECTION_STRING` | Service Bus queues                 | Service Bus admin           |
+| `aws-access-key-id`                 | `AWS_ACCESS_KEY_ID`                  | AWS Bedrock LLM access               | AWS IAM                     |
+| `aws-secret-access-key`             | `AWS_SECRET_ACCESS_KEY`              | AWS Bedrock LLM access               | AWS IAM                     |
+| `aws-big-model`                     | `AWS_BIG_MODEL`                      | Bedrock model ID (big tier)          | AWS IAM / ops config        |
+| `aws-small-model`                   | `AWS_SMALL_MODEL`                    | Bedrock model ID (small tier)        | AWS IAM / ops config        |
+| `aws-max-model`                     | `AWS_MAX_MODEL`                      | Bedrock model ID (max tier)          | AWS IAM / ops config        |
+| `snomed-api-key`                    | `SNOMED_API_KEY`                     | NHS SNOMED terminology API           | NHS Terminology Server      |
+| `umls-api-key`                      | `UMLS_API_KEY`                       | UMLS terminology API                 | NLM UMLS                    |
+| `nhs-trud-api-key`                  | `NHS_TRUD_API_KEY`                   | NHS TRUD terminology sync            | NHS TRUD portal             |
+| `nice-api-key`                      | `NICE_API_KEY`                       | NICE Syndication API (guideline ingest) | NICE developer portal   |
+| `analytics-api-app-id`              | `ANALYTICS_API_APP_ID`               | Inter-service auth (analytics API)   | Entra app registration      |
+| `fhir-api-app-id`                   | `FHIR_API_APP_ID`                    | Inter-service auth (FHIR API)        | Entra app registration      |
+| `model-inference-app-id`            | `MODEL_INFERENCE_APP_ID`             | Inter-service auth (model inference) | Entra app registration      |
+| `terminology-api-app-id`            | `TERMINOLOGY_API_APP_ID`             | Inter-service auth (terminology API) | Entra app registration      |
+| `auth-secret`                       | `AUTH_SECRET`                        | Session signing                      | Generated / ops             |
+| `service-auth-secret`               | `SERVICE_AUTH_SECRET`                | Inter-service HMAC authentication    | Generated via `migrate-secrets.ps1` |
+| `sdk-host-shared-secret`            | `SDK_HOST_SHARED_SECRET`             | Widget token exchange (host backend) | Generated / ops             |
+| `sdk-widget-token-secret`           | `SDK_WIDGET_TOKEN_SECRET`            | Widget JWT signing                   | Generated / ops             |
 
 ### 5.2  Secret Hygiene
 
@@ -202,6 +229,34 @@ The following security-relevant parameters are set per environment in
   absent, using `[System.Security.Cryptography.RandomNumberGenerator]`.
 - Secrets MUST NOT appear in `.env` files committed to source control.
   The `secrets/` directory is in `.gitignore`.
+- Redis is stored as a full TLS connection string in `redis-url`
+  (not a bare password). See `infra/bicep/modules/redis.bicep`.
+
+### 5.3  GitHub Actions OIDC (Workload Identity Federation)
+
+GitHub Actions authenticates to Azure without long-lived credentials. Each
+workflow context needs a federated credential on the Entra app registration
+used for CI/CD.
+
+| Template file                         | Federated credential subject                                      | Used by                          |
+| ------------------------------------- | ----------------------------------------------------------------- | -------------------------------- |
+| `.federated-cred-main.json`           | `repo:Healthcare-Copilot/LEO-AI-CORE:ref:refs/heads/main`         | CI build (push to main)          |
+| `.federated-cred-env-dev.json`        | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:dev`             | CD deploy-dev                    |
+| `.federated-cred-env-validation.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:validation`      | CD deploy-val                    |
+| `.federated-cred-env-production.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:production`      | CD deploy-prod                   |
+
+Apply each credential once per Entra app registration:
+
+```bash
+az ad app federated-credential create \
+  --id {app-registration-object-id} \
+  --parameters @.federated-cred-env-dev.json
+```
+
+GitHub Environment names MUST match the workflow `environment:` field exactly:
+`dev`, `validation`, `production` (not `val` or `prod`).
+
+See `infra/github-oidc/README.md` for the full setup checklist.
 
 ---
 
@@ -244,7 +299,9 @@ Use this checklist when deploying the platform to a new environment.
 
 ### 7.3  Infrastructure
 
-- [ ] Run `migrate-secrets.ps1` to populate Key Vault
+- [ ] Run `migrate-secrets.ps1` to populate Key Vault (all secrets in Section 5.1)
+- [ ] Create GitHub OIDC federated credentials from Section 5.3 templates
+- [ ] Set GitHub Environment secrets: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`
 - [ ] Set `DEIDENTIFY_NER_MODEL=en_core_web_lg`
 - [ ] Verify `cookieSecure=true` in Bicep parameters
 - [ ] Verify `allowedOrigins` contains only the new environment's domain
@@ -266,6 +323,7 @@ Use this checklist when deploying the platform to a new environment.
 
 | Version | Date       | Author            | Changes                           |
 | ------- | ---------- | ----------------- | --------------------------------- |
+| 1.1.0   | 2026-05-22 | Platform team     | Align KV secret names with `migrate-secrets.ps1` / `loader.py`; add OIDC federated credential templates; document Redis URL format |
 | 1.0.0   | 2026-03-03 | Security sweep    | Initial version from threat model findings |
 
 ---

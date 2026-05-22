@@ -18,9 +18,12 @@
  *   3. Clicks "Scaffold". The backend asks Haiku to draft 1-2 plain
  *      English UK GP notes that mention every trigger SNOMED in the
  *      rule, plus a plausible age and sex inside any APPLIES_TO
- *      constraints. The expected SBAR (when the aspect is SBAR) is
- *      filled in deterministically from the rule, NOT from the LLM,
- *      so the test does not check the AI against itself.
+ *      constraints. When launched from the rule editor, the current
+ *      unsaved draft is sent too, so the patient matches what the
+ *      reviewer is testing in the sandbox. The expected SBAR (when
+ *      the aspect is SBAR) is filled in deterministically from the
+ *      rule, NOT from the LLM, so the test does not check the AI
+ *      against itself.
  *   4. On success the editor drawer opens with the new patient pre
  *      populated -- the reviewer reviews, tweaks and saves.
  *
@@ -79,6 +82,7 @@ interface ScaffoldFromRuleDialogProps {
    */
   lockedRuleId?: string;
   lockedRuleHint?: string;
+  draftRule?: Record<string, unknown> | null;
 }
 
 function pickInitialAspect(initial: AspectFilter | undefined): ScaffoldAspect {
@@ -99,6 +103,7 @@ export default function ScaffoldFromRuleDialog({
   onScaffolded,
   lockedRuleId,
   lockedRuleHint,
+  draftRule,
 }: ScaffoldFromRuleDialogProps) {
   const [aspect, setAspect] = useState<ScaffoldAspect>(
     pickInitialAspect(initialAspect),
@@ -156,6 +161,7 @@ export default function ScaffoldFromRuleDialog({
     try {
       const result = await scaffoldFromRule({
         rule_id: pickedRuleId,
+        draft_rule: lockedRuleId ? draftRule ?? null : null,
         aspect,
       });
       onScaffolded(result.patient_id);

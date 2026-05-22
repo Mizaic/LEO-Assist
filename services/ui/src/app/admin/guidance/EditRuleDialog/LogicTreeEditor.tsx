@@ -623,15 +623,9 @@ function PathwayNameInput({
 /**
  * Body of a single pathway card.
  *
- * The card itself already implies "patient must have ALL of these" -- so
- * when the immediate child is a plain AND group with at least one child,
- * we render its children directly with no extra kind selector and no
- * collapse chevron. This avoids the cryptic "(1 symptom, 1 sub-group)"
- * collapsed line that previously made pathways B and C look empty.
- *
- * Anything that isn't a plain AND (an OR, NOT, AT-LEAST, or a bare
- * leaf) is rendered through the standard NodeView so the user still
- * sees the structure they built.
+ * Each pathway is an AND/OR group. Show the match-mode selector at the
+ * top of every pathway so reviewers can see and change ALL vs ANY even
+ * when the pathway is a plain AND list (pathway B style).
  */
 interface PathwayCardBodyProps {
   root: EditableLogicNode;
@@ -649,9 +643,24 @@ function PathwayCardBody(p: PathwayCardBodyProps) {
 
   if (node.kind === "AND") {
     const children = node.children ?? [];
+    const matchMode = (
+      <Box sx={{ mb: children.length ? 1 : 0.75 }}>
+        <KindSelect
+          value={node.kind}
+          onChange={(newKind) =>
+            p.onUpdate({
+              kind: "change_kind",
+              nodeId: node.node_id,
+              newKind,
+            })
+          }
+        />
+      </Box>
+    );
     if (children.length === 0) {
       return (
         <Box>
+          {matchMode}
           <Typography
             variant="body2"
             color="text.secondary"
@@ -682,6 +691,7 @@ function PathwayCardBody(p: PathwayCardBodyProps) {
     }
     return (
       <Box>
+        {matchMode}
         {children.map((child) => (
           <NodeView
             key={child.node_id}

@@ -12,9 +12,10 @@ Design notes:
     drafts the test's own ground-truth answer; that is a hard rule
     because otherwise the test would be checking the LLM against
     itself.
-  - SNOMED concept ids come straight from the rule's HAS_CRITERIA edges
-    (the Knowledge graph). The LLM never invents SNOMED ids; it only
-    paraphrases the preferred terms into encounter prose.
+  - SNOMED concept ids come straight from the rule logic tree (saved
+    graph row, or the unsaved editor draft when supplied). The LLM
+    never invents SNOMED ids; it only paraphrases the preferred terms
+    into encounter prose.
   - Every saved patient is stamped with `aiAssisted: true`,
     `aiSourceKind: 'rule'`, and `aiSourceId: <rule_id>` so we can
     distinguish AI-scaffolded patients from manual / clone / SBAR-seed
@@ -34,6 +35,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, Awaitable, Callable
@@ -43,6 +45,8 @@ from app.services import test_patient_service
 from app.services._logic_tree import (
     extract_concept_triggers,
     extract_demographic_constraints,
+    extract_satisfying_pathways,
+    extract_satisfying_concept_sets,
     extract_satisfying_concepts,
     parse_logic_json,
 )
@@ -75,6 +79,7 @@ class ScaffoldResult:
     """What the router returns to the UI on success."""
 
     patient_id: str
+    patient_ids: list[str]
     aspect: str
     rule_id: str
     encounters_written: int
@@ -110,7 +115,10 @@ async def _default_generator(system_prompt: str, user_prompt: str) -> dict[str, 
 
 
 def load_rule_for_scaffold(
-    client: CodingGraphClient, *, rule_id: str
+    client: CodingGraphClient,
+    *,
+    rule_id: str,
+    draft_rule: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Pull every field the scaffolder needs about one rule.
 
@@ -135,6 +143,8 @@ def load_rule_for_scaffold(
             "picker -- only active or pending rules can be scaffolded."
         )
     row = dict(rows[0])
+    if draft_rule:
+        _apply_draft_rule(row, draft_rule)
     tree = parse_logic_json(row.get("logic_json"))
     if tree is not None:
         all_triggers = extract_concept_triggers(tree)
@@ -147,11 +157,26 @@ def load_rule_for_scaffold(
         # appear for the rule to fire. Falling back to the full union
         # keeps malformed / unrecognised trees from breaking the flow.
         row["triggers"] = must_mention or all_triggers
+        row["pathways"] = extract_satisfying_pathways(tree)
+        row["pathway_trigger_sets"] = extract_satisfying_concept_sets(tree)
         row["demographic_constraints"] = extract_demographic_constraints(tree)
     else:
         legacy = list(row.get("triggers") or [])
         row["triggers"] = legacy
         row["all_triggers"] = legacy
+        row["pathways"] = (
+            [
+                {
+                    "triggers": legacy,
+                    "demographic_constraints": list(
+                        row.get("demographic_constraints") or []
+                    ),
+                }
+            ]
+            if legacy
+            else []
+        )
+        row["pathway_trigger_sets"] = [legacy] if legacy else []
         row["demographic_constraints"] = list(row.get("demographic_constraints") or [])
     if not row["triggers"]:
         raise ScaffoldError(
@@ -160,6 +185,33 @@ def load_rule_for_scaffold(
             "concept -- fix the rule before scaffolding."
         )
     return row
+
+
+def _apply_draft_rule(row: dict[str, Any], draft_rule: dict[str, Any]) -> None:
+    """Overlay unsaved editor fields before deriving scaffold triggers."""
+    row["logic_json"] = (
+        draft_rule.get("logic_tree")
+        or draft_rule.get("logicJson")
+        or row.get("logic_json")
+    )
+    row["rule_name"] = (
+        draft_rule.get("name") or draft_rule.get("rule_name") or row.get("rule_name")
+    )
+    row["recommendation_text"] = (
+        draft_rule.get("recommendation_text")
+        or draft_rule.get("recommendation_verbatim")
+        or row.get("recommendation_text")
+    )
+    row["chapter_title"] = draft_rule.get("chapter_title") or row.get("chapter_title")
+    row["guideline_title"] = draft_rule.get("guideline_title") or row.get(
+        "guideline_title"
+    )
+    row["guideline_id"] = draft_rule.get("guideline_id") or row.get("guideline_id")
+    row["action_priority"] = (
+        draft_rule.get("action_priority")
+        or draft_rule.get("strength")
+        or row.get("action_priority")
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -248,22 +300,12 @@ def _validate_encounters(
                 "source_label": (raw.get("source_label") or "GP consultation").strip(),
                 "date": encounter_date.isoformat(),
                 "text": text,
-                "codes": (
-                    [
-                        {
-                            "concept_id": str(t.get("concept_id")).strip(),
-                            "term": (t.get("preferred_term") or "").strip() or None,
-                            "assertion": "present",
-                        }
-                        for t in triggers
-                        if (t or {}).get("concept_id")
-                    ]
-                    if index == 1
-                    else []
-                ),  # codes attach to the first encounter only
+                "codes": _codes_for_encounter(text, triggers),
             }
         )
     _assert_triggers_in_text(cleaned, triggers)
+    if not any(encounter["codes"] for encounter in cleaned):
+        cleaned[0]["codes"] = _codes_from_triggers(triggers)
     return cleaned
 
 
@@ -281,14 +323,10 @@ def _assert_triggers_in_text(
     to recover the SNOMED, this check just guards against a draft that
     forgot to mention the symptom altogether.
     """
-    blob = " ".join((e.get("text") or "") for e in encounters).lower()
+    blob = _normalise_trigger_text(" ".join((e.get("text") or "") for e in encounters))
     missing: list[str] = []
     for t in triggers:
-        term = (t.get("preferred_term") or "").strip().lower()
-        if not term:
-            continue
-        head = term.split("(")[0].strip()
-        if head and head in blob:
+        if _trigger_mentioned(blob, t):
             continue
         missing.append(t.get("preferred_term") or t.get("concept_id") or "?")
     if missing:
@@ -297,6 +335,131 @@ def _assert_triggers_in_text(
             f"({', '.join(missing)}). Retry the scaffold or edit the "
             "draft by hand."
         )
+
+
+def _codes_for_encounter(text: str, triggers: list[dict]) -> list[dict[str, Any]]:
+    blob = _normalise_trigger_text(text)
+    return [
+        code
+        for trigger in triggers
+        if _trigger_mentioned(blob, trigger)
+        for code in [_code_from_trigger(trigger)]
+        if code is not None
+    ]
+
+
+def _codes_from_triggers(triggers: list[dict]) -> list[dict[str, Any]]:
+    return [
+        code
+        for trigger in triggers
+        for code in [_code_from_trigger(trigger)]
+        if code is not None
+    ]
+
+
+def _code_from_trigger(trigger: dict) -> dict[str, Any] | None:
+    concept_id = (trigger or {}).get("concept_id")
+    if not concept_id:
+        return None
+    return {
+        "concept_id": str(concept_id).strip(),
+        "term": (trigger.get("preferred_term") or "").strip() or None,
+        "assertion": "present",
+    }
+
+
+_UK_US_SPELLING_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+    ("-", " "),
+    # UK GP notes often use British spelling; SNOMED preferred terms are US.
+    ("diarrhoea", "diarrhea"),
+    ("diarrhoeic", "diarrheic"),
+    ("anaemia", "anemia"),
+    ("anaemic", "anemic"),
+    ("oedema", "edema"),
+    ("oesophagus", "esophagus"),
+    ("oesophageal", "esophageal"),
+    ("leukaemia", "leukemia"),
+    ("leukaemic", "leukemic"),
+    ("tumour", "tumor"),
+    ("tumours", "tumors"),
+    ("faeces", "feces"),
+    ("faecal", "fecal"),
+    ("coeliac", "celiac"),
+    ("haem", "hem"),
+    ("dyspnoea", "dyspnea"),
+    ("dyspnoeic", "dyspneic"),
+)
+
+# GP notes rarely use the exact SNOMED preferred term. Accept phrases the
+# terminology layer already maps to the same concept in production.
+_TRIGGER_MENTION_SYNONYMS_BY_CONCEPT: dict[str, tuple[str, ...]] = {
+    "262285001": (
+        "weight loss",
+        "losing weight",
+        "lost weight",
+        "weight reduced",
+        "unintentional weight loss",
+    ),
+    "267036007": (
+        "breathlessness",
+        "shortness of breath",
+        "short of breath",
+        "breathless",
+    ),
+}
+
+_TRIGGER_MENTION_SYNONYMS_BY_HEAD: dict[str, tuple[str, ...]] = {
+    "weight decreased": _TRIGGER_MENTION_SYNONYMS_BY_CONCEPT["262285001"],
+    "dyspnea": _TRIGGER_MENTION_SYNONYMS_BY_CONCEPT["267036007"],
+}
+
+_TRIGGER_MENTION_REGEX_BY_CONCEPT: dict[str, tuple[str, ...]] = {
+    "262285001": (
+        r"\blost (?:approximately |about |approx\.? )?\d",
+        r"\bweight (?:is )?down\b",
+    ),
+    "267036007": (
+        r"\bsob\b",
+        r"\bcan(?:'|no)?t breathe\b",
+    ),
+}
+
+
+def _trigger_mention_phrases(trigger: dict) -> list[str]:
+    term = _normalise_trigger_text(trigger.get("preferred_term") or "")
+    head = term.split("(", 1)[0].strip()
+    phrases: list[str] = []
+    if head:
+        phrases.append(head)
+    concept_id = str((trigger or {}).get("concept_id") or "").strip()
+    phrases.extend(_TRIGGER_MENTION_SYNONYMS_BY_CONCEPT.get(concept_id, ()))
+    phrases.extend(_TRIGGER_MENTION_SYNONYMS_BY_HEAD.get(head, ()))
+    seen: set[str] = set()
+    out: list[str] = []
+    for phrase in phrases:
+        if not phrase or phrase in seen:
+            continue
+        seen.add(phrase)
+        out.append(phrase)
+    return out
+
+
+def _trigger_mentioned(normalised_text: str, trigger: dict) -> bool:
+    for phrase in _trigger_mention_phrases(trigger):
+        if phrase in normalised_text:
+            return True
+    concept_id = str((trigger or {}).get("concept_id") or "").strip()
+    for pattern in _TRIGGER_MENTION_REGEX_BY_CONCEPT.get(concept_id, ()):
+        if re.search(pattern, normalised_text):
+            return True
+    return False
+
+
+def _normalise_trigger_text(value: str) -> str:
+    text = value.strip().lower()
+    for old, new in _UK_US_SPELLING_REPLACEMENTS:
+        text = text.replace(old, new)
+    return " ".join(text.split())
 
 
 # ---------------------------------------------------------------------------
@@ -378,6 +541,7 @@ async def scaffold_patient_from_rule(
     aspect: str = _DEFAULT_ASPECT_FOR_RULE,
     created_by: str = "",
     generator: GeneratorFn | None = None,
+    draft_rule: dict[str, Any] | None = None,
 ) -> ScaffoldResult:
     """Draft + persist a test patient that should fire `rule_id`.
 
@@ -392,7 +556,81 @@ async def scaffold_patient_from_rule(
             f"Choose one of {sorted(_NON_GUIDELINE_ASPECTS)}."
         )
 
-    rule = load_rule_for_scaffold(client, rule_id=rule_id)
+    rule = load_rule_for_scaffold(client, rule_id=rule_id, draft_rule=draft_rule)
+    gen = generator or _default_generator
+    pathways = rule.get("pathways") or [
+        {
+            "triggers": rule.get("triggers") or [],
+            "demographic_constraints": rule.get("demographic_constraints") or [],
+        }
+    ]
+    pathways = [p for p in pathways if p.get("triggers")] or pathways
+    results: list[ScaffoldResult] = []
+    total = len(pathways)
+    try:
+        for index, pathway in enumerate(pathways, start=1):
+            results.append(
+                await _scaffold_one_patient(
+                    client,
+                    rule=rule,
+                    triggers=pathway.get("triggers") or [],
+                    demographic_constraints=_pathway_demographics(pathway, rule),
+                    aspect_lc=aspect_lc,
+                    created_by=created_by,
+                    generator=gen,
+                    pathway_index=index,
+                    pathway_total=total,
+                )
+            )
+    except Exception:
+        _delete_partial_scaffolds(client, [r.patient_id for r in results])
+        raise
+    patient_ids = [r.patient_id for r in results]
+    first = results[0]
+    return ScaffoldResult(
+        patient_id=first.patient_id,
+        patient_ids=patient_ids,
+        aspect=first.aspect,
+        rule_id=first.rule_id,
+        encounters_written=sum(r.encounters_written for r in results),
+        expected_sbar_written=any(r.expected_sbar_written for r in results),
+        notes=(
+            f"Scaffolded {len(results)} {aspect_lc} test patient"
+            f"{'' if len(results) == 1 else 's'} against {rule['rule_id']}. "
+            "Each top-level pathway gets its own saved patient."
+        ),
+    )
+
+
+def _pathway_demographics(pathway: dict, rule: dict[str, Any]) -> list[dict]:
+    if "demographic_constraints" in pathway:
+        return list(pathway.get("demographic_constraints") or [])
+    return list(rule.get("demographic_constraints") or [])
+
+
+def _delete_partial_scaffolds(
+    client: CodingGraphClient, patient_ids: list[str]
+) -> None:
+    """Best-effort rollback when a later pathway fails validation."""
+    for patient_id in patient_ids:
+        try:
+            test_patient_service.delete_patient(client, patient_id=patient_id)
+        except Exception:  # noqa: BLE001 - rollback must not hide root cause
+            logger.warning("Failed to delete partial scaffold %s", patient_id)
+
+
+async def _scaffold_one_patient(
+    client: CodingGraphClient,
+    *,
+    rule: dict[str, Any],
+    triggers: list[dict],
+    demographic_constraints: list[dict],
+    aspect_lc: str,
+    created_by: str,
+    generator: GeneratorFn,
+    pathway_index: int,
+    pathway_total: int,
+) -> ScaffoldResult:
     user_prompt = build_user_prompt(
         rule_id=rule["rule_id"],
         rule_label=(rule.get("rule_name") or "").strip() or rule["rule_id"],
@@ -400,11 +638,10 @@ async def scaffold_patient_from_rule(
         chapter_title=rule.get("chapter_title"),
         guideline_title=rule.get("guideline_title"),
         action_priority=rule.get("action_priority"),
-        triggers=rule.get("triggers") or [],
-        demographic_constraints=rule.get("demographic_constraints") or [],
+        triggers=triggers,
+        demographic_constraints=demographic_constraints,
     )
-    gen = generator or _default_generator
-    draft = await gen(SYSTEM_PROMPT, user_prompt)
+    draft = await generator(SYSTEM_PROMPT, user_prompt)
     if not isinstance(draft, dict) or "error" in draft:
         raise ScaffoldError(
             "AI scaffolder did not return JSON: "
@@ -418,11 +655,9 @@ async def scaffold_patient_from_rule(
 
     demographics = _validate_demographics(
         draft.get("demographics") or {},
-        rule.get("demographic_constraints") or [],
+        demographic_constraints,
     )
-    encounters = _validate_encounters(
-        draft.get("encounters"), rule.get("triggers") or []
-    )
+    encounters = _validate_encounters(draft.get("encounters"), triggers)
     reviewer_focus = (draft.get("reviewer_focus") or "").strip()
     expected_sbar = (
         _expected_sbar_from_rule(rule, reviewer_focus)
@@ -432,10 +667,17 @@ async def scaffold_patient_from_rule(
 
     display_hint = demographics["display_hint"]
     rule_friendly = _friendly_rule_label(rule)
-    name = display_hint or f"AI scaffold for {rule_friendly}"
+    suffix = f" - pathway {pathway_index}" if pathway_total > 1 else ""
+    name = (
+        f"{display_hint}{suffix}"
+        if display_hint
+        else f"AI scaffold for {rule_friendly}{suffix}"
+    )
     description = f"AI-scaffolded test patient for {rule_friendly}" + (
         f" ({rule.get('guideline_title')})" if rule.get("guideline_title") else ""
     )
+    if pathway_total > 1:
+        description = f"{description} - pathway {pathway_index} of {pathway_total}"
 
     blank = test_patient_service.build_blank_patient_for_aspect(
         client,
@@ -481,6 +723,7 @@ async def scaffold_patient_from_rule(
 
     return ScaffoldResult(
         patient_id=patient_id,
+        patient_ids=[patient_id],
         aspect=aspect_lc,
         rule_id=rule["rule_id"],
         encounters_written=int(update.get("encounters_written") or 0),
@@ -501,6 +744,7 @@ def scaffold_patient_from_rule_sync(
     aspect: str = _DEFAULT_ASPECT_FOR_RULE,
     created_by: str = "",
     generator: GeneratorFn | None = None,
+    draft_rule: dict[str, Any] | None = None,
 ) -> ScaffoldResult:
     """Synchronous entrypoint for FastAPI handlers.
 
@@ -514,5 +758,6 @@ def scaffold_patient_from_rule_sync(
             aspect=aspect,
             created_by=created_by,
             generator=generator,
+            draft_rule=draft_rule,
         )
     )

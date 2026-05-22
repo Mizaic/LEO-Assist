@@ -3,7 +3,7 @@
 Coverage
 --------
 VT-LEO-AI-064  LLM security compliance
-VT-LEO-AI-065  Conservative fail behaviour (no rule on LLM failure)
+VT-LEO-AI-065  Failed extractions write pending_review stubs for HITL
 VT-LEO-AI-066  HITL gate — all rules start as pending_review
 VT-LEO-AI-067  Terminology API used for SNOMED coding (not KG full-text index)
 VT-LEO-AI-068  Action is extracted and stored as SNOMED procedure
@@ -341,11 +341,11 @@ class TestCodeSnomed:
 # ── Generator integration tests ────────────────────────────────────────────────
 
 
-class TestConservativeFail:
-    """No rule is written when the LLM or subgraph produces no criteria."""
+class TestGenerationStub:
+    """Failed extractions still write pending_review stubs for manual authoring."""
 
-    def test_no_rule_when_subgraph_returns_none(self):
-        """When coded_criteria is None, no Neo4j writes happen."""
+    def test_stub_when_subgraph_returns_none(self):
+        """When coded_criteria is None, a pending_review stub is written."""
         driver, session = _make_driver()
         generator = MagicMock()
 
@@ -357,7 +357,7 @@ class TestConservativeFail:
         gen._subgraph.invoke.return_value = {
             "raw_criteria": None,
             "coded_criteria": None,
-            "errors": [],
+            "errors": ["llm_error:timeout"],
         }
 
         rec = {
@@ -369,12 +369,47 @@ class TestConservativeFail:
         }
 
         with patch.object(gen, "_fetch_recommendations", return_value=[rec]):
-            result = gen.generate_rules_for_guideline("NG12")
+            with patch.object(gen, "_write_guidance_audit_event"):
+                result = gen.generate_rules_for_guideline("NG12")
 
-        assert result == [], "No rules written when subgraph returns None"
-        assert not any(
-            "AppropriatenessRule" in str(c) for c in session.run.call_args_list
-        )
+        assert len(result) == 1
+        assert result[0].startswith("rule:NG12:v1:CH000:R000:")
+        upsert_calls = [
+            c for c in session.run.call_args_list if "AppropriatenessRule" in str(c)
+        ]
+        assert upsert_calls, "Expected AppropriatenessRule upsert on extraction failure"
+
+    def test_stub_when_no_rule_expected(self):
+        """Process-only recommendations still appear in the review queue."""
+        driver, session = _make_driver()
+        from app.services.guidance_rule_generator import GuidanceRuleGenerator
+
+        gen = GuidanceRuleGenerator.__new__(GuidanceRuleGenerator)
+        gen._driver = driver
+        gen._subgraph = MagicMock()
+        gen._subgraph.invoke.return_value = {
+            "raw_criteria": {"logic_tree": None},
+            "coded_criteria": {
+                "no_rule_expected": True,
+                "reason": "service_configuration_only",
+            },
+            "errors": [],
+        }
+
+        rec = {
+            "id": "NG12:v1:CH003:R004",
+            "verbatim": "Ensure local pathways exist.",
+            "title": "1.3.4",
+            "urgency": "routine",
+            "strength": "offer",
+        }
+
+        with patch.object(gen, "_fetch_recommendations", return_value=[rec]):
+            with patch.object(gen, "_write_guidance_audit_event"):
+                result = gen.generate_rules_for_guideline("NG12")
+
+        assert len(result) == 1
+        assert session.run.call_count >= 1
 
     def test_no_rule_when_verbatim_empty(self):
         """No rule is generated for recommendations with no verbatim text."""

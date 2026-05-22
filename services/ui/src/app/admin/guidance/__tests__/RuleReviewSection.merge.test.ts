@@ -19,10 +19,13 @@
  */
 
 import {
+  filterRulesForReview,
   formatApiDetail,
   formatRelativeUpdatedAt,
   mergeEditedRuleIntoCache,
+  ruleReviewKey,
   sortRulesForStatus,
+  upsertApprovedRule,
 } from "../RuleReviewSection";
 
 const PRE_EDIT_RULE = {
@@ -173,6 +176,49 @@ describe("mergeEditedRuleIntoCache (synonym-set persistence regression)", () => 
 
   it("falls back to the pre-edit name and strength when the payload omits them", () => {
     // (kept below)
+  });
+});
+
+describe("RuleReviewSection recommendation-level de-duping", () => {
+  const rule112a = {
+    ...PRE_EDIT_RULE,
+    rule_id: "rule-ng12-112-a",
+    guideline_id: "NG12",
+    recommendation_text: "1.1.2 Offer an urgent chest X-ray.",
+  };
+  const rule112b = {
+    ...PRE_EDIT_RULE,
+    rule_id: "rule-ng12-112-b",
+    guideline_id: "NG12",
+    recommendation_text: "1.1.2 Offer an urgent chest X-ray.",
+  };
+  const rule113 = {
+    ...PRE_EDIT_RULE,
+    rule_id: "rule-ng12-113",
+    guideline_id: "NG12",
+    recommendation_text: "1.1.3 Consider an urgent chest X-ray.",
+  };
+
+  it("uses the NICE recommendation number as the stable review key", () => {
+    expect(ruleReviewKey(rule112a)).toBe(ruleReviewKey(rule112b));
+    expect(ruleReviewKey(rule112a)).not.toBe(ruleReviewKey(rule113));
+  });
+
+  it("keeps one approved card per NICE recommendation", () => {
+    const approved = upsertApprovedRule([rule112a], rule112b);
+
+    expect(approved).toHaveLength(1);
+    expect(approved[0].rule_id).toBe("rule-ng12-112-b");
+  });
+
+  it("hides pending duplicates already approved in this session", () => {
+    const visible = filterRulesForReview(
+      [rule112a, rule112b, rule113],
+      [rule112a],
+      "pending_review",
+    );
+
+    expect(visible.map((rule) => rule.rule_id)).toEqual(["rule-ng12-113"]);
   });
 });
 

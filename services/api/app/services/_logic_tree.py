@@ -157,6 +157,37 @@ def extract_satisfying_concepts(node: Any) -> list[dict]:
     return out
 
 
+def extract_satisfying_concept_sets(node: Any) -> list[list[dict]]:
+    """Return one minimum trigger set for each top-level pathway.
+
+    ``extract_satisfying_concepts`` intentionally returns only one
+    minimum set so a single AI scaffold does not have to mention every
+    alternative branch. For test coverage, however, callers sometimes
+    need one patient per alternative pathway. This helper recognises
+    the common pathway shapes:
+
+      - ``OR[pathway_a, pathway_b, ...]``
+      - ``AND[global_prereq..., OR[pathway_a, pathway_b, ...]]``
+
+    and returns a de-duplicated satisfying concept set for each branch.
+    Non-pathway trees fall back to a single satisfying set.
+    """
+    return [p["triggers"] for p in extract_satisfying_pathways(node)]
+
+
+def extract_satisfying_pathways(node: Any) -> list[dict]:
+    """Return pathway-specific triggers and demographic constraints.
+
+    A rule can be split by concepts, demographics, or both. For
+    example, an OR may have one branch for age < 50 and another for
+    age >= 50 with the same trigger concept. Returning only concept
+    sets would collapse those two branches into one patient.
+    """
+    if not isinstance(node, dict):
+        return []
+    return _dedup_pathways(_pathways(node))
+
+
 def trigger_terms_preview(node: Any, *, limit: int = 3) -> list[str]:
     """Return up to ``limit`` SNOMED preferred terms for a picker preview.
 
@@ -316,3 +347,131 @@ def _satisfying_at_least(node: dict, children: list[dict]) -> list[dict]:
     for chosen in candidates[:minimum]:
         out.extend(chosen)
     return out
+
+
+def _pathways(node: dict) -> list[dict]:
+    kind = str(node.get("kind") or "").lower()
+    if kind == "concept":
+        trig = _concept_to_trigger(node.get("criterion"))
+        return [_pathway([trig], [])] if trig is not None else []
+    if kind == "demographic":
+        constraint = _demographic_to_constraint(node)
+        return [_pathway([], [constraint])] if constraint is not None else []
+    if kind == "not":
+        return [_pathway([], [])]
+    children = _child_dicts(node)
+    if kind == "and":
+        return _and_pathways(children)
+    if kind == "or":
+        return _dedup_pathways([p for child in children for p in _pathways(child)])
+    if kind == "at_least":
+        return _at_least_pathways(node, children)
+    return []
+
+
+def _and_pathways(children: list[dict]) -> list[dict]:
+    paths = [_pathway([], [])]
+    for child in children:
+        child_paths = _pathways(child)
+        if not child_paths:
+            continue
+        paths = [_merge_pathways(a, b) for a in paths for b in child_paths]
+    return _dedup_pathways(paths)
+
+
+def _at_least_pathways(node: dict, children: list[dict]) -> list[dict]:
+    try:
+        minimum = max(1, int(node.get("min") or 1))
+    except (TypeError, ValueError):
+        minimum = 1
+    candidates = [p for child in children for p in _pathways(child)]
+    candidates = [
+        p for p in candidates if p["triggers"] or p["demographic_constraints"]
+    ]
+    if len(candidates) < minimum:
+        return []
+    candidates.sort(key=lambda p: len(p["triggers"]))
+    merged = _pathway([], [])
+    for candidate in candidates[:minimum]:
+        merged = _merge_pathways(merged, candidate)
+    return [merged]
+
+
+def _pathway(triggers: list[dict | None], constraints: list[dict | None]) -> dict:
+    return {
+        "triggers": _dedup_triggers([t for t in triggers if t is not None]),
+        "demographic_constraints": _dedup_constraints(
+            [c for c in constraints if c is not None]
+        ),
+    }
+
+
+def _merge_pathways(left: dict, right: dict) -> dict:
+    return _pathway(
+        [*left.get("triggers", []), *right.get("triggers", [])],
+        [
+            *left.get("demographic_constraints", []),
+            *right.get("demographic_constraints", []),
+        ],
+    )
+
+
+def _child_dicts(node: dict) -> list[dict]:
+    return [c for c in (node.get("children") or []) if isinstance(c, dict)]
+
+
+def _dedup_pathways(pathways: list[dict]) -> list[dict]:
+    out: list[dict] = []
+    seen: set[tuple] = set()
+    for raw in pathways:
+        path = _pathway(
+            raw.get("triggers", []),
+            raw.get("demographic_constraints", []),
+        )
+        if not path["triggers"] and not path["demographic_constraints"]:
+            continue
+        key = (
+            tuple(t["concept_id"] for t in path["triggers"]),
+            _constraint_key(path["demographic_constraints"]),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(path)
+    return out
+
+
+def _dedup_triggers(triggers: list[dict]) -> list[dict]:
+    seen: set[str] = set()
+    out: list[dict] = []
+    for trig in triggers:
+        cid = trig.get("concept_id")
+        if not cid or cid in seen:
+            continue
+        seen.add(cid)
+        out.append(trig)
+    return out
+
+
+def _dedup_constraints(constraints: list[dict]) -> list[dict]:
+    seen: set[tuple] = set()
+    out: list[dict] = []
+    for constraint in constraints:
+        key = _constraint_key([constraint])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(constraint)
+    return out
+
+
+def _constraint_key(constraints: list[dict]) -> tuple:
+    return tuple(
+        (
+            c.get("field"),
+            c.get("operator"),
+            _hashable(c.get("value")),
+            c.get("unit"),
+        )
+        for c in constraints
+    )

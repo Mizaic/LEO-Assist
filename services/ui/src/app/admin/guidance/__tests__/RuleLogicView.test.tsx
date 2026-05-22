@@ -90,11 +90,20 @@ const SINGLE_PATHWAY_TREE: LogicTreeNode = {
   ],
 };
 
-function renderTree(tree: LogicTreeNode | null) {
+function renderTree(
+  tree: LogicTreeNode | null,
+  action?: {
+    snomed_concept_id: string | null;
+    preferred_term: string;
+    semantic_tag?: string;
+    term?: string;
+  },
+) {
   return render(
     <RuleDetailPanel
       rule={{
         strength: "refer",
+        action,
         logic_tree: tree,
         present_criteria: [],
         absent_criteria: [],
@@ -254,6 +263,20 @@ describe("RuleDetailPanel - single-pathway tree", () => {
     renderTree(SINGLE_PATHWAY_TREE);
     expect(
       screen.getByText(/^Any 1 or more of these \(of 1\)$/i),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("RuleDetailPanel - recommended action", () => {
+  it("shows the selected procedure next to the recommendation strength", () => {
+    renderTree(SINGLE_PATHWAY_TREE, {
+      snomed_concept_id: "168731009",
+      preferred_term: "Plain X-ray of chest (procedure)",
+      semantic_tag: "procedure",
+    });
+
+    expect(
+      screen.getByText(/Refer urgently: Plain X-ray of chest/i),
     ).toBeInTheDocument();
   });
 });

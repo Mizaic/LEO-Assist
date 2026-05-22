@@ -56,6 +56,15 @@ $SecretMap = [ordered]@{
     # Auth
     'auth-secret'                        = 'AUTH_SECRET'
     'service-auth-secret'                = 'SERVICE_AUTH_SECRET'
+    # Inter-service app registrations
+    'analytics-api-app-id'               = 'ANALYTICS_API_APP_ID'
+    'fhir-api-app-id'                    = 'FHIR_API_APP_ID'
+    'model-inference-app-id'             = 'MODEL_INFERENCE_APP_ID'
+    'terminology-api-app-id'             = 'TERMINOLOGY_API_APP_ID'
+    # NICE Syndication API + widget SDK
+    'nice-api-key'                       = 'NICE_API_KEY'
+    'sdk-host-shared-secret'             = 'SDK_HOST_SHARED_SECRET'
+    'sdk-widget-token-secret'            = 'SDK_WIDGET_TOKEN_SECRET'
 }
 
 # -- Parse source .env file ------------------------------------------------

@@ -211,6 +211,10 @@ def test_recover_running_run_rehydrates_in_memory_when_recoverable(
     monkeypatch, router
 ):
     """When publish completed, the recovery should warm the in-memory cache."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.services import extraction_run_sweeper as sweeper
+
     scenario_rows = {
         "MATCH (s:ExtractionScenario {case_id: $case_id})": [
             {"case_id": "case-a", "expected_strings": ["foo"], "markdown_body": ""}
@@ -218,8 +222,18 @@ def test_recover_running_run_rehydrates_in_memory_when_recoverable(
     }
     client = _attach_fake_client(monkeypatch, router, canned=scenario_rows)
     monkeypatch.setattr(router, "_refresh_production_run", lambda *_a, **_k: None)
+    monkeypatch.setattr(router, "_read_validation_audit_rows", lambda _ids: [])
 
-    row = _build_row(case_ids=["case-a"], child_run_ids=["rid:case-a"], case_count=1)
+    recent = (
+        datetime.now(timezone.utc)
+        - timedelta(seconds=max(0, sweeper.AUDIT_HARD_CUTOFF_SECONDS - 120))
+    ).isoformat()
+    row = _build_row(
+        case_ids=["case-a"],
+        child_run_ids=["rid:case-a"],
+        case_count=1,
+        triggered_at=recent,
+    )
     result = router._recover_running_run("rid", row)
 
     assert result["status"] == "running"
@@ -323,3 +337,75 @@ def test_sweeper_calls_recover_for_recent_stale_rows(monkeypatch, router):
     assert summary["recovered"] == 1
     assert summary["finalised"] == 1
     assert recover_calls == ["rid"]
+
+
+def test_sweeper_force_fails_published_runs_with_incomplete_audits(
+    monkeypatch, router
+):
+    from datetime import datetime, timedelta, timezone
+
+    from app.services import extraction_run_sweeper as sweeper
+
+    too_old = (
+        datetime.now(timezone.utc)
+        - timedelta(seconds=sweeper.AUDIT_HARD_CUTOFF_SECONDS + 60)
+    ).isoformat()
+    row = _stale_row(
+        publish_state="published",
+        published_count=2,
+        case_count=2,
+        triggered_at=too_old,
+    )
+
+    canned = {"MATCH (r:ExtractionValidationRun)\nWHERE r.status IN ['queued',": [row]}
+    client = _attach_fake_client(monkeypatch, router, canned=canned)
+    monkeypatch.setattr("app.db.neo4j_client.CodingGraphClient", lambda: client)
+
+    fail_calls: list[dict[str, Any]] = []
+
+    def _spy_fail(run_id, row_arg, *, reason):
+        fail_calls.append({"run_id": run_id, "reason": reason})
+        return {"status": "failed", "failure_reason": reason}
+
+    monkeypatch.setattr(router, "_fail_unrecoverable_run", _spy_fail)
+    monkeypatch.setattr(
+        router,
+        "_read_validation_audit_rows",
+        lambda child_run_ids: [{"run_id": child_run_ids[0]}],
+    )
+    monkeypatch.setattr(
+        router,
+        "_recover_running_run",
+        lambda *_a, **_k: pytest.fail("recovery must not run for audit-cutoff rows"),
+    )
+
+    summary = sweeper.sweep_once()
+
+    assert summary["scanned"] == 1
+    assert summary["failed"] == 1
+    assert len(fail_calls) == 1
+    assert "1/2 case audit rows" in fail_calls[0]["reason"]
+
+
+def test_recover_running_run_fails_when_published_audits_never_complete(
+    monkeypatch, router
+):
+    from datetime import datetime, timedelta, timezone
+
+    from app.services import extraction_run_sweeper as sweeper
+
+    too_old = (
+        datetime.now(timezone.utc)
+        - timedelta(seconds=sweeper.AUDIT_HARD_CUTOFF_SECONDS + 60)
+    ).isoformat()
+    client = _attach_fake_client(monkeypatch, router)
+    row = _build_row(triggered_at=too_old, case_count=2)
+
+    monkeypatch.setattr(router, "_read_validation_audit_rows", lambda _ids: [])
+
+    result = router._recover_running_run("rid", row)
+
+    assert result["status"] == "failed"
+    fail_call = _find_call(client, "WHERE r.status IN ['queued','running']")
+    assert fail_call is not None
+    assert "0/2 case audit rows" in fail_call["params"]["failure_reason"]

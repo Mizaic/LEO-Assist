@@ -90,7 +90,7 @@ import {
   getTriageOutcomeCounts,
   listGuidanceRules,
   listTestPatients,
-  replay,
+  replayInBatches,
 } from "./api";
 import BuildPatientDialog from "./BuildPatientDialog";
 import CopyFromRealDialog from "./CopyFromRealDialog";
@@ -206,6 +206,10 @@ export default function TestPatientLibraryKnowledgeTab() {
   const [replaying, setReplaying] = useState(false);
   const [runningRowId, setRunningRowId] = useState<string | null>(null);
   const [replayError, setReplayError] = useState<string | null>(null);
+  const [replayProgress, setReplayProgress] = useState<{
+    tested: number;
+    total: number;
+  } | null>(null);
   const [notCompiled, setNotCompiled] = useState(false);
   // Rule lookup keyed by rule_id, used to translate raw rule_ids in
   // the replay dialog into the same friendly label the rule picker
@@ -350,16 +354,20 @@ export default function TestPatientLibraryKnowledgeTab() {
       setReplaying(true);
       setRunningRowId(runningId);
       setReplayError(null);
+      setReplayProgress({ tested: 0, total: eligible.length });
       try {
         // Kick off the rule-name fetch in parallel with the replay
         // so the dialog opens with friendly labels already in hand.
         const rulesPromise = ensureRulesLookup();
-        const result = await replay({
-          patient_ids: eligible.map((p) => p.id),
-          scope_type: "global",
-          scope_id: "default",
-          persist_report: false,
-        });
+        const result = await replayInBatches(
+          {
+            scope_type: "global",
+            scope_id: "default",
+            persist_report: false,
+          },
+          eligible.map((p) => p.id),
+          (tested, total) => setReplayProgress({ tested, total }),
+        );
         await rulesPromise;
         setReplayReport(result);
         setReplayPatients(eligible);
@@ -385,6 +393,7 @@ export default function TestPatientLibraryKnowledgeTab() {
       } finally {
         setReplaying(false);
         setRunningRowId(null);
+        setReplayProgress(null);
       }
     },
     [ensureRulesLookup],
@@ -866,7 +875,9 @@ export default function TestPatientLibraryKnowledgeTab() {
               aria-label={`Test ${selectedCount} selected test patients against the live ruleset`}
             >
               {replaying && runningRowId === null
-                ? "Testing..."
+                ? replayProgress
+                  ? `Testing (${replayProgress.tested}/${replayProgress.total})...`
+                  : "Testing..."
                 : `Test selected (${selectedCount})`}
             </Button>
           </span>
@@ -890,7 +901,9 @@ export default function TestPatientLibraryKnowledgeTab() {
               data-testid="test-all-button"
               aria-label="Test all visible test patients against the live ruleset"
             >
-              {`Test all visible (${visibleEligibleCount})`}
+              {replaying && runningRowId === null && replayProgress
+                ? `Testing (${replayProgress.tested}/${replayProgress.total})...`
+                : `Test all visible (${visibleEligibleCount})`}
             </Button>
           </span>
         </Tooltip>

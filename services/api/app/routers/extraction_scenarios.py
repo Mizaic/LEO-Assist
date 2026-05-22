@@ -250,6 +250,19 @@ def _recover_running_run(run_id: str, row: dict[str, Any]) -> dict[str, Any]:
             ),
         )
 
+    from app.services.extraction_run_sweeper import (
+        _utc_now,
+        published_audit_incomplete_reason,
+    )
+
+    audit_reason = published_audit_incomplete_reason(
+        row,
+        _utc_now(),
+        read_audit_rows=_read_validation_audit_rows,
+    )
+    if audit_reason:
+        return _fail_unrecoverable_run(run_id, row, reason=audit_reason)
+
     cases = _hydrate_cases_for_recovery(case_ids)
     if len(cases) != len(case_ids):
         return _fail_unrecoverable_run(

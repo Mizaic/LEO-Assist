@@ -51,7 +51,7 @@
  * a TestPatientRow or a richer snapshot.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -73,10 +73,11 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import RulesetNotCompiledBanner from "./RulesetNotCompiledBanner";
-import { diagnose } from "../api";
+import { diagnose, getTestPatientFull } from "../api";
 import type {
   DiagnoseNode,
   DiagnoseResponse,
+  FullTestPatient,
   ReplayPatientResult,
   ReplayPatientSummary,
   ReplayReport,
@@ -87,6 +88,8 @@ export interface RuleContext {
   name?: string;
   recommendation_text?: string;
 }
+
+const PATIENT_SETUP_TIMEOUT_MS = 5000;
 
 interface Props {
   open: boolean;
@@ -493,10 +496,64 @@ function PatientResultRow({
 }: RowProps) {
   const isRegression = row.regressions.length > 0;
   const intent = computePatientIntent(row);
+  const [expanded, setExpanded] = useState(false);
+  const [fullPatient, setFullPatient] = useState<FullTestPatient | null>(null);
+  const [fullPatientLoading, setFullPatientLoading] = useState(false);
+  const [fullPatientError, setFullPatientError] = useState<string | null>(null);
+  const patientSetupRequestId = useRef(0);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!expanded || fullPatient || fullPatientLoading) return;
+    const requestId = patientSetupRequestId.current + 1;
+    patientSetupRequestId.current = requestId;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      controller.abort();
+    }, PATIENT_SETUP_TIMEOUT_MS);
+    setFullPatientLoading(true);
+    setFullPatientError(null);
+    getTestPatientFull(row.patient_id, { signal: controller.signal })
+      .then((data) => {
+        if (!mounted.current || patientSetupRequestId.current !== requestId) {
+          return;
+        }
+        setFullPatient(data);
+      })
+      .catch((exc) => {
+        if (!mounted.current || patientSetupRequestId.current !== requestId) {
+          return;
+        }
+        const timedOut =
+          exc instanceof DOMException && exc.name === "AbortError";
+        setFullPatientError(
+          timedOut
+            ? "The local saved-patient detail did not return. The summary above is still usable, but the scenario notes could not be shown here."
+            : "Could not load the saved patient setup.",
+        );
+      })
+      .finally(() => {
+        window.clearTimeout(timeout);
+        if (!mounted.current || patientSetupRequestId.current !== requestId) {
+          return;
+        }
+        setFullPatientLoading(false);
+      });
+  }, [expanded, fullPatient, fullPatientLoading, row.patient_id]);
+
   return (
     <Accordion
       disableGutters
       square={false}
+      expanded={expanded}
+      onChange={(_, nextExpanded) => setExpanded(nextExpanded)}
       sx={{
         borderRadius: 1,
         bgcolor: isRegression ? "error.50" : "grey.50",
@@ -584,6 +641,9 @@ function PatientResultRow({
         )}
         <PatientSummary
           patient={patient}
+          fullPatient={fullPatient}
+          fullPatientLoading={fullPatientLoading}
+          fullPatientError={fullPatientError}
           fallbackId={row.patient_id}
           rules={rules}
         />
@@ -626,19 +686,31 @@ function PatientResultRow({
 
 function PatientSummary({
   patient,
+  fullPatient,
+  fullPatientLoading,
+  fullPatientError,
   fallbackId,
   rules,
 }: {
   patient?: ReplayPatientSummary;
+  fullPatient?: FullTestPatient | null;
+  fullPatientLoading?: boolean;
+  fullPatientError?: string | null;
   fallbackId: string;
   rules?: Record<string, RuleContext>;
 }) {
   if (!patient) {
     return (
-      <Typography variant="caption" color="text.secondary">
-        Patient {fallbackId} -- open the test patient library to see codes,
-        age and sex.
-      </Typography>
+      <Box>
+        <Typography variant="caption" color="text.secondary">
+          Patient {fallbackId}
+        </Typography>
+        <PatientConfiguredEvidence
+          patient={fullPatient}
+          loading={!!fullPatientLoading}
+          error={fullPatientError}
+        />
+      </Box>
     );
   }
   const ageSex = [
@@ -682,6 +754,107 @@ function PatientSummary({
           ))}
         </Stack>
       )}
+      <PatientConfiguredEvidence
+        patient={fullPatient}
+        loading={!!fullPatientLoading}
+        error={fullPatientError}
+      />
+    </Box>
+  );
+}
+
+export function PatientConfiguredEvidence({
+  patient,
+  loading,
+  error,
+}: {
+  patient?: FullTestPatient | null;
+  loading: boolean;
+  error?: string | null;
+}) {
+  if (loading) {
+    return (
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mt: 0.75 }}
+      >
+        Loading the saved patient setup...
+      </Typography>
+    );
+  }
+  if (error) {
+    return (
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "block", mt: 0.75 }}
+      >
+        {error}
+      </Typography>
+    );
+  }
+  const encounters = patient?.encounters ?? [];
+  if (encounters.length === 0) return null;
+  const hasAnyCodes = encounters.some((encounter) => encounter.codes.length > 0);
+  return (
+    <Box
+      sx={{
+        mt: 1,
+        p: 1,
+        borderRadius: 1,
+        bgcolor: "grey.50",
+        border: "1px solid",
+        borderColor: "grey.200",
+      }}
+    >
+      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+        Saved patient setup
+      </Typography>
+      <Stack spacing={0.75} sx={{ mt: 0.75 }}>
+        {encounters.map((encounter, index) => (
+          <Box key={encounter.id || `${index}-${encounter.date || ""}`}>
+            <Typography variant="caption" color="text.secondary">
+              {encounter.source_label || `Encounter ${index + 1}`}
+              {encounter.date ? `, ${encounter.date}` : ""}
+            </Typography>
+            {encounter.text && (
+              <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
+                {encounter.text}
+              </Typography>
+            )}
+            {encounter.codes.length > 0 && (
+              <Stack
+                direction="row"
+                spacing={0.5}
+                flexWrap="wrap"
+                sx={{ mt: 0.5, rowGap: 0.5 }}
+              >
+                {encounter.codes.map((code, codeIndex) => (
+                  <Chip
+                    key={`${encounter.id}-${codeIndex}-${code.concept_id}`}
+                    size="small"
+                    variant="outlined"
+                    color={code.assertion === "present" ? "success" : "default"}
+                    label={`${code.term || code.concept_id} (${code.assertion})`}
+                  />
+                ))}
+              </Stack>
+            )}
+            {encounter.codes.length === 0 && (
+              <Typography
+                variant="caption"
+                color={hasAnyCodes ? "text.secondary" : "warning.main"}
+                sx={{ display: "block", mt: 0.5 }}
+              >
+                {hasAnyCodes
+                  ? "No coded findings attached to this note."
+                  : "No SNOMED codes saved for this patient setup."}
+              </Typography>
+            )}
+          </Box>
+        ))}
+      </Stack>
     </Box>
   );
 }

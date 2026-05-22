@@ -53,6 +53,16 @@ def test_absolute_mode_round_trips() -> None:
     assert leaf.within_days == 365
 
 
+def test_empty_unit_is_allowed() -> None:
+    leaf = ObservationLeaf(
+        observable_id="365632008",
+        operator=">=",
+        value=10.0,
+        unit="",
+    )
+    assert leaf.unit == ""
+
+
 def test_between_operator_coerces_pair() -> None:
     leaf = ObservationLeaf(
         observable_id="60621009",

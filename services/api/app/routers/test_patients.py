@@ -21,7 +21,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -180,9 +180,9 @@ class EditorCodeBody(BaseModel):
 
     concept_id: str
     term: str | None = None
-    assertion: Literal[
-        "present", "absent", "history_of", "suspected", "uncertain"
-    ] = "present"
+    assertion: Literal["present", "absent", "history_of", "suspected", "uncertain"] = (
+        "present"
+    )
 
 
 class EditorEncounterBody(BaseModel):
@@ -286,9 +286,7 @@ class SandboxReplayRequest(BaseModel):
 
 
 @router.post("/test-patients/dry-run")
-def dry_run(
-    body: DryRunRequest, scope: CallerScope = Depends(require_admin)
-) -> dict:
+def dry_run(body: DryRunRequest, scope: CallerScope = Depends(require_admin)) -> dict:
     """Evaluate a patient against the live ruleset without saving."""
     _ = scope
     client = _client()
@@ -443,9 +441,7 @@ def list_source_patients(
     _ = scope
     patient_graph = _patient_client()
     try:
-        return test_patient_clone.list_source_patients(
-            patient_graph, limit=limit
-        )
+        return test_patient_clone.list_source_patients(patient_graph, limit=limit)
     finally:
         patient_graph.close()
 
@@ -522,6 +518,10 @@ class ScaffoldFromRuleRequest(BaseModel):
     """POST body for the AI scaffold-from-rule endpoint."""
 
     rule_id: str = Field(..., description="AppropriatenessRule id from the picker")
+    draft_rule: dict[str, Any] | None = Field(
+        default=None,
+        description="Optional unsaved rule draft from the editor sandbox.",
+    )
     aspect: Literal["nlp", "episodes", "summarisation"] = Field(
         default="summarisation",
         description="Which AI feature the test patient is for",
@@ -535,11 +535,12 @@ def scaffold_from_rule(
     """Draft a test patient that should fire the picked rule.
 
     AI-assisted authoring, flow 1. The reviewer picks one rule from
-    the tree picker; we ask Haiku to draft 1-2 plausible UK GP notes
-    that mention every trigger SNOMED in the rule's criteria, plus a
-    plausible age and sex inside any APPLIES_TO constraints. The
-    expected SBAR is filled in deterministically from the rule (the
-    LLM never drafts the test's own ground-truth answer).
+    the tree picker, or opens this from the rule editor with an
+    unsaved draft rule. We ask Haiku to draft 1-2 plausible UK GP
+    notes that mention every trigger SNOMED in the rule criteria,
+    plus a plausible age and sex inside any APPLIES_TO constraints.
+    The expected SBAR is filled in deterministically from the rule
+    (the LLM never drafts the test's own ground-truth answer).
 
     The new patient is persisted immediately and stamped with
     aiAssisted=true so the library can flag AI drafts for review.
@@ -554,6 +555,7 @@ def scaffold_from_rule(
         result = test_patient_scaffolder.scaffold_patient_from_rule_sync(
             client,
             rule_id=body.rule_id,
+            draft_rule=body.draft_rule,
             aspect=body.aspect,
             created_by=getattr(scope, "user_email", "") or "unknown",
         )
@@ -563,13 +565,12 @@ def scaffold_from_rule(
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:  # noqa: BLE001 - log + 5xx
         logger.exception("scaffold-from-rule failed")
-        raise HTTPException(
-            status_code=500, detail=f"Scaffold failed: {exc}"
-        ) from exc
+        raise HTTPException(status_code=500, detail=f"Scaffold failed: {exc}") from exc
     finally:
         client.close()
     return {
         "patient_id": result.patient_id,
+        "patient_ids": result.patient_ids,
         "aspect": result.aspect,
         "rule_id": result.rule_id,
         "encounters_written": result.encounters_written,
@@ -626,13 +627,11 @@ def scaffold_from_scenario(
     """
     client = _client()
     try:
-        result = (
-            test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
-                client,
-                scenario=body.scenario,
-                aspect=body.aspect,
-                created_by=getattr(scope, "user_email", "") or "unknown",
-            )
+        result = test_patient_scenario_scaffolder.scaffold_patient_from_scenario_sync(
+            client,
+            scenario=body.scenario,
+            aspect=body.aspect,
+            created_by=getattr(scope, "user_email", "") or "unknown",
         )
     except ScenarioScaffoldError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -640,9 +639,7 @@ def scaffold_from_scenario(
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception as exc:  # noqa: BLE001 - log + 5xx
         logger.exception("scaffold-from-scenario failed")
-        raise HTTPException(
-            status_code=500, detail=f"Scaffold failed: {exc}"
-        ) from exc
+        raise HTTPException(status_code=500, detail=f"Scaffold failed: {exc}") from exc
     finally:
         client.close()
     return {
@@ -702,7 +699,9 @@ def list_guidelines(scope: CallerScope = Depends(require_admin)) -> list[dict]:
 @router.get("/test-patients/rules")
 def list_rules(
     guideline_id: str | None = Query(default=None),
-    q: str | None = Query(default=None, description="Case-insensitive substring filter"),
+    q: str | None = Query(
+        default=None, description="Case-insensitive substring filter"
+    ),
     limit: int = Query(default=200, ge=1, le=1000),
     scope: CallerScope = Depends(require_admin),
 ) -> list[dict]:
@@ -843,13 +842,9 @@ def get_patient_full(
     _ = scope
     client = _client()
     try:
-        row = test_patient_service.get_full_patient(
-            client, patient_id=patient_id
-        )
+        row = test_patient_service.get_full_patient(client, patient_id=patient_id)
         if not row:
-            raise HTTPException(
-                status_code=404, detail="Test patient not found"
-            )
+            raise HTTPException(status_code=404, detail="Test patient not found")
         return row
     finally:
         client.close()
@@ -891,9 +886,7 @@ def update_patient_full(
             updated_by=getattr(scope, "user_email", "") or "unknown",
         )
         if not result.get("updated"):
-            raise HTTPException(
-                status_code=404, detail="Test patient not found"
-            )
+            raise HTTPException(status_code=404, detail="Test patient not found")
         return result
     except EditorError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -902,9 +895,7 @@ def update_patient_full(
 
 
 @router.get("/test-patients/{patient_id}")
-def get_patient(
-    patient_id: str, scope: CallerScope = Depends(require_admin)
-) -> dict:
+def get_patient(patient_id: str, scope: CallerScope = Depends(require_admin)) -> dict:
     _ = scope
     client = _client()
     try:
@@ -939,9 +930,7 @@ def update_patient_route(
             ruleset_version=body.ruleset_version,
         )
         if not result.get("updated"):
-            raise HTTPException(
-                status_code=404, detail="Test patient not found"
-            )
+            raise HTTPException(status_code=404, detail="Test patient not found")
         return result
     finally:
         client.close()
@@ -954,9 +943,7 @@ def delete_patient(
     _ = scope
     client = _client()
     try:
-        deleted = test_patient_service.delete_patient(
-            client, patient_id=patient_id
-        )
+        deleted = test_patient_service.delete_patient(client, patient_id=patient_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Test patient not found")
         return {"deleted": deleted, "patient_id": patient_id}

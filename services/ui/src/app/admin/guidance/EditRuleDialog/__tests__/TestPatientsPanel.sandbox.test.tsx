@@ -257,7 +257,7 @@ describe("TestPatientsPanel sandbox replay", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(/draft sandbox could not be compiled/i),
+        screen.getByText(/your draft did not compile into the sandbox/i),
       ).toBeInTheDocument(),
     );
   });

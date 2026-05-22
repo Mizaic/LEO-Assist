@@ -136,6 +136,7 @@ export const ADD_BAR_LABELS = {
   detail: "Add a patient detail",
   choice: "Add a choice (any of these)",
   subgroup: "Add a sub-group (all of these)",
+  alternatives: "Add alternatives (any of these)",
   pathway: "Add another pathway",
   observation: "Add a lab value or reading",
 };
@@ -280,6 +281,12 @@ export const SANDBOX_PANEL = {
   noDraftYetTitle: "Make a change to test",
   noDraftYetBody:
     "Edit the rule on Step 1 first. The sandbox tests the unsaved draft against the saved test patients.",
+  compileFailedTitle: "Your draft did not compile into the sandbox",
+  compileFailedBody:
+    "The sandbox only contains rules that compile successfully. If a lab value uses an unregistered observable, or a SNOMED code cannot be resolved, the whole rule is dropped. Fix the conditions on Step 1, then run the sandbox test again. This is not testing against the live production bitmap.",
+  compilePartialBody:
+    (compiled: number, submitted: number) =>
+      `${compiled} of ${submitted} draft rule${submitted === 1 ? "" : "s"} compiled into the sandbox. Check Step 1 for unresolved SNOMED codes or lab values.`,
 } as const;
 
 /**
@@ -488,6 +495,7 @@ export const SEARCH_PANEL = {
   headings: {
     replace_action: "Swap the recommended procedure",
     replace: "Swap a symptom or sign",
+    replace_observation: "Swap the lab value",
     add: "Add a symptom or sign",
     idle: "Find a symptom or sign",
   },

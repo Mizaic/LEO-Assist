@@ -27,6 +27,7 @@ from app.services.guidance_rule_edit import (
     MAX_TREE_DEPTH,
     RuleUpdates,
     apply_rule_edit,
+    reject_sibling_pending_rules,
     validate_logic_tree,
 )
 
@@ -330,12 +331,13 @@ class TestApplyRuleEdit:
         )
 
     def test_writes_new_rule_and_supersedes_predecessor(self) -> None:
-        # 1: predecessor lookup, 2: concept verify, 3: insert
+        # 1: predecessor lookup, 2: concept verify, 3: insert, 4: reject siblings
         client = _mock_kg_client([
             [{"status": "pending_review", "name": "Old", "strength": "offer",
               "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "Refer..."}],
             [{"concept_id": "49727002", "exists": True}],
             [{"id": "rule:rec-1:edit:abcd1234"}],
+            [{"rejected_ids": ["rule:rec-1:dup"]}],
         ])
         result = apply_rule_edit(
             client,
@@ -346,7 +348,7 @@ class TestApplyRuleEdit:
         )
         assert result["predecessor_id"] == "rule:rec-1:old"
         assert result["rule_id"].startswith("rule:rec-1:old:edit:")
-        assert client.run.call_count == 3
+        assert client.run.call_count == 4
 
     def test_rejects_when_predecessor_missing(self) -> None:
         client = _mock_kg_client([[]])
@@ -422,6 +424,7 @@ class TestApplyRuleEdit:
               "verbatim": "Refer..."}],
             [{"concept_id": "49727002", "exists": True}],
             [{"id": "rule:rec-1:edit:abcd1234"}],
+            [{"rejected_ids": []}],
         ])
         result = apply_rule_edit(
             client,
@@ -431,6 +434,21 @@ class TestApplyRuleEdit:
             reason="Picked from terminology search; concept lives on :Concept",
         )
         assert result["rule_id"].startswith("rule:rec-1:old:edit:")
+
+
+class TestRejectSiblingPendingRules:
+    def test_returns_rejected_rule_ids(self) -> None:
+        client = _mock_kg_client([
+            [{"rejected_ids": ["rule:rec-1:dup-a", "rule:rec-1:dup-b"]}],
+        ])
+
+        rejected = reject_sibling_pending_rules(
+            client,
+            rule_id="rule:rec-1:winner",
+            reviewer="qa-lead",
+        )
+
+        assert rejected == ["rule:rec-1:dup-a", "rule:rec-1:dup-b"]
 
 
 # -- Router integration ------------------------------------------------------
@@ -444,6 +462,7 @@ class TestDecisionRouterEditPath:
                   "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "..."}],
                 [{"concept_id": "49727002", "exists": True}],
                 [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                [{"rejected_ids": []}],
             ])
             resp = client.post(
                 "/guidance/rules/review/rule:rec-1:old/decision",
@@ -506,7 +525,10 @@ class TestDecisionRouterEditPath:
 
     def test_edit_without_updates_falls_back_to_status_change(self, client: TestClient) -> None:
         with patch("app.routers.guidance_rules._kg_client") as mock_factory:
-            mock_factory.return_value = _mock_kg_client([[{"id": "rule:rec-1:old"}]])
+            mock_factory.return_value = _mock_kg_client([
+                [{"id": "rule:rec-1:old"}],
+                [{"rejected_ids": []}],
+            ])
             resp = client.post(
                 "/guidance/rules/review/rule:rec-1:old/decision",
                 json={

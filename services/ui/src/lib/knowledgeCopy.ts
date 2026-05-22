@@ -201,9 +201,9 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   pathways: {
     default: {
       title: "Pathways",
-      lede: "The steps a patient goes through for a condition.",
-      how: "Open a pathway, edit a step, and save it.",
-      what: "LEO checks each patient's notes against the steps.",
+      lede: "Durable workflows made from reusable clinical processing steps.",
+      how: "Open a pathway, check each step's event, graph inputs, and saved outputs.",
+      what: "LEO runs each step independently and records what it produced.",
     },
     clinician: {
       title: "Patient pathways",
@@ -213,15 +213,15 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
     },
     staff: {
       title: "Pathway setup",
-      lede: "The pathway rules LEO uses for audit and alerts.",
-      how: "Pick a pathway. Edit or add a step. Save.",
-      what: "Active patients on that pathway are re-scored overnight.",
+      lede: "The durable pathway rules LEO uses for audit, alerts, and referral workflows.",
+      how: "Pick a pathway. Check durable step wiring and publish a reviewed version.",
+      what: "Each active step reloads data from Neo4j and saves its result.",
     },
     qa_ra_lead: {
-      title: "PlanDefinition authoring",
-      lede: "FHIR PlanDefinitions that drive pathway segmentation and KPIs.",
-      how: "Review steps, the milestone types they emit, and the version diff.",
-      what: "Publishing a new version re-segments historic episodes.",
+      title: "Durable workflow authoring",
+      lede: "FHIR PlanDefinitions that drive pub/sub clinical workflow steps.",
+      how: "Review triggers, persisted artefacts, event edges, and the version diff.",
+      what: "Publishing a new version changes the governed processing contract.",
     },
     platform_admin: {
       title: "Pathway catalogue",

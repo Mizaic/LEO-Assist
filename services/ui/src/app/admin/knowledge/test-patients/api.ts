@@ -126,8 +126,11 @@ export function buildBlankTestPatient(
   });
 }
 
-export function getTestPatientFull(id: string): Promise<FullTestPatient> {
-  return request(`/${encodeURIComponent(id)}/full`);
+export function getTestPatientFull(
+  id: string,
+  init?: RequestInit,
+): Promise<FullTestPatient> {
+  return request(`/${encodeURIComponent(id)}/full`, init);
 }
 
 export function updateTestPatientFull(
@@ -156,11 +159,13 @@ export function listGuidanceRules(params: {
 
 export interface ScaffoldFromRuleBody {
   rule_id: string;
+  draft_rule?: Record<string, unknown> | null;
   aspect: "nlp" | "episodes" | "summarisation";
 }
 
 export interface ScaffoldFromRuleResult {
   patient_id: string;
+  patient_ids?: string[];
   aspect: string;
   rule_id: string;
   encounters_written: number;
@@ -296,12 +301,80 @@ export interface ReplayBody {
   persist_report?: boolean;
 }
 
+/** Keep each replay POST under the UI proxy timeout (~60s). */
+export const REPLAY_BATCH_SIZE = 8;
+
 export function replay(body: ReplayBody): Promise<ReplayReport> {
   return request("/replay", {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(body),
   });
+}
+
+/** Merge batched replay responses into one library-wide report. */
+export function mergeReplayReports(reports: ReplayReport[]): ReplayReport {
+  if (reports.length === 0) {
+    return {
+      ruleset_version: null,
+      scope_type: "global",
+      scope_id: "default",
+      guideline_id: null,
+      patient_count: 0,
+      regressions_count: 0,
+      passes_count: 0,
+      drift_count: 0,
+      results: [],
+    };
+  }
+  const head = reports[0];
+  const results = reports.flatMap((report) => report.results ?? []);
+  return {
+    ruleset_version: head.ruleset_version,
+    scope_type: head.scope_type,
+    scope_id: head.scope_id,
+    guideline_id: head.guideline_id,
+    patient_count: results.length,
+    regressions_count: reports.reduce(
+      (total, report) => total + (report.regressions_count ?? 0),
+      0,
+    ),
+    passes_count: reports.reduce(
+      (total, report) => total + (report.passes_count ?? 0),
+      0,
+    ),
+    drift_count: reports.reduce(
+      (total, report) => total + (report.drift_count ?? 0),
+      0,
+    ),
+    results,
+  };
+}
+
+/** Replay many patients in bounded batches so bulk runs do not 500. */
+export async function replayInBatches(
+  body: ReplayBody,
+  patientIds: string[],
+  onProgress?: (tested: number, total: number) => void,
+  batchSize: number = REPLAY_BATCH_SIZE,
+): Promise<ReplayReport> {
+  if (patientIds.length === 0) {
+    return mergeReplayReports([]);
+  }
+  if (patientIds.length <= batchSize) {
+    const report = await replay({ ...body, patient_ids: patientIds });
+    onProgress?.(patientIds.length, patientIds.length);
+    return report;
+  }
+  const reports: ReplayReport[] = [];
+  let tested = 0;
+  for (let offset = 0; offset < patientIds.length; offset += batchSize) {
+    const batch = patientIds.slice(offset, offset + batchSize);
+    reports.push(await replay({ ...body, patient_ids: batch }));
+    tested += batch.length;
+    onProgress?.(tested, patientIds.length);
+  }
+  return mergeReplayReports(reports);
 }
 
 export interface SandboxReplayBody {

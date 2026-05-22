@@ -2,6 +2,9 @@
   "name": "leo-primary-care",
   "version": "0.2.0",
   "private": true,
+  "engines": {
+    "node": ">=20 <21"
+  },
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--max-http-header-size=65536 next dev",
     "dev:webpack": "cross-env NODE_OPTIONS=--max-http-header-size=65536 next dev --webpack",

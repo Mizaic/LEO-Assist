@@ -333,11 +333,13 @@ class ObservationLeaf(BaseModel):
         )
     )
     unit: str = Field(
-        min_length=1,
+        default="",
         description=(
             "Unit string the rule was authored in (for example "
-            "'10*9/L', 'mmol/L', 'mmHg'). The evaluator canonicalises "
-            "via libs.units.observable_units before comparison."
+            "'10*9/L', 'mmol/L', 'mmHg'). Optional when the threshold "
+            "is already in the observable's canonical unit. The "
+            "evaluator canonicalises via libs.units.observable_units "
+            "before comparison."
         ),
     )
     within_days: int = Field(

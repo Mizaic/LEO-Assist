@@ -216,7 +216,8 @@ export type NodeUpdate =
   | { kind: "toggle_include_descendants"; nodeId: string; conceptId: string }
   | { kind: "set_seed_distance"; nodeId: string; conceptId: string; distance: number | null }
   | { kind: "add_excluded"; nodeId: string; conceptId: string }
-  | { kind: "remove_excluded"; nodeId: string; conceptId: string };
+  | { kind: "remove_excluded"; nodeId: string; conceptId: string }
+  | { kind: "replace_root"; node: EditableLogicNode };
 
 export const GROUP_KINDS: ReadonlyArray<LogicNodeKind> = ["AND", "OR", "NOT", "AT_LEAST"];
 export const LEAF_KINDS: ReadonlyArray<LogicNodeKind> = [

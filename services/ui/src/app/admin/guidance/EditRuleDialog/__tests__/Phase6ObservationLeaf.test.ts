@@ -20,7 +20,7 @@
  * following the same pattern as ``DemographicRow``.
  */
 
-import { applyUpdate, assignNodeIds, findValidationError } from "../treeOps";
+import { applyUpdate, assignNodeIds, findValidationError, observationWithCriterion } from "../treeOps";
 import type { LogicNodeSeed } from "../treeOps";
 import { treeToSentence } from "../treeToSentence";
 import { treeToCanvas } from "../treeToCanvas";
@@ -97,6 +97,17 @@ describe("Phase 6 OBSERVATION leaf -- treeOps", () => {
     expect(leaf.observation?.unit).toBe("g/L");
   });
 
+  it("observationWithCriterion seeds observable_id from a SNOMED pick", () => {
+    const next = observationWithCriterion(observation(), {
+      snomed_concept_id: "365636006",
+      preferred_term: "Haemoglobin level",
+      term: "Haemoglobin level",
+    });
+    expect(next.observable_id).toBe("365636006");
+    expect(next.observable_term).toBe("Haemoglobin level");
+    expect(next.operator).toBe(">=");
+  });
+
   it("set_name writes the pathway name on a group node", () => {
     const root = tree({ kind: "OR", children: [] });
     const updated = applyUpdate(root, {
@@ -115,12 +126,12 @@ describe("Phase 6 OBSERVATION leaf -- treeOps", () => {
     expect(findValidationError(root)).toMatch(/lab test|reading/i);
   });
 
-  it("OBSERVATION leaf missing unit fails validation", () => {
+  it("OBSERVATION leaf with empty unit still validates when coded", () => {
     const root = tree({
       kind: "OBSERVATION",
       observation: observation({ unit: "" }),
     });
-    expect(findValidationError(root)).toMatch(/unit/i);
+    expect(findValidationError(root)).toBeNull();
   });
 
   it("OBSERVATION leaf with valid payload passes validation", () => {

@@ -19,6 +19,9 @@ A validation run goes through three external events that can strand it:
    the poll endpoint is what drives finalisation.
 3. The pipeline worker dies between message-consume and audit-write, leaving
    the parent run with partial audit rows and no chance of completion.
+4. All bus messages were published but fewer AuditEvent rows arrive than
+   cases (worker or queue stopped). After AUDIT_HARD_CUTOFF_SECONDS the
+   sweeper marks the parent run failed so the UI is not stuck at 9/104.
 
 This sweeper runs periodically on the API and, for each stale row, asks the
 extraction_scenarios router to recover the run (rehydrate the in-memory
@@ -56,6 +59,41 @@ RECOVERY_CUTOFF_SECONDS = int(
 PUBLISH_HARD_CUTOFF_SECONDS = int(
     os.getenv("EXTRACTION_RUN_PUBLISH_HARD_CUTOFF_SECONDS", "900")
 )
+
+# If publish_state is "published" but AuditEvent rows never arrive for every
+# child run, the coding worker or message bus likely stopped. Fail the parent
+# run after this cutoff so it does not sit in "running" forever.
+AUDIT_HARD_CUTOFF_SECONDS = int(
+    os.getenv("EXTRACTION_RUN_AUDIT_HARD_CUTOFF_SECONDS", str(24 * 60 * 60))
+)
+
+
+def published_audit_incomplete_reason(
+    row: dict[str, Any],
+    now: datetime,
+    *,
+    read_audit_rows: Any,
+) -> str | None:
+    """Return a failure reason when a published run never finished auditing."""
+    publish_state = str(row.get("publish_state") or "")
+    if publish_state != "published":
+        return None
+    triggered = _parse_iso(row.get("triggered_at"))
+    age_seconds = (now - triggered).total_seconds() if triggered else 0.0
+    if age_seconds < AUDIT_HARD_CUTOFF_SECONDS:
+        return None
+    child_run_ids = list(row.get("child_run_ids") or [])
+    case_count = int(row.get("case_count") or len(child_run_ids) or 0)
+    if not child_run_ids or case_count <= 0:
+        return None
+    completed = len(read_audit_rows(child_run_ids))
+    if completed >= case_count:
+        return None
+    return (
+        f"pipeline returned {completed}/{case_count} case audit rows "
+        f"after {int(age_seconds)}s; workers likely stopped or "
+        f"messages were not processed"
+    )
 
 
 def _utc_now() -> datetime:
@@ -137,6 +175,18 @@ def _sweep_row(
         summary["failed"] += 1
         return
 
+    audit_reason = published_audit_incomplete_reason(
+        row,
+        now,
+        read_audit_rows=extraction_scenarios._read_validation_audit_rows,
+    )
+    if audit_reason:
+        extraction_scenarios._fail_unrecoverable_run(
+            run_id, row, reason=audit_reason
+        )
+        summary["failed"] += 1
+        return
+
     try:
         recovered = extraction_scenarios._recover_running_run(run_id, row)
     except Exception:
@@ -154,10 +204,11 @@ async def run_sweeper_loop() -> None:
     """Run sweep_once() on a fixed interval until cancelled."""
     logger.info(
         "ExtractionRun sweeper started: interval=%ss recovery_cutoff=%ss "
-        "publish_hard_cutoff=%ss",
+        "publish_hard_cutoff=%ss audit_hard_cutoff=%ss",
         SWEEP_INTERVAL_SECONDS,
         RECOVERY_CUTOFF_SECONDS,
         PUBLISH_HARD_CUTOFF_SECONDS,
+        AUDIT_HARD_CUTOFF_SECONDS,
     )
     while True:
         try:

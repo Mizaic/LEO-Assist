@@ -196,7 +196,7 @@ function stripObservation(
     observable_id: obs.observable_id,
     operator: obs.operator,
     value: obs.value,
-    unit: obs.unit,
+    unit: (obs.unit ?? "").trim(),
   };
   if (obs.observable_term && obs.observable_term.trim()) {
     out.observable_term = obs.observable_term.trim();
@@ -507,6 +507,8 @@ export function applyUpdate(
           ? renameGroup(n, update.name)
           : n,
       );
+    case "replace_root":
+      return update.node;
     default:
       return root;
   }
@@ -556,6 +558,52 @@ export function isTreeVisuallyEmpty(node: EditableLogicNode | null): boolean {
 export function wrapRootInAnd(root: EditableLogicNode): EditableLogicNode {
   if (canHaveChildren(root.kind)) return root;
   return assignNodeIds({ kind: "AND", children: [root] });
+}
+
+/**
+ * Fix the common AI-generation mistake where demographic / observation
+ * conditions end up as OR pathway children instead of AND prerequisites.
+ *
+ * Given an OR root like: OR[ DEMOGRAPHIC(age), CONCEPT(symptom) ]
+ * Returns: AND[ DEMOGRAPHIC(age), OR[ CONCEPT(symptom) ] ]
+ *
+ * Non-demographic children that are alone in the OR are left as an OR
+ * inside the AND so the "pathways" shape is preserved. If all children
+ * are non-demographic the tree is returned unchanged.
+ */
+export function promoteOrPrerequisites(
+  root: EditableLogicNode,
+): EditableLogicNode {
+  if (root.kind !== "OR") return root;
+  const children = root.children ?? [];
+  const prereqs = children.filter(
+    (c) => c.kind === "DEMOGRAPHIC" || c.kind === "OBSERVATION",
+  );
+  const rest = children.filter(
+    (c) => c.kind !== "DEMOGRAPHIC" && c.kind !== "OBSERVATION",
+  );
+  if (prereqs.length === 0) return root;
+  const newChildren: EditableLogicNode[] = [
+    ...prereqs,
+    ...(rest.length > 0
+      ? [assignNodeIds({ kind: "OR", children: rest })]
+      : []),
+  ];
+  return assignNodeIds({ kind: "AND", children: newChildren });
+}
+
+/**
+ * True when the tree has an OR root whose children include at least one
+ * DEMOGRAPHIC or OBSERVATION node -- indicating the AI likely generated
+ * a prerequisite as a pathway alternative.
+ */
+export function hasOrRootWithPrerequisites(
+  root: EditableLogicNode | null,
+): boolean {
+  if (!root || root.kind !== "OR") return false;
+  return (root.children ?? []).some(
+    (c) => c.kind === "DEMOGRAPHIC" || c.kind === "OBSERVATION",
+  );
 }
 
 function appendChild(
@@ -611,6 +659,19 @@ function makeDemographicNode(): EditableLogicNode {
  * friendly message until the reviewer picks an observable and unit
  * via the concept-search popover (Phase 6b).
  */
+/** Apply a SNOMED pick onto an existing OBSERVATION leaf payload. */
+export function observationWithCriterion(
+  existing: EditableObservationPayload,
+  criterion: LogicCriterion,
+): EditableObservationPayload {
+  return {
+    ...existing,
+    observable_id: criterion.snomed_concept_id,
+    observable_term:
+      criterion.preferred_term ?? criterion.term ?? existing.observable_term,
+  };
+}
+
 function makeObservationNode(
   seed?: Partial<EditableObservationPayload>,
 ): EditableLogicNode {
@@ -683,9 +744,6 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
     }
     if (!obs.observable_id || !obs.observable_id.trim()) {
       return "Pick a lab test or reading (for example: platelet count).";
-    }
-    if (!obs.unit || !obs.unit.trim()) {
-      return "Pick the unit for this lab test (for example: x10^9/L).";
     }
     if (obs.operator === "between") {
       const pair = Array.isArray(obs.value) ? obs.value : null;

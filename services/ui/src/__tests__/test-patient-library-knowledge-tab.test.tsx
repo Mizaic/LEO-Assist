@@ -127,6 +127,10 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(src).toMatch(/\/aspect-counts/);
     expect(src).toMatch(/\/source-patients/);
     expect(src).toMatch(/\/clone/);
+    // Bulk replay is batched so the proxy does not time out on large cohorts.
+    expect(src).toMatch(/REPLAY_BATCH_SIZE/);
+    expect(src).toMatch(/replayInBatches/);
+    expect(src).toMatch(/mergeReplayReports/);
     // The list endpoint passes the aspect query param when set.
     expect(src).toMatch(/qs\.set\("aspect"/);
   });
@@ -441,6 +445,7 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     // Body shape: rule_id + aspect (one of the three non-Guidelines
     // aspects -- the scaffolder rejects guidelines with a 422).
     expect(api).toMatch(/rule_id:\s*string/);
+    expect(api).toMatch(/draft_rule\?:\s*Record<string, unknown> \| null/);
     expect(api).toMatch(/aspect:\s*"nlp"\s*\|\s*"episodes"\s*\|\s*"summarisation"/);
     // Result shape: patient_id (drives the editor open) + provenance
     // counts the dialog can show on success.
@@ -469,6 +474,7 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     // Calls the new endpoint and returns the new patient id to the
     // page so the editor drawer opens with the AI draft loaded.
     expect(dlg).toMatch(/scaffoldFromRule\(\{/);
+    expect(dlg).toMatch(/draft_rule:\s*lockedRuleId \? draftRule \?\? null : null/);
     expect(dlg).toMatch(/onScaffolded:\s*\(newPatientId:\s*string\)\s*=>\s*void/);
     // The honest-test guarantee is shown to the reviewer in plain
     // English so they understand the AI does NOT write its own ground
@@ -637,7 +643,7 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     // Calls the same /replay endpoint and renders the same dialog as
     // the rule editor's "Try it on real patients" panel, so reviewers
     // never have to learn two flows.
-    expect(page).toMatch(/from\s+"\.\/api"[\s\S]*?\breplay\b/);
+    expect(page).toMatch(/from\s+"\.\/api"[\s\S]*?replayInBatches/);
     expect(page).toMatch(
       /import ReplayResultsDialog from "\.\/replay\/ReplayResultsDialog"/,
     );
@@ -652,7 +658,8 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(page).toMatch(/data-testid="test-selected-button"/);
     expect(page).toMatch(/data-testid="test-all-button"/);
     expect(page).toMatch(/`Test selected \(\$\{selectedCount\}\)`/);
-    expect(page).toMatch(/`Test all visible \(\$\{visibleEligibleCount\}\)`/);
+    expect(page).toMatch(/Test all visible \(\$\{visibleEligibleCount\}\)/);
+    expect(page).toMatch(/replayProgress/);
     // Selection scaffolding -- testids are passed through inputProps
     // because MUI Checkbox spreads them onto the underlying <input>.
     expect(page).toMatch(/"data-testid":\s*"select-all-checkbox"/);
@@ -822,6 +829,14 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(panel).not.toMatch(/BuildPatientDialog/);
     expect(panel).not.toMatch(/GeneratePatientsDialog/);
     expect(panel).not.toMatch(/listPatients\(/);
+  });
+
+  test("TC-007b: rule editor AI scaffolding uses the current draft rule", () => {
+    const panel = read(
+      "services/ui/src/app/admin/guidance/EditRuleDialog/" +
+        "TestPatientsPanel.tsx",
+    );
+    expect(panel).toMatch(/draftRule=\{draftRule\}/);
   });
 
   test("TC-008: knowledge page reads ?rule_id and shows a clear banner", () => {

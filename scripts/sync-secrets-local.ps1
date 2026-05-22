@@ -55,6 +55,9 @@ $SecretMap = [ordered]@{
     'terminology-api-app-id'              = 'TERMINOLOGY_API_APP_ID'
     'auth-secret'                         = 'AUTH_SECRET'
     'service-auth-secret'                 = 'SERVICE_AUTH_SECRET'
+    'nice-api-key'                        = 'NICE_API_KEY'
+    'sdk-host-shared-secret'              = 'SDK_HOST_SHARED_SECRET'
+    'sdk-widget-token-secret'             = 'SDK_WIDGET_TOKEN_SECRET'
 }
 
 $lines = @()

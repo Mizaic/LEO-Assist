@@ -18,7 +18,10 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-import ReplayResultsDialog, { friendlyDescription } from "../ReplayResultsDialog";
+import ReplayResultsDialog, {
+  PatientConfiguredEvidence,
+  friendlyDescription,
+} from "../ReplayResultsDialog";
 import type {
   ReplayPatientSummary,
   ReplayReport,
@@ -200,6 +203,152 @@ describe("ReplayResultsDialog -- ISO 13485 plain-English report", () => {
     );
 
     expect(screen.getByText(/results, by patient/i)).toBeInTheDocument();
+  });
+
+  test("shows the saved patient setup with note text and coded concepts", () => {
+    render(
+      <PatientConfiguredEvidence
+        loading={false}
+        patient={{
+          id: "tp_meso",
+          name: "test_retired shipyard worker with persistent cough",
+          description: "AI-scaffolded test patient",
+          aspect: "summarisation",
+          is_test: true,
+          source_patient_id: null,
+          age: 67,
+          sex: "male",
+          pathway_id: null,
+          generation_source: "ai",
+          guideline_id: "NG12",
+          guideline_title: "Suspected cancer",
+          created_at: null,
+          updated_at: null,
+          created_by: null,
+          updated_by: null,
+          expected_sbar: null,
+          encounters: [
+            {
+              id: "enc-1",
+              source_label: "GP note",
+              source_id: null,
+              date: "2026-05-22",
+              text: "Persistent cough and finger clubbing.",
+              codes: [
+                {
+                  concept_id: "84229001",
+                  term: "Fatigue",
+                  assertion: "present",
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Saved patient setup")).toBeInTheDocument();
+    expect(screen.getByText(/Persistent cough and finger clubbing/i)).toBeInTheDocument();
+    expect(screen.getByText(/Fatigue \(present\)/i)).toBeInTheDocument();
+  });
+
+  test("labels uncoded follow-up notes without warning the whole patient", () => {
+    render(
+      <PatientConfiguredEvidence
+        loading={false}
+        patient={{
+          id: "tp_meso",
+          name: "test_retired shipyard worker with persistent cough",
+          description: "AI-scaffolded test patient",
+          aspect: "summarisation",
+          is_test: true,
+          source_patient_id: null,
+          age: 67,
+          sex: "male",
+          pathway_id: null,
+          generation_source: "ai",
+          guideline_id: "NG12",
+          guideline_title: "Suspected cancer",
+          created_at: null,
+          updated_at: null,
+          created_by: null,
+          updated_by: null,
+          expected_sbar: null,
+          encounters: [
+            {
+              id: "enc-1",
+              source_label: "GP note",
+              source_id: null,
+              date: "2026-05-22",
+              text: "Persistent cough.",
+              codes: [
+                {
+                  concept_id: "49727002",
+                  term: "Cough",
+                  assertion: "present",
+                },
+              ],
+            },
+            {
+              id: "enc-2",
+              source_label: "Follow-up",
+              source_id: null,
+              date: "2026-05-23",
+              text: "FIT kit provided.",
+              codes: [],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/No coded findings attached to this note/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No SNOMED codes saved for this patient setup/i),
+    ).not.toBeInTheDocument();
+  });
+
+  test("warns when a saved scenario has no SNOMED codes", () => {
+    render(
+      <PatientConfiguredEvidence
+        loading={false}
+        patient={{
+          id: "tp_meso",
+          name: "test_retired shipyard worker with persistent cough",
+          description: "AI-scaffolded test patient",
+          aspect: "summarisation",
+          is_test: true,
+          source_patient_id: null,
+          age: 67,
+          sex: "male",
+          pathway_id: null,
+          generation_source: "ai",
+          guideline_id: "NG12",
+          guideline_title: "Suspected cancer",
+          created_at: null,
+          updated_at: null,
+          created_by: null,
+          updated_by: null,
+          expected_sbar: null,
+          encounters: [
+            {
+              id: "enc-1",
+              source_label: "GP note",
+              source_id: null,
+              date: "2026-05-22",
+              text: "Persistent cough but no coded concept.",
+              codes: [],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(/No SNOMED codes saved for this patient setup/i),
+    ).toBeInTheDocument();
   });
 
   test("audit footer cites the rules version and engine provenance", () => {

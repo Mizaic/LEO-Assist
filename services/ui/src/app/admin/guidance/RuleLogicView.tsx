@@ -87,6 +87,13 @@ export interface CriterionResult {
   excluded_concept_ids?: string[];
 }
 
+export interface ActionResult {
+  snomed_concept_id: string | null;
+  preferred_term: string;
+  term?: string;
+  semantic_tag?: string;
+}
+
 /**
  * Read-only shape of an OBSERVATION leaf's payload (Phase 6a).
  *
@@ -137,6 +144,7 @@ export interface LogicTreeNode {
 
 export interface RuleForLogicView {
   strength?: string;
+  action?: ActionResult | null;
   logic_tree?: LogicTreeNode | null;
   present_criteria: RuleCriterion[];
   absent_criteria: RuleCriterion[];
@@ -173,6 +181,10 @@ function pathwayAccent(index: number) {
 function strengthPlainLabel(strength: string): string {
   const hit = STRENGTH_LABELS.find((row) => row.value === strength);
   return hit?.label ?? strength.replace(/_/g, " ");
+}
+
+function actionPlainLabel(action: ActionResult | null | undefined): string {
+  return friendlyTerm(action?.preferred_term || action?.term);
 }
 
 function SnomedChip({ item }: { item: CriterionResult }) {
@@ -818,6 +830,7 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
     rule.strength && rule.strength !== "unspecified"
       ? strengthPlainLabel(rule.strength)
       : null;
+  const actionText = actionPlainLabel(rule.action);
   return (
     <Box
       sx={{
@@ -873,6 +886,7 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
             When this rule matches, the system should:{" "}
             <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
               {strengthText}
+              {actionText ? `: ${actionText}` : ""}
             </Box>
           </Typography>
         </Box>

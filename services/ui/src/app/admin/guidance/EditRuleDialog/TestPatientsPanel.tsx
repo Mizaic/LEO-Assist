@@ -199,6 +199,9 @@ export default function TestPatientsPanel({
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [sandboxNotCompiled, setSandboxNotCompiled] = useState(false);
+  const [compileSummary, setCompileSummary] = useState<
+    import("../../knowledge/test-patients/types").SandboxCompileSummary | null
+  >(null);
   const [autoRun, setAutoRun] = useState(true);
   /** Signature of the draft the most recent ``report`` was produced
    *  against. When the live signature drifts away from this we know
@@ -231,6 +234,7 @@ export default function TestPatientsPanel({
       setSandboxRunning(true);
       setError(null);
       setSandboxNotCompiled(false);
+      setCompileSummary(null);
       try {
         const result = await sandboxReplay({
           rules: [draftRule],
@@ -239,6 +243,7 @@ export default function TestPatientsPanel({
         });
         setReport(result.report);
         setReportSignature(signatureAtCallTime);
+        setCompileSummary(result.compile);
         const compiledZero = result.compile.rule_count === 0;
         setSandboxNotCompiled(compiledZero);
         return result.report;
@@ -447,11 +452,37 @@ export default function TestPatientsPanel({
 
       {sandboxNotCompiled && (
         <Alert severity="warning" sx={{ mt: 1 }} role="status">
-          The draft sandbox could not be compiled (no rules in it). Check
-          that your draft has at least one symptom or sign with a SNOMED
-          code, then run the sandbox test again.
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+            {SANDBOX_PANEL.compileFailedTitle}
+          </Typography>
+          {SANDBOX_PANEL.compileFailedBody}
+          {compileSummary && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mt: 0.75 }}
+            >
+              Compile stats: {compileSummary.rule_count} of{" "}
+              {compileSummary.draft_input_count} rule
+              {compileSummary.draft_input_count === 1 ? "" : "s"} included.
+              {compileSummary.compile_stats?.rules_excluded
+                ? ` ${compileSummary.compile_stats.rules_excluded} excluded.`
+                : ""}
+            </Typography>
+          )}
         </Alert>
       )}
+
+      {compileSummary &&
+        !sandboxNotCompiled &&
+        compileSummary.rule_count < compileSummary.draft_input_count && (
+          <Alert severity="warning" sx={{ mt: 1 }} role="status">
+            {SANDBOX_PANEL.compilePartialBody(
+              compileSummary.rule_count,
+              compileSummary.draft_input_count,
+            )}
+          </Alert>
+        )}
 
       {report && regressionCount > 0 && (
         <Alert
@@ -684,6 +715,7 @@ export default function TestPatientsPanel({
         initialAspect="summarisation"
         lockedRuleId={ruleId}
         lockedRuleHint={ruleName}
+        draftRule={draftRule}
         onClose={() => setScaffoldOpen(false)}
         onScaffolded={() => {
           setScaffoldOpen(false);
@@ -698,6 +730,8 @@ export default function TestPatientsPanel({
         patients={patients}
         rules={ruleLookup}
         mode="sandbox"
+        scopeType={report?.scope_type ?? compileSummary?.scope_type}
+        scopeId={report?.scope_id ?? compileSummary?.scope_id}
       />
     </Box>
   );

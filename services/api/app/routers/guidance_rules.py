@@ -111,6 +111,7 @@ RETURN rule.id AS rule_id,
        coalesce(rule.schemaVersion, 1) AS schema_version,
        rule.logicJson AS logic_json,
        rule.actionJson AS action_json,
+       rule.verifierJson AS verifier_json,
        rule.createdAt AS created_at,
        coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
        rule.reviewedAt AS reviewed_at,
@@ -170,6 +171,7 @@ RETURN rule.id AS rule_id,
        coalesce(rule.schemaVersion, 1) AS schema_version,
        rule.logicJson AS logic_json,
        rule.actionJson AS action_json,
+       rule.verifierJson AS verifier_json,
        rule.createdAt AS created_at,
        coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
        rule.reviewedAt AS reviewed_at,
@@ -198,6 +200,7 @@ RETURN rule.id AS rule_id,
        coalesce(rule.schemaVersion, 1) AS schema_version,
        rule.logicJson AS logic_json,
        rule.actionJson AS action_json,
+       rule.verifierJson AS verifier_json,
        rule.createdAt AS created_at,
        coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
        rule.reviewedAt AS reviewed_at,
@@ -1006,6 +1009,7 @@ def _format_rule(r: dict) -> dict:
     absent = [c for c in criteria if c.get("predicate") == "ABSENT"]
     logic_tree = _parse_logic_json(r.get("logic_json")) if schema_version == 2 else None
     logic_concepts = _logic_tree_concepts(logic_tree) if logic_tree else []
+    verifier = _parse_verifier_json(r.get("verifier_json"))
     display_plain_english = (
         _plain_english_logic(logic_tree)
         if logic_tree is not None
@@ -1027,6 +1031,9 @@ def _format_rule(r: dict) -> dict:
         "logic_tree": logic_tree,
         "action": _parse_action_json(r.get("action_json")),
         "criteria_concepts": logic_concepts,
+        "generation_outcome": verifier.get("generation_outcome"),
+        "needs_human_review": bool(verifier.get("needs_human_review")),
+        "generation_errors": verifier.get("errors") or [],
         "created_at": str(r.get("created_at", "")),
         # updated_at + reviewed_at + reviewed_by are surfaced so the FE
         # can sort the Active list "stalest first" and show authors when
@@ -1041,6 +1048,17 @@ def _format_rule(r: dict) -> dict:
         "has_predecessor": bool(r.get("has_predecessor")),
         "predecessor_id": r.get("predecessor_id"),
     }
+
+
+def _parse_verifier_json(raw: object) -> dict:
+    """Parse stored verifierJson for generation outcome metadata."""
+    if not raw:
+        return {}
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def _parse_action_json(raw: object) -> dict | None:

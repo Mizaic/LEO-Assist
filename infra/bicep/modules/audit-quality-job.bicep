@@ -55,23 +55,23 @@ resource auditQualityJob 'Microsoft.App/jobs@2023-05-01' = {
       registries: registryConfig
       secrets: [
         {
-          name: 'neo4j-uri'
-          keyVaultUrl: '${kvUri}/secrets/NEO4J-URI'
+          name: 'neo4j-patient-uri'
+          keyVaultUrl: '${kvUri}secrets/neo4j-patient-uri'
           identity: managedIdentityId
         }
         {
-          name: 'neo4j-password'
-          keyVaultUrl: '${kvUri}/secrets/NEO4J-PASSWORD'
+          name: 'neo4j-patient-password'
+          keyVaultUrl: '${kvUri}secrets/neo4j-patient-password'
           identity: managedIdentityId
         }
         {
           name: 'aws-access-key-id'
-          keyVaultUrl: '${kvUri}/secrets/AWS-ACCESS-KEY-ID'
+          keyVaultUrl: '${kvUri}secrets/aws-access-key-id'
           identity: managedIdentityId
         }
         {
           name: 'aws-secret-access-key'
-          keyVaultUrl: '${kvUri}/secrets/AWS-SECRET-ACCESS-KEY'
+          keyVaultUrl: '${kvUri}secrets/aws-secret-access-key'
           identity: managedIdentityId
         }
         {
@@ -128,11 +128,11 @@ resource auditQualityJob 'Microsoft.App/jobs@2023-05-01' = {
             }
             {
               name: 'NEO4J_URI'
-              secretRef: 'neo4j-uri'
+              secretRef: 'neo4j-patient-uri'
             }
             {
               name: 'NEO4J_PASSWORD'
-              secretRef: 'neo4j-password'
+              secretRef: 'neo4j-patient-password'
             }
             {
               name: 'AWS_ACCESS_KEY_ID'

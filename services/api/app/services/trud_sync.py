@@ -445,6 +445,9 @@ def _sync_one_package(key: str, external: Path, emit: Emitter) -> bool:
             _extract_snomed(tmp_path, dest_dir, emit)
         else:
             _extract_dmd(tmp_path, dest_dir, emit)
+    except Exception as exc:
+        emit({"type": "sync_error", "msg": f"Download/extract failed for {meta['label']}: {exc}"})
+        return False
     finally:
         tmp_path.unlink(missing_ok=True)
 

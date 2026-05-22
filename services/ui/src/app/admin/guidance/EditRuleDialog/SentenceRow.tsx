@@ -520,8 +520,11 @@ function ObservationAbsoluteRow({
         size="small"
         value={obs.unit ?? ""}
         onChange={(e) => setObservation({ unit: e.target.value })}
-        placeholder="10*9/L"
-        inputProps={{ "aria-label": "Unit (for example 10*9/L or mmol/L)" }}
+        placeholder="optional"
+        inputProps={{
+          "aria-label":
+            "Unit (optional -- for example ug/g or mmol/L)",
+        }}
         sx={{ width: 110 }}
       />
       <Select

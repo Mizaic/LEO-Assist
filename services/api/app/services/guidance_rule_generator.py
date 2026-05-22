@@ -38,7 +38,8 @@ All LLM call sites comply with llm-security.mdc:
   - INJECTION_GUARD prepended (in the subgraph)
   - sanitise_for_prompt() applied (in the subgraph)
   - cap_llm_response() applied (in the subgraph)
-  - fail_verdict = None (conservative — no rule written on LLM failure)
+  - When extraction fails, a pending_review stub rule is still written so every
+    recommendation appears in the HITL queue for manual authoring.
 """
 
 from __future__ import annotations
@@ -339,7 +340,7 @@ class GuidanceRuleGenerator:
             if rule_id:
                 generated.append(rule_id)
         logger.info(
-            "Generated %d/%d rules for guideline %s",
+            "Generated or stubbed %d/%d rules for guideline %s",
             len(generated),
             len(recs),
             guideline_id,
@@ -354,7 +355,8 @@ class GuidanceRuleGenerator:
     def _generate_one(self, guideline_id: str, rec: dict[str, Any]) -> str | None:
         """Run the extraction subgraph for a single recommendation.
 
-        Returns the rule ID on success, None on LLM failure or empty criteria.
+        Returns the rule ID on success or stub write. Returns None only when
+        the recommendation has no verbatim text to extract from.
         """
         verbatim = rec.get("verbatim") or rec.get("title") or ""
         if not verbatim.strip():
@@ -367,7 +369,12 @@ class GuidanceRuleGenerator:
                 "Fix the load error above and restart the service.",
                 rec.get("id"),
             )
-            return None
+            return self._write_generation_stub(
+                guideline_id,
+                rec,
+                outcome="subgraph_unavailable",
+                errors=["guidance_rule_extraction subgraph unavailable"],
+            )
 
         import time as _time
 
@@ -414,7 +421,7 @@ class GuidanceRuleGenerator:
         if coded is None:
             logger.error(
                 "Rule extraction returned no coded_criteria for recommendation %s — "
-                "rule NOT written to Neo4j. Errors: %s",
+                "writing pending_review stub for manual authoring. Errors: %s",
                 rec["id"],
                 errors_out,
             )
@@ -426,11 +433,18 @@ class GuidanceRuleGenerator:
                 duration_ms=duration_ms,
                 errors=errors_out,
             )
-            return None
+            return self._write_generation_stub(
+                guideline_id,
+                rec,
+                outcome="extraction_failed",
+                errors=errors_out,
+                raw=raw,
+            )
 
         if bool(coded.get("no_rule_expected")):
             logger.info(
-                "Recommendation %s marked no_rule_expected (%s) — skipping rule write.",
+                "Recommendation %s marked no_rule_expected (%s) — "
+                "writing stub for reviewer confirmation.",
                 rec["id"],
                 coded.get("reason") or "non_codable_service_recommendation",
             )
@@ -442,18 +456,24 @@ class GuidanceRuleGenerator:
                 duration_ms=duration_ms,
                 errors=errors_out,
             )
-            return None
+            reason = str(coded.get("reason") or "non_codable_service_recommendation")
+            return self._write_generation_stub(
+                guideline_id,
+                rec,
+                outcome="no_rule_expected",
+                errors=[f"no_rule_expected:{reason}", *errors_out],
+                raw=raw,
+                coded=coded,
+            )
 
-        # Abort the Neo4j write if any term failed due to Terminology API being
-        # unavailable — a partially coded rule would have missing criteria groups
-        # and would either never fire or fire incorrectly for patients.
         if any("terminology_api_unavailable" in e for e in errors_out):
             logger.error(
-                "Rule for recommendation %s NOT written to Neo4j — "
-                "one or more terms could not be SNOMED-coded because the Terminology "
-                "API was unavailable. Re-generate when the API is healthy.",
+                "Rule for recommendation %s has terminology gaps — "
+                "writing partial rule for manual review.",
                 rec["id"],
             )
+            coded = {**coded, "needs_human_review": True}
+            rule_id = self._write_rule(guideline_id, rec, raw, coded)
             self._write_guidance_audit_event(
                 rec=rec,
                 guideline_id=guideline_id,
@@ -461,8 +481,9 @@ class GuidanceRuleGenerator:
                 llm_tokens=llm_tokens,
                 duration_ms=duration_ms,
                 errors=errors_out,
+                rule_id=rule_id,
             )
-            return None
+            return rule_id
 
         rule_id = self._write_rule(guideline_id, rec, raw, coded)
         status = (
@@ -476,6 +497,91 @@ class GuidanceRuleGenerator:
             duration_ms=duration_ms,
             errors=errors_out,
             rule_id=rule_id,
+        )
+        return rule_id
+
+    def _empty_logic_tree(
+        self, rec: dict[str, Any], coded: dict[str, Any] | None = None
+    ) -> dict:
+        """Minimal v2 tree so failed extractions still open in the rule editor."""
+        label = str(
+            (coded or {}).get("name")
+            or rec.get("name")
+            or rec.get("title")
+            or rec.get("recommendation_text", "")[:120]
+        )
+        return {
+            "kind": "AND",
+            "label": label,
+            "children": [],
+        }
+
+    def _write_generation_stub(
+        self,
+        guideline_id: str,
+        rec: dict[str, Any],
+        *,
+        outcome: str,
+        errors: list[str],
+        raw: dict[str, Any] | None = None,
+        coded: dict[str, Any] | None = None,
+    ) -> str:
+        """Write a pending_review placeholder so every rec appears in HITL."""
+        rule_id = f"rule:{rec['id']}:{str(uuid.uuid4())[:8]}"
+        task_id = str(uuid.uuid4())
+        logic_tree = self._empty_logic_tree(rec, coded)
+        raw_tree = (raw or {}).get("logic_tree")
+        verifier: dict[str, Any] = {
+            "generation_outcome": outcome,
+            "needs_human_review": True,
+            "errors": errors[:20],
+        }
+        if coded:
+            verifier["partial_coded"] = {
+                k: coded[k]
+                for k in (
+                    "name",
+                    "reason",
+                    "no_rule_expected",
+                    "present_criteria",
+                    "absent_criteria",
+                )
+                if k in coded
+            }
+        title = (rec.get("title") or rec.get("recommendation_text") or "")[:80]
+        with self._driver.session() as session:
+            session.run(
+                _UPSERT_RULE,
+                recommendation_id=rec["id"],
+                rule_id=rule_id,
+                name=f"Rule: {title}",
+                strength=rec.get("strength", "unspecified"),
+                compile_scope_id=guideline_id,
+                schema_version=2,
+                logic_json=json.dumps(logic_tree),
+                raw_logic_json=(
+                    json.dumps(raw_tree) if raw_tree is not None else None
+                ),
+                verifier_json=json.dumps(verifier),
+                action_json=None,
+            )
+            session.run(
+                _CREATE_REVIEW_TASK,
+                task_id=task_id,
+                rule_id=rule_id,
+                guideline_id=guideline_id,
+            )
+            session.run(
+                _LINK_SUPERSEDES,
+                rule_id=rule_id,
+                guideline_id=guideline_id,
+                verbatim=rec.get("verbatim") or rec.get("title") or "",
+            )
+        logger.info(
+            "Wrote generation stub %s for recommendation %s (outcome=%s)",
+            rule_id,
+            rec["id"],
+            outcome,
         )
         return rule_id
 

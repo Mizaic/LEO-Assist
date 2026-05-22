@@ -426,6 +426,39 @@ MERGE (rule)-[:HAS_AUDIT_EVENT]->(audit)
 RETURN rule.id AS id
 """
 
+# When the AI generator is re-run, multiple pending_review rules can hang
+# off the same Recommendation via separate [:HAS_RULE] edges. Approving or
+# editing one version should retire the stale siblings so reviewers are not
+# left choosing between duplicate drafts for the same NICE recommendation.
+_REJECT_SIBLING_PENDING_RULES = """
+MATCH (chosen:AppropriatenessRule {id: $rule_id})<-[:HAS_RULE]-(rec:Recommendation)
+MATCH (rec)-[:HAS_RULE]->(sibling:AppropriatenessRule)
+WHERE sibling.id <> $rule_id
+  AND sibling.status = 'pending_review'
+SET sibling.status = 'rejected',
+    sibling.reviewedAt = datetime(),
+    sibling.reviewedBy = $reviewer
+RETURN collect(sibling.id) AS rejected_ids
+"""
+
+
+def reject_sibling_pending_rules(
+    client: Any,
+    *,
+    rule_id: str,
+    reviewer: str,
+) -> list[str]:
+    """Reject other pending drafts linked to the same recommendation."""
+    rows = client.run(
+        _REJECT_SIBLING_PENDING_RULES,
+        rule_id=rule_id,
+        reviewer=reviewer,
+    )
+    if not rows:
+        return []
+    rejected = rows[0].get("rejected_ids") or []
+    return [str(rule_id) for rule_id in rejected]
+
 
 def _action_payload(action: LogicCriterion) -> dict[str, Any]:
     """Compose the actionJson payload persisted on an edited rule.
@@ -524,6 +557,12 @@ def apply_rule_edit(
             "Edited rule could not be written. The recommendation may have moved."
         )
 
+    reject_sibling_pending_rules(
+        client,
+        rule_id=new_rule_id,
+        reviewer=reviewer,
+    )
+
     return {"rule_id": new_rule_id, "predecessor_id": predecessor_rule_id}
 
 
@@ -540,6 +579,7 @@ __all__ = [
     "ObservationLeafValidationError",
     "RuleUpdates",
     "apply_rule_edit",
+    "reject_sibling_pending_rules",
     "validate_logic_tree",
 ]
 

@@ -9,7 +9,9 @@ import {
   applyUpdate,
   assignNodeIds,
   findValidationError,
+  hasOrRootWithPrerequisites,
   isTreeVisuallyEmpty,
+  promoteOrPrerequisites,
   stripNodeIds,
   wrapRootInAnd,
 } from "../treeOps";
@@ -360,5 +362,110 @@ describe("treeOps", () => {
       },
     });
     expect(withSibling?.children).toHaveLength(2);
+  });
+});
+
+describe("promoteOrPrerequisites", () => {
+  function makeOrWithAge(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "OR",
+      children: [
+        { kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: 50, unit: "years" },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "FIT" } },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "2", preferred_term: "Blood" } },
+      ],
+    });
+  }
+
+  it("promotes demographic to AND prerequisite, wraps remaining concepts in OR", () => {
+    const tree = makeOrWithAge();
+    const fixed = promoteOrPrerequisites(tree);
+    expect(fixed.kind).toBe("AND");
+    const kids = fixed.children ?? [];
+    expect(kids.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
+    const orGroup = kids.find((c) => c.kind === "OR");
+    expect(orGroup).toBeDefined();
+    expect(orGroup?.children).toHaveLength(2);
+  });
+
+  it("wraps a single remaining concept in OR so pathways stay editable", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        { kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: 18, unit: "years" },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "Mycoplasma" } },
+      ],
+    });
+    const fixed = promoteOrPrerequisites(tree);
+    expect(fixed.kind).toBe("AND");
+    const kids = fixed.children ?? [];
+    expect(kids.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
+    const orGroup = kids.find((c) => c.kind === "OR");
+    expect(orGroup).toBeDefined();
+    expect(orGroup?.children).toHaveLength(1);
+    expect(orGroup?.children?.[0].kind).toBe("CONCEPT");
+  });
+
+  it("produces AND with only prerequisites when there are no other children", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        { kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: 18, unit: "years" },
+      ],
+    });
+    const fixed = promoteOrPrerequisites(tree);
+    expect(fixed.kind).toBe("AND");
+    const kids = fixed.children ?? [];
+    expect(kids).toHaveLength(1);
+    expect(kids[0].kind).toBe("DEMOGRAPHIC");
+  });
+
+  it("returns unchanged tree when OR has no prerequisites", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "FIT" } },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "2", preferred_term: "Blood" } },
+      ],
+    });
+    expect(promoteOrPrerequisites(tree)).toBe(tree);
+  });
+
+  it("returns unchanged tree when root is not OR", () => {
+    const tree = assignNodeIds({ kind: "AND", children: [] });
+    expect(promoteOrPrerequisites(tree)).toBe(tree);
+  });
+});
+
+describe("hasOrRootWithPrerequisites", () => {
+  it("detects OR root with demographic child", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        { kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: 50, unit: "years" },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "FIT" } },
+      ],
+    });
+    expect(hasOrRootWithPrerequisites(tree)).toBe(true);
+  });
+
+  it("returns false for AND root", () => {
+    const tree = assignNodeIds({ kind: "AND", children: [] });
+    expect(hasOrRootWithPrerequisites(tree)).toBe(false);
+  });
+
+  it("returns false for OR root with only concepts", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "FIT" } },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "2", preferred_term: "Blood" } },
+      ],
+    });
+    expect(hasOrRootWithPrerequisites(tree)).toBe(false);
+  });
+
+  it("returns false for null", () => {
+    expect(hasOrRootWithPrerequisites(null)).toBe(false);
   });
 });

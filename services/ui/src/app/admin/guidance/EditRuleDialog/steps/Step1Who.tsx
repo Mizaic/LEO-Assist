@@ -37,15 +37,20 @@ import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
+import BlockEditor from "../BlockEditor";
 import LogicTreeEditor from "../LogicTreeEditor";
-import SentenceCanvas, { type SandboxImpactBadge } from "../SentenceCanvas";
+import { type SandboxImpactBadge } from "../SentenceCanvas";
 import {
   CANVAS_CARDS,
   DUPLICATE_SETS_ALERT,
   STEP_HELPERS,
   STEP_TITLES,
 } from "../copy";
-import { isTreeVisuallyEmpty } from "../treeOps";
+import {
+  hasOrRootWithPrerequisites,
+  isTreeVisuallyEmpty,
+  promoteOrPrerequisites,
+} from "../treeOps";
 import { useConfirmEdits } from "../useConfirmEdits";
 import type {
   EditableLogicNode,
@@ -178,7 +183,6 @@ export default function Step1Who({
             onUpdate={wrappedOnUpdate}
             onRequestAdd={onRequestAdd}
             onRequestCoach={onRequestCoach}
-            sandboxBadge={sandboxBadge}
           />
         )
       )}
@@ -204,7 +208,6 @@ function CanvasAndAdvanced({
   onUpdate,
   onRequestAdd,
   onRequestCoach,
-  sandboxBadge,
 }: Pick<
   Props,
   | "selectedNodeId"
@@ -212,20 +215,49 @@ function CanvasAndAdvanced({
   | "onUpdate"
   | "onRequestAdd"
   | "onRequestCoach"
-  | "sandboxBadge"
 > & { tree: EditableLogicNode }) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const showStructureWarning = hasOrRootWithPrerequisites(tree);
+
+  function handleFixStructure() {
+    const fixed = promoteOrPrerequisites(tree);
+    if (fixed !== tree) {
+      onUpdate({ kind: "replace_root", node: fixed });
+    }
+  }
+
   return (
     <Box sx={{ minWidth: 0 }}>
-      <SentenceCanvas
+      {showStructureWarning && (
+        <Alert
+          severity="warning"
+          role="status"
+          sx={{ mb: 2, py: 0.75 }}
+          action={
+            <Button
+              size="small"
+              color="warning"
+              variant="outlined"
+              onClick={handleFixStructure}
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              Fix structure
+            </Button>
+          }
+        >
+          <strong>Age looks like a prerequisite, not a pathway.</strong>{" "}
+          Age (or a lab value) should always apply -- it should not be a
+          pathway alternative. Click <strong>Fix structure</strong> to move
+          it above the pathways so patients must always match it.
+        </Alert>
+      )}
+      <BlockEditor
         tree={tree}
         selectedNodeId={selectedNodeId}
         onSelectNode={onSelectNode}
         onUpdate={onUpdate}
         onRequestAdd={onRequestAdd}
         onRequestCoach={onRequestCoach}
-        onOpenAdvancedView={() => setAdvancedOpen(true)}
-        sandboxBadge={sandboxBadge}
       />
       <Accordion
         expanded={advancedOpen}

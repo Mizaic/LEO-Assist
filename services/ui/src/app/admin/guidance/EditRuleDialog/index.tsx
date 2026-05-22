@@ -88,6 +88,9 @@ import {
   assignNodeIds,
   canHaveChildren,
   findValidationError,
+  hasOrRootWithPrerequisites,
+  observationWithCriterion,
+  promoteOrPrerequisites,
   stripNodeIds,
   wrapRootInAnd,
 } from "./treeOps";
@@ -129,6 +132,8 @@ interface SearchTarget {
   mode: "replace" | "add" | "replace_action" | "idle";
   parentNodeId: string | null;
   nodeId: string | null;
+  /** When mode is ``replace``, distinguishes symptom chips from lab values. */
+  replaceKind: "concept" | "observation" | null;
   initialQuery: string;
   focusLabel: string | null;
   /**
@@ -146,6 +151,7 @@ const IDLE_TARGET: SearchTarget = {
   mode: "idle",
   parentNodeId: null,
   nodeId: null,
+  replaceKind: null,
   initialQuery: "",
   focusLabel: null,
   anchorEl: null,
@@ -310,6 +316,21 @@ export default function EditRuleDialog({
     if (!tree) return;
     const focused = findNode(tree, nodeId);
     if (!focused) return;
+    if (focused.kind === "OBSERVATION") {
+      const friendly = friendlyTerm(focused.observation?.observable_term);
+      setSearchTarget({
+        mode: "replace",
+        parentNodeId: null,
+        nodeId,
+        replaceKind: "observation",
+        initialQuery: friendly,
+        focusLabel: friendly
+          ? `Swapping lab value: ${friendly}`
+          : "Pick a lab value to compare",
+        anchorEl: anchor ?? null,
+      });
+      return;
+    }
     if (focused.kind !== "CONCEPT") {
       setSearchTarget(IDLE_TARGET);
       return;
@@ -319,6 +340,7 @@ export default function EditRuleDialog({
       mode: "replace",
       parentNodeId: null,
       nodeId,
+      replaceKind: "concept",
       initialQuery: friendly,
       focusLabel: friendly
         ? `Swapping: ${friendly}`
@@ -337,6 +359,7 @@ export default function EditRuleDialog({
       mode: "add",
       parentNodeId,
       nodeId: null,
+      replaceKind: null,
       initialQuery: "",
       focusLabel: parent
         ? `Adding to: ${groupLabel(parent.kind)}`
@@ -392,6 +415,7 @@ export default function EditRuleDialog({
       mode: "add",
       parentNodeId: parent?.node_id ?? null,
       nodeId: null,
+      replaceKind: null,
       initialQuery: topic,
       focusLabel: `Adding to: ${parent ? groupLabel(parent.kind) : "the rule"}`,
       anchorEl: coach.anchor,
@@ -405,6 +429,7 @@ export default function EditRuleDialog({
       mode: "replace_action",
       parentNodeId: null,
       nodeId: null,
+      replaceKind: null,
       initialQuery: friendly,
       focusLabel: friendly
         ? `Swapping the procedure: ${friendly}`
@@ -421,7 +446,24 @@ export default function EditRuleDialog({
       return;
     }
     if (searchTarget.mode === "replace" && searchTarget.nodeId) {
-      handleUpdate({ kind: "replace_concept", nodeId: searchTarget.nodeId, criterion });
+      const focused = tree ? findNode(tree, searchTarget.nodeId) : null;
+      if (
+        focused?.kind === "OBSERVATION" &&
+        focused.observation &&
+        searchTarget.replaceKind === "observation"
+      ) {
+        handleUpdate({
+          kind: "set_observation",
+          nodeId: searchTarget.nodeId,
+          observation: observationWithCriterion(focused.observation, criterion),
+        });
+      } else {
+        handleUpdate({
+          kind: "replace_concept",
+          nodeId: searchTarget.nodeId,
+          criterion,
+        });
+      }
       setSearchTarget(IDLE_TARGET);
       return;
     }
@@ -794,6 +836,7 @@ export default function EditRuleDialog({
             ? searchTarget.mode
             : "add"
         }
+        replaceKind={searchTarget.replaceKind}
         focusLabel={searchTarget.focusLabel}
         initialQuery={searchTarget.initialQuery}
         onPick={handlePick}
