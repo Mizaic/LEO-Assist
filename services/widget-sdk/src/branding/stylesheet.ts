@@ -25,41 +25,55 @@ export function buildShadowStylesheet(): string {
   font-family: ${BRAND.fontFamily};
   color: ${BRAND.light.text};
   background: ${BRAND.light.background};
-  line-height: 1.5;
+  line-height: 1.6;
   font-size: 14px;
   box-sizing: border-box;
 }
 
-* { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Explicitly preserve browser text-formatting defaults inside the
+   shadow root. Some environments with aggressive UA resets do not
+   apply the UA bold/italic rules to shadow-DOM children. */
+strong, b { font-weight: 700; }
+em, i { font-style: italic; }
+
+/* ------ Root card ------ */
 
 .leo-root {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 16px;
   border: 1px solid ${BRAND.light.border};
   border-radius: 12px;
   background: ${BRAND.light.surface};
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.07), 0 1px 2px -1px rgba(0,0,0,0.05);
 }
+
+/* ------ Header ------ */
 
 .leo-header {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid ${BRAND.light.border};
   color: ${BRAND.light.primary};
 }
 
 .leo-mark {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   flex: 0 0 auto;
   color: ${BRAND.light.primary};
 }
 
 .leo-product {
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.2px;
+  font-size: 13.5px;
+  letter-spacing: 0.1px;
+  flex: 1;
 }
 
 .leo-test-only {
@@ -70,7 +84,24 @@ export function buildShadowStylesheet(): string {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
 }
+
+/* ------ Advisory banner ------ */
+
+.leo-advisory {
+  border: 1px solid ${BRAND.light.warningInk};
+  background: ${BRAND.light.warningBg};
+  color: ${BRAND.light.warningInk};
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* ------ SBAR stage cards ------ */
 
 .leo-stage {
   border: 1px solid ${BRAND.light.border};
@@ -80,53 +111,99 @@ export function buildShadowStylesheet(): string {
   background: ${BRAND.light.surface};
 }
 
-.leo-stage[data-stage="situation"] {
-  border-left-color: ${STAGE_THEME.situation.accent};
-}
-
-.leo-stage[data-stage="background"] {
-  border-left-color: ${STAGE_THEME.background.accent};
-}
-
-.leo-stage[data-stage="assessment"] {
-  border-left-color: ${STAGE_THEME.assessment.accent};
-}
-
-.leo-stage[data-stage="recommendation"] {
-  border-left-color: ${STAGE_THEME.recommendation.accent};
-}
+.leo-stage[data-stage="situation"]      { border-left-color: ${STAGE_THEME.situation.accent}; }
+.leo-stage[data-stage="background"]     { border-left-color: ${STAGE_THEME.background.accent}; }
+.leo-stage[data-stage="assessment"]     { border-left-color: ${STAGE_THEME.assessment.accent}; }
+.leo-stage[data-stage="recommendation"] { border-left-color: ${STAGE_THEME.recommendation.accent}; }
 
 .leo-stage-header {
-  padding: 8px 14px;
+  padding: 7px 14px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
-.leo-stage[data-stage="situation"] .leo-stage-header {
-  background: ${STAGE_THEME.situation.tint};
-  color: ${STAGE_THEME.situation.ink};
-}
+.leo-stage[data-stage="situation"]      .leo-stage-header { background: ${STAGE_THEME.situation.tint};      color: ${STAGE_THEME.situation.ink}; }
+.leo-stage[data-stage="background"]     .leo-stage-header { background: ${STAGE_THEME.background.tint};     color: ${STAGE_THEME.background.ink}; }
+.leo-stage[data-stage="assessment"]     .leo-stage-header { background: ${STAGE_THEME.assessment.tint};     color: ${STAGE_THEME.assessment.ink}; }
+.leo-stage[data-stage="recommendation"] .leo-stage-header { background: ${STAGE_THEME.recommendation.tint}; color: ${STAGE_THEME.recommendation.ink}; }
 
-.leo-stage[data-stage="background"] .leo-stage-header {
-  background: ${STAGE_THEME.background.tint};
-  color: ${STAGE_THEME.background.ink};
-}
-
-.leo-stage[data-stage="assessment"] .leo-stage-header {
-  background: ${STAGE_THEME.assessment.tint};
-  color: ${STAGE_THEME.assessment.ink};
-}
-
-.leo-stage[data-stage="recommendation"] .leo-stage-header {
-  background: ${STAGE_THEME.recommendation.tint};
-  color: ${STAGE_THEME.recommendation.ink};
-}
+/* ------ Stage body (plain text) ------ */
 
 .leo-stage-body {
   padding: 10px 14px;
   font-size: 13px;
-  white-space: pre-wrap;
+  line-height: 1.6;
   word-break: break-word;
+}
+
+/* ------ Stage body (markdown-rendered) ------ */
+
+.leo-stage-body--md {
+  padding: 6px 14px 12px;
+}
+
+.leo-stage-body--md .leo-md-p {
+  margin: 7px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.leo-stage-body--md .leo-md-p:first-child { margin-top: 4px; }
+.leo-stage-body--md .leo-md-p:last-child  { margin-bottom: 2px; }
+
+/* Sub-section headings inside a stage body, e.g. ### Routine.
+   Styled in each stage's ink colour so they read as in-context
+   dividers rather than generic section labels. */
+.leo-stage-body--md .leo-md-h {
+  margin: 14px 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: ${BRAND.light.textMuted};
+}
+
+.leo-stage-body--md .leo-md-h:first-child { margin-top: 6px; }
+
+.leo-stage[data-stage="situation"]      .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.situation.ink}; }
+.leo-stage[data-stage="background"]     .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.background.ink}; }
+.leo-stage[data-stage="assessment"]     .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.assessment.ink}; }
+.leo-stage[data-stage="recommendation"] .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.recommendation.ink}; }
+
+/* Top-level list (rule bullets, background bullets) */
+.leo-stage-body--md .leo-md-list {
+  margin: 6px 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+/* Nested list (Recommendation / Matched on / Action / Guideline) */
+.leo-stage-body--md .leo-md-list .leo-md-list {
+  margin: 3px 0;
+  padding-left: 14px;
+  list-style: circle;
+}
+
+/* Third level (rare) */
+.leo-stage-body--md .leo-md-list .leo-md-list .leo-md-list {
+  list-style: square;
+}
+
+/* Top-level items: body size, with room between rules */
+.leo-stage-body--md .leo-md-list > .leo-md-item {
+  margin: 6px 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Nested items: smaller, muted -- contextual detail */
+.leo-stage-body--md .leo-md-list .leo-md-list > .leo-md-item {
+  margin: 3px 0;
+  font-size: 12px;
+  color: ${BRAND.light.textMuted};
+  line-height: 1.5;
 }
 
 /*
@@ -204,9 +281,116 @@ export function buildShadowStylesheet(): string {
   outline-offset: 2px;
 }
 
-.leo-empty {
-  font-size: 12px;
+/* ------ Guideline matches section ------ */
+
+.leo-guideline-matches {
+  border: 1px solid ${BRAND.light.border};
+  border-left: 4px solid #6366f1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: ${BRAND.light.surface};
+}
+
+.leo-guideline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leo-guideline-match {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 14px;
+  border-bottom: 1px solid ${BRAND.light.border};
+}
+
+.leo-guideline-match:last-child { border-bottom: none; }
+
+.leo-guideline-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: ${BRAND.light.text};
+  line-height: 1.4;
+}
+
+.leo-guideline-strength {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+  align-self: flex-start;
+  background: #f1f5f9;
   color: ${BRAND.light.textMuted};
+}
+
+.leo-guideline-strength--consider { background: #fffbeb; color: #92400e; }
+.leo-guideline-strength--offer     { background: #eff6ff; color: #1e3a8a; }
+.leo-guideline-strength--refer     { background: #f0fdfa; color: #115e59; }
+.leo-guideline-strength--recommend { background: #f0fdf4; color: #14532d; }
+
+.leo-verbatim { margin-top: 4px; }
+
+.leo-verbatim-toggle {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: ${BRAND.light.primary};
+  cursor: pointer;
+  letter-spacing: 0.1px;
+  padding: 0;
+}
+
+.leo-verbatim-text {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: ${BRAND.light.textMuted};
+  background: ${BRAND.light.surfaceMuted};
+  border-radius: 6px;
+  border-left: 3px solid #6366f1;
+}
+
+/* ------ Completeness panel ------ */
+
+.leo-completeness {
+  border: 1px solid ${BRAND.light.border};
+  border-left: 4px solid #6366f1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: ${BRAND.light.surface};
+}
+
+.leo-field-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 14px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.leo-field {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.leo-field--present { background: #f0fdf4; color: #14532d; border: 1px solid #bbf7d0; }
+.leo-field--missing { background: #fef2f2; color: #7f1d1d; border: 1px solid #fecaca; }
+.leo-field--unclear { background: #fffbeb; color: #78350f; border: 1px solid #fed7aa; }
+
+/* ------ Empty / error states ------ */
+
+.leo-empty {
+  font-size: 12.5px;
+  color: ${BRAND.light.textMuted};
+  padding: 4px 0;
 }
 
 .leo-error {
@@ -216,17 +400,10 @@ export function buildShadowStylesheet(): string {
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
+  line-height: 1.5;
 }
 
-.leo-advisory {
-  border: 1px solid ${BRAND.light.warningInk};
-  background: ${BRAND.light.warningBg};
-  color: ${BRAND.light.warningInk};
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
+/* ------ Dark mode ------ */
 
 @media (prefers-color-scheme: dark) {
   :host {
@@ -237,9 +414,14 @@ export function buildShadowStylesheet(): string {
   .leo-root {
     border-color: ${BRAND.dark.border};
     background: ${BRAND.dark.surface};
+    box-shadow: none;
   }
 
-  .leo-header { color: ${BRAND.dark.primary}; }
+  .leo-header {
+    color: ${BRAND.dark.primary};
+    border-bottom-color: ${BRAND.dark.border};
+  }
+
   .leo-mark { color: ${BRAND.dark.primary}; }
 
   .leo-test-only {
@@ -254,6 +436,15 @@ export function buildShadowStylesheet(): string {
 
   .leo-stage-body { color: ${BRAND.dark.text}; }
 
+  .leo-stage-body--md .leo-md-h { color: ${BRAND.dark.textMuted}; }
+
+  .leo-stage[data-stage="situation"]      .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.situation.tint}; }
+  .leo-stage[data-stage="background"]     .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.background.tint}; }
+  .leo-stage[data-stage="assessment"]     .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.assessment.tint}; }
+  .leo-stage[data-stage="recommendation"] .leo-stage-body--md .leo-md-h { color: ${STAGE_THEME.recommendation.tint}; }
+
+  .leo-stage-body--md .leo-md-list .leo-md-list > .leo-md-item { color: ${BRAND.dark.textMuted}; }
+
   .leo-source-chip {
     background: ${BRAND.dark.surfaceMuted};
     color: ${BRAND.dark.text};
@@ -263,6 +454,30 @@ export function buildShadowStylesheet(): string {
   .leo-disclosure-toggle { color: ${BRAND.dark.primary}; }
 
   .leo-empty, .leo-source-part-label { color: ${BRAND.dark.textMuted}; }
+
+  .leo-guideline-matches {
+    border-color: ${BRAND.dark.border};
+    background: ${BRAND.dark.surface};
+  }
+
+  .leo-guideline-match { border-bottom-color: ${BRAND.dark.border}; }
+
+  .leo-guideline-name { color: ${BRAND.dark.text}; }
+
+  .leo-guideline-strength {
+    background: ${BRAND.dark.surfaceMuted};
+    color: ${BRAND.dark.textMuted};
+  }
+
+  .leo-verbatim-text {
+    background: ${BRAND.dark.surfaceMuted};
+    color: ${BRAND.dark.textMuted};
+  }
+
+  .leo-completeness {
+    border-color: ${BRAND.dark.border};
+    background: ${BRAND.dark.surface};
+  }
 }
 `.trim();
 }
