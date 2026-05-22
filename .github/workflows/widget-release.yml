@@ -180,7 +180,6 @@ jobs:
             services/widget-sdk/dist/v1/
             services/widget-sdk/dist/iframe/
             services/widget-sdk/dist/demo/
-            services/widget-sdk/static/v1/leo-loader.js
           retention-days: 30
 
   deploy:
