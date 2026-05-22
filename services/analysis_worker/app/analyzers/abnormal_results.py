@@ -3,13 +3,17 @@
 Atlas trace:
   DO: DO-6C694CF9
   DI: DI-21E93377
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6C694CF9")
+  Look up via: get_design_control(dc_type="design_output", dc_id="DO-6C694CF9")
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
 import re
 from typing import Any
+
+from libs.lab_results.classifier import LabConfigError, classify_lab_result
+from libs.neo4j_client.client import KnowledgeGraphClient
 
 _ABNORMAL_PATTERNS = (
     re.compile(r"\babnormal\b", re.I),
@@ -56,37 +60,6 @@ RETURN toString(e.id) AS encounter_id,
        toString(e.date) AS date,
        coalesce(e.text, e.note, e.content, '') AS text
 ORDER BY e.date DESC
-"""
-
-_LOOKUP_REFERENCE_RANGE = """
-MATCH (rr:ReferenceRange)
-WHERE rr.conceptId = $concept_id
-  AND ($org_id IS NULL OR rr.org_id = $org_id OR rr.org_id IS NULL)
-  AND ($unit IS NULL OR rr.unit IS NULL OR toLower(rr.unit) = toLower($unit))
-  AND ($sex IS NULL OR rr.sex IS NULL OR toLower(rr.sex) = 'all' OR toLower(rr.sex) = toLower($sex))
-  AND ($age_years IS NULL OR rr.age_min IS NULL OR rr.age_min <= $age_years)
-  AND ($age_years IS NULL OR rr.age_max IS NULL OR rr.age_max >= $age_years)
-RETURN rr.low AS low,
-       rr.high AS high,
-       rr.critical_low AS critical_low,
-       rr.critical_high AS critical_high,
-       rr.unit AS unit,
-       rr.sex AS sex,
-       rr.age_min AS age_min,
-       rr.age_max AS age_max,
-       rr.org_id AS org_id,
-       rr.source AS source,
-       rr.preferred_term AS preferred_term,
-       rr.range_id AS range_id
-ORDER BY CASE
-           WHEN $org_id IS NOT NULL AND rr.org_id = $org_id THEN 0
-           WHEN rr.org_id IS NULL THEN 1
-           ELSE 2
-         END,
-         CASE WHEN rr.unit IS NOT NULL THEN 0 ELSE 1 END,
-         CASE WHEN rr.sex IS NOT NULL AND toLower(rr.sex) <> 'all' THEN 0 ELSE 1 END,
-         coalesce(rr.age_min, -1) DESC
-LIMIT 1
 """
 
 
@@ -142,28 +115,35 @@ def classify_severity(
     return "normal"
 
 
-def lookup_reference_range(
+def _severity_from_lab_classification(classification: str) -> str:
+    if classification in {"critically_low", "critically_high"}:
+        return "critical"
+    return "warning"
+
+
+def _append_range_missing(
+    findings: list[dict[str, Any]],
+    *,
+    patient_id: str,
+    encounter_id: str,
+    row: dict[str, Any],
     concept_id: str,
-    unit: str | None,
-    sex: str | None,
-    age_years: int | None,
-    org_id: str | None,
-    session: Any,
-) -> dict[str, Any] | None:
-    rows = list(
-        session.run(
-            _LOOKUP_REFERENCE_RANGE,
-            concept_id=str(concept_id),
-            unit=unit,
-            sex=sex.lower() if isinstance(sex, str) else None,
-            age_years=age_years,
-            org_id=org_id,
-        )
-        or []
+    value: float,
+    reason: str,
+) -> None:
+    findings.append(
+        {
+            "patient_id": patient_id,
+            "encounter_id": encounter_id,
+            "date": row.get("date"),
+            "severity": "warning",
+            "classification": "range_missing",
+            "concept_id": concept_id,
+            "value": value,
+            "unit": row.get("unit"),
+            "description": reason,
+        }
     )
-    if not rows:
-        return None
-    return dict(rows[0])
 
 
 def detect_abnormal_results(
@@ -175,6 +155,8 @@ def detect_abnormal_results(
     org_id: str | None = None,
     knowledge_client: Any | None = None,
 ) -> list[dict[str, Any]]:
+    del org_id  # Lab metadata is platform-wide in the Knowledge Graph.
+
     demographics = list(
         patient_client.run(_GET_PATIENT_DEMOGRAPHICS, patient_id=patient_id) or []
     )
@@ -183,6 +165,11 @@ def detect_abnormal_results(
         or None
     )
     dob_raw = demographics[0].get("date_of_birth") if demographics else None
+    owns_kg_client = knowledge_client is None
+    try:
+        kg_client = knowledge_client or KnowledgeGraphClient()
+    except RuntimeError:
+        kg_client = None
 
     rows = list(
         patient_client.run(
@@ -210,69 +197,89 @@ def detect_abnormal_results(
         age_years = _age_years_on(
             str(dob_raw) if dob_raw else None, str(row.get("date") or "")
         )
-        reference = lookup_reference_range(
-            concept_id=concept_id,
-            unit=row.get("unit"),
-            sex=sex,
-            age_years=age_years,
-            org_id=org_id,
-            session=patient_client,
-        )
-
-        if reference is None:
-            findings.append(
-                {
-                    "patient_id": patient_id,
-                    "encounter_id": encounter_id,
-                    "date": row.get("date"),
-                    "severity": "warning",
-                    "classification": "range_missing",
-                    "concept_id": concept_id,
-                    "value": value,
-                    "unit": row.get("unit"),
-                    "description": f"Structured result has no configured range: concept {concept_id}",
-                }
+        if kg_client is None:
+            _append_range_missing(
+                findings,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+                row=row,
+                concept_id=concept_id,
+                value=value,
+                reason=(
+                    "Knowledge Graph unavailable; cannot classify structured result "
+                    f"for concept {concept_id}"
+                ),
             )
             continue
 
-        low = _safe_float(reference.get("low"))
-        high = _safe_float(reference.get("high"))
-        critical_low = _safe_float(reference.get("critical_low"))
-        critical_high = _safe_float(reference.get("critical_high"))
-        classification = classify_severity(
-            value, low, high, critical_low, critical_high
-        )
-        if classification == "normal":
+        try:
+            with kg_client.session() as kg_session:
+                lab_result = classify_lab_result(
+                    concept_id,
+                    value,
+                    row.get("unit"),
+                    patient_sex=sex,
+                    patient_age=age_years,
+                    session=kg_session,
+                )
+        except LabConfigError as exc:
+            _append_range_missing(
+                findings,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+                row=row,
+                concept_id=concept_id,
+                value=value,
+                reason=str(exc),
+            )
+            continue
+        except Exception as exc:
+            _append_range_missing(
+                findings,
+                patient_id=patient_id,
+                encounter_id=encounter_id,
+                row=row,
+                concept_id=concept_id,
+                value=value,
+                reason=f"Lab classification failed for concept {concept_id}: {exc}",
+            )
             continue
 
-        severity = "critical" if classification == "critically_abnormal" else "warning"
+        if lab_result.classification == "normal":
+            continue
+
+        band = lab_result.reference_range
         findings.append(
             {
                 "patient_id": patient_id,
                 "encounter_id": encounter_id,
                 "date": row.get("date"),
-                "severity": severity,
-                "classification": classification,
+                "severity": _severity_from_lab_classification(
+                    lab_result.classification
+                ),
+                "classification": lab_result.classification,
                 "concept_id": concept_id,
+                "interpretation_concept_id": lab_result.interpretation_concept_id,
                 "value": value,
                 "unit": row.get("unit"),
+                "canonical_value": lab_result.canonical_value,
+                "canonical_unit": lab_result.canonical_unit,
                 "range": {
-                    "low": low,
-                    "high": high,
-                    "critical_low": critical_low,
-                    "critical_high": critical_high,
-                    "source": reference.get("source"),
-                    "org_id": reference.get("org_id"),
-                    "range_id": reference.get("range_id"),
+                    "low": band.low if band else None,
+                    "high": band.high if band else None,
+                    "critical_low": band.critical_low if band else None,
+                    "critical_high": band.critical_high if band else None,
+                    "source": band.source if band else None,
+                    "range_id": band.range_id if band else None,
                 },
                 "description": (
-                    f"{reference.get('preferred_term') or concept_id}: value {value} {row.get('unit') or ''} "
-                    f"classified as {classification}"
-                ).strip(),
+                    f"{lab_result.display_name}: value "
+                    f"{lab_result.canonical_value:g} {lab_result.canonical_unit} "
+                    f"classified as {lab_result.classification}"
+                ),
             }
         )
 
-    # Regex text fallback for encounters with no structured value rows.
     text_rows = list(
         patient_client.run(
             _GET_TEXT_ENCOUNTERS,
@@ -307,4 +314,6 @@ def detect_abnormal_results(
                 "description": text,
             }
         )
+    if owns_kg_client and kg_client is not None:
+        kg_client.close()
     return findings

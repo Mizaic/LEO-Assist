@@ -73,7 +73,7 @@ from app.routers.nice_guidance import router as nice_guidance_router
 from app.routers.guidance_rules import router as guidance_rules_router
 from app.routers.test_patients import router as test_patients_router
 from app.routers.pricing import router as pricing_router
-from app.routers.reference_ranges import router as reference_ranges_router
+from app.routers.lab_result_config import router as lab_result_config_router
 from app.routers.ncda_pathway_config import router as ncda_pathway_config_router
 from app.routers.audit_quality import router as audit_quality_router
 from app.routers.sbar import router as sbar_router
@@ -241,6 +241,21 @@ async def lifespan(app: object):
                 "[ExtractionScenarioSeed] Seed failed (non-fatal): %s", exc
             )
 
+    def _lab_result_config_seed():
+        try:
+            from libs.neo4j_client.client import KnowledgeGraphClient
+            from scripts.seed_lab_result_config import seed_if_missing
+
+            client = KnowledgeGraphClient()
+            seed_if_missing(client)
+            client.close()
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "[LabResultConfigSeed] Seed failed (non-fatal): %s", exc
+            )
+
     t1 = threading.Thread(target=_tenant_seed, daemon=True)
     t1.start()
     t2 = threading.Thread(target=_model_config_seed, daemon=True)
@@ -253,6 +268,8 @@ async def lifespan(app: object):
     t5.start()
     t6 = threading.Thread(target=_extraction_scenario_seed, daemon=True)
     t6.start()
+    t7 = threading.Thread(target=_lab_result_config_seed, daemon=True)
+    t7.start()
 
     sweeper_task = None
     if os.getenv("EXTRACTION_RUN_SWEEPER_DISABLED") not in ("1", "true"):
@@ -397,7 +414,7 @@ app.include_router(nice_guidance_router)
 app.include_router(guidance_rules_router)
 app.include_router(test_patients_router)
 app.include_router(pricing_router)
-app.include_router(reference_ranges_router)
+app.include_router(lab_result_config_router)
 app.include_router(ncda_pathway_config_router)
 app.include_router(audit_quality_router)
 app.include_router(data_quality_router)

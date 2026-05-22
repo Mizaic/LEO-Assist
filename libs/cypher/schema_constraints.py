@@ -54,11 +54,7 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     # PromptConfig — LLM prompt management
     "CREATE CONSTRAINT prompt_config_id IF NOT EXISTS FOR (p:PromptConfig) REQUIRE p.id IS UNIQUE",
     "CREATE INDEX prompt_config_name IF NOT EXISTS FOR (p:PromptConfig) ON (p.name, p.version)",
-    # Reference ranges for abnormal lab result classification
-    "CREATE CONSTRAINT reference_range_id IF NOT EXISTS FOR (r:ReferenceRange) REQUIRE r.range_id IS UNIQUE",
-    "CREATE INDEX reference_range_concept IF NOT EXISTS FOR (r:ReferenceRange) ON (r.conceptId)",
-    "CREATE INDEX reference_range_org IF NOT EXISTS FOR (r:ReferenceRange) ON (r.org_id)",
-    # Three learning loops — Loop 1 audit nodes (Sprint 1)
+    # Three learning loops - Loop 1 audit nodes (Sprint 1)
     "CREATE CONSTRAINT audit_run_id IF NOT EXISTS FOR (a:AuditRun) REQUIRE a.run_id IS UNIQUE",
     "CREATE INDEX audit_run_status IF NOT EXISTS FOR (a:AuditRun) ON (a.status)",
     "CREATE CONSTRAINT drift_metric_id IF NOT EXISTS FOR (d:DriftMetric) REQUIRE d.metric_id IS UNIQUE",

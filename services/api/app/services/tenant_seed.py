@@ -154,7 +154,6 @@ def seed_tenant_defaults(client: PatientGraphClient) -> None:
     _seed_mizaic_org_and_group(client)
     _seed_platform_admins(client)
     _seed_prompt_configs(client)
-    _seed_reference_ranges(client)
 
 
 # ------------------------------------------------------------------
@@ -305,11 +304,3 @@ def _seed_prompt_configs(client: PatientGraphClient) -> None:
         logger.warning("[Tenant] PromptConfig seed failed (non-fatal): %s", exc)
 
 
-def _seed_reference_ranges(client: PatientGraphClient) -> None:
-    """Seed default reference ranges (idempotent)."""
-    try:
-        from scripts.seed_reference_ranges import seed_if_missing
-
-        seed_if_missing(client)
-    except Exception as exc:
-        logger.warning("[Tenant] ReferenceRange seed failed (non-fatal): %s", exc)

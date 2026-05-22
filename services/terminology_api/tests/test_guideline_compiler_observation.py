@@ -45,6 +45,22 @@ def _policy() -> CompilePolicy:
     )
 
 
+def test_empty_unit_defaults_to_canonical_unit(compiler: GuidelineCompiler) -> None:
+    leaf = {
+        "kind": "observation",
+        "node_id": "obs_no_unit",
+        "observable_id": "365632008",
+        "operator": ">=",
+        "value": 400.0,
+        "unit": "",
+        "within_days": 365,
+    }
+    out = compiler._compile_logic_tree_node(leaf, session=None, policy=_policy())
+    assert out is not None
+    assert out["wire_unit"] == "10*9/L"
+    assert out["value"] == 400.0
+
+
 def test_compiles_absolute_leaf_in_canonical_unit(compiler: GuidelineCompiler) -> None:
     leaf = {
         "kind": "observation",
@@ -106,18 +122,39 @@ def test_canonicalises_between_pair(compiler: GuidelineCompiler) -> None:
     assert out["value"] == [18.5, 25.0]
 
 
-def test_unknown_observable_drops_rule(compiler: GuidelineCompiler) -> None:
+def test_unknown_observable_without_unit_drops_rule(
+    compiler: GuidelineCompiler,
+) -> None:
     leaf = {
         "kind": "observation",
         "node_id": "obs_unknown",
         "observable_id": "9999999999",
         "operator": ">=",
         "value": 1.0,
-        "unit": "kg",
+        "unit": "",
         "within_days": 365,
     }
     out = compiler._compile_logic_tree_node(leaf, session=None, policy=_policy())
     assert out is None
+
+
+def test_unknown_observable_with_authored_unit_compiles(
+    compiler: GuidelineCompiler,
+) -> None:
+    leaf = {
+        "kind": "observation",
+        "node_id": "obs_fit",
+        "observable_id": "1049361000000101",
+        "operator": ">=",
+        "value": 10.0,
+        "unit": "ug/g",
+        "within_days": 365,
+    }
+    out = compiler._compile_logic_tree_node(leaf, session=None, policy=_policy())
+    assert out is not None
+    assert out["observable_id"] == "1049361000000101"
+    assert out["value"] == 10.0
+    assert out["unit"] == "ug/g"
 
 
 def test_unparseable_unit_drops_rule(compiler: GuidelineCompiler) -> None:

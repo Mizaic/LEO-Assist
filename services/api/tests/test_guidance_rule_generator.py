@@ -398,6 +398,55 @@ class TestConservativeFail:
         assert result == []
         gen._subgraph.invoke.assert_not_called()
 
+    def test_only_without_rules_skips_existing(self):
+        """Generation can target only recommendations with no linked rule."""
+        driver, _session = _make_driver()
+        from app.services.guidance_rule_generator import GuidanceRuleGenerator
+
+        gen = GuidanceRuleGenerator.__new__(GuidanceRuleGenerator)
+        gen._driver = driver
+        gen._subgraph = MagicMock()
+        gen._subgraph.invoke.return_value = {
+            "raw_criteria": {"logic_tree": {}},
+            "coded_criteria": {
+                "schema_version": 2,
+                "logic_tree": {"type": "ALL", "children": []},
+                "criteria_groups": [],
+                "action": None,
+            },
+            "errors": [],
+        }
+
+        recs = [
+            {
+                "id": "NG12:v1:CH000:R000",
+                "verbatim": "Refer for suspected cancer.",
+                "title": "1.1.1",
+                "urgency": "urgent_2w",
+                "strength": "refer",
+                "has_rule": True,
+            },
+            {
+                "id": "NG12:v1:CH000:R001",
+                "verbatim": "Offer chest X-ray.",
+                "title": "1.1.2",
+                "urgency": "urgent_2w",
+                "strength": "offer",
+                "has_rule": False,
+            },
+        ]
+
+        with patch.object(gen, "_fetch_recommendations", return_value=recs):
+            with patch.object(gen, "_write_rule", return_value="rule:test") as write_rule:
+                result = gen.generate_rules_for_guideline(
+                    "NG12",
+                    only_without_rules=True,
+                )
+
+        assert result == ["rule:test"]
+        assert gen._subgraph.invoke.call_count == 1
+        assert write_rule.call_count == 1
+
 
 class TestHitlGate:
     """All generated rules must be written with status=pending_review."""

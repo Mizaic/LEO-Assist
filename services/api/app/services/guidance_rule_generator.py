@@ -68,6 +68,8 @@ _FETCH_RECOMMENDATIONS = """
 MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(r:Recommendation)
 WHERE coalesce(r.isNormative, false) = true
 OPTIONAL MATCH (r)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (r)-[:HAS_RULE]->(existing:AppropriatenessRule)
+WITH r, ch, count(existing) AS rule_count
 RETURN r.id          AS id,
        r.verbatim    AS verbatim,
        r.title       AS title,
@@ -75,7 +77,8 @@ RETURN r.id          AS id,
        r.strength    AS strength,
        r.sectionTitle AS section_title,
        ch.title      AS chapter_title,
-       ch.order      AS chapter_order
+       ch.order      AS chapter_order,
+       rule_count > 0 AS has_rule
 """
 
 _UPSERT_RULE = """
@@ -306,16 +309,30 @@ class GuidanceRuleGenerator:
             )
             self._subgraph = None
 
-    def generate_rules_for_guideline(self, guideline_id: str) -> list[str]:
-        """Generate rule candidates for all normative recommendations.
+    def generate_rules_for_guideline(
+        self,
+        guideline_id: str,
+        *,
+        only_without_rules: bool = False,
+        recommendation_ids: list[str] | None = None,
+    ) -> list[str]:
+        """Generate rule candidates for normative recommendations.
 
         Args:
             guideline_id: Knowledge-graph Guideline node ID (e.g. ``NG12``).
+            only_without_rules: When true, skip recommendations that already
+                have any AppropriatenessRule linked.
+            recommendation_ids: Optional allow-list of recommendation node ids.
 
         Returns:
             List of generated rule IDs (all with status ``pending_review``).
         """
         recs = self._fetch_recommendations(guideline_id)
+        if only_without_rules:
+            recs = [rec for rec in recs if not rec.get("has_rule")]
+        if recommendation_ids:
+            allowed = {str(rid) for rid in recommendation_ids}
+            recs = [rec for rec in recs if str(rec.get("id") or "") in allowed]
         generated: list[str] = []
         for rec in recs:
             rule_id = self._generate_one(guideline_id, rec)

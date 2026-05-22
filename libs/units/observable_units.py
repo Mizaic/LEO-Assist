@@ -7,6 +7,11 @@ Atlas trace (Phase 5b):
     Risk: R-555C8691
     VT: VT-404C1E2C
 
+Runtime lab metadata is governed in the Knowledge Graph (LabResultConfig)
+and authored in Admin > Knowledge > Results/Labs. This module remains as
+a migration source for seed_lab_result_config.py and as a temporary
+fallback when no Knowledge Graph config exists for an observable.
+
 Two responsibilities, kept in one module so they cannot drift:
 
   1. Per-observable canonical unit and unit-conversion factors. The
@@ -35,11 +40,10 @@ Curation rules:
     must use the canonical unit directly.
 
 Adding a new observable:
-  - Append a new ``ObservableSpec`` to ``OBSERVABLE_UNIT_REGISTRY``
-    with the canonical unit, every reasonable input alias, and the
-    reference ranges if known.
-  - Re-run ``tests/test_observable_units.py`` to confirm the new
-    entry round-trips cleanly.
+  - Prefer Admin > Knowledge > Results/Labs, or extend the Knowledge Graph
+    seed in scripts/seed_lab_result_config.py.
+  - This registry is retained only for migration and temporary fallback.
+  - Re-run tests/test_observable_units.py when changing registry entries.
 """
 
 from __future__ import annotations
@@ -539,15 +543,61 @@ def list_known_observables() -> list[str]:
 def get_canonical_unit(observable_id: str) -> str:
     """Return the canonical unit for an observable, raising on unknowns.
 
-    Used by the compiler to decide whether a rule is even compilable
-    (a leaf whose observable has no canonical unit cannot be
-    canonicalised). The evaluator never calls this directly -- it
-    calls ``canonicalise_value`` instead.
+    Used when curated alias conversion or reference ranges are required.
+    For absolute-threshold leaves on unregistered observables, use
+    :func:`resolve_effective_canonical_unit` instead.
     """
     spec = OBSERVABLE_UNIT_REGISTRY.get(observable_id)
     if spec is None:
         raise UnknownObservableError(observable_id)
     return spec.canonical_unit
+
+
+def resolve_effective_canonical_unit(observable_id: str, authored_unit: str) -> str:
+    """Return the unit used to compare rule thresholds and patient readings.
+
+    Registered observables use the curated canonical unit from the
+    registry. Unregistered observables fall back to the unit the rule
+    author supplied -- no Python registry entry required.
+    """
+    spec = OBSERVABLE_UNIT_REGISTRY.get(observable_id)
+    if spec is not None:
+        return spec.canonical_unit
+    unit = (authored_unit or "").strip()
+    if not unit:
+        raise UnknownObservableError(observable_id)
+    return unit
+
+
+def canonicalise_value_for_observation(
+    observable_id: str,
+    value: float,
+    unit: str,
+    *,
+    rule_canonical_unit: str,
+) -> float:
+    """Convert a value to the rule's comparison unit.
+
+    Registered observables use alias conversion from the registry.
+    Unregistered observables accept only exact unit matches against
+    ``rule_canonical_unit`` (the unit declared on the rule at compile
+    time). This lets any SNOMED observable entity compile for simple
+    absolute thresholds without a code change per observable.
+    """
+    if observable_id in OBSERVABLE_UNIT_REGISTRY:
+        return canonicalise_value(observable_id, value, unit)
+
+    if not _is_finite(value):
+        raise UnitConversionError(
+            f"Observable {observable_id} value {value!r} is not a finite number."
+        )
+    if (unit or "").strip() != (rule_canonical_unit or "").strip():
+        raise UnitConversionError(
+            f"Observable {observable_id} is not in the curated unit "
+            f"registry; patient unit {unit!r} must match the rule unit "
+            f"{rule_canonical_unit!r} exactly."
+        )
+    return float(value)
 
 
 def canonicalise_value(

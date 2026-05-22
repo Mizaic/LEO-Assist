@@ -44,11 +44,17 @@ from typing import Any, Literal
 
 from neo4j import GraphDatabase
 
+from libs.lab_results.classifier import (
+    LabConfigError,
+    convert_value as convert_lab_value,
+    get_lab_config,
+)
 from libs.units.observable_units import (
     UnitConversionError,
     UnknownObservableError,
-    canonicalise_value,
-    get_canonical_unit,
+    canonicalise_value_for_observation,
+    is_known_observable,
+    resolve_effective_canonical_unit,
 )
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 
@@ -324,9 +330,7 @@ class GuidelineCompiler:
         finally:
             driver.close()
         self._compile_stats["rules_included"] = len(compiled_rules)
-        self._compile_stats["rules_excluded"] = max(
-            0, len(rules) - len(compiled_rules)
-        )
+        self._compile_stats["rules_excluded"] = max(0, len(rules) - len(compiled_rules))
         return {"rules": compiled_rules}
 
     @staticmethod
@@ -379,8 +383,7 @@ class GuidelineCompiler:
             "action_priority": rule_in.get("action_priority")
             or action.get("priority")
             or "routine",
-            "action_due_days": rule_in.get("action_due_days")
-            or action.get("due_days"),
+            "action_due_days": rule_in.get("action_due_days") or action.get("due_days"),
             "action_json": rule_in.get("action_json"),
             "applies_to": list(rule_in.get("applies_to") or []),
         }
@@ -972,9 +975,7 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
         )
         return {"rules": compiled_rules}
 
-    def _seeds_from_criterion(
-        self, criterion: dict[str, Any]
-    ) -> list[dict[str, Any]]:
+    def _seeds_from_criterion(self, criterion: dict[str, Any]) -> list[dict[str, Any]]:
         """Resolve the synonym-set seeds for a CONCEPT criterion (UN-LEO-AI-093).
 
         Backwards compatible: when ``seeds`` is empty / missing, we synthesise
@@ -1030,7 +1031,9 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             )
             return None
 
-        excluded_ids = {str(x) for x in (criterion.get("excluded_concept_ids") or []) if x}
+        excluded_ids = {
+            str(x) for x in (criterion.get("excluded_concept_ids") or []) if x
+        }
         primary_id = str(
             criterion.get("primary_concept_id")
             or criterion.get("snomed_concept_id")
@@ -1044,7 +1047,11 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
                 rule_default = (
                     distance_child_override
                     if distance_child_override is not None
-                    else (seed["distance_child"] if seed["distance_child"] is not None else 3)
+                    else (
+                        seed["distance_child"]
+                        if seed["distance_child"] is not None
+                        else 3
+                    )
                 )
                 dc = max(0, int(rule_default))
             else:
@@ -1118,37 +1125,23 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             "seed_concept_ids": sorted_ids,
         }
 
-    def _compile_observation_leaf(
-        self, node: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    def _compile_observation_leaf(self, node: dict[str, Any]) -> dict[str, Any] | None:
         """Compile an OBSERVATION leaf into the evaluator wire shape.
 
-        Phase 5c. Two responsibilities:
+        Phase 5c. Responsibilities:
 
-          1. Refuse to compile a leaf whose observable is not in the
-             unit registry (the evaluator could not decide what unit
-             the patient's reading is in).
-          2. Canonicalise the rule's threshold value(s) to the
-             observable's canonical unit so the evaluator only ever
-             compares like-with-like at runtime.
+          1. Resolve the comparison unit -- from the curated registry when
+             present, otherwise from the unit the rule author supplied
+             (absolute-threshold mode only).
+          2. Canonicalise the rule's threshold value(s) to that unit so
+             the evaluator compares like-with-like at runtime.
 
-        The leaf is excluded (returns None) on any registry / unit
-        error -- the parent rule will not be compiled, and the error
-        is logged for the operator. Fail-closed by default.
+        Curated registry entries are still required for reference_range,
+        trend, temporal, and aggregate modes (they need conversion aliases
+        or reference bands). Absolute thresholds (>= 10 ug/g) work for any
+        SNOMED observable entity when the author declares a unit.
 
-        Accepts two equivalent input shapes so the compiler can be
-        called both from the pipeline (flat) and from the API's
-        Pydantic LogicNode (nested under ``observation``):
-
-        Flat (pipeline, after ``_finalise_observations``)::
-
-            {"kind": "observation", "observable_id": ..., "operator": ...,
-             "value": ..., "unit": ..., "within_days": ..., ...}
-
-        Nested (API ``LogicNode.model_dump()``)::
-
-            {"kind": "OBSERVATION", "observation": {"observable_id": ...,
-             ...}}
+        Returns None (excludes the leaf) on validation / unit errors.
         """
         nested = node.get("observation")
         if isinstance(nested, dict) and nested:
@@ -1187,27 +1180,40 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             )
             return None
 
-        try:
-            canonical_unit = get_canonical_unit(observable_id)
-        except UnknownObservableError:
+        wire_unit = str(observation.get("unit") or "").strip()
+        advanced_mode = any(
+            observation.get(key)
+            for key in ("temporal", "reference_range", "trend", "aggregation")
+        )
+        lab_config = get_lab_config(observable_id)
+        if advanced_mode and not (lab_config or is_known_observable(observable_id)):
             logger.error(
-                "OBSERVATION leaf %r references unknown observable %s -- "
-                "register it in libs.units.observable_units before "
-                "compiling rules that use it.",
+                "OBSERVATION leaf %r uses advanced mode on unregistered "
+                "observable %s -- add Knowledge Graph lab config or use "
+                "absolute threshold mode only.",
                 node.get("node_id"),
                 observable_id,
             )
             return None
 
-        wire_unit = str(observation.get("unit") or "").strip()
-        if not wire_unit:
+        try:
+            canonical_unit = (
+                lab_config.canonical_unit
+                if lab_config is not None
+                else resolve_effective_canonical_unit(observable_id, wire_unit)
+            )
+        except UnknownObservableError:
             logger.error(
-                "OBSERVATION leaf %r missing unit string for observable "
-                "%s -- excluded.",
+                "OBSERVATION leaf %r references unregistered observable %s "
+                "with no unit -- add a unit on the rule (for example ug/g) "
+                "or register the observable in the unit registry.",
                 node.get("node_id"),
                 observable_id,
             )
             return None
+
+        if not wire_unit:
+            wire_unit = canonical_unit
 
         operator = str(observation.get("operator") or "").strip()
         try:
@@ -1216,8 +1222,9 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
                 operator,
                 observation.get("value"),
                 wire_unit,
+                rule_canonical_unit=canonical_unit,
             )
-        except (UnitConversionError, ValueError) as exc:
+        except (LabConfigError, UnitConversionError, ValueError) as exc:
             logger.error(
                 "OBSERVATION leaf %r failed unit canonicalisation "
                 "(observable=%s, unit=%s): %s",
@@ -1250,22 +1257,22 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
         operator: str,
         value: Any,
         unit: str,
+        *,
+        rule_canonical_unit: str,
     ) -> float | list[float]:
-        """Convert a leaf's threshold value(s) to the canonical unit.
-
-        Scalar operators (>=, <=, >, <, =) get a single canonicalised
-        float. The 'between' operator gets a [low, high] list of two
-        canonicalised floats. Raises ValueError on shape mismatches
-        and UnitConversionError on unknown / non-finite units.
-        """
+        """Convert a leaf's threshold value(s) to the comparison unit."""
         if operator == "between":
             if not isinstance(value, (list, tuple)) or len(value) != 2:
                 raise ValueError(
                     "OBSERVATION 'between' operator requires a [low, "
                     "high] value pair."
                 )
-            low = canonicalise_value(observable_id, float(value[0]), unit)
-            high = canonicalise_value(observable_id, float(value[1]), unit)
+            low = GuidelineCompiler._canonicalise_scalar_threshold(
+                observable_id, float(value[0]), unit, rule_canonical_unit
+            )
+            high = GuidelineCompiler._canonicalise_scalar_threshold(
+                observable_id, float(value[1]), unit, rule_canonical_unit
+            )
             if low > high:
                 raise ValueError(
                     "OBSERVATION 'between' canonicalised range is "
@@ -1277,7 +1284,26 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
                 f"OBSERVATION operator {operator!r} requires a scalar "
                 f"value; got {type(value).__name__}."
             )
-        return canonicalise_value(observable_id, float(value), unit)
+        return GuidelineCompiler._canonicalise_scalar_threshold(
+            observable_id, float(value), unit, rule_canonical_unit
+        )
+
+    @staticmethod
+    def _canonicalise_scalar_threshold(
+        observable_id: str,
+        value: float,
+        unit: str,
+        rule_canonical_unit: str,
+    ) -> float:
+        config = get_lab_config(observable_id)
+        if config is not None:
+            return convert_lab_value(config, value, unit or config.canonical_unit)
+        return canonicalise_value_for_observation(
+            observable_id,
+            value,
+            unit,
+            rule_canonical_unit=rule_canonical_unit,
+        )
 
     def _compile_logic_tree_node(
         self,

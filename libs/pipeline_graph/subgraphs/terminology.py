@@ -19,6 +19,7 @@ from libs.pipeline.post_processing import (
     fix_double_negated_situations,
     fix_polarity_encoded_findings,
 )
+from libs.lab_results.pipeline import enrich_lab_result_findings
 from libs.terminology.client import TerminologyClient
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,8 @@ class TerminologyState(TypedDict, total=False):
     expected_tags: dict[str, str]
     resolved_entities: list[dict[str, Any]]
     confidence_threshold: float
+    patient_age: float
+    patient_sex: str
     errors: list[str]
 
 
@@ -209,6 +212,11 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             )
         fix_double_negated_situations(resolved)
         fix_polarity_encoded_findings(resolved)
+        resolved = enrich_lab_result_findings(
+            resolved,
+            patient_sex=state.get("patient_sex"),
+            patient_age=state.get("patient_age"),
+        )
         resolved = _dedup_by_concept_id(resolved)
         return {"entities": resolved, "resolved_entities": resolved, "errors": errors}
     except Exception as exc:

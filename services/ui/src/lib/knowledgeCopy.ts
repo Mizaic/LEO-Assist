@@ -26,6 +26,7 @@ export type KnowledgeTabKey =
   | "pathways"
   | "domains"
   | "terminology"
+  | "results-labs"
   | "ai-summarisation"
   | "test-patients"
   | "extraction-scenarios"
@@ -362,6 +363,39 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
     },
   },
 
+  "results-labs": {
+    default: {
+      title: "Results and Labs",
+      lede: "Set the ranges LEO uses to read lab results.",
+      how: "Pick a lab code, add its unit rules and safe ranges, then save.",
+      what: "LEO uses this to spot high, low, and out-of-range results.",
+    },
+    clinician: {
+      title: "Lab result rules",
+      lede: "The normal ranges and result meanings used by LEO.",
+      how: "Check the lab, unit, and SNOMED finding match your practice.",
+      what: "Correct ranges help LEO explain why a result is abnormal.",
+    },
+    staff: {
+      title: "Lab config queue",
+      lede: "Lab ranges, unit conversions, and abnormal finding codes.",
+      how: "Add the observable code, accepted units, ranges, and findings.",
+      what: "Saved config is used by guideline tests and result alerts.",
+    },
+    qa_ra_lead: {
+      title: "Lab metadata control",
+      lede: "Governed reference ranges and interpretation mappings for lab safety checks.",
+      how: "Review source, demographic bands, unit conversion, and derived finding codes.",
+      what: "This supports traceable abnormal-result classification evidence.",
+    },
+    platform_admin: {
+      title: "Lab metadata store",
+      lede: "Knowledge graph config for result ranges and unit conversions.",
+      how: "Seed defaults, review manual edits, and check missing-range warnings.",
+      what: "A single source stops runtime paths from drifting apart.",
+    },
+  },
+
   "extraction-scenarios": {
     default: {
       title: "Extraction Scenarios",
@@ -397,9 +431,9 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   "coding-validation": {
     default: {
       title: "Coding Validation",
-      lede: "Validate and edit terminology resolution for clinical extractions.",
-      how: "Review extraction terms and confirm their terminology codes.",
-      what: "Ensures extraction terms correctly map to SNOMED codes.",
+      lede: "Check that LEO picked the right code.",
+      how: "Open a term, check the code, and save your choice.",
+      what: "Saved fixes help LEO choose safer codes next time.",
     },
     clinician: {
       title: "Coding Validation",
@@ -424,6 +458,12 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       lede: "Debug Terminology API resolution.",
       how: "Check lexical and vector scores for candidate codes.",
       what: "Verifies the terminology subgraph configuration.",
+    },
+    platform_admin: {
+      title: "Coding validation store",
+      lede: "Saved coding checks and their linked SNOMED choices.",
+      how: "Review failed loads and check the backing graph state.",
+      what: "Stable storage keeps validation results available for audit.",
     },
   },
 };

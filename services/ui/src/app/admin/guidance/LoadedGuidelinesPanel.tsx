@@ -143,7 +143,7 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
         const r = await fetch("/api/guidance/rules/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ guideline_id: code }),
+          body: JSON.stringify({ guideline_id: code, only_without_rules: true }),
         });
         if (!r.ok) {
           const body = await r.json().catch(() => ({ detail: r.statusText }));

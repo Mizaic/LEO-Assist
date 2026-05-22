@@ -39,6 +39,7 @@ from app.services.guidance_rule_edit import (
     LogicTreeValidationError,
     RuleUpdates,
     apply_rule_edit,
+    reject_sibling_pending_rules,
 )
 from libs.auth.org_scope import CallerScope
 from libs.auth.service_auth import get_service_auth_header
@@ -292,6 +293,7 @@ MERGE (rule)-[:HAS_AUDIT_EVENT]->(audit)
 
 class GenerateRulesRequest(BaseModel):
     guideline_id: str
+    only_without_rules: bool = False
 
 
 class RuleDecisionRequest(BaseModel):
@@ -804,6 +806,12 @@ def decide_rule(
         )
         if not records:
             raise HTTPException(status_code=404, detail="Rule not found")
+        if new_status == "active":
+            reject_sibling_pending_rules(
+                client,
+                rule_id=rule_id,
+                reviewer=body.reviewer,
+            )
         return {"rule_id": rule_id, "status": new_status}
     finally:
         client.close()

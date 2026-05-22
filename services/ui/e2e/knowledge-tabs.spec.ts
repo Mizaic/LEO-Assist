@@ -21,6 +21,7 @@ const KNOWLEDGE_TABS = [
   "pathways",
   "domains",
   "terminology",
+  "results-labs",
   "ai-summarisation",
 ] as const;
 

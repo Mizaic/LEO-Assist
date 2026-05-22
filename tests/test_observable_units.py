@@ -29,10 +29,12 @@ from libs.units.observable_units import (
     UnitConversionError,
     UnknownObservableError,
     canonicalise_value,
+    canonicalise_value_for_observation,
     get_canonical_unit,
     get_reference_range,
     is_known_observable,
     list_known_observables,
+    resolve_effective_canonical_unit,
 )
 
 
@@ -112,6 +114,26 @@ def test_unknown_observable_raises() -> None:
         get_canonical_unit("not-a-real-snomed-id")
     with pytest.raises(UnknownObservableError):
         canonicalise_value("not-a-real-snomed-id", 1.0, "kg")
+
+
+def test_authored_unit_fallback_for_unregistered_observable() -> None:
+    obs_id = "1049361000000101"
+    assert resolve_effective_canonical_unit(obs_id, "ug/g") == "ug/g"
+    assert (
+        canonicalise_value_for_observation(
+            obs_id, 15.0, "ug/g", rule_canonical_unit="ug/g"
+        )
+        == 15.0
+    )
+    with pytest.raises(UnitConversionError):
+        canonicalise_value_for_observation(
+            obs_id, 15.0, "ug/L", rule_canonical_unit="ug/g"
+        )
+
+
+def test_resolve_effective_canonical_unit_requires_unit_when_unknown() -> None:
+    with pytest.raises(UnknownObservableError):
+        resolve_effective_canonical_unit("9999999999", "")
 
 
 def test_unknown_unit_raises_conversion_error() -> None:

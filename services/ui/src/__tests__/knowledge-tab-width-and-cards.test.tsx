@@ -39,6 +39,7 @@ describe("VT-LEO-AI-149 - Knowledge tab width + card consistency", () => {
       "pathways",
       "domains",
       "terminology",
+      "results-labs",
     ];
     for (const tab of tabs) {
       const re = new RegExp(`["']?${tab}["']?\\s*:\\s*"wide"`);

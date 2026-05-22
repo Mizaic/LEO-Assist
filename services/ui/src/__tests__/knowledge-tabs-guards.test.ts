@@ -22,6 +22,7 @@ const KNOWLEDGE_TABS = [
   "pathways",
   "domains",
   "terminology",
+  "results-labs",
 ] as const;
 
 describe("VT-LEO-AI-171 knowledge tabs guards", () => {

@@ -65,10 +65,16 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Iterable
 
+from libs.lab_results.classifier import (
+    LabConfigError,
+    convert_value as convert_lab_value,
+    get_lab_config,
+    select_reference_range as select_lab_reference_range,
+)
 from libs.units.observable_units import (
     UnitConversionError,
     UnknownObservableError,
-    canonicalise_value,
+    canonicalise_value_for_observation,
     get_canonical_unit,
     get_reference_range,
 )
@@ -149,6 +155,7 @@ def observation_matches(
         patient_observations,
         within_days=int(leaf.get("within_days") or 365),
         now=reference_now,
+        rule_canonical_unit=str(leaf.get("unit") or ""),
     )
 
     if mode == "absolute":
@@ -163,7 +170,7 @@ def observation_matches(
             patient_age=patient_age,
         )
     if mode == "trend":
-        return _evaluate_trend(leaf, readings)
+        return _evaluate_trend(leaf, readings, now=reference_now)
     if mode == "aggregate":
         return _evaluate_aggregate(leaf, readings)
 
@@ -243,10 +250,20 @@ def _evaluate_reference_range(
     bound_kind = str(spec.get("bound") or "upper").lower()
     multiple = float(spec.get("multiple_of_range") or 1.0)
 
-    band = get_reference_range(
-        str(leaf.get("observable_id") or ""),
-        sex=patient_sex,
-        age_years=patient_age,
+    observable_id = str(leaf.get("observable_id") or "")
+    config = get_lab_config(observable_id)
+    band = (
+        select_lab_reference_range(
+            config.reference_ranges,
+            sex=patient_sex,
+            age_years=patient_age,
+        )
+        if config is not None
+        else get_reference_range(
+            observable_id,
+            sex=patient_sex,
+            age_years=patient_age,
+        )
     )
     if band is None:
         logger.warning(
@@ -260,9 +277,13 @@ def _evaluate_reference_range(
         return False
 
     if bound_kind == "upper":
-        bound_value = band.upper
+        bound_value = getattr(band, "upper", None)
+        if bound_value is None:
+            bound_value = getattr(band, "high", None)
     else:
-        bound_value = band.lower
+        bound_value = getattr(band, "lower", None)
+        if bound_value is None:
+            bound_value = getattr(band, "low", None)
     if bound_value is None:
         logger.warning(
             "OBSERVATION reference_range leaf %r asks for the %s bound "
@@ -280,6 +301,8 @@ def _evaluate_reference_range(
 def _evaluate_trend(
     leaf: dict[str, Any],
     readings: list[_Reading],
+    *,
+    now: datetime,
 ) -> bool:
     """Mode: change in value from oldest-in-window to newest-in-window."""
     spec = leaf.get("trend") or {}
@@ -292,7 +315,7 @@ def _evaluate_trend(
         return False
 
     delta_kind = str(spec.get("delta_kind") or "absolute").lower()
-    in_window = _filter_to_window(readings, window_days, _NOW_FN())
+    in_window = _filter_to_window(readings, window_days, now)
     if len(in_window) < 2:
         return False
     latest = in_window[0].canonical_value
@@ -354,6 +377,7 @@ def _build_reading_window(
     *,
     within_days: int,
     now: datetime,
+    rule_canonical_unit: str,
 ) -> list[_Reading]:
     """Filter and canonicalise patient observations for one observable.
 
@@ -379,12 +403,19 @@ def _build_reading_window(
         if observed_at < cutoff:
             continue
         try:
-            canonical = canonicalise_value(
+            canonical = _canonicalise_reading_value(
                 observable_id,
-                float(row.get("value")),
-                str(row.get("unit") or get_canonical_unit(observable_id)),
+                row.get("value"),
+                str(row.get("unit") or ""),
+                rule_canonical_unit=rule_canonical_unit,
             )
-        except (UnknownObservableError, UnitConversionError, TypeError, ValueError) as exc:
+        except (
+            LabConfigError,
+            UnknownObservableError,
+            UnitConversionError,
+            TypeError,
+            ValueError,
+        ) as exc:
             logger.warning(
                 "Patient observation row dropped: cannot canonicalise "
                 "(observable=%s, unit=%s): %s",
@@ -396,6 +427,25 @@ def _build_reading_window(
         out.append(_Reading(canonical_value=canonical, observed_at=observed_at))
     out.sort(key=lambda r: r.observed_at, reverse=True)
     return out
+
+
+def _canonicalise_reading_value(
+    observable_id: str,
+    value: Any,
+    unit: str,
+    *,
+    rule_canonical_unit: str,
+) -> float:
+    config = get_lab_config(observable_id)
+    if config is not None:
+        return convert_lab_value(config, float(value), unit or config.canonical_unit)
+    default_unit = rule_canonical_unit or get_canonical_unit(observable_id)
+    return canonicalise_value_for_observation(
+        observable_id,
+        float(value),
+        unit or default_unit,
+        rule_canonical_unit=default_unit,
+    )
 
 
 def _filter_to_window(

@@ -27,8 +27,11 @@ const EXPECTED_KEYS: KnowledgeTabKey[] = [
   "pathways",
   "domains",
   "terminology",
+  "results-labs",
   "ai-summarisation",
   "test-patients",
+  "extraction-scenarios",
+  "coding-validation",
 ];
 
 describe("VT-133 - Knowledge copy", () => {

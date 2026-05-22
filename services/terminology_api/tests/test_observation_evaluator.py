@@ -473,3 +473,31 @@ def test_missing_observable_id_in_leaf_fails_closed() -> None:
     assert not observation_matches(
         leaf, [_reading(500.0, 5)], patient_sex="male", patient_age=60, now=_NOW
     )
+
+
+def test_unregistered_observable_fires_with_authored_unit_match() -> None:
+    leaf = {
+        "kind": "observation",
+        "node_id": "obs_fit",
+        "observable_id": "1049361000000101",
+        "operator": ">=",
+        "value": 10.0,
+        "unit": "ug/g",
+        "wire_unit": "ug/g",
+        "within_days": 365,
+        "temporal": None,
+        "reference_range": None,
+        "trend": None,
+        "aggregation": None,
+    }
+    obs = [
+        {
+            "observable_id": "1049361000000101",
+            "value": 15.0,
+            "unit": "ug/g",
+            "observed_at": (_NOW - timedelta(days=10)).isoformat(),
+        }
+    ]
+    assert observation_matches(
+        leaf, obs, patient_sex="male", patient_age=62, now=_NOW
+    )
