@@ -21,7 +21,12 @@ WHERE c.id = $chunk_id
    OR ($chunk_idx IS NOT NULL AND c.chunk_idx = $chunk_idx)
    OR toString(c.ordinal) = $chunk_id
    OR ($chunk_idx IS NOT NULL AND c.ordinal = $chunk_idx)
-RETURN coalesce(c.id, toString(c.chunk_idx)) AS chunk_id,
+WITH dr, c
+SET c.id = coalesce(
+    c.id,
+    dr.id + ':chunk:' + toString(coalesce(c.chunk_idx, c.ordinal, $chunk_idx))
+)
+RETURN c.id AS chunk_id,
        dr.id AS document_reference_id,
        coalesce(c.chunk_idx, c.ordinal) AS chunk_idx,
        coalesce(c.text, '') AS text,

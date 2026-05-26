@@ -26,9 +26,9 @@ class HCCPChunkRef(BaseModel):
 class HCCPRequestedOutputs(BaseModel):
     """Downstream work flags retained for later implementation phases."""
 
-    code: bool = True
-    evaluate_abnormal_tests: bool = True
-    generate_sbar: bool = True
+    code: bool = False
+    evaluate_abnormal_tests: bool = False
+    generate_sbar: bool = False
 
 
 class HCCPChunksReadyPayload(BaseModel):

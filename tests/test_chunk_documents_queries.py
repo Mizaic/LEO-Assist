@@ -21,6 +21,7 @@ from libs.cypher.chunk_queries import (
     upsert_chunk_payload,
 )
 from libs.cypher.documents_queries import _build_upsert_query
+from libs.cypher.documents_queries import write_documents_from_sentences_payload
 
 
 def test_chunk_id_is_deterministic_and_stable() -> None:
@@ -78,3 +79,46 @@ def test_build_upsert_query_chunk_path_uses_optional_match() -> None:
 def test_build_upsert_query_rejects_unknown_source_label() -> None:
     with pytest.raises(ValueError):
         _build_upsert_query("Clinical_finding", "HAS_FINDING", source_label="Foo")
+
+
+def test_write_documents_payload_uses_chunk_source_id() -> None:
+    session = MagicMock()
+    payload = [
+        {
+            "sentence_id": "s1",
+            "text": "Hb 85 g/L",
+            "terms": [
+                {
+                    "text": "Hb",
+                    "semantic_tag": "observable entity",
+                    "assertion": "present",
+                    "numeric_value": 85,
+                    "unit": "g/L",
+                    "coding": {
+                        "snomed_concept_id": "1022431000000105",
+                        "snomed_term": "Haemoglobin level",
+                        "score": 0.91,
+                        "source": "hccp_bridge",
+                    },
+                }
+            ],
+        }
+    ]
+
+    written = write_documents_from_sentences_payload(
+        "chunk-1",
+        payload,
+        session,
+        source="hccp_bridge",
+        run_id="run-1",
+        source_label="Chunk",
+    )
+
+    assert written == 1
+    session.run.assert_called_once()
+    query = session.run.call_args.args[0]
+    kwargs = session.run.call_args.kwargs
+    assert "MATCH (src:Chunk {id: $source_id})" in query
+    assert kwargs["source_id"] == "chunk-1"
+    assert kwargs["source"] == "hccp_bridge"
+    assert kwargs["run_id"] == "run-1"
