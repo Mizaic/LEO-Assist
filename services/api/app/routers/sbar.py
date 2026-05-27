@@ -637,9 +637,14 @@ def _load_child_pipeline_runs(child_runs: dict[str, str]) -> list[dict[str, Any]
             )
             child = _normalise_child_run(case_id, run_id, run_rows, stages)
             if child.get("assessment_id"):
-                child["assessment"] = _load_assessment_for_history(
+                assessment = _load_assessment_for_history(
                     str(child["assessment_id"])
                 )
+                if assessment and not assessment.get("completeness_result_json"):
+                    assessment["completeness_result_json"] = (
+                        _extract_completeness_json_from_stages(stages)
+                    )
+                child["assessment"] = assessment
             children.append(child)
     finally:
         client.close()
@@ -695,6 +700,32 @@ def _load_assessment_for_history(assessment_id: str) -> dict[str, Any] | None:
     finally:
         client.close()
     return assessment_to_dict(row) if row else None
+
+
+def _extract_completeness_json_from_stages(
+    stages: list[dict[str, Any]],
+) -> str | None:
+    """Pull completeness_result from stage outputs when not on the Assessment node.
+
+    The pipeline worker writes completeness_result_json to the Assessment node
+    during the sbar_requested step, but this can silently fail. This function
+    provides a reliable fallback by reading directly from the stage output that
+    the completeness_requested step persisted to Neo4j.
+    """
+    for stage in stages or []:
+        if stage.get("event_type") != "completeness_requested":
+            continue
+        raw = stage.get("output_json")
+        if not raw:
+            continue
+        try:
+            output = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        result = output.get("completeness_result") if isinstance(output, dict) else None
+        if isinstance(result, dict) and result.get("configured"):
+            return json.dumps(result)
+    return None
 
 
 def _child_counts(children: list[dict[str, Any]]) -> dict[str, int]:
