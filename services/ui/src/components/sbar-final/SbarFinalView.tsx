@@ -32,6 +32,7 @@
  *   - R-LEO-AI-185 (test-only labelling) is preserved by the chip
  *     in the dialog title and the optional banner in the inline view.
  */
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
@@ -47,6 +48,10 @@ import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useMemo, useState } from "react";
+import {
+  CompletenessPill,
+  type CompletenessFinding,
+} from "./CompletenessPill";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
 
 export type SbarStageName =
@@ -165,6 +170,11 @@ export function splitFinalSbar(md: string): SbarSection[] {
   }));
 }
 
+const ADVISORY_DISCLAIMER =
+  "AI-generated summary. Clinician review required before acting on this " +
+  "content. This is a decision support aid, it does not replace your " +
+  "clinical judgement.";
+
 export interface SbarFinalViewProps {
   /** SBAR Markdown payload from the pipeline. */
   markdown: string;
@@ -174,14 +184,22 @@ export interface SbarFinalViewProps {
    *  When present, each entry feeds the per-section
    *  "Show source records" disclosure on the Background card. */
   backgroundParts?: SbarBackgroundPart[];
-  /** Test-only banner. Defaults to true so embedders cannot
-   *  accidentally present this view as an authoritative record. */
+  /**
+   * @deprecated No longer controls any visible element. The advisory
+   *   disclaimer is always shown per MHRA labelling requirements.
+   */
   testOnly?: boolean;
   /** Compact spacing/typography for embedding in narrow drawers. */
   dense?: boolean;
   /** data-testid suffix for embedders that render multiple views. */
   testIdPrefix?: string;
+  /** Referral completeness findings from the pipeline quality check.
+   *  When present, a percentage pill is shown in the Background
+   *  section header with a tooltip listing present/missing fields. */
+  completenessFinding?: CompletenessFinding | null;
 }
+
+export type { CompletenessFinding };
 
 interface SectionSourcesPanelProps {
   testIdPrefix: string;
@@ -328,9 +346,10 @@ function SectionSourcesPanel({
 export function SbarFinalView({
   markdown,
   backgroundParts = [],
-  testOnly = true,
+  testOnly: _testOnly = true,
   dense = false,
   testIdPrefix = "sbar-final",
+  completenessFinding,
 }: SbarFinalViewProps) {
   const sections = splitFinalSbar(markdown ?? "");
   const fontSize = dense ? "0.85rem" : "0.9rem";
@@ -347,15 +366,13 @@ export function SbarFinalView({
       data-testid={`${testIdPrefix}-content`}
       sx={{ display: "flex", flexDirection: "column", gap: dense ? 1 : 1.5 }}
     >
-      {testOnly && (
-        <Chip
-          size="small"
-          color="success"
-          label="Test only -- not for clinical use"
-          sx={{ height: 20, fontSize: "0.65rem", alignSelf: "flex-start" }}
-          data-testid={`${testIdPrefix}-test-only-banner`}
-        />
-      )}
+      <Alert
+        severity="info"
+        data-testid={`${testIdPrefix}-advisory-disclaimer`}
+        sx={{ fontSize: "0.78rem", py: 0.5, alignItems: "flex-start" }}
+      >
+        {ADVISORY_DISCLAIMER}
+      </Alert>
 
       {sections.length === 0 && markdown ? (
         <Box
@@ -398,12 +415,20 @@ export function SbarFinalView({
               }}
             >
               <Box sx={{ padding: headerPadding, bgcolor: theme.tint }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ color: theme.ink, fontWeight: 700 }}
-                >
-                  {STAGE_LABELS[stage]}
-                </Typography>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ color: theme.ink, fontWeight: 700 }}
+                  >
+                    {STAGE_LABELS[stage]}
+                  </Typography>
+                  {stage === "background" && completenessFinding && (
+                    <CompletenessPill
+                      finding={completenessFinding}
+                      testIdPrefix={testIdPrefix}
+                    />
+                  )}
+                </Stack>
               </Box>
               <Box
                 sx={{
@@ -493,19 +518,9 @@ export function SbarFinalDialog({
       data-testid="sbar-final-dialog"
     >
       <DialogTitle sx={{ pr: 6 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="h6" component="span">
-            {title}
-          </Typography>
-          {viewProps.testOnly !== false && (
-            <Chip
-              size="small"
-              color="success"
-              label="Test only -- not for clinical use"
-              sx={{ height: 20, fontSize: "0.65rem" }}
-            />
-          )}
-        </Stack>
+        <Typography variant="h6" component="span">
+          {title}
+        </Typography>
         {subtitle && (
           <Typography
             variant="caption"

@@ -20,4 +20,7 @@ export type {
   SbarSection,
   SbarBackgroundPart,
   SbarStageName,
+  CompletenessFinding,
 } from "./SbarFinalView";
+export { CompletenessPill } from "./CompletenessPill";
+export type { CompletenessPillProps } from "./CompletenessPill";

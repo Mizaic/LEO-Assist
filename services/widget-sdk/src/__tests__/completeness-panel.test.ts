@@ -40,6 +40,103 @@ function _mount(payload: SbarAssessmentPayload): {
   return { mount, events, teardown };
 }
 
+describe("AI advisory disclaimer - always rendered", () => {
+  test("TC-0a: leo-ai-disclaimer is present on every render", () => {
+    const { mount } = _mount(_makePayload({}));
+    const disclaimer = mount.querySelector('[data-testid="leo-ai-disclaimer"]');
+    expect(disclaimer).not.toBeNull();
+    expect(disclaimer!.textContent).toMatch(/AI-generated summary/);
+    expect(disclaimer!.textContent).toMatch(/Clinician review required/);
+  });
+
+  test("TC-0b: leo-ai-disclaimer is rendered before the SBAR stages", () => {
+    const { mount } = _mount(
+      _makePayload({
+        markdown:
+          "## situation\nPatient referred.\n\n## recommendation\nReview.\n",
+      }),
+    );
+    const root = mount.querySelector(".leo-root")!;
+    const children = Array.from(root.children);
+    const disclaimerIdx = children.findIndex(
+      (el) => el.getAttribute("data-testid") === "leo-ai-disclaimer",
+    );
+    const firstStageIdx = children.findIndex((el) =>
+      el.classList.contains("leo-stage"),
+    );
+    expect(disclaimerIdx).toBeGreaterThanOrEqual(0);
+    expect(disclaimerIdx).toBeLessThan(firstStageIdx);
+  });
+});
+
+describe("completeness chip in Background header - DI-B883B2BE", () => {
+  test("TC-0c: chip is rendered in the background stage header when finding is present", () => {
+    const payload = _makePayload({
+      markdown:
+        "## situation\nX.\n\n## background\nY.\n\n## recommendation\nW.\n",
+      completenessFinding: {
+        requiredFields: ["Diagnosis", "Urgency"],
+        presentFields: ["Diagnosis"],
+        missingFields: ["Urgency"],
+        unclearFields: [],
+      },
+    });
+    const { mount } = _mount(payload);
+    const chip = mount.querySelector('[data-testid="leo-completeness-chip"]');
+    expect(chip).not.toBeNull();
+    expect(chip!.textContent).toBe("50%");
+    expect(chip!.getAttribute("aria-label")).toMatch(/Referral completeness 50%/);
+  });
+
+  test("TC-0d: chip title tooltip contains present and missing field names", () => {
+    const payload = _makePayload({
+      markdown: "## background\nY.\n",
+      completenessFinding: {
+        requiredFields: ["Diagnosis", "Urgency"],
+        presentFields: ["Diagnosis"],
+        missingFields: ["Urgency"],
+        unclearFields: [],
+      },
+    });
+    const { mount } = _mount(payload);
+    const chip = mount.querySelector('[data-testid="leo-completeness-chip"]');
+    const title = chip?.getAttribute("title") ?? "";
+    expect(title).toContain("Diagnosis");
+    expect(title).toContain("Urgency");
+    expect(title).toContain("required - missing");
+  });
+
+  test("TC-0e: no chip is rendered when completenessFinding is null", () => {
+    const payload = _makePayload({
+      markdown: "## background\nY.\n",
+      completenessFinding: null,
+    });
+    const { mount } = _mount(payload);
+    const chip = mount.querySelector('[data-testid="leo-completeness-chip"]');
+    expect(chip).toBeNull();
+  });
+
+  test("TC-0f: chip is not rendered in non-background stages", () => {
+    const payload = _makePayload({
+      markdown:
+        "## situation\nX.\n\n## background\nY.\n\n## assessment\nZ.\n\n## recommendation\nW.\n",
+      completenessFinding: {
+        requiredFields: ["Diagnosis"],
+        presentFields: ["Diagnosis"],
+        missingFields: [],
+        unclearFields: [],
+      },
+    });
+    const { mount } = _mount(payload);
+    const chips = mount.querySelectorAll('[data-testid="leo-completeness-chip"]');
+    expect(chips).toHaveLength(1);
+    const backgroundStage = mount.querySelector('[data-stage="background"]');
+    expect(
+      backgroundStage?.querySelector('[data-testid="leo-completeness-chip"]'),
+    ).not.toBeNull();
+  });
+});
+
 describe("completeness panel - DI-235AEEC9 / DI-B883B2BE", () => {
   test("TC-1: renders present, missing and unclear fields with distinct CSS classes", () => {
     const payload = _makePayload({

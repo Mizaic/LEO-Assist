@@ -76,19 +76,20 @@ em, i { font-style: italic; }
   flex: 1;
 }
 
-.leo-test-only {
-  display: inline-block;
-  background: ${BRAND.light.warningBg};
-  color: ${BRAND.light.warningInk};
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1px;
-  white-space: nowrap;
+/* ------ AI-generated advisory disclaimer (persistent, non-dismissible) ------ */
+
+.leo-ai-disclaimer {
+  border: 1px solid #3b82f6;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
-/* ------ Advisory banner ------ */
+/* ------ Advisory banner (CSO safety advisory, escalated notices) ------ */
 
 .leo-advisory {
   border: 1px solid ${BRAND.light.warningInk};
@@ -117,11 +118,50 @@ em, i { font-style: italic; }
 .leo-stage[data-stage="recommendation"] { border-left-color: ${STAGE_THEME.recommendation.accent}; }
 
 .leo-stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 7px 14px;
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
+}
+
+.leo-stage-label {
+  flex: 1;
+}
+
+/* ------ Completeness chip (inline in Background header) ------ */
+
+.leo-completeness-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  cursor: default;
+  text-transform: none;
+}
+
+.leo-completeness-chip--green {
+  background: #f0fdf4;
+  color: #14532d;
+  border: 1px solid #bbf7d0;
+}
+
+.leo-completeness-chip--amber {
+  background: #fffbeb;
+  color: #78350f;
+  border: 1px solid #fed7aa;
+}
+
+.leo-completeness-chip--red {
+  background: #fef2f2;
+  color: #7f1d1d;
+  border: 1px solid #fecaca;
 }
 
 .leo-stage[data-stage="situation"]      .leo-stage-header { background: ${STAGE_THEME.situation.tint};      color: ${STAGE_THEME.situation.ink}; }
@@ -353,9 +393,10 @@ em, i { font-style: italic; }
 
   .leo-mark { color: ${BRAND.dark.primary}; }
 
-  .leo-test-only {
-    background: ${BRAND.dark.warningBg};
-    color: ${BRAND.dark.warningInk};
+  .leo-ai-disclaimer {
+    border-color: #1d4ed8;
+    background: #1e3a8a;
+    color: #bfdbfe;
   }
 
   .leo-stage {

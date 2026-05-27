@@ -33,6 +33,7 @@ import {
   stripSourceComments,
   STAGE_THEME,
   type SbarBackgroundPart,
+  type CompletenessFinding,
 } from "@/components/sbar-final";
 
 const SAMPLE = `# SBAR
@@ -183,16 +184,24 @@ describe("SbarFinalView", () => {
     }
   });
 
-  it("shows the test-only banner by default and hides it when disabled", () => {
+  it("always shows the AI advisory disclaimer regardless of testOnly flag", () => {
     const { rerender } = render(<SbarFinalView markdown={SAMPLE} />);
     expect(
-      screen.getByTestId("sbar-final-test-only-banner"),
+      screen.getByTestId("sbar-final-advisory-disclaimer"),
     ).toBeInTheDocument();
 
     rerender(<SbarFinalView markdown={SAMPLE} testOnly={false} />);
     expect(
-      screen.queryByTestId("sbar-final-test-only-banner"),
-    ).toBeNull();
+      screen.getByTestId("sbar-final-advisory-disclaimer"),
+    ).toBeInTheDocument();
+  });
+
+  it("advisory disclaimer contains the required statutory advisory text", () => {
+    render(<SbarFinalView markdown={SAMPLE} />);
+    const banner = screen.getByTestId("sbar-final-advisory-disclaimer");
+    expect(banner).toHaveTextContent(/AI-generated summary/);
+    expect(banner).toHaveTextContent(/Clinician review required/);
+    expect(banner).toHaveTextContent(/decision support aid/);
   });
 
   it("falls back to a single Markdown block when no SBAR headings are present", () => {
@@ -316,6 +325,37 @@ describe("SbarFinalView", () => {
     expect(
       screen.queryByTestId("sbar-final-section-background-sources"),
     ).toBeNull();
+  });
+
+  it("does not show the completeness chip when completenessFinding is not supplied", () => {
+    render(<SbarFinalView markdown={SAMPLE} />);
+    expect(
+      screen.queryByTestId("sbar-final-completeness-chip"),
+    ).toBeNull();
+  });
+
+  it("shows a completeness chip in the Background header when completenessFinding is supplied", () => {
+    const finding: CompletenessFinding = {
+      requiredFields: ["Diagnosis", "Urgency", "Weight"],
+      presentFields: ["Diagnosis", "Urgency"],
+      missingFields: ["Weight"],
+      unclearFields: [],
+    };
+    render(<SbarFinalView markdown={SAMPLE} completenessFinding={finding} />);
+    const chip = screen.getByTestId("sbar-final-completeness-chip");
+    expect(chip).toBeInTheDocument();
+    expect(chip).toHaveTextContent("67%");
+  });
+
+  it("shows 100% chip when all required fields are present", () => {
+    const finding: CompletenessFinding = {
+      requiredFields: ["Diagnosis"],
+      presentFields: ["Diagnosis"],
+      missingFields: [],
+      unclearFields: [],
+    };
+    render(<SbarFinalView markdown={SAMPLE} completenessFinding={finding} />);
+    expect(screen.getByTestId("sbar-final-completeness-chip")).toHaveTextContent("100%");
   });
 
   it("does not render a legacy <!-- sources: --> HTML comment as visible text", () => {

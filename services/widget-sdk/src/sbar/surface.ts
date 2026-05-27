@@ -4,8 +4,12 @@
  * Atlas trace:
  *   DI: DI-85C95E53 (one source tree, two variants identical)
  *   DI: DI-85944331 (locked LEO-by-Mizaic branding inside the boundary)
+ *   DI: DI-69794E1C (persistent AI advisory disclaimer on all SBAR surfaces)
+ *   DI: DI-B883B2BE (completeness chip in Background stage header)
  *   Risk mitigated: R-4965BCD2 (every Background section gets a
  *                  source-record disclosure)
+ *   Risk mitigated: R-73BEAB34 (advisory disclaimer prevents AI over-reliance)
+ *   VT: VT-1AA1E176 (advisory disclaimer and completeness chip verification)
  *
  * SCOPE NOTE FOR SLICE 1 OF THE WIDGET MVP:
  * This module renders the stage cards + the safety-critical
@@ -75,6 +79,7 @@ function _escape(text: string): string {
 function _renderStage(
   section: SbarSection,
   partsByStage: Record<SbarStageName, SbarBackgroundPart[]>,
+  chipHtml = "",
 ): string {
   const rendered = renderMarkdownToHtml(stripSourceComments(section.body));
   const disclosure = renderDisclosureHtml({
@@ -84,21 +89,67 @@ function _renderStage(
   return (
     `<section class="leo-stage" data-stage="${section.stage}" ` +
     `data-testid="leo-stage-${section.stage}">` +
-    `<header class="leo-stage-header">${STAGE_LABELS[section.stage]}</header>` +
+    `<header class="leo-stage-header">` +
+    `<span class="leo-stage-label">${STAGE_LABELS[section.stage]}</span>` +
+    chipHtml +
+    `</header>` +
     `<div class="leo-stage-body leo-stage-body--md">${rendered}</div>` +
     disclosure +
     "</section>"
   );
 }
 
+const _AI_DISCLAIMER =
+  "AI-generated summary. Clinician review required before acting on this " +
+  "content. This is a decision support aid, it does not replace your " +
+  "clinical judgement.";
+
 function _renderHeader(payload: SbarAssessmentPayload): string {
   return (
     '<header class="leo-header" data-testid="leo-header">' +
     `<span class="leo-mark">${MIZAIC_MARK_SVG}</span>` +
     '<span class="leo-product">LEO by Mizaic</span>' +
-    '<span class="leo-test-only" data-testid="leo-test-only-banner">' +
-    "Test only -- not for clinical use</span>" +
     "</header>"
+  );
+}
+
+function _renderAiDisclaimer(): string {
+  return (
+    '<div class="leo-ai-disclaimer" data-testid="leo-ai-disclaimer" role="note">' +
+    _escape(_AI_DISCLAIMER) +
+    "</div>"
+  );
+}
+
+function _buildCompletenessTooltip(finding: CompletenessFinding): string {
+  const total = finding.requiredFields.length;
+  const present = finding.presentFields.length;
+  const lines: string[] = [
+    `Referral completeness: ${present} of ${total} required fields`,
+    "",
+    ...finding.presentFields.map((f) => `\u2713 ${f}`),
+    ...finding.missingFields.map((f) => `\u2717 ${f} (required - missing)`),
+    ...finding.unclearFields.map((f) => `~ ${f} (optional - not found)`),
+  ];
+  return lines.join("\n");
+}
+
+function _renderCompletenessChip(
+  finding: CompletenessFinding | null | undefined,
+): string {
+  if (!finding) return "";
+  const total = finding.requiredFields.length;
+  const pct =
+    total === 0
+      ? 100
+      : Math.round((finding.presentFields.length / total) * 100);
+  const modifier = pct >= 100 ? "green" : pct >= 50 ? "amber" : "red";
+  const tooltip = _buildCompletenessTooltip(finding);
+  return (
+    `<span class="leo-completeness-chip leo-completeness-chip--${modifier}" ` +
+    `data-testid="leo-completeness-chip" ` +
+    `title="${_escape(tooltip)}" ` +
+    `role="img" aria-label="Referral completeness ${pct}%">${pct}%</span>`
   );
 }
 
@@ -188,8 +239,11 @@ export function renderSurface(
     recommendation: [],
   };
 
+  const completenessChip = _renderCompletenessChip(payload.completenessFinding);
+
   let inner = "";
   inner += _renderHeader(payload);
+  inner += _renderAiDisclaimer();
   inner += _renderAdvisory(advisory ?? null);
   inner += _renderCompletenessPanel(payload.completenessFinding);
   if (sections.length === 0) {
@@ -197,7 +251,12 @@ export function renderSurface(
       '<div class="leo-empty" data-testid="leo-empty">' +
       "No SBAR content yet.</div>";
   } else {
-    inner += sections.map((s) => _renderStage(s, partsByStage)).join("");
+    inner += sections
+      .map((s) => {
+        const chip = s.stage === "background" ? completenessChip : "";
+        return _renderStage(s, partsByStage, chip);
+      })
+      .join("");
   }
 
   const wrapper =
