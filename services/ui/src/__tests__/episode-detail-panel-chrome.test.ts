@@ -42,7 +42,7 @@ describe("EpisodeDetailPanel chrome", () => {
   test("TC-002: imports SbarFinalView from the canonical module", () => {
     const src = read(PANEL_FILE);
     expect(src).toMatch(
-      /import\s*\{\s*SbarFinalView\s*\}\s*from\s*["']@\/components\/sbar-final\/SbarFinalView["']/,
+      /import\s*\{[^}]*SbarFinalView[^}]*\}\s*from\s*["']@\/components\/sbar-final\/SbarFinalView["']/,
     );
   });
 

@@ -32,7 +32,11 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import type { ExtractionScenarioRow } from "@/app/admin/extraction-scenarios/types";
-import { SbarFinalView, type SbarBackgroundPart } from "@/components/sbar-final";
+import {
+  SbarFinalView,
+  type SbarBackgroundPart,
+  type CompletenessFinding,
+} from "@/components/sbar-final";
 import {
   fetchDomain,
   fetchDomains,
@@ -154,6 +158,28 @@ function composeSbarMarkdown(assessment: NonNullable<ScenarioRunChild["assessmen
     "",
     assessment.recommendation || "_Not generated._",
   ].join("\n");
+}
+
+function normaliseCompletenessFinding(
+  rawJson?: string | null,
+): CompletenessFinding | null {
+  if (!rawJson) return null;
+  try {
+    const result = JSON.parse(rawJson) as Record<string, unknown>;
+    if (!result || !result.configured) return null;
+    const matched = (result.matched_groups as Array<Record<string, unknown>>) || [];
+    const missing = (result.missing_groups as Array<Record<string, unknown>>) || [];
+    return {
+      requiredFields: [...matched, ...missing]
+        .filter((g) => g.required)
+        .map((g) => String(g.name)),
+      presentFields: matched.map((g) => String(g.name)),
+      missingFields: missing.filter((g) => g.required).map((g) => String(g.name)),
+      unclearFields: missing.filter((g) => !g.required).map((g) => String(g.name)),
+    };
+  } catch {
+    return null;
+  }
 }
 
 function normaliseBackgroundParts(
@@ -820,6 +846,9 @@ function ChildRunCard({ child }: { child: ScenarioRunChild }) {
   const backgroundParts = assessment
     ? normaliseBackgroundParts(assessment.background_parts)
     : [];
+  const completenessFinding = assessment
+    ? normaliseCompletenessFinding(assessment.completeness_result_json)
+    : null;
   return (
     <Paper
       variant="outlined"
@@ -877,6 +906,7 @@ function ChildRunCard({ child }: { child: ScenarioRunChild }) {
             <SbarFinalView
               markdown={sbarMarkdown}
               backgroundParts={backgroundParts}
+              completenessFinding={completenessFinding}
               dense
               testOnly
               testIdPrefix={`scenario-sbar-${child.case_id}`}

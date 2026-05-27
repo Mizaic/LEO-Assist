@@ -47,6 +47,7 @@ export interface ScenarioRunChild {
     assessment?: string;
     recommendation?: string;
     content?: string;
+    completeness_result_json?: string | null;
   } | null;
 }
 
