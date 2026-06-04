@@ -4,7 +4,7 @@ Patient: Synthetic Given 070 Synthetic Family 070 (1965-11-17) NHS SYN-NHS-00007
 
 Prob: Suspected lower GI cancer -- abdominal mass and raised FIT.
 
-Hx: Patient attended for review of an incidental finding on ultrasound. A palpable abdominal mass was noted in the right lower quadrant. She reports a vague fullness in that area for several weeks. I arranged a quantitative FIT test which has returned above the referral threshold at 210 ug/Hb/g.
+Hx: Patient attended for review of an incidental finding on ultrasound. A palpable abdominal mass was confirmed in the right lower quadrant on examination. The patient reports a sensation of fullness in that area for several weeks. I arranged a quantitative FIT test which has returned above the referral threshold at 210 ug/Hb/g.
 
 Exam: Abdomen soft. Firm, non-tender abdominal mass in right iliac fossa, approximately 5cm diameter. Bowel sounds present.
 

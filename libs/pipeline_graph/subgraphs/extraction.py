@@ -371,7 +371,9 @@ def _extract_lab_fallback_entities(
 
 
 def split_sentences(state: ExtractionState) -> dict[str, Any]:
-    text = _hydrate_encounter_text_if_missing(state)
+    from libs.pipeline.llm_clinical_input import deidentify_encounter_text
+
+    text = deidentify_encounter_text(_hydrate_encounter_text_if_missing(state))
     splitter = SentenceSplitter()
     chunks = splitter.split(text)
     chunks = filter_header_sentences(chunks)

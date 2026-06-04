@@ -75,6 +75,12 @@ def _active_provider() -> str:
     return os.getenv("PIPELINE_MODEL_PROVIDER", "aws")
 
 
+def _guard_example_text(value: Any) -> str:
+    from libs.pipeline.llm_clinical_input import guard_user_clinical_text
+
+    return guard_user_clinical_text(str(value or ""), max_chars=4_000)
+
+
 def _build_few_shot_block(examples: list[dict], provider: str = "aws") -> str:
     """Render a subset of the example library as a prompt section.
 
@@ -94,8 +100,8 @@ def _build_few_shot_block(examples: list[dict], provider: str = "aws") -> str:
         cat = ex.get("category", "")
         header = f"# {cat}" + (f" — {desc}" if desc else "")
         lines.append(header)
-        lines.append(f"Input:  {ex.get('input', '')}")
-        lines.append(f"Output: {ex.get('output', '')}")
+        lines.append(f"Input:  {_guard_example_text(ex.get('input', ''))}")
+        lines.append(f"Output: {_guard_example_text(ex.get('output', ''))}")
         lines.append("")
     return "\n".join(lines)
 
@@ -119,8 +125,8 @@ def _build_relevant_examples_block(examples: list[dict]) -> str:
         cat = ex.get("category", "")
         header = f"# {cat}" + (f" — {desc}" if desc else "")
         lines.append(header)
-        lines.append(f"Input:  {ex.get('input', '')}")
-        lines.append(f"Output: {ex.get('output', '')}")
+        lines.append(f"Input:  {_guard_example_text(ex.get('input', ''))}")
+        lines.append(f"Output: {_guard_example_text(ex.get('output', ''))}")
         lines.append("")
     return "\n".join(lines)
 
@@ -166,7 +172,9 @@ def assemble_system_prompt(
         if ex_block:
             parts.append(ex_block)
 
-    return "\n\n".join(parts)
+    from libs.pipeline.llm_clinical_input import guard_system_prompt
+
+    return guard_system_prompt("\n\n".join(parts))
 
 
 class LLMExtractorAdapter:
@@ -276,11 +284,20 @@ class LLMExtractorAdapter:
             }
         from libs.llm_client.factory import create_llm
 
+        from libs.pipeline.llm_clinical_input import (
+            guard_llm_extraction_response,
+            guard_user_clinical_text,
+        )
+
         llm = create_llm(tier=self._tier)
-        sentence_block = "\n".join(f"[{s.sentence_id}] {s.text}" for s in sentences)
+        safe_encounter = guard_user_clinical_text(encounter_text)
+        sentence_block = "\n".join(
+            f"[{s.sentence_id}] {guard_user_clinical_text(s.text)}"
+            for s in sentences
+        )
         dynamic_examples: list[dict] = []
         if self._dynamic_budget > 0:
-            query_text = f"{encounter_text}\n\n{sentence_block}".strip()
+            query_text = f"{safe_encounter}\n\n{sentence_block}".strip()
             dynamic_examples = self._few_shot_selector.select(
                 query_text=query_text, k=self._dynamic_budget
             )
@@ -290,7 +307,7 @@ class LLMExtractorAdapter:
         if relevant_examples_block:
             user_parts.append(relevant_examples_block)
         user_msg = (
-            f"Encounter text:\n{encounter_text}\n\n"
+            f"Encounter text:\n{safe_encounter}\n\n"
             f"Sentences to process:\n{sentence_block}"
         )
         user_parts.append(user_msg)
@@ -350,7 +367,7 @@ class LLMExtractorAdapter:
             ],
         }
 
-        raw = (resp.text or "").strip()
+        raw = guard_llm_extraction_response((resp.text or "").strip())
         data, parse_source = parse_extraction_terms_response(raw)
         if parse_source == "failed":
             logger.warning("LLM returned invalid JSON: %s", raw[:200])

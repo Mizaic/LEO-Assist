@@ -925,23 +925,12 @@ class WorkflowEngine:
                 with client.session() as session:
                     row = session.run(GET_PROMPT, id=config_id).single()
                 if row:
-                    few_shot_raw = row.get("fewShotExamples") or "[]"
-                    try:
-                        few_shot = (
-                            json.loads(few_shot_raw)
-                            if isinstance(few_shot_raw, str)
-                            else few_shot_raw
-                        )
-                    except (ValueError, TypeError):
-                        few_shot = []
-                    return {
-                        "id": row["id"],
-                        "name": row["name"],
-                        "version": row.get("version", 1),
-                        "systemPrompt": row["systemPrompt"],
-                        "outputSchema": row.get("outputSchema") or None,
-                        "fewShotExamples": few_shot,
-                    }
+                    from libs.prompts.registry import _normalise_prompt_config_row
+
+                    row_dict = dict(row)
+                    name = str(row_dict.get("name") or "")
+                    version = int(row_dict.get("version") or 1)
+                    return _normalise_prompt_config_row(name, version, row_dict)
             finally:
                 client.close()
         except Exception as exc:

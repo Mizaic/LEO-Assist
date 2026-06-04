@@ -109,7 +109,11 @@ def _evaluate_completeness(
         }
         id_hits = sorted(required_ids & concept_ids)
         tag_hit = bool(categories & semantic_tags)
-        absent_ids = sorted(required_ids - concept_ids)
+        # concept_ids uses "any one suffices" semantics: a single hit from
+        # the set satisfies the group (e.g. positive OR negative FIT code).
+        # absent_ids is non-empty only when no hit at all was found, so the
+        # UI can show which alternatives were expected.
+        absent_ids = [] if id_hits else sorted(required_ids)
         missing_tags = bool(categories) and not tag_hit
         row = {
             "name": str(group.get("name") or ""),

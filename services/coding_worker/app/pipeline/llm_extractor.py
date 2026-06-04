@@ -372,7 +372,11 @@ class LLMExtractor:
                 temperature=0.0,
                 agent_task="coding_worker_llm_extractor",
             )
-            payload, parse_source = self._parse_json_with_source(resp.text)
+            from libs.pipeline.llm_clinical_input import guard_llm_extraction_response
+
+            payload, parse_source = self._parse_json_with_source(
+                guard_llm_extraction_response(resp.text or "")
+            )
         except Exception as exc:
             logger.error("LLMExtractor.extract_batch failed: %s", exc)
             return []
@@ -422,10 +426,13 @@ class LLMExtractor:
 
     @staticmethod
     def _build_user_prompt(encounter_text: str, sentences: list) -> str:
-        parts = [f"ENCOUNTER TEXT:\n{encounter_text}\n\nSENTENCES TO EXTRACT FROM:"]
+        from libs.pipeline.llm_clinical_input import guard_user_clinical_text
+
+        safe_encounter = guard_user_clinical_text(encounter_text)
+        parts = [f"ENCOUNTER TEXT:\n{safe_encounter}\n\nSENTENCES TO EXTRACT FROM:"]
         for sentence in sentences:
             sid = getattr(sentence, "sentence_id", "s0")
-            text = getattr(sentence, "text", "")
+            text = guard_user_clinical_text(getattr(sentence, "text", ""))
             parts.append(f"[{sid}] {text}")
         return "\n".join(parts)
 
