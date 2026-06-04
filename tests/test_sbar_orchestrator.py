@@ -27,6 +27,7 @@ from libs.sbar.events import (
     SBARSituationInput,
     SituationArtifactType,
 )
+from libs.sbar.context_integrity import ContextIntegrityResult
 from libs.sbar.source_resolver import ResolvedCode, ResolvedSource
 from services.pipeline_worker.app.services.sbar_orchestrator import (
     SBAROrchestrator,
@@ -75,6 +76,13 @@ class _FakeClient:
 def _first_keyword(query: str) -> str:
     stripped = (query or "").strip().split()
     return stripped[0].upper() if stripped else ""
+
+
+def _patch_integrity_ok(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator.validate_sbar_context",
+        lambda _session, _payload: ContextIntegrityResult(ok=True),
+    )
 
 
 def _make_payload() -> SBARRequestPayload:
@@ -161,6 +169,7 @@ def orchestrator_with_mocks(monkeypatch):
         _RESOLVE_BG,
         _fake_resolve_background,
     )
+    _patch_integrity_ok(monkeypatch)
 
     publish = MagicMock()
     orch = SBAROrchestrator(
@@ -256,6 +265,7 @@ def test_orchestrator_passes_patient_demographics_to_guideline_evaluator(
             )
         ],
     )
+    _patch_integrity_ok(monkeypatch)
 
     orch = SBAROrchestrator(
         patient_graph_client=client,
@@ -334,6 +344,7 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
         _RESOLVE_BG,
         lambda _s, _r: [],
     )
+    _patch_integrity_ok(monkeypatch)
 
     publish = MagicMock()
     orch = SBAROrchestrator(
@@ -408,6 +419,7 @@ def test_orchestrator_records_error_when_situation_call_fails(monkeypatch):
         _RESOLVE_BG,
         lambda _s, _r: [],
     )
+    _patch_integrity_ok(monkeypatch)
 
     orch = SBAROrchestrator(
         patient_graph_client=client,

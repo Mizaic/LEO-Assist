@@ -173,6 +173,14 @@ RETURN coalesce(pr.id, '')          AS id,
        coalesce(pr.created_at, '')  AS created_at
 """
 
+_ENCOUNTER_SITUATION_QUERY = """
+MATCH (e:Encounter {id: $artifact_id})
+RETURN coalesce(e.id, '')           AS id,
+       coalesce(e.text, '')         AS text,
+       coalesce(e.date, '')         AS date,
+       coalesce(e.encounter_type, '') AS encounter_type
+"""
+
 
 _ENCOUNTER_TEXT_AND_CODES = """
 MATCH (e:Encounter {id: $source_id})
@@ -339,6 +347,11 @@ def _resolve_artifact(
         return {"type": ref.type.value, **dict(rec)}
     if ref.type is SituationArtifactType.procedure_request:
         rec = session.run(_PROCEDURE_REQUEST_QUERY, artifact_id=ref.id).single()
+        if rec is None:
+            return {"type": ref.type.value, "id": ref.id, "error": "not_found"}
+        return {"type": ref.type.value, **dict(rec)}
+    if ref.type is SituationArtifactType.encounter:
+        rec = session.run(_ENCOUNTER_SITUATION_QUERY, artifact_id=ref.id).single()
         if rec is None:
             return {"type": ref.type.value, "id": ref.id, "error": "not_found"}
         return {"type": ref.type.value, **dict(rec)}

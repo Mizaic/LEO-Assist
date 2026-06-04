@@ -43,6 +43,7 @@ class SituationArtifactType(str, Enum):
     procedure_request = "ProcedureRequest"
     patient_context = "PatientContext"
     summarisation_context = "SummarisationContext"
+    encounter = "Encounter"
     # Deprecated: removed after one minor version. Producers must migrate
     # to summarisation_context with a SummarisationContext value.
     fixed_text = "FixedText"
@@ -495,6 +496,10 @@ class SBARRequestPayload(BaseModel):
     # Optional encounter id used to reach back to a Patient or to attach a
     # HAS_ASSESSMENT relationship from a future/same-day encounter.
     encounter_id: str | None = None
+
+    # Optional consuming-system correlation for end-to-end witness testing.
+    upstream_correlation_id: str | None = None
+    source_system: str | None = None
 
     extra: dict[str, Any] = Field(default_factory=dict)
 

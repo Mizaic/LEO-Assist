@@ -45,6 +45,7 @@ from libs.sbar.assessment_formatter import (
     evaluate_codes_against_guidelines,
     format_assessment,
 )
+from libs.sbar.context_integrity import ContextIntegrityResult, validate_sbar_context
 from libs.sbar.error_messages import (
     FriendlyError,
     FriendlyNotice,
@@ -157,6 +158,18 @@ class SBAROrchestrator:
         )
 
         client = self._client_or_default()
+
+        with client.session() as session:
+            integrity = validate_sbar_context(session, payload)
+        if not integrity.ok:
+            return self._fail_context_integrity(
+                client=client,
+                payload=payload,
+                assessment_id=assessment_id,
+                run_id=run_id,
+                integrity=integrity,
+                started=started,
+            )
 
         # DI-LEO-AI-506: every LLM call inside this block flows through
         # invoke_llm_json -> the active recorder, so we accumulate token
@@ -312,11 +325,23 @@ class SBAROrchestrator:
                     "assessment_id": assessment_id,
                 },
             )
+            # Exclude negated/absent/uncertain assertions from rule evaluation.
+            # Negated findings ("no rectal mass") must never trigger positive
+            # referral rules. Uncertain/possible findings are also excluded so
+            # the evaluator only acts on confirmed clinical facts.
+            _EXCLUDED_ASSERTIONS = {"absent", "negated", "possible", "uncertain"}
+            eval_codes = sorted(
+                {
+                    c.concept_id
+                    for c in aggregated
+                    if _assertion_value(c.assertion) not in _EXCLUDED_ASSERTIONS
+                }
+            )
             patient_codes = sorted({c.concept_id for c in aggregated})
             demographics = _assessment_demographics(resolved_situation.patient_summary)
             try:
                 eval_payload = self._evaluate(
-                    patient_codes=patient_codes,
+                    patient_codes=eval_codes,
                     guideline_ids=payload.guideline_ids or None,
                     patient_age=demographics.get("patient_age"),
                     patient_sex=demographics.get("patient_sex"),
@@ -605,6 +630,9 @@ class SBAROrchestrator:
         client: Any,
         payload: SBARRequestPayload,
         assessment_id: str,
+        *,
+        context_integrity_status: str = "passed",
+        context_integrity_errors: str | None = None,
     ) -> None:
         self._run_cypher(
             client,
@@ -614,7 +642,100 @@ class SBAROrchestrator:
             run_id=payload.run_id,
             requested_by=payload.requested_by,
             tenant_id=payload.tenant_id,
+            upstream_correlation_id=payload.upstream_correlation_id,
+            source_system=payload.source_system,
+            context_integrity_status=context_integrity_status,
+            context_integrity_errors=context_integrity_errors,
             guideline_ids=payload.guideline_ids,
+        )
+
+    def _fail_context_integrity(
+        self,
+        *,
+        client: Any,
+        payload: SBARRequestPayload,
+        assessment_id: str,
+        run_id: str,
+        integrity: ContextIntegrityResult,
+        started: float,
+    ) -> SBARResult:
+        """Stop the run when task record ids are not connected to the patient."""
+        errors = [err.message for err in integrity.errors]
+        errors_detail: list[FriendlyError] = [
+            {
+                "stage": "context",
+                "code": err.code,
+                "message": err.message,
+            }
+            for err in integrity.errors
+        ]
+        errors_json = json.dumps(
+            [
+                {
+                    "code": err.code,
+                    "message": err.message,
+                    "record_type": err.record_type,
+                    "record_id": err.record_id,
+                }
+                for err in integrity.errors
+            ]
+        )
+        patient_missing = any(
+            err.code == "patient_not_found" for err in integrity.errors
+        )
+        if not patient_missing:
+            self._create_draft(
+                client,
+                payload,
+                assessment_id,
+                context_integrity_status="failed",
+                context_integrity_errors=errors_json,
+            )
+            self._run_cypher(
+                client,
+                FINALISE_ASSESSMENT,
+                assessment_id=assessment_id,
+                content=(
+                    "_SBAR generation stopped because the patient and record "
+                    "ids in the task do not match._"
+                ),
+                status="error",
+                errors=errors,
+                stt=None,
+                stt_evidence=None,
+                alternative_pathway=None,
+                alternative_pathway_evidence=None,
+                rtr=None,
+                rtr_evidence=None,
+            )
+        duration = time.time() - started
+        self._emit(
+            run_id,
+            "sbar_failed",
+            {
+                "assessment_id": assessment_id,
+                "status": "error",
+                "duration_s": round(duration, 3),
+                "error_count": len(errors),
+                "errors": list(errors_detail),
+                "reason": "context_integrity",
+            },
+        )
+        return SBARResult(
+            assessment_id=assessment_id,
+            status="error",
+            situation="",
+            background="",
+            assessment="",
+            recommendation="",
+            content="",
+            actions=[],
+            rules=[],
+            pathway_hints={},
+            errors=errors,
+            errors_detail=errors_detail,
+            notices=[],
+            duration_s=duration,
         )
 
     def _link_artefacts(
@@ -769,6 +890,33 @@ def _first_specialty(resolved) -> str | None:
             if spec:
                 return spec
     return None
+
+
+def _assertion_value(raw: str | None) -> str:
+    """Extract the scalar assertion string from a raw context value.
+
+    The assertion field on a ResolvedCode can be either a plain string
+    (e.g. "present") or a JSON-encoded context object
+    (e.g. '{"assertion": "absent", "negated": true, ...}').
+    Returns the assertion value in both cases, lower-cased.
+    """
+    if not raw:
+        return "present"
+    stripped = raw.strip()
+    if stripped.startswith("{"):
+        import json as _json
+
+        try:
+            obj = _json.loads(stripped)
+            val = str(obj.get("assertion") or "present").strip().lower()
+            if obj.get("negated"):
+                return "absent"
+            if obj.get("uncertain"):
+                return "uncertain"
+            return val
+        except Exception:
+            pass
+    return stripped.lower()
 
 
 def _assessment_demographics(patient_summary: dict[str, Any]) -> dict[str, Any]:

@@ -14,6 +14,8 @@ Schema:
     (:Assessment {
         id, type='SBAR', status, created_at, updated_at,
         run_id, requested_by, tenant_id,
+        upstream_correlation_id, source_system,
+        context_integrity_status, context_integrity_errors,
         situation, background, assessment, recommendation, content,
         stt, stt_evidence, alternative_pathway, alternative_pathway_evidence,
         rtr, rtr_evidence,
@@ -43,9 +45,17 @@ ON CREATE SET
     a.run_id        = $run_id,
     a.requested_by  = $requested_by,
     a.tenant_id     = $tenant_id,
+    a.upstream_correlation_id = $upstream_correlation_id,
+    a.source_system = $source_system,
+    a.context_integrity_status = $context_integrity_status,
+    a.context_integrity_errors = $context_integrity_errors,
     a.guideline_ids = $guideline_ids
 SET a.updated_at  = datetime(),
-    a.run_id      = coalesce(a.run_id, $run_id)
+    a.run_id      = coalesce(a.run_id, $run_id),
+    a.upstream_correlation_id = coalesce(
+        a.upstream_correlation_id, $upstream_correlation_id
+    ),
+    a.source_system = coalesce(a.source_system, $source_system)
 MERGE (p)-[:HAS_ASSESSMENT]->(a)
 RETURN a.id AS id, a.created_at AS created_at, a.status AS status
 """

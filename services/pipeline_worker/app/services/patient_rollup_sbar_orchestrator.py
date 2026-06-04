@@ -204,6 +204,10 @@ class PatientRollupSBAROrchestrator:
             run_id=req.run_id,
             requested_by=req.requested_by,
             tenant_id=req.tenant_id,
+            upstream_correlation_id=req.run_id,
+            source_system="patient-rollup-sbar",
+            context_integrity_status="passed",
+            context_integrity_errors=None,
             guideline_ids=[],
         )
 

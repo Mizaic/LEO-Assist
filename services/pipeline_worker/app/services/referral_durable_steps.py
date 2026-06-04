@@ -205,8 +205,11 @@ async def handle_referral_durable_message(
         _emit(publish_progress, request, "durable_step_completed", definition, result)
         if bus and result.next_event_type and result.next_step_id:
             await _publish_next(
-                bus, queue_name, request,
-                result.next_event_type, result.next_step_id,
+                bus,
+                queue_name,
+                request,
+                result.next_event_type,
+                result.next_step_id,
             )
         elif bus and definition.completion_event_type:
             await _publish_completion(bus, request, result, definition)
@@ -292,9 +295,9 @@ def _enrich_patient_demographics(
     gender = str(row.get("gender") or "").strip().lower()
     if gender and not state.get("patient_sex"):
         state["patient_sex"] = (
-            "female" if gender in {"female", "f", "woman"}
-            else "male" if gender in {"male", "m", "man"}
-            else gender or None
+            "female"
+            if gender in {"female", "f", "woman"}
+            else "male" if gender in {"male", "m", "man"} else gender or None
         )
 
 
@@ -386,9 +389,13 @@ async def _run_sbar_orchestrator(request: StepRequest) -> dict[str, Any]:
             patient_id=request.patient_id,
             artifacts=[
                 SBARArtifactRef(
+                    type=SituationArtifactType.encounter,
+                    id=request.encounter_id,
+                ),
+                SBARArtifactRef(
                     type=SituationArtifactType.summarisation_context,
                     context_value=SummarisationContext.two_week_wait,
-                )
+                ),
             ],
         ),
         background=[
@@ -397,6 +404,8 @@ async def _run_sbar_orchestrator(request: StepRequest) -> dict[str, Any]:
                 id=request.encounter_id,
             )
         ],
+        upstream_correlation_id=request.run_id,
+        source_system="referral-assessment-pipeline",
         extra={"parent_run_id": request.run_id, "workflow_id": request.workflow_id},
     )
     result = await SBAROrchestrator().run(payload)
@@ -492,9 +501,7 @@ def _build_completion_body(
     result: StepResult,
     definition: ReferralStepDefinition,
 ) -> dict[str, Any]:
-    status = (
-        "completed_with_errors" if result.errors else "completed"
-    )
+    status = "completed_with_errors" if result.errors else "completed"
     return {
         "event_type": definition.completion_event_type,
         "run_id": request.run_id,
