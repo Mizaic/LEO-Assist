@@ -55,6 +55,39 @@ ENTITY_AUDIT_ISSUE_CODES: dict[str, str] = {
     ),
 }
 
+_CLINICAL_LABELS = frozenset(
+    {
+        "disorder",
+        "finding",
+        "procedure",
+        "observable_entity",
+        "substance",
+        "medicinal_product",
+        "clinical_drug",
+        "situation",
+        "event",
+        "body_structure",
+        "morphologic_abnormality",
+    }
+)
+_NON_CLINICAL_SEMANTIC_TAGS = frozenset(
+    {
+        "qualifier_value",
+        "attribute",
+        "staging_scale",
+        "tumor_staging",
+        "record_artifact",
+        "geographic_location",
+        "cell_structure",
+        "environment",
+        "occupation",
+        "organism",
+        "physical_object",
+        "namespace_concept",
+        "inactive_concept",
+        "special_concept",
+    }
+)
 _TAG_SYNONYMS: dict[str, frozenset[str]] = {
     "substance": frozenset({"medicinal_product", "product"}),
     "medicinal_product": frozenset({"substance", "product"}),
@@ -93,6 +126,10 @@ def _term_without_suffix(term: str | None) -> str:
 def _term_suffix(term: str | None) -> str:
     match = _TERM_SUFFIX_RE.search(str(term or ""))
     return _normalise_tag(match.group(1)) if match else ""
+
+
+def _derive_semantic_tag_from_term(term: str | None) -> str:
+    return _term_suffix(term)
 
 
 def _normalise_text(text: str | None) -> str:

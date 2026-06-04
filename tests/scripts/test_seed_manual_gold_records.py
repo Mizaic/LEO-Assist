@@ -30,11 +30,11 @@ from scripts.seed_manual_gold_records import (  # noqa: E402
     prepare_record,
 )
 
-MANIFEST_PATH = (
-    REPO
-    / "design-controls"
-    / "training-data"
-    / "manual-gold-seed-2026-04-17.yaml"
+MANIFEST_PATH = REPO / "data" / "training" / "manual-gold-seed-2026-04-17.yaml"
+
+_requires_manifest = pytest.mark.skipif(
+    not MANIFEST_PATH.is_file(),
+    reason="optional gitignored seed manifest missing locally",
 )
 
 
@@ -62,6 +62,7 @@ def _benign_record() -> dict:
 # ----------------------------------------------------------------------
 
 
+@_requires_manifest
 def test_tc_001_real_manifest_loads_and_validates():
     manifest = load_manifest(MANIFEST_PATH)
     assert manifest["schema_version"] == "1.0"
@@ -110,6 +111,7 @@ def test_tc_002_email_in_text_is_rejected():
         prepare_record(rec)
 
 
+@_requires_manifest
 def test_tc_002_real_manifest_has_no_residual_phi():
     manifest = load_manifest(MANIFEST_PATH)
     prepare_all(manifest)
@@ -187,6 +189,7 @@ def test_tc_005_uppercase_label_is_rejected_unless_in_vocabulary():
     assert prepared.entities[0]["label"] == "disorder"
 
 
+@_requires_manifest
 def test_tc_005_real_manifest_uses_only_valid_labels():
     manifest = load_manifest(MANIFEST_PATH)
     prepared = prepare_all(manifest)
@@ -327,6 +330,7 @@ def test_tc_006_concept_id_without_term_is_rejected():
         prepare_record(rec)
 
 
+@_requires_manifest
 def test_tc_006_real_manifest_has_no_qualifier_on_clinical_after_fix():
     """End-to-end: the live manifest must seed cleanly under the
     new safety check after the 5 known offenders were relabelled."""

@@ -15,17 +15,11 @@ Atlas trace:
 """
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-_WORKER_ROOT = Path(__file__).parent.parent / "services" / "pipeline_worker"
-if str(_WORKER_ROOT) not in sys.path:
-    sys.path.insert(0, str(_WORKER_ROOT))
-
-from app.services.referral_durable_steps import (  # noqa: E402
+from services.pipeline_worker.app.services.referral_durable_steps import (
     REFERRAL_OUTPUT_QUEUE,
     REFERRAL_STEPS,
     REFERRAL_STEP_BY_EVENT,
@@ -121,11 +115,11 @@ async def test_start_publishes_extraction_requested_to_pipeline_queue():
 
     with (
         patch(
-            "app.services.referral_durable_steps.PatientGraphClient",
+            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
             return_value=fake_client,
         ),
         patch(
-            "app.services.referral_durable_steps.PipelineStageStore",
+            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
             return_value=_fake_store(),
         ),
     ):
@@ -176,15 +170,15 @@ async def test_internal_step_publishes_to_pipeline_queue(
 
     with (
         patch(
-            "app.services.referral_durable_steps.PatientGraphClient",
+            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
             return_value=fake_client,
         ),
         patch(
-            "app.services.referral_durable_steps.PipelineStageStore",
+            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
             return_value=store,
         ),
         patch(
-            "app.services.referral_durable_steps._run_definition",
+            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
             return_value=StepResult(
                 status="completed",
                 output={},
@@ -225,15 +219,15 @@ async def test_sbar_step_publishes_completion_to_output_queue():
 
     with (
         patch(
-            "app.services.referral_durable_steps.PatientGraphClient",
+            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
             return_value=fake_client,
         ),
         patch(
-            "app.services.referral_durable_steps.PipelineStageStore",
+            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
             return_value=store,
         ),
         patch(
-            "app.services.referral_durable_steps._run_definition",
+            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
             return_value=StepResult(
                 status="completed",
                 output={"sbar_assessment_id": "assess-xyz"},
@@ -269,15 +263,15 @@ async def test_sbar_step_completion_status_completed_with_errors_on_partial():
 
     with (
         patch(
-            "app.services.referral_durable_steps.PatientGraphClient",
+            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
             return_value=fake_client,
         ),
         patch(
-            "app.services.referral_durable_steps.PipelineStageStore",
+            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
             return_value=_fake_store(),
         ),
         patch(
-            "app.services.referral_durable_steps._run_definition",
+            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
             return_value=StepResult(
                 status="completed",
                 output={"sbar_assessment_id": "assess-err"},
@@ -306,7 +300,7 @@ async def test_sbar_step_completion_status_completed_with_errors_on_partial():
 
 def test_build_completion_body_passthrough():
     """Context fields survive into the completion event unchanged."""
-    from app.services.referral_durable_steps import REFERRAL_STEP_BY_EVENT
+    from services.pipeline_worker.app.services.referral_durable_steps import REFERRAL_STEP_BY_EVENT
 
     req = _request("sbar_requested")
     defn = REFERRAL_STEP_BY_EVENT["sbar_requested"]
@@ -345,7 +339,7 @@ def test_persist_completion_event_writes_to_neo4j():
 
     body = {"event_type": "referral_assessment_completed", "assessment_id": "a1"}
     with patch(
-        "app.services.referral_durable_steps.PatientGraphClient",
+        "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
         return_value=fake_client,
     ):
         _persist_completion_event("run-42", body)
@@ -365,7 +359,7 @@ def test_persist_completion_event_is_best_effort():
     fake_client.close = MagicMock()
 
     with patch(
-        "app.services.referral_durable_steps.PatientGraphClient",
+        "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
         return_value=fake_client,
     ):
         # Should not raise
@@ -387,15 +381,15 @@ async def test_sbar_step_writes_completion_event_to_graph():
     store = _fake_store()
     with (
         patch(
-            "app.services.referral_durable_steps.PatientGraphClient",
+            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
             return_value=fake_client,
         ),
         patch(
-            "app.services.referral_durable_steps.PipelineStageStore",
+            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
             return_value=store,
         ),
         patch(
-            "app.services.referral_durable_steps._run_definition",
+            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
             return_value=StepResult(
                 status="completed",
                 output={"sbar_assessment_id": "assess-graph-1"},
