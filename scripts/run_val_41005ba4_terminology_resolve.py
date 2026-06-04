@@ -25,7 +25,7 @@ from libs.pipeline_graph.subgraphs.terminology import (  # noqa: E402
     _merge_resolution,
 )
 from libs.terminology.client import ResolvedTerm, TerminologyClient  # noqa: E402
-from tests.helpers.clinical_extraction_scenario_loader import iter_cases  # noqa: E402
+from libs.validation.clinical_extraction_scenario_loader import iter_cases  # noqa: E402
 
 REPORT_DIR = _REPO_ROOT / "tests/fixtures/clinical_extraction_scenarios/reports"
 REPORT_JSON = REPORT_DIR / "val_41005ba4_terminology_resolve.json"

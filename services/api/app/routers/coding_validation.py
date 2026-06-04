@@ -1,6 +1,5 @@
 import json
 import logging
-from pathlib import Path
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,15 +8,8 @@ from pydantic import BaseModel
 from app.deps import require_admin
 from libs.auth.org_scope import CallerScope
 from libs.terminology.client import TerminologyClient, ResolvedTerm
-from libs.pipeline_graph.subgraphs.terminology import (
-    _merge_resolution,
-    _DEFAULT_MIN_SCORE,
-)
+from libs.validation.clinical_extraction_scenario_loader import fixture_dir
 from scripts.run_val_41005ba4_terminology_resolve import (
-    _EXPECTED_WITHHOLD_SURFACES,
-    _unresolved_reason,
-    _normalise_surface,
-    _val_result,
     _build_fact_row,
     iter_cases,
     RESOLVE_BATCH,
@@ -37,7 +29,11 @@ class UpdateGroundTruthRequest(BaseModel):
 @router.get("")
 def list_coding_validation(_: Annotated[CallerScope, Depends(require_admin)]):
     """Run terminology validation and return terms and their resolution."""
-    cases = list(iter_cases())
+    try:
+        cases = list(iter_cases())
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Fixture not found") from exc
+
     unique_terms_dict = {}
     for case in cases:
         for s in case.get("expected_strings", []):
@@ -72,7 +68,7 @@ def list_coding_validation(_: Annotated[CallerScope, Depends(require_admin)]):
             if not s_str:
                 continue
             candidates = results.get(s_str, [])
-            fact_row = _build_fact_row(s_str, candidates)
+            fact_row = _build_fact_row(s_str, tag, candidates)
             fact_row["semantic_tag"] = tag
             facts.append(fact_row)
             
@@ -90,7 +86,7 @@ def update_ground_truth(
 ):
     """Update expected_strings or alias mapping (conceptually)."""
     # For MVP, this could just write to the local JSON file
-    fixture_path = Path("tests/fixtures/clinical_extraction_scenarios/expected_strings.json")
+    fixture_path = fixture_dir() / "expected_strings.json"
     if not fixture_path.exists():
         raise HTTPException(status_code=404, detail="Fixture not found")
         

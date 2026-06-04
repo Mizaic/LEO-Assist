@@ -1,4 +1,4 @@
-"""Ingest QA-clean training records into Neo4j TrainingLabel nodes.
+r"""Ingest QA-clean training records into Neo4j TrainingLabel nodes.
 
 Reads the merged JSONL from the NER pipeline and writes each record
 as a TrainingLabel node via the existing bulk_upsert helper.  This is

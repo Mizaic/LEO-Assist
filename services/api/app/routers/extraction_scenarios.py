@@ -630,7 +630,7 @@ def _mark_publish_failed(
 
 
 def _scoring_rules() -> dict[str, bool]:
-    from tests.helpers.clinical_extraction_scenario_loader import load_expected_strings
+    from libs.validation.clinical_extraction_scenario_loader import load_expected_strings
 
     doc = load_expected_strings()
     normalisation = doc.get("normalisation")
@@ -649,14 +649,14 @@ def _scoring_rules() -> dict[str, bool]:
 
 def _score_case_from_node(case: dict[str, Any]) -> dict[str, Any]:
     """Score a case by running the UN-89E2AE36 extraction workflow."""
-    from tests.helpers.clinical_extraction_scenario_loader import score_case
+    from libs.validation.clinical_extraction_scenario_loader import score_case
 
     extracted_entities = _extract_terms_for_validation(case)
     return score_case(case, extracted_entities, _scoring_rules())
 
 
 def _score_case_from_terms(case: dict[str, Any], extracted_entities: list[dict[str, str]]) -> dict:
-    from tests.helpers.clinical_extraction_scenario_loader import score_case
+    from libs.validation.clinical_extraction_scenario_loader import score_case
 
     cleaned_terms = _normalise_validation_terms(extracted_entities, case)
     scoring_case = {**case, "expected_strings": _normalise_expected_strings(case)}

@@ -82,6 +82,11 @@ jobs:
             fi
           done <<< "$PY_CHANGED"
 
+      - name: Runtime import boundary smoke test
+        run: pytest tests/test_runtime_import_boundaries.py -v --tb=short
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Run tests (non-blocking)
         run: |
           set +e
