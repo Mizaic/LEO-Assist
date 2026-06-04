@@ -116,6 +116,10 @@ export default function ConfigureSubdomainDialog({
   const [schemaSaving, setSchemaSaving] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [schemaConceptQuery, setSchemaConceptQuery] = useState("");
+  const [schemaSearchResults, setSchemaSearchResults] = useState<
+    Array<{ snomed_concept_id: string; term: string; semantic_tag?: string }>
+  >([]);
+  const [schemaSearchLoading, setSchemaSearchLoading] = useState(false);
   const [schemaSelectedConcepts, setSchemaSelectedConcepts] = useState<
     Record<number, CompletenessConceptOption>
   >({});
@@ -126,6 +130,7 @@ export default function ConfigureSubdomainDialog({
     setSchemaError(null);
     setPreviewConceptIds("");
     setSchemaConceptQuery("");
+    setSchemaSearchResults([]);
     setSchemaSelectedConcepts({});
   }, [configSub?.name, configSub?.completeness_schema]);
 
@@ -142,7 +147,7 @@ export default function ConfigureSubdomainDialog({
 
   const searchedConceptOptions = useMemo(
     () =>
-      searchPanelProps.searchResults
+      schemaSearchResults
         .map((hit) => {
           const conceptId = parseInt(hit.snomed_concept_id, 10);
           if (!Number.isFinite(conceptId)) return null;
@@ -154,7 +159,7 @@ export default function ConfigureSubdomainDialog({
           };
         })
         .filter((option): option is CompletenessConceptOption => option !== null),
-    [searchPanelProps.searchResults],
+    [schemaSearchResults],
   );
 
   useEffect(() => {
@@ -195,11 +200,34 @@ export default function ConfigureSubdomainDialog({
   }, [schemaDraft, schemaSelectedConcepts]);
 
   useEffect(() => {
+    const q = schemaConceptQuery.trim();
+    if (q.length < 2) {
+      setSchemaSearchResults([]);
+      return;
+    }
+    const tags =
+      (configSub?.semantic_tags ?? []).length > 0
+        ? configSub?.semantic_tags
+        : undefined;
+    let cancelled = false;
     const timer = window.setTimeout(() => {
-      searchPanelProps.onSearchQueryChange(schemaConceptQuery);
+      setSchemaSearchLoading(true);
+      searchTerms(q, 15, tags)
+        .then((hits) => {
+          if (!cancelled) setSchemaSearchResults(hits);
+        })
+        .catch(() => {
+          if (!cancelled) setSchemaSearchResults([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSchemaSearchLoading(false);
+        });
     }, 250);
-    return () => window.clearTimeout(timer);
-  }, [schemaConceptQuery, searchPanelProps.onSearchQueryChange]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [schemaConceptQuery, configSub?.semantic_tags]);
 
   const updateConstructs = (
     next: Array<{
@@ -680,7 +708,7 @@ export default function ConfigureSubdomainDialog({
                           isOptionEqualToValue={(option, value) =>
                             option.conceptId === value.conceptId
                           }
-                          loading={searchPanelProps.searchLoading}
+                          loading={schemaSearchLoading}
                           onChange={(_, values) => {
                             setSchemaSelectedConcepts((prev) => {
                               const next = { ...prev };
