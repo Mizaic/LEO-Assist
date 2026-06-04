@@ -202,6 +202,7 @@ services:
       NEXT_PUBLIC_TERMINOLOGY_API_URL: http://localhost:8001
       NEXT_PUBLIC_FHIR_API_URL: http://localhost:8002
       NEXT_PUBLIC_ANALYTICS_API_URL: http://localhost:8003
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:-}
     depends_on:
       - core-api
     volumes:

@@ -136,13 +136,11 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         schedule_after_seconds: int | None = None,
     ) -> None:
         from azure.servicebus import ServiceBusMessage
-        from azure.servicebus.exceptions import ServiceBusAuthenticationError
+        from azure.servicebus.exceptions import (
+            ServiceBusAuthenticationError,
+            ServiceBusError,
+        )
 
-        if queue_or_topic not in self._senders:
-            self._senders[queue_or_topic] = self._client.get_queue_sender(
-                queue_or_topic
-            )
-        sender = self._senders[queue_or_topic]
         sb_msg = ServiceBusMessage(
             body=json.dumps(message.body),
             message_id=message.message_id,
@@ -154,26 +152,40 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                 else None
             ),
         )
-        try:
-            await sender.send_messages(sb_msg)
-        except ServiceBusAuthenticationError:
-            # Evict the cached sender so the next retry opens a fresh AMQP
-            # link rather than reusing a broken one.  Auth errors are most
-            # commonly caused by a queue-level SAS token that lacks Send
-            # permission for this queue, or a token that has expired.
-            # Fix: use a namespace-level connection string
-            # (SharedAccessKeyName=RootManageSharedAccessKey) or a SAS
-            # policy that grants Send on all queues including %r.
-            self._senders.pop(queue_or_topic, None)
-            logger.error(
-                "Service Bus auth error sending to %r -- sender evicted from "
-                "cache. Check that AZURE_SERVICE_BUS_CONNECTION_STRING uses a "
-                "namespace-level SAS key with Send permission, or that the "
-                "managed identity has Azure Service Bus Data Sender role on "
-                "this queue.",
-                queue_or_topic,
-            )
-            raise
+        for attempt in range(2):
+            if queue_or_topic not in self._senders:
+                self._senders[queue_or_topic] = self._client.get_queue_sender(
+                    queue_or_topic
+                )
+            sender = self._senders[queue_or_topic]
+            try:
+                await sender.send_messages(sb_msg)
+                return
+            except ServiceBusAuthenticationError:
+                # Auth errors are not transient -- evict and surface immediately.
+                self._senders.pop(queue_or_topic, None)
+                logger.error(
+                    "Service Bus auth error sending to %r -- sender evicted from "
+                    "cache. Check that AZURE_SERVICE_BUS_CONNECTION_STRING uses a "
+                    "namespace-level SAS key with Send permission, or that the "
+                    "managed identity has Azure Service Bus Data Sender role on "
+                    "this queue.",
+                    queue_or_topic,
+                )
+                raise
+            except ServiceBusError:
+                # The AMQP session can become None after a connection drop
+                # (AttributeError: 'NoneType' has no attribute 'create_sender_link').
+                # Evict the dead sender so the next iteration opens a fresh one.
+                self._senders.pop(queue_or_topic, None)
+                if attempt == 1:
+                    raise
+                logger.warning(
+                    "Service Bus sender dead for %r (attempt %d) -- "
+                    "evicting and retrying with fresh sender",
+                    queue_or_topic,
+                    attempt + 1,
+                )
 
     async def subscribe(
         self,
