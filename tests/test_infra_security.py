@@ -20,10 +20,11 @@ PARAM_DIR = INFRA_DIR / "parameters"
 CONTAINER_APPS = INFRA_DIR / "modules" / "container-apps.bicep"
 ENVIRONMENTS = ["dev", "val", "prod"]
 
-# Must match container-apps.bicep: only these two apps get a public FQDN.
-_EXPECTED_EXTERNAL_APPS = frozenset({"core-api", "ui"})
+# Must match container-apps.bicep: only the browser UI gets a public FQDN.
+_EXPECTED_EXTERNAL_APPS = frozenset({"ui"})
 _EXPECTED_INTERNAL_APPS = frozenset(
     {
+        "core-api",
         "terminology-api",
         "fhir-api",
         "analytics-api",
@@ -95,7 +96,7 @@ class TestContainerAppsInternalUrlsUseDefaultDomain:
 
 
 class TestContainerAppsIngressPolicy:
-    """ACA ingress: only core-api and ui may be external; all others internal."""
+    """ACA ingress: only ui may be external; all other apps are internal."""
 
     def test_each_container_app_has_expected_external_setting(self):
         source = CONTAINER_APPS.read_text()

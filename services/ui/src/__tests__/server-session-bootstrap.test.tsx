@@ -3,9 +3,9 @@
  *
  * Verifies that the root layout resolves the user's session on the server
  * via fetchInitialSession() and that the AuthProvider hydrates straight
- * into "authenticated" / "unauthenticated" without ever exposing the
- * "loading" status to clients. This is what removes the post-login
- * spinner that Cloudflare was caching for /care/dashboard.
+ * into "authenticated" when SSR found a session, or waits for the
+ * client-side session check before showing an unauthenticated state.
+ * This avoids a false sign-in screen after OAuth when SSR misses a cookie.
  *
  * Traceability: DI-LEO-AI-218 (UI shell SSR session bootstrap and cache
  * strategy), R-LEO-AI-205 (stale prerender hides authenticated content).
@@ -70,16 +70,19 @@ describe("VT-LEO-AI-218 SSR session bootstrap", () => {
     });
   });
 
-  test("TC-002 AuthProvider with no initial session never reports loading to consumers", () => {
+  test("TC-002 AuthProvider with no initial session waits for client session check", async () => {
     const captured: Array<ReturnType<typeof useAuth>> = [];
     render(
       <AuthProvider initialSession={null}>
         <StatusProbe capture={(value) => captured.push(value)} />
       </AuthProvider>,
     );
-    // The first observation must be unauthenticated, never loading.
-    expect(captured[0].status).toBe("unauthenticated");
+    expect(captured[0].status).toBe("loading");
     expect(captured[0].session).toBeNull();
+    await waitFor(() => {
+      const last = captured[captured.length - 1];
+      expect(last.status).toBe("unauthenticated");
+    });
   });
 
   test("TC-003 AuthProvider refetches in the background when hydrated from server data", async () => {

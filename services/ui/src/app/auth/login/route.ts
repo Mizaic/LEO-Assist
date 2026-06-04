@@ -37,11 +37,23 @@ export async function GET(request: NextRequest) {
   }
 
   const location = upstream.response.headers.get("location");
-  const destination = location
-    ? new URL(location)
-    : new URL("/sign-in", origin);
+  const destination = _browserSafeDestination(location, origin);
   const response = NextResponse.redirect(destination);
   response.headers.set("Cache-Control", "no-store");
   relayAuthCookies(upstream.setCookieHeaders, response);
   return response;
+}
+
+function _browserSafeDestination(location: string | null, origin: string): URL {
+  if (!location) {
+    return new URL("/sign-in", origin);
+  }
+  const destination = new URL(location);
+  const internalApiHost = new URL(getInternalApiBase()).host;
+  if (destination.host === internalApiHost) {
+    const fallback = new URL("/sign-in", origin);
+    fallback.searchParams.set("error", "Auth service redirect was not completed");
+    return fallback;
+  }
+  return destination;
 }

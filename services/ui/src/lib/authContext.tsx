@@ -68,15 +68,14 @@ export function AuthProvider({
   children: ReactNode;
   initialSession?: Session | null;
 }) {
-  // When the server-rendered layout already resolved the session we hydrate
-  // straight into "authenticated" (or "unauthenticated") so the UI never
-  // shows a loading spinner on the very first paint. Only fall back to
-  // "loading" when we genuinely have no information yet (legacy callers
-  // that don't pass an initial session).
+  // When the server-rendered layout resolved the session, hydrate straight
+  // into "authenticated". When it did not, wait for the client-side
+  // /auth/session check before showing the sign-in screen; otherwise ACA
+  // users can see a false unauthenticated state immediately after OAuth.
   const [session, setSession] = useState<Session | null>(initialSession);
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated"
-  >(initialSession ? "authenticated" : "unauthenticated");
+  >(initialSession ? "authenticated" : "loading");
 
   const fetchSession = useCallback(async () => {
     try {

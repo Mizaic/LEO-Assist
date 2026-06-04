@@ -24,6 +24,7 @@ from jose import jwt, JWTError
 
 from app.services.session_store import (
     COOKIE_NAME,
+    SESSION_NAMESPACE,
     SESSION_TTL,
     create_session_id,
     delete_session,
@@ -91,6 +92,11 @@ def _oauth_scope() -> str:
         "AZURE_AD_SCOPE",
         "openid profile email api://c97f7ad9-845f-420c-ae3f-fa5c5d815bcd/.default",
     )
+
+
+def _set_auth_no_store(response: Response) -> None:
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
 
 
 # Multi-tenant: use /common/ endpoints so users from any NHS Entra tenant can authenticate
@@ -265,6 +271,13 @@ def login(request: Request, next_url: str = "/"):
     }
     url = f"{AUTH_URL}?{urlencode(params)}"
     resp = RedirectResponse(url=url, status_code=302)
+    _set_auth_no_store(resp)
+    logger.info(
+        "auth.login.start next_url=%s redirect_uri=%s cookie_secure=%s",
+        next_url,
+        _redirect_uri(),
+        os.getenv("COOKIE_SECURE", "true"),
+    )
     cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in (
         "false",
         "0",
@@ -472,6 +485,7 @@ def callback(
         normalized_state = "/dashboard"
     redirect_url = f"{fe}{normalized_state}"
     resp = RedirectResponse(url=redirect_url, status_code=302)
+    _set_auth_no_store(resp)
     cookie_secure = os.getenv("COOKIE_SECURE", "true").lower() not in (
         "false",
         "0",
@@ -485,6 +499,13 @@ def callback(
         samesite="lax",
         max_age=session_ttl_secs,
         path="/",
+    )
+    logger.info(
+        "auth.callback.session_saved email=%s sid_prefix=%s namespace=%s redirect=%s",
+        normalised_email,
+        session_id[:8],
+        SESSION_NAMESPACE,
+        normalized_state,
     )
     return resp
 
@@ -539,22 +560,32 @@ def _mark_session_role_confirmed(session_id: str) -> None:
 
 
 @router.get("/session")
-def get_session(request: Request):
+def get_session(request: Request, response: Response):
     """Return current session (user info, orgs, role). Used by frontend.
 
     Returns 200 with user: null when not authenticated
     (avoids 401/CORS issues).
     """
+    _set_auth_no_store(response)
     session_id = request.cookies.get(COOKIE_NAME)
     if not session_id:
+        logger.info("auth.session.miss reason=no_cookie")
         return _unauth_session_payload()
     data = load_session(session_id)
     if not data:
+        logger.info("auth.session.miss reason=redis_miss sid_prefix=%s", session_id[:8])
         return _unauth_session_payload()
     email = (data.get("email") or "").lower().strip()
     role_state = fetch_role_state(email) if email else None
     density_pref = fetch_density(email) if email else None
     allowed = list(role_state.allowed_roles) if role_state else []
+    logger.info(
+        "auth.session.hit email=%s sid_prefix=%s allowed_roles=%d needs_role_choice=%s",
+        email,
+        session_id[:8],
+        len(allowed),
+        _needs_role_choice(data, allowed),
+    )
     return {
         "user": {
             "email": data.get("email"),

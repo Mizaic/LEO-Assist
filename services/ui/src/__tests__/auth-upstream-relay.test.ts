@@ -87,7 +87,14 @@ describe("auth upstream relay (ACA login parity)", () => {
     expect(src).not.toMatch(/await fetch\(/);
   });
 
-  test("TC-004: callback route uses fetchAuthUpstream not bare fetch", () => {
+  test("TC-004: login route never redirects browsers to internal core-api", () => {
+    const src = read("app/auth/login/route.ts");
+    expect(src).toMatch(/_browserSafeDestination/);
+    expect(src).toMatch(/destination\.host\s*===\s*internalApiHost/);
+    expect(src).toMatch(/Auth service redirect was not completed/);
+  });
+
+  test("TC-005: callback route uses fetchAuthUpstream not bare fetch", () => {
     const src = read("app/auth/callback/route.ts");
     expect(src).toMatch(/fetchAuthUpstream/);
     expect(src).not.toMatch(/await fetch\(/);

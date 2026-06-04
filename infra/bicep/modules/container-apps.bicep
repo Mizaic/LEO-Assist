@@ -1,7 +1,7 @@
 // -- Container Apps Environment + all 9 apps ------------------------------
 //
 // Ingress policy (do not change without security review):
-//   Only core-api and ui use external ingress (public FQDN).
+//   Only ui uses external ingress (public FQDN).
 //   All other Container Apps must stay internal (ACA env DNS only).
 //   CI enforces this in tests/test_infra_security.py (TestContainerAppsIngressPolicy).
 //
@@ -108,7 +108,7 @@ var modelInferenceUrl = 'http://model-inference.${acaDefaultDomain}'
 var pipelineWorkerUrl = 'http://pipeline-worker.${acaDefaultDomain}'
 var trainingWorkerUrl = 'http://training-worker.${acaDefaultDomain}'
 var researchWorkerUrl = 'http://research-worker.${acaDefaultDomain}'
-var coreApiInternalUrl = 'http://core-api.${acaDefaultDomain}'
+var coreApiInternalUrl = 'https://core-api.internal.${acaDefaultDomain}'
 
 // -- Session namespace ----------------------------------------------------
 // Every backend service that calls libs/redis_client/session.py::load_session
@@ -333,7 +333,7 @@ var identityConfig = {
   }
 }
 
-// -- core-api (external ingress) ------------------------------------------
+// -- core-api (internal ingress) ------------------------------------------
 // Sized for production: 1 vCPU lets uvicorn run with 2 workers comfortably,
 // and the HTTP autoscale rule lets ACA add replicas when concurrent
 // requests climb (target = 50 in-flight requests per replica).
@@ -347,7 +347,7 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: sharedSecrets
       registries: registryConfig
       ingress: {
-        external: true
+        external: false
         targetPort: 8000
         transport: 'http'
       }
