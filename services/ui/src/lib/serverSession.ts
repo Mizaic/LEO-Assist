@@ -19,6 +19,7 @@
  */
 import { cookies, headers } from "next/headers";
 import type { Session, DensityPreference } from "@/lib/authContext";
+import { E2E_SESSION_PAYLOAD, isE2eAuthMode } from "@/lib/e2eSession";
 
 const INTERNAL_API_BASE = (
   process.env.INTERNAL_API_BASE ?? "http://localhost:8000"
@@ -75,6 +76,10 @@ function _coerceSession(data: RawSessionPayload | null): Session | null {
  * shell that can prompt the user to sign in.
  */
 export async function fetchInitialSession(): Promise<Session | null> {
+  if (isE2eAuthMode()) {
+    return _coerceSession(E2E_SESSION_PAYLOAD);
+  }
+
   let cookieHeader = "";
   try {
     const store = await cookies();

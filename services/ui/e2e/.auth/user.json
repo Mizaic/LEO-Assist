@@ -1,4 +1,14 @@
 {
   "cookies": [],
-  "origins": []
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "leo_selected_org",
+          "value": "__all__"
+        }
+      ]
+    }
+  ]
 }

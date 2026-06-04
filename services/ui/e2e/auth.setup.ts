@@ -17,5 +17,10 @@ const authFile = path.join(__dirname, ".auth", "user.json");
 setup("authenticate", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
+  const session = await page.request.get("/auth/session");
+  const body = await session.json();
+  if (!body?.user) {
+    throw new Error("E2E auth mode did not return an authenticated session.");
+  }
   await page.context().storageState({ path: authFile });
 });
