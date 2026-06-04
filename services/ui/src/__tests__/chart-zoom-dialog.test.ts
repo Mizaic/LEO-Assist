@@ -195,22 +195,24 @@ describe("Chart zoom / expand capability", () => {
       expect(strip).toMatch(/onClick=\{onZoom\}/);
     });
 
-    test("PrimaryCareIntervalSection imports and renders ChartZoomDialog", () => {
-      expect(pci).toMatch(/import\s+ChartZoomDialog/);
-      expect(pci).toMatch(/<ChartZoomDialog[\s\S]*?onClose=/);
+    test("PrimaryCareIntervalSection delegates zoomable interval UI to IntervalEvolutionPanel", () => {
+      expect(pci).toMatch(/import\s+IntervalEvolutionPanel/);
+      expect(pci).toMatch(/<IntervalEvolutionPanel/);
     });
 
-    test("PrimaryCareIntervalSection passes onZoom to the strip plot", () => {
-      expect(pci).toMatch(/onZoom=\{[\s\S]*?setZoomOpen/);
+    test("PrimaryCareIntervalSection passes the PCI interval contract", () => {
+      expect(pci).toMatch(/intervalFamily="pci"/);
+      expect(pci).toMatch(/intervalKey="pci_days"/);
     });
 
-    test("DiagnosticIntervalSection imports and renders ChartZoomDialog", () => {
-      expect(di).toMatch(/import\s+ChartZoomDialog/);
-      expect(di).toMatch(/<ChartZoomDialog[\s\S]*?onClose=/);
+    test("DiagnosticIntervalSection delegates zoomable interval UI to IntervalEvolutionPanel", () => {
+      expect(di).toMatch(/import\s+IntervalEvolutionPanel/);
+      expect(di).toMatch(/<IntervalEvolutionPanel/);
     });
 
-    test("DiagnosticIntervalSection passes onZoom to the strip plot", () => {
-      expect(di).toMatch(/onZoom=\{[\s\S]*?setZoomOpen/);
+    test("DiagnosticIntervalSection passes the DI interval contract", () => {
+      expect(di).toMatch(/intervalFamily="di"/);
+      expect(di).toMatch(/intervalKey="di_days"/);
     });
   });
 

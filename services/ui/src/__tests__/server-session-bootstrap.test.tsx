@@ -142,4 +142,20 @@ describe("VT-LEO-AI-218 SSR session bootstrap", () => {
     expect(loginSrc).toMatch(/Cache-Control["'\s,]+["']no-store/i);
     expect(callbackSrc).toMatch(/Cache-Control["'\s,]+["']no-store/i);
   });
+
+  test("TC-006 e2e mode supplies the same mock session to proxy and SSR bootstrap", () => {
+    const proxyPath = path.resolve(__dirname, "../proxy.ts");
+    const serverSessionPath = path.resolve(__dirname, "../lib/serverSession.ts");
+    const e2eSessionPath = path.resolve(__dirname, "../lib/e2eSession.ts");
+    const proxySrc = fs.readFileSync(proxyPath, "utf-8");
+    const serverSessionSrc = fs.readFileSync(serverSessionPath, "utf-8");
+    const e2eSessionSrc = fs.readFileSync(e2eSessionPath, "utf-8");
+
+    expect(proxySrc).toMatch(/pathname\s*===\s*"\/auth\/session"/);
+    expect(proxySrc).toMatch(/NextResponse\.json\(E2E_SESSION_PAYLOAD/);
+    expect(serverSessionSrc).toMatch(/isE2eAuthMode\(\)/);
+    expect(serverSessionSrc).toMatch(/_coerceSession\(E2E_SESSION_PAYLOAD\)/);
+    expect(e2eSessionSrc).toMatch(/NODE_ENV\s*!==\s*"production"/);
+    expect(e2eSessionSrc).toMatch(/NEXT_PUBLIC_E2E_MODE\s*===\s*"true"/);
+  });
 });

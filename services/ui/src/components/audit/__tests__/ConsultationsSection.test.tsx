@@ -71,7 +71,8 @@ describe("ConsultationsSection", () => {
 
   it("renders skeleton while loading and no data", () => {
     render(<ConsultationsSection result={null} loading />);
-    expect(screen.queryByText(/multiple consultations/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Consultations")).toBeInTheDocument();
+    expect(screen.queryByText(/31\.2%/)).not.toBeInTheDocument();
   });
 
   it("shows error alert when error is set", () => {

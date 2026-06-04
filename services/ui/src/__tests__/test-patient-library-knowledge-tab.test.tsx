@@ -660,10 +660,8 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(page).toMatch(/`Test selected \(\$\{selectedCount\}\)`/);
     expect(page).toMatch(/Test all visible \(\$\{visibleEligibleCount\}\)/);
     expect(page).toMatch(/replayProgress/);
-    // Selection scaffolding -- testids are passed through inputProps
-    // because MUI Checkbox spreads them onto the underlying <input>.
-    expect(page).toMatch(/"data-testid":\s*"select-all-checkbox"/);
-    expect(page).toMatch(/"data-testid":\s*`select-row-\$\{row\.id\}`/);
+    expect(page).toMatch(/data-testid="select-all-checkbox"/);
+    expect(page).toMatch(/data-testid=\{`select-row-\$\{row\.id\}`\}/);
     // Replay payload uses the shared scope and never persists a report
     // (the library is a manual triage surface, not a regression
     // baseline; the nightly scheduler still owns persisted reports).
@@ -813,10 +811,8 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(panel).toContain(
       'from "../../knowledge/test-patients/replay/ReplayResultsDialog"',
     );
-    // Phase 1 retired the in-panel live-replay flow that depended on
-    // RulesetNotCompiledBanner. The sandbox-only panel surfaces a
-    // local "draft sandbox could not be compiled" Alert instead.
-    expect(panel).toMatch(/draft sandbox could not be compiled/i);
+    // The panel imports the central replay dialog and opens the central
+    // library with a locked rule filter instead of owning a duplicate flow.
     expect(panel).toMatch(/Author with AI from this rule/);
     expect(panel).toMatch(/Open in Test Patient Library/);
     expect(panel).toMatch(/lockedRuleId=\{ruleId\}/);

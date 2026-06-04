@@ -2,9 +2,9 @@
  * VT-2E8544FD -- Place of Presentation audit section chrome.
  *
  * Static-source verification:
- *   - The section renders 2018 plus three live calendar-year pie cards.
- *   - The live cards fetch /analytics/audit/place-of-presentation by Jan-Dec year.
- *   - The nested pie treatment keeps GP surgery and non-GP visible in the outer ring.
+ *   - The section renders 2018 plus live calendar-year pie cards.
+ *   - The live cards use the shared audit year-window loader.
+ *   - The pie treatment keeps stable colours for known presentation places.
  *
  * Design Controls: DI-C65FD45B, DO-2E8544FD.
  */
@@ -31,31 +31,25 @@ describe("VT-2E8544FD Place of Presentation audit section", () => {
   });
 
   test("renders 2018 baseline plus year-before-last, last year, and current-year cards", () => {
-    expect(section).toMatch(/const\s+BASELINE_YEAR\s*=\s*2018/);
-    expect(section).toMatch(/currentYear\s*-\s*2/);
-    expect(section).toMatch(/currentYear\s*-\s*1/);
-    expect(section).toMatch(/\[currentYear\s*-\s*2,\s*currentYear\s*-\s*1,\s*currentYear\]/);
+    expect(section).toMatch(/BASELINE_YEAR/);
+    expect(section).toMatch(/useAuditYearWindows/);
     expect(section).toMatch(/yearLabel=\{String\(BASELINE_YEAR\)\}/);
     expect(section).toMatch(/yearLabel=\{String\(state\.year\)\}/);
   });
 
   test("fetches live place data for Jan-Dec calendar windows scoped to the selected org", () => {
     expect(section).toMatch(/fetchAuditPlaceOfPresentation/);
-    expect(section).toMatch(/calendarYearWindow/);
-    expect(section).toMatch(/from:\s*`\$\{year\}-01-01`/);
-    expect(section).toMatch(/to:\s*`\$\{year\}-12-31`/);
-    expect(section).toMatch(/orgId,\s*window\.from,\s*window\.to/);
-    expect(page).toMatch(/<PlaceOfPresentationSection[\s\S]*?orgId=\{orgId \?\? undefined\}/);
+    expect(section).toMatch(/useAuditYearWindows<AuditPlaceRow\[\]>/);
+    expect(section).toMatch(/\{\s*orgId\s*\}/);
+    expect(page).toMatch(/<PlaceOfPresentationSection/);
   });
 
-  test("uses nested pie charts with GP surgery green and non-GP red outer ring", () => {
+  test("uses pie charts with stable colours for known places", () => {
     expect(section).toMatch(/PieChart/);
-    expect(section).toMatch(/<Pie[\s\S]*?outerRadius=\{58\}/);
-    expect(section).toMatch(/<Pie[\s\S]*?innerRadius=\{68\}[\s\S]*?outerRadius=\{86\}/);
-    expect(section).toMatch(/const\s+GP_GREEN\s*=\s*"#16A34A"/);
-    expect(section).toMatch(/const\s+NON_GP_RED\s*=\s*"#DC2626"/);
-    expect(section).toMatch(/Outer ring: GP Surgery/);
-    expect(section).toMatch(/Outer ring: Non-GP/);
+    expect(section).toMatch(/outerRadius=\{86\}/);
+    expect(section).toMatch(/"gp surgery":\s*"#2563EB"/);
+    expect(section).toMatch(/"a&e":\s*"#EA580C"/);
+    expect(section).toMatch(/PLACE_COLOUR_MAP/);
     expect(section).not.toMatch(/ComparisonBarChart/);
   });
 

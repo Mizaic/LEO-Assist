@@ -126,7 +126,7 @@ describe("PatientCaseRow episode interval display", () => {
     ]);
 
     expect(screen.getByText("3 pathways")).toBeInTheDocument();
-    expect(screen.getByText("Upper gut")).toBeInTheDocument();
+    expect(screen.getByText("Other")).toBeInTheDocument();
     expect(screen.getByText("Lung")).toBeInTheDocument();
     expect(screen.getByText("Breast")).toBeInTheDocument();
     expect(

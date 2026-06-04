@@ -70,7 +70,7 @@ describe("AuditSummarySection — care obstructions tile", () => {
         totalCases={65}
       />,
     );
-    expect(screen.getByText("Potential care delays")).toBeInTheDocument();
+    expect(screen.getByText("Avoidable delays (potential)")).toBeInTheDocument();
     expect(screen.getByText("21.4%")).toBeInTheDocument();
   });
 
@@ -83,7 +83,7 @@ describe("AuditSummarySection — care obstructions tile", () => {
       />,
     );
     expect(
-      screen.getByText("9 of 42 confirmed cancers"),
+      screen.getByText("9 of 42 confirmed cancers -- auto-detected, not GP-confirmed"),
     ).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe("AuditSummarySection — care obstructions tile", () => {
       />,
     );
 
-    const label = screen.getByText("Potential care delays");
+    const label = screen.getByText("Avoidable delays (potential)");
     fireEvent.mouseOver(label);
     fireEvent.mouseEnter(label);
     act(() => {
@@ -149,7 +149,7 @@ describe("AuditSummarySection — care obstructions tile", () => {
     );
     expect(
       screen.getByText(
-        "Pathways with rejected referral, DNA, cancellation or access barrier",
+        "Pathways with rejected referral, DNA, cancellation or access barrier (auto-detected)",
       ),
     ).toBeInTheDocument();
   });

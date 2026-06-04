@@ -150,6 +150,9 @@ describe("EncounterTextTab milestone jump", () => {
 
     await waitFor(() => {
       expect(screen.getByText("linked referral")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await waitFor(() => {
       expect(screen.getByText("unlinked admin")).toBeInTheDocument();
     });
 

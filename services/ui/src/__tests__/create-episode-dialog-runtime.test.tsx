@@ -47,7 +47,7 @@ describe("CreateEpisodeDialog runtime", () => {
     });
     const body = (createEpisode as jest.Mock).mock.calls[0][0];
     expect(body.patient_id).toBe("pat-1");
-    expect(body.status).toBe("in_review");
+    expect(body.status).toBe("review");
     await waitFor(() => {
       expect(onCreated).toHaveBeenCalledWith("ep-manual-abc123");
     });

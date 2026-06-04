@@ -162,6 +162,7 @@ describe("SeedDescendantsList -- VT-510-TC-016", () => {
     const list = await screen.findByRole("list", {
       name: /codes covered by smoker at depth 3/i,
     });
+    await within(list).findAllByRole("listitem");
     // The blocked row shows the chip; the unblocked row shows Block btn.
     expect(within(list).getByText(/blocked/i)).toBeInTheDocument();
     expect(

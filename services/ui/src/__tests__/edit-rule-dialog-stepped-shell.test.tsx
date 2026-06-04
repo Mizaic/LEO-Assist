@@ -1,8 +1,8 @@
 /**
  * VT-LEO-AI-511 -- TC-001 static-source check.
  *
- * The widescreen step-rail editor (DI-LEO-AI-512 / DO-LEO-AI-512) is
- * implemented across an orchestrator + a StepRail + a LivePreviewPane +
+ * The widescreen step editor (DI-LEO-AI-512 / DO-LEO-AI-512) is
+ * implemented across an orchestrator + a HorizontalStepper + a LivePreviewPane +
  * four step modules. This test reads the orchestrator file as a string
  * and asserts that all the wiring is present so a future refactor
  * cannot silently regress the file structure.
@@ -25,9 +25,11 @@ async function readDialog(): Promise<string> {
 }
 
 describe("EditRuleDialog stepped shell -- VT-511-TC-001", () => {
-  it("orchestrator imports the StepRail, LivePreviewPane and all four steps", async () => {
+  it("orchestrator imports the HorizontalStepper, LivePreviewPane and all four steps", async () => {
     const src = await readDialog();
-    expect(src).toMatch(/import\s+StepRail[\s\S]*?from\s+["']\.\/StepRail["']/);
+    expect(src).toMatch(
+      /import\s+HorizontalStepper[\s\S]*?from\s+["']\.\/HorizontalStepper["']/,
+    );
     expect(src).toMatch(
       /import\s+LivePreviewPane\s+from\s+["']\.\/LivePreviewPane["']/,
     );
@@ -39,19 +41,16 @@ describe("EditRuleDialog stepped shell -- VT-511-TC-001", () => {
     expect(src).toMatch(/import\s+Step4Save\s+from\s+["']\.\/steps\/Step4Save["']/);
   });
 
-  it("orchestrator declares a three-column gridTemplateColumns at the md breakpoint", async () => {
+  it("orchestrator declares the md two-pane flex layout", async () => {
     const src = await readDialog();
-    expect(src).toMatch(/gridTemplateColumns/);
-    // The md column declaration has three minmax columns separated by spaces.
-    const mdMatch = src.match(/md:\s*"([^"]+)"/);
-    expect(mdMatch).not.toBeNull();
-    const minmaxCount = (mdMatch?.[1] ?? "").match(/minmax\(/g)?.length ?? 0;
-    expect(minmaxCount).toBe(3);
+    expect(src).toMatch(/flexDirection:\s*\{\s*xs:\s*"column",\s*md:\s*"row"\s*\}/);
+    expect(src).toMatch(/md:\s*"0 0 60%"/);
+    expect(src).toMatch(/md:\s*"0 0 40%"/);
   });
 
   it("each step module exists on disk at the path listed in DO-LEO-AI-512", async () => {
     const expected = [
-      "StepRail.tsx",
+      "HorizontalStepper.tsx",
       "LivePreviewPane.tsx",
       "steps/Step1Who.tsx",
       "steps/Step2Suggest.tsx",

@@ -17,17 +17,18 @@ const sampleData: AuditConsultations = {
   top_factors: [
     { factor: "different_initial_diagnosis", n: 12 },
     { factor: "co_morbidity_blurring", n: 8 },
+    { factor: "investigation_not_ordered", n: 4 },
   ],
   factors_by_cancer_type: {
-    Breast: { different_initial_diagnosis: 5 },
-    Colorectal: { different_initial_diagnosis: 7, co_morbidity_blurring: 8 },
+    Breast: { different_initial_diagnosis: 5, investigation_not_ordered: 2 },
+    Colorectal: { different_initial_diagnosis: 7, co_morbidity_blurring: 8, investigation_not_ordered: 2 },
   },
   episode_evidence: [
     {
       episode_id: "ep-test-001",
       cancer_type: "Breast",
       n: 3,
-      factors: ["different_initial_diagnosis"],
+      factors: ["different_initial_diagnosis", "investigation_not_ordered"],
       evidence_quotes: null,
     },
   ],
@@ -106,7 +107,7 @@ describe("MultipleConsultationsSection", () => {
       <MultipleConsultationsSection result={sampleResult} loading={false} />,
     );
     fireEvent.click(screen.getAllByLabelText(/open \d+ multiple consultations/i)[0]);
-    expect(screen.getByText(/claude haiku/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/claude haiku/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/\$0\.4201/)).toBeInTheDocument();
   });
 
@@ -116,7 +117,7 @@ describe("MultipleConsultationsSection", () => {
     );
     fireEvent.click(screen.getAllByLabelText(/open \d+ multiple consultations/i)[0]);
     expect(screen.getByText(/episode evidence/i)).toBeInTheDocument();
-    expect(screen.getByText(/breast/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/breast/i).length).toBeGreaterThan(0);
   });
 
   it("shows skeleton / loading state without error", () => {

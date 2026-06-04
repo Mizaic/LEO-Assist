@@ -478,7 +478,7 @@ describe("RuleReviewSection -- status filter (Tier 1)", () => {
 
   it("sorts the rendered list with sortRulesForStatus(rules, statusFilter) so Active surfaces stalest first (DI-LEO-AI-528 AC-001)", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(
-      /sortRulesForStatus\(rules, statusFilter\)\.map\(\(rule\) => \(/,
+      /sortRulesForStatus\(visibleRules, statusFilter\)\.map\(\(rule\) => \(/,
     );
   });
 

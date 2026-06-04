@@ -108,7 +108,7 @@ describe("CareObstructionsSection", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Open 2025 care-obstruction severity breakdown/i,
+        name: /Open 2025 avoidable-delay type breakdown/i,
       }),
     );
 
@@ -116,7 +116,7 @@ describe("CareObstructionsSection", () => {
     const within$ = within(dialog);
 
     expect(
-      within$.getByText(/Care obstructions -- 2025 severity breakdown/i),
+      within$.getByText(/Avoidable delays -- 2025 type breakdown/i),
     ).toBeInTheDocument();
 
     expect(within$.getByText("31.0%")).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe("CareObstructionsSection", () => {
     render(<CareObstructionsSection result={sampleResult} loading={false} />);
     expect(
       screen.queryByRole("button", {
-        name: /Open 2026 care-obstruction severity breakdown/i,
+        name: /Open 2026 avoidable-delay type breakdown/i,
       }),
     ).not.toBeInTheDocument();
   });
@@ -176,10 +176,10 @@ describe("CareObstructionsSection", () => {
       />,
     );
     expect(screen.getByText("23.7%")).toBeInTheDocument();
-    expect(screen.getByText(/GP-noted delay/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/GP-confirmed/i).length).toBeGreaterThan(0);
     expect(
       screen.getByText(
-        /NCDA does not publish a care-obstruction baseline.*GP-noted avoidable delay/i,
+        /The 2019 NCDA baseline is GP-confirmed.*Live year figures are potential avoidable delays/i,
       ),
     ).toBeInTheDocument();
   });
@@ -195,7 +195,7 @@ describe("CareObstructionsSection", () => {
     render(<CareObstructionsSection result={sampleResult} loading={false} />);
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Open 2025 care-obstruction severity breakdown/i,
+        name: /Open 2025 avoidable-delay type breakdown/i,
       }),
     );
     const dialog = screen.getByRole("dialog");

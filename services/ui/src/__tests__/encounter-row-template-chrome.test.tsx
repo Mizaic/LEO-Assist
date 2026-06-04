@@ -102,7 +102,7 @@ describe("VT-LEO-AI-512 -- encounter row template + shared HighlightedText", () 
 
   it("TC-005: row title uses HighlightedText; chips slot composes the documented chips", () => {
     expect(TABLE_SRC).toMatch(
-      /<HighlightedText\s+text=\{text\}\s+terms=\{highlightTerms\}\s*\/>/,
+      /<HighlightedText\s+text=\{text\}\s+terms=\{isDemoMode\s*\?\s*\[\]\s*:\s*highlightTerms\}\s*\/>/,
     );
     // chips slot is built by rowChips(); confirm the four chip
     // groups (match-type, coded count, status, rationale slice 4)

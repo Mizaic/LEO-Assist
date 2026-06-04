@@ -319,7 +319,8 @@ describe("VT-5AAD89E2 Demographics evolution chrome", () => {
       expect(section).toMatch(/ComorbidityRadarCard/);
       expect(section).toMatch(/ComorbiditiesDrilldownDialog/);
       expect(section).toMatch(/calendarYearWindow/);
-      expect(section).toMatch(/BASELINE_YEAR\s*=\s*2018/);
+      expect(section).toMatch(/BASELINE_YEAR/);
+      expect(section).toMatch(/_useAuditYearWindows/);
     });
   });
 
