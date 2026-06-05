@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
     useradd --no-create-home --shell /sbin/nologin appuser
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
+COPY services/coding_worker/ /app/services/coding_worker/
 COPY services/pipeline_worker/ /app/services/pipeline_worker/
 COPY services/analysis_worker/ /app/services/analysis_worker/
 WORKDIR /app

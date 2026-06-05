@@ -146,6 +146,15 @@ class TestAnalyticsApiImageContents:
         assert "COPY configs/snomed/ /app/configs/snomed/" in source
 
 
+class TestPipelineWorkerImageContents:
+    """pipeline-worker must package runtime imports used by durable handlers."""
+
+    def test_pipeline_worker_copies_coding_worker_package(self):
+        dockerfile = DOCKERFILES_DIR / "Dockerfile.pipeline-worker"
+        source = dockerfile.read_text()
+        assert "COPY services/coding_worker/ /app/services/coding_worker/" in source
+
+
 class TestServiceAuthSecretDeployment:
     """SERVICE_AUTH_SECRET must be wired through Bicep to all environments."""
 
