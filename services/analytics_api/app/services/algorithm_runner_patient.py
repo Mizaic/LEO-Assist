@@ -89,11 +89,20 @@ def _build_group_items(
     enriched = _enrich_leiden_communities(client, top_map)
     items: List[Dict[str, Any]] = []
     for i, cid in enumerate(top_cids):
+        summary = enriched.get(cid, {})
+        top_conditions = summary.get("top_conditions") or []
+        display_name = (
+            ", ".join(top_conditions[:2])
+            if top_conditions
+            else f"Patient group {i + 1}"
+        )
         items.append({
             "community_id": cid,
+            "label": display_name,
+            "display_name": display_name,
             "size": community_sizes[cid],
             "rank": i + 1,
-            **enriched.get(cid, {}),
+            **summary,
         })
     return items, len(community_sizes)
 

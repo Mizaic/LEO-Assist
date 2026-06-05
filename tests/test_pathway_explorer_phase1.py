@@ -227,7 +227,7 @@ class TestAlgorithmRunnerDispatch:
         mock_client = MagicMock()
         mock_client.run.return_value = [
             {
-                "label": "CT Scan",
+                "label": "first_seen",
                 "avg_wait_days": 18.0,
                 "patient_count": 120,
             }
@@ -239,7 +239,9 @@ class TestAlgorithmRunnerDispatch:
         mock_gds.assert_not_called()
         assert result.mission_id == "bottleneck"
         assert len(result.items) == 1
-        assert result.items[0]["label"] == "CT Scan"
+        assert result.items[0]["code"] == "first_seen"
+        assert result.items[0]["label"] == "First specialist appointment"
+        assert result.items[0]["display_name"] == "First specialist appointment"
         assert result.items[0]["avg_wait_days"] == 18.0
         query = mock_client.run.call_args.args[0]
         assert "trim(toString(ep.referral_date)) <> ''" in query
@@ -252,6 +254,30 @@ class TestAlgorithmRunnerDispatch:
 
         assert "trim(toString(ep.referral_date)) <> ''" in _EPISODES_IN_SCOPE_CYPHER
         assert "date(toString(ep.referral_date)) >=" in _EPISODES_IN_SCOPE_CYPHER
+
+    def test_group_items_include_display_name(self):
+        from services.analytics_api.app.services.algorithm_runner_patient import (
+            _build_group_items,
+        )
+
+        client = MagicMock()
+        client.run.side_effect = [
+            [{"nid": 1, "age": 55, "gender": "female"}],
+            [{"nid": 2, "name": "Iron deficiency anaemia"}],
+        ]
+        items, total = _build_group_items(
+            client,
+            [
+                {"communityId": 7, "nodeId": 1},
+                {"communityId": 7, "nodeId": 2},
+            ],
+            limit=5,
+        )
+
+        assert total == 1
+        assert items[0]["community_id"] == 7
+        assert items[0]["label"] == "Iron deficiency anaemia"
+        assert items[0]["display_name"] == "Iron deficiency anaemia"
 
 
 # ---------------------------------------------------------------------------

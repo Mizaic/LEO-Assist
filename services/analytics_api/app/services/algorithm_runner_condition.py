@@ -35,6 +35,33 @@ from services.analytics_api.app.services.headline_generator import (
 logger = logging.getLogger(__name__)
 
 
+_MILESTONE_LABELS = {
+    "first_presentation": "First presentation",
+    "referral": "Referral",
+    "referral_sent": "Referral sent",
+    "first_seen": "First specialist appointment",
+    "specialist_visit": "Specialist visit",
+    "specialist_diagnostics": "Specialist diagnostics",
+    "outcome_letter": "Outcome letter",
+    "diagnosis": "Diagnosis",
+    "diagnosis_confirmed": "Cancer diagnosis confirmed",
+    "benign_closure": "Cancer excluded",
+    "treatment_started": "Treatment started",
+    "treatment_completed": "Treatment completed",
+    "care_obstruction": "Care obstruction",
+    "related_gp_visit": "Related GP visit",
+    "related_specialist_visit": "Related specialist visit",
+    "primary_care_investigations": "Primary care investigations",
+}
+
+
+def _display_milestone(raw: Any) -> str:
+    code = str(raw or "").strip()
+    if not code:
+        return "Unknown step"
+    return _MILESTONE_LABELS.get(code, code.replace("_", " ").title())
+
+
 def _run_critical(
     client,
     scope,
@@ -404,7 +431,9 @@ def _run_bottleneck(
 
     items = [
         {
-            "label": row["label"] or "Unknown step",
+            "code": str(row["label"] or ""),
+            "label": _display_milestone(row["label"]),
+            "display_name": _display_milestone(row["label"]),
             "avg_wait_days": float(row["avg_wait_days"] or 0),
             "patient_count": int(row["patient_count"] or 0),
             "is_bottleneck": (row["avg_wait_days"] or 0) >= 14,
