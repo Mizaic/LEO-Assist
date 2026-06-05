@@ -235,14 +235,20 @@ jobs:
           SERVICE: ${{ matrix.service }}
           DOCKERFILE: ${{ matrix.dockerfile }}
           GITHUB_SHA: ${{ github.sha }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           IMAGE="${ACR_LOGIN_SERVER}/${SERVICE}"
           TAG="sha-${GITHUB_SHA}"
+          HF_BUILD_ARG=""
+          if [ -n "$HF_TOKEN" ]; then
+            HF_BUILD_ARG="--build-arg HF_TOKEN=${HF_TOKEN}"
+          fi
           docker build \
             --file "$DOCKERFILE" \
             --tag "${IMAGE}:${TAG}" \
             --tag "${IMAGE}:latest" \
             --cache-from "${IMAGE}:latest" \
+            ${HF_BUILD_ARG} \
             .
           docker push "${IMAGE}:${TAG}"
           docker push "${IMAGE}:latest"

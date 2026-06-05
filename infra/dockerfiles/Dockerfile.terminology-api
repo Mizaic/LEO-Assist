@@ -16,9 +16,18 @@ RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir -r /require
 # outbound network.  HF_HOME matches ACA sharedEnv (HF_HOME=/var/model_cache/hf_cache).
 # Bio_ClinicalBERT is a fixed public model (~400 MB); baking it in avoids the
 # 20-60 s cold-start penalty and removes the HuggingFace connectivity requirement.
+#
+# HF_TOKEN: pass a HuggingFace access token via --build-arg HF_TOKEN=<token>
+# (or the HF_TOKEN secret in CI) to authenticate downloads and avoid the
+# aggressive anonymous rate limits (HTTP 429) on shared CI runner IPs.
+# The token is consumed only during this build stage and is not present in
+# the final runtime image (ARG does not persist across FROM).
 FROM build-venv AS build-model
 ARG HF_MODEL=emilyalsentzer/Bio_ClinicalBERT
-ENV HF_HOME=/var/model_cache/hf_cache
+ARG HF_TOKEN=""
+ENV HF_HOME=/var/model_cache/hf_cache \
+    HUGGING_FACE_HUB_TOKEN=${HF_TOKEN} \
+    HF_TOKEN=${HF_TOKEN}
 RUN mkdir -p /var/model_cache/hf_cache && \
     /venv/bin/python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('$HF_MODEL')" && \
     chmod -R a+rX /var/model_cache
