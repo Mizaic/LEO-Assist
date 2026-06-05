@@ -24,11 +24,6 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { NextRequest, NextResponse } from "next/server";
-import {
-  E2E_SESSION_PAYLOAD,
-  assertE2eModeNotInProduction,
-  isE2eAuthMode,
-} from "./lib/e2eSession";
 
 function coreApi(): string {
   return (process.env.INTERNAL_API_BASE || "http://localhost:8000").replace(
@@ -59,9 +54,6 @@ function pipelineWorker(): string {
 }
 
 const EXACT_ROUTES: Record<string, () => string> = {
-  "/auth/logout": () => `${coreApi()}/auth/logout`,
-  "/auth/session": () => `${coreApi()}/auth/session`,
-  "/auth/session/role": () => `${coreApi()}/auth/session/role`,
   "/api/patients": () => `${coreApi()}/patients`,
   "/api/prompts": () => `${coreApi()}/prompts`,
 };
@@ -187,23 +179,9 @@ function serviceAuthRewrite(request: NextRequest, dest: string): NextResponse {
 const termApiRewrite = serviceAuthRewrite;
 
 export function proxy(request: NextRequest) {
-  assertE2eModeNotInProduction();
   const { pathname, search } = request.nextUrl;
   const method = request.method.toUpperCase();
   const isMutation = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
-
-  if (isE2eAuthMode() && pathname === "/auth/session") {
-    return NextResponse.json(E2E_SESSION_PAYLOAD, {
-      headers: { "Cache-Control": "no-store" },
-    });
-  }
-
-  if (isE2eAuthMode() && pathname === "/auth/session/role") {
-    return NextResponse.json(
-      { ...E2E_SESSION_PAYLOAD, selected_role: "platform_admin" },
-      { headers: { "Cache-Control": "no-store" } },
-    );
-  }
 
   // Surface-form curation writes are routed via core-api so admin session
   // auth can be enforced server-side (instead of service-token-only auth).
@@ -248,9 +226,6 @@ export const config = {
   matcher: [
     "/api/admin/:path*",
     "/api/mail/:path*",
-    "/auth/logout",
-    "/auth/session",
-    "/auth/session/role",
     "/api/proxy/:path*",
     "/api/patients/:path*",
     "/api/pipeline/:path*",

@@ -72,6 +72,51 @@ export async function fetchAuthUpstream(
   throw new Error("auth upstream: too many same-host redirects");
 }
 
+function _shouldForwardBody(method: string): boolean {
+  return method === "POST" || method === "PUT" || method === "PATCH";
+}
+
+function _upstreamHeaders(request: NextRequest): Headers {
+  const headers = new Headers();
+  const cookie = request.headers.get("cookie");
+  const contentType = request.headers.get("content-type");
+  if (cookie) headers.set("cookie", cookie);
+  if (contentType) headers.set("content-type", contentType);
+  headers.set("X-Requested-With", "XMLHttpRequest");
+  return headers;
+}
+
+function _copyResponseHeaders(upstream: Response, response: NextResponse): void {
+  const contentType = upstream.headers.get("content-type");
+  if (contentType) response.headers.set("content-type", contentType);
+  response.headers.set(
+    "Cache-Control",
+    upstream.headers.get("cache-control") || "no-store",
+  );
+}
+
+export async function relayAuthEndpoint(
+  request: NextRequest,
+  upstreamPath: string,
+): Promise<NextResponse> {
+  const target = new URL(`${getInternalApiBase()}${upstreamPath}`);
+  target.search = request.nextUrl.search;
+  const method = request.method.toUpperCase();
+  const body = _shouldForwardBody(method) ? await request.text() : undefined;
+  const upstream = await serverFetch(target, {
+    method,
+    headers: _upstreamHeaders(request),
+    body,
+    redirect: "manual",
+  });
+  const response = new NextResponse(await upstream.text(), {
+    status: upstream.status,
+  });
+  _copyResponseHeaders(upstream, response);
+  relayAuthCookies(_collectSetCookies(upstream), response);
+  return response;
+}
+
 interface CookieOptions {
   httpOnly: boolean;
   secure: boolean;
