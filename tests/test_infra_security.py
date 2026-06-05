@@ -18,6 +18,7 @@ import pytest
 INFRA_DIR = Path(__file__).parent.parent / "infra" / "bicep"
 PARAM_DIR = INFRA_DIR / "parameters"
 CONTAINER_APPS = INFRA_DIR / "modules" / "container-apps.bicep"
+DOCKERFILES_DIR = Path(__file__).parent.parent / "infra" / "dockerfiles"
 ENVIRONMENTS = ["dev", "val", "prod"]
 
 # Must match container-apps.bicep: only the browser UI gets a public FQDN.
@@ -134,6 +135,15 @@ class TestCoreApiKnowledgeGraphEnv:
         assert "KNOWLEDGE_GRAPH_NEO4J_URI" in source
         assert "KNOWLEDGE_GRAPH_NEO4J_PASSWORD" in source
         assert "KNOWLEDGE_GRAPH_NEO4J_USERNAME" in block
+
+
+class TestAnalyticsApiImageContents:
+    """analytics-api must package runtime SNOMED config used by audit routes."""
+
+    def test_analytics_api_copies_snomed_configs(self):
+        dockerfile = DOCKERFILES_DIR / "Dockerfile.analytics-api"
+        source = dockerfile.read_text()
+        assert "COPY configs/snomed/ /app/configs/snomed/" in source
 
 
 class TestServiceAuthSecretDeployment:

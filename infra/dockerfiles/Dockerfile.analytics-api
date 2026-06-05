@@ -17,6 +17,7 @@ ARG BASE_IMAGE_RUNTIME
 FROM ${BASE_IMAGE_RUNTIME}
 COPY --from=build-venv /venv /venv
 COPY libs/ /app/libs/
+COPY configs/snomed/ /app/configs/snomed/
 COPY services/analytics_api/ /app/services/analytics_api/
 COPY services/analysis_worker/ /app/services/analysis_worker/
 WORKDIR /app
