@@ -97,17 +97,16 @@ resource cae 'Microsoft.App/managedEnvironments@2024-03-01' = {
 }
 
 // -- Internal service URLs (same Container Apps environment) ---------------
-// Microsoft documents http://<app-name> for in-mesh calls, but short names can
-// fail to resolve or flake under load; full hostnames using the environment
-// defaultDomain are reliable (see ACA "Communicate between container apps").
+// Backend apps use internal-only ingress, so service-to-service URLs must use
+// the internal FQDN form exposed by the Container Apps environment.
 var acaDefaultDomain = cae.properties.defaultDomain
-var termApiUrl = 'http://terminology-api.${acaDefaultDomain}'
-var fhirApiUrl = 'http://fhir-api.${acaDefaultDomain}'
-var analyticsApiUrl = 'http://analytics-api.${acaDefaultDomain}'
-var modelInferenceUrl = 'http://model-inference.${acaDefaultDomain}'
-var pipelineWorkerUrl = 'http://pipeline-worker.${acaDefaultDomain}'
-var trainingWorkerUrl = 'http://training-worker.${acaDefaultDomain}'
-var researchWorkerUrl = 'http://research-worker.${acaDefaultDomain}'
+var termApiUrl = 'https://terminology-api.internal.${acaDefaultDomain}'
+var fhirApiUrl = 'https://fhir-api.internal.${acaDefaultDomain}'
+var analyticsApiUrl = 'https://analytics-api.internal.${acaDefaultDomain}'
+var modelInferenceUrl = 'https://model-inference.internal.${acaDefaultDomain}'
+var pipelineWorkerUrl = 'https://pipeline-worker.internal.${acaDefaultDomain}'
+var trainingWorkerUrl = 'https://training-worker.internal.${acaDefaultDomain}'
+var researchWorkerUrl = 'https://research-worker.internal.${acaDefaultDomain}'
 var coreApiInternalUrl = 'https://core-api.internal.${acaDefaultDomain}'
 
 // -- Session namespace ----------------------------------------------------
@@ -440,6 +439,7 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'INTERNAL_API_BASE', value: coreApiInternalUrl }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
           { name: 'TRAINING_WORKER_URL', value: trainingWorkerUrl }
+          { name: 'PIPELINE_WORKER_URL', value: pipelineWorkerUrl }
           { name: 'NODE_ENV', value: 'production' }
           // NextAuth needs the public base URL of this environment
           { name: 'AUTH_URL', value: frontendUrl }

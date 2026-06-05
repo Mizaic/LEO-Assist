@@ -81,18 +81,28 @@ def _ingress_external_flag(block: str) -> bool | None:
 class TestContainerAppsInternalUrlsUseDefaultDomain:
     """Internal service base URLs must use the ACA environment defaultDomain.
 
-    Short names like http://terminology-api are documented but can fail in practice;
-    Bicep should build http://<app>.<defaultDomain> from cae.properties.defaultDomain.
+    Backend apps are internal-only, so Bicep must build
+    https://<app>.internal.<defaultDomain> URLs from cae.properties.defaultDomain.
     """
 
-    def test_internal_urls_reference_default_domain(self):
+    def test_internal_urls_reference_internal_default_domain(self):
         source = CONTAINER_APPS.read_text()
         assert "cae.properties.defaultDomain" in source, (
             "container-apps.bicep must read cae.properties.defaultDomain for mesh URLs"
         )
-        assert "http://terminology-api.${acaDefaultDomain}" in source, (
-            "terminology URL must be built from acaDefaultDomain (full in-mesh hostname)"
-        )
+        internal_urls = {
+            "terminology-api",
+            "fhir-api",
+            "analytics-api",
+            "model-inference",
+            "pipeline-worker",
+            "training-worker",
+            "research-worker",
+            "core-api",
+        }
+        for app in internal_urls:
+            assert f"https://{app}.internal.${{acaDefaultDomain}}" in source
+            assert f"http://{app}.${{acaDefaultDomain}}" not in source
 
 
 class TestContainerAppsIngressPolicy:
