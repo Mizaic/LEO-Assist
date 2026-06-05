@@ -110,10 +110,10 @@ jobs:
 
       - name: Post-deploy smoke checks
         run: |
-          CORE_FQDN=$(az containerapp show \
+          CORE_EXTERNAL=$(az containerapp show \
             --name core-api \
             --resource-group leo-ai-dev \
-            --query properties.configuration.ingress.fqdn \
+            --query properties.configuration.ingress.external \
             --output tsv)
           UI_FQDN=$(az containerapp show \
             --name ui \
@@ -121,7 +121,10 @@ jobs:
             --query properties.configuration.ingress.fqdn \
             --output tsv)
 
-          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${CORE_FQDN}/health"
+          if [ "$CORE_EXTERNAL" != "false" ]; then
+            echo "core-api ingress must remain internal-only; got external=${CORE_EXTERNAL}"
+            exit 1
+          fi
           curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${UI_FQDN}/"
 
       - name: Verify revision health (dev)
@@ -217,10 +220,10 @@ jobs:
 
       - name: Post-deploy smoke checks
         run: |
-          CORE_FQDN=$(az containerapp show \
+          CORE_EXTERNAL=$(az containerapp show \
             --name core-api \
             --resource-group leo-ai-val \
-            --query properties.configuration.ingress.fqdn \
+            --query properties.configuration.ingress.external \
             --output tsv)
           UI_FQDN=$(az containerapp show \
             --name ui \
@@ -228,7 +231,10 @@ jobs:
             --query properties.configuration.ingress.fqdn \
             --output tsv)
 
-          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${CORE_FQDN}/health"
+          if [ "$CORE_EXTERNAL" != "false" ]; then
+            echo "core-api ingress must remain internal-only; got external=${CORE_EXTERNAL}"
+            exit 1
+          fi
           curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${UI_FQDN}/"
 
       - name: Verify revision health (validation)
@@ -324,10 +330,10 @@ jobs:
 
       - name: Post-deploy smoke checks
         run: |
-          CORE_FQDN=$(az containerapp show \
+          CORE_EXTERNAL=$(az containerapp show \
             --name core-api \
             --resource-group leo-ai-prod \
-            --query properties.configuration.ingress.fqdn \
+            --query properties.configuration.ingress.external \
             --output tsv)
           UI_FQDN=$(az containerapp show \
             --name ui \
@@ -335,7 +341,10 @@ jobs:
             --query properties.configuration.ingress.fqdn \
             --output tsv)
 
-          curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${CORE_FQDN}/health"
+          if [ "$CORE_EXTERNAL" != "false" ]; then
+            echo "core-api ingress must remain internal-only; got external=${CORE_EXTERNAL}"
+            exit 1
+          fi
           curl --fail --silent --show-error --retry 6 --retry-delay 5 "https://${UI_FQDN}/"
 
       - name: Verify revision health (production)
