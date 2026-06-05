@@ -52,7 +52,7 @@ scipy>=1.14
 joblib>=1.4
 
 # --- Auth (libs/auth JWT validation, session store) ---
-python-jose[cryptography]>=3.3
+python-jose[cryptography]>=3.4.0
 redis>=5.2
 requests>=2.32
 

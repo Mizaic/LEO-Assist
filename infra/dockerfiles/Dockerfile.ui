@@ -4,14 +4,14 @@ ARG BASE_IMAGE_NODE=node:20-bookworm-slim
 ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs20-debian12:nonroot
 FROM ${BASE_IMAGE_NODE} AS deps
 WORKDIR /app
-# The UI is an npm workspace package that depends on @leo/design-system,
-# which is also a workspace package (services/design-system). npm ci must
-# run from the monorepo root with the workspace manifests in place,
-# otherwise the @leo/design-system reference is resolved against the public
-# registry and the install fails with a 404.
+# The UI is an npm workspace package that depends on sibling workspace
+# packages. npm ci must run from the monorepo root with the workspace
+# manifests in place, otherwise workspace references resolve against the
+# public registry and the install fails with a 404.
 COPY package.json package-lock.json ./
 COPY services/ui/package.json ./services/ui/package.json
 COPY services/design-system/package.json ./services/design-system/package.json
+COPY services/widget-sdk/package.json ./services/widget-sdk/package.json
 RUN npm ci --omit=dev --workspaces --include-workspace-root
 
 # -- Stage 2: build Next.js standalone bundle ------------------------------
@@ -22,6 +22,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/services/ui/node_modules ./services/ui/node_modules
 COPY package.json package-lock.json ./
 COPY services/design-system ./services/design-system
+COPY services/widget-sdk ./services/widget-sdk
 COPY services/ui ./services/ui
 ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/services/ui

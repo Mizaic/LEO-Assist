@@ -27,7 +27,7 @@ load_keyvault_secrets()
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from libs.utils.logging import configure_logging
 
@@ -94,16 +94,45 @@ app = FastAPI(
 
 import os
 
-_allowed_origins = [
+_allowed_origins_raw = [
     o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()
-] or ["*"]
+]
+if not _allowed_origins_raw:
+    logger.warning(
+        "FHIR API: ALLOWED_ORIGINS is not set -- CORS will reject all cross-origin "
+        "requests. Set ALLOWED_ORIGINS in the environment."
+    )
+_allowed_origins = _allowed_origins_raw
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "X-Request-ID",
+        "X-Correlation-ID",
+    ],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to every FHIR API response."""
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=63072000; includeSubDomains; preload"
+    )
+    return response
+
 
 from libs.observability import ServerTimingMiddleware  # noqa: E402
 

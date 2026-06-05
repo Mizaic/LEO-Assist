@@ -8,6 +8,7 @@ Atlas trace:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import uuid
@@ -18,6 +19,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
+from libs.audit.security_log import emit_data_access
 from libs.auth.org_scope import CallerScope, get_caller_scope, require_patient_in_scope
 from libs.neo4j_client.client import KnowledgeGraphClient
 from libs.cypher.documents_queries import _assertion_context
@@ -314,6 +316,13 @@ def get_patient(
     client = PatientGraphClient()
     try:
         require_patient_in_scope(client, scope, patient_id)
+        patient_id_hash = hashlib.sha256(patient_id.encode()).hexdigest()[:16]
+        emit_data_access(
+            email=scope.email,
+            ip="unknown",
+            resource="patients/get_patient",
+            patient_id_hash=patient_id_hash,
+        )
         rows = client.run(GET_PATIENT, patient_id=patient_id)
         if not rows:
             raise HTTPException(status_code=404, detail="Patient not found")
@@ -1082,9 +1091,7 @@ def recode_coded_link(
                 applied_lock = apply_with_lock(
                     client,
                     entity_type="coded_link",
-                    entity_id=_coded_link_lock_id(
-                        encounter_id, body.new_concept_id
-                    ),
+                    entity_id=_coded_link_lock_id(encounter_id, body.new_concept_id),
                     locked_by=scope.email,
                     locked_by_role=body.reviewer_role,
                     lock_reason=body.lock_reason or "manual recode",
@@ -1115,9 +1122,7 @@ def recode_coded_link(
         client.close()
 
 
-@router.post(
-    "/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}/lock"
-)
+@router.post("/{patient_id}/encounters/{encounter_id}/coded-links/{concept_id}/lock")
 def lock_or_release_coded_link(
     patient_id: str,
     encounter_id: str,
@@ -1160,9 +1165,7 @@ def lock_or_release_coded_link(
                 "entity_id": lock.entity_id,
             }
 
-        existing = is_locked(
-            client, entity_type="coded_link", entity_id=entity_id
-        )
+        existing = is_locked(client, entity_type="coded_link", entity_id=entity_id)
         if existing is None:
             return {"decision": "reject", "released": False}
 
@@ -1220,12 +1223,16 @@ def _build_link_payload_from_gold_entity(
     concept_id = _coerce_str(entity.get("snomed_concept_id"))
     if not concept_id:
         return None
-    semantic_tag = _coerce_str(entity.get("semantic_tag")) or _coerce_str(
-        entity.get("label")
-    ) or "SnomedConcept"
-    term = _coerce_str(entity.get("snomed_term")) or _coerce_str(
-        entity.get("text")
-    ) or concept_id
+    semantic_tag = (
+        _coerce_str(entity.get("semantic_tag"))
+        or _coerce_str(entity.get("label"))
+        or "SnomedConcept"
+    )
+    term = (
+        _coerce_str(entity.get("snomed_term"))
+        or _coerce_str(entity.get("text"))
+        or concept_id
+    )
     evidence = _coerce_str(entity.get("text"))
     assertion = _coerce_str(entity.get("assertion")) or "present"
     modifiers: dict[str, Any] = {}
@@ -1250,7 +1257,9 @@ def _build_link_payload_from_gold_entity(
     )
 
 
-def _list_baseline_concept_ids(session, patient_id: str, encounter_id: str) -> list[str]:
+def _list_baseline_concept_ids(
+    session, patient_id: str, encounter_id: str
+) -> list[str]:
     """Return the current set of concept_ids coded on (patient, encounter)."""
 
     rows = session.run(
@@ -1267,9 +1276,7 @@ def _list_baseline_concept_ids(session, patient_id: str, encounter_id: str) -> l
     return baseline
 
 
-@router.post(
-    "/{patient_id}/encounters/{encounter_id}/coded-links/sync-from-gold"
-)
+@router.post("/{patient_id}/encounters/{encounter_id}/coded-links/sync-from-gold")
 def sync_coded_links_from_gold(
     patient_id: str,
     encounter_id: str,
@@ -1382,9 +1389,7 @@ def sync_coded_links_from_gold(
     kg_client = KnowledgeGraphClient()
     try:
         with kg_client.session() as session:
-            existing = session.run(
-                GET_GOLD_LABEL_BY_ID, label_id=label_id
-            ).single()
+            existing = session.run(GET_GOLD_LABEL_BY_ID, label_id=label_id).single()
             if existing is None:
                 raise HTTPException(
                     status_code=404,

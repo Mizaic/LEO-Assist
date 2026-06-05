@@ -57,6 +57,7 @@ All SOUP items are assessed for:
 | 18 | **langchain-aws** | >= 0.2.0 | PyPI | LangChain Bedrock integration | Medium | Wrapper for boto3 Bedrock calls |
 | 19 | **langchain-openai** | >= 0.2.0 | PyPI | LangChain Azure OpenAI integration | Medium | Wrapper for openai Azure calls |
 | 20 | **PyJWT** | >= 2.8.0 | PyPI | JWT decoding; Azure AD token validation | Medium | Auth boundary; invalid tokens rejected |
+| 20a | **python-jose[cryptography]** | >= 3.4.0 | PyPI | JWT/JWK verification at the OAuth callback auth boundary | High | CVE-2024-33663 (algorithm confusion) and CVE-2024-33664 (JWE DoS) affect <3.4.0. Algorithm confusion partially mitigated by RS256-only decode; version floor is the primary control. |
 | 21 | **langgraph** | >= 0.4.0 | PyPI | Pipeline orchestration | Medium | Pipeline orchestration; failures surface as errors |
 | 22 | **opentelemetry-api** | >= 1.20.0 | PyPI | Observability | Low | Observability only; no clinical impact |
 | 23 | **opentelemetry-sdk** | >= 1.20.0 | PyPI | Observability | Low | Observability only; no clinical impact |

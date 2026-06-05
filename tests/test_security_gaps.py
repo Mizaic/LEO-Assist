@@ -186,8 +186,10 @@ def test_gap003_require_admin_raises_403_for_non_admin():
 
     scope = MagicMock()
     scope.is_admin = False
+    mock_request = MagicMock()
+    mock_request.client.host = "127.0.0.1"
     with pytest.raises(HTTPException) as exc_info:
-        require_admin(scope=scope)
+        require_admin(request=mock_request, scope=scope)
     assert exc_info.value.status_code == 403
 
 
@@ -200,7 +202,9 @@ def test_gap003_require_admin_passes_for_admin():
 
     scope = MagicMock()
     scope.is_admin = True
-    result = require_admin(scope=scope)
+    mock_request = MagicMock()
+    mock_request.client.host = "127.0.0.1"
+    result = require_admin(request=mock_request, scope=scope)
     assert result is scope
 
 
@@ -475,9 +479,25 @@ def test_gap010_callback_rejects_missing_nonce():
 
     from app.routers.auth import callback
     from fastapi import Response
+    from starlette.requests import Request as StarletteRequest
 
-    req = _make_request(cookies={})  # no nonce cookie
-    resp = callback(request=req, response=Response(), code="authcode", state="/")
+    # slowapi requires a real starlette Request.  Supply the CSRF cookie so the
+    # CSRF check passes, but omit leo_oauth_nonce so the nonce guard triggers.
+    csrf_token = "test-csrf-token"
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/auth/callback",
+        "query_string": b"",
+        "headers": [(b"cookie", f"leo_oauth_csrf={csrf_token}".encode())],
+    }
+    req = StarletteRequest(scope=scope)
+    resp = callback(
+        request=req,
+        response=Response(),
+        code="authcode",
+        state=f"{csrf_token}:/",  # embedded CSRF prefix matches cookie
+    )
     assert "csrf_nonce_missing" in resp.headers.get("location", "")
 
 

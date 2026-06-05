@@ -32,10 +32,47 @@ Threat coverage (DC-TM-SEC-002)
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import os
 import re
 
 logger = logging.getLogger(__name__)
+
+
+def _raw_clinical_text_logging_enabled() -> bool:
+    """True only when an operator has explicitly opted in to raw-text logging.
+
+    Special-category clinical text must never reach application logs in any
+    deployed environment (UK GDPR Art 5(1)(c) minimisation). This escape hatch
+    exists purely for local, non-production debugging and is read at call time
+    so it can be toggled without restarting a dev process.
+    """
+    if os.getenv("ENVIRONMENT", "local").strip().lower() != "local":
+        return False
+    return os.getenv("LOG_RAW_CLINICAL_TEXT", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
+def redact_for_log(text: object, *, max_chars: int = 80) -> str:
+    """Return a log-safe stand-in for clinical / entity text.
+
+    Instead of the raw phrase, emit its length and a short SHA-256 prefix so
+    logs stay correlatable across lines without storing special-category data.
+    Raw text is only ever returned when ``LOG_RAW_CLINICAL_TEXT`` is set in a
+    local environment (see ``_raw_clinical_text_logging_enabled``).
+    """
+    if text is None:
+        return "<none>"
+    s = text if isinstance(text, str) else str(text)
+    if _raw_clinical_text_logging_enabled():
+        return s[:max_chars]
+    digest = hashlib.sha256(s.encode("utf-8", "replace")).hexdigest()[:12]
+    return f"<redacted len={len(s)} sha256={digest}>"
+
 
 # ---------------------------------------------------------------------------
 # Injection guard — prepend to every system prompt
@@ -106,9 +143,9 @@ def sanitise_for_prompt(text: str, *, max_chars: int = 16_000) -> str:
     if n_subs:
         logger.warning(
             "prompt_safety: stripped %d injection pattern(s) from clinical text "
-            "(first 80 chars: %r)",
+            "(text: %s)",
             n_subs,
-            text[:80],
+            redact_for_log(text),
         )
 
     return replaced[:max_chars]

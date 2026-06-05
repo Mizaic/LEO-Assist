@@ -26,6 +26,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@leo/design-system": "*",
+    "@mizaic/leo-widget": "^0.1.0-mvp.1",
     "@mui/icons-material": "^7.3.8",
     "@mui/lab": "^7.0.1-beta.22",
     "@mui/material": "^7.3.8",

@@ -16,6 +16,7 @@ import logging
 import os
 import re
 import secrets
+import time
 from typing import Any
 from urllib.parse import urlparse
 
@@ -66,8 +67,9 @@ def _detect_session_namespace() -> str:
 
 SESSION_NAMESPACE = _detect_session_namespace()
 SESSION_PREFIX = f"auth:{SESSION_NAMESPACE}:session:"
-# TTL configurable so the ops team can tune without a code change
-_SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "168"))  # default 7 days
+# TTL configurable so the ops team can tune without a code change.
+# Default 8 hours is appropriate for clinical roles (F9 -- SEC-REVIEW-2026-06-04).
+_SESSION_TTL_HOURS = int(os.getenv("SESSION_TTL_HOURS", "8"))
 SESSION_TTL = _SESSION_TTL_HOURS * 3600
 COOKIE_NAME = "leo_session"
 
@@ -194,6 +196,31 @@ def delete_session(session_id: str) -> None:
         _redis_op(r.delete, _session_key(session_id))
         if SESSION_PREFIX != LEGACY_SESSION_PREFIX:
             _redis_op(r.delete, _legacy_session_key(session_id))
+
+
+def touch_session(session_id: str, idle_timeout_minutes: int = 30) -> bool:
+    """Enforce idle timeout and refresh the last-activity timestamp.
+
+    Loads the session, checks whether it has been idle longer than
+    *idle_timeout_minutes*, deletes it if so (returning False), otherwise
+    updates ``last_activity`` and re-saves with the original TTL (returning
+    True).
+
+    Returns False if the session does not exist or has exceeded the idle limit.
+    """
+    data = load_session(session_id)
+    if not data:
+        return False
+    last_activity = data.get("last_activity")
+    now = time.time()
+    if last_activity is not None:
+        idle_seconds = now - float(last_activity)
+        if idle_seconds > idle_timeout_minutes * 60:
+            delete_session(session_id)
+            return False
+    data["last_activity"] = now
+    save_session(session_id, data, ttl_seconds=SESSION_TTL)
+    return True
 
 
 def list_all_sessions() -> list[dict[str, Any]]:

@@ -148,7 +148,7 @@ export default function ConfigureSubdomainDialog({
   const searchedConceptOptions = useMemo(
     () =>
       schemaSearchResults
-        .map((hit) => {
+        .map((hit): CompletenessConceptOption | null => {
           const conceptId = parseInt(hit.snomed_concept_id, 10);
           if (!Number.isFinite(conceptId)) return null;
           return {

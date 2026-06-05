@@ -24,7 +24,11 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { NextRequest, NextResponse } from "next/server";
-import { E2E_SESSION_PAYLOAD, isE2eAuthMode } from "./lib/e2eSession";
+import {
+  E2E_SESSION_PAYLOAD,
+  assertE2eModeNotInProduction,
+  isE2eAuthMode,
+} from "./lib/e2eSession";
 
 function coreApi(): string {
   return (process.env.INTERNAL_API_BASE || "http://localhost:8000").replace(
@@ -183,6 +187,7 @@ function serviceAuthRewrite(request: NextRequest, dest: string): NextResponse {
 const termApiRewrite = serviceAuthRewrite;
 
 export function proxy(request: NextRequest) {
+  assertE2eModeNotInProduction();
   const { pathname, search } = request.nextUrl;
   const method = request.method.toUpperCase();
   const isMutation = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
@@ -222,6 +227,15 @@ export function proxy(request: NextRequest) {
       const rest = pathname.slice(rule.prefix.length);
       const needsServiceAuth =
         rule.serviceAuth || rule.prefix === "/api/terminology/";
+      if (isMutation && needsServiceAuth) {
+        const session = request.cookies.get("leo_session");
+        if (!session) {
+          return NextResponse.json(
+            { error: "not_authenticated" },
+            { status: 401 },
+          );
+        }
+      }
       const rewriteFn = needsServiceAuth ? serviceAuthRewrite : proxyRewrite;
       return rewriteFn(request, rule.rewrite(rest) + search);
     }

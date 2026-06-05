@@ -14,6 +14,7 @@ from typing import Annotated, Literal
 
 from fastapi import Cookie, Depends, HTTPException, Request
 
+from libs.audit.security_log import emit_authz_denied
 from libs.auth.org_scope import CallerScope, ScopeType, resolve_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
 from app.services.session_store import COOKIE_NAME, load_session
@@ -99,10 +100,18 @@ def get_caller_scope_from_request(
 
 
 def require_admin(
+    request: Request,
     scope: CallerScope = Depends(get_caller_scope_from_request),
 ) -> CallerScope:
     """Dependency that raises 403 unless the caller is a platform admin (GAP-003)."""
     if not scope.is_admin:
+        client_ip = request.client.host if request.client else "unknown"
+        emit_authz_denied(
+            email=scope.email,
+            ip=client_ip,
+            route=str(request.url.path),
+            reason="not_platform_admin",
+        )
         raise HTTPException(status_code=403, detail="Platform admin access required")
     return scope
 

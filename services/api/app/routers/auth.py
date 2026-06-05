@@ -22,6 +22,7 @@ from fastapi.responses import RedirectResponse
 import httpx
 from jose import jwt, JWTError
 
+from app.limiter import limiter
 from app.services.session_store import (
     COOKIE_NAME,
     SESSION_NAMESPACE,
@@ -30,6 +31,7 @@ from app.services.session_store import (
     delete_session,
     load_session,
     save_session,
+    touch_session,
 )
 from libs.audit.security_log import (
     emit_login_success,
@@ -251,6 +253,7 @@ def _fetch_org_context(email: str) -> tuple[bool, list[dict]]:
 
 
 @router.get("/login")
+@limiter.limit("10/minute")
 def login(request: Request, next_url: str = "/"):
     """Redirect to Azure AD login with a session nonce for CSRF protection (GAP-010)."""
     client_id = _env_ad_client_id()
@@ -259,7 +262,10 @@ def login(request: Request, next_url: str = "/"):
     import secrets as _secrets
 
     nonce = _secrets.token_urlsafe(16)
-    state = next_url
+    csrf_token = _secrets.token_urlsafe(16)
+    # Embed csrf_token as a prefix in state: "{csrf_token}:{next_url}"
+    # Callback splits on ":" to recover both values without a separate param.
+    state = f"{csrf_token}:{next_url}"
     params = {
         "client_id": client_id,
         "response_type": "code",
@@ -292,10 +298,20 @@ def login(request: Request, next_url: str = "/"):
         max_age=600,
         path="/",
     )
+    resp.set_cookie(
+        "leo_oauth_csrf",
+        csrf_token,
+        httponly=True,
+        secure=cookie_secure,
+        samesite="lax",
+        max_age=600,
+        path="/",
+    )
     return resp
 
 
 @router.get("/callback")
+@limiter.limit("10/minute")
 def callback(
     request: Request,
     response: Response,
@@ -311,13 +327,34 @@ def callback(
     if not code:
         raise HTTPException(400, "Missing code")
 
-    # Verify nonce to prevent CSRF -- cookie set at /login must be present
+    # Split state into csrf_token and next_url (format: "{csrf_token}:{next_url}").
+    # Support legacy callers that pass a bare path with no embedded CSRF prefix.
+    state_parts = state.split(":", 1)
+    if len(state_parts) == 2:
+        csrf_from_state, next_url_from_state = state_parts
+    else:
+        csrf_from_state, next_url_from_state = "", state
+
+    # Verify CSRF token: must match the leo_oauth_csrf cookie set at /login.
+    expected_csrf = request.cookies.get("leo_oauth_csrf")
+    if not expected_csrf or not csrf_from_state or expected_csrf != csrf_from_state:
+        logger.warning("OAuth callback CSRF token mismatch -- possible CSRF attack")
+        emit_login_failure(
+            reason="csrf_token_mismatch", ip="unknown", detail="state/cookie mismatch"
+        )
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=csrf_token_mismatch", status_code=302
+        )
+
+    # Verify nonce cookie is present (claim comparison happens after token decode).
     expected_nonce = request.cookies.get("leo_oauth_nonce")
     if not expected_nonce:
         logger.warning("OAuth callback missing nonce cookie -- possible CSRF")
         return RedirectResponse(
             url=f"{fe}/sign-in?error=csrf_nonce_missing", status_code=302
         )
+    # Use the extracted next_url for the final redirect.
+    state = next_url_from_state or "/"
     client_secret = _env_ad_client_secret()
     if not client_secret:
         raise HTTPException(500, "Azure AD client secret not configured")
@@ -335,7 +372,11 @@ def callback(
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
     if r.status_code != 200:
-        logger.error("Token exchange failed: %s %s", r.status_code, r.text[:200])
+        logger.error(
+            "Token exchange failed: status=%s correlation_id=%s",
+            r.status_code,
+            r.headers.get("x-ms-correlation-request-id", ""),
+        )
         return RedirectResponse(
             url=f"{fe}/sign-in?error=token_exchange_failed", status_code=302
         )
@@ -362,6 +403,19 @@ def callback(
         return RedirectResponse(
             url=f"{fe}/sign-in?error=token_verification_failed",
             status_code=302,
+        )
+
+    # Validate nonce claim against the cookie set at /login (F3).
+    token_nonce = id_claims.get("nonce", "")
+    if not token_nonce or token_nonce != expected_nonce:
+        logger.warning(
+            "OAuth callback nonce mismatch: token_nonce present=%s matches=%s",
+            bool(token_nonce),
+            token_nonce == expected_nonce,
+        )
+        emit_login_failure(reason="nonce_mismatch", ip=client_ip)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=nonce_mismatch", status_code=302
         )
 
     # Reject v1.0 tokens (sts.windows.net issuer) — requires accessTokenAcceptedVersion: 2 in Azure AD manifest.
@@ -574,6 +628,12 @@ def get_session(request: Request, response: Response):
     data = load_session(session_id)
     if not data:
         logger.info("auth.session.miss reason=redis_miss sid_prefix=%s", session_id[:8])
+        return _unauth_session_payload()
+    idle_timeout = data.get("idle_timeout_minutes", 30)
+    if not touch_session(session_id, idle_timeout_minutes=int(idle_timeout)):
+        logger.info(
+            "auth.session.miss reason=idle_timeout sid_prefix=%s", session_id[:8]
+        )
         return _unauth_session_payload()
     email = (data.get("email") or "").lower().strip()
     role_state = fetch_role_state(email) if email else None

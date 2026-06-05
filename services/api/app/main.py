@@ -34,16 +34,12 @@ from app import config  # noqa: F401 - Key Vault + env before routers read secre
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
+from slowapi.middleware import SlowAPIMiddleware
 from libs.auth.org_scope import get_caller_scope
 from app.deps import get_caller_scope_from_request
-
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=[os.getenv("RATE_LIMIT_DEFAULT", "120/minute")],
-)
+from app.limiter import limiter
 from app.routers.admin import router as admin_router
 from app.routers.admin_entra import router as admin_entra_router
 from app.routers.data_quality import router as data_quality_router
@@ -100,6 +96,20 @@ def _validate_startup_deps():
             "SECURITY: SERVICE_AUTH_SECRET is not set in %s environment. "
             "Inter-service auth is disabled.",
             env,
+        )
+
+    # LEO_LOCAL_DEV_BYPASS must never be set in a deployed environment.
+    if (
+        os.getenv("LEO_LOCAL_DEV_BYPASS", "").strip().lower() == "true"
+        and os.getenv("ENVIRONMENT", "local").strip().lower() != "local"
+    ):
+        logging.getLogger(__name__).critical(
+            "SECURITY: LEO_LOCAL_DEV_BYPASS=true is set in environment=%s. "
+            "This flag must only be used in local development.",
+            env,
+        )
+        raise RuntimeError(
+            "LEO_LOCAL_DEV_BYPASS must not be enabled outside local environments."
         )
 
     # python-jose: required for auth (JWT verification)
@@ -343,6 +353,7 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # In this API service, allow org-scope identity to come from session cookie
 # (GAP-001: X-User-Email header removed as an identity source).
@@ -358,8 +369,15 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "X-Request-ID",
+        "X-Correlation-ID",
+        "Cookie",
+    ],
 )
 
 from libs.observability import ServerTimingMiddleware  # noqa: E402

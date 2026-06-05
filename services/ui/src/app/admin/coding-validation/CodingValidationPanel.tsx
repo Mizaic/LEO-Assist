@@ -10,7 +10,6 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
-import Grid from "@mui/material/Grid";
 
 import { getCodingValidation, updateGroundTruth } from "./api";
 
@@ -78,9 +77,19 @@ export default function CodingValidationPanel() {
             <Typography variant="h6" gutterBottom>
               Case: {c.case_id}
             </Typography>
-            <Grid container spacing={2}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 2,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                  lg: "repeat(3, minmax(0, 1fr))",
+                },
+              }}
+            >
               {c.facts?.map((fact: any, idx: number) => (
-                <Grid item xs={12} md={6} lg={4} key={idx}>
+                <Box key={idx}>
                   <Card variant="outlined" sx={{ height: "100%", bgcolor: fact.safe_attached ? "success.50" : "error.50" }}>
                     <CardContent>
                       <Typography variant="subtitle1" fontWeight="bold">
@@ -127,9 +136,9 @@ export default function CodingValidationPanel() {
                       </Stack>
                     </CardContent>
                   </Card>
-                </Grid>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           </CardContent>
         </Card>
       ))}

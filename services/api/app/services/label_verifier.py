@@ -49,6 +49,7 @@ from libs.cypher.training_label_queries import (
 from libs.coding_engine.tier_classifier import classify_tier
 from libs.llm_client.escalation import escalate_label
 from libs.llm_client.factory import LLMResponse, create_llm
+from libs.llm_client.prompt_safety import redact_for_log
 from libs.neo4j_client.client import PatientGraphClient
 from libs.ner.post_processor_rules import (
     apply_rules_to_entities,
@@ -786,8 +787,8 @@ def _auto_triage_disagreement(
         top_tag = str(top.get("semantic_tag") or "")
         top_label = _snomed_tag_to_label(top_tag)
         logger.debug(
-            "Auto-triage term lookup: entity=%r score=%.2f tag=%r mapped=%r targets=%r",
-            entity_text,
+            "Auto-triage term lookup: entity=%s score=%.2f tag=%r mapped=%r targets=%r",
+            redact_for_log(entity_text),
             top_score,
             top_tag,
             top_label,

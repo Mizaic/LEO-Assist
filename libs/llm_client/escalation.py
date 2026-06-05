@@ -30,6 +30,7 @@ from libs.llm_client.factory import LLMResponse, create_llm
 from libs.llm_client.prompt_safety import (
     INJECTION_GUARD,
     cap_llm_response,
+    redact_for_log,
     sanitise_for_prompt,
 )
 
@@ -157,9 +158,9 @@ def escalate_label(
             parsed = _parse_json(response.text)
         except Exception:
             logger.warning(
-                "Escalation tier=%s failed for %r",
+                "Escalation tier=%s failed for %s",
                 tier,
-                entity_text,
+                redact_for_log(entity_text),
                 exc_info=True,
             )
             attempts.append({"tier": tier, "error": True})
@@ -180,9 +181,9 @@ def escalate_label(
         )
 
         logger.info(
-            "Escalation tier=%s entity=%r label=%r conf=%.2f threshold=%.2f",
+            "Escalation tier=%s entity=%s label=%r conf=%.2f threshold=%.2f",
             tier,
-            entity_text,
+            redact_for_log(entity_text),
             resolved_label,
             confidence,
             confidence_threshold,
@@ -312,9 +313,9 @@ def escalate_coding(
             parsed = _parse_json(response.text)
         except Exception:
             logger.warning(
-                "Coding escalation tier=%s failed for %r",
+                "Coding escalation tier=%s failed for %s",
                 tier,
-                entity_text,
+                redact_for_log(entity_text),
                 exc_info=True,
             )
             attempts.append({"tier": tier, "error": True})
@@ -335,9 +336,9 @@ def escalate_coding(
         )
 
         logger.info(
-            "Coding escalation tier=%s entity=%r concept=%r conf=%.2f",
+            "Coding escalation tier=%s entity=%s concept=%r conf=%.2f",
             tier,
-            entity_text,
+            redact_for_log(entity_text),
             concept_term,
             confidence,
         )
@@ -486,8 +487,8 @@ def escalate_coding_from_candidates(
         )
     except Exception:
         logger.warning(
-            "escalate_coding_from_candidates failed for %r",
-            entity_text,
+            "escalate_coding_from_candidates failed for %s",
+            redact_for_log(entity_text),
             exc_info=True,
         )
         return CandidatesResult(action="ambiguous", reason="LLM call failed.")
@@ -511,10 +512,10 @@ def escalate_coding_from_candidates(
         if not (0 <= idx < len(candidates)):
             logger.warning(
                 "escalate_coding_from_candidates: selected_index=%r out of "
-                "range [0, %d) for %r -- falling back to ambiguous",
+                "range [0, %d) for %s -- falling back to ambiguous",
                 parsed.get("selected_index"),
                 len(candidates),
-                entity_text,
+                redact_for_log(entity_text),
             )
             return CandidatesResult(
                 action="ambiguous",
@@ -604,8 +605,8 @@ def verify_coding_consensus(
         max_tokens=150,
     )
     logger.info(
-        "verify_coding_consensus entity=%r verdict=%s agreed=%s",
-        entity_text,
+        "verify_coding_consensus entity=%s verdict=%s agreed=%s",
+        redact_for_log(entity_text),
         result.verdict,
         result.agreed,
     )

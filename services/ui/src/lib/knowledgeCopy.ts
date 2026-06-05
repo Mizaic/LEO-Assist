@@ -453,12 +453,6 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Check resolution scores, blocked mappings, and safe attachments.",
       what: "Evidence for VAL-41005BA4 terminology resolution.",
     },
-    developer: {
-      title: "Coding Validation",
-      lede: "Debug Terminology API resolution.",
-      how: "Check lexical and vector scores for candidate codes.",
-      what: "Verifies the terminology subgraph configuration.",
-    },
     platform_admin: {
       title: "Coding validation store",
       lede: "Saved coding checks and their linked SNOMED choices.",

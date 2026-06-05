@@ -65,6 +65,7 @@ export default function ScenarioPipelinePlaceholders({
             <FormControlLabel
               control={
                 <Switch
+                  data-testid="expected-analysis-no-rules"
                   checked={expectedAnalysis.expect_no_rules_fired}
                   onChange={(e) =>
                     onAnalysisChange({
@@ -72,7 +73,6 @@ export default function ScenarioPipelinePlaceholders({
                       expect_no_rules_fired: e.target.checked,
                     })
                   }
-                  inputProps={{ "data-testid": "expected-analysis-no-rules" }}
                 />
               }
               label="Expect no rules to fire"

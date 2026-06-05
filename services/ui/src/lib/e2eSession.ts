@@ -20,9 +20,23 @@ export const E2E_SESSION_PAYLOAD = {
   density_preference: "comfortable",
 };
 
+// IMPORTANT: NEXT_PUBLIC_E2E_MODE must NOT appear in any deployed .env file.
+// It activates a platform-admin bypass and is only safe in local development.
 export function isE2eAuthMode(): boolean {
   return (
     process.env.NODE_ENV !== "production" &&
     process.env.NEXT_PUBLIC_E2E_MODE === "true"
   );
+}
+
+export function assertE2eModeNotInProduction(): void {
+  if (
+    process.env.NEXT_PUBLIC_E2E_MODE === "true" &&
+    process.env.NODE_ENV === "production"
+  ) {
+    throw new Error(
+      "SECURITY: NEXT_PUBLIC_E2E_MODE must never be set in a production build. " +
+        "Remove it from all deployed environment configurations.",
+    );
+  }
 }

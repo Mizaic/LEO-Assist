@@ -43,6 +43,7 @@ from libs.llm_client.consensus import (
 from libs.llm_client.prompt_safety import (
     INJECTION_GUARD,
     cap_llm_response,
+    redact_for_log,
     sanitise_for_prompt,
 )
 
@@ -185,10 +186,10 @@ def verify_disorder(
     raw = result.verdict
     if raw not in _VALID_VERDICTS:
         logger.warning(
-            "DisorderVerifier consensus returned unknown verdict %r for %r "
+            "DisorderVerifier consensus returned unknown verdict %r for %s "
             "-- using fail_verdict=%s (coding_mode=%s)",
             raw,
-            entity_text,
+            redact_for_log(entity_text),
             fail_v,
             coding_mode,
         )
@@ -196,8 +197,8 @@ def verify_disorder(
 
     verdict = DisorderVerdict(raw)
     logger.info(
-        "DisorderVerifier entity=%r verdict=%s agreed=%s models=%s",
-        entity_text,
+        "DisorderVerifier entity=%s verdict=%s agreed=%s models=%s",
+        redact_for_log(entity_text),
         verdict.value,
         result.agreed,
         result.model_ids,
