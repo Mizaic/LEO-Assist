@@ -159,7 +159,7 @@ describe("VT-129 - Role-first primitives", () => {
     expect(screen.getByTestId("app")).toBeInTheDocument();
   });
 
-  test("TC-006 picker renders for multi-role session until role is confirmed", async () => {
+  test("TC-006 picker blocks app rendering until multi-role session is confirmed", async () => {
     const api = makeApi({
       selectedRole: "clinician",
       allowedRoles: ["clinician", "staff"],
@@ -180,7 +180,7 @@ describe("VT-129 - Role-first primitives", () => {
       </RoleProvider>,
     );
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByTestId("app")).toBeInTheDocument();
+    expect(screen.queryByTestId("app")).not.toBeInTheDocument();
     const continueBtn = screen.getByRole("button", { name: /Continue/i });
     expect(continueBtn).not.toBeDisabled();
   });

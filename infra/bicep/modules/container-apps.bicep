@@ -359,6 +359,7 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
         resources: { cpu: json('1.0'), memory: '2Gi' }
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
+          { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
           // proxy.py / auth.py read *_API_BASE; audit_emitter uses FHIR_API_URL
           { name: 'FHIR_API_URL', value: fhirApiUrl }

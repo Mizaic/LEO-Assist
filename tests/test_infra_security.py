@@ -114,6 +114,18 @@ class TestContainerAppsIngressPolicy:
                 assert external is False, f"{name}: must use external: false (internal only)"
 
 
+class TestCoreApiKnowledgeGraphEnv:
+    """core-api must receive the full KnowledgeGraphClient credential set."""
+
+    def test_core_api_sets_knowledge_graph_username(self):
+        source = CONTAINER_APPS.read_text()
+        apps = dict(_container_app_blocks(source))
+        block = apps["core-api"]
+        assert "KNOWLEDGE_GRAPH_NEO4J_URI" in source
+        assert "KNOWLEDGE_GRAPH_NEO4J_PASSWORD" in source
+        assert "KNOWLEDGE_GRAPH_NEO4J_USERNAME" in block
+
+
 class TestServiceAuthSecretDeployment:
     """SERVICE_AUTH_SECRET must be wired through Bicep to all environments."""
 

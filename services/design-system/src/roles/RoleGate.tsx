@@ -46,10 +46,13 @@ export function RoleGate({
     allowedRoles.length > 0 &&
     (selectedRole == null || needsSessionRoleChoice);
 
+  if (pickerNeeded) {
+    return <RolePicker />;
+  }
+
   return (
     <>
       {children}
-      {pickerNeeded ? <RolePicker /> : null}
     </>
   );
 }
