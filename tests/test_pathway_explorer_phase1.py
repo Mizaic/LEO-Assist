@@ -241,6 +241,17 @@ class TestAlgorithmRunnerDispatch:
         assert len(result.items) == 1
         assert result.items[0]["label"] == "CT Scan"
         assert result.items[0]["avg_wait_days"] == 18.0
+        query = mock_client.run.call_args.args[0]
+        assert "trim(toString(ep.referral_date)) <> ''" in query
+        assert "date(toString(ep.referral_date)) AS ref_date" in query
+
+    def test_variation_service_referral_date_coerces_to_string(self):
+        from services.analytics_api.app.services.variation_service import (
+            _EPISODES_IN_SCOPE_CYPHER,
+        )
+
+        assert "trim(toString(ep.referral_date)) <> ''" in _EPISODES_IN_SCOPE_CYPHER
+        assert "date(toString(ep.referral_date)) >=" in _EPISODES_IN_SCOPE_CYPHER
 
 
 # ---------------------------------------------------------------------------

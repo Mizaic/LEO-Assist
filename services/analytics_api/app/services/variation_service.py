@@ -33,8 +33,8 @@ _EPISODES_IN_SCOPE_CYPHER = """
 MATCH (p:Patient) {scope_where}
 WHERE p.variation_community_id IS NOT NULL
 MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare)
-WHERE ep.referral_date IS NOT NULL AND trim(ep.referral_date) <> ''
-  AND date(ep.referral_date) >= date() - duration({{months: $months}})
+WHERE ep.referral_date IS NOT NULL AND trim(toString(ep.referral_date)) <> ''
+  AND date(toString(ep.referral_date)) >= date() - duration({{months: $months}})
 MATCH (e1:Encounter)-[r1:IS_PART_OF]->(ep)
 MATCH (e2:Encounter)-[r2:IS_PART_OF]->(ep)
 WHERE r1.milestone_type IS NOT NULL AND trim(r1.milestone_type) <> ''

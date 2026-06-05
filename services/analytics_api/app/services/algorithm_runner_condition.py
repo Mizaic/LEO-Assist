@@ -380,8 +380,9 @@ def _run_bottleneck(
         f"MATCH (p:Patient) {scope_where} "
         "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
         # Guard against empty/null referral_date before calling date()
-        "WHERE ep.referral_date IS NOT NULL AND trim(ep.referral_date) <> '' "
-        "WITH p, ep, date(ep.referral_date) AS ref_date "
+        "WHERE ep.referral_date IS NOT NULL "
+        "  AND trim(toString(ep.referral_date)) <> '' "
+        "WITH p, ep, date(toString(ep.referral_date)) AS ref_date "
         "WHERE ref_date >= date() - duration({months: $months}) "
         "MATCH (e1:Encounter)-[r1:IS_PART_OF]->(ep) "
         "MATCH (e2:Encounter)-[r2:IS_PART_OF]->(ep) "
