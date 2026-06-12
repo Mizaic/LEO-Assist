@@ -49,6 +49,11 @@ param snomedTerminologyServer = ''
 // Update this when the ACA custom domain for validation is confirmed.
 param frontendUrl = 'https://atlas-val.healthcarecopilot.ai'
 
+param mailFromAddress = 'leo.support@healthcarecopilot.ai'
+
+// Validation shares the production knowledge graph Aura instance (neo4j+s://ecca11a1...).
+param knowledgeGraphEnvironment = 'prod'
+
 // Optional: bind UI custom domain in Bicep (hostname only + managed cert resource ID).
 param uiCustomHostname = ''
 param uiManagedCertificateId = ''

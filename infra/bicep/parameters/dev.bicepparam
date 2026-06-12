@@ -52,6 +52,9 @@ param snomedTerminologyServer = ''
 //   and the sign-in link in invite emails.
 param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'
 
+// Graph API sender mailbox (must match an Entra-licensed mailbox in your tenant).
+param mailFromAddress = 'leo.support@healthcarecopilot.ai'
+
 // ACA Custom domains: hostname + environment certificate name (portal: Networking -> Custom domains).
 param uiCustomDomainHost = 'leo-ai-audit.healthcarecopilot.ai'
 param uiIngressCertificateName = 'healthcarecopilot-origin-cert'

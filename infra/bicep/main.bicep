@@ -52,6 +52,13 @@ param uiIngressCertificateIsManaged bool = false
 // and the GitHub WIDGET_PUBLIC_HOST secret.
 param widgetPublicHost string = ''
 
+// Graph API sender mailbox for invite and notification emails.
+param mailFromAddress string
+
+// Knowledge graph tier label; defaults to environment. Set val and prod to the
+// same value when Validation and Production share one Aura knowledge graph.
+param knowledgeGraphEnvironment string = environment
+
 // Shared resources live in the leo-ai platform RG
 param acrResourceGroup string = 'leo-ai'
 param acrName string = 'leoaicr'
@@ -160,6 +167,8 @@ module containerApps 'modules/container-apps.bicep' = {
     uiCustomHostname: uiCustomHostname
     uiManagedCertificateId: uiManagedCertificateId
     widgetPublicHost: widgetPublicHost
+    mailFromAddress: mailFromAddress
+    knowledgeGraphEnvironment: knowledgeGraphEnvironment
   }
 }
 

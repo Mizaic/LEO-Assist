@@ -49,6 +49,26 @@ resource pipelineJobsQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-pr
   }
 }
 
+resource auditJobsQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: 'audit-jobs'
+  parent: sbNamespace
+  properties: {
+    lockDuration: 'PT5M'
+    maxDeliveryCount: 3
+    defaultMessageTimeToLive: 'P1D'
+  }
+}
+
+resource referralOutputQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: 'referral-assessments-output'
+  parent: sbNamespace
+  properties: {
+    lockDuration: 'PT5M'
+    maxDeliveryCount: 10
+    defaultMessageTimeToLive: 'P7D'
+  }
+}
+
 // Azure Service Bus Data Owner role (built-in)
 var sbDataOwnerRoleId = '090c5cfd-751d-490a-894a-3ce6f1109419'
 

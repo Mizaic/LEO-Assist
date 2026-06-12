@@ -30,10 +30,15 @@ _USE_AZURE_PRIMARY = os.getenv("USE_AZURE_PRIMARY", "false").lower() in (
 
 
 def _bedrock_model_id() -> str:
-    return os.getenv(
-        "AWS_BEDROCK_MODEL",
-        "arn:aws:bedrock:eu-west-2:204065380870:inference-profile/eu.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    model_id = (
+        os.getenv("AWS_BEDROCK_MODEL", "").strip()
+        or os.getenv("AWS_BIG_MODEL", "").strip()
     )
+    if not model_id:
+        raise RuntimeError(
+            "AWS_BEDROCK_MODEL or AWS_BIG_MODEL must be set (Bedrock model ARN or ID)"
+        )
+    return model_id
 
 
 async def get_bedrock_model():

@@ -90,10 +90,16 @@ def _redirect_uri() -> str:
 
 
 def _oauth_scope() -> str:
-    return os.getenv(
-        "AZURE_AD_SCOPE",
-        "openid profile email api://c97f7ad9-845f-420c-ae3f-fa5c5d815bcd/.default",
-    )
+    scope = os.getenv("AZURE_AD_SCOPE", "").strip()
+    if scope:
+        return scope
+    client_id = os.getenv("AZURE_AD_CLIENT_ID", "").strip()
+    if not client_id:
+        raise RuntimeError(
+            "AZURE_AD_SCOPE or AZURE_AD_CLIENT_ID must be set for OAuth "
+            "(e.g. openid profile email api://<client-id>/.default)"
+        )
+    return f"openid profile email api://{client_id}/.default"
 
 
 def _set_auth_no_store(response: Response) -> None:

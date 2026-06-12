@@ -10,5 +10,6 @@ using '../widget-cdn.bicep'
 param environment = 'dev'
 param pinnedMajor = 'v1'
 param widgetPublicHost = 'leoaiwidgetcdndev.z33.web.core.windows.net'
-// leo-ai-github-deploy (OIDC for Healthcare-Copilot/LEO-AI-CORE:environment:dev)
-param githubActionsPrincipalId = '617679ab-c524-46e2-b6e8-a620754bc942'
+// REPLACE: object ID of the GitHub Actions OIDC service principal in your Entra tenant.
+// Get it with: az ad sp show --id <AZURE_CLIENT_ID from GitHub secrets> --query id -o tsv
+param githubActionsPrincipalId = 'REPLACE-WITH-YOUR-SP-OBJECT-ID'

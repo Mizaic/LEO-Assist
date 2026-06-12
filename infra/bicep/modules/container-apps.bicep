@@ -60,6 +60,13 @@ param uiIngressCertificateIsManaged bool = false
 // Azure Static Website hostname for the LEO widget CDN (DI-3C06AFD0).
 param widgetPublicHost string = ''
 
+// Sender address for Graph API mail (invite emails, notifications).
+param mailFromAddress string
+
+// Logical label for the knowledge graph deployment tier (defaults to environment).
+// Set to the same value in val and prod when they share one Aura KG instance.
+param knowledgeGraphEnvironment string = environment
+
 var prefix = 'leoai-${environment}'
 var caeName = '${prefix}-cae'
 var logWorkspaceName = '${prefix}-logs'
@@ -265,6 +272,10 @@ var sharedEnv = [
   // thirds the wall-clock latency.
   { name: 'AUDIT_SCOPE_PARALLELISM', value: '3' }
 
+  // Deployment tier (dev / val / prod) for startup guards and logging.
+  { name: 'LEO_DEPLOYMENT_ENVIRONMENT', value: environment }
+  { name: 'KNOWLEDGE_GRAPH_ENVIRONMENT', value: knowledgeGraphEnvironment }
+
   // Key Vault secret references -- injected as env vars at runtime
   { name: 'NEO4J_PASSWORD', secretRef: 'neo4j-patient-password' }
   { name: 'NEO4J_URI', secretRef: 'neo4j-patient-uri' }
@@ -373,7 +384,7 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'FRONTEND_URL', value: frontendUrl }
           { name: 'AUTH_REDIRECT_URI', value: '${frontendUrl}/auth/callback' }
           { name: 'WIDGET_PUBLIC_HOST', value: widgetPublicHost }
-          { name: 'MAIL_FROM_ADDRESS', value: 'leo.support@healthcarecopilot.ai' }
+          { name: 'MAIL_FROM_ADDRESS', value: mailFromAddress }
           // Multi-worker uvicorn: 2 workers per 1.0 vCPU container is the
           // sweet spot before context-switching dominates. Distroless image
           // has no shell so we set UVICORN_WORKERS instead of using

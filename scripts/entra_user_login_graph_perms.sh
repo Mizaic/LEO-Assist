@@ -27,7 +27,7 @@ set -euo pipefail
 GRAPH_SP_APPID="00000003-0000-0000-c000-000000000000"
 
 USER_LOGIN_APP_ID="${USER_LOGIN_APP_ID:-}"
-REDIRECT_URI="${REDIRECT_URI:-https://leoai.example.com/api/auth/callback}"
+REDIRECT_URI="${REDIRECT_URI:-https://leoai.example.com/auth/callback}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in

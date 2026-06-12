@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 _TENANT_ID = os.getenv("AZURE_AD_TENANT_ID", "")
 _CLIENT_ID = os.getenv("AZURE_AD_CLIENT_ID", "")
 _CLIENT_SECRET = os.getenv("AZURE_AD_CLIENT_SECRET", "")
-_MAIL_FROM = os.getenv("MAIL_FROM_ADDRESS", "leo.support@healthcarecopilot.ai")
-_FRONTEND_URL = os.getenv("FRONTEND_URL", "https://leo-ai-audit.healthcarecopilot.ai")
+_MAIL_FROM = os.getenv("MAIL_FROM_ADDRESS", "")
+_FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 _GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 _TOKEN_URL = f"https://login.microsoftonline.com/{_TENANT_ID}/oauth2/v2.0/token"

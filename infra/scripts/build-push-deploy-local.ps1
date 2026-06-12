@@ -61,12 +61,13 @@ $Services = @(
     @{ Name = "pipeline-worker"; Dockerfile = "infra/dockerfiles/Dockerfile.pipeline-worker" },
     @{ Name = "model-inference"; Dockerfile = "infra/dockerfiles/Dockerfile.model-inference" },
     @{ Name = "training-worker"; Dockerfile = "infra/dockerfiles/Dockerfile.training-worker" },
+    @{ Name = "research-worker"; Dockerfile = "infra/dockerfiles/Dockerfile.research-worker" },
     @{ Name = "ui";             Dockerfile = "infra/dockerfiles/Dockerfile.ui" }
 )
 
 $ContainerApps = @(
     "core-api", "terminology-api", "fhir-api", "analytics-api",
-    "model-inference", "training-worker", "pipeline-worker", "ui"
+    "model-inference", "training-worker", "pipeline-worker", "research-worker", "ui"
 )
 
 function Assert-Command($Name) {

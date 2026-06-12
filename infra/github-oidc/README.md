@@ -11,7 +11,9 @@ No client secrets are stored in GitHub for Azure login.
 
 ## Federated credential templates
 
-Templates live at the repo root:
+Templates live at the repo root. **Greenfield installs:** edit the `subject`
+field in each JSON file to match your GitHub org and repository before applying
+(e.g. replace `Healthcare-Copilot/LEO-AI-CORE` with `YourOrg/YourRepo`).
 
 | File | Subject | Workflow |
 | ---- | ------- | -------- |

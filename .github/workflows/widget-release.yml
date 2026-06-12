@@ -19,7 +19,7 @@ name: Widget release - build, gate, deploy
 # hostname (same value in infra/widget-cdn/parameters/{env}.bicepparam).
 #
 # How to trigger
-#   - workflow_dispatch with environment=dev|val|prod (manual)
+#   - workflow_dispatch with environment=dev|validation|production (manual)
 #   - workflow_run after CI - Build and Push Images on main (auto-dev)
 #
 # What it requires (per environment secrets)
@@ -35,7 +35,7 @@ on:
         required: true
         default: dev
         type: choice
-        options: [dev, val, prod]
+        options: [dev, validation, production]
       build_label:
         description: Build label (default = sha-of-HEAD)
         required: false

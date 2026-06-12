@@ -97,7 +97,10 @@ class PatientGraphClient(_BaseClient):
 
 
 class CodingGraphClient(_BaseClient):
-    """Connects to the Knowledge Graph (KNOWLEDGE_GRAPH_NEO4J_URI). Read-only for app code."""
+    """Connects to the Knowledge Graph (KNOWLEDGE_GRAPH_NEO4J_URI).
+
+    Used for reads and writes by coding, training, and terminology routers.
+    """
 
     def __init__(self) -> None:
         settings = get_settings()

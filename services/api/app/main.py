@@ -112,6 +112,18 @@ def _validate_startup_deps():
             "LEO_LOCAL_DEV_BYPASS must not be enabled outside local environments."
         )
 
+    # Shared knowledge graph: warn when this tier writes to a KG owned by another tier.
+    deploy_env = os.getenv("LEO_DEPLOYMENT_ENVIRONMENT", "").strip()
+    kg_env = os.getenv("KNOWLEDGE_GRAPH_ENVIRONMENT", "").strip()
+    if deploy_env and kg_env and deploy_env != kg_env:
+        logging.getLogger(__name__).warning(
+            "KNOWLEDGE_GRAPH_ENVIRONMENT=%s differs from LEO_DEPLOYMENT_ENVIRONMENT=%s. "
+            "Knowledge graph writes from this tier may affect other environments. "
+            "Apply strict change control for guideline, terminology, and training data.",
+            kg_env,
+            deploy_env,
+        )
+
     # python-jose: required for auth (JWT verification)
     try:
         from jose import jwt  # noqa: F401

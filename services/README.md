@@ -16,6 +16,7 @@ Services started by the script and deployed via GitHub Actions:
 - `model_inference` -> image/app `model-inference`
 - `training_worker` -> image/app `training-worker`
 - `pipeline_worker` -> image/app `pipeline-worker`
+- `research_worker` -> image/app `research-worker`
 - `ui` -> image/app `ui`
 
 ## Trigger all service pipelines
@@ -28,6 +29,7 @@ Services started by the script and deployed via GitHub Actions:
    - `services/model_inference/README.md`
    - `services/training_worker/README.md`
    - `services/pipeline_worker/README.md`
+   - `services/research_worker/README.md`
    - `services/ui/README.md`
 2. Push to `main` to trigger:
    - `CI - Build and Push Images`

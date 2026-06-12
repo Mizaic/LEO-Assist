@@ -165,7 +165,8 @@ The following security-relevant parameters are set per environment in
 | `WIDGET_PUBLIC_HOST`| `leoaiwidgetcdnprod.z33.web.core.windows.net` | `leoaiwidgetcdnval.z33.web.core.windows.net` | `leoaiwidgetcdndev.z33.web.core.windows.net` |
 | `cookieSecure`      | `true`                                      | `true`                                    | `true`                                                     |
 | `sessionTtlHours`   | `24`                                        | `12`                                      | `12`                                                       |
-| `frontendUrl`       | `https://leo-ai-audit.healthcarecopilot.ai` | `https://atlas-val.healthcarecopilot.ai`  | `https://atlas-dev.healthcarecopilot.ai`                   |
+| `frontendUrl`       | `https://leo-ai-audit.healthcarecopilot.ai` | `https://atlas-val.healthcarecopilot.ai`  | `https://leo-ai-audit.healthcarecopilot.ai`              |
+| `knowledgeGraphEnvironment` | `prod` (shared with validation)     | `prod` (shared Aura KG with production)   | `dev` (defaults to `environment`)                          |
 
 ### 4.1  Security Parameter Rules
 

@@ -34,7 +34,17 @@ QUEUES = [
     # Dedicated queue for weekly audit jobs (CTO-002 fix: queue isolation).
     # Audit runs are long-running and must never delay real-time pipeline jobs.
     "audit-jobs",
+    # Referral workflow completion events (see referral_durable_steps.py).
+    "referral-assessments-output",
 ]
+
+REFERRAL_QUEUE_SETTINGS = dict(
+    lock_duration=timedelta(minutes=5),
+    max_delivery_count=10,
+    default_message_time_to_live=timedelta(days=7),
+    dead_lettering_on_message_expiration=True,
+    enable_batched_operations=True,
+)
 
 QUEUE_SETTINGS = dict(
     lock_duration=timedelta(
@@ -47,10 +57,10 @@ QUEUE_SETTINGS = dict(
 )
 
 
-def _apply_settings(props: QueueProperties) -> bool:
+def _apply_settings(props: QueueProperties, settings: dict) -> bool:
     """Update props in place. Returns True if any field changed."""
     changed = False
-    for key, value in QUEUE_SETTINGS.items():
+    for key, value in settings.items():
         if getattr(props, key, None) != value:
             setattr(props, key, value)
             changed = True
@@ -65,16 +75,21 @@ def main():
     print(f"Existing queues: {set(existing) or '(none)'}\n")
 
     for queue_name in QUEUES:
+        settings = (
+            REFERRAL_QUEUE_SETTINGS
+            if queue_name == "referral-assessments-output"
+            else QUEUE_SETTINGS
+        )
         if queue_name in existing:
             props = admin.get_queue(queue_name)
-            changed = _apply_settings(props)
+            changed = _apply_settings(props, settings)
             if changed:
                 admin.update_queue(props)
-                print(f"  [updated] Queue '{queue_name}' — settings applied")
+                print(f"  [updated] Queue '{queue_name}' -- settings applied")
             else:
-                print(f"  [ok]     Queue '{queue_name}' — settings already correct")
+                print(f"  [ok]     Queue '{queue_name}' -- settings already correct")
         else:
-            admin.create_queue(queue_name, **QUEUE_SETTINGS)
+            admin.create_queue(queue_name, **settings)
             print(f"  [new]    Queue '{queue_name}' created with production settings")
 
     print("\nQueue settings summary:")
