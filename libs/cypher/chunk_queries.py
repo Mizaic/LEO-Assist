@@ -85,6 +85,19 @@ ORDER BY r.ordinal ASC
 """
 
 
+GET_CHUNKS_BY_IDS = """
+UNWIND $chunk_ids AS cid
+MATCH (c:Chunk {id: cid})
+RETURN c.id          AS chunk_id,
+       c.text        AS text,
+       c.sha256      AS sha256,
+       c.ordinal     AS ordinal,
+       c.char_start  AS char_start,
+       c.char_end    AS char_end
+ORDER BY c.ordinal ASC
+"""
+
+
 GET_CHUNK_WITH_CODES = """
 MATCH (c:Chunk {id: $chunk_id})
 OPTIONAL MATCH (c)-[d:DOCUMENTS]->(s)

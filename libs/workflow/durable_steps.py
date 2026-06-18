@@ -35,7 +35,9 @@ class StepRequest:
 
     @classmethod
     def from_message(cls, body: dict[str, Any]) -> "StepRequest":
-        context = dict(body.get("context") or {})
+        from libs.pipeline.document_chunk_loader import merge_referral_message_fields
+
+        context = merge_referral_message_fields(body)
         return cls(
             event_type=str(body.get("event_type") or ""),
             run_id=str(body.get("run_id") or context.get("run_id") or ""),
@@ -93,6 +95,9 @@ class StepRequest:
             "completeness_subdomain": self.completeness_subdomain,
             "attempt": 1,
             "context": dict(self.context),
+            "chunk_ids": list(self.context.get("chunk_ids") or []),
+            "document_reference_id": self.context.get("document_reference_id"),
+            "text_segmentation_mode": self.context.get("text_segmentation_mode"),
         }
 
 

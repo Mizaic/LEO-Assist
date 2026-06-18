@@ -42,6 +42,7 @@ class PersistState(TypedDict, total=False):
     relation_changes: list[dict[str, Any]]
     documents_written: int
     training_labels_written: int
+    text_segmentation_mode: str
     errors: list[str]
 
 
@@ -318,12 +319,19 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                         {"sentence_id": sid, "text": fallback_text, "terms": terms}
                     )
 
+                source_label = (
+                    "Chunk"
+                    if str(state.get("text_segmentation_mode") or "")
+                    == "document_chunks"
+                    else "Encounter"
+                )
                 docs_written = write_documents_from_sentences_payload(
                     encounter_id=encounter_id,
                     sentences_payload=sentences_payload,
                     session=session,
                     source="pipeline",
                     run_id=run_id,
+                    source_label=source_label,
                 )
 
                 for e in entities:

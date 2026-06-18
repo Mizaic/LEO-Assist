@@ -24,6 +24,13 @@ from libs.sbar.events import (
     SituationArtifactType,
     SummarisationContext,
 )
+from libs.pipeline.document_chunk_loader import (
+    DOCUMENT_CHUNKS_MODE,
+    is_document_chunks_mode,
+    load_document_chunks_from_neo4j,
+    chunk_ids_from_state,
+    merge_referral_message_fields,
+)
 from libs.workflow.durable_steps import StepRequest, StepResult
 from libs.workflow.pipeline_stage_store import PipelineStageStore
 
@@ -58,7 +65,7 @@ REFERRAL_STEPS: tuple[ReferralStepDefinition, ...] = (
         "extraction",
         "post_processing_requested",
         "durable-ref-post-processing",
-        loads=("Encounter.text",),
+        loads=("Encounter.text", "Chunk.text"),
         persists=("ExtractionResult",),
     ),
     ReferralStepDefinition(
@@ -166,7 +173,7 @@ async def start_referral_durable_workflow(
             "event_type": first.event_type,
             "workflow_id": REFERRAL_WORKFLOW_ID,
             "step_id": first.step_id,
-            "context": body.get("context") or {},
+            "context": merge_referral_message_fields(body),
         }
     )
     client = PatientGraphClient()
@@ -196,7 +203,7 @@ async def handle_referral_durable_message(
         store = PipelineStageStore(client)
         store.ensure_schema()
         store.upsert_run(request, status="running")
-        loaded = _load_step_state(client, store, request, definition)
+        loaded = _load_step_state(client, store, request, definition, body=body)
         store.start_stage(request, loaded)
         _emit(publish_progress, request, "durable_step_started", definition)
         result = await _run_definition(request, definition, loaded)
@@ -227,24 +234,113 @@ async def handle_referral_durable_message(
         client.close()
 
 
+_REFERRAL_HANDOFF_KEYS = (
+    "chunk_ids",
+    "document_reference_id",
+    "text_segmentation_mode",
+    "referral_id",
+    "ubrn",
+)
+
+
+def _referral_handoff_values(
+    body: dict[str, Any] | None,
+    request: StepRequest,
+) -> dict[str, Any]:
+    """Collect handoff fields from message top-level, nested context, and request."""
+    raw_body = body or {}
+    body_context = dict(raw_body.get("context") or {})
+    request_context = dict(request.context or {})
+    handoff: dict[str, Any] = {}
+    for key in _REFERRAL_HANDOFF_KEYS:
+        for value in (
+            raw_body.get(key),
+            body_context.get(key),
+            request_context.get(key),
+        ):
+            if value is not None:
+                handoff[key] = value
+                break
+    return handoff
+
+
+def _apply_referral_handoff_fields(
+    state: dict[str, Any],
+    request: StepRequest,
+    body: dict[str, Any] | None,
+) -> None:
+    """Promote HCCP referral handoff fields onto top-level pipeline state."""
+    handoff = _referral_handoff_values(body, request)
+    state.update(handoff)
+    nested_context = dict((body or {}).get("context") or {})
+    nested_context.update(request.context or {})
+    nested_context.update(handoff)
+    state.update(merge_referral_message_fields({**(body or {}), "context": nested_context}))
+
+
+def _default_source_fields(
+    request: StepRequest,
+    state: dict[str, Any],
+) -> tuple[str, str, str]:
+    text_property = request.source_text_property or "text"
+    if is_document_chunks_mode(state):
+        doc_ref = str(state.get("document_reference_id") or "").strip()
+        return (
+            "Chunk",
+            doc_ref or (request.source_node_id or request.encounter_id),
+            text_property,
+        )
+    return (
+        request.source_node_type or "Encounter",
+        request.source_node_id or request.encounter_id,
+        text_property,
+    )
+
+
+def _load_document_chunks_into_state(
+    client: PatientGraphClient,
+    state: dict[str, Any],
+    request: StepRequest,
+) -> None:
+    chunk_ids = chunk_ids_from_state(state)
+    if not chunk_ids or state.get("sentences"):
+        return
+    loaded = load_document_chunks_from_neo4j(client, chunk_ids)
+    state.update(loaded)
+    if not loaded.get("errors"):
+        return
+    logger.warning(
+        "document_chunks load failed run_id=%s chunk_count=%d errors=%s",
+        request.run_id,
+        len(chunk_ids),
+        loaded.get("errors"),
+    )
+    state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
+
+
 def _load_step_state(
     client: PatientGraphClient,
     store: PipelineStageStore,
     request: StepRequest,
     definition: ReferralStepDefinition,
+    *,
+    body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     state = store.load_accumulated_state(request.run_id)
-    state.update(request.context)
+    _apply_referral_handoff_fields(state, request, body)
     state.update(definition.extra_state)
+    source_type, source_id, source_text_property = _default_source_fields(
+        request, state
+    )
     state.update(
         {
             "patient_id": request.patient_id,
             "encounter_id": request.encounter_id,
             "run_id": request.run_id,
             "plan_definition_id": request.plan_definition_id,
-            "source_node_type": request.source_node_type or "Encounter",
-            "source_node_id": request.source_node_id or request.encounter_id,
-            "source_text_property": request.source_text_property or "text",
+            "source_node_type": source_type,
+            "source_node_id": source_id,
+            "source_text_property": source_text_property,
             "guideline_scope_type": "guideline",
             "guideline_scope_id": request.guideline_id,
             "guideline_id": request.guideline_id,
@@ -253,7 +349,9 @@ def _load_step_state(
             "errors": list(state.get("errors") or []),
         }
     )
-    if not state.get("encounter_text") and request.encounter_id:
+    if is_document_chunks_mode(state):
+        _load_document_chunks_into_state(client, state, request)
+    elif not state.get("encounter_text") and request.encounter_id:
         rows = client.run(
             "MATCH (e:Encounter {id: $encounter_id}) "
             "RETURN coalesce(e.text, '') AS text",
@@ -377,6 +475,40 @@ async def _run_sbar_orchestrator(request: StepRequest) -> dict[str, Any]:
     )
 
     assessment_id = _assessment_id(request.run_id, request.encounter_id)
+    artifacts = [
+        SBARArtifactRef(
+            type=SituationArtifactType.encounter,
+            id=request.encounter_id,
+        ),
+        SBARArtifactRef(
+            type=SituationArtifactType.summarisation_context,
+            context_value=SummarisationContext.two_week_wait,
+        ),
+    ]
+    referral_id = str(request.context.get("referral_id") or "").strip()
+    if referral_id:
+        artifacts.append(
+            SBARArtifactRef(
+                type=SituationArtifactType.referral_request,
+                id=referral_id,
+            )
+        )
+    background = [
+        SBARBackgroundSourceRef(
+            type=BackgroundSourceType.encounter,
+            id=request.encounter_id,
+        )
+    ]
+    document_reference_id = str(
+        request.context.get("document_reference_id") or ""
+    ).strip()
+    if document_reference_id:
+        background.append(
+            SBARBackgroundSourceRef(
+                type=BackgroundSourceType.document_reference,
+                id=document_reference_id,
+            )
+        )
     payload = SBARRequestPayload(
         run_id=f"{request.run_id}:sbar",
         requested_by=request.requested_by,
@@ -387,23 +519,9 @@ async def _run_sbar_orchestrator(request: StepRequest) -> dict[str, Any]:
         guideline_ids=[request.guideline_id] if request.guideline_id else [],
         situation=SBARSituationInput(
             patient_id=request.patient_id,
-            artifacts=[
-                SBARArtifactRef(
-                    type=SituationArtifactType.encounter,
-                    id=request.encounter_id,
-                ),
-                SBARArtifactRef(
-                    type=SituationArtifactType.summarisation_context,
-                    context_value=SummarisationContext.two_week_wait,
-                ),
-            ],
+            artifacts=artifacts,
         ),
-        background=[
-            SBARBackgroundSourceRef(
-                type=BackgroundSourceType.encounter,
-                id=request.encounter_id,
-            )
-        ],
+        background=background,
         upstream_correlation_id=request.run_id,
         source_system="referral-assessment-pipeline",
         extra={"parent_run_id": request.run_id, "workflow_id": request.workflow_id},
