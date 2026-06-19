@@ -128,7 +128,7 @@ def _build_upsert_query(
         match_clause = (
             "MATCH (src:Chunk {id: $source_id}) "
             "OPTIONAL MATCH (src)<-[:HAS_CHUNK]-(:DocumentReference)"
-            "<-[:HAS_DOCUMENT_REFERENCE]-(p:Patient)"
+            "<-[:HAS_DOCUMENT_REFERENCE|HAS_DOCUMENT]-(p)"
         )
 
     return f"""
