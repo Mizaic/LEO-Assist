@@ -15,7 +15,7 @@ import asyncio
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -120,7 +120,7 @@ def orchestrator_with_mocks(monkeypatch):
             "error": None,
         }
 
-    def _fake_evaluate(**_kw):
+    async def _fake_evaluate(**_kw):
         return {
             "matched_rules": [
                 {
@@ -353,7 +353,7 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
         situation_caller=_ok_situation,
         background_caller=_bad_background,
         recommendation_caller=_ok_recommendation,
-        evaluator=lambda **_kw: {"matched_rules": []},
+        evaluator=AsyncMock(return_value={"matched_rules": []}),
     )
     result = asyncio.run(orch.run(_make_payload()))
 
@@ -427,7 +427,7 @@ def test_orchestrator_records_error_when_situation_call_fails(monkeypatch):
         situation_caller=_err_situation,
         background_caller=_ok,
         recommendation_caller=_ok_recommendation,
-        evaluator=lambda **_kw: {"matched_rules": []},
+        evaluator=AsyncMock(return_value={"matched_rules": []}),
     )
     result = asyncio.run(orch.run(_make_payload()))
     assert result.status == "draft"
