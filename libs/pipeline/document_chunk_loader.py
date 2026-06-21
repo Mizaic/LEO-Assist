@@ -29,6 +29,7 @@ def merge_referral_message_fields(body: dict[str, Any]) -> dict[str, Any]:
         "text_segmentation_mode",
         "referral_id",
         "ubrn",
+        "guideline_ids",
     ):
         if key in body and body[key] is not None and key not in context:
             context[key] = body[key]

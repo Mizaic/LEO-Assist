@@ -240,6 +240,7 @@ _REFERRAL_HANDOFF_KEYS = (
     "text_segmentation_mode",
     "referral_id",
     "ubrn",
+    "guideline_ids",
 )
 
 

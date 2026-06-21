@@ -119,6 +119,7 @@ _REFERRAL_EXAMPLE_CATEGORIES = {
     "assertion:hypothetical",
     "assertion:declined",
     "assertion:cancelled",
+    "precision:referral_scope:ers_reason",
 }
 _REFERRAL_EXAMPLE_TERMS = (
     "2ww",

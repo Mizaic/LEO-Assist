@@ -37,14 +37,30 @@ Priority:
 Extract:
 - referral pathway phrases (2WW, fast track referral, urgent suspected cancer referral)
 - referral-relevant findings and symptoms (for example haematuria, rectal bleeding,
-  neck lump, progressive dysphagia)
+  neck lump, progressive dysphagia, loss of appetite, vomiting, weight loss,
+  difficulty swallowing, abdominal pain, fatigue)
 - measurable observables only when a named parameter has a value
 - clinically important findings even when the sentence does not explicitly mention
   referral wording
 
+NHS eRS 2WW form section headers (HIGHEST PRIORITY):
+The following label phrases introduce the referral reason on NHS eRS and
+site-specific 2WW referral forms. They appear as plain text or inside markdown
+table cells (| label: content |). Skip the label phrase itself; extract ALL
+clinical content that follows the colon as findings or procedures:
+- "The reason I am concerned this patient has cancer is:"
+- "The reason for referral is:"
+- "Referral information:"
+- "Referral criteria and clinical information:"
+- "Clinical information:"
+- "Reasons for request:"
+Do not suppress content from these cells as section-heading or admin noise.
+Treat every symptom, sign, investigation result, and finding after the colon
+as a high-priority extraction target.
+
 Do not extract:
 - standalone admin workflow noise (appointment booked, letter sent, reviewed)
-- section headings or template boilerplate
+- the label phrases themselves (section headings or form field labels)
 - values with no labelled clinical parameter
 - bare pathway codes with no clinical meaning beyond admin routing
 
