@@ -127,10 +127,19 @@ REFERRAL_STEPS: tuple[ReferralStepDefinition, ...] = (
         "completeness_requested",
         "durable-ref-completeness",
         "quality_check",
-        "sbar_requested",
-        "durable-ref-sbar",
+        "referral_reason_requested",
+        "durable-ref-referral-reason",
         loads=("DOCUMENTS", "GuidelineResult"),
         persists=("CompletenessResult", "QualityReport"),
+    ),
+    ReferralStepDefinition(
+        "referral_reason_requested",
+        "durable-ref-referral-reason",
+        None,
+        "sbar_requested",
+        "durable-ref-sbar",
+        loads=("CompletenessResult",),
+        persists=("ReferralReason",),
     ),
     ReferralStepDefinition(
         "sbar_requested",
@@ -456,6 +465,8 @@ async def _run_definition(
         if completeness_result:
             assessment_id = _assessment_id(request.run_id, request.encounter_id)
             _persist_completeness_to_assessment(assessment_id, completeness_result)
+    elif definition.event_type == "referral_reason_requested":
+        output = await _run_referral_reason_extraction(request)
     elif definition.subgraph_id:
         graph = get_registry().build(definition.subgraph_id)
         output = await asyncio.to_thread(graph.invoke, loaded)
@@ -468,6 +479,87 @@ async def _run_definition(
         next_event_type=definition.next_event_type,
         next_step_id=definition.next_step_id,
     )
+
+
+_REASON_PATTERNS = [
+    "the reason i am concerned this patient has cancer is",
+    "the reason for referral is",
+    "reason for referral:",
+    "referral information:",
+    "referral criteria and clinical information:",
+    "clinical information:",
+    "reasons for request",
+]
+
+
+async def _run_referral_reason_extraction(request: StepRequest) -> dict[str, Any]:
+    """Search referral chunks for the clinical reason for referral and persist it.
+
+    Uses a Cypher text search against the pipeline's already-known chunk_ids
+    to find NHS eRS section header patterns, then calls a focused LLM prompt
+    to extract a clean 1-2 sentence reason statement. The result is written
+    to ReferralRequest.reason for the SBAR Situation step to consume.
+
+    Best-effort: returns without error on any failure so the pipeline continues.
+    """
+    from libs.cypher.chunk_queries import GET_REASON_CHUNKS_BY_IDS, SET_REFERRAL_REASON
+    from libs.llm_client.json_helper import invoke_llm_json
+    from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
+    from libs.prompts.referral_reason_v1 import REFERRAL_REASON_SYSTEM_V1
+
+    referral_id = str(request.context.get("referral_id") or "").strip()
+    chunk_ids = list(request.context.get("chunk_ids") or [])
+
+    if not referral_id or not chunk_ids:
+        logger.warning(
+            "referral_reason: missing referral_id or chunk_ids run_id=%s, skipping",
+            request.run_id,
+        )
+        return {"referral_reason_skipped": True}
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(
+            GET_REASON_CHUNKS_BY_IDS,
+            chunk_ids=chunk_ids,
+            patterns=_REASON_PATTERNS,
+        )
+    finally:
+        client.close()
+
+    if not rows:
+        logger.info(
+            "referral_reason: no header-matched chunks for referral %s", referral_id
+        )
+        return {"referral_reason_skipped": True}
+
+    candidate_text = " ".join(str(r.get("text") or "") for r in rows)
+    result = await invoke_llm_json(
+        INJECTION_GUARD + REFERRAL_REASON_SYSTEM_V1,
+        sanitise_for_prompt(candidate_text, max_chars=2000),
+        max_tokens=256,
+        agent_task="referral_reason_extraction",
+        patient_id=request.patient_id,
+    )
+
+    reason = str(result.get("reason") or "").strip()
+    if not reason or "error" in result:
+        logger.warning(
+            "referral_reason: LLM extraction failed or empty for referral %s",
+            referral_id,
+        )
+        return {"referral_reason_skipped": True}
+
+    write_client = PatientGraphClient()
+    try:
+        write_client.run(SET_REFERRAL_REASON, referral_id=referral_id, reason=reason)
+    finally:
+        write_client.close()
+
+    logger.info(
+        "referral_reason: wrote reason to ReferralRequest %s", referral_id
+    )
+    return {"referral_reason": reason}
 
 
 async def _run_sbar_orchestrator(request: StepRequest) -> dict[str, Any]:

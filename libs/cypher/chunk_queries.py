@@ -116,6 +116,23 @@ RETURN c.id          AS chunk_id,
 """
 
 
+GET_REASON_CHUNKS_BY_IDS = """
+UNWIND $chunk_ids AS cid
+MATCH (c:Chunk {id: cid})
+WHERE any(pat IN $patterns WHERE toLower(c.text) CONTAINS pat)
+RETURN c.id AS chunk_id, c.text AS text, c.ordinal AS ordinal
+ORDER BY ordinal ASC
+LIMIT 3
+"""
+
+
+SET_REFERRAL_REASON = """
+MATCH (rr:ReferralRequest {id: $referral_id})
+SET rr.reason               = $reason,
+    rr.reason_extracted_at  = datetime()
+"""
+
+
 def upsert_chunk_payload(
     *,
     document_reference_id: str,
