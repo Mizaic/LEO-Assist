@@ -60,7 +60,9 @@ export default function RoleShellProvider({
         initialState={initial}
         onSessionRoleSynced={refetchAuth}
       >
-        <RoleGate enabled={gateEnabled}>{children}</RoleGate>
+        <RoleGate enabled={gateEnabled} autoFetch={gateEnabled}>
+          {children}
+        </RoleGate>
       </RoleProvider>
     </MotionProvider>
   );

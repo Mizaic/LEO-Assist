@@ -12,6 +12,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -117,6 +118,16 @@ export function RoleProvider({
   const [state, setState] = useState<RoleState>(() => _normalizeInitial(initialState));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialState) {
+      setState(_normalizeInitial(initialState));
+    }
+  }, [
+    initialState?.selectedRole,
+    initialState?.needsSessionRoleChoice,
+    initialState?.allowedRoles?.join(","),
+  ]);
 
   const refetch = useCallback(async () => {
     setLoading(true);

@@ -18,9 +18,12 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+
+import { setAuthReauthPolicy } from "@/lib/authReauthPolicy";
 
 function resolveApiBase(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -61,6 +64,40 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+interface RawSessionPayload {
+  user?: { email?: string; name?: string; image?: string } | null;
+  isPlatformAdmin?: boolean;
+  organizations?: unknown;
+  idleTimeoutMinutes?: number;
+  selected_role?: string | null;
+  allowed_roles?: unknown;
+  needs_role_choice?: boolean;
+  density_preference?: string | null;
+}
+
+function _parseSessionPayload(data: RawSessionPayload | null): Session | null {
+  if (!data || data.user == null) return null;
+  const rawDensity = data.density_preference;
+  const density: DensityPreference | null =
+    rawDensity === "compact" ||
+    rawDensity === "comfortable" ||
+    rawDensity === "spacious"
+      ? rawDensity
+      : null;
+  return {
+    user: data.user,
+    isPlatformAdmin: data.isPlatformAdmin ?? false,
+    organizations: Array.isArray(data.organizations) ? data.organizations : [],
+    idleTimeoutMinutes: data.idleTimeoutMinutes ?? 30,
+    selectedRole: data.selected_role ?? null,
+    allowedRoles: Array.isArray(data.allowed_roles)
+      ? (data.allowed_roles as string[])
+      : [],
+    needsRoleChoice: data.needs_role_choice === true,
+    densityPreference: density,
+  };
+}
+
 export function AuthProvider({
   children,
   initialSession = null,
@@ -76,43 +113,44 @@ export function AuthProvider({
   const [status, setStatus] = useState<
     "loading" | "authenticated" | "unauthenticated"
   >(initialSession ? "authenticated" : "loading");
+  const trustedSessionRef = useRef<Session | null>(initialSession);
 
   const fetchSession = useCallback(async () => {
     try {
       // Use the Next.js-proxied path (same origin) so the leo_session cookie is
       // always sent. The rewrite in next.config.mjs forwards this to core-api.
       const res = await fetch(`/auth/session`, { credentials: "include" });
-      const data = res.ok ? await res.json() : null;
-      if (data?.user != null) {
-        const rawDensity = data.density_preference;
-        const density: DensityPreference | null =
-          rawDensity === "compact" ||
-          rawDensity === "comfortable" ||
-          rawDensity === "spacious"
-            ? rawDensity
-            : null;
-        setSession({
-          user: data.user,
-          isPlatformAdmin: data.isPlatformAdmin ?? false,
-          organizations: data.organizations ?? [],
-          idleTimeoutMinutes: data.idleTimeoutMinutes ?? 30,
-          selectedRole: data.selected_role ?? null,
-          allowedRoles: Array.isArray(data.allowed_roles)
-            ? data.allowed_roles
-            : [],
-          needsRoleChoice: data.needs_role_choice === true,
-          densityPreference: density,
-        });
+      const data = res.ok
+        ? ((await res.json()) as RawSessionPayload | null)
+        : null;
+      const parsed = _parseSessionPayload(data);
+      if (parsed) {
+        trustedSessionRef.current = parsed;
+        setSession(parsed);
         setStatus("authenticated");
-      } else {
-        setSession(null);
-        setStatus("unauthenticated");
+        return;
       }
+      if (trustedSessionRef.current) {
+        // SSR or a prior client fetch already proved the cookie; do not flash
+        // unauthenticated when the background refetch is empty or unreachable.
+        return;
+      }
+      setSession(null);
+      setStatus("unauthenticated");
     } catch {
+      if (trustedSessionRef.current) {
+        return;
+      }
       setSession(null);
       setStatus("unauthenticated");
     }
   }, []);
+
+  useEffect(() => {
+    setAuthReauthPolicy({
+      needsRoleChoice: session?.needsRoleChoice === true,
+    });
+  }, [session?.needsRoleChoice]);
 
   // Always re-confirm the session on the client so role / density updates
   // made in another tab become visible. When we already hydrated from the
@@ -133,6 +171,8 @@ export function AuthProvider({
     try {
       await fetch(`/auth/logout`, { method: "POST", credentials: "include" });
     } finally {
+      trustedSessionRef.current = null;
+      setAuthReauthPolicy({ needsRoleChoice: false });
       setSession(null);
       setStatus("unauthenticated");
       if (typeof window !== "undefined") {

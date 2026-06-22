@@ -7,6 +7,7 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import type { OperationOutcome } from '@/lib/types/fhir';
+import { shouldDeferReauth } from '@/lib/authReauthPolicy';
 
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') return window.location.origin;
@@ -21,6 +22,7 @@ let reauthInProgress = false;
 
 export async function triggerReauth(): Promise<void> {
   if (typeof window === 'undefined' || reauthInProgress) return;
+  if (shouldDeferReauth()) return;
   reauthInProgress = true;
   try {
     const next = encodeURIComponent(window.location.pathname || "/care/dashboard");
