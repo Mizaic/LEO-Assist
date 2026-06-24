@@ -78,12 +78,12 @@ SET g.name = b.name,
     g.org_id = coalesce(b.org_id, ''),
     g.entra_tenant_id = coalesce(b.entra_tenant_id, g.entra_tenant_id, ''),
     g.source = 'entra',
-    g.updated_at = datetime()
-ON CREATE SET g.created_at = datetime()
+    g.updated_at = datetime(),
+    g.created_at = coalesce(g.created_at, datetime())
 WITH g, b
 MERGE (role:Role {name: b.role_name})
-ON CREATE SET role.description = b.role_name,
-              role.permissions = []
+SET role.description = coalesce(role.description, b.role_name),
+    role.permissions  = coalesce(role.permissions, [])
 MERGE (g)-[gr:GRANTS_ROLE]->(role)
 SET gr.org_id = coalesce(b.org_id, '')
 RETURN g.entra_object_id AS entra_object_id,
