@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import { loadPlaywrightEnv } from "./e2e/helpers/validation-env";
+
+loadPlaywrightEnv();
 
 // LEO widget SDK Playwright config.
 //

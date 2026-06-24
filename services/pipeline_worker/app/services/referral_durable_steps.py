@@ -320,11 +320,17 @@ def _age_years_from_str(birth_date: str) -> float | None:
         return None
 
 
+def _count_completeness_failures(completeness_result: dict[str, Any]) -> int:
+    """Count required fields absent from the completeness result."""
+    missing = completeness_result.get("missing_groups") or []
+    return sum(1 for g in missing if g.get("required"))
+
+
 def _persist_completeness_to_assessment(
     assessment_id: str,
     completeness_result: dict[str, Any],
 ) -> None:
-    """Write completeness_result JSON to the :Assessment node.
+    """Write completeness_result JSON and failed count to the :Assessment node.
 
     Called after the SBAR step so the SDK endpoint can return it
     to the widget, which renders the completeness panel.
@@ -335,6 +341,7 @@ def _persist_completeness_to_assessment(
             SET_ASSESSMENT_COMPLETENESS,
             assessment_id=assessment_id,
             completeness_result_json=json.dumps(completeness_result),
+            completeness_failed_count=_count_completeness_failures(completeness_result),
         )
     except Exception as exc:
         logger.warning(

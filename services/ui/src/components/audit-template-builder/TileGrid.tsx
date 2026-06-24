@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { GridLayout, type Layout, type LayoutItem } from "react-grid-layout";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -18,6 +19,7 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import TimelineIcon from "@mui/icons-material/Timeline";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import { type AuditTile, type TileType } from "@/lib/auditTemplateApi";
 
 const TILE_ICONS: Record<TileType, React.ElementType> = {
@@ -35,6 +37,7 @@ interface TileGridProps {
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onLayoutChange: (tiles: AuditTile[]) => void;
+  onOpenAssistant?: () => void;
 }
 
 function tileToLayoutItem(t: AuditTile): LayoutItem {
@@ -48,6 +51,7 @@ export default function TileGrid({
   onSelect,
   onRemove,
   onLayoutChange,
+  onOpenAssistant,
 }: TileGridProps) {
   const layout: LayoutItem[] = useMemo(() => tiles.map(tileToLayoutItem), [tiles]);
 
@@ -65,15 +69,31 @@ export default function TileGrid({
         sx={{
           height: "100%",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          gap: 2,
           border: "2px dashed",
           borderColor: "divider",
           borderRadius: 2,
           color: "text.disabled",
+          p: 4,
         }}
       >
-        <Typography variant="body2">Add metrics from the left panel</Typography>
+        <Typography variant="body2" textAlign="center">
+          No tiles yet. Add from the library on the left, or click{" "}
+          <strong>AI</strong> to describe the dashboard you need.
+        </Typography>
+        {onOpenAssistant && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<AutoAwesomeOutlinedIcon />}
+            onClick={onOpenAssistant}
+          >
+            AI
+          </Button>
+        )}
       </Box>
     );
   }

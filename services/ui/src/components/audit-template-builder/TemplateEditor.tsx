@@ -17,6 +17,9 @@ import Divider from "@mui/material/Divider";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import PublishOutlinedIcon from "@mui/icons-material/PublishOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import {
   createTemplate,
   updateTemplate,
@@ -24,10 +27,13 @@ import {
   type AuditTile,
   type MetricCatalogueEntry,
 } from "@/lib/auditTemplateApi";
+import { useOrg } from "@/context/OrgContext";
 import MetricPicker from "./MetricPicker";
 import TileGrid from "./TileGrid";
 import TileConfigPanel from "./TileConfigPanel";
 import PublishDialog from "./PublishDialog";
+import PreviewPanel from "./PreviewPanel";
+import AuditDraftAssistant from "./AuditDraftAssistant";
 
 interface TemplateEditorProps {
   initial?: AuditTemplate;
@@ -47,6 +53,7 @@ function newTile(metric: MetricCatalogueEntry, index: number): AuditTile {
 
 export default function TemplateEditor({ initial }: TemplateEditorProps) {
   const router = useRouter();
+  const { organizations } = useOrg();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [tiles, setTiles] = useState<AuditTile[]>(initial?.tiles ?? []);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -54,6 +61,16 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | undefined>(initial?.template_id);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [previewOrgId, setPreviewOrgId] = useState<string>("");
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
+  // Default to first available org when orgs load in.
+  useEffect(() => {
+    if (!previewOrgId && organizations.length > 0) {
+      setPreviewOrgId(organizations[0].id);
+    }
+  }, [organizations, previewOrgId]);
 
   const usedMetricIds = useMemo(() => new Set(tiles.map((t) => t.metric_id)), [tiles]);
 
@@ -74,6 +91,30 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
   const handleTileChange = useCallback((updated: AuditTile) => {
     setTiles((prev) => prev.map((t) => (t.tile_id === updated.tile_id ? updated : t)));
   }, []);
+
+  const handleAddTileFromAI = useCallback(
+    (
+      metric_id: string,
+      label: string,
+      tile_type: string,
+      _section?: string,
+    ) => {
+      setTiles((prev) => {
+        const index = prev.length;
+        const col = (index % 3) * 4;
+        const newTileEntry: AuditTile = {
+          tile_id: `tile-ai-${Date.now()}-${index}`,
+          label,
+          tile_type: tile_type as AuditTile["tile_type"],
+          metric_id,
+          param_overrides: {},
+          layout: { x: col, y: Math.floor(index / 3) * 3, w: 4, h: 3 },
+        };
+        return [...prev, newTileEntry];
+      });
+    },
+    [],
+  );
 
   const handleSave = async () => {
     if (!title.trim()) return;
@@ -130,6 +171,16 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
           </Alert>
         )}
         <Button
+          variant={previewMode ? "outlined" : "text"}
+          size="small"
+          color={previewMode ? "primary" : "inherit"}
+          startIcon={previewMode ? <EditOutlinedIcon /> : <VisibilityOutlinedIcon />}
+          onClick={() => setPreviewMode((m) => !m)}
+        >
+          {previewMode ? "Edit" : "Preview"}
+        </Button>
+        <Divider orientation="vertical" flexItem />
+        <Button
           variant="outlined"
           size="small"
           startIcon={saving ? <CircularProgress size={14} /> : <SaveOutlinedIcon />}
@@ -147,49 +198,73 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
         >
           Publish
         </Button>
+        <Divider orientation="vertical" flexItem />
+        <Button
+          variant={assistantOpen ? "outlined" : "text"}
+          size="small"
+          color={assistantOpen ? "primary" : "inherit"}
+          startIcon={<AutoAwesomeOutlinedIcon />}
+          onClick={() => setAssistantOpen((o) => !o)}
+        >
+          AI
+        </Button>
       </Box>
 
-      {/* Main layout: picker | grid | config */}
+      {/* Main layout: preview OR picker | grid | config */}
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Metric picker */}
-        <Box
-          sx={{
-            width: 260,
-            flexShrink: 0,
-            borderRight: "1px solid",
-            borderColor: "divider",
-            p: 1.5,
-            overflowY: "auto",
-          }}
-        >
-          <MetricPicker onAdd={handleAddMetric} usedMetricIds={usedMetricIds} />
-        </Box>
-
-        {/* Tile grid */}
-        <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
-          <TileGrid
+        {previewMode ? (
+          <PreviewPanel
             tiles={tiles}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onRemove={handleRemoveTile}
-            onLayoutChange={setTiles}
+            title={title}
+            savedId={savedId}
+            organizations={organizations}
+            previewOrgId={previewOrgId}
+            onOrgChange={setPreviewOrgId}
           />
-        </Box>
+        ) : (
+          <>
+            {/* Metric picker */}
+            <Box
+              sx={{
+                width: 260,
+                flexShrink: 0,
+                borderRight: "1px solid",
+                borderColor: "divider",
+                p: 1.5,
+                overflowY: "auto",
+              }}
+            >
+              <MetricPicker onAdd={handleAddMetric} usedMetricIds={usedMetricIds} />
+            </Box>
 
-        {/* Tile config */}
-        {selectedTile && (
-          <Box
-            sx={{
-              width: 240,
-              flexShrink: 0,
-              borderLeft: "1px solid",
-              borderColor: "divider",
-              p: 1.5,
-              overflowY: "auto",
-            }}
-          >
-            <TileConfigPanel tile={selectedTile} onChange={handleTileChange} />
-          </Box>
+            {/* Tile grid */}
+            <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
+              <TileGrid
+                tiles={tiles}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+                onRemove={handleRemoveTile}
+                onLayoutChange={setTiles}
+                onOpenAssistant={() => setAssistantOpen(true)}
+              />
+            </Box>
+
+            {/* Tile config */}
+            {selectedTile && (
+              <Box
+                sx={{
+                  width: 240,
+                  flexShrink: 0,
+                  borderLeft: "1px solid",
+                  borderColor: "divider",
+                  p: 1.5,
+                  overflowY: "auto",
+                }}
+              >
+                <TileConfigPanel tile={selectedTile} onChange={handleTileChange} />
+              </Box>
+            )}
+          </>
         )}
       </Box>
 
@@ -202,6 +277,13 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
           onPublished={() => router.push("/admin/audit-templates")}
         />
       )}
+
+      <AuditDraftAssistant
+        open={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        tiles={tiles.map((t) => ({ metric_id: t.metric_id, label: t.label }))}
+        onAddTile={handleAddTileFromAI}
+      />
     </Box>
   );
 }

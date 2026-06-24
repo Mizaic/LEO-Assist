@@ -105,14 +105,12 @@ RETURN a
 """
 
 _GET_ACTIVE_TEMPLATE = """
-OPTIONAL MATCH (a:AuditTemplateAssignment {scope_type: 'org', scope_id: $org_id})
-WITH a
-OPTIONAL MATCH (t:AuditTemplate {template_id: coalesce(a.template_id, '__default__')})
-WITH a, t
-OPTIONAL MATCH (default_t:AuditTemplate {template_id: '__default__'})
-RETURN
-  CASE WHEN t IS NOT NULL THEN t ELSE default_t END AS t,
-  CASE WHEN a IS NOT NULL THEN true ELSE false END AS has_assignment
+OPTIONAL MATCH (org_a:AuditTemplateAssignment {scope_type: 'org', scope_id: $org_id})
+OPTIONAL MATCH (global_a:AuditTemplateAssignment {scope_type: 'global', scope_id: '__global__'})
+WITH coalesce(org_a, global_a) AS a
+OPTIONAL MATCH (t:AuditTemplate {template_id: a.template_id})
+WHERE t.status <> 'archived'
+RETURN t, a IS NOT NULL AS has_assignment
 """
 
 _NCDA_DEFAULT_TEMPLATE_ID = "ncda-default-v1"

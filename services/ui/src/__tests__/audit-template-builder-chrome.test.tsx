@@ -53,13 +53,18 @@ describe("VT-32FBAA69 audit template builder - static-source", () => {
   });
 
   // DI-64CA7740 AC2 / DO-A9863AB6 AC3
-  test("AC3 - PublishDialog shows template title and org input before confirming", () => {
+  test("AC3 - PublishDialog shows template title and org selector before confirming", () => {
     const src = read(PUBLISH_DIALOG);
     expect(src).toContain("templateTitle");
-    expect(src).toContain("Organisation ID");
+    // Multi-org Autocomplete replaced the raw text field
+    expect(src).toContain("Select organisations");
+    expect(src).toContain("Autocomplete");
     expect(src).toContain("publishTemplate");
     expect(src).toContain("scope_type");
     expect(src).toContain("scope_id");
+    // Platform admins see a global toggle
+    expect(src).toContain("Publish to all organisations");
+    expect(src).toContain("isPlatformAdmin");
   });
 
   // DI-64CA7740 AC1

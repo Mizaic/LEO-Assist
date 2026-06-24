@@ -83,6 +83,18 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, "__all__");
   }, [isPlatformAdmin, organizations.length]);
 
+  useEffect(() => {
+    if (isPlatformAdmin || !viewAll || organizations.length === 0) return;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const match = stored
+      ? organizations.find((o) => o.id === stored)
+      : null;
+    const nextOrgId = match?.id ?? organizations[0].id;
+    setViewAll(false);
+    setSelectedOrgId(nextOrgId);
+    localStorage.setItem(STORAGE_KEY, nextOrgId);
+  }, [isPlatformAdmin, organizations, viewAll]);
+
   const switchOrg = useCallback(
     (orgId: string) => {
       if (orgId === "__all__") {

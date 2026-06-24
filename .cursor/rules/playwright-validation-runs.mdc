@@ -1,0 +1,50 @@
+---
+description: Playwright validation tests must record Atlas execution runs and step evidence through the REST API
+globs: services/ui/e2e/**/*.ts,services/widget-sdk/e2e/**/*.ts,services/ui/playwright.config.ts,services/widget-sdk/playwright.config.ts
+alwaysApply: false
+---
+
+# Playwright Validation Runs
+
+When creating or editing Playwright validation tests:
+
+1. Use the Atlas validation execution REST API. Do not use MCP from Playwright.
+2. Wrap each VAL in `runValTest()` from `validation-spec-runner.ts`. Do not hand-roll try/catch/finally unless extending the runner.
+3. Create one validation run before the protocol starts, then complete it on pass, fail, blocked, or not applicable.
+4. Never leave a run in `running`. `runValTest()` calls `ensureRunNotLeftRunning()` in `finally`.
+5. Use zero-based API `step_index`: protocol step 1 is `0`, step 2 is `1`.
+6. Use user-facing text with one-based step numbers in summaries and failure messages.
+7. Before implementation, review the LEO source for routes, visible labels, permissions, stable test ids, and current component structure. Do not rely only on Atlas VAL wording.
+8. Navigate through the UI to the feature start point. Do not jump to internal URLs unless the VAL is for deep-link behaviour.
+9. Record each protocol step with `recordProtocolStep()` (wraps `recordStep()` and `uploadEvidence()`).
+10. Upload evidence as multipart form data. Do not base64 encode screenshots in Playwright.
+11. Use `failureReason` in TypeScript and convert to `failure_reason` only in the HTTP payload.
+12. Read configuration from environment variables:
+   - `ATLAS_VALIDATION_RUNS_BASE_URL`
+   - `ATLAS_ORGANIZATION_ID`
+   - `QMS_SERVICE_TOKEN`
+13. Keep Atlas VAL and UN provenance in Playwright tags or annotations.
+14. Treat sign-in and navigation as setup when they are only preconditions for the VAL. Do not record login screenshots as protocol evidence unless the VAL validates login.
+15. Evidence screenshots should show the specific outcome of the step. Wait for the relevant destination marker, heading, control, table row, or module content to be visible and settled before capture.
+16. VAL specs skip when Atlas env is missing (CI-safe). Use `npm run e2e:val` locally with `services/ui/.env.local` populated.
+
+Preferred helper API:
+
+```ts
+runValTest(page, request, testInfo, { valId, targetUrl, metadata, protocol, body })
+recordProtocolStep({ request, runId, valId, page, testInfo, protocol, stepIndex, notes })
+finishValPass(request, runId, summary)
+blockRun(request, runId, step, reason)
+failAndComplete(request, runId, error, failingStepIndex)
+ensureRunNotLeftRunning(request, runId, lastCompletedStep)
+```
+
+Standard test flow:
+
+```text
+runValTest -> setup/stubs -> protocol steps + distinct evidence -> finishValPass
+```
+
+Do not commit service tokens, passwords, screenshots, reports, or generated evidence artifacts.
+
+Product ID for LEO Clinical Decision Support: `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`.

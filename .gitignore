@@ -291,6 +291,7 @@ nmslib_index.bin
 # Playwright
 e2e/.auth/
 playwright-report/
+evidence-artifacts/
 test-results/
 
 # ============================================================

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { OrgProvider, useOrg, useOrgId } from "../OrgContext";
 
@@ -122,6 +122,23 @@ describe("OrgContext", () => {
       expect(screen.getByTestId("current").textContent).toBe("Practice B");
       expect(screen.getByTestId("org-id").textContent).toBe("org-2");
       expect(screen.getByTestId("view-all").textContent).toBe("false");
+    });
+
+    it("clears persisted all-organisations mode for standard users", async () => {
+      localStore["leo_selected_org"] = "__all__";
+
+      render(
+        <OrgProvider>
+          <OrgDisplay />
+        </OrgProvider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("current").textContent).toBe("Practice B");
+      });
+      expect(screen.getByTestId("org-id").textContent).toBe("org-2");
+      expect(screen.getByTestId("view-all").textContent).toBe("false");
+      expect(localStore["leo_selected_org"]).toBe("org-2");
     });
   });
 

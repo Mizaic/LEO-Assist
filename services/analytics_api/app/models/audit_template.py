@@ -102,7 +102,7 @@ class AuditTemplate(BaseModel):
 
 class TemplateAssignmentCreate(BaseModel):
     template_id: str
-    scope_type: Literal["org", "group"]
+    scope_type: Literal["org", "group", "global"]
     scope_id: str
 
 
@@ -110,7 +110,7 @@ class TemplateAssignment(BaseModel):
     assignment_id: str
     template_id: str
     version: int
-    scope_type: Literal["org", "group"]
+    scope_type: Literal["org", "group", "global"]
     scope_id: str
     published_at: datetime
     published_by: str

@@ -142,7 +142,7 @@ export interface UpdateTemplatePayload {
 
 export interface PublishTemplatePayload {
   template_id: string;
-  scope_type: "org" | "group";
+  scope_type: "org" | "group" | "global";
   scope_id: string;
 }
 

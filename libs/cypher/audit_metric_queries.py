@@ -5,471 +5,52 @@ Atlas trace:
   DI: DI-64CA7740
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-3775670C")
 
-Each metric is a dict with:
-  - metric_id:     stable identifier used by AuditTile.metric_id
-  - title:         human-readable name shown in the builder
-  - description:   plain-English description (shown in metric picker)
-  - cypher:        the query; always receives $scope_org_ids from the server
-  - param_schema:  dict of caller-configurable params (JSON Schema subset)
-  - output_schema: list of column defs returned by the query
+Public API
+----------
+  METRIC_REGISTRY  -- combined list of all 32 metrics
+  get_metric(id)   -- single metric lookup (includes cypher)
+  get_catalogue()  -- public catalogue (cypher excluded)
 
-Security contract
------------------
-All queries receive $scope_org_ids injected server-side from the authenticated
-CallerScope. The org-scope EXISTS { } guard is embedded in every query so no
-cross-tenant data can be returned regardless of caller-supplied params.
-Callers supply only params declared in param_schema. The run endpoint validates
-params against param_schema before execution and rejects unknown keys.
+  _ORG_GUARD       -- shared tenant guard fragment (back-compat alias)
+  _EPISODE_ACTIVE  -- shared episode filter fragment (back-compat alias)
+
+Metrics are defined in two internal submodules:
+  _audit_metrics_core.py     -- 14 original metrics
+  _audit_metrics_extended.py -- 18 Phase-2 metrics (tiers A-E)
 
 Adding a new metric
 -------------------
-Append to METRIC_REGISTRY. The GET /audit-metrics endpoint returns the
-catalogue automatically. Never expose the cypher field to the client.
+Append to the appropriate sub-module. The GET /audit-metrics endpoint
+returns the catalogue automatically. Never expose the cypher field to
+the client.
+
+Security contract
+-----------------
+All queries receive $scope_org_ids injected server-side from the
+authenticated CallerScope. The ORG_GUARD EXISTS sub-query is embedded
+in every query so no cross-tenant data can be returned regardless of
+caller-supplied params.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-# ---------------------------------------------------------------------------
-# Shared fragments
-# ---------------------------------------------------------------------------
-
-# Tenant guard: restricts patients to orgs in the caller's scope.
-# Injected into the WHERE clause of every query.
-# Uses the same HAS_GENERAL_PRACTITIONER -> org pattern as ORG_PATIENT_FILTER.
-#
-# Empty-list bypass: when $scope_org_ids is [] (platform admin scope),
-# size([]) = 0 short-circuits to true so all patients are visible.
-# Non-admin callers always have at least one org ID, so the EXISTS
-# guard enforces tenant isolation as normal.
-_ORG_GUARD = (
-    "(size($scope_org_ids) = 0 OR EXISTS { "
-    "MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(_gp) "
-    "WHERE _gp.id IN $scope_org_ids "
-    "})"
-)
-
-# Episode status filter: exclude phantom/merged/related-closed episodes.
-_EPISODE_ACTIVE = (
-    "NOT ep.status IN ['merged', 'closed_phantom', 'closed_related']"
-)
+from libs.cypher._audit_metrics_core import CORE_METRICS, EPISODE_ACTIVE, ORG_GUARD
+from libs.cypher._audit_metrics_extended import EXTENDED_METRICS
 
 # ---------------------------------------------------------------------------
-# Metric registry
+# Back-compat aliases used by tests and other modules
 # ---------------------------------------------------------------------------
 
-METRIC_REGISTRY: list[dict[str, Any]] = [
-    {
-        "metric_id": "patient_count",
-        "title": "Patient count",
-        "description": (
-            "Total number of patients with at least one episode in the date range."
-        ),
-        "output_type": "kpi_strip",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-            "condition_type": {"type": "string", "required": False},
-        },
-        "output_schema": [{"name": "count", "type": "integer"}],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "AND ($condition_type IS NULL OR ep.condition_type = $condition_type) "
-            "AND " + _EPISODE_ACTIVE + " "
-            "RETURN count(DISTINCT p.id) AS count"
-        ),
-    },
-    {
-        "metric_id": "episode_count_by_status",
-        "title": "Episodes by status",
-        "description": "Number of episodes grouped by their current status.",
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "status", "type": "string"},
-            {"name": "count", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "RETURN coalesce(ep.status, 'unknown') AS status, "
-            "count(ep) AS count "
-            "ORDER BY count DESC"
-        ),
-    },
-    {
-        "metric_id": "episode_count_by_condition",
-        "title": "Episodes by condition type",
-        "description": (
-            "Number of episodes grouped by condition or suspected site type."
-        ),
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "condition_type", "type": "string"},
-            {"name": "count", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "AND " + _EPISODE_ACTIVE + " "
-            "RETURN coalesce(ep.condition_type, 'unspecified') AS condition_type, "
-            "count(ep) AS count "
-            "ORDER BY count DESC"
-        ),
-    },
-    {
-        "metric_id": "referral_route_distribution",
-        "title": "Referral route distribution",
-        "description": (
-            "How patients were referred (e.g. 2-week wait, urgent, routine), "
-            "as count and percentage."
-        ),
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "referral_route", "type": "string"},
-            {"name": "n", "type": "integer"},
-            {"name": "pct", "type": "float"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ep.referral_date IS NOT NULL "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "AND " + _EPISODE_ACTIVE + " "
-            "WITH coalesce(ep.referral_route, 'unknown') AS referral_route, "
-            "count(ep) AS n "
-            "WITH collect({route: referral_route, n: n}) AS rows, "
-            "sum(n) AS total "
-            "UNWIND rows AS row "
-            "RETURN row.route AS referral_route, row.n AS n, "
-            "round(100.0 * row.n / total, 1) AS pct "
-            "ORDER BY n DESC"
-        ),
-    },
-    {
-        "metric_id": "referral_site_distribution",
-        "title": "Suspected site at referral",
-        "description": (
-            "Distribution of the suspected cancer or care site recorded at "
-            "the time of referral."
-        ),
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "referral_site", "type": "string"},
-            {"name": "count", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ep.referral_site IS NOT NULL "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "AND " + _EPISODE_ACTIVE + " "
-            "RETURN coalesce(ep.referral_site, 'unknown') AS referral_site, "
-            "count(ep) AS count "
-            "ORDER BY count DESC"
-        ),
-    },
-    {
-        "metric_id": "place_of_presentation",
-        "title": "Place of first presentation",
-        "description": (
-            "Where patients first presented before referral "
-            "(e.g. GP, A&E, self-referral)."
-        ),
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "place", "type": "string"},
-            {"name": "count", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "AND " + _EPISODE_ACTIVE + " "
-            "RETURN coalesce(ep.place_of_presentation, 'unknown') AS place, "
-            "count(ep) AS count "
-            "ORDER BY count DESC"
-        ),
-    },
-    {
-        "metric_id": "primary_care_interval",
-        "title": "Primary care interval",
-        "description": (
-            "Number of days from first presentation to referral, "
-            "for each episode in the date range."
-        ),
-        "output_type": "interval_plot",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-            "condition_type": {"type": "string", "required": False},
-        },
-        "output_schema": [
-            {"name": "episode_id", "type": "string"},
-            {"name": "interval_days", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ep.first_presentation_date IS NOT NULL "
-            "AND ep.referral_date IS NOT NULL "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "AND ($condition_type IS NULL OR ep.condition_type = $condition_type) "
-            "AND " + _EPISODE_ACTIVE + " "
-            "RETURN ep.episode_id AS episode_id, "
-            "duration.between(date(ep.first_presentation_date), "
-            "date(ep.referral_date)).days AS interval_days "
-            "ORDER BY interval_days"
-        ),
-    },
-    {
-        "metric_id": "diagnostic_interval",
-        "title": "Diagnostic interval",
-        "description": (
-            "Number of days from referral to diagnosis, "
-            "for each episode in the date range."
-        ),
-        "output_type": "interval_plot",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-            "condition_type": {"type": "string", "required": False},
-        },
-        "output_schema": [
-            {"name": "episode_id", "type": "string"},
-            {"name": "interval_days", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ep.referral_date IS NOT NULL "
-            "AND ep.diagnosis_date IS NOT NULL "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "AND ($condition_type IS NULL OR ep.condition_type = $condition_type) "
-            "AND " + _EPISODE_ACTIVE + " "
-            "RETURN ep.episode_id AS episode_id, "
-            "duration.between(date(ep.referral_date), "
-            "date(ep.diagnosis_date)).days AS interval_days "
-            "ORDER BY interval_days"
-        ),
-    },
-    {
-        "metric_id": "episodes_over_time",
-        "title": "Episodes over time",
-        "description": "Number of new episodes opened per month or quarter.",
-        "output_type": "line_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-            "granularity": {
-                "type": "string",
-                "enum": ["month", "quarter"],
-                "required": False,
-                "default": "month",
-            },
-        },
-        "output_schema": [
-            {"name": "period", "type": "string"},
-            {"name": "count", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ep.referral_date IS NOT NULL "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "WITH ep, "
-            "CASE WHEN $granularity = 'quarter' "
-            "  THEN toString(date(ep.referral_date).year) + '-Q' + "
-            "       toString(((date(ep.referral_date).month - 1) / 3) + 1) "
-            "  ELSE substring(toString(ep.referral_date), 0, 7) "
-            "END AS period "
-            "RETURN period, count(ep) AS count "
-            "ORDER BY period"
-        ),
-    },
-    {
-        "metric_id": "coding_completeness",
-        "title": "Coding completeness",
-        "description": (
-            "Percentage of encounters that have at least one coded finding."
-        ),
-        "output_type": "kpi_strip",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "coded_count", "type": "integer"},
-            {"name": "total_count", "type": "integer"},
-            {"name": "pct", "type": "float"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ($date_from IS NULL OR toString(e.date) >= $date_from) "
-            "AND ($date_to IS NULL OR toString(e.date) <= $date_to) "
-            "OPTIONAL MATCH (e)-[doc:DOCUMENTS]->() "
-            "WITH e, count(doc) AS doc_count "
-            "RETURN count(e) AS total_count, "
-            "count(CASE WHEN doc_count > 0 THEN 1 END) AS coded_count, "
-            "round(100.0 * count(CASE WHEN doc_count > 0 THEN 1 END) / "
-            "CASE WHEN count(e) = 0 THEN 1 ELSE count(e) END, 1) AS pct"
-        ),
-    },
-    {
-        "metric_id": "top_coded_conditions",
-        "title": "Most common coded conditions",
-        "description": (
-            "The most frequently coded SNOMED disorders across all encounters."
-        ),
-        "output_type": "table",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-            "limit": {
-                "type": "integer",
-                "minimum": 5,
-                "maximum": 50,
-                "required": False,
-                "default": 20,
-            },
-        },
-        "output_schema": [
-            {"name": "concept_id", "type": "string"},
-            {"name": "term", "type": "string"},
-            {"name": "n", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter)"
-            "-[:DOCUMENTS]->(c) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ($date_from IS NULL OR toString(e.date) >= $date_from) "
-            "AND ($date_to IS NULL OR toString(e.date) <= $date_to) "
-            "RETURN coalesce(c.id, 'unknown') AS concept_id, "
-            "coalesce(c.fsn, c.term, 'unknown') AS term, "
-            "count(*) AS n "
-            "ORDER BY n DESC "
-            "LIMIT $limit"
-        ),
-    },
-    {
-        "metric_id": "safety_net_alerts_by_type",
-        "title": "Safety netting alerts by type",
-        "description": (
-            "Count of safety netting alerts grouped by alert type."
-        ),
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "alert_type", "type": "string"},
-            {"name": "count", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ($date_from IS NULL OR toString(a.created_at) >= $date_from) "
-            "AND ($date_to IS NULL OR toString(a.created_at) <= $date_to) "
-            "RETURN coalesce(a.alert_type, 'unknown') AS alert_type, "
-            "count(a) AS count "
-            "ORDER BY count DESC"
-        ),
-    },
-    {
-        "metric_id": "cancer_type_distribution",
-        "title": "Cancer type distribution",
-        "description": (
-            "Distribution of confirmed cancer types across completed episodes, "
-            "with optional benchmark overlay."
-        ),
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "cancer_type", "type": "string"},
-            {"name": "n", "type": "integer"},
-            {"name": "pct", "type": "float"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ep.cancer_type IS NOT NULL "
-            "AND ep.inferred_outcome = 'cancer' "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "WITH ep.cancer_type AS cancer_type, count(ep) AS n "
-            "WITH collect({ct: cancer_type, n: n}) AS rows, sum(n) AS total "
-            "UNWIND rows AS row "
-            "RETURN row.ct AS cancer_type, row.n AS n, "
-            "round(100.0 * row.n / total, 1) AS pct "
-            "ORDER BY n DESC"
-        ),
-    },
-    {
-        "metric_id": "cancer_stage_distribution",
-        "title": "Cancer stage at diagnosis",
-        "description": (
-            "Distribution of cancer stage at the point of diagnosis "
-            "across completed episodes."
-        ),
-        "output_type": "bar_chart",
-        "param_schema": {
-            "date_from": {"type": "string", "format": "date", "required": False},
-            "date_to": {"type": "string", "format": "date", "required": False},
-        },
-        "output_schema": [
-            {"name": "stage", "type": "string"},
-            {"name": "count", "type": "integer"},
-        ],
-        "cypher": (
-            "MATCH (p:Patient)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-            "WHERE " + _ORG_GUARD + " "
-            "AND ep.inferred_outcome = 'cancer' "
-            "AND ($date_from IS NULL OR ep.referral_date >= $date_from) "
-            "AND ($date_to IS NULL OR ep.referral_date <= $date_to) "
-            "RETURN coalesce(ep.stage_at_diagnosis, 'unknown') AS stage, "
-            "count(ep) AS count "
-            "ORDER BY stage"
-        ),
-    },
-]
+_ORG_GUARD = ORG_GUARD
+_EPISODE_ACTIVE = EPISODE_ACTIVE
+
+# ---------------------------------------------------------------------------
+# Combined registry
+# ---------------------------------------------------------------------------
+
+METRIC_REGISTRY: list[dict[str, Any]] = CORE_METRICS + EXTENDED_METRICS
 
 # ---------------------------------------------------------------------------
 # Lookup helpers
