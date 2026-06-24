@@ -24,10 +24,8 @@ import Typography from '@mui/material/Typography';
 import SearchOutlined from '@mui/icons-material/SearchOutlined';
 import CloseOutlined from '@mui/icons-material/CloseOutlined';
 import { useEditorStore } from '@/stores/editorStore';
-import type { LayoutElement, MeasureElement } from '@/lib/types/layout';
-import type { Measure } from '@/lib/types/fhir';
+import type { LayoutElement } from '@/lib/types/layout';
 import type { AgentInterpretation, AgentModelSize } from './agentTypes';
-import { MeasurePickerDialog } from '@/components/measures/MeasurePickerDialog';
 import {
   formatValue,
   formatInsight,
@@ -35,52 +33,6 @@ import {
   formatRecommendation,
   type PendingDrop,
 } from './reportEditorHelpers';
-
-// ── Measure picker wrapper ───────────────────────────────────────────────────
-
-interface MeasurePickerWrapperProps {
-  open: boolean;
-  measures: Measure[];
-  pendingDrop: PendingDrop | null;
-  onClose: () => void;
-  setPendingDrop: (v: PendingDrop | null) => void;
-}
-
-export function MeasurePickerWrapper({
-  open,
-  measures,
-  pendingDrop,
-  onClose,
-  setPendingDrop,
-}: MeasurePickerWrapperProps) {
-  const addElement = useEditorStore((s) => s.addElement);
-
-  return (
-    <MeasurePickerDialog
-      open={open}
-      onClose={() => {
-        onClose();
-        setPendingDrop(null);
-      }}
-      onSelect={(measureId) => {
-        if (!pendingDrop) return;
-        addElement(pendingDrop.pageId, {
-          type: 'measure',
-          x: pendingDrop.x,
-          y: pendingDrop.y,
-          w: pendingDrop.w,
-          h: pendingDrop.h,
-          measureId: `Measure/${measureId}`,
-          displayMode: 'bar',
-          showTitle: true,
-          showScore: true,
-        } as Omit<MeasureElement, 'id'>);
-        setPendingDrop(null);
-      }}
-      measures={measures}
-    />
-  );
-}
 
 // ── Agent interpretation dialog ──────────────────────────────────────────────
 
@@ -165,7 +117,6 @@ function SummarySection({ title, items, formatter, keyPrefix }: SummarySectionPr
 
 interface InterpretationLinkDialogProps {
   open: boolean;
-  measures: Measure[];
   pendingDrop: PendingDrop | null;
   selectedLinks: string[];
   searchQuery: string;
@@ -177,7 +128,7 @@ interface InterpretationLinkDialogProps {
 }
 
 export function InterpretationLinkDialog({
-  open, measures, pendingDrop, selectedLinks, searchQuery,
+  open, pendingDrop, selectedLinks, searchQuery,
   agentModelSize, setSelectedLinks, setSearchQuery, onClose, onCancel,
 }: InterpretationLinkDialogProps) {
   const { addElement, layout } = useEditorStore();
@@ -188,19 +139,13 @@ export function InterpretationLinkDialog({
         .filter((el) => el.type === 'measure')
         .map((el) => ({
           elementId: el.id,
-          measureId: (el as MeasureElement).measureId,
+          measureId: el.id,
           pageIndex,
         })),
     );
   }, [layout.pages]);
 
-  const measureLabelById = useMemo(() => {
-    const map = new Map<string, string>();
-    measures.forEach((m) => {
-      if (m.id) map.set(m.id, m.title || m.name || m.id);
-    });
-    return map;
-  }, [measures]);
+  const measureLabelById = useMemo(() => new Map<string, string>(), []);
 
   const handleConfirm = () => {
     if (!pendingDrop) return;

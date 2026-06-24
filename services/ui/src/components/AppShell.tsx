@@ -35,8 +35,6 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import HealthAndSafetyOutlinedIcon from "@mui/icons-material/HealthAndSafetyOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import GroupWorkOutlinedIcon from "@mui/icons-material/GroupWorkOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
@@ -102,10 +100,7 @@ const CARE_NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/care/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Clinical Audit", path: "/care/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/care/audit", "/audit"] },
   { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon /> },
-  { label: "Encounters", path: "/care/encounters", icon: <TimelineOutlinedIcon />, activePrefix: ["/care/encounters", "/care/pathways", "/pathways"] },
   { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
-  { label: "Reports", path: "/care/reports", icon: <DescriptionOutlinedIcon /> },
-  { label: "Measures", path: "/care/measures", icon: <BarChartOutlinedIcon /> },
   { label: "Benchmarks", path: "/care/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/care/cohorts", icon: <GroupWorkOutlinedIcon /> },
   { label: "Wellbeing Hub", path: "/care/wellbeing", icon: <SpaOutlinedIcon /> },
@@ -158,16 +153,27 @@ const ADMIN_NAV_ITEMS: NavItem[] = [
     ],
     adminOnly: true,
   },
+  {
+    label: "Audit Templates",
+    path: "/admin/audit-templates",
+    icon: <AssignmentOutlinedIcon />,
+    activePrefix: ["/admin/audit-templates"],
+    adminOnly: true,
+  },
+  {
+    label: "Encounters",
+    path: "/admin/encounters",
+    icon: <TimelineOutlinedIcon />,
+    activePrefix: ["/admin/encounters", "/care/encounters", "/care/pathways", "/pathways"],
+    adminOnly: true,
+  },
   { label: "Users", path: "/admin/users", icon: <PeopleOutlineIcon /> },
   { label: "Portal", path: "/admin/portal", icon: <AdminPanelSettingsOutlinedIcon /> },
   { label: "Support", path: "/admin/support", icon: <SupportAgentOutlinedIcon /> },
 ];
 
-function isEditorRoute(pathname: string): boolean {
-  return (
-    /^\/reports\/[^/]+\/edit/.test(pathname) ||
-    /^\/care\/reports\/[^/]+\/edit/.test(pathname)
-  );
+function isEditorRoute(_pathname: string): boolean {
+  return false;
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

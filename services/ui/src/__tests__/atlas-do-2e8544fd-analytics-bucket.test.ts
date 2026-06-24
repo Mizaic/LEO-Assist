@@ -28,8 +28,6 @@ const PREFIXES = [
   "services/ui/src/components/audit",
   "services/ui/src/components/benchmarks",
   "services/ui/src/components/dashboard",
-  "services/ui/src/components/measures",
-  "services/ui/src/components/reports",
   "services/ui/src/components/episodes",
   "services/ui/src/components/games",];
 

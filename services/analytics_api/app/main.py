@@ -59,6 +59,12 @@ from services.analytics_api.app.routers.patient_finder import (
 )
 from services.analytics_api.app.routers.research import router as research_router
 from services.analytics_api.app.routers.variation import router as variation_router
+from services.analytics_api.app.routers.audit_templates import (
+    router as audit_templates_router,
+)
+from services.analytics_api.app.routers.patients_epr import (
+    router as patients_epr_router,
+)
 
 configure_logging(service_name="analytics-api")
 logger = logging.getLogger("analytics-api")
@@ -168,6 +174,12 @@ app.include_router(
     patient_finder_router, prefix="/analytics", tags=["patient-finder"]
 )
 app.include_router(variation_router, prefix="/analytics", tags=["variation"])
+app.include_router(
+    audit_templates_router, prefix="/analytics", tags=["audit-templates"]
+)
+app.include_router(
+    patients_epr_router, prefix="/analytics", tags=["patients-epr"]
+)
 
 
 @app.get("/health")
