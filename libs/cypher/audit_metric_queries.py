@@ -38,11 +38,16 @@ from typing import Any
 # Tenant guard: restricts patients to orgs in the caller's scope.
 # Injected into the WHERE clause of every query.
 # Uses the same HAS_GENERAL_PRACTITIONER -> org pattern as ORG_PATIENT_FILTER.
+#
+# Empty-list bypass: when $scope_org_ids is [] (platform admin scope),
+# size([]) = 0 short-circuits to true so all patients are visible.
+# Non-admin callers always have at least one org ID, so the EXISTS
+# guard enforces tenant isolation as normal.
 _ORG_GUARD = (
-    "EXISTS { "
+    "(size($scope_org_ids) = 0 OR EXISTS { "
     "MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(_gp) "
     "WHERE _gp.id IN $scope_org_ids "
-    "}"
+    "})"
 )
 
 # Episode status filter: exclude phantom/merged/related-closed episodes.

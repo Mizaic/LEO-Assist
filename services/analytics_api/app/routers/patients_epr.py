@@ -36,7 +36,7 @@ router = APIRouter()
 
 _ORG_GUARD = ORG_PATIENT_FILTER
 
-_LIST_PATIENTS = (
+_LIST_PATIENTS_SCOPED = (
     "MATCH (p:Patient) "
     "WHERE " + _ORG_GUARD + " "
     "AND ($search IS NULL OR p.id CONTAINS $search) "
@@ -67,14 +67,50 @@ _LIST_PATIENTS = (
     "  [ct IN condition_types WHERE ct IS NOT NULL AND ct <> ''] AS condition_types"
 )
 
-_COUNT_PATIENTS = (
+_LIST_PATIENTS_ADMIN = (
+    "MATCH (p:Patient) "
+    "WHERE ($search IS NULL OR p.id CONTAINS $search) "
+    "WITH p "
+    "ORDER BY p.id ASC "
+    "SKIP $skip LIMIT $limit "
+    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
+    "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    "  WHERE NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
+    "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
+    "OPTIONAL MATCH (p)-[:HAS_SAFETY_NET_ALERT]->(alert:SafetyNetAlert) "
+    "  WHERE alert.resolved_at IS NULL "
+    "WITH p, gp, "
+    "count(DISTINCT ep) AS episode_count, "
+    "count(DISTINCT enc) AS encounter_count, "
+    "max(toString(enc.date)) AS last_activity, "
+    "count(DISTINCT alert) AS active_alert_count, "
+    "collect(DISTINCT coalesce(ep.condition_type, ep.cancer_type)) AS condition_types "
+    "RETURN "
+    "  p.id AS patient_id, "
+    "  p.gender AS gender, "
+    "  p.birthDate AS birth_date, "
+    "  gp.name AS practice_name, "
+    "  episode_count, "
+    "  encounter_count, "
+    "  last_activity, "
+    "  active_alert_count, "
+    "  [ct IN condition_types WHERE ct IS NOT NULL AND ct <> ''] AS condition_types"
+)
+
+_COUNT_PATIENTS_SCOPED = (
     "MATCH (p:Patient) "
     "WHERE " + _ORG_GUARD + " "
     "AND ($search IS NULL OR p.id CONTAINS $search) "
     "RETURN count(p) AS total"
 )
 
-_GET_PATIENT_DETAIL = (
+_COUNT_PATIENTS_ADMIN = (
+    "MATCH (p:Patient) "
+    "WHERE ($search IS NULL OR p.id CONTAINS $search) "
+    "RETURN count(p) AS total"
+)
+
+_GET_PATIENT_DETAIL_SCOPED = (
     "MATCH (p:Patient {id: $patient_id}) "
     "WHERE " + _ORG_GUARD + " "
     "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
@@ -97,9 +133,62 @@ _GET_PATIENT_DETAIL = (
     "  }) AS episodes"
 )
 
-_GET_TIMELINE = (
+_GET_PATIENT_DETAIL_ADMIN = (
+    "MATCH (p:Patient {id: $patient_id}) "
+    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
+    "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    "OPTIONAL MATCH (p)-[:HAS_SAFETY_NET_ALERT]->(alert:SafetyNetAlert) "
+    "  WHERE alert.resolved_at IS NULL "
+    "RETURN "
+    "  p.id AS patient_id, "
+    "  p.gender AS gender, "
+    "  p.birthDate AS birth_date, "
+    "  gp.name AS practice_name, "
+    "  count(DISTINCT alert) AS active_alert_count, "
+    "  collect(DISTINCT { "
+    "    episode_id: ep.episode_id, "
+    "    condition_type: coalesce(ep.condition_type, ep.cancer_type), "
+    "    status: ep.status, "
+    "    referral_date: toString(ep.referral_date), "
+    "    end_date: toString(ep.end_date), "
+    "    inferred_outcome: ep.inferred_outcome "
+    "  }) AS episodes"
+)
+
+_GET_TIMELINE_SCOPED = (
     "MATCH (p:Patient {id: $patient_id}) "
     "WHERE " + _ORG_GUARD + " "
+    "CALL { "
+    "  WITH p "
+    "  OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
+    "  RETURN 'encounter' AS item_type, enc.id AS item_id, "
+    "         toString(enc.date) AS item_date, "
+    "         coalesce(enc.consultation_type, 'Encounter') AS label, "
+    "         null AS extra "
+    "  UNION "
+    "  WITH p "
+    "  OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    "  RETURN 'episode' AS item_type, ep.episode_id AS item_id, "
+    "         toString(ep.referral_date) AS item_date, "
+    "         coalesce(ep.condition_type, ep.cancer_type, 'Episode') AS label, "
+    "         ep.status AS extra "
+    "  UNION "
+    "  WITH p "
+    "  OPTIONAL MATCH (p)-[:HAS_SAFETY_NET_ALERT]->(a:SafetyNetAlert) "
+    "  RETURN 'alert' AS item_type, a.id AS item_id, "
+    "         toString(a.created_at) AS item_date, "
+    "         coalesce(a.alert_type, 'Alert') AS label, "
+    "         a.resolved_at AS extra "
+    "} "
+    "WITH item_type, item_id, item_date, label, extra "
+    "WHERE item_id IS NOT NULL AND item_date IS NOT NULL "
+    "RETURN item_type, item_id, item_date, label, extra "
+    "ORDER BY item_date DESC "
+    "LIMIT 100"
+)
+
+_GET_TIMELINE_ADMIN = (
+    "MATCH (p:Patient {id: $patient_id}) "
     "CALL { "
     "  WITH p "
     "  OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
@@ -215,21 +304,29 @@ def list_patients(
     """List all patients in the caller's org scope.
 
     No cancer-type filter is applied. All episode types are included.
+    Admin users see all patients; scoped users see only their org hierarchy.
     """
     skip = (page - 1) * page_size
-    cypher_params: dict[str, Any] = {
-        "scope_org_ids": scope.org_ids,
+    base_params: dict[str, Any] = {
         "search": search or None,
         "skip": skip,
         "limit": page_size,
     }
 
+    if scope.is_admin:
+        count_query = _COUNT_PATIENTS_ADMIN
+        list_query = _LIST_PATIENTS_ADMIN
+        cypher_params = base_params
+    else:
+        count_query = _COUNT_PATIENTS_SCOPED
+        list_query = _LIST_PATIENTS_SCOPED
+        cypher_params = {**base_params, "scope_org_ids": scope.org_ids}
+
     client = PatientGraphClient()
     try:
-        count_rows = client.run(_COUNT_PATIENTS, **cypher_params)
+        count_rows = client.run(count_query, **cypher_params)
         total = int((count_rows[0].get("total") or 0) if count_rows else 0)
-
-        data_rows = client.run(_LIST_PATIENTS, **cypher_params)
+        data_rows = client.run(list_query, **cypher_params)
     except Exception as exc:
         logger.error("patients_epr.list_failed err=%s", exc)
         raise
@@ -253,15 +350,18 @@ def get_patient_detail(
     """Return full patient detail including all episodes.
 
     No episode-type filter is applied.
+    Admin users can access any patient; scoped users restricted to their org.
     """
-    cypher_params: dict[str, Any] = {
-        "scope_org_ids": scope.org_ids,
-        "patient_id": patient_id,
-    }
+    if scope.is_admin:
+        query = _GET_PATIENT_DETAIL_ADMIN
+        cypher_params: dict[str, Any] = {"patient_id": patient_id}
+    else:
+        query = _GET_PATIENT_DETAIL_SCOPED
+        cypher_params = {"scope_org_ids": scope.org_ids, "patient_id": patient_id}
 
     client = PatientGraphClient()
     try:
-        rows = client.run(_GET_PATIENT_DETAIL, **cypher_params)
+        rows = client.run(query, **cypher_params)
     finally:
         client.close()
 
@@ -302,15 +402,18 @@ def get_patient_timeline(
     """Return all activity timeline items for a patient in date order.
 
     Includes encounters, episode starts, and safety netting alerts.
+    Admin users can access any patient; scoped users restricted to their org.
     """
-    cypher_params: dict[str, Any] = {
-        "scope_org_ids": scope.org_ids,
-        "patient_id": patient_id,
-    }
+    if scope.is_admin:
+        query = _GET_TIMELINE_ADMIN
+        cypher_params: dict[str, Any] = {"patient_id": patient_id}
+    else:
+        query = _GET_TIMELINE_SCOPED
+        cypher_params = {"scope_org_ids": scope.org_ids, "patient_id": patient_id}
 
     client = PatientGraphClient()
     try:
-        rows = client.run(_GET_TIMELINE, **cypher_params)
+        rows = client.run(query, **cypher_params)
     finally:
         client.close()
 
