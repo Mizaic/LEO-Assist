@@ -131,6 +131,12 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
     setTiles((prev) => prev.map((t) => (t.tile_id === updated.tile_id ? updated : t)));
   }, []);
 
+  const handleTypeChange = useCallback((tileId: string, newType: TileType) => {
+    setTiles((prev) =>
+      prev.map((t) => (t.tile_id === tileId ? { ...t, tile_type: newType } : t))
+    );
+  }, []);
+
   const handleAddTileFromAI = useCallback(
     (
       metric_id: string,
@@ -290,6 +296,7 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 onRemove={handleRemoveTile}
+                onTypeChange={handleTypeChange}
                 onLayoutChange={setTiles}
                 onOpenAssistant={() => setAssistantOpen(true)}
               />
