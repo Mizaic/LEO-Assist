@@ -87,6 +87,24 @@ export interface EntityRelation {
   confidence?: number;
 }
 
+export interface SyntheticTagCount {
+  semantic_tag: string;
+  covered_surface_forms: number;
+}
+
+export interface SyntheticTagOption {
+  semantic_tag: string;
+  total_surface_forms: number;
+}
+
+export interface SyntheticStats {
+  total_surface_forms: number;
+  covered_surface_forms: number;
+  synthetic_gold_labels: number;
+  tag_breakdown: SyntheticTagCount[];
+  tag_options: SyntheticTagOption[];
+}
+
 export interface SimilarCandidateItem {
   candidate_id: string;
   text: string;

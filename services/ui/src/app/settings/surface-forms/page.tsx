@@ -26,6 +26,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion as fm } from "framer-motion";
+import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -59,6 +61,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import BlockIcon from "@mui/icons-material/Block";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import {
+  EmptyState,
   FilterBar,
   StatHero,
   ToolbarActions,
@@ -86,6 +89,15 @@ import {
 } from "@/lib/api";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
+
+/** 3px left accent colour driven by the dominant alias status in the group. */
+function groupAccent(forms: GroupedSurfaceForm[]): string {
+  if (forms.length === 0) return "#16A34A";
+  const labels = forms.map((sf) => aliasStatusLabel(sf.status));
+  if (labels.every((s) => s === "deactivated")) return "#94A3B8";
+  if (labels.some((s) => s === "pending")) return "#D97706";
+  return "#16A34A";
+}
 
 function aliasStatusColor(
   status?: string,
@@ -806,20 +818,38 @@ export default function SurfaceFormsPage() {
           <CircularProgress aria-label="Loading" />
         </Box>
       ) : groups.length === 0 ? (
-        <Paper variant="outlined" sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="body2" color="text.secondary">
-            No surface forms found.
-          </Typography>
-        </Paper>
+        <EmptyState
+          icon={<TextFieldsOutlinedIcon sx={{ fontSize: 36 }} />}
+          title="No surface forms yet"
+          body="Surface forms map clinical text to SNOMED concepts."
+        />
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-          {groups.map((group) => (
-            <Paper
+          {groups.map((group, idx) => (
+            <fm.div
               key={group.concept_id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(idx, 12) * 0.04, duration: 0.18 }}
+            >
+            <Paper
               variant="outlined"
               ref={(el) => { groupRefs.current[group.concept_id] = el; }}
-              sx={{ p: 2 }}
+              sx={{ p: 2, position: "relative", overflow: "hidden" }}
             >
+              {/* 3px left accent coded by dominant alias status */}
+              <Box
+                aria-hidden="true"
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  top: 14,
+                  bottom: 14,
+                  width: 3,
+                  borderRadius: 1,
+                  bgcolor: groupAccent(group.surface_forms),
+                }}
+              />
               {/* Concept header */}
               <Box
                 sx={{
@@ -897,13 +927,7 @@ export default function SurfaceFormsPage() {
                       <Chip
                         label={`${sf.form}${status !== "approved" ? ` (${status})` : ""}`}
                         size="small"
-                        variant="outlined"
-                        color={aliasStatusColor(sf.status)}
-                        onDelete={
-                          busy
-                            ? undefined
-                            : () => handleDeleteAlias(sf)
-                        }
+                        onDelete={busy ? undefined : () => handleDeleteAlias(sf)}
                         deleteIcon={
                           deletingAlias === sf.normalized
                             ? <CircularProgress aria-label="Loading" size={12} />
@@ -916,7 +940,29 @@ export default function SurfaceFormsPage() {
                           sf.reviewed_at ? `reviewed: ${sf.reviewed_at}` : "",
                           sf.effective_at ? `effective: ${sf.effective_at}` : "",
                           sf.confidence != null ? `${(sf.confidence * 100).toFixed(0)}%` : "",
-                        ].filter(Boolean).join(" · ")}
+                        ].filter(Boolean).join(" - ")}
+                        sx={
+                          status === "approved" || status === "active"
+                            ? {
+                                bgcolor: "#ECFDF5",
+                                color: "#047857",
+                                border: "1px solid #A7F3D0",
+                                fontWeight: 500,
+                              }
+                            : status === "pending"
+                              ? {
+                                  bgcolor: "#FEF3C7",
+                                  color: "#92400E",
+                                  border: "1px solid #FDE68A",
+                                  fontWeight: 500,
+                                }
+                              : {
+                                  bgcolor: "#F1F5F9",
+                                  color: "#475569",
+                                  border: "1px solid #E2E8F0",
+                                  fontWeight: 500,
+                                }
+                        }
                       />
                       {canApprove && (
                         <Tooltip title="Approve this alias for runtime resolve">
@@ -1032,6 +1078,7 @@ export default function SurfaceFormsPage() {
                 )}
               </Box>
             </Paper>
+            </fm.div>
           ))}
         </Box>
       )}

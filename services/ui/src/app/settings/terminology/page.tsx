@@ -15,15 +15,13 @@
  * Visible chrome (intro + page width) is provided upstream by
  * KnowledgePageLayout when this page is mounted inside the Knowledge
  * tab system. The page itself contributes:
+ *   - SkeletonGrid: shown while stats are loading (8 columns x 1 row).
  *   - StatHero: active concepts / terms / IS_A relationships /
- *     ICD-10 codes + maps / OPCS-4 codes + maps / Read code maps
- *     (driven from Neo4j counts).
+ *     ICD-10 codes + maps / OPCS-4 codes + maps / Read code maps.
  *   - ToolbarActions: Refresh status.
- *   - Package status cards: tone-accented (success / warning / muted)
- *     with version + size + a single primary "Sync" action when
- *     updates are available. Cards render in a 2x2 grid for the
- *     four supported packages (SNOMED, dm+d, NHS ICD-10, OPCS-4).
- *   - Streaming sync log panel (preserved, restyled).
+ *   - PackageCards: click-to-select for sync, framer-motion hover lift,
+ *     hover-reveal "Sync this package" ghost action.
+ *   - LogPanel: streaming sync output with copy + clear.
  *
  * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145
  *                  + DI-LEO-AI-228 / DO-LEO-AI-301 / VT-LEO-AI-301 (ICD-10)
@@ -34,40 +32,26 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import FormGroup from "@mui/material/FormGroup";
-import LinearProgress from "@mui/material/LinearProgress";
-import Paper from "@mui/material/Paper";
-import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DownloadingIcon from "@mui/icons-material/Downloading";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import {
+  SkeletonGrid,
   StatHero,
   ToolbarActions,
   type StatTile,
   type ToolbarAction,
 } from "@leo/design-system";
 
+import { PackageCard, type PackageStatus } from "./PackageCard";
+import { LogPanel, type LogLine } from "./LogPanel";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface PackageStatus {
-  label: string;
-  local_version: string | null;
-  trud_version: string | null;
-  trud_date: string | null;
-  trud_size_mb: number | null;
-  up_to_date: boolean;
-}
 
 interface Neo4jCounts {
   active_concepts?: number;
@@ -85,12 +69,6 @@ interface StatusResponse {
   neo4j: Neo4jCounts;
 }
 
-interface LogLine {
-  msg: string;
-  level?: string;
-  pct?: number;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -100,271 +78,34 @@ function fmt(n: number | undefined): string {
   return n.toLocaleString("en-GB");
 }
 
-function packageTone(pkg: PackageStatus): "positive" | "warning" | "neutral" {
-  if (pkg.up_to_date) return "positive";
-  if (!pkg.local_version) return "neutral";
-  return "warning";
-}
+const PACKAGE_KEYS = ["snomed", "dmd", "icd10", "opcs4"] as const;
+type PkgKey = (typeof PACKAGE_KEYS)[number];
 
-function packageStatusLabel(pkg: PackageStatus): string {
-  if (pkg.up_to_date) return "Up to date";
-  if (!pkg.local_version) return "Not on disk";
-  return "Update available";
-}
-
-// ---------------------------------------------------------------------------
-// PackageCard -- one tone-accented status card per package
-// ---------------------------------------------------------------------------
-
-function PackageCard({ pkg }: { pkg: PackageStatus }) {
-  const tone = packageTone(pkg);
-  const accent =
-    tone === "positive" ? "#16A34A" : tone === "warning" ? "#D97706" : "#94A3B8";
-  const Icon =
-    tone === "positive"
-      ? CheckCircleOutlineIcon
-      : tone === "warning"
-        ? WarningAmberIcon
-        : DownloadingIcon;
-  return (
-    <Box
-      data-testid={`terminology-package-${pkg.label.toLowerCase().replace(/\s+/g, "-")}`}
-      sx={{
-        position: "relative",
-        background: "#FFFFFF",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "12px",
-        p: "18px",
-        flex: 1,
-        minWidth: 0,
-        minHeight: 168,
-        display: "flex",
-        flexDirection: "column",
-        gap: 1.25,
-      }}
-    >
-      <Box
-        aria-hidden
-        sx={{
-          position: "absolute",
-          left: 0,
-          top: 14,
-          bottom: 14,
-          width: 3,
-          borderRadius: 1,
-          bgcolor: accent,
-        }}
-      />
-      <Stack
-        direction="row"
-        alignItems="flex-start"
-        justifyContent="space-between"
-        spacing={1}
-      >
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Icon sx={{ color: accent, fontSize: 22 }} />
-          <Typography
-            sx={{
-              fontWeight: 600,
-              fontSize: "1rem",
-              lineHeight: 1.25,
-            }}
-          >
-            {pkg.label}
-          </Typography>
-        </Stack>
-        <Chip
-          label={packageStatusLabel(pkg)}
-          size="small"
-          sx={{
-            height: 22,
-            fontSize: "0.7rem",
-            bgcolor:
-              tone === "positive"
-                ? "#ECFDF5"
-                : tone === "warning"
-                  ? "#FEF3C7"
-                  : "#F1F5F9",
-            color:
-              tone === "positive"
-                ? "#047857"
-                : tone === "warning"
-                  ? "#92400E"
-                  : "#475569",
-            border: "1px solid",
-            borderColor:
-              tone === "positive"
-                ? "#A7F3D0"
-                : tone === "warning"
-                  ? "#FDE68A"
-                  : "#E2E8F0",
-            flexShrink: 0,
-          }}
-        />
-      </Stack>
-      <Box sx={{ display: "grid", gridTemplateColumns: "auto 1fr", rowGap: 0.5, columnGap: 1 }}>
-        <Typography variant="caption" color="text.secondary">
-          On disk
-        </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 500 }}>
-          {pkg.local_version ?? (
-            <em style={{ opacity: 0.5 }}>not downloaded</em>
-          )}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          TRUD latest
-        </Typography>
-        <Typography variant="caption" sx={{ fontWeight: 500 }}>
-          {pkg.trud_version
-            ? `${pkg.trud_version}${pkg.trud_date ? ` - ${pkg.trud_date}` : ""}`
-            : "--"}
-        </Typography>
-        {pkg.trud_size_mb != null ? (
-          <>
-            <Typography variant="caption" color="text.secondary">
-              Download
-            </Typography>
-            <Typography variant="caption" sx={{ fontWeight: 500 }}>
-              {pkg.trud_size_mb} MB
-            </Typography>
-          </>
-        ) : null}
-      </Box>
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// LogPanel -- streaming sync output
-// ---------------------------------------------------------------------------
-
-function LogPanel({ lines }: { lines: LogLine[] }) {
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [lines]);
-
-  if (lines.length === 0) return null;
-
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 1.5,
-        maxHeight: 360,
-        overflowY: "auto",
-        bgcolor: "#0F172A",
-        fontFamily: "JetBrains Mono, monospace",
-        fontSize: "0.72rem",
-        borderRadius: 2,
-      }}
-      data-testid="terminology-log-panel"
-    >
-      {lines.map((line, i) => (
-        <Box
-          key={i}
-          sx={{
-            color:
-              line.level === "error" || line.level === "critical"
-                ? "#FCA5A5"
-                : line.level === "warning"
-                  ? "#FDE68A"
-                  : "#CBD5E1",
-            lineHeight: 1.6,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-all",
-          }}
-        >
-          {line.pct != null ? (
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Box sx={{ flex: 1 }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={line.pct}
-                  sx={{ height: 6, borderRadius: 1 }}
-                />
-              </Box>
-              <Typography variant="caption" sx={{ color: "#94A3B8", minWidth: 36 }}>
-                {line.pct}%
-              </Typography>
-            </Stack>
-          ) : (
-            line.msg
-          )}
-        </Box>
-      ))}
-      <div ref={bottomRef} />
-    </Paper>
-  );
+function buildStatTiles(neo4j: Neo4jCounts): StatTile[] {
+  return [
+    { id: "active-concepts", label: "Active concepts", value: fmt(neo4j.active_concepts), hint: "SNOMED concepts in the graph" },
+    { id: "terms", label: "Terms", value: fmt(neo4j.terms), hint: "Synonyms and descriptions" },
+    { id: "is-a-rels", label: "IS_A links", value: fmt(neo4j.is_a_rels), hint: "Hierarchy edges" },
+    { id: "icd10-codes", label: "ICD-10 codes", value: fmt(neo4j.icd10_codes), hint: "Titled ICD-10 nodes" },
+    { id: "icd10-maps", label: "ICD-10 maps", value: fmt(neo4j.icd10_maps), hint: "SNOMED -> ICD-10 cross-maps" },
+    { id: "opcs4-codes", label: "OPCS-4 codes", value: fmt(neo4j.opcs4_codes), hint: "Titled OPCS-4 nodes" },
+    { id: "opcs4-maps", label: "OPCS-4 maps", value: fmt(neo4j.opcs4_maps), hint: "SNOMED -> OPCS-4 cross-maps" },
+    { id: "read-maps", label: "Read maps", value: fmt(neo4j.read_maps), hint: "Read code mappings" },
+  ];
 }
 
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
-const PACKAGE_KEYS = ["snomed", "dmd", "icd10", "opcs4"] as const;
-type PkgKey = (typeof PACKAGE_KEYS)[number];
-
-function buildStatTiles(neo4j: Neo4jCounts): StatTile[] {
-  return [
-    {
-      id: "active-concepts",
-      label: "Active concepts",
-      value: fmt(neo4j.active_concepts),
-      hint: "SNOMED concepts in the graph",
-    },
-    {
-      id: "terms",
-      label: "Terms",
-      value: fmt(neo4j.terms),
-      hint: "Synonyms and descriptions",
-    },
-    {
-      id: "is-a-rels",
-      label: "IS_A links",
-      value: fmt(neo4j.is_a_rels),
-      hint: "Hierarchy edges",
-    },
-    {
-      id: "icd10-codes",
-      label: "ICD-10 codes",
-      value: fmt(neo4j.icd10_codes),
-      hint: "Titled ICD-10 nodes",
-    },
-    {
-      id: "icd10-maps",
-      label: "ICD-10 maps",
-      value: fmt(neo4j.icd10_maps),
-      hint: "SNOMED -> ICD-10 cross-maps",
-    },
-    {
-      id: "opcs4-codes",
-      label: "OPCS-4 codes",
-      value: fmt(neo4j.opcs4_codes),
-      hint: "Titled OPCS-4 nodes",
-    },
-    {
-      id: "opcs4-maps",
-      label: "OPCS-4 maps",
-      value: fmt(neo4j.opcs4_maps),
-      hint: "SNOMED -> OPCS-4 cross-maps",
-    },
-    {
-      id: "read-maps",
-      label: "Read maps",
-      value: fmt(neo4j.read_maps),
-      hint: "Read code mappings",
-    },
-  ];
-}
-
+// LONG FUNCTION: page orchestrates status fetch, package selection,
+// SSE sync streaming, and log management.
 export default function TerminologyPage() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  // Wave E: PackageCards are click-to-select; no separate checkboxes.
   const [selected, setSelected] = useState<Set<PkgKey>>(
     new Set(["snomed", "dmd", "icd10", "opcs4"]),
   );
@@ -404,6 +145,10 @@ export default function TerminologyPage() {
     });
   };
 
+  const appendLog = useCallback((msg: string, level?: string, pct?: number) => {
+    setLogLines((prev) => [...prev, { msg, level, pct }]);
+  }, []);
+
   const startSync = useCallback(() => {
     if (syncing || selected.size === 0) return;
     setSyncing(true);
@@ -415,9 +160,6 @@ export default function TerminologyPage() {
     const url = `/api/admin/terminology/sync/stream?packages=${pkgs}&phases=auto`;
     const es = new EventSource(url, { withCredentials: true });
     esRef.current = es;
-
-    const appendLog = (msg: string, level?: string, pct?: number) =>
-      setLogLines((prev) => [...prev, { msg, level, pct }]);
 
     es.addEventListener("log", (e) => {
       const d = JSON.parse(e.data);
@@ -448,7 +190,7 @@ export default function TerminologyPage() {
       setSyncDone(true);
       setSyncing(false);
       es.close();
-      fetchStatus();
+      void fetchStatus();
     });
     es.addEventListener("sync_error", (e) => {
       const d = JSON.parse(e.data);
@@ -461,15 +203,12 @@ export default function TerminologyPage() {
       setSyncing(false);
       es.close();
     };
-  }, [syncing, selected, fetchStatus]);
+  }, [syncing, selected, fetchStatus, appendLog]);
 
   const cancelSync = () => {
     esRef.current?.close();
     setSyncing(false);
-    setLogLines((prev) => [
-      ...prev,
-      { msg: "Sync cancelled by user.", level: "warning" },
-    ]);
+    appendLog("Sync cancelled by user.", "warning");
   };
 
   const stats = useMemo(
@@ -491,7 +230,12 @@ export default function TerminologyPage() {
 
   return (
     <Box>
-      {stats.length > 0 ? <StatHero stats={stats} /> : null}
+      {/* Stats loading: SkeletonGrid while counts are fetched */}
+      {loadingStatus ? (
+        <SkeletonGrid columns={8} rows={1} itemHeight={88} />
+      ) : stats.length > 0 ? (
+        <StatHero stats={stats} />
+      ) : null}
 
       {statusError ? (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -505,27 +249,19 @@ export default function TerminologyPage() {
         justifyContent="space-between"
         sx={{ mb: 1.5, flexWrap: "wrap", gap: 1 }}
       >
-        <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-          Package status
-        </Typography>
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            Package status
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Click a card to select or deselect it for sync.
+          </Typography>
+        </Box>
         <ToolbarActions actions={toolbarActions} />
       </Stack>
 
-      {loadingStatus ? (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-            gap: 2,
-            mb: 3,
-          }}
-        >
-          <Skeleton variant="rounded" height={168} />
-          <Skeleton variant="rounded" height={168} />
-          <Skeleton variant="rounded" height={168} />
-          <Skeleton variant="rounded" height={168} />
-        </Box>
-      ) : status ? (
+      {/* Package cards -- 2x2 grid; click to toggle selection */}
+      {loadingStatus ? null : status ? (
         <Box
           sx={{
             display: "grid",
@@ -536,12 +272,19 @@ export default function TerminologyPage() {
         >
           {PACKAGE_KEYS.map((key) =>
             status.packages[key] ? (
-              <PackageCard key={key} pkg={status.packages[key]} />
+              <PackageCard
+                key={key}
+                pkg={status.packages[key]}
+                selected={selected.has(key)}
+                onToggle={() => togglePackage(key)}
+                disabled={syncing}
+              />
             ) : null,
           )}
         </Box>
       ) : null}
 
+      {/* Sync controls -- start / cancel buttons only (selection via cards above) */}
       <Box
         sx={{
           mt: 1,
@@ -562,29 +305,10 @@ export default function TerminologyPage() {
           color="text.secondary"
           sx={{ mb: 1.5, fontSize: "0.85rem" }}
         >
-          Choose which packages to download. The knowledge graph will update
-          automatically after download.
+          {selected.size === 0
+            ? "Select at least one package above to enable sync."
+            : `${selected.size} package${selected.size === 1 ? "" : "s"} selected. The knowledge graph will update automatically after download.`}
         </Typography>
-        <FormGroup row sx={{ mb: 1.5 }}>
-          {PACKAGE_KEYS.map((key) => (
-            <FormControlLabel
-              key={key}
-              control={
-                <Checkbox
-                  checked={selected.has(key)}
-                  onChange={() => togglePackage(key)}
-                  disabled={syncing}
-                  size="small"
-                />
-              }
-              label={
-                <Typography variant="body2">
-                  {status?.packages[key]?.label ?? key}
-                </Typography>
-              }
-            />
-          ))}
-        </FormGroup>
         <Stack direction="row" spacing={1.5}>
           <Button
             variant="contained"
@@ -625,7 +349,10 @@ export default function TerminologyPage() {
         </Alert>
       ) : null}
 
-      <LogPanel lines={logLines} />
+      <LogPanel
+        lines={logLines}
+        onClear={() => setLogLines([])}
+      />
     </Box>
   );
 }

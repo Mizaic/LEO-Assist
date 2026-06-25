@@ -31,7 +31,6 @@ import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
@@ -39,6 +38,7 @@ import AddIcon from "@mui/icons-material/Add";
 
 import {
   SegmentedTabs,
+  SkeletonList,
   StatHero,
   ToolbarActions,
   type StatTile,
@@ -46,6 +46,7 @@ import {
 } from "@leo/design-system";
 
 import { api } from "@/lib/api";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import PathwayCard from "./PathwayCard";
 import {
   DeletePathwayDialog,
@@ -115,6 +116,8 @@ export default function PathwaysPage() {
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  const [retireTarget, setRetireTarget] = useState<PlanDefinition | null>(null);
+
   const load = useCallback(() => {
     setLoading(true);
     api
@@ -122,7 +125,9 @@ export default function PathwaysPage() {
         "/fhir/PlanDefinition",
       )
       .then((data) => setPlans((data.entry || []).map((e) => e.resource)))
-      .catch(() => setPlans([]))
+      .catch((err) => {
+        setError(err?.message ?? "Failed to load pathways");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -253,7 +258,7 @@ export default function PathwaysPage() {
       setVersionNotes("");
     },
     onDuplicate: () => handleDuplicate(plan),
-    onRetire: () => patchStatus(plan, "retired"),
+    onRetire: () => setRetireTarget(plan),
     onReactivate: () => {
       setPublishTarget(plan);
       setVersionNotes("");
@@ -303,16 +308,7 @@ export default function PathwaysPage() {
       </Box>
 
       {loading ? (
-        <Stack alignItems="center" sx={{ pt: 6 }}>
-          <CircularProgress size={28} />
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ mt: 1 }}
-          >
-            Loading pathways...
-          </Typography>
-        </Stack>
+        <SkeletonList rows={3} itemHeight={140} />
       ) : plans.length === 0 ? (
         <Box
           sx={{
@@ -387,6 +383,20 @@ export default function PathwaysPage() {
         onConfirm={confirmDelete}
         onConfirmNameChange={setDeleteConfirmName}
       />
+
+      {retireTarget ? (
+        <ConfirmDialog
+          title="Retire this pathway?"
+          body="Clinical users will stop seeing it."
+          confirmLabel="Retire pathway"
+          variant="danger"
+          onConfirm={() => {
+            patchStatus(retireTarget, "retired");
+            setRetireTarget(null);
+          }}
+          onCancel={() => setRetireTarget(null)}
+        />
+      ) : null}
     </Box>
   );
 }

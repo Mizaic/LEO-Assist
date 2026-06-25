@@ -14,7 +14,6 @@
  */
 
 import { useEffect, useRef } from "react";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -22,6 +21,8 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+
+import { ProgressiveReveal } from "@leo/design-system";
 
 import MarkdownEditor, {
   type MarkdownEditorHandle,
@@ -66,14 +67,16 @@ export function InstructionsTab({
       <Stack
         direction="row"
         justifyContent="space-between"
-        alignItems="center"
+        alignItems="flex-start"
         sx={{ mb: 1 }}
       >
-        <Typography variant="body2" color="text.secondary">
-          Write the rules the AI follows -- scope, semantic tags, assertion
-          logic. Do not include examples or output format here; manage those
-          in the other tabs.
-        </Typography>
+        <ProgressiveReveal summary="How to write instructions">
+          <Typography variant="body2" color="text.secondary" sx={{ pt: 0.5 }}>
+            Write the rules the AI follows -- scope, semantic tags, assertion
+            logic. Do not include examples or output format here; manage those
+            in the other tabs.
+          </Typography>
+        </ProgressiveReveal>
         <Tooltip title="Use the AI assistant to review and improve these instructions.">
           <Button
             size="small"
@@ -102,30 +105,94 @@ export function InstructionsTab({
       )}
 
       {aiSuggestion && (
-        <Alert
-          severity="info"
-          sx={{ mt: 2 }}
-          onClose={onDismissSuggestion}
-          action={
-            <Button
-              size="small"
-              onClick={() => onAcceptSuggestion(aiSuggestion)}
-            >
-              Use this
-            </Button>
-          }
-        >
-          <Typography
-            variant="body2"
+        <ProgressiveReveal summary="AI suggestion" defaultOpen>
+          <Box
             sx={{
-              whiteSpace: "pre-wrap",
-              fontFamily: "monospace",
-              fontSize: "0.78rem",
+              mt: 1,
+              display: "flex",
+              gap: 2,
+              flexDirection: { xs: "column", md: "row" },
             }}
           >
-            {aiSuggestion}
-          </Typography>
-        </Alert>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+                display="block"
+                sx={{ mb: 0.5 }}
+              >
+                Current
+              </Typography>
+              <Box
+                component="pre"
+                sx={{
+                  fontFamily: "monospace",
+                  fontSize: "0.78rem",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  maxHeight: 280,
+                  overflow: "auto",
+                  bgcolor: "grey.50",
+                  p: 1,
+                  borderRadius: 1,
+                  m: 0,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                {systemPrompt}
+              </Box>
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+                display="block"
+                sx={{ mb: 0.5 }}
+              >
+                Suggestion
+              </Typography>
+              <Box
+                component="pre"
+                sx={{
+                  fontFamily: "monospace",
+                  fontSize: "0.78rem",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  maxHeight: 280,
+                  overflow: "auto",
+                  bgcolor: "grey.50",
+                  p: 1,
+                  borderRadius: 1,
+                  m: 0,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                {aiSuggestion}
+              </Box>
+            </Box>
+          </Box>
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="flex-end"
+            sx={{ mt: 1.5 }}
+          >
+            <Button size="small" variant="outlined" onClick={onDismissSuggestion}>
+              Dismiss
+            </Button>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => onAcceptSuggestion(aiSuggestion)}
+            >
+              Use suggestion
+            </Button>
+          </Stack>
+        </ProgressiveReveal>
       )}
     </Box>
   );

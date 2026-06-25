@@ -11,8 +11,10 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import Box from "@mui/material/Box";
-import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
+import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
+import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
+
+import { SegmentedTabs } from "@leo/design-system";
 
 const SbarPlayground = dynamic(() => import("./SbarPlayground"), {
   ssr: false,
@@ -21,18 +23,29 @@ const ScenarioRunPanel = dynamic(() => import("./ScenarioRunPanel"), {
   ssr: false,
 });
 
+const TABS = [
+  {
+    id: "playground",
+    label: "Playground",
+    icon: <PlayArrowOutlinedIcon sx={{ fontSize: 16 }} />,
+  },
+  {
+    id: "scenarios",
+    label: "Scenario runs",
+    icon: <ScienceOutlinedIcon sx={{ fontSize: 16 }} />,
+  },
+];
+
 export default function AiSummarisationPage() {
   const [tab, setTab] = useState<"playground" | "scenarios">("playground");
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Tabs
+      <SegmentedTabs
+        tabs={TABS}
         value={tab}
-        onChange={(_, value) => setTab(value)}
+        onChange={(id) => setTab(id as "playground" | "scenarios")}
         aria-label="AI summarisation views"
-      >
-        <Tab value="playground" label="Manual SBAR playground" />
-        <Tab value="scenarios" label="Scenario runs" />
-      </Tabs>
+      />
       {tab === "playground" ? <SbarPlayground /> : <ScenarioRunPanel />}
     </Box>
   );

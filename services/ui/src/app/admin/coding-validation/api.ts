@@ -3,6 +3,14 @@ async function parseApiError(res: Response): Promise<string> {
   if (text.trimStart().startsWith("<!")) {
     return `Unable to load coding validation data (${res.status}). Please retry.`;
   }
+  try {
+    const payload = JSON.parse(text) as { detail?: string | { msg?: string }[] };
+    if (typeof payload.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+  } catch {
+    // Fall through to raw text handling.
+  }
   return text || `Request failed (${res.status})`;
 }
 

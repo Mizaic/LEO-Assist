@@ -32,6 +32,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { sortByIsoDateDesc } from "@/lib/dateSort";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
@@ -407,6 +408,7 @@ export default function PromptsPage() {
   const router = useRouter();
   const [prompts, setPrompts] = useState<PromptConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>(CATEGORY_ALL);
 
@@ -414,7 +416,9 @@ export default function PromptsPage() {
     api
       .get<{ prompts: PromptConfig[] }>("/api/prompts")
       .then((d) => setPrompts(d.prompts || []))
-      .catch(() => setPrompts([]))
+      .catch((err) =>
+        setError(err?.message ?? "Failed to load prompts"),
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -486,6 +490,12 @@ export default function PromptsPage() {
   return (
     <Box>
       <StatHero stats={stats} />
+
+      {error ? (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      ) : null}
 
       <Box sx={{ mb: 2, mt: 2 }}>
         <FilterBar

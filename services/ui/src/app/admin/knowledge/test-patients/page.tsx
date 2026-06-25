@@ -48,6 +48,7 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
@@ -62,6 +63,7 @@ import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
 import {
   DataGridCard,
   SegmentedTabs,
+  SkeletonList,
   StatHero,
   ToolbarActions,
   type DataGridColumn,
@@ -192,6 +194,9 @@ export default function TestPatientLibraryKnowledgeTab() {
   const [copyOpen, setCopyOpen] = useState(false);
   const [scaffoldOpen, setScaffoldOpen] = useState(false);
   const [scenarioOpen, setScenarioOpen] = useState(false);
+  // Add-patient drawer state (Wave E: unified entry, kept for secondary access)
+  const [addDrawerOpen, setAddDrawerOpen] = useState(false);
+  const [addDrawerTab, setAddDrawerTab] = useState("build");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<TestPatientRow | null>(
     null,
@@ -449,32 +454,29 @@ export default function TestPatientLibraryKnowledgeTab() {
   const toolbarActions: ToolbarAction[] = useMemo(
     () => [
       {
-        id: "scaffold-from-scenario",
-        label: "Author from a scenario (AI)",
-        icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
-        variant: "secondary",
-        onClick: () => setScenarioOpen(true),
-      },
-      {
-        id: "scaffold-from-rule",
-        label: "Scaffold from a rule (AI)",
-        icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
-        variant: "secondary",
-        onClick: () => setScaffoldOpen(true),
-      },
-      {
         id: "build-patient",
-        label: "Build a patient",
+        label: "Build a test patient",
         icon: <AddIcon fontSize="small" />,
-        variant: "secondary",
+        variant: "primary",
         onClick: () => setBuildOpen(true),
       },
       {
         id: "copy-from-real",
         label: "Copy from a real patient",
         icon: <FileCopyOutlinedIcon fontSize="small" />,
-        variant: "primary",
         onClick: () => setCopyOpen(true),
+      },
+      {
+        id: "scaffold-from-rule",
+        label: "Scaffold from a rule (AI)",
+        icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
+        onClick: () => setScaffoldOpen(true),
+      },
+      {
+        id: "scaffold-from-scenario",
+        label: "Author from a scenario (AI)",
+        icon: <AutoAwesomeOutlinedIcon fontSize="small" />,
+        onClick: () => setScenarioOpen(true),
       },
     ],
     [],
@@ -761,11 +763,7 @@ export default function TestPatientLibraryKnowledgeTab() {
       </Box>
 
       {showsTriageFilter(aspect) ? (
-        <Box
-          sx={{ mb: 2 }}
-          role="group"
-          aria-label="Filter SBAR test patients by triage outcome"
-        >
+        <Box sx={{ mb: 2 }} data-testid="triage-filter-bar">
           <Typography
             variant="caption"
             color="text.secondary"
@@ -774,23 +772,23 @@ export default function TestPatientLibraryKnowledgeTab() {
             Triage outcome -- what the SBAR should recommend.
             NICE NG12 suspected-cancer fixtures sit under 2 week wait.
           </Typography>
-          <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap" }}>
+          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
             {TRIAGE_OUTCOME_VALUES.map((value) => {
-              const selected = triageOutcome === value;
               const count =
                 value === "all"
                   ? Object.values(triageCounts).reduce((a, b) => a + b, 0)
                   : triageCounts[value] ?? 0;
+              const active = triageOutcome === value;
               return (
-                <Tooltip key={value} title={TRIAGE_OUTCOME_HINT[value]} arrow>
+                <Tooltip key={value} title={TRIAGE_OUTCOME_HINT[value] ?? ""} arrow>
                   <Chip
-                    label={`${TRIAGE_OUTCOME_LABEL[value]} (${count})`}
                     size="small"
-                    variant={selected ? "filled" : "outlined"}
-                    color={selected ? "primary" : "default"}
-                    onClick={() => setTriageOutcome(value)}
-                    aria-pressed={selected}
                     data-testid={`triage-chip-${value}`}
+                    label={`${TRIAGE_OUTCOME_LABEL[value]} (${count})`}
+                    onClick={() => setTriageOutcome(value)}
+                    variant={active ? "filled" : "outlined"}
+                    color={active ? "primary" : "default"}
+                    aria-pressed={active}
                   />
                 </Tooltip>
               );
@@ -914,16 +912,7 @@ export default function TestPatientLibraryKnowledgeTab() {
       </Stack>
 
       {loading ? (
-        <Stack alignItems="center" sx={{ pt: 6 }}>
-          <CircularProgress size={28} />
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ mt: 1 }}
-          >
-            Loading test patients...
-          </Typography>
-        </Stack>
+        <SkeletonList rows={5} />
       ) : (
         <DataGridCard<TestPatientRow>
           columns={columns}
@@ -994,6 +983,89 @@ export default function TestPatientLibraryKnowledgeTab() {
         rules={rulesLookup}
         mode="live"
       />
+
+      {/* Add test patient drawer (Wave E: single entry point with 4 creation modes) */}
+      <Drawer
+        anchor="right"
+        open={addDrawerOpen}
+        onClose={() => setAddDrawerOpen(false)}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 480 }, p: 3 } }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+          Add test patient
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Choose how you want to create a new test patient.
+        </Typography>
+        <SegmentedTabs
+          tabs={[
+            { id: "build", label: "Build by hand" },
+            { id: "copy", label: "Copy from real" },
+            { id: "rule", label: "Scaffold (AI)" },
+            { id: "scenario", label: "Scenario (AI)" },
+          ]}
+          value={addDrawerTab}
+          onChange={setAddDrawerTab}
+          aria-label="Test patient creation mode"
+        />
+        <Box sx={{ mt: 2.5 }}>
+          {addDrawerTab === "build" && (
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                Build a test patient by hand. Specify demographics, conditions, and expected results.
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => { setAddDrawerOpen(false); setBuildOpen(true); }}
+              >
+                Build a patient
+              </Button>
+            </Box>
+          )}
+          {addDrawerTab === "copy" && (
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                Copy a de-identified real patient record into the test library.
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => { setAddDrawerOpen(false); setCopyOpen(true); }}
+              >
+                Copy from a real patient
+              </Button>
+            </Box>
+          )}
+          {addDrawerTab === "rule" && (
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                Let the AI scaffold a patient from a clinical guideline rule.
+                Useful for quickly covering edge cases in rule-firing logic.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AutoAwesomeOutlinedIcon />}
+                onClick={() => { setAddDrawerOpen(false); setScaffoldOpen(true); }}
+              >
+                Scaffold from a rule
+              </Button>
+            </Box>
+          )}
+          {addDrawerTab === "scenario" && (
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1.5 }}>
+                Describe a clinical scenario in plain English. The AI will generate a matching test patient.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AutoAwesomeOutlinedIcon />}
+                onClick={() => { setAddDrawerOpen(false); setScenarioOpen(true); }}
+              >
+                Author from a scenario
+              </Button>
+            </Box>
+          )}
+        </Box>
+      </Drawer>
     </Box>
   );
 }

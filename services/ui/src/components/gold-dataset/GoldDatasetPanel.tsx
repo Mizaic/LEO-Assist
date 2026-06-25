@@ -102,6 +102,10 @@ import SnomedInlineSearch from "@/components/gold-dataset/SnomedInlineSearch";
 import useKeyboardShortcuts from "@/components/gold-dataset/useKeyboardShortcuts";
 import type { RejectedRelation, SimilarCandidateItem } from "@/components/gold-dataset/goldDatasetTypes";
 import { entityLabelColour } from "@/components/gold-dataset/goldDatasetUtils";
+import { TrainingDataStats } from "@/components/gold-dataset/TrainingDataStats";
+import { CandidatesTab } from "@/components/gold-dataset/CandidatesTab";
+import { GoldTab } from "@/components/gold-dataset/GoldTab";
+import { SyntheticTab } from "@/components/gold-dataset/SyntheticTab";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -4123,36 +4127,35 @@ export default function GoldDatasetPanel() {
   return (
     <Box sx={{ py: 2, px: 2 }}>
 
-      {/* Header + toolbar (Wave E Phase 2) */}
+      {/* Toolbar (Wave E: PageHero provides the h6 title; export demoted to secondary) */}
       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2, flexWrap: "wrap" }}>
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>Training data review</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, fontSize: "0.82rem" }}>
             Check each sentence, fix any wrong codes, then mark it as gold.
           </Typography>
-          {annotationGuidelinesError && (
+          {annotationGuidelinesError ? (
             <Typography variant="caption" color="warning.main" sx={{ display: "block", mt: 0.5 }}>
               Annotation guide unavailable: {annotationGuidelinesError}
             </Typography>
-          )}
+          ) : null}
         </Box>
         <ToolbarActions
           actions={(() => {
-            const items: ToolbarAction[] = [];
+            const tbActions: ToolbarAction[] = [];
             if (tab === "candidates") {
-              items.push({
+              tbActions.push({
                 id: "ai-first-pass",
                 label: "AI first-pass",
                 variant: "primary",
                 onClick: () => setAiFirstPassDialogOpen(true),
               });
-              items.push({
+              tbActions.push({
                 id: "auto-prune",
                 label: "Auto-prune low confidence",
                 variant: "secondary",
                 onClick: () => setPruneDialogOpen(true),
               });
-              items.push({
+              tbActions.push({
                 id: "deduplicate",
                 label: "Deduplicate similar",
                 variant: "secondary",
@@ -4163,15 +4166,15 @@ export default function GoldDatasetPanel() {
                 },
               });
             }
-            items.push({
+            tbActions.push({
               id: "export",
               label: "Export training data",
-              variant: "primary",
+              variant: "secondary",
               loading: exporting,
               disabled: exporting || !goldStats || goldStats.total === 0,
               onClick: handleExport,
             });
-            return items;
+            return tbActions;
           })()}
         />
       </Box>
@@ -4182,72 +4185,16 @@ export default function GoldDatasetPanel() {
         </Box>
       )}
 
-      {/* Stats row (design-system StatHero with framer-motion stagger) */}
-      {statsError && <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setStatsError(null)}>{statsError}</Alert>}
-      {statsLoading ? (
-        <Stack direction="row" spacing={1.25} sx={{ mb: 1.5 }} flexWrap="wrap" useFlexGap>
-          {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} variant="rounded" width={160} height={96} />)}
-        </Stack>
-      ) : (() => {
-        const stats: DsStatTile[] = [
-          { id: "received", label: "Received", value: candidateStats?.total ?? 0 },
-          {
-            id: "ready",
-            label: "Ready for training",
-            value: goldStats?.total ?? 0,
-            tone: "positive",
-          },
-          {
-            id: "failed",
-            label: "Failed",
-            value: candidateStats?.failed ?? 0,
-            tone: (candidateStats?.failed ?? 0) > 0 ? "danger" : "neutral",
-          },
-          {
-            id: "verified",
-            label: "Verified gold",
-            value: goldStats?.total ?? 0,
-          },
-          {
-            id: "synthetic",
-            label: "Synthetic gold",
-            value: syntheticStats?.synthetic_gold_labels ?? 0,
-          },
-          {
-            id: "quality",
-            label: "Avg quality",
-            value:
-              goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
-                ? `${Math.round((goldStats.avg_quality_score ?? 0) * 100)}%`
-                : "-",
-            hint:
-              goldStats && goldStats.total > 0 ? `${goldStats.high_quality} high quality` : undefined,
-            tone:
-              goldStats?.avg_quality_score !== null && goldStats?.avg_quality_score !== undefined
-                ? goldStats.avg_quality_score >= 0.8
-                  ? "positive"
-                  : goldStats.avg_quality_score >= 0.5
-                    ? "warning"
-                    : "danger"
-                : "neutral",
-          },
-        ];
-        return <StatHero stats={stats} maxTiles={6} />;
-      })()}
-
-      {/* Progress strip (design-system ProgressStrip) */}
-      {!statsLoading && tab === "candidates" && candidateStats && candidateStats.total > candidateStats.completed && (
-        <Box sx={{ mb: 1.5 }}>
-          <ProgressStrip
-            label={`${candidateStats.total - candidateStats.completed} item${
-              candidateStats.total - candidateStats.completed !== 1 ? "s" : ""
-            } left to review`}
-            value={candidateStats.completed}
-            total={candidateStats.total}
-            tone="positive"
-          />
-        </Box>
-      )}
+      {/* Stats + progress (extracted to TrainingDataStats component) */}
+      <TrainingDataStats
+        candidateStats={candidateStats}
+        goldStats={goldStats}
+        syntheticStats={syntheticStats}
+        statsLoading={statsLoading}
+        statsError={statsError}
+        onDismissError={() => setStatsError(null)}
+        currentTab={tab}
+      />
 
       {exportMsg && <Alert severity="success" sx={{ mb: 1.5 }} onClose={() => setExportMsg(null)}>{exportMsg}</Alert>}
       {actionMsg && <Alert severity="success" sx={{ mb: 1.5 }} onClose={() => setActionMsg(null)}>{actionMsg}</Alert>}
@@ -4290,199 +4237,82 @@ export default function GoldDatasetPanel() {
         />
       </Box>
 
+      {/* Tab content (extracted to CandidatesTab / GoldTab / SyntheticTab) */}
+      {tab === "candidates" && (
+        <CandidatesTab
+          items={items as Candidate[]}
+          total={total}
+          listLoading={listLoading}
+          listError={listError}
+          onDismissError={() => setListError(null)}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          search={search}
+          debouncedSearch={debouncedSearch}
+          onSearchChange={setSearch}
+          findSimilarAfterGold={findSimilarAfterGold}
+          onFindSimilarChange={setFindSimilarAfterGold}
+          onOpen={(id) => void openCandidateLabelEditor(id)}
+          onMarkGold={markCandidateAsGold}
+          onDelete={requestDeleteCandidate}
+          openingLabelId={openingCandidateLabelId}
+          markingGoldId={markingGoldCandidateId}
+          deletingId={deletingCandidateId}
+        />
+      )}
       {tab === "gold" && (
-        <DatasetHealthPanel
-          refreshKey={healthRefreshKey}
-          activeLabel={entityLabelFilter}
-          onLabelFilter={(label) => {
-            setEntityLabelFilter(label);
-            setPage(1);
-          }}
+        <GoldTab
+          items={items as GoldLabel[]}
+          total={total}
+          listLoading={listLoading}
+          listError={listError}
+          onDismissError={() => setListError(null)}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          search={search}
+          debouncedSearch={debouncedSearch}
+          onSearchChange={setSearch}
+          resettingLabelId={resettingLabelId}
+          healthRefreshKey={healthRefreshKey}
+          entityLabelFilter={entityLabelFilter}
+          onLabelFilter={(label) => { setEntityLabelFilter(label); setPage(1); }}
+          onOpen={(item) => setSelectedItem(item)}
+          onReset={(item) => requestDeleteGoldLabel(item)}
           onOpenLabel={(labelId) => {
-            // Try the in-memory list first; fall back to a direct API fetch
-            // so records on other pages (or not yet loaded) still open.
             const inMemory = items.find(
               (it): it is GoldLabel => "label_id" in it && it.label_id === labelId,
             );
-            if (inMemory) {
-              setSelectedItem(inMemory);
-              return;
-            }
+            if (inMemory) { setSelectedItem(inMemory); return; }
             fetchGoldLabel(labelId)
               .then((rec) => setSelectedItem(rec as unknown as GoldLabel))
-              .catch(() => {/* silently ignore -- label may have been deleted */});
+              .catch(() => undefined);
           }}
         />
       )}
-
-      {tab === "synthetic" && syntheticStats && (
-        <Card variant="outlined" sx={{ mb: 2 }}>
-          <CardContent sx={{ py: 1.5 }}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }} justifyContent="space-between">
-              <Box sx={{ width: "100%" }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Surface-form coverage: {syntheticStats.covered_surface_forms.toLocaleString()} / {syntheticStats.total_surface_forms.toLocaleString()}
-                </Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={syntheticStats.total_surface_forms > 0 ? (syntheticStats.covered_surface_forms / syntheticStats.total_surface_forms) * 100 : 0}
-                  sx={{ mt: 1, height: 8, borderRadius: 1 }}
-                />
-                <Stack direction="row" spacing={0.75} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
-                  {syntheticStats.tag_breakdown.slice(0, 6).map((row) => (
-                    <Chip
-                      key={row.semantic_tag}
-                      size="small"
-                      label={`${row.semantic_tag}: ${row.covered_surface_forms}`}
-                      variant="outlined"
-                    />
-                  ))}
-                </Stack>
-              </Box>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={generatingSynthetic ? <CircularProgress size={14} color="inherit" /> : <SyncIcon />}
-                onClick={() => setSyntheticDialogOpen(true)}
-                disabled={generatingSynthetic}
-                size="small"
-              >
-                Generate synthetic
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={purgingSynthetic ? <CircularProgress size={14} color="inherit" /> : <DeleteOutlineIcon />}
-                onClick={handleDeleteSyntheticSet}
-                disabled={purgingSynthetic}
-                size="small"
-              >
-                Delete synthetic set
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Search */}
-      <TextField
-        size="small"
-        placeholder={
-          tab === "candidates"
-            ? "Search by sentence text..."
-            : tab === "synthetic"
-              ? "Search synthetic examples..."
-              : "Search verified examples..."
-        }
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        fullWidth
-        sx={{
-          mb: 1.25,
-          "& .MuiOutlinedInput-root": {
-            borderRadius: 1.5,
-            bgcolor: "background.paper",
-          },
-        }}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.disabled" }} />
-              </InputAdornment>
-            ),
-            endAdornment: search ? (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={() => setSearch("")} edge="end">
-                  <CloseIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </InputAdornment>
-            ) : undefined,
-          },
-        }}
-      />
-      {tab === "candidates" && (
-        <FormControlLabel
-          control={
-            <Switch
-              checked={findSimilarAfterGold}
-              onChange={(event) => setFindSimilarAfterGold(event.target.checked)}
-              inputProps={{
-                "aria-label": "Look for similar candidates after accepting",
-              }}
-            />
-          }
-          label={
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                Look for similar candidates after accepting
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Off by default. Turn this on to review matching candidates before moving on.
-              </Typography>
-            </Box>
-          }
-          sx={{ mb: 1.25, alignItems: "flex-start" }}
+      {tab === "synthetic" && (
+        <SyntheticTab
+          items={items as GoldLabel[]}
+          syntheticStats={syntheticStats}
+          total={total}
+          listLoading={listLoading}
+          listError={listError}
+          onDismissError={() => setListError(null)}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          search={search}
+          debouncedSearch={debouncedSearch}
+          onSearchChange={setSearch}
+          generatingSynthetic={generatingSynthetic}
+          purgingSynthetic={purgingSynthetic}
+          onOpenGenerate={() => setSyntheticDialogOpen(true)}
+          onDeleteSet={handleDeleteSyntheticSet}
+          resettingLabelId={resettingLabelId}
+          onOpen={(item) => setSelectedItem(item)}
+          onReset={(item) => requestDeleteGoldLabel(item)}
         />
-      )}
-
-      {/* List */}
-      {listError && <Alert severity="error" sx={{ mb: 1.25 }} onClose={() => setListError(null)}>{listError}</Alert>}
-
-      {listLoading ? (
-        <SkeletonList />
-      ) : items.length === 0 ? (
-        <Box sx={{ py: 4, textAlign: "center" }}>
-          <Typography color="text.secondary" variant="body2">
-            {debouncedSearch
-              ? `Nothing matches "${debouncedSearch}". Try different words.`
-              : tab === "candidates"
-                ? "No sentences to review yet. Run the pipeline to get started."
-                : tab === "synthetic"
-                  ? "No synthetic examples yet. Use the button above to create some."
-                  : "No verified examples yet. Mark sentences as gold and they will show up here."}
-          </Typography>
-        </Box>
-      ) : (
-        <>
-          {tab === "candidates"
-            ? (
-                <CandidateReviewList
-                  items={items as Candidate[]}
-                  onOpen={(id) => void openCandidateLabelEditor(id)}
-                  onMarkGold={markCandidateAsGold}
-                  onDelete={requestDeleteCandidate}
-                  openingLabelId={openingCandidateLabelId}
-                  markingGoldId={markingGoldCandidateId}
-                  deletingId={deletingCandidateId}
-                  search={debouncedSearch}
-                />
-              )
-            : (
-                <GoldLabelReviewList
-                  items={(items as GoldLabel[]).filter((item) => item.label_id)}
-                  onOpen={(item) => setSelectedItem(item)}
-                  onReset={(item) => requestDeleteGoldLabel(item)}
-                  resettingLabelId={resettingLabelId}
-                  search={debouncedSearch}
-                />
-              )
-          }
-          {totalPages > 1 && (
-            <Stack alignItems="center" sx={{ mt: 2 }}>
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, p) => setPage(p)}
-                color="primary"
-                size="small"
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-                {total.toLocaleString()} total · page {page} of {totalPages}
-              </Typography>
-            </Stack>
-          )}
-        </>
       )}
 
       {/* Detail dialog */}
