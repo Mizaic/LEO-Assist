@@ -12,7 +12,7 @@ export async function blockRun(
   reason: string,
 ): Promise<never> {
   await recordStep(request, runId, 0, step, "blocked", reason);
-  await completeBlockedRun(request, runId, {
+  return completeBlockedRun(request, runId, {
     summary: reason,
     failureReason: reason,
   });

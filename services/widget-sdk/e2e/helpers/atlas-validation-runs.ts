@@ -33,6 +33,8 @@ type EvidenceOptions = {
   fileName?: string;
   contentType?: string;
 };
+type MultipartFile = { name: string; mimeType: string; buffer: Buffer };
+type MultipartValue = string | number | boolean | MultipartFile;
 
 const REQUIRED_ENV = [
   "ATLAS_VALIDATION_RUNS_BASE_URL",
@@ -145,22 +147,25 @@ export async function uploadEvidence(
 
   const contentType = options.contentType ?? "image/png";
   const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const multipart: Record<string, MultipartValue> = {
+    file: {
+      name: fileName,
+      mimeType: contentType,
+      buffer: bytes,
+    },
+    content_type: contentType,
+    sha256,
+  };
+  if (caption) {
+    multipart.caption = caption;
+  }
 
   const response = await request.post(
     `${baseUrl()}/${runId}/steps/${stepIndex}/evidence`,
     {
       headers: authHeaders(),
       timeout: 60_000,
-      multipart: {
-        file: {
-          name: fileName,
-          mimeType: contentType,
-          buffer: bytes,
-        },
-        caption,
-        content_type: contentType,
-        sha256,
-      },
+      multipart,
     },
   );
 

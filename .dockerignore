@@ -31,7 +31,11 @@ ENV
 .python-version
 
 # Repo areas not copied into service images
-tests/
+tests/*
+!tests/fixtures/
+tests/fixtures/*
+!tests/fixtures/clinical_extraction_scenarios/
+!tests/fixtures/clinical_extraction_scenarios/**
 e2e/
 compliance/
 infra/
