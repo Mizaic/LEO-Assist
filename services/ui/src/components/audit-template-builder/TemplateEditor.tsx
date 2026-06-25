@@ -23,9 +23,12 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import {
   createTemplate,
   updateTemplate,
+  fetchMetricCatalogue,
   type AuditTemplate,
   type AuditTile,
   type MetricCatalogueEntry,
+  type TileType,
+  type WidgetCatalogueEntry,
 } from "@/lib/auditTemplateApi";
 import { useOrg } from "@/context/OrgContext";
 import MetricPicker from "./MetricPicker";
@@ -39,14 +42,15 @@ interface TemplateEditorProps {
   initial?: AuditTemplate;
 }
 
-function newTile(metric: MetricCatalogueEntry, index: number): AuditTile {
+function newTile(metric: MetricCatalogueEntry, index: number, tileType?: TileType): AuditTile {
   const col = (index % 3) * 4;
   return {
     tile_id: `tile-${Date.now()}-${index}`,
     label: metric.title,
-    tile_type: metric.output_type as AuditTile["tile_type"],
+    tile_type: (tileType ?? metric.output_type) as AuditTile["tile_type"],
     metric_id: metric.metric_id,
     param_overrides: {},
+    section: undefined,
     layout: { x: col, y: Math.floor(index / 3) * 3, w: 4, h: 3 },
   };
 }
@@ -65,6 +69,24 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
   const [previewOrgId, setPreviewOrgId] = useState<string>("");
   const [assistantOpen, setAssistantOpen] = useState(false);
 
+  // Catalogue is loaded once here and shared with MetricPicker + TileConfigPanel
+  // so we avoid two separate fetches and can derive tile compatibility.
+  const [catalogue, setCatalogue] = useState<MetricCatalogueEntry[]>([]);
+  const [catalogueLoading, setCatalogueLoading] = useState(true);
+  const [catalogueError, setCatalogueError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchMetricCatalogue()
+      .then(setCatalogue)
+      .catch((e) => setCatalogueError(e instanceof Error ? e.message : "Failed to load metrics"))
+      .finally(() => setCatalogueLoading(false));
+  }, []);
+
+  const catalogueById = useMemo(
+    () => new Map(catalogue.map((m) => [m.metric_id, m])),
+    [catalogue],
+  );
+
   // Default to first available org when orgs load in.
   useEffect(() => {
     if (!previewOrgId && organizations.length > 0) {
@@ -77,11 +99,28 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
   const selectedTile = tiles.find((t) => t.tile_id === selectedId) ?? null;
 
   const handleAddMetric = useCallback(
-    (metric: MetricCatalogueEntry) => {
-      setTiles((prev) => [...prev, newTile(metric, prev.length)]);
+    (metric: MetricCatalogueEntry, tileType: TileType) => {
+      setTiles((prev) => [...prev, newTile(metric, prev.length, tileType)]);
     },
     []
   );
+
+  const handleAddWidget = useCallback((widget: WidgetCatalogueEntry) => {
+    setTiles((prev) => {
+      const index = prev.length;
+      const col = (index % 2) * 6;
+      const entry: AuditTile = {
+        tile_id: `tile-widget-${Date.now()}-${index}`,
+        label: widget.title,
+        tile_type: "widget",
+        metric_id: widget.widget_id,
+        param_overrides: {},
+        section: undefined,
+        layout: { x: col, y: Math.floor(index / 2) * 5, w: 12, h: 5 },
+      };
+      return [...prev, entry];
+    });
+  }, []);
 
   const handleRemoveTile = useCallback((id: string) => {
     setTiles((prev) => prev.filter((t) => t.tile_id !== id));
@@ -234,7 +273,14 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
                 overflowY: "auto",
               }}
             >
-              <MetricPicker onAdd={handleAddMetric} usedMetricIds={usedMetricIds} />
+              <MetricPicker
+                onAdd={handleAddMetric}
+                onAddWidget={handleAddWidget}
+                usedMetricIds={usedMetricIds}
+                catalogue={catalogue}
+                loading={catalogueLoading}
+                error={catalogueError}
+              />
             </Box>
 
             {/* Tile grid */}
@@ -261,7 +307,17 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
                   overflowY: "auto",
                 }}
               >
-                <TileConfigPanel tile={selectedTile} onChange={handleTileChange} />
+                <TileConfigPanel
+                  tile={selectedTile}
+                  compatibleTypes={
+                    catalogueById.get(selectedTile.metric_id)?.compatible_tile_types
+                  }
+                  recommendedType={
+                    catalogueById.get(selectedTile.metric_id)?.output_type as TileType | undefined
+                  }
+                  onChange={handleTileChange}
+                  onRemove={handleRemoveTile}
+                />
               </Box>
             )}
           </>

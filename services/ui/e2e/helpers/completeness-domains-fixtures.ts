@@ -2,7 +2,7 @@
  * Shared Playwright fixtures for completeness domain configuration tests.
  */
 
-import { type Page, type Route } from "@playwright/test";
+import { type Page } from "@playwright/test";
 import { fulfillJson } from "./surface-forms-fixtures";
 
 export const DOMAIN_ID = "test_domain";
@@ -16,6 +16,7 @@ export function domainDetailPayload() {
     subdomain_count: 1,
     source: "tenant",
     episode_detector: false,
+    use_cases: ["completeness"],
     subdomains: [
       {
         name: SUBDOMAIN,
@@ -25,6 +26,7 @@ export function domainDetailPayload() {
         semantic_tags: ["disorder"],
         assertion_filter: [],
         constructs: [],
+        use_cases: ["completeness"],
         completeness_schema: [
           {
             name: "Diagnosis present",
@@ -50,6 +52,7 @@ export function subdomainDetailPayload() {
     semantic_tags: ["disorder"],
     assertion_filter: [],
     constructs: [],
+    use_cases: ["completeness"],
     completeness_schema: [
       {
         name: "Diagnosis present",
@@ -101,6 +104,19 @@ export async function stubCompletenessDomainRoutes(page: Page) {
     fulfillJson(route, ["disorder", "finding", "observable_entity"]),
   );
 
+  await page.route("**/api/proxy/analytics/domains/use-cases", (route) =>
+    fulfillJson(route, [
+      { value: "extraction", label: "Targeted extraction" },
+      { value: "completeness", label: "Minimum dataset" },
+      { value: "analytics", label: "Population health analytics" },
+      { value: "episode_detection", label: "Episode detection" },
+    ]),
+  );
+
+  await page.route("**/api/proxy/analytics/benchmarks/keys", (route) =>
+    fulfillJson(route, ["prevalence_hypertension", "prevalence_diabetes", "qof_indicator_dm006"]),
+  );
+
   await page.route("**/api/terminology/search?**", (route) => {
     const url = new URL(route.request().url());
     const q = (url.searchParams.get("q") ?? "").toLowerCase();
@@ -126,6 +142,16 @@ export async function stubCompletenessDomainRoutes(page: Page) {
   await page.route(
     `**/api/proxy/analytics/domains/${DOMAIN_ID}/subdomains/${SUBDOMAIN}`,
     (route) => fulfillJson(route, subdomainDetailPayload()),
+  );
+
+  await page.route(
+    `**/api/proxy/analytics/domains/${DOMAIN_ID}/subdomains/${SUBDOMAIN}/schema`,
+    (route) => {
+      if (route.request().method() === "PUT") {
+        return fulfillJson(route, { groups: [] });
+      }
+      return route.continue();
+    },
   );
 }
 

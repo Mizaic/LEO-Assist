@@ -20,15 +20,18 @@ import NumbersIcon from "@mui/icons-material/Numbers";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
 import { type AuditTile, type TileType } from "@/lib/auditTemplateApi";
 
-const TILE_ICONS: Record<TileType, React.ElementType> = {
-  bar_chart: BarChartIcon,
-  line_chart: ShowChartIcon,
-  kpi_strip: NumbersIcon,
-  table: TableChartOutlinedIcon,
-  interval_plot: TimelineIcon,
-  text: TextFieldsIcon,
+const TILE_META: Record<TileType, { Icon: React.ElementType; colour: string; label: string }> = {
+  bar_chart:     { Icon: BarChartIcon,             colour: "#1E40AF", label: "Bar chart" },
+  line_chart:    { Icon: ShowChartIcon,            colour: "#047857", label: "Line chart" },
+  kpi_strip:     { Icon: NumbersIcon,              colour: "#7C3AED", label: "KPI strip" },
+  table:         { Icon: TableChartOutlinedIcon,   colour: "#0E7490", label: "Table" },
+  interval_plot: { Icon: TimelineIcon,             colour: "#B45309", label: "Interval plot" },
+  text:          { Icon: TextFieldsIcon,           colour: "#475569", label: "Text" },
+  widget:        { Icon: WidgetsOutlinedIcon,      colour: "#B45309", label: "Widget" },
 };
 
 interface TileGridProps {
@@ -43,6 +46,125 @@ interface TileGridProps {
 function tileToLayoutItem(t: AuditTile): LayoutItem {
   const l = t.layout ?? { x: 0, y: 0, w: 4, h: 2 };
   return { i: t.tile_id, x: l.x, y: l.y, w: l.w, h: l.h };
+}
+
+function TilePreviewBody({ type }: { type: TileType }) {
+  const { colour } = TILE_META[type] ?? TILE_META.bar_chart;
+
+  if (type === "kpi_strip") {
+    return (
+      <Box sx={{ display: "flex", gap: 1, px: 1.5, pb: 1, pt: 0.5 }}>
+        {[48, 38, 56].map((w, i) => (
+          <Box
+            key={i}
+            sx={{
+              flex: 1,
+              height: 36,
+              borderRadius: 1,
+              bgcolor: `${colour}14`,
+              border: `1px solid ${colour}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Box sx={{ width: w, height: 10, borderRadius: 0.5, bgcolor: `${colour}50` }} />
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+
+  if (type === "table") {
+    return (
+      <Box sx={{ px: 1.5, pb: 1, pt: 0.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
+        <Box sx={{ height: 8, borderRadius: 0.5, bgcolor: `${colour}30`, width: "100%" }} />
+        {[0, 1, 2].map((i) => (
+          <Box key={i} sx={{ height: 6, borderRadius: 0.5, bgcolor: `${colour}15`, width: `${85 - i * 10}%` }} />
+        ))}
+      </Box>
+    );
+  }
+
+  if (type === "line_chart") {
+    return (
+      <Box sx={{ px: 1.5, pb: 1, pt: 0.5 }}>
+        <svg width="100%" height={44} viewBox="0 0 120 44" preserveAspectRatio="none">
+          <polyline
+            points="0,36 20,28 40,32 60,14 80,20 100,10 120,16"
+            fill="none"
+            stroke={colour}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.7}
+          />
+          <polyline
+            points="0,36 20,28 40,32 60,14 80,20 100,10 120,16"
+            fill={`${colour}15`}
+            stroke="none"
+          />
+        </svg>
+      </Box>
+    );
+  }
+
+  if (type === "interval_plot") {
+    return (
+      <Box sx={{ px: 1.5, pb: 1, pt: 0.5, display: "flex", flexDirection: "column", gap: 0.75 }}>
+        {[60, 80, 45, 70].map((w, i) => (
+          <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: colour, opacity: 0.7 }} />
+            <Box sx={{ height: 4, borderRadius: 2, width: `${w}%`, bgcolor: `${colour}40` }} />
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+
+  if (type === "widget") {
+    return (
+      <Box
+        sx={{
+          px: 1.5,
+          pb: 1,
+          pt: 0.5,
+          display: "grid",
+          gridTemplateColumns: "repeat(5, 1fr)",
+          gridTemplateRows: "repeat(3, 1fr)",
+          gap: 0.4,
+          height: 52,
+        }}
+      >
+        {Array.from({ length: 15 }).map((_, i) => (
+          <Box
+            key={i}
+            sx={{
+              borderRadius: 0.5,
+              bgcolor: `${colour}${20 + (i % 5) * 14}`,
+            }}
+          />
+        ))}
+      </Box>
+    );
+  }
+
+  // bar_chart + text
+  return (
+    <Box sx={{ display: "flex", alignItems: "flex-end", gap: 0.5, px: 1.5, pb: 1, pt: 0.5, height: 50 }}>
+      {[60, 80, 45, 90, 55, 70].map((h, i) => (
+        <Box
+          key={i}
+          sx={{
+            flex: 1,
+            borderRadius: "2px 2px 0 0",
+            height: `${h}%`,
+            bgcolor: i === 3 ? colour : `${colour}50`,
+          }}
+        />
+      ))}
+    </Box>
+  );
 }
 
 export default function TileGrid({
@@ -107,7 +229,8 @@ export default function TileGrid({
       style={{ minHeight: 400 }}
     >
       {tiles.map((tile) => {
-        const Icon = TILE_ICONS[tile.tile_type] ?? BarChartIcon;
+        const meta = TILE_META[tile.tile_type] ?? TILE_META.bar_chart;
+        const { Icon, colour, label } = meta;
         const isSelected = tile.tile_id === selectedId;
         return (
           <Box
@@ -115,58 +238,88 @@ export default function TileGrid({
             onClick={() => onSelect(tile.tile_id)}
             sx={{
               border: "2px solid",
-              borderColor: isSelected ? "primary.main" : "divider",
+              borderColor: isSelected ? colour : "divider",
               borderRadius: 1.5,
               bgcolor: "background.paper",
               overflow: "hidden",
               cursor: "pointer",
               display: "flex",
               flexDirection: "column",
+              position: "relative",
+              transition: "border-color 120ms ease-out, box-shadow 120ms ease-out",
+              boxShadow: isSelected ? `0 0 0 3px ${colour}25` : "none",
             }}
           >
+            {/* Colour accent strip */}
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 3,
+                background: colour,
+              }}
+            />
+
+            {/* Tile header / drag handle */}
             <Box
               data-grid-drag-handle
               sx={{
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
                 px: 1,
+                pl: 1.5,
                 py: 0.5,
-                bgcolor: isSelected ? "primary.50" : "grey.50",
                 borderBottom: "1px solid",
                 borderColor: "divider",
                 cursor: "grab",
-                gap: 1,
+                gap: 0.5,
+                bgcolor: isSelected ? `${colour}0A` : "grey.50",
               }}
             >
-              <Icon sx={{ fontSize: 14, color: "text.secondary" }} />
-              <Typography variant="caption" fontWeight={600} flex={1} noWrap>
+              <DragIndicatorIcon sx={{ fontSize: 12, color: "text.disabled", flexShrink: 0 }} />
+              <Icon sx={{ fontSize: 13, color: colour, flexShrink: 0 }} />
+              <Typography variant="caption" fontWeight={600} flex={1} noWrap sx={{ color: "text.primary", ml: 0.25 }}>
                 {tile.label}
+              </Typography>
+              <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, flexShrink: 0, mr: 0.5 }}>
+                {label}
               </Typography>
               <Tooltip title="Remove tile">
                 <IconButton
                   size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove(tile.tile_id);
-                  }}
-                  sx={{ p: 0.25 }}
+                  onClick={(e) => { e.stopPropagation(); onRemove(tile.tile_id); }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  aria-label={`Remove ${tile.label}`}
+                  sx={{ p: 0.25, color: "text.disabled", "&:hover": { color: "error.main" } }}
                 >
                   <DeleteOutlineIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Tooltip>
             </Box>
-            <Box
-              sx={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "text.disabled",
-              }}
-            >
-              <Typography variant="caption">{tile.tile_type}</Typography>
+
+            {/* Mini preview */}
+            <Box sx={{ flex: 1, overflow: "hidden" }}>
+              <TilePreviewBody type={tile.tile_type} />
             </Box>
+
+            {/* Section badge */}
+            {tile.section && (
+              <Box
+                sx={{
+                  px: 1,
+                  pb: 0.5,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Typography variant="caption" sx={{ fontSize: 9, color: "text.disabled", fontStyle: "italic" }}>
+                  {tile.section}
+                </Typography>
+              </Box>
+            )}
           </Box>
         );
       })}

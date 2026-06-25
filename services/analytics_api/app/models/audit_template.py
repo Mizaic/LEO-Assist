@@ -24,6 +24,7 @@ TileType = Literal[
     "table",
     "interval_plot",
     "text",
+    "widget",
 ]
 
 # ---------------------------------------------------------------------------
@@ -53,6 +54,11 @@ class AuditTileBase(BaseModel):
     param_overrides: dict[str, Any] = Field(
         default_factory=dict,
         description="Caller-configurable param values for the metric param_schema",
+    )
+    section: Optional[str] = Field(
+        None,
+        max_length=120,
+        description="Optional section heading to group tiles visually",
     )
     layout: TileLayout
 
@@ -127,6 +133,13 @@ class MetricRunRequest(BaseModel):
     params: dict[str, Any] = Field(
         default_factory=dict,
         description="Caller-supplied param values to merge with the metric defaults",
+    )
+    preview_org_id: Optional[str] = Field(
+        None,
+        description=(
+            "Admin-only: scope the metric to this specific org for preview. "
+            "Ignored for non-admin callers."
+        ),
     )
 
 

@@ -53,6 +53,25 @@ _EPISODE_ACTIVE = EPISODE_ACTIVE
 METRIC_REGISTRY: list[dict[str, Any]] = CORE_METRICS + EXTENDED_METRICS
 
 # ---------------------------------------------------------------------------
+# Compatible tile-type mapping
+# Derived from output_type -- no need to annotate each of the 32 metrics.
+# "table" and "text" are universal fallbacks for every output shape.
+# ---------------------------------------------------------------------------
+
+_COMPATIBLE_TILE_TYPES: dict[str, list[str]] = {
+    "kpi_strip":     ["kpi_strip", "table", "text"],
+    "bar_chart":     ["bar_chart", "line_chart", "table", "text"],
+    "line_chart":    ["line_chart", "bar_chart", "table", "text"],
+    "interval_plot": ["interval_plot", "bar_chart", "table", "text"],
+    "table":         ["table", "text"],
+    "text":          ["text", "table"],
+}
+
+_ALL_TILE_TYPES = [
+    "bar_chart", "line_chart", "kpi_strip", "table", "interval_plot", "text"
+]
+
+# ---------------------------------------------------------------------------
 # Lookup helpers
 # ---------------------------------------------------------------------------
 
@@ -74,6 +93,9 @@ def get_catalogue() -> list[dict[str, Any]]:
             "output_type": m["output_type"],
             "param_schema": m["param_schema"],
             "output_schema": m["output_schema"],
+            "compatible_tile_types": _COMPATIBLE_TILE_TYPES.get(
+                m["output_type"], _ALL_TILE_TYPES
+            ),
         }
         for m in METRIC_REGISTRY
     ]

@@ -22,7 +22,45 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 
-import type { DomainSummary } from "@/lib/analyticsApi";
+import type { DomainSummary, DomainUseCase } from "@/lib/analyticsApi";
+
+const USE_CASE_STYLES: Record<DomainUseCase, { label: string; bg: string; color: string; border: string }> = {
+  extraction: {
+    label: "Extraction",
+    bg: "#FFF7ED",
+    color: "#9A3412",
+    border: "#FED7AA",
+  },
+  completeness: {
+    label: "Minimum dataset",
+    bg: "#EEF2FF",
+    color: "#3730A3",
+    border: "#C7D2FE",
+  },
+  analytics: {
+    label: "Analytics",
+    bg: "#F0FDF4",
+    color: "#166534",
+    border: "#BBF7D0",
+  },
+  episode_detection: {
+    label: "Episode detection",
+    bg: "#F0F9FF",
+    color: "#0369A1",
+    border: "#BAE6FD",
+  },
+};
+
+function UseCaseChip({ value }: { value: DomainUseCase }) {
+  const s = USE_CASE_STYLES[value] ?? { label: value, bg: "#F1F5F9", color: "#475569", border: "#E2E8F0" };
+  return (
+    <Chip
+      label={s.label}
+      size="small"
+      sx={{ height: 22, fontSize: "0.7rem", bgcolor: s.bg, color: s.color, border: `1px solid ${s.border}`, flexShrink: 0 }}
+    />
+  );
+}
 
 export interface DomainCardProps {
   domain: DomainSummary;
@@ -45,6 +83,7 @@ export default function DomainCard({
   const isNice = domain.source === "nice";
   const isPlatform = domain.source === "platform";
   const accent = isNice ? "#2563EB" : isPlatform ? "#64748B" : "#16A34A";
+  const useCases: DomainUseCase[] = domain.use_cases ?? (domain.minimum_dataset_domain ? ["completeness"] : []);
 
   return (
     <fm.div
@@ -128,9 +167,7 @@ export default function DomainCard({
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {domain.minimum_dataset_domain ? (
-            <Chip label="Minimum dataset" size="small" sx={{ height: 22, fontSize: "0.7rem", bgcolor: "#EEF2FF", color: "#3730A3", border: "1px solid #C7D2FE", flexShrink: 0 }} />
-          ) : null}
+          {useCases.map((uc) => <UseCaseChip key={uc} value={uc} />)}
           {isNice ? (
             <Chip icon={<MenuBookOutlinedIcon sx={{ fontSize: 12 }} />} label="NICE" size="small" sx={{ height: 22, fontSize: "0.7rem", bgcolor: "#DBEAFE", color: "#1E40AF", border: "1px solid #BFDBFE", flexShrink: 0 }} />
           ) : isPlatform ? (
@@ -156,7 +193,6 @@ export default function DomainCard({
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem", fontWeight: 500 }}>
           {domain.subdomain_count} subdomain{domain.subdomain_count !== 1 ? "s" : ""}
-          {domain.minimum_dataset_domain ? ` - ${domain.minimum_dataset_subdomain_count ?? 0} minimum dataset` : ""}
         </Typography>
         <ChevronRightIcon sx={{ fontSize: 18, color: "#94A3B8" }} />
       </Box>

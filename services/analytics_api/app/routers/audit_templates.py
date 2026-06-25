@@ -205,7 +205,9 @@ def run_metric(
     """Execute a pre-configured metric with caller-supplied params.
 
     $scope_org_ids is injected server-side from the authenticated session.
-    Callers cannot override tenant scoping.
+    Admin callers may supply preview_org_id to scope the query to a specific
+    organisation for template preview purposes. Non-admin callers cannot
+    override tenant scoping.
     """
     metric = get_metric(metric_id)
     if not metric:
@@ -213,10 +215,16 @@ def run_metric(
 
     merged_params = _validate_metric_params(metric_id, body.params)
 
-    # Inject tenant scope server-side -- cannot be overridden by the caller.
+    # Admin preview: allow scoping to a specific org for template testing.
+    # Non-admin callers always get their own session's org list.
+    if body.preview_org_id and scope.is_admin:
+        scope_org_ids = [body.preview_org_id]
+    else:
+        scope_org_ids = scope.org_ids
+
     cypher_params: dict[str, Any] = {
         **merged_params,
-        "scope_org_ids": scope.org_ids,
+        "scope_org_ids": scope_org_ids,
     }
 
     client = PatientGraphClient()
@@ -287,6 +295,23 @@ def create_template(
     if not rows:
         raise HTTPException(status_code=500, detail="Failed to create template.")
 
+    return _row_to_template(rows[0])
+
+
+@router.get("/audit-templates/{template_id}")
+def get_template(
+    template_id: str,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> AuditTemplate:
+    """Fetch a single template by ID. Admin only."""
+    _require_admin(scope)
+    client = PatientGraphClient()
+    try:
+        rows = client.run(_GET_TEMPLATE, template_id=template_id)
+    finally:
+        client.close()
+    if not rows or not rows[0].get("t"):
+        raise HTTPException(status_code=404, detail="Template not found.")
     return _row_to_template(rows[0])
 
 

@@ -5,13 +5,12 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
+import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import TemplateEditor from "@/components/audit-template-builder/TemplateEditor";
-import { listTemplates, type AuditTemplate } from "@/lib/auditTemplateApi";
+import { fetchTemplate, type AuditTemplate } from "@/lib/auditTemplateApi";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -24,11 +23,10 @@ export default function EditTemplatePage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listTemplates()
-      .then((ts) => {
-        const found = ts.find((t) => t.template_id === id);
-        setTemplate(found ?? null);
-        if (!found) setError("Template not found");
+    fetchTemplate(id)
+      .then((t) => {
+        setTemplate(t);
+        if (!t) setError("Template not found");
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false));
@@ -36,8 +34,9 @@ export default function EditTemplatePage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", pt: 8 }}>
-        <CircularProgress />
+      <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+        <Skeleton variant="rounded" height={48} width={340} />
+        <Skeleton variant="rounded" height={500} />
       </Box>
     );
   }

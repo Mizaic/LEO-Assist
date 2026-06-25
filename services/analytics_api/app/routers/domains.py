@@ -188,6 +188,7 @@ _VALUESET_READ_QUERY = (
     "       coalesce(v.assertionFilter, []) AS assertionFilter, "
     "       coalesce(v.constructs, []) AS constructs, "
     "       v.completeness_schema AS completeness_schema, "
+    "       coalesce(v.useCases, []) AS use_cases, "
     "       v.rawJson AS rawJson"
 )
 
@@ -339,6 +340,7 @@ def _valueset_row_to_subdomain_detail(
         construct_count=len(constructs),
         concepts=concepts,
         concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+        use_cases=list(vr.get("use_cases") or []),
     )
 
 
@@ -405,6 +407,11 @@ def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
 # ── Response models ──────────────────────────────────────────────────────
 
 
+VALID_USE_CASES = frozenset(
+    ["extraction", "completeness", "analytics", "episode_detection"]
+)
+
+
 class SubdomainSummary(BaseModel):
     name: str
     description: str
@@ -417,6 +424,7 @@ class SubdomainSummary(BaseModel):
     construct_count: int = 0
     concept_count: int = 0
     descendant_count: int = 0
+    use_cases: List[str] = []
 
 
 class SubdomainDetail(SubdomainSummary):
@@ -432,6 +440,7 @@ class DomainSummary(BaseModel):
     episode_detector: bool = False
     minimum_dataset_domain: bool = False
     minimum_dataset_subdomain_count: int = 0
+    use_cases: List[str] = []
 
 
 class DomainDetail(DomainSummary):
@@ -442,12 +451,14 @@ class DomainCreateRequest(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = ""
     episode_detector: bool = False
+    use_cases: List[str] = []
 
 
 class DomainUpdateRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     episode_detector: Optional[bool] = None
+    use_cases: Optional[List[str]] = None
 
 
 class SubdomainCreateRequest(BaseModel):
@@ -458,6 +469,7 @@ class SubdomainCreateRequest(BaseModel):
     semantic_tags: List[str] = []
     assertion_filter: List[str] = []
     constructs: List[Dict[str, Any]] = []
+    use_cases: List[str] = []
 
 
 class SubdomainUpdateRequest(BaseModel):
@@ -467,6 +479,7 @@ class SubdomainUpdateRequest(BaseModel):
     semantic_tags: Optional[List[str]] = None
     assertion_filter: Optional[List[str]] = None
     constructs: Optional[List[Dict[str, Any]]] = None
+    use_cases: Optional[List[str]] = None
 
 
 class CompletenessConceptGroup(BaseModel):
@@ -531,6 +544,45 @@ class ConstructDefinitionRequest(BaseModel):
 # ── Domain endpoints ─────────────────────────────────────────────────────
 
 
+@router.get("/domains/use-cases")
+def list_use_cases() -> List[Dict[str, str]]:
+    """Return the controlled vocabulary of domain purpose tags."""
+    return [
+        {
+            "value": "extraction",
+            "label": "Targeted extraction",
+            "description": (
+                "Pipeline calls this domain to get SNOMED codes, then resolves surface "
+                "forms and chunks encounter text for NER/LLM processing."
+            ),
+        },
+        {
+            "value": "completeness",
+            "label": "Minimum dataset",
+            "description": (
+                "Subdomain holds completeness schema groups evaluated at runtime to "
+                "check whether a referral record contains required information."
+            ),
+        },
+        {
+            "value": "analytics",
+            "label": "Population health analytics",
+            "description": (
+                "Concepts are linked to national benchmark metrics for clinical audit, "
+                "templates, dashboards, and reports."
+            ),
+        },
+        {
+            "value": "episode_detection",
+            "label": "Episode detection",
+            "description": (
+                "Subdomains supply milestone types and concept sets used by the episode "
+                "detector to classify pathway anchors."
+            ),
+        },
+    ]
+
+
 @router.get("/domains", response_model=List[DomainSummary])
 def list_domains(
     scope: CallerScope = Depends(get_caller_scope),
@@ -556,6 +608,7 @@ def list_domains(
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
                 "coalesce(d.episodeDetector, false) AS episode_detector, "
+                "coalesce(d.useCases, []) AS use_cases, "
                 "count(DISTINCT v) AS subdomain_count, "
                 "count(DISTINCT CASE WHEN "
                 "coalesce(v.completeness_schema_active, false) = true "
@@ -571,6 +624,7 @@ def list_domains(
                 "RETURN d.id AS id, d.name AS name, d.description AS description, "
                 "coalesce(d.source, 'tenant') AS source, "
                 "coalesce(d.episodeDetector, false) AS episode_detector, "
+                "coalesce(d.useCases, []) AS use_cases, "
                 "count(DISTINCT v) AS subdomain_count, "
                 "count(DISTINCT CASE WHEN "
                 "coalesce(v.completeness_schema_active, false) = true "
@@ -592,6 +646,7 @@ def list_domains(
                 minimum_dataset_subdomain_count=r.get(
                     "minimum_dataset_subdomain_count", 0
                 ),
+                use_cases=list(r.get("use_cases") or []),
             )
             for r in rows
         ]
@@ -674,11 +729,13 @@ def create_domain(
             raise HTTPException(400, f"Domain '{body.name}' already exists")
         client.run(
             "CREATE (d:AuditDomain {id: $id, name: $name, description: $desc, "
-            "source: 'tenant', episodeDetector: $ep_det, createdAt: datetime()})",
+            "source: 'tenant', episodeDetector: $ep_det, useCases: $use_cases, "
+            "createdAt: datetime()})",
             id=domain_id,
             name=body.name,
             desc=body.description,
-            ep_det=body.episode_detector,
+            ep_det=body.episode_detector or "episode_detection" in body.use_cases,
+            use_cases=body.use_cases,
         )
         _record_domain_config_audit(
             "create_domain",
@@ -693,9 +750,10 @@ def create_domain(
             description=body.description,
             subdomain_count=0,
             source="tenant",
-            episode_detector=body.episode_detector,
+            episode_detector=body.episode_detector or "episode_detection" in body.use_cases,
             minimum_dataset_domain=False,
             minimum_dataset_subdomain_count=0,
+            use_cases=body.use_cases,
         )
     finally:
         client.close()
@@ -711,7 +769,8 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
             "MATCH (d:AuditDomain {id: $id}) "
             "RETURN d.id AS id, d.name AS name, d.description AS description, "
             "coalesce(d.source, 'tenant') AS source, "
-            "coalesce(d.episodeDetector, false) AS episode_detector",
+            "coalesce(d.episodeDetector, false) AS episode_detector, "
+            "coalesce(d.useCases, []) AS use_cases",
             id=domain_id,
         )
         if not rows:
@@ -729,6 +788,7 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       coalesce(v.constructs, []) AS constructs, "
             "       v.completeness_schema AS completeness_schema, "
+            "       coalesce(v.useCases, []) AS use_cases, "
             "       v.rawJson AS rawJson "
             "ORDER BY v.name",
             id=domain_id,
@@ -766,6 +826,7 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
                     construct_count=len(constructs),
                     concept_count=len(concept_ids),
                     descendant_count=desc_count,
+                    use_cases=list(vr.get("use_cases") or []),
                 )
             )
 
@@ -782,6 +843,7 @@ def get_domain(domain_id: str, scope: CallerScope = Depends(get_caller_scope)):
             episode_detector=bool(d.get("episode_detector", False)),
             minimum_dataset_domain=minimum_dataset_subdomain_count > 0,
             minimum_dataset_subdomain_count=minimum_dataset_subdomain_count,
+            use_cases=list(d.get("use_cases") or []),
         )
     finally:
         client.close()
@@ -810,7 +872,14 @@ def update_domain(
         if body.description is not None:
             sets.append("d.description = $desc")
             params["desc"] = body.description
-        if body.episode_detector is not None:
+        if body.use_cases is not None:
+            sets.append("d.useCases = $use_cases")
+            params["use_cases"] = body.use_cases
+            if "episode_detection" in body.use_cases:
+                sets.append("d.episodeDetector = true")
+            elif body.episode_detector is False:
+                sets.append("d.episodeDetector = false")
+        elif body.episode_detector is not None:
             sets.append("d.episodeDetector = $ep_det")
             params["ep_det"] = body.episode_detector
 
@@ -832,6 +901,7 @@ def update_domain(
             "RETURN d.id AS id, d.name AS name, d.description AS description, "
             "coalesce(d.source, 'tenant') AS source, "
             "coalesce(d.episodeDetector, false) AS episode_detector, "
+            "coalesce(d.useCases, []) AS use_cases, "
             "count(v) AS subdomain_count, "
             "count(DISTINCT CASE WHEN "
             "coalesce(v.completeness_schema_active, false) = true "
@@ -851,6 +921,7 @@ def update_domain(
             minimum_dataset_subdomain_count=r.get(
                 "minimum_dataset_subdomain_count", 0
             ),
+            use_cases=list(r.get("use_cases") or []),
         )
     finally:
         client.close()
@@ -1027,6 +1098,7 @@ def get_subdomain(
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       coalesce(v.constructs, []) AS constructs, "
             "       v.completeness_schema AS completeness_schema, "
+            "       coalesce(v.useCases, []) AS use_cases, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )
@@ -1074,6 +1146,9 @@ def update_subdomain(
     if body.constructs is not None:
         sets.append("v.constructs = $constructs")
         params["constructs"] = body.constructs
+    if body.use_cases is not None:
+        sets.append("v.useCases = $use_cases")
+        params["use_cases"] = body.use_cases
 
     client = KnowledgeGraphClient()
     try:
@@ -1098,6 +1173,7 @@ def update_subdomain(
             "       coalesce(v.assertionFilter, []) AS assertionFilter, "
             "       coalesce(v.constructs, []) AS constructs, "
             "       v.completeness_schema AS completeness_schema, "
+            "       coalesce(v.useCases, []) AS use_cases, "
             "       v.rawJson AS rawJson",
             id=vs_id,
         )

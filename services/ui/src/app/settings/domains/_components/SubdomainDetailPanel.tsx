@@ -23,12 +23,16 @@ import { SegmentedTabs } from "@leo/design-system";
 
 import {
   fetchSubdomain,
+  saveCompletenessSchema,
   updateSubdomain,
   addConceptToSubdomain,
   removeConceptFromSubdomain,
   deleteSubdomain,
   exportSubdomain,
+  fetchBenchmarkKeys,
   type SubdomainDetail,
+  type CompletenessConceptGroup,
+  type DomainUseCase,
 } from "@/lib/analyticsApi";
 import { searchTerms, fetchSemanticTags, fetchDescendants } from "@/lib/api";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -44,7 +48,7 @@ export interface SubdomainDetailPanelProps {
   onDeleted: () => void;
 }
 
-type SearchHit = { snomed_concept_id: string; term: string; semantic_tag?: string };
+type SearchHit = { snomed_concept_id: string; term: string; semantic_tag?: string; child_count?: number };
 type DescRow = { snomed_concept_id: string; term: string; semantic_tag?: string; surface_form_count: number; surface_forms: string[] };
 type DescPreview = { parentId: string; parentTerm: string; results: DescRow[] };
 
@@ -63,6 +67,7 @@ export default function SubdomainDetailPanel({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [allSemanticTags, setAllSemanticTags] = useState<string[]>([]);
+  const [benchmarkKeys, setBenchmarkKeys] = useState<string[]>([]);
   const [exportLoading, setExportLoading] = useState<"concepts" | "expanded" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchHit[]>([]);
@@ -73,7 +78,10 @@ export default function SubdomainDetailPanel({
   const [pendingConcept, setPendingConcept] = useState<{ conceptId: number; term: string } | null>(null);
   const [addBenchmarkKey, setAddBenchmarkKey] = useState("");
 
-  useEffect(() => { fetchSemanticTags().then(setAllSemanticTags).catch(() => {}); }, []);
+  useEffect(() => {
+    fetchSemanticTags().then(setAllSemanticTags).catch(() => {});
+    fetchBenchmarkKeys().then(setBenchmarkKeys).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!subdomainName) { setConfigSub(null); return; }
@@ -92,6 +100,7 @@ export default function SubdomainDetailPanel({
   }, [domainId, subdomainName]);
 
   const activeTags = configSub?.semantic_tags ?? [];
+  const useCases: DomainUseCase[] = configSub?.use_cases ?? [];
 
   const handleSearch = useCallback(async () => {
     const q = searchQuery.trim();
@@ -112,8 +121,12 @@ export default function SubdomainDetailPanel({
   }, [handleSearch]);
 
   const handleUpdate = useCallback(async (updates: {
-    description?: string; milestone_type?: string; time_window_months?: number;
-    semantic_tags?: string[]; assertion_filter?: string[];
+    description?: string;
+    milestone_type?: string;
+    time_window_months?: number;
+    semantic_tags?: string[];
+    assertion_filter?: string[];
+    use_cases?: DomainUseCase[];
   }) => {
     if (!configSub) return;
     setSubmitting(true);
@@ -125,6 +138,13 @@ export default function SubdomainDetailPanel({
     } finally {
       setSubmitting(false);
     }
+  }, [domainId, configSub]);
+
+  const handleSaveSchema = useCallback(async (schema: CompletenessConceptGroup[]) => {
+    if (!configSub) return;
+    await saveCompletenessSchema(domainId, configSub.name, schema);
+    setConfigSub((prev) => prev ? { ...prev, completeness_schema: schema } : null);
+    setSnackMsg("Rules saved");
   }, [domainId, configSub]);
 
   const handleAddConcept = async (conceptId: number, term: string, benchmarkKey?: string) => {
@@ -214,6 +234,8 @@ export default function SubdomainDetailPanel({
 
   const searchPanelProps = {
     activeTags,
+    benchmarkKeys,
+    isAnalytics: useCases.includes("analytics"),
     searchQuery,
     onSearchQueryChange: setSearchQuery,
     searchResults,
@@ -282,12 +304,22 @@ export default function SubdomainDetailPanel({
               canEditDomains={canEditDomains}
               submitting={submitting}
               exportLoading={exportLoading}
+              allSemanticTags={allSemanticTags}
+              benchmarkKeys={benchmarkKeys}
               onExport={handleExport}
               onRemoveConcept={(id) => void handleRemoveConcept(id)}
               searchPanelProps={searchPanelProps}
             />
           )}
-          {tab === "rules" && <RulesTab schema={configSub.completeness_schema ?? []} />}
+          {tab === "rules" && (
+            <RulesTab
+              schema={configSub.completeness_schema ?? []}
+              canEditDomains={canEditDomains}
+              allSemanticTags={allSemanticTags}
+              useCases={useCases}
+              onSave={handleSaveSchema}
+            />
+          )}
         </Box>
       )}
 

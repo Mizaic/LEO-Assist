@@ -1,8 +1,9 @@
 /**
  * SSE proxy for POST /api/audit-draft
  *
- * Forwards the draft request to the analytics API's audit-templates/draft
- * endpoint and pipes the SSE stream directly to the browser.
+ * Forwards the draft request to the analytics API via the same
+ * internal proxy path that all other analytics calls use:
+ *   core-api -> /api/proxy/analytics/audit-templates/draft
  *
  * Using a Route Handler (not middleware rewrite) so the long-lived SSE
  * connection is not subject to the middleware's internal socket timeout.
@@ -15,8 +16,8 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-function analyticsApi(): string {
-  return (process.env.ANALYTICS_API_URL ?? "http://localhost:8003").replace(
+function coreApi(): string {
+  return (process.env.INTERNAL_API_BASE ?? "http://localhost:8000").replace(
     /\/+$/,
     "",
   );
@@ -26,19 +27,17 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
   const cookie = request.headers.get("cookie") ?? "";
   const body = await request.text();
 
-  const secret = process.env.SERVICE_AUTH_SECRET;
   const outHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
     Accept: "text/event-stream",
     Cookie: cookie,
   };
-  if (secret) outHeaders["Authorization"] = `Bearer ${secret}`;
 
   let upstream: Response;
   try {
     upstream = await fetch(
-      `${analyticsApi()}/analytics/audit-templates/draft`,
+      `${coreApi()}/api/proxy/analytics/audit-templates/draft`,
       {
         method: "POST",
         headers: outHeaders,

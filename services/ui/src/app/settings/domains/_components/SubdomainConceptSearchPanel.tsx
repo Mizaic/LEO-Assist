@@ -11,6 +11,7 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
+import Autocomplete from "@mui/material/Autocomplete";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
@@ -41,6 +42,12 @@ export type DescendantPreviewRow = {
 
 export interface SubdomainConceptSearchPanelProps {
   activeTags: string[];
+  /** Current tag filter from the Concepts tab filter strip */
+  activeTagFilter?: string[];
+  /** Whether this subdomain has the analytics use case (shows benchmark select) */
+  isAnalytics?: boolean;
+  /** Available benchmark key strings from GET /analytics/benchmarks/keys */
+  benchmarkKeys?: string[];
   searchQuery: string;
   onSearchQueryChange: (q: string) => void;
   searchResults: SnomedSearchHit[];
@@ -72,6 +79,9 @@ export interface SubdomainConceptSearchPanelProps {
 
 export default function SubdomainConceptSearchPanel({
   activeTags,
+  activeTagFilter,
+  isAnalytics,
+  benchmarkKeys,
   searchQuery,
   onSearchQueryChange,
   searchResults,
@@ -92,18 +102,19 @@ export default function SubdomainConceptSearchPanel({
   onConfirmAddConcept,
   onConfirmDescendants,
 }: SubdomainConceptSearchPanelProps) {
+  const displayTags = (activeTagFilter && activeTagFilter.length > 0) ? activeTagFilter : activeTags;
   return (
     <Box>
       <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
         Add SNOMED concept
       </Typography>
-      {activeTags.length > 0 && (
+      {displayTags.length > 0 && (
         <Typography
           variant="caption"
           color="text.secondary"
           sx={{ mb: 1, display: "block" }}
         >
-          Filtering by: {activeTags.join(", ")}
+          Filtering by: {displayTags.join(", ")}
         </Typography>
       )}
       <TextField
@@ -237,16 +248,35 @@ export default function SubdomainConceptSearchPanel({
           <Typography variant="body2" sx={{ mb: 1 }}>
             Adding: <strong>{pendingConcept.term}</strong>
           </Typography>
-          <TextField
-            size="small"
-            fullWidth
-            label="Benchmark key (optional)"
-            placeholder="e.g. comorbidity_hypertension_pct"
-            value={addBenchmarkKey}
-            onChange={(e) => onAddBenchmarkKeyChange(e.target.value)}
-            helperText="Links this concept to the 2018 NCDA benchmark. Leave blank if not applicable."
-            sx={{ mb: 1 }}
-          />
+          {isAnalytics && benchmarkKeys && benchmarkKeys.length > 0 ? (
+            <Autocomplete
+              size="small"
+              freeSolo
+              options={benchmarkKeys}
+              value={addBenchmarkKey || null}
+              onInputChange={(_, v) => onAddBenchmarkKeyChange(v)}
+              onChange={(_, v) => onAddBenchmarkKeyChange(v ?? "")}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Benchmark key (optional)"
+                  helperText="Link to a national benchmark metric. Leave blank if not applicable."
+                  sx={{ mb: 1 }}
+                />
+              )}
+            />
+          ) : (
+            <TextField
+              size="small"
+              fullWidth
+              label="Benchmark key (optional)"
+              placeholder="e.g. comorbidity_hypertension_pct"
+              value={addBenchmarkKey}
+              onChange={(e) => onAddBenchmarkKeyChange(e.target.value)}
+              helperText="Links this concept to the 2018 NCDA benchmark. Leave blank if not applicable."
+              sx={{ mb: 1 }}
+            />
+          )}
           <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
             <Button
               size="small"
@@ -288,6 +318,8 @@ export default function SubdomainConceptSearchPanel({
           onAddBenchmarkKeyChange={onAddBenchmarkKeyChange}
           configSubmitting={configSubmitting}
           existingConceptIds={existingConceptIds}
+          isAnalytics={isAnalytics}
+          benchmarkKeys={benchmarkKeys}
         />
       )}
     </Box>
@@ -304,6 +336,8 @@ function DescendantPreviewBlock({
   onAddBenchmarkKeyChange,
   configSubmitting,
   existingConceptIds,
+  isAnalytics,
+  benchmarkKeys,
 }: {
   preview: {
     parentId: string;
@@ -318,6 +352,8 @@ function DescendantPreviewBlock({
   onAddBenchmarkKeyChange: (k: string) => void;
   configSubmitting: boolean;
   existingConceptIds: Set<number>;
+  isAnalytics?: boolean;
+  benchmarkKeys?: string[];
 }) {
   const coverageCount = preview.results.length;
   const visibleResults = preview.results;
@@ -356,22 +392,37 @@ function DescendantPreviewBlock({
           </Box>
         }
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-          <span>
-            <strong>{preview.parentTerm}</strong> covers{" "}
-            <strong>{coverageCount}</strong> variant
-            {coverageCount !== 1 ? "s" : ""} via IS_A hierarchy. Only the parent
-            concept is stored - variants are matched automatically at query time.
-          </span>
-          <TextField
-            size="small"
-            label="Benchmark key (optional)"
-            placeholder="e.g. comorbidity_hypertension_pct"
-            value={addBenchmarkKey}
-            onChange={(e) => onAddBenchmarkKeyChange(e.target.value)}
-            sx={{ minWidth: 280 }}
-          />
-        </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+            <span>
+              <strong>{preview.parentTerm}</strong> covers{" "}
+              <strong>{coverageCount}</strong> variant
+              {coverageCount !== 1 ? "s" : ""} via IS_A hierarchy. Only the parent
+              concept is stored - variants are matched automatically at query time.
+            </span>
+            {isAnalytics && benchmarkKeys && benchmarkKeys.length > 0 ? (
+              <Autocomplete
+                size="small"
+                freeSolo
+                options={benchmarkKeys}
+                value={addBenchmarkKey || null}
+                onInputChange={(_, v) => onAddBenchmarkKeyChange(v)}
+                onChange={(_, v) => onAddBenchmarkKeyChange(v ?? "")}
+                sx={{ minWidth: 280 }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Benchmark key (optional)" />
+                )}
+              />
+            ) : (
+              <TextField
+                size="small"
+                label="Benchmark key (optional)"
+                placeholder="e.g. comorbidity_hypertension_pct"
+                value={addBenchmarkKey}
+                onChange={(e) => onAddBenchmarkKeyChange(e.target.value)}
+                sx={{ minWidth: 280 }}
+              />
+            )}
+          </Box>
       </Alert>
       <Collapse in={descendantListOpen}>
         <List

@@ -2,56 +2,153 @@
 
 /**
  * Atlas trace: DO-A9863AB6 / DI-64CA7740
- * Left panel: browse and add metrics to the template being edited.
+ *
+ * Left panel: browse metrics and add them to the template with a chosen
+ * chart type. Compatible types are shown as clickable chips per metric;
+ * the canonical output_type is highlighted as the default.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
-import CircularProgress from "@mui/material/CircularProgress";
+import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
 import Tooltip from "@mui/material/Tooltip";
-import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import NumbersIcon from "@mui/icons-material/Numbers";
+import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import {
-  fetchMetricCatalogue,
   type MetricCatalogueEntry,
   type TileType,
+  type WidgetCatalogueEntry,
+  WIDGET_CATALOGUE,
 } from "@/lib/auditTemplateApi";
 
-interface MetricPickerProps {
-  onAdd: (metric: MetricCatalogueEntry) => void;
-  usedMetricIds: Set<string>;
-}
-
-const OUTPUT_TYPE_COLOURS: Record<string, "default" | "primary" | "success" | "warning"> = {
-  bar_chart: "primary",
-  line_chart: "primary",
-  kpi_strip: "success",
-  table: "default",
-  interval_plot: "warning",
-  text: "default",
+const TYPE_META: Record<TileType, { Icon: React.ElementType; label: string; colour: string }> = {
+  bar_chart:     { Icon: BarChartIcon,           label: "Bar",      colour: "#1E40AF" },
+  line_chart:    { Icon: ShowChartIcon,           label: "Line",     colour: "#047857" },
+  kpi_strip:     { Icon: NumbersIcon,             label: "KPI",      colour: "#7C3AED" },
+  table:         { Icon: TableChartOutlinedIcon,  label: "Table",    colour: "#0E7490" },
+  interval_plot: { Icon: TimelineIcon,            label: "Interval", colour: "#B45309" },
+  text:          { Icon: TextFieldsIcon,          label: "Text",     colour: "#475569" },
+  widget:        { Icon: WidgetsOutlinedIcon,     label: "Widget",   colour: "#92400E" },
 };
 
-export default function MetricPicker({ onAdd, usedMetricIds }: MetricPickerProps) {
-  const [catalogue, setCatalogue] = useState<MetricCatalogueEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+interface MetricPickerProps {
+  catalogue: MetricCatalogueEntry[];
+  loading: boolean;
+  error: string | null;
+  usedMetricIds: Set<string>;
+  onAdd: (metric: MetricCatalogueEntry, tileType: TileType) => void;
+  onAddWidget: (widget: WidgetCatalogueEntry) => void;
+}
 
-  useEffect(() => {
-    fetchMetricCatalogue()
-      .then(setCatalogue)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load metrics"))
-      .finally(() => setLoading(false));
-  }, []);
+function MetricCard({
+  metric,
+  used,
+  onAdd,
+}: {
+  metric: MetricCatalogueEntry;
+  used: boolean;
+  onAdd: (type: TileType) => void;
+}) {
+  const defaultType = metric.output_type as TileType;
+  const compatible = metric.compatible_tile_types;
+
+  return (
+    <Box
+      sx={{
+        border: "1px solid",
+        borderColor: used ? "primary.200" : "divider",
+        borderRadius: 1.5,
+        p: 1.25,
+        bgcolor: used ? "primary.50" : "background.paper",
+        transition: "border-color 120ms",
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mb: 0.75 }}>
+        {used && (
+          <CheckCircleOutlineIcon sx={{ fontSize: 13, color: "primary.main", mt: 0.15, flexShrink: 0 }} />
+        )}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography variant="caption" fontWeight={700} display="block" noWrap>
+            {metric.title}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ fontSize: 10, lineHeight: 1.4, mt: 0.15 }}
+          >
+            {metric.description}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Chart type chips */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+        {(Object.keys(TYPE_META) as TileType[]).map((type) => {
+          const { Icon, label, colour } = TYPE_META[type];
+          const isCompatible = compatible.includes(type);
+          const isDefault = type === defaultType;
+
+          if (!isCompatible) return null;
+
+          return (
+            <Tooltip
+              key={type}
+              title={isDefault ? `Add as ${label} (recommended)` : `Add as ${label}`}
+              placement="top"
+            >
+              <Chip
+                icon={<Icon style={{ fontSize: 11 }} />}
+                label={label}
+                size="small"
+                disabled={used}
+                onClick={() => onAdd(type)}
+                sx={{
+                  height: 20,
+                  fontSize: 10,
+                  px: 0.25,
+                  bgcolor: isDefault ? `${colour}18` : "transparent",
+                  borderColor: isDefault ? colour : "divider",
+                  color: isDefault ? colour : "text.secondary",
+                  border: "1px solid",
+                  fontWeight: isDefault ? 700 : 400,
+                  "& .MuiChip-icon": { color: isDefault ? colour : "text.disabled" },
+                  "&:hover:not(:disabled)": {
+                    bgcolor: `${colour}20`,
+                    borderColor: colour,
+                    color: colour,
+                  },
+                  cursor: used ? "default" : "pointer",
+                }}
+              />
+            </Tooltip>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
+export default function MetricPicker({ catalogue, loading, error, usedMetricIds, onAdd, onAddWidget }: MetricPickerProps) {
+  const [search, setSearch] = useState("");
 
   const filtered = catalogue.filter(
     (m) =>
       m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.description.toLowerCase().includes(search.toLowerCase())
+      m.description.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -66,49 +163,106 @@ export default function MetricPicker({ onAdd, usedMetricIds }: MetricPickerProps
         onChange={(e) => setSearch(e.target.value)}
         fullWidth
       />
-      {loading && <CircularProgress size={20} sx={{ alignSelf: "center" }} />}
       {error && <Alert severity="error" sx={{ fontSize: 12 }}>{error}</Alert>}
+
       <Box sx={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1 }}>
-        {filtered.map((m) => (
-          <Box
-            key={m.metric_id}
-            sx={{
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 1,
-              p: 1,
-              bgcolor: usedMetricIds.has(m.metric_id) ? "action.selected" : "background.paper",
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="caption" fontWeight={600} display="block">
-                  {m.title}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
-                  {m.description}
-                </Typography>
-                <Chip
-                  label={m.output_type}
-                  size="small"
-                  color={OUTPUT_TYPE_COLOURS[m.output_type as TileType] ?? "default"}
-                  sx={{ mt: 0.5, fontSize: 10, height: 18 }}
-                />
+        {loading
+          ? [0, 1, 2, 3, 4].map((i) => (
+              <Box key={i} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 1.25 }}>
+                <Skeleton variant="text" width="80%" height={14} />
+                <Skeleton variant="text" width="60%" height={11} sx={{ mt: 0.25 }} />
+                <Box sx={{ display: "flex", gap: 0.5, mt: 0.75 }}>
+                  <Skeleton variant="rounded" width={42} height={20} />
+                  <Skeleton variant="rounded" width={42} height={20} />
+                </Box>
               </Box>
-              <Tooltip title={usedMetricIds.has(m.metric_id) ? "Already added" : "Add to template"}>
-                <span>
-                  <IconButton
-                    size="small"
-                    disabled={usedMetricIds.has(m.metric_id)}
-                    onClick={() => onAdd(m)}
+            ))
+          : filtered.map((m) => (
+              <MetricCard
+                key={m.metric_id}
+                metric={m}
+                used={usedMetricIds.has(m.metric_id)}
+                onAdd={(type) => onAdd(m, type)}
+              />
+            ))}
+
+        {!loading && filtered.length === 0 && (
+          <Typography variant="caption" color="text.disabled" sx={{ textAlign: "center", mt: 2 }}>
+            No metrics match your search.
+          </Typography>
+        )}
+      </Box>
+
+      {/* Specialised widgets */}
+      <Box>
+        <Divider sx={{ mb: 1.5 }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1 }}>
+          <WidgetsOutlinedIcon sx={{ fontSize: 13, color: "warning.dark" }} />
+          <Typography variant="caption" fontWeight={700} color="warning.dark">
+            Specialised widgets
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+          {WIDGET_CATALOGUE.map((widget) => {
+            const used = usedMetricIds.has(widget.widget_id);
+            return (
+              <Box
+                key={widget.widget_id}
+                sx={{
+                  border: "1px solid",
+                  borderColor: used ? "warning.200" : "warning.100",
+                  borderRadius: 1.5,
+                  p: 1.25,
+                  bgcolor: used ? "warning.50" : "#FFFBEB",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 1,
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.25 }}>
+                    {used && (
+                      <CheckCircleOutlineIcon
+                        sx={{ fontSize: 11, color: "warning.dark", flexShrink: 0 }}
+                      />
+                    )}
+                    <Typography variant="caption" fontWeight={700} display="block" noWrap>
+                      {widget.title}
+                    </Typography>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ fontSize: 10, lineHeight: 1.4 }}
                   >
-                    <AddCircleOutlineIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
-          </Box>
-        ))}
+                    {widget.description}
+                  </Typography>
+                </Box>
+                <Tooltip
+                  title={used ? "Already added" : "Add widget"}
+                  placement="top"
+                >
+                  <span>
+                    <Button
+                      size="small"
+                      disabled={used}
+                      onClick={() => onAddWidget(widget)}
+                      sx={{
+                        minWidth: 0,
+                        p: 0.5,
+                        color: "warning.dark",
+                        "&:hover": { bgcolor: "warning.100" },
+                      }}
+                    >
+                      <AddCircleOutlineIcon sx={{ fontSize: 16 }} />
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Box>
+            );
+          })}
+        </Box>
       </Box>
     </Box>
   );

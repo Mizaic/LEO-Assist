@@ -51,7 +51,8 @@ export type TileType =
   | "kpi_strip"
   | "table"
   | "interval_plot"
-  | "text";
+  | "text"
+  | "widget";
 
 export interface TileLayout {
   x: number;
@@ -66,6 +67,7 @@ export interface AuditTile {
   tile_type: TileType;
   metric_id: string;
   param_overrides: Record<string, unknown>;
+  section?: string;
   layout: TileLayout;
 }
 
@@ -118,6 +120,7 @@ export interface MetricCatalogueEntry {
   output_type: string;
   param_schema: Record<string, MetricParamSpec>;
   output_schema: MetricOutputColumn[];
+  compatible_tile_types: TileType[];
 }
 
 export interface MetricRunResult {
@@ -125,6 +128,40 @@ export interface MetricRunResult {
   columns: string[];
   rows: unknown[][];
 }
+
+// ---------------------------------------------------------------------------
+// Widget catalogue (pre-built specialised components)
+// ---------------------------------------------------------------------------
+
+export interface WidgetCatalogueEntry {
+  widget_id: string;
+  title: string;
+  description: string;
+  /** Broad grouping shown in the picker. */
+  category: string;
+}
+
+/**
+ * Specialised widgets that render full NCDA audit components rather than
+ * calling the metric /run endpoint. Each widget_id maps to a concrete React
+ * component inside WidgetTile.tsx.
+ */
+export const WIDGET_CATALOGUE: WidgetCatalogueEntry[] = [
+  {
+    widget_id: "symptoms_ppv",
+    title: "Symptoms at Referral",
+    description:
+      "Per-symptom positive predictive value heatmaps. Shows how often each symptom led to a confirmed cancer diagnosis.",
+    category: "Clinical signals",
+  },
+  {
+    widget_id: "blood_signal",
+    title: "Blood Result Cancer Signal",
+    description:
+      "GDS blood test distribution and signal analysis. Requires the GDS enrichment pipeline to be active.",
+    category: "Clinical signals",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Request payloads
@@ -155,20 +192,44 @@ export async function fetchMetricCatalogue(): Promise<MetricCatalogueEntry[]> {
   return fetchJson<MetricCatalogueEntry[]>(`${ANALYTICS_BASE}/audit-metrics`);
 }
 
-/** Execute a metric with caller-supplied params. */
+/** Execute a metric with caller-supplied params.
+ *
+ * @param previewOrgId - Admin-only: scope to a specific org for template preview.
+ */
 export async function runMetric(
   metricId: string,
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
+  previewOrgId?: string,
 ): Promise<MetricRunResult> {
   return fetchJson<MetricRunResult>(
     `${ANALYTICS_BASE}/audit-metrics/${encodeURIComponent(metricId)}/run`,
-    { method: "POST", body: JSON.stringify({ params }) }
+    {
+      method: "POST",
+      body: JSON.stringify({
+        params,
+        ...(previewOrgId ? { preview_org_id: previewOrgId } : {}),
+      }),
+    }
   );
 }
 
 // ---------------------------------------------------------------------------
 // Template CRUD (admin)
 // ---------------------------------------------------------------------------
+
+/** Fetch a single template by ID. Returns null if not found. Admin only. */
+export async function fetchTemplate(
+  templateId: string
+): Promise<AuditTemplate | null> {
+  try {
+    return await fetchJson<AuditTemplate>(
+      `${ANALYTICS_BASE}/audit-templates/${encodeURIComponent(templateId)}`
+    );
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("404")) return null;
+    throw e;
+  }
+}
 
 /** List all non-archived templates. Admin only. */
 export async function listTemplates(): Promise<AuditTemplate[]> {

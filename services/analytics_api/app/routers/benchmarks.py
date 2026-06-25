@@ -20,14 +20,34 @@ diagnosis/treatment encounter dates from milestones).
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
 from libs.auth.org_scope import CallerScope, ORG_PATIENT_FILTER, get_caller_scope
-from libs.neo4j_client.client import PatientGraphClient
+from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 
 router = APIRouter()
+
+
+@router.get("/benchmarks/keys")
+def list_benchmark_keys() -> List[str]:
+    """Return all distinct benchmark metric keys stored in the knowledge graph.
+
+    These are the values that can be linked to subdomain SNOMED concepts via the
+    benchmark_key designation, enabling population health analytics.
+    """
+    kg = KnowledgeGraphClient()
+    try:
+        rows = kg.run(
+            "MATCH (v:BenchmarkValue) "
+            "WHERE v.metric_id IS NOT NULL "
+            "RETURN DISTINCT v.metric_id AS key "
+            "ORDER BY key"
+        )
+    finally:
+        kg.close()
+    return [r["key"] for r in rows if r.get("key")]
 
 # Cypher fragment that scopes patients to an org at any hierarchy level.
 # Variables introduced: _scope, gp  (p must already be in scope or follow).
