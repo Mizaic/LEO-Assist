@@ -57,7 +57,7 @@ function buildSlides(template: AuditTemplate): Slide[] {
   for (const [label, tiles] of Object.entries(groups)) {
     slides.push({ kind: "section-title", label, count: tiles.length });
     for (const tile of tiles) {
-      slides.push({ kind: "tile", tileId: tile.id ?? tile.tile_id });
+      slides.push({ kind: "tile", tileId: tile.tile_id });
     }
   }
   return slides;
@@ -160,7 +160,7 @@ function TileSlide({
   orgId: string;
   mockResults?: Map<string, MetricRunResult>;
 }) {
-  const tile = template.tiles.find((t) => (t.id ?? t.tile_id) === tileId);
+  const tile = template.tiles.find((t) => t.tile_id === tileId);
   if (!tile) return null;
 
   const mockData = mockResults?.get(tile.metric_id);

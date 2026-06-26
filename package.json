@@ -9,6 +9,8 @@
     "services/widget-sdk"
   ],
   "devDependencies": {
+    "jest": "30.4.1",
+    "jest-environment-jsdom": "30.4.1",
     "postcss": "^8.5.15",
     "ws": "^8.21.0"
   },
