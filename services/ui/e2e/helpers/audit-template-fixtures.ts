@@ -47,9 +47,10 @@ function sessionPayload(role: AuditAuthRole) {
         { id: VAL_ORG_B_ID, name: VAL_ORG_B_NAME },
       ],
       idleTimeoutMinutes: 30,
-      selected_role: "qa_ra_lead",
+      selected_role: "platform_admin",
       allowed_roles: ["qa_ra_lead", "platform_admin"],
       needs_role_choice: false,
+      density_preference: "comfortable",
     },
     clinician_a: {
       user: { email: "clinician-a@example.com", name: "Clinician org-A" },
@@ -193,9 +194,11 @@ function activeTemplateForRole(state: AuditFixtureState) {
 }
 
 export async function clickFirstAvailableMetricAdd(page: Page): Promise<void> {
-  const library = page.getByRole("heading", { name: "Metric library" }).locator("..");
-  // Metric type chips render as div[role="button"] (MUI Chip), NOT as <button> elements.
-  // Widget add buttons render as <button>. Use a div-scoped role selector to hit chips only.
+  // getByRole resolves to two headings when both edit and hidden sidebar panels
+  // are in the DOM; use .first() to scope to the visible one.
+  const library = page.getByRole("heading", { name: "Metric library" }).first().locator("..");
+  // Wait for the catalogue to finish loading (chips replace skeletons).
+  await library.locator('div[role="button"]:not(.Mui-disabled)').first().waitFor({ state: "visible", timeout: 20_000 });
   await library.locator('div[role="button"]:not(.Mui-disabled)').first().click();
 }
 

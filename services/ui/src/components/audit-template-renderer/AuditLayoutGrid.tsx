@@ -10,7 +10,6 @@
  * small screens so the report stays readable on phones and tablets.
  */
 
-import { motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 
 import type { AuditTile, MetricCatalogueEntry, MetricRunResult } from "@/lib/auditTemplateApi";
@@ -21,18 +20,18 @@ const COLS = 12;
 const ROW_HEIGHT = 80;
 const GAP = 12;
 
-const MotionBox = fm(Box);
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.22, ease: "easeOut" } },
-};
-
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
-/** True when at least one tile has been positioned away from the origin. */
+/** True when the tile set was positioned by the user in the builder.
+ *
+ * The old heuristic (any tile with x>0 or y>0) wrongly returns false for
+ * templates where all tiles sit in column 0 with custom sizes. The new
+ * heuristic: always treat a non-empty tile set as authored so the renderer
+ * always uses the grid positions the builder stored. The section-band fallback
+ * in AuditTemplateRenderer is only used when there are NO tiles at all.
+ */
 export function hasAuthoredLayout(tiles: AuditTile[]): boolean {
-  return tiles.some((t) => (t.layout?.x ?? 0) > 0 || (t.layout?.y ?? 0) > 0);
+  return tiles.length > 0;
 }
 
 interface AuditLayoutGridProps {
@@ -47,17 +46,13 @@ export default function AuditLayoutGrid({
   orgId,
   mockDataMap,
 }: AuditLayoutGridProps) {
-  const reduced = useReducedMotion();
   // Stable top-to-bottom, left-to-right order drives the single-column collapse.
   const ordered = [...tiles].sort(
     (a, b) => a.layout.y - b.layout.y || a.layout.x - b.layout.x,
   );
 
   return (
-    <MotionBox
-      variants={reduced ? {} : { hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
-      initial="hidden"
-      animate="visible"
+    <Box
       sx={{
         display: "grid",
         gridTemplateColumns: { xs: "1fr", md: `repeat(${COLS}, 1fr)` },
@@ -72,12 +67,10 @@ export default function AuditLayoutGrid({
         const h = Math.max(1, tile.layout.h || 3);
         const y = Math.max(0, tile.layout.y || 0);
         return (
-          <MotionBox
+          <Box
             key={tile.tile_id}
-            variants={reduced ? {} : itemVariants}
             sx={{
               minWidth: 0,
-              // Honour the authored position on md+; stack full-width below md.
               gridColumn: { xs: "1 / -1", md: `${x + 1} / span ${w}` },
               gridRow: { xs: "auto", md: `${y + 1} / span ${h}` },
             }}
@@ -87,9 +80,9 @@ export default function AuditLayoutGrid({
             ) : (
               <MetricTile tile={tile} orgId={orgId} mockData={mockDataMap.get(tile.metric_id)} />
             )}
-          </MotionBox>
+          </Box>
         );
       })}
-    </MotionBox>
+    </Box>
   );
 }

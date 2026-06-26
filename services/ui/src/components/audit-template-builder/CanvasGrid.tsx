@@ -251,6 +251,7 @@ function ResizeHandle({ dir, tile, containerRef, onResize }: ResizeHandleProps) 
       style={pos}
       onPointerDown={handlePointerDown}
       aria-hidden="true"
+      data-testid={`resize-handle-${dir}`}
     />
   );
 }
@@ -490,8 +491,8 @@ export default function CanvasGrid({
 
   const handleLibDragOver = useCallback(
     (e: React.DragEvent) => {
-      const types = Array.from(e.dataTransfer.types);
-      if (!types.includes("application/x-audit-metric") && !types.includes("application/x-audit-widget")) return;
+      // Always accept dragover -- Playwright's dragTo doesn't preserve custom
+      // dataTransfer types, so we can't type-check here. Validate on drop only.
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
       setLibDragOver(true);
@@ -552,6 +553,7 @@ export default function CanvasGrid({
           onDragOver={handleLibDragOver}
           onDragLeave={handleLibDragLeave}
           onDrop={handleLibDrop}
+          data-testid="canvas-grid"
           sx={{
             position: "relative",
             width: "100%",

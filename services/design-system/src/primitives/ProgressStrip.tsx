@@ -96,6 +96,7 @@ export function ProgressStrip({
       </header>
       <div
         role="progressbar"
+        aria-label={label}
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}

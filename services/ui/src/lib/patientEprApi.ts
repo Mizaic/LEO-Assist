@@ -90,21 +90,34 @@ export interface PatientsListResponse {
   patients: PatientSummary[];
 }
 
+export interface PatientFacetsResponse {
+  condition_types: string[];
+}
+
 // ---------------------------------------------------------------------------
 // API functions
 // ---------------------------------------------------------------------------
 
-/** List all patients in the caller's org scope without any episode-type filter. */
+/** List all patients in the caller's org scope, optionally filtered. */
 export async function fetchEprPatients(
   page = 1,
   pageSize = 20,
-  search?: string
+  search?: string,
+  conditionType?: string,
+  hasAlerts?: boolean
 ): Promise<PatientsListResponse> {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   if (search) params.set("search", search);
+  if (conditionType) params.set("condition_type", conditionType);
+  if (hasAlerts === true) params.set("has_alerts", "true");
   return fetchJson<PatientsListResponse>(
     `${ANALYTICS_BASE}/patients?${params}`
   );
+}
+
+/** Return distinct condition types present in the caller's patient cohort. */
+export async function fetchEprPatientFacets(): Promise<PatientFacetsResponse> {
+  return fetchJson<PatientFacetsResponse>(`${ANALYTICS_BASE}/patients/facets`);
 }
 
 /** Return full patient detail including all episodes (no domain filter). */

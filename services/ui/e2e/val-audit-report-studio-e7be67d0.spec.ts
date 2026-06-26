@@ -85,9 +85,9 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
 
           // Step 1 -- add a metric tile by click.
           await clickFirstAvailableMetricAdd(p);
-          await expect(p.locator("[data-grid-drag-handle]")).toHaveCount(1);
+          await expect(p.locator("[data-testid='canvas-tile']")).toHaveCount(1);
           await expect(
-            p.locator(".react-grid-item").filter({ hasText: "Referral STT Rate" }).first(),
+            p.locator("[data-testid='canvas-tile']").filter({ hasText: "Referral STT Rate" }).first(),
           ).toBeVisible();
           await recordProtocolStep({
             request: ctx.request,
@@ -106,12 +106,11 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
             .locator('[draggable="true"]')
             .filter({ hasText: "Guideline Compliance" })
             .first();
-          // Drop onto an empty region of the grid container (below the first
-          // tile) so the drop reaches the canvas onDrop handler rather than
-          // colliding with an existing tile's drag handle.
-          const grid = p.locator(".react-grid-layout").first();
-          await guidelineCard.dragTo(grid, { targetPosition: { x: 260, y: 330 } });
-          await expect(p.locator("[data-grid-drag-handle]")).toHaveCount(2);
+          // Drop onto the CanvasGrid container so the HTML5 onDrop handler
+          // fires and converts cursor position to a grid cell.
+          const canvasGrid = p.locator("[data-testid='canvas-grid']").first();
+          await guidelineCard.dragTo(canvasGrid, { targetPosition: { x: 260, y: 330 } });
+          await expect(p.locator("[data-testid='canvas-tile']")).toHaveCount(2);
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,
@@ -125,9 +124,7 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
           ctx.lastCompletedStep.value = 1;
 
           // Step 3 -- override a tile parameter via the Parameters tab.
-          // Click the static preview body (data-testid="tile-body") to select
-          // the first tile. The outer MotionBox animates on mount (scale),
-          // so we target the stable child to avoid actionability failures.
+          // Click the tile body to select it; the floating config panel slides in.
           await p.locator("[data-testid='tile-body']").first().click();
           // The config panel tab "Parameters" only renders when the selected
           // metric's param_schema is non-empty (referral_stt_rate has one).
@@ -177,7 +174,7 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
             .click();
           await expect(p.locator("[data-testid='tile-body']")).toHaveCount(2);
           await expect(
-            p.locator(".react-grid-item").filter({ hasText: "Cancer Type Breakdown" }).first(),
+            p.locator("[data-testid='canvas-tile']").filter({ hasText: "Cancer Type Breakdown" }).first(),
           ).toBeVisible();
           await recordProtocolStep({
             request: ctx.request,

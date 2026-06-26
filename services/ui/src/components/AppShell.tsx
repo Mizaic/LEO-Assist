@@ -17,6 +17,7 @@ import UnauthorizedScreen from "@/components/UnauthorizedScreen";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -693,33 +694,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               : false;
             const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
             return (
-              <ListItemButton
-                key={item.path}
-                component={Link}
-                href={item.path}
-                selected={isActive}
-                onClick={() => { if (isMobile) setMobileOpen(false); }}
-                aria-current={isActive ? "page" : undefined}
-                sx={{ py: 1.2 }}
-              >
-                <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
-                  <Badge badgeContent={badgeCount} color="warning" max={99}>
-                    {item.icon}
-                  </Badge>
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontWeight: isActive ? 600 : 400,
-                    fontSize: "0.9rem",
-                  }}
-                />
-                {badgeCount > 0 && (
-                  <Typography variant="caption" sx={{ bgcolor: "warning.main", color: "warning.contrastText", borderRadius: 10, px: 0.8, py: 0.2, fontWeight: 700, fontSize: "0.7rem" }}>
-                    {badgeCount}
-                  </Typography>
-                )}
-              </ListItemButton>
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  href={item.path}
+                  selected={isActive}
+                  onClick={() => { if (isMobile) setMobileOpen(false); }}
+                  aria-current={isActive ? "page" : undefined}
+                  sx={{ py: 1.2 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
+                    <Badge badgeContent={badgeCount} color="warning" max={99}>
+                      {item.icon}
+                    </Badge>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      fontWeight: isActive ? 600 : 400,
+                      fontSize: "0.9rem",
+                    }}
+                  />
+                  {badgeCount > 0 && (
+                    <Typography variant="caption" sx={{ bgcolor: "warning.main", color: "warning.contrastText", borderRadius: 10, px: 0.8, py: 0.2, fontWeight: 700, fontSize: "0.7rem" }}>
+                      {badgeCount}
+                    </Typography>
+                  )}
+                </ListItemButton>
+              </ListItem>
             );
           })}
         </List>
