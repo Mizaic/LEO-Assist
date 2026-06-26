@@ -1,0 +1,16 @@
+# git filter-repo --replace-text (repo-wide in history).
+# Use after path deletion if git log -S still finds identifiers in remaining files.
+# Format: literal:OLD==>NEW
+#
+# Verified absent from HEAD (2026-06-16); may still exist in pre-134ff31a commits
+# inside encounter_audit DBs (prefer path deletion above).
+literal:4187508279==>9990000001
+literal:4802892365==>9990000002
+literal:07736662458==>[PHONE]
+literal:GHAYATH, Aly==>SYNTHETIC, GP (Dr)
+literal:HORNE, Jonathan==>SYNTHETIC, GP (Dr)
+literal:Mr Ashok Kumar Jethwa==>Mr Synthetic Patient
+literal:BAKER, Dawn==>SYNTHETIC, Staff
+literal:HUBBARD, Siobhan==>SYNTHETIC, Staff
+literal:BRIDGES, Kirstie==>SYNTHETIC, Staff
+literal:Seen with son, Ian.==>Seen with chaperone.

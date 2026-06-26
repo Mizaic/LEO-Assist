@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-A9863AB6 (template renderer), DO-2E8544FD (NCDA fallback)
- *   DI: DI-758B73A5, DI-C65FD45B
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-A9863AB6")
+ *   DO: DO-2E8544FD
+ *   DI: DI-C65FD45B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2E8544FD")
  */
 "use client";
 
@@ -21,10 +21,6 @@ import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-
-import CircularProgress from "@mui/material/CircularProgress";
-import { fetchActiveTemplate, type AuditTemplate } from "@/lib/auditTemplateApi";
-import AuditTemplateRenderer from "@/components/audit-template-renderer/AuditTemplateRenderer";
 
 import { useOrgId } from "@/context/OrgContext";
 import { useAnalyticsDateFilter } from "@/context/AnalyticsDateFilterContext";
@@ -131,7 +127,7 @@ const allFalse = (): SectionLoading => ({
   avoidableDelays: false,
 });
 
-export function NcdaAuditPage() {
+export default function AuditPage() {
   const orgId = useOrgId();
   const orgSelected = !!orgId;
 
@@ -602,35 +598,4 @@ export function NcdaAuditPage() {
     </Box>
     </AuditBenchmarkOverlayProvider>
   );
-}
-
-export default function AuditPage() {
-  const orgId = useOrgId();
-  const [template, setTemplate] = useState<AuditTemplate | null>(null);
-  const [templateChecked, setTemplateChecked] = useState(false);
-
-  useEffect(() => {
-    if (!orgId) {
-      setTemplateChecked(true);
-      return;
-    }
-    fetchActiveTemplate()
-      .then((t) => setTemplate(t))
-      .catch(() => setTemplate(null))
-      .finally(() => setTemplateChecked(true));
-  }, [orgId]);
-
-  if (!templateChecked) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", pt: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (template) {
-    return <AuditTemplateRenderer template={template} orgId={orgId!} />;
-  }
-
-  return <NcdaAuditPage />;
 }

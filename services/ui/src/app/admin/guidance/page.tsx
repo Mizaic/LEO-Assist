@@ -22,21 +22,21 @@
  * Design Controls: DI-LEO-AI-149, DO-LEO-AI-145, VT-LEO-AI-147.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Divider from "@mui/material/Divider";
 
-import { SegmentedTabs, StatHero, type StatTile } from "@leo/design-system";
+import { SegmentedTabs } from "@leo/design-system";
 
 import NiceLoaderSection from "./NiceLoaderSection";
 import LoadedGuidelinesPanel from "./LoadedGuidelinesPanel";
 import RuleReviewSection from "./RuleReviewSection";
 import BitmapLifecycleSection from "./BitmapLifecycleSection";
 
-type StepId = "load" | "inspect" | "review" | "compile";
+type StepId = "load" | "review" | "compile";
 
 interface StepCardProps {
   id: string;
@@ -48,28 +48,93 @@ interface StepCardProps {
   children: React.ReactNode;
 }
 
-function StepCard({ id, step, title, description, accent, index, children }: StepCardProps) {
+function StepCard({
+  id,
+  step,
+  title,
+  description,
+  accent,
+  index,
+  children,
+}: StepCardProps) {
   return (
     <fm.section
       id={id}
       aria-labelledby={`${id}-title`}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: "easeOut", delay: Math.min(index, 6) * 0.05 }}
-      style={{ position: "relative", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 22, marginBottom: 20 }}
+      transition={{
+        duration: 0.24,
+        ease: "easeOut",
+        delay: Math.min(index, 6) * 0.05,
+      }}
+      style={{
+        position: "relative",
+        background: "#FFFFFF",
+        border: "1px solid #E2E8F0",
+        borderRadius: 12,
+        padding: 22,
+        marginBottom: 20,
+      }}
     >
-      <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 18, bottom: 18, width: 3, borderRadius: 2, background: accent, }} />
-      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ mb: 2 }}>
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 18,
+          bottom: 18,
+          width: 3,
+          borderRadius: 2,
+          background: accent,
+        }}
+      />
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        spacing={1.5}
+        sx={{ mb: 2 }}
+      >
         {step != null ? (
-          <Box aria-hidden="true" sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: accent, color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.78rem", flexShrink: 0, mt: 0.25 }}>
+          <Box
+            aria-hidden="true"
+            sx={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              bgcolor: accent,
+              color: "#FFFFFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: "0.78rem",
+              flexShrink: 0,
+              mt: 0.25,
+            }}
+          >
             {step}
           </Box>
         ) : null}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography id={`${id}-title`} variant="h6" component="h2" sx={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.3, mb: 0.4 }}>
+          <Typography
+            id={`${id}-title`}
+            variant="h6"
+            component="h2"
+            sx={{
+              fontWeight: 700,
+              fontSize: "1rem",
+              lineHeight: 1.3,
+              mb: 0.4,
+            }}
+          >
             {title}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.82rem", lineHeight: 1.5 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: "0.82rem", lineHeight: 1.5 }}
+          >
             {description}
           </Typography>
         </Box>
@@ -82,78 +147,40 @@ function StepCard({ id, step, title, description, accent, index, children }: Ste
 
 const STEP_TABS: ReadonlyArray<{ id: StepId; label: string; href: string }> = [
   { id: "load", label: "1. Load", href: "#nice-loader" },
-  { id: "inspect", label: "Inspect", href: "#loaded-guidelines" },
   { id: "review", label: "2. Review", href: "#rule-review" },
   { id: "compile", label: "3. Compile", href: "#bitmap-lifecycle" },
 ];
-
-interface PageStats {
-  guidelinesLoaded: number;
-  rulesPending: number;
-  rulesApproved: number;
-  activeBitmapVersion: string;
-}
-
-async function fetchPageStats(): Promise<PageStats> {
-  const [loadedResp, bitmapResp] = await Promise.allSettled([
-    fetch("/api/nice/loaded"),
-    fetch("/api/terminology/guidelines/bitmap/status?scope_type=global&scope_id=default"),
-  ]);
-
-  let guidelinesLoaded = 0;
-  let rulesPending = 0;
-  let rulesApproved = 0;
-  let activeBitmapVersion = "--";
-
-  if (loadedResp.status === "fulfilled" && loadedResp.value.ok) {
-    const data = (await loadedResp.value.json()) as Array<{ rules_pending?: number; rules_approved?: number }>;
-    guidelinesLoaded = data.length;
-    rulesPending = data.reduce((s, g) => s + (g.rules_pending ?? 0), 0);
-    rulesApproved = data.reduce((s, g) => s + (g.rules_approved ?? 0), 0);
-  }
-  if (bitmapResp.status === "fulfilled" && bitmapResp.value.ok) {
-    const bm = (await bitmapResp.value.json()) as { active_version?: string | null };
-    if (bm.active_version) activeBitmapVersion = bm.active_version;
-  }
-  return { guidelinesLoaded, rulesPending, rulesApproved, activeBitmapVersion };
-}
 
 export default function GuidancePage() {
   const [loadedRefreshKey, setLoadedRefreshKey] = useState(0);
   const [ruleRefreshKey, setRuleRefreshKey] = useState(0);
   const [activeStep, setActiveStep] = useState<StepId>("load");
-  const [stats, setStats] = useState<PageStats>({ guidelinesLoaded: 0, rulesPending: 0, rulesApproved: 0, activeBitmapVersion: "--" });
-
-  useEffect(() => {
-    fetchPageStats().then(setStats).catch(() => {});
-  }, [loadedRefreshKey, ruleRefreshKey]);
-
-  const statTiles: StatTile[] = [
-    { id: "loaded", label: "Guidelines loaded", value: stats.guidelinesLoaded },
-    { id: "pending", label: "Rules pending", value: stats.rulesPending },
-    { id: "approved", label: "Rules approved", value: stats.rulesApproved },
-    { id: "bitmap", label: "Active bitmap version", value: stats.activeBitmapVersion },
-  ];
 
   const handleJump = (id: string) => {
     setActiveStep(id as StepId);
     const target = STEP_TABS.find((t) => t.id === id);
     if (!target) return;
     const el = document.querySelector(target.href);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
     <Box>
-      {/* -- Summary hero ------------------------------------------------- */}
-      <Box sx={{ mb: 2 }}>
-        <StatHero stats={statTiles} />
-      </Box>
-
-      {/* -- Jump strip --------------------------------------------------- */}
       <Box
         data-testid="guidance-jump-strip"
-        sx={{ position: "sticky", top: 0, zIndex: 5, mb: 2, py: 1, bgcolor: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid", borderColor: "divider" }}
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 5,
+          mb: 2,
+          py: 1,
+          bgcolor: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(8px)",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        }}
       >
         <SegmentedTabs
           tabs={STEP_TABS.map((t) => ({ id: t.id, label: t.label }))}
@@ -163,23 +190,51 @@ export default function GuidancePage() {
         />
       </Box>
 
-      {/* -- Step 1: Load ------------------------------------------------- */}
-      <StepCard id="nice-loader" index={0} step={1} title="Find and load a guideline" description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system." accent="#1F3A8A">
-        <NiceLoaderSection onGuidelineLoaded={() => setLoadedRefreshKey((n) => n + 1)} />
+      <StepCard
+        id="nice-loader"
+        index={0}
+        step={1}
+        title="Find and load a guideline"
+        description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system."
+        accent="#1F3A8A"
+      >
+        <NiceLoaderSection
+          onGuidelineLoaded={() => setLoadedRefreshKey((n) => n + 1)}
+        />
       </StepCard>
 
-      {/* -- Inspect: What is in the graph -------------------------------- */}
-      <StepCard id="loaded-guidelines" index={1} title="What is in the knowledge graph" description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation." accent="#64748B">
-        <LoadedGuidelinesPanel refreshKey={loadedRefreshKey} onRulesGenerated={() => setRuleRefreshKey((n) => n + 1)} />
+      <StepCard
+        id="loaded-guidelines"
+        index={1}
+        title="What is in the knowledge graph"
+        description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation."
+        accent="#64748B"
+      >
+        <LoadedGuidelinesPanel
+          refreshKey={loadedRefreshKey}
+          onRulesGenerated={() => setRuleRefreshKey((n) => n + 1)}
+        />
       </StepCard>
 
-      {/* -- Step 2: Review ----------------------------------------------- */}
-      <StepCard id="rule-review" index={2} step={2} title="Check and approve AI-generated rules" description="The AI has suggested the criteria for each recommendation. Read each one and click 'Looks right', 'Edit', or 'Reject'." accent="#1F3A8A">
+      <StepCard
+        id="rule-review"
+        index={2}
+        step={2}
+        title="Check and approve AI-generated rules"
+        description="The AI has suggested the criteria for each recommendation. Read each one and click 'Looks right', 'Edit', or 'Reject'."
+        accent="#1F3A8A"
+      >
         <RuleReviewSection refreshKey={ruleRefreshKey} />
       </StepCard>
 
-      {/* -- Step 3: Compile ---------------------------------------------- */}
-      <StepCard id="bitmap-lifecycle" index={3} step={3} title="Compile and go live" description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included." accent="#14B8A6">
+      <StepCard
+        id="bitmap-lifecycle"
+        index={3}
+        step={3}
+        title="Compile and go live"
+        description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included."
+        accent="#14B8A6"
+      >
         <BitmapLifecycleSection />
       </StepCard>
     </Box>

@@ -2,6 +2,10 @@ using '../main.bicep'
 
 param environment = 'dev'
 param imageTag = 'latest'
+param acrResourceGroup = 'leo-common-rg'
+param acrName = 'mizaicleoacr'
+param storageAccountResourceGroup = 'leo-test-rg'
+param storageAccountName = 'leoteststoresa'
 
 // Neo4j
 param neo4jUser = 'neo4j'
@@ -10,8 +14,8 @@ param neo4jKnowledgeUser = 'neo4j'
 // AWS Bedrock (model ARNs stored in Key Vault as aws-big-model / aws-small-model / aws-max-model)
 param awsDefaultRegion = 'eu-west-2'
 
-// Azure OpenAI - endpoint hosted in EU, key migrated via migrate-secrets.ps1
-param azureOpenAiEndpoint = 'https://eu-ai-models.openai.azure.com/'
+// Azure OpenAI - shared account via deploy-openai.ps1; endpoint synced to bicepparam
+param azureOpenAiEndpoint = 'https://mizaic-cds-oai.openai.azure.com/'
 param azureOpenAiBigModel = 'gpt-5.2-chat'
 param azureOpenAiSmallModel = 'gpt-5-mini'
 param azureOpenAiApiVersion = '2024-12-01-preview'
@@ -35,10 +39,10 @@ param modelMinRecall = '0.75'
 param sbMaxLockRenewalSeconds = '14400'
 
 // Security (custom domain first; keep ACA hostname for direct access; local dev)
-// Include the widget Static Website origin for /sdk/* browser calls from the CDN demo.
+// Widget Static Website origin is added by deploy-widget-cdn.ps1 / sync-widget-cdn-params.ps1.
 param allowedOrigins = 'https://leo-ai-audit.healthcarecopilot.ai,https://ui.proudriver-82c5b80a.uksouth.azurecontainerapps.io,https://atlas-dev.healthcarecopilot.ai,https://leoaiwidgetcdndev.z33.web.core.windows.net,http://localhost:3000'
 
-// LEO widget CDN (Azure Storage Static Website; must match widget-release WIDGET_PUBLIC_HOST)
+// LEO widget CDN (auto-synced from deploy-widget-cdn.ps1; required before deploy.ps1)
 param widgetPublicHost = 'leoaiwidgetcdndev.z33.web.core.windows.net'
 param cookieSecure = 'true'
 param sessionTtlHours = '12'
@@ -52,12 +56,13 @@ param snomedTerminologyServer = ''
 //   and the sign-in link in invite emails.
 param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'
 
-// Graph API sender mailbox (must match an Entra-licensed mailbox in your tenant).
-param mailFromAddress = 'leo.support@healthcarecopilot.ai'
+// Graph API sender mailbox (corporate tenant via MAIL_GRAPH_*; dev may share prod mailbox)
+param mailFromAddress = 'leo.support@mizaic.com'
 
 // ACA Custom domains: hostname + environment certificate name (portal: Networking -> Custom domains).
-param uiCustomDomainHost = 'leo-ai-audit.healthcarecopilot.ai'
-param uiIngressCertificateName = 'healthcarecopilot-origin-cert'
+// Leave empty to not use a custom domain, and instead publish the frontendUrl via an Application Gateway (via a deployment script)
+param uiCustomDomainHost = ''
+param uiIngressCertificateName = ''
 param uiIngressCertificateIsManaged = false
 
 // Optional: keep UI custom domain binding when GitHub Actions runs Bicep (see cd-deploy.yml).

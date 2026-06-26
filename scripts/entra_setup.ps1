@@ -19,7 +19,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $ResourceGroup = "leo-ai-$Environment"
-$KvName = "leoai-$Environment-kv"
+$KvName = "mizaicai-$Environment-kv"
 
 Write-Host "=== Registering Entra service apps for environment: $Environment ==="
 
@@ -66,7 +66,7 @@ $AnalyticsAppId = Register-ServiceApp "leo-analytics-api"
 Write-Host ""
 Write-Host "Retrieving managed identity from $ResourceGroup ..."
 
-$IdentityName = "leoai-$Environment-id"
+$IdentityName = "mizaicai-$Environment-id"
 $IdentityPrincipalId = az identity show `
     --name $IdentityName `
     --resource-group $ResourceGroup `

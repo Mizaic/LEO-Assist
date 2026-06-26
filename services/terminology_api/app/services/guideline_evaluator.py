@@ -54,41 +54,6 @@ def _rule_stem(rule_id: str | None) -> str:
     return rid[:idx] if idx >= 0 else rid
 
 
-def _collect_tree_bitmap_ids(node: dict[str, Any] | None) -> list[str]:
-    """Walk a compiled logic tree and return all bitmap_id values.
-
-    Used to pre-fetch the full set of CONCEPT-node bitmaps in a single
-    Redis MGET before rule evaluation, replacing one GET per node with one
-    round trip per ruleset.  May return duplicates; callers should deduplicate.
-    """
-    if not node:
-        return []
-    if str(node.get("kind") or "").upper() == "CONCEPT":
-        bid = node.get("bitmap_id")
-        return [bid] if bid else []
-    out: list[str] = []
-    for child in (node.get("children") or []):
-        out.extend(_collect_tree_bitmap_ids(child))
-    return out
-
-
-def _collect_tree_seed_ids(node: dict[str, Any] | None) -> list[str]:
-    """Walk a compiled logic tree and return all seed_concept_ids.
-
-    Used to pre-fetch int_ids for every synonym seed in one Redis HMGET
-    before _collect_matched_via, replacing one HGET per seed with one
-    round trip per ruleset.  May return duplicates; callers should deduplicate.
-    """
-    if not node:
-        return []
-    if str(node.get("kind") or "").upper() == "CONCEPT":
-        return list(node.get("seed_concept_ids") or [])
-    out: list[str] = []
-    for child in (node.get("children") or []):
-        out.extend(_collect_tree_seed_ids(child))
-    return out
-
-
 class GuidelineEvaluator:
     """Evaluates a patient's SNOMED code set against the active ruleset.
 
@@ -169,31 +134,8 @@ class GuidelineEvaluator:
 
         patient_bitmap = self._build_patient_bitmap(effective_codes)
         rules = ruleset.get("rules", [])
-
-        # Pre-fetch all bitmaps and seed int_ids in bulk before the main loop.
-        # Schema v2 logic trees have one Redis GET per CONCEPT node and one
-        # HGET per synonym seed; for complex rulesets that adds up to thousands
-        # of sequential round trips (~50-200 ms each on Azure TLS Redis).
-        # Two bulk calls (MGET + HMGET) replace that entire cost.
-        all_bitmap_ids: list[str] = []
-        all_seed_ids: list[str] = []
-        for rule in rules:
-            tree = rule.get("logic_tree")
-            if tree:
-                all_bitmap_ids.extend(_collect_tree_bitmap_ids(tree))
-                all_seed_ids.extend(_collect_tree_seed_ids(tree))
-            for group in (rule.get("criteria_groups") or []):
-                bid = group.get("bitmap_id")
-                if bid:
-                    all_bitmap_ids.append(bid)
-        bitmap_cache: dict[str, BitMap] = self._store.get_bitmaps_bulk(
-            list(set(all_bitmap_ids))
-        )
-        int_id_cache: dict[str, int] = self._store.get_int_ids_bulk(
-            list(set(all_seed_ids))
-        )
-
         matches = []
+
         for rule in rules:
             if pathway_filter and rule.get("guideline_id") != pathway_filter:
                 continue
@@ -203,11 +145,8 @@ class GuidelineEvaluator:
                 patient_age,
                 patient_sex,
                 patient_observations=patient_observations,
-                bitmap_cache=bitmap_cache,
             ):
-                matched_via = self._collect_matched_via(
-                    rule, patient_bitmap, int_id_cache=int_id_cache
-                )
+                matched_via = self._collect_matched_via(rule, patient_bitmap)
                 matches.append(_format_match(rule, matched_via=matched_via))
 
         return {
@@ -531,7 +470,6 @@ class GuidelineEvaluator:
         self,
         seed_concept_ids: list[str],
         patient_bm: BitMap,
-        int_id_cache: dict[str, int] | None = None,
     ) -> list[str]:
         """Return the subset of ``seed_concept_ids`` present in the patient bitmap.
 
@@ -539,20 +477,12 @@ class GuidelineEvaluator:
         ``matched_via`` (per matched rule) so callers can name which exact
         SNOMED code(s) caused the rule to fire (UN-LEO-AI-093, DI-LEO-AI-510).
         Empty input returns an empty list.
-
-        Args:
-            int_id_cache: Optional pre-fetched mapping from concept_id to
-                int_id (built via get_int_ids_bulk).  When supplied, avoids
-                per-seed Redis HGET calls.
         """
         if not seed_concept_ids:
             return []
         out: list[str] = []
         for cid in seed_concept_ids:
-            if int_id_cache is not None:
-                iid = int_id_cache.get(cid)
-            else:
-                iid = self._store.get_int_id(cid)
+            iid = self._store.get_int_id(cid)
             if iid is not None and iid in patient_bm:
                 out.append(cid)
         return out
@@ -561,7 +491,6 @@ class GuidelineEvaluator:
         self,
         rule: dict,
         patient_bm: BitMap,
-        int_id_cache: dict[str, int] | None = None,
     ) -> list[dict[str, Any]]:
         """Walk the compiled logic tree and return per-CONCEPT-leaf hit info.
 
@@ -576,11 +505,6 @@ class GuidelineEvaluator:
         Schema v1 rules (no ``logic_tree``) return an empty list; schema v1
         does not store enough information to attribute hits to a specific
         synonym seed. Callers that need attribution should recompile to v2.
-
-        Args:
-            int_id_cache: Optional pre-fetched mapping from concept_id to
-                int_id (built via get_int_ids_bulk).  When supplied, avoids
-                per-seed Redis HGET calls inside _matched_seed_ids.
         """
         if int(rule.get("schema_version") or 1) != 2:
             return []
@@ -592,9 +516,7 @@ class GuidelineEvaluator:
             kind = str(node.get("kind") or "").upper()
             if kind == "CONCEPT":
                 seed_ids = list(node.get("seed_concept_ids") or [])
-                hits = self._matched_seed_ids(
-                    seed_ids, patient_bm, int_id_cache=int_id_cache
-                )
+                hits = self._matched_seed_ids(seed_ids, patient_bm)
                 if hits:
                     criterion = dict(node.get("criterion") or {})
                     out.append(
@@ -619,10 +541,6 @@ class GuidelineEvaluator:
     def _build_patient_bitmap(self, concept_ids: list[str]) -> BitMap:
         """Map patient concept IDs to integer IDs and build a BitMap.
 
-        Uses a single Redis HMGET round trip for all concept IDs so that
-        evaluation latency does not scale linearly with the number of
-        patient codes (important when Redis is on Azure with TLS latency).
-
         Concept IDs not yet in the store are silently skipped --
         unknown codes cannot match any rule.
 
@@ -632,8 +550,12 @@ class GuidelineEvaluator:
         Returns:
             PyRoaring BitMap containing mapped integer IDs.
         """
-        id_map = self._store.get_int_ids_bulk(list(concept_ids))
-        return BitMap(id_map.values())
+        int_ids = []
+        for cid in concept_ids:
+            iid = self._store.get_int_id(cid)
+            if iid is not None:
+                int_ids.append(iid)
+        return BitMap(int_ids)
 
     def _rule_matches(
         self,
@@ -643,14 +565,13 @@ class GuidelineEvaluator:
         patient_sex: str | None = None,
         *,
         patient_observations: list[dict[str, Any]] | None = None,
-        bitmap_cache: dict[str, BitMap] | None = None,
     ) -> bool:
         """Return True if a compiled rule matches the patient bitmap.
 
         Evaluation order:
-        1. ``APPLIES_TO`` demographic constraints (age) -- any unmet constraint
+        1. ``APPLIES_TO`` demographic constraints (age) — any unmet constraint
            immediately disqualifies the rule.
-        2. ``criteria_groups`` -- each group is evaluated by its mode (ALL/ANY/NOT).
+        2. ``criteria_groups`` — each group is evaluated by its mode (ALL/ANY/NOT).
            ALL groups must pass (AND between groups).
 
         A rule with no groups and no applies_to cannot match any patient and
@@ -660,9 +581,6 @@ class GuidelineEvaluator:
             rule: Compiled rule dict from the ruleset.
             patient_bm: Patient BitMap built from their SNOMED codes.
             patient_age: Patient age in decimal years for age constraint checks.
-            bitmap_cache: Optional pre-fetched mapping from bitmap_id to BitMap
-                (built via get_bitmaps_bulk).  When supplied, avoids per-node
-                Redis GET calls.
 
         Returns:
             True if the patient satisfies all criteria.
@@ -677,7 +595,6 @@ class GuidelineEvaluator:
                 patient_age,
                 patient_sex,
                 patient_observations=patient_observations,
-                bitmap_cache=bitmap_cache,
             )
 
         applies_to = rule.get("applies_to") or []
@@ -687,7 +604,7 @@ class GuidelineEvaluator:
         criteria_groups = rule.get("criteria_groups") or []
         if not criteria_groups:
             # A rule with only applies_to constraints (no bitmap groups) fires when
-            # the demographic gate passes -- only if applies_to is non-empty.
+            # the demographic gate passes — only if applies_to is non-empty.
             return bool(applies_to)
 
         any_group_evaluated = False
@@ -696,20 +613,16 @@ class GuidelineEvaluator:
             if not bitmap_id:
                 continue
             mode = str(group.get("mode", "ALL")).upper()
-            bm = (
-                bitmap_cache.get(bitmap_id)
-                if bitmap_cache is not None
-                else None
-            ) or self._store.get_bitmap(bitmap_id)
+            bm = self._store.get_bitmap(bitmap_id)
             if bm is None:
                 # A missing bitmap means Redis data is corrupt or was evicted.
                 # We CANNOT safely evaluate this group in any mode:
-                #   ALL missing -> cannot confirm required criteria are met
-                #   ANY missing -> cannot confirm at least one criterion is met
-                #   NOT missing -> cannot confirm exclusion criteria are absent
+                #   ALL missing → cannot confirm required criteria are met
+                #   ANY missing → cannot confirm at least one criterion is met
+                #   NOT missing → cannot confirm exclusion criteria are absent
                 # In all cases, fail CLOSED (do not fire the rule).
                 logger.error(
-                    "Bitmap %r for mode=%s group of rule %r is MISSING from Redis -- "
+                    "Bitmap %r for mode=%s group of rule %r is MISSING from Redis — "
                     "failing CLOSED: rule will NOT fire for this patient. "
                     "Redis data may be corrupt or evicted. Run POST /compile to rebuild.",
                     bitmap_id,
@@ -739,29 +652,16 @@ class GuidelineEvaluator:
         patient_sex: str | None,
         *,
         patient_observations: list[dict[str, Any]] | None = None,
-        bitmap_cache: dict[str, BitMap] | None = None,
     ) -> bool:
-        """Recursively evaluate a compiled logic tree node against a patient bitmap.
-
-        Args:
-            bitmap_cache: Optional pre-fetched mapping from bitmap_id to BitMap
-                (built via get_bitmaps_bulk).  When supplied, avoids per-node
-                Redis GET calls in CONCEPT leaves.
-        """
         if not node:
             return False
         kind = str(node.get("kind") or "").upper()
         if kind == "CONCEPT":
             bitmap_id = node.get("bitmap_id")
-            bm = (
-                bitmap_cache.get(bitmap_id)
-                if bitmap_cache is not None and bitmap_id
-                else None
-            ) or (self._store.get_bitmap(bitmap_id) if bitmap_id else None)
+            bm = self._store.get_bitmap(bitmap_id) if bitmap_id else None
             if bm is None:
                 logger.error(
-                    "Schema v2 bitmap %r for rule node %r is missing from Redis"
-                    " -- failing CLOSED.",
+                    "Schema v2 bitmap %r for rule node %r is missing from Redis -- failing CLOSED.",
                     bitmap_id,
                     node.get("node_id"),
                 )
@@ -785,7 +685,6 @@ class GuidelineEvaluator:
                     patient_age,
                     patient_sex,
                     patient_observations=patient_observations,
-                    bitmap_cache=bitmap_cache,
                 )
                 for child in children
             )
@@ -797,7 +696,6 @@ class GuidelineEvaluator:
                     patient_age,
                     patient_sex,
                     patient_observations=patient_observations,
-                    bitmap_cache=bitmap_cache,
                 )
                 for child in children
             )
@@ -814,7 +712,6 @@ class GuidelineEvaluator:
                 patient_age,
                 patient_sex,
                 patient_observations=patient_observations,
-                bitmap_cache=bitmap_cache,
             )
         if kind == "AT_LEAST":
             threshold = int(node.get("min") or 1)
@@ -827,7 +724,6 @@ class GuidelineEvaluator:
                     patient_age,
                     patient_sex,
                     patient_observations=patient_observations,
-                    bitmap_cache=bitmap_cache,
                 )
             )
             return count >= threshold

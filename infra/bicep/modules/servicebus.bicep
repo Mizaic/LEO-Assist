@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 param environment string
 param managedIdentityPrincipalId string
 
-var sbNamespaceName = 'leoai-${environment}-bus'
+var sbNamespaceName = 'mizaicai-${environment}-bus'
 
 resource sbNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
   name: sbNamespaceName

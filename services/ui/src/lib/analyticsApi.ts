@@ -556,12 +556,6 @@ export async function listDocumentReferenceChunks(
 
 // ── Analytics: Domains (two-level hierarchy) ──
 
-export type DomainUseCase =
-  | "extraction"
-  | "completeness"
-  | "analytics"
-  | "episode_detection";
-
 export interface DomainSummary {
   id: string;
   name: string;
@@ -571,7 +565,6 @@ export interface DomainSummary {
   episode_detector?: boolean;
   minimum_dataset_domain?: boolean;
   minimum_dataset_subdomain_count?: number;
-  use_cases?: DomainUseCase[];
 }
 
 export interface SubdomainSummary {
@@ -587,7 +580,6 @@ export interface SubdomainSummary {
   concept_count: number;
   /** Total IS_A descendants across all stored concepts. 0 means all concepts are leaf nodes. */
   descendant_count?: number;
-  use_cases?: DomainUseCase[];
 }
 
 export interface DomainDetail extends DomainSummary {
@@ -710,7 +702,7 @@ export async function createDomain(
 
 export async function updateDomain(
   domainId: string,
-  update: { name?: string; description?: string; episode_detector?: boolean; use_cases?: DomainUseCase[] },
+  update: { name?: string; description?: string; episode_detector?: boolean },
 ): Promise<DomainSummary> {
   return fetchJson<DomainSummary>(
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
@@ -727,20 +719,6 @@ export async function deleteDomain(domainId: string): Promise<void> {
     `${ANALYTICS_BASE}/analytics/domains/${encodeURIComponent(domainId)}`,
     { method: "DELETE" },
   );
-}
-
-export interface DomainUseCaseOption {
-  value: DomainUseCase;
-  label: string;
-  description: string;
-}
-
-export async function fetchDomainUseCases(): Promise<DomainUseCaseOption[]> {
-  return fetchJson<DomainUseCaseOption[]>(`${ANALYTICS_BASE}/analytics/domains/use-cases`);
-}
-
-export async function fetchBenchmarkKeys(): Promise<string[]> {
-  return fetchJson<string[]>(`${ANALYTICS_BASE}/analytics/benchmarks/keys`);
 }
 
 // ── Subdomains ──
@@ -800,7 +778,6 @@ export async function updateSubdomain(
     semantic_tags?: string[];
     assertion_filter?: string[];
     constructs?: SubdomainConstruct[];
-    use_cases?: DomainUseCase[];
   },
 ): Promise<SubdomainSummary> {
   return fetchJson<SubdomainSummary>(

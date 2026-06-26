@@ -291,7 +291,6 @@ nmslib_index.bin
 # Playwright
 e2e/.auth/
 playwright-report/
-evidence-artifacts/
 test-results/
 
 # ============================================================
@@ -331,5 +330,9 @@ scripts/regression/episode_engine_frozen/cohort*
 # Patient-id-named tests (replace with synthetic SYN-EE-* fixtures)
 tests/test_patient_*_patterns.py
 
-# Local pipeline run logs
+# Local pipeline run logs and scratch files (generated locally)
 tmp/
+.tmp_*
+
+# Generated PHI purge path list (local; do not commit)
+scripts/compliance/pii-purge-paths-delete.generated.txt

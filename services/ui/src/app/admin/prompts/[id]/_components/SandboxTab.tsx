@@ -11,37 +11,32 @@
 /**
  * Tab 3 -- prompt sandbox (encounter text + assemble prompt + live LLM run).
  * Extracted from prompts/[id]/page.tsx (Phase 4b decomposition).
- * Redesigned Wave E: onboarding Alert removed, selects replaced with
- * FilterBar chips + SegmentedTabs, result labels sentence-cased with
- * copy-to-clipboard buttons.
  */
 
-import { useCallback, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import IconButton from "@mui/material/IconButton";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-
-import {
-  FilterBar,
-  SegmentedTabs,
-  type FilterChip,
-} from "@leo/design-system";
+import ScienceIcon from "@mui/icons-material/Science";
 
 import { SandboxCostTable } from "./SandboxCostTable";
 import {
   categoryColor,
   type PresetItem,
-  type SandboxDynamicExample,
   type SandboxProvider,
   type SandboxResult,
   type SandboxTier,
@@ -69,6 +64,18 @@ interface SandboxTabProps {
 export function SandboxTab(props: SandboxTabProps) {
   return (
     <Box sx={{ pt: 2 }}>
+      <Alert severity="info" sx={{ mb: 2 }} icon={<ScienceIcon />}>
+        <Typography variant="body2" fontWeight={600} gutterBottom>
+          Prompt sandbox
+        </Typography>
+        <Typography variant="body2">
+          Paste encounter text below. The AI assembles the full prompt using
+          this config -- showing which core examples go into the system prompt
+          and which examples the RAG selector picks for the user message.
+          Toggle &ldquo;Call the LLM&rdquo; to get a live response.
+        </Typography>
+      </Alert>
+
       <SandboxControls {...props} />
 
       <TextField
@@ -90,116 +97,17 @@ export function SandboxTab(props: SandboxTabProps) {
       />
 
       {props.sandboxError && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={props.onClearError}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          onClose={props.onClearError}
+        >
           {props.sandboxError}
         </Alert>
       )}
 
-      {props.sandboxResult && (
-        <SandboxResultPanels result={props.sandboxResult} />
-      )}
+      {props.sandboxResult && <SandboxResultPanels result={props.sandboxResult} />}
     </Box>
-  );
-}
-
-function ModeAndRunRow({
-  sandboxDryRun,
-  sandboxRunning,
-  sandboxText,
-  onSandboxDryRun,
-  onRun,
-}: Pick<
-  SandboxTabProps,
-  | "sandboxDryRun"
-  | "sandboxRunning"
-  | "sandboxText"
-  | "onSandboxDryRun"
-  | "onRun"
->) {
-  return (
-    <Stack
-      direction="row"
-      spacing={1.5}
-      alignItems="center"
-      justifyContent="space-between"
-    >
-      <SegmentedTabs
-        tabs={[
-          { id: "dry", label: "Dry run" },
-          { id: "live", label: "Live" },
-        ]}
-        value={sandboxDryRun ? "dry" : "live"}
-        onChange={(id) => onSandboxDryRun(id === "dry")}
-        aria-label="Run mode"
-      />
-      <Tooltip title="Assemble the full prompt. The AI shows which core examples go into the system prompt and which the RAG selector picks. Enable Live to call the model.">
-        <span>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={
-              sandboxRunning ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <PlayArrowIcon />
-              )
-            }
-            onClick={onRun}
-            disabled={sandboxRunning || !sandboxText.trim()}
-          >
-            {sandboxRunning ? "Assembling..." : "Assemble prompt"}
-          </Button>
-        </span>
-      </Tooltip>
-    </Stack>
-  );
-}
-
-function CustomSelector({
-  sandboxProvider,
-  sandboxTier,
-  onSandboxProvider,
-  onSandboxTier,
-}: Pick<
-  SandboxTabProps,
-  "sandboxProvider" | "sandboxTier" | "onSandboxProvider" | "onSandboxTier"
->) {
-  return (
-    <Stack
-      direction="row"
-      spacing={2}
-      alignItems="center"
-      flexWrap="wrap"
-      useFlexGap
-    >
-      <Typography variant="caption" color="text.secondary">
-        Provider:
-      </Typography>
-      <SegmentedTabs
-        tabs={[
-          { id: "aws", label: "AWS" },
-          { id: "azure", label: "Azure" },
-        ]}
-        value={sandboxProvider}
-        onChange={(id) => onSandboxProvider(id as SandboxProvider)}
-        aria-label="LLM provider"
-        dense
-      />
-      <Typography variant="caption" color="text.secondary">
-        Tier:
-      </Typography>
-      <SegmentedTabs
-        tabs={[
-          { id: "small", label: "Small" },
-          { id: "big", label: "Big" },
-          { id: "max", label: "Max" },
-        ]}
-        value={sandboxTier}
-        onChange={(id) => onSandboxTier(id as SandboxTier)}
-        aria-label="Model tier"
-        dense
-      />
-    </Stack>
   );
 }
 
@@ -217,150 +125,122 @@ function SandboxControls({
   onSandboxDryRun,
   onRun,
 }: SandboxTabProps) {
-  const [presetSearch, setPresetSearch] = useState("");
-
-  const presetChips = useMemo<FilterChip[]>(
-    () => [
-      {
-        id: "__custom__",
-        label: "Custom",
-        active: sandboxPresetId === "__custom__",
-        onToggle: () => onSandboxPresetId("__custom__"),
-      },
-      ...presets
-        .filter((p) =>
-          p.name.toLowerCase().includes(presetSearch.toLowerCase()),
-        )
-        .map((p) => ({
-          id: p.preset_id,
-          label: p.name,
-          active: sandboxPresetId === p.preset_id,
-          onToggle: () => onSandboxPresetId(p.preset_id),
-        })),
-    ],
-    [presets, sandboxPresetId, presetSearch, onSandboxPresetId],
-  );
-
   return (
     <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderRadius: 2 }}>
-      <Stack spacing={1.5}>
-        <FilterBar
-          search={presetSearch}
-          onSearchChange={setPresetSearch}
-          searchPlaceholder="Filter presets..."
-          aria-label="Pipeline preset"
-          chips={presetChips}
-        />
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1.5}
+        alignItems={{ xs: "stretch", sm: "center" }}
+      >
+        <FormControl size="small" sx={{ minWidth: 230 }}>
+          <InputLabel>Pipeline preset</InputLabel>
+          <Select
+            label="Pipeline preset"
+            value={sandboxPresetId}
+            onChange={(e) => onSandboxPresetId(e.target.value)}
+          >
+            <MenuItem value="__custom__">
+              <em>Custom (choose below)</em>
+            </MenuItem>
+            {presets.map((p) => (
+              <MenuItem key={p.preset_id} value={p.preset_id}>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <span>{p.name}</span>
+                  {p.consensus_mode && (
+                    <Chip
+                      size="small"
+                      label="Consensus"
+                      color="info"
+                      sx={{ height: 16, fontSize: "0.6rem" }}
+                    />
+                  )}
+                  <Typography variant="caption" color="text.disabled">
+                    {p.primary_model}
+                  </Typography>
+                </Stack>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         {sandboxPresetId === "__custom__" && (
-          <CustomSelector
-            sandboxProvider={sandboxProvider}
-            sandboxTier={sandboxTier}
-            onSandboxProvider={onSandboxProvider}
-            onSandboxTier={onSandboxTier}
-          />
+          <>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Provider</InputLabel>
+              <Select
+                label="Provider"
+                value={sandboxProvider}
+                onChange={(e) =>
+                  onSandboxProvider(e.target.value as SandboxProvider)
+                }
+              >
+                <MenuItem value="aws">AWS (Claude / Bedrock)</MenuItem>
+                <MenuItem value="azure">Azure (OpenAI / GPT)</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 130 }}>
+              <InputLabel>Model tier</InputLabel>
+              <Select
+                label="Model tier"
+                value={sandboxTier}
+                onChange={(e) =>
+                  onSandboxTier(e.target.value as SandboxTier)
+                }
+              >
+                <MenuItem value="small">Small (fast)</MenuItem>
+                <MenuItem value="big">Big (quality)</MenuItem>
+                <MenuItem value="max">Max (best)</MenuItem>
+              </Select>
+            </FormControl>
+          </>
         )}
-        <ModeAndRunRow
-          sandboxDryRun={sandboxDryRun}
-          sandboxRunning={sandboxRunning}
-          sandboxText={sandboxText}
-          onSandboxDryRun={onSandboxDryRun}
-          onRun={onRun}
-        />
-      </Stack>
-    </Paper>
-  );
-}
 
-function DynamicExampleRow({
-  ex,
-  i,
-}: {
-  ex: SandboxDynamicExample;
-  i: number;
-}) {
-  return (
-    <Stack
-      direction="row"
-      spacing={0.75}
-      alignItems="center"
-      flexWrap="wrap"
-      useFlexGap
-    >
-      <Chip
-        size="small"
-        label={`#${i + 1}`}
-        sx={{ height: 18, fontSize: "0.62rem" }}
-      />
-      {ex.category && (
-        <Chip
-          size="small"
-          label={ex.category}
-          color={categoryColor(ex.category)}
-          sx={{ height: 18, fontSize: "0.62rem" }}
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              checked={!sandboxDryRun}
+              onChange={(e) => onSandboxDryRun(!e.target.checked)}
+              color="warning"
+            />
+          }
+          label={
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <Typography variant="caption">Call the LLM</Typography>
+              <Tooltip title="When off, shows assembled prompt only (no tokens used). When on, sends it to the model and shows the real response.">
+                <InfoOutlinedIcon
+                  sx={{ fontSize: 14, color: "text.disabled" }}
+                />
+              </Tooltip>
+              {!sandboxDryRun && (
+                <Chip
+                  size="small"
+                  label="Live"
+                  color="warning"
+                  sx={{ height: 16, fontSize: "0.65rem" }}
+                />
+              )}
+            </Stack>
+          }
+          sx={{ m: 0 }}
         />
-      )}
-      {ex.description && (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          fontStyle="italic"
+        <Box sx={{ flex: 1 }} />
+        <Button
+          variant="contained"
+          color="secondary"
+          startIcon={
+            sandboxRunning ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <PlayArrowIcon />
+            )
+          }
+          onClick={onRun}
+          disabled={sandboxRunning || !sandboxText.trim()}
         >
-          {ex.description}
-        </Typography>
-      )}
-      {ex._similarity_score !== undefined && (
-        <Chip
-          size="small"
-          label={`score: ${ex._similarity_score.toFixed(3)}`}
-          variant="outlined"
-          sx={{ height: 18, fontSize: "0.62rem" }}
-        />
-      )}
-    </Stack>
-  );
-}
-
-function DynamicExamplesPanel({
-  examples,
-}: {
-  examples: SandboxDynamicExample[];
-}) {
-  return (
-    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-      <Typography
-        variant="caption"
-        fontWeight={700}
-        color="text.secondary"
-        sx={{ display: "block", mb: 1 }}
-      >
-        Selected examples (dynamic, in user message)
-      </Typography>
-      <Stack spacing={0.75}>
-        {examples.map((ex, i) => (
-          <DynamicExampleRow key={i} ex={ex} i={i} />
-        ))}
+          {sandboxRunning ? "Assembling..." : "Assemble prompt"}
+        </Button>
       </Stack>
-    </Paper>
-  );
-}
-
-function LlmResponsePanel({ response }: { response: string }) {
-  const isWarn = response.startsWith("[LLM");
-  const toneColor = isWarn ? "warning.main" : "success.main";
-  return (
-    <Paper
-      variant="outlined"
-      sx={{ p: 1.5, borderRadius: 2, borderColor: toneColor }}
-    >
-      <Typography
-        variant="caption"
-        fontWeight={700}
-        color={toneColor}
-        sx={{ display: "block", mb: 0.75 }}
-      >
-        LLM response
-      </Typography>
-      <CodeBox text={response} maxHeight={400} />
     </Paper>
   );
 }
@@ -370,58 +250,111 @@ function SandboxResultPanels({ result }: { result: SandboxResult }) {
     <Stack spacing={2}>
       <SandboxCostTable result={result} />
       {result.selectedDynamicExamples.length > 0 && (
-        <DynamicExamplesPanel examples={result.selectedDynamicExamples} />
+        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            color="text.secondary"
+            sx={{ display: "block", mb: 1 }}
+          >
+            RAG-SELECTED DYNAMIC EXAMPLES (placed in user message)
+          </Typography>
+          <Stack spacing={0.75}>
+            {result.selectedDynamicExamples.map((ex, i) => (
+              <Stack
+                key={i}
+                direction="row"
+                spacing={0.75}
+                alignItems="center"
+                flexWrap="wrap"
+                useFlexGap
+              >
+                <Chip
+                  size="small"
+                  label={`#${i + 1}`}
+                  sx={{ height: 18, fontSize: "0.62rem" }}
+                />
+                {ex.category && (
+                  <Chip
+                    size="small"
+                    label={ex.category}
+                    color={categoryColor(ex.category)}
+                    sx={{ height: 18, fontSize: "0.62rem" }}
+                  />
+                )}
+                {ex.description && (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    fontStyle="italic"
+                  >
+                    {ex.description}
+                  </Typography>
+                )}
+                {ex._similarity_score !== undefined && (
+                  <Chip
+                    size="small"
+                    label={`score: ${ex._similarity_score.toFixed(3)}`}
+                    variant="outlined"
+                    sx={{ height: 18, fontSize: "0.62rem" }}
+                  />
+                )}
+              </Stack>
+            ))}
+          </Stack>
+        </Paper>
       )}
+
       <CodeBlockPaper
-        label="Assembled system prompt (cached prefix)"
+        label="ASSEMBLED SYSTEM PROMPT (static cacheable prefix)"
         body={result.systemPrompt}
       />
       <CodeBlockPaper
-        label="User message (examples + encounter)"
+        label="USER MESSAGE (dynamic examples + encounter)"
         body={result.userMessage}
       />
+
       {result.llmResponse !== null && (
-        <LlmResponsePanel response={result.llmResponse} />
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 1.5,
+            borderRadius: 2,
+            borderColor: result.llmResponse.startsWith("[LLM")
+              ? "warning.main"
+              : "success.main",
+          }}
+        >
+          <Typography
+            variant="caption"
+            fontWeight={700}
+            color={
+              result.llmResponse.startsWith("[LLM")
+                ? "warning.main"
+                : "success.main"
+            }
+            sx={{ display: "block", mb: 0.75 }}
+          >
+            LLM RESPONSE
+          </Typography>
+          <CodeBox text={result.llmResponse} maxHeight={400} />
+        </Paper>
       )}
     </Stack>
   );
 }
 
 function CodeBlockPaper({ label, body }: { label: string; body: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(body).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    }).catch(() => {});
-  }, [body]);
-
   return (
     <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 0.75 }}
+      <Typography
+        variant="caption"
+        fontWeight={700}
+        color="text.secondary"
+        sx={{ display: "block", mb: 0.75 }}
       >
-        <Typography
-          variant="caption"
-          fontWeight={700}
-          color="text.secondary"
-        >
-          {label}
-        </Typography>
-        <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
-          <IconButton
-            size="small"
-            onClick={handleCopy}
-            aria-label="Copy to clipboard"
-          >
-            <ContentCopyIcon sx={{ fontSize: 14 }} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+        {label}
+      </Typography>
       <CodeBox text={body} />
     </Paper>
   );

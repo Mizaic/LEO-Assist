@@ -45,6 +45,7 @@ export interface ReportEditorHandlerDeps {
   setAgentBusy: (v: boolean) => void;
   setPendingDrop: (v: PendingDrop | null) => void;
   setPendingInterpretationDrop: (v: PendingDrop | null) => void;
+  setIsMeasureDialogOpen: (v: boolean) => void;
   setIsInterpretationDialogOpen: (v: boolean) => void;
   setSelectedInterpretationLink: (v: string[]) => void;
 }
@@ -142,6 +143,8 @@ export function useReportEditorHandlers(deps: ReportEditorHandlerDeps) {
       const y = snapToGrid(50);
 
       if (elementType === 'measure') {
+        deps.setPendingDrop({ pageId, x, y, w, h });
+        deps.setIsMeasureDialogOpen(true);
         return;
       }
       if (elementType === 'interpretation') {

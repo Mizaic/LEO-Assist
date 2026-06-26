@@ -238,9 +238,8 @@ RETURN ae.id AS id
 
 SET_ASSESSMENT_COMPLETENESS = """
 MATCH (a:Assessment {id: $assessment_id})
-SET a.completeness_result_json  = $completeness_result_json,
-    a.completeness_failed_count = $completeness_failed_count,
-    a.updated_at                = datetime()
+SET a.completeness_result_json = $completeness_result_json,
+    a.updated_at               = datetime()
 RETURN a.id AS id
 """
 

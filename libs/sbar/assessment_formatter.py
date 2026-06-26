@@ -81,7 +81,7 @@ class AssessmentNarrative:
 # ---------------------------------------------------------------------------
 
 
-async def evaluate_codes_against_guidelines(
+def evaluate_codes_against_guidelines(
     *,
     patient_codes: Iterable[str],
     guideline_ids: Iterable[str] | None = None,
@@ -94,9 +94,6 @@ async def evaluate_codes_against_guidelines(
     When ``guideline_ids`` is empty, evaluates against the global scope.
     When one or more guideline ids are passed, makes one POST per
     guideline and merges the results (rule_id-deduped).
-
-    A single AsyncClient is reused across all per-guideline requests so
-    the underlying TCP connection is kept warm.
     """
     code_list = sorted({str(c).strip() for c in patient_codes if str(c).strip()})
     if not code_list:
@@ -108,37 +105,37 @@ async def evaluate_codes_against_guidelines(
 
     merged: dict[str, dict[str, Any]] = {}
     active_version: str | None = None
-    async with httpx.AsyncClient(timeout=timeout_s) as http:
-        for gid in targets:
-            body: dict[str, Any] = {
-                "patient_codes": code_list,
-                "scope_type": "guideline" if gid else "global",
-                "scope_id": gid or "default",
-            }
-            if patient_age is not None:
-                body["patient_age"] = patient_age
-            if patient_sex:
-                body["patient_sex"] = patient_sex
-            try:
-                resp = await http.post(
+    for gid in targets:
+        body: dict[str, Any] = {
+            "patient_codes": code_list,
+            "scope_type": "guideline" if gid else "global",
+            "scope_id": gid or "default",
+        }
+        if patient_age is not None:
+            body["patient_age"] = patient_age
+        if patient_sex:
+            body["patient_sex"] = patient_sex
+        try:
+            with httpx.Client(timeout=timeout_s) as http:
+                resp = http.post(
                     f"{TERMINOLOGY_API_URL}/terminology/guidelines/evaluate",
                     json=body,
                 )
-                resp.raise_for_status()
-                payload = resp.json()
-            except httpx.HTTPError as exc:
-                logger.warning(
-                    "evaluate_codes_against_guidelines: %s for guideline=%s",
-                    exc,
-                    gid or "global",
-                )
+            resp.raise_for_status()
+            payload = resp.json()
+        except httpx.HTTPError as exc:
+            logger.warning(
+                "evaluate_codes_against_guidelines: %s for guideline=%s",
+                exc,
+                gid or "global",
+            )
+            continue
+        active_version = payload.get("active_version") or active_version
+        for rule in payload.get("matched_rules") or []:
+            rid = rule.get("rule_id")
+            if not rid or rid in merged:
                 continue
-            active_version = payload.get("active_version") or active_version
-            for rule in payload.get("matched_rules") or []:
-                rid = rule.get("rule_id")
-                if not rid or rid in merged:
-                    continue
-                merged[rid] = rule
+            merged[rid] = rule
 
     return {
         "matched_rules": list(merged.values()),

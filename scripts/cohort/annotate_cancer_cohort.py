@@ -24,7 +24,7 @@ Usage:
     python3 scripts/cohort/annotate_cancer_cohort.py --dry-run
 
     # Single patient
-    python3 scripts/cohort/annotate_cancer_cohort.py --patient 4187508279
+    python3 scripts/cohort/annotate_cancer_cohort.py --patient 9990000001
 
     # Full cohort
     python3 scripts/cohort/annotate_cancer_cohort.py

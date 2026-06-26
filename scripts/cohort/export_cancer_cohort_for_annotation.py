@@ -17,7 +17,7 @@ Output dir:    data/cancer_cohort/p{patient_id}.jsonl
 
 Each output line is one Encounter:
 {
-  "patient_id":              "4187508279",
+  "patient_id":              "9990000001",
   "encounter_id":            "<uuid>",
   "encounter_date":          "2025-03-10",
   "encounter_flags":         "Face to face\\nLinked to Appointment",

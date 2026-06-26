@@ -24,13 +24,16 @@ import { PropertiesPanel } from './PropertiesPanel';
 import {
   getMeasureReport,
   extractLayoutFromReport,
+  getMeasures,
 } from '@/lib/api';
 import { DEFAULT_LAYOUT } from '@/lib/types/layout';
 import { getTemplateById } from '@/lib/templates';
+import type { Measure } from '@/lib/types/fhir';
 import type { AgentInterpretation, AgentModelSize } from './agentTypes';
 import type { PendingDrop } from './reportEditorHelpers';
 import { useReportEditorHandlers } from './reportEditorHandlers';
 import {
+  MeasurePickerWrapper,
   AgentInterpretationDialog,
   InterpretationLinkDialog,
 } from './ReportEditorDialogs';
@@ -59,6 +62,8 @@ export function ReportEditor({ reportId }: ReportEditorProps) {
   const [loading, setLoading] = useState(!!reportId && reportId !== 'new');
   const [isClient, setIsClient] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [measures, setMeasures] = useState<Measure[]>([]);
+  const [isMeasureDialogOpen, setIsMeasureDialogOpen] = useState(false);
   const [isInterpretationDialogOpen, setIsInterpretationDialogOpen] = useState(false);
   const [measureSearchQuery, setMeasureSearchQuery] = useState('');
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
@@ -78,13 +83,14 @@ export function ReportEditor({ reportId }: ReportEditorProps) {
       saving,
       agentModelSize,
       agentGoal,
-    setSaving,
-    setAgentError,
-    setAgentSummary,
-    setAgentBusy,
-    setPendingDrop,
-    setPendingInterpretationDrop,
-    setIsInterpretationDialogOpen,
+      setSaving,
+      setAgentError,
+      setAgentSummary,
+      setAgentBusy,
+      setPendingDrop,
+      setPendingInterpretationDrop,
+      setIsMeasureDialogOpen,
+      setIsInterpretationDialogOpen,
       setSelectedInterpretationLink,
     });
 
@@ -113,6 +119,8 @@ export function ReportEditor({ reportId }: ReportEditorProps) {
     }
   }, [reportId]);
 
+  useEffect(() => { loadMeasures(); }, []);
+
   // ── Data loaders ─────────────────────────────────────────────────────────
   const loadReport = async () => {
     if (!reportId || reportId === 'new') return;
@@ -132,6 +140,17 @@ export function ReportEditor({ reportId }: ReportEditorProps) {
       initializeEditor(null, DEFAULT_LAYOUT);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMeasures = async () => {
+    try {
+      const bundle = await getMeasures();
+      const resources = (bundle.entry?.map((e) => e.resource).filter(Boolean) as Measure[]) || [];
+      setMeasures(resources);
+    } catch (error) {
+      console.error('Failed to load measures:', error);
+      setMeasures([]);
     }
   };
 
@@ -206,6 +225,13 @@ export function ReportEditor({ reportId }: ReportEditorProps) {
       </Box>
 
       {/* Dialogs */}
+      <MeasurePickerWrapper
+        open={isMeasureDialogOpen}
+        measures={measures}
+        pendingDrop={pendingDrop}
+        onClose={() => setIsMeasureDialogOpen(false)}
+        setPendingDrop={setPendingDrop}
+      />
       <AgentInterpretationDialog
         open={agentDialogOpen}
         busy={agentBusy}
@@ -218,6 +244,7 @@ export function ReportEditor({ reportId }: ReportEditorProps) {
       />
       <InterpretationLinkDialog
         open={isInterpretationDialogOpen}
+        measures={measures}
         pendingDrop={pendingInterpretationDrop}
         selectedLinks={selectedInterpretationLink}
         searchQuery={measureSearchQuery}

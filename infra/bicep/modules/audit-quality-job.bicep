@@ -31,8 +31,30 @@ var registryConfig = usePlaceholder ? [] : [{
 
 var storageShareName = 'audit-checkpoint'
 var storageMountPath = '/mnt/audit-checkpoint'
+var managedEnvironmentName = last(split(containerAppsEnvironmentId, '/'))
+
+// Azure File storage is registered on the Container Apps Environment, not on the Job.
+resource managedEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' existing = {
+  name: managedEnvironmentName
+}
+
+resource auditCheckpointStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  parent: managedEnvironment
+  name: 'audit-checkpoint-storage'
+  properties: {
+    azureFile: {
+      accountName: storageAccountName
+      accountKey: storageAccountKey
+      shareName: storageShareName
+      accessMode: 'ReadWrite'
+    }
+  }
+}
 
 resource auditQualityJob 'Microsoft.App/jobs@2023-05-01' = {
+  dependsOn: [
+    auditCheckpointStorage
+  ]
   name: 'audit-quality-${environment}'
   location: location
   identity: {
@@ -149,19 +171,6 @@ resource auditQualityJob 'Microsoft.App/jobs@2023-05-01' = {
           ]
         }
       ]
-    }
-  }
-}
-
-resource auditCheckpointStorage 'Microsoft.App/managedEnvironmentsStorages@2023-05-01' = {
-  parent: auditQualityJob
-  name: 'audit-checkpoint-storage'
-  properties: {
-    azureFile: {
-      accountName: storageAccountName
-      accountKey: storageAccountKey
-      shareName: storageShareName
-      accessMode: 'ReadWrite'
     }
   }
 }

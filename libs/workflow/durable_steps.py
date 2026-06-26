@@ -28,7 +28,6 @@ class StepRequest:
     source_node_id: str | None = None
     source_text_property: str | None = None
     guideline_id: str | None = None
-    guideline_ids: list[str] = field(default_factory=list)
     completeness_domain: str | None = None
     completeness_subdomain: str | None = None
     attempt: int = 1
@@ -36,16 +35,7 @@ class StepRequest:
 
     @classmethod
     def from_message(cls, body: dict[str, Any]) -> "StepRequest":
-        from libs.pipeline.document_chunk_loader import merge_referral_message_fields
-
-        context = merge_referral_message_fields(body)
-        raw_ids = body.get("guideline_ids") or context.get("guideline_ids") or []
-        guideline_ids = list(raw_ids) if isinstance(raw_ids, list) else []
-        if not guideline_ids:
-            legacy = body.get("guideline_id") or context.get("guideline_id")
-            if legacy:
-                guideline_ids = [str(legacy)]
-        guideline_id = guideline_ids[0] if guideline_ids else None
+        context = dict(body.get("context") or {})
         return cls(
             event_type=str(body.get("event_type") or ""),
             run_id=str(body.get("run_id") or context.get("run_id") or ""),
@@ -75,8 +65,7 @@ class StepRequest:
             source_node_id=body.get("source_node_id") or context.get("source_node_id"),
             source_text_property=body.get("source_text_property")
             or context.get("source_text_property"),
-            guideline_id=guideline_id,
-            guideline_ids=guideline_ids,
+            guideline_id=body.get("guideline_id") or context.get("guideline_id"),
             completeness_domain=body.get("completeness_domain")
             or context.get("completeness_domain"),
             completeness_subdomain=body.get("completeness_subdomain")
@@ -99,15 +88,11 @@ class StepRequest:
             "source_node_type": self.source_node_type,
             "source_node_id": self.source_node_id,
             "source_text_property": self.source_text_property,
-            "guideline_ids": list(self.guideline_ids),
             "guideline_id": self.guideline_id,
             "completeness_domain": self.completeness_domain,
             "completeness_subdomain": self.completeness_subdomain,
             "attempt": 1,
             "context": dict(self.context),
-            "chunk_ids": list(self.context.get("chunk_ids") or []),
-            "document_reference_id": self.context.get("document_reference_id"),
-            "text_segmentation_mode": self.context.get("text_segmentation_mode"),
         }
 
 

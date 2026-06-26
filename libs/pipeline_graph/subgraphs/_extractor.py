@@ -323,7 +323,9 @@ class LLMExtractorAdapter:
         # Build usage dict — cost_usd resolved from Neo4j ModelConfig if available
         cost_usd = 0.0
         try:
-            provider_key = f"{self._provider}:{self._tier}"
+            from libs.llm_client.factory import _active_provider
+
+            provider_key = f"{_active_provider()}:{self._tier}"
             from libs.cypher.model_config_queries import GET_MODEL_CONFIG
             from libs.neo4j_client.client import KnowledgeGraphClient
 

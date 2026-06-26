@@ -1,7 +1,7 @@
-# -- Stage 1: install dependencies (including dev) for the Next.js build ---
+# -- Stage 1: install production dependencies ------------------------------
 # Pin base images: override via --build-arg in CI for reproducible builds.
-ARG BASE_IMAGE_NODE=node:22-bookworm-slim
-ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs22-debian12:nonroot
+ARG BASE_IMAGE_NODE=node:20-bookworm-slim
+ARG BASE_IMAGE_RUNTIME=gcr.io/distroless/nodejs20-debian12:nonroot
 FROM ${BASE_IMAGE_NODE} AS deps
 WORKDIR /app
 # The UI is an npm workspace package that depends on sibling workspace
@@ -12,7 +12,7 @@ COPY package.json package-lock.json ./
 COPY services/ui/package.json ./services/ui/package.json
 COPY services/design-system/package.json ./services/design-system/package.json
 COPY services/widget-sdk/package.json ./services/widget-sdk/package.json
-RUN npm ci --workspaces --include-workspace-root
+RUN npm ci --omit=dev --workspaces --include-workspace-root
 
 # -- Stage 2: build Next.js standalone bundle ------------------------------
 ARG BASE_IMAGE_NODE
@@ -25,8 +25,8 @@ COPY services/design-system ./services/design-system
 COPY services/widget-sdk ./services/widget-sdk
 COPY services/ui ./services/ui
 ENV NEXT_TELEMETRY_DISABLED=1
-WORKDIR /app
-RUN npm run build --workspace=leo-primary-care
+WORKDIR /app/services/ui
+RUN npm run build
 
 # -- Stage 3: distroless runtime (no shell, no npm, no package manager) ---
 ARG BASE_IMAGE_RUNTIME

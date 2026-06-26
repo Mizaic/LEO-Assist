@@ -24,13 +24,6 @@ from libs.sbar.events import (
     SituationArtifactType,
     SummarisationContext,
 )
-from libs.pipeline.document_chunk_loader import (
-    DOCUMENT_CHUNKS_MODE,
-    is_document_chunks_mode,
-    load_document_chunks_from_neo4j,
-    chunk_ids_from_state,
-    merge_referral_message_fields,
-)
 from libs.workflow.durable_steps import StepRequest, StepResult
 from libs.workflow.pipeline_stage_store import PipelineStageStore
 
@@ -65,7 +58,7 @@ REFERRAL_STEPS: tuple[ReferralStepDefinition, ...] = (
         "extraction",
         "post_processing_requested",
         "durable-ref-post-processing",
-        loads=("Encounter.text", "Chunk.text"),
+        loads=("Encounter.text",),
         persists=("ExtractionResult",),
     ),
     ReferralStepDefinition(
@@ -127,19 +120,10 @@ REFERRAL_STEPS: tuple[ReferralStepDefinition, ...] = (
         "completeness_requested",
         "durable-ref-completeness",
         "quality_check",
-        "referral_reason_requested",
-        "durable-ref-referral-reason",
-        loads=("DOCUMENTS", "GuidelineResult"),
-        persists=("CompletenessResult", "QualityReport"),
-    ),
-    ReferralStepDefinition(
-        "referral_reason_requested",
-        "durable-ref-referral-reason",
-        None,
         "sbar_requested",
         "durable-ref-sbar",
-        loads=("CompletenessResult",),
-        persists=("ReferralReason",),
+        loads=("DOCUMENTS", "GuidelineResult"),
+        persists=("CompletenessResult", "QualityReport"),
     ),
     ReferralStepDefinition(
         "sbar_requested",
@@ -182,7 +166,7 @@ async def start_referral_durable_workflow(
             "event_type": first.event_type,
             "workflow_id": REFERRAL_WORKFLOW_ID,
             "step_id": first.step_id,
-            "context": merge_referral_message_fields(body),
+            "context": body.get("context") or {},
         }
     )
     client = PatientGraphClient()
@@ -212,7 +196,7 @@ async def handle_referral_durable_message(
         store = PipelineStageStore(client)
         store.ensure_schema()
         store.upsert_run(request, status="running")
-        loaded = _load_step_state(client, store, request, definition, body=body)
+        loaded = _load_step_state(client, store, request, definition)
         store.start_stage(request, loaded)
         _emit(publish_progress, request, "durable_step_started", definition)
         result = await _run_definition(request, definition, loaded)
@@ -243,125 +227,33 @@ async def handle_referral_durable_message(
         client.close()
 
 
-_REFERRAL_HANDOFF_KEYS = (
-    "chunk_ids",
-    "document_reference_id",
-    "text_segmentation_mode",
-    "referral_id",
-    "ubrn",
-    "guideline_ids",
-)
-
-
-def _referral_handoff_values(
-    body: dict[str, Any] | None,
-    request: StepRequest,
-) -> dict[str, Any]:
-    """Collect handoff fields from message top-level, nested context, and request."""
-    raw_body = body or {}
-    body_context = dict(raw_body.get("context") or {})
-    request_context = dict(request.context or {})
-    handoff: dict[str, Any] = {}
-    for key in _REFERRAL_HANDOFF_KEYS:
-        for value in (
-            raw_body.get(key),
-            body_context.get(key),
-            request_context.get(key),
-        ):
-            if value is not None:
-                handoff[key] = value
-                break
-    return handoff
-
-
-def _apply_referral_handoff_fields(
-    state: dict[str, Any],
-    request: StepRequest,
-    body: dict[str, Any] | None,
-) -> None:
-    """Promote HCCP referral handoff fields onto top-level pipeline state."""
-    handoff = _referral_handoff_values(body, request)
-    state.update(handoff)
-    nested_context = dict((body or {}).get("context") or {})
-    nested_context.update(request.context or {})
-    nested_context.update(handoff)
-    state.update(merge_referral_message_fields({**(body or {}), "context": nested_context}))
-
-
-def _default_source_fields(
-    request: StepRequest,
-    state: dict[str, Any],
-) -> tuple[str, str, str]:
-    text_property = request.source_text_property or "text"
-    if is_document_chunks_mode(state):
-        doc_ref = str(state.get("document_reference_id") or "").strip()
-        return (
-            "Chunk",
-            doc_ref or (request.source_node_id or request.encounter_id),
-            text_property,
-        )
-    return (
-        request.source_node_type or "Encounter",
-        request.source_node_id or request.encounter_id,
-        text_property,
-    )
-
-
-def _load_document_chunks_into_state(
-    client: PatientGraphClient,
-    state: dict[str, Any],
-    request: StepRequest,
-) -> None:
-    chunk_ids = chunk_ids_from_state(state)
-    if not chunk_ids or state.get("sentences"):
-        return
-    loaded = load_document_chunks_from_neo4j(client, chunk_ids)
-    state.update(loaded)
-    if not loaded.get("errors"):
-        return
-    logger.warning(
-        "document_chunks load failed run_id=%s chunk_count=%d errors=%s",
-        request.run_id,
-        len(chunk_ids),
-        loaded.get("errors"),
-    )
-    state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
-
-
 def _load_step_state(
     client: PatientGraphClient,
     store: PipelineStageStore,
     request: StepRequest,
     definition: ReferralStepDefinition,
-    *,
-    body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     state = store.load_accumulated_state(request.run_id)
-    _apply_referral_handoff_fields(state, request, body)
+    state.update(request.context)
     state.update(definition.extra_state)
-    source_type, source_id, source_text_property = _default_source_fields(
-        request, state
-    )
     state.update(
         {
             "patient_id": request.patient_id,
             "encounter_id": request.encounter_id,
             "run_id": request.run_id,
             "plan_definition_id": request.plan_definition_id,
-            "source_node_type": source_type,
-            "source_node_id": source_id,
-            "source_text_property": source_text_property,
-            "guideline_scope_type": "guideline" if request.guideline_ids else "global",
-            "guideline_scope_id": request.guideline_ids[0] if request.guideline_ids else None,
-            "guideline_id": request.guideline_ids[0] if request.guideline_ids else None,
+            "source_node_type": request.source_node_type or "Encounter",
+            "source_node_id": request.source_node_id or request.encounter_id,
+            "source_text_property": request.source_text_property or "text",
+            "guideline_scope_type": "guideline",
+            "guideline_scope_id": request.guideline_id,
+            "guideline_id": request.guideline_id,
             "completeness_domain": request.completeness_domain,
             "completeness_subdomain": request.completeness_subdomain,
             "errors": list(state.get("errors") or []),
         }
     )
-    if is_document_chunks_mode(state):
-        _load_document_chunks_into_state(client, state, request)
-    elif not state.get("encounter_text") and request.encounter_id:
+    if not state.get("encounter_text") and request.encounter_id:
         rows = client.run(
             "MATCH (e:Encounter {id: $encounter_id}) "
             "RETURN coalesce(e.text, '') AS text",
@@ -428,17 +320,11 @@ def _age_years_from_str(birth_date: str) -> float | None:
         return None
 
 
-def _count_completeness_failures(completeness_result: dict[str, Any]) -> int:
-    """Count required fields absent from the completeness result."""
-    missing = completeness_result.get("missing_groups") or []
-    return sum(1 for g in missing if g.get("required"))
-
-
 def _persist_completeness_to_assessment(
     assessment_id: str,
     completeness_result: dict[str, Any],
 ) -> None:
-    """Write completeness_result JSON and failed count to the :Assessment node.
+    """Write completeness_result JSON to the :Assessment node.
 
     Called after the SBAR step so the SDK endpoint can return it
     to the widget, which renders the completeness panel.
@@ -449,7 +335,6 @@ def _persist_completeness_to_assessment(
             SET_ASSESSMENT_COMPLETENESS,
             assessment_id=assessment_id,
             completeness_result_json=json.dumps(completeness_result),
-            completeness_failed_count=_count_completeness_failures(completeness_result),
         )
     except Exception as exc:
         logger.warning(
@@ -472,8 +357,6 @@ async def _run_definition(
         if completeness_result:
             assessment_id = _assessment_id(request.run_id, request.encounter_id)
             _persist_completeness_to_assessment(assessment_id, completeness_result)
-    elif definition.event_type == "referral_reason_requested":
-        output = await _run_referral_reason_extraction(request)
     elif definition.subgraph_id:
         graph = get_registry().build(definition.subgraph_id)
         output = await asyncio.to_thread(graph.invoke, loaded)
@@ -488,127 +371,12 @@ async def _run_definition(
     )
 
 
-_REASON_PATTERNS = [
-    "the reason i am concerned this patient has cancer is",
-    "the reason for referral is",
-    "reason for referral:",
-    "referral information:",
-    "referral criteria and clinical information:",
-    "clinical information:",
-    "reasons for request",
-]
-
-
-async def _run_referral_reason_extraction(request: StepRequest) -> dict[str, Any]:
-    """Search referral chunks for the clinical reason for referral and persist it.
-
-    Uses a Cypher text search against the pipeline's already-known chunk_ids
-    to find NHS eRS section header patterns, then calls a focused LLM prompt
-    to extract a clean 1-2 sentence reason statement. The result is written
-    to ReferralRequest.reason for the SBAR Situation step to consume.
-
-    Best-effort: returns without error on any failure so the pipeline continues.
-    """
-    from libs.cypher.chunk_queries import GET_REASON_CHUNKS_BY_IDS, SET_REFERRAL_REASON
-    from libs.llm_client.json_helper import invoke_llm_json
-    from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
-    from libs.prompts.referral_reason_v1 import REFERRAL_REASON_SYSTEM_V1
-
-    referral_id = str(request.context.get("referral_id") or "").strip()
-    chunk_ids = list(request.context.get("chunk_ids") or [])
-
-    if not referral_id or not chunk_ids:
-        logger.warning(
-            "referral_reason: missing referral_id or chunk_ids run_id=%s, skipping",
-            request.run_id,
-        )
-        return {"referral_reason_skipped": True}
-
-    client = PatientGraphClient()
-    try:
-        rows = client.run(
-            GET_REASON_CHUNKS_BY_IDS,
-            chunk_ids=chunk_ids,
-            patterns=_REASON_PATTERNS,
-        )
-    finally:
-        client.close()
-
-    if not rows:
-        logger.info(
-            "referral_reason: no header-matched chunks for referral %s", referral_id
-        )
-        return {"referral_reason_skipped": True}
-
-    candidate_text = " ".join(str(r.get("text") or "") for r in rows)
-    result = await invoke_llm_json(
-        INJECTION_GUARD + REFERRAL_REASON_SYSTEM_V1,
-        sanitise_for_prompt(candidate_text, max_chars=2000),
-        max_tokens=256,
-        agent_task="referral_reason_extraction",
-        patient_id=request.patient_id,
-    )
-
-    reason = str(result.get("reason") or "").strip()
-    if not reason or "error" in result:
-        logger.warning(
-            "referral_reason: LLM extraction failed or empty for referral %s",
-            referral_id,
-        )
-        return {"referral_reason_skipped": True}
-
-    write_client = PatientGraphClient()
-    try:
-        write_client.run(SET_REFERRAL_REASON, referral_id=referral_id, reason=reason)
-    finally:
-        write_client.close()
-
-    logger.info(
-        "referral_reason: wrote reason to ReferralRequest %s", referral_id
-    )
-    return {"referral_reason": reason}
-
-
 async def _run_sbar_orchestrator(request: StepRequest) -> dict[str, Any]:
     from services.pipeline_worker.app.services.sbar_orchestrator import (
         SBAROrchestrator,
     )
 
     assessment_id = _assessment_id(request.run_id, request.encounter_id)
-    artifacts = [
-        SBARArtifactRef(
-            type=SituationArtifactType.encounter,
-            id=request.encounter_id,
-        ),
-        SBARArtifactRef(
-            type=SituationArtifactType.summarisation_context,
-            context_value=SummarisationContext.two_week_wait,
-        ),
-    ]
-    referral_id = str(request.context.get("referral_id") or "").strip()
-    if referral_id:
-        artifacts.append(
-            SBARArtifactRef(
-                type=SituationArtifactType.referral_request,
-                id=referral_id,
-            )
-        )
-    background = [
-        SBARBackgroundSourceRef(
-            type=BackgroundSourceType.encounter,
-            id=request.encounter_id,
-        )
-    ]
-    document_reference_id = str(
-        request.context.get("document_reference_id") or ""
-    ).strip()
-    if document_reference_id:
-        background.append(
-            SBARBackgroundSourceRef(
-                type=BackgroundSourceType.document_reference,
-                id=document_reference_id,
-            )
-        )
     payload = SBARRequestPayload(
         run_id=f"{request.run_id}:sbar",
         requested_by=request.requested_by,
@@ -616,12 +384,26 @@ async def _run_sbar_orchestrator(request: StepRequest) -> dict[str, Any]:
         assessment_id=assessment_id,
         encounter_id=request.encounter_id,
         concern="Referral assessment SBAR for clinician review.",
-        guideline_ids=list(request.guideline_ids),
+        guideline_ids=[request.guideline_id] if request.guideline_id else [],
         situation=SBARSituationInput(
             patient_id=request.patient_id,
-            artifacts=artifacts,
+            artifacts=[
+                SBARArtifactRef(
+                    type=SituationArtifactType.encounter,
+                    id=request.encounter_id,
+                ),
+                SBARArtifactRef(
+                    type=SituationArtifactType.summarisation_context,
+                    context_value=SummarisationContext.two_week_wait,
+                ),
+            ],
         ),
-        background=background,
+        background=[
+            SBARBackgroundSourceRef(
+                type=BackgroundSourceType.encounter,
+                id=request.encounter_id,
+            )
+        ],
         upstream_correlation_id=request.run_id,
         source_system="referral-assessment-pipeline",
         extra={"parent_run_id": request.run_id, "workflow_id": request.workflow_id},

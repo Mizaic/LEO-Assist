@@ -1,131 +1,237 @@
 /**
- * VT-734E8B96 / VT-A32E2016 / VT-6ADE2398 -- completeness domain configuration UI.
+ * VT-734E8B96 / VT-A32E2016 -- completeness domain configuration UI.
  *
- * Verifies the split-panel subdomain UI (Overview / Concepts / Rules).
+ * Verifies an administrator can add required completeness criteria, preview a
+ * sample SNOMED fact set, and save the schema through the domains settings UI.
  * Backend calls are stubbed so the spec is deterministic.
- *
- * Atlas trace:
- *   VT-734E8B96  -- Overview tab invariants
- *   VT-A32E2016  -- Concepts tab invariants
- *   VT-6ADE2398  -- Rules tab CRUD invariants
  */
 
-import { expect, test } from "@playwright/test";
-import {
-  DOMAIN_ID,
-  SUBDOMAIN,
-  openSubdomainPanel,
-  stubCompletenessDomainRoutes,
-} from "./helpers/completeness-domains-fixtures";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
-test.describe("Completeness domains configuration UI", () => {
-  test.beforeEach(async ({ page }) => {
-    await stubCompletenessDomainRoutes(page);
+const DOMAIN_ID = "test_domain";
+const SUBDOMAIN = "breast";
+
+async function fulfillJson(route: Route, body: unknown, status = 200) {
+  await route.fulfill({
+    status,
+    contentType: "application/json",
+    body: JSON.stringify(body),
   });
+}
 
-  test("opens split panel and shows overview, concepts, and rules tabs", async ({ page }) => {
+async function stubAuth(page: Page) {
+  await page.route("**/auth/session", (route) =>
+    fulfillJson(route, {
+      user: {
+        email: "e2e@example.com",
+        name: "E2E Platform Admin",
+      },
+      isPlatformAdmin: true,
+      organizations: [],
+      idleTimeoutMinutes: 30,
+      selected_role: "platform_admin",
+      allowed_roles: ["platform_admin", "developer"],
+      needs_role_choice: false,
+    }),
+  );
+}
+
+function domainDetailPayload() {
+  return {
+    id: DOMAIN_ID,
+    name: "Test domain",
+    description: "Completeness test domain",
+    subdomain_count: 1,
+    source: "tenant",
+    episode_detector: false,
+    subdomains: [
+      {
+        name: SUBDOMAIN,
+        description: "Breast referral completeness",
+        milestone_type: "diagnosis",
+        time_window_months: null,
+        semantic_tags: ["disorder"],
+        assertion_filter: [],
+        constructs: [],
+        completeness_schema: [],
+        construct_count: 0,
+        concept_count: 2,
+        descendant_count: 0,
+      },
+    ],
+  };
+}
+
+function subdomainDetailPayload() {
+  return {
+    name: SUBDOMAIN,
+    description: "Breast referral completeness",
+    milestone_type: "diagnosis",
+    time_window_months: null,
+    semantic_tags: ["disorder"],
+    assertion_filter: [],
+    constructs: [],
+    completeness_schema: [],
+    construct_count: 0,
+    concept_count: 2,
+    descendant_count: 0,
+    concepts: [
+      {
+        concept_id: 254837009,
+        term: "Breast cancer",
+        preferred_term: "Breast cancer",
+        semantic_tag: "disorder",
+        subdomain: SUBDOMAIN,
+        guideline_synonyms: [],
+        child_count: 0,
+      },
+      {
+        concept_id: 363346000,
+        term: "Malignant neoplastic disease",
+        preferred_term: "Malignant neoplastic disease",
+        semantic_tag: "disorder",
+        subdomain: SUBDOMAIN,
+        guideline_synonyms: [],
+        child_count: 0,
+      },
+    ],
+  };
+}
+
+test.describe("completeness domain configuration", () => {
+  test("administrator previews and saves completeness criteria", async ({ page }) => {
+    let saveCalls = 0;
+    let lastSavedBody: unknown = null;
+
+    await stubAuth(page);
+    await page.route("**/api/terminology/semantic-tags", (route) =>
+      fulfillJson(route, ["disorder", "finding", "observable_entity"]),
+    );
+    await page.route("**/api/terminology/search?**", (route) => {
+      const url = new URL(route.request().url());
+      const q = (url.searchParams.get("q") ?? "").toLowerCase();
+      const hits = [
+        {
+          snomed_concept_id: "254837009",
+          term: "Breast cancer",
+          semantic_tag: "disorder",
+        },
+        {
+          snomed_concept_id: "363346000",
+          term: "Malignant neoplastic disease",
+          semantic_tag: "disorder",
+        },
+      ].filter((hit) => hit.term.toLowerCase().includes(q));
+      return fulfillJson(route, hits);
+    });
+
+    await page.route(
+      `**/api/proxy/analytics/domains/${DOMAIN_ID}`,
+      (route) => fulfillJson(route, domainDetailPayload()),
+    );
+
+    await page.route(
+      `**/api/proxy/analytics/domains/${DOMAIN_ID}/subdomains/${SUBDOMAIN}`,
+      (route) => fulfillJson(route, subdomainDetailPayload()),
+    );
+
+    await page.route(
+      `**/api/proxy/analytics/domains/${DOMAIN_ID}/subdomains/${SUBDOMAIN}/schema/preview`,
+      async (route) => {
+        const body = route.request().postDataJSON() as {
+          concept_ids: number[];
+          schema: { groups: Array<{ name: string; concept_ids: number[] }> };
+        };
+        const group = body.schema.groups[0];
+        const missing = group.concept_ids.filter(
+          (id) => !body.concept_ids.includes(id),
+        );
+        return fulfillJson(route, {
+          matched_groups:
+            missing.length === 0
+              ? [
+                  {
+                    name: group.name,
+                    required: true,
+                    matched: true,
+                    matched_concept_ids: group.concept_ids,
+                    missing_concept_ids: [],
+                  },
+                ]
+              : [],
+          missing_groups:
+            missing.length > 0
+              ? [
+                  {
+                    name: group.name,
+                    required: true,
+                    matched: false,
+                    matched_concept_ids: group.concept_ids.filter((id) =>
+                      body.concept_ids.includes(id),
+                    ),
+                    missing_concept_ids: missing,
+                  },
+                ]
+              : [],
+          complete: missing.length === 0,
+        });
+      },
+    );
+
+    await page.route(
+      `**/api/proxy/analytics/domains/${DOMAIN_ID}/subdomains/${SUBDOMAIN}/schema`,
+      async (route) => {
+        saveCalls += 1;
+        lastSavedBody = route.request().postDataJSON();
+        return fulfillJson(route, lastSavedBody);
+      },
+    );
+
     await page.goto(`/settings/domains/${DOMAIN_ID}`);
     await expect(page.getByText("Breast referral completeness")).toBeVisible({
       timeout: 15_000,
     });
 
     await page.getByRole("button", { name: `Configure ${SUBDOMAIN}` }).click();
-    await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({
-      timeout: 10_000,
+    await expect(
+      page.getByRole("dialog", { name: "Configure: breast" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Add criterion" }).click();
+    await page.getByLabel("Criterion name").click();
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+    await page.keyboard.type("Diagnosis present");
+    await expect(page.getByLabel("Criterion name")).toHaveValue("Diagnosis present");
+    await page.getByLabel("Specific SNOMED concepts").fill("breast");
+    await page.getByRole("option", { name: /Breast cancer/ }).click();
+    await page.getByLabel("Specific SNOMED concepts").fill("malignant");
+    await page
+      .getByRole("option", { name: /Malignant neoplastic disease/ })
+      .click();
+    await page.getByLabel("Semantic categories").last().click();
+    await page.getByRole("option", { name: "disorder" }).click();
+
+    await page.getByLabel("Sample patient fact IDs").fill("254837009");
+    await page.getByRole("button", { name: "Preview criteria" }).click();
+    await expect(page.getByText("Sample is missing required criteria.")).toBeVisible();
+    await expect(page.getByText("Missing: Diagnosis present")).toBeVisible();
+
+    await page.getByLabel("Sample patient fact IDs").fill("254837009, 363346000");
+    await page.getByRole("button", { name: "Preview criteria" }).click();
+    await expect(page.getByText("Sample meets the completeness criteria.")).toBeVisible();
+    await expect(page.getByText("Matched: Diagnosis present")).toBeVisible();
+
+    await page.getByRole("button", { name: "Save criteria" }).click();
+    await expect.poll(() => saveCalls).toBe(1);
+    expect(lastSavedBody).toEqual({
+      groups: [
+        {
+          name: "Diagnosis present",
+          required: true,
+          semantic_categories: ["disorder"],
+          concept_ids: [254837009, 363346000],
+        },
+      ],
     });
-    await expect(page.getByLabel("Description")).toHaveValue("Breast referral completeness");
-
-    await page.getByRole("tab", { name: "Concepts" }).click();
-    await expect(page.getByText("Breast cancer")).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText("Malignant neoplastic disease")).toBeVisible();
-
-    await page.getByRole("tab", { name: "Rules" }).click();
-    await expect(page.getByText("Diagnosis present")).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText("Required")).toBeVisible();
-    await expect(page.getByText("254837009")).toBeVisible();
-  });
-
-  test("Overview tab shows Purpose multi-select with use_cases", async ({ page }) => {
-    await openSubdomainPanel(page);
-    await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({ timeout: 10_000 });
-
-    // Purpose section should be present
-    await expect(page.getByText("Purpose")).toBeVisible({ timeout: 5_000 });
-    // Completeness chip should be selected
-    await expect(page.getByText("Minimum dataset")).toBeVisible();
-
-    // Milestone and time window fields should NOT appear (episode_detection not selected)
-    await expect(page.getByLabel("Milestone type")).not.toBeVisible();
-  });
-
-  test("Overview tab shows milestone fields when episode_detection selected", async ({ page }) => {
-    await openSubdomainPanel(page);
-    await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({ timeout: 10_000 });
-
-    // Add episode_detection to purpose
-    const purposeSelect = page.getByLabel("Purpose");
-    await purposeSelect.click();
-    await page.getByRole("option", { name: /episode detection/i }).click();
-    await page.keyboard.press("Escape");
-
-    await expect(page.getByLabel("Milestone type")).toBeVisible({ timeout: 3_000 });
-  });
-
-  test("Concepts tab shows semantic filter strip", async ({ page }) => {
-    await openSubdomainPanel(page);
-    await page.getByRole("tab", { name: "Concepts" }).click();
-
-    // All filter pill should be active by default
-    await expect(page.getByRole("button", { name: /all/i })).toBeVisible({ timeout: 5_000 });
-
-    // Semantic tag pills for existing tags should be visible
-    await expect(page.getByRole("button", { name: /disorder/i })).toBeVisible();
-  });
-
-  test("Concepts tab semantic filter narrows search results", async ({ page }) => {
-    await openSubdomainPanel(page);
-    await page.getByRole("tab", { name: "Concepts" }).click();
-
-    // Wait for the filter strip
-    await expect(page.getByRole("button", { name: /all/i })).toBeVisible({ timeout: 5_000 });
-
-    // Type into SNOMED search
-    const searchInput = page.getByPlaceholder(/search snomed/i);
-    await searchInput.fill("cancer");
-
-    // Search result should appear
-    await expect(page.getByText("Breast cancer")).toBeVisible({ timeout: 5_000 });
-  });
-
-  test("Rules tab shows existing rule groups as editable cards", async ({ page }) => {
-    await openSubdomainPanel(page);
-    await page.getByRole("tab", { name: "Rules" }).click();
-
-    await expect(page.getByDisplayValue("Diagnosis present")).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText("254837009")).toBeVisible();
-    await expect(page.getByText("disorder")).toBeVisible();
-  });
-
-  test("Rules tab Add rule button creates a new group", async ({ page }) => {
-    await openSubdomainPanel(page);
-    await page.getByRole("tab", { name: "Rules" }).click();
-
-    await expect(page.getByRole("button", { name: /add rule/i })).toBeVisible({ timeout: 5_000 });
-    await page.getByRole("button", { name: /add rule/i }).click();
-
-    // A new rule card with default name should appear
-    await expect(page.getByDisplayValue("New rule")).toBeVisible({ timeout: 3_000 });
-  });
-
-  test("Rules tab delete removes a rule group", async ({ page }) => {
-    await openSubdomainPanel(page);
-    await page.getByRole("tab", { name: "Rules" }).click();
-
-    await expect(page.getByDisplayValue("Diagnosis present")).toBeVisible({ timeout: 5_000 });
-
-    const deleteButton = page.getByRole("button", { name: /delete rule/i }).first();
-    await deleteButton.click();
-
-    await expect(page.getByDisplayValue("Diagnosis present")).not.toBeVisible({ timeout: 3_000 });
   });
 });

@@ -24,7 +24,6 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { NextRequest, NextResponse } from "next/server";
-import { E2E_SESSION_PAYLOAD, isE2eAuthMode } from "@/lib/e2eSession";
 
 function coreApi(): string {
   return (process.env.INTERNAL_API_BASE || "http://localhost:8000").replace(
@@ -182,13 +181,6 @@ const termApiRewrite = serviceAuthRewrite;
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const method = request.method.toUpperCase();
-
-  // E2E test mode: return a mock session payload for the /auth/session route
-  // so integration tests work without a real auth backend.
-  if (pathname === "/auth/session" && isE2eAuthMode()) {
-    return NextResponse.json(E2E_SESSION_PAYLOAD);
-  }
-
   const isMutation = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
 
   // Surface-form curation writes are routed via core-api so admin session

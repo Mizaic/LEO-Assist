@@ -1,7 +1,4 @@
 import { defineConfig, devices } from "@playwright/test";
-import { loadPlaywrightEnv } from "./e2e/helpers/validation-env";
-
-loadPlaywrightEnv();
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const devPort = new URL(baseURL).port || "3000";

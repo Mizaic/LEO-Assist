@@ -6,9 +6,8 @@
 //   Look up via: get_design_control(dc_type="design-output", dc_id="DO-3B62F38E")
 //
 // Architecture
-//   Azure Storage Static Website (param widgetPublicHost is the
-//   primaryEndpoints.web hostname, e.g.
-//   leoaiwidgetcdndev.z33.web.core.windows.net)
+//   Azure Storage Static Website (primaryEndpoints.web hostname, e.g.
+//   leoaiwidgetcdndev.z33.web.core.windows.net -- assigned at deploy time)
 //   Azure Storage Account (this resource), Static Website hosting
 //     - $web/v1/leo-widget.js   (immutable per release)
 //     - $web/v1/manifest.json   (mutable; CSO-controlled active hash)
@@ -37,12 +36,6 @@ param location string = resourceGroup().location
 @description('Pinned major version directory (e.g. v1).')
 param pinnedMajor string = 'v1'
 
-// The public widget FQDN (Azure Static Website hostname). Set per
-// environment in the bicepparam files. Used for output only; nothing
-// in this module bakes the hostname into a resource.
-@description('Public widget FQDN (Azure Static Website). e.g. leoaiwidgetcdndev.z33.web.core.windows.net')
-param widgetPublicHost string
-
 // GitHub Actions OIDC service principal object ID. Required for
 // widget-release.yml uploads (--auth-mode login needs data-plane RBAC).
 @description('Object ID of the GitHub Actions deploy service principal.')
@@ -57,7 +50,7 @@ resource originAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: accountName
   location: location
   sku: {
-    name: 'Standard_GRS'
+    name: 'Standard_LRS'
   }
   kind: 'StorageV2'
   properties: {
@@ -73,6 +66,9 @@ resource originAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     allowSharedKeyAccess: false
   }
 }
+
+var webEndpoint = originAccount.properties.primaryEndpoints.web
+var webHost = empty(webEndpoint) ? '' : replace(replace(webEndpoint, 'https://', ''), '/', '')
 
 resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
   parent: originAccount
@@ -97,14 +93,8 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
   }
 }
 
-// $web is the magic container that backs Static Website hosting.
-// Static website hosting itself is enabled out-of-band via:
-//   az storage blob service-properties update
-//     --account-name leoaiwidgetcdn{env}
-//     --static-website
-//     --index-document index.html
-//     --404-document   404.html
-// because the bicep type does not yet expose the staticWebsite flag.
+// $web backs Static Website hosting. Enable hosting via deploy-widget-cdn.ps1
+// (ARM/Bicep types do not expose blobServices.properties.staticWebsite).
 resource webContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   parent: blobService
   name: '$web'
@@ -123,10 +113,10 @@ module githubBlobRole '../bicep/modules/blob-role.bicep' = {
 
 // -- Outputs --------------------------------------------------------------
 output originAccountName string = originAccount.name
-output originPrimaryEndpoint string = originAccount.properties.primaryEndpoints.web
+output originPrimaryEndpoint string = webEndpoint
 output pinnedMajorPath string = '${pinnedMajor}/'
-output widgetPublicHost string = widgetPublicHost
-output widgetPublicBundleUrl string = 'https://${widgetPublicHost}/${pinnedMajor}/leo-widget.js'
-output widgetPublicManifestUrl string = 'https://${widgetPublicHost}/${pinnedMajor}/manifest.json'
-output widgetPublicAdvisoryUrl string = 'https://${widgetPublicHost}/${pinnedMajor}/advisory.json'
-output widgetPublicIframeUrl string = 'https://${widgetPublicHost}/iframe/index.html'
+output widgetPublicHost string = webHost
+output widgetPublicBundleUrl string = empty(webHost) ? '' : 'https://${webHost}/${pinnedMajor}/leo-widget.js'
+output widgetPublicManifestUrl string = empty(webHost) ? '' : 'https://${webHost}/${pinnedMajor}/manifest.json'
+output widgetPublicAdvisoryUrl string = empty(webHost) ? '' : 'https://${webHost}/${pinnedMajor}/advisory.json'
+output widgetPublicIframeUrl string = empty(webHost) ? '' : 'https://${webHost}/iframe/index.html'

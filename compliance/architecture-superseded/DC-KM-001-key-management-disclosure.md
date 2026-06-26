@@ -38,9 +38,9 @@ This document discloses the key management arrangements for the LEO AI Clinical 
 
 LEO AI uses a dedicated **Azure Key Vault per environment** (development, validation, production):
 
-- `kv-leoai-dev` — development environment secrets
-- `kv-leoai-val` — validation environment secrets
-- `kv-leoai-prod` — production environment secrets
+- `kv-mizaicai-dev` — development environment secrets
+- `kv-mizaicai-val` — validation environment secrets
+- `kv-mizaicai-prod` — production environment secrets
 
 All application secrets (database connection strings, API keys, service tokens) are stored as Key Vault Secrets. Container Apps reference them as Key Vault references — secrets are injected at container startup and are never written to configuration files, environment variables in plain text, or container images.
 

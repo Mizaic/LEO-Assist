@@ -424,16 +424,8 @@ def list_patient_document_references(
         # ordering relies on r.ordinal where present, falling back to
         # 0 so unordered chunks still produce a deterministic pick.
         rows = client.run(
-            "MATCH (dr:DocumentReference) "
-            "WHERE EXISTS { "
-            "  MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(dr) "
-            "  WHERE toString(p.id) = $pid "
-            "} OR EXISTS { "
-            "  MATCH (rr:ReferralRequest)-[:HAS_DOCUMENT]->(dr) "
-            "  WHERE EXISTS { "
-            "    MATCH (rr)-[:FOR_PATIENT]->(p:Patient) WHERE toString(p.id) = $pid "
-            "  } "
-            "} "
+            "MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(dr:DocumentReference) "
+            "WHERE toString(p.id) = $pid "
             "OPTIONAL MATCH (dr)-[hr:HAS_CHUNK]->(c:Chunk) "
             "WITH dr, hr, c "
             "ORDER BY coalesce(hr.ordinal, 0) ASC "
@@ -495,11 +487,6 @@ def list_document_reference_chunks(
             scope_where = (
                 "EXISTS { "
                 "  MATCH (dr)<-[:HAS_DOCUMENT_REFERENCE]-(_p:Patient) "
-                "        -[:HAS_GENERAL_PRACTITIONER]->(_gp) "
-                "  WHERE _gp.id IN $scope_org_ids "
-                "} OR EXISTS { "
-                "  MATCH (dr)<-[:HAS_DOCUMENT]-(_rr:ReferralRequest) "
-                "        -[:FOR_PATIENT]->(_p:Patient) "
                 "        -[:HAS_GENERAL_PRACTITIONER]->(_gp) "
                 "  WHERE _gp.id IN $scope_org_ids "
                 "}"

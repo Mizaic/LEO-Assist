@@ -30,7 +30,7 @@ production data or real clinical records.
 
 | Property                          | Required Value           | Rationale                                                                                  |
 | --------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------ |
-| `displayName`                     | Per environment          | Clear naming -- e.g. "Mizaic Atlas", "Mizaic Atlas (Dev)"                                   |
+| `displayName`                     | Per environment          | Clear naming -- e.g. "Mizaic LEO AI Prod", "Mizaic LEO AI Dev"                             |
 | `signInAudience`                  | `AzureADMultipleOrgs`    | Multi-tenant SaaS; customer tenants authenticate against their own Entra directory          |
 | `accessTokenAcceptedVersion`      | **2**                    | v1 tokens use `sts.windows.net` issuer and lack reliable `aud` validation; the API explicitly rejects v1 tokens |
 | `enableAccessTokenIssuance`       | **false**                | Implicit grant is not used; the platform uses authorization code flow                       |
@@ -167,6 +167,12 @@ The following security-relevant parameters are set per environment in
 | `sessionTtlHours`   | `24`                                        | `12`                                      | `12`                                                       |
 | `frontendUrl`       | `https://leo-ai-audit.healthcarecopilot.ai` | `https://atlas-val.healthcarecopilot.ai`  | `https://leo-ai-audit.healthcarecopilot.ai`              |
 | `knowledgeGraphEnvironment` | `prod` (shared with validation)     | `prod` (shared Aura KG with production)   | `dev` (defaults to `environment`)                          |
+| `storageAccountName`        | per `prod.bicepparam`               | per `val.bicepparam`                      | per `dev.bicepparam`                                         |
+
+Blob model store access uses managed identity (not Key Vault): Bicep injects
+`AZURE_STORAGE_ACCOUNT_URL` from `storageAccountName` and assigns Storage Blob
+Data Contributor via `blob-role.bicep`. The `ner-models` container is created
+by `blob-container.bicep`.
 
 ### 4.1  Security Parameter Rules
 
@@ -192,7 +198,10 @@ Secret names use kebab-case in Key Vault. The canonical mapping is defined in
 | ----------------------------------- | ------------------------------------ | ------------------------------------ | --------------------------- |
 | `azure-ad-client-id`                | `AZURE_AD_CLIENT_ID`                 | OAuth client ID                      | Entra app registration      |
 | `azure-ad-client-secret`            | `AZURE_AD_CLIENT_SECRET`             | OAuth token exchange                 | Entra app registration      |
-| `azure-ad-tenant-id`                | `AZURE_AD_TENANT_ID`                 | Entra tenant                         | Entra directory             |
+| `azure-ad-tenant-id`                | `AZURE_AD_TENANT_ID`                 | Entra tenant (user login)            | Deployment Entra directory  |
+| `mail-graph-tenant-id`              | `MAIL_GRAPH_TENANT_ID`               | Entra tenant (Graph mail app)        | Corporate Entra directory   |
+| `mail-graph-client-id`              | `MAIL_GRAPH_CLIENT_ID`               | Graph mail app client ID             | Corporate mail app registration |
+| `mail-graph-client-secret`          | `MAIL_GRAPH_CLIENT_SECRET`           | Graph mail app client secret         | Corporate mail app registration |
 | `neo4j-patient-uri`                 | `NEO4J_URI`                          | Patient graph connection             | Neo4j admin                 |
 | `neo4j-patient-password`            | `NEO4J_PASSWORD`                     | Patient graph password               | Neo4j admin                 |
 | `neo4j-knowledge-uri`               | `KNOWLEDGE_GRAPH_NEO4J_URI`          | Knowledge graph connection           | Neo4j admin                 |
@@ -202,7 +211,6 @@ Secret names use kebab-case in Key Vault. The canonical mapping is defined in
 | `redis-url`                         | `REDIS_URL`                          | Redis connection string (TLS)        | Redis Enterprise admin        |
 | `azure-openai-api-key`              | `AZURE_OPENAI_API_KEY`               | Azure OpenAI LLM access              | Azure OpenAI resource       |
 | `azure-openai-endpoint`             | `AZURE_OPENAI_ENDPOINT`              | Azure OpenAI endpoint URL            | Azure OpenAI resource       |
-| `azure-storage-connection-string`   | `AZURE_STORAGE_CONNECTION_STRING`    | Blob model store                     | Storage account admin       |
 | `azure-service-bus-connection-string` | `AZURE_SERVICE_BUS_CONNECTION_STRING` | Service Bus queues                 | Service Bus admin           |
 | `aws-access-key-id`                 | `AWS_ACCESS_KEY_ID`                  | AWS Bedrock LLM access               | AWS IAM                     |
 | `aws-secret-access-key`             | `AWS_SECRET_ACCESS_KEY`              | AWS Bedrock LLM access               | AWS IAM                     |
@@ -217,8 +225,8 @@ Secret names use kebab-case in Key Vault. The canonical mapping is defined in
 | `fhir-api-app-id`                   | `FHIR_API_APP_ID`                    | Inter-service auth (FHIR API)        | Entra app registration      |
 | `model-inference-app-id`            | `MODEL_INFERENCE_APP_ID`             | Inter-service auth (model inference) | Entra app registration      |
 | `terminology-api-app-id`            | `TERMINOLOGY_API_APP_ID`             | Inter-service auth (terminology API) | Entra app registration      |
-| `auth-secret`                       | `AUTH_SECRET`                        | Session signing                      | Generated / ops             |
-| `service-auth-secret`               | `SERVICE_AUTH_SECRET`                | Inter-service HMAC authentication    | Generated via `migrate-secrets.ps1` |
+| `auth-secret`                       | `AUTH_SECRET`                        | Session signing                      | Generated via `migrate-secrets.ps1` if absent |
+| `service-auth-secret`               | `SERVICE_AUTH_SECRET`                | Inter-service HMAC authentication    | Generated via `migrate-secrets.ps1` if absent |
 | `sdk-host-shared-secret`            | `SDK_HOST_SHARED_SECRET`             | Widget token exchange (host backend) | Generated / ops             |
 | `sdk-widget-token-secret`           | `SDK_WIDGET_TOKEN_SECRET`            | Widget JWT signing                   | Generated / ops             |
 
@@ -226,8 +234,8 @@ Secret names use kebab-case in Key Vault. The canonical mapping is defined in
 
 - Secrets are injected into Container Apps as Key Vault references (not
   plaintext env vars) via the `container-apps.bicep` module.
-- `migrate-secrets.ps1` generates `SERVICE_AUTH_SECRET` automatically if
-  absent, using `[System.Security.Cryptography.RandomNumberGenerator]`.
+- `migrate-secrets.ps1` generates `AUTH_SECRET` and `SERVICE_AUTH_SECRET`
+  automatically if absent from `secrets/.env`.
 - Secrets MUST NOT appear in `.env` files committed to source control.
   The `secrets/` directory is in `.gitignore`.
 - Redis is stored as a full TLS connection string in `redis-url`
@@ -241,10 +249,10 @@ used for CI/CD.
 
 | Template file                         | Federated credential subject                                      | Used by                          |
 | ------------------------------------- | ----------------------------------------------------------------- | -------------------------------- |
-| `.federated-cred-main.json`           | `repo:Healthcare-Copilot/LEO-AI-CORE:ref:refs/heads/main`         | CI build (push to main)          |
-| `.federated-cred-env-dev.json`        | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:dev`             | CD deploy-dev                    |
-| `.federated-cred-env-validation.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:validation`      | CD deploy-val                    |
-| `.federated-cred-env-production.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:production`      | CD deploy-prod                   |
+| `.federated-cred-main.json`           | `repo:Miazic/LEO-AI-CORE:ref:refs/heads/main`         | CI build (push to main)          |
+| `.federated-cred-env-dev.json`        | `repo:Miazic/LEO-AI-CORE:environment:dev`             | CD deploy-dev                    |
+| `.federated-cred-env-validation.json` | `repo:Miazic/LEO-AI-CORE:environment:validation`      | CD deploy-val                    |
+| `.federated-cred-env-production.json` | `repo:Miazic/LEO-AI-CORE:environment:production`      | CD deploy-prod                   |
 
 Apply each credential once per Entra app registration:
 

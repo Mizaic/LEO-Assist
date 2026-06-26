@@ -17,7 +17,7 @@ Usage:
     .venv/bin/python scripts/code_ftr_blood_tests.py --apply --limit 100
 
     # Restrict to a single patient:
-    .venv/bin/python scripts/code_ftr_blood_tests.py --patient 4187508279 --apply
+    .venv/bin/python scripts/code_ftr_blood_tests.py --patient 9990000001 --apply
 """
 
 from __future__ import annotations

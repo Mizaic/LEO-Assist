@@ -46,31 +46,16 @@ LIMIT 1
 """
 
 _DOCUMENT_FOR_PATIENT = """
-MATCH (dr:DocumentReference {id: $record_id})
-WHERE EXISTS {
-  MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(dr)
-  WHERE toString(p.id) = $patient_id
-} OR EXISTS {
-  MATCH (rr:ReferralRequest)-[:HAS_DOCUMENT]->(dr)
-  WHERE EXISTS {
-    MATCH (rr)-[:FOR_PATIENT]->(p:Patient) WHERE toString(p.id) = $patient_id
-  }
-}
+MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(dr:DocumentReference {id: $record_id})
+WHERE toString(p.id) = $patient_id
 RETURN dr.id AS id
 LIMIT 1
 """
 
 _CHUNK_FOR_PATIENT = """
-MATCH (:DocumentReference)-[:HAS_CHUNK]->(c:Chunk {id: $record_id})
-WHERE EXISTS {
-  MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(:DocumentReference)-[:HAS_CHUNK]->(c)
-  WHERE toString(p.id) = $patient_id
-} OR EXISTS {
-  MATCH (rr:ReferralRequest)-[:HAS_DOCUMENT]->(:DocumentReference)-[:HAS_CHUNK]->(c)
-  WHERE EXISTS {
-    MATCH (rr)-[:FOR_PATIENT]->(p:Patient) WHERE toString(p.id) = $patient_id
-  }
-}
+MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(:DocumentReference)
+      -[:HAS_CHUNK]->(c:Chunk {id: $record_id})
+WHERE toString(p.id) = $patient_id
 RETURN c.id AS id
 LIMIT 1
 """

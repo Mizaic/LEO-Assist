@@ -78,17 +78,18 @@ def evaluate_compliance(state: ComplianceState) -> dict[str, Any]:
     errors = list(state.get("errors") or [])
     entities = list(state.get("entities") or [])
     codes = _entity_codes(entities)
-    try:
-        result = _evaluate_guideline(state, codes)
-        return {
-            "compliance_result": result,
-            "compliance_report": result,
-            "guideline_result": result,
-            "errors": errors,
-        }
-    except Exception as exc:
-        logger.exception("Guideline evaluation failed")
-        errors.append(f"guideline_evaluation: {exc}")
+    if state.get("guideline_scope_id") or state.get("guideline_id"):
+        try:
+            result = _evaluate_guideline(state, codes)
+            return {
+                "compliance_result": result,
+                "compliance_report": result,
+                "guideline_result": result,
+                "errors": errors,
+            }
+        except Exception as exc:
+            logger.exception("Guideline evaluation failed")
+            errors.append(f"guideline_evaluation: {exc}")
     checklist = state.get("checklist") or {}
     items = list(checklist.get("items") or [])
     entity_text = " ".join(

@@ -14,27 +14,27 @@ from libs.nlp.sentence_splitter import SentenceChunk, filter_header_sentences
 MISSED_TEXTS = [
     (
         "skin cancer referral - secretary note",
-        "09:46 - Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role) \nFast track referral for suspected skin cancer",
+        "09:46 - Surgery: SYNTHETIC, Staff (Mrs) (Medical Secretary Access Role) \nFast track referral for suspected skin cancer",
     ),
     (
         "breast cancer referral - secretary note",
-        "12:52 - Surgery: HUBBARD, Siobhan (Medical Secretary Access Role) \nFast track referral for suspected breast cancer",
+        "12:52 - Surgery: SYNTHETIC, Staff (Medical Secretary Access Role) \nFast track referral for suspected breast cancer",
     ),
     (
         "brain tumour referral - secretary note",
-        "12:12 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected brain tumour",
+        "12:12 - Surgery: SYNTHETIC, Staff (Medical Secretary Access Role) \nFast track referral for suspected brain tumour",
     ),
     (
         "lower GI referral - secretary note",
-        "10:12 - Surgery: JONES, Emma (Medical Secretary Access Role) \nFast track referral for suspected lower GI cancer",
+        "10:12 - Surgery: SYNTHETIC, Staff (Medical Secretary Access Role) \nFast track referral for suspected lower GI cancer",
     ),
     (
         "head and neck referral - secretary note",
-        "13:36 - Surgery: BAKER, Dawn (Mrs) (Medical Secretary Access Role) \nFast track referral for suspected head and neck cancer",
+        "13:36 - Surgery: SYNTHETIC, Staff (Medical Secretary Access Role) \nFast track referral for suspected head and neck cancer",
     ),
     (
         "upper GI referral - prism note",
-        "09:03 - Surgery: BRIDGES, Kirstie (Dr) \n- PRISM 2WW Upper GI -  \nFast track referral for suspected upper GI cancer",
+        "09:03 - Surgery: SYNTHETIC, Staff (Clinical Practitioner Access Role) \n- PRISM 2WW Upper GI -  \nFast track referral for suspected upper GI cancer",
     ),
 ]
 

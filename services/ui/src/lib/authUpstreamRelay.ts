@@ -109,14 +109,6 @@ export async function relayAuthEndpoint(
     body,
     redirect: "manual",
   });
-  // 204 No Content must not carry a body (Fetch/Response spec). core-api
-  // POST /auth/logout returns 204 with Set-Cookie clearing leo_session.
-  if (upstream.status === 204) {
-    const response = new NextResponse(null, { status: 204 });
-    _copyResponseHeaders(upstream, response);
-    relayAuthCookies(_collectSetCookies(upstream), response);
-    return response;
-  }
   const response = new NextResponse(await upstream.text(), {
     status: upstream.status,
   });

@@ -360,81 +360,140 @@ describe("RuleReviewSection -- Edit affordance on the approved card", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Static-source VT: dual review pools with search and pagination
+// Static-source VT: Pending / Active / Superseded status filter (Tier 1)
 // ---------------------------------------------------------------------------
+//
+// Bug: previously the Review section hard-coded
+// /api/guidance/rules/review?status=pending_review which meant a
+// reviewer could not find -- let alone edit -- a rule that had already
+// been approved in a prior session. The BE always supported any
+// status via the ?status= query param and apply_rule_edit always
+// accepted predecessor status in {pending_review, active}; this was a
+// purely missing FE surface.
+//
+// Fix: a ToggleButtonGroup with three options -- Pending review /
+// Active / Superseded -- drives the fetch URL. The accordion list
+// re-uses RuleAccordionCard with status-aware affordances:
+//   - Pending review: Looks right + Edit + Reject (today's behaviour)
+//   - Active        : Edit only
+//   - Superseded    : Edit only (Tier 3 will add Restore)
+// Approve-all stays scoped to Pending review.
 
-const RULE_REVIEW_POOL_SOURCE = fs.readFileSync(
-  path.resolve(__dirname, "../RuleReviewPool.tsx"),
-  "utf-8",
-);
-
-describe("RuleReviewSection -- dual pools (Tier 1)", () => {
-  it("declares pending and active status filter values for card accents", () => {
-    const typesSource = fs.readFileSync(
-      path.resolve(__dirname, "../ruleReviewTypes.ts"),
-      "utf-8",
-    );
-    expect(typesSource).toMatch(
+describe("RuleReviewSection -- status filter (Tier 1)", () => {
+  it("declares the three filter values that map to BE statuses", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
       /export type RuleStatusFilter = "pending_review" \| "active" \| "superseded";/,
     );
-  });
-
-  it("loads pending and active rule pools in parallel", () => {
-    const helpersSource = fs.readFileSync(
-      path.resolve(__dirname, "../ruleReviewHelpers.ts"),
-      "utf-8",
+    // STATUS_FILTER_OPTIONS list MUST contain exactly the three labels
+    // the reviewer sees, in this order (mirrors the BE statuses and
+    // the rule lifecycle: pending -> active -> superseded).
+    const optionsBlock = RULE_REVIEW_SOURCE.slice(
+      RULE_REVIEW_SOURCE.indexOf("STATUS_FILTER_OPTIONS"),
+      RULE_REVIEW_SOURCE.indexOf("export default function RuleReviewSection"),
     );
-    expect(helpersSource).toMatch(/export async function fetchRules\(status: RuleStatusFilter\)/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/fetchRules\("pending_review"\)/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/fetchRules\("active"\)/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/Promise\.all\(\[/);
+    expect(optionsBlock).toMatch(/value: "pending_review",[\s\S]*?label: "Pending review"/);
+    expect(optionsBlock).toMatch(/value: "active",[\s\S]*?label: "Active"/);
+    expect(optionsBlock).toMatch(/value: "superseded",[\s\S]*?label: "Superseded"/);
   });
 
-  it("renders separate awaiting-review and approved pools", () => {
-    expect(RULE_REVIEW_SOURCE).toMatch(/poolId="pending"/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/title="Awaiting review"/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/poolId="approved"/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/title="Approved"/);
-  });
-
-  it("scopes Approve all to the awaiting-review pool only", () => {
-    expect(RULE_REVIEW_POOL_SOURCE).toMatch(/showApproveAll/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/showApproveAll/);
-    expect(RULE_REVIEW_SOURCE).not.toMatch(/ToggleButtonGroup/);
-  });
-
-  it("passes approve and reject handlers only to the pending pool", () => {
-    expect(RULE_REVIEW_SOURCE).toMatch(/onApprove=\{\(rule\) => decide\(rule, "approve"\)\}/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/onReject=\{\(rule\) => decide\(rule, "reject", "Rejected by reviewer"\)\}/);
-  });
-
-  it("lazy-loads superseded history behind a disclosure control", () => {
-    expect(RULE_REVIEW_SOURCE).toMatch(/Show superseded history/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/fetchRules\("superseded"\)/);
-  });
-
-  it("declares Rule.updated_at / reviewed_at / reviewed_by so the FE can sort and label staleness", () => {
-    const typesSource = fs.readFileSync(
-      path.resolve(__dirname, "../ruleReviewTypes.ts"),
-      "utf-8",
+  it("forwards the selected status to the BE list endpoint", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /fetch\(`\/api\/guidance\/rules\/review\?status=\$\{statusFilter\}`\)/,
     );
-    expect(typesSource).toMatch(/created_at\?: string;/);
-    expect(typesSource).toMatch(/updated_at\?: string;/);
-    expect(typesSource).toMatch(/reviewed_at\?: string;/);
-    expect(typesSource).toMatch(/reviewed_by\?: string;/);
-  });
-});
-
-describe("RuleReviewPool -- search, filters, pagination", () => {
-  it("renders FilterBar search and pagination controls", () => {
-    expect(RULE_REVIEW_POOL_SOURCE).toMatch(/<FilterBar/);
-    expect(RULE_REVIEW_POOL_SOURCE).toMatch(/<Pagination/);
-    expect(RULE_REVIEW_POOL_SOURCE).toMatch(/ruleMatchesSearch/);
+    // The effect MUST re-fetch when statusFilter changes (otherwise
+    // switching tabs would leave the previous list rendered).
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /\}, \[refreshKey, internalKey, statusFilter\]\);/,
+    );
   });
 
-  it("filters by guideline and action type", () => {
-    expect(RULE_REVIEW_POOL_SOURCE).toMatch(/filterRulesByGuideline/);
-    expect(RULE_REVIEW_POOL_SOURCE).toMatch(/filterRulesByStrength/);
+  it("defaults to pending_review so today's flow is unchanged on first paint", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /useState<RuleStatusFilter>\(\s*"pending_review",?\s*\)/,
+    );
+  });
+
+  it("renders the ToggleButtonGroup with an aria-label for screen readers", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /<ToggleButtonGroup[\s\S]*?aria-label="Filter rules by status"/,
+    );
+  });
+
+  it("never lands the user in an empty 'no filter selected' state", () => {
+    // ToggleButtonGroup with exclusive emits null when the active
+    // option is clicked again -- the handler MUST guard against that
+    // and keep the previous filter set.
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /if \(next\) setStatusFilter\(next as RuleStatusFilter\);/,
+    );
+  });
+
+  it("hides Approve-all when not viewing the pending list", () => {
+    // Approve-all is a bulk decision endpoint that only makes sense
+    // for pending_review rules; for active or superseded lists it is
+    // either a no-op or actively dangerous, so it must not render.
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /\{statusFilter === "pending_review" && \([\s\S]*?Approve all[\s\S]*?\)\}/,
+    );
+  });
+
+  it("hides Looks right and Reject for non-pending rules", () => {
+    // The accordion card receives undefined for onApprove / onReject
+    // when statusFilter !== 'pending_review' -- the card already
+    // (RuleAccordionCardProps) renders the corresponding button only
+    // when the handler is supplied, so omitting them suppresses the
+    // affordance without duplicating the markup.
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /onApprove=\{\s*statusFilter === "pending_review"\s*\? \(\) => decide\(rule, "approve"\)\s*: undefined,?\s*\}/,
+    );
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /onReject=\{\s*statusFilter === "pending_review"\s*\? \(\) => decide\(rule, "reject", "Rejected by reviewer"\)\s*: undefined,?\s*\}/,
+    );
+  });
+
+  it("keeps the Edit affordance on every status (so any rule can be edited)", () => {
+    // onEdit is unconditional in the JSX; the BE accepts predecessor
+    // status in {pending_review, active}, and the dialog drives the
+    // edit through handleSaveEdit which is status-agnostic.
+    expect(RULE_REVIEW_SOURCE).toMatch(/onEdit=\{\(\) => setEditRule\(rule\)\}/);
+  });
+
+  it("makes RuleAccordionCard's onApprove / onReject optional so the same card serves all three lists", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(/onApprove\?: \(\) => void;/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/onReject\?: \(\) => void;/);
+  });
+
+  it("declares Rule.updated_at / reviewed_at / reviewed_by so the FE can sort and label staleness (DI-LEO-AI-528 AC-001 / AC-002)", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(/created_at\?: string;/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/updated_at\?: string;/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/reviewed_at\?: string;/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/reviewed_by\?: string;/);
+  });
+
+  it("renders the per-row 'Updated <relative>' hint via formatRelativeUpdatedAt (DI-LEO-AI-528 AC-002)", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /data-testid="rule-updated-relative"[\s\S]*?formatRelativeUpdatedAt\(rule\.updated_at\)/,
+    );
+  });
+
+  it("sorts the rendered list with sortRulesForStatus(rules, statusFilter) so Active surfaces stalest first (DI-LEO-AI-528 AC-001)", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(
+      /sortRulesForStatus\(visibleRules, statusFilter\)\.map\(\(rule\) => \(/,
+    );
+  });
+
+  it("gives each filter chip a tooltip explaining what it shows", () => {
+    // Tooltips are critical for first-time reviewers who have not
+    // seen the rule lifecycle before -- "Superseded" especially is
+    // jargon. Per health-literacy.mdc: tooltips MUST explain "why",
+    // not just "what".
+    const optionsBlock = RULE_REVIEW_SOURCE.slice(
+      RULE_REVIEW_SOURCE.indexOf("STATUS_FILTER_OPTIONS"),
+      RULE_REVIEW_SOURCE.indexOf("export default function RuleReviewSection"),
+    );
+    expect(optionsBlock).toMatch(/helper:[\s\S]*?Pending review/);
+    expect(optionsBlock).toMatch(/helper:[\s\S]*?Active/);
+    expect(optionsBlock).toMatch(/helper:[\s\S]*?Superseded/);
   });
 });
 

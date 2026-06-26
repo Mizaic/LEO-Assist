@@ -85,8 +85,8 @@ def test_vt948b7cd4_source_text_is_split_before_extraction() -> None:
     """VT-948B7CD4 -- source text is prepared before coding starts."""
     source = _read(EXTRACTION)
 
-    assert "g.add_edge(START, \"resolve_text_units\")" in source
-    assert "g.add_edge(\"resolve_text_units\", \"extract_entities\")" in source
+    assert "g.add_edge(START, \"split_sentences\")" in source
+    assert "g.add_edge(\"split_sentences\", \"extract_entities\")" in source
     assert "g.add_edge(\"extract_entities\", \"merge_results\")" in source
 
 

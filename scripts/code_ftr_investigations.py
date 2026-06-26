@@ -27,7 +27,7 @@ Usage:
     .venv/bin/python scripts/code_ftr_investigations.py --apply --limit 200
 
     # Single patient:
-    .venv/bin/python scripts/code_ftr_investigations.py --patient 4187508279 --apply
+    .venv/bin/python scripts/code_ftr_investigations.py --patient 9990000001 --apply
 """
 
 from __future__ import annotations

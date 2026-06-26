@@ -16,7 +16,7 @@ set -euo pipefail
 
 ENVIRONMENT="${ENVIRONMENT:-dev}"
 RESOURCE_GROUP="leo-ai-${ENVIRONMENT}"
-KV_NAME="leoai-${ENVIRONMENT}-kv"
+KV_NAME="mizaicai-${ENVIRONMENT}-kv"
 
 echo "=== Registering Entra service apps for environment: ${ENVIRONMENT} ==="
 
@@ -74,7 +74,7 @@ ANALYTICS_APP_ID=$(register_app "leo-analytics-api")
 echo ""
 echo "Retrieving managed identity principal IDs from ${RESOURCE_GROUP} ..."
 
-IDENTITY_NAME="leoai-${ENVIRONMENT}-id"
+IDENTITY_NAME="mizaicai-${ENVIRONMENT}-id"
 IDENTITY_PRINCIPAL_ID=$(az identity show \
     --name "$IDENTITY_NAME" \
     --resource-group "$RESOURCE_GROUP" \

@@ -1,0 +1,38 @@
+# Paths to remove from git history (git filter-repo --invert-paths / --path-glob).
+# Lines starting with # are ignored. Prefix with glob: for --path-glob.
+#
+# HEAD is clean after commit 134ff31a ("Cleaned PII"). These targets remain in
+# older commits (especially 1e587aee deletions and encounter_audit dumps).
+#
+# Regenerate explicit paths:
+#   ./scripts/compliance/generate-pii-purge-paths.sh
+#
+# --- Directory globs (primary PHI stores in history) ---
+glob:scripts/investigations/encounter_audit/**
+glob:scripts/investigations/encounter_audit_reaudit/**
+glob:scripts/investigations/encounter_audit_/**
+glob:scripts/investigations/output/**
+glob:data/**
+glob:results/**
+glob:reports/lab_triple_backfill_*
+#
+# --- Root cohort / audit exports (removed in 1e587aee, still in history) ---
+cancer_audit.csv
+cancer_audit_v2.csv
+cancer_audit_v3.csv
+cancer_expressions.csv
+referral_episodes.csv
+rebuild_checkpoint.txt
+ng12_batch_stdout.txt
+ng12_spot2.txt
+ng12_spot3.txt
+ng12_spot_checks.txt
+#
+# --- Per-patient investigation scripts (removed in 1e587aee) ---
+scripts/investigations/_patient_180d_inference_scan.py
+scripts/investigations/_patient_4203796334_breakdown.py
+scripts/investigations/_patient_enc_raw.py
+scripts/investigations/_patient_post_letter_text.py
+scripts/investigations/_patient_referral_text.py
+scripts/investigations/_patient_schema_check.py
+scripts/investigations/_patient_vs_episode_count.py

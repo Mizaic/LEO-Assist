@@ -209,56 +209,6 @@ class BitmapStore:
         value = client.hget(_INTIDS_KEY, concept_id)
         return int(value) if value is not None else None
 
-    def get_int_ids_bulk(self, concept_ids: list[str]) -> dict[str, int]:
-        """Look up int_ids for multiple concept IDs in a single Redis HMGET.
-
-        Replaces N sequential HGET calls with one round trip, which is
-        critical when evaluating patients with many SNOMED codes against
-        Azure Cache for Redis (each TLS round trip costs 50-200 ms).
-
-        Args:
-            concept_ids: List of SNOMED concept ID strings to look up.
-
-        Returns:
-            Dict mapping concept_id to int_id for every concept that has
-            been indexed.  Concepts not in the store are omitted.
-        """
-        if not concept_ids:
-            return {}
-        client = self._client()
-        values = client.hmget(_INTIDS_KEY, concept_ids)
-        return {
-            cid: int(v)
-            for cid, v in zip(concept_ids, values)
-            if v is not None
-        }
-
-    def get_bitmaps_bulk(self, bitmap_ids: list[str]) -> dict[str, "BitMap"]:
-        """Retrieve multiple BitMaps in a single Redis MGET round trip.
-
-        Replaces N sequential GET calls with one round trip for all bitmaps
-        needed in a logic tree evaluation pass.  On Azure TLS Redis each
-        saved round trip costs 50-200 ms, so the saving is large for rules
-        with many CONCEPT nodes.
-
-        Args:
-            bitmap_ids: List of BLAKE2b digests (as returned by put_bitmap).
-
-        Returns:
-            Dict mapping bitmap_id to BitMap for every id found in Redis.
-            Missing ids are omitted.
-        """
-        if not bitmap_ids:
-            return {}
-        keys = [_bitmap_key(bid) for bid in bitmap_ids]
-        client = self._client()
-        values = client.mget(keys)
-        return {
-            bid: BitMap.deserialize(raw)
-            for bid, raw in zip(bitmap_ids, values)
-            if raw is not None
-        }
-
     def write_ruleset(
         self,
         version: str,

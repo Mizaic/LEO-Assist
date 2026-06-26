@@ -340,7 +340,7 @@ class SBAROrchestrator:
             patient_codes = sorted({c.concept_id for c in aggregated})
             demographics = _assessment_demographics(resolved_situation.patient_summary)
             try:
-                eval_payload = await self._evaluate(
+                eval_payload = self._evaluate(
                     patient_codes=eval_codes,
                     guideline_ids=payload.guideline_ids or None,
                     patient_age=demographics.get("patient_age"),

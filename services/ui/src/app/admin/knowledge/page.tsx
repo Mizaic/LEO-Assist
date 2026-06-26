@@ -9,10 +9,13 @@
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Box from "@mui/material/Box";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Typography from "@mui/material/Typography";
 import dynamic from "next/dynamic";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   KnowledgePageLayout,
   isRole,
@@ -22,10 +25,11 @@ import {
 
 import { KNOWLEDGE_TAB_COPY, type KnowledgeTabKey } from "@/lib/knowledgeCopy";
 import { useAuth } from "@/lib/authContext";
-import { KnowledgeSidebar } from "@/components/ui/KnowledgeSidebar";
-import { KnowledgeCommandPalette } from "@/components/ui/KnowledgeCommandPalette";
 
-// Per DI-LEO-AI-144: wide layout for data-heavy tabs.
+// Per DI-LEO-AI-144: data-heavy tabs get the wide (1600px) column so
+// reviewers have horizontal room for long clinical sentences, entity
+// chip rows, and grid columns. Intro-heavy tabs stay at the reading
+// default (1280px).
 const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
   "training-data": "wide",
   "surface-forms": "wide",
@@ -68,23 +72,10 @@ const CodingValidationPage = dynamic(
   { ssr: false },
 );
 
-const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
-  "training-data": GoldDatasetPage,
-  "surface-forms": SurfaceFormsPage,
-  "context-rules": ContextRulesPage,
-  "ai-instructions": PromptsPage,
-  "clinical-guidelines": GuidancePage,
-  pathways: PathwaysPage,
-  domains: DomainsPage,
-  terminology: TerminologyPage,
-  "results-labs": LabResultsPage,
-  "ai-summarisation": AiSummarisationPage,
-  "test-patients": TestPatientsPage,
-  "extraction-scenarios": ExtractionScenariosPage,
-  "coding-validation": CodingValidationPage,
-};
-
-// Canonical tab order -- keys are part of URL contract and must stay stable.
+// Canonical tab order per DI-LEO-AI-135. First five are the legacy
+// Knowledge tabs (reference data curated by staff + QA); last three are
+// the legacy Clinical tabs merged in by Phase 2 of the role-first
+// redesign. The keys are part of the URL contract and must stay stable.
 export const TABS: Array<{ key: KnowledgeTabKey; label: string }> = [
   { key: "training-data", label: "Training Data" },
   { key: "surface-forms", label: "Surface Forms" },
@@ -101,6 +92,22 @@ export const TABS: Array<{ key: KnowledgeTabKey; label: string }> = [
   { key: "coding-validation", label: "Coding Validation" },
 ];
 
+const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
+  "training-data": GoldDatasetPage,
+  "surface-forms": SurfaceFormsPage,
+  "context-rules": ContextRulesPage,
+  "ai-instructions": PromptsPage,
+  "clinical-guidelines": GuidancePage,
+  pathways: PathwaysPage,
+  domains: DomainsPage,
+  terminology: TerminologyPage,
+  "results-labs": LabResultsPage,
+  "ai-summarisation": AiSummarisationPage,
+  "test-patients": TestPatientsPage,
+  "extraction-scenarios": ExtractionScenariosPage,
+  "coding-validation": CodingValidationPage,
+};
+
 function resolveRole(selectedRole: string | null): Role | null {
   return selectedRole && isRole(selectedRole) ? selectedRole : null;
 }
@@ -109,69 +116,40 @@ export default function KnowledgePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const auth = useAuth();
-  const [paletteOpen, setPaletteOpen] = useState(false);
-
   const tabParam = (searchParams.get("tab") ?? "training-data") as KnowledgeTabKey;
-  const validKeys = TABS.map((t) => t.key);
-  const activeKey: KnowledgeTabKey = validKeys.includes(tabParam) ? tabParam : "training-data";
+  const activeIdx = Math.max(0, TABS.findIndex((t) => t.key === tabParam));
+  const activeKey = TABS[activeIdx].key;
   const ActiveBody = TAB_PANELS[activeKey];
   const role = resolveRole(auth.session?.selectedRole ?? null);
 
   const handleTabChange = useCallback(
-    (key: KnowledgeTabKey) => {
-      router.replace(`/admin/knowledge?tab=${key}`);
+    (_: React.SyntheticEvent, newIdx: number) => {
+      router.replace(`/admin/knowledge?tab=${TABS[newIdx].key}`);
     },
-    [router],
+    [router]
   );
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setPaletteOpen(true);
-      }
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
-
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#FFFFFF" }}>
-      <KnowledgeSidebar
-        activeKey={activeKey}
-        onTabChange={handleTabChange}
-        onSearchClick={() => setPaletteOpen(true)}
-      />
+    <Box sx={{ minHeight: "100vh" }}>
+      <Box sx={{ px: 3, pt: 3, pb: 0, borderBottom: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1.5 }}>
+          Knowledge
+        </Typography>
+        <Tabs value={activeIdx} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
+          {TABS.map((t) => (
+            <Tab key={t.key} label={t.label} sx={{ textTransform: "none", fontSize: "0.875rem" }} />
+          ))}
+        </Tabs>
+      </Box>
 
-      <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeKey}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-          >
-            <KnowledgePageLayout
-              screenId={`knowledge-${activeKey}`}
-              intro={KNOWLEDGE_TAB_COPY[activeKey]}
-              role={role}
-              width={TAB_WIDTH[activeKey]}
-            >
-              <ActiveBody />
-            </KnowledgePageLayout>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      <KnowledgeCommandPalette
-        open={paletteOpen}
-        onClose={() => setPaletteOpen(false)}
-        onNavigate={(tab) => {
-          handleTabChange(tab);
-          setPaletteOpen(false);
-        }}
-      />
-    </div>
+      <KnowledgePageLayout
+        screenId={`knowledge-${activeKey}`}
+        intro={KNOWLEDGE_TAB_COPY[activeKey]}
+        role={role}
+        width={TAB_WIDTH[activeKey]}
+      >
+        <ActiveBody />
+      </KnowledgePageLayout>
+    </Box>
   );
 }

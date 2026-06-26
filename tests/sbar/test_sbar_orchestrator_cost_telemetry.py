@@ -135,7 +135,7 @@ def _build_orchestrator(monkeypatch, session, *, telemetry_failure=False):
             "error": None,
         }
 
-    async def _evaluate(**_kw):
+    def _evaluate(**_kw):
         return {"matched_rules": [], "active_version": "v1"}
 
     monkeypatch.setattr(

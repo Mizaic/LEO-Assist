@@ -18,20 +18,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
-import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import ScienceIcon from "@mui/icons-material/Science";
-
-import { PageHero, SegmentedTabs, SkeletonList } from "@leo/design-system";
 
 import type { MarkdownEditorHandle } from "@/components/markdown-editor";
 import { api } from "@/lib/api";
@@ -59,7 +57,7 @@ export default function PromptTunerPage() {
 
   const editorRef = useRef<MarkdownEditorHandle>(null);
 
-  const [tab, setTab] = useState<string>("instructions");
+  const [tab, setTab] = useState(0);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
@@ -72,10 +70,6 @@ export default function PromptTunerPage() {
   const [saving, setSaving] = useState(false);
   const [version, setVersion] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [retryKey, setRetryKey] = useState(0);
 
   const [filterCat, setFilterCat] = useState("");
   const [filterScope, setFilterScope] = useState("");
@@ -104,8 +98,6 @@ export default function PromptTunerPage() {
       setLoaded(true);
       return;
     }
-    setLoaded(false);
-    setLoadError(null);
     api
       .get<PromptConfigData>(`/api/prompts/${promptId}`)
       .then((data) => {
@@ -127,11 +119,8 @@ export default function PromptTunerPage() {
         setVersion(data.version);
         setLoaded(true);
       })
-      .catch(() => {
-        setLoadError("Failed to load. Please try again.");
-        setLoaded(true);
-      });
-  }, [promptId, isNew, retryKey]);
+      .catch(() => setLoaded(true));
+  }, [promptId, isNew]);
 
   const handleEditorChange = useCallback(
     (md: string) => setSystemPrompt(md),
@@ -161,7 +150,6 @@ export default function PromptTunerPage() {
 
   const handleSave = useCallback(async () => {
     setSaving(true);
-    setSaveError(null);
     const payload = {
       name,
       description,
@@ -177,10 +165,9 @@ export default function PromptTunerPage() {
         router.push(`/admin/prompts/${result.id}`);
       } else {
         await api.put(`/api/prompts/${promptId}`, payload);
-        setSaveSuccess(true);
       }
     } catch {
-      setSaveError("Save failed. Please try again.");
+      /* surfaced via TODO: toast in next pass */
     } finally {
       setSaving(false);
     }
@@ -280,88 +267,40 @@ export default function PromptTunerPage() {
   );
   const coreCount = fewShotExamples.filter((ex) => ex.core).length;
 
-  if (!loaded) {
-    return (
-      <Box sx={{ p: 3, maxWidth: 920, mx: "auto" }}>
-        <IconButton
-          onClick={() => router.push("/admin/knowledge?tab=ai-instructions")}
-          aria-label="Back"
-          sx={{ mb: 1 }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <SkeletonList rows={8} />
-      </Box>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <Box sx={{ p: 3, maxWidth: 920, mx: "auto" }}>
-        <IconButton
-          onClick={() => router.push("/admin/knowledge?tab=ai-instructions")}
-          aria-label="Back"
-          sx={{ mb: 1 }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Alert
-          severity="error"
-          sx={{ mt: 2 }}
-          action={
-            <Button size="small" onClick={() => setRetryKey((k) => k + 1)}>
-              Retry
-            </Button>
-          }
-        >
-          {loadError}
-        </Alert>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ p: 3, maxWidth: 920, mx: "auto" }}>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
         <IconButton
           onClick={() => router.push("/admin/knowledge?tab=ai-instructions")}
           aria-label="Back"
         >
           <ArrowBackIcon />
         </IconButton>
-        {!isNew && version !== null && (
-          <Typography variant="caption" color="text.secondary">
-            v{version}
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h5" fontWeight={700}>
+            {isNew ? "New AI instructions" : "Edit AI instructions"}
           </Typography>
-        )}
-      </Stack>
-
-      <PageHero
-        icon={<PsychologyOutlinedIcon />}
-        title={isNew ? "New AI instructions" : name}
-        subtitle={description || undefined}
-        cta={{
-          label: saving ? "Saving..." : "Save",
-          onClick: handleSave,
-          icon: saving ? (
-            <CircularProgress size={16} color="inherit" />
-          ) : (
-            <SaveIcon />
-          ),
-          disabled: saving || !name,
-        }}
-        data-testid="prompt-tuner-hero"
-      />
-
-      {saveError && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2 }}
-          onClose={() => setSaveError(null)}
+          {!isNew && version !== null && (
+            <Typography variant="caption" color="text.secondary">
+              v{version}
+            </Typography>
+          )}
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={
+            saving ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : (
+              <SaveIcon />
+            )
+          }
+          onClick={handleSave}
+          disabled={saving || !name}
         >
-          {saveError}
-        </Alert>
-      )}
+          {saving ? "Saving..." : "Save"}
+        </Button>
+      </Stack>
 
       <IdentitySection
         name={name}
@@ -372,33 +311,46 @@ export default function PromptTunerPage() {
         onVerificationChange={setVerification}
       />
 
-      <Box sx={{ mb: 2 }}>
-        <SegmentedTabs
-          tabs={[
-            { id: "instructions", label: "Instructions" },
-            { id: "output-format", label: "Output format" },
-            {
-              id: "teaching-examples",
-              label: "Teaching examples",
-              count: fewShotExamples.length,
-            },
-            ...(!isNew
-              ? [
-                  {
-                    id: "test-it",
-                    label: "Test it",
-                    icon: <ScienceIcon sx={{ fontSize: 15 }} />,
-                  },
-                ]
-              : []),
-          ]}
-          value={tab}
-          onChange={setTab}
-          aria-label="Prompt configuration tabs"
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        sx={{ mb: 0, borderBottom: "1px solid", borderColor: "divider" }}
+      >
+        <Tab label="Instructions" />
+        <Tab label="Output format" />
+        <Tab
+          label={
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <span>Teaching examples</span>
+              <Chip
+                size="small"
+                label={`${fewShotExamples.length} (${coreCount} core)`}
+                sx={{
+                  height: 18,
+                  fontSize: "0.68rem",
+                  bgcolor:
+                    fewShotExamples.length > 0 ? "primary.100" : "grey.200",
+                  color:
+                    fewShotExamples.length > 0
+                      ? "primary.main"
+                      : "text.disabled",
+                }}
+              />
+            </Stack>
+          }
         />
-      </Box>
+        <Tab
+          disabled={isNew}
+          label={
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <ScienceIcon sx={{ fontSize: 15 }} />
+              <span>Test it</span>
+            </Stack>
+          }
+        />
+      </Tabs>
 
-      {tab === "instructions" && (
+      {tab === 0 && (
         <InstructionsTab
           loaded={loaded}
           isNew={isNew}
@@ -413,14 +365,14 @@ export default function PromptTunerPage() {
         />
       )}
 
-      {tab === "output-format" && (
+      {tab === 1 && (
         <OutputFormatTab
           outputSchema={outputSchema}
           onChange={setOutputSchema}
         />
       )}
 
-      {tab === "teaching-examples" && (
+      {tab === 2 && (
         <TeachingExamplesTab
           examples={fewShotExamples}
           filteredExamples={filteredExamples}
@@ -437,7 +389,7 @@ export default function PromptTunerPage() {
         />
       )}
 
-      {tab === "test-it" && !isNew && (
+      {tab === 3 && (
         <SandboxTab
           presets={presets}
           sandboxText={sandboxText}
@@ -457,13 +409,6 @@ export default function PromptTunerPage() {
           onRun={handleSandboxRun}
         />
       )}
-
-      <Snackbar
-        open={saveSuccess}
-        autoHideDuration={3000}
-        onClose={() => setSaveSuccess(false)}
-        message="Saved"
-      />
     </Box>
   );
 }

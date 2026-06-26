@@ -8,21 +8,37 @@
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+/**
+ * Panel showing all NICE guidelines currently loaded into the Neo4j knowledge graph.
+ *
+ * For each guideline the panel shows:
+ *   - Code chip and full title
+ *   - Chapter count and recommendation count (from the hierarchical graph)
+ *   - Rule status badge: No rules / X pending review / X approved / mixed
+ *   - "Generate rules" button to trigger the LLM pipeline
+ *
+ * Reading age 11 copy. No silent errors.
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
-
-import { EmptyState, ReviewListCard, ToolbarActions, type ReviewListItem } from "@leo/design-system";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import GuidelineSubgraphDrawer from "./GuidelineSubgraphDrawer";
 
@@ -39,86 +55,62 @@ interface LoadedGuideline {
 }
 
 interface Props {
+  /** Increment to force a refresh from the parent (e.g. after a new ingest). */
   refreshKey?: number;
+  /** Called after rule generation completes so the rule review section can refresh. */
   onRulesGenerated?: () => void;
 }
 
-function ruleStatusPill(g: LoadedGuideline): ReactNode {
+function ruleStatusChip(g: LoadedGuideline) {
   const total = g.rules_pending + g.rules_approved + g.rules_rejected;
-  if (total === 0) return <Chip label="No rules yet" size="small" variant="outlined" />;
-  const parts: string[] = [];
-  if (g.rules_pending > 0) parts.push(`Pending (${g.rules_pending})`);
-  if (g.rules_approved > 0) parts.push(`Approved (${g.rules_approved})`);
-  if (parts.length === 0) return <Chip label="None approved" size="small" variant="outlined" />;
-  return <Chip label={parts.join(" / ")} size="small" variant="outlined" />;
-}
-
-function buildGuidelineItem(
-  g: LoadedGuideline,
-  generating: string | null,
-  onGenerate: (code: string, hasRules: boolean) => void,
-  onInspect: (code: string) => void,
-): ReviewListItem {
-  const hasRules = g.rules_pending + g.rules_approved + g.rules_rejected > 0;
-  const isGenerating = generating === g.code;
-
-  return {
-    id: g.code,
-    tone: g.recommendation_count === 0 ? "danger" : "neutral",
-    title: (
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Chip label={g.code} size="small" sx={{ bgcolor: "#DBEAFE", color: "#1D4ED8", border: "1px solid #BFDBFE", fontWeight: 700 }} />
-        <Typography variant="body2" sx={{ fontWeight: 500 }}>{g.title || g.code}</Typography>
-      </Stack>
-    ),
-    meta: (
-      <Stack direction="row" spacing={2}>
-        <span>{g.chapter_count} chapters</span>
-        <span>{g.recommendation_count} recommendations</span>
-        {g.guidance_type && <span>{g.guidance_type}</span>}
-      </Stack>
-    ),
-    chips: ruleStatusPill(g),
-    actions: (
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <Tooltip title={hasRules ? "Re-generate rules (replaces drafts)" : "Ask the AI to write rules for each recommendation"}>
-          <span>
-            <Button
-              size="small"
-              variant={hasRules ? "outlined" : "contained"}
-              color={hasRules ? "warning" : "primary"}
-              disabled={isGenerating || g.recommendation_count === 0}
-              startIcon={isGenerating ? <CircularProgress size={14} color="inherit" /> : <AutoFixHighOutlinedIcon fontSize="small" />}
-              onClick={() => onGenerate(g.code, hasRules)}
-              aria-label={`Generate rules for ${g.code}`}
-            >
-              {isGenerating ? "Generating..." : hasRules ? "Re-generate" : "Generate rules"}
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip title="Inspect what is stored in Neo4j for this guideline">
-          <span>
-            <Button size="small" variant="outlined" onClick={() => onInspect(g.code)} aria-label={`Inspect Neo4j subgraph for ${g.code}`}>
-              <AccountTreeIcon fontSize="small" />
-            </Button>
-          </span>
-        </Tooltip>
-      </Stack>
-    ),
-  };
+  if (total === 0) {
+    return <Chip label="No rules yet" size="small" variant="outlined" color="default" />;
+  }
+  if (g.rules_pending > 0 && g.rules_approved === 0) {
+    return (
+      <Chip
+        label={`${g.rules_pending} to review`}
+        size="small"
+        color="warning"
+        variant="outlined"
+      />
+    );
+  }
+  if (g.rules_approved > 0 && g.rules_pending === 0) {
+    return (
+      <Chip
+        label={`${g.rules_approved} approved`}
+        size="small"
+        color="success"
+        variant="outlined"
+      />
+    );
+  }
+  // Mix of pending and approved
+  return (
+    <Stack direction="row" spacing={0.5}>
+      <Chip label={`${g.rules_pending} pending`} size="small" color="warning" variant="outlined" />
+      <Chip label={`${g.rules_approved} approved`} size="small" color="success" variant="outlined" />
+    </Stack>
+  );
 }
 
 export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: Props) {
   const [guidelines, setGuidelines] = useState<LoadedGuideline[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Per-guideline generation state
   const [generating, setGenerating] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [confirmCode, setConfirmCode] = useState<string | null>(null);
-  const [inspectCode, setInspectCode] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cancel any in-flight poll on unmount
   useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
+
+  // Subgraph inspect drawer
+  const [inspectCode, setInspectCode] = useState<string | null>(null);
 
   const fetchLoaded = useCallback(async () => {
     setLoading(true);
@@ -134,86 +126,210 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
     }
   }, []);
 
-  useEffect(() => { fetchLoaded(); }, [fetchLoaded, refreshKey]);
+  useEffect(() => {
+    fetchLoaded();
+  }, [fetchLoaded, refreshKey]);
 
-  const handleGenerate = useCallback(async (code: string) => {
-    setConfirmCode(null);
-    setGenerating(code);
-    setGenerateError(null);
-    if (pollRef.current) clearTimeout(pollRef.current);
+  const handleGenerate = useCallback(
+    async (code: string) => {
+      setConfirmCode(null);
+      setGenerating(code);
+      setGenerateError(null);
+      if (pollRef.current) clearTimeout(pollRef.current);
 
-    let jobId: string;
-    try {
-      const r = await fetch("/api/guidance/rules/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guideline_id: code, only_without_rules: true }),
-      });
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({ detail: r.statusText }));
-        throw new Error(body.detail || r.statusText);
-      }
-      jobId = (await r.json()).job_id;
-    } catch (e) {
-      setGenerateError(e instanceof Error ? e.message : "Could not start rule generation. Please try again.");
-      setGenerating(null);
-      return;
-    }
-
-    async function poll() {
+      // Start the generation job
+      let jobId: string;
       try {
-        const r = await fetch(`/api/guidance/rules/generate/${jobId}`);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const job = await r.json();
-        if (job.status === "done") { await fetchLoaded(); onRulesGenerated?.(); setGenerating(null); return; }
-        if (job.status === "error") { setGenerateError(job.error || "Rule generation failed."); await fetchLoaded(); setGenerating(null); return; }
-        pollRef.current = setTimeout(poll, 5000);
-      } catch {
-        setGenerateError("Lost contact with the server. Check the review queue to see if rules were created.");
-        await fetchLoaded();
-        onRulesGenerated?.();
+        const r = await fetch("/api/guidance/rules/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ guideline_id: code, only_without_rules: true }),
+        });
+        if (!r.ok) {
+          const body = await r.json().catch(() => ({ detail: r.statusText }));
+          throw new Error(body.detail || r.statusText);
+        }
+        jobId = (await r.json()).job_id;
+      } catch (e) {
+        setGenerateError(
+          e instanceof Error ? e.message : "Could not start rule generation. Please try again."
+        );
         setGenerating(null);
+        return;
       }
-    }
 
-    pollRef.current = setTimeout(poll, 3000);
-  }, [fetchLoaded, onRulesGenerated]);
+      // Poll until the background job finishes or fails.
+      // Keeps the "Generating..." spinner accurate instead of resetting on 202.
+      async function poll() {
+        try {
+          const r = await fetch(`/api/guidance/rules/generate/${jobId}`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const job = await r.json();
+
+          if (job.status === "done") {
+            await fetchLoaded();
+            onRulesGenerated?.();
+            setGenerating(null);
+            return;
+          }
+
+          if (job.status === "error") {
+            setGenerateError(job.error || "Rule generation failed. Check the pipeline worker logs.");
+            await fetchLoaded();
+            setGenerating(null);
+            return;
+          }
+
+          // Still running -- check again in 5 s
+          pollRef.current = setTimeout(poll, 5000);
+        } catch {
+          // Network hiccup -- warn but don't leave the button stuck forever.
+          setGenerateError(
+            "Lost contact with the server while checking generation progress. Check the review queue to see if rules were created."
+          );
+          await fetchLoaded();
+          onRulesGenerated?.();
+          setGenerating(null);
+        }
+      }
+
+      // First poll after a short delay to give the thread time to start
+      pollRef.current = setTimeout(poll, 3000);
+    },
+    [fetchLoaded, onRulesGenerated]
+  );
 
   if (loading) {
-    return <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}><CircularProgress size={24} aria-label="Loading loaded guidelines" /></Box>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+        <CircularProgress size={24} aria-label="Loading loaded guidelines" />
+      </Box>
+    );
   }
 
-  if (error) return <Alert severity="error">{error}</Alert>;
+  if (error) {
+    return <Alert severity="error">{error}</Alert>;
+  }
+
+  if (guidelines.length === 0) {
+    return (
+      <Typography color="text.secondary" sx={{ py: 1 }}>
+        No guidelines loaded yet. Use the search above to find and load a guideline.
+      </Typography>
+    );
+  }
 
   return (
     <Box>
-      {generateError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setGenerateError(null)}>{generateError}</Alert>}
+      {generateError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setGenerateError(null)}>
+          {generateError}
+        </Alert>
+      )}
 
-      {/* -- Toolbar -------------------------------------------------------- */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="body2" color="text.secondary">
           {guidelines.length} guideline{guidelines.length !== 1 ? "s" : ""} in the knowledge graph
         </Typography>
-        <ToolbarActions
-          actions={[{ id: "refresh", label: "Refresh", variant: "ghost", onClick: fetchLoaded, icon: <RefreshIcon fontSize="small" />, loading }]}
-        />
+        <Tooltip title="Refresh list">
+          <IconButton size="small" onClick={fetchLoaded} aria-label="Refresh loaded guidelines list">
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Stack>
 
-      {/* -- List ----------------------------------------------------------- */}
-      {guidelines.length === 0 ? (
-        <EmptyState
-          icon={<MenuBookOutlinedIcon fontSize="large" />}
-          title="No guidelines loaded yet"
-          body="Load a NICE guideline above to get started."
-          data-testid="guidelines-empty"
-        />
-      ) : (
-        <ReviewListCard
-          items={guidelines.map((g) =>
-            buildGuidelineItem(g, generating, (code, hasRules) => (hasRules ? setConfirmCode(code) : handleGenerate(code)), setInspectCode)
-          )}
-        />
-      )}
+      <Divider sx={{ mb: 1 }} />
+
+      <Table size="small" aria-label="Loaded guidelines">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Guideline</TableCell>
+            <TableCell sx={{ fontWeight: 700 }} align="center">Chapters</TableCell>
+            <TableCell sx={{ fontWeight: 700 }} align="center">Recommendations</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Rule status</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Inspect</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {guidelines.map((g) => {
+            const hasRules = g.rules_pending + g.rules_approved + g.rules_rejected > 0;
+            const isGenerating = generating === g.code;
+            return (
+              <TableRow key={g.code} hover>
+                <TableCell>
+                  <Chip label={g.code} size="small" color="primary" variant="outlined" />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {g.title || g.code}
+                  </Typography>
+                  {g.guidance_type && (
+                    <Typography variant="caption" color="text.secondary">
+                      {g.guidance_type}
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="body2">{g.chapter_count}</Typography>
+                </TableCell>
+                <TableCell align="center">
+                  <Typography variant="body2">{g.recommendation_count}</Typography>
+                </TableCell>
+                <TableCell>{ruleStatusChip(g)}</TableCell>
+                <TableCell>
+                  <Tooltip
+                    title={
+                      hasRules
+                        ? "Re-generate rules (will replace existing draft rules)"
+                        : "Ask the AI to write rules for each recommendation"
+                    }
+                  >
+                    <span>
+                      <Button
+                        size="small"
+                        variant={hasRules ? "outlined" : "contained"}
+                        color={hasRules ? "warning" : "primary"}
+                        disabled={isGenerating || g.recommendation_count === 0}
+                        startIcon={
+                          isGenerating ? (
+                            <CircularProgress size={14} color="inherit" />
+                          ) : (
+                            <AutoFixHighOutlinedIcon fontSize="small" />
+                          )
+                        }
+                        onClick={() =>
+                          hasRules ? setConfirmCode(g.code) : handleGenerate(g.code)
+                        }
+                        aria-label={`Generate rules for ${g.code}`}
+                      >
+                        {isGenerating
+                          ? "Generating\u2026"
+                          : hasRules
+                          ? "Re-generate"
+                          : "Generate rules"}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </TableCell>
+                <TableCell>
+                  <Tooltip title="Inspect what is stored in Neo4j for this guideline">
+                    <IconButton
+                      size="small"
+                      onClick={() => setInspectCode(g.code)}
+                      aria-label={`Inspect Neo4j subgraph for ${g.code}`}
+                      color={g.recommendation_count === 0 ? "error" : "default"}
+                    >
+                      <AccountTreeIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
 
       {confirmCode && (
         <ConfirmDialog
@@ -227,7 +343,10 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
         />
       )}
 
-      <GuidelineSubgraphDrawer code={inspectCode} onClose={() => setInspectCode(null)} />
+      <GuidelineSubgraphDrawer
+        code={inspectCode}
+        onClose={() => setInspectCode(null)}
+      />
     </Box>
   );
 }

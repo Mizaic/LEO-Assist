@@ -105,7 +105,7 @@ def _build_orchestrator(monkeypatch, situation_spy):
             "error": None,
         }
 
-    async def _fake_evaluate(**_kw):
+    def _fake_evaluate(**_kw):
         return {"matched_rules": [], "active_version": "v1"}
 
     def _fake_resolve_situation(_s, _i):

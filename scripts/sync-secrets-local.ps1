@@ -1,5 +1,5 @@
 # -- LEO AI Core - Local Secret Sync from Key Vault -----------------------
-# Pulls every secret from leoai-{env}-kv and writes them to
+# Pulls every secret from mizaicai-{env}-kv and writes them to
 # secrets/.env.secrets (git-ignored). After running this once you can
 # delete secrets/.env and use secrets/.env.config + secrets/.env.secrets
 # for local development instead.
@@ -22,7 +22,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$KvName = if ($VaultName) { $VaultName } else { "leoai-$Environment-kv" }
+$KvName = if ($VaultName) { $VaultName } else { "mizaicai-$Environment-kv" }
 Write-Host "  Pulling from vault: $KvName"
 
 # KV secret name -> env var name
@@ -37,9 +37,11 @@ $SecretMap = [ordered]@{
     'azure-ad-client-id'                  = 'AZURE_AD_CLIENT_ID'
     'azure-ad-client-secret'              = 'AZURE_AD_CLIENT_SECRET'
     'azure-ad-tenant-id'                  = 'AZURE_AD_TENANT_ID'
+    'mail-graph-tenant-id'                = 'MAIL_GRAPH_TENANT_ID'
+    'mail-graph-client-id'                = 'MAIL_GRAPH_CLIENT_ID'
+    'mail-graph-client-secret'            = 'MAIL_GRAPH_CLIENT_SECRET'
     'azure-openai-api-key'                = 'AZURE_OPENAI_API_KEY'
     'azure-openai-endpoint'               = 'AZURE_OPENAI_ENDPOINT'
-    'azure-storage-connection-string'     = 'AZURE_STORAGE_CONNECTION_STRING'
     'azure-service-bus-connection-string' = 'AZURE_SERVICE_BUS_CONNECTION_STRING'
     'aws-access-key-id'                   = 'AWS_ACCESS_KEY_ID'
     'aws-secret-access-key'               = 'AWS_SECRET_ACCESS_KEY'

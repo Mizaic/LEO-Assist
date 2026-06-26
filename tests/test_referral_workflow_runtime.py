@@ -34,7 +34,9 @@ def test_quality_check_uses_configured_completeness(monkeypatch):
             "patient_id": "p1",
             "completeness_domain": "cancer_referrals",
             "completeness_subdomain": "lower_gi",
-            "entities": [{"concept_id": "71711000112103", "semantic_tag": "finding"}],
+            "entities": [
+                {"concept_id": "71711000112103", "semantic_tag": "finding"}
+            ],
             "episodes": [{}],
         }
     )
@@ -95,37 +97,6 @@ def test_quality_check_reports_unconfigured_completeness(monkeypatch):
         issue["issue_type"] == "minimum_dataset_incomplete"
         for issue in result["quality_issues"]
     )
-
-
-def test_quality_check_normalises_entity_semantic_tags(monkeypatch):
-    from libs.pipeline_graph.subgraphs import quality_check
-
-    monkeypatch.setattr(quality_check, "run_global_quality_checks", _EmptyGlobalReport)
-    monkeypatch.setattr(
-        quality_check,
-        "_load_completeness_schema",
-        lambda domain, subdomain: [
-            {
-                "name": "Lab result",
-                "required": True,
-                "semantic_categories": ["observable_entity"],
-                "concept_ids": [],
-            }
-        ],
-    )
-    monkeypatch.setattr(quality_check, "_load_isa_expansion", lambda required_ids: {})
-
-    result = quality_check.run_quality_checks(
-        {
-            "patient_id": "p1",
-            "completeness_domain": "cancer_referrals",
-            "completeness_subdomain": "lower_gi",
-            "entities": [{"semantic_tag": "observable entity"}],
-            "episodes": [{}],
-        }
-    )
-
-    assert result["completeness_result"]["complete"] is True
 
 
 def test_compliance_uses_guideline_evaluator_when_scope_configured(monkeypatch):

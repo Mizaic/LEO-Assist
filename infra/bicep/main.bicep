@@ -48,25 +48,32 @@ param uiIngressCertificateName string = ''
 param uiIngressCertificateIsManaged bool = false
 
 // Azure Static Website hostname for the LEO widget CDN (no Cloudflare).
-// Must match infra/widget-cdn/parameters/{env}.bicepparam widgetPublicHost
+// Must match widgetPublicHost in infra/bicep/parameters/{env}.bicepparam
+// (populated by deploy-widget-cdn.ps1 / sync-widget-cdn-params.ps1).
 // and the GitHub WIDGET_PUBLIC_HOST secret.
 param widgetPublicHost string = ''
 
 // Graph API sender mailbox for invite and notification emails.
 param mailFromAddress string
 
+// Deploy Container Apps (requires Key Vault secrets to exist first).
+// Set false for phase-1 bootstrap; deploy.ps1 -Bootstrap runs migrate-secrets between phases.
+param deployContainerApps bool = true
+
 // Knowledge graph tier label; defaults to environment. Set val and prod to the
 // same value when Validation and Production share one Aura knowledge graph.
 param knowledgeGraphEnvironment string = environment
 
-// Shared resources live in the leo-ai platform RG
+// Shared resources (may live in a different subscription from the env stack)
+param acrSubscriptionId string = subscription().subscriptionId
 param acrResourceGroup string = 'leo-ai'
 param acrName string = 'leoaicr'
+param storageAccountSubscriptionId string = subscription().subscriptionId
 param storageAccountResourceGroup string = 'leo-ai'
 param storageAccountName string = 'leoaimodels'
 
 // -- User-assigned managed identity (one per environment) ------------------
-var identityName = 'leoai-${environment}-id'
+var identityName = 'mizaicai-${environment}-id'
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: identityName
   location: location
@@ -75,7 +82,7 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 // -- ACR Pull role on shared ACR (cross-RG module) -------------------------
 module acrPullRole 'modules/acr-role.bicep' = {
   name: 'acr-pull-role'
-  scope: resourceGroup(acrResourceGroup)
+  scope: resourceGroup(acrSubscriptionId, acrResourceGroup)
   params: {
     acrName: acrName
     principalId: managedIdentity.properties.principalId
@@ -85,17 +92,27 @@ module acrPullRole 'modules/acr-role.bicep' = {
 // -- Storage Blob Data Contributor on leoaimodels (cross-RG module) --------
 module blobRole 'modules/blob-role.bicep' = {
   name: 'blob-contrib-role'
-  scope: resourceGroup(storageAccountResourceGroup)
+  scope: resourceGroup(storageAccountSubscriptionId, storageAccountResourceGroup)
   params: {
     storageAccountName: storageAccountName
     principalId: managedIdentity.properties.principalId
   }
 }
 
+// -- NER model artifact container (cross-RG module) ------------------------
+module modelStoreBlobContainer 'modules/blob-container.bicep' = {
+  name: 'model-store-container'
+  scope: resourceGroup(storageAccountSubscriptionId, storageAccountResourceGroup)
+  params: {
+    storageAccountName: storageAccountName
+    containerName: modelStoreContainer
+  }
+}
+
 // -- Read ACR login server for Container Apps (existing reference) ----------
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
   name: acrName
-  scope: resourceGroup(acrResourceGroup)
+  scope: resourceGroup(acrSubscriptionId, acrResourceGroup)
 }
 
 // -- Key Vault -------------------------------------------------------------
@@ -105,14 +122,6 @@ module keyvault 'modules/keyvault.bicep' = {
     environment: environment
     location: location
     managedIdentityPrincipalId: managedIdentity.properties.principalId
-  }
-}
-
-// -- Azure Managed Redis ---------------------------------------------------
-module redis 'modules/redis.bicep' = {
-  name: 'redis'
-  params: {
-    environment: environment
   }
 }
 
@@ -127,8 +136,10 @@ module servicebus 'modules/servicebus.bicep' = {
 }
 
 // -- Container Apps --------------------------------------------------------
-// Azure OpenAI endpoint + key come from secrets/.env via migrate-secrets.ps1.
-module containerApps 'modules/container-apps.bicep' = {
+// Redis and OpenAI are deployed separately (deploy-redis.ps1, deploy-openai.ps1).
+// azureOpenAiEndpoint points at the shared OpenAI account (deploy-openai.ps1);
+// key via migrate-secrets.ps1.
+module containerApps 'modules/container-apps.bicep' = if (deployContainerApps) {
   name: 'container-apps'
   params: {
     environment: environment
@@ -148,6 +159,7 @@ module containerApps 'modules/container-apps.bicep' = {
     azureOpenAiApiVersion: azureOpenAiApiVersion
     codingExtractorBackend: codingExtractorBackend
     codingExtractorStrict: codingExtractorStrict
+    storageAccountName: storageAccountName
     modelStoreContainer: modelStoreContainer
     modelStoreModelName: modelStoreModelName
     hitlLowConfidenceThreshold: hitlLowConfidenceThreshold
@@ -172,8 +184,11 @@ module containerApps 'modules/container-apps.bicep' = {
   }
 }
 
-output coreApiFqdn string = containerApps.outputs.coreApiFqdn
-output uiFqdn string = containerApps.outputs.uiFqdn
-output acaDefaultDomain string = containerApps.outputs.acaDefaultDomain
+output coreApiFqdn string = deployContainerApps ? containerApps.outputs.coreApiFqdn : ''
+output uiFqdn string = deployContainerApps ? containerApps.outputs.uiFqdn : ''
+output acaDefaultDomain string = deployContainerApps ? containerApps.outputs.acaDefaultDomain : ''
+output deployContainerApps bool = deployContainerApps
 output kvUri string = keyvault.outputs.kvUri
 output sbNamespaceFqdn string = servicebus.outputs.sbNamespaceFqdn
+output aoaiEndpoint string = azureOpenAiEndpoint
+output storageAccountUrl string = 'https://${storageAccountName}.blob.${az.environment().suffixes.storage}'

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 RG="${1:-leo-ai-dev}"
-NS="${2:-leoai-dev-bus}"
+NS="${2:-mizaicai-dev-bus}"
 
 APPS=(
   core-api

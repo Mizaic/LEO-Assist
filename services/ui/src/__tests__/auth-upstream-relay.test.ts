@@ -130,13 +130,8 @@ describe("auth upstream relay (ACA login parity)", () => {
 
   test("TC-007: proxy does not external-rewrite auth session routes", () => {
     const src = read("proxy.ts");
-    // Auth routes must not appear in the static routing tables (EXACT_ROUTES /
-    // PREFIX_RULES). Scope the check to the table definitions -- before the
-    // exported proxy function -- so that the E2E session intercept inside the
-    // function body is not incorrectly flagged.
-    const tables = src.slice(0, src.indexOf("export function proxy"));
-    expect(tables).not.toMatch(/\/auth\/session/);
-    expect(tables).not.toMatch(/\/auth\/session\/role/);
-    expect(tables).not.toMatch(/\/auth\/logout/);
+    expect(src).not.toMatch(/"\/auth\/session"/);
+    expect(src).not.toMatch(/"\/auth\/session\/role"/);
+    expect(src).not.toMatch(/"\/auth\/logout"/);
   });
 });

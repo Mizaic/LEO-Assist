@@ -43,9 +43,6 @@ export interface ReviewListCardProps {
   // How many ms between items animating in (default 40 ms, 0 if reduced-motion).
   staggerMs?: number;
   density?: ReviewListDensity;
-  // Pass a filter/tab id so the list remounts cleanly when the dataset
-  // changes. Skips exit layout animations that leave ghost vertical space.
-  listKey?: string;
 }
 
 /**
@@ -69,11 +66,10 @@ function row(
   idx: number,
   step: number,
   density: ReviewListDensity,
-  skipEnter: boolean,
 ) {
   const accent = toneToAccent(item.tone);
   const isInteractive = typeof item.onSelect === "function";
-  const initial = skipEnter || reducedMotion ? false : { opacity: 0, y: 6 };
+  const initial = reducedMotion ? false : { opacity: 0, y: 6 };
   const animate = { opacity: 1, y: 0 };
   const exit = reducedMotion ? undefined : { opacity: 0, y: -6 };
   const delay = reducedMotion ? 0 : (step * idx) / 1000;
@@ -103,6 +99,7 @@ function row(
       onKeyDown={onKeyDown}
       data-testid={"review-list-item-" + item.id}
       data-density={density}
+      layoutId={"review-list-item-layout-" + item.id}
       initial={initial}
       animate={animate}
       exit={exit}
@@ -187,12 +184,10 @@ export function ReviewListCard({
   emptyState,
   staggerMs = 40,
   density = "comfortable",
-  listKey,
 }: ReviewListCardProps) {
   const { reducedMotion } = useMotion();
   const step = reducedMotion ? 0 : staggerMs;
   const listGap = density === "compact" ? 6 : 8;
-  const skipEnter = Boolean(listKey);
 
   if (items.length === 0 && emptyState) {
     return (
@@ -215,15 +210,12 @@ export function ReviewListCard({
 
   return (
     <div
-      key={listKey ?? "review-list"}
       data-testid="review-list-card"
       data-density={density}
       style={{ display: "flex", flexDirection: "column", gap: listGap }}
     >
-      <AnimatePresence mode="popLayout" initial={!reducedMotion && !skipEnter}>
-        {items.map((item, idx) =>
-          row(item, reducedMotion, idx, step, density, skipEnter)
-        )}
+      <AnimatePresence initial={!reducedMotion}>
+        {items.map((item, idx) => row(item, reducedMotion, idx, step, density))}
       </AnimatePresence>
     </div>
   );

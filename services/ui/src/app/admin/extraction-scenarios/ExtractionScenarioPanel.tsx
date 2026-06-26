@@ -16,12 +16,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -31,13 +33,10 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 
 import {
   DataGridCard,
-  FilterBar,
   SegmentedTabs,
-  SkeletonList,
   StatHero,
   ToolbarActions,
   type DataGridColumn,
-  type FilterChip,
   type StatTile,
   type ToolbarAction,
 } from "@leo/design-system";
@@ -110,21 +109,6 @@ export default function ExtractionScenarioPanel() {
   const [runDrawerOpen, setRunDrawerOpen] = useState(false);
   const [currentRun, setCurrentRun] = useState<ValidationRunStatus | null>(null);
   const [triggering, setTriggering] = useState(false);
-  const [difficultyFilter, setDifficultyFilter] = useState<Set<string>>(
-    new Set(),
-  );
-
-  const toggleDifficulty = useCallback((id: string) => {
-    setDifficultyFilter((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -250,24 +234,6 @@ export default function ExtractionScenarioPanel() {
     [handleRunValidation, openCreateEditor, triggering],
   );
 
-  const difficultyChipsDef: FilterChip[] = useMemo(
-    () =>
-      ["easy", "medium", "hard"].map((id) => ({
-        id,
-        label: id.charAt(0).toUpperCase() + id.slice(1),
-        active: difficultyFilter.has(id),
-        onToggle: () => toggleDifficulty(id),
-      })),
-    [difficultyFilter, toggleDifficulty],
-  );
-
-  const visibleCases = useMemo(() => {
-    if (difficultyFilter.size === 0) return data.cases;
-    return data.cases.filter((row) =>
-      row.difficulty?.some((d) => difficultyFilter.has(d.toLowerCase())),
-    );
-  }, [data.cases, difficultyFilter]);
-
   const columns: DataGridColumn<ExtractionScenarioRow>[] = useMemo(
     () => [
       {
@@ -318,15 +284,19 @@ export default function ExtractionScenarioPanel() {
         width: "180px",
         render: (row) => (
           <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
-            <Button
-              variant="text"
-              size="small"
+            <Typography
+              variant="body2"
+              sx={{
+                cursor: "pointer",
+                color: "primary.main",
+                fontWeight: 500,
+                "&:hover": { textDecoration: "underline" },
+              }}
               onClick={() => setReviewingId(row.case_id)}
               data-testid={`review-btn-${row.case_id}`}
-              sx={{ fontWeight: 500, textTransform: "none", minWidth: 0 }}
             >
               Review
-            </Button>
+            </Typography>
             <IconButton
               aria-label={`Edit ${row.case_id}`}
               size="small"
@@ -390,22 +360,35 @@ export default function ExtractionScenarioPanel() {
         <ToolbarActions actions={toolbarActions} />
       </Box>
 
-      <Box sx={{ mb: 2 }}>
-        <FilterBar
-          search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Search by case ID or site..."
-          aria-label="Search and filter scenarios"
-          chips={difficultyChipsDef}
-        />
-      </Box>
+      <TextField
+        size="small"
+        placeholder="Search by case ID or site..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 2, width: "320px" }}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          },
+        }}
+        inputProps={{ "data-testid": "scenario-search-input" }}
+      />
 
       {loading ? (
-        <SkeletonList rows={4} />
+        <Stack alignItems="center" sx={{ pt: 6 }}>
+          <CircularProgress size={28} />
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+            Loading scenarios...
+          </Typography>
+        </Stack>
       ) : (
         <DataGridCard<ExtractionScenarioRow>
           columns={columns}
-          rows={visibleCases}
+          rows={data.cases}
           rowKey={(row) => row.case_id}
           emptyState={emptyState}
         />

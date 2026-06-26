@@ -8,7 +8,7 @@
  */
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
@@ -27,6 +27,7 @@ import BrushOutlined from '@mui/icons-material/BrushOutlined';
 import { useEditorStore } from '@/stores/editorStore';
 import type {
   LayoutElement,
+  MeasureElement,
   TextElement,
   ImageElement,
   TableElement,
@@ -43,6 +44,10 @@ import type {
   ComparisonBarsElement,
   PopulationPyramidElement,
 } from '@/lib/types/layout';
+import { getMeasures } from '@/lib/api';
+import type { Measure } from '@/lib/types/fhir';
+
+import { MeasureSettings } from './MeasureSettings';
 import { InterpretationSettings, ExecutiveSummarySettings } from './InterpretationSettings';
 import { TextSettings, HeadingSettings, BulletListSettings, ChecklistSettings } from './TextElementSettings';
 import { ChartSettings, TableSettings, ImageSettings, DividerSettings, CoverSettings } from './DataElementSettings';
@@ -125,17 +130,19 @@ function PageProperties(): React.ReactNode {
 
 /* ── Element settings router ─────────────────────────────────────────────── */
 
-function ElementSettingsRouter({ element, handleUpdate }: {
+function ElementSettingsRouter({ element, measures, handleUpdate }: {
   element: LayoutElement;
+  measures: Measure[];
   handleUpdate: (updates: Partial<LayoutElement>) => void;
 }): React.ReactNode {
   const layout = useEditorStore((s) => s.layout);
   const report = useEditorStore((s) => s.report);
   const { type } = element;
 
+  if (type === 'measure') return <MeasureSettings element={element as MeasureElement} measures={measures} onUpdate={handleUpdate} />;
   if (type === 'interpretation') {
     return <InterpretationSettings element={element as InterpretationElement} onUpdate={handleUpdate}
-      layoutElements={layout.pages.flatMap((page) => page.elements)} measures={[]} />;
+      layoutElements={layout.pages.flatMap((page) => page.elements)} measures={measures} />;
   }
   if (type === 'executiveSummary') return <ExecutiveSummarySettings element={element as ExecutiveSummaryElement} onUpdate={handleUpdate} reportId={report?.id} />;
   if (type === 'text') return <TextSettings element={element as TextElement} onUpdate={handleUpdate} />;
@@ -145,8 +152,8 @@ function ElementSettingsRouter({ element, handleUpdate }: {
   if (type === 'divider') return <DividerSettings element={element as DividerElement} onUpdate={handleUpdate} />;
   if (type === 'cover') return <CoverSettings element={element as CoverElement} onUpdate={handleUpdate} />;
   if (type === 'image') return <ImageSettings element={element as ImageElement} onUpdate={handleUpdate} />;
-  if (type === 'table') return <TableSettings element={element as TableElement} measures={[]} onUpdate={handleUpdate} />;
-  if (type === 'chart') return <ChartSettings element={element as ChartElement} measures={[]} onUpdate={handleUpdate} />;
+  if (type === 'table') return <TableSettings element={element as TableElement} measures={measures} onUpdate={handleUpdate} />;
+  if (type === 'chart') return <ChartSettings element={element as ChartElement} measures={measures} onUpdate={handleUpdate} />;
   if (type === 'kpiCard') return <KpiCardSettings element={element as KpiCardElement} onUpdate={handleUpdate} />;
   if (type === 'heroStats') return <HeroStatsSettings element={element as HeroStatsElement} onUpdate={handleUpdate} />;
   if (type === 'comparisonBars') return <ComparisonBarsSettings element={element as ComparisonBarsElement} onUpdate={handleUpdate} />;
@@ -165,6 +172,15 @@ export function PropertiesPanel(): React.ReactNode {
   const selectedElements = getSelectedElements();
   const selectedElement = selectedElements.length === 1 ? selectedElements[0] : null;
   const selectedPage = layout.pages.find((p) => p.id === selectedPageId);
+
+  const [measures, setMeasures] = useState<Measure[]>([]);
+
+  useEffect(() => {
+    getMeasures().then(bundle => {
+      const resources = bundle.entry?.map((e) => e.resource).filter(Boolean) as Measure[] || [];
+      setMeasures(resources);
+    }).catch(error => console.error('Failed to load measures:', error));
+  }, []);
 
   const handleUpdate = useCallback(
     (updates: Partial<LayoutElement>) => {
@@ -236,7 +252,7 @@ export function PropertiesPanel(): React.ReactNode {
           </Box>
         </AccordionSummary>
         <AccordionDetails>
-          <ElementSettingsRouter element={selectedElement} handleUpdate={handleUpdate} />
+          <ElementSettingsRouter element={selectedElement} measures={measures} handleUpdate={handleUpdate} />
         </AccordionDetails>
       </Accordion>
 

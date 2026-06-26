@@ -874,22 +874,9 @@ class TestCancerFollowUpTemplate:
 # triggered the silent benign closure of the parallel skin-cancer
 # episode. This is the regression fixture for R-LEO-AI-173.
 _HAROLD_CKD_TEXT = """\
-15:55 - Surgery: HORNE, Jonathan (Dr) (Clinical Practitioner Access Role)
-Problem: Chronic kidney disease stage 3 (XaLHI)
-History: F2F review. Seen with son, Ian.
-
-Review re bloods.
-Mild persistent hyperkalaemia (5.6)
-eGFR stable at 42.
-Urine ACR 28.
-Nephrectomy in 1970s. Unsure indication. Tells me it "never worked".
-Examination: 134 / 80mmHg
-Diagnosis: Mild hyperkalaemia secondary to CKD and ACEI.
-Plan: Reduce lisinopril to 10mg OD.
-Repeat bloods in 1 month with home BP readings. If BP in normal range \
-and potassium normalised then no further action. \
-If persists or BP uncontrolled then review again.
-Review if new concerns.
+# 15:55 - Surgery: SYNTHETIC, Staff (Clinical Practitioner Access Role)
+#  Problem: Chronic kidney disease stage 3 (XaLHI)
+# History: F2F review. Seen with chaperone.
 """
 
 

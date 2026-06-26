@@ -2,18 +2,10 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-EBF0B124
- *   Also implements: DO-146D93D0
- *   DI: DI-0ADA35BF
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EBF0B124")
+ *   DO: DO-146D93D0
+ *   Also implements: DO-EE78E305
+ *   DI: DI-6EA84931
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-146D93D0")
  */
-import { Suspense } from "react";
-import PatientListPage from "@/components/patients/PatientListPage";
-
-export default function CarePatientListPage() {
-  return (
-    <Suspense>
-      <PatientListPage />
-    </Suspense>
-  );
-}
+import OriginalPage from "@/app/patients/page";
+export default OriginalPage;

@@ -177,7 +177,7 @@ describe("RuleReviewSection", () => {
     mockFetch({ "/api/guidance/rules/review": [] });
     render(<RuleReviewSection />);
     await waitFor(() => {
-      expect(screen.getByText(/No rules awaiting review/i)).toBeInTheDocument();
+      expect(screen.getByText(/No rules waiting for review/i)).toBeInTheDocument();
     });
   });
 
@@ -244,53 +244,95 @@ describe("RuleReviewSection", () => {
     });
   });
 
-  it("renders separate awaiting-review and approved pools", async () => {
+  it("renders the Pending / Active / Superseded status filter (Tier 1)", async () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
     await waitFor(() => {
-      expect(screen.getByTestId("rule-pool-pending")).toBeInTheDocument();
-      expect(screen.getByTestId("rule-pool-approved")).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: /Awaiting review/i })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: /^Approved$/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Show Pending review rules/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Show Active rules/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Show Superseded rules/i }),
+      ).toBeInTheDocument();
     });
   });
 
-  it("loads pending and active rules in parallel on mount", async () => {
+  it("re-fetches with ?status=active when the Active tab is clicked", async () => {
+    const ACTIVE_RULE = { ...MOCK_RULE, rule_id: "r-active", status: "active" };
     jest.spyOn(global, "fetch").mockImplementation((url) => {
       const u = String(url);
+      if (u.includes("status=active")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [ACTIVE_RULE],
+          text: async () => JSON.stringify([ACTIVE_RULE]),
+        } as Response);
+      }
       if (u.includes("status=pending_review")) {
         return Promise.resolve({
           ok: true,
           json: async () => [MOCK_RULE],
+          text: async () => JSON.stringify([MOCK_RULE]),
         } as Response);
       }
-      if (u.includes("status=active")) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => [{ ...MOCK_RULE, rule_id: "r-active", status: "active" }],
-        } as Response);
-      }
-      return Promise.resolve({ ok: true, json: async () => [] } as Response);
+      return Promise.resolve({
+        ok: true,
+        json: async () => [],
+        text: async () => "[]",
+      } as Response);
     });
 
     render(<RuleReviewSection />);
+    await waitFor(() =>
+      screen.getByRole("button", { name: /Show Active rules/i }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Show Active rules/i }));
+
     await waitFor(() => {
-      const calls = (global.fetch as jest.Mock).mock.calls.map(([u]) => String(u));
-      expect(calls.some((u) => u.includes("status=pending_review"))).toBe(true);
-      expect(calls.some((u) => u.includes("status=active"))).toBe(true);
+      const calls = (global.fetch as jest.Mock).mock.calls.map(([u]) =>
+        String(u),
+      );
+      expect(
+        calls.some((u) => u.includes("/api/guidance/rules/review?status=active")),
+      ).toBe(true);
     });
   });
 
-  it("only renders Approve all in the awaiting-review pool", async () => {
-    mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
+  it("only renders Approve all when the Pending review tab is selected", async () => {
+    const ACTIVE_RULE = { ...MOCK_RULE, rule_id: "r-active", status: "active" };
+    jest.spyOn(global, "fetch").mockImplementation((url) => {
+      const u = String(url);
+      if (u.includes("status=active")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [ACTIVE_RULE],
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => [MOCK_RULE],
+      } as Response);
+    });
+
     render(<RuleReviewSection />);
-    await waitFor(() => screen.getByRole("button", { name: /approve all/i }));
-    expect(screen.getByTestId("rule-pool-pending")).toContainElement(
+    await waitFor(() =>
       screen.getByRole("button", { name: /approve all/i }),
     );
-    expect(screen.getByTestId("rule-pool-approved")).not.toContainElement(
-      screen.getByRole("button", { name: /approve all/i }),
-    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Show Active rules/i }));
+
+    await waitFor(() => {
+      // Approve-all is bulk-decision and would silently no-op (or
+      // worse, re-approve already-active rules). It MUST disappear
+      // when the user is not looking at pending rules.
+      expect(
+        screen.queryByRole("button", { name: /approve all/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("shows an action error Alert when approve fails", async () => {

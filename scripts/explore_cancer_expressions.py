@@ -16,7 +16,7 @@ Usage
 -----
     python scripts/explore_cancer_expressions.py
     python scripts/explore_cancer_expressions.py --output cancer_expressions.csv
-    python scripts/explore_cancer_expressions.py --patient-ids 9990002005,4187508279
+    python scripts/explore_cancer_expressions.py --patient-ids 9990002005,9990000001
     python scripts/explore_cancer_expressions.py --limit 200
 """
 

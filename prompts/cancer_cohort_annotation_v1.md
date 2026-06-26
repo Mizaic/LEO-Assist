@@ -929,7 +929,7 @@ Total: **~$2-3** versus $40 single Sonnet run.
    `libs/cohort_annotation/prompts/{structured_verify_v1,narrative_v1,relation_linker_v1}.py`.
 2. This .md serves as the reference spec; sync it with code changes.
 3. Re-run a single patient:
-   `python3 scripts/cohort/annotate_cancer_cohort.py --patient 4187508279 --dry-run`
+   `python3 scripts/cohort/annotate_cancer_cohort.py --patient 9990000001 --dry-run`
 4. Inspect run_summary.json: verbatim_drop_rate, label_counts, relation_counts.
 5. When verbatim_drop_rate < 5% and label_counts look sane, run full 41.
 

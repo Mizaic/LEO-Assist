@@ -85,19 +85,6 @@ ORDER BY r.ordinal ASC
 """
 
 
-GET_CHUNKS_BY_IDS = """
-UNWIND $chunk_ids AS cid
-MATCH (c:Chunk {id: cid})
-RETURN c.id          AS chunk_id,
-       c.text        AS text,
-       c.sha256      AS sha256,
-       c.ordinal     AS ordinal,
-       c.char_start  AS char_start,
-       c.char_end    AS char_end
-ORDER BY c.ordinal ASC
-"""
-
-
 GET_CHUNK_WITH_CODES = """
 MATCH (c:Chunk {id: $chunk_id})
 OPTIONAL MATCH (c)-[d:DOCUMENTS]->(s)
@@ -113,23 +100,6 @@ RETURN c.id          AS chunk_id,
          confidence:    d.confidence,
          assertion:     d.context
        }) AS codes
-"""
-
-
-GET_REASON_CHUNKS_BY_IDS = """
-UNWIND $chunk_ids AS cid
-MATCH (c:Chunk {id: cid})
-WHERE any(pat IN $patterns WHERE toLower(c.text) CONTAINS pat)
-RETURN c.id AS chunk_id, c.text AS text, c.ordinal AS ordinal
-ORDER BY ordinal ASC
-LIMIT 3
-"""
-
-
-SET_REFERRAL_REASON = """
-MATCH (rr:ReferralRequest {id: $referral_id})
-SET rr.reason               = $reason,
-    rr.reason_extracted_at  = datetime()
 """
 
 

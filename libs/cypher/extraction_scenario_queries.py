@@ -266,14 +266,6 @@ SET
 RETURN s.case_id AS case_id, s.review_status AS review_status
 """
 
-PATCH_EXTRACTION_SCENARIO_EXPECTED_STRINGS = """
-MATCH (s:ExtractionScenario {case_id: $case_id})
-SET
-  s.expected_strings = $expected_strings,
-  s.updated_at       = $updated_at
-RETURN s.case_id AS case_id
-"""
-
 DELETE_EXTRACTION_SCENARIO = """
 MATCH (s:ExtractionScenario {case_id: $case_id})
 DETACH DELETE s

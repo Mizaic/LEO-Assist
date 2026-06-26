@@ -76,9 +76,6 @@ class ExtractionState(TypedDict, total=False):
     extraction_model_requested_version: str
     extraction_model_version_mismatch: bool
     extraction_route: str
-    text_segmentation_mode: str
-    chunk_ids: list[str]
-    document_reference_id: str
     errors: list[str]
 
 
@@ -373,63 +370,6 @@ def _extract_lab_fallback_entities(
     return fallback
 
 
-def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
-    """Use pre-loaded HCCP :Chunk rows as extraction units (no SentenceSplitter)."""
-    from libs.pipeline.document_chunk_loader import (
-        CHUNK_TEXT_SEPARATOR,
-        DOCUMENT_CHUNKS_MODE,
-        chunk_ids_from_state,
-        load_document_chunks_from_neo4j,
-    )
-
-    raw_sentences = state.get("sentences") or []
-    if raw_sentences:
-        encounter_text = state.get("encounter_text") or ""
-        if not encounter_text:
-            encounter_text = CHUNK_TEXT_SEPARATOR.join(
-                str(s.get("text") or "") for s in raw_sentences if s.get("text")
-            )
-        return {
-            "encounter_text": encounter_text,
-            "sentences": raw_sentences,
-            "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-        }
-
-    chunk_ids = chunk_ids_from_state(state)
-    if not chunk_ids:
-        return {
-            "encounter_text": "",
-            "sentences": [],
-            "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-            "errors": ["document_chunks mode requires chunk_ids or pre-loaded sentences"],
-        }
-
-    from libs.neo4j_client.client import PatientGraphClient
-
-    loaded = load_document_chunks_from_neo4j(PatientGraphClient(), chunk_ids)
-    if loaded.get("sentences"):
-        return {
-            "encounter_text": loaded.get("encounter_text") or "",
-            "sentences": loaded.get("sentences") or [],
-            "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-            "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
-        }
-    return {
-        "encounter_text": "",
-        "sentences": [],
-        "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-        "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
-    }
-
-
-def resolve_text_units(state: ExtractionState) -> dict[str, Any]:
-    from libs.pipeline.document_chunk_loader import is_document_chunks_mode
-
-    if is_document_chunks_mode(state):
-        return load_document_chunks(state)
-    return split_sentences(state)
-
-
 def split_sentences(state: ExtractionState) -> dict[str, Any]:
     from libs.pipeline.llm_clinical_input import deidentify_encounter_text
 
@@ -666,11 +606,11 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
 
 def build_extraction_subgraph() -> CompiledStateGraph:
     g = StateGraph(ExtractionState)
-    g.add_node("resolve_text_units", resolve_text_units)
+    g.add_node("split_sentences", split_sentences)
     g.add_node("extract_entities", extract_entities)
     g.add_node("merge_results", merge_results)
-    g.add_edge(START, "resolve_text_units")
-    g.add_edge("resolve_text_units", "extract_entities")
+    g.add_edge(START, "split_sentences")
+    g.add_edge("split_sentences", "extract_entities")
     g.add_edge("extract_entities", "merge_results")
     g.add_edge("merge_results", END)
     return g.compile()

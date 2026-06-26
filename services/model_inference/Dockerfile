@@ -6,7 +6,7 @@
 #   2. Update CODING_MODEL_VERSION env var on the running container (or /reload)
 #   3. No image rebuild required.
 #
-FROM python:3.11-slim-bookworm
+FROM python:3.11-slim
 
 WORKDIR /app
 

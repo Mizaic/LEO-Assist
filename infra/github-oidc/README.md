@@ -17,10 +17,10 @@ field in each JSON file to match your GitHub org and repository before applying
 
 | File | Subject | Workflow |
 | ---- | ------- | -------- |
-| `.federated-cred-main.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:ref:refs/heads/main` | CI - Build and Push Images |
-| `.federated-cred-env-dev.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:dev` | CD deploy-dev |
-| `.federated-cred-env-validation.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:validation` | CD deploy-val |
-| `.federated-cred-env-production.json` | `repo:Healthcare-Copilot/LEO-AI-CORE:environment:production` | CD deploy-prod |
+| `.federated-cred-main.json` | `repo:Miazic/LEO-AI-CORE:ref:refs/heads/main` | CI - Build and Push Images |
+| `.federated-cred-env-dev.json` | `repo:Miazic/LEO-AI-CORE:environment:dev` | CD deploy-dev |
+| `.federated-cred-env-validation.json` | `repo:Miazic/LEO-AI-CORE:environment:validation` | CD deploy-val |
+| `.federated-cred-env-production.json` | `repo:Miazic/LEO-AI-CORE:environment:production` | CD deploy-prod |
 
 ## Apply credentials
 

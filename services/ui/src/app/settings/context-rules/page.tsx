@@ -25,7 +25,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FilterView as PdfFilterView } from "@/lib/exportContextRulesPdf";
-import { AnimatePresence, motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -41,12 +40,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import DownloadIcon from "@mui/icons-material/Download";
-import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   ProgressiveReveal,
   ReviewListCard,
   SegmentedTabs,
-  SkeletonList,
   StatHero,
   ToolbarActions,
   type ReviewListItem,
@@ -250,15 +247,16 @@ function ruleChips(rule: ContextRule) {
 
 function ruleActions(
   rule: ContextRule,
-  onRequestDeactivate: (rule: ContextRule) => void,
+  onDeactivate: (id: string) => void,
 ) {
   if (rule.source !== "custom" || !rule.active || !rule.rule_id) return null;
+  const id = rule.rule_id;
   return (
     <Button
       size="small"
       color="warning"
       variant="text"
-      onClick={() => onRequestDeactivate(rule)}
+      onClick={() => onDeactivate(id)}
       sx={{ textTransform: "none", fontSize: "0.78rem" }}
     >
       Deactivate
@@ -271,7 +269,7 @@ function ruleActions(
 export default function ContextRulesPage() {
   const [rules, setRules] = useState<ContextRule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState<FilterView>("all");
 
   const [addOpen, setAddOpen] = useState(false);
@@ -285,11 +283,10 @@ export default function ContextRulesPage() {
   const [saveError, setSaveError] = useState("");
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
-  const [deactivateTarget, setDeactivateTarget] = useState<ContextRule | null>(null);
 
   const loadRules = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setError("");
     try {
       const data = await jsonFetch<{ rules: ContextRule[] }>(
         "/api/training/context-rules?active_only=false&include_builtin=true",
@@ -401,7 +398,7 @@ export default function ContextRulesPage() {
     title: ruleTitle(rule),
     meta: ruleMeta(rule),
     chips: ruleChips(rule),
-    actions: ruleActions(rule, setDeactivateTarget),
+    actions: ruleActions(rule, handleDeactivate),
     tone: rule.active || rule.source === "builtin" ? "neutral" : "warning",
   }));
 
@@ -410,7 +407,7 @@ export default function ContextRulesPage() {
       <StatHero stats={stats} />
 
       {error ? (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       ) : null}
@@ -455,25 +452,17 @@ export default function ContextRulesPage() {
         </Typography>
       ) : null}
 
-      <AnimatePresence>
-        {addOpen ? (
-          <fm.div
-            key="add-form"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
-          >
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 2.25,
-                mb: 3,
-                borderRadius: 2,
-                bgcolor: "#F8FAFC",
-              }}
-              data-testid="context-rules-add-form"
-            >
+      {addOpen ? (
+        <Paper
+          variant="outlined"
+          sx={{
+            p: 2.25,
+            mb: 3,
+            borderRadius: 2,
+            bgcolor: "#F8FAFC",
+          }}
+          data-testid="context-rules-add-form"
+        >
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
             New custom context rule
           </Typography>
@@ -582,12 +571,12 @@ export default function ContextRulesPage() {
             </Box>
           </Stack>
         </Paper>
-        </fm.div>
       ) : null}
-      </AnimatePresence>
 
       {loading ? (
-        <SkeletonList rows={4} />
+        <Stack alignItems="center" sx={{ py: 6 }}>
+          <CircularProgress aria-label="Loading" size={28} />
+        </Stack>
       ) : (
         <ReviewListCard
           items={items}
@@ -598,20 +587,6 @@ export default function ContextRulesPage() {
           }
         />
       )}
-
-      {deactivateTarget ? (
-        <ConfirmDialog
-          title="Deactivate context rule?"
-          body={`This will stop LEO using the phrase '${deactivateTarget.literal}' as a negation cue.`}
-          confirmLabel="Deactivate"
-          variant="danger"
-          onConfirm={() => {
-            handleDeactivate(deactivateTarget.rule_id!);
-            setDeactivateTarget(null);
-          }}
-          onCancel={() => setDeactivateTarget(null)}
-        />
-      ) : null}
     </Box>
   );
 }

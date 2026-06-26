@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 param environment string
 param managedIdentityPrincipalId string
 
-var kvName = 'leoai-${environment}-kv'
+var kvName = 'mizaicai-${environment}-kv'
 
 resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: kvName
