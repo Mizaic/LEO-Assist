@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Skeleton from "@mui/material/Skeleton";
@@ -44,6 +45,8 @@ import {
 const CHART_PALETTE = ["#1E40AF", "#047857", "#9333EA", "#B45309", "#0E7490"];
 const MUTED = "#CBD5E1";
 const HIGHLIGHT = "#DC2626";
+
+const MotionBox = fm(Box);
 
 interface MetricTileProps {
   tile: AuditTile;
@@ -346,6 +349,7 @@ function TileBody({
 // ---------------------------------------------------------------------------
 
 export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
+  const reduced = useReducedMotion();
   const [result, setResult] = useState<MetricRunResult | null>(mockData ?? null);
   const [loading, setLoading] = useState(!mockData);
   const [error, setError] = useState<string | null>(null);
@@ -376,7 +380,9 @@ export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
   }, [tile.metric_id, tile.param_overrides, orgId, mockData]);
 
   return (
-    <Box
+    <MotionBox
+      whileHover={reduced ? {} : { y: -2, boxShadow: "0 4px 16px rgba(0,0,0,0.10)" }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       sx={{
         bgcolor: "background.paper",
         border: "1px solid",
@@ -423,17 +429,32 @@ export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
       </Box>
 
       <Box sx={{ flex: 1, overflow: "hidden" }}>
-        {loading && <TileLoadingSkeleton type={tile.tile_type} />}
-        {!loading && error && (
-          <Typography variant="caption" color="warning.dark" sx={{ display: "block", pt: 0.5 }}>
-            {error}
-          </Typography>
-        )}
-        {!loading && !error && result && <TileBody tile={tile} result={result} />}
-        {!loading && !error && result && result.rows.length === 0 && tile.tile_type !== "kpi_strip" && (
-          <EmptyData />
-        )}
+        <AnimatePresence mode="wait">
+          {loading && (
+            <fm.div key="skeleton" exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.12 }}>
+              <TileLoadingSkeleton type={tile.tile_type} />
+            </fm.div>
+          )}
+          {!loading && error && (
+            <fm.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduced ? 0 : 0.2 }}>
+              <Typography variant="caption" color="warning.dark" sx={{ display: "block", pt: 0.5 }}>
+                {error}
+              </Typography>
+            </fm.div>
+          )}
+          {!loading && !error && result && (
+            <fm.div
+              key="chart"
+              initial={reduced ? false : { opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: reduced ? 0 : 0.25, ease: "easeOut" }}
+            >
+              <TileBody tile={tile} result={result} />
+              {result.rows.length === 0 && tile.tile_type !== "kpi_strip" && <EmptyData />}
+            </fm.div>
+          )}
+        </AnimatePresence>
       </Box>
-    </Box>
+    </MotionBox>
   );
 }

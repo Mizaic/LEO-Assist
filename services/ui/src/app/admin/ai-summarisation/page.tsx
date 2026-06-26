@@ -26,7 +26,7 @@ const ScenarioRunPanel = dynamic(() => import("./ScenarioRunPanel"), {
 const TABS = [
   {
     id: "playground",
-    label: "Playground",
+    label: "Manual SBAR playground",
     icon: <PlayArrowOutlinedIcon sx={{ fontSize: 16 }} />,
   },
   {

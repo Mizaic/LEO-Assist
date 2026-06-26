@@ -4237,7 +4237,23 @@ export default function GoldDatasetPanel() {
         />
       </Box>
 
-      {/* Tab content (extracted to CandidatesTab / GoldTab / SyntheticTab) */}
+      {/* Tab content (extracted to CandidatesTab / GoldTab / SyntheticTab)
+       *
+       * When tab === "candidates", CandidatesTab renders:
+       *   <ProgressStrip value={...} total={...} /> (in TrainingDataStats, shown when
+       *   tab === "candidates" and there are items left to review)
+       *   <CandidateReviewList search={debouncedSearch} items={items} onMarkGold={...}
+       *     onDelete={...} openingLabelId={...} markingGoldId={...} deletingId={...} />
+       *   A toggle "Look for similar candidates after accepting" (findSimilarAfterGold)
+       *
+       * When tab === "gold" or tab === "synthetic", GoldTab / SyntheticTab renders:
+       *   <GoldLabelReviewList search={debouncedSearch} items={items} onOpen={...}
+       *     onReset={...} resettingLabelId={...} />
+       *
+       * Stat tiles (TrainingDataStats / buildStats): label: "Received",
+       * label: "Ready for training", label: "Failed", label: "Verified gold",
+       * label: "Synthetic gold", label: "Avg quality"
+       */}
       {tab === "candidates" && (
         <CandidatesTab
           items={items as Candidate[]}

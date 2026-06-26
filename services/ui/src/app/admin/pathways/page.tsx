@@ -308,7 +308,12 @@ export default function PathwaysPage() {
       </Box>
 
       {loading ? (
-        <SkeletonList rows={3} itemHeight={140} />
+        <Box aria-busy="true">
+          <span aria-live="polite" style={{ position: "absolute", left: -9999, width: 1, height: 1, overflow: "hidden" }}>
+            Loading pathways...
+          </span>
+          <SkeletonList rows={3} itemHeight={140} />
+        </Box>
       ) : plans.length === 0 ? (
         <Box
           sx={{

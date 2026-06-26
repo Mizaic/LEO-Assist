@@ -19,9 +19,10 @@
  *   - StatHero: active concepts / terms / IS_A relationships /
  *     ICD-10 codes + maps / OPCS-4 codes + maps / Read code maps.
  *   - ToolbarActions: Refresh status.
- *   - PackageCards: click-to-select for sync, framer-motion hover lift,
- *     hover-reveal "Sync this package" ghost action.
- *   - LogPanel: streaming sync output with copy + clear.
+ *   - function PackageCard (./PackageCard.tsx): click-to-select for sync,
+ *     framer-motion hover lift, hover-reveal "Sync this package" ghost action.
+ *   - function LogPanel (./LogPanel.tsx): streaming sync output with copy + clear,
+ *     rendered at data-testid="terminology-log-panel".
  *
  * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145
  *                  + DI-LEO-AI-228 / DO-LEO-AI-301 / VT-LEO-AI-301 (ICD-10)
@@ -352,6 +353,7 @@ export default function TerminologyPage() {
       <LogPanel
         lines={logLines}
         onClear={() => setLogLines([])}
+        data-testid="terminology-log-panel"
       />
     </Box>
   );

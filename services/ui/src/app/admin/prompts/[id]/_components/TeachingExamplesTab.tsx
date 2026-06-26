@@ -131,7 +131,7 @@ export function TeachingExamplesTab({
             <TextField
               size="small"
               type="number"
-              label="Max examples at runtime"
+              label="Max examples used at runtime"
               value={maxFewShot}
               onChange={(e) => {
                 const parsed = Number(e.target.value);

@@ -11,6 +11,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EditRuleDialog, { type EditableRule } from "./EditRuleDialog";
@@ -22,11 +31,10 @@ import {
   type LogicTreeNode,
   type RuleCriterion as Criterion,
 } from "./RuleLogicView";
-import RuleReviewList from "./RuleReviewList";
-import RuleReviewToolbar from "./RuleReviewToolbar";
+import { RuleAccordionCard, SessionApprovedRow, formatRelativeUpdatedAt } from "./RuleReviewCard";
+import { EmptyState, NudgeStrip } from "@leo/design-system";
 
-// Re-export for test backward-compat (defined in RuleReviewCard to avoid
-// circular runtime imports; re-exported here so the test import path is stable).
+// Re-export for test backward-compat
 export { formatRelativeUpdatedAt } from "./RuleReviewCard";
 
 // -- Types -------------------------------------------------------------------
@@ -78,6 +86,14 @@ export interface RuleReviewIdentity {
 }
 
 export type RuleStatusFilter = "pending_review" | "active" | "superseded";
+
+// RuleAccordionCard action props -- onApprove/onReject are optional so the
+// same card component serves all three status lists.
+interface RuleCardActions {
+  onApprove?: () => void;
+  onReject?: () => void;
+  onEdit: () => void;
+}
 
 export const STATUS_FILTER_OPTIONS: ReadonlyArray<{
   value: RuleStatusFilter;
@@ -215,7 +231,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
 
   const visibleRules = useMemo(
-    () => sortRulesForStatus(filterRulesForReview(rules, sessionApproved, statusFilter), statusFilter),
+    () => filterRulesForReview(rules, sessionApproved, statusFilter),
     [rules, sessionApproved, statusFilter],
   );
 
@@ -320,21 +336,152 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       {actionError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{actionError}</Alert>}
       {promoteError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPromoteError(null)}>{promoteError}</Alert>}
 
-      <RuleReviewToolbar
-        statusFilter={statusFilter}
-        onFilterChange={setStatusFilter}
-        visibleCount={visibleRules.length}
-        busy={busy}
-        onApproveAll={() => setApproveAllOpen(true)}
-      />
+      {/* -- Status filter toolbar ---------------------------------------- */}
+      <Stack spacing={1} sx={{ mb: 1.5 }}>
+        <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+          <ToggleButtonGroup
+            exclusive
+            value={statusFilter}
+            onChange={(_, next) => {
+              if (next) setStatusFilter(next as RuleStatusFilter);
+            }}
+            size="small"
+            aria-label="Filter rules by status"
+          >
+            {STATUS_FILTER_OPTIONS.map((opt) => (
+              <ToggleButton
+                key={opt.value}
+                value={opt.value}
+                aria-label={`Show ${opt.label} rules`}
+              >
+                {opt.label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+          <Typography variant="caption" color="text.secondary">
+            {STATUS_FILTER_OPTIONS.find((t) => t.value === statusFilter)?.helper ?? ""}
+          </Typography>
+        </Stack>
+        {visibleRules.length > 0 && (
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              {visibleRules.length} rule{visibleRules.length !== 1 ? "s" : ""}
+            </Typography>
+            {statusFilter === "pending_review" && (
+              <Tooltip title="Approve every pending rule in one click.">
+                <span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={busy === "all"}
+                    onClick={() => setApproveAllOpen(true)}
+                    aria-label="Approve all rules"
+                  >
+                    Approve all
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
+          </Stack>
+        )}
+      </Stack>
 
-      <RuleReviewList
-        sessionApproved={{ rules: sessionApproved, promotedRules, promoteBusy }}
-        ruleList={{ rules: visibleRules, expandedRules, busy }}
-        statusFilter={statusFilter}
-        listActions={{ onToggle: toggleExpanded, onEdit: setEditRule, onApprove: (rule) => decide(rule, "approve"), onReject: (rule) => decide(rule, "reject", "Rejected by reviewer") }}
-        sessionActions={{ onEdit: setEditRule, onPromote: (rule) => setPromoteConfirmRule(rule) }}
-      />
+      {/* -- Session-approved -------------------------------------------- */}
+      {sessionApproved.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography
+            variant="overline"
+            sx={{ fontWeight: 700, letterSpacing: 0.6, display: "block", mb: 1 }}
+          >
+            Approved in this session
+          </Typography>
+          <Stack spacing={1}>
+            {sessionApproved.map((rule) => (
+              <Box
+                key={rule.rule_id}
+                sx={{ p: 1.5, border: "1px solid", borderColor: "success.light", borderRadius: 1.5, bgcolor: "#F0FDF4" }}
+              >
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  {rule.name || rule.rule_id}
+                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                    startIcon={<EditOutlinedIcon fontSize="small" />}
+                    onClick={() => setEditRule(rule)}
+                    aria-label={`Edit approved rule ${rule.rule_id}`}
+                  >
+                    Edit
+                  </Button>
+                  {promotedRules[rule.rule_id] ? (
+                    <Alert severity="success" sx={{ py: 0, px: 1, fontSize: "0.75rem", flex: 1 }}>
+                      Added to {promotedRules[rule.rule_id].domain_name}
+                    </Alert>
+                  ) : (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={promoteBusy === rule.rule_id}
+                      onClick={() => setPromoteConfirmRule(rule)}
+                    >
+                      Add to domain
+                    </Button>
+                  )}
+                </Stack>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {/* -- Rule list --------------------------------------------------- */}
+      {visibleRules.length === 0 ? (
+        <EmptyState
+          icon={<HistoryOutlinedIcon fontSize="large" />}
+          title={
+            statusFilter === "pending_review"
+              ? "No rules pending"
+              : statusFilter === "active"
+              ? "No active rules"
+              : "No superseded rules"
+          }
+          body={
+            statusFilter === "pending_review"
+              ? "No rules waiting for review. Load a guideline first, then generate rules."
+              : statusFilter === "active"
+              ? "No active rules yet. Approve a pending rule to make it active."
+              : "No superseded rules. Edits to active rules will appear here as a read-only history."
+          }
+        />
+      ) : (
+        <Stack spacing={0}>
+          {sortRulesForStatus(visibleRules, statusFilter).map((rule) => (
+            <Box key={rule.rule_id}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "none" }}
+                data-testid="rule-updated-relative"
+              >
+                {formatRelativeUpdatedAt(rule.updated_at)}
+              </Typography>
+              <RuleAccordionCard
+                rule={rule}
+                expanded={!!expandedRules[rule.rule_id]}
+                busy={busy}
+                index={0}
+                statusFilter={statusFilter}
+                onToggle={() => toggleExpanded(rule.rule_id)}
+                onEdit={() => setEditRule(rule)}
+                onApprove={statusFilter === "pending_review" ? () => decide(rule, "approve") : undefined}
+                onReject={statusFilter === "pending_review" ? () => decide(rule, "reject", "Rejected by reviewer") : undefined}
+              />
+            </Box>
+          ))}
+        </Stack>
+      )}
 
       {approveAllOpen && (
         <ConfirmDialog

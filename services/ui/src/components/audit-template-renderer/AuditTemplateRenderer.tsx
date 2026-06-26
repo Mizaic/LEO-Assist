@@ -7,6 +7,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -55,12 +56,21 @@ function MockBadge() {
   );
 }
 
+// Shared item variant for stagger children
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.22, ease: "easeOut" } },
+};
+
+const MotionBox = fm(Box);
+
 export default function AuditTemplateRenderer({
   template,
   orgId,
   useMockData = false,
   catalogue = [],
 }: AuditTemplateRendererProps) {
+  const reduced = useReducedMotion();
   const [presentationOpen, setPresentationOpen] = useState(false);
   const sections = groupBySection(template);
 
@@ -130,7 +140,12 @@ export default function AuditTemplateRenderer({
       {/* Sections */}
       {Object.entries(sections).map(([sectionLabel, tiles]) => (
         <Box key={sectionLabel}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+          <MotionBox
+            initial={reduced ? false : { opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduced ? 0 : 0.2 }}
+            sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}
+          >
             <Typography variant="subtitle1" fontWeight={700} color="text.primary">
               {sectionLabel}
             </Typography>
@@ -138,9 +153,13 @@ export default function AuditTemplateRenderer({
             <Typography variant="caption" color="text.disabled">
               {tiles.length} {tiles.length === 1 ? "tile" : "tiles"}
             </Typography>
-          </Box>
+          </MotionBox>
 
-          <Box
+          <MotionBox
+            key={sectionLabel}
+            variants={reduced ? {} : { hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+            initial="hidden"
+            animate="visible"
             sx={{
               display: "grid",
               gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(3, 1fr)" },
@@ -148,8 +167,9 @@ export default function AuditTemplateRenderer({
             }}
           >
             {tiles.map((tile) => (
-              <Box
+              <MotionBox
                 key={tile.tile_id}
+                variants={reduced ? {} : itemVariants}
                 sx={{
                   gridColumn: WIDE_TYPES.has(tile.tile_type)
                     ? { sm: "span 2", lg: "span 3" }
@@ -165,9 +185,9 @@ export default function AuditTemplateRenderer({
                     mockData={mockDataMap.get(tile.metric_id)}
                   />
                 )}
-              </Box>
+              </MotionBox>
             ))}
-          </Box>
+          </MotionBox>
         </Box>
       ))}
 
@@ -181,13 +201,23 @@ export default function AuditTemplateRenderer({
         </Typography>
       )}
 
-      {presentationOpen && (
-        <PresentationMode
-          template={template}
-          orgId={orgId}
-          onClose={() => setPresentationOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {presentationOpen && (
+          <fm.div
+            key="presentation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduced ? 0 : 0.15 }}
+          >
+            <PresentationMode
+              template={template}
+              orgId={orgId}
+              onClose={() => setPresentationOpen(false)}
+            />
+          </fm.div>
+        )}
+      </AnimatePresence>
     </Box>
   );
 }

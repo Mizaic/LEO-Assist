@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -433,40 +434,42 @@ export default function AuditDraftAssistant({
           </Typography>
         )}
 
-        {items.map((item, i) => {
-          if (item.kind === "user") return <UserBubble key={i} content={item.content} />;
-          if (item.kind === "assistant-text") {
-            if (item.pending) return <PendingBubble key={i} />;
-            return <TextBubble key={i} content={item.content} />;
-          }
-          if (item.kind === "discovery") {
-            return (
-              <DiscoveryCard
-                key={i}
-                result={item.result}
-                answers={answers}
-                onChange={(qId, optId) => setAnswers((a) => ({ ...a, [qId]: optId }))}
-                onContinue={() => void handleSubmitAnswers()}
-                disabled={phase !== "discovering"}
-              />
-            );
-          }
-          if (item.kind === "plan") {
-            return (
-              <PlanCard
-                key={i}
-                plan={item.plan}
-                onApprove={() => void handleApprove()}
-                onRevise={(txt) => void handleRevise(txt)}
-                disabled={phase !== "reviewing"}
-              />
-            );
-          }
-          if (item.kind === "build-report") {
-            return <BuildReport key={i} summary={item.summary} />;
-          }
-          return null;
-        })}
+        <AnimatePresence initial={false}>
+          {items.map((item, i) => {
+            if (item.kind === "user") return <UserBubble key={i} content={item.content} />;
+            if (item.kind === "assistant-text") {
+              if (item.pending) return <PendingBubble key={i} />;
+              return <TextBubble key={i} content={item.content} />;
+            }
+            if (item.kind === "discovery") {
+              return (
+                <DiscoveryCard
+                  key={i}
+                  result={item.result}
+                  answers={answers}
+                  onChange={(qId, optId) => setAnswers((a) => ({ ...a, [qId]: optId }))}
+                  onContinue={() => void handleSubmitAnswers()}
+                  disabled={phase !== "discovering"}
+                />
+              );
+            }
+            if (item.kind === "plan") {
+              return (
+                <PlanCard
+                  key={i}
+                  plan={item.plan}
+                  onApprove={() => void handleApprove()}
+                  onRevise={(txt) => void handleRevise(txt)}
+                  disabled={phase !== "reviewing"}
+                />
+              );
+            }
+            if (item.kind === "build-report") {
+              return <BuildReport key={i} summary={item.summary} />;
+            }
+            return null;
+          })}
+        </AnimatePresence>
       </Box>
 
       <Divider sx={{ flexShrink: 0 }} />

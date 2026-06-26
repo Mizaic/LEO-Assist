@@ -10,10 +10,10 @@
  * Atlas trace:  DO-3775670C / DI-64CA7740
  */
 
+import { motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -36,21 +36,33 @@ import type {
 // ---------------------------------------------------------------------------
 
 export function AssistantBubble({ children }: { children: React.ReactNode }) {
+  const reduced = useReducedMotion();
   return (
-    <Box sx={{ display: "flex", justifyContent: "flex-start", mb: 2 }}>
+    <fm.div
+      initial={{ opacity: 0, x: reduced ? 0 : -16, scale: reduced ? 1 : 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{ duration: reduced ? 0 : 0.22, ease: "easeOut" }}
+      style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}
+    >
       <Paper
         variant="outlined"
         sx={{ maxWidth: "95%", p: 1.5, borderRadius: 2, bgcolor: "grey.50" }}
       >
         {children}
       </Paper>
-    </Box>
+    </fm.div>
   );
 }
 
 export function UserBubble({ content }: { content: string }) {
+  const reduced = useReducedMotion();
   return (
-    <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1.5 }}>
+    <fm.div
+      initial={{ opacity: 0, x: reduced ? 0 : 16, scale: reduced ? 1 : 0.97 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={{ duration: reduced ? 0 : 0.22, ease: "easeOut" }}
+      style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}
+    >
       <Box
         sx={{
           maxWidth: "85%",
@@ -67,16 +79,31 @@ export function UserBubble({ content }: { content: string }) {
       >
         {content}
       </Box>
-    </Box>
+    </fm.div>
   );
 }
 
 export function PendingBubble() {
+  const reduced = useReducedMotion();
   return (
     <AssistantBubble>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <CircularProgress size={12} color="inherit" />
-        <Typography variant="caption">Thinking...</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+        {[0, 1, 2].map((i) => (
+          <fm.span
+            key={i}
+            animate={reduced ? {} : { y: [0, -4, 0] }}
+            transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15, ease: "easeInOut" }}
+            style={{
+              display: "inline-block",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "currentColor",
+              opacity: 0.6,
+            }}
+          />
+        ))}
+        <Typography variant="caption" sx={{ ml: 0.5 }}>Thinking</Typography>
       </Box>
     </AssistantBubble>
   );

@@ -10,6 +10,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
 import { GridLayout, useContainerWidth, type Layout, type LayoutItem } from "react-grid-layout";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -29,6 +30,8 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { type AuditTile, type TileType } from "@/lib/auditTemplateApi";
+
+const MotionBox = fm(Box);
 
 const TILE_META: Record<TileType, { Icon: React.ElementType; colour: string; label: string }> = {
   bar_chart:     { Icon: BarChartIcon,             colour: "#1E40AF", label: "Bar chart" },
@@ -271,6 +274,8 @@ export default function TileGrid({
     currentType: TileType;
   } | null>(null);
 
+  const reduced = useReducedMotion();
+
   const handleLayoutChange = (newLayout: Layout) => {
     const updated = tiles.map((t) => {
       const l = newLayout.find((nl: LayoutItem) => nl.i === t.tile_id);
@@ -281,36 +286,47 @@ export default function TileGrid({
 
   if (tiles.length === 0) {
     return (
-      <Box
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 2,
-          border: "2px dashed",
-          borderColor: "divider",
-          borderRadius: 2,
-          color: "text.disabled",
-          p: 4,
-        }}
-      >
-        <Typography variant="body2" textAlign="center">
-          No tiles yet. Add from the library on the left, or click{" "}
-          <strong>AI</strong> to describe the dashboard you need.
-        </Typography>
-        {onOpenAssistant && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<AutoAwesomeOutlinedIcon />}
-            onClick={onOpenAssistant}
+      <AnimatePresence>
+        <fm.div
+          key="empty"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ height: "100%" }}
+        >
+          <Box
+            sx={{
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+              border: "2px dashed",
+              borderColor: "divider",
+              borderRadius: 2,
+              color: "text.disabled",
+              p: 4,
+            }}
           >
-            AI
-          </Button>
-        )}
-      </Box>
+            <Typography variant="body2" textAlign="center">
+              No tiles yet. Add from the library on the left, or click{" "}
+              <strong>AI</strong> to describe the dashboard you need.
+            </Typography>
+            {onOpenAssistant && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AutoAwesomeOutlinedIcon />}
+                onClick={onOpenAssistant}
+              >
+                AI
+              </Button>
+            )}
+          </Box>
+        </fm.div>
+      </AnimatePresence>
     );
   }
 
@@ -331,8 +347,11 @@ export default function TileGrid({
               const isSelected = tile.tile_id === selectedId;
               const isWidget = tile.tile_type === "widget";
               return (
-                <Box
+                <MotionBox
                   key={tile.tile_id}
+                  initial={reduced ? false : { opacity: 0, scale: 0.94 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: reduced ? 0 : 0.2, ease: "easeOut" }}
                   onClick={() => onSelect(tile.tile_id)}
                   sx={{
                     border: "2px solid",
@@ -463,7 +482,7 @@ export default function TileGrid({
                       </Typography>
                     </Box>
                   )}
-                </Box>
+                </MotionBox>
               );
             })}
           </GridLayout>

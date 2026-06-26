@@ -9,6 +9,7 @@
  */
 
 import { useState } from "react";
+import { motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -53,6 +54,16 @@ interface MetricPickerProps {
   onAddWidget: (widget: WidgetCatalogueEntry) => void;
 }
 
+const listVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.18, ease: "easeOut" } },
+};
+
 function MetricCard({
   metric,
   used,
@@ -62,6 +73,7 @@ function MetricCard({
   used: boolean;
   onAdd: (type: TileType) => void;
 }) {
+  const reduced = useReducedMotion();
   const defaultType = metric.output_type as TileType;
   const compatible = metric.compatible_tile_types ?? [defaultType];
 
@@ -110,30 +122,35 @@ function MetricCard({
               title={isDefault ? `Add as ${label} (recommended)` : `Add as ${label}`}
               placement="top"
             >
-              <Chip
-                icon={<Icon style={{ fontSize: 11 }} />}
-                label={label}
-                size="small"
-                disabled={used}
-                onClick={() => onAdd(type)}
-                sx={{
-                  height: 20,
-                  fontSize: 10,
-                  px: 0.25,
-                  bgcolor: isDefault ? `${colour}18` : "transparent",
-                  borderColor: isDefault ? colour : "divider",
-                  color: isDefault ? colour : "text.secondary",
-                  border: "1px solid",
-                  fontWeight: isDefault ? 700 : 400,
-                  "& .MuiChip-icon": { color: isDefault ? colour : "text.disabled" },
-                  "&:hover:not(:disabled)": {
-                    bgcolor: `${colour}20`,
-                    borderColor: colour,
-                    color: colour,
-                  },
-                  cursor: used ? "default" : "pointer",
-                }}
-              />
+              <fm.div
+                whileTap={reduced || used ? {} : { scale: 0.93 }}
+                style={{ display: "inline-flex" }}
+              >
+                <Chip
+                  icon={<Icon style={{ fontSize: 11 }} />}
+                  label={label}
+                  size="small"
+                  disabled={used}
+                  onClick={() => onAdd(type)}
+                  sx={{
+                    height: 20,
+                    fontSize: 10,
+                    px: 0.25,
+                    bgcolor: isDefault ? `${colour}18` : "transparent",
+                    borderColor: isDefault ? colour : "divider",
+                    color: isDefault ? colour : "text.secondary",
+                    border: "1px solid",
+                    fontWeight: isDefault ? 700 : 400,
+                    "& .MuiChip-icon": { color: isDefault ? colour : "text.disabled" },
+                    "&:hover:not(:disabled)": {
+                      bgcolor: `${colour}20`,
+                      borderColor: colour,
+                      color: colour,
+                    },
+                    cursor: used ? "default" : "pointer",
+                  }}
+                />
+              </fm.div>
             </Tooltip>
           );
         })}
@@ -177,14 +194,25 @@ export default function MetricPicker({ catalogue, loading, error, usedMetricIds,
                 </Box>
               </Box>
             ))
-          : filtered.map((m) => (
-              <MetricCard
-                key={m.metric_id}
-                metric={m}
-                used={usedMetricIds.has(m.metric_id)}
-                onAdd={(type) => onAdd(m, type)}
-              />
-            ))}
+          : (
+            <fm.div
+              key={search}
+              variants={listVariants}
+              initial="hidden"
+              animate="visible"
+              style={{ display: "flex", flexDirection: "column", gap: 8 }}
+            >
+              {filtered.map((m) => (
+                <fm.div key={m.metric_id} variants={itemVariants}>
+                  <MetricCard
+                    metric={m}
+                    used={usedMetricIds.has(m.metric_id)}
+                    onAdd={(type) => onAdd(m, type)}
+                  />
+                </fm.div>
+              ))}
+            </fm.div>
+          )}
 
         {!loading && filtered.length === 0 && (
           <Typography variant="caption" color="text.disabled" sx={{ textAlign: "center", mt: 2 }}>

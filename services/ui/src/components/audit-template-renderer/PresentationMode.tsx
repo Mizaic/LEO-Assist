@@ -6,7 +6,7 @@
  * Features:
  *   - Tiles shown one section at a time, full viewport width
  *   - Section title card shown before each group
- *   - Tiles with story.animate_in=true fade/slide in on enter
+ *   - Tiles with story.animate_in=true enter with directional slide
  *   - Keyboard nav: Right/Space = next, Left = previous, Escape = exit
  *   - Progress indicator showing current section and tile position
  *
@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
@@ -63,8 +64,20 @@ function buildSlides(template: AuditTemplate): Slide[] {
 }
 
 // ---------------------------------------------------------------------------
+// Slide variants (defined outside component to avoid recreation on render)
+// ---------------------------------------------------------------------------
+
+const slideVariants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir * 60 }),
+  center: { opacity: 1, x: 0 },
+  exit: (dir: number) => ({ opacity: 0, x: dir * -60 }),
+};
+
+// ---------------------------------------------------------------------------
 // Progress dots
 // ---------------------------------------------------------------------------
+
+const MotionBox = fm(Box);
 
 function ProgressBar({
   current,
@@ -76,14 +89,15 @@ function ProgressBar({
   return (
     <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
       {Array.from({ length: Math.min(total, 20) }, (_, i) => (
-        <Box
+        <MotionBox
           key={i}
+          layout
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
           sx={{
             width: i === current ? 20 : 6,
             height: 6,
             borderRadius: 3,
             bgcolor: i === current ? "primary.main" : "rgba(255,255,255,0.4)",
-            transition: "all 300ms ease",
           }}
         />
       ))}
@@ -98,15 +112,7 @@ function ProgressBar({
 // Section title card
 // ---------------------------------------------------------------------------
 
-function SectionTitleCard({
-  label,
-  count,
-  animateIn,
-}: {
-  label: string;
-  count: number;
-  animateIn: boolean;
-}) {
+function SectionTitleCard({ label, count }: { label: string; count: number }) {
   return (
     <Box
       sx={{
@@ -115,9 +121,6 @@ function SectionTitleCard({
         alignItems: "center",
         justifyContent: "center",
         height: "100%",
-        opacity: animateIn ? 1 : 0,
-        transform: animateIn ? "translateY(0)" : "translateY(24px)",
-        transition: "opacity 400ms ease, transform 400ms ease",
         px: 6,
         textAlign: "center",
       }}
@@ -151,32 +154,19 @@ function TileSlide({
   template,
   orgId,
   mockResults,
-  animateIn,
 }: {
   tileId: string;
   template: AuditTemplate;
   orgId: string;
   mockResults?: Map<string, MetricRunResult>;
-  animateIn: boolean;
 }) {
   const tile = template.tiles.find((t) => (t.id ?? t.tile_id) === tileId);
   if (!tile) return null;
 
-  const shouldAnimate = tile.story?.animate_in ?? false;
   const mockData = mockResults?.get(tile.metric_id);
 
   return (
-    <Box
-      sx={{
-        maxWidth: 900,
-        width: "100%",
-        mx: "auto",
-        px: 4,
-        opacity: !shouldAnimate || animateIn ? 1 : 0,
-        transform: !shouldAnimate || animateIn ? "translateY(0)" : "translateY(32px)",
-        transition: "opacity 350ms ease 100ms, transform 350ms ease 100ms",
-      }}
-    >
+    <Box sx={{ maxWidth: 900, width: "100%", mx: "auto", px: 4 }}>
       {tile.tile_type === "widget" ? (
         <WidgetTile tile={tile} orgId={orgId} />
       ) : (
@@ -196,19 +186,18 @@ export default function PresentationMode({
   mockResults,
   onClose,
 }: PresentationModeProps) {
+  const reduced = useReducedMotion();
   const slides = useMemo(() => buildSlides(template), [template]);
   const [current, setCurrent] = useState(0);
-  const [animateIn, setAnimateIn] = useState(true);
+  const [direction, setDirection] = useState(1);
 
   const goTo = useCallback(
     (index: number) => {
-      setAnimateIn(false);
-      setTimeout(() => {
-        setCurrent(Math.max(0, Math.min(index, slides.length - 1)));
-        setAnimateIn(true);
-      }, 120);
+      const clamped = Math.max(0, Math.min(index, slides.length - 1));
+      setDirection(index >= current ? 1 : -1);
+      setCurrent(clamped);
     },
-    [slides.length],
+    [current, slides.length],
   );
 
   const next = useCallback(() => {
@@ -232,6 +221,9 @@ export default function PresentationMode({
 
   const slide = slides[current];
   const isSectionTitle = slide?.kind === "section-title";
+
+  const slideDuration = reduced ? 0 : 0.3;
+  const customDir = reduced ? 0 : direction;
 
   return (
     <Box
@@ -274,24 +266,33 @@ export default function PresentationMode({
           justifyContent: "center",
           overflow: "hidden",
           py: 2,
+          position: "relative",
         }}
       >
-        {slide?.kind === "section-title" && (
-          <SectionTitleCard
-            label={slide.label}
-            count={slide.count}
-            animateIn={animateIn}
-          />
-        )}
-        {slide?.kind === "tile" && (
-          <TileSlide
-            tileId={slide.tileId}
-            template={template}
-            orgId={orgId}
-            mockResults={mockResults}
-            animateIn={animateIn}
-          />
-        )}
+        <AnimatePresence custom={customDir} mode="wait">
+          <fm.div
+            key={current}
+            custom={customDir}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: slideDuration, ease: "easeInOut" }}
+            style={{ width: "100%", display: "flex", justifyContent: "center" }}
+          >
+            {slide?.kind === "section-title" && (
+              <SectionTitleCard label={slide.label} count={slide.count} />
+            )}
+            {slide?.kind === "tile" && (
+              <TileSlide
+                tileId={slide.tileId}
+                template={template}
+                orgId={orgId}
+                mockResults={mockResults}
+              />
+            )}
+          </fm.div>
+        </AnimatePresence>
       </Box>
 
       {/* Navigation controls */}

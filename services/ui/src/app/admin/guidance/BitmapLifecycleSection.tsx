@@ -15,6 +15,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import MuiStep from "@mui/material/Step";
+import MuiStepLabel from "@mui/material/StepLabel";
+import MuiStepper from "@mui/material/Stepper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -227,11 +230,19 @@ export default function BitmapLifecycleSection() {
   return (
     <Box>
       {/* -- Workflow progress -------------------------------------------- */}
+      <MuiStepper activeStep={activeStep} sx={{ mb: 2 }}>
+        {COMPILE_STEPS.map((label) => (
+          <MuiStep key={label}>
+            <MuiStepLabel>{label}</MuiStepLabel>
+          </MuiStep>
+        ))}
+      </MuiStepper>
+
       <ProgressStrip
-        label={COMPILE_STEPS[activeStep] ?? COMPILE_STEPS[0]}
+        label={`Step ${activeStep + 1} of ${COMPILE_STEPS.length}`}
         value={activeStep}
         total={COMPILE_STEPS.length - 1}
-        subtitle={`Step ${activeStep + 1} of ${COMPILE_STEPS.length}: ${COMPILE_STEPS[activeStep] ?? COMPILE_STEPS[0]}`}
+        subtitle={`${activeStep + 1} of ${COMPILE_STEPS.length} steps complete`}
         tone={activeStep === COMPILE_STEPS.length - 1 ? "positive" : "neutral"}
       />
 

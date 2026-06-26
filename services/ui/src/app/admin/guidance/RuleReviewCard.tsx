@@ -84,7 +84,12 @@ export interface RuleAccordionCardProps {
   busy: string | null;
   index: number;
   statusFilter: RuleStatusFilter;
-  callbacks: RuleCardCallbacks;
+  callbacks?: RuleCardCallbacks;
+  // Flat prop alternatives (used by RuleReviewSection inline rendering)
+  onToggle?: () => void;
+  onEdit?: () => void;
+  onApprove?: () => void;
+  onReject?: () => void;
 }
 
 export interface SessionApprovedRowProps {
@@ -304,7 +309,14 @@ export function SessionApprovedRow({ rule, promotedResult, promoteBusy, onEdit, 
 
 // -- Main accordion card ------------------------------------------------------
 
-export function RuleAccordionCard({ rule, expanded, busy, index, statusFilter, callbacks }: RuleAccordionCardProps) {
+export function RuleAccordionCard({ rule, expanded, busy, index, statusFilter, callbacks, onToggle, onEdit, onApprove, onReject }: RuleAccordionCardProps) {
+  // Support both flat props and callbacks object
+  const cb: RuleCardCallbacks = callbacks ?? {
+    onToggle: onToggle ?? (() => undefined),
+    onEdit: onEdit ?? (() => undefined),
+    onApprove,
+    onReject,
+  };
   const isBusy = busy === rule.rule_id;
   const accent = STATUS_ACCENT[statusFilter] ?? STATUS_ACCENT.pending_review;
 
@@ -316,7 +328,7 @@ export function RuleAccordionCard({ rule, expanded, busy, index, statusFilter, c
       style={{ position: "relative", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, marginBottom: 8 }}
     >
       <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 14, bottom: 14, width: 3, borderRadius: 2, background: accent }} />
-      <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ cursor: "pointer" }} onClick={callbacks.onToggle} role="button" aria-expanded={expanded} aria-label={`Toggle rule from ${rule.guideline_id}`}>
+      <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ cursor: "pointer" }} onClick={cb.onToggle} role="button" aria-expanded={expanded} aria-label={`Toggle rule from ${rule.guideline_id}`}>
         {expanded ? <ExpandMoreIcon sx={{ color: "primary.main", mt: 0.3, flexShrink: 0, fontSize: 18 }} /> : <ChevronRightIcon sx={{ color: "text.disabled", mt: 0.3, flexShrink: 0, fontSize: 18 }} />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <RuleCardHeader rule={rule} />
@@ -326,7 +338,7 @@ export function RuleAccordionCard({ rule, expanded, busy, index, statusFilter, c
         </Box>
       </Stack>
       <Collapse in={expanded}>
-        <RuleCardBody rule={rule} callbacks={callbacks} isBusy={isBusy} />
+        <RuleCardBody rule={rule} callbacks={cb} isBusy={isBusy} />
       </Collapse>
     </fm.div>
   );

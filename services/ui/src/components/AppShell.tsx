@@ -101,6 +101,7 @@ const CARE_NAV_ITEMS: NavItem[] = [
   { label: "Clinical Audit", path: "/care/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/care/audit", "/audit"] },
   { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon /> },
   { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
+  { label: "Reports", path: "/care/reports", icon: <AssessmentOutlinedIcon /> },
   { label: "Benchmarks", path: "/care/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/care/cohorts", icon: <GroupWorkOutlinedIcon /> },
   { label: "Wellbeing Hub", path: "/care/wellbeing", icon: <SpaOutlinedIcon /> },

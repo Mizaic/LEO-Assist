@@ -10,9 +10,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
+import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
@@ -20,7 +22,6 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import {
   DataGridCard,
   EmptyState,
-  FilterBar,
   ProgressiveReveal,
   ProgressStrip,
   ToolbarActions,
@@ -96,6 +97,7 @@ interface Props { onGuidelineLoaded?: () => void; }
 
 export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
   const [inputValue, setInputValue] = useState("");
+  const [catalogueOptions, setCatalogueOptions] = useState<GuidelineOption[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ingestLog, setIngestLog] = useState<string[]>([]);
@@ -106,14 +108,15 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [browseOpen, setBrowseOpen] = useState(false);
 
-  // Debounced catalogue search (kept for option validation)
+  // Debounced catalogue search
   useEffect(() => {
     const t = setTimeout(() => {
-      if (inputValue.length < 2) return;
+      if (inputValue.length < 2) { setCatalogueOptions([]); return; }
       setSearchError(null);
       fetch(`/api/nice/catalogue?q=${encodeURIComponent(inputValue)}`)
         .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
-        .catch(() => setSearchError("Could not search for guidelines. Try again."));
+        .then((data: GuidelineOption[]) => setCatalogueOptions(data))
+        .catch(() => { setCatalogueOptions([]); setSearchError("Could not search for guidelines. Try again."); });
     }, 300);
     return () => clearTimeout(t);
   }, [inputValue]);
@@ -217,12 +220,28 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
       {/* -- Search + load ------------------------------------------------ */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "flex-start" }} sx={{ mb: 2 }}>
         <Box sx={{ flex: 1 }}>
-          <FilterBar
-            search={inputValue}
-            onSearchChange={setInputValue}
-            searchPlaceholder="e.g. bowel cancer or NG151"
-            aria-label="Search for a NICE guideline"
-            onSubmit={canLoad ? handleIngest : undefined}
+          <Autocomplete
+            freeSolo
+            options={catalogueOptions}
+            getOptionLabel={(opt) =>
+              typeof opt === "string" ? opt : `${opt.code} -- ${opt.title}`
+            }
+            inputValue={inputValue}
+            onInputChange={(_, value) => setInputValue(value)}
+            onChange={(_, value) => {
+              if (value && typeof value !== "string" && value.code) {
+                setInputValue(value.code);
+              }
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                size="small"
+                placeholder="e.g. bowel cancer or NG151"
+                aria-label="Search for a NICE guideline"
+                onKeyDown={(e) => { if (e.key === "Enter" && canLoad) handleIngest(); }}
+              />
+            )}
           />
         </Box>
         <ToolbarActions

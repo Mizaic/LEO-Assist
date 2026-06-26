@@ -13,6 +13,11 @@
  * Domains -- Wave E Phase 3c redesign
  *
  * Design Controls: DI-LEO-AI-147, DO-LEO-AI-143, VT-LEO-AI-145.
+ *
+ * DomainCard is defined in ./_components/DomainCard.tsx and imported
+ * below. It uses framer-motion for entrance animations:
+ *   import { motion as fm } from "framer-motion";
+ *   function DomainCard({ domain, onEdit, onDelete }: DomainCardProps) { ... }
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
