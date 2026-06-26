@@ -95,7 +95,7 @@ const SUGGESTIONS = [
 // ---------------------------------------------------------------------------
 
 function getHistory(items: MessageItem[]): DraftMessage[] {
-  return items.flatMap((m) => {
+  return items.flatMap((m): DraftMessage[] => {
     if (m.kind === "user") return [{ role: "user" as const, content: m.content }];
     if (m.kind === "assistant-text" && !m.pending) {
       return [{ role: "assistant" as const, content: m.content }];

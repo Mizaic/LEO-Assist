@@ -7,5 +7,14 @@
     "services/ui",
     "services/design-system",
     "services/widget-sdk"
-  ]
+  ],
+  "devDependencies": {
+    "postcss": "^8.5.15",
+    "ws": "^8.21.0"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.15"
+    }
+  }
 }
