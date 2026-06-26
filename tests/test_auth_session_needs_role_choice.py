@@ -63,8 +63,8 @@ def test_needs_role_choice_true_multi_role_new_session(
         "fetch_role_state",
         MagicMock(
             return_value=RoleState(
-                selected_role="clinician",
-                allowed_roles=["clinician", "staff"],
+                selected_role="triage_clinician",
+                allowed_roles=["triage_clinician", "clinical_coder"],
             )
         ),
     )
@@ -94,8 +94,8 @@ def test_needs_role_choice_false_after_session_confirmed(
         "fetch_role_state",
         MagicMock(
             return_value=RoleState(
-                selected_role="clinician",
-                allowed_roles=["clinician", "staff"],
+                selected_role="triage_clinician",
+                allowed_roles=["triage_clinician", "clinical_coder"],
             )
         ),
     )
@@ -120,8 +120,8 @@ def test_needs_role_choice_false_single_role(
         "fetch_role_state",
         MagicMock(
             return_value=RoleState(
-                selected_role="clinician",
-                allowed_roles=["clinician"],
+                selected_role="triage_clinician",
+                allowed_roles=["triage_clinician"],
             )
         ),
     )
@@ -149,8 +149,8 @@ def test_patch_session_role_marks_session_confirmed(
         "fetch_role_state",
         MagicMock(
             return_value=RoleState(
-                selected_role="clinician",
-                allowed_roles=["clinician", "staff"],
+                selected_role="triage_clinician",
+                allowed_roles=["triage_clinician", "clinical_coder"],
             )
         ),
     )
@@ -159,8 +159,8 @@ def test_patch_session_role_marks_session_confirmed(
         "set_selected_role",
         MagicMock(
             return_value=RoleState(
-                selected_role="staff",
-                allowed_roles=["clinician", "staff"],
+                selected_role="clinical_coder",
+                allowed_roles=["triage_clinician", "clinical_coder"],
             )
         ),
     )
@@ -172,11 +172,11 @@ def test_patch_session_role_marks_session_confirmed(
 
     res = client_session_template.patch(
         "/auth/session/role",
-        json={"role": "staff"},
+        json={"role": "clinical_coder"},
     )
     assert res.status_code == 200
     body = res.json()
-    assert body["selected_role"] == "staff"
+    assert body["selected_role"] == "clinical_coder"
     assert body["needs_role_choice"] is False
     save_mock.assert_called()
     pos = save_mock.call_args[0]

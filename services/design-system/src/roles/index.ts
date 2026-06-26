@@ -11,7 +11,10 @@ export {
   ROLE_COPY,
   isRole,
   type NavItem,
+  type OrgOption,
   type Role,
+  type RoleCategory,
+  type RoleCopyEntry,
   type RoleNavConfig,
   type RoleNavMap,
 } from "./types";

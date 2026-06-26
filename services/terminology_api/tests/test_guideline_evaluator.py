@@ -17,9 +17,17 @@ def _make_store(current_ruleset=None, int_id_map=None, bitmaps=None):
     store.get_current_ruleset.return_value = current_ruleset
     store.get_ruleset.return_value = current_ruleset
     int_id_map = int_id_map or {}
-    store.get_int_id.side_effect = lambda cid: int_id_map.get(cid)
     bitmaps = bitmaps or {}
+    # Single-key accessors (legacy paths)
+    store.get_int_id.side_effect = lambda cid: int_id_map.get(cid)
     store.get_bitmap.side_effect = lambda bid: bitmaps.get(bid)
+    # Bulk accessors used by evaluate_patient and diagnose
+    store.get_int_ids_bulk.side_effect = (
+        lambda cids: {c: int_id_map[c] for c in cids if c in int_id_map}
+    )
+    store.get_bitmaps_bulk.side_effect = (
+        lambda bids: {b: bitmaps[b] for b in bids if b in bitmaps}
+    )
     return store
 
 

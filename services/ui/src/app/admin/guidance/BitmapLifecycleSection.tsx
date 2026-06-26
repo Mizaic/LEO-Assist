@@ -93,7 +93,11 @@ function buildVersionItem(v: VersionEntry, activating: string | null, onActivate
   };
 }
 
-export default function BitmapLifecycleSection() {
+interface BitmapLifecycleSectionProps {
+  onVersionActivated?: () => void;
+}
+
+export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLifecycleSectionProps) {
   const [scopeType, setScopeType] = useState<ScopeType>("global");
   const [scopeId, setScopeId] = useState("default");
   const [policyMode, setPolicyMode] = useState<PolicyMode>("advisory");
@@ -186,12 +190,13 @@ export default function BitmapLifecycleSection() {
       if (!resp.ok) throw new Error(await resp.text());
       setConfirmVersion(null);
       setRefreshKey((n) => n + 1);
+      onVersionActivated?.();
     } catch {
       setError("Could not activate this version. Please try again.");
     } finally {
       setActivatingVersion(null);
     }
-  }, [scopeId, scopeType]);
+  }, [onVersionActivated, scopeId, scopeType]);
 
   const handleRollback = useCallback(async () => {
     setRollingBack(true);

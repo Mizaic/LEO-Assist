@@ -49,7 +49,8 @@ interface MetricPickerProps {
   catalogue: MetricCatalogueEntry[];
   loading: boolean;
   error: string | null;
-  usedMetricIds: Set<string>;
+  /** How many tiles currently use each metric_id / widget_id. */
+  usedCounts: Map<string, number>;
   onAdd: (metric: MetricCatalogueEntry, tileType: TileType) => void;
   onAddWidget: (widget: WidgetCatalogueEntry) => void;
 }
@@ -66,19 +67,28 @@ const itemVariants = {
 
 function MetricCard({
   metric,
-  used,
+  count,
   onAdd,
 }: {
   metric: MetricCatalogueEntry;
-  used: boolean;
+  count: number;
   onAdd: (type: TileType) => void;
 }) {
   const reduced = useReducedMotion();
   const defaultType = metric.output_type as TileType;
   const compatible = metric.compatible_tile_types ?? [defaultType];
+  const used = count > 0;
 
   return (
     <Box
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "copy";
+        e.dataTransfer.setData(
+          "application/x-audit-metric",
+          JSON.stringify({ metric_id: metric.metric_id, tile_type: defaultType }),
+        );
+      }}
       sx={{
         border: "1px solid",
         borderColor: used ? "primary.200" : "divider",
@@ -86,12 +96,11 @@ function MetricCard({
         p: 1.25,
         bgcolor: used ? "primary.50" : "background.paper",
         transition: "border-color 120ms",
+        cursor: "grab",
+        "&:active": { cursor: "grabbing" },
       }}
     >
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mb: 0.75 }}>
-        {used && (
-          <CheckCircleOutlineIcon sx={{ fontSize: 13, color: "primary.main", mt: 0.15, flexShrink: 0 }} />
-        )}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="caption" fontWeight={700} display="block" noWrap>
             {metric.title}
@@ -105,9 +114,31 @@ function MetricCard({
             {metric.description}
           </Typography>
         </Box>
+        {used && (
+          <Tooltip title={`Added to the report ${count} time${count === 1 ? "" : "s"}`}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.25,
+                flexShrink: 0,
+                px: 0.5,
+                height: 16,
+                borderRadius: 999,
+                bgcolor: "primary.100",
+                color: "primary.dark",
+              }}
+            >
+              <CheckCircleOutlineIcon sx={{ fontSize: 11 }} />
+              <Typography component="span" sx={{ fontSize: 9, fontWeight: 700, lineHeight: 1 }}>
+                {count}
+              </Typography>
+            </Box>
+          </Tooltip>
+        )}
       </Box>
 
-      {/* Chart type chips */}
+      {/* Chart type chips - always clickable; a metric can be added more than once */}
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
         {(Object.keys(TYPE_META) as TileType[]).map((type) => {
           const { Icon, label, colour } = TYPE_META[type];
@@ -123,14 +154,13 @@ function MetricCard({
               placement="top"
             >
               <fm.div
-                whileTap={reduced || used ? {} : { scale: 0.93 }}
+                whileTap={reduced ? {} : { scale: 0.93 }}
                 style={{ display: "inline-flex" }}
               >
                 <Chip
                   icon={<Icon style={{ fontSize: 11 }} />}
                   label={label}
                   size="small"
-                  disabled={used}
                   onClick={() => onAdd(type)}
                   sx={{
                     height: 20,
@@ -142,12 +172,12 @@ function MetricCard({
                     border: "1px solid",
                     fontWeight: isDefault ? 700 : 400,
                     "& .MuiChip-icon": { color: isDefault ? colour : "text.disabled" },
-                    "&:hover:not(:disabled)": {
+                    "&:hover": {
                       bgcolor: `${colour}20`,
                       borderColor: colour,
                       color: colour,
                     },
-                    cursor: used ? "default" : "pointer",
+                    cursor: "pointer",
                   }}
                 />
               </fm.div>
@@ -159,7 +189,7 @@ function MetricCard({
   );
 }
 
-export default function MetricPicker({ catalogue, loading, error, usedMetricIds, onAdd, onAddWidget }: MetricPickerProps) {
+export default function MetricPicker({ catalogue, loading, error, usedCounts, onAdd, onAddWidget }: MetricPickerProps) {
   const [search, setSearch] = useState("");
 
   const filtered = catalogue.filter(
@@ -206,7 +236,7 @@ export default function MetricPicker({ catalogue, loading, error, usedMetricIds,
                 <fm.div key={m.metric_id} variants={itemVariants}>
                   <MetricCard
                     metric={m}
-                    used={usedMetricIds.has(m.metric_id)}
+                    count={usedCounts.get(m.metric_id) ?? 0}
                     onAdd={(type) => onAdd(m, type)}
                   />
                 </fm.div>
@@ -232,10 +262,19 @@ export default function MetricPicker({ catalogue, loading, error, usedMetricIds,
         </Box>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
           {WIDGET_CATALOGUE.map((widget) => {
-            const used = usedMetricIds.has(widget.widget_id);
+            const count = usedCounts.get(widget.widget_id) ?? 0;
+            const used = count > 0;
             return (
               <Box
                 key={widget.widget_id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "copy";
+                  e.dataTransfer.setData(
+                    "application/x-audit-widget",
+                    JSON.stringify({ widget_id: widget.widget_id }),
+                  );
+                }}
                 sx={{
                   border: "1px solid",
                   borderColor: used ? "warning.200" : "warning.100",
@@ -245,6 +284,8 @@ export default function MetricPicker({ catalogue, loading, error, usedMetricIds,
                   display: "flex",
                   alignItems: "flex-start",
                   gap: 1,
+                  cursor: "grab",
+                  "&:active": { cursor: "grabbing" },
                 }}
               >
                 <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -267,15 +308,12 @@ export default function MetricPicker({ catalogue, loading, error, usedMetricIds,
                     {widget.description}
                   </Typography>
                 </Box>
-                <Tooltip
-                  title={used ? "Already added" : "Add widget"}
-                  placement="top"
-                >
+                <Tooltip title="Add widget" placement="top">
                   <span>
                     <Button
                       size="small"
-                      disabled={used}
                       onClick={() => onAddWidget(widget)}
+                      aria-label={`Add ${widget.title} widget`}
                       sx={{
                         minWidth: 0,
                         p: 0.5,

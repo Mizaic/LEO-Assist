@@ -1,0 +1,26 @@
+{
+  "description": "Patient previously on naproxen (NSAID) but it is now stopped. MEDICATION leaf with drug_class=NSAID should NOT match.",
+  "bundle": {
+    "patient_codes": [],
+    "patient_observations": [],
+    "active_medications": [
+      {
+        "drug_class": "NSAID",
+        "status": "stopped",
+        "concept_id": "372665008",
+        "term": "naproxen",
+        "source_ids": ["enc-fixture-002"],
+        "recorded_date": null
+      }
+    ],
+    "allergies": [],
+    "treatment_history": [],
+    "as_of_date": null
+  },
+  "expected": {
+    "leaf_kind": "MEDICATION",
+    "leaf_drug_class": "NSAID",
+    "match": false,
+    "reason_contains": "stopped"
+  }
+}

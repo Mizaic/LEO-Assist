@@ -1,0 +1,24 @@
+{
+  "description": "Patient has an active penicillin allergy. ALLERGY leaf matching penicillin concept should match.",
+  "bundle": {
+    "patient_codes": [],
+    "patient_observations": [],
+    "active_medications": [],
+    "allergies": [
+      {
+        "substance_concept_id": "764146007",
+        "status": "active",
+        "allergy_class": "penicillin",
+        "term": "penicillin",
+        "source_ids": ["enc-fixture-003"]
+      }
+    ],
+    "treatment_history": [],
+    "as_of_date": null
+  },
+  "expected": {
+    "leaf_kind": "ALLERGY",
+    "leaf_substance_concept_id": "764146007",
+    "match": true
+  }
+}

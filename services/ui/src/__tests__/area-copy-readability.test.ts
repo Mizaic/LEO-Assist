@@ -37,17 +37,17 @@ describe("AREA_INTRO_COPY (VT-LEO-AI-135)", () => {
     }
   });
 
-  test("TC-002 clinical areas include a clinician block", () => {
+  test("TC-002 clinical areas include a triage_clinician block", () => {
     for (const key of ["care-overview", "pathway-explorer", "portal"] as AreaKey[]) {
-      expect(AREA_INTRO_COPY[key].clinician).toBeDefined();
+      expect(AREA_INTRO_COPY[key].triage_clinician).toBeDefined();
     }
   });
 
-  test("TC-002 admin areas include a platform_admin or staff block", () => {
+  test("TC-002 admin areas include a platform_admin or clinical_coder block", () => {
     for (const key of ["operations", "platform", "users", "portal"] as AreaKey[]) {
       const entry = AREA_INTRO_COPY[key];
       expect(
-        entry.platform_admin !== undefined || entry.staff !== undefined,
+        entry.platform_admin !== undefined || entry.clinical_coder !== undefined,
       ).toBe(true);
     }
   });

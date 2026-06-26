@@ -31,6 +31,7 @@ _LABEL_TO_SCOPE = {
     "GPPractice": "gp",
     "ICB": "icb",
     "CancerAlliance": "alliance",
+    "ServiceProvider": "service_provider",
 }
 
 
@@ -80,9 +81,13 @@ def get_org_context(
         user = practitioner[0]
         is_admin = user.get("is_platform_admin", False)
 
+        org_where = (
+            "o:GPPractice OR o:ICB OR o:CancerAlliance "
+            "OR o:ServiceProvider OR o:Organization"
+        )
         if is_admin:
             orgs = client.run(
-                "MATCH (o) WHERE o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization "
+                "MATCH (o) WHERE " + org_where + " "
                 "RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, "
                 "       o.short_name AS short_name, o.type AS type, labels(o) AS nodeLabels "
                 "ORDER BY o.name",
@@ -90,7 +95,7 @@ def get_org_context(
         else:
             orgs = client.run(
                 "MATCH (pr:Practitioner {email: $email})-[:WORKS_AT]->(o) "
-                "WHERE o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization "
+                "WHERE " + org_where + " "
                 "RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, "
                 "       o.short_name AS short_name, o.type AS type, labels(o) AS nodeLabels "
                 "ORDER BY o.name",

@@ -34,6 +34,7 @@ import SubOrgManagement from "@/components/tenant/SubOrgManagement";
 import SubscriptionPanel from "@/components/tenant/SubscriptionPanel";
 import { useAuth } from "@/lib/authContext";
 import { useDemoMode } from "@/context/DemoModeContext";
+import { useOrg } from "@/context/OrgContext";
 import { maskOrgName, maskPostcode } from "@/lib/demoMode";
 import type { OrgGraphNode } from "@/lib/api/admin";
 import type { Org } from "@/lib/api/admin";
@@ -125,6 +126,7 @@ const ALL_TABS = [
 
 export default function PortalPage() {
   const { session, status } = useAuth();
+  const { currentOrg } = useOrg();
   const router = useRouter();
   const [tab, setTab] = useState("overview");
   const [graphSelectedOrg, setGraphSelectedOrg] = useState<Org | null>(null);
@@ -254,7 +256,7 @@ export default function PortalPage() {
       {activeTab === "auth" && <AuthConfig />}
       {activeTab === "entra" && <EntraIntegration />}
       {activeTab === "subscription" && (
-        <SubscriptionPanel orgId={session?.organizations?.[0]?.id} />
+        <SubscriptionPanel orgId={currentOrg?.id ?? session?.organizations?.[0]?.id} />
       )}
     </Box>
   );

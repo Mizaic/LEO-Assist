@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 class RoleState:
     selected_role: str | None
     allowed_roles: list[str]
+    is_platform_admin: bool = False
 
 
 class RoleNotAllowedError(PermissionError):
@@ -68,10 +69,18 @@ def fetch_role_state(email: str) -> RoleState:
         if not rows:
             return RoleState(selected_role=None, allowed_roles=[])
         row = rows[0]
-        allowed = _canonical(row.get("allowed_roles") or [])
+        is_admin = bool(row.get("is_platform_admin", False))
+        if is_admin:
+            allowed = list(CANONICAL_ROLES)
+        else:
+            allowed = _canonical(row.get("allowed_roles") or [])
         selected_raw = row.get("selected_role")
-        selected = selected_raw if selected_raw in allowed else None
-        return RoleState(selected_role=selected, allowed_roles=allowed)
+        selected = selected_raw if selected_raw in CANONICAL_ROLES else None
+        return RoleState(
+            selected_role=selected,
+            allowed_roles=allowed,
+            is_platform_admin=is_admin,
+        )
     except Exception as exc:
         logger.warning("role_state.fetch_failed email=%s err=%s", normalized, exc)
         return RoleState(selected_role=None, allowed_roles=[])
@@ -93,7 +102,10 @@ def set_selected_role(
     if not normalized:
         raise RoleNotAllowedError("missing_email")
     current = fetch_role_state(normalized)
-    if new_role not in current.allowed_roles:
+    # Platform admins can impersonate any canonical role.
+    if not current.is_platform_admin and new_role not in current.allowed_roles:
+        raise RoleNotAllowedError(new_role)
+    if new_role not in CANONICAL_ROLES:
         raise RoleNotAllowedError(new_role)
 
     now = datetime.now(timezone.utc).isoformat()
@@ -122,10 +134,18 @@ def set_selected_role(
             )
             return current
         row = rows[0]
-        allowed = _canonical(row.get("allowed_roles") or [])
+        is_admin = bool(row.get("is_platform_admin", False))
+        if is_admin:
+            allowed = list(CANONICAL_ROLES)
+        else:
+            allowed = _canonical(row.get("allowed_roles") or [])
         selected = row.get("selected_role")
-        if selected not in allowed:
+        if selected not in CANONICAL_ROLES:
             selected = None
-        return RoleState(selected_role=selected, allowed_roles=allowed)
+        return RoleState(
+            selected_role=selected,
+            allowed_roles=allowed,
+            is_platform_admin=is_admin,
+        )
     finally:
         client.close()

@@ -87,6 +87,10 @@ async def evaluate_codes_against_guidelines(
     guideline_ids: Iterable[str] | None = None,
     patient_age: float | None = None,
     patient_sex: str | None = None,
+    observations: list[dict[str, Any]] | None = None,
+    active_medications: list[dict[str, Any]] | None = None,
+    allergies: list[dict[str, Any]] | None = None,
+    treatment_history: list[dict[str, Any]] | None = None,
     timeout_s: float = EVAL_TIMEOUT_S,
 ) -> dict[str, Any]:
     """POST patient codes to the terminology API and return matched rules.
@@ -97,6 +101,11 @@ async def evaluate_codes_against_guidelines(
 
     A single AsyncClient is reused across all per-guideline requests so
     the underlying TCP connection is kept warm.
+
+    Sprint 1: ``observations``, ``active_medications``, ``allergies``, and
+    ``treatment_history`` are passed through to the evaluate endpoint when
+    provided. This ensures the SBAR formatter and the evaluator use the
+    same fact inputs (DI-2687230E / DI-2199E670).
     """
     code_list = sorted({str(c).strip() for c in patient_codes if str(c).strip()})
     if not code_list:
@@ -119,6 +128,14 @@ async def evaluate_codes_against_guidelines(
                 body["patient_age"] = patient_age
             if patient_sex:
                 body["patient_sex"] = patient_sex
+            if observations:
+                body["observations"] = observations
+            if active_medications:
+                body["active_medications"] = active_medications
+            if allergies:
+                body["allergies"] = allergies
+            if treatment_history:
+                body["treatment_history"] = treatment_history
             try:
                 resp = await http.post(
                     f"{TERMINOLOGY_API_URL}/terminology/guidelines/evaluate",

@@ -38,6 +38,7 @@ export interface OrgInfo {
   odsCode?: string;
   shortName?: string;
   type?: string;
+  scopeType?: "gp" | "pcn" | "icb" | "alliance" | "service_provider";
 }
 
 export type DensityPreference = "compact" | "comfortable" | "spacious";

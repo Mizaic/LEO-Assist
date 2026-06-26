@@ -50,6 +50,7 @@
     "d3-sankey": "^0.12.3",
     "dompurify": "^3.4.11",
     "framer-motion": "^11.18.2",
+    "html2canvas": "^1.4.1",
     "immer": "^11.1.4",
     "ioredis": "^5.9.3",
     "jspdf": "^4.2.1",

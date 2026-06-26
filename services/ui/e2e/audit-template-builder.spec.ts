@@ -10,6 +10,11 @@
  */
 
 import { test, expect } from "@playwright/test";
+import {
+  createAuditFixtureState,
+  installAuditTemplateFixtures,
+  clickFirstAvailableMetricAdd,
+} from "./helpers/audit-template-fixtures";
 
 test.describe("Audit template builder (VT-32FBAA69)", () => {
   test("admin audit-templates page loads and shows template list heading", async ({
@@ -59,6 +64,110 @@ test.describe("Audit template builder (VT-32FBAA69)", () => {
     await page.goto("/admin/audit-templates/new");
     const saveBtn = page.getByRole("button", { name: /save/i });
     await expect(saveBtn).toBeDisabled();
+  });
+});
+
+// Regression coverage for the react-grid-layout v2 wiring defect: drag, resize
+// and library-to-canvas drop must actually FUNCTION, not just be imported. These
+// tests stub the backend so they are deterministic and CI-safe.
+test.describe("Audit template builder - canvas interaction (VT-9499F16F)", () => {
+  test("a metric added from the library appears as a tile on the canvas", async ({
+    page,
+  }) => {
+    const state = createAuditFixtureState();
+    await installAuditTemplateFixtures(page, state);
+    await page.goto("/admin/audit-templates/new");
+    await expect(page.getByText("Metric library")).toBeVisible();
+
+    await clickFirstAvailableMetricAdd(page);
+
+    // A tile renders inside react-grid-layout with a drag handle header.
+    await expect(page.locator("[data-grid-drag-handle]")).toHaveCount(1);
+    await expect(page.locator(".react-grid-item").first()).toBeVisible();
+  });
+
+  test("tiles expose a working resize handle (stylesheet is loaded)", async ({
+    page,
+  }) => {
+    const state = createAuditFixtureState();
+    await installAuditTemplateFixtures(page, state);
+    await page.goto("/admin/audit-templates/new");
+    await clickFirstAvailableMetricAdd(page);
+
+    const handle = page.locator(".react-resizable-handle").first();
+    await expect(handle).toHaveCount(1);
+    // The 20px handle width comes from react-grid-layout/css/styles.css. If the
+    // stylesheet were missing (the original defect) this would be 0/auto and the
+    // handle would be ungrabbable.
+    const width = await handle.evaluate((el) => getComputedStyle(el).width);
+    expect(width).toBe("20px");
+    // The grid item is absolutely positioned by the v2 position strategy.
+    const pos = await page
+      .locator(".react-grid-item")
+      .first()
+      .evaluate((el) => getComputedStyle(el).position);
+    expect(pos).toBe("absolute");
+  });
+
+  test("resizing a tile changes its grid layout", async ({ page }) => {
+    const state = createAuditFixtureState();
+    await installAuditTemplateFixtures(page, state);
+    await page.goto("/admin/audit-templates/new");
+    await clickFirstAvailableMetricAdd(page);
+
+    const tile = page.locator(".react-grid-item").first();
+    const before = await tile.boundingBox();
+    const handle = page.locator(".react-resizable-handle").first();
+    await handle.scrollIntoViewIfNeeded();
+    const hb = await handle.boundingBox();
+    expect(hb).not.toBeNull();
+    // Drag the SE handle outwards to grow the tile.
+    await page.mouse.move(hb!.x + hb!.width / 2, hb!.y + hb!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(hb!.x + 220, hb!.y + 160, { steps: 12 });
+    await page.mouse.up();
+
+    const after = await tile.boundingBox();
+    expect(before).not.toBeNull();
+    expect(after).not.toBeNull();
+    // The tile must have grown (resize is functional).
+    expect(after!.width).toBeGreaterThan(before!.width + 20);
+  });
+
+  test("the same metric can be added more than once (no 'used' lock)", async ({
+    page,
+  }) => {
+    const state = createAuditFixtureState();
+    await installAuditTemplateFixtures(page, state);
+    await page.goto("/admin/audit-templates/new");
+
+    await clickFirstAvailableMetricAdd(page);
+    await expect(page.locator("[data-grid-drag-handle]")).toHaveCount(1);
+    // The chip must still be enabled and clickable a second time.
+    await clickFirstAvailableMetricAdd(page);
+    await expect(page.locator("[data-grid-drag-handle]")).toHaveCount(2);
+  });
+
+  test("a metric can be dragged from the library onto the canvas", async ({
+    page,
+  }) => {
+    const state = createAuditFixtureState();
+    await installAuditTemplateFixtures(page, state);
+    await page.goto("/admin/audit-templates/new");
+    await expect(page.getByText("Metric library")).toBeVisible();
+
+    const card = page
+      .locator('[draggable="true"]')
+      .filter({ hasText: /rate|distribution|alerts/i })
+      .first();
+    const canvas = page.locator("[data-grid-drag-handle]").first();
+    // Empty canvas: drop onto the dashed drop zone instead.
+    const dropTarget = (await canvas.count())
+      ? canvas
+      : page.getByText(/Drag a metric or widget here/i);
+
+    await card.dragTo(dropTarget);
+    await expect(page.locator("[data-grid-drag-handle]")).toHaveCount(1);
   });
 });
 

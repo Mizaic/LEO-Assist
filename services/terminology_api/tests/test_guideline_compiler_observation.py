@@ -20,7 +20,7 @@ The compiler does NOT evaluate the leaf; it only:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -45,7 +45,16 @@ def _policy() -> CompilePolicy:
     )
 
 
-def test_empty_unit_defaults_to_canonical_unit(compiler: GuidelineCompiler) -> None:
+_NO_KG = patch(
+    "services.terminology_api.app.services.guideline_compiler.get_lab_config",
+    return_value=None,
+)
+
+
+@_NO_KG
+def test_empty_unit_defaults_to_canonical_unit(
+    _mock_lab, compiler: GuidelineCompiler
+) -> None:
     leaf = {
         "kind": "observation",
         "node_id": "obs_no_unit",
@@ -61,7 +70,10 @@ def test_empty_unit_defaults_to_canonical_unit(compiler: GuidelineCompiler) -> N
     assert out["value"] == 400.0
 
 
-def test_compiles_absolute_leaf_in_canonical_unit(compiler: GuidelineCompiler) -> None:
+@_NO_KG
+def test_compiles_absolute_leaf_in_canonical_unit(
+    _mock_lab, compiler: GuidelineCompiler
+) -> None:
     leaf = {
         "kind": "observation",
         "node_id": "obs_1",

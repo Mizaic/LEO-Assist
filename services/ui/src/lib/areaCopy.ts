@@ -35,19 +35,19 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Pick a tile to see the list behind the number.",
       what: "Each tile links to the page that acts on that list.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Care Overview",
       lede: "Your active patients and the tasks linked to them.",
       how: "Open a tile to see the patients behind it.",
       what: "Click a patient to open the full record.",
     },
-    staff: {
+    clinical_coder: {
       title: "Care Overview",
       lede: "Today's open work for your team in one view.",
       how: "Open the red tiles first. They are the most urgent.",
       what: "Each row links to the screen that clears the task.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Care Overview",
       lede: "How the team is coping today, with throughput and safety trends.",
       how: "Open any tile to see the drill down and source filters.",
@@ -67,13 +67,13 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Start a run, check the job list, or drill into a batch.",
       what: "Outputs flow to the coding review and audit queues.",
     },
-    staff: {
+    clinical_coder: {
       title: "Operations Console",
       lede: "Kick off coding runs and pick up review work as it lands.",
       how: "Start a run, then open the review queue when it finishes.",
       what: "Each finished run adds rows to your work queue.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Operations Console",
       lede: "Oversight of every coding run, with QA drill-downs by site.",
       how: "Filter by site or pathway to focus a review window.",
@@ -87,13 +87,13 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Pick a pathway to see the steps and who is at each one.",
       what: "Click a step to see the patients parked there.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Pathway Explorer",
       lede: "Where your patients sit on each care pathway.",
       how: "Open a pathway to see which step each patient is at.",
       what: "Click a step to open the patients waiting at it.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Pathway Explorer",
       lede: "Pathway step counts, wait times, and outlier detection.",
       how: "Use the filters to focus on a site or a cohort.",
@@ -127,7 +127,7 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Open a user to change their role or remove access.",
       what: "Every change writes an append-only audit entry.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Users",
       lede: "Who has access, what role they hold, and when they last signed in.",
       how: "Filter by role or org to prepare an access review.",
@@ -141,7 +141,7 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Pick a section to see or change what patients get.",
       what: "Changes go live the next time a patient opens the app.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Patient Portal",
       lede: "What your patients see when they log in.",
       how: "Pick a section to review or change the patient view.",
@@ -177,13 +177,13 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Start at the top. The red rows go first.",
       what: "Each link opens the screen that clears the task.",
     },
-    staff: {
+    clinical_coder: {
       title: "My Work",
       lede: "Every open task for you, in one place.",
       how: "Start at the top. The red rows go first.",
       what: "Each link opens the page that clears the task.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Team Work",
       lede: "Tasks your team has open across code, safety, and labels.",
       how: "Filter by source to see one queue at a time.",

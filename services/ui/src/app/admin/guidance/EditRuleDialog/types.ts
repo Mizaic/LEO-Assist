@@ -18,6 +18,10 @@
  *   DO: DO-CB6324A3
  *   Risk: R-555C8691 (shared with Phase 5 backend)
  *   VT: VT-1A7862B9 (execution_status=passed)
+ *
+ * Sprint 1 trace (MEDICATION / ALLERGY / TREATMENT_HISTORY leaves):
+ *   DI: DI-2199E670
+ *   DO: DO-0EC3A9CB
  */
 export type LogicNodeKind =
   | "AND"
@@ -26,7 +30,10 @@ export type LogicNodeKind =
   | "AT_LEAST"
   | "CONCEPT"
   | "DEMOGRAPHIC"
-  | "OBSERVATION";
+  | "OBSERVATION"
+  | "MEDICATION"
+  | "ALLERGY"
+  | "TREATMENT_HISTORY";
 
 /**
  * One SNOMED code in a CONCEPT criterion's synonym set (UN-LEO-AI-093).

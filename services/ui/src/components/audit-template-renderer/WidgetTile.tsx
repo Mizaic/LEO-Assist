@@ -20,6 +20,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
 
 import { type AuditTile } from "@/lib/auditTemplateApi";
+import { SECTION_WIDGETS, SectionWidget } from "./auditWidgetRegistry";
 
 // -- Lazy-load audit section components --
 const SymptomsSection = dynamic(
@@ -86,6 +87,11 @@ export default function WidgetTile({ tile, orgId }: WidgetTileProps) {
 
   if (tile.metric_id === "blood_signal") {
     return <BloodSignalSection />;
+  }
+
+  // Result-driven NCDA sections fetch their own data via the registry.
+  if (SECTION_WIDGETS[tile.metric_id]) {
+    return <SectionWidget widgetId={tile.metric_id} orgId={orgId} />;
   }
 
   return (

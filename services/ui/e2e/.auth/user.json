@@ -2,7 +2,7 @@
   "cookies": [],
   "origins": [
     {
-      "origin": "http://localhost:3001",
+      "origin": "http://localhost:3000",
       "localStorage": [
         {
           "name": "leo_selected_org",

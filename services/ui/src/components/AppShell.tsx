@@ -60,6 +60,8 @@ import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import PushPinIcon from "@mui/icons-material/PushPin";
 import LinearProgress from "@mui/material/LinearProgress";
 import Chip from "@mui/material/Chip";
 import { useAuth } from "@/lib/authContext";
@@ -76,6 +78,7 @@ import Menu from "@mui/material/Menu";
 import { useDemoMode } from "@/context/DemoModeContext";
 import { useOrg } from "@/context/OrgContext";
 import { maskOrgName } from "@/lib/demoMode";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -94,13 +97,14 @@ type NavItem = {
   badgeKey?: string;
   activePrefix?: string[];
   adminOnly?: boolean;
+  hiddenForScopeTypes?: string[];
 };
 
 const CARE_NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/care/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Clinical Audit", path: "/care/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/care/audit", "/audit"] },
-  { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon /> },
-  { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
+  { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon />, hiddenForScopeTypes: ["icb", "alliance"] },
+  { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon />, hiddenForScopeTypes: ["icb", "alliance"] },
   { label: "Reports", path: "/care/reports", icon: <AssessmentOutlinedIcon /> },
   { label: "Benchmarks", path: "/care/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/care/cohorts", icon: <GroupWorkOutlinedIcon /> },
@@ -180,7 +184,7 @@ function isEditorRoute(_pathname: string): boolean {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { session, status, signIn, signOut } = useAuth();
+  const { session, status, signIn, signOut, refetch: refetchAuth } = useAuth();
   const { currentOrg, organizations, isPlatformAdmin, switchOrg, viewAll } = useOrg();
   const { isDemoMode } = useDemoMode();
   const theme = useTheme();
@@ -233,6 +237,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // removed the rollout flag), so staff always see the queue promoted
   // to the top and every other role still reaches it near the end.
   const selectedRole = session?.selectedRole ?? null;
+  const isImpersonating =
+    isPlatformAdmin &&
+    selectedRole !== null &&
+    selectedRole !== "platform_admin";
+
+  const exitImpersonation = useCallback(async () => {
+    await fetch("/api/auth/session/role", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "platform_admin" }),
+    });
+    await refetchAuth();
+    router.push("/");
+  }, [refetchAuth, router]);
+
   const workNavItem: NavItem = {
     label: "My Work",
     path: "/work",
@@ -244,7 +263,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ? [workNavItem, ...baseNavItems]
       : [...baseNavItems, workNavItem];
 
-  const visibleNavItems = navItemsForMode.filter((item) => !item.adminOnly || isPlatformAdmin);
+  const currentScopeType = currentOrg?.scopeType ?? null;
+  const visibleNavItems = navItemsForMode.filter((item) => {
+    if (item.adminOnly && !isPlatformAdmin) return false;
+    if (item.hiddenForScopeTypes && currentScopeType && item.hiddenForScopeTypes.includes(currentScopeType)) return false;
+    return true;
+  });
 
   const sortedOrganizations = useMemo(
     () =>
@@ -573,16 +597,40 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Typography>
         </Typography>
         {!isMobile && !isEditor && (
-          <Tooltip title="Collapse sidebar">
-            <IconButton
-              aria-label="Collapse sidebar"
-              size="small"
-              onClick={() => persistSidebarPref("collapsed")}
-              sx={{ flexShrink: 0 }}
-            >
-              <ChevronLeftIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
+          sidebarPref === "expanded" ? (
+            <Tooltip title="Unpin sidebar">
+              <IconButton
+                aria-label="Unpin sidebar"
+                size="small"
+                onClick={() => persistSidebarPref("follow-breakpoint")}
+                sx={{ flexShrink: 0, color: "primary.main" }}
+              >
+                <PushPinIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          ) : dockCollapsed ? (
+            <Tooltip title="Pin sidebar open">
+              <IconButton
+                aria-label="Pin sidebar open"
+                size="small"
+                onClick={() => persistSidebarPref("expanded")}
+                sx={{ flexShrink: 0 }}
+              >
+                <PushPinOutlinedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <Tooltip title="Collapse sidebar">
+              <IconButton
+                aria-label="Collapse sidebar"
+                size="small"
+                onClick={() => persistSidebarPref("collapsed")}
+                sx={{ flexShrink: 0 }}
+              >
+                <ChevronLeftIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+          )
         )}
       </Box>
 
@@ -829,6 +877,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           bgcolor: "background.default",
         }}
       >
+        {isImpersonating && selectedRole && (
+          <ImpersonationBanner
+            selectedRole={selectedRole}
+            onExit={exitImpersonation}
+          />
+        )}
         {uiMode === "admin" && <TrainingProgressBanner />}
         {children}
       </Box>

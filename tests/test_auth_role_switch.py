@@ -26,6 +26,30 @@ from scripts import seed_canonical_roles as seed_script
 
 
 # -----------------------------------------------------------------------------
+# Regression: platform admin with no HAS_ROLE edge must still see the picker
+# -----------------------------------------------------------------------------
+@patch("libs.auth.role_state.PatientGraphClient")
+def test_fetch_role_state_platform_admin_fallback_when_no_has_role_edge(
+    MockClient: MagicMock,
+) -> None:
+    """fetch_role_state expands allowed_roles to all canonical roles when
+    is_platform_admin is true, even when no HAS_ROLE edges exist.
+    Simulates a seed admin logging in before the Entra sync has created edges.
+    """
+    from libs.cypher.role_queries import CANONICAL_ROLES
+
+    instance = MockClient.return_value
+    # Graph returns no HAS_ROLE edges but flags is_platform_admin = true
+    instance.run.return_value = [
+        {"selected_role": None, "allowed_roles": [], "is_platform_admin": True}
+    ]
+    state = fetch_role_state("rob.smith@healthcarecopilot.ai")
+    assert state.is_platform_admin is True
+    assert set(state.allowed_roles) == set(CANONICAL_ROLES)
+    assert "platform_admin" in state.allowed_roles
+
+
+# -----------------------------------------------------------------------------
 # VT-125-TC-001  -- session payload carries role fields
 # -----------------------------------------------------------------------------
 @patch("libs.auth.role_state.PatientGraphClient")
@@ -35,13 +59,13 @@ def test_fetch_role_state_returns_selected_and_allowed(
     instance = MockClient.return_value
     instance.run.return_value = [
         {
-            "selected_role": "clinician",
-            "allowed_roles": ["clinician", "staff"],
+            "selected_role": "triage_clinician",
+            "allowed_roles": ["triage_clinician", "clinical_coder"],
         }
     ]
     state = fetch_role_state("Rob@Test.AI ")
-    assert state.selected_role == "clinician"
-    assert state.allowed_roles == ["clinician", "staff"]
+    assert state.selected_role == "triage_clinician"
+    assert state.allowed_roles == ["triage_clinician", "clinical_coder"]
 
 
 @patch("libs.auth.role_state.PatientGraphClient")
@@ -50,12 +74,12 @@ def test_fetch_role_state_drops_unknown_roles(MockClient: MagicMock) -> None:
     instance.run.return_value = [
         {
             "selected_role": "admin_v2",
-            "allowed_roles": ["staff", "admin_v2", None],
+            "allowed_roles": ["clinical_coder", "admin_v2", None],
         }
     ]
     state = fetch_role_state("user@x.com")
     assert state.selected_role is None
-    assert state.allowed_roles == ["staff"]
+    assert state.allowed_roles == ["clinical_coder"]
 
 
 @patch("libs.auth.role_state.PatientGraphClient")
@@ -80,8 +104,8 @@ def test_set_selected_role_writes_audit_and_updates(
     pre_instance = MagicMock()
     pre_instance.run.return_value = [
         {
-            "selected_role": "clinician",
-            "allowed_roles": ["clinician", "staff"],
+            "selected_role": "triage_clinician",
+            "allowed_roles": ["triage_clinician", "clinical_coder"],
         }
     ]
     post_instance = MagicMock()
@@ -89,22 +113,22 @@ def test_set_selected_role_writes_audit_and_updates(
         [{"id": "audit-1"}],
         [
             {
-                "selected_role": "staff",
-                "allowed_roles": ["clinician", "staff"],
+                "selected_role": "clinical_coder",
+                "allowed_roles": ["triage_clinician", "clinical_coder"],
             }
         ],
     ]
     MockClient.side_effect = [pre_instance, post_instance]
 
-    updated = set_selected_role("rob@test.ai", "staff", "sess-1")
+    updated = set_selected_role("rob@test.ai", "clinical_coder", "sess-1")
 
-    assert updated.selected_role == "staff"
-    assert updated.allowed_roles == ["clinician", "staff"]
+    assert updated.selected_role == "clinical_coder"
+    assert updated.allowed_roles == ["triage_clinician", "clinical_coder"]
     # Audit write and set-role write are the two calls on the post_instance.
     assert post_instance.run.call_count == 2
     first_call = post_instance.run.call_args_list[0]
-    assert first_call.kwargs.get("to_role") == "staff"
-    assert first_call.kwargs.get("from_role") == "clinician"
+    assert first_call.kwargs.get("to_role") == "clinical_coder"
+    assert first_call.kwargs.get("from_role") == "triage_clinician"
     assert first_call.kwargs.get("session_id") == "sess-1"
 
 
@@ -118,7 +142,7 @@ def test_set_selected_role_rejects_role_not_allowed(
 ) -> None:
     instance = MockClient.return_value
     instance.run.return_value = [
-        {"selected_role": "clinician", "allowed_roles": ["clinician"]}
+        {"selected_role": "triage_clinician", "allowed_roles": ["triage_clinician"]}
     ]
     with pytest.raises(RoleNotAllowedError):
         set_selected_role("rob@test.ai", "platform_admin", "sess-1")
@@ -127,24 +151,16 @@ def test_set_selected_role_rejects_role_not_allowed(
 # -----------------------------------------------------------------------------
 # VT-125-TC-004  -- canonical roles seed is idempotent
 # -----------------------------------------------------------------------------
-def test_seed_canonical_roles_merges_all_four() -> None:
+def test_seed_canonical_roles_merges_all() -> None:
+    from libs.cypher.role_queries import CANONICAL_ROLES
+
     client = MagicMock()
-    client.run.return_value = [
-        {"name": "clinician"},
-        {"name": "staff"},
-        {"name": "qa_ra_lead"},
-        {"name": "platform_admin"},
-    ]
+    client.run.return_value = [{"name": r} for r in CANONICAL_ROLES]
     names = seed_script.seed(client=client)
-    assert set(names) == {"clinician", "staff", "qa_ra_lead", "platform_admin"}
+    assert set(names) == set(CANONICAL_ROLES)
     client.run.assert_called_once()
-    args, kwargs = client.run.call_args
-    assert kwargs.get("role_names") == [
-        "clinician",
-        "staff",
-        "qa_ra_lead",
-        "platform_admin",
-    ]
+    _, kwargs = client.run.call_args
+    assert set(kwargs.get("role_names", [])) == set(CANONICAL_ROLES)
 
 
 def test_seed_canonical_roles_uses_merge_clause() -> None:

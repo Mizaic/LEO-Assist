@@ -184,7 +184,7 @@ export default function PatientListPage() {
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400, mx: "auto" }}>
       {/* Header */}
       <Stack
         direction="row"

@@ -86,13 +86,28 @@ function metricCatalogue() {
     ["episode_open_age_distribution", "Episode Open-Age Distribution", "bar_chart", ["bar_chart"]],
     ["referral_completion_rate", "Referral Completion Rate", "kpi_strip", ["kpi_strip"]],
   ];
+  // Give the STT Rate metric a real parameter schema so the builder's
+  // "Parameters" tab is exercisable (VAL-E7BE67D0 step 3). All other metrics
+  // keep an empty schema.
+  const paramSchemas: Record<string, Record<string, unknown>> = {
+    referral_stt_rate: {
+      lookback_months: {
+        type: "integer",
+        default: 12,
+        minimum: 1,
+        maximum: 36,
+        required: true,
+      },
+      include_screening: { type: "boolean", default: false },
+    },
+  };
   return tiers.map(([metric_id, title, output_type, compatible_tile_types]) => ({
     metric_id,
     title,
     description: `${title} metric`,
     output_type,
     compatible_tile_types,
-    param_schema: {},
+    param_schema: paramSchemas[metric_id] ?? {},
     output_schema: [],
   }));
 }

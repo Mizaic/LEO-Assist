@@ -82,8 +82,15 @@ export interface AuditTile {
   metric_id: string;
   param_overrides: Record<string, unknown>;
   section?: string;
+  /** Page (tab) this tile belongs to. Undefined => the first/default page. */
+  page_id?: string;
   layout: TileLayout;
   story?: TileStoryConfig;
+}
+
+export interface AuditPage {
+  page_id: string;
+  title: string;
 }
 
 export type AuditTemplateStatus = "draft" | "published" | "archived";
@@ -94,6 +101,8 @@ export interface AuditTemplate {
   version: number;
   status: AuditTemplateStatus;
   tiles: AuditTile[];
+  /** Named pages (tabs). Empty => single-page report (back-compatible). */
+  pages?: AuditPage[];
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -176,6 +185,77 @@ export const WIDGET_CATALOGUE: WidgetCatalogueEntry[] = [
       "GDS blood test distribution and signal analysis. Requires the GDS enrichment pipeline to be active.",
     category: "Clinical signals",
   },
+  {
+    widget_id: "cancer_type",
+    title: "Cancer Type Breakdown",
+    description:
+      "How referrals split across cancer types, with the national benchmark for comparison.",
+    category: "Outcomes",
+  },
+  {
+    widget_id: "cancer_stage",
+    title: "Cancer Stage at Diagnosis",
+    description:
+      "Stage-at-diagnosis breakdown and early-stage detection rate against the national benchmark.",
+    category: "Outcomes",
+  },
+  {
+    widget_id: "diagnostic_intervals",
+    title: "Diagnostic Intervals",
+    description:
+      "Time from first presentation to diagnosis, shown as interval distributions with benchmarks.",
+    category: "Pathway timeliness",
+  },
+  {
+    widget_id: "consultations",
+    title: "Consultations Before Referral",
+    description:
+      "How many GP consultations patients had before being referred, against the national benchmark.",
+    category: "Pathway timeliness",
+  },
+  {
+    widget_id: "safety_netting",
+    title: "Safety Netting",
+    description:
+      "How often safety-netting advice was recorded, with the national benchmark for comparison.",
+    category: "Pathway quality",
+  },
+  {
+    widget_id: "investigations",
+    title: "Investigations",
+    description: "Investigations ordered along the pathway and how they were used.",
+    category: "Pathway quality",
+  },
+  {
+    widget_id: "avoidable_delays",
+    title: "Avoidable Delays",
+    description: "GP-noted avoidable delays in the pathway, with the national benchmark.",
+    category: "Pathway quality",
+  },
+  {
+    widget_id: "care_obstructions",
+    title: "Care Obstructions",
+    description: "Obstructions that held up the patient pathway, grouped by type.",
+    category: "Pathway quality",
+  },
+  {
+    widget_id: "place_of_presentation",
+    title: "Place of Presentation",
+    description: "Where patients first presented, such as GP, screening, or emergency.",
+    category: "Demographics",
+  },
+  {
+    widget_id: "demographics",
+    title: "Patient Demographics",
+    description: "Age, sex, and ethnicity breakdown of the referred patients.",
+    category: "Demographics",
+  },
+  {
+    widget_id: "comorbidities",
+    title: "Comorbidities",
+    description: "Other health conditions recorded for referred patients.",
+    category: "Demographics",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -185,11 +265,13 @@ export const WIDGET_CATALOGUE: WidgetCatalogueEntry[] = [
 export interface CreateTemplatePayload {
   title: string;
   tiles: Omit<AuditTile, "tile_id">[];
+  pages?: AuditPage[];
 }
 
 export interface UpdateTemplatePayload {
   title?: string;
   tiles?: Omit<AuditTile, "tile_id">[];
+  pages?: AuditPage[];
 }
 
 export interface PublishTemplatePayload {

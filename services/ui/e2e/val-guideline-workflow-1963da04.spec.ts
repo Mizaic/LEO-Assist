@@ -223,21 +223,23 @@ async function installGuidelineFixtures(
   });
 
   // -- Rule review queue
-  await page.route("**/api/guidance/rules/review?status=pending_review", (route) =>
+  // fetchRules() appends &limit=200 so patterns need a trailing wildcard.
+  // Only surface the pending rule after generation; not before (avoids state bleed in step-0 screenshot).
+  await page.route("**/api/guidance/rules/review*status=pending_review*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(state.ruleApproved ? [] : [PENDING_RULE]),
+      body: JSON.stringify(state.rulesGenerated && !state.ruleApproved ? [PENDING_RULE] : []),
     }),
   );
-  await page.route("**/api/guidance/rules/review?status=active", (route) =>
+  await page.route("**/api/guidance/rules/review*status=active*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(state.ruleApproved ? [APPROVED_RULE] : []),
     }),
   );
-  await page.route("**/api/guidance/rules/review?status=superseded", (route) =>
+  await page.route("**/api/guidance/rules/review*status=superseded*", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) }),
   );
 
@@ -252,13 +254,18 @@ async function installGuidelineFixtures(
   });
 
   // -- Bitmap status
+  // active_version is null until the version is explicitly made live so the
+  // StatHero tile only populates after the "Make this live" action.
   await page.route("**/api/terminology/guidelines/bitmap/status*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(
         state.compiled
-          ? COMPILE_RESULT
+          ? {
+              ...COMPILE_RESULT,
+              active_version: state.versionActive ? COMPILE_RESULT.active_version : null,
+            }
           : { active_version: null, rule_count: 0, compile_timestamp: null },
       ),
     }),
@@ -450,18 +457,29 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           ctx.lastCompletedStep.value = 3;
 
           // -- Step 4: Review queue -- expand rule
+          // onRulesGenerated() fires when the generate job completes, which
+          // increments ruleRefreshKey and triggers RuleReviewSection.reloadPools().
+          // Scroll to the review section and wait for it to populate.
           await ctx.page.evaluate(() => {
             const el = document.querySelector("#rule-review");
             el?.scrollIntoView({ behavior: "instant" });
           });
 
-          // Pending review tab should be active by default
+          // "Awaiting review" pool header should be visible (populated via auto-refresh)
           await expect(
-            ctx.page.getByText(/pending review/i).first(),
-          ).toBeVisible({ timeout: 5_000 });
+            ctx.page.getByText(/awaiting review/i).first(),
+          ).toBeVisible({ timeout: 15_000 });
 
-          // Expand the rule row
-          await ctx.page.getByText(/unexplained haemoptysis/i).first().click();
+          // Expand the rule row via its aria-labelled toggle button
+          await ctx.page
+            .getByRole("button", { name: /toggle rule from ng12/i })
+            .first()
+            .click();
+
+          // After expansion the full recommendation text and approve button appear
+          await expect(
+            ctx.page.getByText(/unexplained haemoptysis/i).first(),
+          ).toBeVisible({ timeout: 5_000 });
 
           await expect(
             ctx.page.getByRole("button", { name: /approve rule val-rule-001/i }),
@@ -470,7 +488,7 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           await recordProtocolStep({
             request: ctx.request, runId: ctx.runId, valId: ctx.valId,
             page: ctx.page, testInfo: ctx.testInfo, protocol: ctx.protocol, stepIndex: 4,
-            notes: "Pending review tab active. Rule row expanded. Recommendation text and plain-English summary visible.",
+            notes: "Awaiting review pool visible. Rule row expanded. Recommendation text and plain-English summary visible.",
           });
           ctx.lastCompletedStep.value = 4;
 
@@ -479,14 +497,12 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
             .getByRole("button", { name: /approve rule val-rule-001/i })
             .click();
 
-          // Pending tab should now show empty state
+          // Awaiting review pool should now show empty state
           await expect(
-            ctx.page.getByText(/no rules waiting for review/i),
+            ctx.page.getByText(/no rules awaiting review/i),
           ).toBeVisible({ timeout: 10_000 });
 
-          // Switch to Active tab
-          await ctx.page.getByRole("tab", { name: "Active" }).click();
-
+          // The "Approved" pool is always rendered in parallel -- approved rule appears there
           await expect(
             ctx.page.getByText(/unexplained haemoptysis/i).first(),
           ).toBeVisible({ timeout: 5_000 });
@@ -494,7 +510,7 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           await recordProtocolStep({
             request: ctx.request, runId: ctx.runId, valId: ctx.valId,
             page: ctx.page, testInfo: ctx.testInfo, protocol: ctx.protocol, stepIndex: 5,
-            notes: "Rule approved. Pending tab empty. Active tab shows approved rule.",
+            notes: "Rule approved. Awaiting review pool empty. Approved pool shows the approved rule.",
           });
           ctx.lastCompletedStep.value = 5;
 
@@ -532,10 +548,12 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
             .click();
           await ctx.page.getByRole("button", { name: "Yes, go live" }).click();
 
-          // Active version chip updates after activation refresh
+          // Wait for the StatHero tile -- this proves onVersionActivated fired and
+          // fetchPageStats re-ran. A "Live" chip appearing in the versions list is
+          // necessary but not sufficient; the tile is the acceptance criterion.
           await expect(
-            ctx.page.getByText("Live").first(),
-          ).toBeVisible({ timeout: 15_000 });
+            ctx.page.getByTestId("metric-tile-bitmap"),
+          ).toContainText(COMPILE_RESULT.active_version, { timeout: 20_000 });
 
           await recordProtocolStep({
             request: ctx.request, runId: ctx.runId, valId: ctx.valId,

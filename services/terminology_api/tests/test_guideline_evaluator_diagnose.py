@@ -22,8 +22,16 @@ def _make_store(*, ruleset, int_ids, bitmaps):
     store = MagicMock(spec=BitmapStore)
     store.get_current_ruleset.return_value = ruleset
     store.get_ruleset.return_value = ruleset
+    # Single-key accessors (legacy paths)
     store.get_int_id.side_effect = lambda cid: int_ids.get(cid)
     store.get_bitmap.side_effect = lambda bid: bitmaps.get(bid)
+    # Bulk accessors used by evaluate_patient and diagnose
+    store.get_int_ids_bulk.side_effect = (
+        lambda cids: {c: int_ids[c] for c in cids if c in int_ids}
+    )
+    store.get_bitmaps_bulk.side_effect = (
+        lambda bids: {b: bitmaps[b] for b in bids if b in bitmaps}
+    )
     return store
 
 

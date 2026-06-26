@@ -27,13 +27,13 @@ const SAMPLE_COPY: IntroRoleCopy = {
     how: "Do the simple thing first.",
     what: "LEO updates the list next time.",
   },
-  clinician: {
-    title: "Clinician title",
-    lede: "Clinician lede text.",
+  triage_clinician: {
+    title: "Triage Clinician title",
+    lede: "Triage clinician lede text.",
   },
-  staff: {
-    title: "Staff title",
-    lede: "Staff lede text.",
+  clinical_coder: {
+    title: "Clinical Coder title",
+    lede: "Clinical coder lede text.",
   },
 };
 
@@ -96,14 +96,14 @@ describe("VT-132 - Knowledge primitives", () => {
   });
 
   describe("TC-002 IntroCard role prop", () => {
-    it("renders the staff block when role='staff'", () => {
+    it("renders the clinical_coder block when role='clinical_coder'", () => {
       const root = mountInto(
         container,
         <MotionProvider>
-          <IntroCard screenId="t-role" copy={SAMPLE_COPY} role="staff" />
+          <IntroCard screenId="t-role" copy={SAMPLE_COPY} role="clinical_coder" />
         </MotionProvider>,
       );
-      expect(container.textContent).toContain("Staff title");
+      expect(container.textContent).toContain("Clinical Coder title");
       expect(container.textContent).not.toContain("Default title");
       unmount(root);
     });

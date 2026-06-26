@@ -57,6 +57,14 @@ def _evaluate_guideline(state: ComplianceState, codes: list[str]) -> dict[str, A
     observations = state.get("patient_observations")
     if observations is None:
         observations = observations_from_entities(list(state.get("entities") or []))
+    # Sprint 1: medication, allergy, and treatment_history lists are wired
+    # here so the evaluator can match the new MEDICATION, ALLERGY, and
+    # TREATMENT_HISTORY leaf kinds. In Sprint 1, live pipeline runs will
+    # pass empty lists (these facts are not yet extracted from the graph).
+    # They will be populated in the GraphFactLoader sprint.
+    active_medications = list(state.get("active_medications") or [])
+    allergies = list(state.get("allergies") or [])
+    treatment_history = list(state.get("treatment_history") or [])
     result = GuidelineEvaluator().evaluate_patient(
         codes,
         pathway_filter=scope_id or None,
@@ -65,9 +73,15 @@ def _evaluate_guideline(state: ComplianceState, codes: list[str]) -> dict[str, A
         scope_type=scope_type if scope_id else None,
         scope_id=scope_id or None,
         patient_observations=observations,
+        active_medications=active_medications or None,
+        allergies=allergies or None,
+        treatment_history=treatment_history or None,
     )
     result["patient_code_count"] = len(codes)
     result["patient_observation_count"] = len(observations or [])
+    result["patient_medication_count"] = len(active_medications)
+    result["patient_allergy_count"] = len(allergies)
+    result["patient_treatment_count"] = len(treatment_history)
     result["is_compliant"] = bool(result.get("matched_rules"))
     return result
 

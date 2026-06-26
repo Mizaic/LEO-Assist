@@ -2,10 +2,15 @@
  * VT-LEO-AI-129: RoleGate / RolePicker / RoleSwitcher primitives.
  *
  * TC-001 picker renders when selected_role is null
- * TC-002 picker PATCHes on confirm
+ * TC-002 clicking a role card immediately confirms selection (no Continue button)
  * TC-003 switcher hidden for single-role users
  * TC-004 switcher visible for multi-role users
  * TC-005 feature flag off preserves legacy shell (no picker rendered)
+ * TC-006 picker blocks app rendering until multi-role session is confirmed
+ * TC-007 roles are grouped by category with count badges
+ * TC-008 search filters roles by label
+ * TC-009 org step shown when multiple orgs are supplied
+ * TC-010 welcome message displays user name
  */
 
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -37,75 +42,55 @@ function makeApi(
   };
 }
 
+const MULTI_ROLE_STATE: RoleState = {
+  selectedRole: null,
+  allowedRoles: ["triage_clinician", "clinical_coder"],
+  needsSessionRoleChoice: true,
+};
+
 describe("VT-129 - Role-first primitives", () => {
   test("TC-001 picker renders when selected_role is null", async () => {
-    const api = makeApi({
-      selectedRole: null,
-      allowedRoles: ["clinician", "staff"],
-      needsSessionRoleChoice: true,
-    });
+    const api = makeApi(MULTI_ROLE_STATE);
     render(
-      <RoleProvider
-        initialState={{
-          selectedRole: null,
-          allowedRoles: ["clinician", "staff"],
-          needsSessionRoleChoice: true,
-        }}
-        api={api}
-      >
+      <RoleProvider initialState={MULTI_ROLE_STATE} api={api}>
         <RoleGate>
           <div data-testid="app">app</div>
         </RoleGate>
       </RoleProvider>,
     );
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(screen.getByText(/Pick your role/i)).toBeInTheDocument();
-    expect(screen.getByText(/Clinician/i)).toBeInTheDocument();
-    expect(screen.getByText(/Audit or coding staff/i)).toBeInTheDocument();
+    expect(screen.getByTestId("role-picker-overlay")).toBeInTheDocument();
+    // The heading "Step 1: Choose Your Role" is the canonical check
+    expect(screen.getByRole("heading", { level: 2, name: /Choose Your Role/i })).toBeInTheDocument();
+    expect(screen.getByText(/Triage Clinician/i)).toBeInTheDocument();
+    expect(screen.getByText(/Clinical Coder/i)).toBeInTheDocument();
   });
 
-  test("TC-002 picker PATCHes on confirm", async () => {
+  test("TC-002 clicking a role card immediately confirms selection", async () => {
     const calls: string[] = [];
-    const api = makeApi(
-      {
-        selectedRole: null,
-        allowedRoles: ["clinician", "staff"],
-        needsSessionRoleChoice: true,
-      },
-      (role) => calls.push(role),
-    );
+    const api = makeApi(MULTI_ROLE_STATE, (role) => calls.push(role));
     const user = userEvent.setup();
     render(
-      <RoleProvider
-        initialState={{
-          selectedRole: null,
-          allowedRoles: ["clinician", "staff"],
-          needsSessionRoleChoice: true,
-        }}
-        api={api}
-      >
+      <RoleProvider initialState={MULTI_ROLE_STATE} api={api}>
         <RoleGate>
           <div>app</div>
         </RoleGate>
       </RoleProvider>,
     );
     await user.click(screen.getByRole("radio", { name: /Clinician/i }));
-    await user.click(screen.getByRole("button", { name: /Continue/i }));
-    await waitFor(() => expect(calls).toEqual(["clinician"]));
+    await waitFor(() => expect(calls).toEqual(["triage_clinician"]));
   });
 
   test("TC-003 switcher hidden for single-role users", async () => {
     const { container } = render(
       <RoleProvider
         initialState={{
-          selectedRole: "clinician",
-          allowedRoles: ["clinician"],
+          selectedRole: "triage_clinician",
+          allowedRoles: ["triage_clinician"],
           needsSessionRoleChoice: false,
         }}
         api={makeApi({
-          selectedRole: "clinician",
-          allowedRoles: ["clinician"],
+          selectedRole: "triage_clinician",
+          allowedRoles: ["triage_clinician"],
           needsSessionRoleChoice: false,
         })}
       >
@@ -119,13 +104,13 @@ describe("VT-129 - Role-first primitives", () => {
     render(
       <RoleProvider
         initialState={{
-          selectedRole: "clinician",
-          allowedRoles: ["clinician", "qa_ra_lead"],
+          selectedRole: "triage_clinician",
+          allowedRoles: ["triage_clinician", "auditor"],
           needsSessionRoleChoice: false,
         }}
         api={makeApi({
-          selectedRole: "clinician",
-          allowedRoles: ["clinician", "qa_ra_lead"],
+          selectedRole: "triage_clinician",
+          allowedRoles: ["triage_clinician", "auditor"],
           needsSessionRoleChoice: false,
         })}
       >
@@ -139,49 +124,111 @@ describe("VT-129 - Role-first primitives", () => {
   test("TC-005 disabled RoleGate does not render the picker", async () => {
     render(
       <RoleProvider
-        initialState={{
-          selectedRole: null,
-          allowedRoles: ["clinician", "staff"],
-          needsSessionRoleChoice: true,
-        }}
-        api={makeApi({
-          selectedRole: null,
-          allowedRoles: ["clinician", "staff"],
-          needsSessionRoleChoice: true,
-        })}
+        initialState={MULTI_ROLE_STATE}
+        api={makeApi(MULTI_ROLE_STATE)}
       >
         <RoleGate enabled={false}>
           <div data-testid="app">app</div>
         </RoleGate>
       </RoleProvider>,
     );
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("role-picker-overlay")).not.toBeInTheDocument();
     expect(screen.getByTestId("app")).toBeInTheDocument();
   });
 
   test("TC-006 picker blocks app rendering until multi-role session is confirmed", async () => {
-    const api = makeApi({
-      selectedRole: "clinician",
-      allowedRoles: ["clinician", "staff"],
+    const state: RoleState = {
+      selectedRole: "triage_clinician",
+      allowedRoles: ["triage_clinician", "clinical_coder"],
       needsSessionRoleChoice: true,
-    });
+    };
     render(
-      <RoleProvider
-        initialState={{
-          selectedRole: "clinician",
-          allowedRoles: ["clinician", "staff"],
-          needsSessionRoleChoice: true,
-        }}
-        api={api}
-      >
+      <RoleProvider initialState={state} api={makeApi(state)}>
         <RoleGate>
           <div data-testid="app">app</div>
         </RoleGate>
       </RoleProvider>,
     );
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByTestId("role-picker-overlay")).toBeInTheDocument();
     expect(screen.queryByTestId("app")).not.toBeInTheDocument();
-    const continueBtn = screen.getByRole("button", { name: /Continue/i });
-    expect(continueBtn).not.toBeDisabled();
+  });
+
+  test("TC-007 roles are grouped by category with count badges", async () => {
+    // triage_clinician + auditor = Clinical Roles (2)
+    // appointment_booking + clinical_administrator = Administration & Management (2)
+    const state: RoleState = {
+      selectedRole: null,
+      allowedRoles: ["triage_clinician", "auditor", "appointment_booking", "clinical_administrator"],
+      needsSessionRoleChoice: true,
+    };
+    render(
+      <RoleProvider initialState={state} api={makeApi(state)}>
+        <RoleGate>
+          <div>app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    expect(screen.getByText("Clinical Roles")).toBeInTheDocument();
+    expect(screen.getByText("Administration & Management")).toBeInTheDocument();
+    // Both categories have 2 roles each; check at least one badge
+    expect(screen.getAllByText(/2 roles/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  test("TC-008 search filters roles by label", async () => {
+    const state: RoleState = {
+      selectedRole: null,
+      allowedRoles: ["triage_clinician", "clinical_coder"],
+      needsSessionRoleChoice: true,
+    };
+    const user = userEvent.setup();
+    render(
+      <RoleProvider initialState={state} api={makeApi(state)}>
+        <RoleGate>
+          <div>app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    const search = screen.getByRole("searchbox", { name: /Search roles/i });
+    await user.type(search, "Triage Clinician");
+    expect(screen.getByText(/Triage Clinician/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Clinical Coder/i)).not.toBeInTheDocument();
+  });
+
+  test("TC-009 org step shown when multiple orgs are supplied", async () => {
+    const state: RoleState = {
+      selectedRole: null,
+      allowedRoles: ["triage_clinician"],
+      needsSessionRoleChoice: true,
+    };
+    const orgs = [
+      { id: "org-1", name: "GP Surgery A", odsCode: "A12345" },
+      { id: "org-2", name: "GP Surgery B", odsCode: "B67890" },
+    ];
+    render(
+      <RoleProvider initialState={state} api={makeApi(state)}>
+        <RoleGate organizations={orgs}>
+          <div>app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    expect(screen.getByText(/Choose Your Organisation/i)).toBeInTheDocument();
+    expect(screen.getByText("GP Surgery A")).toBeInTheDocument();
+    expect(screen.getByText("GP Surgery B")).toBeInTheDocument();
+  });
+
+  test("TC-010 welcome message displays user name", async () => {
+    const state: RoleState = {
+      selectedRole: null,
+      allowedRoles: ["triage_clinician"],
+      needsSessionRoleChoice: true,
+    };
+    render(
+      <RoleProvider initialState={state} api={makeApi(state)}>
+        <RoleGate userName="Alice Jones">
+          <div>app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    expect(screen.getByText(/Welcome, Alice Jones/i)).toBeInTheDocument();
   });
 });

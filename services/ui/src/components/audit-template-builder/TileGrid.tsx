@@ -10,8 +10,14 @@
  */
 
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
-import { GridLayout, useContainerWidth, type Layout, type LayoutItem } from "react-grid-layout";
+import { motion as fm, useReducedMotion } from "framer-motion";
+import {
+  GridLayout,
+  useContainerWidth,
+  verticalCompactor,
+  type Layout,
+  type LayoutItem,
+} from "react-grid-layout";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -56,6 +62,10 @@ interface TileGridProps {
   onTypeChange: (tileId: string, newType: TileType) => void;
   onLayoutChange: (tiles: AuditTile[]) => void;
   onOpenAssistant?: () => void;
+  /** Drop a metric dragged from the library onto the canvas. */
+  onDropMetric?: (metricId: string, tileType: TileType) => void;
+  /** Drop a specialised widget dragged from the library onto the canvas. */
+  onDropWidget?: (widgetId: string) => void;
 }
 
 function tileToLayoutItem(t: AuditTile): LayoutItem {
@@ -264,8 +274,14 @@ export default function TileGrid({
   onTypeChange,
   onLayoutChange,
   onOpenAssistant,
+  onDropMetric,
+  onDropWidget,
 }: TileGridProps) {
-  const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true });
+  // The container ref MUST be rendered on every render (including the empty
+  // state) so react-grid-layout's ResizeObserver attaches on first mount.
+  // measureBeforeMount is left false so `mounted` starts true (client-only
+  // surface) -- otherwise the grid never paints until a resize fires.
+  const { width, containerRef, mounted } = useContainerWidth();
   const layout: LayoutItem[] = useMemo(() => tiles.map(tileToLayoutItem), [tiles]);
 
   const [popover, setPopover] = useState<{
@@ -273,8 +289,46 @@ export default function TileGrid({
     tileId: string;
     currentType: TileType;
   } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const reduced = useReducedMotion();
+
+  const handleDrop = (e: React.DragEvent) => {
+    setDragOver(false);
+    const metricRaw = e.dataTransfer.getData("application/x-audit-metric");
+    if (metricRaw && onDropMetric) {
+      e.preventDefault();
+      try {
+        const { metric_id, tile_type } = JSON.parse(metricRaw);
+        onDropMetric(metric_id, (tile_type as TileType) ?? "bar_chart");
+      } catch {
+        /* ignore malformed payload */
+      }
+      return;
+    }
+    const widgetRaw = e.dataTransfer.getData("application/x-audit-widget");
+    if (widgetRaw && onDropWidget) {
+      e.preventDefault();
+      try {
+        const { widget_id } = JSON.parse(widgetRaw);
+        onDropWidget(widget_id);
+      } catch {
+        /* ignore malformed payload */
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    const types = e.dataTransfer.types;
+    if (
+      types.includes("application/x-audit-metric") ||
+      types.includes("application/x-audit-widget")
+    ) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      if (!dragOver) setDragOver(true);
+    }
+  };
 
   const handleLayoutChange = (newLayout: Layout) => {
     const updated = tiles.map((t) => {
@@ -284,19 +338,29 @@ export default function TileGrid({
     onLayoutChange(updated);
   };
 
-  if (tiles.length === 0) {
-    return (
-      <AnimatePresence>
-        <fm.div
-          key="empty"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          style={{ height: "100%" }}
-        >
+  const isEmpty = tiles.length === 0;
+
+  return (
+    <>
+      <Box
+        ref={containerRef}
+        onDragOver={handleDragOver}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        sx={{
+          width: "100%",
+          minHeight: 400,
+          borderRadius: 2,
+          outline: !isEmpty && dragOver ? "2px dashed" : "none",
+          outlineColor: "primary.main",
+          outlineOffset: 4,
+          transition: "outline-color 120ms",
+        }}
+      >
+        {isEmpty && (
           <Box
             sx={{
+              minHeight: 400,
               height: "100%",
               display: "flex",
               flexDirection: "column",
@@ -304,15 +368,18 @@ export default function TileGrid({
               justifyContent: "center",
               gap: 2,
               border: "2px dashed",
-              borderColor: "divider",
+              borderColor: dragOver ? "primary.main" : "divider",
               borderRadius: 2,
+              bgcolor: dragOver ? "primary.50" : "transparent",
               color: "text.disabled",
               p: 4,
+              transition: "border-color 120ms, background-color 120ms",
             }}
           >
             <Typography variant="body2" textAlign="center">
-              No tiles yet. Add from the library on the left, or click{" "}
-              <strong>AI</strong> to describe the dashboard you need.
+              Drag a metric or widget here, or click a chart type in the library
+              on the left. You can also click <strong>AI</strong> to describe the
+              dashboard you need.
             </Typography>
             {onOpenAssistant && (
               <Button
@@ -325,20 +392,16 @@ export default function TileGrid({
               </Button>
             )}
           </Box>
-        </fm.div>
-      </AnimatePresence>
-    );
-  }
-
-  return (
-    <>
-      <Box ref={containerRef} sx={{ width: "100%", minHeight: 400 }}>
-        {mounted && (
+        )}
+        {!isEmpty && mounted && (
           <GridLayout
             width={width}
             layout={layout}
             onLayoutChange={handleLayoutChange}
-            gridConfig={{ cols: 12, rowHeight: 80 }}
+            gridConfig={{ cols: 12, rowHeight: 80, margin: [12, 12] }}
+            dragConfig={{ enabled: true, handle: "[data-grid-drag-handle]" }}
+            resizeConfig={{ enabled: true, handles: ["se", "e", "s"] }}
+            compactor={verticalCompactor}
             style={{ minHeight: 400 }}
           >
             {tiles.map((tile) => {
@@ -470,7 +533,7 @@ export default function TileGrid({
                   </Box>
 
                   {/* Mini preview */}
-                  <Box sx={{ flex: 1, overflow: "hidden" }}>
+                  <Box sx={{ flex: 1, overflow: "hidden" }} data-testid="tile-body">
                     <TilePreviewBody type={tile.tile_type} />
                   </Box>
 

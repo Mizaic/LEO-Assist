@@ -156,7 +156,7 @@ export function PatientDetailPage({ patientId, onBack }: Props) {
   }, [patientId]);
 
   return (
-    <Box>
+    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400, mx: "auto" }}>
       {/* Back button */}
       <Button
         startIcon={<ArrowBackIcon />}
