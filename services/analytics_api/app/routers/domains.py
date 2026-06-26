@@ -27,9 +27,14 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
+from libs.completeness.evaluator import (
+    build_isa_expansion,
+    evaluate_completeness_groups,
+)
 from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE
 from libs.domain_config.registry import DomainRegistry
 from libs.neo4j_client.client import KnowledgeGraphClient
+from libs.terminology.semantic_tag import normalise_semantic_tag
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -251,7 +256,9 @@ def _normalise_completeness_schema(
             }
         )
     if not any(row["required"] for row in rows):
-        raise HTTPException(422, "Completeness schema needs at least one required group")
+        raise HTTPException(
+            422, "Completeness schema needs at least one required group"
+        )
     return rows
 
 
@@ -771,7 +778,8 @@ def create_domain(
             description=body.description,
             subdomain_count=0,
             source="tenant",
-            episode_detector=body.episode_detector or "episode_detection" in body.use_cases,
+            episode_detector=body.episode_detector
+            or "episode_detection" in body.use_cases,
             minimum_dataset_domain=False,
             minimum_dataset_subdomain_count=0,
             use_cases=body.use_cases,
@@ -939,9 +947,7 @@ def update_domain(
             source=r.get("source", "tenant"),
             episode_detector=bool(r.get("episode_detector", False)),
             minimum_dataset_domain=bool(r.get("minimum_dataset_subdomain_count", 0)),
-            minimum_dataset_subdomain_count=r.get(
-                "minimum_dataset_subdomain_count", 0
-            ),
+            minimum_dataset_subdomain_count=r.get("minimum_dataset_subdomain_count", 0),
             use_cases=list(r.get("use_cases") or []),
         )
     finally:
@@ -1255,7 +1261,7 @@ def _semantic_tags_for_concepts(concept_ids: List[int]) -> Dict[int, str]:
             continue
         tag = str(row.get("semantic_tag") or "").strip()
         if tag:
-            out[cid] = tag
+            out[cid] = normalise_semantic_tag(tag)
     return out
 
 
@@ -1264,35 +1270,48 @@ def _preview_completeness(
 ) -> CompletenessPreviewResponse:
     fact_ids = {int(cid) for cid in concept_ids if int(cid) > 0}
     fact_tags = _semantic_tags_for_concepts(list(fact_ids))
-    matched: List[CompletenessGroupResult] = []
-    missing: List[CompletenessGroupResult] = []
-    for group in schema:
-        required_ids = [int(cid) for cid in group.get("concept_ids", [])]
-        categories = {
-            str(tag).strip()
-            for tag in group.get("semantic_categories", [])
-            if str(tag).strip()
-        }
-        hits = [cid for cid in required_ids if cid in fact_ids]
-        misses = [cid for cid in required_ids if cid not in fact_ids]
-        category_hits = [
-            cid for cid, tag in fact_tags.items() if tag in categories and cid not in hits
-        ]
-        category_missing = bool(categories) and not category_hits
-        matched_ids = hits + category_hits
-        missing_ids = misses + ([-1] if category_missing else [])
-        result = CompletenessGroupResult(
-            name=str(group.get("name") or ""),
-            required=bool(group.get("required")),
-            matched=not missing_ids,
-            matched_concept_ids=matched_ids,
-            missing_concept_ids=missing_ids,
+    present_tags = set(fact_tags.values())
+    required_ids = {
+        int(cid)
+        for group in schema
+        for cid in group.get("concept_ids", [])
+        if int(cid) > 0
+    }
+    client = KnowledgeGraphClient()
+    try:
+        isa_expansion = build_isa_expansion(required_ids, client.run)
+    finally:
+        client.close()
+    evaluation = evaluate_completeness_groups(
+        schema,
+        present_concept_ids=fact_ids,
+        present_semantic_tags=present_tags,
+        isa_expansion=isa_expansion,
+    )
+    matched = [
+        CompletenessGroupResult(
+            name=row["name"],
+            required=row["required"],
+            matched=row["matched"],
+            matched_concept_ids=row["matched_concept_ids"],
+            missing_concept_ids=row["missing_concept_ids"],
         )
-        (matched if result.matched else missing).append(result)
+        for row in evaluation["matched_groups"]
+    ]
+    missing = [
+        CompletenessGroupResult(
+            name=row["name"],
+            required=row["required"],
+            matched=row["matched"],
+            matched_concept_ids=row["matched_concept_ids"],
+            missing_concept_ids=row["missing_concept_ids"],
+        )
+        for row in evaluation["missing_groups"]
+    ]
     return CompletenessPreviewResponse(
         matched_groups=matched,
         missing_groups=missing,
-        complete=not any(group.required for group in missing),
+        complete=evaluation["complete"],
     )
 
 

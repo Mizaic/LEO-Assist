@@ -15,6 +15,13 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from libs.completeness.evaluator import (
+    build_isa_expansion,
+    concept_ids_from_entities,
+    evaluate_completeness_groups,
+    semantic_tags_from_entities,
+)
+from libs.neo4j_client.client import KnowledgeGraphClient
 from services.analysis_worker.app.analyzers.quality_checker import (
     run_quality_checks as run_global_quality_checks,
 )
@@ -35,30 +42,6 @@ class QualityCheckState(TypedDict, total=False):
     errors: list[str]
 
 
-def _entity_concept_ids(entities: list[dict[str, Any]]) -> set[int]:
-    ids: set[int] = set()
-    for entity in entities:
-        concept_id = entity.get("concept_id") or entity.get("snomed_concept_id")
-        if not concept_id and isinstance(entity.get("coding"), dict):
-            concept_id = entity["coding"].get("snomed_concept_id")
-        try:
-            parsed = int(str(concept_id or "").strip())
-        except ValueError:
-            continue
-        if parsed > 0:
-            ids.add(parsed)
-    return ids
-
-
-def _entity_semantic_tags(entities: list[dict[str, Any]]) -> set[str]:
-    tags: set[str] = set()
-    for entity in entities:
-        tag = str(entity.get("semantic_tag") or entity.get("label") or "").strip()
-        if tag:
-            tags.add(tag.lower())
-    return tags
-
-
 def _valueset_id(subdomain: str) -> str:
     return f"ncda-{subdomain.replace('_', '-')}"
 
@@ -75,8 +58,6 @@ def _coerce_schema(value: Any) -> list[dict[str, Any]]:
 
 
 def _load_completeness_schema(domain: str, subdomain: str) -> list[dict[str, Any]]:
-    from libs.neo4j_client.client import KnowledgeGraphClient
-
     client = KnowledgeGraphClient()
     try:
         rows = client.run(
@@ -92,44 +73,27 @@ def _load_completeness_schema(domain: str, subdomain: str) -> list[dict[str, Any
     return _coerce_schema((rows or [{}])[0].get("completeness_schema"))
 
 
-def _evaluate_completeness(
-    *,
-    schema: list[dict[str, Any]],
-    concept_ids: set[int],
-    semantic_tags: set[str],
-) -> dict[str, Any]:
-    matched: list[dict[str, Any]] = []
-    missing: list[dict[str, Any]] = []
+def _all_required_concept_ids(schema: list[dict[str, Any]]) -> set[int]:
+    ids: set[int] = set()
     for group in schema:
-        required_ids = {int(cid) for cid in group.get("concept_ids", [])}
-        categories = {
-            str(tag).strip().lower()
-            for tag in group.get("semantic_categories", [])
-            if str(tag).strip()
-        }
-        id_hits = sorted(required_ids & concept_ids)
-        tag_hit = bool(categories & semantic_tags)
-        # concept_ids uses "any one suffices" semantics: a single hit from
-        # the set satisfies the group (e.g. positive OR negative FIT code).
-        # absent_ids is non-empty only when no hit at all was found, so the
-        # UI can show which alternatives were expected.
-        absent_ids = [] if id_hits else sorted(required_ids)
-        missing_tags = bool(categories) and not tag_hit
-        row = {
-            "name": str(group.get("name") or ""),
-            "required": bool(group.get("required")),
-            "matched": not absent_ids and not missing_tags,
-            "matched_concept_ids": id_hits,
-            "missing_concept_ids": absent_ids,
-            "matched_semantic_category": tag_hit,
-        }
-        (matched if row["matched"] else missing).append(row)
-    return {
-        "matched_groups": matched,
-        "missing_groups": missing,
-        "complete": not any(row["required"] for row in missing),
-        "concept_ids": sorted(concept_ids),
-    }
+        for cid in group.get("concept_ids", []):
+            try:
+                parsed = int(cid)
+            except (TypeError, ValueError):
+                continue
+            if parsed > 0:
+                ids.add(parsed)
+    return ids
+
+
+def _load_isa_expansion(required_ids: set[int]) -> dict[int, set[int]]:
+    if not required_ids:
+        return {}
+    client = KnowledgeGraphClient()
+    try:
+        return build_isa_expansion(required_ids, client.run)
+    finally:
+        client.close()
 
 
 def _run_completeness_check(state: QualityCheckState) -> dict[str, Any] | None:
@@ -147,10 +111,13 @@ def _run_completeness_check(state: QualityCheckState) -> dict[str, Any] | None:
             "matched_groups": [],
             "missing_groups": [],
         }
-    result = _evaluate_completeness(
-        schema=schema,
-        concept_ids=_entity_concept_ids(list(state.get("entities") or [])),
-        semantic_tags=_entity_semantic_tags(list(state.get("entities") or [])),
+    entities = list(state.get("entities") or [])
+    required_ids = _all_required_concept_ids(schema)
+    result = evaluate_completeness_groups(
+        schema,
+        present_concept_ids=concept_ids_from_entities(entities),
+        present_semantic_tags=semantic_tags_from_entities(entities),
+        isa_expansion=_load_isa_expansion(required_ids),
     )
     return {**result, "domain": domain, "subdomain": subdomain, "configured": True}
 
@@ -215,14 +182,14 @@ def run_quality_checks(state: QualityCheckState) -> dict[str, Any]:
     global_report = _global_quality_report(errors)
     completeness = _run_completeness_check(state)
     if completeness and not completeness.get("complete"):
-        issues.append(_quality_issue("minimum_dataset_incomplete", "medium", patient_id))
+        issues.append(
+            _quality_issue("minimum_dataset_incomplete", "medium", patient_id)
+        )
     combined_issues = issues + list(global_report.get("issues") or [])
     result: dict[str, Any] = {
         "quality_issues": combined_issues,
         "quality_report": {
-            "total_checked": max(
-                len(episodes), global_report.get("total_checked", 0)
-            ),
+            "total_checked": max(len(episodes), global_report.get("total_checked", 0)),
             "compliant_count": max(max(len(episodes), 0) - len(issues), 0),
             "issues": combined_issues,
         },

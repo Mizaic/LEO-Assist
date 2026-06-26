@@ -139,7 +139,7 @@ export default function SubdomainDetailPanel({
           ...updated,
           concepts: prev.concepts,
           use_cases:
-            updated.use_cases?.length > 0
+            (updated.use_cases?.length ?? 0) > 0
               ? updated.use_cases
               : (updates.use_cases ?? prev.use_cases),
         };
