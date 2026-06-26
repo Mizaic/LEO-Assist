@@ -23,6 +23,7 @@ permissions:
 env:
   ACR_NAME: leoaicr
   ACR_LOGIN_SERVER: leoaicr.azurecr.io
+  MIZAIC_ACR_NAME: mizaicleoacr.azurecr.io
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
@@ -230,6 +231,14 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name "$ACR_NAME"
 
+      - name: Log in to Mizaic ACR
+        env:
+          MIZAIC_ACR_USERNAME: ${{ secrets.MIZAIC_ACR_USERNAME }}
+          MIZAIC_ACR_PASSWORD: ${{ secrets.MIZAIC_ACR_PASSWORD }}
+        run: |
+          echo "$MIZAIC_ACR_PASSWORD" | docker login "$MIZAIC_ACR_NAME" \
+            --username "$MIZAIC_ACR_USERNAME" --password-stdin
+
       - name: Build and push
         env:
           SERVICE: ${{ matrix.service }}
@@ -238,6 +247,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           IMAGE="${ACR_LOGIN_SERVER}/${SERVICE}"
+          MIZAIC_IMAGE="${MIZAIC_ACR_NAME}/${SERVICE}"
           TAG="sha-${GITHUB_SHA}"
           HF_BUILD_ARG=""
           if [ -n "$HF_TOKEN" ]; then
@@ -247,11 +257,15 @@ jobs:
             --file "$DOCKERFILE" \
             --tag "${IMAGE}:${TAG}" \
             --tag "${IMAGE}:latest" \
+            --tag "${MIZAIC_IMAGE}:${TAG}" \
+            --tag "${MIZAIC_IMAGE}:latest" \
             --cache-from "${IMAGE}:latest" \
             ${HF_BUILD_ARG} \
             .
           docker push "${IMAGE}:${TAG}"
           docker push "${IMAGE}:latest"
+          docker push "${MIZAIC_IMAGE}:${TAG}"
+          docker push "${MIZAIC_IMAGE}:latest"
 
       - name: Output image digest
         env:
@@ -295,20 +309,33 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name "$ACR_NAME"
 
+      - name: Log in to Mizaic ACR
+        env:
+          MIZAIC_ACR_USERNAME: ${{ secrets.MIZAIC_ACR_USERNAME }}
+          MIZAIC_ACR_PASSWORD: ${{ secrets.MIZAIC_ACR_PASSWORD }}
+        run: |
+          echo "$MIZAIC_ACR_PASSWORD" | docker login "$MIZAIC_ACR_NAME" \
+            --username "$MIZAIC_ACR_USERNAME" --password-stdin
+
       - name: Build and push
         env:
           GITHUB_SHA: ${{ github.sha }}
         run: |
           IMAGE="${ACR_LOGIN_SERVER}/ui"
+          MIZAIC_IMAGE="${MIZAIC_ACR_NAME}/ui"
           TAG="sha-${GITHUB_SHA}"
           docker build \
             --file infra/dockerfiles/Dockerfile.ui \
             --tag "${IMAGE}:${TAG}" \
             --tag "${IMAGE}:latest" \
+            --tag "${MIZAIC_IMAGE}:${TAG}" \
+            --tag "${MIZAIC_IMAGE}:latest" \
             --cache-from "${IMAGE}:latest" \
             .
           docker push "${IMAGE}:${TAG}"
           docker push "${IMAGE}:latest"
+          docker push "${MIZAIC_IMAGE}:${TAG}"
+          docker push "${MIZAIC_IMAGE}:latest"
 
       - name: Output image digest
         env:
