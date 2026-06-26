@@ -39,6 +39,7 @@ import CreateSubdomainDialog from "../_components/CreateSubdomainDialog";
 import DomainDetailChrome from "../_components/DomainDetailChrome";
 import DomainSubdomainCards from "../_components/DomainSubdomainCards";
 import SubdomainDetailPanel from "../_components/SubdomainDetailPanel";
+import { DOMAINS_PAGE_SX } from "../_components/domainConstants";
 
 export default function DomainDetailPage() {
   const params = useParams();
@@ -116,7 +117,7 @@ export default function DomainDetailPage() {
   }, [domain, subFilter]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", ...DOMAINS_PAGE_SX }}>
       <DomainDetailChrome
         router={router}
         domainId={domainId}

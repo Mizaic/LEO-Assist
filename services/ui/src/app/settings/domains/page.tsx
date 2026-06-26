@@ -54,6 +54,7 @@ import {
 import { useOrg } from "@/context/OrgContext";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import DomainCard from "./_components/DomainCard";
+import { DOMAINS_PAGE_SX } from "./_components/domainConstants";
 
 type SourceFilter = "all" | "nice" | "platform" | "tenant";
 
@@ -174,7 +175,7 @@ export default function DomainsListPage() {
   }, [domains, searchText]);
 
   return (
-    <Box>
+    <Box sx={DOMAINS_PAGE_SX}>
       <StatHero stats={stats} />
 
       {error ? (

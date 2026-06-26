@@ -340,7 +340,7 @@ export default function CodingValidationPanel() {
         />
       ) : (
         <>
-          <ReviewListCard items={items} />
+          <ReviewListCard items={items} listKey={tab} />
           {expandedRow?.topCandidates?.length ? (
             <Box sx={{ mt: 1, mb: 2 }}>
               <Typography

@@ -132,7 +132,18 @@ export default function SubdomainDetailPanel({
     setSubmitting(true);
     try {
       const updated = await updateSubdomain(domainId, configSub.name, updates);
-      setConfigSub((prev) => prev ? { ...prev, ...updated, concepts: prev.concepts } : null);
+      setConfigSub((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          ...updated,
+          concepts: prev.concepts,
+          use_cases:
+            updated.use_cases?.length > 0
+              ? updated.use_cases
+              : (updates.use_cases ?? prev.use_cases),
+        };
+      });
     } catch (e) {
       setOpError(e instanceof Error ? e.message : "Failed to update subdomain");
     } finally {
@@ -314,6 +325,7 @@ export default function SubdomainDetailPanel({
           {tab === "rules" && (
             <RulesTab
               schema={configSub.completeness_schema ?? []}
+              subdomainConcepts={configSub.concepts ?? []}
               canEditDomains={canEditDomains}
               allSemanticTags={allSemanticTags}
               useCases={useCases}

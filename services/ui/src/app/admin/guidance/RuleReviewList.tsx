@@ -11,7 +11,7 @@ import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { EmptyState, NudgeStrip } from "@leo/design-system";
 import { RuleAccordionCard, SessionApprovedRow, type RuleCardCallbacks } from "./RuleReviewCard";
-import type { Rule, PromoteResult, RuleStatusFilter } from "./RuleReviewSection";
+import type { Rule, PromoteResult, RuleStatusFilter } from "./ruleReviewTypes";
 
 interface SessionApprovedState {
   rules: Rule[];

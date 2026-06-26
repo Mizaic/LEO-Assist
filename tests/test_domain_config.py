@@ -289,6 +289,10 @@ class TestUpdateSubdomain:
                     "milestoneType": "diagnosis",
                     "timeWindowMonths": None,
                     "semanticTags": ["Disease", "New_tag"],
+                    "assertionFilter": [],
+                    "constructs": [],
+                    "completeness_schema": None,
+                    "use_cases": ["extraction", "completeness"],
                     "rawJson": None,
                 }
             ],
@@ -297,10 +301,12 @@ class TestUpdateSubdomain:
         body = SubdomainUpdateRequest(
             description="Updated desc",
             semantic_tags=["Disease", "New_tag"],
+            use_cases=["extraction", "completeness"],
         )
         result = update_subdomain("cancer_audit", "cancer_types", body)
         assert result.description == "Updated desc"
         assert result.semantic_tags == ["Disease", "New_tag"]
+        assert result.use_cases == ["extraction", "completeness"]
 
         set_call = MockKG.return_value.run.call_args_list[0][0][0]
         assert "v.description" in set_call

@@ -28,3 +28,11 @@ export const ASSERTION_OPTIONS = [
   "present",
   "refuted",
 ] as const;
+
+/** Shared inset for Domains list and detail pages (matches Settings hub rhythm). */
+export const DOMAINS_PAGE_SX = {
+  px: { xs: 2, sm: 3 },
+  py: { xs: 2, sm: 3 },
+  width: "100%",
+  boxSizing: "border-box" as const,
+};

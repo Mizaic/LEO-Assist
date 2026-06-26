@@ -33,15 +33,18 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { searchTerms } from "@/lib/api";
 import type {
   SubdomainDetail,
   CompletenessConceptGroup,
   DomainUseCase,
+  SubdomainConcept,
 } from "@/lib/analyticsApi";
 import { fetchBenchmarkKeys } from "@/lib/analyticsApi";
 import { ASSERTION_OPTIONS, MILESTONE_OPTIONS } from "./domainConstants";
+import RuleCard, { type RuleConceptMeta } from "./RuleCard";
 import SubdomainConceptSearchPanel from "./SubdomainConceptSearchPanel";
 
 // -- Use-case display helpers -----------------------------------------------
@@ -98,6 +101,18 @@ export function OverviewTab({
     (configSub as { assertion_filter?: string[] }).assertion_filter ?? [],
   );
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDescription(configSub.description ?? "");
+    setUseCases(configSub.use_cases ?? []);
+    setMilestoneType(configSub.milestone_type ?? "");
+    setTimeWindow(
+      configSub.time_window_months != null ? String(configSub.time_window_months) : "",
+    );
+    setAssertionFilter(
+      (configSub as { assertion_filter?: string[] }).assertion_filter ?? [],
+    );
+  }, [configSub]);
 
   const showEpisodeFields = useCases.includes("episode_detection");
 
@@ -483,14 +498,27 @@ function ConceptListRow({
 
 interface RulesTabProps {
   schema: CompletenessConceptGroup[];
+  subdomainConcepts: SubdomainConcept[];
   canEditDomains: boolean;
   allSemanticTags: string[];
   useCases: DomainUseCase[];
   onSave: (schema: CompletenessConceptGroup[]) => Promise<void>;
 }
 
+function buildConceptMetaLookup(concepts: SubdomainConcept[]): Record<number, RuleConceptMeta> {
+  const lookup: Record<number, RuleConceptMeta> = {};
+  for (const concept of concepts) {
+    lookup[concept.concept_id] = {
+      term: concept.term || concept.preferred_term,
+      semantic_tag: concept.semantic_tag,
+    };
+  }
+  return lookup;
+}
+
 export function RulesTab({
   schema,
+  subdomainConcepts,
   canEditDomains,
   allSemanticTags,
   useCases,
@@ -499,8 +527,53 @@ export function RulesTab({
   const [groups, setGroups] = useState<CompletenessConceptGroup[]>(schema);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [conceptMeta, setConceptMeta] = useState<Record<number, RuleConceptMeta>>(() =>
+    buildConceptMetaLookup(subdomainConcepts),
+  );
 
   const hasCompleteness = useCases.includes("completeness");
+
+  useEffect(() => {
+    setGroups(schema);
+  }, [schema]);
+
+  useEffect(() => {
+    setConceptMeta((prev) => ({ ...buildConceptMetaLookup(subdomainConcepts), ...prev }));
+  }, [subdomainConcepts]);
+
+  const unresolvedConceptIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const group of groups) {
+      for (const id of group.concept_ids) {
+        if (!conceptMeta[id]?.term) ids.add(id);
+      }
+    }
+    return [...ids];
+  }, [groups, conceptMeta]);
+
+  useEffect(() => {
+    if (unresolvedConceptIds.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      for (const id of unresolvedConceptIds) {
+        try {
+          const rows = await searchTerms(String(id), 10);
+          const match =
+            rows.find((row) => parseInt(row.snomed_concept_id, 10) === id) ?? rows[0];
+          if (cancelled || !match?.term) continue;
+          setConceptMeta((prev) => ({
+            ...prev,
+            [id]: { term: match.term, semantic_tag: match.semantic_tag },
+          }));
+        } catch {
+          // Keep numeric fallback on the chip when lookup fails.
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [unresolvedConceptIds]);
 
   const persist = useCallback(
     async (next: CompletenessConceptGroup[]) => {
@@ -568,6 +641,10 @@ export function RulesTab({
           idx={idx}
           canEdit={canEditDomains}
           allSemanticTags={allSemanticTags}
+          conceptMeta={conceptMeta}
+          onRegisterConceptMeta={(id, meta) =>
+            setConceptMeta((prev) => ({ ...prev, [id]: { ...prev[id], ...meta } }))
+          }
           onUpdate={(patch) => handleUpdateGroup(idx, patch)}
           onDelete={() => handleDeleteGroup(idx)}
         />
@@ -584,160 +661,6 @@ export function RulesTab({
           Add rule
         </Button>
       )}
-    </Box>
-  );
-}
-
-// -- Rule card ----------------------------------------------------------------
-
-interface RuleCardProps {
-  group: CompletenessConceptGroup;
-  idx: number;
-  canEdit: boolean;
-  allSemanticTags: string[];
-  onUpdate: (patch: Partial<CompletenessConceptGroup>) => void;
-  onDelete: () => void;
-}
-
-function RuleCard({ group, idx, canEdit, allSemanticTags, onUpdate, onDelete }: RuleCardProps) {
-  const [nameValue, setNameValue] = useState(group.name);
-  const [addConceptId, setAddConceptId] = useState("");
-
-  return (
-    <Box
-      sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}
-      data-testid={`rule-card-${idx}`}
-    >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        {canEdit ? (
-          <TextField
-            size="small"
-            value={nameValue}
-            onChange={(e) => setNameValue(e.target.value)}
-            onBlur={() => {
-              if (nameValue !== group.name) onUpdate({ name: nameValue });
-            }}
-            variant="standard"
-            inputProps={{ "aria-label": `Rule ${idx + 1} name` }}
-            sx={{ flex: 1, "& input": { fontWeight: 600, fontSize: "0.875rem" } }}
-          />
-        ) : (
-          <Typography variant="subtitle2" sx={{ flex: 1 }}>
-            {group.name}
-          </Typography>
-        )}
-
-        <FormControl size="small" sx={{ minWidth: 110 }}>
-          <Select
-            value={group.required ? "required" : "optional"}
-            onChange={(e) => onUpdate({ required: e.target.value === "required" })}
-            disabled={!canEdit}
-            sx={{ fontSize: "0.75rem", height: 28 }}
-          >
-            <MenuItem value="required">Required</MenuItem>
-            <MenuItem value="optional">Optional</MenuItem>
-          </Select>
-        </FormControl>
-
-        {canEdit && (
-          <IconButton size="small" color="error" onClick={onDelete} aria-label={`Delete rule ${idx + 1}`}>
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Box>
-
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            SNOMED IDs
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
-            {group.concept_ids.map((id) => (
-              <Chip
-                key={id}
-                label={String(id)}
-                size="small"
-                variant="outlined"
-                sx={{ height: 20, fontSize: "0.65rem" }}
-                onDelete={canEdit ? () => onUpdate({ concept_ids: group.concept_ids.filter((c) => c !== id) }) : undefined}
-              />
-            ))}
-            {canEdit && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <TextField
-                  size="small"
-                  placeholder="Add ID"
-                  value={addConceptId}
-                  onChange={(e) => setAddConceptId(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && addConceptId) {
-                      onUpdate({ concept_ids: [...group.concept_ids, parseInt(addConceptId, 10)] });
-                      setAddConceptId("");
-                    }
-                  }}
-                  inputProps={{ inputMode: "numeric", "aria-label": `Add concept ID to rule ${idx + 1}` }}
-                  sx={{ width: 90, "& input": { fontSize: "0.72rem", py: "3px" } }}
-                />
-                {addConceptId && (
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      onUpdate({ concept_ids: [...group.concept_ids, parseInt(addConceptId, 10)] });
-                      setAddConceptId("");
-                    }}
-                  >
-                    <AddIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </Box>
-            )}
-          </Box>
-        </Box>
-
-        <Box>
-          <Typography variant="caption" color="text.secondary">
-            Semantic categories
-          </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25, alignItems: "center" }}>
-            {group.semantic_categories.map((cat) => (
-              <Chip
-                key={cat}
-                label={cat}
-                size="small"
-                variant="outlined"
-                sx={{ height: 20, fontSize: "0.65rem" }}
-                onDelete={
-                  canEdit
-                    ? () => onUpdate({ semantic_categories: group.semantic_categories.filter((c) => c !== cat) })
-                    : undefined
-                }
-              />
-            ))}
-            {canEdit && allSemanticTags.length > 0 && (
-              <Autocomplete
-                size="small"
-                options={allSemanticTags.filter((t) => !group.semantic_categories.includes(t))}
-                onChange={(_, v) => {
-                  if (v) onUpdate({ semantic_categories: [...group.semantic_categories, v] });
-                }}
-                value={null}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Add category"
-                    inputProps={{
-                      ...params.inputProps,
-                      "aria-label": `Add semantic category to rule ${idx + 1}`,
-                    }}
-                    sx={{ width: 130, "& input": { fontSize: "0.72rem", py: "2px !important" } }}
-                  />
-                )}
-                sx={{ "& .MuiOutlinedInput-root": { py: "1px" } }}
-              />
-            )}
-          </Box>
-        </Box>
-      </Box>
     </Box>
   );
 }

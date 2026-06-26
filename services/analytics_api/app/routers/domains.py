@@ -344,6 +344,27 @@ def _valueset_row_to_subdomain_detail(
     )
 
 
+def _valueset_row_to_subdomain_summary(
+    vr: Dict[str, Any], subdomain_name: str
+) -> SubdomainSummary:
+    constructs = _parse_constructs_prop(vr.get("constructs"))
+    return SubdomainSummary(
+        name=vr.get("name") or subdomain_name,
+        description=vr.get("description") or "",
+        milestone_type=vr.get("milestoneType"),
+        time_window_months=vr.get("timeWindowMonths"),
+        semantic_tags=_parse_list_prop(vr.get("semanticTags")),
+        assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
+        constructs=constructs,
+        completeness_schema=_parse_completeness_schema_prop(
+            vr.get("completeness_schema")
+        ),
+        construct_count=len(constructs),
+        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
+        use_cases=list(vr.get("use_cases") or []),
+    )
+
+
 def _upsert_valueset_flat(vs_id: str, vs_dict: Dict[str, Any]) -> None:
     """Write a ValueSet to the KG with flat properties + rawJson backup."""
     name = vs_dict.get("name", "")
@@ -1183,35 +1204,9 @@ def update_subdomain(
         client.close()
 
     vr = rows[0]
-    tags = vr.get("semanticTags") or []
-    if isinstance(tags, str):
-        try:
-            tags = json.loads(tags)
-        except (json.JSONDecodeError, TypeError):
-            tags = []
-    af = vr.get("assertionFilter") or []
-    if isinstance(af, str):
-        try:
-            af = json.loads(af)
-        except (json.JSONDecodeError, TypeError):
-            af = []
-
     DomainRegistry.reset_instance()
 
-    return SubdomainSummary(
-        name=vr.get("name") or subdomain_name,
-        description=vr.get("description") or "",
-        milestone_type=vr.get("milestoneType"),
-        time_window_months=vr.get("timeWindowMonths"),
-        semantic_tags=tags,
-        assertion_filter=af,
-        constructs=_parse_constructs_prop(vr.get("constructs")),
-        completeness_schema=_parse_completeness_schema_prop(
-            vr.get("completeness_schema")
-        ),
-        construct_count=len(_parse_constructs_prop(vr.get("constructs"))),
-        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
-    )
+    return _valueset_row_to_subdomain_summary(vr, subdomain_name)
 
 
 def _load_completeness_schema(vs_id: str, subdomain_name: str) -> List[Dict[str, Any]]:
@@ -1469,18 +1464,7 @@ def replace_constructs(
     finally:
         client.close()
     vr = rows[0]
-    constructs = _parse_constructs_prop(vr.get("constructs"))
-    return SubdomainSummary(
-        name=vr.get("name") or subdomain_name,
-        description=vr.get("description") or "",
-        milestone_type=vr.get("milestoneType"),
-        time_window_months=vr.get("timeWindowMonths"),
-        semantic_tags=_parse_list_prop(vr.get("semanticTags")),
-        assertion_filter=_parse_list_prop(vr.get("assertionFilter")),
-        constructs=constructs,
-        construct_count=len(constructs),
-        concept_count=_count_concepts_from_raw(vr.get("rawJson")),
-    )
+    return _valueset_row_to_subdomain_summary(vr, subdomain_name)
 
 
 @router.post(

@@ -10,7 +10,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { SegmentedTabs } from "@leo/design-system";
-import type { RuleStatusFilter } from "./RuleReviewSection";
+import type { RuleStatusFilter } from "./ruleReviewTypes";
 
 const FILTER_TABS = [
   { id: "pending_review" as const, label: "Pending review", helper: "Rules waiting for a reviewer to approve, edit, or reject." },

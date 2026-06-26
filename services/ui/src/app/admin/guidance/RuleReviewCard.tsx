@@ -33,7 +33,7 @@ import { compareIsoDateTimeAsc } from "@/lib/dateSort";
 import { STRENGTH_LABELS } from "./EditRuleDialog/copy";
 
 // Imported as types-only to avoid runtime circular dependency
-import type { Rule, PromoteResult, RuleStatusFilter } from "./RuleReviewSection";
+import type { Rule, PromoteResult, RuleStatusFilter } from "./ruleReviewTypes";
 
 // -- Pure utility (re-exported via RuleReviewSection for test compatibility) --
 
