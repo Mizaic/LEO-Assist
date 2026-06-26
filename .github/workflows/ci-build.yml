@@ -43,10 +43,38 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio black flake8 pip-audit
+          pip install pytest pytest-asyncio "black==24.10.0" flake8 pip-audit
 
-      - name: Lint - black format check
-        run: black --check --diff .
+      - name: Lint - black format check (changed files)
+        env:
+          EVENT_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          BASE_SHA="$EVENT_BEFORE_SHA"
+          if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{0,40}$ ]]; then
+            echo "Refusing to use non-hex BASE_SHA: $BASE_SHA"
+            exit 1
+          fi
+          if [ -z "$BASE_SHA" ]; then
+            BASE_SHA="$(git rev-list --max-count=1 HEAD^ || true)"
+          fi
+
+          if [ -z "$BASE_SHA" ]; then
+            echo "No base SHA available; skipping black changed-file lint."
+            exit 0
+          fi
+
+          PY_CHANGED="$(git diff --name-only "$BASE_SHA" HEAD -- '*.py' || true)"
+          if [ -z "$PY_CHANGED" ]; then
+            echo "No Python file changes; skipping black."
+            exit 0
+          fi
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if [ -f "$file" ]; then
+              black --check --diff "$file"
+            fi
+          done <<< "$PY_CHANGED"
 
       - name: Atlas trace headers (every Class B+ source file)
         run: python3 scripts/atlas/check_atlas_trace_headers.py

@@ -59,9 +59,17 @@ import {
   type PatientFlagRow,
   type BloodPerTestGroup,
 } from "@/lib/analyticsApi";
+import type { ComponentType } from "react";
+import type { PlotParams } from "react-plotly.js";
 import SectionCard from "./SectionCard";
 // Plotly loaded client-side only (avoids SSR mismatch)
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
+const Plot = dynamic(
+  () =>
+    import("react-plotly.js").then(
+      (mod) => mod.default as ComponentType<PlotParams>
+    ),
+  { ssr: false }
+);
 
 /** Strip verbose SNOMED qualifiers that slip through the backend cleaner. */
 function cleanTestLabel(label: string): string {
