@@ -6,19 +6,32 @@
  *   DI: DI-758B73A5
  */
 
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Divider from "@mui/material/Divider";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Typography from "@mui/material/Typography";
+import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
 
-import { type AuditTemplate } from "@/lib/auditTemplateApi";
+import {
+  type AuditTemplate,
+  type MetricCatalogueEntry,
+  type MetricRunResult,
+} from "@/lib/auditTemplateApi";
+import { generateMockData } from "@/lib/auditMockData";
 import MetricTile from "./MetricTile";
+import PresentationMode from "./PresentationMode";
 import WidgetTile from "./WidgetTile";
 
 interface AuditTemplateRendererProps {
   template: AuditTemplate;
   orgId: string;
+  useMockData?: boolean;
+  catalogue?: MetricCatalogueEntry[];
 }
+
+const WIDE_TYPES = new Set(["table", "interval_plot", "text", "widget"]);
 
 function groupBySection(template: AuditTemplate) {
   const groups: Record<string, typeof template.tiles> = {};
@@ -30,13 +43,35 @@ function groupBySection(template: AuditTemplate) {
   return groups;
 }
 
-const WIDE_TYPES = new Set(["table", "interval_plot", "text", "widget"]);
+function MockBadge() {
+  return (
+    <Chip
+      label="Mock data"
+      size="small"
+      color="warning"
+      variant="outlined"
+      sx={{ fontSize: 10 }}
+    />
+  );
+}
 
 export default function AuditTemplateRenderer({
   template,
   orgId,
+  useMockData = false,
+  catalogue = [],
 }: AuditTemplateRendererProps) {
+  const [presentationOpen, setPresentationOpen] = useState(false);
   const sections = groupBySection(template);
+
+  const mockDataMap = useMemo<Map<string, MetricRunResult>>(() => {
+    if (!useMockData || catalogue.length === 0) return new Map();
+    const map = new Map<string, MetricRunResult>();
+    for (const entry of catalogue) {
+      map.set(entry.metric_id, generateMockData(entry));
+    }
+    return map;
+  }, [useMockData, catalogue]);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -70,11 +105,26 @@ export default function AuditTemplateRenderer({
               color={template.status === "published" ? "success" : "default"}
               sx={{ fontSize: 11, textTransform: "capitalize" }}
             />
+            {useMockData && <MockBadge />}
           </Box>
         </Box>
-        <Typography variant="caption" color="text.secondary">
-          {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="caption" color="text.secondary">
+            {new Date().toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<SlideshowOutlinedIcon />}
+            onClick={() => setPresentationOpen(true)}
+          >
+            Present
+          </Button>
+        </Box>
       </Box>
 
       {/* Sections */}
@@ -93,11 +143,7 @@ export default function AuditTemplateRenderer({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "1fr 1fr",
-                lg: "repeat(3, 1fr)",
-              },
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(3, 1fr)" },
               gap: 2,
             }}
           >
@@ -113,7 +159,11 @@ export default function AuditTemplateRenderer({
                 {tile.tile_type === "widget" ? (
                   <WidgetTile tile={tile} orgId={orgId} />
                 ) : (
-                  <MetricTile tile={tile} orgId={orgId} />
+                  <MetricTile
+                    tile={tile}
+                    orgId={orgId}
+                    mockData={mockDataMap.get(tile.metric_id)}
+                  />
                 )}
               </Box>
             ))}
@@ -122,9 +172,21 @@ export default function AuditTemplateRenderer({
       ))}
 
       {template.tiles.length === 0 && (
-        <Typography variant="body2" color="text.disabled" sx={{ textAlign: "center", py: 6 }}>
+        <Typography
+          variant="body2"
+          color="text.disabled"
+          sx={{ textAlign: "center", py: 6 }}
+        >
           No metrics added to this template yet.
         </Typography>
+      )}
+
+      {presentationOpen && (
+        <PresentationMode
+          template={template}
+          orgId={orgId}
+          onClose={() => setPresentationOpen(false)}
+        />
       )}
     </Box>
   );

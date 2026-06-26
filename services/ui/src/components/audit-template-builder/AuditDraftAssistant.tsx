@@ -3,48 +3,68 @@
 /**
  * AI Draft Assistant drawer for the audit template builder.
  *
- * Renders a 400 px right-anchored MUI Drawer with:
- *   - Suggestion chips for common NHS QI intents
- *   - Scrollable message list (user / assistant bubbles)
- *   - TextField + Send button for free-text prompts
- *
- * On `tool-input-available` SSE events the `onAddTile` callback is fired
- * once per tile so the parent can add them to the tile grid.
+ * Multi-phase conversational flow:
+ *   idle       -> user types intent
+ *   intent     -> sending; backend returns questions-available
+ *   discovering -> DiscoveryCard shown; user answers MCQs
+ *   planning   -> sending answers; backend returns plan-available
+ *   reviewing  -> PlanCard shown; user approves or requests changes
+ *   building   -> sending approved tiles; backend validates and adds
  *
  * Atlas trace:
  *   DO: DO-3775670C
  *   DI: DI-64CA7740
  */
 
-import { useCallback, useRef, useState, useEffect } from "react";
-import Drawer from "@mui/material/Drawer";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
-import TextField from "@mui/material/TextField";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import Drawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
+import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 import {
   sendMessage,
+  type BuildSummary,
+  type DashboardPlan,
   type DraftMessage,
-  type TileSuggestion,
+  type GatherRequirementsResult,
+  type PlannedTile,
 } from "@/lib/auditDraftChatAdapter";
+import {
+  BuildReport,
+  DiscoveryCard,
+  PendingBubble,
+  PlanCard,
+  TextBubble,
+  UserBubble,
+} from "./AuditDraftSubComponents";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  pending?: boolean;
-}
+type AssistantPhase =
+  | "idle"
+  | "intent"
+  | "discovering"
+  | "planning"
+  | "reviewing"
+  | "building";
+
+type MessageItem =
+  | { kind: "user"; content: string }
+  | { kind: "assistant-text"; content: string; pending?: boolean }
+  | { kind: "discovery"; result: GatherRequirementsResult }
+  | { kind: "plan"; plan: DashboardPlan }
+  | { kind: "build-report"; summary: BuildSummary };
 
 export interface AuditDraftAssistantProps {
   open: boolean;
@@ -55,12 +75,10 @@ export interface AuditDraftAssistantProps {
     label: string,
     tile_type: string,
     section?: string,
+    storyHeadline?: string,
+    highlightKey?: string,
   ) => void;
 }
-
-// ---------------------------------------------------------------------------
-// Suggestion chips
-// ---------------------------------------------------------------------------
 
 const SUGGESTIONS = [
   "Draft NCDA audit dashboard",
@@ -72,44 +90,22 @@ const SUGGESTIONS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Bubble component
+// Helpers
 // ---------------------------------------------------------------------------
 
-function Bubble({ msg }: { msg: Message }) {
-  const isUser = msg.role === "user";
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: isUser ? "flex-end" : "flex-start",
-        mb: 1.5,
-      }}
-    >
-      <Box
-        sx={{
-          maxWidth: "85%",
-          px: 1.5,
-          py: 1,
-          borderRadius: 2,
-          bgcolor: isUser ? "primary.main" : "grey.100",
-          color: isUser ? "primary.contrastText" : "text.primary",
-          fontSize: 13,
-          lineHeight: 1.5,
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-        }}
-      >
-        {msg.pending ? (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <CircularProgress size={12} color="inherit" />
-            <span>Thinking...</span>
-          </Box>
-        ) : (
-          msg.content
-        )}
-      </Box>
-    </Box>
-  );
+function getHistory(items: MessageItem[]): DraftMessage[] {
+  return items.flatMap((m) => {
+    if (m.kind === "user") return [{ role: "user" as const, content: m.content }];
+    if (m.kind === "assistant-text" && !m.pending) {
+      return [{ role: "assistant" as const, content: m.content }];
+    }
+    return [];
+  });
+}
+
+function replaceLast<T>(arr: T[], updater: (item: T) => T): T[] {
+  if (arr.length === 0) return arr;
+  return [...arr.slice(0, -1), updater(arr[arr.length - 1])];
 }
 
 // ---------------------------------------------------------------------------
@@ -122,11 +118,16 @@ export default function AuditDraftAssistant({
   tiles,
   onAddTile,
 }: AuditDraftAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [phase, setPhase] = useState<AssistantPhase>("idle");
+  const [items, setItems] = useState<MessageItem[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [pendingPlan, setPendingPlan] = useState<DashboardPlan | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const loading =
+    phase === "intent" || phase === "planning" || phase === "building";
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -138,88 +139,232 @@ export default function AuditDraftAssistant({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [items, scrollToBottom]);
 
-  const handleSend = useCallback(
+  useEffect(() => {
+    if (!open) {
+      abortRef.current?.abort();
+    }
+  }, [open]);
+
+  // -- Phase: intent (user sends initial message) ---------------------------
+
+  const handleSendIntent = useCallback(
     async (text: string) => {
       if (!text.trim() || loading) return;
       setInput("");
-      setLoading(true);
+      setPhase("intent");
 
-      const userMsg: Message = { role: "user", content: text.trim() };
-      const pendingMsg: Message = {
-        role: "assistant",
-        content: "",
-        pending: true,
-      };
-      setMessages((prev) => [...prev, userMsg, pendingMsg]);
-
-      const history: DraftMessage[] = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const history = getHistory(items);
+      const newItems: MessageItem[] = [
+        ...items,
+        { kind: "user", content: text.trim() },
+        { kind: "assistant-text", content: "", pending: true },
+      ];
+      setItems(newItems);
 
       abortRef.current = new AbortController();
-      let assistantText = "";
 
       await sendMessage({
+        phase: "intent",
         userText: text.trim(),
         history,
         currentTiles: tiles,
         existingMetricIds: tiles.map((t) => t.metric_id),
         signal: abortRef.current.signal,
         onText: (delta) => {
-          assistantText += delta;
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            if (last?.role === "assistant") {
-              next[next.length - 1] = {
-                ...last,
-                content: assistantText,
-                pending: false,
-              };
-            }
-            return next;
-          });
+          setItems((prev) =>
+            replaceLast(prev, (m) =>
+              m.kind === "assistant-text"
+                ? { ...m, content: m.content + delta, pending: false }
+                : m,
+            ),
+          );
         },
-        onTiles: (suggestions: TileSuggestion[]) => {
-          suggestions.forEach((s) => {
-            onAddTile(s.metric_id, s.label, s.tile_type, s.section);
-          });
+        onQuestions: (result) => {
+          setItems((prev) => [
+            ...prev.filter((m) => !(m.kind === "assistant-text" && m.pending)),
+            { kind: "discovery", result },
+          ]);
+          setPhase("discovering");
         },
         onFinish: () => {
-          setLoading(false);
+          if (phase !== "discovering") setPhase("discovering");
         },
-        onError: (message) => {
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            if (last?.role === "assistant" && last.pending) {
-              next[next.length - 1] = {
-                ...last,
-                content: `Error: ${message}`,
-                pending: false,
-              };
-            }
-            return next;
-          });
-          setLoading(false);
+        onError: (msg) => {
+          setItems((prev) =>
+            replaceLast(prev, (m) =>
+              m.kind === "assistant-text"
+                ? { ...m, content: `Error: ${msg}`, pending: false }
+                : m,
+            ),
+          );
+          setPhase("idle");
         },
       });
     },
-    [loading, messages, tiles, onAddTile],
+    [loading, items, tiles, phase],
+  );
+
+  // -- Phase: planning (submit discovery answers) ---------------------------
+
+  const handleSubmitAnswers = useCallback(async () => {
+    setPhase("planning");
+    setItems((prev) => [
+      ...prev,
+      { kind: "assistant-text", content: "", pending: true },
+    ]);
+
+    const history = getHistory(items);
+    abortRef.current = new AbortController();
+
+    await sendMessage({
+      phase: "discover",
+      history,
+      answers,
+      currentTiles: tiles,
+      existingMetricIds: tiles.map((t) => t.metric_id),
+      signal: abortRef.current.signal,
+      onText: (delta) => {
+        setItems((prev) =>
+          replaceLast(prev, (m) =>
+            m.kind === "assistant-text"
+              ? { ...m, content: m.content + delta, pending: false }
+              : m,
+          ),
+        );
+      },
+      onPlan: (plan) => {
+        setPendingPlan(plan);
+        setItems((prev) => [
+          ...prev.filter((m) => !(m.kind === "assistant-text" && m.pending)),
+          { kind: "plan", plan },
+        ]);
+        setPhase("reviewing");
+      },
+      onFinish: () => {
+        if (phase !== "reviewing") setPhase("reviewing");
+      },
+      onError: (msg) => {
+        setItems((prev) =>
+          replaceLast(prev, (m) =>
+            m.kind === "assistant-text"
+              ? { ...m, content: `Error: ${msg}`, pending: false }
+              : m,
+          ),
+        );
+        setPhase("discovering");
+      },
+    });
+  }, [items, answers, tiles, phase]);
+
+  // -- Phase: building (user approved the plan) -----------------------------
+
+  const handleApprove = useCallback(async () => {
+    if (!pendingPlan) return;
+    setPhase("building");
+
+    abortRef.current = new AbortController();
+    let added = 0;
+
+    await sendMessage({
+      phase: "build",
+      history: [],
+      approvedTiles: pendingPlan.tiles,
+      signal: abortRef.current.signal,
+      onTileAdded: (tile: PlannedTile) => {
+        onAddTile(
+          tile.metric_id,
+          tile.label,
+          tile.tile_type,
+          tile.section,
+          tile.story_headline,
+          tile.highlight_key,
+        );
+        added++;
+      },
+      onBuildComplete: (summary: BuildSummary) => {
+        setItems((prev) => [...prev, { kind: "build-report", summary }]);
+        setPhase("idle");
+        setPendingPlan(null);
+        setAnswers({});
+      },
+      onFinish: () => {
+        if (phase !== "idle") setPhase("idle");
+      },
+      onError: (msg) => {
+        setItems((prev) => [
+          ...prev,
+          { kind: "assistant-text", content: `Build error: ${msg}` },
+        ]);
+        setPhase("idle");
+      },
+    });
+    void added; // used via onTileAdded
+  }, [pendingPlan, onAddTile, phase]);
+
+  // -- Phase: revise --------------------------------------------------------
+
+  const handleRevise = useCallback(
+    async (revisionText: string) => {
+      setPhase("planning");
+      setItems((prev) => [
+        ...prev,
+        { kind: "user", content: revisionText },
+        { kind: "assistant-text", content: "", pending: true },
+      ]);
+
+      const history = getHistory(items);
+      abortRef.current = new AbortController();
+
+      await sendMessage({
+        phase: "discover",
+        userText: revisionText,
+        history,
+        answers,
+        currentTiles: tiles,
+        existingMetricIds: tiles.map((t) => t.metric_id),
+        signal: abortRef.current.signal,
+        onPlan: (plan) => {
+          setPendingPlan(plan);
+          setItems((prev) => [
+            ...prev.filter((m) => !(m.kind === "assistant-text" && m.pending)),
+            { kind: "plan", plan },
+          ]);
+          setPhase("reviewing");
+        },
+        onFinish: () => {
+          if (phase !== "reviewing") setPhase("reviewing");
+        },
+        onError: (msg) => {
+          setItems((prev) =>
+            replaceLast(prev, (m) =>
+              m.kind === "assistant-text"
+                ? { ...m, content: `Error: ${msg}`, pending: false }
+                : m,
+            ),
+          );
+          setPhase("reviewing");
+        },
+      });
+    },
+    [items, answers, tiles, phase],
   );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        void handleSend(input);
+        void handleSendIntent(input);
       }
     },
-    [handleSend, input],
+    [handleSendIntent, input],
   );
+
+  const showInput = phase !== "reviewing";
+  const showSuggestions = phase === "idle" && items.length === 0;
+
+  // -- Render ----------------------------------------------------------------
 
   return (
     <Drawer
@@ -227,7 +372,7 @@ export default function AuditDraftAssistant({
       open={open}
       onClose={onClose}
       variant="persistent"
-      PaperProps={{ sx: { width: 400, display: "flex", flexDirection: "column" } }}
+      PaperProps={{ sx: { width: 420, display: "flex", flexDirection: "column" } }}
     >
       {/* Header */}
       <Box
@@ -253,8 +398,8 @@ export default function AuditDraftAssistant({
         </Tooltip>
       </Box>
 
-      {/* Suggestion chips (only when no messages yet) */}
-      {messages.length === 0 && (
+      {/* Suggestion chips */}
+      {showSuggestions && (
         <Box sx={{ px: 2, pt: 2, pb: 1, flexShrink: 0 }}>
           <Typography variant="caption" color="text.secondary" gutterBottom>
             Try a suggestion:
@@ -267,8 +412,7 @@ export default function AuditDraftAssistant({
                 size="small"
                 variant="outlined"
                 clickable
-                onClick={() => void handleSend(s)}
-                disabled={loading}
+                onClick={() => void handleSendIntent(s)}
               />
             ))}
           </Box>
@@ -278,61 +422,92 @@ export default function AuditDraftAssistant({
       <Divider sx={{ flexShrink: 0 }} />
 
       {/* Message list */}
-      <Box
-        ref={scrollRef}
-        sx={{ flex: 1, overflowY: "auto", px: 2, py: 1.5 }}
-      >
-        {messages.length === 0 && (
+      <Box ref={scrollRef} sx={{ flex: 1, overflowY: "auto", px: 2, py: 1.5 }}>
+        {items.length === 0 && (
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{ textAlign: "center", mt: 4 }}
           >
-            Describe the report you need and I will suggest tiles.
+            Describe the report you need and I will guide you through building it.
           </Typography>
         )}
-        {messages.map((m, i) => (
-          <Bubble key={i} msg={m} />
-        ))}
+
+        {items.map((item, i) => {
+          if (item.kind === "user") return <UserBubble key={i} content={item.content} />;
+          if (item.kind === "assistant-text") {
+            if (item.pending) return <PendingBubble key={i} />;
+            return <TextBubble key={i} content={item.content} />;
+          }
+          if (item.kind === "discovery") {
+            return (
+              <DiscoveryCard
+                key={i}
+                result={item.result}
+                answers={answers}
+                onChange={(qId, optId) => setAnswers((a) => ({ ...a, [qId]: optId }))}
+                onContinue={() => void handleSubmitAnswers()}
+                disabled={phase !== "discovering"}
+              />
+            );
+          }
+          if (item.kind === "plan") {
+            return (
+              <PlanCard
+                key={i}
+                plan={item.plan}
+                onApprove={() => void handleApprove()}
+                onRevise={(txt) => void handleRevise(txt)}
+                disabled={phase !== "reviewing"}
+              />
+            );
+          }
+          if (item.kind === "build-report") {
+            return <BuildReport key={i} summary={item.summary} />;
+          }
+          return null;
+        })}
       </Box>
 
       <Divider sx={{ flexShrink: 0 }} />
 
-      {/* Input area */}
-      <Box
-        sx={{
-          px: 2,
-          py: 1.5,
-          display: "flex",
-          alignItems: "flex-end",
-          gap: 1,
-          flexShrink: 0,
-        }}
-      >
-        <TextField
-          multiline
-          maxRows={4}
-          size="small"
-          placeholder="Describe the dashboard you need..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-          fullWidth
-          sx={{ fontSize: 13 }}
-        />
-        <Tooltip title="Send (Enter)">
-          <span>
-            <IconButton
-              color="primary"
-              onClick={() => void handleSend(input)}
-              disabled={!input.trim() || loading}
-            >
-              {loading ? <CircularProgress size={20} /> : <SendIcon />}
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Box>
+      {/* Input area (hidden during reviewing) */}
+      {showInput && (
+        <Box
+          sx={{
+            px: 2,
+            py: 1.5,
+            display: "flex",
+            alignItems: "flex-end",
+            gap: 1,
+            flexShrink: 0,
+          }}
+        >
+          <TextField
+            multiline
+            maxRows={4}
+            size="small"
+            placeholder="Describe the dashboard you need..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            fullWidth
+            sx={{ fontSize: 13 }}
+          />
+          <Tooltip title="Send (Enter)">
+            <span>
+              <IconButton
+                color="primary"
+                onClick={() => void handleSendIntent(input)}
+                disabled={!input.trim() || loading}
+              >
+                {loading ? <CircularProgress size={20} /> : <SendIcon />}
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+      )}
     </Drawer>
   );
 }

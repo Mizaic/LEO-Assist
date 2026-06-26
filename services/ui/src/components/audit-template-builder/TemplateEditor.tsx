@@ -143,10 +143,16 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
       label: string,
       tile_type: string,
       _section?: string,
+      storyHeadline?: string,
+      highlightKey?: string,
     ) => {
       setTiles((prev) => {
         const index = prev.length;
         const col = (index % 3) * 4;
+        const story =
+          storyHeadline || highlightKey
+            ? { headline: storyHeadline, highlight_key: highlightKey }
+            : undefined;
         const newTileEntry: AuditTile = {
           tile_id: `tile-ai-${Date.now()}-${index}`,
           label,
@@ -154,6 +160,7 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
           metric_id,
           param_overrides: {},
           layout: { x: col, y: Math.floor(index / 3) * 3, w: 4, h: 3 },
+          story,
         };
         return [...prev, newTileEntry];
       });
@@ -265,6 +272,7 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
             organizations={organizations}
             previewOrgId={previewOrgId}
             onOrgChange={setPreviewOrgId}
+            catalogue={catalogue}
           />
         ) : (
           <>

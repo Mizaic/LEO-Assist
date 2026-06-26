@@ -4,6 +4,12 @@
  * Atlas trace:
  *   DO: DO-A9863AB6
  *   DI: DI-758B73A5
+ *
+ * Renders a single metric tile with optional data storytelling overlays:
+ *   - Headline (DataPOV caption above the chart)
+ *   - Highlight emphasis (one bar/line in brand primary, rest muted)
+ *   - Threshold/benchmark lines (Recharts ReferenceLine)
+ *   - Callout annotations (labelled badge on a specific data point)
  */
 
 import { useEffect, useState } from "react";
@@ -13,26 +19,87 @@ import Skeleton from "@mui/material/Skeleton";
 import Tooltip from "@mui/material/Tooltip";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Label,
+  Legend,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid,
-  Legend,
 } from "recharts";
 
-import { runMetric, type MetricRunResult, type AuditTile } from "@/lib/auditTemplateApi";
+import {
+  runMetric,
+  type AuditTile,
+  type MetricRunResult,
+  type TileAnnotation,
+  type TileStoryConfig,
+} from "@/lib/auditTemplateApi";
 
 const CHART_PALETTE = ["#1E40AF", "#047857", "#9333EA", "#B45309", "#0E7490"];
+const MUTED = "#CBD5E1";
+const HIGHLIGHT = "#DC2626";
 
 interface MetricTileProps {
   tile: AuditTile;
   orgId: string;
+  mockData?: MetricRunResult;
 }
+
+// ---------------------------------------------------------------------------
+// Story helpers
+// ---------------------------------------------------------------------------
+
+function barFill(key: string, highlightKey?: string, index?: number): string {
+  if (!highlightKey) return CHART_PALETTE[(index ?? 0) % CHART_PALETTE.length];
+  return key === highlightKey ? HIGHLIGHT : MUTED;
+}
+
+function thresholdLines(annotations?: TileAnnotation[]) {
+  return (annotations ?? [])
+    .filter((a) => a.type === "threshold" && a.value != null)
+    .map((a) => (
+      <ReferenceLine
+        key={a.label}
+        y={a.value}
+        stroke={HIGHLIGHT}
+        strokeDasharray="4 3"
+        strokeWidth={1.5}
+      >
+        <Label value={a.label} position="right" fill={HIGHLIGHT} fontSize={10} />
+      </ReferenceLine>
+    ));
+}
+
+function calloutLabel(
+  catKey: string,
+  rows: Record<string, unknown>[],
+  annotations?: TileAnnotation[],
+): React.ReactNode[] {
+  const callouts = (annotations ?? []).filter((a) => a.type === "callout");
+  return callouts.map((a) => {
+    const idx = rows.findIndex((r) => String(r[catKey]) === a.target_key);
+    if (idx < 0) return null;
+    return (
+      <Label
+        key={a.label}
+        value={a.label}
+        position="insideTop"
+        fill={HIGHLIGHT}
+        fontSize={9}
+      />
+    );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Chart sub-components
+// ---------------------------------------------------------------------------
 
 function KpiStrip({ rows }: { rows: Record<string, unknown>[] }) {
   return (
@@ -73,9 +140,16 @@ function KpiStrip({ rows }: { rows: Record<string, unknown>[] }) {
   );
 }
 
-function BarTile({ rows }: { rows: Record<string, unknown>[] }) {
+function BarTile({
+  rows,
+  story,
+}: {
+  rows: Record<string, unknown>[];
+  story?: TileStoryConfig;
+}) {
   if (!rows.length) return <EmptyData />;
   const keys = Object.keys(rows[0]);
+  if (keys.length === 0) return <EmptyData />;
   const catKey = keys[0];
   const valKeys = keys.slice(1);
   return (
@@ -85,17 +159,32 @@ function BarTile({ rows }: { rows: Record<string, unknown>[] }) {
         <XAxis dataKey={catKey} tick={{ fontSize: 10 }} angle={-30} textAnchor="end" />
         <YAxis tick={{ fontSize: 10 }} />
         <RechartsTooltip contentStyle={{ fontSize: 12 }} />
+        {thresholdLines(story?.annotations)}
         {valKeys.map((k, i) => (
-          <Bar key={k} dataKey={k} fill={CHART_PALETTE[i % CHART_PALETTE.length]} radius={[3, 3, 0, 0]} />
+          <Bar
+            key={k}
+            dataKey={k}
+            fill={barFill(k, story?.highlight_key, i)}
+            radius={[3, 3, 0, 0]}
+          >
+            {calloutLabel(catKey, rows, story?.annotations)}
+          </Bar>
         ))}
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-function LineTile({ rows }: { rows: Record<string, unknown>[] }) {
+function LineTile({
+  rows,
+  story,
+}: {
+  rows: Record<string, unknown>[];
+  story?: TileStoryConfig;
+}) {
   if (!rows.length) return <EmptyData />;
   const keys = Object.keys(rows[0]);
+  if (keys.length === 0) return <EmptyData />;
   const catKey = keys[0];
   const valKeys = keys.slice(1);
   return (
@@ -106,12 +195,19 @@ function LineTile({ rows }: { rows: Record<string, unknown>[] }) {
         <YAxis tick={{ fontSize: 10 }} />
         <RechartsTooltip contentStyle={{ fontSize: 12 }} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
+        {thresholdLines(story?.annotations)}
         {valKeys.map((k, i) => (
           <Line
             key={k}
             dataKey={k}
-            stroke={CHART_PALETTE[i % CHART_PALETTE.length]}
-            strokeWidth={2}
+            stroke={
+              story?.highlight_key
+                ? k === story.highlight_key
+                  ? HIGHLIGHT
+                  : MUTED
+                : CHART_PALETTE[i % CHART_PALETTE.length]
+            }
+            strokeWidth={k === story?.highlight_key ? 3 : 2}
             dot={false}
           />
         ))}
@@ -170,7 +266,11 @@ function TableTile({ rows }: { rows: Record<string, unknown>[] }) {
 
 function EmptyData() {
   return (
-    <Typography variant="caption" color="text.disabled" sx={{ display: "block", py: 2, textAlign: "center" }}>
+    <Typography
+      variant="caption"
+      color="text.disabled"
+      sx={{ display: "block", py: 2, textAlign: "center" }}
+    >
       No data for this period
     </Typography>
   );
@@ -191,7 +291,13 @@ function TileLoadingSkeleton({ type }: { type: AuditTile["tile_type"] }) {
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, mt: 1 }}>
         <Skeleton variant="rounded" height={22} width="100%" />
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} variant="rounded" height={18} width="100%" sx={{ opacity: 0.6 - i * 0.1 }} />
+          <Skeleton
+            key={i}
+            variant="rounded"
+            height={18}
+            width="100%"
+            sx={{ opacity: 0.6 - i * 0.1 }}
+          />
         ))}
       </Box>
     );
@@ -201,19 +307,26 @@ function TileLoadingSkeleton({ type }: { type: AuditTile["tile_type"] }) {
 
 function toObjects(result: MetricRunResult): Record<string, unknown>[] {
   return result.rows.map((row) =>
-    Object.fromEntries(result.columns.map((col, i) => [col, (row as unknown[])[i]]))
+    Object.fromEntries(result.columns.map((col, i) => [col, (row as unknown[])[i]])),
   );
 }
 
-function TileBody({ tile, result }: { tile: AuditTile; result: MetricRunResult }) {
+function TileBody({
+  tile,
+  result,
+}: {
+  tile: AuditTile;
+  result: MetricRunResult;
+}) {
   const rows = toObjects(result);
+  const story = tile.story;
   switch (tile.tile_type) {
     case "kpi_strip":
       return <KpiStrip rows={rows} />;
     case "bar_chart":
-      return <BarTile rows={rows} />;
+      return <BarTile rows={rows} story={story} />;
     case "line_chart":
-      return <LineTile rows={rows} />;
+      return <LineTile rows={rows} story={story} />;
     case "table":
     case "interval_plot":
       return <TableTile rows={rows} />;
@@ -228,22 +341,39 @@ function TileBody({ tile, result }: { tile: AuditTile; result: MetricRunResult }
   }
 }
 
-export default function MetricTile({ tile, orgId }: MetricTileProps) {
-  const [result, setResult] = useState<MetricRunResult | null>(null);
-  const [loading, setLoading] = useState(true);
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
+export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
+  const [result, setResult] = useState<MetricRunResult | null>(mockData ?? null);
+  const [loading, setLoading] = useState(!mockData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (mockData) {
+      setResult(mockData);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
     setResult(null);
     runMetric(tile.metric_id, tile.param_overrides, orgId || undefined)
-      .then((r) => { if (!cancelled) setResult(r); })
-      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [tile.metric_id, tile.param_overrides, orgId]);
+      .then((r) => {
+        if (!cancelled) setResult(r);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tile.metric_id, tile.param_overrides, orgId, mockData]);
 
   return (
     <Box
@@ -261,13 +391,33 @@ export default function MetricTile({ tile, orgId }: MetricTileProps) {
         overflow: "hidden",
       }}
     >
+      {/* Headline overlay (Duarte DataPOV) */}
+      {tile.story?.headline && (
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            color: "primary.main",
+            fontStyle: "italic",
+            lineHeight: 1.4,
+            borderLeft: "3px solid",
+            borderColor: "primary.main",
+            pl: 0.75,
+          }}
+        >
+          {tile.story.headline}
+        </Typography>
+      )}
+
       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
         <Typography variant="subtitle2" fontWeight={600} color="text.primary">
           {tile.label}
         </Typography>
         {error && (
           <Tooltip title={error} placement="top">
-            <ErrorOutlineIcon sx={{ fontSize: 16, color: "warning.main", flexShrink: 0, mt: 0.25 }} />
+            <ErrorOutlineIcon
+              sx={{ fontSize: 16, color: "warning.main", flexShrink: 0, mt: 0.25 }}
+            />
           </Tooltip>
         )}
       </Box>

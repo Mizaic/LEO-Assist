@@ -74,23 +74,24 @@ function sessionPayload(role: AuditAuthRole) {
 }
 
 function metricCatalogue() {
-  const tiers = [
-    ["referral_stt_rate", "Referral STT Rate", "kpi_strip"],
-    ["referral_guideline_compliance_rate", "Guideline Compliance Rate", "kpi_strip"],
-    ["patient_gender_distribution", "Gender Distribution", "bar_chart"],
-    ["patient_age_band_distribution", "Age Band Distribution", "bar_chart"],
-    ["early_stage_detection_rate", "Early Stage Detection Rate", "kpi_strip"],
-    ["cancer_conversion_rate", "Cancer Conversion Rate", "kpi_strip"],
-    ["unactioned_alerts_by_age", "Unactioned Alerts by Age", "table"],
-    ["alert_escalation_rate", "Alert Escalation Rate", "kpi_strip"],
-    ["episode_open_age_distribution", "Episode Open-Age Distribution", "bar_chart"],
-    ["referral_completion_rate", "Referral Completion Rate", "kpi_strip"],
+  const tiers: [string, string, string, string[]][] = [
+    ["referral_stt_rate", "Referral STT Rate", "kpi_strip", ["kpi_strip"]],
+    ["referral_guideline_compliance_rate", "Guideline Compliance Rate", "kpi_strip", ["kpi_strip"]],
+    ["patient_gender_distribution", "Gender Distribution", "bar_chart", ["bar_chart", "pie_chart"]],
+    ["patient_age_band_distribution", "Age Band Distribution", "bar_chart", ["bar_chart"]],
+    ["early_stage_detection_rate", "Early Stage Detection Rate", "kpi_strip", ["kpi_strip"]],
+    ["cancer_conversion_rate", "Cancer Conversion Rate", "kpi_strip", ["kpi_strip"]],
+    ["unactioned_alerts_by_age", "Unactioned Alerts by Age", "table", ["table"]],
+    ["alert_escalation_rate", "Alert Escalation Rate", "kpi_strip", ["kpi_strip"]],
+    ["episode_open_age_distribution", "Episode Open-Age Distribution", "bar_chart", ["bar_chart"]],
+    ["referral_completion_rate", "Referral Completion Rate", "kpi_strip", ["kpi_strip"]],
   ];
-  return tiers.map(([metric_id, title, output_type]) => ({
+  return tiers.map(([metric_id, title, output_type, compatible_tile_types]) => ({
     metric_id,
     title,
     description: `${title} metric`,
     output_type,
+    compatible_tile_types,
     param_schema: {},
     output_schema: [],
   }));
@@ -178,7 +179,9 @@ function activeTemplateForRole(state: AuditFixtureState) {
 
 export async function clickFirstAvailableMetricAdd(page: Page): Promise<void> {
   const library = page.getByRole("heading", { name: "Metric library" }).locator("..");
-  await library.locator("button:not([disabled])").first().click();
+  // Metric type chips render as div[role="button"] (MUI Chip), NOT as <button> elements.
+  // Widget add buttons render as <button>. Use a div-scoped role selector to hit chips only.
+  await library.locator('div[role="button"]:not(.Mui-disabled)').first().click();
 }
 
 export async function selectOrgInBrowser(
@@ -358,37 +361,102 @@ export async function installAuditTemplateFixtures(
     },
   );
 
+  // Multi-phase SSE stub: tracks call count to route intent->discover->build phases
+  let draftCallCount = 0;
   await page.route("**/api/audit-draft", async (route) => {
     if (route.request().method() !== "POST") {
       return route.continue();
     }
-    const sseBody = [
-      'data: {"type":"text-delta","delta":"I suggest the following tiles for a referral quality audit:"}\n\n',
-      `data: ${JSON.stringify({
-        type: "tool-input-available",
-        toolName: "design_report",
-        input: {
-          tiles: [
-            {
-              metric_id: "referral_stt_rate",
-              label: "STT Rate",
-              tile_type: "kpi_strip",
-            },
-            {
-              metric_id: "referral_guideline_compliance_rate",
-              label: "Guideline Compliance",
-              tile_type: "kpi_strip",
-            },
-            {
-              metric_id: "early_stage_detection_rate",
-              label: "Early Stage Detection",
-              tile_type: "kpi_strip",
-            },
-          ],
-        },
-      })}\n\n`,
-      'data: {"type":"finish"}\n\n',
-    ].join("");
+    draftCallCount += 1;
+    let sseBody: string;
+
+    if (draftCallCount === 1) {
+      // intent phase -> questions-available
+      sseBody = [
+        `data: {"type":"text-delta","delta":"Let me understand your needs."}\n\n`,
+        `data: ${JSON.stringify({
+          type: "questions-available",
+          input: {
+            intent_summary: "Build a referral quality audit dashboard",
+            questions: [
+              {
+                id: "audience",
+                question: "Who is the primary audience?",
+                options: [
+                  { id: "gp", label: "GP partner", recommended: true },
+                  { id: "board", label: "PCN board", recommended: false },
+                ],
+              },
+              {
+                id: "focus",
+                question: "What is the main focus area?",
+                options: [
+                  { id: "referral", label: "Referral quality", recommended: true },
+                  { id: "safety", label: "Safety netting", recommended: false },
+                ],
+              },
+            ],
+          },
+        })}
+
+`,
+        `data: {"type":"finish"}\n\n`,
+      ].join("");
+    } else if (draftCallCount === 2) {
+      // discover phase -> plan-available
+      sseBody = [
+        `data: ${JSON.stringify({
+          type: "plan-available",
+          input: {
+            rationale: "Based on your answers, a referral quality dashboard suits a GP partner audience.",
+            warnings: [],
+            tiles: [
+              {
+                metric_id: "referral_stt_rate",
+                label: "STT Rate",
+                tile_type: "kpi_strip",
+                section: "Referral quality",
+                reason: "Core referral quality KPI.",
+              },
+              {
+                metric_id: "referral_guideline_compliance_rate",
+                label: "Guideline Compliance",
+                tile_type: "kpi_strip",
+                section: "Referral quality",
+                reason: "NG12 compliance metric.",
+              },
+              {
+                metric_id: "early_stage_detection_rate",
+                label: "Early Stage Detection",
+                tile_type: "kpi_strip",
+                section: "Outcomes",
+                reason: "Measures early diagnosis rate.",
+              },
+            ],
+          },
+        })}
+
+`,
+        `data: {"type":"finish"}\n\n`,
+      ].join("");
+    } else {
+      // build phase -> tile-added + build-complete
+      sseBody = [
+        `data: ${JSON.stringify({ type: "tile-added", tile: { metric_id: "referral_stt_rate", label: "STT Rate", tile_type: "kpi_strip" } })}
+
+`,
+        `data: ${JSON.stringify({ type: "tile-added", tile: { metric_id: "referral_guideline_compliance_rate", label: "Guideline Compliance", tile_type: "kpi_strip" } })}
+
+`,
+        `data: ${JSON.stringify({ type: "tile-added", tile: { metric_id: "early_stage_detection_rate", label: "Early Stage Detection", tile_type: "kpi_strip" } })}
+
+`,
+        `data: ${JSON.stringify({ type: "build-complete", added: 3, skipped: [], warnings: [] })}
+
+`,
+        `data: {"type":"finish"}\n\n`,
+      ].join("");
+    }
 
     await route.fulfill({
       status: 200,

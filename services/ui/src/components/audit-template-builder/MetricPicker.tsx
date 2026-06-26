@@ -63,7 +63,7 @@ function MetricCard({
   onAdd: (type: TileType) => void;
 }) {
   const defaultType = metric.output_type as TileType;
-  const compatible = metric.compatible_tile_types;
+  const compatible = metric.compatible_tile_types ?? [defaultType];
 
   return (
     <Box

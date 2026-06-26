@@ -1,8 +1,10 @@
 /**
- * Chat adapter for the Audit Draft AI assistant.
+ * Chat adapter for the Audit Draft AI assistant -- multi-phase flow.
  *
- * Sends the multi-turn conversation to the SSE endpoint and parses the
- * streamed events into text deltas and structured tile suggestions.
+ * Phases:
+ *   intent    -- user sends initial request; backend returns questions-available
+ *   discover  -- user submits answers; backend returns plan-available
+ *   build     -- frontend sends approved tiles; backend validates and adds them
  *
  * Atlas trace:
  *   DO: DO-3775670C
@@ -14,20 +16,80 @@ export interface DraftMessage {
   content: string;
 }
 
-export interface TileSuggestion {
+// -- Discovery phase ---------------------------------------------------------
+
+export interface DiscoveryOption {
+  id: string;
+  label: string;
+  recommended: boolean;
+}
+
+export interface DiscoveryQuestion {
+  id: string;
+  question: string;
+  options: DiscoveryOption[];
+}
+
+export interface GatherRequirementsResult {
+  intent_summary: string;
+  questions: DiscoveryQuestion[];
+}
+
+// -- Planning phase ----------------------------------------------------------
+
+export interface PlannedTile {
   metric_id: string;
   label: string;
   tile_type: string;
   section?: string;
+  reason: string;
+  story_headline?: string;
+  highlight_key?: string;
 }
 
+export interface DashboardPlan {
+  rationale: string;
+  tiles: PlannedTile[];
+  warnings: string[];
+}
+
+// -- Build phase -------------------------------------------------------------
+
+export interface SkippedTile {
+  metric_id: string;
+  reason: string;
+}
+
+export interface BuildSummary {
+  added: number;
+  skipped: SkippedTile[];
+  warnings: string[];
+}
+
+// -- Adapter options ---------------------------------------------------------
+
+export type AssistantPhaseRequest = "intent" | "discover" | "build";
+
 export interface SendMessageOptions {
-  userText: string;
+  /** Current phase determines which SSE events are expected. */
+  phase: AssistantPhaseRequest;
+  /** User-typed text (not used in build phase). */
+  userText?: string;
+  /** Full conversation history. */
   history: DraftMessage[];
-  currentTiles: { metric_id: string; label: string }[];
+  /** Answers from discovery MCQs: question_id -> option_id */
+  answers?: Record<string, string>;
+  /** Approved tiles to add (build phase only). */
+  approvedTiles?: PlannedTile[];
+  /** Tiles already on the grid. */
+  currentTiles?: { metric_id: string; label: string }[];
   existingMetricIds?: string[];
-  onText: (delta: string) => void;
-  onTiles: (tiles: TileSuggestion[]) => void;
+  /** Streaming callbacks. */
+  onText?: (delta: string) => void;
+  onQuestions?: (result: GatherRequirementsResult) => void;
+  onPlan?: (plan: DashboardPlan) => void;
+  onTileAdded?: (tile: PlannedTile) => void;
+  onBuildComplete?: (summary: BuildSummary) => void;
   onFinish: () => void;
   onError: (message: string) => void;
   signal?: AbortSignal;
@@ -43,29 +105,31 @@ function parseSseLine(line: string): Record<string, unknown> | null {
 }
 
 /**
- * Send a user message and stream the AI response.
- *
- * The function returns a promise that resolves when the stream finishes
- * or the abort signal fires. Callers must await it if they need to know
- * when the stream is done.
+ * Send a request for the current phase and stream the AI response.
  */
 export async function sendMessage(opts: SendMessageOptions): Promise<void> {
   const {
+    phase,
     userText,
     history,
-    currentTiles,
+    answers = {},
+    approvedTiles = [],
+    currentTiles = [],
     existingMetricIds = [],
     onText,
-    onTiles,
+    onQuestions,
+    onPlan,
+    onTileAdded,
+    onBuildComplete,
     onFinish,
     onError,
     signal,
   } = opts;
 
-  const messages: DraftMessage[] = [
-    ...history,
-    { role: "user", content: userText },
-  ];
+  const messages: DraftMessage[] =
+    phase !== "build" && userText
+      ? [...history, { role: "user", content: userText }]
+      : [...history];
 
   let response: Response;
   try {
@@ -79,6 +143,9 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
       },
       body: JSON.stringify({
         messages,
+        phase,
+        answers,
+        approved_tiles: approvedTiles,
         current_tiles: currentTiles,
         existing_metric_ids: existingMetricIds,
       }),
@@ -114,12 +181,20 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
         if (!event) continue;
 
         const type = event.type as string;
+
         if (type === "text-delta") {
-          onText((event.delta as string) ?? "");
-        } else if (type === "tool-input-available") {
+          onText?.((event.delta as string) ?? "");
+        } else if (type === "questions-available") {
           const input = (event.input as Record<string, unknown>) ?? {};
-          const tiles = (input.tiles as TileSuggestion[]) ?? [];
-          if (tiles.length > 0) onTiles(tiles);
+          onQuestions?.(input as unknown as GatherRequirementsResult);
+        } else if (type === "plan-available") {
+          const input = (event.input as Record<string, unknown>) ?? {};
+          onPlan?.(input as unknown as DashboardPlan);
+        } else if (type === "tile-added") {
+          const tile = event.tile as PlannedTile;
+          if (tile) onTileAdded?.(tile);
+        } else if (type === "build-complete") {
+          onBuildComplete?.(event as unknown as BuildSummary);
         } else if (type === "finish") {
           onFinish();
         } else if (type === "error") {

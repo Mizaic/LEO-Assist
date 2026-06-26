@@ -603,7 +603,7 @@ export default function SymptomsSection({
           </Box>
 
           {/* Referral-cohort PPV hero cards (cohort-wide window) */}
-          {data.ppv_by_suspected_cancer_type.length > 0 && (
+          {(data.ppv_by_suspected_cancer_type?.length ?? 0) > 0 && (
             <Box sx={{ mb: 2.5 }}>
               <Typography
                 variant="subtitle2"

@@ -39,9 +39,13 @@ describe("VT-32FBAA69 audit template builder - static-source", () => {
 
   // DI-64CA7740 / DO-A9863AB6 AC1
   test("AC1 - MetricPicker fetches metric catalogue from GET /audit-metrics", () => {
-    const src = read(METRIC_PICKER);
-    expect(src).toContain("fetchMetricCatalogue");
-    expect(src).toContain("onAdd");
+    // Catalogue fetching was lifted to TemplateEditor; MetricPicker receives it as a prop.
+    const pickerSrc = read(METRIC_PICKER);
+    expect(pickerSrc).toContain("catalogue");
+    expect(pickerSrc).toContain("onAdd");
+    // TemplateEditor is the actual caller of fetchMetricCatalogue
+    const editorSrc = read(TEMPLATE_EDITOR);
+    expect(editorSrc).toContain("fetchMetricCatalogue");
   });
 
   // DO-A9863AB6 AC2

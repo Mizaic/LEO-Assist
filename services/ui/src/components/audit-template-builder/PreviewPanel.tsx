@@ -17,7 +17,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
 
 import type { OrgInfo } from "@/lib/authContext";
-import type { AuditTile } from "@/lib/auditTemplateApi";
+import type { AuditTile, MetricCatalogueEntry } from "@/lib/auditTemplateApi";
 import AuditTemplateRenderer from "@/components/audit-template-renderer/AuditTemplateRenderer";
 
 interface PreviewPanelProps {
@@ -27,6 +27,7 @@ interface PreviewPanelProps {
   organizations: OrgInfo[];
   previewOrgId: string;
   onOrgChange: (id: string) => void;
+  catalogue?: MetricCatalogueEntry[];
 }
 
 function OrgPicker({
@@ -76,6 +77,7 @@ export default function PreviewPanel({
   organizations,
   previewOrgId,
   onOrgChange,
+  catalogue = [],
 }: PreviewPanelProps) {
   const previewTemplate = useMemo(
     () => ({
@@ -100,8 +102,19 @@ export default function PreviewPanel({
       />
       <Box sx={{ mt: 3 }}>
         {previewOrgId ? (
-          <AuditTemplateRenderer template={previewTemplate} orgId={previewOrgId} />
-        ) : null}
+          <AuditTemplateRenderer
+            template={previewTemplate}
+            orgId={previewOrgId}
+            catalogue={catalogue}
+          />
+        ) : (
+          <AuditTemplateRenderer
+            template={previewTemplate}
+            orgId=""
+            useMockData
+            catalogue={catalogue}
+          />
+        )}
       </Box>
     </Box>
   );

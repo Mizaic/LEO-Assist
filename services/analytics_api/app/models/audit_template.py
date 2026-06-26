@@ -28,6 +28,25 @@ TileType = Literal[
 ]
 
 # ---------------------------------------------------------------------------
+# Story config
+# ---------------------------------------------------------------------------
+
+
+class TileAnnotation(BaseModel):
+    type: Literal["callout", "threshold"]
+    label: str
+    value: Optional[float] = None
+    target_key: Optional[str] = None
+
+
+class TileStoryConfig(BaseModel):
+    headline: Optional[str] = Field(None, max_length=200)
+    highlight_key: Optional[str] = Field(None, max_length=80)
+    annotations: list[TileAnnotation] = Field(default_factory=list)
+    animate_in: bool = False
+
+
+# ---------------------------------------------------------------------------
 # Layout
 # ---------------------------------------------------------------------------
 
@@ -61,6 +80,7 @@ class AuditTileBase(BaseModel):
         description="Optional section heading to group tiles visually",
     )
     layout: TileLayout
+    story: Optional[TileStoryConfig] = None
 
 
 class AuditTileCreate(AuditTileBase):

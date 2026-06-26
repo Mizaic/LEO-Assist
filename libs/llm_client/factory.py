@@ -28,13 +28,14 @@ Usage::
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import random
 import time
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Any
+from typing import Any, Generator, TypedDict
 
 logger = logging.getLogger(__name__)
 _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS: set[str] = set()
@@ -76,6 +77,24 @@ class LLMResponse:
     stop_reason: str
     model_id: str
     tool_uses: list[dict[str, Any]] = field(default_factory=list)
+
+
+class LLMStreamChunk(TypedDict, total=False):
+    """One event yielded by LLMClient.converse_stream().
+
+    type is always present; other fields depend on type:
+      "text_delta"  -- delta: str
+      "tool_use"    -- name: str, input: dict[str, Any]
+      "finish"      -- stop_reason: str
+      "error"       -- message: str
+    """
+
+    type: str
+    delta: str
+    name: str
+    input: dict
+    stop_reason: str
+    message: str
 
 
 # Thinking-token budgets per tier (AWS extended thinking).
@@ -702,6 +721,131 @@ class LLMClient:
             stop_reason=choice.finish_reason if choice else "",
             model_id=self.model_id,
         )
+
+    # ------------------------------------------------------------------
+    # Streaming interface (used by the audit draft assistant)
+    # ------------------------------------------------------------------
+
+    def converse_stream(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        max_tokens: int = 1024,
+        temperature: float = 0.0,
+        tool_config: dict[str, Any] | None = None,
+        *,
+        agent_task: str = "unknown",
+    ) -> Generator[LLMStreamChunk, None, None]:
+        """Yield streaming chunks from the LLM.
+
+        For AWS Bedrock uses ``converse_stream`` so tokens are delivered as
+        they are generated (keeps SSE connections alive through proxies).
+        For Azure OpenAI falls back to a non-streaming ``converse()`` call
+        and yields the complete text and tool-use results as single chunks.
+        """
+        if self.provider == "aws":
+            yield from self._converse_stream_bedrock(
+                system, messages, max_tokens, temperature, tool_config
+            )
+        else:
+            yield from self._converse_stream_azure_fallback(
+                system, messages, max_tokens, temperature, tool_config
+            )
+
+    def _converse_stream_bedrock(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        temperature: float,
+        tool_config: dict[str, Any] | None,
+    ) -> Generator[LLMStreamChunk, None, None]:
+        """Stream tokens from Bedrock converse_stream API."""
+        client = self._get_client()
+        kwargs: dict[str, Any] = dict(
+            modelId=self.model_id,
+            system=[{"text": system}],
+            messages=messages,
+            inferenceConfig={"maxTokens": max_tokens, "temperature": temperature},
+        )
+        if tool_config is not None:
+            kwargs["toolConfig"] = tool_config
+
+        try:
+            response = client.converse_stream(**kwargs)
+        except Exception as exc:
+            yield LLMStreamChunk(type="error", message=str(exc))
+            return
+
+        current_tool_name = ""
+        current_tool_input_buf = ""
+
+        for event in response.get("stream", []):
+            if "contentBlockStart" in event:
+                start = event["contentBlockStart"].get("start", {})
+                if "toolUse" in start:
+                    current_tool_name = start["toolUse"].get("name", "")
+                    current_tool_input_buf = ""
+            elif "contentBlockDelta" in event:
+                delta = event["contentBlockDelta"].get("delta", {})
+                if "text" in delta:
+                    yield LLMStreamChunk(type="text_delta", delta=delta["text"])
+                elif "toolUse" in delta:
+                    current_tool_input_buf += delta["toolUse"].get("input", "")
+            elif "contentBlockStop" in event:
+                if current_tool_name:
+                    try:
+                        tool_input = json.loads(current_tool_input_buf)
+                    except json.JSONDecodeError:
+                        tool_input = {}
+                    yield LLMStreamChunk(
+                        type="tool_use",
+                        name=current_tool_name,
+                        input=tool_input,
+                    )
+                    current_tool_name = ""
+                    current_tool_input_buf = ""
+            elif "messageStop" in event:
+                stop_reason = event["messageStop"].get("stopReason", "")
+                yield LLMStreamChunk(type="finish", stop_reason=stop_reason)
+            elif (
+                "internalServerException" in event
+                or "modelStreamErrorException" in event
+                or "throttlingException" in event
+            ):
+                yield LLMStreamChunk(type="error", message=str(event))
+                return
+
+    def _converse_stream_azure_fallback(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        temperature: float,
+        tool_config: dict[str, Any] | None,
+    ) -> Generator[LLMStreamChunk, None, None]:
+        """Azure does not support Bedrock-style tool_config streaming.
+
+        Falls back to a single blocking converse() call and yields the result
+        as a sequence of chunks so callers see a uniform interface.
+        """
+        try:
+            response = self._converse_azure(
+                self._get_client(), system, messages, max_tokens, temperature
+            )
+        except Exception as exc:
+            yield LLMStreamChunk(type="error", message=str(exc))
+            return
+
+        if response.text:
+            yield LLMStreamChunk(type="text_delta", delta=response.text)
+        for tool_use in response.tool_uses or []:
+            yield LLMStreamChunk(
+                type="tool_use",
+                name=tool_use.get("name", ""),
+                input=tool_use.get("input") or {},
+            )
+        yield LLMStreamChunk(type="finish", stop_reason=response.stop_reason)
 
 
 def create_llm(

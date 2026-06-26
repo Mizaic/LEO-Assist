@@ -61,6 +61,20 @@ export interface TileLayout {
   h: number;
 }
 
+export interface TileAnnotation {
+  type: "callout" | "threshold";
+  label: string;
+  value?: number;
+  target_key?: string;
+}
+
+export interface TileStoryConfig {
+  headline?: string;
+  highlight_key?: string;
+  annotations?: TileAnnotation[];
+  animate_in?: boolean;
+}
+
 export interface AuditTile {
   tile_id: string;
   label: string;
@@ -69,6 +83,7 @@ export interface AuditTile {
   param_overrides: Record<string, unknown>;
   section?: string;
   layout: TileLayout;
+  story?: TileStoryConfig;
 }
 
 export type AuditTemplateStatus = "draft" | "published" | "archived";
