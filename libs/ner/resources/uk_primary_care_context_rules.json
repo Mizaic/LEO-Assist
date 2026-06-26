@@ -327,7 +327,15 @@
       "direction": "FORWARD",
       "max_scope": 8,
       "description": "The clinical reason a referral or investigation is being requested. The condition listed is a current clinical suspicion, not a confirmed diagnosis and not a future event.",
-      "example": "Reasons for request: possible colorectal cancer → current suspicion, not a confirmed diagnosis"
+      "example": "Reasons for request: possible colorectal cancer -> current suspicion, not a confirmed diagnosis"
+    },
+    {
+      "literal": "the reason i am concerned this patient has cancer is",
+      "category": "POSSIBLE_EXISTENCE",
+      "direction": "FORWARD",
+      "max_scope": 12,
+      "description": "NHS eRS 2WW form field stating the clinical reason for cancer suspicion. Conditions and symptoms that follow are current clinical concerns supporting the referral, not confirmed diagnoses.",
+      "example": "The reason I am concerned this patient has cancer is: dysphagia, weight loss -> current suspicion prompting 2WW referral"
     },
     {
       "literal": "clinical information:",

@@ -273,6 +273,12 @@ def evaluator(ng12_ruleset: dict) -> GuidelineEvaluator:
     store.get_ruleset.return_value = ng12_ruleset
     store.get_int_id.side_effect = lambda cid: _INT_IDS.get(cid)
     store.get_bitmap.side_effect = lambda bid: _BITMAPS.get(bid)
+    store.get_int_ids_bulk.side_effect = lambda cids: {
+        cid: _INT_IDS[cid] for cid in cids if cid in _INT_IDS
+    }
+    store.get_bitmaps_bulk.side_effect = lambda bids: {
+        bid: _BITMAPS[bid] for bid in bids if bid in _BITMAPS
+    }
     return GuidelineEvaluator(store=store)
 
 

@@ -128,7 +128,7 @@ def _build_upsert_query(
         match_clause = (
             "MATCH (src:Chunk {id: $source_id}) "
             "OPTIONAL MATCH (src)<-[:HAS_CHUNK]-(:DocumentReference)"
-            "<-[:HAS_DOCUMENT_REFERENCE]-(p:Patient)"
+            "<-[:HAS_DOCUMENT_REFERENCE|HAS_DOCUMENT]-(p)"
         )
 
     return f"""
@@ -434,6 +434,10 @@ def write_documents_from_sentences_payload(
     written = 0
     for sentence_index, sentence in enumerate(sentences_payload):
         sentence_text = sentence.get("text") or ""
+        sentence_source_id = str(sentence.get("sentence_id") or encounter_id).strip()
+        link_source_id = (
+            sentence_source_id if source_label == "Chunk" else encounter_id
+        )
         for term in sentence.get("terms", []):
             coding = term.get("coding") or {}
             concept_id = coding.get("snomed_concept_id")
@@ -504,7 +508,7 @@ def write_documents_from_sentences_payload(
                     term_source = coding.get("source") or source
                     session.run(
                         query,
-                        source_id=encounter_id,
+                        source_id=link_source_id,
                         concept_id=str(concept_id),
                         semantic_tag=semantic_tag,
                         name=coding.get("snomed_term") or span_text,

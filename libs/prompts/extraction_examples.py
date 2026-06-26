@@ -332,6 +332,36 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "output": '{"terms": [{"sentence_id": "s0", "text": "visual disturbance", "lookup_term": "visual disturbance", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
+        "category": "precision:referral_scope:ers_reason",
+        "model_scope": "any",
+        "description": (
+            "NHS eRS 2WW reason-for-referral table cell -- "
+            "extract symptoms and investigation result, skip the label phrase"
+        ),
+        "input": (
+            "[s0] | The reason I am concerned this patient has cancer is: "
+            "significant loss of appetite with intermittent vomiting. "
+            "Patient has difficulty swallowing. FIT neg, "
+            "Date Symptoms Started: end of september | | --- |"
+        ),
+        "output": (
+            '{"terms": ['
+            '{"sentence_id": "s0", "text": "loss of appetite", '
+            '"lookup_term": "loss of appetite", "semantic_tag": "finding", '
+            '"assertion": "present", "value": null, "unit": null, "reference_range": null}, '
+            '{"sentence_id": "s0", "text": "intermittent vomiting", '
+            '"lookup_term": "vomiting", "semantic_tag": "finding", '
+            '"assertion": "present", "value": null, "unit": null, "reference_range": null}, '
+            '{"sentence_id": "s0", "text": "difficulty swallowing", '
+            '"lookup_term": "dysphagia", "semantic_tag": "finding", '
+            '"assertion": "present", "value": null, "unit": null, "reference_range": null}, '
+            '{"sentence_id": "s0", "text": "FIT neg", '
+            '"lookup_term": "faecal immunochemical test", "semantic_tag": "finding", '
+            '"assertion": "present", "value": null, "unit": null, "reference_range": null}'
+            "]}"
+        ),
+    },
+    {
         "category": "situation:referral",
         "model_scope": "any",
         "description": "Referred to specialist - procedure planned",
@@ -597,6 +627,7 @@ _apply_core_by_first_category(
         "precision:referral_scope:lower_gi_fit",
         "precision:referral_scope:submitted",
         "precision:referral_scope:short_span",
+        "precision:referral_scope:ers_reason",
         "finding:investigation",
         "assertion:absent",
         "negation:compound",
