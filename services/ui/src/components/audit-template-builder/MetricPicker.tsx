@@ -9,7 +9,6 @@
  */
 
 import { useState } from "react";
-import { motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -55,16 +54,7 @@ interface MetricPickerProps {
   onAddWidget: (widget: WidgetCatalogueEntry) => void;
 }
 
-const listVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.04 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, x: -10 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.18, ease: "easeOut" } },
-};
-
+// Stagger removed -- replaced with CSS animation on mount
 function MetricCard({
   metric,
   count,
@@ -74,7 +64,6 @@ function MetricCard({
   count: number;
   onAdd: (type: TileType) => void;
 }) {
-  const reduced = useReducedMotion();
   const defaultType = metric.output_type as TileType;
   const compatible = metric.compatible_tile_types ?? [defaultType];
   const used = count > 0;
@@ -153,10 +142,7 @@ function MetricCard({
               title={isDefault ? `Add as ${label} (recommended)` : `Add as ${label}`}
               placement="top"
             >
-              <fm.div
-                whileTap={reduced ? {} : { scale: 0.93 }}
-                style={{ display: "inline-flex" }}
-              >
+              <span style={{ display: "inline-flex" }}>
                 <Chip
                   icon={<Icon style={{ fontSize: 11 }} />}
                   label={label}
@@ -180,7 +166,7 @@ function MetricCard({
                     cursor: "pointer",
                   }}
                 />
-              </fm.div>
+              </span>
             </Tooltip>
           );
         })}
@@ -200,6 +186,7 @@ export default function MetricPicker({ catalogue, loading, error, usedCounts, on
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, height: "100%" }}>
+      <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       <Typography variant="subtitle2" fontWeight={700}>
         Metric library
       </Typography>
@@ -225,23 +212,19 @@ export default function MetricPicker({ catalogue, loading, error, usedCounts, on
               </Box>
             ))
           : (
-            <fm.div
+            <Box
               key={search}
-              variants={listVariants}
-              initial="hidden"
-              animate="visible"
-              style={{ display: "flex", flexDirection: "column", gap: 8 }}
+              style={{ display: "flex", flexDirection: "column", gap: 8, animation: "fadeIn 0.15s ease-out" }}
             >
               {filtered.map((m) => (
-                <fm.div key={m.metric_id} variants={itemVariants}>
-                  <MetricCard
-                    metric={m}
-                    count={usedCounts.get(m.metric_id) ?? 0}
-                    onAdd={(type) => onAdd(m, type)}
-                  />
-                </fm.div>
+                <MetricCard
+                  key={m.metric_id}
+                  metric={m}
+                  count={usedCounts.get(m.metric_id) ?? 0}
+                  onAdd={(type) => onAdd(m, type)}
+                />
               ))}
-            </fm.div>
+            </Box>
           )}
 
         {!loading && filtered.length === 0 && (

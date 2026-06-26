@@ -11,6 +11,9 @@
  * TC-008 search filters roles by label
  * TC-009 org step shown when multiple orgs are supplied
  * TC-010 welcome message displays user name
+ * TC-011 platform admin skips org step and goes straight to role list
+ * TC-012 roles not in allowedRoles are rendered disabled with "Not assigned"
+ * TC-013 roles in allowedRoles are enabled and clickable
  */
 
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -230,5 +233,75 @@ describe("VT-129 - Role-first primitives", () => {
       </RoleProvider>,
     );
     expect(screen.getByText(/Welcome, Alice Jones/i)).toBeInTheDocument();
+  });
+
+  test("TC-011 platform admin skips org step and goes straight to role list", () => {
+    const state: RoleState = {
+      selectedRole: null,
+      allowedRoles: ["platform_admin", "triage_clinician"],
+      needsSessionRoleChoice: true,
+    };
+    const orgs = [
+      { id: "org-1", name: "GP Surgery A", odsCode: "A12345" },
+      { id: "org-2", name: "GP Surgery B", odsCode: "B67890" },
+    ];
+    render(
+      <RoleProvider initialState={state} api={makeApi(state)}>
+        <RoleGate organizations={orgs} isPlatformAdmin={true}>
+          <div>app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    // Org step must NOT be shown even though two orgs are supplied.
+    expect(screen.queryByText(/Choose Your Organisation/i)).not.toBeInTheDocument();
+    // Role step heading must be shown immediately.
+    expect(screen.getByRole("heading", { name: /Choose Your Role/i })).toBeInTheDocument();
+    // Admin note is visible (appears in the warning note text).
+    expect(screen.getAllByText(/Platform admin/i).length).toBeGreaterThan(0);
+  });
+
+  test("TC-012 roles not in allowedRoles are rendered disabled with Not assigned label", () => {
+    const state: RoleState = {
+      selectedRole: null,
+      // Only triage_clinician is allowed; all other roles should appear disabled.
+      allowedRoles: ["triage_clinician"],
+      needsSessionRoleChoice: true,
+    };
+    render(
+      <RoleProvider initialState={state} api={makeApi(state)}>
+        <RoleGate>
+          <div>app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    // "Not assigned" label must appear for at least one unavailable role.
+    const notAssigned = screen.getAllByText(/Not assigned/i);
+    expect(notAssigned.length).toBeGreaterThan(0);
+    // All "Not assigned" role buttons must be disabled.
+    const disabledBtns = screen
+      .getAllByRole("radio")
+      .filter((el) => (el as HTMLButtonElement).disabled);
+    expect(disabledBtns.length).toBeGreaterThan(0);
+  });
+
+  test("TC-013 roles in allowedRoles are enabled and clickable", async () => {
+    const user = userEvent.setup();
+    let confirmed = "";
+    const state: RoleState = {
+      selectedRole: null,
+      allowedRoles: ["triage_clinician"],
+      needsSessionRoleChoice: true,
+    };
+    render(
+      <RoleProvider initialState={state} api={makeApi(state, (r) => { confirmed = r; })}>
+        <RoleGate>
+          <div>app</div>
+        </RoleGate>
+      </RoleProvider>,
+    );
+    const triage = screen.getByRole("radio", { name: /Triage Clinician/i });
+    expect((triage as HTMLButtonElement).disabled).toBe(false);
+    await act(async () => { await user.click(triage); });
+    expect(confirmed).toBe("triage_clinician");
   });
 });

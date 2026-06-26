@@ -35,7 +35,7 @@ import {
 import { resolvePages, tilesForPage } from "@/lib/auditPages";
 import { useOrg } from "@/context/OrgContext";
 import MetricPicker from "./MetricPicker";
-import TileGrid from "./TileGrid";
+import CanvasGrid from "./CanvasGrid";
 import TileConfigPanel from "./TileConfigPanel";
 import PublishDialog from "./PublishDialog";
 import PreviewPanel from "./PreviewPanel";
@@ -51,8 +51,10 @@ function newTile(
   index: number,
   pageId: string,
   tileType?: TileType,
+  at?: { x: number; y: number },
 ): AuditTile {
-  const col = (index % 3) * 4;
+  const col = at ? at.x : (index % 3) * 4;
+  const row = at ? at.y : Math.floor(index / 3) * 3;
   return {
     tile_id: `tile-${Date.now()}-${index}`,
     label: metric.title,
@@ -61,7 +63,7 @@ function newTile(
     param_overrides: {},
     section: undefined,
     page_id: pageId,
-    layout: { x: col, y: Math.floor(index / 3) * 3, w: 4, h: 3 },
+    layout: { x: col, y: row, w: 4, h: 3 },
   };
 }
 
@@ -199,23 +201,39 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
   );
 
   const handleDropMetric = useCallback(
-    (metricId: string, tileType: TileType) => {
+    (metricId: string, tileType: TileType, at?: { x: number; y: number }) => {
       const metric = catalogueById.get(metricId);
       if (metric)
         setTiles((prev) => {
           const idx = tilesForPage(prev, activePageId, isFirstPage).length;
-          return [...prev, newTile(metric, idx, activePageId, tileType)];
+          return [...prev, newTile(metric, idx, activePageId, tileType, at)];
         });
     },
     [catalogueById, activePageId, isFirstPage],
   );
 
   const handleDropWidget = useCallback(
-    (widgetId: string) => {
+    (widgetId: string, at?: { x: number; y: number }) => {
       const widget = WIDGET_CATALOGUE.find((w) => w.widget_id === widgetId);
-      if (widget) handleAddWidget(widget);
+      if (!widget) return;
+      setTiles((prev) => {
+        const index = tilesForPage(prev, activePageId, isFirstPage).length;
+        const col = at ? at.x : (index % 2) * 6;
+        const row = at ? at.y : Math.floor(index / 2) * 5;
+        const entry: AuditTile = {
+          tile_id: `tile-widget-${Date.now()}-${index}`,
+          label: widget.title,
+          tile_type: "widget",
+          metric_id: widget.widget_id,
+          param_overrides: {},
+          section: undefined,
+          page_id: activePageId,
+          layout: { x: col, y: row, w: 12, h: 5 },
+        };
+        return [...prev, entry];
+      });
     },
-    [handleAddWidget],
+    [activePageId, isFirstPage],
   );
 
   const handleRemoveTile = useCallback((id: string) => {
@@ -362,7 +380,7 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
         </Button>
       </Box>
 
-      {/* Main layout: preview OR picker | grid | config */}
+      {/* Main layout: preview OR picker | canvas (floating config) */}
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {previewMode ? (
           <PreviewPanel
@@ -377,15 +395,16 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
           />
         ) : (
           <>
-            {/* Metric picker */}
+            {/* Metric picker sidebar */}
             <Box
               sx={{
-                width: 260,
+                width: 240,
                 flexShrink: 0,
                 borderRight: "1px solid",
                 borderColor: "divider",
                 p: 1.5,
                 overflowY: "auto",
+                bgcolor: "background.paper",
               }}
             >
               <MetricPicker
@@ -398,8 +417,8 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
               />
             </Box>
 
-            {/* Tile grid with page tabs */}
-            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            {/* Canvas area with page tabs + floating config */}
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
               <PageTabs
                 pages={pages}
                 activePageId={activePageId}
@@ -409,46 +428,53 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
                 onDelete={handleDeletePage}
               />
               <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
-                <TileGrid
+                <CanvasGrid
                   tiles={pageTiles}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  onSelect={(id) => setSelectedId(id)}
                   onRemove={handleRemoveTile}
-                  onTypeChange={handleTypeChange}
                   onLayoutChange={handlePageLayoutChange}
                   onOpenAssistant={() => setAssistantOpen(true)}
                   onDropMetric={handleDropMetric}
                   onDropWidget={handleDropWidget}
                 />
               </Box>
-            </Box>
 
-            {/* Tile config */}
-            {selectedTile && (
+              {/* Floating config panel -- slides in over the canvas */}
               <Box
                 sx={{
-                  width: 240,
-                  flexShrink: 0,
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 260,
+                  bgcolor: "background.paper",
                   borderLeft: "1px solid",
                   borderColor: "divider",
-                  p: 1.5,
                   overflowY: "auto",
+                  boxShadow: "-4px 0 16px rgba(0,0,0,0.08)",
+                  transform: selectedTile ? "translateX(0)" : "translateX(100%)",
+                  transition: "transform 200ms ease-out",
+                  zIndex: 10,
+                  p: 1.5,
                 }}
               >
-                <TileConfigPanel
-                  tile={selectedTile}
-                  compatibleTypes={
-                    catalogueById.get(selectedTile.metric_id)?.compatible_tile_types
-                  }
-                  recommendedType={
-                    catalogueById.get(selectedTile.metric_id)?.output_type as TileType | undefined
-                  }
-                  paramSchema={catalogueById.get(selectedTile.metric_id)?.param_schema}
-                  onChange={handleTileChange}
-                  onRemove={handleRemoveTile}
-                />
+                {selectedTile && (
+                  <TileConfigPanel
+                    tile={selectedTile}
+                    compatibleTypes={
+                      catalogueById.get(selectedTile.metric_id)?.compatible_tile_types
+                    }
+                    recommendedType={
+                      catalogueById.get(selectedTile.metric_id)?.output_type as TileType | undefined
+                    }
+                    paramSchema={catalogueById.get(selectedTile.metric_id)?.param_schema}
+                    onChange={handleTileChange}
+                    onRemove={handleRemoveTile}
+                  />
+                )}
               </Box>
-            )}
+            </Box>
           </>
         )}
       </Box>
