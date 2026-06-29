@@ -20,6 +20,7 @@ param imageTag string = 'placeholder'
 var usePlaceholder = imageTag == 'placeholder'
 var placeholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 var registryConfig = usePlaceholder ? [] : [{ server: acrLoginServer, identity: managedIdentityId }]
+var storageAccountUrl = 'https://${storageAccountName}.blob.${az.environment().suffixes.storage}'
 
 // Non-secret config values passed from parameters file
 param neo4jUser string
@@ -30,6 +31,7 @@ param azureOpenAiSmallModel string
 param azureOpenAiApiVersion string
 param codingExtractorBackend string
 param codingExtractorStrict string
+param storageAccountName string
 param modelStoreContainer string
 param modelStoreModelName string
 param hitlLowConfidenceThreshold string
@@ -47,7 +49,7 @@ param frontendUrl string
 // GitHub Actions / az deployment group create does not drop a portal-only binding.
 param uiCustomHostname string = ''
 // ARM resource ID of the managed certificate in this Container Apps environment, e.g.
-// /subscriptions/.../managedEnvironments/leoai-dev-cae/managedCertificates/<name>
+// /subscriptions/.../managedEnvironments/mizaicai-dev-cae/managedCertificates/<name>
 param uiManagedCertificateId string = ''
 param snomedTerminologyServer string = ''
 
@@ -67,7 +69,7 @@ param mailFromAddress string
 // Set to the same value in val and prod when they share one Aura KG instance.
 param knowledgeGraphEnvironment string = environment
 
-var prefix = 'leoai-${environment}'
+var prefix = 'mizaicai-${environment}'
 var caeName = '${prefix}-cae'
 var logWorkspaceName = '${prefix}-logs'
 
@@ -175,6 +177,7 @@ var sharedEnv = [
   { name: 'AZURE_KEYVAULT_URL', value: kvUri }
   { name: 'AZURE_CLIENT_ID', value: managedIdentityClientId }
   { name: 'AZURE_SERVICE_BUS_NAMESPACE', value: sbNamespaceFqdn }
+  { name: 'AZURE_STORAGE_ACCOUNT_URL', value: storageAccountUrl }
 
   // Azure OpenAI (non-secret config)
   { name: 'OPENAI_API_TYPE', value: 'azure' }
@@ -287,7 +290,6 @@ var sharedEnv = [
   { name: 'AZURE_AD_TENANT_ID', secretRef: 'azure-ad-tenant-id' }
   { name: 'AZURE_AD_CLIENT_SECRET', secretRef: 'azure-ad-client-secret' }
   { name: 'AZURE_OPENAI_API_KEY', secretRef: 'azure-openai-api-key' }
-  { name: 'AZURE_STORAGE_CONNECTION_STRING', secretRef: 'azure-storage-connection-string' }
   { name: 'AZURE_SERVICE_BUS_CONNECTION_STRING', secretRef: 'azure-service-bus-connection-string' }
   { name: 'AWS_ACCESS_KEY_ID', secretRef: 'aws-access-key-id' }
   { name: 'AWS_SECRET_ACCESS_KEY', secretRef: 'aws-secret-access-key' }
@@ -317,7 +319,6 @@ var sharedSecrets = [
   { name: 'azure-ad-client-secret', keyVaultUrl: '${kvUri}secrets/azure-ad-client-secret', identity: managedIdentityId }
   { name: 'azure-ad-tenant-id', keyVaultUrl: '${kvUri}secrets/azure-ad-tenant-id', identity: managedIdentityId }
   { name: 'azure-openai-api-key', keyVaultUrl: '${kvUri}secrets/azure-openai-api-key', identity: managedIdentityId }
-  { name: 'azure-storage-connection-string', keyVaultUrl: '${kvUri}secrets/azure-storage-connection-string', identity: managedIdentityId }
   { name: 'azure-service-bus-connection-string', keyVaultUrl: '${kvUri}secrets/azure-service-bus-connection-string', identity: managedIdentityId }
   { name: 'aws-access-key-id', keyVaultUrl: '${kvUri}secrets/aws-access-key-id', identity: managedIdentityId }
   { name: 'aws-secret-access-key', keyVaultUrl: '${kvUri}secrets/aws-secret-access-key', identity: managedIdentityId }
@@ -328,6 +329,9 @@ var sharedSecrets = [
   { name: 'umls-api-key', keyVaultUrl: '${kvUri}secrets/umls-api-key', identity: managedIdentityId }
   { name: 'nhs-trud-api-key', keyVaultUrl: '${kvUri}secrets/nhs-trud-api-key', identity: managedIdentityId }
   { name: 'azure-ad-client-id', keyVaultUrl: '${kvUri}secrets/azure-ad-client-id', identity: managedIdentityId }
+  { name: 'mail-graph-tenant-id', keyVaultUrl: '${kvUri}secrets/mail-graph-tenant-id', identity: managedIdentityId }
+  { name: 'mail-graph-client-id', keyVaultUrl: '${kvUri}secrets/mail-graph-client-id', identity: managedIdentityId }
+  { name: 'mail-graph-client-secret', keyVaultUrl: '${kvUri}secrets/mail-graph-client-secret', identity: managedIdentityId }
   { name: 'analytics-api-app-id', keyVaultUrl: '${kvUri}secrets/analytics-api-app-id', identity: managedIdentityId }
   { name: 'fhir-api-app-id', keyVaultUrl: '${kvUri}secrets/fhir-api-app-id', identity: managedIdentityId }
   { name: 'model-inference-app-id', keyVaultUrl: '${kvUri}secrets/model-inference-app-id', identity: managedIdentityId }
@@ -385,6 +389,9 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'AUTH_REDIRECT_URI', value: '${frontendUrl}/auth/callback' }
           { name: 'WIDGET_PUBLIC_HOST', value: widgetPublicHost }
           { name: 'MAIL_FROM_ADDRESS', value: mailFromAddress }
+          { name: 'MAIL_GRAPH_TENANT_ID', secretRef: 'mail-graph-tenant-id' }
+          { name: 'MAIL_GRAPH_CLIENT_ID', secretRef: 'mail-graph-client-id' }
+          { name: 'MAIL_GRAPH_CLIENT_SECRET', secretRef: 'mail-graph-client-secret' }
           // Multi-worker uvicorn: 2 workers per 1.0 vCPU container is the
           // sweet spot before context-switching dominates. Distroless image
           // has no shell so we set UVICORN_WORKERS instead of using

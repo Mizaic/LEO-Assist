@@ -13,7 +13,7 @@ lives in three places:
 | Surface             | Where to set                                              |
 | -----               | ----                                                      |
 | Local dev / scripts | `secrets/.env.config` -> `WIDGET_PUBLIC_HOST`             |
-| Azure infra         | `infra/widget-cdn/parameters/{env}.bicepparam` -> `widgetPublicHost` |
+| Azure infra         | `infra/bicep/parameters/{env}.bicepparam` -> `widgetPublicHost` (auto-written by `deploy-widget-cdn.ps1`) |
 | GitHub Actions      | per-environment secret `WIDGET_PUBLIC_HOST`               |
 
 All three MUST be the Azure Static Website hostname from
@@ -86,30 +86,37 @@ with `Cache-Control: public, max-age=60, must-revalidate`.
 
 ## One-time setup (per environment)
 
+Run **before** `deploy.ps1` for the same environment. On greenfield, this
+step populates `widgetPublicHost` and the widget CORS origin in
+`infra/bicep/parameters/{env}.bicepparam`.
+
 ### 1. Provision the Azure origin
 
+```powershell
+.\infra\scripts\deploy-widget-cdn.ps1 -Environment dev
 ```
-az group create -n leo-widget-cdn-prod -l uksouth
+
+To re-sync hostname into bicepparam files after an account move:
+
+```powershell
+.\infra\scripts\sync-widget-cdn-params.ps1 -Environment dev
+```
+
+Equivalent CLI:
+
+```
+az group create -n leo-widget-cdn-dev -l uksouth
 
 az deployment group create \
-  --resource-group leo-widget-cdn-prod \
+  --resource-group leo-widget-cdn-dev \
   --template-file infra/widget-cdn/widget-cdn.bicep \
-  --parameters infra/widget-cdn/parameters/prod.bicepparam
+  --parameters infra/widget-cdn/parameters/dev.bicepparam
 ```
 
-Enable Static Website hosting (the bicep type does not yet expose
-this flag):
+Static website hosting and bicepparam sync are handled by
+`deploy-widget-cdn.ps1` (`index.html` / `404.html`, RBAC auth).
 
-```
-az storage blob service-properties update \
-  --account-name leoaiwidgetcdnprod \
-  --static-website \
-  --index-document index.html \
-  --404-document   404.html
-```
-
-Copy the `primaryEndpoints.web` hostname into `{env}.bicepparam`
-(`widgetPublicHost`) and the GitHub `WIDGET_PUBLIC_HOST` secret.
+Copy `WIDGET_PUBLIC_HOST` into GitHub secrets and `secrets/.env.config`.
 
 ### 2. Set GitHub Actions secrets
 
@@ -154,7 +161,7 @@ Immutable bundle updates are visible immediately (no edge purge).
 ## Moving hosting
 
 1. Stand up the new storage account / static website.
-2. Update `infra/widget-cdn/parameters/{env}.bicepparam` -> `widgetPublicHost`.
+2. Run `sync-widget-cdn-params.ps1 -Environment {env}` (or redeploy via `deploy-widget-cdn.ps1`).
 3. Update `WIDGET_PUBLIC_HOST` in GitHub and `secrets/.env.config`.
 4. Re-run `widget-release.yml`.
 
@@ -177,6 +184,8 @@ or cache rules for the widget origin unless product policy changes.
 | Advisory client      | `services/widget-sdk/src/release/advisory.ts`           |
 | Pre-release gate     | `scripts/widget_release_gate.py`                        |
 | CI build/deploy      | `.github/workflows/widget-release.yml`                  |
+| Deploy script        | `infra/scripts/deploy-widget-cdn.ps1`                   |
+| Param sync script    | `infra/scripts/sync-widget-cdn-params.ps1`              |
 | Origin bicep         | `infra/widget-cdn/widget-cdn.bicep`                     |
 | Bicep params (env)   | `infra/widget-cdn/parameters/{env}.bicepparam`          |
 | 404 document         | `infra/widget-cdn/static-website/404.html`              |

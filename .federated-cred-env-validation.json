@@ -1,7 +1,7 @@
 {
   "name": "leo-ai-cd-env-validation",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:Healthcare-Copilot/LEO-AI-CORE:environment:validation",
+  "subject": "repo:Mizaic/LEO-AI-CORE:environment:validation",
   "description": "GitHub Actions CD deploy-val job (environment: validation)",
   "audiences": ["api://AzureADTokenExchange"]
 }

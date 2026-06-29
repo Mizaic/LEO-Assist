@@ -16,7 +16,7 @@ name: Widget release - build, gate, deploy
 #
 # Widget CDN is Azure Storage Static Website only (no Cloudflare).
 # WIDGET_PUBLIC_HOST must match the account primaryEndpoints.web
-# hostname (same value in infra/widget-cdn/parameters/{env}.bicepparam).
+# hostname (same value in infra/bicep/parameters/{env}.bicepparam widgetPublicHost).
 #
 # How to trigger
 #   - workflow_dispatch with environment=dev|validation|production (manual)

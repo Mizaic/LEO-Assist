@@ -17,13 +17,11 @@ Blob path convention
 
 Environment variables
 ---------------------
-AZURE_STORAGE_CONNECTION_STRING   Azure Blob Storage connection string.
-                                  Preferred -- used when set (sourced from Key Vault
-                                  in ACA; set locally in your .env / secrets/.env).
-AZURE_STORAGE_ACCOUNT_URL         Azure Blob Storage account URL fallback.
-                                  (e.g. https://leoaimodels.blob.core.windows.net)
-                                  Uses DefaultAzureCredential (Managed Identity in ACA,
-                                  az login locally). Used when connection string is absent.
+AZURE_STORAGE_ACCOUNT_URL         Azure Blob Storage account URL (preferred).
+                                  (e.g. https://leoteststoresa.blob.core.windows.net)
+                                  Uses DefaultAzureCredential (managed identity in ACA,
+                                  az login locally). Set by Bicep in deployed environments.
+AZURE_STORAGE_CONNECTION_STRING   Optional local-dev override only (not used in ACA).
 MODEL_STORE_CONTAINER             Container name (default: "ner-models")
 MODEL_STORE_MODEL_NAME            Model name prefix (default: "medspacy_clinical_ner")
 MODEL_STORE_CACHE_DIR             Local directory for downloaded model cache
@@ -31,7 +29,7 @@ MODEL_STORE_CACHE_DIR             Local directory for downloaded model cache
 
 Fallback / local dev
 --------------------
-Leave both AZURE_STORAGE_CONNECTION_STRING and AZURE_STORAGE_ACCOUNT_URL unset to
+Leave AZURE_STORAGE_ACCOUNT_URL and AZURE_STORAGE_CONNECTION_STRING unset to
 activate the local-filesystem fallback. The store will read/write from
 MODEL_STORE_CACHE_DIR instead of blob.
 """
@@ -90,7 +88,7 @@ class ModelArtifact:
 class ModelStore:
     """Versioned model artifact store backed by Azure Blob Storage.
 
-    Falls back to local filesystem when no connection string is configured.
+    Falls back to local filesystem when no Azure storage config is set.
     """
 
     def __init__(self) -> None:
@@ -104,13 +102,7 @@ class ModelStore:
         try:
             from azure.storage.blob import BlobServiceClient
 
-            if _CONNECTION_STRING:
-                client = BlobServiceClient.from_connection_string(_CONNECTION_STRING)
-                logger.info(
-                    "ModelStore: connected via connection string, container=%s",
-                    self._container,
-                )
-            elif _ACCOUNT_URL:
+            if _ACCOUNT_URL:
                 from libs.azure.credentials import get_credential
 
                 client = BlobServiceClient(
@@ -120,6 +112,12 @@ class ModelStore:
                     "ModelStore: connected via account URL + managed identity, container=%s",
                     self._container,
                 )
+            elif _CONNECTION_STRING:
+                client = BlobServiceClient.from_connection_string(_CONNECTION_STRING)
+                logger.info(
+                    "ModelStore: connected via connection string, container=%s",
+                    self._container,
+                )
             else:
                 logger.info(
                     "ModelStore: no Azure credentials set -- using local filesystem at %s",
@@ -127,10 +125,6 @@ class ModelStore:
                 )
                 return None
 
-            try:
-                client.create_container(self._container)
-            except Exception:
-                pass  # container already exists
             return client
 
         except Exception:

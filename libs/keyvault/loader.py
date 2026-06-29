@@ -15,7 +15,7 @@ The Bicep also wires secrets directly via secretRef, so this loader acts as
 a belt-and-braces fallback and for the local development path.
 
 Locally: two supported paths.
-1. Set AZURE_KEYVAULT_URL=https://leoai-dev-kv.vault.azure.net in your
+1. Set AZURE_KEYVAULT_URL=https://mizaicai-dev-kv.vault.azure.net in your
    shell (or in secrets/.env.config) and run az login once. The function
    will pull all secrets from Key Vault into os.environ.
 2. Run `scripts/sync-secrets-local.ps1` (Windows) or otherwise populate
@@ -55,11 +55,13 @@ SECRET_MAP: dict[str, str] = {
     "AZURE_AD_CLIENT_ID": "azure-ad-client-id",
     "AZURE_AD_CLIENT_SECRET": "azure-ad-client-secret",
     "AZURE_AD_TENANT_ID": "azure-ad-tenant-id",
+    "MAIL_GRAPH_TENANT_ID": "mail-graph-tenant-id",
+    "MAIL_GRAPH_CLIENT_ID": "mail-graph-client-id",
+    "MAIL_GRAPH_CLIENT_SECRET": "mail-graph-client-secret",
     # Azure OpenAI
     "AZURE_OPENAI_API_KEY": "azure-openai-api-key",
     "AZURE_OPENAI_ENDPOINT": "azure-openai-endpoint",
-    # Azure Storage + Service Bus
-    "AZURE_STORAGE_CONNECTION_STRING": "azure-storage-connection-string",
+    # Service Bus (Storage uses managed identity via AZURE_STORAGE_ACCOUNT_URL in Bicep)
     "AZURE_SERVICE_BUS_CONNECTION_STRING": "azure-service-bus-connection-string",
     # AWS Bedrock
     "AWS_ACCESS_KEY_ID": "aws-access-key-id",
