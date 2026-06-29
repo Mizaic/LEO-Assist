@@ -103,6 +103,7 @@ export const STRENGTH_LABELS: Array<{ value: string; label: string }> = [
   { value: "offer", label: "Offer this test or referral" },
   { value: "consider", label: "Think about this test or referral" },
   { value: "refer", label: "Refer urgently" },
+  { value: "discuss", label: "Discuss with specialist" },
   { value: "safety_net", label: "Watch and check back" },
   { value: "do_not_offer", label: "Do not offer this" },
   { value: "unspecified", label: "Not specified yet" },

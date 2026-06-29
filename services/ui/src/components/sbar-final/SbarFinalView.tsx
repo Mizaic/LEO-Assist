@@ -260,7 +260,7 @@ function SectionSourcesPanel({
 }: SectionSourcesPanelProps) {
   const [open, setOpen] = useState(false);
   if (parts.length === 0) return null;
-  const totalIds = parts.reduce((acc, p) => acc + p.sourceIds.length, 0);
+  const totalIds = parts.reduce((acc, p) => acc + (p.sourceIds?.length ?? 0), 0);
   if (totalIds === 0) return null;
   return (
     <Box
@@ -306,7 +306,7 @@ function SectionSourcesPanel({
                   : ""}
               </Typography>
               <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                {p.sourceIds.map((id) => (
+                {(p.sourceIds ?? []).map((id) => (
                   <Chip
                     key={id}
                     size="small"

@@ -29,6 +29,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import Badge from "@mui/material/Badge";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
@@ -640,19 +641,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {(organizations.length > 0 || isPlatformAdmin) && (
         <Box sx={{ px: 1.5, py: 1.5 }}>
           <Box
-            component="label"
-            htmlFor="leo-org-select"
             sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}
+            aria-hidden="true"
           >
             <BusinessOutlinedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: 0.5 }}>
               ORGANISATION
             </Typography>
           </Box>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" data-testid="org-select-form-control">
+            <InputLabel
+              id="leo-org-select-label"
+              sx={{
+                position: "absolute",
+                width: 1,
+                height: 1,
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                clip: "rect(0,0,0,0)",
+                border: 0,
+                padding: 0,
+              }}
+            >
+              Select organisation
+            </InputLabel>
             <Select
               id="leo-org-select"
-              inputProps={{ "aria-label": "Select organisation" }}
+              labelId="leo-org-select-label"
               value={viewAll ? "__all__" : (currentOrg?.id ?? "")}
               onChange={(e) => switchOrg(e.target.value as string)}
               displayEmpty

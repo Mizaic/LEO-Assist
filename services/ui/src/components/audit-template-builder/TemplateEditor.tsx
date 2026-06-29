@@ -33,6 +33,7 @@ import {
   type WidgetCatalogueEntry,
 } from "@/lib/auditTemplateApi";
 import { resolvePages, tilesForPage } from "@/lib/auditPages";
+import { type ContentBlockEntry } from "@/lib/contentBlocks";
 import { useOrg } from "@/context/OrgContext";
 import MetricPicker from "./MetricPicker";
 import CanvasGrid from "./CanvasGrid";
@@ -41,6 +42,10 @@ import PublishDialog from "./PublishDialog";
 import PreviewPanel from "./PreviewPanel";
 import AuditDraftAssistant from "./AuditDraftAssistant";
 import PageTabs from "./PageTabs";
+import {
+  type StarterLayout as StarterLayoutDef,
+  pickMetricsForSlots,
+} from "./StarterLayouts";
 
 interface TemplateEditorProps {
   initial?: AuditTemplate;
@@ -200,6 +205,27 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
     [activePageId, isFirstPage],
   );
 
+  const handleAddContent = useCallback(
+    (block: ContentBlockEntry) => {
+      setTiles((prev) => {
+        const index = tilesForPage(prev, activePageId, isFirstPage).length;
+        const maxY = prev.reduce((m, t) => Math.max(m, (t.layout?.y ?? 0) + (t.layout?.h ?? 1)), 0);
+        const entry: AuditTile = {
+          tile_id: `tile-content-${Date.now()}-${index}`,
+          label: block.label,
+          tile_type: "text",
+          metric_id: block.block_id,
+          param_overrides: { ...block.defaultParams },
+          section: undefined,
+          page_id: activePageId,
+          layout: { x: 0, y: maxY, ...block.defaultLayout },
+        };
+        return [...prev, entry];
+      });
+    },
+    [activePageId, isFirstPage],
+  );
+
   const handleDropMetric = useCallback(
     (metricId: string, tileType: TileType, at?: { x: number; y: number }) => {
       const metric = catalogueById.get(metricId);
@@ -234,6 +260,26 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
       });
     },
     [activePageId, isFirstPage],
+  );
+
+  const handleAddStarter = useCallback(
+    (starter: StarterLayoutDef, cat: MetricCatalogueEntry[]) => {
+      const assignments = pickMetricsForSlots(starter.slots, cat);
+      setTiles((prev) => {
+        const newTiles = assignments.map(({ slot, metric }, i) => ({
+          tile_id: `tile-starter-${Date.now()}-${i}`,
+          label: metric.title,
+          tile_type: slot.tileType as AuditTile["tile_type"],
+          metric_id: metric.metric_id,
+          param_overrides: {},
+          section: undefined,
+          page_id: activePageId,
+          layout: { ...slot.layout },
+        }));
+        return [...prev, ...newTiles];
+      });
+    },
+    [activePageId],
   );
 
   const handleRemoveTile = useCallback((id: string) => {
@@ -410,6 +456,8 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
               <MetricPicker
                 onAdd={handleAddMetric}
                 onAddWidget={handleAddWidget}
+                onAddStarter={handleAddStarter}
+                onAddContent={handleAddContent}
                 usedCounts={usedCounts}
                 catalogue={catalogue}
                 loading={catalogueLoading}
@@ -430,10 +478,12 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
               <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
                 <CanvasGrid
                   tiles={pageTiles}
+                  catalogue={catalogue}
                   selectedId={selectedId}
                   onSelect={(id) => setSelectedId(id)}
                   onRemove={handleRemoveTile}
                   onLayoutChange={handlePageLayoutChange}
+                  onTileParamChange={handleTileChange}
                   onOpenAssistant={() => setAssistantOpen(true)}
                   onDropMetric={handleDropMetric}
                   onDropWidget={handleDropWidget}

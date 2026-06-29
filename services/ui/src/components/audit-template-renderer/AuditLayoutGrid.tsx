@@ -13,8 +13,10 @@
 import Box from "@mui/material/Box";
 
 import type { AuditTile, MetricCatalogueEntry, MetricRunResult } from "@/lib/auditTemplateApi";
+import { isContentBlock } from "@/lib/contentBlocks";
 import MetricTile from "./MetricTile";
 import WidgetTile from "./WidgetTile";
+import ContentBlockTile from "./ContentBlockTile";
 
 const COLS = 12;
 const ROW_HEIGHT = 80;
@@ -75,7 +77,9 @@ export default function AuditLayoutGrid({
               gridRow: { xs: "auto", md: `${y + 1} / span ${h}` },
             }}
           >
-            {tile.tile_type === "widget" ? (
+            {isContentBlock(tile.metric_id) ? (
+              <ContentBlockTile tile={tile} />
+            ) : tile.tile_type === "widget" ? (
               <WidgetTile tile={tile} orgId={orgId} />
             ) : (
               <MetricTile tile={tile} orgId={orgId} mockData={mockDataMap.get(tile.metric_id)} />

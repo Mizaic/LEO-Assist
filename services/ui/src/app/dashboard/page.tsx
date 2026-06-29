@@ -449,7 +449,7 @@ export default function DashboardPage() {
                 {CARE_OVERVIEW_CHART_COPY.referrals.description}
               </Typography>
               {loading ? (
-                <Skeleton variant="rectangular" height={280} aria-label="Loading referrals chart" />
+                <Skeleton variant="rectangular" height={280} role="img" aria-label="Loading referrals chart" />
               ) : sectionErrors.episodes ? (
                 <Alert severity="error">{sectionErrors.episodes}</Alert>
               ) : episodes.length === 0 ? (
@@ -472,7 +472,7 @@ export default function DashboardPage() {
                 {CARE_OVERVIEW_CHART_COPY.diagnosed.description}
               </Typography>
               {loading ? (
-                <Skeleton variant="rectangular" height={280} aria-label="Loading confirmed cancers chart" />
+                <Skeleton variant="rectangular" height={280} role="img" aria-label="Loading confirmed cancers chart" />
               ) : sectionErrors.diagnosed ? (
                 <Alert severity="error">{sectionErrors.diagnosed}</Alert>
               ) : diagnosed.length === 0 ? (
@@ -499,7 +499,7 @@ export default function DashboardPage() {
                 {CARE_OVERVIEW_CHART_COPY.kpis.description}
               </Typography>
               {loading ? (
-                <Skeleton variant="rectangular" height={240} aria-label="Loading waiting times" />
+                <Skeleton variant="rectangular" height={240} role="img" aria-label="Loading waiting times" />
               ) : sectionErrors.kpis ? (
                 <Alert severity="error">{sectionErrors.kpis}</Alert>
               ) : (
@@ -521,7 +521,7 @@ export default function DashboardPage() {
                 )}
               </Typography>
               {loading ? (
-                <Skeleton variant="rectangular" height={200} aria-label="Loading safety alerts" />
+                <Skeleton variant="rectangular" height={200} role="img" aria-label="Loading safety alerts" />
               ) : sectionErrors.alerts ? (
                 <Alert severity="error">{sectionErrors.alerts}</Alert>
               ) : alerts.length === 0 ? (

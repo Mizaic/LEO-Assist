@@ -33,6 +33,18 @@ test.describe("a11y baseline (VT-LEO-AI-115)", () => {
     await page.goto("/care/dashboard");
     await page.waitForURL("**/care/dashboard**", { timeout: 15000 });
     await page.waitForLoadState("load");
+    // Wait for inline-opacity animations (framer-motion) and MUI CSS variables
+    // to settle before axe scans. Elements at opacity 0 (hidden) are allowed.
+    await page.waitForFunction(
+      () => {
+        const animated = document.querySelectorAll('[style*="opacity"]');
+        return Array.from(animated).every((el) => {
+          const op = parseFloat((el as HTMLElement).style.opacity);
+          return isNaN(op) || op <= 0 || op >= 0.99;
+        });
+      },
+      { timeout: 8000 },
+    ).catch(() => {});
 
     const results = await analyzeWcag(page);
     const blockers = results.violations.filter(
@@ -95,8 +107,28 @@ test.describe("a11y baseline (VT-LEO-AI-115)", () => {
     "guidance admin page passes WCAG 2.1 AA (rule-edit wizard host, DI-061AD3D1)",
     async ({ page }) => {
       await page.goto("/admin/guidance");
-      await page.waitForURL("**/admin/guidance**", { timeout: 15000 });
       await page.waitForLoadState("load");
+      // Wait for the IntroCard to mount inside the knowledge page layout.
+      await page.waitForSelector(
+        '[data-testid="intro-card-knowledge-clinical-guidelines"]',
+        { state: "visible", timeout: 10000 },
+      );
+      // Wait for ALL framer-motion inline-opacity animations to settle before
+      // running axe. This covers both the tab-content wrapper (ancestor of
+      // IntroCard) and the StepCard sections (siblings) which animate
+      // independently from opacity 0 to 1 (duration 0.24s, staggered).
+      // Elements stuck at opacity 0 (fully hidden) are allowed through so
+      // that genuinely hidden sections do not block the wait.
+      await page.waitForFunction(
+        () => {
+          const animated = document.querySelectorAll('[style*="opacity"]');
+          return Array.from(animated).every((el) => {
+            const op = parseFloat((el as HTMLElement).style.opacity);
+            return isNaN(op) || op <= 0 || op >= 0.99;
+          });
+        },
+        { timeout: 8000 },
+      );
 
       const results = await analyzeWcag(page);
       const blockers = results.violations.filter(

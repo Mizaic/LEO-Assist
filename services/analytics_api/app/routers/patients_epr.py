@@ -53,6 +53,7 @@ router = APIRouter()
 
 class PatientSummary(BaseModel):
     patient_id: str
+    nhs_number: Optional[str] = None
     gender: Optional[str] = None
     birth_date: Optional[str] = None
     practice_name: Optional[str] = None
@@ -60,6 +61,10 @@ class PatientSummary(BaseModel):
     encounter_count: int = 0
     last_activity: Optional[str] = None
     active_alert_count: int = 0
+    document_count: int = 0
+    referral_count: int = 0
+    coded_concept_count: int = 0
+    semantic_tags: list[str] = []
     condition_types: list[str] = []
 
 
@@ -69,11 +74,19 @@ class EpisodeSummary(BaseModel):
     status: Optional[str] = None
     referral_date: Optional[str] = None
     end_date: Optional[str] = None
+    first_presentation_date: Optional[str] = None
     inferred_outcome: Optional[str] = None
+    staging_value: Optional[str] = None
+    staging_early_late: Optional[str] = None
+    referral_route: Optional[str] = None
+    place_of_presentation: Optional[str] = None
+    prior_consultations_n: Optional[int] = None
+    safety_netting_recorded: Optional[bool] = None
 
 
 class PatientDetail(BaseModel):
     patient_id: str
+    nhs_number: Optional[str] = None
     gender: Optional[str] = None
     birth_date: Optional[str] = None
     practice_name: Optional[str] = None
@@ -106,8 +119,10 @@ class PatientFacetsResponse(BaseModel):
 
 
 def _row_to_patient_summary(row: dict[str, Any]) -> PatientSummary:
+    raw_tags = [t for t in (row.get("raw_tags") or []) if t]
     return PatientSummary(
         patient_id=row.get("patient_id", ""),
+        nhs_number=row.get("nhs_number"),
         gender=row.get("gender"),
         birth_date=row.get("birth_date"),
         practice_name=row.get("practice_name"),
@@ -115,6 +130,10 @@ def _row_to_patient_summary(row: dict[str, Any]) -> PatientSummary:
         encounter_count=int(row.get("encounter_count") or 0),
         last_activity=row.get("last_activity"),
         active_alert_count=int(row.get("active_alert_count") or 0),
+        document_count=int(row.get("document_count") or 0),
+        referral_count=int(row.get("referral_count") or 0),
+        coded_concept_count=int(row.get("coded_concept_count") or 0),
+        semantic_tags=raw_tags,
         condition_types=[
             ct for ct in (row.get("condition_types") or []) if ct
         ],
@@ -239,7 +258,18 @@ def get_patient_detail(
             status=ep.get("status"),
             referral_date=ep.get("referral_date"),
             end_date=ep.get("end_date"),
+            first_presentation_date=ep.get("first_presentation_date"),
             inferred_outcome=ep.get("inferred_outcome"),
+            staging_value=ep.get("staging_value"),
+            staging_early_late=ep.get("staging_early_late"),
+            referral_route=ep.get("referral_route"),
+            place_of_presentation=ep.get("place_of_presentation"),
+            prior_consultations_n=(
+                int(ep["prior_consultations_n"])
+                if ep.get("prior_consultations_n") is not None
+                else None
+            ),
+            safety_netting_recorded=ep.get("safety_netting_recorded"),
         )
         for ep in (row.get("episodes") or [])
         if ep and ep.get("episode_id")
@@ -247,6 +277,7 @@ def get_patient_detail(
 
     return PatientDetail(
         patient_id=row.get("patient_id", patient_id),
+        nhs_number=row.get("nhs_number"),
         gender=row.get("gender"),
         birth_date=row.get("birth_date"),
         practice_name=row.get("practice_name"),

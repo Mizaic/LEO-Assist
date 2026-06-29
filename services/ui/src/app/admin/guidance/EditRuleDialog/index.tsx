@@ -110,6 +110,8 @@ export interface EditableRule {
   /** Recommended SNOMED procedure that fires when the rule matches.
    *  Surfaced from the API's actionJson; null when uncoded. */
   action?: LogicCriterion | null;
+  /** When true this rule fires only if no other rule in the guideline matched. */
+  is_default?: boolean;
 }
 
 interface Props {
@@ -125,6 +127,7 @@ interface Props {
     /** Only set when the reviewer changed the action SNOMED concept;
      *  omitting it preserves the predecessor's actionJson server-side. */
     action?: LogicCriterion;
+    is_default?: boolean;
   }) => void;
 }
 
@@ -190,6 +193,7 @@ export default function EditRuleDialog({
     null,
   );
   const [actionDirty, setActionDirty] = useState(false);
+  const [isDefault, setIsDefault] = useState(false);
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
   /**
    * Phase 4 -- latest sandbox replay summary, pushed up from
@@ -219,6 +223,7 @@ export default function EditRuleDialog({
     setAction(rule.action ?? null);
     setOriginalAction(rule.action ?? null);
     setActionDirty(false);
+    setIsDefault(rule.is_default ?? false);
     setCurrentStepId("who");
     setSandboxReport(null);
   }, [rule]);
@@ -534,6 +539,7 @@ export default function EditRuleDialog({
       logic_tree: stripNodeIds(tree),
       reason: reason.trim(),
       ...(actionDirty && action ? { action } : {}),
+      is_default: isDefault,
     });
   }
 
@@ -715,6 +721,8 @@ export default function EditRuleDialog({
                   action={action}
                   isActionSelected={searchTarget.mode === "replace_action"}
                   onSelectAction={handleSelectAction}
+                  isDefault={isDefault}
+                  onIsDefaultChange={setIsDefault}
                 />
                 {searchTarget.mode === "replace_action" && (
                   <Box

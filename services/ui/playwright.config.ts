@@ -29,6 +29,8 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         storageState: "e2e/.auth/user.json",
+        colorScheme: "light",
+        reducedMotion: "reduce",
       },
       dependencies: ["setup"],
     },

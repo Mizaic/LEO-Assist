@@ -152,7 +152,7 @@ export default function LLMSpendPanel({ orgId, from, to }: LLMSpendPanelProps) {
             <Typography variant="h6" component="h2" sx={{ fontSize: "1rem", fontWeight: 700 }}>
               AI model spend
             </Typography>
-            <Typography variant="caption" color="text.disabled">
+            <Typography variant="caption" color="text.secondary">
               {scopeLabel}
             </Typography>
           </Stack>
@@ -182,7 +182,7 @@ export default function LLMSpendPanel({ orgId, from, to }: LLMSpendPanelProps) {
         {loading && <Skeleton variant="rectangular" height={140} />}
 
         {!loading && error && (
-          <Typography variant="body2" color="text.disabled" sx={{ py: 2, textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: "center" }}>
             {error}
           </Typography>
         )}

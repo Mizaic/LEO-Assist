@@ -237,6 +237,7 @@ function RuleCardHeader({ rule }: { rule: Rule }) {
       {rule.guideline_version && rule.guideline_version > 1 && <Chip label={`v${rule.guideline_version}`} size="small" color="warning" variant="outlined" />}
       {rule.strength && rule.strength !== "unspecified" && <Tooltip title={strengthChipLabel(rule.strength)} arrow><Chip label={rule.strength.replace(/_/g, " ")} size="small" variant="outlined" /></Tooltip>}
       {rule.has_predecessor && <Chip icon={<CompareArrowsIcon />} label="Updated" size="small" color="warning" variant="outlined" />}
+      {rule.is_default && <Chip label="Fallback rule" size="small" color="secondary" variant="outlined" />}
       {rule.generation_outcome && rule.generation_outcome !== "success" && <Chip label={generationOutcomeLabel(rule.generation_outcome)} size="small" color="warning" variant="filled" />}
       {rule.needs_human_review && !rule.generation_outcome && <Chip label="Needs review" size="small" color="warning" variant="outlined" />}
       {rule.chapter_title && <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>{rule.chapter_title}</Typography>}
@@ -245,6 +246,56 @@ function RuleCardHeader({ rule }: { rule: Rule }) {
           {formatRelativeUpdatedAt(rule.updated_at)}
         </Typography>
       )}
+    </Stack>
+  );
+}
+
+function RuleGenerationAlert({ rule }: { rule: Rule }) {
+  if (!rule.generation_errors?.length) return null;
+  if (rule.generation_outcome === "no_rule_expected") {
+    return (
+      <Alert severity="info" sx={{ mb: 1.5 }}>
+        This recommendation describes a service or discussion -- no coded rule is needed.
+        <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
+          {rule.generation_errors.slice(0, 5).map((err) => (
+            <Typography key={err} component="li" variant="caption" sx={{ display: "list-item" }}>{err}</Typography>
+          ))}
+        </Box>
+      </Alert>
+    );
+  }
+  return (
+    <Alert severity="warning" sx={{ mb: 1.5 }}>
+      AI generation did not finish for this recommendation. Open Edit rule to author criteria manually.
+      <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
+        {rule.generation_errors.slice(0, 5).map((err) => (
+          <Typography key={err} component="li" variant="caption" sx={{ display: "list-item" }}>{err}</Typography>
+        ))}
+      </Box>
+    </Alert>
+  );
+}
+
+function RuleCardActions({ rule, callbacks, isBusy }: { rule: Rule; callbacks: RuleCardCallbacks; isBusy: boolean }) {
+  if (rule.generation_outcome === "no_rule_expected") {
+    return (
+      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+        {callbacks.onApprove && (
+          <Button variant="contained" color="success" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onApprove!(); }} aria-label={`Confirm no rule needed for ${rule.rule_id}`}>
+            Confirm no rule needed
+          </Button>
+        )}
+        <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
+        {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
+      </Stack>
+    );
+  }
+  return (
+    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+      {callbacks.onApprove && <Button variant="contained" color="success" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onApprove!(); }} aria-label={`Approve rule ${rule.rule_id}`}>Looks right</Button>}
+      <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
+      {callbacks.onReject && <Button variant="outlined" color="error" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onReject!(); }} aria-label={`Reject rule ${rule.rule_id}`}>Reject</Button>}
+      {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
     </Stack>
   );
 }
@@ -258,22 +309,10 @@ function RuleCardBody({ rule, callbacks, isBusy }: { rule: Rule; callbacks: Rule
           <Typography variant="body2" sx={{ lineHeight: 1.7 }}>{rule.recommendation_text}</Typography>
         </Box>
       )}
-      {!!rule.generation_errors?.length && (
-        <Alert severity="warning" sx={{ mb: 1.5 }}>
-          AI generation did not finish for this recommendation. Open Edit rule to author criteria manually.
-          <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
-            {rule.generation_errors.slice(0, 5).map((err) => <Typography key={err} component="li" variant="caption" sx={{ display: "list-item" }}>{err}</Typography>)}
-          </Box>
-        </Alert>
-      )}
+      <RuleGenerationAlert rule={rule} />
       <RuleDetailPanel rule={rule} />
       {rule.has_predecessor && <Box sx={{ mt: 1.5 }}><DiffPanel ruleId={rule.rule_id} /></Box>}
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-        {callbacks.onApprove && <Button variant="contained" color="success" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onApprove!(); }} aria-label={`Approve rule ${rule.rule_id}`}>Looks right</Button>}
-        <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
-        {callbacks.onReject && <Button variant="outlined" color="error" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onReject!(); }} aria-label={`Reject rule ${rule.rule_id}`}>Reject</Button>}
-        {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
-      </Stack>
+      <RuleCardActions rule={rule} callbacks={callbacks} isBusy={isBusy} />
     </Box>
   );
 }

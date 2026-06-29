@@ -173,3 +173,40 @@ def test_ac5_count_queries_carry_filter_conditions():
            "_FILTER_CONDITIONS" in queries_src, (
         "_FILTER_CONDITIONS must be used in count queries section"
     )
+
+
+def test_coded_entities_query_uses_pipeline_relationships():
+    """Coded-entity Cypher must match pipeline HAS_* rel types."""
+    queries_src = _read(QUERIES)
+    assert "HAS_FINDING" in queries_src
+    assert "HAS_DISORDER" in queries_src
+    assert "HAS_OBSERVABLE" in queries_src
+    assert "HAS_PROCEDURE" in queries_src
+    assert "GET_CODED_ENTITIES_ADMIN" in queries_src
+
+
+def test_coded_entities_query_projects_call_subquery_results():
+    """CALL subquery results must be projected before outer WHERE."""
+    queries_src = _read(QUERIES)
+    assert "WITH entity_type, name, concept_id" in queries_src
+    call_idx = queries_src.find("_CODED_ENTITIES_BODY")
+    with_idx = queries_src.find("WITH entity_type, name, concept_id", call_idx)
+    where_idx = queries_src.find(
+        "WHERE name IS NOT NULL AND entity_type IS NOT NULL", call_idx
+    )
+    assert with_idx != -1, "coded-entities query must WITH-project CALL columns"
+    assert with_idx < where_idx, "WITH must precede outer WHERE after CALL subquery"
+
+
+def test_encounter_detail_reads_documents_relationship():
+    """Encounter detail must read SNOMED via :DOCUMENTS including relationship alias for evidence."""
+    queries_src = _read(QUERIES)
+    assert ":DOCUMENTS]->(concept)" in queries_src
+    assert "GET_ENCOUNTER_DETAIL_ADMIN" in queries_src
+
+
+def test_encounter_list_counts_documents_links():
+    """Encounter list coded_count must derive from :DOCUMENTS when present."""
+    queries_src = _read(QUERIES)
+    assert "doc_coded_count" in queries_src
+    assert "[:DOCUMENTS]->(coded)" in queries_src
