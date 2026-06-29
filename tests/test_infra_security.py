@@ -177,13 +177,23 @@ class TestServiceAuthSecretDeployment:
 
     def test_migrate_secrets_generates_if_missing(self):
         """migrate-secrets.ps1 must auto-generate SERVICE_AUTH_SECRET when absent."""
-        script = INFRA_DIR.parent / "scripts" / "migrate-secrets.ps1"
+        script = Path(__file__).parent.parent / "infra" / "scripts" / "migrate-secrets.ps1"
         if not script.exists():
             pytest.skip("migrate-secrets.ps1 not found")
         source = script.read_text()
         assert (
             "SERVICE_AUTH_SECRET" in source
         ), "migrate-secrets.ps1 does not reference SERVICE_AUTH_SECRET"
+
+    def test_migrate_secrets_writes_placeholders_for_blank_env(self):
+        """Blank .env values must get bootstrap placeholders when missing from KV."""
+        script = Path(__file__).parent.parent / "infra" / "scripts" / "migrate-secrets.ps1"
+        if not script.exists():
+            pytest.skip("migrate-secrets.ps1 not found")
+        source = script.read_text()
+        assert "Get-PlaceholderSecretValue" in source
+        assert "neo4j-guideline-password" in source
+        assert "PLACEHOLDER" in source
 
 
 class TestCookieSecureAllEnvironments:

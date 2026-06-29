@@ -5,10 +5,12 @@ Atlas trace:
   DI: DI-88C1715A
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
 
-Uses client credentials (app-level token) so the backend can send and read
-mail as leo.support@healthcarecopilot.ai without a signed-in user.
+Sends and reads mail via Microsoft Graph using app-only credentials from the
+**mail Graph app** (MAIL_GRAPH_*), which may live in a different Entra tenant
+than the LEO user-login app (AZURE_AD_*). The mailbox address comes from
+MAIL_FROM_ADDRESS (Bicep mailFromAddress).
 
-Required application permissions (already consented on the app registration):
+Required application permissions on the mail Graph app registration:
   Mail.Send        - POST /users/{mailbox}/sendMail
   Mail.ReadWrite   - GET/PATCH/DELETE /users/{mailbox}/messages
 """
@@ -24,18 +26,14 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# -- Config ------------------------------------------------------------------
-
-_TENANT_ID = os.getenv("AZURE_AD_TENANT_ID", "")
-_CLIENT_ID = os.getenv("AZURE_AD_CLIENT_ID", "")
-_CLIENT_SECRET = os.getenv("AZURE_AD_CLIENT_SECRET", "")
+_MAIL_GRAPH_TENANT_ID = os.getenv("MAIL_GRAPH_TENANT_ID", "")
+_MAIL_GRAPH_CLIENT_ID = os.getenv("MAIL_GRAPH_CLIENT_ID", "")
+_MAIL_GRAPH_CLIENT_SECRET = os.getenv("MAIL_GRAPH_CLIENT_SECRET", "")
 _MAIL_FROM = os.getenv("MAIL_FROM_ADDRESS", "")
 _FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 
 _GRAPH_BASE = "https://graph.microsoft.com/v1.0"
-_TOKEN_URL = f"https://login.microsoftonline.com/{_TENANT_ID}/oauth2/v2.0/token"
 
-# Patterns that indicate a bounce / delivery-status notification
 _BOUNCE_SUBJECTS = re.compile(
     r"^(undeliverable|delivery status notification|delivery failed|"
     r"failure notice|mail delivery failed|returned mail)",
@@ -44,17 +42,29 @@ _BOUNCE_SUBJECTS = re.compile(
 _BOUNCE_SENDERS = re.compile(r"mailer-daemon|postmaster", re.IGNORECASE)
 
 
-# -- Token acquisition -------------------------------------------------------
+def _mail_graph_token_url() -> str:
+    tenant = _MAIL_GRAPH_TENANT_ID.strip()
+    if not tenant:
+        raise RuntimeError(
+            "MAIL_GRAPH_TENANT_ID is not set (mail Graph app tenant)"
+        )
+    return f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 
 
 def _get_graph_token() -> str:
-    """Obtain an app-only access token for Microsoft Graph."""
+    """Obtain an app-only access token for the mail Graph app."""
+    client_id = _MAIL_GRAPH_CLIENT_ID.strip()
+    client_secret = _MAIL_GRAPH_CLIENT_SECRET.strip()
+    if not client_id or not client_secret:
+        raise RuntimeError(
+            "MAIL_GRAPH_CLIENT_ID and MAIL_GRAPH_CLIENT_SECRET must be set"
+        )
     resp = httpx.post(
-        _TOKEN_URL,
+        _mail_graph_token_url(),
         data={
             "grant_type": "client_credentials",
-            "client_id": _CLIENT_ID,
-            "client_secret": _CLIENT_SECRET,
+            "client_id": client_id,
+            "client_secret": client_secret,
             "scope": "https://graph.microsoft.com/.default",
         },
         timeout=15,
@@ -70,29 +80,64 @@ def _headers() -> dict[str, str]:
     }
 
 
-# -- Send --------------------------------------------------------------------
-
-
 def send_onboarding_invite_email(
     to_email: str,
     to_name: str,
     org_name: str,
     org_type: str,
 ) -> None:
-    """Send an onboarding invite to a newly provisioned org primary user.
-
-    Called during the POST /onboard saga. Directs the recipient to the
-    /onboarding/accept page to confirm their org and complete setup.
-    """
+    """Send an onboarding invite to a newly provisioned org primary user."""
     org_type_label = {
         "alliance": "Cancer Alliance",
         "icb": "Integrated Care Board",
         "pcn": "Primary Care Network",
         "gp": "GP Practice",
     }.get(org_type, "Organisation")
-    subject = f"Your LEO account is ready — {org_name}"
+    subject = f"Your LEO account is ready -- {org_name}"
     accept_url = f"{_FRONTEND_URL}/onboarding/accept"
-    body_html = f"""
+    body_html = _onboarding_body_html(to_name, to_email, org_name, org_type_label, accept_url)
+    _send_html_mail(to_email, to_name or to_email, subject, body_html)
+
+
+def send_invite_email(to_email: str, to_name: str, invited_by: str) -> None:
+    """Send a plain-English invite to a newly added user."""
+    subject = "You have been added to LEO"
+    body_html = _invite_body_html(to_name, to_email, invited_by)
+    _send_html_mail(to_email, to_name or to_email, subject, body_html)
+
+
+def _send_html_mail(
+    to_email: str, to_name: str, subject: str, body_html: str
+) -> None:
+    if not _MAIL_FROM.strip():
+        raise RuntimeError("MAIL_FROM_ADDRESS is not set")
+    payload = {
+        "message": {
+            "subject": subject,
+            "body": {"contentType": "HTML", "content": body_html},
+            "toRecipients": [
+                {"emailAddress": {"address": to_email, "name": to_name}}
+            ],
+        },
+        "saveToSentItems": True,
+    }
+    resp = httpx.post(
+        f"{_GRAPH_BASE}/users/{_MAIL_FROM}/sendMail",
+        json=payload,
+        headers=_headers(),
+        timeout=20,
+    )
+    resp.raise_for_status()
+
+
+def _onboarding_body_html(
+    to_name: str,
+    to_email: str,
+    org_name: str,
+    org_type_label: str,
+    accept_url: str,
+) -> str:
+    return f"""
 <html><body style="font-family:Arial,sans-serif;font-size:15px;color:#222;max-width:600px">
   <p>Hi {_escape(to_name or to_email)},</p>
   <p>
@@ -124,29 +169,9 @@ def send_onboarding_invite_email(
 </body></html>
 """.strip()
 
-    payload = {
-        "message": {
-            "subject": subject,
-            "body": {"contentType": "HTML", "content": body_html},
-            "toRecipients": [
-                {"emailAddress": {"address": to_email, "name": to_name or to_email}}
-            ],
-        },
-        "saveToSentItems": True,
-    }
-    resp = httpx.post(
-        f"{_GRAPH_BASE}/users/{_MAIL_FROM}/sendMail",
-        json=payload,
-        headers=_headers(),
-        timeout=20,
-    )
-    resp.raise_for_status()
 
-
-def send_invite_email(to_email: str, to_name: str, invited_by: str) -> None:
-    """Send a plain-English invite to a newly added user."""
-    subject = "You have been added to LEO"
-    body_html = f"""
+def _invite_body_html(to_name: str, to_email: str, invited_by: str) -> str:
+    return f"""
 <html><body style="font-family:Arial,sans-serif;font-size:15px;color:#222;max-width:600px">
   <p>Hi {_escape(to_name or to_email)},</p>
   <p>
@@ -173,30 +198,9 @@ def send_invite_email(to_email: str, to_name: str, invited_by: str) -> None:
 </body></html>
 """.strip()
 
-    payload = {
-        "message": {
-            "subject": subject,
-            "body": {"contentType": "HTML", "content": body_html},
-            "toRecipients": [
-                {"emailAddress": {"address": to_email, "name": to_name or to_email}}
-            ],
-        },
-        "saveToSentItems": True,
-    }
-    resp = httpx.post(
-        f"{_GRAPH_BASE}/users/{_MAIL_FROM}/sendMail",
-        json=payload,
-        headers=_headers(),
-        timeout=20,
-    )
-    resp.raise_for_status()
-
-
-# -- Read inbox --------------------------------------------------------------
-
 
 def list_messages(skip: int = 0, top: int = 50) -> list[dict[str, Any]]:
-    """Return a summary list of messages from the leo.support inbox."""
+    """Return a summary list of messages from the support inbox."""
     resp = httpx.get(
         f"{_GRAPH_BASE}/users/{_MAIL_FROM}/messages",
         params={
@@ -265,9 +269,6 @@ def mark_read(msg_id: str) -> None:
         timeout=15,
     )
     resp.raise_for_status()
-
-
-# -- Helpers -----------------------------------------------------------------
 
 
 def _summarise(m: dict[str, Any]) -> dict[str, Any]:

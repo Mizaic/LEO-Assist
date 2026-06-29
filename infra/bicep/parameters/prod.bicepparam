@@ -2,7 +2,10 @@ using '../main.bicep'
 
 param environment = 'prod'
 param imageTag = 'latest'
-
+param acrResourceGroup = 'leo-common-rg'
+param acrName = 'mizaicleoacr'
+param storageAccountResourceGroup = 'leo-prod-rg'
+param storageAccountName = 'leoprodstoresa'
 // Neo4j
 param neo4jUser = 'neo4j'
 param neo4jKnowledgeUser = 'neo4j'
@@ -10,8 +13,8 @@ param neo4jKnowledgeUser = 'neo4j'
 // AWS Bedrock (model ARNs stored in Key Vault as aws-big-model / aws-small-model / aws-max-model)
 param awsDefaultRegion = 'eu-west-2'
 
-// Azure OpenAI - endpoint hosted in EU
-param azureOpenAiEndpoint = 'https://eu-ai-models.openai.azure.com/'
+// Azure OpenAI - shared account via deploy-openai.ps1; endpoint synced to bicepparam
+param azureOpenAiEndpoint = 'https://mizaic-cds-oai.openai.azure.com/'
 param azureOpenAiBigModel = 'gpt-5.2-chat'
 param azureOpenAiSmallModel = 'gpt-5-mini'
 param azureOpenAiApiVersion = '2024-12-01-preview'
@@ -34,10 +37,10 @@ param modelMinRecall = '0.80'
 // Service Bus
 param sbMaxLockRenewalSeconds = '14400'
 
-// Security (longer sessions for clinical users; widget Static Website for /sdk/*)
-param allowedOrigins = 'https://leo-ai-audit.healthcarecopilot.ai,https://leoaiwidgetcdnprod.z33.web.core.windows.net'
+// Security (widget origin added by deploy-widget-cdn.ps1 / sync-widget-cdn-params.ps1)
+param allowedOrigins = 'https://leo-ai-audit.mizaic.cloud,https://leoaiwidgetcdnprod.z33.web.core.windows.net'
 
-// LEO widget CDN (Azure Static Website; confirm suffix via primaryEndpoints.web)
+// LEO widget CDN (auto-synced from deploy-widget-cdn.ps1; required before deploy.ps1)
 param widgetPublicHost = 'leoaiwidgetcdnprod.z33.web.core.windows.net'
 param cookieSecure = 'true'
 param sessionTtlHours = '24'
@@ -46,11 +49,17 @@ param sessionTtlHours = '24'
 param snomedTerminologyServer = 'https://ontology.nhs.uk/production1/fhir'
 
 // Public URL of the UI for this environment.
-param frontendUrl = 'https://leo-ai-audit.healthcarecopilot.ai'
+param frontendUrl = 'https://leo-ai-audit.mizaic.cloud'
 
-param mailFromAddress = 'leo.support@healthcarecopilot.ai'
+// Graph API sender mailbox (@mizaic.com; corporate tenant via MAIL_GRAPH_* secrets)
+param mailFromAddress = 'leo.support@mizaic.com'
 
 // Production knowledge graph tier (shared with validation).
+// ACA Custom domains: hostname + environment certificate name (portal: Networking -> Custom domains).
+// Leave empty to not use a custom domain, and instead publish the frontendUrl via an Application Gateway (via a deployment script)
+param uiCustomDomainHost = ''
+param uiIngressCertificateName = ''
+param uiIngressCertificateIsManaged = false
 param knowledgeGraphEnvironment = 'prod'
 
 // Optional: bind UI custom domain in Bicep (hostname only + managed cert resource ID).
