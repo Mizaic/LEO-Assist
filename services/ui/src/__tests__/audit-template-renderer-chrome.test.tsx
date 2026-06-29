@@ -24,6 +24,8 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
 const AUDIT_PAGE = "services/ui/src/app/audit/page.tsx";
 const RENDERER = "services/ui/src/components/audit-template-renderer/AuditTemplateRenderer.tsx";
 const METRIC_TILE = "services/ui/src/components/audit-template-renderer/MetricTile.tsx";
+const LAYOUT_GRID = "services/ui/src/components/audit-template-renderer/AuditLayoutGrid.tsx";
+const PDF_EXPORT = "services/ui/src/lib/exportAuditReportPdf.ts";
 
 describe("VT-FCCB0FFE audit page template renderer - static-source", () => {
 
@@ -78,7 +80,78 @@ describe("VT-FCCB0FFE audit page template renderer - static-source", () => {
     expect(src).toContain("LineChart");
   });
 
-  const FILES = [RENDERER, METRIC_TILE];
+  // Renderer must honour the authored tile layout (x/y/w/h), not discard it.
+  test("AuditTemplateRenderer honours authored tile layout via AuditLayoutGrid", () => {
+    const src = read(RENDERER);
+    expect(src).toContain("AuditLayoutGrid");
+    expect(src).toContain("hasAuthoredLayout");
+    const gridSrc = read(LAYOUT_GRID);
+    // The grid must derive its CSS placement from the tile's layout fields.
+    expect(gridSrc).toContain("tile.layout.x");
+    expect(gridSrc).toContain("tile.layout.w");
+    expect(gridSrc).toContain("gridColumn");
+    expect(gridSrc).toContain("gridRow");
+    // Responsive collapse to a single column on small screens.
+    expect(gridSrc).toContain('xs: "1fr"');
+  });
+
+  // PDF export is wired and uses the shared PDF toolchain.
+  test("AuditTemplateRenderer exposes a PDF export action", () => {
+    const src = read(RENDERER);
+    expect(src).toContain("Export PDF");
+    expect(src).toContain("exportAuditReportPdf");
+    // The action controls must be excluded from the captured report.
+    expect(src).toContain("data-html2canvas-ignore");
+  });
+
+  test("exportAuditReportPdf renders a branded, paginated PDF", () => {
+    const src = read(PDF_EXPORT);
+    expect(src).toContain('from "jspdf"');
+    expect(src).toContain('from "html2canvas"');
+    expect(src).toContain("addPage");
+    expect(src).toContain("doc.save");
+    expect(src).toContain("Page ");
+  });
+
+  // Multi-page reports render page tabs and only show the active page's tiles.
+  test("AuditTemplateRenderer renders page tabs for multi-page reports", () => {
+    const src = read(RENDERER);
+    expect(src).toContain("isMultiPage");
+    expect(src).toContain("resolvePages");
+    expect(src).toContain("tilesForPage");
+    expect(src).toContain("visibleTiles");
+    expect(src).toContain("setActivePageId");
+  });
+
+  // Rich-visualisation parity: the widget catalogue exposes NCDA sections and
+  // WidgetTile routes them through the section-widget registry.
+  test("WidgetTile renders NCDA section widgets from the registry", () => {
+    const registry = read(
+      "services/ui/src/components/audit-template-renderer/auditWidgetRegistry.tsx",
+    );
+    for (const id of [
+      "cancer_type",
+      "cancer_stage",
+      "diagnostic_intervals",
+      "safety_netting",
+      "demographics",
+      "comorbidities",
+    ]) {
+      expect(registry).toContain(id);
+    }
+    expect(registry).toContain("SectionWidget");
+    const widgetTile = read(
+      "services/ui/src/components/audit-template-renderer/WidgetTile.tsx",
+    );
+    expect(widgetTile).toContain("SECTION_WIDGETS");
+    expect(widgetTile).toContain("SectionWidget");
+
+    const api = read("services/ui/src/lib/auditTemplateApi.ts");
+    expect(api).toContain('widget_id: "cancer_type"');
+    expect(api).toContain('widget_id: "safety_netting"');
+  });
+
+  const FILES = [RENDERER, METRIC_TILE, LAYOUT_GRID, PDF_EXPORT];
   test.each(FILES)("%s carries an Atlas trace header", (rel) => {
     const src = read(rel);
     expect(src.slice(0, 500)).toContain("Atlas trace");

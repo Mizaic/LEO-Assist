@@ -24,26 +24,42 @@ import {
   createTemplate,
   updateTemplate,
   fetchMetricCatalogue,
+  WIDGET_CATALOGUE,
+  type AuditPage,
   type AuditTemplate,
   type AuditTile,
   type MetricCatalogueEntry,
   type TileType,
   type WidgetCatalogueEntry,
 } from "@/lib/auditTemplateApi";
+import { resolvePages, tilesForPage } from "@/lib/auditPages";
+import { type ContentBlockEntry } from "@/lib/contentBlocks";
 import { useOrg } from "@/context/OrgContext";
 import MetricPicker from "./MetricPicker";
-import TileGrid from "./TileGrid";
+import CanvasGrid from "./CanvasGrid";
 import TileConfigPanel from "./TileConfigPanel";
 import PublishDialog from "./PublishDialog";
 import PreviewPanel from "./PreviewPanel";
 import AuditDraftAssistant from "./AuditDraftAssistant";
+import PageTabs from "./PageTabs";
+import {
+  type StarterLayout as StarterLayoutDef,
+  pickMetricsForSlots,
+} from "./StarterLayouts";
 
 interface TemplateEditorProps {
   initial?: AuditTemplate;
 }
 
-function newTile(metric: MetricCatalogueEntry, index: number, tileType?: TileType): AuditTile {
-  const col = (index % 3) * 4;
+function newTile(
+  metric: MetricCatalogueEntry,
+  index: number,
+  pageId: string,
+  tileType?: TileType,
+  at?: { x: number; y: number },
+): AuditTile {
+  const col = at ? at.x : (index % 3) * 4;
+  const row = at ? at.y : Math.floor(index / 3) * 3;
   return {
     tile_id: `tile-${Date.now()}-${index}`,
     label: metric.title,
@@ -51,7 +67,8 @@ function newTile(metric: MetricCatalogueEntry, index: number, tileType?: TileTyp
     metric_id: metric.metric_id,
     param_overrides: {},
     section: undefined,
-    layout: { x: col, y: Math.floor(index / 3) * 3, w: 4, h: 3 },
+    page_id: pageId,
+    layout: { x: col, y: row, w: 4, h: 3 },
   };
 }
 
@@ -60,6 +77,10 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
   const { organizations } = useOrg();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [tiles, setTiles] = useState<AuditTile[]>(initial?.tiles ?? []);
+  const [pages, setPages] = useState<AuditPage[]>(() => resolvePages(initial?.pages));
+  const [activePageId, setActivePageId] = useState<string>(
+    () => resolvePages(initial?.pages)[0].page_id,
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,33 +115,172 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
     }
   }, [organizations, previewOrgId]);
 
-  const usedMetricIds = useMemo(() => new Set(tiles.map((t) => t.metric_id)), [tiles]);
+  const usedCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of tiles) counts.set(t.metric_id, (counts.get(t.metric_id) ?? 0) + 1);
+    return counts;
+  }, [tiles]);
+
+  const isFirstPage = pages.length > 0 && pages[0].page_id === activePageId;
+  const pageTiles = useMemo(
+    () => tilesForPage(tiles, activePageId, isFirstPage),
+    [tiles, activePageId, isFirstPage],
+  );
 
   const selectedTile = tiles.find((t) => t.tile_id === selectedId) ?? null;
 
-  const handleAddMetric = useCallback(
-    (metric: MetricCatalogueEntry, tileType: TileType) => {
-      setTiles((prev) => [...prev, newTile(metric, prev.length, tileType)]);
+  // Replace the active page's tiles after a drag/resize, leaving other pages
+  // untouched.
+  const handlePageLayoutChange = useCallback(
+    (updated: AuditTile[]) => {
+      setTiles((prev) => {
+        const updatedIds = new Set(updated.map((t) => t.tile_id));
+        const others = prev.filter((t) => !updatedIds.has(t.tile_id));
+        return [...others, ...updated];
+      });
     },
-    []
+    [],
   );
 
-  const handleAddWidget = useCallback((widget: WidgetCatalogueEntry) => {
-    setTiles((prev) => {
-      const index = prev.length;
-      const col = (index % 2) * 6;
-      const entry: AuditTile = {
-        tile_id: `tile-widget-${Date.now()}-${index}`,
-        label: widget.title,
-        tile_type: "widget",
-        metric_id: widget.widget_id,
-        param_overrides: {},
-        section: undefined,
-        layout: { x: col, y: Math.floor(index / 2) * 5, w: 12, h: 5 },
-      };
-      return [...prev, entry];
-    });
+  const handleAddPage = useCallback(() => {
+    const id = `page-${Date.now()}`;
+    setPages((prev) => [...prev, { page_id: id, title: `Page ${prev.length + 1}` }]);
+    setActivePageId(id);
   }, []);
+
+  const handleRenamePage = useCallback((pageId: string, newTitle: string) => {
+    setPages((prev) => prev.map((p) => (p.page_id === pageId ? { ...p, title: newTitle } : p)));
+  }, []);
+
+  const handleDeletePage = useCallback(
+    (pageId: string) => {
+      setPages((prev) => {
+        if (prev.length <= 1) return prev;
+        const remaining = prev.filter((p) => p.page_id !== pageId);
+        const firstId = remaining[0].page_id;
+        setActivePageId((cur) => (cur === pageId ? firstId : cur));
+        // Drop tiles that lived on the deleted page.
+        const deletedIsFirst = prev[0].page_id === pageId;
+        setTiles((ts) =>
+          ts.filter((t) => {
+            const tp = t.page_id ?? prev[0].page_id;
+            if (deletedIsFirst && (t.page_id == null || tp === pageId)) return false;
+            return tp !== pageId;
+          }),
+        );
+        return remaining;
+      });
+    },
+    [],
+  );
+
+  const handleAddMetric = useCallback(
+    (metric: MetricCatalogueEntry, tileType: TileType) => {
+      setTiles((prev) => {
+        const idx = tilesForPage(prev, activePageId, isFirstPage).length;
+        return [...prev, newTile(metric, idx, activePageId, tileType)];
+      });
+    },
+    [activePageId, isFirstPage],
+  );
+
+  const handleAddWidget = useCallback(
+    (widget: WidgetCatalogueEntry) => {
+      setTiles((prev) => {
+        const index = tilesForPage(prev, activePageId, isFirstPage).length;
+        const col = (index % 2) * 6;
+        const entry: AuditTile = {
+          tile_id: `tile-widget-${Date.now()}-${index}`,
+          label: widget.title,
+          tile_type: "widget",
+          metric_id: widget.widget_id,
+          param_overrides: {},
+          section: undefined,
+          page_id: activePageId,
+          layout: { x: col, y: Math.floor(index / 2) * 5, w: 12, h: 5 },
+        };
+        return [...prev, entry];
+      });
+    },
+    [activePageId, isFirstPage],
+  );
+
+  const handleAddContent = useCallback(
+    (block: ContentBlockEntry) => {
+      setTiles((prev) => {
+        const index = tilesForPage(prev, activePageId, isFirstPage).length;
+        const maxY = prev.reduce((m, t) => Math.max(m, (t.layout?.y ?? 0) + (t.layout?.h ?? 1)), 0);
+        const entry: AuditTile = {
+          tile_id: `tile-content-${Date.now()}-${index}`,
+          label: block.label,
+          tile_type: "text",
+          metric_id: block.block_id,
+          param_overrides: { ...block.defaultParams },
+          section: undefined,
+          page_id: activePageId,
+          layout: { x: 0, y: maxY, ...block.defaultLayout },
+        };
+        return [...prev, entry];
+      });
+    },
+    [activePageId, isFirstPage],
+  );
+
+  const handleDropMetric = useCallback(
+    (metricId: string, tileType: TileType, at?: { x: number; y: number }) => {
+      const metric = catalogueById.get(metricId);
+      if (metric)
+        setTiles((prev) => {
+          const idx = tilesForPage(prev, activePageId, isFirstPage).length;
+          return [...prev, newTile(metric, idx, activePageId, tileType, at)];
+        });
+    },
+    [catalogueById, activePageId, isFirstPage],
+  );
+
+  const handleDropWidget = useCallback(
+    (widgetId: string, at?: { x: number; y: number }) => {
+      const widget = WIDGET_CATALOGUE.find((w) => w.widget_id === widgetId);
+      if (!widget) return;
+      setTiles((prev) => {
+        const index = tilesForPage(prev, activePageId, isFirstPage).length;
+        const col = at ? at.x : (index % 2) * 6;
+        const row = at ? at.y : Math.floor(index / 2) * 5;
+        const entry: AuditTile = {
+          tile_id: `tile-widget-${Date.now()}-${index}`,
+          label: widget.title,
+          tile_type: "widget",
+          metric_id: widget.widget_id,
+          param_overrides: {},
+          section: undefined,
+          page_id: activePageId,
+          layout: { x: col, y: row, w: 12, h: 5 },
+        };
+        return [...prev, entry];
+      });
+    },
+    [activePageId, isFirstPage],
+  );
+
+  const handleAddStarter = useCallback(
+    (starter: StarterLayoutDef, cat: MetricCatalogueEntry[]) => {
+      const assignments = pickMetricsForSlots(starter.slots, cat);
+      setTiles((prev) => {
+        const newTiles = assignments.map(({ slot, metric }, i) => ({
+          tile_id: `tile-starter-${Date.now()}-${i}`,
+          label: metric.title,
+          tile_type: slot.tileType as AuditTile["tile_type"],
+          metric_id: metric.metric_id,
+          param_overrides: {},
+          section: undefined,
+          page_id: activePageId,
+          layout: { ...slot.layout },
+        }));
+        return [...prev, ...newTiles];
+      });
+    },
+    [activePageId],
+  );
 
   const handleRemoveTile = useCallback((id: string) => {
     setTiles((prev) => prev.filter((t) => t.tile_id !== id));
@@ -147,7 +307,7 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
       highlightKey?: string,
     ) => {
       setTiles((prev) => {
-        const index = prev.length;
+        const index = tilesForPage(prev, activePageId, isFirstPage).length;
         const col = (index % 3) * 4;
         const story =
           storyHeadline || highlightKey
@@ -159,13 +319,14 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
           tile_type: tile_type as AuditTile["tile_type"],
           metric_id,
           param_overrides: {},
+          page_id: activePageId,
           layout: { x: col, y: Math.floor(index / 3) * 3, w: 4, h: 3 },
           story,
         };
         return [...prev, newTileEntry];
       });
     },
-    [],
+    [activePageId, isFirstPage],
   );
 
   const handleSave = async () => {
@@ -173,10 +334,13 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
     setSaving(true);
     setError(null);
     try {
+      // Only persist explicit pages when the report is genuinely multi-page;
+      // a single default page stays implicit for back-compatibility.
+      const pagesPayload = pages.length > 1 ? pages : [];
       if (savedId) {
-        await updateTemplate(savedId, { title: title.trim(), tiles });
+        await updateTemplate(savedId, { title: title.trim(), tiles, pages: pagesPayload });
       } else {
-        const created = await createTemplate({ title: title.trim(), tiles });
+        const created = await createTemplate({ title: title.trim(), tiles, pages: pagesPayload });
         setSavedId(created.template_id);
       }
     } catch (e) {
@@ -262,7 +426,7 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
         </Button>
       </Box>
 
-      {/* Main layout: preview OR picker | grid | config */}
+      {/* Main layout: preview OR picker | canvas (floating config) */}
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {previewMode ? (
           <PreviewPanel
@@ -273,68 +437,94 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
             previewOrgId={previewOrgId}
             onOrgChange={setPreviewOrgId}
             catalogue={catalogue}
+            pages={pages}
           />
         ) : (
           <>
-            {/* Metric picker */}
+            {/* Metric picker sidebar */}
             <Box
               sx={{
-                width: 260,
+                width: 240,
                 flexShrink: 0,
                 borderRight: "1px solid",
                 borderColor: "divider",
                 p: 1.5,
                 overflowY: "auto",
+                bgcolor: "background.paper",
               }}
             >
               <MetricPicker
                 onAdd={handleAddMetric}
                 onAddWidget={handleAddWidget}
-                usedMetricIds={usedMetricIds}
+                onAddStarter={handleAddStarter}
+                onAddContent={handleAddContent}
+                usedCounts={usedCounts}
                 catalogue={catalogue}
                 loading={catalogueLoading}
                 error={catalogueError}
               />
             </Box>
 
-            {/* Tile grid */}
-            <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
-              <TileGrid
-                tiles={tiles}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onRemove={handleRemoveTile}
-                onTypeChange={handleTypeChange}
-                onLayoutChange={setTiles}
-                onOpenAssistant={() => setAssistantOpen(true)}
+            {/* Canvas area with page tabs + floating config */}
+            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+              <PageTabs
+                pages={pages}
+                activePageId={activePageId}
+                onSelect={setActivePageId}
+                onAdd={handleAddPage}
+                onRename={handleRenamePage}
+                onDelete={handleDeletePage}
               />
-            </Box>
-
-            {/* Tile config */}
-            {selectedTile && (
-              <Box
-                sx={{
-                  width: 240,
-                  flexShrink: 0,
-                  borderLeft: "1px solid",
-                  borderColor: "divider",
-                  p: 1.5,
-                  overflowY: "auto",
-                }}
-              >
-                <TileConfigPanel
-                  tile={selectedTile}
-                  compatibleTypes={
-                    catalogueById.get(selectedTile.metric_id)?.compatible_tile_types
-                  }
-                  recommendedType={
-                    catalogueById.get(selectedTile.metric_id)?.output_type as TileType | undefined
-                  }
-                  onChange={handleTileChange}
+              <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
+                <CanvasGrid
+                  tiles={pageTiles}
+                  catalogue={catalogue}
+                  selectedId={selectedId}
+                  onSelect={(id) => setSelectedId(id)}
                   onRemove={handleRemoveTile}
+                  onLayoutChange={handlePageLayoutChange}
+                  onTileParamChange={handleTileChange}
+                  onOpenAssistant={() => setAssistantOpen(true)}
+                  onDropMetric={handleDropMetric}
+                  onDropWidget={handleDropWidget}
                 />
               </Box>
-            )}
+
+              {/* Floating config panel -- slides in over the canvas */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 260,
+                  bgcolor: "background.paper",
+                  borderLeft: "1px solid",
+                  borderColor: "divider",
+                  overflowY: "auto",
+                  boxShadow: "-4px 0 16px rgba(0,0,0,0.08)",
+                  transform: selectedTile ? "translateX(0)" : "translateX(100%)",
+                  transition: "transform 200ms ease-out",
+                  zIndex: 10,
+                  p: 1.5,
+                }}
+              >
+                {selectedTile && (
+                  <TileConfigPanel
+                    tile={selectedTile}
+                    compatibleTypes={
+                      catalogueById.get(selectedTile.metric_id)?.compatible_tile_types
+                    }
+                    recommendedType={
+                      catalogueById.get(selectedTile.metric_id)?.output_type as TileType | undefined
+                    }
+                    paramSchema={catalogueById.get(selectedTile.metric_id)?.param_schema}
+                    onChange={handleTileChange}
+                    onRemove={handleRemoveTile}
+                  />
+                )}
+              </Box>
+            </Box>
           </>
         )}
       </Box>

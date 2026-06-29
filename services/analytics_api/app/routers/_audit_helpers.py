@@ -82,9 +82,23 @@ _OUTCOME_DATE_BIND = (
 
 _ORG_PATIENT_MATCH = (
     "MATCH (_scope:Organization {id: $org}) "
-    "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-    "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
-    "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
+    "MATCH (p:Patient) "
+    "WHERE ( "
+    "  EXISTS { "
+    "    MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+    "    WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+    "       OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
+    "  } "
+    "  OR EXISTS { "
+    "    MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)"
+    "-[:IN_WORKFLOW]->(:Workflow)-[:FOR_SERVICE]->(:Service)"
+    "<-[:PROVIDES_SERVICE]-(_scope) "
+    "  } "
+    "  OR EXISTS { "
+    "    MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)"
+    "-[:FOR_SERVICE]->(:Service)<-[:PROVIDES_SERVICE]-(_scope) "
+    "  } "
+    ") "
     "MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
     f"WHERE {_EPISODE_FILTER} "
     f"{_OUTCOME_DATE_BIND}"
@@ -157,9 +171,23 @@ def _patient_base(
     if effective_org:
         return (
             "MATCH (_scope:Organization {id: $org}) "
-            "MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
-            "WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
-            "   OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) ",
+            "MATCH (p:Patient) "
+            "WHERE ( "
+            "  EXISTS { "
+            "    MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+            "    WHERE (gp.id = $org) OR (gp)-[:COMMISSIONED_BY]->(_scope) "
+            "       OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(_scope) "
+            "  } "
+            "  OR EXISTS { "
+            "    MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)"
+            "-[:IN_WORKFLOW]->(:Workflow)-[:FOR_SERVICE]->(:Service)"
+            "<-[:PROVIDES_SERVICE]-(_scope) "
+            "  } "
+            "  OR EXISTS { "
+            "    MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)"
+            "-[:FOR_SERVICE]->(:Service)<-[:PROVIDES_SERVICE]-(_scope) "
+            "  } "
+            ") ",
             {"org": effective_org},
         )
     if scope.is_admin:

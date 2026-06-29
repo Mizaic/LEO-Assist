@@ -52,6 +52,8 @@ interface MetricTileProps {
   tile: AuditTile;
   orgId: string;
   mockData?: MetricRunResult;
+  /** When true: no border/shadow/hover-lift (outer canvas tile provides chrome). */
+  builderMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -106,34 +108,58 @@ function calloutLabel(
 
 function KpiStrip({ rows }: { rows: Record<string, unknown>[] }) {
   return (
-    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", pt: 0.5 }}>
+    <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", pt: 0.5 }}>
       {rows.map((row, i) => {
         const keys = Object.keys(row);
         const labelKey = keys[0];
         const valueKey = keys[1] ?? keys[0];
+        const targetKey = keys[2];
+        const colour = CHART_PALETTE[i % CHART_PALETTE.length];
+        const value = row[valueKey];
+        const target = targetKey ? row[targetKey] : undefined;
+        const delta =
+          typeof value === "number" && typeof target === "number"
+            ? value - target
+            : null;
         return (
           <Box
             key={i}
             sx={{
-              flex: "1 1 80px",
+              flex: "1 1 90px",
               textAlign: "center",
               px: 1.5,
-              py: 1.25,
-              bgcolor: "grey.50",
-              borderRadius: 1.5,
+              py: 1.5,
+              bgcolor: `${colour}0D`,
+              borderRadius: 2,
               border: "1px solid",
-              borderColor: "divider",
+              borderColor: `${colour}30`,
+              borderTop: `3px solid ${colour}`,
               minWidth: 80,
             }}
           >
             <Typography
-              variant="h5"
-              fontWeight={700}
-              sx={{ color: CHART_PALETTE[i % CHART_PALETTE.length], lineHeight: 1.1 }}
+              variant="h4"
+              fontWeight={800}
+              sx={{ color: colour, lineHeight: 1, fontSize: "clamp(1.25rem,3vw,1.8rem)" }}
             >
-              {String(row[valueKey] ?? "-")}
+              {String(value ?? "-")}
             </Typography>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
+            {delta !== null && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  mt: 0.25,
+                  color: delta >= 0 ? "#047857" : "#DC2626",
+                  fontWeight: 700,
+                  fontSize: 10,
+                }}
+              >
+                {delta >= 0 ? "+" : ""}
+                {delta.toFixed(1)} vs target
+              </Typography>
+            )}
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, lineHeight: 1.3 }}>
               {String(row[labelKey] ?? "")}
             </Typography>
           </Box>
@@ -156,25 +182,27 @@ function BarTile({
   const catKey = keys[0];
   const valKeys = keys.slice(1);
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 32, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey={catKey} tick={{ fontSize: 10 }} angle={-30} textAnchor="end" />
-        <YAxis tick={{ fontSize: 10 }} />
-        <RechartsTooltip contentStyle={{ fontSize: 12 }} />
-        {thresholdLines(story?.annotations)}
-        {valKeys.map((k, i) => (
-          <Bar
-            key={k}
-            dataKey={k}
-            fill={barFill(k, story?.highlight_key, i)}
-            radius={[3, 3, 0, 0]}
-          >
-            {calloutLabel(catKey, rows, story?.annotations)}
-          </Bar>
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+    <Box sx={{ flex: 1, minHeight: 120, width: "100%" }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 32, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey={catKey} tick={{ fontSize: 10 }} angle={-30} textAnchor="end" />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip contentStyle={{ fontSize: 12 }} />
+          {thresholdLines(story?.annotations)}
+          {valKeys.map((k, i) => (
+            <Bar
+              key={k}
+              dataKey={k}
+              fill={barFill(k, story?.highlight_key, i)}
+              radius={[3, 3, 0, 0]}
+            >
+              {calloutLabel(catKey, rows, story?.annotations)}
+            </Bar>
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </Box>
   );
 }
 
@@ -191,31 +219,33 @@ function LineTile({
   const catKey = keys[0];
   const valKeys = keys.slice(1);
   return (
-    <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={rows} margin={{ top: 4, right: 8, bottom: 32, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey={catKey} tick={{ fontSize: 10 }} angle={-30} textAnchor="end" />
-        <YAxis tick={{ fontSize: 10 }} />
-        <RechartsTooltip contentStyle={{ fontSize: 12 }} />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
-        {thresholdLines(story?.annotations)}
-        {valKeys.map((k, i) => (
-          <Line
-            key={k}
-            dataKey={k}
-            stroke={
-              story?.highlight_key
-                ? k === story.highlight_key
-                  ? HIGHLIGHT
-                  : MUTED
-                : CHART_PALETTE[i % CHART_PALETTE.length]
-            }
-            strokeWidth={k === story?.highlight_key ? 3 : 2}
-            dot={false}
-          />
-        ))}
-      </LineChart>
-    </ResponsiveContainer>
+    <Box sx={{ flex: 1, minHeight: 120, width: "100%" }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rows} margin={{ top: 4, right: 8, bottom: 32, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey={catKey} tick={{ fontSize: 10 }} angle={-30} textAnchor="end" />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip contentStyle={{ fontSize: 12 }} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          {thresholdLines(story?.annotations)}
+          {valKeys.map((k, i) => (
+            <Line
+              key={k}
+              dataKey={k}
+              stroke={
+                story?.highlight_key
+                  ? k === story.highlight_key
+                    ? HIGHLIGHT
+                    : MUTED
+                  : CHART_PALETTE[i % CHART_PALETTE.length]
+              }
+              strokeWidth={k === story?.highlight_key ? 3 : 2}
+              dot={false}
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </Box>
   );
 }
 
@@ -284,7 +314,7 @@ function TileLoadingSkeleton({ type }: { type: AuditTile["tile_type"] }) {
     return (
       <Box sx={{ display: "flex", gap: 2, pt: 0.5 }}>
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} variant="rounded" width={90} height={60} />
+          <Skeleton key={i} variant="rounded" width="100%" height={80} sx={{ flex: 1 }} />
         ))}
       </Box>
     );
@@ -305,7 +335,7 @@ function TileLoadingSkeleton({ type }: { type: AuditTile["tile_type"] }) {
       </Box>
     );
   }
-  return <Skeleton variant="rounded" width="100%" height={200} sx={{ mt: 1 }} />;
+  return <Skeleton variant="rounded" width="100%" sx={{ flex: 1, height: "100%", minHeight: 100 }} />;
 }
 
 function toObjects(result: MetricRunResult): Record<string, unknown>[] {
@@ -348,7 +378,7 @@ function TileBody({
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
+export default function MetricTile({ tile, orgId, mockData, builderMode }: MetricTileProps) {
   const reduced = useReducedMotion();
   const [result, setResult] = useState<MetricRunResult | null>(mockData ?? null);
   const [loading, setLoading] = useState(!mockData);
@@ -381,13 +411,13 @@ export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
 
   return (
     <MotionBox
-      whileHover={reduced ? {} : { y: -2, boxShadow: "0 4px 16px rgba(0,0,0,0.10)" }}
+      whileHover={reduced || builderMode ? {} : { y: -2, boxShadow: "0 4px 16px rgba(0,0,0,0.10)" }}
       transition={{ duration: 0.15, ease: "easeOut" }}
       sx={{
         bgcolor: "background.paper",
-        border: "1px solid",
+        border: builderMode ? "none" : "1px solid",
         borderColor: "divider",
-        borderRadius: 1.5,
+        borderRadius: builderMode ? 0 : 1.5,
         p: 2,
         height: "100%",
         display: "flex",
@@ -428,15 +458,25 @@ export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
         )}
       </Box>
 
-      <Box sx={{ flex: 1, overflow: "hidden" }}>
+      <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <AnimatePresence mode="wait">
           {loading && (
-            <fm.div key="skeleton" exit={{ opacity: 0 }} transition={{ duration: reduced ? 0 : 0.12 }}>
+            <fm.div
+              key="skeleton"
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduced ? 0 : 0.12 }}
+              style={{ flex: 1, display: "flex", flexDirection: "column" }}
+            >
               <TileLoadingSkeleton type={tile.tile_type} />
             </fm.div>
           )}
           {!loading && error && (
-            <fm.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reduced ? 0 : 0.2 }}>
+            <fm.div
+              key="error"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: reduced ? 0 : 0.2 }}
+            >
               <Typography variant="caption" color="warning.dark" sx={{ display: "block", pt: 0.5 }}>
                 {error}
               </Typography>
@@ -448,6 +488,7 @@ export default function MetricTile({ tile, orgId, mockData }: MetricTileProps) {
               initial={reduced ? false : { opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: reduced ? 0 : 0.25, ease: "easeOut" }}
+              style={{ flex: 1, display: "flex", flexDirection: "column" }}
             >
               <TileBody tile={tile} result={result} />
               {result.rows.length === 0 && tile.tile_type !== "kpi_strip" && <EmptyData />}

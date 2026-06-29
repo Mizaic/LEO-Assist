@@ -17,6 +17,7 @@ import UnauthorizedScreen from "@/components/UnauthorizedScreen";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -28,6 +29,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import Badge from "@mui/material/Badge";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
@@ -60,6 +62,8 @@ import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import PushPinIcon from "@mui/icons-material/PushPin";
 import LinearProgress from "@mui/material/LinearProgress";
 import Chip from "@mui/material/Chip";
 import { useAuth } from "@/lib/authContext";
@@ -76,6 +80,7 @@ import Menu from "@mui/material/Menu";
 import { useDemoMode } from "@/context/DemoModeContext";
 import { useOrg } from "@/context/OrgContext";
 import { maskOrgName } from "@/lib/demoMode";
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -94,13 +99,14 @@ type NavItem = {
   badgeKey?: string;
   activePrefix?: string[];
   adminOnly?: boolean;
+  hiddenForScopeTypes?: string[];
 };
 
 const CARE_NAV_ITEMS: NavItem[] = [
   { label: "Overview", path: "/care/dashboard", icon: <DashboardOutlinedIcon /> },
   { label: "Clinical Audit", path: "/care/audit", icon: <AssignmentOutlinedIcon />, activePrefix: ["/care/audit", "/audit"] },
-  { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon /> },
-  { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon /> },
+  { label: "Patients", path: "/care/patients", icon: <PeopleOutlineIcon />, hiddenForScopeTypes: ["icb", "alliance"] },
+  { label: "Safety Netting", path: "/care/safety-netting", icon: <HealthAndSafetyOutlinedIcon />, hiddenForScopeTypes: ["icb", "alliance"] },
   { label: "Reports", path: "/care/reports", icon: <AssessmentOutlinedIcon /> },
   { label: "Benchmarks", path: "/care/benchmarks", icon: <AssessmentOutlinedIcon /> },
   { label: "Cohorts", path: "/care/cohorts", icon: <GroupWorkOutlinedIcon /> },
@@ -180,7 +186,7 @@ function isEditorRoute(_pathname: string): boolean {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { session, status, signIn, signOut } = useAuth();
+  const { session, status, signIn, signOut, refetch: refetchAuth } = useAuth();
   const { currentOrg, organizations, isPlatformAdmin, switchOrg, viewAll } = useOrg();
   const { isDemoMode } = useDemoMode();
   const theme = useTheme();
@@ -233,6 +239,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // removed the rollout flag), so staff always see the queue promoted
   // to the top and every other role still reaches it near the end.
   const selectedRole = session?.selectedRole ?? null;
+  const isImpersonating =
+    isPlatformAdmin &&
+    selectedRole !== null &&
+    selectedRole !== "platform_admin";
+
+  const exitImpersonation = useCallback(async () => {
+    await fetch("/api/auth/session/role", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "platform_admin" }),
+    });
+    await refetchAuth();
+    router.push("/");
+  }, [refetchAuth, router]);
+
   const workNavItem: NavItem = {
     label: "My Work",
     path: "/work",
@@ -244,7 +265,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       ? [workNavItem, ...baseNavItems]
       : [...baseNavItems, workNavItem];
 
-  const visibleNavItems = navItemsForMode.filter((item) => !item.adminOnly || isPlatformAdmin);
+  const currentScopeType = currentOrg?.scopeType ?? null;
+  const visibleNavItems = navItemsForMode.filter((item) => {
+    if (item.adminOnly && !isPlatformAdmin) return false;
+    if (item.hiddenForScopeTypes && currentScopeType && item.hiddenForScopeTypes.includes(currentScopeType)) return false;
+    return true;
+  });
 
   const sortedOrganizations = useMemo(
     () =>
@@ -573,16 +599,40 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Typography>
         </Typography>
         {!isMobile && !isEditor && (
-          <Tooltip title="Collapse sidebar">
-            <IconButton
-              aria-label="Collapse sidebar"
-              size="small"
-              onClick={() => persistSidebarPref("collapsed")}
-              sx={{ flexShrink: 0 }}
-            >
-              <ChevronLeftIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
+          sidebarPref === "expanded" ? (
+            <Tooltip title="Unpin sidebar">
+              <IconButton
+                aria-label="Unpin sidebar"
+                size="small"
+                onClick={() => persistSidebarPref("follow-breakpoint")}
+                sx={{ flexShrink: 0, color: "primary.main" }}
+              >
+                <PushPinIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          ) : dockCollapsed ? (
+            <Tooltip title="Pin sidebar open">
+              <IconButton
+                aria-label="Pin sidebar open"
+                size="small"
+                onClick={() => persistSidebarPref("expanded")}
+                sx={{ flexShrink: 0 }}
+              >
+                <PushPinOutlinedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
+          ) : (
+            <Tooltip title="Collapse sidebar">
+              <IconButton
+                aria-label="Collapse sidebar"
+                size="small"
+                onClick={() => persistSidebarPref("collapsed")}
+                sx={{ flexShrink: 0 }}
+              >
+                <ChevronLeftIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
+          )
         )}
       </Box>
 
@@ -591,19 +641,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {(organizations.length > 0 || isPlatformAdmin) && (
         <Box sx={{ px: 1.5, py: 1.5 }}>
           <Box
-            component="label"
-            htmlFor="leo-org-select"
             sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}
+            aria-hidden="true"
           >
             <BusinessOutlinedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: 0.5 }}>
               ORGANISATION
             </Typography>
           </Box>
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" data-testid="org-select-form-control">
+            <InputLabel
+              id="leo-org-select-label"
+              sx={{
+                position: "absolute",
+                width: 1,
+                height: 1,
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                clip: "rect(0,0,0,0)",
+                border: 0,
+                padding: 0,
+              }}
+            >
+              Select organisation
+            </InputLabel>
             <Select
               id="leo-org-select"
-              inputProps={{ "aria-label": "Select organisation" }}
+              labelId="leo-org-select-label"
               value={viewAll ? "__all__" : (currentOrg?.id ?? "")}
               onChange={(e) => switchOrg(e.target.value as string)}
               displayEmpty
@@ -645,33 +709,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               : false;
             const badgeCount = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
             return (
-              <ListItemButton
-                key={item.path}
-                component={Link}
-                href={item.path}
-                selected={isActive}
-                onClick={() => { if (isMobile) setMobileOpen(false); }}
-                aria-current={isActive ? "page" : undefined}
-                sx={{ py: 1.2 }}
-              >
-                <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
-                  <Badge badgeContent={badgeCount} color="warning" max={99}>
-                    {item.icon}
-                  </Badge>
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{
-                    fontWeight: isActive ? 600 : 400,
-                    fontSize: "0.9rem",
-                  }}
-                />
-                {badgeCount > 0 && (
-                  <Typography variant="caption" sx={{ bgcolor: "warning.main", color: "warning.contrastText", borderRadius: 10, px: 0.8, py: 0.2, fontWeight: 700, fontSize: "0.7rem" }}>
-                    {badgeCount}
-                  </Typography>
-                )}
-              </ListItemButton>
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  href={item.path}
+                  selected={isActive}
+                  onClick={() => { if (isMobile) setMobileOpen(false); }}
+                  aria-current={isActive ? "page" : undefined}
+                  sx={{ py: 1.2 }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
+                    <Badge badgeContent={badgeCount} color="warning" max={99}>
+                      {item.icon}
+                    </Badge>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{
+                      fontWeight: isActive ? 600 : 400,
+                      fontSize: "0.9rem",
+                    }}
+                  />
+                  {badgeCount > 0 && (
+                    <Typography variant="caption" sx={{ bgcolor: "warning.main", color: "warning.contrastText", borderRadius: 10, px: 0.8, py: 0.2, fontWeight: 700, fontSize: "0.7rem" }}>
+                      {badgeCount}
+                    </Typography>
+                  )}
+                </ListItemButton>
+              </ListItem>
             );
           })}
         </List>
@@ -829,6 +894,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           bgcolor: "background.default",
         }}
       >
+        {isImpersonating && selectedRole && (
+          <ImpersonationBanner
+            selectedRole={selectedRole}
+            onExit={exitImpersonation}
+          />
+        )}
         {uiMode === "admin" && <TrainingProgressBanner />}
         {children}
       </Box>

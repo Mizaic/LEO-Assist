@@ -43,6 +43,8 @@ export interface Rule {
   generation_outcome?: string | null;
   needs_human_review?: boolean;
   generation_errors?: string[];
+  /** When true this rule fires only if no other rule in the guideline matched. */
+  is_default?: boolean;
 }
 
 export interface PromoteResult {

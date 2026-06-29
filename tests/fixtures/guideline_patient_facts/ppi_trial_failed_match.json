@@ -1,0 +1,29 @@
+{
+  "description": "Patient completed a 28-day PPI trial that failed. TREATMENT_HISTORY leaf with treatment_class=PPI, outcome=failed, min_duration_days=28 should match.",
+  "bundle": {
+    "patient_codes": [],
+    "patient_observations": [],
+    "active_medications": [],
+    "allergies": [],
+    "treatment_history": [
+      {
+        "treatment_class": "PPI",
+        "outcome": "failed",
+        "concept_id": "372525000",
+        "term": "omeprazole",
+        "duration_days": 28,
+        "source_ids": ["enc-fixture-005"],
+        "start_date": null,
+        "end_date": null
+      }
+    ],
+    "as_of_date": null
+  },
+  "expected": {
+    "leaf_kind": "TREATMENT_HISTORY",
+    "leaf_treatment_class": "PPI",
+    "leaf_outcome": "failed",
+    "leaf_min_duration_days": 28,
+    "match": true
+  }
+}

@@ -65,6 +65,9 @@ from services.analytics_api.app.routers.audit_templates import (
 from services.analytics_api.app.routers.patients_epr import (
     router as patients_epr_router,
 )
+from services.analytics_api.app.routers.patients_epr_subresources import (
+    router as patients_epr_sub_router,
+)
 from services.analytics_api.app.routers.audit_draft import (
     router as audit_draft_router,
 )
@@ -182,6 +185,9 @@ app.include_router(
 )
 app.include_router(
     patients_epr_router, prefix="/analytics", tags=["patients-epr"]
+)
+app.include_router(
+    patients_epr_sub_router, prefix="/analytics", tags=["patients-epr"]
 )
 app.include_router(
     audit_draft_router, prefix="/analytics", tags=["audit-draft"]

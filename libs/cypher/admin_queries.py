@@ -14,7 +14,8 @@ Organisations, practitioners, groups, roles, and system config.
 
 LIST_ORGS = """
 MATCH (o)
-WHERE o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN OR o:Organization
+WHERE o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
+   OR o:ServiceProvider OR o:Organization
 OPTIONAL MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp)
 WHERE (gp.id = o.id)
    OR (gp)-[:COMMISSIONED_BY]->(o)
@@ -38,12 +39,13 @@ RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, o.short_name AS short_n
        sub.credits_consumed AS credits_consumed,
        sub.expires_at AS subscription_expires_at,
        CASE
-         WHEN 'GPPractice'     IN labels(o) THEN 'gp'
-         WHEN 'ICB'            IN labels(o) THEN 'icb'
-         WHEN 'CancerAlliance' IN labels(o) THEN 'alliance'
-         WHEN 'PCN'            IN labels(o) THEN 'pcn'
-         WHEN parent IS NOT NULL             THEN 'gp'
-         WHEN alliance IS NOT NULL           THEN 'icb'
+         WHEN 'GPPractice'       IN labels(o) THEN 'gp'
+         WHEN 'ICB'              IN labels(o) THEN 'icb'
+         WHEN 'CancerAlliance'   IN labels(o) THEN 'alliance'
+         WHEN 'PCN'              IN labels(o) THEN 'pcn'
+         WHEN 'ServiceProvider'  IN labels(o) THEN 'service_provider'
+         WHEN parent IS NOT NULL               THEN 'gp'
+         WHEN alliance IS NOT NULL             THEN 'icb'
          ELSE 'organization'
        END AS org_type
 ORDER BY o.name
@@ -51,7 +53,8 @@ ORDER BY o.name
 
 LIST_ORGS_SCOPED = """
 MATCH (o)
-WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN OR o:Organization)
+WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
+   OR o:ServiceProvider OR o:Organization)
   AND o.id IN $scope_org_ids
 OPTIONAL MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp)
 WHERE (gp.id = o.id)
@@ -76,12 +79,13 @@ RETURN o.id AS id, o.name AS name, o.odsCode AS odsCode, o.short_name AS short_n
        sub.credits_consumed AS credits_consumed,
        sub.expires_at AS subscription_expires_at,
        CASE
-         WHEN 'GPPractice'     IN labels(o) THEN 'gp'
-         WHEN 'ICB'            IN labels(o) THEN 'icb'
-         WHEN 'CancerAlliance' IN labels(o) THEN 'alliance'
-         WHEN 'PCN'            IN labels(o) THEN 'pcn'
-         WHEN parent IS NOT NULL             THEN 'gp'
-         WHEN alliance IS NOT NULL           THEN 'icb'
+         WHEN 'GPPractice'       IN labels(o) THEN 'gp'
+         WHEN 'ICB'              IN labels(o) THEN 'icb'
+         WHEN 'CancerAlliance'   IN labels(o) THEN 'alliance'
+         WHEN 'PCN'              IN labels(o) THEN 'pcn'
+         WHEN 'ServiceProvider'  IN labels(o) THEN 'service_provider'
+         WHEN parent IS NOT NULL               THEN 'gp'
+         WHEN alliance IS NOT NULL             THEN 'icb'
          ELSE 'organization'
        END AS org_type
 ORDER BY o.name
@@ -119,16 +123,26 @@ SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_nam
 RETURN o.id AS id
 """
 
+CREATE_ORG_SERVICE_PROVIDER = """
+CREATE (o:ServiceProvider:Organization)
+SET o.id = $id, o.name = $name, o.odsCode = $ods_code, o.short_name = $short_name,
+    o.entra_tenant_id = $entra_tenant_id, o.onboarding_status = $onboarding_status,
+    o.created_at = datetime()
+RETURN o.id AS id
+"""
+
 UPDATE_ORG = """
 MATCH (o)
-WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN OR o:Organization) AND o.id = $id
+WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
+   OR o:ServiceProvider OR o:Organization) AND o.id = $id
 SET o += $updates
 RETURN o.id AS id
 """
 
 DELETE_ORG = """
 MATCH (o)
-WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN OR o:Organization) AND o.id = $id
+WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
+   OR o:ServiceProvider OR o:Organization) AND o.id = $id
 OPTIONAL MATCH (p:Patient)-[:HAS_GENERAL_PRACTITIONER]->(gp)
 WHERE gp.id = o.id OR (gp)-[:COMMISSIONED_BY]->(o) OR (gp)-[:COMMISSIONED_BY]->(:ICB)-[:PART_OF_ALLIANCE]->(o)
 WITH o, count(DISTINCT p) AS patient_count
@@ -143,7 +157,8 @@ LIMIT 1
 
 LINK_ORG_COMMISSIONED_BY = """
 MATCH (child), (parent)
-WHERE (child:GPPractice OR child:PCN OR child:Organization) AND child.id = $child_id
+WHERE (child:GPPractice OR child:PCN OR child:ServiceProvider OR child:Organization)
+  AND child.id = $child_id
   AND (parent:ICB OR parent:Organization) AND parent.id = $parent_id
 MERGE (child)-[:COMMISSIONED_BY]->(parent)
 RETURN child.id AS id
@@ -257,7 +272,8 @@ SET pr.name = $name, pr.is_platform_admin = $is_platform_admin,
     pr.id = coalesce(pr.id, $id), pr.invited_at = datetime()
 WITH pr
 UNWIND $org_ids AS org_id
-OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization) AND o.id = org_id
+OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance
+    OR o:ServiceProvider OR o:Organization) AND o.id = org_id
 FOREACH (_ IN CASE WHEN o IS NOT NULL THEN [1] ELSE [] END |
   MERGE (pr)-[:WORKS_AT]->(o)
 )
@@ -272,7 +288,8 @@ OPTIONAL MATCH (pr)-[w:WORKS_AT]->()
 DELETE w
 WITH pr
 UNWIND $org_ids AS org_id
-OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization) AND o.id = org_id
+OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance
+    OR o:ServiceProvider OR o:Organization) AND o.id = org_id
 FOREACH (_ IN CASE WHEN o IS NOT NULL THEN [1] ELSE [] END |
   MERGE (pr)-[:WORKS_AT]->(o)
 )
@@ -549,6 +566,12 @@ SET o:PCN
 RETURN o.id AS id
 """
 
+RELABEL_ORG_AS_SERVICE_PROVIDER = """
+MATCH (o:Organization {id: $org_id})
+SET o:ServiceProvider
+RETURN o.id AS id
+"""
+
 LIST_ORGS_WITH_ODS_CODE = """
 MATCH (o:Organization)
 WHERE o.odsCode IS NOT NULL AND o.odsCode <> ''
@@ -586,7 +609,7 @@ RETURN count(o) AS updated
 
 GET_ORG_GRAPH = """
 MATCH (n)
-WHERE n:GPPractice OR n:ICB OR n:CancerAlliance OR n:PCN
+WHERE n:GPPractice OR n:ICB OR n:CancerAlliance OR n:PCN OR n:ServiceProvider
 OPTIONAL MATCH (n)-[:COMMISSIONED_BY]->(icb:ICB)
 OPTIONAL MATCH (n)-[:PART_OF_ALLIANCE]->(ca:CancerAlliance)
 OPTIONAL MATCH (n)-[:PART_OF_PCN]->(pcn:PCN)

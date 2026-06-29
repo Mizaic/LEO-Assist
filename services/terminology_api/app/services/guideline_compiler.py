@@ -1305,6 +1305,91 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             rule_canonical_unit=rule_canonical_unit,
         )
 
+    @staticmethod
+    def _compile_medication_leaf(node: dict[str, Any]) -> dict[str, Any] | None:
+        """Compile a MEDICATION leaf -- validates required fields.
+
+        Atlas trace: DO-0EC3A9CB / DI-2199E670
+        Fails closed (returns None) when drug_class is missing.
+        """
+        drug_class = (node.get("drug_class") or "").strip()
+        if not drug_class:
+            logger.error(
+                "MEDICATION leaf %r is missing required drug_class -- rule excluded.",
+                node.get("node_id"),
+            )
+            return None
+        return {
+            "kind": "MEDICATION",
+            "node_id": node.get("node_id"),
+            "drug_class": drug_class,
+            "concept_id": node.get("concept_id"),
+            "term": node.get("term", ""),
+        }
+
+    @staticmethod
+    def _compile_allergy_leaf(node: dict[str, Any]) -> dict[str, Any] | None:
+        """Compile an ALLERGY leaf -- validates required fields.
+
+        Atlas trace: DO-0EC3A9CB / DI-2199E670
+        Fails closed (returns None) when substance_concept_id is missing.
+        """
+        substance_concept_id = (node.get("substance_concept_id") or "").strip()
+        if not substance_concept_id:
+            logger.error(
+                "ALLERGY leaf %r is missing required substance_concept_id -- rule excluded.",
+                node.get("node_id"),
+            )
+            return None
+        return {
+            "kind": "ALLERGY",
+            "node_id": node.get("node_id"),
+            "substance_concept_id": substance_concept_id,
+            "allergy_class": node.get("allergy_class"),
+            "term": node.get("term", ""),
+        }
+
+    @staticmethod
+    def _compile_treatment_history_leaf(
+        node: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Compile a TREATMENT_HISTORY leaf -- validates required fields.
+
+        Atlas trace: DO-0EC3A9CB / DI-2199E670
+        Fails closed (returns None) when treatment_class is missing.
+        """
+        treatment_class = (node.get("treatment_class") or "").strip()
+        if not treatment_class:
+            logger.error(
+                "TREATMENT_HISTORY leaf %r is missing required treatment_class"
+                " -- rule excluded.",
+                node.get("node_id"),
+            )
+            return None
+        min_duration = node.get("min_duration_days")
+        if min_duration is not None:
+            try:
+                min_duration = int(min_duration)
+                if min_duration < 1:
+                    raise ValueError("min_duration_days must be >= 1")
+            except (TypeError, ValueError) as exc:
+                logger.error(
+                    "TREATMENT_HISTORY leaf %r has invalid min_duration_days %r: %s"
+                    " -- rule excluded.",
+                    node.get("node_id"),
+                    min_duration,
+                    exc,
+                )
+                return None
+        return {
+            "kind": "TREATMENT_HISTORY",
+            "node_id": node.get("node_id"),
+            "treatment_class": treatment_class,
+            "concept_id": node.get("concept_id"),
+            "min_duration_days": min_duration,
+            "term": node.get("term", ""),
+        }
+
     def _compile_logic_tree_node(
         self,
         node: dict[str, Any] | None,
@@ -1337,6 +1422,12 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             }
         if kind == "observation":
             return self._compile_observation_leaf(node)
+        if kind == "medication":
+            return self._compile_medication_leaf(node)
+        if kind == "allergy":
+            return self._compile_allergy_leaf(node)
+        if kind == "treatment_history":
+            return self._compile_treatment_history_leaf(node)
 
         children = []
         for child in node.get("children") or []:

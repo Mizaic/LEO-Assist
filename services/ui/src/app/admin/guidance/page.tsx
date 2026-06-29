@@ -121,12 +121,13 @@ async function fetchPageStats(): Promise<PageStats> {
 export default function GuidancePage() {
   const [loadedRefreshKey, setLoadedRefreshKey] = useState(0);
   const [ruleRefreshKey, setRuleRefreshKey] = useState(0);
+  const [bitmapRefreshKey, setBitmapRefreshKey] = useState(0);
   const [activeStep, setActiveStep] = useState<StepId>("load");
   const [stats, setStats] = useState<PageStats>({ guidelinesLoaded: 0, rulesPending: 0, rulesApproved: 0, activeBitmapVersion: "--" });
 
   useEffect(() => {
     fetchPageStats().then(setStats).catch(() => {});
-  }, [loadedRefreshKey, ruleRefreshKey]);
+  }, [loadedRefreshKey, ruleRefreshKey, bitmapRefreshKey]);
 
   const statTiles: StatTile[] = [
     { id: "loaded", label: "Guidelines loaded", value: stats.guidelinesLoaded },
@@ -180,7 +181,7 @@ export default function GuidancePage() {
 
       {/* -- Step 3: Compile ---------------------------------------------- */}
       <StepCard id="bitmap-lifecycle" index={3} step={3} title="Compile and go live" description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included." accent="#14B8A6">
-        <BitmapLifecycleSection />
+        <BitmapLifecycleSection onVersionActivated={() => setBitmapRefreshKey((n) => n + 1)} />
       </StepCard>
     </Box>
   );

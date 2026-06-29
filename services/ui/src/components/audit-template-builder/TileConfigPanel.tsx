@@ -33,8 +33,10 @@ import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import WidgetsOutlinedIcon from "@mui/icons-material/WidgetsOutlined";
+import MenuItem from "@mui/material/MenuItem";
 import {
   type AuditTile,
+  type MetricParamSpec,
   type TileAnnotation,
   type TileStoryConfig,
   type TileType,
@@ -59,8 +61,133 @@ interface TileConfigPanelProps {
   tile: AuditTile;
   compatibleTypes?: TileType[];
   recommendedType?: TileType;
+  /** The selected metric's param schema, used to render the Parameters tab. */
+  paramSchema?: Record<string, MetricParamSpec>;
   onChange: (updated: AuditTile) => void;
   onRemove?: (id: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// ParamsTab sub-component - renders controls from the metric param_schema
+// ---------------------------------------------------------------------------
+
+function humanise(key: string): string {
+  const s = key.replace(/[_-]+/g, " ").trim();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function ParamField({
+  name,
+  spec,
+  value,
+  onChange,
+}: {
+  name: string;
+  spec: MetricParamSpec;
+  value: unknown;
+  onChange: (v: unknown) => void;
+}) {
+  const label = humanise(name);
+  const current = value ?? spec.default ?? "";
+
+  if (spec.enum && spec.enum.length > 0) {
+    return (
+      <TextField
+        select
+        size="small"
+        label={label}
+        value={current === "" ? "" : String(current)}
+        onChange={(e) => onChange(e.target.value || undefined)}
+        fullWidth
+      >
+        <MenuItem value="">
+          <em>Default</em>
+        </MenuItem>
+        {spec.enum.map((opt) => (
+          <MenuItem key={opt} value={opt}>
+            {humanise(opt)}
+          </MenuItem>
+        ))}
+      </TextField>
+    );
+  }
+
+  if (spec.type === "boolean") {
+    return (
+      <FormControlLabel
+        control={
+          <Switch
+            size="small"
+            checked={Boolean(current)}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+        }
+        label={<Typography variant="caption">{label}</Typography>}
+        sx={{ ml: 0 }}
+      />
+    );
+  }
+
+  const isNumber = spec.type === "number" || spec.type === "integer";
+  const isDate = spec.format === "date" || spec.format === "date-time";
+  return (
+    <TextField
+      size="small"
+      label={label}
+      type={isDate ? "date" : isNumber ? "number" : "text"}
+      value={current === undefined ? "" : String(current)}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (raw === "") return onChange(undefined);
+        onChange(isNumber ? Number(raw) : raw);
+      }}
+      inputProps={isNumber ? { min: spec.minimum, max: spec.maximum } : undefined}
+      InputLabelProps={isDate ? { shrink: true } : undefined}
+      helperText={spec.required ? "Required" : undefined}
+      fullWidth
+    />
+  );
+}
+
+function ParamsTab({
+  schema,
+  overrides,
+  onChange,
+}: {
+  schema: Record<string, MetricParamSpec>;
+  overrides: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+}) {
+  const entries = Object.entries(schema);
+  const setParam = (key: string, v: unknown) => {
+    const next = { ...overrides };
+    if (v === undefined) delete next[key];
+    else next[key] = v;
+    onChange(next);
+  };
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.75 }}>
+      <Typography variant="caption" color="text.secondary">
+        Override the metric&apos;s default settings for this tile. Leave a field
+        blank to use the metric default.
+      </Typography>
+      {entries.map(([name, spec]) => (
+        <ParamField
+          key={name}
+          name={name}
+          spec={spec}
+          value={overrides[name]}
+          onChange={(v) => setParam(name, v)}
+        />
+      ))}
+      {Object.keys(overrides).length > 0 && (
+        <Button size="small" onClick={() => onChange({})} sx={{ alignSelf: "flex-start", fontSize: 11 }}>
+          Reset all to defaults
+        </Button>
+      )}
+    </Box>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -453,6 +580,7 @@ export default function TileConfigPanel({
   tile,
   compatibleTypes,
   recommendedType,
+  paramSchema,
   onChange,
   onRemove,
 }: TileConfigPanelProps) {
@@ -466,6 +594,8 @@ export default function TileConfigPanel({
   }
 
   const story: TileStoryConfig = tile.story ?? {};
+  const hasParams = Boolean(paramSchema && Object.keys(paramSchema).length > 0);
+  const paramTabIndex = 2;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -480,6 +610,7 @@ export default function TileConfigPanel({
       >
         <Tab label="Settings" />
         <Tab label="Story" />
+        {hasParams && <Tab label="Parameters" />}
       </Tabs>
 
       {tab === 0 && (
@@ -534,6 +665,14 @@ export default function TileConfigPanel({
         <StoryTab
           story={story}
           onChange={(s) => update({ story: s })}
+        />
+      )}
+
+      {hasParams && tab === paramTabIndex && (
+        <ParamsTab
+          schema={paramSchema as Record<string, MetricParamSpec>}
+          overrides={tile.param_overrides ?? {}}
+          onChange={(next) => update({ param_overrides: next })}
         />
       )}
     </Box>

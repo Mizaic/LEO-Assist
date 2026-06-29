@@ -14,6 +14,7 @@
 #   ./scripts/start_leo-ai-core.sh --services api,ui
 #   ./scripts/start_leo-ai-core.sh --pipeline-workers 3
 #   ./scripts/start_leo-ai-core.sh --term-workers 3
+#   ./scripts/start_leo-ai-core.sh --e2e
 #
 # Environment overrides (optional):
 #   LEO_PYTHON  -- full path to python3.12 used to create .venv (must be 3.12.x; matches CI)
@@ -48,6 +49,7 @@ NO_TRAINING_WORKER=0
 NO_RESEARCH_WORKER=0
 SKIP_MCP_REGISTER=1
 SERVICES_FILTER=""
+E2E_MODE=0
 
 usage() {
   sed -n '1,25p' "$0" | tail -n +2
@@ -63,6 +65,7 @@ while [[ $# -gt 0 ]]; do
     --no-research-worker) NO_RESEARCH_WORKER=1; shift ;;
     --mcp) SKIP_MCP_REGISTER=0; shift ;;
     --no-mcp) SKIP_MCP_REGISTER=1; shift ;;
+    --e2e) E2E_MODE=1; shift ;;
     --services)
       [[ $# -lt 2 ]] && usage
       SERVICES_FILTER="$2"
@@ -443,10 +446,14 @@ if [[ "$NO_WORKERS" -eq 0 ]] && should_start "pipeline_worker"; then
 fi
 
 if should_start "ui"; then
-  start_service_window "UI :${UI_PORT}" \
-    "npm run dev -- --port $UI_PORT" \
-    "$UI_DIR"
-  echo "    UI                 http://localhost:${UI_PORT}"
+  if [[ "$E2E_MODE" -eq 1 ]]; then
+    ui_cmd="NEXT_PUBLIC_E2E_MODE=true npm run dev -- --port $UI_PORT"
+    echo "    UI                 http://localhost:${UI_PORT}  [E2E mode - mock session active]"
+  else
+    ui_cmd="npm run dev -- --port $UI_PORT"
+    echo "    UI                 http://localhost:${UI_PORT}"
+  fi
+  start_service_window "UI :${UI_PORT}" "$ui_cmd" "$UI_DIR"
   WINDOW_COUNT=$((WINDOW_COUNT + 1))
 fi
 

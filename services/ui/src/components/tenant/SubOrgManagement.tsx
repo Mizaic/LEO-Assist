@@ -60,6 +60,7 @@ const ORG_TYPE_LABELS: Record<string, string> = {
   pcn: "PCN",
   icb: "ICB",
   alliance: "Cancer Alliance",
+  service_provider: "Service Provider",
 };
 
 export default function SubOrgManagement({ isPlatformAdmin }: Props) {
@@ -73,7 +74,7 @@ export default function SubOrgManagement({ isPlatformAdmin }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   // Form state
-  const [orgType, setOrgType] = useState<"gp" | "pcn" | "icb" | "alliance">("gp");
+  const [orgType, setOrgType] = useState<"gp" | "pcn" | "icb" | "alliance" | "service_provider">("gp");
   const [orgName, setOrgName] = useState("");
   const [odsCode, setOdsCode] = useState("");
   const [parentOrgId, setParentOrgId] = useState("");
@@ -267,6 +268,7 @@ export default function SubOrgManagement({ isPlatformAdmin }: Props) {
               <MenuItem value="pcn">PCN (Primary Care Network)</MenuItem>
               <MenuItem value="icb">ICB (Integrated Care Board)</MenuItem>
               <MenuItem value="alliance">Cancer Alliance</MenuItem>
+              <MenuItem value="service_provider">Service Provider (Hospital / Trust)</MenuItem>
             </Select>
           </FormControl>
 

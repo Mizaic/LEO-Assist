@@ -24,10 +24,13 @@
  */
 
 import Box from "@mui/material/Box";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import ActionPanel from "../ActionPanel";
@@ -42,6 +45,8 @@ interface Props {
   action: LogicCriterion | null;
   isActionSelected: boolean;
   onSelectAction: () => void;
+  isDefault: boolean;
+  onIsDefaultChange: (next: boolean) => void;
 }
 
 export default function Step2Suggest({
@@ -52,6 +57,8 @@ export default function Step2Suggest({
   action,
   isActionSelected,
   onSelectAction,
+  isDefault,
+  onIsDefaultChange,
 }: Props) {
   return (
     <Stack spacing={2} sx={{ minWidth: 0 }}>
@@ -125,6 +132,33 @@ export default function Step2Suggest({
           </Select>
         </Box>
       </Stack>
+
+      <Tooltip
+        title="Use this for narrative recommendations that apply when no more specific rule has already fired for this patient."
+        placement="bottom-start"
+      >
+        <FormControlLabel
+          control={
+            <Switch
+              checked={isDefault}
+              onChange={(e) => onIsDefaultChange(e.target.checked)}
+              inputProps={{ "aria-label": "Mark as fallback rule" }}
+              size="small"
+            />
+          }
+          label={
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+                Fallback rule
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.3 }}>
+                Only fires if no other rule in this guideline matched.
+              </Typography>
+            </Box>
+          }
+          sx={{ alignItems: "flex-start", mt: 0.5, ml: 0 }}
+        />
+      </Tooltip>
     </Stack>
   );
 }

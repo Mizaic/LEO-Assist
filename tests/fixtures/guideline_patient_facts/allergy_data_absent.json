@@ -1,0 +1,17 @@
+{
+  "description": "Patient has NO allergy information recorded at all (not NKDA -- just absent). ALLERGY leaf should fail closed. Reason should mention fail closed, not no known drug allergies. This is different from nkda_no_match.json.",
+  "bundle": {
+    "patient_codes": [],
+    "patient_observations": [],
+    "active_medications": [],
+    "allergies": [],
+    "treatment_history": [],
+    "as_of_date": null
+  },
+  "expected": {
+    "leaf_kind": "ALLERGY",
+    "leaf_substance_concept_id": "764146007",
+    "match": false,
+    "reason_contains": "fail closed"
+  }
+}

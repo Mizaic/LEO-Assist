@@ -48,12 +48,49 @@ describe("VT-32FBAA69 audit template builder - static-source", () => {
     expect(editorSrc).toContain("fetchMetricCatalogue");
   });
 
-  // DO-A9863AB6 AC2
-  test("AC2 - TileGrid uses react-grid-layout GridLayout for drag/resize", () => {
+  // DO-A9863AB6 AC2 - drag/resize/auto-layout must be WIRED, not just imported.
+  // Regression guard: react-grid-layout v2 needs dragConfig + resizeConfig +
+  // compactor AND its stylesheet, or drag/resize/compaction silently no-op.
+  // (The original defect passed a "contains GridLayout" check while being dead.)
+  test("AC2 - TileGrid wires react-grid-layout v2 drag, resize and compaction", () => {
     const src = read(TILE_GRID);
     expect(src).toContain("GridLayout");
-    expect(src).toContain("react-grid-layout");
     expect(src).toContain("onLayoutChange");
+    // Drag must be explicitly enabled with a handle selector.
+    expect(src).toMatch(/dragConfig=\{\{[\s\S]*?enabled:\s*true[\s\S]*?handle:/);
+    // Resize handles only render when resizeConfig is enabled.
+    expect(src).toMatch(/resizeConfig=\{\{[\s\S]*?enabled:\s*true/);
+    // A compactor is required for auto-layout / compaction on drag.
+    expect(src).toMatch(/compactor=\{verticalCompactor\}/);
+    expect(src).toContain("verticalCompactor");
+  });
+
+  // DO-A9863AB6 AC2 - the v2 stylesheet must be imported globally, otherwise
+  // resize handles and the drag placeholder are invisible (the original bug).
+  test("AC2 - react-grid-layout stylesheet is imported in the root layout", () => {
+    const layoutSrc = read("services/ui/src/app/layout.tsx");
+    expect(layoutSrc).toContain('react-grid-layout/css/styles.css');
+  });
+
+  // DO-A9863AB6 AC2 - metrics drag from the library onto the canvas, and the
+  // canvas accepts the drop (library-to-canvas DnD).
+  test("AC2 - library metrics are draggable and TileGrid is a drop target", () => {
+    const pickerSrc = read(METRIC_PICKER);
+    expect(pickerSrc).toContain("draggable");
+    expect(pickerSrc).toContain("application/x-audit-metric");
+    const gridSrc = read(TILE_GRID);
+    expect(gridSrc).toContain("onDrop");
+    expect(gridSrc).toContain("application/x-audit-metric");
+    expect(gridSrc).toContain("onDropMetric");
+  });
+
+  // DO-A9863AB6 AC2 - a metric chip must never be disabled just because the
+  // metric is already on the canvas (the "grayed out" regression).
+  test("AC2 - metric chips are not disabled when the metric is already in use", () => {
+    const pickerSrc = read(METRIC_PICKER);
+    expect(pickerSrc).not.toMatch(/disabled=\{used\}/);
+    // The non-blocking "in use" indicator is a count, not a lock.
+    expect(pickerSrc).toContain("usedCounts");
   });
 
   // DI-64CA7740 AC2 / DO-A9863AB6 AC3
@@ -104,6 +141,37 @@ describe("VT-32FBAA69 audit template builder - static-source", () => {
     expect(src).toContain("scope_type");
     expect(src).toContain("scope_id");
     expect(src).toContain("/publish");
+  });
+
+  // Multi-page authoring: the editor renders a page tab strip and assigns
+  // tiles to the active page (the "I can't create tabs" complaint).
+  test("TemplateEditor supports multiple pages via PageTabs", () => {
+    const src = read(TEMPLATE_EDITOR);
+    expect(src).toContain("PageTabs");
+    expect(src).toContain("activePageId");
+    expect(src).toContain("handleAddPage");
+    expect(src).toContain("pageTiles");
+    const tabsSrc = read(
+      "services/ui/src/components/audit-template-builder/PageTabs.tsx",
+    );
+    expect(tabsSrc).toContain("onAdd");
+    expect(tabsSrc).toContain("onRename");
+    expect(tabsSrc).toContain("onDelete");
+  });
+
+  // Tile parameter configuration: the config panel renders a Parameters tab
+  // from the metric param_schema and writes to param_overrides.
+  test("TileConfigPanel renders metric parameters into param_overrides", () => {
+    const src = read(
+      "services/ui/src/components/audit-template-builder/TileConfigPanel.tsx",
+    );
+    expect(src).toContain("paramSchema");
+    expect(src).toContain("param_overrides");
+    expect(src).toContain("Parameters");
+    expect(src).toContain("ParamsTab");
+    // TemplateEditor must feed the selected metric's schema in.
+    const editorSrc = read(TEMPLATE_EDITOR);
+    expect(editorSrc).toContain("paramSchema={catalogueById");
   });
 
   // TemplateList must expose create + archive

@@ -9,6 +9,7 @@
  */
 import "./globals.css";
 import "@/theme/tokens.css";
+import "react-grid-layout/css/styles.css";
 import type { Metadata } from "next";
 import ThemeRegistry from "@/components/ThemeRegistry";
 import { PipelineProvider } from "@/context/PipelineContext";

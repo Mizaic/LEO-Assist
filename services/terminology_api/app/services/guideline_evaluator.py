@@ -111,6 +111,9 @@ class GuidelineEvaluator:
         scope_id: str | None = None,
         ruleset_version: str | None = None,
         patient_observations: list[dict[str, Any]] | None = None,
+        active_medications: list[dict[str, Any]] | None = None,
+        allergies: list[dict[str, Any]] | None = None,
+        treatment_history: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Evaluate patient SNOMED codes against the active bitmap ruleset.
 
@@ -203,6 +206,9 @@ class GuidelineEvaluator:
                 patient_age,
                 patient_sex,
                 patient_observations=patient_observations,
+                active_medications=active_medications,
+                allergies=allergies,
+                treatment_history=treatment_history,
                 bitmap_cache=bitmap_cache,
             ):
                 matched_via = self._collect_matched_via(
@@ -230,6 +236,9 @@ class GuidelineEvaluator:
         scope_id: str | None = None,
         ruleset_version: str | None = None,
         patient_observations: list[dict[str, Any]] | None = None,
+        active_medications: list[dict[str, Any]] | None = None,
+        allergies: list[dict[str, Any]] | None = None,
+        treatment_history: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any] | None:
         """Return per-node match diagnostics for ONE rule.
 
@@ -314,6 +323,9 @@ class GuidelineEvaluator:
             patient_age,
             patient_sex,
             patient_observations=patient_observations,
+            active_medications=active_medications,
+            allergies=allergies,
+            treatment_history=treatment_history,
         )
 
         resolved_count = sum(
@@ -355,6 +367,9 @@ class GuidelineEvaluator:
         patient_sex: str | None,
         *,
         patient_observations: list[dict[str, Any]] | None = None,
+        active_medications: list[dict[str, Any]] | None = None,
+        allergies: list[dict[str, Any]] | None = None,
+        treatment_history: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any] | None, bool]:
         """Return (annotated_tree, overall_fires) for any rule schema."""
         if int(rule.get("schema_version") or 1) == 2:
@@ -365,6 +380,9 @@ class GuidelineEvaluator:
                 patient_age,
                 patient_sex,
                 patient_observations=patient_observations,
+                active_medications=active_medications,
+                allergies=allergies,
+                treatment_history=treatment_history,
             )
             fires = bool(annotated and annotated.get("matched"))
             return annotated, fires
@@ -429,6 +447,9 @@ class GuidelineEvaluator:
         patient_sex: str | None,
         *,
         patient_observations: list[dict[str, Any]] | None = None,
+        active_medications: list[dict[str, Any]] | None = None,
+        allergies: list[dict[str, Any]] | None = None,
+        treatment_history: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any] | None:
         if not node:
             return None
@@ -491,6 +512,54 @@ class GuidelineEvaluator:
                 "mode": _observation_mode(node),
                 "matched": matched,
             }
+        if kind == "MEDICATION":
+            matched, reason, source_ids = self._medication_matches(
+                node, active_medications or []
+            )
+            return {
+                "kind": "MEDICATION",
+                "node_id": node_id,
+                "drug_class": node.get("drug_class"),
+                "concept_id": node.get("concept_id"),
+                "term": node.get("term"),
+                "matched": matched,
+                "reason": reason,
+                "source_ids": source_ids,
+            }
+        if kind == "ALLERGY":
+            matched, reason, source_ids = self._allergy_matches(
+                node, allergies or []
+            )
+            return {
+                "kind": "ALLERGY",
+                "node_id": node_id,
+                "substance_concept_id": node.get("substance_concept_id"),
+                "allergy_class": node.get("allergy_class"),
+                "term": node.get("term"),
+                "matched": matched,
+                "reason": reason,
+                "source_ids": source_ids,
+            }
+        if kind == "TREATMENT_HISTORY":
+            matched, reason, source_ids = self._treatment_history_matches(
+                node, treatment_history or []
+            )
+            return {
+                "kind": "TREATMENT_HISTORY",
+                "node_id": node_id,
+                "treatment_class": node.get("treatment_class"),
+                "min_duration_days": node.get("min_duration_days"),
+                "term": node.get("term"),
+                "matched": matched,
+                "reason": reason,
+                "source_ids": source_ids,
+            }
+        _ann_kwargs: dict[str, Any] = {
+            "patient_observations": patient_observations,
+            "active_medications": active_medications,
+            "allergies": allergies,
+            "treatment_history": treatment_history,
+        }
         children_in = list(node.get("children") or [])
         children_out = [
             self._annotate_logic_tree(
@@ -498,7 +567,7 @@ class GuidelineEvaluator:
                 patient_bm,
                 patient_age,
                 patient_sex,
-                patient_observations=patient_observations,
+                **_ann_kwargs,
             )
             for c in children_in
         ]
@@ -635,6 +704,129 @@ class GuidelineEvaluator:
         id_map = self._store.get_int_ids_bulk(list(concept_ids))
         return BitMap(id_map.values())
 
+    @staticmethod
+    def _medication_matches(
+        node: dict[str, Any],
+        active_medications: list[dict[str, Any]],
+    ) -> tuple[bool, str, list[str]]:
+        """Match a MEDICATION leaf against the patient's active medications.
+
+        Atlas trace: DO-0EC3A9CB / DI-2199E670
+
+        Returns:
+            (matched, reason, source_ids)
+        Fail-closed: any status other than "active" fails. Empty list fails.
+        """
+        drug_class = (node.get("drug_class") or "").strip()
+        concept_id = node.get("concept_id")
+        if not active_medications:
+            return False, "no medication data available -- fail closed", []
+        for med in active_medications:
+            if med.get("status") != "active":
+                continue
+            class_match = med.get("drug_class") == drug_class
+            if not class_match:
+                continue
+            if concept_id and med.get("concept_id") and med["concept_id"] != concept_id:
+                continue
+            return True, f"active {drug_class} medication matched", list(
+                med.get("source_ids") or []
+            )
+        return False, f"no active {drug_class} medication found -- fail closed", []
+
+    @staticmethod
+    def _allergy_matches(
+        node: dict[str, Any],
+        allergies: list[dict[str, Any]],
+    ) -> tuple[bool, str, list[str]]:
+        """Match an ALLERGY leaf against the patient's allergy list.
+
+        Atlas trace: DO-0EC3A9CB / DI-2199E670
+
+        Returns:
+            (matched, reason, source_ids)
+        nkda and unknown produce different reasons; both fail closed.
+        Empty list fails closed (different reason from nkda).
+        """
+        substance_concept_id = node.get("substance_concept_id", "")
+        allergy_class = node.get("allergy_class")
+        if not allergies:
+            return False, "no allergy information available -- fail closed", []
+        for allergy in allergies:
+            status = allergy.get("status", "unknown")
+            if status == "nkda":
+                return (
+                    False,
+                    "documented no known drug allergies -- fail closed",
+                    [],
+                )
+            if status != "active":
+                continue
+            concept_match = allergy.get("substance_concept_id") == substance_concept_id
+            class_match = (
+                allergy_class
+                and allergy.get("allergy_class") == allergy_class
+            )
+            if concept_match or class_match:
+                return True, f"active allergy to {substance_concept_id} matched", list(
+                    allergy.get("source_ids") or []
+                )
+        return (
+            False,
+            f"no active allergy to {substance_concept_id} found -- fail closed",
+            [],
+        )
+
+    @staticmethod
+    def _treatment_history_matches(
+        node: dict[str, Any],
+        treatment_history: list[dict[str, Any]],
+    ) -> tuple[bool, str, list[str]]:
+        """Match a TREATMENT_HISTORY leaf against the patient's treatment history.
+
+        Atlas trace: DO-0EC3A9CB / DI-2199E670
+
+        Returns:
+            (matched, reason, source_ids)
+        Only "failed" and "not_tolerated" outcomes pass.
+        min_duration_days check fails closed when duration is absent.
+        """
+        _MATCHING_OUTCOMES = {"failed", "not_tolerated"}
+        treatment_class = (node.get("treatment_class") or "").strip()
+        min_duration = node.get("min_duration_days")
+        concept_id = node.get("concept_id")
+        if not treatment_history:
+            return False, "no treatment history available -- fail closed", []
+        for tx in treatment_history:
+            if tx.get("treatment_class") != treatment_class:
+                continue
+            outcome = tx.get("outcome", "unknown")
+            if outcome not in _MATCHING_OUTCOMES:
+                continue
+            if concept_id and tx.get("concept_id") and tx["concept_id"] != concept_id:
+                continue
+            if min_duration is not None:
+                tx_duration = tx.get("duration_days")
+                if tx_duration is None:
+                    return (
+                        False,
+                        f"{treatment_class} trial duration not recorded"
+                        " -- fail closed",
+                        [],
+                    )
+                if tx_duration < min_duration:
+                    continue
+            return (
+                True,
+                f"{treatment_class} trial with outcome {outcome} matched",
+                list(tx.get("source_ids") or []),
+            )
+        return (
+            False,
+            f"no {treatment_class} trial with required outcome found -- fail closed",
+            [],
+        )
+
     def _rule_matches(
         self,
         rule: dict,
@@ -643,6 +835,9 @@ class GuidelineEvaluator:
         patient_sex: str | None = None,
         *,
         patient_observations: list[dict[str, Any]] | None = None,
+        active_medications: list[dict[str, Any]] | None = None,
+        allergies: list[dict[str, Any]] | None = None,
+        treatment_history: list[dict[str, Any]] | None = None,
         bitmap_cache: dict[str, BitMap] | None = None,
     ) -> bool:
         """Return True if a compiled rule matches the patient bitmap.
@@ -677,6 +872,9 @@ class GuidelineEvaluator:
                 patient_age,
                 patient_sex,
                 patient_observations=patient_observations,
+                active_medications=active_medications or [],
+                allergies=allergies or [],
+                treatment_history=treatment_history or [],
                 bitmap_cache=bitmap_cache,
             )
 
@@ -739,6 +937,9 @@ class GuidelineEvaluator:
         patient_sex: str | None,
         *,
         patient_observations: list[dict[str, Any]] | None = None,
+        active_medications: list[dict[str, Any]] | None = None,
+        allergies: list[dict[str, Any]] | None = None,
+        treatment_history: list[dict[str, Any]] | None = None,
         bitmap_cache: dict[str, BitMap] | None = None,
     ) -> bool:
         """Recursively evaluate a compiled logic tree node against a patient bitmap.
@@ -776,28 +977,40 @@ class GuidelineEvaluator:
                 patient_sex=patient_sex,
                 patient_age=patient_age,
             )
+        if kind == "MEDICATION":
+            matched, _reason, _src = self._medication_matches(
+                node, active_medications or []
+            )
+            return matched
+        if kind == "ALLERGY":
+            matched, _reason, _src = self._allergy_matches(
+                node, allergies or []
+            )
+            return matched
+        if kind == "TREATMENT_HISTORY":
+            matched, _reason, _src = self._treatment_history_matches(
+                node, treatment_history or []
+            )
+            return matched
         children = list(node.get("children") or [])
+        _kwargs: dict[str, Any] = {
+            "patient_observations": patient_observations,
+            "active_medications": active_medications,
+            "allergies": allergies,
+            "treatment_history": treatment_history,
+            "bitmap_cache": bitmap_cache,
+        }
         if kind == "AND":
             return all(
                 self._logic_tree_matches(
-                    child,
-                    patient_bm,
-                    patient_age,
-                    patient_sex,
-                    patient_observations=patient_observations,
-                    bitmap_cache=bitmap_cache,
+                    child, patient_bm, patient_age, patient_sex, **_kwargs
                 )
                 for child in children
             )
         if kind == "OR":
             return any(
                 self._logic_tree_matches(
-                    child,
-                    patient_bm,
-                    patient_age,
-                    patient_sex,
-                    patient_observations=patient_observations,
-                    bitmap_cache=bitmap_cache,
+                    child, patient_bm, patient_age, patient_sex, **_kwargs
                 )
                 for child in children
             )
@@ -809,12 +1022,7 @@ class GuidelineEvaluator:
                 )
                 return False
             return not self._logic_tree_matches(
-                children[0],
-                patient_bm,
-                patient_age,
-                patient_sex,
-                patient_observations=patient_observations,
-                bitmap_cache=bitmap_cache,
+                children[0], patient_bm, patient_age, patient_sex, **_kwargs
             )
         if kind == "AT_LEAST":
             threshold = int(node.get("min") or 1)
@@ -822,12 +1030,7 @@ class GuidelineEvaluator:
                 1
                 for child in children
                 if self._logic_tree_matches(
-                    child,
-                    patient_bm,
-                    patient_age,
-                    patient_sex,
-                    patient_observations=patient_observations,
-                    bitmap_cache=bitmap_cache,
+                    child, patient_bm, patient_age, patient_sex, **_kwargs
                 )
             )
             return count >= threshold

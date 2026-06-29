@@ -233,8 +233,11 @@ test.describe("VAL-17DC94A2 audit template builder walkthrough @val", () => {
           const publishDialog = ctx.page.getByRole("dialog", { name: "Publish template" });
           await publishDialog.getByLabel("Select organisations").fill(VAL_ORG_A_NAME);
           await ctx.page.getByRole("option", { name: VAL_ORG_A_NAME }).click();
-          await publishDialog.getByRole("button", { name: "Publish" }).click();
-          state.orgATemplateId = VAL_TEMPLATE_A_ID;
+          // Capture evidence while the dialog is still open and scoped to org-A,
+          // BEFORE committing, so the screenshot actually proves the scope label.
+          await expect(
+            publishDialog.getByText(VAL_ORG_A_NAME, { exact: false }).first(),
+          ).toBeVisible({ timeout: 10_000 });
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,
@@ -243,9 +246,12 @@ test.describe("VAL-17DC94A2 audit template builder walkthrough @val", () => {
             testInfo: ctx.testInfo,
             protocol: ctx.protocol,
             stepIndex: 6,
-            notes: `Publish dialog scoped to ${VAL_ORG_A_NAME} only.`,
+            screenshotTarget: publishDialog,
+            notes: `Publish dialog scoped to ${VAL_ORG_A_NAME} only (captured before committing).`,
           });
           ctx.lastCompletedStep.value = 6;
+          await publishDialog.getByRole("button", { name: "Publish" }).click();
+          state.orgATemplateId = VAL_TEMPLATE_A_ID;
 
           await openCareAuditAsClinician(ctx.page, state, "clinician_a", VAL_ORG_A_ID);
           await expect(

@@ -1,0 +1,25 @@
+{
+  "description": "Patient has documented no known drug allergies (nkda). ALLERGY leaf for penicillin should NOT match. Reason should mention no known drug allergies.",
+  "bundle": {
+    "patient_codes": [],
+    "patient_observations": [],
+    "active_medications": [],
+    "allergies": [
+      {
+        "substance_concept_id": "nkda-documented",
+        "status": "nkda",
+        "allergy_class": null,
+        "term": "no known drug allergies",
+        "source_ids": ["enc-fixture-004"]
+      }
+    ],
+    "treatment_history": [],
+    "as_of_date": null
+  },
+  "expected": {
+    "leaf_kind": "ALLERGY",
+    "leaf_substance_concept_id": "764146007",
+    "match": false,
+    "reason_contains": "no known drug allergies"
+  }
+}

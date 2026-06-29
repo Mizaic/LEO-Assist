@@ -141,6 +141,8 @@ class TestActionPersistedWhenSupplied:
                 {"concept_id": "168731009", "exists": True},
             ],
             [{"id": "rule:rec-1:old:edit:deadbeef"}],
+            # 4: reject_sibling_pending_rules
+            [{"rejected_ids": []}],
         ])
         apply_rule_edit(
             client,
@@ -174,6 +176,8 @@ class TestActionPreservedWhenOmitted:
             }],
             [{"concept_id": "49727002", "exists": True}],
             [{"id": "rule:rec-1:old:edit:deadbeef"}],
+            # 4: reject_sibling_pending_rules
+            [{"rejected_ids": []}],
         ])
         apply_rule_edit(
             client,

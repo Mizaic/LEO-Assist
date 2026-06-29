@@ -55,6 +55,51 @@ def test_active_template_endpoint_exists():
     assert "/active" in src
 
 
+# DI-AUDIT-PAGES - multi-page templates persist a pages_json property
+def test_router_persists_pages_json():
+    src = _read(ROUTER)
+    # Both create and update must write the pages property to the node.
+    assert src.count("t.pages_json") >= 2, "create + update must SET t.pages_json"
+    assert "pages_json=pages_json" in src, "create must bind pages_json"
+    assert "pages_json=new_pages" in src, "update must bind merged pages"
+    assert "pages_data" in src, "_row_to_template must read pages_json"
+
+
+# DI-AUDIT-PAGES - the Pydantic models accept pages and per-tile page_id and
+# default to single-page (back-compatible) when omitted.
+def test_audit_page_models_roundtrip():
+    import sys
+
+    sys.path.insert(0, str(ROOT / "services" / "analytics_api"))
+    from app.models.audit_template import (  # noqa: E402
+        AuditPage,
+        AuditTemplateCreate,
+        AuditTileCreate,
+    )
+
+    tile = AuditTileCreate(
+        label="STT Rate",
+        tile_type="kpi_strip",
+        metric_id="referral_stt_rate",
+        page_id="page-2",
+        layout={"x": 0, "y": 0, "w": 4, "h": 3},
+    )
+    multi = AuditTemplateCreate(
+        title="Two-page report",
+        tiles=[tile],
+        pages=[
+            AuditPage(page_id="page-1", title="Overview"),
+            AuditPage(page_id="page-2", title="Detail"),
+        ],
+    )
+    assert len(multi.pages) == 2
+    assert multi.tiles[0].page_id == "page-2"
+
+    # Omitting pages stays back-compatible (single implicit page).
+    single = AuditTemplateCreate(title="One page", tiles=[])
+    assert single.pages == []
+
+
 # patients_epr router does not filter by cancer_type
 def test_patients_epr_router_has_no_cancer_type_filter():
     src = _read(PATIENTS_ROUTER)

@@ -79,6 +79,14 @@ class AuditTileBase(BaseModel):
         max_length=120,
         description="Optional section heading to group tiles visually",
     )
+    page_id: Optional[str] = Field(
+        None,
+        max_length=80,
+        description=(
+            "Page this tile belongs to. None means the first/default page "
+            "(back-compatible with single-page templates)."
+        ),
+    )
     layout: TileLayout
     story: Optional[TileStoryConfig] = None
 
@@ -94,6 +102,22 @@ class AuditTile(AuditTileBase):
 
 
 # ---------------------------------------------------------------------------
+# Pages
+# ---------------------------------------------------------------------------
+
+
+class AuditPage(BaseModel):
+    """A named page (tab) in a multi-page report.
+
+    Templates with an empty `pages` list render as a single page, keeping
+    older single-page templates fully back-compatible.
+    """
+
+    page_id: str = Field(max_length=80)
+    title: str = Field(max_length=120)
+
+
+# ---------------------------------------------------------------------------
 # AuditTemplate
 # ---------------------------------------------------------------------------
 
@@ -101,11 +125,13 @@ class AuditTile(AuditTileBase):
 class AuditTemplateCreate(BaseModel):
     title: str = Field(max_length=200)
     tiles: list[AuditTileCreate] = Field(default_factory=list)
+    pages: list[AuditPage] = Field(default_factory=list)
 
 
 class AuditTemplateUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=200)
     tiles: Optional[list[AuditTileCreate]] = None
+    pages: Optional[list[AuditPage]] = None
 
 
 class AuditTemplate(BaseModel):
@@ -114,6 +140,7 @@ class AuditTemplate(BaseModel):
     version: int
     status: Literal["draft", "published", "archived"]
     tiles: list[AuditTile]
+    pages: list[AuditPage] = Field(default_factory=list)
     created_by: str
     created_at: datetime
     updated_at: datetime

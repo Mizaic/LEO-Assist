@@ -49,10 +49,17 @@ MAX_TREE_DEPTH = 6
 MAX_NODE_COUNT = 80
 
 _GROUP_KINDS = {"AND", "OR", "NOT", "AT_LEAST"}
-# OBSERVATION is the Phase 5 numeric-threshold leaf (DI-<assigned>). It
-# sits alongside CONCEPT and DEMOGRAPHIC because the evaluator handles
-# it via a dedicated branch (it does not use the bitmap path).
-_LEAF_KINDS = {"CONCEPT", "DEMOGRAPHIC", "OBSERVATION"}
+# OBSERVATION is the Phase 5 numeric-threshold leaf.
+# MEDICATION, ALLERGY, and TREATMENT_HISTORY are Sprint 1 management-pathway
+# leaves (DI-2199E670 / DO-0EC3A9CB). They do not use the bitmap path.
+_LEAF_KINDS = {
+    "CONCEPT",
+    "DEMOGRAPHIC",
+    "OBSERVATION",
+    "MEDICATION",
+    "ALLERGY",
+    "TREATMENT_HISTORY",
+}
 _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
 
 
@@ -167,6 +174,17 @@ class LogicNode(BaseModel):
     # leaf shapes are unambiguous on the wire and cannot accidentally
     # cross-contaminate each other in a malformed payload.
     observation: ObservationLeaf | None = None
+    # Sprint 1 management-pathway leaf payloads (DI-2199E670).
+    # Each is only populated when ``kind`` matches the leaf kind.
+    # drug_class, substance_concept_id, treatment_class, and outcome are
+    # validated in the model_validator below.
+    drug_class: str | None = None
+    substance_concept_id: str | None = None
+    allergy_class: str | None = None
+    treatment_class: str | None = None
+    outcome: str | None = None
+    min_duration_days: int | None = None
+    concept_id: str | None = None
     # Optional plain-English name for a group node. Surfaces as the
     # pathway card title in the editor and read-only review view so a
     # multi-branch rule can label each branch (e.g. "Possible cancer"
@@ -193,6 +211,26 @@ class LogicNode(BaseModel):
             return None
         trimmed = v.strip()
         return trimmed if trimmed else None
+
+    @model_validator(mode="after")
+    def _validate_leaf_payload(self) -> "LogicNode":
+        kind = self.kind
+        if kind == "MEDICATION":
+            if not (self.drug_class or "").strip():
+                raise ValueError(
+                    "MEDICATION leaf requires a non-empty drug_class."
+                )
+        elif kind == "ALLERGY":
+            if not (self.substance_concept_id or "").strip():
+                raise ValueError(
+                    "ALLERGY leaf requires a non-empty substance_concept_id."
+                )
+        elif kind == "TREATMENT_HISTORY":
+            if not (self.treatment_class or "").strip():
+                raise ValueError(
+                    "TREATMENT_HISTORY leaf requires a non-empty treatment_class."
+                )
+        return self
 
 
 class RuleUpdates(BaseModel):

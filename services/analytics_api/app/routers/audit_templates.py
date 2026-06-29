@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from libs.auth.org_scope import CallerScope, get_caller_scope
+from libs.auth.org_scope import CallerScope, expand_preview_scope, get_caller_scope
 from libs.cypher.audit_metric_queries import get_catalogue, get_metric
 from libs.neo4j_client.client import PatientGraphClient
 from services.analytics_api.app.models.audit_template import (
@@ -58,6 +58,7 @@ SET t.title       = $title,
     t.version     = $version,
     t.status      = $status,
     t.tiles_json  = $tiles_json,
+    t.pages_json  = $pages_json,
     t.created_by  = $created_by,
     t.created_at  = $created_at,
     t.updated_at  = $updated_at
@@ -79,6 +80,7 @@ _UPDATE_TEMPLATE = """
 MATCH (t:AuditTemplate {template_id: $template_id})
 SET t.title      = $title,
     t.tiles_json = $tiles_json,
+    t.pages_json = $pages_json,
     t.version    = t.version + 1,
     t.updated_at = $updated_at
 RETURN t
@@ -139,12 +141,16 @@ def _row_to_template(row: dict[str, Any]) -> AuditTemplate:
     raw_tiles = t.get("tiles_json") or "[]"
     tiles_data = json.loads(raw_tiles) if isinstance(raw_tiles, str) else raw_tiles
 
+    raw_pages = t.get("pages_json") or "[]"
+    pages_data = json.loads(raw_pages) if isinstance(raw_pages, str) else raw_pages
+
     return AuditTemplate(
         template_id=t["template_id"],
         title=t.get("title", ""),
         version=t.get("version", 1),
         status=t.get("status", "draft"),
         tiles=tiles_data,
+        pages=pages_data or [],
         created_by=t.get("created_by", ""),
         created_at=t.get("created_at", datetime.now(timezone.utc)),
         updated_at=t.get("updated_at", datetime.now(timezone.utc)),
@@ -215,20 +221,21 @@ def run_metric(
 
     merged_params = _validate_metric_params(metric_id, body.params)
 
-    # Admin preview: allow scoping to a specific org for template testing.
-    # Non-admin callers always get their own session's org list.
-    if body.preview_org_id and scope.is_admin:
-        scope_org_ids = [body.preview_org_id]
-    else:
-        scope_org_ids = scope.org_ids
-
-    cypher_params: dict[str, Any] = {
-        **merged_params,
-        "scope_org_ids": scope_org_ids,
-    }
-
     client = PatientGraphClient()
     try:
+        # Admin preview: expand the preview org through the full hierarchy so
+        # ICB / Alliance / PCN preview includes all child GP IDs.
+        # Non-admin callers always get their own session's org list.
+        if body.preview_org_id and scope.is_admin:
+            scope_org_ids = expand_preview_scope(client, body.preview_org_id)
+        else:
+            scope_org_ids = scope.org_ids
+
+        cypher_params: dict[str, Any] = {
+            **merged_params,
+            "scope_org_ids": scope_org_ids,
+        }
+
         rows = client.run(metric["cypher"], **cypher_params)
     except Exception as exc:
         logger.error("audit_metrics.run_failed metric=%s err=%s", metric_id, exc)
@@ -275,6 +282,7 @@ def create_template(
     template_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     tiles_json = json.dumps([t.model_dump() for t in body.tiles])
+    pages_json = json.dumps([p.model_dump() for p in body.pages])
 
     client = PatientGraphClient()
     try:
@@ -285,6 +293,7 @@ def create_template(
             version=1,
             status="draft",
             tiles_json=tiles_json,
+            pages_json=pages_json,
             created_by=scope.email,
             created_at=now,
             updated_at=now,
@@ -340,11 +349,18 @@ def update_template(
         if isinstance(new_tiles, list):
             new_tiles = json.dumps(new_tiles)
 
+        new_pages = (
+            json.dumps([p.model_dump() for p in body.pages])
+            if body.pages is not None
+            else json.dumps([p.model_dump() for p in current.pages])
+        )
+
         rows = client.run(
             _UPDATE_TEMPLATE,
             template_id=template_id,
             title=new_title,
             tiles_json=new_tiles,
+            pages_json=new_pages,
             updated_at=datetime.now(timezone.utc).isoformat(),
         )
     finally:

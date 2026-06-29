@@ -101,7 +101,8 @@ export function IntroCard({
       aria-labelledby={screenId + "-intro-title"}
       data-testid={"intro-card-" + screenId}
       style={{
-        background: "var(--mui-palette-background-paper, #ffffff)",
+        background: "#ffffff",
+        color: "#0f172a",
         border: "1px solid rgba(15, 23, 42, 0.08)",
         borderRadius: 12,
         padding: "16px 20px",
@@ -118,7 +119,7 @@ export function IntroCard({
       >
         <h2
           id={screenId + "-intro-title"}
-          style={{ margin: 0, fontSize: 18, fontWeight: 600 }}
+          style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "#0f172a" }}
         >
           {block.title}
         </h2>
@@ -134,6 +135,7 @@ export function IntroCard({
             borderRadius: 999,
             cursor: "pointer",
             fontSize: 12,
+            color: "#374151",
           }}
         >
           {collapsed ? "Show details" : "Hide details"}

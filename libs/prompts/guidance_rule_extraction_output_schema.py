@@ -45,6 +45,22 @@ _LOGIC_NODE_SCHEMA = {
                 # numeric threshold; ``within_days`` is optional and
                 # defaults to 365.
                 "observation",
+                # Sprint 1: management-pathway leaf kinds.
+                # Use "medication" when the recommendation depends on
+                # what the patient is currently taking (e.g. "patient
+                # taking an NSAID or aspirin"). drug_class carries the
+                # class name (NSAID, PPI, H2RA, etc.).
+                "medication",
+                # Use "allergy" when the recommendation checks for a
+                # documented drug allergy (e.g. "penicillin allergy").
+                # substance_concept_id carries the SNOMED concept.
+                "allergy",
+                # Use "treatment_history" when the recommendation asks
+                # whether a treatment has already been tried and failed
+                # or was not tolerated (e.g. "failed PPI trial").
+                # treatment_class carries the class; outcome carries
+                # failed or not_tolerated; min_duration_days is optional.
+                "treatment_history",
             ],
         },
         "children": {
@@ -74,6 +90,16 @@ _LOGIC_NODE_SCHEMA = {
         "unit": {"type": ["string", "null"]},
         "within_days": {"type": ["integer", "null"]},
         "raw_term": {"type": ["string", "null"]},
+        # MEDICATION leaf fields
+        "drug_class": {"type": ["string", "null"]},
+        "concept_id": {"type": ["string", "null"]},
+        # ALLERGY leaf fields
+        "substance_concept_id": {"type": ["string", "null"]},
+        "allergy_class": {"type": ["string", "null"]},
+        # TREATMENT_HISTORY leaf fields
+        "treatment_class": {"type": ["string", "null"]},
+        "outcome": {"type": ["string", "null"]},
+        "min_duration_days": {"type": ["integer", "null"]},
     },
 }
 
@@ -105,6 +131,32 @@ GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
 }
 
 GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
+    {
+        "id": "gre-ex-004",
+        "description": "CG184 Dyspepsia: PPI trial failed -- management pathway rule using treatment_history and allergy leaves",
+        "input": (
+            "Section: Dyspepsia -- uninvestigated\n"
+            "Recommendation 1.3.1: For patients aged 55 or over with unexplained dyspepsia "
+            "who have already tried a full-dose PPI for 4 weeks and it has not worked or they "
+            "could not tolerate it, consider testing for H. pylori. Do not offer a PPI to "
+            "patients with a documented penicillin allergy.\n"
+            "Urgency: routine  Strength: consider"
+        ),
+        "output": (
+            '{"schema_version":2,"logic_tree":{"kind":"AND","children":['
+            '{"kind":"demographic","field":"age","operator":">=","value":55,"unit":"years","raw_term":"aged 55 or over"},'
+            '{"kind":"concept","term":{"text":"dyspepsia","source_text":"unexplained dyspepsia","search_terms":["dyspepsia","functional dyspepsia"]}},'
+            '{"kind":"treatment_history","treatment_class":"PPI","outcome":"failed","min_duration_days":28,"term":"proton pump inhibitor"},'
+            '{"kind":"NOT","children":['
+            '{"kind":"allergy","substance_concept_id":"764146007","allergy_class":"penicillin","term":"penicillin allergy"}'
+            "]}"
+            ']},"action":{"text":"test for H. pylori","search_terms":["Helicobacter pylori testing","H pylori urea breath test"]}}'
+        ),
+        "category": "guidance_rule_extraction",
+        "model_scope": "any",
+        "core": True,
+        "deidentified": True,
+    },
     {
         "id": "gre-ex-001",
         "description": "Lung: branch OR logic with chest X-ray finding or age plus haemoptysis",

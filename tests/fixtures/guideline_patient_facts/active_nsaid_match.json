@@ -1,0 +1,25 @@
+{
+  "description": "Patient on active naproxen mapped to drug class NSAID. MEDICATION leaf with drug_class=NSAID should match.",
+  "bundle": {
+    "patient_codes": [],
+    "patient_observations": [],
+    "active_medications": [
+      {
+        "drug_class": "NSAID",
+        "status": "active",
+        "concept_id": "372665008",
+        "term": "naproxen",
+        "source_ids": ["enc-fixture-001"],
+        "recorded_date": null
+      }
+    ],
+    "allergies": [],
+    "treatment_history": [],
+    "as_of_date": null
+  },
+  "expected": {
+    "leaf_kind": "MEDICATION",
+    "leaf_drug_class": "NSAID",
+    "match": true
+  }
+}

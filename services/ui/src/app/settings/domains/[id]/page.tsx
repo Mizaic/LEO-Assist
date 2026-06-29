@@ -13,12 +13,16 @@ import { useParams, useRouter } from "next/navigation";
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
+import Link from "@mui/material/Link";
+import Typography from "@mui/material/Typography";
 
 import AddIcon from "@mui/icons-material/Add";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
@@ -27,19 +31,32 @@ import { FilterBar, PageHero, SkeletonList } from "@leo/design-system";
 
 import {
   fetchDomain,
-  updateDomain,
   createSubdomain,
   deleteSubdomain,
   type DomainDetail,
+  type DomainUseCase,
   type SubdomainSummary,
 } from "@/lib/analyticsApi";
 import { useOrg } from "@/context/OrgContext";
 
 import CreateSubdomainDialog from "../_components/CreateSubdomainDialog";
-import DomainDetailChrome from "../_components/DomainDetailChrome";
 import DomainSubdomainCards from "../_components/DomainSubdomainCards";
 import SubdomainDetailPanel from "../_components/SubdomainDetailPanel";
 import { DOMAINS_PAGE_SX } from "../_components/domainConstants";
+
+const USE_CASE_LABELS: Record<DomainUseCase, string> = {
+  extraction: "Extraction",
+  completeness: "Minimum dataset",
+  analytics: "Analytics",
+  episode_detection: "Episode detection",
+};
+
+const USE_CASE_COLORS: Record<DomainUseCase, { bg: string; color: string; border: string }> = {
+  extraction: { bg: "#FFF7ED", color: "#9A3412", border: "#FED7AA" },
+  completeness: { bg: "#EEF2FF", color: "#3730A3", border: "#C7D2FE" },
+  analytics: { bg: "#F0FDF4", color: "#166534", border: "#BBF7D0" },
+  episode_detection: { bg: "#F0F9FF", color: "#0369A1", border: "#BAE6FD" },
+};
 
 export default function DomainDetailPage() {
   const params = useParams();
@@ -118,15 +135,15 @@ export default function DomainDetailPage() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", ...DOMAINS_PAGE_SX }}>
-      <DomainDetailChrome
-        router={router}
-        domainId={domainId}
-        domain={domain}
-        setDomain={setDomain}
-        canEditDomains={canEditDomains}
-        onEpisodeDetectorChange={async (val) => { await updateDomain(domainId, { episode_detector: val }); }}
-        onEpisodeDetectorError={() => setError("Could not update episode detector setting.")}
-      />
+      <Breadcrumbs sx={{ mb: 1.5 }}>
+        <Link underline="hover" color="inherit" sx={{ cursor: "pointer" }} onClick={() => router.push("/settings")}>
+          Settings
+        </Link>
+        <Link underline="hover" color="inherit" sx={{ cursor: "pointer" }} onClick={() => router.push("/settings/domains")}>
+          Domains
+        </Link>
+        <Typography color="text.primary">{domain?.name ?? domainId}</Typography>
+      </Breadcrumbs>
 
       {domain && (
         <PageHero
@@ -136,6 +153,28 @@ export default function DomainDetailPage() {
           cta={canEditDomains ? { label: "Add subdomain", icon: <AddIcon />, onClick: () => setCreateOpen(true) } : undefined}
           data-testid="domain-hero"
         />
+      )}
+
+      {domain && (domain.use_cases ?? []).length > 0 && (
+        <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 2 }}>
+          {(domain.use_cases as DomainUseCase[]).map((uc) => {
+            const s = USE_CASE_COLORS[uc] ?? { bg: "#F1F5F9", color: "#475569", border: "#E2E8F0" };
+            return (
+              <Chip
+                key={uc}
+                label={USE_CASE_LABELS[uc] ?? uc}
+                size="small"
+                sx={{ height: 22, fontSize: "0.7rem", bgcolor: s.bg, color: s.color, border: `1px solid ${s.border}` }}
+              />
+            );
+          })}
+        </Box>
+      )}
+
+      {!canEditDomains && domain && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          You can view subdomains and export code lists. Only a platform admin can create subdomains or change codes.
+        </Alert>
       )}
 
       {error && (

@@ -134,7 +134,6 @@ export function SegmentedTabs({
             type="button"
             id={"segtab-" + tab.id}
             aria-selected={selected}
-            aria-controls={"segpanel-" + tab.id}
             tabIndex={focusIdx === idx ? 0 : -1}
             onClick={() => onChange(tab.id)}
             onKeyDown={onKey}

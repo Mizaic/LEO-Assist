@@ -25,10 +25,11 @@ SERVICE_ACCOUNT_EMAIL = "service-account@leo.local"
 # A Cancer Alliance admin can create ICBs; an ICB admin can create PCNs or GPs, etc.
 _PERMITTED_CHILD_TYPES: dict[str | None, list[str]] = {
     "alliance": ["icb"],
-    "icb": ["pcn", "gp"],
+    "icb": ["pcn", "gp", "service_provider"],
     "pcn": ["gp"],
     "gp": [],
-    None: ["alliance", "icb", "pcn", "gp"],  # platform admin: unrestricted
+    "service_provider": [],
+    None: ["alliance", "icb", "pcn", "gp", "service_provider"],  # platform admin: unrestricted
 }
 
 
@@ -205,6 +206,48 @@ def _has_org_admin_role(client: PatientGraphClient, email: str) -> bool:
         email=email,
     )
     return bool(rows)
+
+
+def require_role(*roles: str):
+    """Dependency factory that gates on selected_role.
+
+    Usage::
+
+        @router.get("/work")
+        def my_endpoint(scope=Depends(require_role("clinical_coder", "auditor"))):
+            ...
+
+    Platform admins bypass all role checks.
+    """
+
+    def _check(session_data: dict = Depends(get_session_data)) -> dict:
+        if session_data.get("is_platform_admin"):
+            return session_data
+        selected = session_data.get("selected_role") or ""
+        if selected not in roles:
+            raise HTTPException(
+                status_code=403,
+                detail=f"One of these roles is required: {', '.join(roles)}",
+            )
+        return session_data
+
+    return _check
+
+
+def require_any_role(
+    session_data: dict = Depends(get_session_data),
+) -> dict:
+    """Dependency that passes for any user with at least one allowed role.
+
+    Useful on endpoints that should be accessible to any authenticated
+    non-viewer user (platform admins always pass).
+    """
+    if session_data.get("is_platform_admin"):
+        return session_data
+    allowed = session_data.get("allowed_roles") or []
+    if not allowed:
+        raise HTTPException(status_code=403, detail="No roles assigned")
+    return session_data
 
 
 def require_admin_or_org_admin(

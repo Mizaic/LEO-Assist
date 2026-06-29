@@ -45,6 +45,7 @@ _ORG_TYPE_TO_CREATE_QUERY = {
     "icb": aq.CREATE_ORG_ICB,
     "alliance": aq.CREATE_ORG_ALLIANCE,
     "pcn": aq.CREATE_ORG_PCN,
+    "service_provider": aq.CREATE_ORG_SERVICE_PROVIDER,
 }
 
 _ORG_TYPE_LABEL = {
@@ -52,6 +53,7 @@ _ORG_TYPE_LABEL = {
     "icb": "ICB",
     "alliance": "CancerAlliance",
     "pcn": "PCN",
+    "service_provider": "ServiceProvider",
 }
 
 

@@ -49,23 +49,37 @@ def _local_dev_bypass_enabled() -> bool:
     return os.environ.get(_LOCAL_DEV_BYPASS_ENV, "").strip().lower() == "true"
 
 
-ScopeType = Literal["gp", "pcn", "icb", "alliance"]
+ScopeType = Literal["gp", "pcn", "icb", "alliance", "service_provider"]
 
 _LABEL_TO_SCOPE: dict[str, ScopeType] = {
     "GPPractice": "gp",
     "PCN": "pcn",
     "ICB": "icb",
     "CancerAlliance": "alliance",
+    "ServiceProvider": "service_provider",
 }
 
 # Reusable Cypher fragment that restricts patients to an org hierarchy.
 # Expects ``$scope_org_ids`` parameter (list of org IDs).
 # Binds: ``p`` (Patient), ``_gp`` (GPPractice or Organization).
+# Two-arm filter: GP registration path OR Service Provider referral path.
 ORG_PATIENT_FILTER = (
-    "EXISTS { "
-    "  MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(_gp) "
-    "  WHERE _gp.id IN $scope_org_ids "
-    "}"
+    "("
+    "  EXISTS { "
+    "    MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(_gp) "
+    "    WHERE _gp.id IN $scope_org_ids "
+    "  } "
+    "  OR EXISTS { "
+    "    MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)-[:IN_WORKFLOW]->(:Workflow)"
+    "    -[:FOR_SERVICE]->(:Service)<-[:PROVIDES_SERVICE]-(_sp:Organization) "
+    "    WHERE _sp.id IN $scope_org_ids "
+    "  } "
+    "  OR EXISTS { "
+    "    MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)-[:FOR_SERVICE]->(:Service)"
+    "    <-[:PROVIDES_SERVICE]-(_sp2:Organization) "
+    "    WHERE _sp2.id IN $scope_org_ids "
+    "  } "
+    ")"
 )
 
 
@@ -246,7 +260,8 @@ def resolve_caller_scope(
     # Fetch the org the practitioner WORKS_AT and determine scope type.
     orgs = client.run(
         "MATCH (pr:Practitioner {email: $email})-[:WORKS_AT]->(o) "
-        "WHERE o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization "
+        "WHERE o:GPPractice OR o:ICB OR o:CancerAlliance "
+        "   OR o:ServiceProvider OR o:Organization "
         "RETURN o.id AS id, labels(o) AS nodeLabels",
         email=normalized,
     )
@@ -272,6 +287,8 @@ def resolve_caller_scope(
         all_ids = _expand_pcn_scope(client, primary_id)
     elif scope_type == "icb":
         all_ids = _expand_icb_scope(client, primary_id)
+    elif scope_type == "service_provider":
+        all_ids = _expand_service_provider_scope(client, primary_id)
     else:
         all_ids = _expand_alliance_scope(client, primary_id)
 
@@ -361,6 +378,17 @@ def _expand_icb_scope(client: PatientGraphClient, icb_id: str) -> list[str]:
     return list(ids)
 
 
+def _expand_service_provider_scope(
+    client: PatientGraphClient, sp_id: str
+) -> list[str]:
+    """Service Provider scope: just the SP org id itself.
+
+    Patient visibility is determined by the referral path filter in
+    ORG_PATIENT_FILTER, not by expanding to child orgs.
+    """
+    return [sp_id]
+
+
 def _expand_alliance_scope(client: PatientGraphClient, ca_id: str) -> list[str]:
     """Alliance scope: own Alliance + all child ICBs + all PCNs + all grandchild GPs."""
     rows = client.run(
@@ -390,6 +418,39 @@ def _expand_alliance_scope(client: PatientGraphClient, ca_id: str) -> list[str]:
             if gid:
                 ids.add(gid)
     return list(ids)
+
+
+def expand_preview_scope(client: PatientGraphClient, org_id: str) -> list[str]:
+    """Expand an org ID to all constituent child org IDs for metric preview.
+
+    Used by the audit-metrics run endpoint when an admin supplies preview_org_id.
+    Dispatches to the same hierarchy-expansion functions as CallerScope so that
+    ICB / Alliance / PCN preview includes all child GP IDs and ORG_GUARD
+    produces correct patient counts for each level of the hierarchy.
+
+    Falls back to [org_id] if the node is not found in the graph.
+    """
+    rows = client.run(
+        "MATCH (o {id: $org_id}) RETURN labels(o) AS nodeLabels",
+        org_id=org_id,
+    )
+    if not rows:
+        return [org_id]
+    labels = rows[0].get("nodeLabels") or []
+    scope_type: ScopeType = "gp"
+    for label in labels:
+        if label in _LABEL_TO_SCOPE:
+            scope_type = _LABEL_TO_SCOPE[label]
+            break
+    if scope_type == "pcn":
+        return _expand_pcn_scope(client, org_id)
+    if scope_type == "icb":
+        return _expand_icb_scope(client, org_id)
+    if scope_type == "service_provider":
+        return _expand_service_provider_scope(client, org_id)
+    if scope_type == "alliance":
+        return _expand_alliance_scope(client, org_id)
+    return _expand_gp_scope(client, org_id)
 
 
 def get_caller_scope(
@@ -443,11 +504,15 @@ def require_patient_in_scope(
 ) -> None:
     """Raise 404 if the patient is not visible to the caller.
 
-    Admins always pass.  For scoped users, checks that the patient's GP
-    is within the caller's org_ids.
+    Admins always pass.
+    GP / PCN / ICB / Alliance users: patient's GP must be in scope.org_ids.
+    Service Provider users: patient must have a ReferralRequest routed to
+    a Service owned by the SP org via IN_WORKFLOW->Workflow->FOR_SERVICE or
+    directly via FOR_SERVICE.
     """
     if scope.is_admin:
         return
+
     rows = client.run(
         "MATCH (p:Patient) WHERE toString(p.id) = $pid "
         "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
@@ -456,6 +521,35 @@ def require_patient_in_scope(
     )
     if not rows:
         raise HTTPException(status_code=404, detail="Patient not found")
+
     gp_id = rows[0].get("gp_id")
-    if gp_id not in scope.org_ids:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    if gp_id in scope.org_ids:
+        return
+
+    if scope.scope_type == "service_provider" and scope.org_ids:
+        sp_rows = client.run(
+            "MATCH (p:Patient) WHERE toString(p.id) = $pid "
+            "OPTIONAL MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)"
+            "-[:IN_WORKFLOW]->(:Workflow)-[:FOR_SERVICE]->(:Service)"
+            "<-[:PROVIDES_SERVICE]-(_sp:Organization) "
+            "WHERE _sp.id IN $org_ids "
+            "RETURN _sp.id AS sp_id LIMIT 1",
+            pid=patient_id,
+            org_ids=scope.org_ids,
+        )
+        if sp_rows and sp_rows[0].get("sp_id"):
+            return
+        sp_direct = client.run(
+            "MATCH (p:Patient) WHERE toString(p.id) = $pid "
+            "OPTIONAL MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)"
+            "-[:FOR_SERVICE]->(:Service)"
+            "<-[:PROVIDES_SERVICE]-(_sp2:Organization) "
+            "WHERE _sp2.id IN $org_ids "
+            "RETURN _sp2.id AS sp_id LIMIT 1",
+            pid=patient_id,
+            org_ids=scope.org_ids,
+        )
+        if sp_direct and sp_direct[0].get("sp_id"):
+            return
+
+    raise HTTPException(status_code=404, detail="Patient not found")

@@ -47,9 +47,10 @@ function sessionPayload(role: AuditAuthRole) {
         { id: VAL_ORG_B_ID, name: VAL_ORG_B_NAME },
       ],
       idleTimeoutMinutes: 30,
-      selected_role: "qa_ra_lead",
+      selected_role: "platform_admin",
       allowed_roles: ["qa_ra_lead", "platform_admin"],
       needs_role_choice: false,
+      density_preference: "comfortable",
     },
     clinician_a: {
       user: { email: "clinician-a@example.com", name: "Clinician org-A" },
@@ -86,13 +87,28 @@ function metricCatalogue() {
     ["episode_open_age_distribution", "Episode Open-Age Distribution", "bar_chart", ["bar_chart"]],
     ["referral_completion_rate", "Referral Completion Rate", "kpi_strip", ["kpi_strip"]],
   ];
+  // Give the STT Rate metric a real parameter schema so the builder's
+  // "Parameters" tab is exercisable (VAL-E7BE67D0 step 3). All other metrics
+  // keep an empty schema.
+  const paramSchemas: Record<string, Record<string, unknown>> = {
+    referral_stt_rate: {
+      lookback_months: {
+        type: "integer",
+        default: 12,
+        minimum: 1,
+        maximum: 36,
+        required: true,
+      },
+      include_screening: { type: "boolean", default: false },
+    },
+  };
   return tiers.map(([metric_id, title, output_type, compatible_tile_types]) => ({
     metric_id,
     title,
     description: `${title} metric`,
     output_type,
     compatible_tile_types,
-    param_schema: {},
+    param_schema: paramSchemas[metric_id] ?? {},
     output_schema: [],
   }));
 }
@@ -178,9 +194,11 @@ function activeTemplateForRole(state: AuditFixtureState) {
 }
 
 export async function clickFirstAvailableMetricAdd(page: Page): Promise<void> {
-  const library = page.getByRole("heading", { name: "Metric library" }).locator("..");
-  // Metric type chips render as div[role="button"] (MUI Chip), NOT as <button> elements.
-  // Widget add buttons render as <button>. Use a div-scoped role selector to hit chips only.
+  // getByRole resolves to two headings when both edit and hidden sidebar panels
+  // are in the DOM; use .first() to scope to the visible one.
+  const library = page.getByRole("heading", { name: "Metric library" }).first().locator("..");
+  // Wait for the catalogue to finish loading (chips replace skeletons).
+  await library.locator('div[role="button"]:not(.Mui-disabled)').first().waitFor({ state: "visible", timeout: 20_000 });
   await library.locator('div[role="button"]:not(.Mui-disabled)').first().click();
 }
 

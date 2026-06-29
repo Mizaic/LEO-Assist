@@ -18,6 +18,10 @@
  *   AC3 - Search by name, date range, and NHS number works regardless of episode type.
  *   AC4 - A patient with only referral episodes appears in the list.
  *
+ * Extended to cover filing cabinet filter UI (SegmentedTabs, FilterBar,
+ * condition-type and has-alerts filter params, framer-motion stagger,
+ * facets endpoint wiring).
+ *
  * Static-source assertions - safe under any test environment, no network.
  */
 
@@ -50,7 +54,6 @@ describe("VT-1D399981 domain-agnostic patient list - static-source", () => {
   // DO-EBF0B124 AC2 - domain-neutral fields only
   test("AC2 - PatientListPage renders domain-neutral patient card fields", () => {
     const src = read(PATIENT_LIST);
-    // Must show episode count and active alert count (domain-neutral)
     expect(src).toMatch(/episode_count|episodeCount/);
     expect(src).toMatch(/active_alert_count|activeAlertCount/);
   });
@@ -80,5 +83,73 @@ describe("VT-1D399981 domain-agnostic patient list - static-source", () => {
   test("PatientListPage carries an Atlas trace header", () => {
     const src = read(PATIENT_LIST);
     expect(src.slice(0, 600)).toContain("Atlas trace");
+  });
+
+  // ---------------------------------------------------------------------------
+  // Filing cabinet filter UI -- condition-type tabs + has-alerts chip
+  // ---------------------------------------------------------------------------
+
+  test("TC-008: PatientListPage imports SegmentedTabs from @leo/design-system", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toMatch(/from\s+["']@leo\/design-system["']/);
+    expect(src).toContain("SegmentedTabs");
+  });
+
+  test("TC-009: PatientListPage imports FilterBar from @leo/design-system", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toContain("FilterBar");
+  });
+
+  test("TC-010: PatientListPage calls fetchEprPatientFacets on mount", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toContain("fetchEprPatientFacets");
+  });
+
+  test("TC-011: patientEprApi fetchEprPatients accepts conditionType and hasAlerts params", () => {
+    const src = read(EPR_API);
+    expect(src).toContain("conditionType");
+    expect(src).toContain("hasAlerts");
+    expect(src).toContain("condition_type");
+    expect(src).toContain("has_alerts");
+  });
+
+  test("TC-012: patientEprApi exports fetchEprPatientFacets and PatientFacetsResponse", () => {
+    const src = read(EPR_API);
+    expect(src).toContain("fetchEprPatientFacets");
+    expect(src).toContain("PatientFacetsResponse");
+    expect(src).toContain("condition_types");
+  });
+
+  test("TC-013: PatientListPage uses AnimatePresence for tab transition animation", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toContain("AnimatePresence");
+    expect(src).toMatch(/motion\s+as\s+fm|from\s+["']framer-motion["']/);
+  });
+
+  test("TC-014: PatientCard uses framer-motion fm.div with stagger entry", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toContain("fm.div");
+    expect(src).toMatch(/initial.*opacity.*y.*20|y.*20.*opacity/s);
+    expect(src).toContain("Math.min(index");
+  });
+
+  test("TC-015: PatientListPage defines a condition-type accent colour map", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toContain("CONDITION_ACCENT");
+    expect(src).toMatch(/lung|breast|prostate|colorectal/);
+  });
+
+  test("TC-016: has-alerts chip is wired to hasAlerts state and resets page", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toMatch(/has.alerts/i);
+    expect(src).toContain("hasAlerts");
+    expect(src).toContain("setPage(1)");
+  });
+
+  test("TC-017: PatientListPage passes p: { xs: 2, sm: 3 } and maxWidth to outer Box", () => {
+    const src = read(PATIENT_LIST);
+    expect(src).toMatch(/p:\s*\{\s*xs:\s*2,\s*sm:\s*3\s*\}/);
+    expect(src).toContain("maxWidth");
+    expect(src).toContain("mx:");
   });
 });

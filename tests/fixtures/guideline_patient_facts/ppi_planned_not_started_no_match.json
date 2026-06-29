@@ -1,0 +1,30 @@
+{
+  "description": "PPI is planned but not yet started (outcome=planned). TREATMENT_HISTORY leaf for PPI with outcome=failed should NOT match.",
+  "bundle": {
+    "patient_codes": [],
+    "patient_observations": [],
+    "active_medications": [],
+    "allergies": [],
+    "treatment_history": [
+      {
+        "treatment_class": "PPI",
+        "outcome": "planned",
+        "concept_id": "372525000",
+        "term": "omeprazole",
+        "duration_days": null,
+        "source_ids": ["enc-fixture-006"],
+        "start_date": null,
+        "end_date": null
+      }
+    ],
+    "as_of_date": null
+  },
+  "expected": {
+    "leaf_kind": "TREATMENT_HISTORY",
+    "leaf_treatment_class": "PPI",
+    "leaf_outcome": "failed",
+    "leaf_min_duration_days": null,
+    "match": false,
+    "reason_contains": "planned"
+  }
+}

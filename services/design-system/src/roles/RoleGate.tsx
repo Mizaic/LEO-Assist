@@ -10,10 +10,11 @@
 
 import { useEffect, type ReactNode } from "react";
 
-import { RolePicker } from "./RolePicker";
+import { RolePicker, type RolePickerProps } from "./RolePicker";
 import { useRole } from "./RoleContext";
 
-export interface RoleGateProps {
+export interface RoleGateProps
+  extends Pick<RolePickerProps, "userName" | "organizations" | "selectedOrgId" | "onOrgSelect" | "isPlatformAdmin"> {
   children: ReactNode;
   // Default true. When false the gate renders children without ever
   // presenting the picker - useful for unauthenticated routes or when the
@@ -29,6 +30,11 @@ export function RoleGate({
   children,
   enabled = true,
   autoFetch = false,
+  userName,
+  organizations,
+  selectedOrgId,
+  onOrgSelect,
+  isPlatformAdmin,
 }: RoleGateProps) {
   const { refetch, selectedRole, allowedRoles, needsSessionRoleChoice, error } =
     useRole();
@@ -47,12 +53,16 @@ export function RoleGate({
     (selectedRole == null || needsSessionRoleChoice);
 
   if (pickerNeeded) {
-    return <RolePicker />;
+    return (
+      <RolePicker
+        userName={userName}
+        organizations={organizations}
+        selectedOrgId={selectedOrgId}
+        onOrgSelect={onOrgSelect}
+        isPlatformAdmin={isPlatformAdmin}
+      />
+    );
   }
 
-  return (
-    <>
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

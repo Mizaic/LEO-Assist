@@ -64,6 +64,59 @@ class ObservationInstance(BaseModel):
     observed_at: str
 
 
+class MedicationInstance(BaseModel):
+    """One active medication row for the patient.
+
+    Sprint 1 -- consumed by MEDICATION leaves in the logic tree.
+    Fields mirror MedicationFact in libs.guidelines.patient_fact_bundle.
+
+    Only medications with status="active" can match a MEDICATION leaf.
+    All other statuses (stopped, planned, historical, unknown) fail closed.
+    """
+
+    drug_class: str
+    status: str
+    concept_id: str | None = None
+    term: str = ""
+    source_ids: list[str] = Field(default_factory=list)
+
+
+class AllergyInstance(BaseModel):
+    """One allergy row for the patient.
+
+    Sprint 1 -- consumed by ALLERGY leaves in the logic tree.
+    Fields mirror AllergyFact in libs.guidelines.patient_fact_bundle.
+
+    Only allergies with status="active" can match an ALLERGY leaf.
+    status="nkda" produces a distinct diagnostic reason (no known drug allergies).
+    status="unknown" or absent list fails closed.
+    """
+
+    substance_concept_id: str
+    status: str
+    allergy_class: str | None = None
+    term: str = ""
+    source_ids: list[str] = Field(default_factory=list)
+
+
+class TreatmentInstance(BaseModel):
+    """One treatment history row for the patient.
+
+    Sprint 1 -- consumed by TREATMENT_HISTORY leaves in the logic tree.
+    Fields mirror TreatmentFact in libs.guidelines.patient_fact_bundle.
+
+    Only treatments with outcome="failed" or outcome="not_tolerated" can match.
+    All other outcomes fail closed.
+    """
+
+    treatment_class: str
+    outcome: str
+    concept_id: str | None = None
+    duration_days: int | None = None
+    term: str = ""
+    source_ids: list[str] = Field(default_factory=list)
+
+
 class EvaluateRequest(BaseModel):
     """Request body for patient guideline evaluation."""
 
@@ -83,6 +136,15 @@ class EvaluateRequest(BaseModel):
     """Numeric observation history for the patient.  Required for
     rules that contain OBSERVATION leaves; absent / empty payloads
     fail those leaves CLOSED so the rule does not fire."""
+    active_medications: list[MedicationInstance] | None = None
+    """Active medications for the patient.  Required for rules that contain
+    MEDICATION leaves; absent / empty payloads fail those leaves CLOSED."""
+    allergies: list[AllergyInstance] | None = None
+    """Allergy list for the patient.  Required for ALLERGY leaves;
+    absent / empty payloads fail those leaves CLOSED."""
+    treatment_history: list[TreatmentInstance] | None = None
+    """Treatment history for the patient.  Required for TREATMENT_HISTORY leaves;
+    absent / empty payloads fail those leaves CLOSED."""
 
 
 class CompileRequest(BaseModel):
@@ -132,6 +194,21 @@ def evaluate_patient(req: EvaluateRequest) -> dict:
             if req.observations
             else None
         ),
+        active_medications=(
+            [m.model_dump() for m in req.active_medications]
+            if req.active_medications
+            else None
+        ),
+        allergies=(
+            [a.model_dump() for a in req.allergies]
+            if req.allergies
+            else None
+        ),
+        treatment_history=(
+            [t.model_dump() for t in req.treatment_history]
+            if req.treatment_history
+            else None
+        ),
     )
 
 
@@ -152,6 +229,12 @@ class DiagnoseRequest(BaseModel):
     diagnosed rule contains OBSERVATION leaves so the per-leaf
     annotated tree can show fire / no-fire instead of failing closed
     silently."""
+    active_medications: list[MedicationInstance] | None = None
+    """Same shape as EvaluateRequest.active_medications."""
+    allergies: list[AllergyInstance] | None = None
+    """Same shape as EvaluateRequest.allergies."""
+    treatment_history: list[TreatmentInstance] | None = None
+    """Same shape as EvaluateRequest.treatment_history."""
 
 
 @router.post("/guidelines/diagnose")
@@ -181,6 +264,21 @@ def diagnose_patient(req: DiagnoseRequest) -> dict:
         patient_observations=(
             [obs.model_dump() for obs in req.observations]
             if req.observations
+            else None
+        ),
+        active_medications=(
+            [m.model_dump() for m in req.active_medications]
+            if req.active_medications
+            else None
+        ),
+        allergies=(
+            [a.model_dump() for a in req.allergies]
+            if req.allergies
+            else None
+        ),
+        treatment_history=(
+            [t.model_dump() for t in req.treatment_history]
+            if req.treatment_history
             else None
         ),
     )

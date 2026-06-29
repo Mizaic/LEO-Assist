@@ -82,7 +82,7 @@ function GroupHeading({ label }: { label: string }) {
         fontWeight: 700,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
-        color: "#94A3B8",
+        color: "#64748B",
         userSelect: "none",
       }}
     >
@@ -198,7 +198,7 @@ export function KnowledgeSidebar({
           border: "1px solid #E2E8F0",
           borderRadius: 8,
           background: "#F8FAFC",
-          color: "#94A3B8",
+          color: "#475569",
           fontFamily: "inherit",
           fontSize: 12,
           cursor: "pointer",
@@ -210,11 +210,12 @@ export function KnowledgeSidebar({
         <SearchIcon sx={{ fontSize: 14 }} />
         <span style={{ flex: 1 }}>Search...</span>
         <span
+          aria-hidden="true"
           style={{
             fontSize: 10,
-            color: "#CBD5E1",
-            background: "#F1F5F9",
-            border: "1px solid #E2E8F0",
+            color: "#475569",
+            background: "#E2E8F0",
+            border: "1px solid #CBD5E1",
             borderRadius: 4,
             padding: "1px 5px",
             fontFamily: "monospace",
@@ -242,7 +243,7 @@ export function KnowledgeSidebar({
         <span
           style={{
             fontSize: 11,
-            color: "#CBD5E1",
+            color: "#475569",
             display: "block",
             textAlign: "center",
           }}

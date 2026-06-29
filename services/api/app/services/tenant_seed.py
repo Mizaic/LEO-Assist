@@ -49,10 +49,11 @@ ALL_PERMISSIONS = [
 ]
 
 DEFAULT_ROLES = [
+    # -- System & onboarding --------------------------------------------------
     {
         "name": "platform_admin",
         "permissions": ALL_PERMISSIONS,
-        "description": "Full platform access",
+        "description": "Full platform access -- manage tenants, users, and settings",
     },
     {
         "name": "org_admin",
@@ -62,7 +63,37 @@ DEFAULT_ROLES = [
             "manage_sub_orgs",
             "view_reports",
         ],
-        "description": "Organisation administrator — manages users, groups, and sub-organisations within their org hierarchy",
+        "description": "Manage users, groups, and sub-organisations in your org",
+    },
+    {
+        "name": "pipeline_operator",
+        "permissions": ["view_patients", "run_pipeline"],
+        "description": "Run and monitor the AI coding pipeline",
+    },
+    {
+        "name": "pathway_supervisor",
+        "permissions": [
+            "view_patients",
+            "view_reports",
+            "manage_sub_orgs",
+        ],
+        "description": "Monitor and manage patient pathways across the service",
+    },
+    # -- Clinical roles -------------------------------------------------------
+    {
+        "name": "triage_clinician",
+        "permissions": ["view_patients", "review_coding"],
+        "description": "Assess and prioritise patient referrals for the pathway",
+    },
+    {
+        "name": "admin_triage",
+        "permissions": ["view_patients", "manage_users"],
+        "description": "Provide administrative support during patient triage",
+    },
+    {
+        "name": "clinical_coder",
+        "permissions": ["view_patients", "review_coding"],
+        "description": "Code clinical encounters from patient notes",
     },
     {
         "name": "auditor",
@@ -72,27 +103,43 @@ DEFAULT_ROLES = [
             "view_reports",
             "view_gold_dataset",
         ],
-        "description": "View patients, review coding, reports and gold dataset",
+        "description": "Review coding quality and perform clinical audits",
+    },
+    # -- Administration & management ------------------------------------------
+    {
+        "name": "appointment_booking",
+        "permissions": ["view_patients"],
+        "description": "Manually book and manage patient appointments",
     },
     {
-        "name": "clinical_coder",
-        "permissions": ["view_patients", "review_coding"],
-        "description": "GP Practice clinical coder — full access to unredacted patient data and coding review",
+        "name": "clinical_administrator",
+        "permissions": [
+            "view_patients",
+            "manage_users",
+            "view_reports",
+        ],
+        "description": "Oversee clinical administration and day-to-day operations",
     },
+    {
+        "name": "referral_supervisor",
+        "permissions": ["view_patients", "review_coding", "view_reports"],
+        "description": "Oversee referral processing and manage workflow queues",
+    },
+    {
+        "name": "registration_administrator",
+        "permissions": ["view_patients", "manage_users"],
+        "description": "Manage patient registration and data quality",
+    },
+    # -- Other / viewer -------------------------------------------------------
     {
         "name": "clinical_viewer",
         "permissions": ["view_patients", "view_reports"],
-        "description": "GP Practice clinical viewer — patient data access with redaction applied (set redacted=true on HAS_ROLE)",
-    },
-    {
-        "name": "pipeline_operator",
-        "permissions": ["view_patients", "run_pipeline"],
-        "description": "View patients and run pipeline",
+        "description": "Read-only access to patient data and reports",
     },
     {
         "name": "read_only",
         "permissions": ["view_patients", "view_reports"],
-        "description": "View patients and reports only",
+        "description": "Basic read-only access to the platform",
     },
 ]
 
@@ -228,16 +275,34 @@ def _seed_mizaic_org_and_group(client: PatientGraphClient) -> None:
 
 
 def _seed_platform_admins(client: PatientGraphClient) -> None:
-    """MERGE seed admin Practitioners, assign platform_admin role, add to Mizaic group."""
+    """MERGE seed admin Practitioners, assign platform_admin role, add to Mizaic group.
+
+    Practitioner creation is guarded (skip if any already exist) but the
+    HAS_ROLE and MEMBER_OF edges are always ensured -- they are idempotent
+    MERGEs and safe to re-run. This prevents platform admins being locked out
+    of the role picker when their Practitioner node was created by an Entra
+    sync before the seed ran.
+    """
     rows = client.run("MATCH (pr:Practitioner) RETURN count(pr) AS cnt")
     existing = rows[0]["cnt"] if rows else 0
-    if existing > 0:
+    admins = _parse_seed_admins()
+
+    if existing == 0:
+        _create_seed_practitioners(client, admins)
+    else:
         logger.debug(
-            "[Tenant] %d Practitioner(s) already present; skipping platform admin seed",
+            "[Tenant] %d Practitioner(s) already present; skipping create step",
             existing,
         )
-        return
-    admins = _parse_seed_admins()
+
+    # Always ensure HAS_ROLE + MEMBER_OF edges (idempotent).
+    _ensure_platform_admin_edges(client, admins)
+
+
+def _create_seed_practitioners(
+    client: PatientGraphClient,
+    admins: list[tuple[str, str]],
+) -> None:
     for email, name in admins:
         client.run(
             "MERGE (pr:Practitioner {email: $email})"
@@ -250,21 +315,28 @@ def _seed_platform_admins(client: PatientGraphClient) -> None:
             name=name,
             id=str(uuid.uuid4()),
         )
-        # Assign platform_admin role (idempotent MERGE)
+        logger.info("[Tenant] Platform admin Practitioner seeded: %s", email)
+
+
+def _ensure_platform_admin_edges(
+    client: PatientGraphClient,
+    admins: list[tuple[str, str]],
+) -> None:
+    """Idempotent: ensure every seed admin has HAS_ROLE + MEMBER_OF edges."""
+    for email, _ in admins:
         client.run(
             "MATCH (pr:Practitioner {email: $email}), (r:Role {name: 'platform_admin'})"
             " MERGE (pr)-[rel:HAS_ROLE]->(r)"
             " ON CREATE SET rel.org_id = ''",
             email=email,
         )
-        # Add to Mizaic Platform Admins group (idempotent MERGE)
         client.run(
             "MATCH (pr:Practitioner {email: $email}), (g:Group {id: $gid})"
             " MERGE (pr)-[:MEMBER_OF]->(g)",
             email=email,
             gid=MIZAIC_GROUP_ID,
         )
-        logger.info("[Tenant] Platform admin seeded: %s", email)
+        logger.debug("[Tenant] Platform admin edges ensured: %s", email)
 
 
 def _seed_prompt_configs(client: PatientGraphClient) -> None:

@@ -17,7 +17,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
 
 import type { OrgInfo } from "@/lib/authContext";
-import type { AuditTile, MetricCatalogueEntry } from "@/lib/auditTemplateApi";
+import type { AuditPage, AuditTile, MetricCatalogueEntry } from "@/lib/auditTemplateApi";
 import AuditTemplateRenderer from "@/components/audit-template-renderer/AuditTemplateRenderer";
 
 interface PreviewPanelProps {
@@ -28,6 +28,7 @@ interface PreviewPanelProps {
   previewOrgId: string;
   onOrgChange: (id: string) => void;
   catalogue?: MetricCatalogueEntry[];
+  pages?: AuditPage[];
 }
 
 function OrgPicker({
@@ -78,6 +79,7 @@ export default function PreviewPanel({
   previewOrgId,
   onOrgChange,
   catalogue = [],
+  pages = [],
 }: PreviewPanelProps) {
   const previewTemplate = useMemo(
     () => ({
@@ -86,11 +88,12 @@ export default function PreviewPanel({
       version: 1,
       status: "draft" as const,
       tiles,
+      pages: pages.length > 1 ? pages : [],
       created_by: "preview",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }),
-    [savedId, title, tiles],
+    [savedId, title, tiles, pages],
   );
 
   return (

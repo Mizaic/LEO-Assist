@@ -6,14 +6,18 @@
  *   DI: DI-758B73A5
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion as fm, useReducedMotion } from "framer-motion";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 
 import {
   type AuditTemplate,
@@ -21,9 +25,11 @@ import {
   type MetricRunResult,
 } from "@/lib/auditTemplateApi";
 import { generateMockData } from "@/lib/auditMockData";
+import { resolvePages, tilesForPage } from "@/lib/auditPages";
 import MetricTile from "./MetricTile";
 import PresentationMode from "./PresentationMode";
 import WidgetTile from "./WidgetTile";
+import AuditLayoutGrid, { hasAuthoredLayout } from "./AuditLayoutGrid";
 
 interface AuditTemplateRendererProps {
   template: AuditTemplate;
@@ -34,9 +40,9 @@ interface AuditTemplateRendererProps {
 
 const WIDE_TYPES = new Set(["table", "interval_plot", "text", "widget"]);
 
-function groupBySection(template: AuditTemplate) {
-  const groups: Record<string, typeof template.tiles> = {};
-  for (const tile of template.tiles) {
+function groupBySection(tiles: AuditTemplate["tiles"]) {
+  const groups: Record<string, AuditTemplate["tiles"]> = {};
+  for (const tile of tiles) {
     const key = tile.section?.trim() || "General";
     if (!groups[key]) groups[key] = [];
     groups[key].push(tile);
@@ -72,7 +78,36 @@ export default function AuditTemplateRenderer({
 }: AuditTemplateRendererProps) {
   const reduced = useReducedMotion();
   const [presentationOpen, setPresentationOpen] = useState(false);
-  const sections = groupBySection(template);
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const pages = resolvePages(template.pages);
+  const isMultiPage = pages.length > 1;
+  const [activePageId, setActivePageId] = useState(pages[0].page_id);
+  const activeIndex = Math.max(0, pages.findIndex((p) => p.page_id === activePageId));
+  const visibleTiles = isMultiPage
+    ? tilesForPage(template.tiles, activePageId, activeIndex === 0)
+    : template.tiles;
+
+  const sections = groupBySection(visibleTiles);
+
+  const handleExportPdf = async () => {
+    if (!reportRef.current || exporting) return;
+    setExporting(true);
+    try {
+      const { exportAuditReportPdf } = await import("@/lib/exportAuditReportPdf");
+      await exportAuditReportPdf(reportRef.current, {
+        title: template.title,
+        version: template.version,
+        status: template.status,
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+  // When the author has positioned tiles on the canvas, honour that exact
+  // layout. Otherwise fall back to section-banded auto-flow (old / AI drafts).
+  const useLayout = hasAuthoredLayout(visibleTiles);
 
   const mockDataMap = useMemo<Map<string, MetricRunResult>>(() => {
     if (!useMockData || catalogue.length === 0) return new Map();
@@ -84,7 +119,7 @@ export default function AuditTemplateRenderer({
   }, [useMockData, catalogue]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <Box ref={reportRef} sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {/* Report header */}
       <Box
         sx={{
@@ -118,7 +153,10 @@ export default function AuditTemplateRenderer({
             {useMockData && <MockBadge />}
           </Box>
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box
+          data-html2canvas-ignore="true"
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
           <Typography variant="caption" color="text.secondary">
             {new Date().toLocaleDateString("en-GB", {
               day: "numeric",
@@ -126,6 +164,21 @@ export default function AuditTemplateRenderer({
               year: "numeric",
             })}
           </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={
+              exporting ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : (
+                <PictureAsPdfOutlinedIcon />
+              )
+            }
+            onClick={handleExportPdf}
+            disabled={exporting || template.tiles.length === 0}
+          >
+            {exporting ? "Preparing PDF" : "Export PDF"}
+          </Button>
           <Button
             size="small"
             variant="outlined"
@@ -137,8 +190,39 @@ export default function AuditTemplateRenderer({
         </Box>
       </Box>
 
-      {/* Sections */}
-      {Object.entries(sections).map(([sectionLabel, tiles]) => (
+      {/* Page tabs for multi-page reports. */}
+      {isMultiPage && (
+        <Tabs
+          value={activePageId}
+          onChange={(_, v) => setActivePageId(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ borderBottom: "1px solid", borderColor: "divider", minHeight: 40, mt: -2 }}
+        >
+          {pages.map((page) => (
+            <Tab
+              key={page.page_id}
+              value={page.page_id}
+              label={page.title}
+              sx={{ textTransform: "none", minHeight: 40 }}
+            />
+          ))}
+        </Tabs>
+      )}
+
+      {/* Layout-honouring grid: render tiles at their authored positions. */}
+      {useLayout && visibleTiles.length > 0 && (
+        <AuditLayoutGrid
+          tiles={visibleTiles}
+          orgId={orgId}
+          mockDataMap={mockDataMap}
+          catalogue={catalogue}
+        />
+      )}
+
+      {/* Section-banded fallback for templates without an authored layout. */}
+      {!useLayout &&
+        Object.entries(sections).map(([sectionLabel, tiles]) => (
         <Box key={sectionLabel}>
           <MotionBox
             initial={reduced ? false : { opacity: 0, y: -6 }}
@@ -198,6 +282,16 @@ export default function AuditTemplateRenderer({
           sx={{ textAlign: "center", py: 6 }}
         >
           No metrics added to this template yet.
+        </Typography>
+      )}
+
+      {template.tiles.length > 0 && visibleTiles.length === 0 && (
+        <Typography
+          variant="body2"
+          color="text.disabled"
+          sx={{ textAlign: "center", py: 6 }}
+        >
+          This page has no tiles yet.
         </Typography>
       )}
 

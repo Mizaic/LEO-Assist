@@ -1,20 +1,30 @@
 /**
- * Auto-stamped Atlas trace.
+ * Consumer-grade EPR patient shell.
  *
  * Atlas trace:
  *   DO: DO-5F9A50D8
  *   DI: DI-1D584D40
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5F9A50D8")
  */
-import { redirect } from "next/navigation";
+"use client";
+
+import { use } from "react";
+import { useRouter } from "next/navigation";
+import { PatientShell } from "@/components/patients/PatientShell";
 
 interface Props {
-  params: {
-    patientId: string;
-  };
+  params: Promise<{ patientId: string }>;
 }
 
-export default function LegacyCarePatientRoute({ params }: Props) {
-  const patientId = encodeURIComponent(params.patientId);
-  redirect(`/care/patients?patient=${patientId}&tab=encounters`);
+export default function PatientShellPage({ params }: Props) {
+  const router = useRouter();
+  const { patientId: rawId } = use(params);
+  const patientId = decodeURIComponent(rawId);
+
+  return (
+    <PatientShell
+      patientId={patientId}
+      onBack={() => router.push("/care/patients")}
+    />
+  );
 }
