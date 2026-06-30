@@ -175,7 +175,7 @@ Full schema when entities exist:
       "sentence_id": "<id from the Sentences list>",
       "text": "<exact span as written in the sentence>",
       "lookup_term": "<standard clinical term for SNOMED lookup; preserve onset/chronicity/certainty/laterality qualifiers>",
-      "semantic_tag": "<disorder|finding|procedure|substance|product|observable entity|situation|regime/therapy|staging scale>",
+      "semantic_tag": "<disorder|finding|procedure|substance|product|observable entity|situation|regime/therapy|staging scale|body structure>",
       "confidence": 0.92,
       "numeric_value": "<numeric value if observable entity, else empty string>",
       "unit": "<unit if observable entity, else empty string>",

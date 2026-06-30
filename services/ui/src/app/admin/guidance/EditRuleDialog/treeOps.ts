@@ -54,12 +54,25 @@ function freshNodeId(): string {
  */
 export function assignNodeIds(node: LogicNodeSeed): EditableLogicNode {
   const children = (node.children ?? []).map((c) => assignNodeIds(c));
-  return {
+  const base = {
     ...node,
     node_id: node.node_id ?? freshNodeId(),
     kind: normaliseKind(node.kind),
     ...(children.length ? { children } : {}),
   } as EditableLogicNode;
+
+  // Split persisted [low, high] pair back into value + value2 for the editor.
+  if (
+    base.operator === "between" &&
+    Array.isArray(base.value) &&
+    (base.value as unknown[]).length === 2
+  ) {
+    const [lo, hi] = base.value as [unknown, unknown];
+    base.value = lo as number | string;
+    base.value2 = hi as number | string;
+  }
+
+  return base;
 }
 
 const KIND_MAP: Record<string, LogicNodeKind> = {
@@ -71,6 +84,10 @@ const KIND_MAP: Record<string, LogicNodeKind> = {
   CONCEPT: "CONCEPT",
   DEMOGRAPHIC: "DEMOGRAPHIC",
   OBSERVATION: "OBSERVATION",
+  MEDICATION: "MEDICATION",
+  ALLERGY: "ALLERGY",
+  TREATMENT_HISTORY: "TREATMENT_HISTORY",
+  RULE_FIRED: "RULE_FIRED",
 };
 
 function normaliseKind(raw: string | undefined): LogicNodeKind {
@@ -155,7 +172,13 @@ export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   if (node.criterion) out.criterion = sanitiseCriterion(node.criterion);
   if (node.field !== undefined) out.field = node.field;
   if (node.operator !== undefined) out.operator = node.operator;
-  if (node.value !== undefined && node.value !== null) out.value = node.value;
+  if (node.value !== undefined && node.value !== null) {
+    if (node.operator === "between" && node.value2 != null) {
+      out.value = [node.value, node.value2];
+    } else {
+      out.value = node.value;
+    }
+  }
   if (node.unit !== undefined && node.unit !== null) out.unit = node.unit;
   if (node.min !== undefined) out.min = node.min;
   // Phase 2: keep the pathway name when it's a non-empty string. Empty
@@ -164,14 +187,15 @@ export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   if (typeof node.name === "string" && node.name.trim()) {
     out.name = node.name.trim();
   }
-  // Phase 6a: round-trip the OBSERVATION payload verbatim. The BE
-  // Pydantic model accepts the flat shape directly so no field
-  // translation is needed. Mode specs that are null / undefined are
-  // dropped entirely because Pydantic's ``model_config =
-  // {"extra": "forbid"}`` rejects keys it has not declared for the
-  // currently-active mode.
+  // Phase 6a: round-trip the OBSERVATION payload verbatim.
   if (node.kind === "OBSERVATION" && node.observation) {
     out.observation = stripObservation(node.observation);
+  }
+  // RULE_FIRED chained-evaluation fields (DI-8899D4F3).
+  if (node.kind === "RULE_FIRED") {
+    if (node.referenced_rule_id) out.referenced_rule_id = node.referenced_rule_id;
+    out.outcome = node.outcome ?? "fired";
+    if (node.display_name) out.display_name = node.display_name;
   }
   if (node.children?.length) out.children = node.children.map(stripNodeIds);
   return out;
@@ -400,18 +424,22 @@ export function applyUpdate(
           ? { ...n, min: Math.max(1, Math.floor(update.min)) }
           : n,
       );
-    case "set_demographic":
-      return mapNode(root, (n) =>
-        n.node_id === update.nodeId && n.kind === "DEMOGRAPHIC"
-          ? {
-              ...n,
-              field: update.field,
-              operator: update.operator,
-              value: update.value,
-              unit: update.unit,
-            }
-          : n,
-      );
+    case "set_demographic": {
+      const { value2, ...base } = update;
+      return mapNode(root, (n) => {
+        if (n.node_id !== update.nodeId || n.kind !== "DEMOGRAPHIC") return n;
+        const updated: typeof n = {
+          ...n,
+          field: base.field,
+          operator: base.operator,
+          value: base.value,
+          unit: base.unit,
+        };
+        if (value2 !== undefined) updated.value2 = value2;
+        else delete updated.value2;
+        return updated;
+      });
+    }
     case "change_kind":
       return mapNode(root, (n) =>
         n.node_id === update.nodeId ? coerceKind(n, update.newKind) : n,
@@ -507,6 +535,23 @@ export function applyUpdate(
           ? renameGroup(n, update.name)
           : n,
       );
+    case "add_rule_fired":
+      return mapNode(root, (n) =>
+        n.node_id === update.parentNodeId && canHaveChildren(n.kind)
+          ? appendChild(n, makeRuleFiredNode())
+          : n,
+      );
+    case "set_rule_fired":
+      return mapNode(root, (n) =>
+        n.node_id === update.nodeId && n.kind === "RULE_FIRED"
+          ? {
+              ...n,
+              referenced_rule_id: update.referenced_rule_id,
+              outcome: update.outcome,
+              display_name: update.display_name,
+            }
+          : n,
+      );
     case "replace_root":
       return update.node;
     default:
@@ -547,7 +592,8 @@ export function isTreeVisuallyEmpty(node: EditableLogicNode | null): boolean {
   return !(
     node.kind === "CONCEPT" ||
     node.kind === "DEMOGRAPHIC" ||
-    node.kind === "OBSERVATION"
+    node.kind === "OBSERVATION" ||
+    node.kind === "RULE_FIRED"
   );
 }
 
@@ -616,6 +662,11 @@ function appendChild(
   };
 }
 
+function wrapLeafInAnd(child: EditableLogicNode): EditableLogicNode {
+  if (canHaveChildren(child.kind)) return child;
+  return { node_id: freshNodeId(), kind: "AND", children: [child] };
+}
+
 function coerceKind(
   node: EditableLogicNode,
   newKind: LogicNodeKind,
@@ -626,6 +677,10 @@ function coerceKind(
   }
   const stripped = { ...node, kind: newKind };
   delete stripped.min;
+  // When becoming OR each child must be a group so PathwayCard renders correctly.
+  if (newKind === "OR" && stripped.children) {
+    stripped.children = stripped.children.map(wrapLeafInAnd);
+  }
   return stripped;
 }
 
@@ -669,6 +724,20 @@ export function observationWithCriterion(
     observable_id: criterion.snomed_concept_id,
     observable_term:
       criterion.preferred_term ?? criterion.term ?? existing.observable_term,
+  };
+}
+
+/**
+ * Blank RULE_FIRED leaf the author can fill in via the rule picker.
+ * outcome defaults to "fired" (the more common case).
+ */
+export function makeRuleFiredNode(): EditableLogicNode {
+  return {
+    node_id: freshNodeId(),
+    kind: "RULE_FIRED",
+    referenced_rule_id: "",
+    outcome: "fired",
+    display_name: "",
   };
 }
 
@@ -734,6 +803,12 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
     }
     if (node.value === undefined || node.value === null || node.value === "") {
       return "Add a number for this patient detail. For example: age 40.";
+    }
+    return null;
+  }
+  if (node.kind === "RULE_FIRED") {
+    if (!node.referenced_rule_id || !node.referenced_rule_id.trim()) {
+      return "Pick a rule to depend on. Use the rule picker below.";
     }
     return null;
   }

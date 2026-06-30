@@ -8,10 +8,11 @@ import type { NodeProps } from "./shared";
 import ConceptPill from "./ConceptPill";
 import DemographicRow from "./DemographicRow";
 import ObservationRow from "./ObservationRow";
+import RuleFiredRow from "./RuleFiredRow";
 import GroupBody from "./GroupBody";
 
 export default function NodeDispatcher(props: NodeProps) {
-  const { node, root, depth, selectedNodeId, onSelect, onUpdate, onRequestAdd, onRequestCoach } = props;
+  const { node, root, depth, selectedNodeId, onSelect, onUpdate, onRequestAdd, onRequestCoach, guidelineId, currentRuleId } = props;
 
   if (node.kind === "CONCEPT") {
     return (
@@ -33,6 +34,17 @@ export default function NodeDispatcher(props: NodeProps) {
     return <ObservationRow node={node} onUpdate={onUpdate} onSelect={onSelect} />;
   }
 
+  if (node.kind === "RULE_FIRED") {
+    return (
+      <RuleFiredRow
+        node={node}
+        onUpdate={onUpdate}
+        guidelineId={guidelineId}
+        currentRuleId={currentRuleId}
+      />
+    );
+  }
+
   return (
     <GroupBody
       node={node}
@@ -43,6 +55,8 @@ export default function NodeDispatcher(props: NodeProps) {
       onUpdate={onUpdate}
       onRequestAdd={onRequestAdd}
       onRequestCoach={onRequestCoach}
+      guidelineId={guidelineId}
+      currentRuleId={currentRuleId}
     />
   );
 }

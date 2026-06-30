@@ -27,7 +27,7 @@ import { GROUP_KIND_LABELS, PATHWAY_NAME } from "../copy";
 import { GROUP_KINDS, type EditableLogicNode, type LogicNodeKind, type NodeUpdate } from "../types";
 import GroupBody from "./GroupBody";
 import PathwayPreview from "./PathwayPreview";
-import { KIND_COLORS, KIND_SECTION_LABELS } from "./shared";
+import { KIND_COLORS } from "./shared";
 
 interface Props {
   node: EditableLogicNode;
@@ -38,6 +38,8 @@ interface Props {
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
+  guidelineId?: string;
+  currentRuleId?: string;
 }
 
 const CARD_ACCENTS = [
@@ -47,14 +49,11 @@ const CARD_ACCENTS = [
 export default function PathwayCard({
   node, root, index,
   selectedNodeId, onSelect, onUpdate, onRequestAdd, onRequestCoach,
+  guidelineId, currentRuleId,
 }: Props) {
   const letter = String.fromCharCode(65 + index);
   const positional = `Pathway ${letter}`;
   const accent = CARD_ACCENTS[index % CARD_ACCENTS.length];
-  const sectionLabel =
-    node.kind === "AT_LEAST"
-      ? `ANY ${node.min ?? 1} OR MORE OF THESE`
-      : KIND_SECTION_LABELS[node.kind] ?? node.kind;
   const borderColor = KIND_COLORS[node.kind] ?? accent;
 
   const [aiSuggested, setAiSuggested] = useState(
@@ -111,28 +110,6 @@ export default function PathwayCard({
                 sx={{ height: 22, fontSize: "0.7rem", borderRadius: 1 }}
               />
             )}
-            <Select
-              size="small"
-              value={node.kind}
-              onChange={(e) =>
-                wrappedOnUpdate({
-                  kind: "change_kind",
-                  nodeId: node.node_id,
-                  newKind: e.target.value as LogicNodeKind,
-                })
-              }
-              inputProps={{ "aria-label": `Match mode for ${positional}` }}
-              sx={{
-                fontSize: "0.75rem",
-                "& .MuiSelect-select": { py: 0.35, pr: "28px !important" },
-                "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
-                minWidth: 190,
-              }}
-            >
-              {GROUP_KINDS.map((k) => (
-                <MenuItem key={k} value={k}>{GROUP_KIND_LABELS[k]}</MenuItem>
-              ))}
-            </Select>
             <Tooltip title={`Remove ${positional}`}>
               <IconButton
                 size="small"
@@ -146,16 +123,31 @@ export default function PathwayCard({
           </Stack>
         </Stack>
 
-        {/* Section label + separator */}
-        <Typography
-          variant="caption"
-          sx={{
-            display: "block", fontWeight: 700, letterSpacing: 0.6,
-            color: "text.secondary", fontSize: "0.68rem", mb: 0.5,
-          }}
-        >
-          {sectionLabel}
-        </Typography>
+        {/* Inline operator selector (replaces static section label) */}
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+          <Select
+            size="small"
+            value={node.kind}
+            onChange={(e) =>
+              wrappedOnUpdate({
+                kind: "change_kind",
+                nodeId: node.node_id,
+                newKind: e.target.value as LogicNodeKind,
+              })
+            }
+            inputProps={{ "aria-label": `Match mode for ${positional}` }}
+            sx={{
+              fontSize: "0.72rem", fontWeight: 700,
+              "& .MuiSelect-select": { py: 0.3, pr: "26px !important", color: "text.secondary", fontWeight: 700, letterSpacing: 0.4 },
+              "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
+              "& .MuiSvgIcon-root": { fontSize: "1rem" },
+            }}
+          >
+            {GROUP_KINDS.map((k) => (
+              <MenuItem key={k} value={k} sx={{ fontSize: "0.78rem" }}>{GROUP_KIND_LABELS[k]}</MenuItem>
+            ))}
+          </Select>
+        </Stack>
         <Divider
           sx={{ mb: 1, borderColor: borderColor, opacity: 0.4 }}
         />
@@ -166,11 +158,14 @@ export default function PathwayCard({
           root={root}
           depth={1}
           isTopLevel
+          showKindSelect={false}
           selectedNodeId={selectedNodeId}
           onSelect={onSelect}
           onUpdate={wrappedOnUpdate}
           onRequestAdd={onRequestAdd}
           onRequestCoach={onRequestCoach}
+          guidelineId={guidelineId}
+          currentRuleId={currentRuleId}
         />
 
         {/* Inline sentence preview */}

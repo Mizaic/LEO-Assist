@@ -36,6 +36,11 @@ class ComplianceState(TypedDict, total=False):
 
 
 def _entity_codes(entities: list[dict[str, Any]]) -> list[str]:
+    """Return SNOMED concept IDs for all coded entities in a pipeline run.
+
+    Includes body_structure entities (reproductive anatomy, DI-9AA2CDA5 clause c)
+    since their snomed_concept_id is set by Sprint 2 precision gates.
+    """
     codes: list[str] = []
     for entity in entities:
         concept_id = entity.get("concept_id") or entity.get("snomed_concept_id")

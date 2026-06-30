@@ -63,6 +63,7 @@ from libs.ner.context_detector import normalize_situation_lookup
 from libs.ner.lab_triple_recovery import recover_lab_triples
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.referral_routing_guard import should_suppress_referral_routing_entity
+from libs.ner.precision_gates import is_permitted_body_structure as _is_permitted_body_structure
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
 from libs.pipeline.extraction_term_normaliser import (
@@ -706,6 +707,11 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
             suppress_indices.add(i)
 
         if _REF_RANGE_ONLY_RE.match(text):
+            suppress_indices.add(i)
+
+        if label in {"body_structure", "body structure"} and not _is_permitted_body_structure(
+            ent.get("snomed_concept_id") or ent.get("concept_id")
+        ):
             suppress_indices.add(i)
 
     for i, ent_a in enumerate(entities):

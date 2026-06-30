@@ -33,9 +33,15 @@ interface Props {
   onAddConcept: (anchor?: HTMLElement | null) => void;
   onAddDemographic: () => void;
   onAddObservation?: () => void;
+  onAddRuleFired?: () => void;
 }
 
-export default function AddBar({ onAddConcept, onAddDemographic, onAddObservation }: Props) {
+export default function AddBar({
+  onAddConcept,
+  onAddDemographic,
+  onAddObservation,
+  onAddRuleFired,
+}: Props) {
   return (
     <Stack direction="row" spacing={1} sx={{ mt: 1.25, flexWrap: "wrap", rowGap: 0.75 }}>
       <Button
@@ -68,6 +74,18 @@ export default function AddBar({ onAddConcept, onAddDemographic, onAddObservatio
           aria-label="Add a lab value or reading"
         >
           Add lab value
+        </Button>
+      )}
+      {onAddRuleFired && (
+        <Button
+          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+          size="small"
+          variant="outlined"
+          sx={dashedBtnSx}
+          onClick={onAddRuleFired}
+          aria-label="Add a rule dependency"
+        >
+          Add rule dependency
         </Button>
       )}
     </Stack>

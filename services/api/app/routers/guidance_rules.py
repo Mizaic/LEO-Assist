@@ -224,6 +224,34 @@ RETURN rule.id AS rule_id,
        }) AS criteria
 """
 
+_CREATE_BLANK_RULE = """
+MATCH (rec:Recommendation {id: $rec_id})
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (ch)<-[:HAS_CHAPTER]-(g:Guideline)
+WITH rec, ch, g
+CREATE (rule:AppropriatenessRule {
+    id: $rule_id,
+    name: coalesce(rec.title, $rec_id),
+    status: 'pending_review',
+    schemaVersion: 2,
+    logicJson: '{}',
+    actionJson: null,
+    verifierJson: null,
+    createdAt: datetime(),
+    guidelineId: coalesce(g.id, '')
+})
+MERGE (rec)-[:HAS_RULE]->(rule)
+RETURN rule.id AS rule_id,
+       rule.name AS name,
+       rule.status AS status,
+       coalesce(rule.schemaVersion, 2) AS schema_version,
+       rule.logicJson AS logic_json,
+       rule.createdAt AS created_at,
+       rec.verbatim AS recommendation_text,
+       g.id AS guideline_id,
+       ch.title AS chapter_title
+"""
+
 _UPDATE_RULE_STATUS = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
 SET rule.status = $status,
@@ -306,6 +334,11 @@ MERGE (rule)-[:HAS_AUDIT_EVENT]->(audit)
 class GenerateRulesRequest(BaseModel):
     guideline_id: str
     only_without_rules: bool = False
+    recommendation_ids: list[str] | None = None
+
+
+class CreateBlankRuleRequest(BaseModel):
+    rec_id: str
 
 
 class RuleDecisionRequest(BaseModel):
@@ -733,13 +766,72 @@ async def generate_rules(
     Returns a job ID immediately. Rule generation runs in the background.
     Rules will appear in the review queue once complete.
     Poll GET /rules/generate/{job_id} to track progress.
+
+    Pass ``recommendation_ids`` to restrict generation to a subset of
+    recommendations (already supported by the pipeline worker).
     """
     _ = scope
     return await _proxy_pipeline_worker_json(
         "POST",
         "/guidance/generate",
-        json_body=req.model_dump(),
+        json_body=req.model_dump(exclude_none=True),
     )
+
+
+@router.post("/rules/create-blank", status_code=201)
+def create_blank_rule(
+    req: CreateBlankRuleRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Create an empty AppropriatenessRule stub for a recommendation.
+
+    Used by the "Build by hand" flow in the recommendation picker dialog.
+    Returns the new rule detail so the frontend can open EditRuleDialog
+    immediately without a separate fetch.
+    """
+    _ = scope
+    rule_id = f"rule:{uuid.uuid4()}"
+    client = _kg_client()
+    try:
+        records = client.run(
+            _CREATE_BLANK_RULE,
+            rec_id=req.rec_id,
+            rule_id=rule_id,
+        )
+    except Exception as exc:
+        logger.error("create_blank_rule Neo4j error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not create rule stub.") from exc
+
+    if not records:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Recommendation not found: {req.rec_id}",
+        )
+
+    row = records[0]
+    return {
+        "rule_id": row["rule_id"],
+        "rule": {
+            "rule_id": row["rule_id"],
+            "name": row["name"],
+            "status": row["status"],
+            "schema_version": row["schema_version"],
+            "logic_json": row["logic_json"],
+            "action_json": None,
+            "verifier_json": None,
+            "created_at": str(row["created_at"]) if row.get("created_at") else None,
+            "updated_at": None,
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "guideline_id": row.get("guideline_id"),
+            "guideline_version": None,
+            "chapter_title": row.get("chapter_title"),
+            "recommendation_text": row.get("recommendation_text"),
+            "criteria": [],
+            "has_predecessor": False,
+            "predecessor_id": None,
+        },
+    }
 
 
 @router.get("/rules/generate/{job_id}")

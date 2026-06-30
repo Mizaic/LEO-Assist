@@ -23,7 +23,6 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
-import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -55,8 +54,6 @@ interface Props {
   selectedNodeId: string | null;
   duplicates: DuplicateSet[];
   recommendationText?: string;
-  showRecommendation: boolean;
-  onToggleRecommendation: () => void;
 
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
@@ -67,10 +64,14 @@ interface Props {
   onRequestCoach: (nodeId: string, anchor: HTMLElement) => void;
   /** Trigger an empty-state +Add when the tree has no children yet. */
   onAddFirstSymptom: (anchor: HTMLElement) => void;
+  onAddFirstDemographic?: () => void;
+  onAddFirstObservation?: () => void;
   /** Rule ID used by the AI-draft button. Empty string when unsaved. */
   ruleId?: string;
   /** Called when the AI draft succeeds; replaces the current tree. */
   onAIDraft?: (tree: EditableLogicNode) => void;
+  /** Guideline ID for RULE_FIRED rule picker (DI-6AE25829). */
+  guidelineId?: string;
 }
 
 export default function Step1Who({
@@ -78,15 +79,16 @@ export default function Step1Who({
   selectedNodeId,
   duplicates,
   recommendationText,
-  showRecommendation,
-  onToggleRecommendation,
   onSelectNode,
   onUpdate,
   onRequestAdd,
   onRequestCoach,
   onAddFirstSymptom,
+  onAddFirstDemographic,
+  onAddFirstObservation,
   ruleId = "",
   onAIDraft,
+  guidelineId,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
 
@@ -164,39 +166,35 @@ export default function Step1Who({
       )}
 
       {recommendationText && (
-        <Box>
-          <Link
-            component="button"
-            type="button"
+        <Box
+          sx={{
+            p: 1.5,
+            borderLeft: "4px solid",
+            borderColor: "primary.main",
+            bgcolor: "primary.50",
+            borderRadius: "0 8px 8px 0",
+          }}
+        >
+          <Typography
             variant="caption"
-            onClick={onToggleRecommendation}
-            sx={{ textTransform: "none" }}
+            sx={{ fontWeight: 700, color: "primary.dark", display: "block", mb: 0.5, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.68rem" }}
           >
-            {showRecommendation
-              ? "Hide the original NICE text"
-              : "Show the original NICE text"}
-          </Link>
-          {showRecommendation && (
-            <Box
-              sx={{
-                mt: 0.5, p: 1.25, borderRadius: 1,
-                bgcolor: "grey.50", border: "1px solid", borderColor: "grey.200",
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ fontStyle: "italic", lineHeight: 1.6 }}
-              >
-                &ldquo;{recommendationText}&rdquo;
-              </Typography>
-            </Box>
-          )}
+            NICE recommendation
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontStyle: "italic", lineHeight: 1.6, color: "text.primary" }}
+          >
+            {recommendationText}
+          </Typography>
         </Box>
       )}
 
       {treeIsEmpty ? (
         <EmptyTreeState
           onAddFirstSymptom={onAddFirstSymptom}
+          onAddFirstDemographic={onAddFirstDemographic}
+          onAddFirstObservation={onAddFirstObservation}
           ruleId={ruleId}
           onAIDraft={onAIDraft}
         />
@@ -219,6 +217,8 @@ export default function Step1Who({
               onUpdate={wrappedOnUpdate}
               onRequestAdd={onRequestAdd}
               onRequestCoach={onRequestCoach}
+              guidelineId={guidelineId}
+              currentRuleId={ruleId || undefined}
             />
           </Stack>
         )
@@ -248,12 +248,28 @@ function StepHeader() {
   );
 }
 
+const emptyAddBtnSx = {
+  borderRadius: 999,
+  textTransform: "none",
+  fontWeight: 500,
+  px: 2,
+  border: "1.5px dashed",
+  borderColor: "divider",
+  color: "text.secondary",
+  bgcolor: "transparent",
+  "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: "primary.50" },
+} as const;
+
 function EmptyTreeState({
   onAddFirstSymptom,
+  onAddFirstDemographic,
+  onAddFirstObservation,
   ruleId,
   onAIDraft,
 }: {
   onAddFirstSymptom: (anchor: HTMLElement) => void;
+  onAddFirstDemographic?: () => void;
+  onAddFirstObservation?: () => void;
   ruleId?: string;
   onAIDraft?: (tree: EditableLogicNode) => void;
 }) {
@@ -267,32 +283,50 @@ function EmptyTreeState({
         bgcolor: "grey.50", textAlign: "center",
       }}
     >
-      <Typography
-        variant="body1"
-        sx={{ fontWeight: 600, mb: 0.5, color: "text.primary" }}
-      >
-        This rule has no symptoms yet.
+      <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5, color: "text.primary" }}>
+        What does this rule apply to?
       </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ lineHeight: 1.5, mb: 2 }}
-      >
-        Start by picking the first symptom or sign the patient must have
-        for this rule to apply.
+      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5, mb: 2.5 }}>
+        Start with a symptom, a patient detail (like age or sex), or a lab result.
       </Typography>
-      <Button
-        variant="contained"
-        startIcon={<AddRoundedIcon fontSize="small" />}
-        onClick={(e) => onAddFirstSymptom(e.currentTarget)}
-        aria-label="Add the first symptom or sign to this rule"
-        sx={{ borderRadius: 999, textTransform: "none", fontWeight: 600, px: 2.5 }}
-      >
-        Add the first symptom
-      </Button>
+
+      <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" sx={{ rowGap: 1, mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<AddRoundedIcon fontSize="small" />}
+          onClick={(e) => onAddFirstSymptom(e.currentTarget)}
+          aria-label="Add the first symptom or sign to this rule"
+          sx={emptyAddBtnSx}
+        >
+          Symptom or sign
+        </Button>
+        {onAddFirstDemographic && (
+          <Button
+            variant="outlined"
+            startIcon={<AddRoundedIcon fontSize="small" />}
+            onClick={onAddFirstDemographic}
+            aria-label="Add a patient detail such as age or sex"
+            sx={emptyAddBtnSx}
+          >
+            Patient detail (age, sex&hellip;)
+          </Button>
+        )}
+        {onAddFirstObservation && (
+          <Button
+            variant="outlined"
+            startIcon={<AddRoundedIcon fontSize="small" />}
+            onClick={onAddFirstObservation}
+            aria-label="Add a lab value or measurement"
+            sx={emptyAddBtnSx}
+          >
+            Lab value or reading
+          </Button>
+        )}
+      </Stack>
+
       {ruleId && onAIDraft && (
         <>
-          <Divider sx={{ my: 2 }}>or</Divider>
+          <Divider sx={{ my: 2 }}>or let AI draft it</Divider>
           <AIDraftButton ruleId={ruleId} onDraft={onAIDraft} variant="primary-cta" />
         </>
       )}

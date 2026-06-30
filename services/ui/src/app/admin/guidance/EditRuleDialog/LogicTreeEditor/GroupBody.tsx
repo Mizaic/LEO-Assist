@@ -37,16 +37,22 @@ interface Props {
   root: EditableLogicNode;
   depth: number;
   isTopLevel?: boolean;
+  /** When true and isTopLevel, render an operator Select above the conditions.
+   *  Set false when a parent component (PathwayCard) owns the Select. */
+  showKindSelect?: boolean;
   selectedNodeId: string | null;
   onSelect: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
+  guidelineId?: string;
+  currentRuleId?: string;
 }
 
 export default function GroupBody({
-  node, root, depth, isTopLevel,
+  node, root, depth, isTopLevel, showKindSelect = true,
   selectedNodeId, onSelect, onUpdate, onRequestAdd, onRequestCoach,
+  guidelineId, currentRuleId,
 }: Props) {
   const [collapsed, setCollapsed] = useState(!isTopLevel && depth >= 2);
   const children = node.children ?? [];
@@ -96,24 +102,48 @@ export default function GroupBody({
         />
       )}
 
-      {isTopLevel && (
-        <>
-          <Typography
-            variant="caption"
+      {isTopLevel && showKindSelect && (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+          <Select
+            size="small"
+            value={node.kind}
+            onChange={(e) =>
+              onUpdate({ kind: "change_kind", nodeId: node.node_id, newKind: e.target.value as LogicNodeKind })
+            }
+            inputProps={{ "aria-label": "How to match conditions in this group" }}
             sx={{
-              display: "block",
-              fontWeight: 700,
-              letterSpacing: 0.6,
-              color: "text.secondary",
-              fontSize: "0.68rem",
-              mb: 0.5,
+              fontSize: "0.72rem",
+              "& .MuiSelect-select": { py: 0.3, pr: "26px !important", color: "text.secondary", fontWeight: 700, letterSpacing: 0.4 },
+              "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
+              "& .MuiSvgIcon-root": { fontSize: "1rem" },
             }}
           >
-            {sectionLabel}
-          </Typography>
-          <Divider sx={{ mb: 1 }} />
-        </>
+            {GROUP_KINDS.map((k) => (
+              <MenuItem key={k} value={k} sx={{ fontSize: "0.78rem" }}>
+                {GROUP_KIND_LABELS[k]}
+              </MenuItem>
+            ))}
+          </Select>
+          {node.kind === "AT_LEAST" && (
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <TextField
+                size="small"
+                type="number"
+                value={node.min ?? 1}
+                onChange={(e) =>
+                  onUpdate({ kind: "set_min", nodeId: node.node_id, min: Number(e.target.value) || 1 })
+                }
+                inputProps={{ min: 1, max: Math.max(node.children?.length ?? 1, 1), "aria-label": "How many conditions must match" }}
+                sx={{ width: 60 }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                of {node.children?.length ?? 0}
+              </Typography>
+            </Stack>
+          )}
+        </Stack>
       )}
+      {isTopLevel && showKindSelect && <Divider sx={{ mb: 1 }} />}
 
       {!collapsed && (
         <>
@@ -128,6 +158,8 @@ export default function GroupBody({
                 onUpdate={onUpdate}
                 onRequestAdd={onRequestAdd}
                 onRequestCoach={onRequestCoach}
+                guidelineId={guidelineId}
+                currentRuleId={currentRuleId}
               />
               {idx < children.length - 1 && (
                 <Typography
@@ -157,6 +189,9 @@ export default function GroupBody({
             }
             onAddObservation={() =>
               onUpdate({ kind: "add_observation", parentNodeId: node.node_id })
+            }
+            onAddRuleFired={() =>
+              onUpdate({ kind: "add_rule_fired", parentNodeId: node.node_id })
             }
           />
         </>

@@ -185,6 +185,7 @@ class GuidelineCompiler:
         "policy_violations": 0,
         "out_of_scope_concepts": 0,
         "out_of_scope_actions": 0,
+        "cycle_warnings": 0,
     }
 
     def __init__(self, store: BitmapStore | None = None) -> None:
@@ -331,6 +332,7 @@ class GuidelineCompiler:
             driver.close()
         self._compile_stats["rules_included"] = len(compiled_rules)
         self._compile_stats["rules_excluded"] = max(0, len(rules) - len(compiled_rules))
+        self._detect_rule_fired_cycles(compiled_rules)
         return {"rules": compiled_rules}
 
     @staticmethod
@@ -973,6 +975,7 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             0,
             int(self._compile_stats.get("rules_seen") or 0) - len(compiled_rules),
         )
+        self._detect_rule_fired_cycles(compiled_rules)
         return {"rules": compiled_rules}
 
     def _seeds_from_criterion(self, criterion: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1390,6 +1393,61 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             "term": node.get("term", ""),
         }
 
+    @staticmethod
+    def _collect_rule_fired_deps(node: dict[str, Any]) -> list[str]:
+        """Return all referenced_rule_id values found in RULE_FIRED leaves."""
+        kind = str(node.get("kind") or "").upper()
+        if kind == "RULE_FIRED":
+            ref = node.get("referenced_rule_id")
+            return [ref] if ref else []
+        deps: list[str] = []
+        for child in node.get("children") or []:
+            deps.extend(GuidelineCompiler._collect_rule_fired_deps(child))
+        return deps
+
+    def _detect_rule_fired_cycles(
+        self, compiled_rules: list[dict[str, Any]]
+    ) -> None:
+        """DFS cycle detection across RULE_FIRED dependency edges.
+
+        Logs a warning in compile_stats for every cycle found. The evaluator's
+        _in_progress guard is the runtime safety net; this is an early-warning
+        signal for administrators. Atlas trace: DO-274E5A61 / DI-8899D4F3.
+        """
+        adj: dict[str, list[str]] = {}
+        for rule in compiled_rules:
+            rule_id = rule.get("rule_id", "")
+            tree = rule.get("logic_tree") or {}
+            adj[rule_id] = self._collect_rule_fired_deps(tree)
+
+        visited: set[str] = set()
+        in_stack: set[str] = set()
+
+        def _dfs(node_id: str) -> bool:
+            if node_id in in_stack:
+                return True
+            if node_id in visited:
+                return False
+            visited.add(node_id)
+            in_stack.add(node_id)
+            for neighbour in adj.get(node_id, []):
+                if _dfs(neighbour):
+                    return True
+            in_stack.discard(node_id)
+            return False
+
+        for rule_id in list(adj):
+            if rule_id not in visited:
+                if _dfs(rule_id):
+                    self._compile_stats["cycle_warnings"] = (
+                        int(self._compile_stats.get("cycle_warnings") or 0) + 1
+                    )
+                    logger.warning(
+                        "RULE_FIRED cycle detected involving rule %r -- "
+                        "affected rules will return False (fail-closed) at evaluation time.",
+                        rule_id,
+                    )
+
     def _compile_logic_tree_node(
         self,
         node: dict[str, Any] | None,
@@ -1428,6 +1486,14 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             return self._compile_allergy_leaf(node)
         if kind == "treatment_history":
             return self._compile_treatment_history_leaf(node)
+        if kind == "rule_fired":
+            return {
+                "kind": "RULE_FIRED",
+                "node_id": node.get("node_id"),
+                "referenced_rule_id": node.get("referenced_rule_id"),
+                "outcome": node.get("outcome", "fired"),
+                "display_name": node.get("display_name"),
+            }
 
         children = []
         for child in node.get("children") or []:

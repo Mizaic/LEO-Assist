@@ -77,6 +77,7 @@ Allowed semantic_tag values:
 - situation
 - regime/therapy
 - staging scale
+- body structure
 
 Definitions:
 - disorder: diagnosed diseases, conditions, syndromes
@@ -88,6 +89,28 @@ Definitions:
 - situation: contextual clinical states such as family history, allergy status, smoking status, resolved conditions, planned referrals/procedures, waiting-list status
 - regime/therapy: named therapy programme or care plan
 - staging scale: TNM, FIGO, Gleason, ECOG, WHO PS, Karnofsky, similar scales
+- body structure: ONLY for the six reproductive anatomy organs listed below. Use assertion="present" for all body structure entities.
+
+==================================================
+REPRODUCTIVE ANATOMY SCOPE (body structure only)
+
+Extract body structure ONLY for these six reproductive organs when they
+appear as standalone clinical references in the referral text:
+- cervix (or cervix uteri, SNOMED 71252005)
+- uterus (or womb, SNOMED 35039007)
+- ovary (or ovaries, SNOMED 15497006)
+- prostate (or prostate gland, SNOMED 41216001)
+- testis (or testes, testicle, SNOMED 40689003)
+- fallopian tube (SNOMED 31435000)
+
+Examples:
+- "has a cervix" -> body structure, lookup_term="cervix uteri", assertion="present"
+- "prostate gland removed" -> body structure, lookup_term="prostate gland", assertion="historical"
+- "no ovaries" -> body structure, lookup_term="ovary structure", assertion="absent"
+
+Do NOT extract body structure for any other anatomy (breast, bowel, lung, etc.).
+Do NOT extract body structure if the organ is already embedded in a procedure or
+finding span (e.g. "cervical smear" -> extract as procedure, not body structure).
 
 ==================================================
 DO NOT EXTRACT
@@ -95,7 +118,7 @@ DO NOT EXTRACT
 Do NOT extract:
 - purely administrative text
 - section headers
-- body sites alone with no finding
+- body sites alone with no finding (EXCEPT the six reproductive organs listed in the REPRODUCTIVE ANATOMY SCOPE section above)
 - parenthetical Read/EMIS codes
 - bare numbers with no labelled clinical parameter
 - safety-netting or worsening-advice text only

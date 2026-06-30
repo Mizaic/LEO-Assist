@@ -33,7 +33,8 @@ export type LogicNodeKind =
   | "OBSERVATION"
   | "MEDICATION"
   | "ALLERGY"
-  | "TREATMENT_HISTORY";
+  | "TREATMENT_HISTORY"
+  | "RULE_FIRED";
 
 /**
  * One SNOMED code in a CONCEPT criterion's synonym set (UN-LEO-AI-093).
@@ -155,6 +156,8 @@ export interface EditableLogicNode {
   field?: string;
   operator?: string;
   value?: number | string | null;
+  /** Upper bound when operator === "between". Serialised as value[1] on save. */
+  value2?: number | string | null;
   unit?: string | null;
   /**
    * Optional plain-English name for a group node (Phase 2 of the
@@ -177,6 +180,16 @@ export interface EditableLogicNode {
    * Advanced view is needed for structural edits.
    */
   observation?: EditableObservationPayload;
+  /**
+   * RULE_FIRED chained-evaluation fields (DI-8899D4F3 / DI-6AE25829).
+   * referenced_rule_id: the AppropriatenessRule the author is conditioning on.
+   * outcome: "fired" (prerequisite rule matched) or "not_fired" (did not match).
+   * display_name: human-readable label stored at authoring time so the chip
+   *   shows a name even if the referenced rule has since been renamed.
+   */
+  referenced_rule_id?: string;
+  outcome?: "fired" | "not_fired";
+  display_name?: string;
 }
 
 /** Server response shape from /api/terminology/search. */
@@ -191,7 +204,7 @@ export interface ConceptSearchHit {
 export type NodeUpdate =
   | { kind: "replace_concept"; nodeId: string; criterion: LogicCriterion }
   | { kind: "set_min"; nodeId: string; min: number }
-  | { kind: "set_demographic"; nodeId: string; field: string; operator: string; value: string; unit: string | null }
+  | { kind: "set_demographic"; nodeId: string; field: string; operator: string; value: string; value2?: string; unit: string | null }
   | { kind: "change_kind"; nodeId: string; newKind: LogicNodeKind }
   | { kind: "remove"; nodeId: string }
   | { kind: "add_concept"; parentNodeId: string; criterion: LogicCriterion }
@@ -224,7 +237,16 @@ export type NodeUpdate =
   | { kind: "set_seed_distance"; nodeId: string; conceptId: string; distance: number | null }
   | { kind: "add_excluded"; nodeId: string; conceptId: string }
   | { kind: "remove_excluded"; nodeId: string; conceptId: string }
-  | { kind: "replace_root"; node: EditableLogicNode };
+  | { kind: "replace_root"; node: EditableLogicNode }
+  // -- RULE_FIRED chained evaluation (DI-8899D4F3 / DI-6AE25829) --
+  | { kind: "add_rule_fired"; parentNodeId: string }
+  | {
+      kind: "set_rule_fired";
+      nodeId: string;
+      referenced_rule_id: string;
+      outcome: "fired" | "not_fired";
+      display_name: string;
+    };
 
 export const GROUP_KINDS: ReadonlyArray<LogicNodeKind> = ["AND", "OR", "NOT", "AT_LEAST"];
 

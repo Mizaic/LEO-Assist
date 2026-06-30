@@ -31,6 +31,8 @@ interface Props {
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
+  guidelineId?: string;
+  currentRuleId?: string;
 }
 
 function isPathwayRoot(root: EditableLogicNode): boolean {
@@ -47,6 +49,8 @@ export default function LogicTreeEditor({
   onUpdate,
   onRequestAdd,
   onRequestCoach,
+  guidelineId,
+  currentRuleId,
 }: Props) {
   return (
     <Box
@@ -62,6 +66,8 @@ export default function LogicTreeEditor({
           onUpdate={onUpdate}
           onRequestAdd={onRequestAdd}
           onRequestCoach={onRequestCoach}
+          guidelineId={guidelineId}
+          currentRuleId={currentRuleId}
         />
       ) : (
         <GroupBody
@@ -74,6 +80,8 @@ export default function LogicTreeEditor({
           onUpdate={onUpdate}
           onRequestAdd={onRequestAdd}
           onRequestCoach={onRequestCoach}
+          guidelineId={guidelineId}
+          currentRuleId={currentRuleId}
         />
       )}
     </Box>

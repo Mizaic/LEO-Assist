@@ -13,6 +13,12 @@ export interface TreeCallbacks {
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
+  /** Guideline (compileScopeId) for the rule currently being edited.
+   *  Passed to RuleFiredRow so the rule picker can scope the list to
+   *  sibling rules and exclude the current rule's own ID. */
+  guidelineId?: string;
+  /** The ID of the rule currently being edited; used to exclude self-reference. */
+  currentRuleId?: string;
 }
 
 export interface NodeProps extends TreeCallbacks {

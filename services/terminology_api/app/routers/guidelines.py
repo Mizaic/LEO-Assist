@@ -127,6 +127,13 @@ class EvaluateRequest(BaseModel):
     ``APPLIES_TO`` constraints (e.g. age >= 40).  Rules that require an age
     check are skipped when this is not supplied."""
     patient_sex: str | None = None
+    """NHS PDS administrative gender.  Accepted values:
+    ``"male"`` or ``"female"`` -- rules are evaluated and a limitation notice
+    is returned reminding the clinician that PDS gender does not confirm
+    reproductive anatomy.  ``"other"`` or ``"unknown"`` -- gender-specific
+    and anatomy-specific NICE rules are not applied and ``gender_review_flag``
+    is set in the response.  ``None`` (default) -- existing fail-closed
+    behaviour; DEMOGRAPHIC sex nodes will not fire."""
     scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = (
         "global"
     )

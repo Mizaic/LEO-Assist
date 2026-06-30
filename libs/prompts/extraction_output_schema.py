@@ -75,6 +75,7 @@ EXTRACTION_OUTPUT_SCHEMA: dict = {
                             "situation",
                             "regime/therapy",
                             "staging scale",
+                            "body structure",
                         ],
                     },
                     "assertion": {

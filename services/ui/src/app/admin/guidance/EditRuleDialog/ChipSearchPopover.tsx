@@ -155,6 +155,7 @@ export default function ChipSearchPopover({
           initialQuery={initialQuery}
           onPick={onPick}
           onPickObservation={mode === "add" ? onPickObservation : undefined}
+          filterToObservable={replaceKind === "observation"}
         />
       </Box>
     </Popover>

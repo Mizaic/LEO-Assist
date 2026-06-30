@@ -20,19 +20,17 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import NewReleasesOutlinedIcon from "@mui/icons-material/NewReleasesOutlined";
+import PageviewOutlinedIcon from "@mui/icons-material/PageviewOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import SystemUpdateAltOutlinedIcon from "@mui/icons-material/SystemUpdateAltOutlined";
-import NewReleasesOutlinedIcon from "@mui/icons-material/NewReleasesOutlined";
-import PageviewOutlinedIcon from "@mui/icons-material/PageviewOutlined";
 
 import { EmptyState, ReviewListCard, ToolbarActions, type ReviewListItem } from "@leo/design-system";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import GuidelineSubgraphDrawer from "./GuidelineSubgraphDrawer";
 import GuidelineChangesDrawer from "./GuidelineChangesDrawer";
+import RecommendationPickerDialog from "./RecommendationPickerDialog";
 
 interface LoadedGuideline {
   code: string;
@@ -161,15 +159,11 @@ function formatUpdateDate(iso: string): string {
 
 function buildGuidelineItem(
   g: LoadedGuideline,
-  generating: string | null,
   reingesting: string | null,
   updateStatus: UpdateStatus | undefined,
-  onGenerate: (code: string, hasRules: boolean) => void,
-  onInspect: (code: string) => void,
+  onRecommendations: (code: string, title: string) => void,
   onReviewChanges: (code: string) => void,
 ): ReviewListItem {
-  const hasRules = g.rules_pending + g.rules_approved + g.rules_rejected > 0;
-  const isGenerating = generating === g.code;
   const isReingesting = reingesting === g.code;
 
   const updateChip = (() => {
@@ -255,25 +249,18 @@ function buildGuidelineItem(
             </span>
           </Tooltip>
         )}
-        <Tooltip title={hasRules ? "Re-generate rules (replaces drafts)" : "Ask the AI to write rules for each recommendation"}>
+        <Tooltip title="View recommendations and create or generate rules">
           <span>
             <Button
               size="small"
-              variant={hasRules ? "outlined" : "contained"}
-              color={hasRules ? "warning" : "primary"}
-              disabled={isGenerating || isReingesting || g.recommendation_count === 0}
-              startIcon={isGenerating ? <CircularProgress size={14} color="inherit" /> : <AutoFixHighOutlinedIcon fontSize="small" />}
-              onClick={() => onGenerate(g.code, hasRules)}
-              aria-label={`Generate rules for ${g.code}`}
+              variant="outlined"
+              color="primary"
+              disabled={isReingesting || g.recommendation_count === 0}
+              startIcon={<MenuBookIcon fontSize="small" />}
+              onClick={() => onRecommendations(g.code, g.title || g.code)}
+              aria-label={`Manage recommendations for ${g.code}`}
             >
-              {isGenerating ? "Generating..." : hasRules ? "Re-generate" : "Generate rules"}
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip title="Inspect what is stored in Neo4j for this guideline">
-          <span>
-            <Button size="small" variant="outlined" onClick={() => onInspect(g.code)} aria-label={`Inspect Neo4j subgraph for ${g.code}`}>
-              <AccountTreeIcon fontSize="small" />
+              Recommendations
             </Button>
           </span>
         </Tooltip>
@@ -286,16 +273,14 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
   const [guidelines, setGuidelines] = useState<LoadedGuideline[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generating, setGenerating] = useState<string | null>(null);
-  const [generateError, setGenerateError] = useState<string | null>(null);
-  const [confirmCode, setConfirmCode] = useState<string | null>(null);
-  const [inspectCode, setInspectCode] = useState<string | null>(null);
   const [updateStatuses, setUpdateStatuses] = useState<UpdateStatusMap>({});
   const [reingesting, setReingesting] = useState<string | null>(null);
   const [changesDrawerCode, setChangesDrawerCode] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
+  const [pickerCode, setPickerCode] = useState<string | null>(null);
+  const [pickerTitle, setPickerTitle] = useState("");
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
@@ -316,48 +301,10 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
 
   useEffect(() => { fetchLoaded(); }, [fetchLoaded, refreshKey]);
 
-  const handleGenerate = useCallback(async (code: string) => {
-    setConfirmCode(null);
-    setGenerating(code);
-    setGenerateError(null);
-    if (pollRef.current) clearTimeout(pollRef.current);
-
-    let jobId: string;
-    try {
-      const r = await fetch("/api/guidance/rules/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guideline_id: code, only_without_rules: true }),
-      });
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({ detail: r.statusText }));
-        throw new Error(body.detail || r.statusText);
-      }
-      jobId = (await r.json()).job_id;
-    } catch (e) {
-      setGenerateError(e instanceof Error ? e.message : "Could not start rule generation. Please try again.");
-      setGenerating(null);
-      return;
-    }
-
-    async function poll() {
-      try {
-        const r = await fetch(`/api/guidance/rules/generate/${jobId}`);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const job = await r.json();
-        if (job.status === "done") { await fetchLoaded(); onRulesGenerated?.(); setGenerating(null); return; }
-        if (job.status === "error") { setGenerateError(job.error || "Rule generation failed."); await fetchLoaded(); setGenerating(null); return; }
-        pollRef.current = setTimeout(poll, 5000);
-      } catch {
-        setGenerateError("Lost contact with the server. Check the review queue to see if rules were created.");
-        await fetchLoaded();
-        onRulesGenerated?.();
-        setGenerating(null);
-      }
-    }
-
-    pollRef.current = setTimeout(poll, 3000);
-  }, [fetchLoaded, onRulesGenerated]);
+  const handleOpenPicker = useCallback((code: string, title: string) => {
+    setPickerCode(code);
+    setPickerTitle(title);
+  }, []);
 
   const checkUpdates = useCallback(async () => {
     if (guidelines.length === 0) return;
@@ -439,8 +386,6 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
 
   return (
     <Box>
-      {generateError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setGenerateError(null)}>{generateError}</Alert>}
-
       {/* -- Toolbar -------------------------------------------------------- */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography variant="body2" color="text.secondary">
@@ -495,11 +440,9 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
             items={pageSlice.map((g) =>
               buildGuidelineItem(
                 g,
-                generating,
                 reingesting,
                 updateStatuses[g.code],
-                (code, hasRules) => (hasRules ? setConfirmCode(code) : handleGenerate(code)),
-                setInspectCode,
+                handleOpenPicker,
                 setChangesDrawerCode,
               )
             )}
@@ -522,18 +465,6 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
         </>
       )}
 
-      {confirmCode && (
-        <ConfirmDialog
-          title="Replace existing rules?"
-          body={`This will delete all draft rules for ${confirmCode} and ask the AI to write new ones. Rules you have already approved will also be deleted. Are you sure?`}
-          confirmLabel="Yes, re-generate"
-          cancelLabel="Cancel"
-          variant="danger"
-          onConfirm={() => handleGenerate(confirmCode)}
-          onCancel={() => setConfirmCode(null)}
-        />
-      )}
-
       <GuidelineChangesDrawer
         code={changesDrawerCode}
         onClose={() => setChangesDrawerCode(null)}
@@ -543,7 +474,12 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
         }}
       />
 
-      <GuidelineSubgraphDrawer code={inspectCode} onClose={() => setInspectCode(null)} />
+      <RecommendationPickerDialog
+        code={pickerCode}
+        guidelineTitle={pickerTitle}
+        onClose={() => setPickerCode(null)}
+        onRulesGenerated={() => { fetchLoaded(); onRulesGenerated?.(); }}
+      />
     </Box>
   );
 }

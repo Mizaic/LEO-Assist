@@ -176,7 +176,6 @@ export default function EditRuleDialog({
   const [originalStrength, setOriginalStrength] = useState("unspecified");
   const [reason, setReason] = useState("");
   const [searchTarget, setSearchTarget] = useState<SearchTarget>(IDLE_TARGET);
-  const [showRecommendation, setShowRecommendation] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [coach, setCoach] = useState<{
     nodeId: string;
@@ -218,7 +217,6 @@ export default function EditRuleDialog({
     setOriginalStrength(rule.strength || "unspecified");
     setReason("");
     setSearchTarget(IDLE_TARGET);
-    setShowRecommendation(false);
     setCoach(null);
     setAction(rule.action ?? null);
     setOriginalAction(rule.action ?? null);
@@ -378,6 +376,16 @@ export default function EditRuleDialog({
   function handleAddFirstSymptom(anchor: HTMLElement) {
     if (!tree) return;
     handleRequestAdd(tree.node_id, anchor);
+  }
+
+  function handleAddFirstDemographic() {
+    if (!tree) return;
+    handleUpdate({ kind: "add_demographic", parentNodeId: tree.node_id });
+  }
+
+  function handleAddFirstObservation() {
+    if (!tree) return;
+    handleUpdate({ kind: "add_observation", parentNodeId: tree.node_id });
   }
 
   function handleRequestCoach(nodeId: string, anchor: HTMLElement) {
@@ -699,16 +707,15 @@ export default function EditRuleDialog({
                 selectedNodeId={searchTarget.nodeId}
                 duplicates={duplicates}
                 recommendationText={rule?.recommendation_text}
-                showRecommendation={showRecommendation}
-                onToggleRecommendation={() =>
-                  setShowRecommendation((v) => !v)
-                }
                 onSelectNode={handleSelectNode}
                 onUpdate={handleUpdate}
                 onRequestAdd={handleRequestAdd}
                 onRequestCoach={handleRequestCoach}
                 onAddFirstSymptom={handleAddFirstSymptom}
+                onAddFirstDemographic={handleAddFirstDemographic}
+                onAddFirstObservation={handleAddFirstObservation}
                 ruleId={rule?.rule_id ?? ""}
+                guidelineId={rule?.guideline_id}
                 onAIDraft={(aiTree) => {
                   const withIds = assignNodeIds(aiTree);
                   setTree(withIds);

@@ -52,6 +52,7 @@ _GROUP_KINDS = {"AND", "OR", "NOT", "AT_LEAST"}
 # OBSERVATION is the Phase 5 numeric-threshold leaf.
 # MEDICATION, ALLERGY, and TREATMENT_HISTORY are Sprint 1 management-pathway
 # leaves (DI-2199E670 / DO-0EC3A9CB). They do not use the bitmap path.
+# RULE_FIRED is the chained-evaluation leaf (DI-8899D4F3 / DO-274E5A61).
 _LEAF_KINDS = {
     "CONCEPT",
     "DEMOGRAPHIC",
@@ -59,8 +60,10 @@ _LEAF_KINDS = {
     "MEDICATION",
     "ALLERGY",
     "TREATMENT_HISTORY",
+    "RULE_FIRED",
 }
 _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
+_VALID_RULE_FIRED_OUTCOMES = {"fired", "not_fired"}
 
 
 # -- Pydantic models -----------------------------------------------------------
@@ -164,7 +167,7 @@ class LogicNode(BaseModel):
     criterion: LogicCriterion | None = None
     field: str | None = None
     operator: str | None = None
-    value: float | str | None = None
+    value: float | str | list[float] | None = None
     unit: str | None = None
     # Carries the Phase 5 OBSERVATION leaf payload (numeric threshold,
     # recency window, optional temporal / reference-range / trend /
@@ -195,6 +198,13 @@ class LogicNode(BaseModel):
     # phone-sized viewport. Whitespace-only values normalise to None so
     # downstream consumers see a single "no name set" shape.
     name: str | None = Field(default=None, max_length=80)
+    # RULE_FIRED chained-evaluation fields (DI-8899D4F3 / DO-274E5A61).
+    # referenced_rule_id: the rule that must have fired (or not fired) for
+    # this leaf to be True. display_name carries the human-readable label
+    # stored at authoring time so the editor shows a name even when the
+    # referenced rule has since been renamed.
+    referenced_rule_id: str | None = None
+    display_name: str | None = None
 
     @field_validator("kind")
     @classmethod
@@ -305,6 +315,9 @@ def _walk(
     if kind == "OBSERVATION":
         _validate_observation_node(node, concept_ids)
         return
+    if kind == "RULE_FIRED":
+        _validate_rule_fired_node(node)
+        return
 
     children = node.children or []
     if not children:
@@ -375,8 +388,25 @@ def _validate_demographic_node(node: LogicNode) -> None:
         raise LogicTreeValidationError(
             f"DEMOGRAPHIC node has unsupported operator {node.operator!r}."
         )
-    if node.value is None or (isinstance(node.value, str) and not node.value.strip()):
+    if node.operator == "between":
+        if not (isinstance(node.value, list) and len(node.value) == 2):
+            raise LogicTreeValidationError(
+                "DEMOGRAPHIC 'between' node requires value as a two-element list [low, high]."
+            )
+    elif node.value is None or (isinstance(node.value, str) and not node.value.strip()):
         raise LogicTreeValidationError("DEMOGRAPHIC node is missing a value.")
+
+
+def _validate_rule_fired_node(node: LogicNode) -> None:
+    if not (node.referenced_rule_id or "").strip():
+        raise LogicTreeValidationError(
+            "RULE_FIRED node requires a non-empty referenced_rule_id."
+        )
+    outcome = (node.outcome or "").strip()
+    if outcome not in _VALID_RULE_FIRED_OUTCOMES:
+        raise LogicTreeValidationError(
+            f"RULE_FIRED node outcome must be 'fired' or 'not_fired'; got {outcome!r}."
+        )
 
 
 # -- Cypher --------------------------------------------------------------------

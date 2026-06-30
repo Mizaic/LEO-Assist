@@ -21,10 +21,13 @@ interface Props {
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
+  guidelineId?: string;
+  currentRuleId?: string;
 }
 
 export default function PathwayList({
   root, selectedNodeId, onSelect, onUpdate, onRequestAdd, onRequestCoach,
+  guidelineId, currentRuleId,
 }: Props) {
   const children = root.children ?? [];
 
@@ -41,6 +44,8 @@ export default function PathwayList({
           onUpdate={onUpdate}
           onRequestAdd={onRequestAdd}
           onRequestCoach={onRequestCoach}
+          guidelineId={guidelineId}
+          currentRuleId={currentRuleId}
         />
       ))}
 

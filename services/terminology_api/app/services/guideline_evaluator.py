@@ -23,6 +23,7 @@ microseconds for rulesets of up to 500 rules.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from typing import Any, Callable
 
@@ -89,6 +90,91 @@ def _collect_tree_seed_ids(node: dict[str, Any] | None) -> list[str]:
     return out
 
 
+@dataclasses.dataclass(slots=True)
+class _PatientContext:
+    """Patient clinical context passed through a single evaluate_patient call.
+
+    Groups the per-patient inputs so helper methods stay within the
+    parameter-count limit without losing type safety.
+    """
+
+    age: float | None
+    sex: str | None
+    observations: list[dict[str, Any]] | None
+    medications: list[dict[str, Any]] | None
+    allergies: list[dict[str, Any]] | None
+    treatments: list[dict[str, Any]] | None
+
+
+class _RuleEvaluationSession:
+    """Per-patient lazy memoised evaluation session for RULE_FIRED chaining.
+
+    Each rule is evaluated at most once per patient session (memoised).
+    Circular dependencies are detected via ``_in_progress`` and return
+    False (fail-closed) without raising an exception or looping.
+
+    Atlas trace: DO-274E5A61 / DI-8899D4F3 / R-E60D1E76.
+    """
+
+    def __init__(
+        self,
+        evaluator: "GuidelineEvaluator",
+        rules_by_id: dict[str, dict],
+        patient_bm: "BitMap",
+        ctx: _PatientContext,
+        bitmap_cache: dict[str, "BitMap"],
+    ) -> None:
+        self._evaluator = evaluator
+        self._rules_by_id = rules_by_id
+        self._patient_bm = patient_bm
+        self._ctx = ctx
+        self._bitmap_cache = bitmap_cache
+        self._cache: dict[str, bool] = {}
+        self._in_progress: set[str] = set()
+
+    def evaluate(self, rule_id: str) -> bool:
+        if rule_id in self._cache:
+            return self._cache[rule_id]
+        if rule_id in self._in_progress:
+            logger.warning(
+                "RULE_FIRED circular dependency for rule %r -- returning False (fail-closed).",
+                rule_id,
+            )
+            return False
+        rule = self._rules_by_id.get(rule_id)
+        if rule is None:
+            logger.warning(
+                "RULE_FIRED references unknown rule_id %r -- returning False (fail-closed).",
+                rule_id,
+            )
+            self._cache[rule_id] = False
+            return False
+        self._in_progress.add(rule_id)
+        try:
+            result = self._evaluator._rule_matches(
+                rule,
+                self._patient_bm,
+                self._ctx.age,
+                self._ctx.sex,
+                patient_observations=self._ctx.observations,
+                active_medications=self._ctx.medications,
+                allergies=self._ctx.allergies,
+                treatment_history=self._ctx.treatments,
+                bitmap_cache=self._bitmap_cache,
+                session=self,
+            )
+        except Exception:
+            logger.exception(
+                "RULE_FIRED evaluation of rule %r raised an exception -- fail-closed.",
+                rule_id,
+            )
+            result = False
+        finally:
+            self._in_progress.discard(rule_id)
+        self._cache[rule_id] = result
+        return result
+
+
 class GuidelineEvaluator:
     """Evaluates a patient's SNOMED code set against the active ruleset.
 
@@ -123,99 +209,61 @@ class GuidelineEvaluator:
                             guideline (e.g. ``NG151``).
             patient_age: Patient age in years (decimal).  Required for rules
                          with age-based ``APPLIES_TO`` constraints.
-            patient_sex: ``"female"`` or ``"male"``.  If provided and the
-                         patient sex code (248152002 / 248153007) is not already
-                         in ``patient_codes``, it is injected automatically.
+            patient_sex: PDS administrative gender value.  Accepted values:
+                         ``"male"`` or ``"female"`` (binary -- rules applied,
+                         limitation notice returned), ``"other"`` or
+                         ``"unknown"`` (unusable -- gender-specific rules not
+                         applied, clinician-review flag set), or ``None`` (no
+                         PDS gender supplied -- existing fail-closed behaviour).
 
         Returns:
-            Dict with ``matched_rules`` list and ``active_version`` string.
+            Dict with ``matched_rules``, ``active_version``, and PDS gender
+            fields: ``gender_review_flag``, ``gender_review_reason``,
+            ``limitation_notice``, ``gender_basis``,
+            ``gender_sensitive_rules_skipped``.
         """
-        if ruleset_version:
-            ruleset = self._store.get_ruleset(
-                ruleset_version,
-                scope_type=scope_type,
-                scope_id=scope_id,
-            )
-        else:
-            ruleset = self._store.get_current_ruleset(
-                scope_type=scope_type,
-                scope_id=scope_id,
-            )
+        ruleset = self._load_ruleset(ruleset_version, scope_type, scope_id)
         if not ruleset:
             logger.warning(
-                "GuidelineEvaluator: no active ruleset found in Redis "
-                "(scope=%s/%s) -- ALL patient evaluations will return zero "
-                "matches. Run POST /guidelines/bitmap/compile to rebuild.",
+                "GuidelineEvaluator: no active ruleset for scope=%s/%s.",
                 scope_type or "global",
                 scope_id or "default",
             )
-            return {
-                "matched_rules": [],
-                "active_version": None,
-                "not_compiled": True,
-                "message": "No active ruleset compiled yet.",
-                "recompile_hint": (
-                    "POST /terminology/guidelines/bitmap/compile "
-                    f"with scope_type={scope_type or 'global'} "
-                    f"scope_id={scope_id or 'default'}"
-                ),
-                "scope_type": scope_type or "global",
-                "scope_id": scope_id or "default",
-            }
+            return _not_compiled_response(scope_type, scope_id)
 
-        # Inject sex SNOMED concept if caller supplies it as a string
+        requires_review, review_reason, limitation_notice = _check_pds_gender_gate(
+            patient_sex
+        )
+        rules = ruleset.get("rules", [])
+        skipped = _count_sex_sensitive_rules(rules) if requires_review else 0
+
+        if not requires_review and _check_anatomy_conflict(patient_codes, patient_sex):
+            requires_review = True
+            review_reason = "anatomy_conflict"
+            limitation_notice = None
+            gender_basis: str | None = "anatomy_evidence"
+        else:
+            gender_basis = "pds_gender" if patient_sex else None
+
         effective_codes = list(patient_codes)
-        if patient_sex:
+        if not requires_review and patient_sex:
             sex_code = _SEX_CODE.get(patient_sex.lower().strip())
             if sex_code and sex_code not in effective_codes:
                 effective_codes.append(sex_code)
 
+        ctx = _PatientContext(
+            age=patient_age,
+            sex=patient_sex,
+            observations=patient_observations,
+            medications=active_medications,
+            allergies=allergies,
+            treatments=treatment_history,
+        )
         patient_bitmap = self._build_patient_bitmap(effective_codes)
-        rules = ruleset.get("rules", [])
-
-        # Pre-fetch all bitmaps and seed int_ids in bulk before the main loop.
-        # Schema v2 logic trees have one Redis GET per CONCEPT node and one
-        # HGET per synonym seed; for complex rulesets that adds up to thousands
-        # of sequential round trips (~50-200 ms each on Azure TLS Redis).
-        # Two bulk calls (MGET + HMGET) replace that entire cost.
-        all_bitmap_ids: list[str] = []
-        all_seed_ids: list[str] = []
-        for rule in rules:
-            tree = rule.get("logic_tree")
-            if tree:
-                all_bitmap_ids.extend(_collect_tree_bitmap_ids(tree))
-                all_seed_ids.extend(_collect_tree_seed_ids(tree))
-            for group in (rule.get("criteria_groups") or []):
-                bid = group.get("bitmap_id")
-                if bid:
-                    all_bitmap_ids.append(bid)
-        bitmap_cache: dict[str, BitMap] = self._store.get_bitmaps_bulk(
-            list(set(all_bitmap_ids))
+        bitmap_cache, int_id_cache = _prefetch_rule_caches(rules, self._store)
+        matches = self._collect_matches(
+            rules, patient_bitmap, pathway_filter, ctx, bitmap_cache, int_id_cache
         )
-        int_id_cache: dict[str, int] = self._store.get_int_ids_bulk(
-            list(set(all_seed_ids))
-        )
-
-        matches = []
-        for rule in rules:
-            if pathway_filter and rule.get("guideline_id") != pathway_filter:
-                continue
-            if self._rule_matches(
-                rule,
-                patient_bitmap,
-                patient_age,
-                patient_sex,
-                patient_observations=patient_observations,
-                active_medications=active_medications,
-                allergies=allergies,
-                treatment_history=treatment_history,
-                bitmap_cache=bitmap_cache,
-            ):
-                matched_via = self._collect_matched_via(
-                    rule, patient_bitmap, int_id_cache=int_id_cache
-                )
-                matches.append(_format_match(rule, matched_via=matched_via))
-
         return {
             "matched_rules": matches,
             "active_version": ruleset.get("version"),
@@ -223,7 +271,56 @@ class GuidelineEvaluator:
             "compile_timestamp": ruleset.get("compile_timestamp"),
             "scope_type": ruleset.get("scope_type") or scope_type or "global",
             "scope_id": ruleset.get("scope_id") or scope_id or "default",
+            "gender_review_flag": requires_review,
+            "gender_review_reason": review_reason,
+            "limitation_notice": limitation_notice,
+            "gender_basis": gender_basis,
+            "gender_sensitive_rules_skipped": skipped,
         }
+
+    def _load_ruleset(
+        self,
+        ruleset_version: str | None,
+        scope_type: str | None,
+        scope_id: str | None,
+    ) -> dict[str, Any] | None:
+        """Return the requested or current ruleset from the store."""
+        if ruleset_version:
+            return self._store.get_ruleset(
+                ruleset_version,
+                scope_type=scope_type,
+                scope_id=scope_id,
+            )
+        return self._store.get_current_ruleset(
+            scope_type=scope_type,
+            scope_id=scope_id,
+        )
+
+    def _collect_matches(
+        self,
+        rules: list[dict],
+        patient_bitmap: BitMap,
+        pathway_filter: str | None,
+        ctx: _PatientContext,
+        bitmap_cache: dict[str, BitMap],
+        int_id_cache: dict[str, int],
+    ) -> list[dict]:
+        """Run the rule-matching loop and return formatted matches."""
+        rules_by_id = {r["rule_id"]: r for r in rules if r.get("rule_id")}
+        session = _RuleEvaluationSession(
+            self, rules_by_id, patient_bitmap, ctx, bitmap_cache
+        )
+        matches = []
+        for rule in rules:
+            if pathway_filter and rule.get("guideline_id") != pathway_filter:
+                continue
+            rule_id = rule.get("rule_id", "")
+            if session.evaluate(rule_id):
+                matched_via = self._collect_matched_via(
+                    rule, patient_bitmap, int_id_cache=int_id_cache
+                )
+                matches.append(_format_match(rule, matched_via=matched_via))
+        return matches
 
     def diagnose(
         self,
@@ -317,6 +414,22 @@ class GuidelineEvaluator:
                 effective_codes.append(sex_code)
         patient_bm = self._build_patient_bitmap(effective_codes)
 
+        # Build a RULE_FIRED session so chained rules can be resolved in the
+        # diagnose path with the same fail-closed cycle guard as evaluate_patient.
+        _diag_ctx = _PatientContext(
+            age=patient_age,
+            sex=patient_sex,
+            observations=patient_observations,
+            medications=active_medications,
+            allergies=allergies,
+            treatments=treatment_history,
+        )
+        _all_rules = ruleset.get("rules") or []
+        _rules_by_id = {r["rule_id"]: r for r in _all_rules if r.get("rule_id")}
+        _diag_session = _RuleEvaluationSession(
+            self, _rules_by_id, patient_bm, _diag_ctx, {}
+        )
+
         annotated, fires = self._annotate_rule(
             rule,
             patient_bm,
@@ -326,6 +439,7 @@ class GuidelineEvaluator:
             active_medications=active_medications,
             allergies=allergies,
             treatment_history=treatment_history,
+            session=_diag_session,
         )
 
         resolved_count = sum(
@@ -370,6 +484,7 @@ class GuidelineEvaluator:
         active_medications: list[dict[str, Any]] | None = None,
         allergies: list[dict[str, Any]] | None = None,
         treatment_history: list[dict[str, Any]] | None = None,
+        session: "_RuleEvaluationSession | None" = None,
     ) -> tuple[dict[str, Any] | None, bool]:
         """Return (annotated_tree, overall_fires) for any rule schema."""
         if int(rule.get("schema_version") or 1) == 2:
@@ -383,6 +498,7 @@ class GuidelineEvaluator:
                 active_medications=active_medications,
                 allergies=allergies,
                 treatment_history=treatment_history,
+                session=session,
             )
             fires = bool(annotated and annotated.get("matched"))
             return annotated, fires
@@ -450,6 +566,7 @@ class GuidelineEvaluator:
         active_medications: list[dict[str, Any]] | None = None,
         allergies: list[dict[str, Any]] | None = None,
         treatment_history: list[dict[str, Any]] | None = None,
+        session: "_RuleEvaluationSession | None" = None,
     ) -> dict[str, Any] | None:
         if not node:
             return None
@@ -554,11 +671,28 @@ class GuidelineEvaluator:
                 "reason": reason,
                 "source_ids": source_ids,
             }
+        if kind == "RULE_FIRED":
+            ref_id = node.get("referenced_rule_id") or ""
+            outcome = str(node.get("outcome") or "fired")
+            if session is not None and ref_id:
+                fired = session.evaluate(ref_id)
+                matched = fired if outcome == "fired" else not fired
+            else:
+                matched = False
+            return {
+                "kind": "RULE_FIRED",
+                "node_id": node_id,
+                "referenced_rule_id": ref_id,
+                "display_name": node.get("display_name"),
+                "outcome": outcome,
+                "matched": matched,
+            }
         _ann_kwargs: dict[str, Any] = {
             "patient_observations": patient_observations,
             "active_medications": active_medications,
             "allergies": allergies,
             "treatment_history": treatment_history,
+            "session": session,
         }
         children_in = list(node.get("children") or [])
         children_out = [
@@ -839,6 +973,7 @@ class GuidelineEvaluator:
         allergies: list[dict[str, Any]] | None = None,
         treatment_history: list[dict[str, Any]] | None = None,
         bitmap_cache: dict[str, BitMap] | None = None,
+        session: "_RuleEvaluationSession | None" = None,
     ) -> bool:
         """Return True if a compiled rule matches the patient bitmap.
 
@@ -876,6 +1011,7 @@ class GuidelineEvaluator:
                 allergies=allergies or [],
                 treatment_history=treatment_history or [],
                 bitmap_cache=bitmap_cache,
+                session=session,
             )
 
         applies_to = rule.get("applies_to") or []
@@ -941,6 +1077,7 @@ class GuidelineEvaluator:
         allergies: list[dict[str, Any]] | None = None,
         treatment_history: list[dict[str, Any]] | None = None,
         bitmap_cache: dict[str, BitMap] | None = None,
+        session: "_RuleEvaluationSession | None" = None,
     ) -> bool:
         """Recursively evaluate a compiled logic tree node against a patient bitmap.
 
@@ -992,6 +1129,17 @@ class GuidelineEvaluator:
                 node, treatment_history or []
             )
             return matched
+        if kind == "RULE_FIRED":
+            if session is None:
+                logger.error(
+                    "RULE_FIRED leaf %r evaluated without a session -- returning False (fail-closed).",
+                    node.get("node_id"),
+                )
+                return False
+            ref_id = node.get("referenced_rule_id") or ""
+            outcome = str(node.get("outcome") or "fired")
+            fired = session.evaluate(ref_id)
+            return fired if outcome == "fired" else not fired
         children = list(node.get("children") or [])
         _kwargs: dict[str, Any] = {
             "patient_observations": patient_observations,
@@ -999,6 +1147,7 @@ class GuidelineEvaluator:
             "allergies": allergies,
             "treatment_history": treatment_history,
             "bitmap_cache": bitmap_cache,
+            "session": session,
         }
         if kind == "AND":
             return all(
@@ -1064,6 +1213,34 @@ _SEX_CODE: dict[str, str] = {
     "male": "248153007",
     "m": "248153007",
 }
+
+# PDS gender values that cannot be used to drive anatomy-specific NICE rules.
+_PDS_UNUSABLE_SEX: frozenset[str] = frozenset({"other", "unknown"})
+
+# Limitation notice returned whenever binary PDS gender is used for anatomy-
+# specific rules (DI-9AA2CDA5 clause b).
+_LIMITATION_NOTICE: str = (
+    "PDS administrative gender does not confirm reproductive anatomy. "
+    "Check whether the patient has relevant reproductive organs before "
+    "acting on anatomy-specific recommendations."
+)
+
+# Reproductive anatomy SNOMED codes split by expected PDS gender.
+# Used to detect anatomy/gender conflicts (DI-9AA2CDA5 clause c).
+_FEMALE_ANATOMY_SNOMED: frozenset[str] = frozenset(
+    {
+        "71252005",  # cervix uteri
+        "35039007",  # uterus
+        "15497006",  # ovary structure
+        "31435000",  # fallopian tube
+    }
+)
+_MALE_ANATOMY_SNOMED: frozenset[str] = frozenset(
+    {
+        "41216001",  # prostate gland
+        "40689003",  # testis
+    }
+)
 
 # SNOMED age observable concept — used to identify age constraints in applies_to
 _AGE_CONCEPT_ID = "424144002"
@@ -1158,6 +1335,19 @@ def _check_demographic_node(
                 node.get("unit"),
             )
             return False
+        if operator == "between":
+            if not (isinstance(value, (list, tuple)) and len(value) == 2):
+                logger.error(
+                    "Age 'between' logic node requires value=[low, high], got %r — failing CLOSED.",
+                    value,
+                )
+                return False
+            try:
+                low, high = float(value[0]), float(value[1])
+            except (TypeError, ValueError):
+                logger.error("Age 'between' value not numeric (%r) — failing CLOSED.", value)
+                return False
+            return low <= patient_age <= high
         op_fn = _OPERATORS.get(operator)
         if op_fn is None or value is None:
             logger.error(
@@ -1209,3 +1399,110 @@ def _format_match(
     if matched_via:
         payload["matched_via"] = matched_via
     return payload
+
+
+def _check_pds_gender_gate(
+    patient_sex: str | None,
+) -> tuple[bool, str | None, str | None]:
+    """Return (requires_review, reason, limitation_notice) for PDS gender.
+
+    Implements DI-9AA2CDA5 clauses (a) and (b): flag when PDS gender is
+    unusable (other/unknown); warn when it is assumptive (male/female).
+    """
+    if not patient_sex:
+        return False, None, None
+    normalised = patient_sex.lower().strip()
+    if normalised in _PDS_UNUSABLE_SEX:
+        return True, "pds_gender_unusable", None
+    if normalised in _SEX_CODE:
+        return False, None, _LIMITATION_NOTICE
+    return False, None, None
+
+
+def _check_anatomy_conflict(
+    patient_codes: list[str],
+    patient_sex: str | None,
+) -> bool:
+    """Return True when patient_codes contain anatomy that conflicts with PDS gender.
+
+    Implements DI-9AA2CDA5 clause (c): a male-recorded patient with female
+    reproductive anatomy codes (or vice versa) indicates a conflict that the
+    clinician must review.  Returns False when no anatomy codes are present
+    (clause d -- no inference from PDS gender alone).
+    """
+    if not patient_sex:
+        return False
+    normalised = patient_sex.lower().strip()
+    code_set = set(patient_codes)
+    if normalised in {"male", "m"}:
+        return bool(code_set & _FEMALE_ANATOMY_SNOMED)
+    if normalised in {"female", "f"}:
+        return bool(code_set & _MALE_ANATOMY_SNOMED)
+    return False
+
+
+def _tree_has_sex_node(node: dict[str, Any] | None) -> bool:
+    """Return True when the logic tree contains a DEMOGRAPHIC sex node."""
+    if not node:
+        return False
+    if str(node.get("kind") or "").upper() == "DEMOGRAPHIC":
+        return str(node.get("field") or "").lower() == "sex"
+    return any(_tree_has_sex_node(c) for c in (node.get("children") or []))
+
+
+def _count_sex_sensitive_rules(rules: list[dict]) -> int:
+    """Count rules that have a DEMOGRAPHIC sex node in their logic tree."""
+    return sum(1 for r in rules if _tree_has_sex_node(r.get("logic_tree")))
+
+
+def _not_compiled_response(
+    scope_type: str | None,
+    scope_id: str | None,
+) -> dict[str, Any]:
+    """Build the standard response when no ruleset has been compiled."""
+    st = scope_type or "global"
+    si = scope_id or "default"
+    return {
+        "matched_rules": [],
+        "active_version": None,
+        "not_compiled": True,
+        "message": "No active ruleset compiled yet.",
+        "recompile_hint": (
+            f"POST /terminology/guidelines/bitmap/compile "
+            f"with scope_type={st} scope_id={si}"
+        ),
+        "scope_type": st,
+        "scope_id": si,
+        "gender_review_flag": False,
+        "gender_review_reason": None,
+        "limitation_notice": None,
+        "gender_basis": None,
+        "gender_sensitive_rules_skipped": 0,
+    }
+
+
+def _prefetch_rule_caches(
+    rules: list[dict],
+    store: BitmapStore,
+) -> tuple[dict[str, BitMap], dict[str, int]]:
+    """Return bulk-fetched bitmap and int_id caches for all rules.
+
+    Pre-fetches all CONCEPT-node bitmaps and synonym seed int_ids in two
+    round trips (MGET + HMGET) instead of one per node, reducing Redis
+    latency for rulesets with many CONCEPT leaves.
+    """
+    all_bitmap_ids: list[str] = []
+    all_seed_ids: list[str] = []
+    for rule in rules:
+        tree = rule.get("logic_tree")
+        if tree:
+            all_bitmap_ids.extend(_collect_tree_bitmap_ids(tree))
+            all_seed_ids.extend(_collect_tree_seed_ids(tree))
+        for group in (rule.get("criteria_groups") or []):
+            bid = group.get("bitmap_id")
+            if bid:
+                all_bitmap_ids.append(bid)
+    return (
+        store.get_bitmaps_bulk(list(set(all_bitmap_ids))),
+        store.get_int_ids_bulk(list(set(all_seed_ids))),
+    )

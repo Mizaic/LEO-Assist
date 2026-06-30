@@ -1059,7 +1059,16 @@ def _normalise_logic_node(node: dict[str, Any]) -> dict[str, Any] | None:
             "raw_term": str(node.get("raw_term") or ""),
         }
         if field == "age" and out["value"] is not None:
-            out["value"] = float(out["value"])
+            if out.get("operator") == "between" and isinstance(out["value"], list):
+                try:
+                    out["value"] = [float(out["value"][0]), float(out["value"][1])]
+                except (TypeError, ValueError, IndexError):
+                    out["value"] = None
+            else:
+                try:
+                    out["value"] = float(out["value"])
+                except (TypeError, ValueError):
+                    out["value"] = None
         return out
     if kind == "CONCEPT":
         return {"kind": "concept", "term": _make_term_obj(node.get("term") or node)}

@@ -54,10 +54,11 @@ _LABEL_BY_TAG: dict[str, str] = {
 # patient encounter. Body structures and organisms are not clinical events
 # -- they are anatomy/taxonomy reference nodes. Writing them as findings
 # produces noise that the audit agent then has to correct.
+# body structure was removed from this set to allow reproductive anatomy
+# SNOMED concepts (cervix, uterus, ovary, prostate, testis, fallopian tube)
+# to be persisted for gender/anatomy conflict detection (DI-9AA2CDA5).
 _BLOCKED_SEMANTIC_TAGS: frozenset[str] = frozenset(
     {
-        "bodystructure",
-        "body structure",
         "organism",
         "virus",
         "bacterium",
