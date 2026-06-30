@@ -514,11 +514,11 @@ def _run_llm_extraction(
         max_few_shot = int(cfg.get("maxFewShot") or 20)
     except (TypeError, ValueError):
         max_few_shot = 20
+    import json as _json
+
     few_shot_raw = cfg.get("fewShotExamples")
     few_shot_examples: list[dict] | None = None
     if few_shot_raw:
-        import json as _json
-
         try:
             few_shot_examples = (
                 _json.loads(few_shot_raw)
@@ -527,6 +527,24 @@ def _run_llm_extraction(
             )
         except Exception:
             few_shot_examples = None
+
+    # When prompt_config is absent from state (e.g. referral durable pipeline
+    # which bypasses WorkflowEngine), fall back to loading examples from the
+    # registry so both encounter and referral paths get the same few-shot pool.
+    if few_shot_examples is None and not cfg:
+        try:
+            from libs.prompts.registry import get_prompt_config
+
+            fallback_cfg = get_prompt_config("extraction", version=1)
+            fallback_raw = fallback_cfg.get("fewShotExamples")
+            if fallback_raw:
+                few_shot_examples = (
+                    _json.loads(fallback_raw)
+                    if isinstance(fallback_raw, str)
+                    else fallback_raw
+                )
+        except Exception:
+            pass
 
     try:
         prompt_version = int(cfg.get("version") or 1)

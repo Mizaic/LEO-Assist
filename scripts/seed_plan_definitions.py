@@ -430,6 +430,7 @@ PLAN_DEFINITIONS = [
         "resourceType": "PlanDefinition",
         "name": "GP Encounter Coding",
         "status": "active",
+        "_workflowMode": "durable_pubsub",
         "description": "Primary care encounter NER extraction, terminology resolution, and persistence. Triggers on new encounter data. Includes optional analytics (anchor detection, episode building, safety netting, quality checks).",
         "action": [
             {
@@ -521,20 +522,30 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-coding-route",
-                "title": "Route Coding Outcome",
+                "id": "act-coding-verify",
+                "title": "LLM Coding Verifier",
                 "_sequence": 8,
-                "_subgraphId": "condition",
-                "_nodeType": "condition",
-                "definitionCanonical": "ActivityDefinition/ad-condition-coding-route",
+                "_subgraphId": "coding_verifier",
+                "definitionCanonical": "ActivityDefinition/ad-coding-verifier",
                 "relatedAction": [
                     {"actionId": "act-terminology", "relationship": "after-end"}
                 ],
             },
             {
+                "id": "act-coding-route",
+                "title": "Route Coding Outcome",
+                "_sequence": 9,
+                "_subgraphId": "condition",
+                "_nodeType": "condition",
+                "definitionCanonical": "ActivityDefinition/ad-condition-coding-route",
+                "relatedAction": [
+                    {"actionId": "act-coding-verify", "relationship": "after-end"}
+                ],
+            },
+            {
                 "id": "act-hitl-coding-queue",
                 "title": "Queue Coding HITL",
-                "_sequence": 9,
+                "_sequence": 10,
                 "_subgraphId": "hitl_coding_queue",
                 "definitionCanonical": "ActivityDefinition/ad-hitl-coding-queue",
                 "relatedAction": [
@@ -706,7 +717,8 @@ PLAN_DEFINITIONS = [
                 "id": "act-ref-durable-start",
                 "title": "Start Durable Referral Workflow",
                 "_sequence": 0,
-                "_subgraphId": "durable_referral_workflow",
+                "_nodeType": "trigger",
+                "_subgraphId": "trigger",
                 "trigger": [{"type": "data-changed", "name": "referral-received"}],
                 "definitionCanonical": "ActivityDefinition/ad-referral-durable-start",
             },
@@ -714,18 +726,16 @@ PLAN_DEFINITIONS = [
                 "id": "act-ref-extract",
                 "title": "Extract Key Facts",
                 "_sequence": 1,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "extraction_requested",
+                "_subgraphId": "extraction",
                 "relatedAction": [
                     {"actionId": "act-ref-durable-start", "relationship": "after-end"}
                 ],
             },
             {
                 "id": "act-ref-post-process",
-                "title": "Post-Process",
+                "title": "Post-Process Entities",
                 "_sequence": 2,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "post_processing_requested",
+                "_subgraphId": "post_processing",
                 "relatedAction": [
                     {"actionId": "act-ref-extract", "relationship": "after-end"}
                 ],
@@ -734,8 +744,7 @@ PLAN_DEFINITIONS = [
                 "id": "act-ref-relation-link",
                 "title": "Link Entity Relations",
                 "_sequence": 3,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "relation_linking_requested",
+                "_subgraphId": "relation_linking",
                 "relatedAction": [
                     {"actionId": "act-ref-post-process", "relationship": "after-end"}
                 ],
@@ -744,8 +753,7 @@ PLAN_DEFINITIONS = [
                 "id": "act-ref-extraction-check",
                 "title": "Extraction Quality Check",
                 "_sequence": 4,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "extraction_check_requested",
+                "_subgraphId": "extraction_check",
                 "relatedAction": [
                     {"actionId": "act-ref-relation-link", "relationship": "after-end"}
                 ],
@@ -754,8 +762,7 @@ PLAN_DEFINITIONS = [
                 "id": "act-ref-terminology",
                 "title": "Resolve Terminology",
                 "_sequence": 5,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "terminology_requested",
+                "_subgraphId": "terminology",
                 "relatedAction": [
                     {
                         "actionId": "act-ref-extraction-check",
@@ -764,21 +771,31 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-ref-persist-facts",
-                "title": "Persist Clinical Facts",
+                "id": "act-ref-coding-verify",
+                "title": "LLM Coding Verifier",
                 "_sequence": 6,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "clinical_facts_persist_requested",
+                "_subgraphId": "coding_verifier",
                 "relatedAction": [
                     {"actionId": "act-ref-terminology", "relationship": "after-end"}
                 ],
             },
             {
+                "id": "act-ref-persist-facts",
+                "title": "Persist Clinical Facts",
+                "_sequence": 7,
+                "_subgraphId": "persist",
+                "relatedAction": [
+                    {
+                        "actionId": "act-ref-coding-verify",
+                        "relationship": "after-end",
+                    }
+                ],
+            },
+            {
                 "id": "act-ref-compliance",
                 "title": "Compliance Check",
-                "_sequence": 7,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "compliance_requested",
+                "_sequence": 8,
+                "_subgraphId": "compliance",
                 "relatedAction": [
                     {"actionId": "act-ref-persist-facts", "relationship": "after-end"}
                 ],
@@ -786,23 +803,36 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-ref-completeness",
                 "title": "Assess Completeness",
-                "_sequence": 8,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "completeness_requested",
+                "_sequence": 9,
+                "_subgraphId": "quality_check",
                 "relatedAction": [
                     {"actionId": "act-ref-compliance", "relationship": "after-end"}
                 ],
             },
             {
+                "id": "act-ref-referral-reason",
+                "title": "Extract Referral Reason",
+                "_sequence": 10,
+                "_subgraphId": "referral_reason",
+                "relatedAction": [
+                    {
+                        "actionId": "act-ref-completeness",
+                        "relationship": "after-end",
+                    }
+                ],
+            },
+            {
                 "id": "act-ref-sbar",
                 "title": "Generate SBAR",
-                "_sequence": 9,
-                "_subgraphId": "durable_step",
-                "_durableEventType": "sbar_requested",
+                "_sequence": 11,
+                "_subgraphId": "sbar",
                 "_completionQueue": "referral-assessments-output",
                 "_completionEventType": "referral_assessment_completed",
                 "relatedAction": [
-                    {"actionId": "act-ref-completeness", "relationship": "after-end"}
+                    {
+                        "actionId": "act-ref-referral-reason",
+                        "relationship": "after-end",
+                    }
                 ],
             },
         ],
@@ -1063,6 +1093,7 @@ MERGE (pd:PlanDefinition {id: $id})
 SET pd.rawJson = $raw,
     pd.name = $name,
     pd.status = $status,
+    pd.workflowMode = $workflow_mode,
     pd.isGlobal = true,
     pd.source = 'seed'
 """
@@ -1085,7 +1116,9 @@ CREATE (pd)-[:HAS_ACTION]->(a:Action {
   subgraphId: $subgraph_id,
   durableEventType: $durable_event_type,
   relatedActions: $related_actions,
-  relatedActionEdges: $related_action_edges
+  relatedActionEdges: $related_action_edges,
+  completionQueue: $completion_queue,
+  completionEventType: $completion_event_type
 })
 """
 
@@ -1190,6 +1223,7 @@ def seed_with_client(client, *, force: bool = False) -> None:
                 raw=json.dumps(ui_pd),
                 name=pd["name"],
                 status=pd["status"],
+                workflow_mode=pd.get("_workflowMode", "legacy_in_process"),
             )
             client.run(CLEAR_ACTIONS, id=pd["id"])
             for action in pd.get("action", []):
@@ -1212,6 +1246,8 @@ def seed_with_client(client, *, force: bool = False) -> None:
                     durable_event_type=action.get("_durableEventType", ""),
                     related_actions=related_ids,
                     related_action_edges=json.dumps(related_edges),
+                    completion_queue=action.get("_completionQueue", ""),
+                    completion_event_type=action.get("_completionEventType", ""),
                 )
                 if definition_ref:
                     activity_id = definition_ref.split("/")[-1]

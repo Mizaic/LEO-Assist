@@ -1,11 +1,34 @@
-"""Dispatch durable workflow messages from the shared pipeline queue."""
+"""Dispatch durable workflow messages from the shared pipeline queue.
+
+Routing rules:
+
+1. DURABLE_STEP_EVENT in-flight messages -- always routed to DurableStepRunner
+   regardless of the feature flag (a partially-started pipeline must finish).
+
+2. Trigger events (event_type set, no action_id) for plans where
+   is_durable_runner_enabled() is True -- routed to DurableStepRunner.start().
+
+3. All other recognised durable messages return False.
+
+Legacy referral_durable_steps.py handlers have been removed.  The referral
+assessment plan (pd-referral-assessment) is now fully served by
+DurableStepRunner.  Set DURABLE_ENGINE_ENABLED=true (all plans) or
+DURABLE_ENGINE_ENABLED=referral (referral only) to enable in production.
+"""
 
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from libs.message_bus.base import Message, MessageBusAdapter
+from libs.workflow.durable_step_runner import (
+    DURABLE_STEP_EVENT,
+    is_durable_runner_enabled,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def normalise_message_body(
@@ -17,13 +40,25 @@ def normalise_message_body(
     return body if isinstance(body, dict) else {}
 
 
-def is_durable_message(body: dict[str, Any]) -> bool:
-    from services.pipeline_worker.app.services.referral_durable_steps import (
-        is_referral_durable_message,
-        is_referral_durable_start,
+def _plan_id_from_body(body: dict[str, Any]) -> str:
+    return str(
+        body.get("plan_definition_id")
+        or body.get("workflow_id")
+        or ""
     )
 
-    return is_referral_durable_message(body) or is_referral_durable_start(body)
+
+def is_durable_message(body: dict[str, Any]) -> bool:
+    event_type = str(body.get("event_type") or "")
+    # In-flight durable_step messages are always durable.
+    if event_type == DURABLE_STEP_EVENT and body.get("action_id"):
+        return True
+    # Trigger events for runner-enabled plans are durable.
+    plan_id = _plan_id_from_body(body)
+    if event_type and event_type != DURABLE_STEP_EVENT and not body.get("action_id"):
+        if is_durable_runner_enabled(plan_id):
+            return True
+    return False
 
 
 async def handle_durable_message(
@@ -33,28 +68,37 @@ async def handle_durable_message(
     publish_progress: Any | None = None,
     queue_name: str = "pipeline-jobs",
 ) -> bool:
-    from services.pipeline_worker.app.services.referral_durable_steps import (
-        handle_referral_durable_message,
-        is_referral_durable_message,
-        is_referral_durable_start,
-        start_referral_durable_workflow,
-    )
-    from services.pipeline_worker.app.services.sbar_orchestrator import (
-        handle_sbar_message,
-    )
+    event_type = str(body.get("event_type") or "")
+    action_id = str(body.get("action_id") or "")
+    plan_id = _plan_id_from_body(body)
 
-    if is_referral_durable_start(body):
-        await start_referral_durable_workflow(body, bus=bus, queue_name=queue_name)
-        return True
-    if is_referral_durable_message(body):
-        await handle_referral_durable_message(
+    # In-flight durable_step messages -- always handled by DurableStepRunner.
+    if event_type == DURABLE_STEP_EVENT and action_id:
+        from libs.workflow.durable_step_runner import DurableStepRunner
+
+        await DurableStepRunner.run_step(
             body,
             bus=bus,
             publish_progress=publish_progress,
             queue_name=queue_name,
         )
         return True
-    if body.get("event_type") == "sbar_requested":
-        await handle_sbar_message(body)
+
+    # Trigger events for runner-enabled plans.
+    if (
+        event_type
+        and event_type != DURABLE_STEP_EVENT
+        and not action_id
+        and is_durable_runner_enabled(plan_id)
+    ):
+        from libs.workflow.durable_step_runner import DurableStepRunner
+
+        await DurableStepRunner.start(body, bus=bus, queue_name=queue_name)
         return True
+
+    logger.debug(
+        "handle_durable_message: no handler matched event_type=%s plan_id=%s",
+        event_type,
+        plan_id,
+    )
     return False

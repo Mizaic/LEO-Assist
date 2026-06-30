@@ -30,6 +30,8 @@ import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
@@ -824,6 +826,54 @@ function ChapterAccordion({
   );
 }
 
+// ── Chapter tab strip ─────────────────────────────────────────────────────────
+
+function ChapterTabStrip({
+  chapters,
+  selected,
+  onChange,
+}: {
+  chapters: ChapterEntry[];
+  selected: string | null;
+  onChange: (id: string | null) => void;
+}) {
+  if (chapters.length === 0) return null;
+  const value = selected ?? "__all__";
+  return (
+    <Box
+      sx={{
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        position: "sticky",
+        top: 0,
+        zIndex: 0,
+      }}
+    >
+      <Tabs
+        value={value}
+        onChange={(_, v: string) => onChange(v === "__all__" ? null : v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        textColor="primary"
+        indicatorColor="primary"
+        aria-label="Chapter filter tabs"
+        sx={{ "& .MuiTab-root": { fontSize: "0.72rem", minHeight: 36, py: 0, textTransform: "none" } }}
+      >
+        <Tab label="All chapters" value="__all__" aria-label="Show all chapters" />
+        {chapters.map((ch) => (
+          <Tab
+            key={ch.chapter_id}
+            label={ch.chapter_title || ch.chapter_id}
+            value={ch.chapter_id}
+            aria-label={`Show ${ch.chapter_title || ch.chapter_id}`}
+          />
+        ))}
+      </Tabs>
+    </Box>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
@@ -836,6 +886,7 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
   const [testAllRunning, setTestAllRunning] = useState(false);
   const [testAllProgress, setTestAllProgress] = useState<{ done: number; total: number } | null>(null);
   const [testAllResults, setTestAllResults] = useState<TestAllResults>({});
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
 
   async function handleTestAll() {
     if (!data) return;
@@ -914,11 +965,15 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
       setTestAllRunning(false);
       setChapterOpenMap({});
       setRecommendationOpenMap({});
+      setSelectedChapterId(null);
     }
   }, [code, load]);
 
   const open = Boolean(code);
-  const chaptersWithRecs = data?.chapters.filter((c) => c.recommendations.length > 0) ?? [];
+  const allChaptersWithRecs = data?.chapters.filter((c) => c.recommendations.length > 0) ?? [];
+  const chaptersWithRecs = selectedChapterId
+    ? allChaptersWithRecs.filter((c) => c.chapter_id === selectedChapterId)
+    : allChaptersWithRecs;
   const chaptersEmpty = data?.chapters.filter((c) => c.recommendations.length === 0) ?? [];
   const hasChaptersWithRecs = chaptersWithRecs.length > 0;
   const recommendationsWithText = chaptersWithRecs.flatMap((c) =>
@@ -1102,6 +1157,15 @@ export default function GuidelineSubgraphDrawer({ code, onClose }: Props) {
           </Box>
         )}
       </Box>
+
+      {/* Chapter tab strip */}
+      {data && !loading && (
+        <ChapterTabStrip
+          chapters={allChaptersWithRecs}
+          selected={selectedChapterId}
+          onChange={setSelectedChapterId}
+        />
+      )}
 
       {/* Body */}
       <Box sx={{ p: 2, overflowY: "auto", flex: 1 }}>

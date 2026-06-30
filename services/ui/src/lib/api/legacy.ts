@@ -660,9 +660,11 @@ export async function fetchGroupedSurfaceForms(
   q?: string,
   limit = 50,
   offset = 0,
+  statusFilter?: string,
 ): Promise<ConceptGroupsPage> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (q) params.set("q", q);
+  if (statusFilter) params.set("status_filter", statusFilter);
   return fetchJson<ConceptGroupsPage>(`${API_BASE}/api/terminology/surface-forms/grouped?${params}`);
 }
 

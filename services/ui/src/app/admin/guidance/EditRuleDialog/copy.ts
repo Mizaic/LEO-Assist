@@ -181,9 +181,26 @@ export const CANVAS_CARDS = {
   unsupportedTitle: "This rule has a complex shape",
   unsupportedBody:
     "We could not show this rule as plain-English sentences. Open the Advanced view (operator tree) to edit it, or simplify the rule.",
-  advancedAccordionTitle: "Advanced view (operator tree)",
-  advancedAccordionHint:
-    "Open this if you need fine-grained control over AND, OR, NOT, or AT LEAST groups. The plain-English canvas above stays in sync.",
+} as const;
+
+/**
+ * AI-assisted drafting copy (Step 1 AI-draft feature).
+ *
+ * The AI draft button calls the ai-redraft endpoint and pre-populates
+ * the editor with an AI-proposed logic tree. The user's role shifts
+ * from builder (needs clinical knowledge) to reviewer (confirms each
+ * pathway's plain-English preview sentence).
+ */
+export const AI_DRAFT = {
+  emptyCtaLabel: "Draft from NICE text",
+  emptyCtaSubtitle:
+    "AI will propose a rule structure. You review each pathway.",
+  regenerateLabel: "Regenerate AI draft",
+  regenerateAria: "Ask AI to regenerate the rule structure from the NICE text",
+  loadingLabel: "Drafting rule...",
+  errorLabel: "AI draft failed. Try again.",
+  badgeLabel: "AI draft - please check",
+  badgeAriaLabel: "This pathway was proposed by AI. Please review it.",
 } as const;
 
 /**

@@ -227,6 +227,16 @@ export type NodeUpdate =
   | { kind: "replace_root"; node: EditableLogicNode };
 
 export const GROUP_KINDS: ReadonlyArray<LogicNodeKind> = ["AND", "OR", "NOT", "AT_LEAST"];
+
+/**
+ * Sandbox impact badge data surfaced to Step 1 after a test run.
+ * Produced by TestPatientsPanel, consumed by the tree editor header.
+ */
+export interface SandboxImpactBadge {
+  status: "fresh" | "stale" | "running" | "empty";
+  firingPatients: number;
+  totalPatients: number;
+}
 export const LEAF_KINDS: ReadonlyArray<LogicNodeKind> = [
   "CONCEPT",
   "DEMOGRAPHIC",

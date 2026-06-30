@@ -301,11 +301,34 @@ function RuleCardActions({ rule, callbacks, isBusy }: { rule: Rule; callbacks: R
 }
 
 function RuleCardBody({ rule, callbacks, isBusy }: { rule: Rule; callbacks: RuleCardCallbacks; isBusy: boolean }) {
+  const recChanged =
+    rule.previous_recommendation_text &&
+    rule.previous_recommendation_text !== rule.recommendation_text;
+
   return (
     <Box sx={{ mt: 1.75, ml: { xs: 0, sm: 3 } }}>
+      {recChanged && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 1, fontSize: "0.82rem" }}
+          icon={false}
+        >
+          <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+            This recommendation changed in the latest NICE update
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+            Previous wording:
+          </Typography>
+          <Typography variant="caption" sx={{ display: "block", fontStyle: "italic", color: "text.secondary" }}>
+            {rule.previous_recommendation_text}
+          </Typography>
+        </Alert>
+      )}
       {rule.recommendation_text && (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: "divider", mb: 0.5 }}>
-          <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, display: "block", mb: 0.75, letterSpacing: 0.6 }}>NICE recommendation</Typography>
+          <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, display: "block", mb: 0.75, letterSpacing: 0.6 }}>
+            NICE recommendation{recChanged ? " (updated)" : ""}
+          </Typography>
           <Typography variant="body2" sx={{ lineHeight: 1.7 }}>{rule.recommendation_text}</Typography>
         </Box>
       )}

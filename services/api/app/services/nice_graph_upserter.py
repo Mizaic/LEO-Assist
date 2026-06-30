@@ -55,6 +55,8 @@ import logging
 import os
 from typing import Any
 
+from app.services.nice_api_client import parse_nice_ms_date
+
 from neo4j import GraphDatabase
 
 logger = logging.getLogger(__name__)
@@ -64,18 +66,21 @@ logger = logging.getLogger(__name__)
 _UPSERT_GUIDELINE = """
 MERGE (g:Guideline {id: $id})
 ON CREATE SET
-    g.code            = $code,
-    g.title           = $title,
-    g.guidanceNumber  = $guidance_number,
-    g.type            = $guidance_type,
-    g.publicationDate = $pub_date,
-    g.source          = 'nice_syndication_api',
-    g.ingestVersion   = 1,
-    g.createdAt       = datetime()
+    g.code             = $code,
+    g.title            = $title,
+    g.guidanceNumber   = $guidance_number,
+    g.type             = $guidance_type,
+    g.publicationDate  = $pub_date,
+    g.lastModifiedDate = $last_modified_date,
+    g.source           = 'nice_syndication_api',
+    g.ingestVersion    = 1,
+    g.createdAt        = datetime()
 ON MATCH SET
-    g.title           = $title,
-    g.ingestVersion   = coalesce(g.ingestVersion, 0) + 1,
-    g.updatedAt       = datetime()
+    g.title            = $title,
+    g.publicationDate  = $pub_date,
+    g.lastModifiedDate = $last_modified_date,
+    g.ingestVersion    = coalesce(g.ingestVersion, 0) + 1,
+    g.updatedAt        = datetime()
 RETURN g.id AS id, g.ingestVersion AS version
 """
 
@@ -91,6 +96,33 @@ SET rule.status                        = 'superseded',
     rule.previousRecommendationText     = r.verbatim,
     rule.previousRecommendationNumber   = r.number
 RETURN count(rule) AS superseded_count
+"""
+
+# Smart variant: only supersede rules for recommendations whose text changed.
+_SELECTIVE_SUPERSEDE_RULES = """
+MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(r:Recommendation)
+      -[:HAS_RULE]->(rule:AppropriatenessRule)
+WHERE r.number IN $changed_numbers
+  AND rule.status IN ['active', 'pending_review']
+SET rule.status                      = 'superseded',
+    rule.supersededAt                 = datetime(),
+    rule.supersededByGuidelineId      = $guideline_id,
+    rule.previousRecommendationText   = r.verbatim,
+    rule.previousRecommendationNumber = r.number
+RETURN count(rule) AS superseded_count
+"""
+
+# Re-attach rules from old recommendation nodes to new ones for unchanged recs.
+_REATTACH_UNCHANGED_RULES = """
+MATCH (old_rec:Recommendation {guidelineId: $guideline_id, versionId: $old_version_id})
+      -[old_link:HAS_RULE]->(rule:AppropriatenessRule)
+WHERE old_rec.number IN $unchanged_numbers
+  AND rule.status IN ['active', 'pending_review']
+MATCH (new_rec:Recommendation {guidelineId: $guideline_id, versionId: $new_version_id,
+                                number: old_rec.number})
+MERGE (new_rec)-[:HAS_RULE]->(rule)
+DELETE old_link
+RETURN count(rule) AS reattached_count
 """
 
 _DETACH_GUIDELINE_CONTENT_LINKS = """
@@ -247,13 +279,17 @@ class NiceGraphUpserter:
             is the new version number (1 for first ingest, 2 for re-ingest …).
         """
         code = _extract_code(guidance_json)
+        meta = guidance_json.get("MetadataApplicationProfile") or {}
         params = {
             "id": code,
             "code": code,
             "title": guidance_json.get("Title", ""),
             "guidance_number": guidance_json.get("GuidanceNumber", code),
-            "guidance_type": guidance_json.get("Type", ""),
-            "pub_date": guidance_json.get("PublicationDate", ""),
+            "guidance_type": guidance_json.get("GuidanceType", guidance_json.get("Type", "")),
+            "pub_date": parse_nice_ms_date(meta.get("Issued") or ""),
+            "last_modified_date": parse_nice_ms_date(
+                guidance_json.get("LastModified") or meta.get("Modified") or ""
+            ),
         }
         driver = _kg_driver()
         try:
@@ -266,20 +302,25 @@ class NiceGraphUpserter:
         finally:
             driver.close()
 
-    def clear_guideline_content(self, guideline_id: str) -> int:
+    def clear_guideline_content(
+        self,
+        guideline_id: str,
+        changed_numbers: list[str] | None = None,
+    ) -> int:
         """Archive existing content so old audit decisions are preserved.
 
-        Two-step approach:
-          1. Mark active/pending AppropriatenessRule nodes as ``superseded``.
-             Copies the parent recommendation verbatim text onto the rule so
-             that diffs can be computed later without needing the old node.
-          2. Detach ``HAS_CHAPTER`` and ``HAS_RECOMMENDATION`` edges from the
-             Guideline node.  The Chapter and Recommendation nodes remain in
-             the graph — they are the authoritative context for every
-             GuidanceAuditEvent that referenced them.
+        When *changed_numbers* is supplied (smart ingest mode) only rules
+        attached to those specific recommendations are superseded.  Rules for
+        unchanged recommendations are left active so the reviewer does not
+        have to re-approve work that is still valid.
+
+        When *changed_numbers* is ``None`` (full ingest / default) all
+        active/pending rules are superseded (existing behaviour).
 
         Args:
             guideline_id: Guideline node ID (e.g. ``NG12``).
+            changed_numbers: Rec numbers whose text changed, or ``None`` for
+                a full supersession.
 
         Returns:
             Number of AppropriatenessRule nodes marked superseded.
@@ -287,20 +328,68 @@ class NiceGraphUpserter:
         driver = _kg_driver()
         try:
             with driver.session() as session:
-                result = session.run(
-                    _SUPERSEDE_EXISTING_RULES, guideline_id=guideline_id
-                )
+                if changed_numbers is not None:
+                    result = session.run(
+                        _SELECTIVE_SUPERSEDE_RULES,
+                        guideline_id=guideline_id,
+                        changed_numbers=changed_numbers,
+                    )
+                else:
+                    result = session.run(
+                        _SUPERSEDE_EXISTING_RULES, guideline_id=guideline_id
+                    )
                 record = result.single()
                 superseded = int(record["superseded_count"]) if record else 0
                 session.run(_DETACH_GUIDELINE_CONTENT_LINKS, guideline_id=guideline_id)
         finally:
             driver.close()
         logger.info(
-            "Guideline %s: archived content for re-ingest (%d rule(s) superseded)",
+            "Guideline %s: archived content (%d rule(s) superseded, mode=%s)",
             guideline_id,
             superseded,
+            "selective" if changed_numbers is not None else "full",
         )
         return superseded
+
+    def reattach_unchanged_rules(
+        self,
+        guideline_id: str,
+        old_version_id: str,
+        new_version_id: str,
+        unchanged_numbers: list[str],
+    ) -> int:
+        """Move active/pending rules from old rec nodes to new rec nodes.
+
+        Called after a smart ingest to preserve rules for recommendations
+        whose text did not change.  Each rule is linked from the new-version
+        Recommendation node so the bitmap compiler and review queue see it
+        without the reviewer needing to re-approve unchanged work.
+
+        Args:
+            guideline_id: Guideline ID (e.g. ``NG12``).
+            old_version_id: Version ID of the previous ingest (e.g. ``NG12:v1``).
+            new_version_id: Version ID of the new ingest (e.g. ``NG12:v2``).
+            unchanged_numbers: Recommendation numbers whose text is identical.
+
+        Returns:
+            Number of rules re-attached.
+        """
+        if not unchanged_numbers:
+            return 0
+        driver = _kg_driver()
+        try:
+            with driver.session() as session:
+                result = session.run(
+                    _REATTACH_UNCHANGED_RULES,
+                    guideline_id=guideline_id,
+                    old_version_id=old_version_id,
+                    new_version_id=new_version_id,
+                    unchanged_numbers=unchanged_numbers,
+                )
+                record = result.single()
+                return int(record["reattached_count"]) if record else 0
+        finally:
+            driver.close()
 
     def upsert_chapter(
         self,

@@ -70,11 +70,77 @@ class TerminologyState(TypedDict, total=False):
     errors: list[str]
 
 
+# Leading tokens that are never useful as the core SNOMED lookup term.
+# Stripping them increases the chance of an exact-branch hit.
+_LOOKUP_STRIP_PREFIXES = frozenset(
+    {
+        "moderate",
+        "mild",
+        "severe",
+        "marked",
+        "significant",
+        "bilateral",
+        "left",
+        "right",
+        "small",
+        "large",
+        "central",
+        "peripheral",
+        "anterior",
+        "posterior",
+        "medial",
+        "lateral",
+        "proximal",
+        "distal",
+        "diffuse",
+        "focal",
+        "generalised",
+        "generalized",
+        "extensive",
+        "complex",
+        "simple",
+        "high-risk",
+        "high risk",
+        "low-risk",
+        "low risk",
+    }
+)
+
+
+def _strip_leading_modifiers(text: str) -> str:
+    """Remove leading qualifier words that hurt SNOMED lexical matching.
+
+    Drops one leading token at a time (case-insensitive) while the first
+    word is a known non-clinical modifier.  Stops as soon as the first
+    word is clinical so we never strip the concept itself.
+    """
+    words = text.split()
+    while words and words[0].lower().rstrip("-,;") in _LOOKUP_STRIP_PREFIXES:
+        words = words[1:]
+    return " ".join(words) if words else text
+
+
 def _resolve_lookup_term(entity: dict[str, Any]) -> str:
     lookup = str(entity.get("lookup_term") or "").strip()
+    text = str(entity.get("text") or "").strip()
+
+    # When the LLM sets lookup_term to the same value as text (or leaves it
+    # empty), strip leading qualifier/laterality tokens so the SNOMED
+    # resolver sees "ovary enlarged" instead of "left ovary enlarged" and
+    # "ascites" instead of "moderate ascites".
+    if not lookup or lookup.lower() == text.lower():
+        stripped = _strip_leading_modifiers(text)
+        if stripped and stripped != text:
+            return stripped
+        if not lookup:
+            # Fall through to relation-based enrichment below.
+            pass
+        else:
+            return lookup
+
     if lookup:
         return lookup
-    text = str(entity.get("text") or "").strip()
+
     relations = list(entity.get("__relations") or [])
     for rel in relations:
         if not isinstance(rel, dict):

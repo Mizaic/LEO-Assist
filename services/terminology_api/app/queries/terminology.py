@@ -494,6 +494,7 @@ WHERE c.active = true
            MATCH (c)-[:MAPS_TO_READ]->(rd_f:ReadCode)
            WHERE rd_f.code = $q
        })
+  AND ($status_filter IS NULL OR coalesce(sf.status, 'approved') = $status_filter)
 WITH c,
      collect({
        normalized:  sf.normalized,
@@ -506,6 +507,7 @@ WITH c,
        created_at:  toString(sf.created_at),
        confidence:  m.confidence
      }) AS surface_forms
+WHERE size(surface_forms) > 0
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 OPTIONAL MATCH (c)-[:MAPS_TO_ICD10]->(icd:Icd10Code)
 WITH c, surface_forms,
@@ -533,6 +535,7 @@ WHERE c.active = true
            MATCH (c)-[:MAPS_TO_READ]->(rd_f:ReadCode)
            WHERE rd_f.code = $q
        })
+  AND ($status_filter IS NULL OR coalesce(sf.status, 'approved') = $status_filter)
 WITH DISTINCT c
 RETURN count(c) AS total
 """

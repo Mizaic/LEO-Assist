@@ -227,7 +227,9 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
               typeof opt === "string" ? opt : `${opt.code} -- ${opt.title}`
             }
             inputValue={inputValue}
-            onInputChange={(_, value) => setInputValue(value)}
+            onInputChange={(_, value, reason) => {
+                if (reason !== "reset") setInputValue(value);
+              }}
             onChange={(_, value) => {
               if (value && typeof value !== "string" && value.code) {
                 setInputValue(value.code);

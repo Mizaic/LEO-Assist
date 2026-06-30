@@ -7,21 +7,8 @@
  *   DO: DO-1EE0BFAE
  *   VT: VT-EEF2D497
  *
- * The full axe-core/playwright sweep over the wizard runs in
- * ``services/ui/e2e/a11y-baseline.spec.ts`` once the test backend can
- * spawn an editor with a sample rule. These static-source checks
- * encode the same intent at unit-test time so a regression cannot
- * land between two e2e refreshes:
- *
- *   - Every Popover that the wizard opens carries an explicit
- *     ``aria-label`` so screen readers announce it on focus.
- *   - The sentence canvas exposes a ``role="region"`` with an
- *     ``aria-label`` so it shows up as a landmark.
- *   - Pathway cards expose a region with a name (positional letter
- *     plus optional pathway name).
- *   - Observation rows expose a row-level ``aria-label`` summarising
- *     the leaf in plain English.
- *   - Both confirm dialogs expose a top-level ``aria-label``.
+ * Static-source checks that encode a11y intent at unit-test time so a
+ * regression cannot land between e2e refreshes.
  */
 
 import fs from "fs";
@@ -39,20 +26,26 @@ describe("Phase 7d -- wizard a11y static guard rails", () => {
     expect(src).toMatch(/aria-label["']?\s*:\s*heading/);
   });
 
-  it("SentenceCanvas exposes the canvas as a labelled region", () => {
-    const src = read("SentenceCanvas.tsx");
-    expect(src).toMatch(/role="region"\s+aria-label="Sentence canvas"/);
+  it("LogicTreeEditor root has role=tree and aria-label", () => {
+    const src = read("LogicTreeEditor/index.tsx");
+    expect(src).toContain('role="tree"');
+    expect(src).toContain("aria-label");
   });
 
-  it("Pathway cards expose a labelled region (positional + optional name)", () => {
-    const src = read("SentenceCanvas.tsx");
-    expect(src).toMatch(/role="region"\s+aria-label=\{cardAriaLabel\}/);
-    expect(src).toContain("cardAriaLabel");
+  it("PathwayCard exposes data-testid for each pathway letter", () => {
+    const src = read("LogicTreeEditor/PathwayCard.tsx");
+    expect(src).toMatch(/data-testid=.*pathway-card/);
   });
 
-  it("Observation rows expose a row-level aria-label", () => {
-    const src = read("SentenceRow.tsx");
-    expect(src).toMatch(/observationAriaLabel/);
+  it("ConceptPill carries aria-label on the chip", () => {
+    const src = read("LogicTreeEditor/ConceptPill.tsx");
+    expect(src).toMatch(/aria-label/);
+  });
+
+  it("AddBar buttons each have aria-label", () => {
+    const src = read("LogicTreeEditor/AddBar.tsx");
+    const matches = src.match(/aria-label/g) ?? [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
   it("ConfirmKindChangeDialog has an aria-label", () => {
@@ -80,9 +73,6 @@ describe("Phase 7d -- wizard a11y static guard rails", () => {
   it("DialogTitle copy is centralised in copy.ts (no inline duplicate)", () => {
     const indexSrc = read("index.tsx");
     expect(indexSrc).toMatch(/DIALOG_CHROME\.title/);
-    // The literal "Change this rule" must not appear inline anywhere
-    // else under the editor; the guard prevents two reviewers updating
-    // the same string in different places.
     const inlineHits = indexSrc.match(/"Change this rule"/g) ?? [];
     expect(inlineHits.length).toBe(0);
   });

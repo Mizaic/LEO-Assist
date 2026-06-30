@@ -81,14 +81,28 @@ def list_grouped_surface_forms(
         default=None,
         description="Filter by surface form text, concept name, SNOMED ID, or Read code",
     ),
+    status_filter: Optional[str] = Query(
+        default=None,
+        description="Filter by surface form status (e.g. 'pending', 'approved', 'active')",
+    ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
     """Return surface forms grouped by SNOMED concept, with pagination."""
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(GROUPED_SURFACE_FORMS, q=q, offset=offset, limit=limit)
-        count_rows = client.run(COUNT_GROUPED_SURFACE_FORMS, q=q)
+        rows = client.run(
+            GROUPED_SURFACE_FORMS,
+            q=q,
+            status_filter=status_filter,
+            offset=offset,
+            limit=limit,
+        )
+        count_rows = client.run(
+            COUNT_GROUPED_SURFACE_FORMS,
+            q=q,
+            status_filter=status_filter,
+        )
         total = count_rows[0]["total"] if count_rows else 0
         return {"items": rows, "total": total, "offset": offset, "limit": limit}
     finally:

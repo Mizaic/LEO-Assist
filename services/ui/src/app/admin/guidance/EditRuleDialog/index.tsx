@@ -70,7 +70,7 @@ import HorizontalStepper, {
   type StepState,
 } from "./HorizontalStepper";
 import LivePreviewPane from "./LivePreviewPane";
-import type { SandboxImpactBadge } from "./SentenceCanvas";
+import type { SandboxImpactBadge } from "./types";
 import type { SandboxReportState } from "./TestPatientsPanel";
 import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
@@ -708,7 +708,11 @@ export default function EditRuleDialog({
                 onRequestAdd={handleRequestAdd}
                 onRequestCoach={handleRequestCoach}
                 onAddFirstSymptom={handleAddFirstSymptom}
-                sandboxBadge={sandboxBadge}
+                ruleId={rule?.rule_id ?? ""}
+                onAIDraft={(aiTree) => {
+                  const withIds = assignNodeIds(aiTree);
+                  setTree(withIds);
+                }}
               />
             )}
             {currentStepId === "suggest" && (

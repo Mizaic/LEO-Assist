@@ -37,6 +37,8 @@ Category taxonomy:
   observable:blood_panel  — Blood Results table row cells
   vital-signs             — bedside measurement with shorthand label
   negation:compound       — compound sentence where negation covers multiple entities
+  disorder:imaging        — named pathologies described via imaging (pleural effusion,
+                            pleural thickening etc.) tagged as disorder not finding
 """
 
 from __future__ import annotations
@@ -604,6 +606,38 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Known COPD, on salbutamol PRN.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "COPD", "lookup_term": "chronic obstructive pulmonary disease", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "salbutamol", "lookup_term": "salbutamol", "semantic_tag": "substance", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
+    # ── Disorder: imaging context (pleural pathology) ────────────────────────
+    # Pleural effusion and pleural thickening are SNOMED disorders even when
+    # described as imaging findings. Do NOT tag them as finding. Volume loss
+    # and opacity descriptions are findings (or omitted if non-specific).
+    {
+        "category": "disorder:imaging",
+        "model_scope": "any",
+        "description": "Pleural effusion and thickening from radiology — both disorder",
+        "input": "[s0] Moderate left pleural effusion with irregular left pleural thickening and mild left hemithoracic volume loss. CT chest with contrast advised.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Moderate left pleural effusion", "lookup_term": "pleural effusion", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "irregular left pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CT chest with contrast", "lookup_term": "CT chest with contrast", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "disorder:imaging",
+        "model_scope": "any",
+        "description": "Nodular pleural thickening and effusion — both disorder; CT recommendation as procedure",
+        "input": "[s0] Unilateral right pleural effusion with nodular pleural thickening along the lateral chest wall. Appearances warrant urgent CT assessment.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Unilateral right pleural effusion", "lookup_term": "pleural effusion", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "nodular pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CT assessment", "lookup_term": "CT chest", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "disorder:imaging",
+        "model_scope": "any",
+        "description": "Pleural thickening as disorder; reduced lung volume as finding; blunting of angle not extracted separately",
+        "input": "[s0] Diffuse left pleural thickening with blunting of the left costophrenic angle and reduced left lung volume. Further CT imaging recommended.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Diffuse left pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "reduced left lung volume", "lookup_term": "reduced lung volume", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CT imaging", "lookup_term": "CT chest", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "disorder:imaging",
+        "model_scope": "any",
+        "description": "Pleural opacity: extract named pathologies as disorder; opacity descriptor not extracted separately",
+        "input": "[s0] Right-sided pleural-based opacity with associated pleural effusion and diaphragmatic pleural thickening. Urgent respiratory review advised.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "pleural effusion", "lookup_term": "pleural effusion", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "diaphragmatic pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
 ]
 
 
@@ -640,5 +674,6 @@ _apply_core_by_first_category(
         "assertion:hypothetical",
         "abbreviation",
         "finding:lifestyle",
+        "disorder:imaging",
     },
 )

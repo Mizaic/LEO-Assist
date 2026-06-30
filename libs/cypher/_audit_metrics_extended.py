@@ -161,6 +161,46 @@ _TIER_A: list[dict[str, Any]] = [
             + "/ " + _SAFE_DIV + ", 1) AS completeness_pct"
         ),
     },
+    {
+        "metric_id": "referral_named_completeness",
+        "title": "Missing fields by type",
+        "description": (
+            "Count and percentage of assessed referrals missing each required "
+            "completeness field group (e.g. Blood results, Presenting symptom). "
+            "Groups are named in the pathway completeness schema. "
+            "Only referrals with a configured completeness schema are counted. "
+            "Uses apoc.convert.fromJsonMap -- requires APOC (available on Neo4j Aura)."
+        ),
+        "output_type": "bar_chart",
+        "param_schema": {
+            "date_from": {"type": "string", "format": "date", "required": False},
+            "date_to": {"type": "string", "format": "date", "required": False},
+        },
+        "output_schema": [
+            {"name": "field_group", "type": "string"},
+            {"name": "missing_n", "type": "integer"},
+            {"name": "total_assessed", "type": "integer"},
+            {"name": "missing_pct", "type": "float"},
+        ],
+        "cypher": (
+            _SBAR_MATCH
+            + "WHERE " + ORG_GUARD + " "
+            + "AND a.completeness_result_json IS NOT NULL "
+            + "AND " + _DATE_GUARD_ENC + " "
+            + "WITH a.completeness_result_json AS json_str "
+            + "WITH apoc.convert.fromJsonMap(json_str) AS parsed "
+            + "WHERE parsed.configured = true "
+            + "WITH count(parsed) AS total, collect(parsed) AS all_parsed "
+            + "UNWIND all_parsed AS parsed "
+            + "UNWIND parsed.missing_groups AS grp "
+            + "WHERE grp.required = true "
+            + "WITH total, grp.name AS field_group, count(grp) AS missing_n "
+            + "RETURN field_group, missing_n, total AS total_assessed, "
+            + "round(100.0 * missing_n / "
+            + "CASE WHEN total = 0 THEN 1 ELSE total END, 1) AS missing_pct "
+            + "ORDER BY missing_n DESC"
+        ),
+    },
 ]
 
 # ---------------------------------------------------------------------------

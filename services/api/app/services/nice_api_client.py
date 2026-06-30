@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -38,6 +39,38 @@ _CATALOGUE_KEY = "nice:catalogue"
 _CATALOGUE_TTL = 86400  # 24 hours
 _TIMEOUT = 30.0
 _MAX_RETRIES = 3
+
+# Matches Microsoft-style JSON dates: /Date(milliseconds+offset)/
+_MS_DATE_RE = re.compile(r"/Date\((-?\d+)")
+
+
+def parse_nice_ms_date(value: str) -> str:
+    """Convert a NICE API date string to a plain ISO-8601 date (YYYY-MM-DD).
+
+    The NICE Syndication API encodes dates as Microsoft-style JSON dates,
+    e.g. ``/Date(1776237435079+0100)/``.  The numeric part is milliseconds
+    since the Unix epoch; the ``+0100`` offset is irrelevant for our
+    purposes because we normalise to UTC and then format as a date-only
+    string.
+
+    Falls back to returning the original value unchanged if it does not
+    match the pattern (e.g. a plain ``"2023-01-01"`` string).
+
+    Args:
+        value: Raw date string from the NICE API.
+
+    Returns:
+        ISO-8601 date string ``"YYYY-MM-DD"``, or the original value if
+        parsing fails, or ``""`` if *value* is falsy.
+    """
+    if not value:
+        return ""
+    m = _MS_DATE_RE.match(value)
+    if m:
+        ms = int(m.group(1))
+        dt = datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc)
+        return dt.strftime("%Y-%m-%d")
+    return value
 
 
 def _collect_codes(node: dict[str, Any]) -> list[str]:

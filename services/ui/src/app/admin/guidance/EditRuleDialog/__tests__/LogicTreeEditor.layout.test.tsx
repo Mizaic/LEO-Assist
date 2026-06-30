@@ -1,19 +1,17 @@
 /**
- * Phase 1 layout tests for LogicTreeEditor -- VT-LEO-AI-152.
+ * Layout tests for the refactored LogicTreeEditor (vertical-pathway design).
  *
  * Verifies:
- *   - AT-LEAST groups whose children are all CONCEPTs render inline
- *     ("Any N or more of these [chip] [chip] ...") rather than as a
- *     stacked selector + separate chip rows. Phase 3 of the wizard
- *     redesign soft-cased the badge from the all-caps "AT LEAST" to
- *     plain English ("Any N or more of these").
- *   - Non-root groups are collapsible via a chevron and show a summary of
- *     their contents when collapsed.
+ *   - OR root with children renders as PathwayList (vertical stacked cards).
+ *   - AT-LEAST groups whose children are all CONCEPTs render inline.
+ *   - Non-root groups are collapsible via a chevron and show a summary.
  *   - The root group does not show a collapse chevron.
+ *   - Auto-collapse at depth >= 2.
  */
 
 import React from "react";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import LogicTreeEditor from "../LogicTreeEditor";
 import { assignNodeIds } from "../treeOps";
@@ -233,13 +231,162 @@ describe("LogicTreeEditor phase 1 layout", () => {
       />,
     );
     const counter = screen.getByLabelText(
-      /how many of these the patient must have/i,
+      /how many of these/i,
     ) as HTMLInputElement;
     expect(counter.value).toBe("2");
     expect(counter.max).toBe("3");
     // The "of N" caption shows the current child count.
-    const cluster = counter.closest("[role='treeitem']");
+    const cluster = counter.closest("[role='group']");
     expect(cluster).not.toBeNull();
     expect(within(cluster as HTMLElement).getByText(/of 3/)).toBeInTheDocument();
+  });
+});
+
+describe("LogicTreeEditor -- OR-root pathway list layout", () => {
+  function makeOrRoot(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          name: "Possible cancer",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "1", preferred_term: "Haemoptysis (finding)" },
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          name: "Symptom watch",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "2", preferred_term: "Weight loss (finding)" },
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("renders pathway cards vertically with data-testid per letter", () => {
+    render(
+      <LogicTreeEditor
+        root={makeOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    expect(screen.getByTestId("pathway-card-A")).toBeInTheDocument();
+    expect(screen.getByTestId("pathway-card-B")).toBeInTheDocument();
+  });
+
+  it("renders an Add pathway dashed button at the bottom", () => {
+    render(
+      <LogicTreeEditor
+        root={makeOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /add another pathway/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders inline Preview sentence for each pathway", () => {
+    render(
+      <LogicTreeEditor
+        root={makeOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    const previews = screen.getAllByLabelText(/plain-english preview/i);
+    expect(previews.length).toBe(2);
+  });
+
+  it("renders AddBar dashed buttons inside each pathway card", () => {
+    render(
+      <LogicTreeEditor
+        root={makeOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    const addSymptomBtns = screen.getAllByRole("button", { name: /add.*symptom/i });
+    expect(addSymptomBtns.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("AIDraftButton integration", () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    (global.fetch as jest.Mock) = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("calls onDraft with the logic_tree on success", async () => {
+    const mockTree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "Cough" } },
+          ],
+        },
+      ],
+    });
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ logic_tree: mockTree, errors: [] }),
+    });
+
+    const onDraft = jest.fn();
+    const { AIDraftButton } = await import("../AIDraftButton").then(
+      (m) => ({ AIDraftButton: m.default }),
+    );
+
+    render(
+      <AIDraftButton ruleId="rule:NG12:abc" onDraft={onDraft} variant="primary-cta" />,
+    );
+
+    const btn = screen.getByRole("button", { name: /draft from nice text/i });
+    await userEvent.click(btn);
+
+    await waitFor(() => expect(onDraft).toHaveBeenCalledWith(mockTree));
+  });
+
+  it("shows an error when the fetch fails", async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ detail: "Pipeline error" }),
+    });
+
+    const { AIDraftButton } = await import("../AIDraftButton").then(
+      (m) => ({ AIDraftButton: m.default }),
+    );
+
+    render(
+      <AIDraftButton ruleId="rule:NG12:abc" onDraft={jest.fn()} variant="primary-cta" />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /draft from nice text/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
   });
 });

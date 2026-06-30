@@ -166,6 +166,43 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'terminology': %s", exc)
 
     try:
+        from libs.pipeline_graph.subgraphs.coding_verifier import (
+            build_coding_verifier_subgraph,
+        )
+
+        registry.register(
+            "coding_verifier",
+            build_coding_verifier_subgraph,
+            description="LLM semantic gate: accept/reject/retry proposed SNOMED codes",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'coding_verifier': %s", exc)
+
+    try:
+        from libs.pipeline_graph.subgraphs.referral_reason import (
+            build_referral_reason_subgraph,
+        )
+
+        registry.register(
+            "referral_reason",
+            build_referral_reason_subgraph,
+            description="Extracts clinical reason for referral from NHS eRS chunks",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'referral_reason': %s", exc)
+
+    try:
+        from libs.pipeline_graph.subgraphs.sbar import build_sbar_subgraph
+
+        registry.register(
+            "sbar",
+            build_sbar_subgraph,
+            description="SBAR clinical assessment: Situation/Background/Assessment/Recommendation",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'sbar': %s", exc)
+
+    try:
         from libs.pipeline_graph.subgraphs.tier_classify import (
             build_tier_classify_subgraph,
         )

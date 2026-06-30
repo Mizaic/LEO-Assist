@@ -33,7 +33,7 @@ from pydantic import BaseModel
 
 from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
-from app.services.nice_api_client import NICE_CODE_RE, NiceApiClient
+from app.services.nice_api_client import NICE_CODE_RE, NiceApiClient, parse_nice_ms_date
 from app.services.nice_graph_upserter import NiceGraphUpserter
 from libs.auth.org_scope import CallerScope
 
@@ -49,6 +49,7 @@ class NiceIngestRequest(BaseModel):
     """Request body for POST /nice/ingest."""
 
     code: str
+    diff_job_id: str | None = None
 
     @property
     def validated_code(self) -> str:
@@ -341,9 +342,17 @@ async def ingest_guideline(
         "error": None,
     }
     _queues[job_id] = queue.Queue()
+
+    diff_result: dict | None = None
+    if req.diff_job_id:
+        from app.routers.nice_diff import _diff_jobs
+        diff_job = _diff_jobs.get(req.diff_job_id)
+        if diff_job and diff_job.get("status") == "done":
+            diff_result = diff_job.get("diff")
+
     thread = threading.Thread(
         target=_run_ingest,
-        args=(job_id, code),
+        args=(job_id, code, diff_result),
         daemon=True,
     )
     thread.start()
@@ -593,6 +602,84 @@ def get_guideline_subgraph(
     }
 
 
+_FETCH_GUIDELINE_LOCAL_DATE = """
+MATCH (g:Guideline {id: $code})
+WHERE g.source = 'nice_syndication_api'
+RETURN
+    g.lastModifiedDate                AS last_modified_date,
+    toString(date(g.createdAt))       AS ingest_date
+"""
+
+
+@router.get("/nice/{code}/check-update")
+async def check_guideline_update(
+    code: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Check whether NICE has published a newer version of a loaded guideline.
+
+    Fetches the live NICE ``LastModified`` timestamp and compares it against
+    the ``lastModifiedDate`` stored in Neo4j at last ingest.  The UI calls
+    this per guideline from the 'Check for updates' toolbar action.
+
+    Returns:
+        {
+          "code": "NG12",
+          "local_date": "2024-04-15",
+          "remote_date": "2026-04-15",
+          "update_available": true,
+          "remote_title": "Suspected cancer: recognition and referral"
+        }
+
+    Raises:
+        404: Guideline is not loaded in Neo4j.
+        503: NICE Syndication API is unreachable.
+    """
+    code_upper = code.strip().upper()
+    neo = CodingGraphClient()
+    try:
+        rows = neo.run(_FETCH_GUIDELINE_LOCAL_DATE, code=code_upper)
+    finally:
+        neo.close()
+
+    if not rows:
+        raise HTTPException(
+            status_code=404, detail=f"Guideline {code_upper} not loaded"
+        )
+
+    local_date: str = rows[0].get("last_modified_date") or ""
+    ingest_date: str = rows[0].get("ingest_date") or ""
+
+    try:
+        guidance = await NiceApiClient().get_guidance(code_upper)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503, detail=f"NICE API unreachable: {exc}"
+        ) from exc
+
+    meta = guidance.get("MetadataApplicationProfile") or {}
+    raw_remote = guidance.get("LastModified") or meta.get("Modified") or ""
+    remote_date: str = parse_nice_ms_date(raw_remote)
+    remote_title: str = guidance.get("Title", "")
+
+    # Compare stored last-modified against the live API.
+    # For guidelines ingested before the date-fix (lastModifiedDate is null),
+    # fall back to comparing the ingest date so they are not silently missed.
+    compare_local = local_date or ingest_date
+    update_available = bool(
+        compare_local and remote_date and remote_date > compare_local
+    )
+
+    return {
+        "code": code_upper,
+        "local_date": local_date,
+        "ingest_date": ingest_date,
+        "remote_date": remote_date,
+        "update_available": update_available,
+        "remote_title": remote_title,
+    }
+
+
 def _extract_recommendations_from_section(
     section_json: dict[str, Any],
     guidance_number: str,
@@ -700,13 +787,15 @@ def _collect_leaf_items(chapter_data: dict[str, Any]) -> list[dict[str, Any]]:
     return results
 
 
-def _run_ingest(job_id: str, code: str) -> None:
+def _run_ingest(
+    job_id: str, code: str, diff_result: dict | None = None
+) -> None:
     """Background thread: fetch from NICE API and upsert to Neo4j."""
     import asyncio
 
     loop = asyncio.new_event_loop()
     try:
-        loop.run_until_complete(_async_ingest(job_id, code))
+        loop.run_until_complete(_async_ingest(job_id, code, diff_result))
     except Exception as exc:
         logger.exception("Ingest failed for %s: %s", code, exc)
         _emit(job_id, "error", {"status": "error", "error": str(exc)})
@@ -714,20 +803,25 @@ def _run_ingest(job_id: str, code: str) -> None:
         loop.close()
 
 
-async def _async_ingest(job_id: str, code: str) -> None:
-    """Async ingest: NICE Syndication API → Neo4j hierarchical graph.
+async def _async_ingest(job_id: str, code: str, diff_result: dict | None = None) -> None:
+    """Async ingest: NICE Syndication API -> Neo4j hierarchical graph.
+
+    When *diff_result* is supplied (smart ingest) only rules for changed or
+    removed recommendations are superseded; rules for unchanged recommendations
+    are re-attached to the new recommendation nodes so reviewers keep their
+    approved work.
 
     Pipeline (3 levels, matching the NICE API structure)
     -----------------------------------------------------
-    Level 1 — Guideline document
-        ``GET /NG12.json``  →  list of chapter ``Uri`` links
-    Level 2 — Chapter JSON
-        ``GET /NG12-chapter-1.json``  →  list of section ``Uri`` links
+    Level 1 -- Guideline document
+        ``GET /NG12.json``  ->  list of chapter ``Uri`` links
+    Level 2 -- Chapter JSON
+        ``GET /NG12-chapter-1.json``  ->  list of section ``Uri`` links
         (Resources where Rel = "/linkrels/guidance/section")
-    Level 3 — Section JSON  ← **this is where the recommendation text lives**
-        ``GET /NG12-section-1.1.json``  →  ``Content`` field (XHTML)
-        Parsed with BeautifulSoup → ``<article class="numbered-paragraph">``
-        → one Recommendation node per article (full clinical text as verbatim)
+    Level 3 -- Section JSON  <- **this is where the recommendation text lives**
+        ``GET /NG12-section-1.1.json``  ->  ``Content`` field (XHTML)
+        Parsed with BeautifulSoup -> ``<article class="numbered-paragraph">``
+        -> one Recommendation node per article (full clinical text as verbatim)
 
     Versioning
     ----------
@@ -754,17 +848,26 @@ async def _async_ingest(job_id: str, code: str) -> None:
     _emit(job_id, "progress", {"step": "Saving guideline node..."})
 
     guideline_id, ingest_version = upserter.upsert_guideline(guidance)
+    old_version_id = f"{guideline_id}:v{ingest_version - 1}" if ingest_version > 1 else None
     version_id = f"{guideline_id}:v{ingest_version}"
 
     if ingest_version > 1:
-        _emit(
-            job_id,
-            "progress",
-            {
-                "step": f"Archiving previous version (v{ingest_version - 1}) for audit trail…",
-            },
+        _emit(job_id, "progress", {
+            "step": f"Archiving previous version (v{ingest_version - 1}) for audit trail...",
+        })
+
+    # Smart ingest: only supersede rules for changed/removed recs.
+    # Full ingest: supersede all (changed_numbers=None).
+    changed_numbers: list[str] | None = None
+    unchanged_numbers: list[str] = []
+    if diff_result and ingest_version > 1:
+        changed_numbers = (
+            [c["number"] for c in diff_result.get("modified", [])]
+            + [c["number"] for c in diff_result.get("removed", [])]
         )
-    superseded = upserter.clear_guideline_content(guideline_id)
+        unchanged_numbers = diff_result.get("_unchanged_numbers", [])
+
+    superseded = upserter.clear_guideline_content(guideline_id, changed_numbers)
     if superseded:
         _emit(
             job_id,
@@ -845,8 +948,18 @@ async def _async_ingest(job_id: str, code: str) -> None:
                 total_recs += 1
 
     title = guidance.get("Title", code)
-    guidance_type = guidance.get("Type", "clinical-guideline")
+    guidance_type = guidance.get("GuidanceType", guidance.get("Type", "clinical-guideline"))
     await client.add_to_catalogue(code, title, guidance_type)
+
+    # Smart ingest: re-attach unchanged rules to the new rec nodes.
+    reattached = 0
+    if unchanged_numbers and old_version_id:
+        _emit(job_id, "progress", {
+            "step": f"Re-attaching {len(unchanged_numbers)} unchanged rule set(s)...",
+        })
+        reattached = upserter.reattach_unchanged_rules(
+            guideline_id, old_version_id, version_id, unchanged_numbers
+        )
 
     logger.info(
         "Ingest complete: %s v%d  chapters=%d  recommendations=%d",
@@ -866,5 +979,7 @@ async def _async_ingest(job_id: str, code: str) -> None:
             "chapter_count": len(chapters),
             "ingest_version": ingest_version,
             "version_id": version_id,
+            "rules_reattached": reattached,
+            "smart_ingest": diff_result is not None,
         },
     )

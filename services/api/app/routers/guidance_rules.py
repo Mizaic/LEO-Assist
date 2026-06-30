@@ -101,6 +101,8 @@ WHERE ($status IS NULL OR rule.status = $status)
        })
 WITH rule
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)<-[:HAS_RECOMMENDATION]-(g:Guideline)
+WITH rule, rec, g ORDER BY coalesce(rec.versionId, '') DESC
+WITH rule, head(collect(rec)) AS rec, head(collect(g)) AS g
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
@@ -116,6 +118,8 @@ RETURN rule.id AS rule_id,
        coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
        rule.reviewedAt AS reviewed_at,
        rule.reviewedBy AS reviewed_by,
+       rule.previousRecommendationText AS previous_recommendation_text,
+       rule.previousRecommendationNumber AS previous_recommendation_number,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
@@ -160,7 +164,10 @@ RETURN
 
 _FETCH_RULE_BY_ID = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
+WITH rule
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)<-[:HAS_RECOMMENDATION]-(g:Guideline)
+WITH rule, rec, g ORDER BY coalesce(rec.versionId, '') DESC
+WITH rule, head(collect(rec)) AS rec, head(collect(g)) AS g
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
@@ -176,6 +183,8 @@ RETURN rule.id AS rule_id,
        coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
        rule.reviewedAt AS reviewed_at,
        rule.reviewedBy AS reviewed_by,
+       rule.previousRecommendationText AS previous_recommendation_text,
+       rule.previousRecommendationNumber AS previous_recommendation_number,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
@@ -501,6 +510,120 @@ async def test_rule_extraction(
     )
 
     return response_body
+
+
+# ---------------------------------------------------------------------------
+# AI-assisted re-draft endpoint (rule editor "Draft from NICE text" feature)
+# ---------------------------------------------------------------------------
+
+_FETCH_REC_FOR_RULE = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
+WITH rule, rec ORDER BY coalesce(rec.versionId, '') DESC
+WITH rule, head(collect(rec)) AS rec
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (ch)<-[:HAS_CHAPTER]-(g:Guideline)
+RETURN rec.id        AS rec_id,
+       rec.verbatim  AS verbatim,
+       rec.title     AS title,
+       rec.urgency   AS urgency,
+       rec.strength  AS strength,
+       rec.sectionTitle AS section_title,
+       ch.title      AS chapter_title,
+       coalesce(g.id, rule.guidelineId, '') AS guideline_id
+"""
+
+
+@router.post("/rules/review/{rule_id}/ai-redraft", status_code=200)
+async def ai_redraft_rule(
+    rule_id: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Re-run the guidance rule extraction subgraph for a rule's linked
+    NICE recommendation and return the proposed ``logic_tree`` JSON.
+
+    This is advisory only: nothing is written to Neo4j.  The UI shows
+    the proposed tree for the reviewer to accept, edit, or discard.
+
+    Returns:
+        ``{"logic_tree": {...}, "errors": [...]}``
+
+    Raises:
+        404 if rule or its recommendation is not found.
+        422 if the recommendation has no verbatim text.
+        504 on extraction timeout.
+    """
+    loop = asyncio.get_running_loop()
+
+    client = _kg_client()
+    try:
+        rows = await loop.run_in_executor(
+            None,
+            lambda: client.run(_FETCH_REC_FOR_RULE, rule_id=rule_id),
+        )
+    finally:
+        client.close()
+
+    if not rows or not rows[0].get("verbatim"):
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Rule not found or has no linked recommendation text. "
+                "Re-ingest the guideline to attach recommendation text."
+            ),
+        )
+
+    row = rows[0]
+    rec = {
+        "id": row.get("rec_id", ""),
+        "verbatim": row.get("verbatim", ""),
+        "title": row.get("title", ""),
+        "urgency": row.get("urgency", ""),
+        "strength": row.get("strength", ""),
+        "section_title": row.get("section_title", ""),
+        "chapter_title": row.get("chapter_title", ""),
+    }
+    guideline_id = row.get("guideline_id", "")
+
+    try:
+        subgraph = get_registry().build("guidance_rule_extraction")
+        result = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: subgraph.invoke(
+                    {"recommendation": rec, "guideline_id": guideline_id}
+                ),
+            ),
+            timeout=float(_EXTRACTION_TIMEOUT_S),
+        )
+    except asyncio.TimeoutError:
+        logger.error(
+            "AI redraft timed out after %ss for rule %s",
+            _EXTRACTION_TIMEOUT_S,
+            rule_id,
+        )
+        raise HTTPException(
+            status_code=504,
+            detail=(
+                f"AI redraft timed out after {_EXTRACTION_TIMEOUT_S}s. "
+                "Try again shortly."
+            ),
+        )
+    except Exception as exc:
+        logger.exception("AI redraft failed for rule %s", rule_id)
+        raise HTTPException(status_code=500, detail=f"Extraction pipeline error: {exc}")
+
+    errors = result.get("errors") or []
+    coded = result.get("coded_criteria") or {}
+    logic_tree = coded.get("logic_tree")
+
+    if logic_tree is None:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": "AI could not extract a rule structure.", "errors": errors},
+        )
+
+    return {"logic_tree": logic_tree, "errors": errors}
 
 
 # DI-LEO-AI-518: persist a PipelineRun :AuditEvent for guidance dry-run
@@ -1047,6 +1170,8 @@ def _format_rule(r: dict) -> dict:
         "reviewed_by": str(r.get("reviewed_by") or ""),
         "has_predecessor": bool(r.get("has_predecessor")),
         "predecessor_id": r.get("predecessor_id"),
+        "previous_recommendation_text": r.get("previous_recommendation_text") or None,
+        "previous_recommendation_number": r.get("previous_recommendation_number") or None,
     }
 
 

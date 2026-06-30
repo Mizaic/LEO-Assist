@@ -7,7 +7,7 @@ Atlas trace:
 
 Public API
 ----------
-  METRIC_REGISTRY  -- combined list of all 32 metrics
+  METRIC_REGISTRY  -- combined list of all 53 metrics
   get_metric(id)   -- single metric lookup (includes cypher)
   get_catalogue()  -- public catalogue (cypher excluded)
 
@@ -17,6 +17,7 @@ Public API
 Metrics are defined in two internal submodules:
   _audit_metrics_core.py     -- 14 original metrics
   _audit_metrics_extended.py -- 18 Phase-2 metrics (tiers A-E)
+  _audit_metrics_referral.py -- 21 Phase-3 metrics (tier F, ReferralRequest)
 
 Adding a new metric
 -------------------
@@ -38,6 +39,7 @@ from typing import Any
 
 from libs.cypher._audit_metrics_core import CORE_METRICS, EPISODE_ACTIVE, ORG_GUARD
 from libs.cypher._audit_metrics_extended import EXTENDED_METRICS
+from libs.cypher._audit_metrics_referral import REFERRAL_METRICS
 
 # ---------------------------------------------------------------------------
 # Back-compat aliases used by tests and other modules
@@ -50,7 +52,7 @@ _EPISODE_ACTIVE = EPISODE_ACTIVE
 # Combined registry
 # ---------------------------------------------------------------------------
 
-METRIC_REGISTRY: list[dict[str, Any]] = CORE_METRICS + EXTENDED_METRICS
+METRIC_REGISTRY: list[dict[str, Any]] = CORE_METRICS + EXTENDED_METRICS + REFERRAL_METRICS
 
 # ---------------------------------------------------------------------------
 # Compatible tile-type mapping

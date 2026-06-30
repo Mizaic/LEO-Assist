@@ -36,6 +36,8 @@ export interface Rule {
   action?: ActionConcept | null;
   has_predecessor: boolean;
   predecessor_id?: string;
+  previous_recommendation_text?: string | null;
+  previous_recommendation_number?: string | null;
   created_at?: string;
   updated_at?: string;
   reviewed_at?: string;

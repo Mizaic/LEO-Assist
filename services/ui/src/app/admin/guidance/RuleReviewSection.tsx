@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -48,6 +49,44 @@ export type {
 } from "./ruleReviewTypes";
 export { formatRelativeUpdatedAt } from "./RuleReviewCard";
 
+interface GuidelineChipFilterProps {
+  guidelineIds: string[];
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+}
+
+function GuidelineChipFilter({ guidelineIds, selected, onSelect }: GuidelineChipFilterProps) {
+  if (guidelineIds.length < 2) return null;
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, display: "block", mb: 0.75 }}>
+        Filter by guideline
+      </Typography>
+      <Stack direction="row" spacing={0.75} flexWrap="wrap">
+        <Chip
+          label="All"
+          size="small"
+          variant={selected === null ? "filled" : "outlined"}
+          color={selected === null ? "primary" : "default"}
+          onClick={() => onSelect(null)}
+          sx={{ cursor: "pointer" }}
+        />
+        {guidelineIds.map((id) => (
+          <Chip
+            key={id}
+            label={id}
+            size="small"
+            variant={selected === id ? "filled" : "outlined"}
+            color={selected === id ? "primary" : "default"}
+            onClick={() => onSelect(id)}
+            sx={{ cursor: "pointer", fontWeight: selected === id ? 700 : 400 }}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+}
+
 interface Props {
   refreshKey?: number;
 }
@@ -73,10 +112,25 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [promoteBusy, setPromoteBusy] = useState<string | null>(null);
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
+  const [guidelineFilter, setGuidelineFilter] = useState<string | null>(null);
+
+  const allGuidelineIds = useMemo(() => {
+    const ids = new Set([
+      ...pendingRules.map((r) => r.guideline_id),
+      ...approvedRules.map((r) => r.guideline_id),
+    ].filter(Boolean));
+    return [...ids].sort();
+  }, [pendingRules, approvedRules]);
+
+  const filterByGuideline = useCallback(
+    (rules: Rule[]) =>
+      guidelineFilter ? rules.filter((r) => r.guideline_id === guidelineFilter) : rules,
+    [guidelineFilter],
+  );
 
   const pendingVisible = useMemo(
-    () => filterRulesForReview(pendingRules, sessionApproved, "pending_review"),
-    [pendingRules, sessionApproved],
+    () => filterRulesForReview(filterByGuideline(pendingRules), sessionApproved, "pending_review"),
+    [pendingRules, sessionApproved, filterByGuideline],
   );
 
   const editableRule = useMemo(() => (editRule ? ruleToEditable(editRule) : null), [editRule]);
@@ -316,6 +370,12 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         </Box>
       ) : null}
 
+      <GuidelineChipFilter
+        guidelineIds={allGuidelineIds}
+        selected={guidelineFilter}
+        onSelect={setGuidelineFilter}
+      />
+
       <Stack spacing={2.5}>
         <RuleReviewPool
           poolId="pending"
@@ -339,7 +399,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           title="Approved"
           helper="Rules already checked and used when you compile the live lookup index."
           statusFilter="active"
-          rules={approvedRules}
+          rules={filterByGuideline(approvedRules)}
           loading={loadingApproved}
           expandedRules={expandedRules}
           busy={busy}

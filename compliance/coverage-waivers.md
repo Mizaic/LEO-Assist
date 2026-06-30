@@ -461,6 +461,58 @@ fully cleared and removed from the open list:
 - **Owner**: Engineering Lead (close when new VT runs are recorded for any
   Class B test file touched in this track).
 
+## W-019 DO-4641EEE1 source_reference stale after unified pipeline migration (2026-06-29)
+
+- **Scope**: `DO-4641EEE1` (Pub/sub pipeline and Neo4j result handoff) has an
+  approved status; its `source_reference` lists
+  `services/pipeline_worker/app/services/referral_durable_steps.py` which was
+  deleted in the TASK-9 cleanup. The new authoritative files are
+  `libs/workflow/durable_step_runner.py`, `libs/workflow/step_state_loader.py`,
+  and `services/pipeline_worker/app/services/durable_dispatcher.py`.
+- **Blocker**: Atlas requires a Change Request to edit an approved DO.
+- **Risk**: Cosmetic only -- traceability is intact; no acceptance criteria
+  changed; the new files are already listed in other DOs.
+- **Owner**: Engineering Lead (raise CR on next design review cycle).
+
+## W-020 UEF slot linking blocked by Atlas DMR-refs CypherSyntaxError (2026-06-30)
+
+- **Scope**: Five mandatory UEF slots for PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4
+  (hrus, uep, uis, summative, completion) have fully authored and populated draft documents
+  in Atlas, but the `link_uef_slot` call to connect them to the virtual UEF is blocked by a
+  server-side CypherSyntaxError in the Atlas QMS Graph API (`/api/v1/products/.../dmr-refs`).
+  The error is: `Invalid input ']': expected an expression (line 29, column 7 (offset: 763))`.
+  This affects all five slots consistently and is a platform-level regression, not a content issue.
+- **Documents created and ready to link (fhir_id -> slot):**
+  - `4e8ee6c0-3ac5-4657-984e-bf081bdefb3a` -> hrus
+  - `e858fa59-bf91-4647-9473-c8269d9bb47a` -> uep
+  - `26fa7748-e762-436b-af8a-e5e8f2353838` -> uis
+  - `ff31257e-3697-4838-aa78-ed0b8b28820c` -> summative
+  - `46d3a9de-785f-4bfc-8cf0-0f7a88c6a29d` -> completion
+- **Risk**: UEF gate will not close (`uef_draft_complete` remains false) until the links are
+  created. Documents exist and are fully populated. No content risk.
+- **Blocker**: Atlas backend bug -- `link_uef_slot` 500 error. Needs Atlas platform team fix or
+  manual link via Atlas UI.
+- **Owner**: Robert Smith (QA/RA Lead) -- escalate to Atlas platform team to fix DMR-refs endpoint.
+  Once fixed, retry `link_uef_slot` for each document/slot pair listed above.
+
+## W-021 DO-D6CE2AA5 / DO-2C03CA0E source_reference stale after rule editor consumer redesign (2026-06-30)
+
+- **Scope**: `DO-D6CE2AA5` (LogicTreeEditor UI) and `DO-2C03CA0E` (Step1Who / copy / types)
+  have stale `source_reference` fields. The monolithic `LogicTreeEditor.tsx` (1,497 LOC)
+  was refactored into `LogicTreeEditor/` directory with 9 sub-components. `BlockEditor.tsx`,
+  `SentenceCanvas.tsx`, `SentenceRow.tsx`, and `treeToCanvas.ts` were deleted.
+  New: `LogicTreeEditor/index.tsx`, `PathwayList.tsx`, `PathwayCard.tsx`, `GroupBody.tsx`,
+  `ConceptPill.tsx`, `DemographicRow.tsx`, `ObservationRow.tsx`, `AddBar.tsx`,
+  `PathwayPreview.tsx`, `NodeDispatcher.tsx`, `AIDraftButton.tsx`.
+- **Blocker**: Both DOs return 404 from the Atlas MCP server (`DO-D6CE2AA5`, `DO-2C03CA0E`).
+  Their linked VT `VT-LEO-AI-152` was also not migrated to Atlas (phase9-vt-do-links.csv:
+  "skip: VT not in mapping CSV"). The source-reference update cannot complete until the Atlas
+  instance is reconciled.
+- **Risk**: Traceability gap only -- acceptance criteria unchanged, tests pass (153/153),
+  no clinical safety impact.
+- **Owner**: Engineering Lead (update Atlas DOs once 404s are resolved; raise a new VT for
+  the consumer-grade pathway-card layout and record a run).
+
 ## Review cadence
 
 - **Per-release**: Engineering Lead inspects W-004 / W-007 /
