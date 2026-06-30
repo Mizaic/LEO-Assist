@@ -15,6 +15,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import InputAdornment from "@mui/material/InputAdornment";
+import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
@@ -294,6 +295,7 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
   const [changesDrawerCode, setChangesDrawerCode] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [page, setPage] = useState(1);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
@@ -429,7 +431,11 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
 
   if (error) return <Alert severity="error">{error}</Alert>;
 
+  const PAGE_SIZE = 10;
   const visible = filterGuidelines(guidelines, search, statusFilter);
+  const pageCount = Math.ceil(visible.length / PAGE_SIZE);
+  const safePage = Math.min(page, pageCount || 1);
+  const pageSlice = visible.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <Box>
@@ -460,9 +466,9 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
       {guidelines.length > 0 && (
         <GuidelineFilterBar
           search={search}
-          onSearch={setSearch}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
           status={statusFilter}
-          onStatus={setStatusFilter}
+          onStatus={(v) => { setStatusFilter(v); setPage(1); }}
           totalCount={guidelines.length}
           visibleCount={visible.length}
         />
@@ -484,19 +490,36 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
           data-testid="guidelines-no-match"
         />
       ) : (
-        <ReviewListCard
-          items={visible.map((g) =>
-            buildGuidelineItem(
-              g,
-              generating,
-              reingesting,
-              updateStatuses[g.code],
-              (code, hasRules) => (hasRules ? setConfirmCode(code) : handleGenerate(code)),
-              setInspectCode,
-              setChangesDrawerCode,
-            )
+        <>
+          <ReviewListCard
+            items={pageSlice.map((g) =>
+              buildGuidelineItem(
+                g,
+                generating,
+                reingesting,
+                updateStatuses[g.code],
+                (code, hasRules) => (hasRules ? setConfirmCode(code) : handleGenerate(code)),
+                setInspectCode,
+                setChangesDrawerCode,
+              )
+            )}
+          />
+          {pageCount > 1 && (
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, visible.length)} of {visible.length}
+              </Typography>
+              <Pagination
+                count={pageCount}
+                page={safePage}
+                onChange={(_, p) => setPage(p)}
+                size="small"
+                color="primary"
+                aria-label="Guidelines page"
+              />
+            </Stack>
           )}
-        />
+        </>
       )}
 
       {confirmCode && (
