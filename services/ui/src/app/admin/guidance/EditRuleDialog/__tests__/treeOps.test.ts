@@ -6,10 +6,13 @@
  */
 
 import {
+  addPrerequisiteToOrSymptoms,
   applyUpdate,
   assignNodeIds,
   findValidationError,
+  hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
+  isOrGroupSymptomsOnly,
   isTreeVisuallyEmpty,
   promoteOrPrerequisites,
   stripNodeIds,
@@ -506,5 +509,86 @@ describe("hasOrRootWithPrerequisites", () => {
 
   it("returns false for null", () => {
     expect(hasOrRootWithPrerequisites(null)).toBe(false);
+  });
+});
+
+describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
+  function makeOrSymptoms(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: {
+            snomed_concept_id: "262285001",
+            preferred_term: "Weight decreased",
+          },
+        },
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "84229001", preferred_term: "Fatigue" },
+        },
+        {
+          kind: "CONCEPT",
+          criterion: {
+            snomed_concept_id: "62315008",
+            preferred_term: "Altered bowel function",
+          },
+        },
+      ],
+    });
+  }
+
+  it("detects OR root with symptom leaves only", () => {
+    const tree = makeOrSymptoms();
+    expect(isOrGroupSymptomsOnly(tree)).toBe(true);
+    expect(hasOrRootSymptomsOnly(tree)).toBe(true);
+  });
+
+  it("add_demographic restructures OR symptoms into AND[demographic, OR[symptoms]]", () => {
+    const tree = makeOrSymptoms();
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: tree.node_id,
+    });
+    expect(updated!.kind).toBe("AND");
+    const kids = updated!.children ?? [];
+    expect(kids[0].kind).toBe("DEMOGRAPHIC");
+    expect(kids[1].kind).toBe("OR");
+    expect(kids[1].children).toHaveLength(3);
+  });
+
+  it("add_demographic on AND root still appends without restructuring", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+        },
+      ],
+    });
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: tree.node_id,
+    });
+    expect(updated!.kind).toBe("AND");
+    expect(updated!.children).toHaveLength(2);
+    expect(updated!.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
+  });
+
+  it("addPrerequisiteToOrSymptoms preserves all symptom nodes", () => {
+    const tree = makeOrSymptoms();
+    const prereq = assignNodeIds({
+      kind: "DEMOGRAPHIC",
+      field: "sex",
+      operator: "=",
+      value: "female",
+      unit: null,
+    });
+    const fixed = addPrerequisiteToOrSymptoms(tree, prereq);
+    expect(fixed.kind).toBe("AND");
+    expect(fixed.children![0].field).toBe("sex");
+    expect(fixed.children![1].children).toHaveLength(3);
   });
 });

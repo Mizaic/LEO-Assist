@@ -33,8 +33,10 @@ import {
   DUPLICATE_SETS_ALERT,
   STEP_HELPERS,
   STEP_TITLES,
+  OR_SYMPTOMS_PREREQUISITE_HINT,
 } from "../copy";
 import {
+  hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
   isTreeVisuallyEmpty,
   promoteOrPrerequisites,
@@ -98,6 +100,7 @@ export default function Step1Who({
   });
 
   const showStructureWarning = tree && hasOrRootWithPrerequisites(tree);
+  const showPrerequisiteHint = tree && hasOrRootSymptomsOnly(tree);
 
   function handleFixStructure() {
     if (!tree) return;
@@ -162,6 +165,20 @@ export default function Step1Who({
           Age (or a lab value) should always apply -- it should not be a
           pathway alternative. Click <strong>Fix structure</strong> to move
           it above the pathways.
+        </Alert>
+      )}
+
+      {showPrerequisiteHint && (
+        <Alert
+          severity="info"
+          role="status"
+          aria-label={OR_SYMPTOMS_PREREQUISITE_HINT.ariaLabel}
+          sx={{ py: 0.75 }}
+        >
+          {OR_SYMPTOMS_PREREQUISITE_HINT.lead}{" "}
+          {OR_SYMPTOMS_PREREQUISITE_HINT.action}{" "}
+          <strong>{OR_SYMPTOMS_PREREQUISITE_HINT.actionStrong}</strong>{" "}
+          {OR_SYMPTOMS_PREREQUISITE_HINT.tail}
         </Alert>
       )}
 

@@ -417,6 +417,18 @@ export const DUPLICATE_SETS_ALERT = {
     `${count} repeated symptom sets`,
 } as const;
 
+/** Hint when symptoms are OR'd but a patient detail should apply to all of them. */
+export const OR_SYMPTOMS_PREREQUISITE_HINT = {
+  ariaLabel: "How to add a must-have patient detail",
+  lead:
+    "These symptoms are grouped as ANY of these (the patient only needs one).",
+  action:
+    "To also require a patient detail (like sex or age), click",
+  actionStrong: "Add patient detail",
+  tail:
+    "below. We will keep the symptoms as ANY of these and make the patient detail a must-have AND condition -- you do not need to start again.",
+} as const;
+
 /**
  * Centralised ConceptSearchPanel headings + helper copy (Phase 7c).
  *

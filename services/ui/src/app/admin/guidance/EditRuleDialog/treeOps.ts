@@ -480,18 +480,26 @@ export function applyUpdate(
           ? appendChild(n, makeGroupNode(update.groupKind))
           : n,
       );
-    case "add_demographic":
-      return mapNode(root, (n) =>
-        n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeDemographicNode())
-          : n,
-      );
-    case "add_observation":
-      return mapNode(root, (n) =>
-        n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeObservationNode(update.seed))
-          : n,
-      );
+    case "add_demographic": {
+      const demo = makeDemographicNode();
+      return mapNode(root, (n) => {
+        if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) return n;
+        if (isOrGroupSymptomsOnly(n)) {
+          return addPrerequisiteToOrSymptoms(n, demo);
+        }
+        return appendChild(n, demo);
+      });
+    }
+    case "add_observation": {
+      const observation = makeObservationNode(update.seed);
+      return mapNode(root, (n) => {
+        if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) return n;
+        if (isOrGroupSymptomsOnly(n)) {
+          return addPrerequisiteToOrSymptoms(n, observation);
+        }
+        return appendChild(n, observation);
+      });
+    }
     case "set_observation":
       return mapNode(root, (n) =>
         n.node_id === update.nodeId && n.kind === "OBSERVATION"
@@ -671,6 +679,46 @@ export function hasOrRootWithPrerequisites(
   return (root.children ?? []).some(
     (c) => c.kind === "DEMOGRAPHIC" || c.kind === "OBSERVATION",
   );
+}
+
+const _PREREQUISITE_LEAF_KINDS = new Set<LogicNodeKind>([
+  "CONCEPT",
+  "OBSERVATION",
+]);
+
+/** True when an OR group holds only symptom/lab leaves (no demographics yet). */
+export function isOrGroupSymptomsOnly(node: EditableLogicNode): boolean {
+  if (node.kind !== "OR") return false;
+  const children = node.children ?? [];
+  if (children.length === 0) return false;
+  return children.every((c) => _PREREQUISITE_LEAF_KINDS.has(c.kind));
+}
+
+/**
+ * True when the tree is OR[symptom, symptom, ...] with no patient-detail
+ * prerequisites yet -- the shape that needs AND[prerequisite, OR[symptoms]].
+ */
+export function hasOrRootSymptomsOnly(root: EditableLogicNode | null): boolean {
+  if (!root) return false;
+  return isOrGroupSymptomsOnly(root);
+}
+
+/**
+ * Restructure OR[symptoms...] into AND[prerequisite, OR[symptoms...]] so a
+ * patient detail (sex, age, ...) applies to every pathway alternative.
+ */
+export function addPrerequisiteToOrSymptoms(
+  orNode: EditableLogicNode,
+  prerequisite: EditableLogicNode,
+): EditableLogicNode {
+  const symptoms = orNode.children ?? [];
+  return assignNodeIds({
+    kind: "AND",
+    children: [
+      prerequisite,
+      assignNodeIds({ kind: "OR", children: symptoms }),
+    ],
+  });
 }
 
 function appendChild(
