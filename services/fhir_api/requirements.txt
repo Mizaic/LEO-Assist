@@ -5,5 +5,6 @@ azure-identity>=1.19.0
 azure-keyvault-secrets>=4.8.0
 neo4j>=5.20.0
 httpx>=0.28
-python-jose[cryptography]>=3.3
+# >=3.4.0 excludes CVE-2024-33663 (algorithm confusion) and CVE-2024-33664 (JWE DoS).
+python-jose[cryptography]>=3.4.0
 requests>=2.32

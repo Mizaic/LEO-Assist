@@ -8,6 +8,7 @@
 import type { LogicTreeNode } from "./RuleLogicView";
 import type { EditableRule } from "./EditRuleDialog";
 import type { LogicCriterion, RuleAction } from "./EditRuleDialog/types";
+import { normalizeRuleActions } from "./actionShape";
 import type {
   ActionConcept,
   Rule,
@@ -156,7 +157,7 @@ export function ruleToEditable(rule: Rule): EditableRule {
     chapter_title: rule.chapter_title,
     recommendation_text: rule.recommendation_text,
     logic_tree: rule.logic_tree,
-    actions: rule.actions,
+    actions: normalizeRuleActions(rule.actions as unknown[] | undefined),
     action,
   };
 }

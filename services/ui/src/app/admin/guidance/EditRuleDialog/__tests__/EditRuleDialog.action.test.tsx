@@ -353,4 +353,34 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
     const payload = onSave.mock.calls[0][0];
     expect(payload.actions).toBeUndefined();
   });
+
+  it("renders without crash when actions[] uses flat API shape (no criterion wrapper)", () => {
+    mockSearch();
+    render(
+      <EditRuleDialog
+        rule={{
+          ...SAMPLE_RULE,
+          actions: [
+            {
+              snomed_concept_id: "168731009",
+              preferred_term: "Plain chest X-ray (procedure)",
+              semantic_tag: "procedure",
+              term: "chest X-ray",
+              strength: "offer",
+            } as unknown as (typeof SAMPLE_RULE.actions)[0],
+          ],
+        }}
+        open
+        onClose={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    goToStep(2);
+    expect(
+      screen.getByRole("button", {
+        name: /plain chest x-ray\. click to pick a different procedure\./i,
+      }),
+    ).toBeInTheDocument();
+  });
 });

@@ -101,6 +101,7 @@ import { findDuplicateConceptGroups } from "./namedSets";
 import { treeToSentence } from "./treeToSentence";
 import { detectVaguePhrase } from "./vaguePhrases";
 import { slidePanelVariants } from "../motionPresets";
+import { normalizeRuleActions } from "../actionShape";
 import type {
   EditableLogicNode,
   LogicCriterion,
@@ -183,7 +184,8 @@ const IDLE_TARGET: SearchTarget = {
  * from a server that has not migrated yet still edit correctly.
  */
 function deriveInitialActions(rule: EditableRule): RuleAction[] {
-  if (rule.actions && rule.actions.length > 0) return rule.actions;
+  const normalized = normalizeRuleActions(rule.actions as unknown[] | undefined);
+  if (normalized && normalized.length > 0) return normalized;
   if (rule.action) {
     return [{ criterion: rule.action, strength: rule.strength || "unspecified" }];
   }
@@ -354,9 +356,9 @@ export default function EditRuleDialog({
         : "ready";
     const allCoded =
       actions.length > 0 &&
-      actions.every((a) => Boolean(a.criterion.snomed_concept_id));
+      actions.every((a) => Boolean(a.criterion?.snomed_concept_id));
     const allBlank = actions.every(
-      (a) => !a.criterion.snomed_concept_id && a.strength === "unspecified",
+      (a) => !a.criterion?.snomed_concept_id && a.strength === "unspecified",
     );
     const suggestState: StepState = allCoded
       ? "ready"

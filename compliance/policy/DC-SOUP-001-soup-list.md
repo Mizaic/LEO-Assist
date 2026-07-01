@@ -3,8 +3,8 @@
 | Field            | Value                                               |
 | ---------------- | --------------------------------------------------- |
 | Document ID      | DC-SOUP-001                                         |
-| Version          | 1.1.0                                               |
-| Status           | Draft - refreshed for release v2026.3 ("Val Gardena"); pending Quality Manager sign-off |
+| Version          | 1.2.0                                               |
+| Status           | Draft - 3 of 4 open anomalies resolved for release v2026.3 ("Val Gardena"); pending Quality Manager sign-off on the remaining neo4j item |
 | Date             | 2026-07-01                                          |
 | Standard         | IEC 62304:2006+A1:2015, Clause 8.1.2                |
 | Classification   | QMS - Design Controls                               |
@@ -70,7 +70,7 @@ package directly (transitive-only packages are not repeated here).
 | 18 | **langchain-aws** | >= 0.3.0 | PyPI | api, analytics_api, pipeline_worker | LangChain Bedrock integration | Medium |
 | 19 | **langchain-openai** | >= 0.3.0 | PyPI | api, analytics_api, pipeline_worker | LangChain Azure OpenAI integration | Medium |
 | 20 | **PyJWT** | >= 2.8.0 | PyPI | (auth libs) | JWT decoding; Azure AD token validation | Medium |
-| 20a | **python-jose[cryptography]** | >= 3.4.0 (root); **>= 3.3 in api, fhir_api, pipeline_worker -- see 7.4** | PyPI | api, fhir_api, pipeline_worker | JWT/JWK verification at the OAuth callback auth boundary | High |
+| 20a | **python-jose[cryptography]** | >= 3.4.0 (all services, aligned 2026-07-01) | PyPI | api, fhir_api, pipeline_worker | JWT/JWK verification at the OAuth callback auth boundary | High |
 | 21 | **langgraph** | >= 0.4.0 | PyPI | api, pipeline_worker | Pipeline orchestration | Medium |
 | 21a | **graphdatascience** | >= 1.10 | PyPI | analytics_api, ods_sync | Neo4j Graph Data Science library for analytics queries | Medium |
 | 21b | **slowapi** | >= 0.1.9 | PyPI | api | API rate limiting | Low |
@@ -101,29 +101,44 @@ matches the model actually configured.
 ### 3.2 Open anomalies found during the 2026-07-01 refresh
 
 These were found by diffing this list against the actual `requirements.txt`
-files and must be resolved (or formally risk-accepted) before this document
-can be signed off (Section 10):
+files. Items 2-4 must be resolved (or formally risk-accepted) before this
+document can be signed off (Section 10):
 
-1. **python-jose version floor below the documented CVE mitigation.** Row 20a
-   documents `>= 3.4.0` as the control for CVE-2024-33663 and CVE-2024-33664,
-   but `services/api/requirements.txt`, `services/fhir_api/requirements.txt`,
-   and `services/pipeline_worker/requirements.txt` each pin only `>= 3.3`.
-   Their Dockerfiles (`infra/dockerfiles/Dockerfile.core-api`,
-   `Dockerfile.fhir-api`, `Dockerfile.pipeline-worker`) install directly from
-   these per-service files, not the root consolidated file, so the documented
-   control is not guaranteed in the built images. This is an auth-boundary
-   package -- raise as a Class B security fix through the SOP-19/25
-   classification gate before bumping the floor.
-2. **neo4j version pin inconsistency.** `services/terminology/requirements.txt`
-   pins `neo4j==6.1.0` (exact) while every other service floors at
-   `>= 5.28.0`. Confirm compatibility and align, or document why the
-   terminology loader intentionally runs a different major version.
-3. **python-dotenv version pin inconsistency.** `services/terminology/requirements.txt`
-   pins `python-dotenv==1.2.1` (exact) against the `>= 1.1.0` floor used
-   elsewhere. Low risk (configuration-loading only) but worth aligning.
-4. **azure-identity floor inconsistency.** `services/terminology/requirements.txt`
-   uses `>= 1.16.0` while all other services use `>= 1.19.0`. Low risk but
-   should be aligned for consistent patch behaviour.
+1. **RESOLVED 2026-07-01.** ~~python-jose version floor below the documented
+   CVE mitigation.~~ Row 20a documented `>= 3.4.0` as the control for
+   CVE-2024-33663 and CVE-2024-33664, but `services/api/requirements.txt`,
+   `services/fhir_api/requirements.txt`, and `services/pipeline_worker/requirements.txt`
+   each pinned only `>= 3.3`, so the Dockerfiles that build directly from
+   those per-service files (`infra/dockerfiles/Dockerfile.core-api`,
+   `Dockerfile.fhir-api`, `Dockerfile.pipeline-worker`) were not guaranteed
+   to exclude the vulnerable range. Classified Class A per precedent set by
+   the sibling authentication Design Inputs under `UN-LEO-035` (the human
+   clinician-review gate covers downstream impact); tracked as `DI-A30F58D6`
+   / `DO-FA6A62FC` in Atlas. Fixed by bumping all three floors to `>= 3.4.0`
+   and adding `tests/test_soup_python_jose_floor.py` as a regression guard.
+2. **OPEN -- neo4j major-version pin needs a compatibility decision, not a
+   blind edit.** `services/terminology/requirements.txt` pins `neo4j==6.1.0`
+   (exact) while every other service floors at `>= 5.20.0`/`>= 5.28`
+   (root). This is a **major-version** divergence (5.x vs 6.x), and the
+   Neo4j Python driver has breaking changes across that boundary, so this
+   was deliberately **not** auto-aligned in the 2026-07-01 pass -- doing so
+   without running the terminology loader's test suite against the older
+   driver risks breaking it. Needs an owner to either (a) verify the
+   terminology loader against `neo4j>=5.20.0` and drop to the shared floor,
+   or (b) confirm 6.1.0 is intentional and document why, then update this
+   row instead of flagging it as drift.
+3. **RESOLVED 2026-07-01.** ~~python-dotenv version pin inconsistency.~~
+   `services/terminology/requirements.txt` pinned `python-dotenv==1.2.1`
+   (exact) against the `>= 1.0.1` floor used elsewhere. `python-dotenv`'s
+   `load_dotenv()` API is stable across 1.0-1.2, so this was a safe,
+   non-breaking alignment -- changed to `>= 1.0.1`.
+4. **RESOLVED 2026-07-01 (corrected attribution).** ~~azure-identity floor
+   inconsistency in services/terminology.~~ The actual drift was in
+   `services/ods_sync/requirements.txt` (`>= 1.16.0` vs `>= 1.19.0`
+   everywhere else) -- `services/terminology` does not depend on
+   `azure-identity` at all; this was a misattribution in the initial
+   2026-07-01 draft of this section, corrected here. Fixed by bumping
+   `services/ods_sync/requirements.txt` to `>= 1.19.0`.
 
 ---
 
@@ -242,13 +257,15 @@ See Section 3.2 for the full detail. Summary for release-gate tracking:
 
 | Item | Risk if unresolved | Status |
 |---|---|---|
-| `python-jose` floor below documented CVE control in 3 production services | High -- auth-boundary package | Open; needs SOP-19/25 classification before floor bump |
-| `neo4j` exact-pin drift in terminology loader | Low-Medium -- untested major-version skew | Open |
-| `python-dotenv` exact-pin drift in terminology loader | Low | Open |
-| `azure-identity` floor drift in terminology loader | Low | Open |
+| `python-jose` floor below documented CVE control in 3 production services | High -- auth-boundary package | **Resolved 2026-07-01** (DI-A30F58D6 / DO-FA6A62FC) |
+| `neo4j` exact-pin (`==6.1.0`) vs `>=5.x` floor elsewhere, in terminology loader | Low-Medium -- untested major-version skew | Open -- needs compatibility verification, not a blind edit |
+| `python-dotenv` exact-pin drift in terminology loader | Low | **Resolved 2026-07-01** |
+| `azure-identity` floor drift (misattributed to terminology; actual owner is `services/ods_sync`) | Low | **Resolved 2026-07-01** |
 
-This document cannot be signed off (Section 10) while the High-risk item is
-open.
+This document cannot be signed off (Section 10) until the remaining Open
+`neo4j` item is resolved (compatibility verified and aligned, or explicitly
+risk-accepted with rationale); it is not High risk and does not block the
+python-jose fix above.
 
 ---
 
@@ -258,6 +275,7 @@ open.
 | ------- | ---- | ------ | ------- |
 | 1.0.0 | 2026-02-25 | Engineering | Initial SOUP list. |
 | 1.1.0 | 2026-07-01 | Engineering | Refreshed against all 11 `requirements.txt` files and the 3 frontend `package.json` files ahead of release v2026.3 ("Val Gardena"). Corrected version drift (uvicorn, neo4j, pydantic, httpx, boto3, next, recharts, next-auth). Added ~30 previously undocumented packages (frontend editor/visualisation stack, ML tooling, Azure SDKs). Corrected the LLM model entries from "Claude 3.5 Haiku" / "GPT-4o" to the models actually configured in `libs/llm_client/factory.py`. Logged 4 open anomalies including one High-risk security floor gap (Section 3.2 / 7.4). |
+| 1.2.0 | 2026-07-01 | Engineering | Resolved 3 of the 4 open anomalies. python-jose bumped to `>= 3.4.0` in `services/api`, `services/fhir_api`, `services/pipeline_worker` (Atlas `DI-A30F58D6` / `DO-FA6A62FC`), closing the CVE-2024-33663/33664 gap; added `tests/test_soup_python_jose_floor.py` as a regression guard. `python-dotenv` aligned to `>= 1.0.1` in `services/terminology`. Corrected a misattribution: the `azure-identity` floor drift belonged to `services/ods_sync` (not `services/terminology`), now bumped to `>= 1.19.0`. The `neo4j` major-version pin (`services/terminology` on `6.1.0` vs `5.x` elsewhere) is left open pending compatibility verification -- deliberately not auto-aligned given the driver's breaking changes across major versions. |
 
 ---
 

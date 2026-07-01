@@ -31,6 +31,7 @@ import Typography from "@mui/material/Typography";
 
 import { STRENGTH_LABELS, friendlyTerm } from "./EditRuleDialog/copy";
 import type { LogicSeed, RuleAction } from "./EditRuleDialog/types";
+import { normalizeRuleActions } from "./actionShape";
 
 /**
  * An AT_LEAST group whose children are all SNOMED concepts is rendered as
@@ -873,7 +874,10 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
       ? strengthPlainLabel(rule.strength)
       : null;
   const actionText = actionPlainLabel(rule.action);
-  const hasActionsList = Boolean(rule.actions && rule.actions.length > 0);
+  const normalizedActions = normalizeRuleActions(
+    rule.actions as unknown[] | undefined,
+  );
+  const hasActionsList = Boolean(normalizedActions && normalizedActions.length > 0);
   return (
     <Box
       sx={{
@@ -932,7 +936,7 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
           >
             When this rule matches, the system should:
           </Typography>
-          <ActionChipList actions={rule.actions!} />
+          <ActionChipList actions={normalizedActions!} />
         </Box>
       ) : (
         strengthText && (
