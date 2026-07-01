@@ -1,10 +1,10 @@
 """Persistence subgraph for writing to patient graph and gold training.
 
 Atlas trace:
-  DO: DO-8620A68B
-  Also implements: DO-93E086B0
-  DI: DI-2D9F5064, DI-5A802C83, DI-F2C18D2E
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8620A68B")
+  DO: DO-728930A1
+  Also implements: DO-572A5C05, DO-4641EEE1 (routes output to extraction,
+  terminology, and pipeline-handoff persistence paths respectively)
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 Routes based on ``output_target`` in state:
 - ``patient_graph`` - writes :DOCUMENTS/:HAS_<tag> links and CodingDecision nodes

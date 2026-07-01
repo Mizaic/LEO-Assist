@@ -10,7 +10,7 @@
  *   - The legacy v1 fallback (no logic_tree) still renders present /
  *     absent chips.
  *
- * Atlas trace: DI-0C8FBAF7 / DO-E647765A / VT-94C886CA.
+ * Atlas trace: DI-42246DA7 / DO-F8C56339.
  */
 
 import React from "react";

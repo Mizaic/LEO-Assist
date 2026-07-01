@@ -6,9 +6,10 @@
  * Connector labels (or / and / not) between condition rows.
  * Nested GroupBody for sub-groups.
  *
- * Atlas trace: DO-D6CE2AA5 / DI-A3107424
+ * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import { useState } from "react";
+import { AnimatePresence, motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
@@ -24,6 +25,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
+import { useMotion } from "@leo/design-system";
+
 import { GROUP_KIND_LABELS, atLeastClusterLabel } from "../copy";
 import { GROUP_KINDS, type EditableLogicNode, type LogicNodeKind, type NodeUpdate } from "../types";
 import ConceptPill from "./ConceptPill";
@@ -31,6 +34,7 @@ import DemographicRow from "./DemographicRow";
 import NodeDispatcher from "./NodeDispatcher";
 import AddBar from "./AddBar";
 import { KIND_COLORS, KIND_CONNECTOR, KIND_SECTION_LABELS } from "./shared";
+import { popVariants } from "../../motionPresets";
 
 interface Props {
   node: EditableLogicNode;
@@ -55,6 +59,7 @@ export default function GroupBody({
   guidelineId, currentRuleId,
 }: Props) {
   const [collapsed, setCollapsed] = useState(!isTopLevel && depth >= 2);
+  const { reducedMotion } = useMotion();
   const children = node.children ?? [];
   const borderColor = KIND_COLORS[node.kind] ?? "grey.300";
   const connector = KIND_CONNECTOR[node.kind] ?? "and";
@@ -146,38 +151,56 @@ export default function GroupBody({
       {isTopLevel && showKindSelect && <Divider sx={{ mb: 1 }} />}
 
       {!collapsed && (
-        <>
-          {children.map((child, idx) => (
-            <Box key={child.node_id}>
-              <NodeDispatcher
-                node={child}
-                root={root}
-                depth={depth + 1}
-                selectedNodeId={selectedNodeId}
-                onSelect={onSelect}
-                onUpdate={onUpdate}
-                onRequestAdd={onRequestAdd}
-                onRequestCoach={onRequestCoach}
-                guidelineId={guidelineId}
-                currentRuleId={currentRuleId}
-              />
-              {idx < children.length - 1 && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: "block",
-                    color: "text.disabled",
-                    fontStyle: "italic",
-                    fontSize: "0.72rem",
-                    my: 0.25,
-                    pl: 0.5,
-                  }}
-                >
-                  {connector}
-                </Typography>
-              )}
-            </Box>
-          ))}
+        <fm.div
+          initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scaleY: 0.96 }}
+          animate={{ opacity: 1, y: 0, scaleY: 1 }}
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 340, damping: 30 }
+          }
+          style={{ transformOrigin: "top" }}
+        >
+          <AnimatePresence initial={false}>
+            {children.map((child, idx) => (
+              <fm.div
+                key={child.node_id}
+                layout
+                variants={popVariants(reducedMotion)}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                <NodeDispatcher
+                  node={child}
+                  root={root}
+                  depth={depth + 1}
+                  selectedNodeId={selectedNodeId}
+                  onSelect={onSelect}
+                  onUpdate={onUpdate}
+                  onRequestAdd={onRequestAdd}
+                  onRequestCoach={onRequestCoach}
+                  guidelineId={guidelineId}
+                  currentRuleId={currentRuleId}
+                />
+                {idx < children.length - 1 && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      color: "text.disabled",
+                      fontStyle: "italic",
+                      fontSize: "0.72rem",
+                      my: 0.25,
+                      pl: 0.5,
+                    }}
+                  >
+                    {connector}
+                  </Typography>
+                )}
+              </fm.div>
+            ))}
+          </AnimatePresence>
 
           <AddBar
             onAddConcept={(anchor) => {
@@ -193,8 +216,11 @@ export default function GroupBody({
             onAddRuleFired={() =>
               onUpdate({ kind: "add_rule_fired", parentNodeId: node.node_id })
             }
+            onAddGroup={() =>
+              onUpdate({ kind: "add_group", parentNodeId: node.node_id, groupKind: "OR" })
+            }
           />
-        </>
+        </fm.div>
       )}
     </Box>
   );
@@ -210,7 +236,7 @@ function describeChildren(node: EditableLogicNode): string {
     c.kind === "AND" || c.kind === "OR" || c.kind === "NOT" || c.kind === "AT_LEAST",
   ).length;
   const parts: string[] = [];
-  if (concepts) parts.push(`${concepts} symptom${concepts === 1 ? "" : "s"}`);
+  if (concepts) parts.push(`${concepts} condition${concepts === 1 ? "" : "s"}`);
   if (demographics) parts.push(`${demographics} patient detail${demographics === 1 ? "" : "s"}`);
   if (groups) parts.push(`${groups} sub-group${groups === 1 ? "" : "s"}`);
   return parts.length ? parts.join(", ") : "empty";
@@ -228,6 +254,7 @@ function CollapsibleGroupHeader({
   onUpdate: (u: NodeUpdate) => void;
 }) {
   const childCount = node.children?.length ?? 0;
+  const { reducedMotion } = useMotion();
 
   return (
     <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: collapsed ? 0 : 0.75, flexWrap: "wrap" }}>
@@ -235,7 +262,13 @@ function CollapsibleGroupHeader({
         <IconButton size="small" onClick={onToggle}
           aria-label={collapsed ? "Expand group" : "Collapse group"}
           sx={{ p: 0.25 }}>
-          {collapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          <fm.div
+            animate={{ rotate: collapsed ? 0 : 90 }}
+            transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 30 }}
+            style={{ display: "flex" }}
+          >
+            {collapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </fm.div>
         </IconButton>
       </Tooltip>
       <Select
@@ -345,7 +378,7 @@ function InlineAtLeast({
             onSelect(node.node_id);
             onRequestAdd(node.node_id, e.currentTarget);
           }}
-          aria-label="Add a symptom or sign to this group"
+          aria-label="Add a symptom, sign, procedure, or situation to this group"
           sx={{ height: 26, fontSize: "0.72rem", fontWeight: 600, bgcolor: "background.paper", borderRadius: 1.5 }}
         />
         <Box sx={{ flex: 1 }} />

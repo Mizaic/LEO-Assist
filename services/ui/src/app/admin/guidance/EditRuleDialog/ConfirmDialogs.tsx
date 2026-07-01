@@ -15,11 +15,9 @@
  *     reviewer sees the inverted clinical meaning.
  *
  * Atlas trace:
- *   UN: UN-26E57FA1
- *   DI: DI-061AD3D1
- *   DO: DO-1EE0BFAE
- *   Risk: R-5F11517C (use_error, shared with Phases 1-4)
- *   VT: VT-EEF2D497 (execution_status=passed)
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 

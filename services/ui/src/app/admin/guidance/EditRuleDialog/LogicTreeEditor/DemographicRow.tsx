@@ -5,8 +5,9 @@
  * Age:  field select | age operator select | value | [and value2] | unit | delete
  * Sex:  field select | "is" (fixed label)  | Male/Female select   |      | delete
  *
- * Atlas trace: DO-D6CE2AA5 / DI-A3107424
+ * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
+import { motion as fm } from "framer-motion";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -16,6 +17,8 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
+import { useMotion } from "@leo/design-system";
+
 import { DEMOGRAPHIC_FIELD_LABELS, OPERATOR_LABELS } from "../copy";
 import {
   DEMOGRAPHIC_FIELDS,
@@ -23,6 +26,7 @@ import {
   type EditableLogicNode,
   type NodeUpdate,
 } from "../types";
+import { popVariants } from "../../motionPresets";
 
 // Operators that make sense for age only (sex supports "=" only).
 const AGE_OPERATORS = DEMOGRAPHIC_OPERATORS;
@@ -40,6 +44,7 @@ export default function DemographicRow({ node, onUpdate }: Props) {
   const field = node.field ?? "age";
   const isSex = field === "sex";
   const isBetween = !isSex && (node.operator ?? ">=") === "between";
+  const { reducedMotion } = useMotion();
 
   const set = (patch: Record<string, unknown>) =>
     onUpdate({
@@ -67,6 +72,7 @@ export default function DemographicRow({ node, onUpdate }: Props) {
   }
 
   return (
+    <fm.div variants={popVariants(reducedMotion)} initial="initial" animate="animate">
     <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexWrap: "wrap", my: 0.5 }}>
       {/* Field selector */}
       <Select
@@ -161,5 +167,6 @@ export default function DemographicRow({ node, onUpdate }: Props) {
         </IconButton>
       </Tooltip>
     </Stack>
+    </fm.div>
   );
 }

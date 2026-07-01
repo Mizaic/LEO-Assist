@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -41,7 +41,6 @@ import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
-import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -59,6 +58,7 @@ import HubIcon from "@mui/icons-material/Hub";
 import BlockIcon from "@mui/icons-material/Block";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 
+import BlockedCodesPanel from "./BlockedCodesPanel";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import SeedDescendantsList from "./SeedDescendantsList";
 import { friendlyTerm } from "./copy";
@@ -413,99 +413,12 @@ function SynonymEditorBody({
         </Button>
       </Box>
 
-      <Box>
-        <Stack
-          direction="row"
-          alignItems="baseline"
-          spacing={0.75}
-          sx={{ mb: 0.5 }}
-        >
-          <BlockIcon sx={{ fontSize: 14, color: "error.main", alignSelf: "center" }} />
-          <Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary" }}>
-            Blocked codes
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {excluded.length} total
-          </Typography>
-        </Stack>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mb: 0.75, lineHeight: 1.45 }}
-        >
-          These codes will not fire the rule, even if they sit under a
-          chip code.
-        </Typography>
-        <Stack
-          direction="row"
-          spacing={0.5}
-          sx={{ mt: 0.5, flexWrap: "wrap", rowGap: 0.5 }}
-        >
-          {excluded.length === 0 ? (
-            <Box
-              sx={{
-                width: "100%",
-                py: 0.75,
-                px: 1,
-                borderRadius: 1,
-                border: "1px dashed",
-                borderColor: "divider",
-                color: "text.secondary",
-              }}
-            >
-              <Typography variant="caption">
-                Nothing blocked yet.
-              </Typography>
-            </Box>
-          ) : (
-            excluded.map((cid) => (
-              <Chip
-                key={cid}
-                icon={<BlockIcon sx={{ fontSize: 12 }} />}
-                label={`code ${cid}`}
-                size="small"
-                variant="outlined"
-                color="error"
-                onDelete={() =>
-                  onUpdate({
-                    kind: "remove_excluded",
-                    nodeId,
-                    conceptId: cid,
-                  })
-                }
-                deleteIcon={<CloseIcon sx={{ fontSize: 13 }} />}
-                sx={{
-                  height: 24,
-                  fontSize: "0.7rem",
-                  bgcolor: "error.50",
-                  borderColor: "error.light",
-                  "& .MuiChip-icon": { color: "error.dark", ml: 0.5 },
-                }}
-              />
-            ))
-          )}
-        </Stack>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          sx={{ mt: 1 }}
-          alignItems={{ xs: "stretch", sm: "center" }}
-        >
-          <Button
-            size="small"
-            startIcon={<BlockIcon />}
-            onClick={() => setSearchMode("add_excluded")}
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          >
-            Search a code to block
-          </Button>
-          <ManualBlockField
-            onAdd={(cid) =>
-              onUpdate({ kind: "add_excluded", nodeId, conceptId: cid })
-            }
-          />
-        </Stack>
-      </Box>
+      <BlockedCodesPanel
+        nodeId={nodeId}
+        excluded={excluded}
+        onUpdate={onUpdate}
+        onRequestSearch={() => setSearchMode("add_excluded")}
+      />
 
       {searchMode !== "none" && (
         <Box
@@ -698,31 +611,3 @@ function SeedRow({
   );
 }
 
-function ManualBlockField({ onAdd }: { onAdd: (conceptId: string) => void }) {
-  const [value, setValue] = useState("");
-  const trimmed = value.trim();
-  const isNumeric = /^\d{4,18}$/.test(trimmed);
-  return (
-    <Stack direction="row" spacing={0.5} alignItems="center">
-      <TextField
-        size="small"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="paste SNOMED id"
-        inputProps={{ "aria-label": "Block a SNOMED code by id" }}
-        sx={{ width: 160 }}
-      />
-      <Button
-        size="small"
-        variant="outlined"
-        disabled={!isNumeric}
-        onClick={() => {
-          onAdd(trimmed);
-          setValue("");
-        }}
-      >
-        Block
-      </Button>
-    </Stack>
-  );
-}

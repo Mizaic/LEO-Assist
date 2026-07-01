@@ -1393,7 +1393,10 @@ def _format_match(
         "guideline_title": rule.get("guideline_title"),
         "chapter_title": rule.get("chapter_title"),
         "recommendation_verbatim": rule.get("recommendation_verbatim"),
+        # "action" (singular) is a one-release back-compat shim equal to
+        # actions[0] -- see guideline_compiler.py's Action metadata note.
         "action": rule.get("action"),
+        "actions": rule.get("actions") or [],
         "confidence": 1.0,
     }
     if matched_via:

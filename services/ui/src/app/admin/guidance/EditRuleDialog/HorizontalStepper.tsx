@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -26,10 +26,13 @@
  *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
  */
 
+import { motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+
+import { useMotion } from "@leo/design-system";
 
 import {
   STEP_IDS,
@@ -138,11 +141,12 @@ function StepperItem({
   isCurrent,
   onJump,
 }: ItemProps) {
+  const { reducedMotion } = useMotion();
   const title = STEP_TITLES[stepId];
   const shortTitle = STEP_SHORT_TITLES[stepId];
   const stateLabel = STEP_STATE_LABELS[state];
   const isReady = state === "ready";
-  const ariaLabel = `Step ${index} of 4: ${title}. ${stateLabel}.${
+  const ariaLabel = `Step ${index} of ${STEP_IDS.length}: ${title}. ${stateLabel}.${
     isCurrent ? " Current step." : ""
   }`;
 
@@ -163,13 +167,12 @@ function StepperItem({
         py: 0.75,
         border: "none",
         borderRadius: 999,
-        bgcolor: isCurrent ? "primary.50" : "transparent",
+        bgcolor: "transparent",
         color: "text.primary",
         cursor: "pointer",
-        transition:
-          "background-color 120ms ease, color 120ms ease, transform 120ms ease",
+        transition: "color 120ms ease, transform 120ms ease",
         "&:hover": {
-          bgcolor: isCurrent ? "primary.100" : "action.hover",
+          bgcolor: isCurrent ? "transparent" : "action.hover",
         },
         "&:focus-visible": {
           outline: "2px solid",
@@ -178,9 +181,28 @@ function StepperItem({
         },
       }}
     >
+      {isCurrent && (
+        <fm.div
+          layoutId="stepper-active-pill"
+          transition={
+            reducedMotion
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 380, damping: 32 }
+          }
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 999,
+            background: "var(--mui-palette-primary-50, #EFF6FF)",
+            zIndex: 0,
+          }}
+        />
+      )}
       <Box
         aria-hidden="true"
         sx={{
+          position: "relative",
+          zIndex: 1,
           width: 26,
           height: 26,
           borderRadius: "50%",
@@ -211,7 +233,7 @@ function StepperItem({
           index
         )}
       </Box>
-      <Box sx={{ minWidth: 0, textAlign: "left" }}>
+      <Box sx={{ position: "relative", zIndex: 1, minWidth: 0, textAlign: "left" }}>
         <Typography
           variant="body2"
           sx={{

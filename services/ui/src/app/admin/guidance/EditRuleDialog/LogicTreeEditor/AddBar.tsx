@@ -1,14 +1,21 @@
 "use client";
 /**
  * Dashed-border add buttons for a group body.
- * Three actions: symptom/sign, patient detail, lab value.
- * Always visible -- not hidden behind hover.
+ * Actions: symptom/sign/procedure/situation, patient detail, lab value,
+ * rule dependency, and a nested AND/OR/NOT/at-least sub-group. Always
+ * visible -- not hidden behind hover.
  *
- * Atlas trace: DO-D6CE2AA5 / DI-A3107424
+ * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
+import { motion as fm } from "framer-motion";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import AddIcon from "@mui/icons-material/Add";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+
+import { useMotion } from "@leo/design-system";
+
+import { bounceInteraction } from "../../motionPresets";
 
 const dashedBtnSx = {
   border: "1.5px dashed",
@@ -34,6 +41,9 @@ interface Props {
   onAddDemographic: () => void;
   onAddObservation?: () => void;
   onAddRuleFired?: () => void;
+  /** Adds a nested sub-group (for example "any of these" inside an
+   *  "all of these" pathway) as a new child of the current group. */
+  onAddGroup?: () => void;
 }
 
 export default function AddBar({
@@ -41,52 +51,78 @@ export default function AddBar({
   onAddDemographic,
   onAddObservation,
   onAddRuleFired,
+  onAddGroup,
 }: Props) {
+  const { reducedMotion } = useMotion();
+  const spring = bounceInteraction(reducedMotion);
+
   return (
     <Stack direction="row" spacing={1} sx={{ mt: 1.25, flexWrap: "wrap", rowGap: 0.75 }}>
-      <Button
-        startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-        size="small"
-        variant="outlined"
-        sx={dashedBtnSx}
-        onClick={(e) => onAddConcept(e.currentTarget)}
-        aria-label="Add a symptom or sign"
-      >
-        Add symptom or sign
-      </Button>
-      <Button
-        startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-        size="small"
-        variant="outlined"
-        sx={dashedBtnSx}
-        onClick={onAddDemographic}
-        aria-label="Add a patient detail"
-      >
-        Add patient detail
-      </Button>
-      {onAddObservation && (
+      <fm.div style={{ display: "inline-flex" }} {...spring}>
         <Button
           startIcon={<AddIcon sx={{ fontSize: 14 }} />}
           size="small"
           variant="outlined"
           sx={dashedBtnSx}
-          onClick={onAddObservation}
-          aria-label="Add a lab value or reading"
+          onClick={(e) => onAddConcept(e.currentTarget)}
+          aria-label="Add a symptom, sign, procedure, or situation"
         >
-          Add lab value
+          Add symptom, procedure, or situation
         </Button>
+      </fm.div>
+      <fm.div style={{ display: "inline-flex" }} {...spring}>
+        <Button
+          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+          size="small"
+          variant="outlined"
+          sx={dashedBtnSx}
+          onClick={onAddDemographic}
+          aria-label="Add a patient detail"
+        >
+          Add patient detail
+        </Button>
+      </fm.div>
+      {onAddObservation && (
+        <fm.div style={{ display: "inline-flex" }} {...spring}>
+          <Button
+            startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+            size="small"
+            variant="outlined"
+            sx={dashedBtnSx}
+            onClick={onAddObservation}
+            aria-label="Add a lab value or reading"
+          >
+            Add lab value
+          </Button>
+        </fm.div>
       )}
       {onAddRuleFired && (
-        <Button
-          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-          size="small"
-          variant="outlined"
-          sx={dashedBtnSx}
-          onClick={onAddRuleFired}
-          aria-label="Add a rule dependency"
-        >
-          Add rule dependency
-        </Button>
+        <fm.div style={{ display: "inline-flex" }} {...spring}>
+          <Button
+            startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+            size="small"
+            variant="outlined"
+            sx={dashedBtnSx}
+            onClick={onAddRuleFired}
+            aria-label="Add a rule dependency"
+          >
+            Add rule dependency
+          </Button>
+        </fm.div>
+      )}
+      {onAddGroup && (
+        <fm.div style={{ display: "inline-flex" }} {...spring}>
+          <Button
+            startIcon={<AccountTreeOutlinedIcon sx={{ fontSize: 14 }} />}
+            size="small"
+            variant="outlined"
+            sx={dashedBtnSx}
+            onClick={onAddGroup}
+            aria-label="Add a condition group, for example a set of options where any one match is enough"
+          >
+            Add condition group
+          </Button>
+        </fm.div>
       )}
     </Stack>
   );

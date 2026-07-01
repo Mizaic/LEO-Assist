@@ -2,12 +2,12 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-E647765A
- *   DI: DI-0C8FBAF7
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  */
 import type { LogicTreeNode } from "./RuleLogicView";
 import type { EditableRule } from "./EditRuleDialog";
-import type { LogicCriterion } from "./EditRuleDialog/types";
+import type { LogicCriterion, RuleAction } from "./EditRuleDialog/types";
 import type {
   ActionConcept,
   Rule,
@@ -62,19 +62,24 @@ export function mergeEditedRuleIntoCache(
   newRuleId: string,
   payload: {
     name: string;
-    strength: string;
     logic_tree: Record<string, unknown>;
-    action?: ActionConcept;
+    /** Sanitised save-payload shape (see ``sanitiseActionsForSave``);
+     *  each item's ``criterion``/``strength`` line up with ``RuleAction``
+     *  but are typed loosely here because they are about to be POSTed
+     *  as plain JSON, not consumed as editor state. */
+    actions?: Array<Record<string, unknown>>;
   },
 ): Rule {
+  const actions = payload.actions as unknown as RuleAction[] | undefined;
   return {
     ...previous,
     rule_id: newRuleId,
     status: "active",
     name: payload.name || previous.name,
-    strength: payload.strength || previous.strength,
     logic_tree: payload.logic_tree as unknown as LogicTreeNode,
-    ...(payload.action ? { action: payload.action } : {}),
+    ...(actions
+      ? { actions, strength: actions[0]?.strength ?? previous.strength }
+      : {}),
   };
 }
 
@@ -151,6 +156,7 @@ export function ruleToEditable(rule: Rule): EditableRule {
     chapter_title: rule.chapter_title,
     recommendation_text: rule.recommendation_text,
     logic_tree: rule.logic_tree,
+    actions: rule.actions,
     action,
   };
 }

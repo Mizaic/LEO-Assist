@@ -39,9 +39,9 @@ function mockSearch() {
   );
 }
 
-function goToStep(n: 1 | 2 | 3 | 4) {
+function goToStep(n: 1 | 2 | 3) {
   fireEvent.click(
-    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 4`, "i") })[0],
+    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 3`, "i") })[0],
   );
 }
 
@@ -64,7 +64,7 @@ describe("EditRuleDialog save gating -- VT-511-TC-005", () => {
     const save = screen.getByRole("button", { name: /save your changes/i });
     expect(save).toBeDisabled();
 
-    goToStep(4);
+    goToStep(3);
     const reason = screen.getByLabelText(
       /why are you changing this rule/i,
     ) as HTMLInputElement;
@@ -94,7 +94,7 @@ describe("EditRuleDialog Cancel discards -- VT-511-TC-010", () => {
       />,
     );
 
-    goToStep(4);
+    goToStep(3);
     fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
       target: { value: "Half-finished edit" },
     });

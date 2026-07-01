@@ -5,8 +5,9 @@
  * Advanced modes (temporal / reference_range / trend / aggregation)
  * render read-only with a hint.
  *
- * Atlas trace: DO-D6CE2AA5 / DI-A3107424
+ * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
+import { motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
@@ -18,8 +19,11 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
+import { useMotion } from "@leo/design-system";
+
 import { OBSERVATION_MODE_LABELS, OPERATOR_LABELS, friendlyTerm } from "../copy";
 import type { EditableLogicNode, EditableObservationPayload, NodeUpdate, ObservationOperator } from "../types";
+import { popVariants } from "../../motionPresets";
 
 function pickMode(obs: EditableObservationPayload): string {
   if (obs.temporal) return "temporal";
@@ -37,17 +41,22 @@ interface Props {
 
 export default function ObservationRow({ node, onUpdate, onSelect }: Props) {
   const obs = node.observation;
+  const { reducedMotion } = useMotion();
+  const entrance = popVariants(reducedMotion);
+
   if (!obs) {
     return (
-      <Stack direction="row" spacing={0.75} alignItems="center" sx={{ my: 0.5 }}>
-        <Chip label="Lab value needs attention" size="small" color="warning" variant="outlined" />
-        <Tooltip title="Remove this lab value">
-          <IconButton size="small" aria-label="Remove this lab value"
-            onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}>
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      <fm.div variants={entrance} initial="initial" animate="animate">
+        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ my: 0.5 }}>
+          <Chip label="Lab value needs attention" size="small" color="warning" variant="outlined" />
+          <Tooltip title="Remove this lab value">
+            <IconButton size="small" aria-label="Remove this lab value"
+              onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}>
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </fm.div>
     );
   }
 
@@ -56,25 +65,27 @@ export default function ObservationRow({ node, onUpdate, onSelect }: Props) {
 
   if (mode !== "absolute") {
     return (
-      <Box sx={{ my: 0.5, px: 1.25, py: 1, bgcolor: "info.50",
-        border: "1px dashed", borderColor: "info.200", borderRadius: 1.5 }}>
-        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-          <Typography variant="body2" sx={{ fontWeight: 600, color: "info.dark" }}>{term}</Typography>
-          <Chip label={OBSERVATION_MODE_LABELS[mode] ?? mode}
-            size="small" color="info" variant="outlined"
-            sx={{ height: 22, fontSize: "0.72rem" }} />
-          <Typography variant="caption" color="text.secondary">
-            Open timing settings to edit.
-          </Typography>
-          <Box sx={{ flex: 1 }} />
-          <Tooltip title="Remove this lab value">
-            <IconButton size="small" aria-label="Remove this lab value"
-              onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Box>
+      <fm.div variants={entrance} initial="initial" animate="animate">
+        <Box sx={{ my: 0.5, px: 1.25, py: 1, bgcolor: "info.50",
+          border: "1px dashed", borderColor: "info.200", borderRadius: 1.5 }}>
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "info.dark" }}>{term}</Typography>
+            <Chip label={OBSERVATION_MODE_LABELS[mode] ?? mode}
+              size="small" color="info" variant="outlined"
+              sx={{ height: 22, fontSize: "0.72rem" }} />
+            <Typography variant="caption" color="text.secondary">
+              Open timing settings to edit.
+            </Typography>
+            <Box sx={{ flex: 1 }} />
+            <Tooltip title="Remove this lab value">
+              <IconButton size="small" aria-label="Remove this lab value"
+                onClick={() => onUpdate({ kind: "remove", nodeId: node.node_id })}>
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Box>
+      </fm.div>
     );
   }
 
@@ -87,6 +98,7 @@ export default function ObservationRow({ node, onUpdate, onSelect }: Props) {
   const hi = Array.isArray(obs.value) ? obs.value[1] : "";
 
   return (
+    <fm.div variants={entrance} initial="initial" animate="animate">
     <Stack direction="row" spacing={0.75} alignItems="center" sx={{ my: 0.5, flexWrap: "wrap" }}>
       <Chip label={term} size="small"
         color={obs.observable_id ? "success" : "warning"}
@@ -151,5 +163,6 @@ export default function ObservationRow({ node, onUpdate, onSelect }: Props) {
         </IconButton>
       </Tooltip>
     </Stack>
+    </fm.div>
   );
 }

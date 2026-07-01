@@ -7,7 +7,7 @@
  *   - Inline PathwayPreview sentence
  *   - Optional _aiSuggested badge (cleared on first edit inside the card)
  *
- * Atlas trace: DO-D6CE2AA5 / DI-A3107424
+ * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
@@ -55,6 +55,13 @@ export default function PathwayCard({
   const positional = `Pathway ${letter}`;
   const accent = CARD_ACCENTS[index % CARD_ACCENTS.length];
   const borderColor = KIND_COLORS[node.kind] ?? accent;
+
+  // Guard: PathwayCard only handles group nodes. Leaf kinds (CONCEPT etc.)
+  // should never reach here; if they do, render nothing so MUI Select
+  // does not warn about an out-of-range value.
+  if (!GROUP_KINDS.includes(node.kind as typeof GROUP_KINDS[number])) {
+    return null;
+  }
 
   const [aiSuggested, setAiSuggested] = useState(
     (node as EditableLogicNode & { _aiSuggested?: boolean })._aiSuggested === true,

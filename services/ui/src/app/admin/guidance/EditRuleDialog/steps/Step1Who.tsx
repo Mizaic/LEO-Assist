@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -287,7 +287,7 @@ function EmptyTreeState({
         What does this rule apply to?
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5, mb: 2.5 }}>
-        Start with a symptom, a patient detail (like age or sex), or a lab result.
+        Start with a symptom, procedure, situation, patient detail (like age or sex), or a lab result.
       </Typography>
 
       <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" sx={{ rowGap: 1, mb: 2 }}>
@@ -295,10 +295,10 @@ function EmptyTreeState({
           variant="outlined"
           startIcon={<AddRoundedIcon fontSize="small" />}
           onClick={(e) => onAddFirstSymptom(e.currentTarget)}
-          aria-label="Add the first symptom or sign to this rule"
+          aria-label="Add the first symptom, sign, procedure, or situation to this rule"
           sx={emptyAddBtnSx}
         >
-          Symptom or sign
+          Symptom, procedure, or situation
         </Button>
         {onAddFirstDemographic && (
           <Button

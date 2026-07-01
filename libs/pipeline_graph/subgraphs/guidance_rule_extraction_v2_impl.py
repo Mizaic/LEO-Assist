@@ -415,6 +415,7 @@ class CriterionResult(TypedDict, total=False):
 
 class ActionResult(TypedDict, total=False):
     term: str
+    strength: str
     snomed_concept_id: str | None
     preferred_term: str
     semantic_tag: str
@@ -446,6 +447,10 @@ class CodedLogicNode(TypedDict, total=False):
 class CodedCriteria(TypedDict, total=False):
     schema_version: int
     logic_tree: CodedLogicNode | None
+    actions: list[ActionResult]
+    #: Back-compat shim: actions[0] if actions else None. Consumed by
+    #: guidance_rule_generator.py::_write_rule during the transition to
+    #: the array-shaped actions field.
     action: ActionResult | None
     verifier: dict[str, Any]
     needs_human_review: bool
@@ -661,7 +666,27 @@ def _make_term_obj(value: Any) -> dict[str, Any]:
     }
 
 
-def _normalise_action(action: Any) -> dict[str, Any] | None:
+_ACTION_STRENGTH_VALUES: frozenset[str] = frozenset(
+    {
+        "offer",
+        "consider",
+        "refer",
+        "discuss",
+        "safety_net",
+        "do_not_offer",
+        "unspecified",
+    }
+)
+
+
+def _normalise_action_strength(strength: Any, fallback: str = "unspecified") -> str:
+    value = str(strength or "").strip().lower()
+    return value if value in _ACTION_STRENGTH_VALUES else fallback
+
+
+def _normalise_action(
+    action: Any, *, default_strength: str = "unspecified"
+) -> dict[str, Any] | None:
     if not action:
         return None
     if isinstance(action, dict):
@@ -669,11 +694,39 @@ def _normalise_action(action: Any) -> dict[str, Any] | None:
         if not text:
             return None
         search_terms = _dedupe_strs([text] + list(action.get("search_terms") or []))
-        return {"text": text, "search_terms": search_terms or [text]}
+        return {
+            "text": text,
+            "search_terms": search_terms or [text],
+            "strength": _normalise_action_strength(
+                action.get("strength"), default_strength
+            ),
+        }
     text = str(action).strip()
     if not text:
         return None
-    return {"text": text, "search_terms": [text]}
+    return {"text": text, "search_terms": [text], "strength": default_strength}
+
+
+def _normalise_actions(
+    data: dict[str, Any], *, default_strength: str = "unspecified"
+) -> list[dict[str, Any]]:
+    """Normalise the LLM output's action(s) into a list of action dicts.
+
+    Accepts the new ``actions`` array shape as well as the legacy singular
+    ``action`` object, so a prompt version still returning the old shape
+    degrades to a one-item list rather than losing the action entirely.
+    """
+    raw_actions = data.get("actions")
+    if isinstance(raw_actions, list):
+        items: list[Any] = list(raw_actions)
+    elif data.get("action") is not None:
+        items = [data.get("action")]
+    else:
+        items = []
+    normalised = [
+        _normalise_action(item, default_strength=default_strength) for item in items
+    ]
+    return [item for item in normalised if item]
 
 
 def _expand_action_search_terms(
@@ -1144,7 +1197,7 @@ def _normalise_to_logic_tree(data: dict[str, Any]) -> dict[str, Any] | None:
         return {
             "schema_version": 2,
             "logic_tree": logic_tree,
-            "action": _normalise_action(data.get("action")),
+            "actions": _normalise_actions(data),
         }
 
     if "criteria_groups" in data:
@@ -1162,7 +1215,7 @@ def _normalise_to_logic_tree(data: dict[str, Any]) -> dict[str, Any] | None:
         return {
             "schema_version": 2,
             "logic_tree": logic_tree,
-            "action": _normalise_action(data.get("action")),
+            "actions": _normalise_actions(data),
         }
 
     present = list(data.get("present") or [])
@@ -1181,7 +1234,7 @@ def _normalise_to_logic_tree(data: dict[str, Any]) -> dict[str, Any] | None:
     return {
         "schema_version": 2,
         "logic_tree": logic_tree,
-        "action": _normalise_action(data.get("action")),
+        "actions": _normalise_actions(data),
     }
 
 
@@ -1538,23 +1591,28 @@ def expand_leaves(state: GuidanceRuleExtractionState) -> dict[str, Any]:
 
     recommendation_text = str((state.get("recommendation") or {}).get("verbatim") or "")
     _expand_leaves_in_logic_tree(raw.get("logic_tree"), recommendation_text)
-    action = dict(raw.get("action") or {})
-    if action:
-        action_text = str(action.get("text") or "")
-        verbatim = str((state.get("recommendation") or {}).get("verbatim") or "")
-        action_terms = _expand_action_search_terms(action_text, verbatim)
-        # Gallbladder action boost: inject pinned procedure terms FIRST so resolver
-        # turn-1 finds 169250003 before any high-confidence-but-wrong vector hit exits.
-        gb_lead = _gallbladder_action_boost(action_text, verbatim)
-        action["search_terms"] = _dedupe_strs(
-            gb_lead + list(action.get("search_terms") or []) + action_terms
-        )
-        if action_text:
-            action["original_phrase"] = action_text
-            action["expansion_source"] = "action_expansion"
-            action["expanded_from"] = action_terms
-        raw["action"] = action
+    raw["actions"] = [
+        _expand_single_action(dict(action), recommendation_text)
+        for action in (raw.get("actions") or [])
+        if action
+    ]
     return {"expanded_criteria": raw, "errors": errors}
+
+
+def _expand_single_action(action: dict[str, Any], verbatim: str) -> dict[str, Any]:
+    action_text = str(action.get("text") or "")
+    action_terms = _expand_action_search_terms(action_text, verbatim)
+    # Gallbladder action boost: inject pinned procedure terms FIRST so resolver
+    # turn-1 finds 169250003 before any high-confidence-but-wrong vector hit exits.
+    gb_lead = _gallbladder_action_boost(action_text, verbatim)
+    action["search_terms"] = _dedupe_strs(
+        gb_lead + list(action.get("search_terms") or []) + action_terms
+    )
+    if action_text:
+        action["original_phrase"] = action_text
+        action["expansion_source"] = "action_expansion"
+        action["expanded_from"] = action_terms
+    return action
 
 
 def _has_instruction_issue(verifier_result: dict[str, Any] | None) -> bool:
@@ -1666,7 +1724,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             "raw_criteria": {
                 "schema_version": 2,
                 "logic_tree": None,
-                "action": None,
+                "actions": [],
                 "no_rule_expected": True,
                 "reason": "non_codable_service_recommendation",
             },
@@ -1752,7 +1810,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             if result.verdict is not None:
                 verdict = dict(result.verdict)
                 has_logic = verdict.get("logic_tree") is not None
-                has_action = bool(verdict.get("action"))
+                has_action = bool(verdict.get("actions"))
                 no_rule_expected = bool(verdict.get("no_rule_expected"))
                 if (
                     not has_logic
@@ -1772,13 +1830,14 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                         "unless it is explicitly a service/process-only recommendation."
                     )
                     continue
-                action = verdict.get("action")
-                if isinstance(action, dict):
-                    action["search_terms"] = _expand_action_search_terms(
-                        str(action.get("text") or ""),
-                        safe_verbatim,
-                    )
-                    verdict["action"] = action
+                actions = list(verdict.get("actions") or [])
+                for action in actions:
+                    if isinstance(action, dict):
+                        action["search_terms"] = _expand_action_search_terms(
+                            str(action.get("text") or ""),
+                            safe_verbatim,
+                        )
+                verdict["actions"] = actions
                 return {"raw_criteria": verdict, "errors": errors, "llm_tokens": merged}
             if attempt == 0:
                 logger.warning(
@@ -1941,24 +2000,48 @@ def _resolve_term_with_controller(
     }
 
 
+def _resolve_one_action_candidates(
+    action: dict[str, Any], recommendation_text: str
+) -> tuple[list[ResolutionCandidate], dict[str, Any]]:
+    """Resolve one action's SNOMED candidates via the per-term controller.
+
+    Independent per action -- called once per item in the actions list so
+    each recommended procedure gets its own Terminology API resolution.
+    """
+    action_term = {
+        "text": action["text"],
+        "search_terms": list(action.get("search_terms") or [action["text"]]),
+    }
+    expected_tag = (
+        _infer_expected_tag_for_term_obj(action_term, is_action=True) or "procedure"
+    )
+    result = _resolve_term_with_controller(
+        term_obj=action_term,
+        expected_tag=expected_tag,
+        recommendation_text=recommendation_text,
+        is_action=True,
+    )
+    candidates = list(result.get("candidates") or [])
+    meta = {
+        "resolver_turns": int(result.get("resolver_turns") or 0),
+        "search_history": list(result.get("search_history") or []),
+        "needs_human_review": bool(result.get("needs_human_review")),
+        "expected_tag": expected_tag,
+    }
+    return candidates, meta
+
+
 def _resolve_candidate_lists(
     logic_tree: dict[str, Any] | None,
-    action: dict[str, Any] | None,
+    actions: list[dict[str, Any]],
     recommendation_text: str,
 ) -> tuple[
     dict[str, list[ResolutionCandidate]],
-    list[ResolutionCandidate],
     dict[str, dict[str, Any]],
-    dict[str, Any],
+    list[tuple[list[ResolutionCandidate], dict[str, Any]]],
 ]:
     targets: dict[str, dict[str, Any]] = {}
     _collect_concept_targets(logic_tree, targets)
-    action_targets: dict[str, dict[str, Any]] = {}
-    if action:
-        action_targets["action"] = {
-            "text": action["text"],
-            "search_terms": list(action.get("search_terms") or [action["text"]]),
-        }
 
     merged: dict[str, list[ResolutionCandidate]] = {}
     leaf_meta: dict[str, dict[str, Any]] = {}
@@ -1978,28 +2061,12 @@ def _resolve_candidate_lists(
             "expected_tag": expected_tag,
         }
 
-    action_candidates: list[ResolutionCandidate] = []
-    action_meta: dict[str, Any] = {}
-    if action_targets.get("action"):
-        action_term = action_targets["action"]
-        expected_tag = (
-            _infer_expected_tag_for_term_obj(action_term, is_action=True) or "procedure"
-        )
-        result = _resolve_term_with_controller(
-            term_obj=action_term,
-            expected_tag=expected_tag,
-            recommendation_text=recommendation_text,
-            is_action=True,
-        )
-        action_candidates = list(result.get("candidates") or [])
-        action_meta = {
-            "resolver_turns": int(result.get("resolver_turns") or 0),
-            "search_history": list(result.get("search_history") or []),
-            "needs_human_review": bool(result.get("needs_human_review")),
-            "expected_tag": expected_tag,
-        }
-
-    return merged, action_candidates, leaf_meta, action_meta
+    action_results = [
+        _resolve_one_action_candidates(action, recommendation_text)
+        for action in actions
+        if action
+    ]
+    return merged, leaf_meta, action_results
 
 
 def _annotate_candidate_tree(
@@ -2039,8 +2106,32 @@ def _annotate_candidate_tree(
     return out
 
 
+def _build_action_candidate_payload(
+    action: dict[str, Any],
+    candidates: list[ResolutionCandidate],
+    meta: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "term": action["text"],
+        "strength": _normalise_action_strength(action.get("strength")),
+        "original_phrase": action.get("original_phrase"),
+        "expansion_source": action.get("expansion_source"),
+        "expanded_from": action.get("expanded_from"),
+        "candidates": candidates,
+        "snomed_concept_id": None,
+        "preferred_term": action["text"],
+        "semantic_tag": "",
+        "verification_status": "pending",
+        "verification_reason": "",
+        "confidence": 0.0,
+        "resolver_turns": int(meta.get("resolver_turns") or 0),
+        "search_history": list(meta.get("search_history") or []),
+        "needs_human_review": bool(meta.get("needs_human_review")),
+    }
+
+
 def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
-    """Resolve all concept leaves via batched /terminology/resolve."""
+    """Resolve all concept leaves and every action via batched /terminology/resolve."""
     errors: list[str] = list(state.get("errors") or [])
     raw = state.get("expanded_criteria") or state.get("raw_criteria")
     if raw is None:
@@ -2050,7 +2141,7 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             "candidate_criteria": {
                 "schema_version": 2,
                 "logic_tree": None,
-                "action": None,
+                "actions": [],
                 "no_rule_expected": True,
                 "reason": str(
                     raw.get("reason") or "non_codable_service_recommendation"
@@ -2061,16 +2152,14 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
 
     try:
         logic_tree = raw.get("logic_tree")
-        action = raw.get("action")
+        actions = [a for a in (raw.get("actions") or []) if a]
         recommendation_text = str(
             (state.get("recommendation") or {}).get("verbatim") or ""
         )
-        candidate_map, action_candidates, leaf_meta, action_meta = (
-            _resolve_candidate_lists(
-                logic_tree,
-                action,
-                recommendation_text,
-            )
+        candidate_map, leaf_meta, action_results = _resolve_candidate_lists(
+            logic_tree,
+            actions,
+            recommendation_text,
         )
         candidate_tree = _annotate_candidate_tree(
             copy.deepcopy(logic_tree), candidate_map
@@ -2104,49 +2193,36 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                     _annotate_meta(child)
 
         _annotate_meta(candidate_tree)
-        action_payload = None
-        if action:
-            action_payload = {
-                "term": action["text"],
-                "original_phrase": action.get("original_phrase"),
-                "expansion_source": action.get("expansion_source"),
-                "expanded_from": action.get("expanded_from"),
-                "candidates": action_candidates,
-                "snomed_concept_id": None,
-                "preferred_term": action["text"],
-                "semantic_tag": "",
-                "verification_status": "pending",
-                "verification_reason": "",
-                "confidence": 0.0,
-                "resolver_turns": int(action_meta.get("resolver_turns") or 0),
-                "search_history": list(action_meta.get("search_history") or []),
-                "needs_human_review": bool(action_meta.get("needs_human_review")),
-            }
-            if bool(action_payload.get("needs_human_review")):
+
+        action_payloads: list[dict[str, Any]] = []
+        for action, (candidates, meta) in zip(actions, action_results):
+            payload = _build_action_candidate_payload(action, candidates, meta)
+            action_payloads.append(payload)
+            if payload["needs_human_review"]:
                 hitl_terms.append(
                     {
                         "kind": "action",
-                        "term": action_payload.get("term"),
+                        "term": payload.get("term"),
                         "reason": "per_term_controller_unresolved",
-                        "search_history": action_payload.get("search_history") or [],
-                        "best_candidates": list(action_payload.get("candidates") or []),
+                        "search_history": payload.get("search_history") or [],
+                        "best_candidates": list(payload.get("candidates") or []),
                     }
                 )
 
         unresolved = sum(
             1 for candidates in candidate_map.values() if not candidates
-        ) + (1 if action and not action_candidates else 0)
+        ) + sum(1 for payload in action_payloads if not payload["candidates"])
         logger.info(
-            "Terminology resolve: %d concept leaf/leaves, action_candidates=%d unresolved=%d",
+            "Terminology resolve: %d concept leaf/leaves, %d action(s), unresolved=%d",
             len(candidate_map),
-            len(action_candidates),
+            len(action_payloads),
             unresolved,
         )
         return {
             "candidate_criteria": {
                 "schema_version": 2,
                 "logic_tree": candidate_tree,
-                "action": action_payload,
+                "actions": action_payloads,
                 "hitl_terms": hitl_terms,
             },
             "errors": errors,
@@ -2207,6 +2283,20 @@ def _load_verifier_prompt() -> tuple[str, list[dict[str, Any]]]:
     )
 
 
+def _first_action(candidate_criteria: dict[str, Any]) -> dict[str, Any]:
+    """The first action, or {} when the rule has no actions.
+
+    The code-verifier LLM prompt/schema only reasons about a single
+    "action" (see libs/prompts/guidance_rule_code_verifier_*.py). Extra
+    actions beyond the first are resolved deterministically in
+    verify_codes via _select_action_candidate without an LLM verifier
+    opinion, so multi-action rules do not require a verifier-prompt
+    change to stay safe.
+    """
+    actions = candidate_criteria.get("actions") or []
+    return dict(actions[0]) if actions else {}
+
+
 def _build_verifier_user_msg(
     rec: dict[str, Any],
     raw: dict[str, Any],
@@ -2228,7 +2318,7 @@ def _build_verifier_user_msg(
         },
         "raw_logic_tree": raw.get("logic_tree"),
         "criteria_leaves": leaves,
-        "action": candidate_criteria.get("action"),
+        "action": _first_action(candidate_criteria) or None,
     }
     body = json.dumps(payload, ensure_ascii=False)
     if not examples_block:
@@ -2249,7 +2339,7 @@ def _candidate_lookup(
         }
     action_lookup = {
         str(c.get("concept_id") or c.get("preferred_term") or ""): c
-        for c in ((candidate_criteria.get("action") or {}).get("candidates") or [])
+        for c in (_first_action(candidate_criteria).get("candidates") or [])
     }
     return by_leaf, action_lookup
 
@@ -2575,7 +2665,7 @@ def _rerun_requested_searches(
             + _auto_retry_terms(leaf_reason.get(node_id, ""), base, expected_tag)
         )
     if str(action_retry.get("status") or "") == "retry_search":
-        action_base = str((candidate_criteria.get("action") or {}).get("term") or "")
+        action_base = str(_first_action(candidate_criteria).get("term") or "")
         action_search_terms = _dedupe_strs(
             action_search_terms
             + _expand_action_search_terms(action_base, "")
@@ -2642,8 +2732,12 @@ def _rerun_requested_searches(
             _inject(child)
 
     _inject(updated.get("logic_tree"))
-    action = dict(updated.get("action") or {})
-    if action and action_search_terms:
+    # Only the first action goes through the LLM verifier's retry-search loop
+    # (see _first_action); remaining actions keep the candidates from their
+    # own independent Terminology API resolution in code_snomed/agentic_resolve.
+    actions = list(updated.get("actions") or [])
+    if actions and action_search_terms:
+        action = dict(actions[0])
         merged = {
             str(c.get("concept_id") or c.get("preferred_term") or ""): c
             for c in (action.get("candidates") or [])
@@ -2663,7 +2757,8 @@ def _rerun_requested_searches(
         action["candidates"] = sorted(
             merged.values(), key=lambda c: float(c.get("score") or 0.0), reverse=True
         )[:5]
-        updated["action"] = action
+        actions[0] = action
+        updated["actions"] = actions
     return updated
 
 
@@ -2902,6 +2997,53 @@ def _run_agentic_resolver(
         return _heuristic_agentic_search(base_term, expected_tag, recommendation_text)
 
 
+def _agentic_refine_action(
+    action: dict[str, Any],
+    recommendation_text: str,
+    hitl_terms: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Escalate one unresolved action to the agentic resolver.
+
+    Mutates ``hitl_terms`` in place (appends an entry when the resolver
+    still cannot find a confident candidate) and returns the refined
+    action dict. Called once per item of the actions list so every
+    recommended procedure is independently escalated.
+    """
+    action = dict(action)
+    if not (
+        _needs_agentic_retry(list(action.get("candidates") or []))
+        and not bool(action.get("resolver_turns"))
+    ):
+        return action
+    term = str(action.get("term") or "")
+    result = _run_agentic_resolver(term, "procedure", recommendation_text)
+    extra = list(result.get("best_candidates") or [])
+    if extra:
+        merged = {
+            str(c.get("concept_id") or c.get("preferred_term") or ""): c
+            for c in (list(action.get("candidates") or []) + extra)
+        }
+        action["candidates"] = sorted(
+            merged.values(),
+            key=lambda c: float(c.get("score") or 0.0),
+            reverse=True,
+        )[:8]
+    action["resolver_turns"] = int(result.get("resolver_turns") or 0)
+    action["search_history"] = list(result.get("search_history") or [])
+    if bool(result.get("needs_human_review")):
+        action["needs_human_review"] = True
+        hitl_terms.append(
+            {
+                "kind": "action",
+                "term": term,
+                "reason": result.get("reason"),
+                "search_history": action.get("search_history") or [],
+                "best_candidates": list(result.get("best_candidates") or []),
+            }
+        )
+    return action
+
+
 def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     errors: list[str] = list(state.get("errors") or [])
     candidate_criteria = copy.deepcopy(state.get("candidate_criteria"))
@@ -2974,39 +3116,10 @@ def agentic_resolve(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 _walk(child)
 
     _walk(candidate_criteria.get("logic_tree"))
-    action = dict(candidate_criteria.get("action") or {})
-    if (
-        action
-        and _needs_agentic_retry(list(action.get("candidates") or []))
-        and not bool(action.get("resolver_turns"))
-    ):
-        term = str(action.get("term") or "")
-        result = _run_agentic_resolver(term, "procedure", recommendation_text)
-        extra = list(result.get("best_candidates") or [])
-        if extra:
-            merged = {
-                str(c.get("concept_id") or c.get("preferred_term") or ""): c
-                for c in (list(action.get("candidates") or []) + extra)
-            }
-            action["candidates"] = sorted(
-                merged.values(),
-                key=lambda c: float(c.get("score") or 0.0),
-                reverse=True,
-            )[:8]
-        action["resolver_turns"] = int(result.get("resolver_turns") or 0)
-        action["search_history"] = list(result.get("search_history") or [])
-        if bool(result.get("needs_human_review")):
-            action["needs_human_review"] = True
-            hitl_terms.append(
-                {
-                    "kind": "action",
-                    "term": term,
-                    "reason": result.get("reason"),
-                    "search_history": action.get("search_history") or [],
-                    "best_candidates": list(result.get("best_candidates") or []),
-                }
-            )
-        candidate_criteria["action"] = action
+    candidate_criteria["actions"] = [
+        _agentic_refine_action(action, recommendation_text, hitl_terms)
+        for action in (candidate_criteria.get("actions") or [])
+    ]
 
     for item in hitl_terms:
         errors.append(
@@ -3059,45 +3172,74 @@ def _build_partial_from_candidates(
         ]
         return out
 
-    action = dict(candidate_criteria.get("action") or {})
-    action_payload = None
-    if action:
-        cands = list(action.get("candidates") or [])
-        best = cands[0] if cands else None
-        action_payload = {
-            "term": action.get("term", ""),
-            "snomed_concept_id": (best or {}).get("concept_id"),
-            "preferred_term": (best or {}).get(
-                "preferred_term", action.get("term", "")
-            ),
-            "semantic_tag": (best or {}).get("semantic_tag", ""),
-            "candidates": cands,
-            "verification_status": (
-                "needs_human_review" if not best else "provisionally_verified"
-            ),
-            "verification_reason": "partial_hitl",
-            "confidence": float((best or {}).get("score") or 0.0),
-            "resolver_turns": action.get("resolver_turns"),
-            "needs_human_review": not bool(best)
-            or bool(action.get("needs_human_review")),
-            "search_history": action.get("search_history"),
-        }
+    action_payloads = [
+        payload
+        for payload in (
+            _partial_action_payload(action)
+            for action in (candidate_criteria.get("actions") or [])
+        )
+        if payload is not None
+    ]
     return {
         "schema_version": 2,
         "logic_tree": _walk(candidate_criteria.get("logic_tree")),
-        "action": action_payload,
+        "actions": action_payloads,
+        "action": action_payloads[0] if action_payloads else None,
         "needs_human_review": bool(hitl_terms),
         "hitl_terms": hitl_terms,
         "verifier": {"overall_status": "partial_hitl"},
     }
 
 
+def _partial_action_payload(action: dict[str, Any] | None) -> dict[str, Any] | None:
+    action = dict(action or {})
+    if not action:
+        return None
+    cands = list(action.get("candidates") or [])
+    best = cands[0] if cands else None
+    return {
+        "term": action.get("term", ""),
+        "strength": _normalise_action_strength(action.get("strength")),
+        "snomed_concept_id": (best or {}).get("concept_id"),
+        "preferred_term": (best or {}).get("preferred_term", action.get("term", "")),
+        "semantic_tag": (best or {}).get("semantic_tag", ""),
+        "candidates": cands,
+        "verification_status": (
+            "needs_human_review" if not best else "provisionally_verified"
+        ),
+        "verification_reason": "partial_hitl",
+        "confidence": float((best or {}).get("score") or 0.0),
+        "resolver_turns": action.get("resolver_turns"),
+        "needs_human_review": not bool(best) or bool(action.get("needs_human_review")),
+        "search_history": action.get("search_history"),
+    }
+
+
+def _action_error_index(error: str) -> int | None:
+    """Parse the action index out of a ``verifier_unresolved:action:{i}:...`` error."""
+    parts = str(error or "").split(":", 3)
+    if len(parts) < 3:
+        return None
+    try:
+        return int(parts[2])
+    except ValueError:
+        return None
+
+
 def _derive_hitl_terms_from_errors(
     candidate_criteria: dict[str, Any], errors: list[str]
 ) -> list[dict[str, Any]]:
     hitl_terms: list[dict[str, Any]] = list(candidate_criteria.get("hitl_terms") or [])
-    if any(str(e).startswith("verifier_unresolved:action:") for e in errors):
-        action = dict(candidate_criteria.get("action") or {})
+    actions = candidate_criteria.get("actions") or []
+    for error in errors:
+        if not str(error).startswith("verifier_unresolved:action:"):
+            continue
+        idx = _action_error_index(error)
+        action = (
+            actions[idx]
+            if idx is not None and 0 <= idx < len(actions)
+            else (actions[0] if actions else {})
+        )
         hitl_terms.append(
             {
                 "kind": "action",
@@ -3315,9 +3457,7 @@ def _finalise_observations(
                         canonicalise_value(concept_id, float(value[1]), unit),
                     ]
                 elif isinstance(value, (int, float)):
-                    canonical_value = canonicalise_value(
-                        concept_id, float(value), unit
-                    )
+                    canonical_value = canonicalise_value(concept_id, float(value), unit)
                 keep_as_observation = canonical_value is not None and operator in {
                     ">=",
                     "<=",
@@ -3428,6 +3568,7 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             "coded_criteria": {
                 "schema_version": 2,
                 "logic_tree": None,
+                "actions": [],
                 "action": None,
                 "no_rule_expected": True,
                 "reason": str(
@@ -3539,58 +3680,55 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     )
     errors.extend(tree_errors)
 
-    action_payload = None
-    action = working.get("action")
-    if action:
-        action_decision = verifier_result.get("action_decision") or {}
-        action_id = str(action_decision.get("selected_concept_id") or "")
-        candidate = action_lookup.get(action_id)
+    actions = list(working.get("actions") or [])
+    action_payloads: list[dict[str, Any]] = []
+    action_decision = verifier_result.get("action_decision") or {}
+    for idx, action in enumerate(actions):
+        # Only actions[0] has an LLM verifier opinion (the verifier prompt/
+        # schema reasons about one action; see _first_action). Every other
+        # action falls back to the same deterministic site/urgency scoring
+        # that _select_action_candidate already applies today when the
+        # verifier declines to confirm a choice.
+        verifier_choice = None
+        if idx == 0:
+            action_id = str(action_decision.get("selected_concept_id") or "")
+            candidate = action_lookup.get(action_id)
+            verifier_choice = (
+                candidate
+                if str(action_decision.get("status") or "") == "verified"
+                else None
+            )
         selected_action, fallback_reason = _select_action_candidate(
             rec,
             str(action.get("term") or ""),
             list(action.get("candidates") or []),
-            (
-                candidate
-                if str(action_decision.get("status") or "") == "verified"
-                else None
-            ),
+            verifier_choice,
         )
         if selected_action is None:
-            errors.append(
-                f"verifier_unresolved:action:{action_decision.get('reason') or 'no approved action'}"
+            reason = (
+                action_decision.get("reason")
+                if idx == 0
+                else "no candidate passed deterministic site/urgency selection"
             )
-        else:
-            action_payload = {
-                "term": action.get("term", ""),
-                "original_phrase": action.get("original_phrase"),
-                "expansion_source": action.get("expansion_source"),
-                "expanded_from": action.get("expanded_from"),
-                "snomed_concept_id": selected_action.get("concept_id"),
-                "preferred_term": selected_action.get(
-                    "preferred_term", action.get("term", "")
-                ),
-                "semantic_tag": selected_action.get("semantic_tag", ""),
-                "candidates": action.get("candidates") or [],
-                "verification_status": "verified",
-                "verification_reason": (
-                    fallback_reason or str(action_decision.get("reason") or "")
-                ),
-                "confidence": float(
-                    action_decision.get("confidence")
-                    or selected_action.get("score")
-                    or 0.0
-                ),
-                "resolver_turns": action.get("resolver_turns"),
-                "needs_human_review": bool(action.get("needs_human_review")),
-                "search_history": action.get("search_history"),
-            }
+            errors.append(
+                f"verifier_unresolved:action:{idx}:{reason or 'no approved action'}"
+            )
+            continue
+        action_payloads.append(
+            _final_action_payload(
+                action,
+                selected_action,
+                fallback_reason,
+                action_decision if idx == 0 else {},
+            )
+        )
 
     if (
         errors
         or verified_tree is None
         or (
             str(verifier_result.get("overall_status") or "") != "verified"
-            and action_payload is None
+            and not action_payloads
         )
     ):
         logger.error(
@@ -3604,11 +3742,41 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         "coded_criteria": {
             "schema_version": 2,
             "logic_tree": verified_tree,
-            "action": action_payload,
+            "actions": action_payloads,
+            "action": action_payloads[0] if action_payloads else None,
             "verifier": verifier_result,
         },
         "errors": errors,
         "llm_tokens": merged_tokens,
+    }
+
+
+def _final_action_payload(
+    action: dict[str, Any],
+    selected_action: ResolutionCandidate,
+    fallback_reason: str | None,
+    action_decision: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "term": action.get("term", ""),
+        "strength": _normalise_action_strength(action.get("strength")),
+        "original_phrase": action.get("original_phrase"),
+        "expansion_source": action.get("expansion_source"),
+        "expanded_from": action.get("expanded_from"),
+        "snomed_concept_id": selected_action.get("concept_id"),
+        "preferred_term": selected_action.get("preferred_term", action.get("term", "")),
+        "semantic_tag": selected_action.get("semantic_tag", ""),
+        "candidates": action.get("candidates") or [],
+        "verification_status": "verified",
+        "verification_reason": (
+            fallback_reason or str(action_decision.get("reason") or "")
+        ),
+        "confidence": float(
+            action_decision.get("confidence") or selected_action.get("score") or 0.0
+        ),
+        "resolver_turns": action.get("resolver_turns"),
+        "needs_human_review": bool(action.get("needs_human_review")),
+        "search_history": action.get("search_history"),
     }
 
 
@@ -3620,7 +3788,7 @@ def _should_resolve(state: GuidanceRuleExtractionState) -> str:
         "resolve"
         if (
             raw.get("logic_tree") is not None
-            or raw.get("action")
+            or raw.get("actions")
             or raw.get("no_rule_expected")
         )
         else "end"

@@ -7,9 +7,8 @@ Atlas trace (local clinical language mappings):
   VT: VT-8DE34E84
 
 Atlas trace (terminology resolve):
-  DO: DO-14D58359
-  DI: DI-F8634363
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14D58359")
+  DO: DO-E0193D2A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E0193D2A")
 """
 
 _SF_RESOLVABLE = "coalesce(sf.status, 'approved') IN ['approved', 'active']"

@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-E647765A
- *   DI: DI-0C8FBAF7
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-E647765A")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  *
  * Read-only logic-tree renderer for the Check & approve view.
  *
@@ -30,7 +30,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import { STRENGTH_LABELS, friendlyTerm } from "./EditRuleDialog/copy";
-import type { LogicSeed } from "./EditRuleDialog/types";
+import type { LogicSeed, RuleAction } from "./EditRuleDialog/types";
 
 /**
  * An AT_LEAST group whose children are all SNOMED concepts is rendered as
@@ -144,6 +144,11 @@ export interface LogicTreeNode {
 
 export interface RuleForLogicView {
   strength?: string;
+  /** One or more recommended procedures, each with its own strength.
+   *  Preferred over ``action`` when present. */
+  actions?: RuleAction[];
+  /** Deprecated: legacy single recommended procedure, used as a
+   *  fallback for rules not yet migrated to ``actions``. */
   action?: ActionResult | null;
   logic_tree?: LogicTreeNode | null;
   present_criteria: RuleCriterion[];
@@ -824,6 +829,43 @@ function V1CriteriaFallback({
 
 // -- Outer card panel ------------------------------------------------------
 
+/** Read-only chip cluster for the recommended-procedures list. */
+function ActionChipList({ actions }: { actions: RuleAction[] }) {
+  return (
+    <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+      {actions.map((item, i) => {
+        const term = friendlyTerm(item.criterion?.preferred_term) || "unknown procedure";
+        const label = `${strengthPlainLabel(item.strength)}: ${term}`;
+        return (
+          <Tooltip
+            key={item.criterion?.snomed_concept_id || i}
+            title={
+              item.criterion?.snomed_concept_id
+                ? `${term} (SNOMED ${item.criterion.snomed_concept_id})`
+                : "No SNOMED match found"
+            }
+            arrow
+          >
+            <Chip
+              label={label}
+              size="small"
+              color={item.criterion?.snomed_concept_id ? "success" : "warning"}
+              variant={item.criterion?.snomed_concept_id ? "filled" : "outlined"}
+              sx={{
+                height: "auto",
+                minHeight: 24,
+                maxWidth: "100%",
+                fontSize: "0.72rem",
+                "& .MuiChip-label": { whiteSpace: "normal", lineHeight: 1.35, py: 0.35 },
+              }}
+            />
+          </Tooltip>
+        );
+      })}
+    </Stack>
+  );
+}
+
 export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
   const hasLogicTree = !!rule.logic_tree;
   const strengthText =
@@ -831,6 +873,7 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
       ? strengthPlainLabel(rule.strength)
       : null;
   const actionText = actionPlainLabel(rule.action);
+  const hasActionsList = Boolean(rule.actions && rule.actions.length > 0);
   return (
     <Box
       sx={{
@@ -873,7 +916,7 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
         )}
       </Box>
 
-      {strengthText && (
+      {hasActionsList ? (
         <Box
           sx={{
             mt: 1.5,
@@ -882,14 +925,34 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
             borderColor: "divider",
           }}
         >
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-            When this rule matches, the system should:{" "}
-            <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
-              {strengthText}
-              {actionText ? `: ${actionText}` : ""}
-            </Box>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ lineHeight: 1.5, mb: 0.75 }}
+          >
+            When this rule matches, the system should:
           </Typography>
+          <ActionChipList actions={rule.actions!} />
         </Box>
+      ) : (
+        strengthText && (
+          <Box
+            sx={{
+              mt: 1.5,
+              pt: 1.5,
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+              When this rule matches, the system should:{" "}
+              <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+                {strengthText}
+                {actionText ? `: ${actionText}` : ""}
+              </Box>
+            </Typography>
+          </Box>
+        )
       )}
     </Box>
   );

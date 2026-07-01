@@ -1,9 +1,8 @@
 """Lexical SNOMED/Read code resolution.
 
 Atlas trace:
-  DO: DO-14D58359
-  DI: DI-F8634363
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14D58359")
+  DO: DO-E0193D2A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E0193D2A")
 
 Ported from PCA services/api/app/services/v3/coding_resolver.py.
 Runs two retrieval branches (exact surface-form, fulltext) and fuses scores.

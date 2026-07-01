@@ -19,7 +19,7 @@ Use:
   sanity checks for Atlas tool calls.
 
 The Atlas MCP server is `user-atlas-design-controls`. The product is
-`PROD-LEO-CORE-AI-20260415-6AE8A23B`.
+`PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`.
 
 For governance / regulatory / process docs that are NOT design
 controls (DPA, DPIA, DTAC, retention schedule, key management,

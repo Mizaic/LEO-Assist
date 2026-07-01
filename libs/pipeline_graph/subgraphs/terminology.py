@@ -1,10 +1,8 @@
 """Terminology resolution subgraph wrapping libs.terminology.client.
 
 Atlas trace:
-  DO: DO-16FFE9D3
-  Also implements: DO-36C09C0E, DO-8620A68B
-  DI: DI-04105500, DI-4247C7E5, DI-5A802C83
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-16FFE9D3")
+  DO: DO-572A5C05
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-572A5C05")
 """
 
 from __future__ import annotations

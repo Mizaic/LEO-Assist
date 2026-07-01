@@ -2,10 +2,8 @@
  * Phase 6 UI tests for the OBSERVATION leaf.
  *
  * Atlas trace:
- *   UN: UN-26E57FA1
- *   DI: DI-4C8A09C3
- *   DO: DO-CB6324A3
- *   VT: VT-1A7862B9 (execution_status=passed)
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  *
  * Covers:
  *   - treeOps: add_observation, set_observation, set_name (restored

@@ -2,8 +2,8 @@
  * Shared prop interfaces for the LogicTreeEditor sub-component tree.
  *
  * Atlas trace:
- *   DO: DO-D6CE2AA5
- *   DI: DI-A3107424
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  */
 import type { EditableLogicNode, NodeUpdate } from "../types";
 

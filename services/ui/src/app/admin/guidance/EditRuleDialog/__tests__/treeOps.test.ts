@@ -82,6 +82,45 @@ describe("treeOps", () => {
     );
   });
 
+  it("add_group nests a new empty OR sub-group under an AND pathway, enabling AND + a set of OR's", () => {
+    const tree = makeTree();
+    const updated = applyUpdate(tree, {
+      kind: "add_group",
+      parentNodeId: tree.node_id,
+      groupKind: "OR",
+    });
+    expect(updated!.children).toHaveLength(3);
+    const newGroup = updated!.children![2];
+    expect(newGroup.kind).toBe("OR");
+    expect(newGroup.children).toEqual([]);
+    // The new sub-group can then take its own CONCEPT children,
+    // OR'd together, while sitting alongside the AND siblings.
+    const withConcept = applyUpdate(updated!, {
+      kind: "add_concept",
+      parentNodeId: newGroup.node_id,
+      criterion: {
+        snomed_concept_id: "84229001",
+        preferred_term: "Fatigue (finding)",
+        semantic_tag: "finding",
+      },
+    });
+    expect(withConcept!.children![2].children).toHaveLength(1);
+    expect(withConcept!.children![2].children![0].criterion?.snomed_concept_id).toBe(
+      "84229001",
+    );
+  });
+
+  it("add_group is a no-op when the target cannot have children", () => {
+    const tree = makeTree();
+    const conceptNode = tree.children![1].children![0];
+    const updated = applyUpdate(tree, {
+      kind: "add_group",
+      parentNodeId: conceptNode.node_id,
+      groupKind: "AND",
+    });
+    expect(updated).toEqual(tree);
+  });
+
   it("remove deletes the targeted node and refuses to remove the root", () => {
     const tree = makeTree();
     const ageNode = tree.children![0];
@@ -110,7 +149,7 @@ describe("treeOps", () => {
     const tree = assignNodeIds({ kind: "AND", children: [] });
     const msg = findValidationError(tree);
     expect(msg).toMatch(/empty/i);
-    expect(msg).toMatch(/symptom or patient detail/i);
+    expect(msg).toMatch(/symptom, procedure, situation, or patient detail/i);
   });
 
   it("findValidationError flags AT_LEAST whose min exceeds children", () => {
@@ -131,7 +170,7 @@ describe("treeOps", () => {
       children: [{ kind: "CONCEPT", criterion: { snomed_concept_id: "", preferred_term: "?" } }],
     });
     const msg = findValidationError(tree);
-    expect(msg).toMatch(/pick a symptom or sign/i);
+    expect(msg).toMatch(/pick a symptom, sign, procedure, or situation/i);
     expect(msg).toMatch(/search box on the right/i);
   });
 

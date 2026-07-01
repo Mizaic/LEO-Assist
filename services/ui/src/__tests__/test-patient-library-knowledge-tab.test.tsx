@@ -793,46 +793,24 @@ describe("VT-5BDFE5F7 - Knowledge > Test Patients tab (Phase A)", () => {
     expect(lifecycle).not.toMatch(/href="\/admin\/guidance\/test-patients"/);
   });
 
-  test("TC-007: rule editor panel is wired to the central library", () => {
-    // The "Try it on real patients" panel (rule editor) MUST import
-    // its data layer from the centralised library so SBAR-aspect
-    // patients show up alongside guideline ones, and MUST replace the
-    // legacy "Build new" / "Generate" pair with the new "Author with
-    // AI from this rule" + "Open in Test Patient Library" buttons.
-    const panel = read(
-      "services/ui/src/app/admin/guidance/EditRuleDialog/" +
-        "TestPatientsPanel.tsx",
-    );
-    expect(panel).toContain('from "../../knowledge/test-patients/api"');
-    expect(panel).toContain('from "../../knowledge/test-patients/types"');
-    expect(panel).toContain(
-      'from "../../knowledge/test-patients/ScaffoldFromRuleDialog"',
-    );
-    expect(panel).toContain(
-      'from "../../knowledge/test-patients/replay/ReplayResultsDialog"',
-    );
-    // The panel imports the central replay dialog and opens the central
-    // library with a locked rule filter instead of owning a duplicate flow.
-    expect(panel).toMatch(/Author with AI from this rule/);
-    expect(panel).toMatch(/Open in Test Patient Library/);
-    expect(panel).toMatch(/lockedRuleId=\{ruleId\}/);
-    // Open-in-library deep link uses URLSearchParams. The literal
-    // "test-patients" tab key and the rule_id field must both appear
-    // so the central library lands on the right tab + filter.
-    expect(panel).toMatch(/tab:\s*"test-patients"/);
-    expect(panel).toMatch(/rule_id:\s*ruleId/);
-    // Legacy entry points must be gone.
-    expect(panel).not.toMatch(/BuildPatientDialog/);
-    expect(panel).not.toMatch(/GeneratePatientsDialog/);
-    expect(panel).not.toMatch(/listPatients\(/);
-  });
-
-  test("TC-007b: rule editor AI scaffolding uses the current draft rule", () => {
-    const panel = read(
-      "services/ui/src/app/admin/guidance/EditRuleDialog/" +
-        "TestPatientsPanel.tsx",
-    );
-    expect(panel).toMatch(/draftRule=\{draftRule\}/);
+  test("TC-007: rule editor's sandbox test-patients panel was removed", () => {
+    // Reviewers found the "Test your change safely" sandbox step
+    // awkward (a duplicate "Author with AI" CTA in its empty state),
+    // and the compile-time guideline-wide replay on Bitmap Lifecycle
+    // already gives a safety check before a rule goes live. The
+    // rule-editor-embedded panel and its wizard step were removed.
+    expect(
+      exists(
+        "services/ui/src/app/admin/guidance/EditRuleDialog/" +
+          "TestPatientsPanel.tsx",
+      ),
+    ).toBe(false);
+    expect(
+      exists(
+        "services/ui/src/app/admin/guidance/EditRuleDialog/" +
+          "steps/Step3Try.tsx",
+      ),
+    ).toBe(false);
   });
 
   test("TC-008: knowledge page reads ?rule_id and shows a clear banner", () => {

@@ -11,9 +11,9 @@
  * require it, so we drop it to keep the persisted JSON tidy.
  *
  * Atlas trace:
- *   DO: DO-D6CE2AA5
- *   DI: DI-A3107424
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-D6CE2AA5")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 import type {
   EditableLogicNode,
@@ -22,6 +22,7 @@ import type {
   LogicNodeKind,
   LogicSeed,
   NodeUpdate,
+  RuleAction,
 } from "./types";
 
 /**
@@ -159,6 +160,26 @@ export function sanitiseCriterion(
     }
   }
   return out;
+}
+
+/**
+ * Whitelist a single recommended action before sending it to the BE.
+ * Mirrors ``sanitiseCriterion`` for the nested criterion so LLM
+ * provenance fields never reach the ``RuleAction`` Pydantic model
+ * (``extra: "forbid"``).
+ */
+export function sanitiseAction(action: RuleAction): Record<string, unknown> {
+  return {
+    criterion: sanitiseCriterion(action.criterion),
+    strength: action.strength,
+  };
+}
+
+/** Sanitise every action in an array (see ``sanitiseAction``). */
+export function sanitiseActionsForSave(
+  actions: RuleAction[],
+): Array<Record<string, unknown>> {
+  return actions.map(sanitiseAction);
 }
 
 /**
@@ -772,14 +793,14 @@ function makeObservationNode(
  */
 export function findValidationError(node: EditableLogicNode | null): string | null {
   if (!node) {
-    return "This rule needs at least one condition. Click + to add a symptom or patient detail.";
+    return "This rule needs at least one condition. Click + to add a symptom, procedure, situation, or patient detail.";
   }
   if (node.kind === "CONCEPT") {
     const c = node.criterion;
     const seeds = c?.seeds ?? [];
     const hasLegacy = !!c?.snomed_concept_id;
     if (seeds.length === 0 && !hasLegacy) {
-      return "Pick a symptom or sign for the empty pill. Use the search box on the right.";
+      return "Pick a symptom, sign, procedure, or situation for the empty pill. Use the search box on the right.";
     }
     if (seeds.length > 0) {
       const seedIds = new Set(seeds.map((s) => s.snomed_concept_id));
@@ -838,10 +859,10 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
   }
   const children = node.children ?? [];
   if (children.length === 0) {
-    return "One of the groups is empty. Add a symptom or patient detail, or remove the group.";
+    return "One of the groups is empty. Add a symptom, procedure, situation, or patient detail, or remove the group.";
   }
   if (node.kind === "NOT" && children.length !== 1) {
-    return "A 'must NOT have' group needs exactly one symptom or sign inside it.";
+    return "A 'must NOT have' group needs exactly one symptom, sign, procedure, or situation inside it.";
   }
   if (node.kind === "AT_LEAST") {
     const min = node.min ?? 0;
@@ -855,6 +876,19 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
   for (const child of children) {
     const childError = findValidationError(child);
     if (childError) return childError;
+  }
+  return null;
+}
+
+/**
+ * A rule always needs at least one recommended procedure, even before
+ * every row is fully coded -- an empty ``actions`` array means there is
+ * nothing at all for the system to suggest when the rule fires. Mirrors
+ * ``findValidationError``'s plain-English style (reading age 9-11).
+ */
+export function findActionsValidationError(actions: RuleAction[]): string | null {
+  if (actions.length === 0) {
+    return "This rule needs at least one recommended procedure. Click Add another procedure to add one.";
   }
   return null;
 }

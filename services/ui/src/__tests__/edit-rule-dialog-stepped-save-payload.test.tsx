@@ -1,6 +1,6 @@
 /**
- * VT-LEO-AI-511 -- TC-006 (criterion omitted when action chip
- * untouched), TC-007 (criterion populated when action chip touched),
+ * VT-LEO-AI-511 -- TC-006 (actions omitted when no procedure chip
+ * touched), TC-007 (actions populated when a procedure chip touched),
  * TC-008 (node_ids stripped from logic_tree).
  */
 
@@ -29,11 +29,16 @@ const SAMPLE_RULE = {
       },
     ],
   },
-  action: {
-    snomed_concept_id: "168731009",
-    preferred_term: "Plain chest X-ray (procedure)",
-    semantic_tag: "procedure",
-  },
+  actions: [
+    {
+      criterion: {
+        snomed_concept_id: "168731009",
+        preferred_term: "Plain chest X-ray (procedure)",
+        semantic_tag: "procedure",
+      },
+      strength: "offer",
+    },
+  ],
 };
 
 function mockSearch(hits: unknown[] = []) {
@@ -53,14 +58,14 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
-function goToStep(n: 1 | 2 | 3 | 4) {
+function goToStep(n: 1 | 2 | 3) {
   fireEvent.click(
-    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 4`, "i") })[0],
+    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 3`, "i") })[0],
   );
 }
 
 function fillReason(text: string) {
-  goToStep(4);
+  goToStep(3);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
     target: { value: text },
   });
@@ -82,7 +87,7 @@ afterEach(() => {
 });
 
 describe("EditRuleDialog save payload -- VT-511-TC-006/007/008", () => {
-  it("omits criterion from the payload when the action chip was never touched", async () => {
+  it("omits actions from the payload when no procedure chip was ever touched", async () => {
     mockSearch();
     const onSave = jest.fn();
     render(
@@ -98,12 +103,12 @@ describe("EditRuleDialog save payload -- VT-511-TC-006/007/008", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
     const payload = onSave.mock.calls[0][0];
-    expect(payload.action).toBeUndefined();
+    expect(payload.actions).toBeUndefined();
     expect(payload.reason).toBe("Tightened criteria only");
     expect(payload.logic_tree.kind).toBe("AND");
   });
 
-  it("includes criterion in the payload when the action chip was touched", async () => {
+  it("includes the touched procedure's criterion in the actions payload", async () => {
     mockSearch([
       {
         snomed_concept_id: "16310003",
@@ -141,8 +146,9 @@ describe("EditRuleDialog save payload -- VT-511-TC-006/007/008", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
     const payload = onSave.mock.calls[0][0];
-    expect(payload.action).toBeDefined();
-    expect(payload.action.snomed_concept_id).toBe("16310003");
+    expect(payload.actions).toBeDefined();
+    expect(payload.actions).toHaveLength(1);
+    expect(payload.actions[0].criterion.snomed_concept_id).toBe("16310003");
   });
 
   it("strips node_id fields from logic_tree in the save payload", async () => {

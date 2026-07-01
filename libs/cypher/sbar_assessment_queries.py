@@ -1,9 +1,8 @@
 """Cypher queries for the :Assessment node (DI-LEO-AI-188).
 
 Atlas trace:
-  DO: DO-F8EFEF89
-  DI: DI-E47C3FC2
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+  DO: DO-3CAFDCC3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3CAFDCC3")
 
 Produced by the SBAR orchestrator. Each section is persisted as soon as
 it is generated so that a partial Assessment is recoverable if a later

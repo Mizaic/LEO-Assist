@@ -3,8 +3,8 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-D6CE2AA5
- *   DI: DI-A3107424
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  */
 
 /**
@@ -36,9 +36,17 @@ interface Props {
 }
 
 function isPathwayRoot(root: EditableLogicNode): boolean {
+  const children = root.children ?? [];
   return (
     root.kind === "OR" &&
-    (root.children?.length ?? 0) >= 1
+    children.length >= 1 &&
+    children.every(
+      (c) =>
+        c.kind === "AND" ||
+        c.kind === "OR" ||
+        c.kind === "NOT" ||
+        c.kind === "AT_LEAST",
+    )
   );
 }
 

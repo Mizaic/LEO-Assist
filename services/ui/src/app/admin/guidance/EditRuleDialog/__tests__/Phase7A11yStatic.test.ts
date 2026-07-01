@@ -2,10 +2,8 @@
  * Phase 7d -- a11y static-source guard rails for the rule-edit wizard.
  *
  * Atlas trace:
- *   UN: UN-26E57FA1
- *   DI: DI-061AD3D1
- *   DO: DO-1EE0BFAE
- *   VT: VT-EEF2D497
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  *
  * Static-source checks that encode a11y intent at unit-test time so a
  * regression cannot land between e2e refreshes.

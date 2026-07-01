@@ -2,8 +2,8 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-E647765A
- *   DI: DI-0C8FBAF7
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  */
 import type { RuleReviewIdentity } from "./ruleReviewTypes";
 

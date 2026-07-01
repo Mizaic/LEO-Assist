@@ -4,7 +4,7 @@
  * Shows "Preview: ..." at the bottom of each pathway card.
  * Hidden when the sentence is empty or the tree has no leaves.
  *
- * Atlas trace: DO-D6CE2AA5 / DI-A3107424
+ * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";

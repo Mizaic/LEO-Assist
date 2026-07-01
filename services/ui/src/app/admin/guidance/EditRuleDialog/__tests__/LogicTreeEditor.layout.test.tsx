@@ -96,7 +96,7 @@ describe("LogicTreeEditor phase 1 layout", () => {
     expect(screen.getByText("Dyspnea")).toBeInTheDocument();
     // The "Add" affordance is the inline plus chip, not the verbose bar.
     expect(
-      screen.getByRole("button", { name: /add a symptom or sign to this group/i }),
+      screen.getByRole("button", { name: /add a symptom.*to this group/i }),
     ).toBeInTheDocument();
   });
 
@@ -326,6 +326,42 @@ describe("LogicTreeEditor -- OR-root pathway list layout", () => {
     );
     const addSymptomBtns = screen.getAllByRole("button", { name: /add.*symptom/i });
     expect(addSymptomBtns.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders an 'Add condition group' button inside each pathway card so AND pathways can nest a set of OR's", () => {
+    render(
+      <LogicTreeEditor
+        root={makeOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    const addGroupBtns = screen.getAllByRole("button", { name: /add.*condition group/i });
+    expect(addGroupBtns.length).toBe(2);
+  });
+
+  it("clicking 'Add condition group' dispatches add_group with groupKind OR against the pathway's own node id", () => {
+    const tree = makeOrRoot();
+    const pathwayA = tree.children?.[0];
+    const onUpdate = jest.fn();
+    render(
+      <LogicTreeEditor
+        root={tree}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={onUpdate}
+        onRequestAdd={noop}
+      />,
+    );
+    const addGroupBtns = screen.getAllByRole("button", { name: /add.*condition group/i });
+    fireEvent.click(addGroupBtns[0]);
+    expect(onUpdate).toHaveBeenCalledWith({
+      kind: "add_group",
+      parentNodeId: pathwayA?.node_id,
+      groupKind: "OR",
+    });
   });
 });
 

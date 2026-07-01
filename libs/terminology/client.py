@@ -1,10 +1,8 @@
 """Canonical terminology resolution client.
 
 Atlas trace:
-  DO: DO-27B414B3
-  Also implements: DO-4D563ADF
-  DI: DI-12015DBC, DI-6A0B55A4, DI-DA7584D8
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-27B414B3")
+  DO: DO-572A5C05
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-572A5C05")
 
 Provides both synchronous and asynchronous clients for the Terminology API.
 All pipeline code should import from here — do NOT duplicate.

@@ -3,7 +3,7 @@
  *
  * Verify reviewer-facing behaviour:
  *   - Save is gated on a non-empty reason and a valid tree.
- *   - Saving sends action="edit" with an updates payload (name, strength,
+ *   - Saving sends action="edit" with an updates payload (name,
  *     logic_tree without node_ids).
  *   - Removing a CONCEPT chip drops it from the persisted tree.
  *   - SNOMED search results swap the focused concept on click.
@@ -64,20 +64,20 @@ function mockSearch(hits: unknown[] = []) {
 }
 
 /**
- * The widescreen editor splits the form across four steps. Tests that
- * need fields from a later step (action chip on step 2, reason on
- * step 4) navigate via the horizontal stepper across the top of the
- * dialog.
+ * The widescreen editor splits the form across three steps. Tests
+ * that need fields from a later step (action chip on step 2, reason
+ * on step 3) navigate via the horizontal stepper across the top of
+ * the dialog.
  */
-function goToStep(stepNumber: 1 | 2 | 3 | 4) {
+function goToStep(stepNumber: 1 | 2 | 3) {
   const stepper = screen.getAllByRole("button", {
-    name: new RegExp(`^Step ${stepNumber} of 4`, "i"),
+    name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
   });
   fireEvent.click(stepper[0]);
 }
 
 function fillReason(text: string) {
-  goToStep(4);
+  goToStep(3);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
     target: { value: text },
   });
@@ -101,7 +101,7 @@ describe("EditRuleDialog", () => {
     expect(saveBtn).not.toBeDisabled();
   });
 
-  it("calling Save fires onSave with stripped tree, name, strength and reason", async () => {
+  it("calling Save fires onSave with stripped tree, name and reason", async () => {
     mockSearch();
     const onSave = jest.fn();
     render(
@@ -114,7 +114,6 @@ describe("EditRuleDialog", () => {
     const payload = onSave.mock.calls[0][0];
     expect(payload.reason).toBe("Reviewed and tightened criteria");
     expect(payload.name).toBe("Mesothelioma urgent X-ray");
-    expect(payload.strength).toBe("offer");
     expect(payload.logic_tree.kind).toBe("AND");
     expect("node_id" in payload.logic_tree).toBe(false);
   });
@@ -263,8 +262,8 @@ describe("EditRuleDialog", () => {
       screen.getAllByLabelText(/what should the system suggest/i)[0],
     ).toBeInTheDocument();
 
-    // Step 4 owns the reason field.
-    goToStep(4);
+    // Step 3 owns the reason field.
+    goToStep(3);
     expect(
       screen.getByLabelText(/why are you changing this rule/i)
     ).toBeInTheDocument();
@@ -287,7 +286,7 @@ describe("EditRuleDialog", () => {
     );
 
     fireEvent.click(
-      screen.getByRole("button", { name: /add the first symptom or sign/i }),
+      screen.getByRole("button", { name: /add the first symptom/i }),
     );
 
     const searchField = await screen.findByLabelText(/search clinical terms/i);

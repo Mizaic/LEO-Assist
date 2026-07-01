@@ -2,10 +2,8 @@
  * Phase 7 -- live-render tests for the confirm dialog wiring.
  *
  * Atlas trace:
- *   UN: UN-26E57FA1
- *   DI: DI-061AD3D1
- *   DO: DO-1EE0BFAE
- *   VT: VT-EEF2D497
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  *
  * Walks ``useConfirmEdits`` through three contracts:
  *

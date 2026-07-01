@@ -9,6 +9,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
@@ -25,10 +26,12 @@ import {
   ProgressiveReveal,
   ProgressStrip,
   ToolbarActions,
+  useMotion,
   type DataGridColumn,
 } from "@leo/design-system";
 
 import TaxonomyBrowserDrawer from "./TaxonomyBrowserDrawer";
+import { bounceInteraction, popVariants } from "./motionPresets";
 
 interface GuidelineOption { code: string; title: string; type: string; }
 
@@ -96,6 +99,7 @@ const JOB_COLUMNS: DataGridColumn<Job>[] = [
 interface Props { onGuidelineLoaded?: () => void; }
 
 export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
+  const { reducedMotion } = useMotion();
   const [inputValue, setInputValue] = useState("");
   const [catalogueOptions, setCatalogueOptions] = useState<GuidelineOption[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -246,11 +250,13 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
             )}
           />
         </Box>
-        <ToolbarActions
-          actions={[
-            { id: "load", label: "Load this guideline", variant: "primary", onClick: handleIngest, disabled: !canLoad, loading },
-          ]}
-        />
+        <fm.div style={{ display: "inline-block" }} {...bounceInteraction(reducedMotion || !canLoad)}>
+          <ToolbarActions
+            actions={[
+              { id: "load", label: "Load this guideline", variant: "primary", onClick: handleIngest, disabled: !canLoad, loading },
+            ]}
+          />
+        </fm.div>
       </Stack>
 
       {/* -- Progress strip + log ----------------------------------------- */}
@@ -265,7 +271,19 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
           <Box sx={{ mt: 1 }}>
             <ProgressiveReveal summary="Show progress details">
               <Box sx={{ fontFamily: "monospace", fontSize: "0.75rem", bgcolor: "grey.50", p: 1, borderRadius: 1, mt: 1 }}>
-                {ingestLog.map((line, i) => <Box key={i}>{line}</Box>)}
+                <AnimatePresence initial={false}>
+                  {ingestLog.map((line, i) => (
+                    <fm.div
+                      key={`${i}-${line}`}
+                      variants={popVariants(reducedMotion)}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                    >
+                      {line}
+                    </fm.div>
+                  ))}
+                </AnimatePresence>
               </Box>
             </ProgressiveReveal>
           </Box>
@@ -293,7 +311,14 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
         </Box>
       ) : (
         <EmptyState
-          icon={<HistoryOutlinedIcon fontSize="large" />}
+          icon={
+            <fm.div
+              animate={reducedMotion ? undefined : { y: [0, -6, 0] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <HistoryOutlinedIcon fontSize="large" />
+            </fm.div>
+          }
           title="No recent loads"
           body="Loaded guidelines appear here."
           data-testid="jobs-empty"

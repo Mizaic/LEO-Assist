@@ -53,9 +53,9 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
-function goToStep(n: 1 | 2 | 3 | 4) {
+function goToStep(n: 1 | 2 | 3) {
   fireEvent.click(
-    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 4`, "i") })[0],
+    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 3`, "i") })[0],
   );
 }
 
@@ -141,7 +141,7 @@ describe("LivePreviewPane Before/After on step 4 -- VT-511-TC-004", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Use Fatigue$/i }));
 
     // Jump to step 4. The preview swaps to the Before/After region.
-    goToStep(4);
+    goToStep(3);
     const beforeAfter = screen.getByRole("region", {
       name: /before and after preview of this rule/i,
     });

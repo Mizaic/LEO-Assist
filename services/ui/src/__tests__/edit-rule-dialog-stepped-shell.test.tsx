@@ -3,9 +3,11 @@
  *
  * The widescreen step editor (DI-LEO-AI-512 / DO-LEO-AI-512) is
  * implemented across an orchestrator + a HorizontalStepper + a LivePreviewPane +
- * four step modules. This test reads the orchestrator file as a string
- * and asserts that all the wiring is present so a future refactor
- * cannot silently regress the file structure.
+ * three step modules (the former sandbox-test "Step3Try" step was
+ * removed as awkward/redundant with the Bitmap Lifecycle compile-time
+ * check). This test reads the orchestrator file as a string and
+ * asserts that all the wiring is present so a future refactor cannot
+ * silently regress the file structure.
  */
 
 import { promises as fs } from "fs";
@@ -25,7 +27,7 @@ async function readDialog(): Promise<string> {
 }
 
 describe("EditRuleDialog stepped shell -- VT-511-TC-001", () => {
-  it("orchestrator imports the HorizontalStepper, LivePreviewPane and all four steps", async () => {
+  it("orchestrator imports the HorizontalStepper, LivePreviewPane and all three steps", async () => {
     const src = await readDialog();
     expect(src).toMatch(
       /import\s+HorizontalStepper[\s\S]*?from\s+["']\.\/HorizontalStepper["']/,
@@ -37,8 +39,8 @@ describe("EditRuleDialog stepped shell -- VT-511-TC-001", () => {
     expect(src).toMatch(
       /import\s+Step2Suggest\s+from\s+["']\.\/steps\/Step2Suggest["']/,
     );
-    expect(src).toMatch(/import\s+Step3Try\s+from\s+["']\.\/steps\/Step3Try["']/);
     expect(src).toMatch(/import\s+Step4Save\s+from\s+["']\.\/steps\/Step4Save["']/);
+    expect(src).not.toMatch(/Step3Try/);
   });
 
   it("orchestrator declares the md two-pane flex layout", async () => {
@@ -54,7 +56,6 @@ describe("EditRuleDialog stepped shell -- VT-511-TC-001", () => {
       "LivePreviewPane.tsx",
       "steps/Step1Who.tsx",
       "steps/Step2Suggest.tsx",
-      "steps/Step3Try.tsx",
       "steps/Step4Save.tsx",
       "copy.ts",
     ];
@@ -64,10 +65,21 @@ describe("EditRuleDialog stepped shell -- VT-511-TC-001", () => {
     }
   });
 
-  it("save handler omits criterion when actionDirty is false and includes it when true", async () => {
+  it("the sandbox test-patients step module no longer exists on disk", async () => {
+    await expect(
+      fs.access(path.join(DIALOG_ROOT, "steps/Step3Try.tsx")),
+    ).rejects.toBeDefined();
+    await expect(
+      fs.access(path.join(DIALOG_ROOT, "TestPatientsPanel.tsx")),
+    ).rejects.toBeDefined();
+  });
+
+  it("save handler omits actions when actionsDirty is false and includes it when true", async () => {
     const src = await readDialog();
-    // Spread guards the criterion field: ...(actionDirty && action ? { action } : {})
-    expect(src).toMatch(/actionDirty\s*&&\s*action\s*\?\s*\{\s*action\s*\}\s*:\s*\{\s*\}/);
+    // Spread guards the actions field: ...(actionsDirty ? { actions: ... } : {})
+    expect(src).toMatch(
+      /actionsDirty\s*\?\s*\{\s*actions:\s*sanitiseActionsForSave\(actions\)\s*\}\s*:\s*\{\s*\}/,
+    );
     // node ids are stripped from the saved logic_tree.
     expect(src).toMatch(/stripNodeIds\(tree\)/);
   });

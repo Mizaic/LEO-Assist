@@ -1,8 +1,8 @@
 """Lightweight feature-flag plumbing for staged rollouts.
 
 Atlas trace:
-  DI: DI-8A5FCF4F (Defence-in-depth episode detector with coverage fail-safe)
-  Look up via: get_design_control(dc_type="design-input", dc_id="DI-8A5FCF4F")
+  DO: DO-728930A1
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 A flag value is resolved in this order, first hit wins:
   1. Explicit per-tenant override passed at call time.

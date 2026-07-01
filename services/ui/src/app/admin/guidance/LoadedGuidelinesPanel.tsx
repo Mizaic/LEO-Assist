@@ -9,6 +9,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -28,9 +29,17 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
 import SystemUpdateAltOutlinedIcon from "@mui/icons-material/SystemUpdateAltOutlined";
 
-import { EmptyState, ReviewListCard, ToolbarActions, type ReviewListItem } from "@leo/design-system";
+import {
+  EmptyState,
+  ReviewListCard,
+  SkeletonList,
+  ToolbarActions,
+  useMotion,
+  type ReviewListItem,
+} from "@leo/design-system";
 import GuidelineChangesDrawer from "./GuidelineChangesDrawer";
 import RecommendationPickerDialog from "./RecommendationPickerDialog";
+import { bounceInteraction } from "./motionPresets";
 
 interface LoadedGuideline {
   code: string;
@@ -101,6 +110,7 @@ interface FilterBarProps {
 function GuidelineFilterBar({
   search, onSearch, status, onStatus, totalCount, visibleCount,
 }: FilterBarProps) {
+  const { reducedMotion } = useMotion();
   return (
     <Stack spacing={1} sx={{ mb: 1.5 }}>
       <TextField
@@ -120,15 +130,22 @@ function GuidelineFilterBar({
       />
       <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
         {STATUS_FILTERS.map((f) => (
-          <Chip
+          <fm.div
             key={f.value}
-            label={f.label}
-            size="small"
-            variant={status === f.value ? "filled" : "outlined"}
-            color={status === f.value ? "primary" : "default"}
-            onClick={() => onStatus(f.value)}
-            sx={{ cursor: "pointer" }}
-          />
+            style={{ display: "inline-flex" }}
+            animate={status === f.value && !reducedMotion ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            {...bounceInteraction(reducedMotion)}
+          >
+            <Chip
+              label={f.label}
+              size="small"
+              variant={status === f.value ? "filled" : "outlined"}
+              color={status === f.value ? "primary" : "default"}
+              onClick={() => onStatus(f.value)}
+              sx={{ cursor: "pointer" }}
+            />
+          </fm.div>
         ))}
         {(search || status !== "all") && (
           <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
@@ -373,7 +390,7 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
   }, [fetchLoaded, onRulesGenerated]);
 
   if (loading) {
-    return <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}><CircularProgress size={24} aria-label="Loading loaded guidelines" /></Box>;
+    return <SkeletonList rows={4} itemHeight={64} data-testid="loaded-guidelines-skeleton" />;
   }
 
   if (error) return <Alert severity="error">{error}</Alert>;

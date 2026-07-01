@@ -20,7 +20,7 @@ is resolved. Every step uses the Atlas MCP server
 `user-atlas-design-controls`. Never write YAML files. See
 `atlas-design-controls-first.mdc`.
 
-Product ID: `PROD-LEO-CORE-AI-20260415-6AE8A23B`.
+Product ID: `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`.
 
 ---
 
@@ -36,8 +36,8 @@ software item in this product at Class B or below.
 
 **Mizaic's manufacturing policy does not permit Class C software in
 this product.** As of 2026-04-20 there are zero Class C artefacts in
-Atlas for `PROD-LEO-CORE-AI-20260415-6AE8A23B`, and this rule keeps
-it that way.
+Atlas for `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`, and
+this rule keeps it that way.
 
 If a proposed change cannot be made Class B even with the human
 review gate in place -- for example a feature that would publish,
@@ -84,7 +84,7 @@ search_design_controls(query="<feature in plain English>", dc_type="user_need")
 
 ```
 create_user_need(
-  product_id="PROD-LEO-CORE-AI-20260415-6AE8A23B",
+  product_id="PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4",
   title="<short title>",
   description="As a <stakeholder>, I need ...",
   rationale="<why this need exists>",

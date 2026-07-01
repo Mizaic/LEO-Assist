@@ -194,10 +194,12 @@ MERGE (ag)-[ha:HAS_ACTION]->(proc)
 ON CREATE SET
     ha.rawTerm  = $raw_term,
     ha.priority = $priority,
-    ha.dueDays  = $due_days
+    ha.dueDays  = $due_days,
+    ha.strength = $strength
 ON MATCH SET
     ha.priority = $priority,
-    ha.dueDays  = $due_days
+    ha.dueDays  = $due_days,
+    ha.strength = $strength
 """
 
 _UPSERT_APPLIES_TO = """
@@ -500,6 +502,21 @@ class GuidanceRuleGenerator:
         )
         return rule_id
 
+    @staticmethod
+    def _resolve_actions(coded: dict[str, Any]) -> list[dict[str, Any]]:
+        """Return the recommended actions for a rule as a list.
+
+        Prefers ``coded["actions"]`` (the multi-action shape). Falls back
+        to a 1-item list from the legacy singular ``coded["action"]`` so
+        this generator keeps working unchanged until the extraction
+        pipeline (Phase 6) emits ``actions`` directly.
+        """
+        actions = coded.get("actions")
+        if isinstance(actions, list) and actions:
+            return actions
+        legacy = coded.get("action")
+        return [legacy] if legacy else []
+
     def _empty_logic_tree(
         self, rec: dict[str, Any], coded: dict[str, Any] | None = None
     ) -> dict:
@@ -607,6 +624,7 @@ class GuidanceRuleGenerator:
 
         urgency = rec.get("urgency") or "routine"
         priority_meta = _urgency_to_priority(urgency)
+        actions = self._resolve_actions(coded)
 
         with self._driver.session() as session:
             session.run(
@@ -632,11 +650,7 @@ class GuidanceRuleGenerator:
                     if coded.get("verifier") is not None
                     else None
                 ),
-                action_json=(
-                    json.dumps(coded.get("action"))
-                    if coded.get("action") is not None
-                    else None
-                ),
+                action_json=(json.dumps(actions) if actions else None),
             )
 
             if int(coded.get("schema_version") or 1) != 2:
@@ -652,18 +666,7 @@ class GuidanceRuleGenerator:
                         group_suffix=str(idx),
                     )
 
-            action = coded.get("action")
-            if action and action.get("snomed_concept_id"):
-                self._write_action_group(session, rule_id, action, priority_meta)
-            elif action:
-                logger.error(
-                    "Action %r for rule %s has no SNOMED code — action group NOT written. "
-                    "HCCP-Agents will receive a rule match with no recommended procedure. "
-                    "This likely means the Terminology API was unavailable during extraction. "
-                    "Re-generate this rule when the Terminology API is healthy.",
-                    action.get("term"),
-                    rule_id,
-                )
+            self._write_action_groups(session, rule_id, actions, priority_meta)
 
             if int(coded.get("schema_version") or 1) != 2:
                 for constraint in coded.get("applies_to") or []:
@@ -787,6 +790,35 @@ class GuidanceRuleGenerator:
             constraint.get("unit"),
         )
 
+    def _write_action_groups(
+        self,
+        session,
+        rule_id: str,
+        actions: list[dict[str, Any]],
+        priority_meta: dict[str, Any] | None = None,
+    ) -> None:
+        """Write one HAS_ACTION edge per recommended action.
+
+        All actions for a rule share one ``ActionGroup`` -- the
+        ``(ActionGroup)-[:HAS_ACTION]->(Concept)`` pattern already supports
+        multiple distinct edges from one ActionGroup, so this is a loop
+        over the existing per-action MERGE, not a schema change. Actions
+        with no resolved SNOMED code are skipped with an error log (same
+        conservative-fail behaviour as the previous singular-action path).
+        """
+        for action in actions or []:
+            if action and action.get("snomed_concept_id"):
+                self._write_action_group(session, rule_id, action, priority_meta)
+            elif action:
+                logger.error(
+                    "Action %r for rule %s has no SNOMED code -- action group NOT written. "
+                    "HCCP-Agents will receive a rule match with no recommended procedure. "
+                    "This likely means the Terminology API was unavailable during extraction. "
+                    "Re-generate this rule when the Terminology API is healthy.",
+                    action.get("term"),
+                    rule_id,
+                )
+
     def _write_action_group(
         self,
         session,
@@ -818,6 +850,7 @@ class GuidanceRuleGenerator:
             raw_term=action["term"],
             priority=priority_meta["priority"],
             due_days=priority_meta["due_days"],
+            strength=action.get("strength") or "unspecified",
         )
 
     # ── Billing audit ───────────────────────────────────────────────────────────

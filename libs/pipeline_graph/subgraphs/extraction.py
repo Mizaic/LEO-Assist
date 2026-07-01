@@ -1,9 +1,9 @@
 """Extraction subgraph wrapping sentence splitter and extractor registry.
 
 Atlas trace:
-  DO: DO-1D5031E0
-  DI: DI-702F4583
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1D5031E0")
+  DO: DO-728930A1
+  Also implements: DO-416BA91D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 Prompt resolution order:
 1. ``prompt_config`` dict in state (populated from Neo4j by the parent graph)

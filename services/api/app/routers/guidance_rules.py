@@ -1225,6 +1225,7 @@ def _format_rule(r: dict) -> dict:
     logic_tree = _parse_logic_json(r.get("logic_json")) if schema_version == 2 else None
     logic_concepts = _logic_tree_concepts(logic_tree) if logic_tree else []
     verifier = _parse_verifier_json(r.get("verifier_json"))
+    actions = _parse_actions_json(r.get("action_json"))
     display_plain_english = (
         _plain_english_logic(logic_tree)
         if logic_tree is not None
@@ -1244,7 +1245,11 @@ def _format_rule(r: dict) -> dict:
         "present_criteria": present,
         "absent_criteria": absent,
         "logic_tree": logic_tree,
-        "action": _parse_action_json(r.get("action_json")),
+        # "action" is a read-only derived flat criterion (actions[0].criterion)
+        # kept for FE code that has not yet migrated to the actions[] list.
+        # See DI-42246DA7 acceptance criteria (multi-action support).
+        "action": actions[0]["criterion"] if actions else None,
+        "actions": actions,
         "criteria_concepts": logic_concepts,
         "generation_outcome": verifier.get("generation_outcome"),
         "needs_human_review": bool(verifier.get("needs_human_review")),
@@ -1278,33 +1283,51 @@ def _parse_verifier_json(raw: object) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
-def _parse_action_json(raw: object) -> dict | None:
-    """Parse the stored actionJson into the structured ``action`` field.
-
-    Surfacing this lets the EditRuleDialog show -- and let reviewers
-    correct -- the SNOMED-coded recommended procedure that fires when
-    the rule matches a patient (DI-LEO-AI-170).
-
-    Returns ``None`` when the rule has no action coded; otherwise a
-    dict with ``snomed_concept_id``, ``preferred_term``, ``semantic_tag``,
-    and ``term`` keys.
-    """
-    if not raw:
-        return None
-    try:
-        payload = json.loads(raw) if isinstance(raw, str) else raw
-    except (TypeError, ValueError):
-        return None
-    if not isinstance(payload, dict):
-        return None
+def _format_action_item(payload: dict) -> dict:
+    """Format one stored action dict into the nested RuleAction API shape."""
     snomed_id = payload.get("snomed_concept_id")
     preferred = payload.get("preferred_term") or payload.get("term") or ""
     return {
-        "snomed_concept_id": str(snomed_id) if snomed_id else None,
-        "preferred_term": str(preferred),
-        "semantic_tag": str(payload.get("semantic_tag") or ""),
-        "term": str(payload.get("term") or preferred),
+        "criterion": {
+            "snomed_concept_id": str(snomed_id) if snomed_id else None,
+            "preferred_term": str(preferred),
+            "semantic_tag": str(payload.get("semantic_tag") or ""),
+            "term": str(payload.get("term") or preferred),
+        },
+        "strength": str(payload.get("strength") or "unspecified"),
     }
+
+
+def _parse_actions_json(raw: object) -> list[dict]:
+    """Parse the stored actionJson into the structured ``actions`` list.
+
+    Surfacing this lets the EditRuleDialog show -- and let reviewers
+    correct -- the SNOMED-coded recommended procedures that fire when
+    the rule matches a patient (DI-LEO-AI-170, DI-42246DA7).
+
+    Handles both the current array shape (``[{...}, ...]``, one or more
+    recommended actions) and the legacy single-object shape written
+    before multi-action support existed -- the latter is wrapped in a
+    one-item list so old rows never need a backfill migration.
+
+    Returns an empty list when the rule has no action coded or the
+    stored JSON is malformed; otherwise a list of nested RuleAction
+    dicts each with ``criterion`` (snomed_concept_id, preferred_term,
+    semantic_tag, term) and ``strength`` keys.
+    """
+    if not raw:
+        return []
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return []
+    if isinstance(payload, list):
+        items = [p for p in payload if isinstance(p, dict)]
+    elif isinstance(payload, dict):
+        items = [payload]
+    else:
+        return []
+    return [_format_action_item(p) for p in items]
 
 
 def _plain_english_criteria(present: list[dict], absent: list[dict]) -> str:

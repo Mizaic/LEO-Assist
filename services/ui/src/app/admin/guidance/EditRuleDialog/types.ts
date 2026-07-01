@@ -8,20 +8,15 @@
  * object identity through React re-renders.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  *
- * Phase 6 trace (OBSERVATION leaf UI + ingest + backfill):
- *   UN: UN-26E57FA1
- *   DI: DI-4C8A09C3
- *   DO: DO-CB6324A3
- *   Risk: R-555C8691 (shared with Phase 5 backend)
- *   VT: VT-1A7862B9 (execution_status=passed)
- *
- * Sprint 1 trace (MEDICATION / ALLERGY / TREATMENT_HISTORY leaves):
- *   DI: DI-2199E670
- *   DO: DO-0EC3A9CB
+ * Note: MEDICATION / ALLERGY / TREATMENT_HISTORY leaf enums also feed the
+ * separate guideline-compiler leaf-evaluation surface tracked under
+ * DI-2199E670 -> DO-0EC3A9CB (libs/guidance_schema, guideline_compiler.py,
+ * guideline_evaluator.py). That DI/DO pair covers backend leaf matching,
+ * not this UI type definitions file.
  */
 export type LogicNodeKind =
   | "AND"
@@ -71,6 +66,21 @@ export interface LogicCriterion {
   excluded_concept_ids?: string[];
   /** Names which seed supplies the chip's headline label. */
   primary_concept_id?: string;
+}
+
+/**
+ * One recommended procedure a rule suggests when it fires, paired with
+ * its own strength (offer / consider / refer / ...). A rule may recommend
+ * more than one procedure (e.g. "Offer an X-ray and refer urgently for a
+ * biopsy"), so the editor and the API both carry an ``actions`` array
+ * rather than a single action.
+ *
+ * Mirrors ``RuleAction`` in
+ * ``services/api/app/services/guidance_rule_edit.py``.
+ */
+export interface RuleAction {
+  criterion: LogicCriterion;
+  strength: string;
 }
 
 /**
@@ -250,15 +260,6 @@ export type NodeUpdate =
 
 export const GROUP_KINDS: ReadonlyArray<LogicNodeKind> = ["AND", "OR", "NOT", "AT_LEAST"];
 
-/**
- * Sandbox impact badge data surfaced to Step 1 after a test run.
- * Produced by TestPatientsPanel, consumed by the tree editor header.
- */
-export interface SandboxImpactBadge {
-  status: "fresh" | "stale" | "running" | "empty";
-  firingPatients: number;
-  totalPatients: number;
-}
 export const LEAF_KINDS: ReadonlyArray<LogicNodeKind> = [
   "CONCEPT",
   "DEMOGRAPHIC",

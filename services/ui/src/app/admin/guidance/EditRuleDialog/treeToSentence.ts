@@ -11,9 +11,9 @@
  * a lead sentence followed by an optional bullet list of pathways.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 import { OBSERVATION_MODE_LABELS, friendlyTerm, recencyLabel } from "./copy";
 import type {
@@ -266,7 +266,7 @@ export function treeToSentence(
 ): RuleSummary {
   if (!node) {
     return {
-      lead: "This rule has no conditions yet. Add a symptom or patient detail to get started.",
+      lead: "This rule has no conditions yet. Add a symptom, procedure, situation, or patient detail to get started.",
       isWellShaped: false,
     };
   }

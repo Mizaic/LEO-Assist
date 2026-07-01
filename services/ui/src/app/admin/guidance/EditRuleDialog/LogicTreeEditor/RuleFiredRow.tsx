@@ -11,6 +11,7 @@
  * Atlas trace: DO-274E5A61 / DI-6AE25829
  */
 import { useEffect, useRef, useState } from "react";
+import { motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -25,8 +26,11 @@ import Typography from "@mui/material/Typography";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
+import { useMotion } from "@leo/design-system";
+
 import type { EditableLogicNode, NodeUpdate } from "../types";
 import type { GuidanceRulePickerEntry } from "@/app/admin/knowledge/test-patients/types";
+import { popVariants } from "../../motionPresets";
 
 interface Props {
   node: EditableLogicNode;
@@ -116,8 +120,10 @@ export default function RuleFiredRow({
   }
 
   const pickerOpen = Boolean(anchorEl);
+  const { reducedMotion } = useMotion();
 
   return (
+    <fm.div variants={popVariants(reducedMotion)} initial="initial" animate="animate">
     <Stack direction="row" spacing={0.75} alignItems="center" sx={{ flexWrap: "wrap", my: 0.5 }}>
       <AccountTreeOutlinedIcon
         fontSize="small"
@@ -232,5 +238,6 @@ export default function RuleFiredRow({
         </Box>
       </Popover>
     </Stack>
+    </fm.div>
   );
 }

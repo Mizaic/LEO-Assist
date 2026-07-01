@@ -1,7 +1,7 @@
 /**
  * Atlas trace:
- *   DO: DO-E647765A
- *   DI: DI-0C8FBAF7
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  */
 "use client";
 
@@ -238,8 +238,8 @@ function RuleCardHeader({ rule }: { rule: Rule }) {
       {rule.strength && rule.strength !== "unspecified" && <Tooltip title={strengthChipLabel(rule.strength)} arrow><Chip label={rule.strength.replace(/_/g, " ")} size="small" variant="outlined" /></Tooltip>}
       {rule.has_predecessor && <Chip icon={<CompareArrowsIcon />} label="Updated" size="small" color="warning" variant="outlined" />}
       {rule.is_default && <Chip label="Fallback rule" size="small" color="secondary" variant="outlined" />}
-      {rule.generation_outcome && rule.generation_outcome !== "success" && <Chip label={generationOutcomeLabel(rule.generation_outcome)} size="small" color="warning" variant="filled" />}
-      {rule.needs_human_review && !rule.generation_outcome && <Chip label="Needs review" size="small" color="warning" variant="outlined" />}
+      {rule.status === "pending_review" && rule.generation_outcome && rule.generation_outcome !== "success" && <Chip label={generationOutcomeLabel(rule.generation_outcome)} size="small" color="warning" variant="filled" />}
+      {rule.status === "pending_review" && rule.needs_human_review && !rule.generation_outcome && <Chip label="Needs review" size="small" color="warning" variant="outlined" />}
       {rule.chapter_title && <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>{rule.chapter_title}</Typography>}
       {rule.updated_at && (
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", fontStyle: "italic" }} data-testid="rule-updated-relative">
@@ -251,6 +251,7 @@ function RuleCardHeader({ rule }: { rule: Rule }) {
 }
 
 function RuleGenerationAlert({ rule }: { rule: Rule }) {
+  if (rule.status !== "pending_review") return null;
   if (!rule.generation_errors?.length) return null;
   if (rule.generation_outcome === "no_rule_expected") {
     return (

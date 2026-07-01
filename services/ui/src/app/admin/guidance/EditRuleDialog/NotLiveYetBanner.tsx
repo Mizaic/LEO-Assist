@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-DD86CCBE
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -25,8 +25,7 @@
  *   safety risk. The banner spells out that one more deliberate step
  *   is required before patients see the change.
  *
- * Design Controls (Phase 1 safety fix): DI-DD86CCBE, R-... ,
- * VT-D7B8FBA9 (see Atlas).
+ * Atlas trace: DI-42246DA7 / DO-F8C56339 (see Atlas).
  */
 
 import Alert from "@mui/material/Alert";

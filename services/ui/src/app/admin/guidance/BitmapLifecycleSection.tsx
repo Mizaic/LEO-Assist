@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -21,6 +22,7 @@ import MuiStepper from "@mui/material/Stepper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import CelebrationRoundedIcon from "@mui/icons-material/CelebrationRounded";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import {
   FilterBar,
@@ -29,10 +31,12 @@ import {
   ReviewListCard,
   StatHero,
   ToolbarActions,
+  useMotion,
   type FilterChip,
   type ReviewListItem,
   type StatTile,
 } from "@leo/design-system";
+import { celebrationPulse, popVariants } from "./motionPresets";
 
 interface ReplaySummary {
   id: string;
@@ -79,12 +83,24 @@ const POLICY_OPTIONS: ReadonlyArray<{ value: PolicyMode; label: string }> = [
 // Step labels preserved for screen-reader / test context
 const COMPILE_STEPS = ["Rules approved", "Compile rules", "Go live"];
 
-function buildVersionItem(v: VersionEntry, activating: string | null, onActivate: (ver: string) => void): ReviewListItem {
+function buildVersionItem(
+  v: VersionEntry,
+  activating: string | null,
+  onActivate: (ver: string) => void,
+  justActivated: string | null,
+  reducedMotion: boolean,
+): ReviewListItem {
+  const liveChip = v.active ? <Chip label="Live" size="small" color="success" /> : null;
+  const celebrateThis = v.active && v.version === justActivated;
   return {
     id: v.version,
     tone: v.active ? "positive" : "neutral",
     title: <span style={{ fontFamily: "monospace", fontSize: 13 }}>{v.version}</span>,
-    chips: v.active ? <Chip label="Live" size="small" color="success" /> : null,
+    chips: celebrateThis ? (
+      <fm.div style={{ display: "inline-flex" }} {...celebrationPulse(reducedMotion)}>
+        {liveChip}
+      </fm.div>
+    ) : liveChip,
     actions: v.active ? undefined : (
       <Button size="small" variant="outlined" disabled={activating === v.version} onClick={() => onActivate(v.version)} aria-label={`Make version ${v.version} live`}>
         {activating === v.version ? <CircularProgress size={14} /> : "Make this live"}
@@ -98,6 +114,7 @@ interface BitmapLifecycleSectionProps {
 }
 
 export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLifecycleSectionProps) {
+  const { reducedMotion } = useMotion();
   const [scopeType, setScopeType] = useState<ScopeType>("global");
   const [scopeId, setScopeId] = useState("default");
   const [policyMode, setPolicyMode] = useState<PolicyMode>("advisory");
@@ -113,6 +130,8 @@ export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLif
   const [confirmVersion, setConfirmVersion] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [justActivatedVersion, setJustActivatedVersion] = useState<string | null>(null);
+  const [justCompiled, setJustCompiled] = useState(false);
 
   useEffect(() => {
     if (scopeType === "global" && scopeId !== "default") setScopeId("default");
@@ -170,6 +189,10 @@ export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLif
           clearInterval(pollRef.current!);
           setCompiling(false);
           setRefreshKey((n) => n + 1);
+          if (isDone) {
+            setJustCompiled(true);
+            setTimeout(() => setJustCompiled(false), 2200);
+          }
         }
       }, 3000);
     } catch {
@@ -190,6 +213,8 @@ export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLif
       if (!resp.ok) throw new Error(await resp.text());
       setConfirmVersion(null);
       setRefreshKey((n) => n + 1);
+      setJustActivatedVersion(version);
+      setTimeout(() => setJustActivatedVersion(null), 2200);
       onVersionActivated?.();
     } catch {
       setError("Could not activate this version. Please try again.");
@@ -292,7 +317,16 @@ export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLif
       {status && (
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary">Active version:</Typography>
-          {status.active_version ? <Chip label={status.active_version} color="success" size="small" /> : <Chip label="No active version" size="small" />}
+          {status.active_version ? (
+            <fm.div
+              style={{ display: "inline-flex" }}
+              {...(status.active_version === justActivatedVersion ? celebrationPulse(reducedMotion) : {})}
+            >
+              <Chip label={status.active_version} color="success" size="small" />
+            </fm.div>
+          ) : (
+            <Chip label="No active version" size="small" />
+          )}
           {status.rule_count > 0 && <Typography variant="body2" color="text.secondary">{status.rule_count} rule{status.rule_count !== 1 ? "s" : ""} live</Typography>}
         </Stack>
       )}
@@ -302,13 +336,30 @@ export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLif
       {statTiles.length > 0 && <StatHero stats={statTiles} />}
 
       {/* -- Compile / rollback actions ----------------------------------- */}
-      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
         <ToolbarActions
           actions={[
             { id: "compile", label: compiling ? "Compiling..." : "Compile rules", variant: "primary", onClick: handleCompile, disabled: compiling, loading: compiling },
             { id: "rollback", label: rollingBack ? "Rolling back..." : "Rollback scope", variant: "secondary", onClick: handleRollback, disabled: rollingBack || versions.length < 2, loading: rollingBack },
           ]}
         />
+        <AnimatePresence>
+          {justCompiled && (
+            <fm.div
+              variants={popVariants(reducedMotion)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <Chip
+                icon={<CelebrationRoundedIcon fontSize="small" />}
+                label="Compiled!"
+                size="small"
+                color="success"
+              />
+            </fm.div>
+          )}
+        </AnimatePresence>
       </Stack>
 
       {compiling && (
@@ -337,7 +388,9 @@ export default function BitmapLifecycleSection({ onVersionActivated }: BitmapLif
         <Box>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>All compiled versions</Typography>
           <ReviewListCard
-            items={versions.map((v) => buildVersionItem(v, activatingVersion, setConfirmVersion))}
+            items={versions.map((v) =>
+              buildVersionItem(v, activatingVersion, setConfirmVersion, justActivatedVersion, reducedMotion),
+            )}
           />
         </Box>
       )}
