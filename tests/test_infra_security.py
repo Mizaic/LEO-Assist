@@ -154,6 +154,13 @@ class TestPipelineWorkerImageContents:
         source = dockerfile.read_text()
         assert "COPY services/coding_worker/ /app/services/coding_worker/" in source
 
+    def test_pipeline_worker_copies_terminology_api_package(self):
+        dockerfile = DOCKERFILES_DIR / "Dockerfile.pipeline-worker"
+        source = dockerfile.read_text()
+        assert (
+            "COPY services/terminology_api/ /app/services/terminology_api/" in source
+        )
+
 
 class TestServiceAuthSecretDeployment:
     """SERVICE_AUTH_SECRET must be wired through Bicep to all environments."""
