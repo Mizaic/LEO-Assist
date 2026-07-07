@@ -1,20 +1,37 @@
 # Entra setup scripts
 
 This folder contains helper scripts for the LEO Entra ID app
-registrations. There are two distinct concerns:
+registrations. There are three distinct concerns:
 
-1. **Internal service apps** -- one app reg per backend API (terminology,
-   model-inference, FHIR, analytics) that LEO's managed identity calls.
+1. **User-login app (Track D.1)** -- multi-tenant app reg for clinician OAuth.
+   See `entra_user_login_setup.sh` / `entra_user_login_setup.ps1`.
+2. **Internal service apps (Track D.2)** -- one app reg per backend API.
    See `entra_setup.sh` / `entra_setup.ps1`.
-2. **User-login app** -- the multi-tenant app reg whose appId is stored
-   in Key Vault as `azure-ad-client-id` (env var `AZURE_AD_CLIENT_ID`).
-   This is what users sign in with via OAuth authorization-code flow,
-   and what the `/admin/portal` Entra extension uses for delegated
-   Microsoft Graph calls (see DI-31F4C232 and DI-6CF7FCE0).
+3. **User-login Graph scopes (Track D.4)** -- delegated permissions for
+   `/admin/portal`. See `entra_user_login_graph_perms.sh`.
 
-This README covers concern (2).
+## When to run `entra_user_login_setup` (Track D.1)
 
-## When to run `entra_user_login_graph_perms.sh`
+Once per environment before bootstrap or `migrate-secrets.ps1`. Idempotent.
+
+```powershell
+pwsh ./scripts/entra_user_login_setup.ps1 -Environment val -WriteKv
+```
+
+```bash
+ENVIRONMENT=val ./scripts/entra_user_login_setup.sh --write-kv
+```
+
+Reads `frontendUrl` from `infra/bicep/parameters/{env}.bicepparam`. Use
+`-FrontendUrl` / `--frontend-url` to override. Dev local login:
+
+```powershell
+pwsh ./scripts/entra_user_login_setup.ps1 -Environment dev -IncludeLocalhost
+```
+
+---
+
+## When to run `entra_user_login_graph_perms.sh` (Track D.4)
 
 Run once, the first time you stand up the user-login app reg, and then
 again any time the LEO admin portal needs additional Graph scopes. The

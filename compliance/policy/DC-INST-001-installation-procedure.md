@@ -34,7 +34,8 @@ the next track starts.
 | Docker Compose V2 | >= 2.x | `docker compose version` |
 
 **Mac/Linux:** use `./scripts/start_leo-ai-core.sh` for local dev.
-Infra deploy scripts (`infra/scripts/deploy.ps1`, `migrate-secrets.ps1`) require
+Infra deploy scripts (`infra/scripts/deploy.ps1`, `deploy-redis.ps1`,
+`deploy-openai.ps1`, `migrate-secrets.ps1`) require
 `pwsh`. Equivalent raw `az deployment group create` commands are listed below.
 
 **Gotchas:**
@@ -88,10 +89,11 @@ Complete before any Azure deployment.
 
 ### A.2 Azure OpenAI
 
-1. Create an Azure OpenAI resource in the target region (EU recommended).
+1. Deploy the shared account in Track B.3 (`deploy-openai.ps1`).
 2. Deploy models matching Bicep params (`gpt-5.2-chat`, `gpt-5-mini` or your
    equivalents).
-3. Record endpoint URL and API key for Track E.
+3. Record API key for Track E (`azureOpenAiEndpoint` is synced into bicepparam
+   files automatically).
 
 ### A.3 AWS Bedrock (if using AWS pipeline provider)
 
@@ -130,6 +132,7 @@ az provider register --namespace Microsoft.Cache
 az provider register --namespace Microsoft.ServiceBus
 az provider register --namespace Microsoft.KeyVault
 az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.CognitiveServices
 az provider register --namespace Microsoft.OperationalInsights
 ```
 
@@ -142,7 +145,18 @@ pwsh ./infra/scripts/deploy.ps1 -Environment shared -SubscriptionId <sub-id>
 Creates resource group `leo-ai` and ACR `leoaicr` (name is globally unique;
 override in Bicep if taken).
 
-### B.3 Model storage account
+### B.3 Shared Azure OpenAI
+
+```powershell
+pwsh ./infra/scripts/deploy-openai.ps1 -SubscriptionName 'Multi Tenanted - LEO Production'
+```
+
+Creates shared account `mizaic-cds-oai` in `leo-prod-rg`. The deploy script
+runs `sync-openai-endpoint.ps1`, which writes `azureOpenAiEndpoint` into
+`infra/bicep/parameters/{dev,val,prod}.bicepparam`. Deploy model deployments
+in Azure AI Foundry / portal after the account exists.
+
+### B.4 Model storage account
 
 ```bash
 az storage account create \
@@ -161,40 +175,12 @@ Create blob container `ner-models` for NER model artifacts.
 
 Repeat for **dev**, then **val**, then **prod**.
 
-### C.1 Pre-create Redis (BLOCKING -- Bicep references existing resource)
+### C.1 Deploy Redis (BLOCKING -- run before main stack)
 
-Bicep does **not** create Redis. Provision before deploy:
-
-```bash
-# Example: Azure Managed Redis via portal or CLI
-# Name must be: leoai-{env}-redis  (e.g. leoai-dev-redis)
-```
-
-Record the TLS connection string as `rediss://...` for Key Vault `redis-url`.
-
-### C.2 Customise Bicep parameters (BLOCKING for greenfield)
-
-Edit `infra/bicep/parameters/{env}.bicepparam`:
-
-| Parameter | Action |
-| --------- | ------ |
-| `frontendUrl` | Set to your UI hostname (HTTPS, no trailing slash) |
-| `allowedOrigins` | Comma-separated CORS origins (no `*` in prod/val) |
-| `widgetPublicHost` | Azure Static Website hostname for widget CDN |
-| `mailFromAddress` | Licensed Graph API sender mailbox |
-| `azureOpenAiEndpoint` | Your Azure OpenAI endpoint |
-| `snomedTerminologyServer` | NHS prod URL in prod; blank in dev/val if using TRUD |
-| `knowledgeGraphEnvironment` | `prod` for val+prod when sharing KG; default for dev |
-
-Edit `infra/widget-cdn/parameters/{env}.bicepparam`:
-
-- Set `widgetPublicHost` to match Bicep above.
-- Set `githubActionsPrincipalId` to your GitHub OIDC SP object ID (see Track F).
-
-### C.3 Deploy environment stack
+Redis is deployed separately from the Container Apps stack:
 
 ```powershell
-pwsh ./infra/scripts/deploy.ps1 -Environment dev -ImageTag placeholder
+pwsh ./infra/scripts/deploy-redis.ps1 -Environment dev -SubscriptionId <sub-id>
 ```
 
 Equivalent CLI:
@@ -203,20 +189,32 @@ Equivalent CLI:
 az group create -n leo-ai-dev -l uksouth
 az deployment group create \
   --resource-group leo-ai-dev \
-  --template-file infra/bicep/main.bicep \
-  --parameters infra/bicep/parameters/dev.bicepparam \
-  --parameters imageTag=placeholder
+  --template-file infra/bicep/redis.bicep \
+  --parameters infra/bicep/parameters/redis/dev.bicepparam
 ```
 
-Creates per environment: Key Vault, Service Bus (5 queues), Container Apps
-Environment, 9 Container Apps, managed identity.
+First create takes 20-30 min. Name must be `mizaicai-{env}-redis`
+(e.g. `mizaicai-dev-redis`). Record the TLS connection string as
+`rediss://...` for Key Vault `redis-url`.
 
-Service Bus queues created by Bicep:
+All environments share the Azure OpenAI account from Track B.3. Push the
+API key via `migrate-secrets.ps1` per environment (`azureOpenAiEndpoint` is
+set in bicepparam files by `deploy-openai.ps1`).
 
-- `pipeline-jobs`, `analysis-jobs`, `coding-jobs` (legacy)
-- `audit-jobs`, `referral-assessments-output`
+### C.2 Widget CDN (BLOCKING -- run before main stack)
 
-### C.4 Widget CDN (separate resource group)
+Deploy the widget Static Website origin first. The script writes
+`widgetPublicHost` and the widget `https://` origin into
+`allowedOrigins` in `infra/bicep/parameters/{env}.bicepparam`.
+
+```powershell
+pwsh ./infra/scripts/deploy-widget-cdn.ps1 -Environment dev
+```
+
+Before first deploy, set `githubActionsPrincipalId` in
+`infra/widget-cdn/parameters/{env}.bicepparam` (see Track F).
+
+Equivalent CLI (then run `sync-widget-cdn-params.ps1` manually):
 
 ```bash
 az group create -n leo-widget-cdn-dev -l uksouth
@@ -226,15 +224,70 @@ az deployment group create \
   --parameters infra/widget-cdn/parameters/dev.bicepparam
 ```
 
-Enable static website (not in Bicep):
+Static website hosting and parameter sync are handled by
+`deploy-widget-cdn.ps1` (`index.html` / `404.html`, RBAC auth).
+
+### C.3 Customise Bicep parameters (BLOCKING for greenfield)
+
+Edit `infra/bicep/parameters/{env}.bicepparam`:
+
+| Parameter | Action |
+| --------- | ------ |
+| `frontendUrl` | Set to your UI hostname (HTTPS, no trailing slash) |
+| `allowedOrigins` | Review comma-separated CORS origins (widget origin added by C.2; add UI hostnames; no `*` in prod/val) |
+| `widgetPublicHost` | Auto-populated by C.2 -- do not edit unless re-syncing |
+| `mailFromAddress` | `@mizaic.com` mailbox SMTP; must match MAIL_GRAPH_* tenant |
+| `azureOpenAiEndpoint` | Auto-populated by Track B.3 (`deploy-openai.ps1`) -- do not edit unless re-syncing |
+| `snomedTerminologyServer` | NHS prod URL in prod; blank in dev/val if using TRUD |
+| `knowledgeGraphEnvironment` | `prod` for val+prod when sharing KG; default for dev |
+
+### C.4 Deploy environment stack
+
+Container Apps reference Key Vault secrets at deploy time. On **first**
+deploy, use bootstrap (infra -> Entra service apps -> secrets -> apps) or
+run the four steps manually:
+
+```powershell
+# Greenfield (recommended): requires secrets/.env (D.1 user-login, D.1a mail, etc.)
+# and Entra admin rights for phase 2 (internal service apps).
+pwsh ./infra/scripts/deploy.ps1 -Environment dev -Bootstrap -SourceFile secrets\.env
+
+# Manual equivalent
+pwsh ./infra/scripts/deploy.ps1 -Environment dev -InfrastructureOnly
+pwsh ./scripts/entra_setup.ps1 -Environment dev
+pwsh ./infra/scripts/migrate-secrets.ps1 -Environment dev -SourceFile secrets\.env
+pwsh ./infra/scripts/deploy.ps1 -Environment dev -ImageTag placeholder
+```
+
+Subsequent redeploys (CD, image updates) use a single deploy; secrets already
+exist in Key Vault.
+
+```powershell
+pwsh ./infra/scripts/deploy.ps1 -Environment dev -ImageTag placeholder
+```
+
+Equivalent CLI (phase 1 only):
 
 ```bash
-az storage blob service-properties update \
-  --account-name leoaiwidgetcdndev \
-  --static-website \
-  --404-document index.html \
-  --index-document index.html
+az group create -n leo-ai-dev -l uksouth
+az deployment group create \
+  --resource-group leo-ai-dev \
+  --template-file infra/bicep/main.bicep \
+  --parameters infra/bicep/parameters/dev.bicepparam \
+  --parameters imageTag=placeholder deployContainerApps=false
 ```
+
+Then `migrate-secrets.ps1`, then redeploy with `deployContainerApps=true`
+(default).
+
+Creates per environment: Key Vault, Service Bus (5 queues), managed identity.
+With `-Bootstrap` or `-InfrastructureOnly`, Container Apps are deferred until
+Key Vault secrets exist (Track E).
+
+Service Bus queues created by Bicep:
+
+- `pipeline-jobs`, `analysis-jobs`, `coding-jobs` (legacy)
+- `audit-jobs`, `referral-assessments-output`
 
 Repeat C.1-C.4 for **val** and **prod**.
 
@@ -242,10 +295,20 @@ Repeat C.1-C.4 for **val** and **prod**.
 
 ## Track D -- Entra configuration (per environment)
 
-### D.1 User-login app registration (manual, BLOCKING)
+### D.1 User-login app registration
 
-Per DC-DEP-001 Section 2. Create **one app per environment** (or separate
-redirect URI sets):
+Per DC-DEP-001 Section 2. Automated setup (idempotent):
+
+```powershell
+pwsh ./scripts/entra_user_login_setup.ps1 -Environment val -WriteKv
+```
+
+```bash
+ENVIRONMENT=val ./scripts/entra_user_login_setup.sh --write-kv
+```
+
+Reads `frontendUrl` from `infra/bicep/parameters/{env}.bicepparam` and sets
+redirect URI to `{frontendUrl}/auth/callback`. Creates or updates:
 
 | Property | Value |
 | -------- | ----- |
@@ -254,26 +317,63 @@ redirect URI sets):
 | Implicit grant | **disabled** |
 | Manifest | `"groupMembershipClaims": "SecurityGroup"` |
 | Redirect URI (Web) | `{frontendUrl}/auth/callback` |
+| API identifier | `api://{client-id}` (for `api://.../.default` scope) |
 
-Create client secret; store in Key Vault as `azure-ad-client-secret`.
-Store client ID and tenant ID as `azure-ad-client-id`, `azure-ad-tenant-id`.
+Creates client secret (`{env}-api` display name). With `-WriteKv` / `--write-kv`,
+writes `azure-ad-client-id`, `azure-ad-client-secret`, `azure-ad-tenant-id` to
+the env Key Vault. Otherwise copy printed values into `secrets/.env` and run
+`migrate-secrets.ps1`.
 
-`core-api` builds OAuth scope from `AZURE_AD_CLIENT_ID` when `AZURE_AD_SCOPE`
-is unset. Optionally set `AZURE_AD_SCOPE` explicitly in secrets.
+Dev only: add `-IncludeLocalhost` / `--include-localhost` for
+`http://localhost:3000/auth/callback`.
+
+Manual portal steps are still valid if you prefer; script matches DC-DEP-001.
+
+### D.1a Mail Graph app (corporate tenant, BLOCKING for invites/support mail)
+
+LEO user login (`AZURE_AD_*`) lives in the **deployment** tenant. Transactional
+mail uses a **separate** app registration in the **corporate** tenant that
+owns the `@mizaic.com` mailbox.
+
+1. In the corporate Entra tenant, create app registration (e.g. `LEO Mail Service`).
+2. Create licensed mailbox `leo.support@mizaic.com` (or per-env address).
+3. Grant Graph application permissions:
+
+```bash
+MAIL_GRAPH_APP_ID=<client-id> ./scripts/entra_mail_graph_perms.sh
+```
+
+4. Admin-consent in the corporate tenant; create client secret.
+5. Set in `secrets/.env` and push via Track E:
+
+| Env var | Key Vault secret | Source |
+| ------- | ---------------- | ------ |
+| `MAIL_GRAPH_TENANT_ID` | `mail-graph-tenant-id` | Corporate Entra tenant ID |
+| `MAIL_GRAPH_CLIENT_ID` | `mail-graph-client-id` | Mail app client ID |
+| `MAIL_GRAPH_CLIENT_SECRET` | `mail-graph-client-secret` | Mail app client secret |
+
+6. Set `mailFromAddress` in `infra/bicep/parameters/{env}.bicepparam` to the
+   mailbox SMTP address (plain config, not a secret).
 
 ### D.2 Internal service apps (automated)
 
-After Bicep deploy:
+`deploy.ps1 -Bootstrap` runs this after phase-1 Bicep (Key Vault + managed
+identity exist). Or run manually after `-InfrastructureOnly`:
 
-```bash
-ENVIRONMENT=dev ./scripts/entra_setup.sh
+```powershell
+pwsh ./scripts/entra_setup.ps1 -Environment dev
 ```
 
-Creates four single-tenant apps and writes app IDs to Key Vault:
+Creates four single-tenant apps, grants **Call** app roles to the env managed
+identity, and writes app IDs to Key Vault:
 `terminology-api-app-id`, `model-inference-app-id`, `fhir-api-app-id`,
-`analytics-api-app-id`.
+`analytics-api-app-id`. You do **not** need these four values in `secrets/.env`
+when bootstrap runs `entra_setup` (phase 2) before `migrate-secrets` (phase 3).
 
-Repeat for val and prod.
+Requires Entra admin (`Application.ReadWrite.All` or equivalent) and Key Vault
+Secrets Officer on the env vault.
+
+Repeat for val and prod. Use `-SkipEntraSetup` on bootstrap if apps already exist.
 
 ### D.3 Security groups and Neo4j role catalogue
 
@@ -299,16 +399,19 @@ Customer tenant admins must grant consent via the printed URL.
 
 ---
 
-## Track E -- Secrets and Key Vault (BLOCKING)
+## Track E -- Secrets and Key Vault (BLOCKING before Container Apps)
+
+Populate `secrets/.env` **before** the first full stack deploy (Track C.4
+`-Bootstrap`, or between `-InfrastructureOnly` and the second deploy).
 
 ### E.1 Populate secrets/.env
 
 Copy `.env.example` to `secrets/.env`. Fill all values from DC-DEP-001
 Section 5.1 (30+ secrets). Minimum for ACA startup:
 
-- All Neo4j, Redis, Entra, Azure OpenAI, AWS, Service Bus, storage secrets
-- `auth-secret`, `service-auth-secret`
-- Inter-service app IDs (from `entra_setup.sh`)
+- All Neo4j, Redis, Entra (user login + mail Graph), Azure OpenAI, AWS, Service Bus secrets
+- `auth-secret` and `service-auth-secret` (auto-generated by `migrate-secrets.ps1` if blank)
+- Inter-service app IDs (from `entra_setup.ps1` during bootstrap; optional in `.env`)
 
 ### E.2 Push to Key Vault
 
@@ -316,7 +419,8 @@ Section 5.1 (30+ secrets). Minimum for ACA startup:
 pwsh ./infra/scripts/migrate-secrets.ps1 -Environment dev -SourceFile secrets\.env
 ```
 
-Repeat per environment. Script auto-generates `service-auth-secret` if absent.
+Repeat per environment. Script auto-generates `auth-secret` and
+`service-auth-secret` if absent from the source file.
 
 ### E.3 Verify Service Bus queues
 
@@ -457,8 +561,8 @@ flowchart TD
 
 | Item | Notes |
 | ---- | ----- |
-| Redis | Pre-create `leoai-{env}-redis` before Bicep |
-| Azure OpenAI | Not created by Bicep |
+| Redis | `deploy-redis.ps1` before main stack |
+| Azure OpenAI | `deploy-openai.ps1` in Track B.3 (shared account) |
 | User-login Entra app | No automation script; manual portal setup |
 | Widget static website | Enable via CLI after widget Bicep |
 | ODS sync job | Bicep module exists but not wired into `main.bicep` |

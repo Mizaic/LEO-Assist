@@ -1,6 +1,8 @@
 # -- LEO AI Core - Secret Migration Script ---------------------------------
 # Reads secrets from a .env file and pushes them to the environment Key Vault.
-# Safe to re-run: only overwrites if the value has changed.
+# Safe to re-run. Blank .env values skip overwrite when the secret already
+# exists in Key Vault; otherwise a bootstrap placeholder is written so
+# Container Apps deploy (Key Vault secret refs) can succeed.
 #
 # Usage:
 #   .\infra\scripts\migrate-secrets.ps1 -Environment dev
@@ -9,6 +11,7 @@
 #   .\infra\scripts\migrate-secrets.ps1 -Environment dev -WhatIf
 #
 # Requires: az CLI logged in with Key Vault Secrets Officer on the target vault
+# (vault is created by deploy.ps1 phase 1 or -InfrastructureOnly before first run).
 param(
     [Parameter(Mandatory)]
     [ValidateSet('dev', 'val', 'prod')]
@@ -22,7 +25,58 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$KvName = if ($VaultName) { $VaultName } else { "leoai-$Environment-kv" }
+function New-RandomHexSecret {
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $bytes = New-Object byte[] 32
+    $rng.GetBytes($bytes)
+    return [System.BitConverter]::ToString($bytes).Replace('-', '').ToLower()
+}
+
+function Test-KvSecretExists {
+    param(
+        [string]$VaultName,
+        [string]$SecretName
+    )
+
+    az keyvault secret show `
+        --vault-name $VaultName `
+        --name $SecretName `
+        --query id `
+        --output tsv 2>$null | Out-Null
+    return $LASTEXITCODE -eq 0
+}
+
+function Get-PlaceholderSecretValue {
+    param([string]$KvSecretName)
+
+    if ($KvSecretName -match '-password$' -or $KvSecretName -match '-secret$') {
+        return New-RandomHexSecret
+    }
+    if ($KvSecretName -eq 'redis-url') {
+        return 'redis://placeholder-not-configured.invalid:6379'
+    }
+    if ($KvSecretName -match '-uri$') {
+        return 'bolt://placeholder-not-configured.invalid:7687'
+    }
+    if ($KvSecretName -match '-(app-id|tenant-id|client-id)$') {
+        return '00000000-0000-0000-0000-000000000000'
+    }
+    if ($KvSecretName -eq 'azure-service-bus-connection-string') {
+        return 'Endpoint=sb://placeholder-not-configured.servicebus.windows.net/;SharedAccessKeyName=placeholder;SharedAccessKey=placeholder'
+    }
+    if ($KvSecretName -eq 'azure-openai-endpoint') {
+        return 'https://placeholder-not-configured.openai.azure.com/'
+    }
+    if ($KvSecretName -match '^aws-(big|small|max)-model$') {
+        return 'placeholder-model-not-configured'
+    }
+    if ($KvSecretName -eq 'aws-secret-access-key') {
+        return New-RandomHexSecret
+    }
+    return 'placeholder-not-configured'
+}
+
+$KvName = if ($VaultName) { $VaultName } else { "mizaicai-$Environment-kv" }
 Write-Host "  Target vault: $KvName"
 
 # -- Secret name mapping: KV secret name -> env var in source file ---------
@@ -39,9 +93,11 @@ $SecretMap = [ordered]@{
     'azure-ad-client-id'                 = 'AZURE_AD_CLIENT_ID'
     'azure-ad-client-secret'             = 'AZURE_AD_CLIENT_SECRET'
     'azure-ad-tenant-id'                 = 'AZURE_AD_TENANT_ID'
+    'mail-graph-tenant-id'               = 'MAIL_GRAPH_TENANT_ID'
+    'mail-graph-client-id'               = 'MAIL_GRAPH_CLIENT_ID'
+    'mail-graph-client-secret'           = 'MAIL_GRAPH_CLIENT_SECRET'
     'azure-openai-api-key'               = 'AZURE_OPENAI_API_KEY'
     'azure-openai-endpoint'              = 'AZURE_OPENAI_ENDPOINT'
-    'azure-storage-connection-string'    = 'AZURE_STORAGE_CONNECTION_STRING'
     'azure-service-bus-connection-string'= 'AZURE_SERVICE_BUS_CONNECTION_STRING'
     # AWS Bedrock
     'aws-access-key-id'                  = 'AWS_ACCESS_KEY_ID'
@@ -87,31 +143,38 @@ foreach ($line in Get-Content $SourceFile) {
     $EnvVars[$key] = $val
 }
 
-# -- If SERVICE_AUTH_SECRET not in source file, generate one ---------------
-if (-not $EnvVars.ContainsKey('SERVICE_AUTH_SECRET') -or $EnvVars['SERVICE_AUTH_SECRET'] -eq '') {
-    Write-Host "SERVICE_AUTH_SECRET not found in source file -- generating a new one."
-    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    $bytes = New-Object byte[] 32
-    $rng.GetBytes($bytes)
-    $EnvVars['SERVICE_AUTH_SECRET'] = [System.BitConverter]::ToString($bytes).Replace('-', '').ToLower()
+# Auto-generate AUTH_SECRET and SERVICE_AUTH_SECRET when absent from the source file.
+foreach ($autoKey in @('AUTH_SECRET', 'SERVICE_AUTH_SECRET')) {
+    if (-not $EnvVars.ContainsKey($autoKey) -or $EnvVars[$autoKey] -eq '') {
+        Write-Host "$autoKey not found in source file -- generating a new one."
+        $EnvVars[$autoKey] = New-RandomHexSecret
+    }
 }
 
 # -- Push secrets to Key Vault ---------------------------------------------
-$success = 0; $skipped = 0; $errors = 0
+$success = 0; $skipped = 0; $placeholders = 0; $errors = 0
 
 foreach ($kvName2 in $SecretMap.Keys) {
     $envVar = $SecretMap[$kvName2]
     $value = $EnvVars[$envVar]
+    $usedPlaceholder = $false
 
     if ([string]::IsNullOrWhiteSpace($value)) {
-        Write-Host "  SKIP  $kvName2 ($envVar is blank)"
-        $skipped++
-        continue
+        if (Test-KvSecretExists -VaultName $KvName -SecretName $kvName2) {
+            Write-Host "  SKIP  $kvName2 ($envVar is blank; already in Key Vault)"
+            $skipped++
+            continue
+        }
+        $value = Get-PlaceholderSecretValue -KvSecretName $kvName2
+        $usedPlaceholder = $true
+        Write-Host "  PLACEHOLDER  $kvName2 ($envVar is blank -- bootstrap value for deploy)"
     }
 
     if ($WhatIf) {
-        Write-Host "  WOULD SET  $kvName2 (from $envVar)"
+        $label = if ($usedPlaceholder) { 'WOULD SET PLACEHOLDER' } else { 'WOULD SET' }
+        Write-Host "  $label  $kvName2 (from $envVar)"
         $success++
+        if ($usedPlaceholder) { $placeholders++ }
         continue
     }
 
@@ -124,11 +187,16 @@ foreach ($kvName2 in $SecretMap.Keys) {
         Write-Warning "  ERROR $kvName2 (exit $LASTEXITCODE): $result"
         $errors++
     } else {
-        Write-Host "  OK    $kvName2"
+        $label = if ($usedPlaceholder) { 'OK (placeholder)' } else { 'OK' }
+        Write-Host "  $label    $kvName2"
         $success++
+        if ($usedPlaceholder) { $placeholders++ }
     }
 }
 
 Write-Host ""
-Write-Host "Done: $success set, $skipped skipped, $errors errors."
+Write-Host "Done: $success set ($placeholders placeholders), $skipped skipped, $errors errors."
+if ($placeholders -gt 0) {
+    Write-Host "Replace placeholder secrets in Key Vault before production use."
+}
 if ($errors -gt 0) { exit 1 }
