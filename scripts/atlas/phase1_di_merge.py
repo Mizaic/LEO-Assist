@@ -43,21 +43,16 @@ GAP_REPORT = REPO / "design-controls" / "phase3-di-merge-gap.md"
 DI_DIR = REPO / "design-controls" / "design-inputs"
 LEDGER_CSV = REPO / "design-controls" / "phase7-di-merge-execution.csv"
 LEDGER_MD = REPO / "design-controls" / "phase7-di-merge-execution.md"
-STATE_PATH = (
-    REPO / "scripts" / "atlas" / ".phase1_di_merge_state.json"
-)
+STATE_PATH = REPO / "scripts" / "atlas" / ".phase1_di_merge_state.json"
 
 sys.path.insert(0, str(REPO / "scripts" / "atlas"))
 import _mcp_transport as mcp  # noqa: E402
-
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
+from product import PRODUCT_ID  # noqa: E402,F401
 
 # -- gap report parsing -----------------------------------------------
 
 
-GAP_LINE_RE = re.compile(
-    r"^\|\s*(DI-LEO-AI-\d+)\s*\|\s*(DI-[0-9A-F]{8})\s*\|"
-)
+GAP_LINE_RE = re.compile(r"^\|\s*(DI-LEO-AI-\d+)\s*\|\s*(DI-[0-9A-F]{8})\s*\|")
 
 
 def load_gap_pairs() -> list[tuple[str, str]]:
@@ -150,9 +145,7 @@ def is_empty(value: Any) -> bool:
     return False
 
 
-def build_update_plan(
-    local: dict[str, Any], atlas: dict[str, Any]
-) -> dict[str, Any]:
+def build_update_plan(local: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
     plan: dict[str, Any] = {
         "actions": [],
         "update_args": {},
@@ -165,7 +158,9 @@ def build_update_plan(
     if len(merged_ac) > len(atlas_ac):
         added = len(merged_ac) - len(atlas_ac)
         plan["update_args"]["acceptance_criteria"] = merged_ac
-        plan["actions"].append(f"AC: +{added} (atlas {len(atlas_ac)} -> {len(merged_ac)})")
+        plan["actions"].append(
+            f"AC: +{added} (atlas {len(atlas_ac)} -> {len(merged_ac)})"
+        )
     else:
         plan["skipped"].append(
             f"AC: no additions (atlas {len(atlas_ac)} >= union {len(merged_ac)})"
@@ -323,21 +318,37 @@ def write_ledger(rows: list[dict[str, Any]]) -> None:
     )
     for r in rows:
         md_lines.append(
-            "| {local_id} | {atlas_id} | {result} | {actions} | {skipped} | {error} |"
-            .format(**{k: str(r.get(k, "")).replace("|", "\\|") for k in [
-                "local_id", "atlas_id", "result", "actions", "skipped", "error"]})
+            "| {local_id} | {atlas_id} | {result} | {actions} | {skipped} | {error} |".format(
+                **{
+                    k: str(r.get(k, "")).replace("|", "\\|")
+                    for k in [
+                        "local_id",
+                        "atlas_id",
+                        "result",
+                        "actions",
+                        "skipped",
+                        "error",
+                    ]
+                }
+            )
         )
     LEDGER_MD.write_text("\n".join(md_lines) + "\n")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--live", action="store_true",
-                        help="Apply updates via update_design_input.")
-    parser.add_argument("--limit", type=int, default=0,
-                        help="Process at most N pairs (0 = all).")
-    parser.add_argument("--filter", type=str, default="",
-                        help="Process only pairs whose local_id matches this prefix.")
+    parser.add_argument(
+        "--live", action="store_true", help="Apply updates via update_design_input."
+    )
+    parser.add_argument(
+        "--limit", type=int, default=0, help="Process at most N pairs (0 = all)."
+    )
+    parser.add_argument(
+        "--filter",
+        type=str,
+        default="",
+        help="Process only pairs whose local_id matches this prefix.",
+    )
     args = parser.parse_args()
 
     pairs = load_gap_pairs()

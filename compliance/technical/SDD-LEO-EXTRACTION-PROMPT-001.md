@@ -7,7 +7,7 @@
 | Version | 1.0.3 |
 | Status | Draft |
 | Date | 2026-06-02 |
-| Product | LEO Clinical Decision Support (PROD-LEO-CORE-AI-20260415-6AE8A23B) |
+| Product | LEO Clinical Decision Support (PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4) |
 | Software item | extraction-prompt-runtime |
 | Safety class | B (IEC 62304) |
 | Standards | IEC 62304:2006+AMD1:2015 Section 5.4; ISO/IEC 25010:2011 |
@@ -438,7 +438,7 @@ Atlas verification tests should be confirmed in Atlas (`VT-*` linked to DI-B9543
 
 This section does **not** introduce new Atlas risks. It records how the
 **extraction-prompt-runtime** software item contributes hazardous situations to
-**existing** risks in the LEO Core AI risk register (`PROD-LEO-CORE-AI-20260415-6AE8A23B`).
+**existing** risks in the LEO Core AI risk register (`PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`).
 Confirm titles, scores, and `MITIGATES` links in Atlas before baseline (see OI-1).
 
 Legacy IDs (e.g. `R-LEO-AI-001`) are cited from migration evidence where Atlas

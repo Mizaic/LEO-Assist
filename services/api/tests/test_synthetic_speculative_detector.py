@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.routers.training import (
+from app.routers.training_synthetic_data import (
     _has_absent_evidence,
     _is_invalid_observable_assertion,
     _is_mismatched_semantic_sentence,

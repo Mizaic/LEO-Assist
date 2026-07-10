@@ -377,10 +377,13 @@ export function setSeedDistance(
   distance: number | null,
 ): EditableLogicNode {
   return withCriterion(node, (c) => {
+    // A depth of 0 would only match the exact code -- identical to
+    // switching descendant expansion off -- so 1 is the effective floor
+    // whenever a seed has descendants enabled.
     const next =
       distance === null || Number.isNaN(distance)
         ? null
-        : Math.max(0, Math.floor(distance));
+        : Math.max(1, Math.floor(distance));
     const seeds = (c.seeds ?? []).map((s) =>
       s.snomed_concept_id === conceptId ? { ...s, distance_child: next } : s,
     );

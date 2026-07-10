@@ -439,4 +439,4 @@ Look up any artefact via:
 get_design_control(dc_type="design_input", dc_id="DI-06CB6881")
 ```
 
-Product: `PROD-LEO-CORE-AI-20260415-6AE8A23B`
+Product: `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`

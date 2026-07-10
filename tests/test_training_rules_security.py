@@ -1,4 +1,8 @@
-"""Security tests for the training router's rule management endpoints.
+"""Security tests for the post-processor/context rule management endpoints.
+
+These endpoints live in app.routers.context_and_ignore_rules (split out of
+the former training.py god-file in the 2026-07 CTO peer-review item 2:
+core-api router decomposition -- pure move, no behaviour change).
 
 Covers:
 - _validate_regex: valid patterns, syntax errors, length limit, ReDoS probing
@@ -29,11 +33,11 @@ from fastapi import HTTPException
 
 
 def _import_validate_regex():
-    """Return the _validate_regex function from the training router.
+    """Return the _validate_regex function from app.routers.context_and_ignore_rules.
 
-    Mocks all module-level imports in training.py that require live services
-    (Neo4j, auth, cypher queries, etc.) so the function can be tested in
-    isolation without network access.
+    Mocks all module-level imports that require live services (Neo4j, auth,
+    cypher queries, etc.) so the function can be tested in isolation without
+    network access.
     """
     heavy_mocks = {
         "libs.auth.org_scope": MagicMock(
@@ -41,29 +45,23 @@ def _import_validate_regex():
             get_caller_scope=MagicMock(),
         ),
         "libs.neo4j_client.client": MagicMock(),
-        "libs.cypher.training_label_queries": MagicMock(),
         "libs.cypher.coding_review_queries": MagicMock(),
-        "libs.cypher.label_verification_queries": MagicMock(),
+        "libs.cypher.surface_form_task_queries": MagicMock(),
         "libs.cypher.post_processor_rule_queries": MagicMock(),
         "services.terminology_api.app.queries.terminology": MagicMock(),
-        "libs.ner.schema_mapper": MagicMock(LABEL_TO_SNOMED_TAG={}),
-        "libs.ner.training_label_writer": MagicMock(),
-        "libs.utils.logging": MagicMock(),
-        "libs.llm_client.escalation": MagicMock(),
-        "app.services.label_verifier": MagicMock(),
         "app.deps": MagicMock(require_admin=MagicMock()),
     }
     for mod, mock in heavy_mocks.items():
         sys.modules.setdefault(mod, mock)
 
     # Force re-import if already cached from a different test
-    sys.modules.pop("app.routers.training", None)
+    sys.modules.pop("app.routers.context_and_ignore_rules", None)
     sys.path.insert(
         0,
         str(__import__("pathlib").Path(__file__).parent.parent / "services" / "api"),
     )
 
-    from app.routers.training import _validate_regex
+    from app.routers.context_and_ignore_rules import _validate_regex
 
     return _validate_regex
 
@@ -157,16 +155,10 @@ class TestRouteAdminDependencies:
                 get_caller_scope=MagicMock(),
             ),
             "libs.neo4j_client.client": MagicMock(),
-            "libs.cypher.training_label_queries": MagicMock(),
             "libs.cypher.coding_review_queries": MagicMock(),
-            "libs.cypher.label_verification_queries": MagicMock(),
+            "libs.cypher.surface_form_task_queries": MagicMock(),
             "libs.cypher.post_processor_rule_queries": MagicMock(),
             "services.terminology_api.app.queries.terminology": MagicMock(),
-            "libs.ner.schema_mapper": MagicMock(LABEL_TO_SNOMED_TAG={}),
-            "libs.ner.training_label_writer": MagicMock(),
-            "libs.utils.logging": MagicMock(),
-            "libs.llm_client.escalation": MagicMock(),
-            "app.services.label_verifier": MagicMock(),
         }
         for mod, mock in heavy_mocks.items():
             sys.modules.setdefault(mod, mock)
@@ -178,7 +170,7 @@ class TestRouteAdminDependencies:
         mock_deps = MagicMock(require_admin=real_require_admin)
         sys.modules["app.deps"] = mock_deps
 
-        sys.modules.pop("app.routers.training", None)
+        sys.modules.pop("app.routers.context_and_ignore_rules", None)
         sys.path.insert(
             0,
             str(
@@ -186,18 +178,24 @@ class TestRouteAdminDependencies:
             ),
         )
 
-        from app.routers.training import router as training_router
+        from app.routers.context_and_ignore_rules import router as rules_router
 
-        self._router = training_router
+        self._router = rules_router
         self._require_admin = real_require_admin
 
     def _has_admin(self, path: str, method: str) -> bool:
-        """Check whether require_admin appears as a route-level or parameter dependency."""
+        """Check whether require_admin appears as a route-level or parameter dependency.
+
+        `path` is the mounted path (e.g. "/training/context-rules"); the
+        sub-router itself carries no prefix, so it is stripped before
+        matching against `route.path`.
+        """
         import inspect
         from fastapi import params as fastapi_params
 
+        bare_path = path.removeprefix("/training")
         for route in self._router.routes:
-            if route.path != path:
+            if route.path != bare_path:
                 continue
             if method.upper() not in getattr(route, "methods", set()):
                 continue
@@ -259,7 +257,7 @@ class TestContextRuleSecurityChecks:
     def _get_create_fn(self):
         """Import create_context_rule with all heavy deps mocked."""
         _import_validate_regex()  # ensures sys.path and mocks are set up
-        from app.routers.training import create_context_rule
+        from app.routers.context_and_ignore_rules import create_context_rule
 
         return create_context_rule
 
@@ -319,7 +317,10 @@ class TestContextRuleSecurityChecks:
         mock_client = MagicMock()
         mock_client.session.return_value = mock_session
 
-        with patch("app.routers.training.PatientGraphClient", return_value=mock_client):
+        with patch(
+            "app.routers.context_and_ignore_rules.PatientGraphClient",
+            return_value=mock_client,
+        ):
             body = MagicMock(
                 literal="no evidence of",
                 category="NEGATED_EXISTENCE",

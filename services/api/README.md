@@ -207,7 +207,7 @@ Settings are loaded from `secrets/.env` via `python-dotenv` at import time
 This service is classified as a **Class IIa medical device** software component
 under UK MDR 2002. Changes must be traced to design controls in the
 Atlas MCP server (`user-atlas-design-controls`, product
-`PROD-LEO-CORE-AI-20260415-6AE8A23B`) and must not reduce precision /
+`PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`) and must not reduce precision /
 recall below the baselines recorded against the relevant Atlas VTs.
 Use `get_traceability_matrix` for the live trace.
 

@@ -14,13 +14,15 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.deps import require_admin
-from app.routers.training import (
+from app.routers.training import router as training_router
+from app.routers.training_candidates import (
     COUNT_TRAINING_CANDIDATES_PAGE,
-    GET_GOLD_LABEL_BY_CANDIDATE_ID,
     GET_TRAINING_CANDIDATE_BY_ID,
     GET_TRAINING_CANDIDATES_PAGE,
+)
+from app.routers.training_gold_labels import (
+    GET_GOLD_LABEL_BY_CANDIDATE_ID,
     UPDATE_GOLD_LABEL_ENTITIES,
-    router as training_router,
 )
 from libs.cypher.training_candidate_queries import (
     MARK_TRAINING_CANDIDATE_DUPLICATES,
@@ -58,7 +60,7 @@ def client(app: FastAPI):
 def test_delete_training_candidate_returns_200_and_counts(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -86,7 +88,7 @@ def test_delete_training_candidate_returns_200_and_counts(client):
 def test_delete_training_candidate_returns_404_when_missing(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -103,7 +105,7 @@ def test_delete_training_candidate_returns_404_when_missing(client):
 def test_get_gold_label_by_candidate_returns_200(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -138,7 +140,7 @@ def test_get_gold_label_by_candidate_returns_200(client):
 def test_get_gold_label_by_candidate_returns_404(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -155,7 +157,7 @@ def test_get_gold_label_by_candidate_returns_404(client):
 def test_ensure_gold_label_by_candidate_returns_existing_label(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -197,7 +199,7 @@ def test_ensure_gold_label_by_candidate_returns_existing_label(client):
 def test_ensure_gold_label_by_candidate_creates_when_missing(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -246,11 +248,13 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
 def test_patch_gold_label_entities_persists_body_site_fields(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
-        inner.run.return_value = MagicMock(single=MagicMock(return_value={"label_id": "label-1"}))
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"label_id": "label-1"})
+        )
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -288,11 +292,13 @@ def test_patch_gold_label_entities_persists_body_site_fields(client):
 def test_patch_gold_label_entities_persists_relations_and_mirrors_site(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
-        inner.run.return_value = MagicMock(single=MagicMock(return_value={"label_id": "label-1"}))
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"label_id": "label-1"})
+        )
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -350,11 +356,13 @@ def test_patch_gold_label_entities_rejects_invalid_relation_policy(client):
 def test_patch_gold_label_entities_allows_finding_to_finding_qualifies(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
-        inner.run.return_value = MagicMock(single=MagicMock(return_value={"label_id": "label-1"}))
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"label_id": "label-1"})
+        )
         kg.session.return_value.__enter__ = lambda s: inner
         kg.session.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -381,7 +389,7 @@ def test_patch_gold_label_entities_allows_finding_to_finding_qualifies(client):
 def test_mark_candidate_completed_returns_200_when_gold_exists(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -417,7 +425,7 @@ def test_mark_candidate_completed_returns_200_when_gold_exists(client):
 def test_mark_candidate_completed_returns_409_without_gold_label(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -437,7 +445,7 @@ def test_mark_candidate_completed_returns_409_without_gold_label(client):
 def test_candidate_dedupe_preview_returns_groups(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -486,7 +494,7 @@ def test_candidate_dedupe_preview_returns_groups(client):
 def test_candidate_dedupe_apply_marks_duplicates(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -538,7 +546,7 @@ def test_candidate_dedupe_apply_marks_duplicates(client):
 def test_candidate_dedupe_preview_detects_prefix_variant_duplicate(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -588,7 +596,7 @@ def test_candidate_dedupe_preview_detects_prefix_variant_duplicate(client):
 def test_candidate_dedupe_preview_accepts_lower_threshold(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -634,7 +642,7 @@ def test_candidate_dedupe_preview_accepts_lower_threshold(client):
 def test_list_training_candidates_hydrates_missing_snomed_term(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
         patch("libs.terminology.preferred_terms._get_cache_client", return_value=None),
     ):
         kg = MockKG.return_value
@@ -676,7 +684,7 @@ def test_list_training_candidates_hydrates_missing_snomed_term(client):
 def test_find_similar_candidates_by_entity_returns_ranked_matches(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -734,7 +742,7 @@ def test_find_similar_candidates_by_entity_returns_ranked_matches(client):
 def test_find_similar_candidates_by_entity_returns_404_for_missing_source(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -758,7 +766,7 @@ def test_find_similar_candidates_by_entity_finds_source_with_non_pending_status(
 
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()

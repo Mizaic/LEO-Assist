@@ -7,7 +7,7 @@ justified, scoped, and assigned an owner so it can be cleared in the
 normal release loop rather than as a one-off remediation programme.
 
 The authoritative source of truth for design controls is the Atlas
-MCP server (product `PROD-LEO-CORE-AI-20260415-6AE8A23B`).
+MCP server (product `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`).
 
 > **Pre-CSO note (2026-04-20)**: Every design control in this product
 > is currently in `Draft` status. None have been through formal CSO

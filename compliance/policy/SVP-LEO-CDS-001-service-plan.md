@@ -7,7 +7,7 @@
 | Status | Draft - pending Quality Assurance, Clinical Safety Officer, and Engineering approval |
 | Date | 2026-06-08 |
 | Product | LEO Clinical Decision Support (LEO CDS) |
-| Product ID | PROD-LEO-CORE-AI-20260415-6AE8A23B |
+| Product ID | PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4 |
 | Service class | Managed multi-tenant Software as a Service (SaaS) |
 | Process owner | VP of Engineering |
 | Regulatory basis | ISO 13485:2016 7.5.1; IEC 62304:2015 Clause 8; MDR 2017/745 Art. 83; DCB0129:2018 |

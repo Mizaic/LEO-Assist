@@ -30,12 +30,17 @@ DC = ROOT / "design-controls"
 sys.path.insert(0, str(ROOT))
 
 from scripts.atlas._mcp_transport import call_tool, initialize  # noqa: E402
+from scripts.atlas.product import PRODUCT_ID  # noqa: E402
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 LEDGER_PATH = DC / "phase10-inflight-ledger.csv"
 LEDGER_COLS = [
-    "kind", "local_id", "atlas_dcid", "atlas_uuid",
-    "decision", "note", "ts",
+    "kind",
+    "local_id",
+    "atlas_dcid",
+    "atlas_uuid",
+    "decision",
+    "note",
+    "ts",
 ]
 
 
@@ -82,7 +87,7 @@ STAKEHOLDER_OVERRIDE: dict[str, list[str]] = {
 
 
 def create_un(local_id: str, ledger: list[dict]) -> str:
-    if (e := find(ledger, local_id, "user_need")):
+    if e := find(ledger, local_id, "user_need"):
         print(f"  {local_id} - already in ledger as {e['atlas_dcid']}")
         return e["atlas_dcid"]
     data = load_yaml(DC / "user-needs" / f"{local_id}.yaml")
@@ -91,7 +96,9 @@ def create_un(local_id: str, ledger: list[dict]) -> str:
         "title": data.get("title") or local_id,
         "description": data.get("description") or data.get("title") or local_id,
         "rationale": data.get("rationale") or "",
-        "priority": "MUST" if (data.get("priority") or "").lower() == "high" else "SHOULD",
+        "priority": (
+            "MUST" if (data.get("priority") or "").lower() == "high" else "SHOULD"
+        ),
         "stakeholder_types": STAKEHOLDER_OVERRIDE.get(local_id, ["Quality Engineer"]),
         "acceptance_criteria": data.get("acceptance_criteria") or [],
         "safety_class": "B",
@@ -99,11 +106,18 @@ def create_un(local_id: str, ledger: list[dict]) -> str:
     out = call_tool("create_user_need", payload)
     dcid = out.get("dcId") or out.get("dc_id") or ""
     uid = out.get("id") or ""
-    append_ledger([{
-        "kind": "user_need", "local_id": local_id,
-        "atlas_dcid": dcid, "atlas_uuid": uid,
-        "decision": "created", "note": data.get("title", "")[:120],
-    }])
+    append_ledger(
+        [
+            {
+                "kind": "user_need",
+                "local_id": local_id,
+                "atlas_dcid": dcid,
+                "atlas_uuid": uid,
+                "decision": "created",
+                "note": data.get("title", "")[:120],
+            }
+        ]
+    )
     print(f"  {local_id} -> {dcid}")
     return dcid
 
@@ -123,13 +137,15 @@ def _ac_strings(criteria) -> list[str]:
 
 
 def create_di(local_id: str, parent_un_dcid: str, ledger: list[dict]) -> str:
-    if (e := find(ledger, local_id, "design_input")):
+    if e := find(ledger, local_id, "design_input"):
         print(f"  {local_id} - already in ledger as {e['atlas_dcid']}")
         return e["atlas_dcid"]
     data = load_yaml(DC / "design-inputs" / f"{local_id}.yaml")
     title = data.get("title")
     if not title:
-        for line in (DC / "design-inputs" / f"{local_id}.yaml").read_text().splitlines()[:3]:
+        for line in (
+            (DC / "design-inputs" / f"{local_id}.yaml").read_text().splitlines()[:3]
+        ):
             if line.startswith("# --") and " -- " in line:
                 title = line.split(" -- ", 2)[-1].strip()
                 break
@@ -148,11 +164,18 @@ def create_di(local_id: str, parent_un_dcid: str, ledger: list[dict]) -> str:
     out = call_tool("create_design_input", payload)
     dcid = out.get("dcId") or out.get("dc_id") or ""
     uid = out.get("id") or ""
-    append_ledger([{
-        "kind": "design_input", "local_id": local_id,
-        "atlas_dcid": dcid, "atlas_uuid": uid,
-        "decision": "created", "note": title or "",
-    }])
+    append_ledger(
+        [
+            {
+                "kind": "design_input",
+                "local_id": local_id,
+                "atlas_dcid": dcid,
+                "atlas_uuid": uid,
+                "decision": "created",
+                "note": title or "",
+            }
+        ]
+    )
     if parent_un_dcid:
         call_tool(
             "link_design_controls",
@@ -162,18 +185,24 @@ def create_di(local_id: str, parent_un_dcid: str, ledger: list[dict]) -> str:
                 "relationship": "HAS_DESIGN_INPUT",
             },
         )
-        append_ledger([{
-            "kind": "link", "local_id": local_id,
-            "atlas_dcid": dcid, "atlas_uuid": "",
-            "decision": "created",
-            "note": f"UN {parent_un_dcid} -[HAS_DESIGN_INPUT]-> DI {dcid}",
-        }])
+        append_ledger(
+            [
+                {
+                    "kind": "link",
+                    "local_id": local_id,
+                    "atlas_dcid": dcid,
+                    "atlas_uuid": "",
+                    "decision": "created",
+                    "note": f"UN {parent_un_dcid} -[HAS_DESIGN_INPUT]-> DI {dcid}",
+                }
+            ]
+        )
     print(f"  {local_id} -> {dcid} (parent UN {parent_un_dcid})")
     return dcid
 
 
 def create_do(local_id: str, parent_di_dcid: str, ledger: list[dict]) -> str:
-    if (e := find(ledger, local_id, "design_output")):
+    if e := find(ledger, local_id, "design_output"):
         print(f"  {local_id} - already in ledger as {e['atlas_dcid']}")
         return e["atlas_dcid"]
     data = load_yaml(DC / "design-outputs" / f"{local_id}.yaml")
@@ -200,16 +229,24 @@ def create_do(local_id: str, parent_di_dcid: str, ledger: list[dict]) -> str:
         "output_type": "software",
         "source_reference": "; ".join(files),
         "software_item": local_id,
-        "safety_class": (spec.get("safety_characteristics") or {}).get("safety_class") or "B",
+        "safety_class": (spec.get("safety_characteristics") or {}).get("safety_class")
+        or "B",
     }
     out = call_tool("create_design_output", payload)
     dcid = out.get("dcId") or out.get("dc_id") or ""
     uid = out.get("id") or ""
-    append_ledger([{
-        "kind": "design_output", "local_id": local_id,
-        "atlas_dcid": dcid, "atlas_uuid": uid,
-        "decision": "created", "note": spec.get("title", "")[:120],
-    }])
+    append_ledger(
+        [
+            {
+                "kind": "design_output",
+                "local_id": local_id,
+                "atlas_dcid": dcid,
+                "atlas_uuid": uid,
+                "decision": "created",
+                "note": spec.get("title", "")[:120],
+            }
+        ]
+    )
     if parent_di_dcid:
         call_tool(
             "link_design_controls",
@@ -219,19 +256,26 @@ def create_do(local_id: str, parent_di_dcid: str, ledger: list[dict]) -> str:
                 "relationship": "IMPLEMENTS",
             },
         )
-        append_ledger([{
-            "kind": "link", "local_id": local_id,
-            "atlas_dcid": dcid, "atlas_uuid": "",
-            "decision": "created",
-            "note": f"DO {dcid} -[IMPLEMENTS]-> DI {parent_di_dcid}",
-        }])
+        append_ledger(
+            [
+                {
+                    "kind": "link",
+                    "local_id": local_id,
+                    "atlas_dcid": dcid,
+                    "atlas_uuid": "",
+                    "decision": "created",
+                    "note": f"DO {dcid} -[IMPLEMENTS]-> DI {parent_di_dcid}",
+                }
+            ]
+        )
     print(f"  {local_id} -> {dcid}")
     return dcid
 
 
-def create_vt(local_id: str, parent_di_dcid: str, parent_do_dcid: str,
-              ledger: list[dict]) -> tuple[str, str]:
-    if (e := find(ledger, local_id, "verification_test")):
+def create_vt(
+    local_id: str, parent_di_dcid: str, parent_do_dcid: str, ledger: list[dict]
+) -> tuple[str, str]:
+    if e := find(ledger, local_id, "verification_test"):
         print(f"  {local_id} - already in ledger as {e['atlas_dcid']}")
         return e["atlas_dcid"], e["atlas_uuid"]
     data = load_yaml(DC / "verification-tests" / f"{local_id}.yaml")
@@ -240,14 +284,12 @@ def create_vt(local_id: str, parent_di_dcid: str, parent_do_dcid: str,
     acs: list[str] = []
     steps: list[str] = []
     for c in cases:
-        for ac in (c.get("acceptance_criteria") or []):
+        for ac in c.get("acceptance_criteria") or []:
             if ac:
                 acs.append(str(ac).strip())
-        for s in (c.get("test_steps") or []):
+        for s in c.get("test_steps") or []:
             if s.get("action"):
-                steps.append(
-                    f"{c.get('case_id', '')}: {s['action']}".strip(": ")
-                )
+                steps.append(f"{c.get('case_id', '')}: {s['action']}".strip(": "))
     payload = {
         "product_id": PRODUCT_ID,
         "title": meta.get("title") or local_id,
@@ -261,11 +303,18 @@ def create_vt(local_id: str, parent_di_dcid: str, parent_do_dcid: str,
     out = call_tool("create_verification_test", payload)
     dcid = out.get("dcId") or out.get("dc_id") or ""
     uid = out.get("id") or ""
-    append_ledger([{
-        "kind": "verification_test", "local_id": local_id,
-        "atlas_dcid": dcid, "atlas_uuid": uid,
-        "decision": "created", "note": meta.get("title", "")[:120],
-    }])
+    append_ledger(
+        [
+            {
+                "kind": "verification_test",
+                "local_id": local_id,
+                "atlas_dcid": dcid,
+                "atlas_uuid": uid,
+                "decision": "created",
+                "note": meta.get("title", "")[:120],
+            }
+        ]
+    )
     for rel, tgt, label in [
         ("VERIFIES", parent_di_dcid, "VT-VERIFIES-DI"),
         ("TESTS", parent_do_dcid, "VT-TESTS-DO"),
@@ -276,11 +325,18 @@ def create_vt(local_id: str, parent_di_dcid: str, parent_do_dcid: str,
             "link_design_controls",
             {"source_ids": [dcid], "target_ids": [tgt], "relationship": rel},
         )
-        append_ledger([{
-            "kind": "link", "local_id": local_id,
-            "atlas_dcid": dcid, "atlas_uuid": "",
-            "decision": "created", "note": f"VT {dcid} -[{rel}]-> {tgt}",
-        }])
+        append_ledger(
+            [
+                {
+                    "kind": "link",
+                    "local_id": local_id,
+                    "atlas_dcid": dcid,
+                    "atlas_uuid": "",
+                    "decision": "created",
+                    "note": f"VT {dcid} -[{rel}]-> {tgt}",
+                }
+            ]
+        )
     print(f"  {local_id} -> {dcid}")
     return dcid, uid
 
@@ -308,21 +364,28 @@ def record_run(local_vt_id: str, vt_uuid: str, ledger: list[dict]) -> None:
     }
     try:
         call_tool("record_verification_run", payload)
-        append_ledger([{
-            "kind": "run", "local_id": local_vt_id,
-            "atlas_dcid": "", "atlas_uuid": vt_uuid,
-            "decision": "recorded",
-            "note": f"{last.get('pass_count', '?')} pass / "
+        append_ledger(
+            [
+                {
+                    "kind": "run",
+                    "local_id": local_vt_id,
+                    "atlas_dcid": "",
+                    "atlas_uuid": vt_uuid,
+                    "decision": "recorded",
+                    "note": f"{last.get('pass_count', '?')} pass / "
                     f"{last.get('fail_count', '?')} fail",
-        }])
+                }
+            ]
+        )
         print(f"  recorded run for {local_vt_id}")
     except Exception as e:
         print(f"  record_verification_run failed for {local_vt_id}: {e}")
 
 
-def create_risk(local_id: str, mitigating_di_dcids: list[str],
-                ledger: list[dict]) -> str:
-    if (e := find(ledger, local_id, "risk")):
+def create_risk(
+    local_id: str, mitigating_di_dcids: list[str], ledger: list[dict]
+) -> str:
+    if e := find(ledger, local_id, "risk"):
         return e["atlas_dcid"]
     data = load_yaml(DC / "risks" / f"{local_id}.yaml")
     init = data.get("initial_risk_estimate") or {}
@@ -347,11 +410,14 @@ def create_risk(local_id: str, mitigating_di_dcids: list[str],
     payload = {
         "product_id": PRODUCT_ID,
         "title": data.get("title") or local_id,
-        "hazard_description": ((data.get("hazard") or {}).get("description") or "").strip(),
+        "hazard_description": (
+            (data.get("hazard") or {}).get("description") or ""
+        ).strip(),
         "hazardous_situation": (data.get("hazardous_situation") or "").strip(),
         "harm_description": ((data.get("harm") or {}).get("description") or "").strip(),
         "harm_severity": (data.get("harm") or {}).get("severity") or "serious",
-        "hazard_category": (data.get("hazard") or {}).get("category") or "clinical_safety",
+        "hazard_category": (data.get("hazard") or {}).get("category")
+        or "clinical_safety",
         "initial_severity": init.get("severity", 3),
         "initial_probability": init.get("probability", 2),
         "initial_detectability": init.get("detectability", 3),
@@ -393,11 +459,18 @@ def create_risk(local_id: str, mitigating_di_dcids: list[str],
     out = call_tool("create_risk", payload)
     dcid = out.get("dcId") or out.get("dc_id") or ""
     uid = out.get("id") or ""
-    append_ledger([{
-        "kind": "risk", "local_id": local_id,
-        "atlas_dcid": dcid, "atlas_uuid": uid,
-        "decision": "created", "note": (data.get("title") or "")[:120],
-    }])
+    append_ledger(
+        [
+            {
+                "kind": "risk",
+                "local_id": local_id,
+                "atlas_dcid": dcid,
+                "atlas_uuid": uid,
+                "decision": "created",
+                "note": (data.get("title") or "")[:120],
+            }
+        ]
+    )
     for di_dcid in mitigating_di_dcids:
         if not di_dcid:
             continue
@@ -409,12 +482,18 @@ def create_risk(local_id: str, mitigating_di_dcids: list[str],
                 "relationship": "MITIGATES",
             },
         )
-        append_ledger([{
-            "kind": "link", "local_id": local_id,
-            "atlas_dcid": dcid, "atlas_uuid": "",
-            "decision": "created",
-            "note": f"DI {di_dcid} -[MITIGATES]-> R {dcid}",
-        }])
+        append_ledger(
+            [
+                {
+                    "kind": "link",
+                    "local_id": local_id,
+                    "atlas_dcid": dcid,
+                    "atlas_uuid": "",
+                    "decision": "created",
+                    "note": f"DI {di_dcid} -[MITIGATES]-> R {dcid}",
+                }
+            ]
+        )
     print(f"  {local_id} -> {dcid}")
     return dcid
 

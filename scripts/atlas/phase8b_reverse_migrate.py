@@ -40,15 +40,15 @@ DC = ROOT / "design-controls"
 sys.path.insert(0, str(ROOT))
 
 from scripts.atlas._mcp_transport import call_tool, initialize  # noqa: E402
+from scripts.atlas.product import PRODUCT_ID  # noqa: E402
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 LEDGER_PATH = DC / "phase8b-ledger.csv"
 LEDGER_COLS = [
-    "kind",          # un | di | do | vt | risk | link
-    "bucket",        # bucket id
-    "atlas_id",      # dcId returned (or risk id)
-    "atlas_uuid",    # internal uuid where known
-    "decision",      # created | reused | skipped
+    "kind",  # un | di | do | vt | risk | link
+    "bucket",  # bucket id
+    "atlas_id",  # dcId returned (or risk id)
+    "atlas_uuid",  # internal uuid where known
+    "decision",  # created | reused | skipped
     "note",
     "ts",
 ]
@@ -558,9 +558,7 @@ BUCKETS: list[dict] = [
             "domain entity-type allowlist and parse extraction responses "
             "into typed Python objects with strict schema validation."
         ),
-        "rationale": (
-            "Out-of-vocabulary labels must never reach the writeback layer."
-        ),
+        "rationale": ("Out-of-vocabulary labels must never reach the writeback layer."),
         "safety_class": "B",
         "files": [
             "libs/pipeline/label_filter.py",
@@ -1097,14 +1095,20 @@ def append_ledger(rows: list[dict]) -> None:
 
 def is_done(ledger: list[dict], kind: str, bucket: str) -> bool:
     return any(
-        r["kind"] == kind and r["bucket"] == bucket and r["decision"] in {"created", "reused"}
+        r["kind"] == kind
+        and r["bucket"] == bucket
+        and r["decision"] in {"created", "reused"}
         for r in ledger
     )
 
 
 def lookup(ledger: list[dict], kind: str, bucket: str) -> dict | None:
     for r in ledger:
-        if r["kind"] == kind and r["bucket"] == bucket and r["decision"] in {"created", "reused"}:
+        if (
+            r["kind"] == kind
+            and r["bucket"] == bucket
+            and r["decision"] in {"created", "reused"}
+        ):
             return r
     return None
 
@@ -1279,8 +1283,8 @@ def create_do(bucket: dict, di_dcid: str, ledger: list[dict]) -> str:
     if existing:
         return existing["atlas_id"]
     src_block = "; ".join(bucket["files"])
-    desc = (
-        f"{bucket['shall']}\n\nImplementation files:\n- " + "\n- ".join(bucket["files"])
+    desc = f"{bucket['shall']}\n\nImplementation files:\n- " + "\n- ".join(
+        bucket["files"]
     )
     out = call_tool(
         "create_design_output",
@@ -1428,7 +1432,9 @@ def create_vt(bucket: dict, di_dcid: str, do_dcid: str, ledger: list[dict]) -> s
 
 def _link_already_logged(ledger: list[dict], bucket: str, note_substr: str) -> bool:
     return any(
-        r["kind"] == "link" and r["bucket"] == bucket and note_substr in (r.get("note") or "")
+        r["kind"] == "link"
+        and r["bucket"] == bucket
+        and note_substr in (r.get("note") or "")
         for r in ledger
     )
 
@@ -1641,10 +1647,7 @@ def main() -> None:
             do_dcid = create_do(bucket, di_dcid, ledger)
             ledger = load_ledger()
             vt_dcid = create_vt(bucket, di_dcid, do_dcid, ledger)
-            print(
-                f"  DI={di_dcid} DO={do_dcid} VT={vt_dcid} "
-                f"parent UN={un_dcid}"
-            )
+            print(f"  DI={di_dcid} DO={do_dcid} VT={vt_dcid} " f"parent UN={un_dcid}")
             for rk in bucket.get("candidate_risks", []):
                 risk_to_di.setdefault(rk, []).append(di_dcid)
         except Exception as e:

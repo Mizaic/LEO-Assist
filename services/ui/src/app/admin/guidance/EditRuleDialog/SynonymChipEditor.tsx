@@ -382,7 +382,7 @@ function SynonymEditorBody({
                   seedConceptId={seed.snomed_concept_id}
                   seedTerm={seed.preferred_term ?? ""}
                   includeDescendants={seed.include_descendants ?? true}
-                  depth={seed.distance_child ?? 3}
+                  depth={Math.max(1, seed.distance_child ?? 3)}
                   excludedIds={excluded}
                   onBlock={(cid) =>
                     onUpdate({
@@ -448,7 +448,11 @@ function SynonymEditorBody({
                     snomed_concept_id: criterion.snomed_concept_id,
                     preferred_term: criterion.preferred_term,
                     semantic_tag: criterion.semantic_tag,
-                    include_descendants: true,
+                    // Default new synonyms to "exact code only". The author
+                    // opts in to descendant expansion per-seed via the
+                    // toggle so it is never on for a code they have not
+                    // reviewed yet.
+                    include_descendants: false,
                   },
                 });
               } else {
@@ -573,27 +577,36 @@ function SeedRow({
         />
       </Tooltip>
       {includeDescendants && (
-        <TextField
-          size="small"
-          type="number"
-          value={seed.distance_child ?? ""}
-          placeholder="depth"
-          onChange={(e) => {
-            const raw = e.target.value;
-            if (raw === "") {
-              onSetDistance(null);
-              return;
-            }
-            const n = Number(raw);
-            onSetDistance(Number.isFinite(n) ? n : null);
-          }}
-          inputProps={{
-            min: 0,
-            max: 12,
-            "aria-label": `Descendant depth for ${friendly}`,
-          }}
-          sx={{ width: 64 }}
-        />
+        <Tooltip title="How many levels of more specific codes to include. Minimum is 1." arrow>
+          <TextField
+            size="small"
+            type="number"
+            value={seed.distance_child ?? ""}
+            placeholder="depth"
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") {
+                onSetDistance(null);
+                return;
+              }
+              const n = Number(raw);
+              if (!Number.isFinite(n)) {
+                onSetDistance(null);
+                return;
+              }
+              // Depth 0 with the toggle on would match nothing beyond the
+              // exact code -- the same as switching the toggle off -- so
+              // we never let the author land on a value below 1.
+              onSetDistance(Math.max(1, Math.floor(n)));
+            }}
+            inputProps={{
+              min: 1,
+              max: 12,
+              "aria-label": `Descendant depth for ${friendly}, minimum 1`,
+            }}
+            sx={{ width: 64 }}
+          />
+        </Tooltip>
       )}
       <Tooltip title={canRemove ? "Remove this code" : "A chip needs at least one code."} arrow>
         <span>

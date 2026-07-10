@@ -635,11 +635,23 @@ def _load_child_pipeline_runs(child_runs: dict[str, str]) -> list[dict[str, Any]
                 "ORDER BY s.completed_at ASC",
                 run_id=run_id,
             )
-            child = _normalise_child_run(case_id, run_id, run_rows, stages)
-            if child.get("assessment_id"):
-                assessment = _load_assessment_for_history(
-                    str(child["assessment_id"])
+            audit_rows: list[dict[str, Any]] = []
+            if not run_rows:
+                audit_rows = client.run(
+                    "MATCH (ae:AuditEvent) WHERE ae.id IN [$main_id, $sbar_id] "
+                    "RETURN ae.id AS id, ae.status AS status, "
+                    "       ae.patient_id AS patient_id, "
+                    "       ae.encounter_id AS encounter_id, "
+                    "       ae.assessment_id AS assessment_id, "
+                    "       ae.created_at AS created_at, "
+                    "       ae.error_count AS error_count, "
+                    "       ae.first_error AS first_error",
+                    main_id=f"audit-{run_id}",
+                    sbar_id=f"audit-{run_id}:sbar",
                 )
+            child = _normalise_child_run(case_id, run_id, run_rows, stages, audit_rows)
+            if child.get("assessment_id"):
+                assessment = _load_assessment_for_history(str(child["assessment_id"]))
                 if assessment and not assessment.get("completeness_result_json"):
                     assessment["completeness_result_json"] = (
                         _extract_completeness_json_from_stages(stages)
@@ -651,13 +663,69 @@ def _load_child_pipeline_runs(child_runs: dict[str, str]) -> list[dict[str, Any]
     return children
 
 
+# Legacy WorkflowEngine statuses (libs/workflow/engine.py::_write_audit_event)
+# mapped onto the three states the scenario-runs UI understands. Anything
+# not in this map but non-empty is treated as "completed" -- the pipeline
+# finished running, it just landed in a special terminal state (e.g.
+# "empty_extraction", "needs_review") rather than a hard failure.
+_AUDIT_STATUS_MAP = {"completed": "completed", "error": "failed"}
+
+
+def _normalise_audit_fallback(
+    run_id: str, audit_rows: list[dict[str, Any]]
+) -> dict[str, Any] | None:
+    """Build a PipelineRun-shaped dict from legacy :AuditEvent nodes.
+
+    DurableStepRunner (the only writer of :PipelineRun/:PipelineStageRun) is
+    gated behind DURABLE_ENGINE_ENABLED, which defaults to "false" and is not
+    set anywhere in this repo's env config. With the flag off, every
+    referral run -- including AI Summarisation scenario runs -- executes via
+    the legacy WorkflowEngine, which only ever writes :AuditEvent nodes.
+    Without this fallback, _load_child_pipeline_runs never finds a
+    :PipelineRun node, so every child case is stuck showing "queued"
+    forever (via the {"status": "queued"} default below) while the parent
+    row is stuck showing "running" (via _child_counts treating non-terminal
+    statuses as "running") -- even after the pipeline has completed. See
+    audit-{run_id} (whole-run status, written by engine.py) and
+    audit-{run_id}:sbar (assessment_id, written by sbar_orchestrator.py).
+    """
+    by_id = {str(row.get("id")): row for row in audit_rows}
+    main = by_id.get(f"audit-{run_id}")
+    sbar = by_id.get(f"audit-{run_id}:sbar")
+    if not main and not sbar:
+        return None
+
+    status_raw = str((main or sbar or {}).get("status") or "")
+    status = _AUDIT_STATUS_MAP.get(status_raw, "completed" if status_raw else "queued")
+    created_at = (main or {}).get("created_at") or (sbar or {}).get("created_at")
+    return {
+        "run_id": run_id,
+        "status": status,
+        "patient_id": (main or {}).get("patient_id") or (sbar or {}).get("patient_id"),
+        "encounter_id": (
+            (main or {}).get("encounter_id") or (sbar or {}).get("encounter_id")
+        ),
+        "assessment_id": (sbar or {}).get("assessment_id"),
+        "created_at": created_at,
+        "updated_at": created_at,
+        "completed_at": created_at if status in {"completed", "failed"} else None,
+        "completion_event_json": None,
+    }
+
+
 def _normalise_child_run(
     case_id: str,
     run_id: str,
     run_rows: list[dict[str, Any]],
     stages: list[dict[str, Any]],
+    audit_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    run = dict(run_rows[0]) if run_rows else {"run_id": run_id, "status": "queued"}
+    run = dict(run_rows[0]) if run_rows else None
+    if run is None:
+        run = _normalise_audit_fallback(run_id, audit_rows or []) or {
+            "run_id": run_id,
+            "status": "queued",
+        }
     stage_payloads = []
     assessment_id = run.get("assessment_id")
     for stage in stages:

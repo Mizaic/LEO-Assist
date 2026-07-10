@@ -84,18 +84,67 @@ VT_RUN_STATE_PATH = REPO / "scripts" / "atlas" / ".phase3_vt_runs_state.json"
 
 sys.path.insert(0, str(REPO / "scripts" / "atlas"))
 import _mcp_transport as mcp  # noqa: E402
+from product import PRODUCT_ID  # noqa: E402
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
-REMAP_HARD = 0.55      # auto-remap (record only, no merge)
-REMAP_SOFT = 0.40      # >=this needs review; create otherwise
+REMAP_HARD = 0.55  # auto-remap (record only, no merge)
+REMAP_SOFT = 0.40  # >=this needs review; create otherwise
 
 STOPWORDS = {
-    "the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "at", "by",
-    "with", "is", "are", "be", "been", "shall", "must", "should", "system",
-    "as", "so", "that", "their", "this", "from", "into", "via", "any", "all",
-    "when", "able", "can", "will", "leo", "ai", "leoai", "using", "use",
-    "user", "need", "needs", "have", "has", "not", "than", "then", "test",
-    "tests", "verify", "verifies", "verification", "design", "output",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "for",
+    "in",
+    "on",
+    "at",
+    "by",
+    "with",
+    "is",
+    "are",
+    "be",
+    "been",
+    "shall",
+    "must",
+    "should",
+    "system",
+    "as",
+    "so",
+    "that",
+    "their",
+    "this",
+    "from",
+    "into",
+    "via",
+    "any",
+    "all",
+    "when",
+    "able",
+    "can",
+    "will",
+    "leo",
+    "ai",
+    "leoai",
+    "using",
+    "use",
+    "user",
+    "need",
+    "needs",
+    "have",
+    "has",
+    "not",
+    "than",
+    "then",
+    "test",
+    "tests",
+    "verify",
+    "verifies",
+    "verification",
+    "design",
+    "output",
 }
 
 
@@ -120,7 +169,9 @@ def _norm_text(value: Any) -> str:
 
 def _tokens(text: str) -> set[str]:
     out: set[str] = set()
-    for raw in _norm(text).replace("/", " ").replace("-", " ").replace(".", " ").split():
+    for raw in (
+        _norm(text).replace("/", " ").replace("-", " ").replace(".", " ").split()
+    ):
         tok = "".join(ch for ch in raw if ch.isalnum())
         if not tok or tok in STOPWORDS or len(tok) < 3:
             continue
@@ -223,13 +274,13 @@ def load_local_do(local_id: str) -> dict[str, Any] | None:
     for art in arts:
         if isinstance(art, dict) and art.get("location"):
             paths.append(_norm_text(art.get("location")))
-    for art in (item.get("implementation_artefacts") or []):
+    for art in item.get("implementation_artefacts") or []:
         if isinstance(art, dict) and art.get("path"):
             paths.append(_norm_text(art["path"]))
-    for art in (item.get("deliverables") or []):
+    for art in item.get("deliverables") or []:
         if isinstance(art, dict) and art.get("file"):
             paths.append(_norm_text(art["file"]))
-    for art in (item.get("components") or []):
+    for art in item.get("components") or []:
         if isinstance(art, dict) and art.get("file"):
             paths.append(_norm_text(art["file"]))
     safety = (
@@ -238,16 +289,8 @@ def load_local_do(local_id: str) -> dict[str, Any] | None:
         or ""
     )
     out_type = item.get("type") or "Software_Module"
-    title = (
-        spec.get("title")
-        or item.get("title")
-        or item.get("id")
-    )
-    description = (
-        spec.get("description")
-        or item.get("description")
-        or ""
-    )
+    title = spec.get("title") or item.get("title") or item.get("id")
+    description = spec.get("description") or item.get("description") or ""
     parents = (
         ((item.get("traceability") or {}).get("design_inputs"))
         or _coerce_id_list(item.get("derived_from"))
@@ -288,7 +331,7 @@ def load_local_vt(local_id: str) -> dict[str, Any] | None:
             if isinstance(step, dict) and step.get("action"):
                 protocol_steps.append(_norm_text(step["action"]))
     last_run = ""
-    for entry in (item.get("execution_history") or []):
+    for entry in item.get("execution_history") or []:
         if isinstance(entry, dict) and entry.get("result"):
             last_run = (entry.get("result") or "").lower()
     return {
@@ -304,8 +347,12 @@ def load_local_vt(local_id: str) -> dict[str, Any] | None:
         "acceptance_criteria": case_names,
         "protocol_steps": protocol_steps,
         "test_file_paths": paths,
-        "design_inputs": list(((item.get("traceability") or {}).get("design_inputs")) or []),
-        "design_outputs": list(((item.get("traceability") or {}).get("design_outputs")) or []),
+        "design_inputs": list(
+            ((item.get("traceability") or {}).get("design_inputs")) or []
+        ),
+        "design_outputs": list(
+            ((item.get("traceability") or {}).get("design_outputs")) or []
+        ),
         "status": (item.get("status") or "").lower().strip(),
         "last_run_result": last_run,
     }
@@ -324,7 +371,9 @@ def best_match(
 ) -> tuple[dict[str, Any] | None, float]:
     best: tuple[dict[str, Any] | None, float] = (None, 0.0)
     for node in atlas_nodes:
-        text = " ".join(filter(None, [node.get("title", ""), node.get("description", "")]))
+        text = " ".join(
+            filter(None, [node.get("title", ""), node.get("description", "")])
+        )
         score = _sim(query_text, text)
         if score > best[1]:
             best = (node, score)
@@ -360,7 +409,9 @@ def make_decision(
 ) -> tuple[str, str, str]:
     """Return (decision, atlas_dc_id, note). decision in {remap, create, review, skip}."""
     if override and override.get("decision") in ("remap", "create", "skip", "review"):
-        atlas = override.get("atlas_dc_id") or (candidate.get("dcId") if candidate else "")
+        atlas = override.get("atlas_dc_id") or (
+            candidate.get("dcId") if candidate else ""
+        )
         return override["decision"], atlas, "manual"
     if candidate and score >= REMAP_HARD:
         return "remap", candidate["dcId"], "auto >= REMAP_HARD"
@@ -381,9 +432,15 @@ def process_do(
     decisions: dict[str, Any],
 ) -> dict[str, Any]:
     row: dict[str, Any] = {
-        "kind": "DO", "local_id": local_id, "atlas_id": "",
-        "decision": "", "best_score": 0.0, "best_atlas": "",
-        "linked_dis": 0, "result": "", "error": "",
+        "kind": "DO",
+        "local_id": local_id,
+        "atlas_id": "",
+        "decision": "",
+        "best_score": 0.0,
+        "best_atlas": "",
+        "linked_dis": 0,
+        "result": "",
+        "error": "",
     }
     local = load_local_do(local_id)
     if not local:
@@ -392,7 +449,12 @@ def process_do(
     query = " ".join(
         filter(
             None,
-            [local["title"], local["description"], local["purpose"], " ".join(local["source_paths"])],
+            [
+                local["title"],
+                local["description"],
+                local["purpose"],
+                " ".join(local["source_paths"]),
+            ],
         )
     )
     cand, score = best_match(query, atlas_dos)
@@ -453,8 +515,7 @@ def process_do(
         state["created"][local_id] = {"dcId": new_dc_id, "id": new_uuid}
 
     parent_dc_ids = [
-        di_mapping[di] for di in (local.get("design_inputs") or [])
-        if di in di_mapping
+        di_mapping[di] for di in (local.get("design_inputs") or []) if di in di_mapping
     ]
     if parent_dc_ids:
         try:
@@ -489,9 +550,16 @@ def process_vt(
     decisions: dict[str, Any],
 ) -> dict[str, Any]:
     row: dict[str, Any] = {
-        "kind": "VT", "local_id": local_id, "atlas_id": "",
-        "decision": "", "best_score": 0.0, "best_atlas": "",
-        "linked_dis": 0, "linked_dos": 0, "result": "", "error": "",
+        "kind": "VT",
+        "local_id": local_id,
+        "atlas_id": "",
+        "decision": "",
+        "best_score": 0.0,
+        "best_atlas": "",
+        "linked_dis": 0,
+        "linked_dos": 0,
+        "result": "",
+        "error": "",
     }
     local = load_local_vt(local_id)
     if not local:
@@ -563,8 +631,7 @@ def process_vt(
         state["created"][local_id] = {"dcId": new_dc_id, "id": new_uuid}
 
     parent_dis = [
-        di_mapping[di] for di in (local.get("design_inputs") or [])
-        if di in di_mapping
+        di_mapping[di] for di in (local.get("design_inputs") or []) if di in di_mapping
     ]
     if parent_dis:
         try:
@@ -578,11 +645,12 @@ def process_vt(
             )
             row["linked_dis"] = len(parent_dis)
         except mcp.McpError as e:
-            row["error"] = (row["error"] + " | " if row["error"] else "") + f"VERIFIES: {str(e)[:200]}"
+            row["error"] = (
+                row["error"] + " | " if row["error"] else ""
+            ) + f"VERIFIES: {str(e)[:200]}"
 
     parent_dos = [
-        do_mapping[do] for do in (local.get("design_outputs") or [])
-        if do in do_mapping
+        do_mapping[do] for do in (local.get("design_outputs") or []) if do in do_mapping
     ]
     if parent_dos:
         try:
@@ -596,14 +664,18 @@ def process_vt(
             )
             row["linked_dos"] = len(parent_dos)
         except mcp.McpError as e:
-            row["error"] = (row["error"] + " | " if row["error"] else "") + f"TESTS: {str(e)[:200]}"
+            row["error"] = (
+                row["error"] + " | " if row["error"] else ""
+            ) + f"TESTS: {str(e)[:200]}"
 
     pieces: list[str] = ["created"]
     if row["linked_dis"]:
         pieces.append(f"+{row['linked_dis']} DI")
     if row["linked_dos"]:
         pieces.append(f"+{row['linked_dos']} DO")
-    row["result"] = " ".join(pieces) if len(pieces) > 1 else "created (no parents linked)"
+    row["result"] = (
+        " ".join(pieces) if len(pieces) > 1 else "created (no parents linked)"
+    )
     return row
 
 
@@ -632,9 +704,7 @@ def _resolve_vt_uuid(dc_id: str, info: dict[str, Any], state: dict[str, Any]) ->
     return uuid
 
 
-def record_runs(
-    vt_state: dict[str, Any], live: bool
-) -> list[dict[str, Any]]:
+def record_runs(vt_state: dict[str, Any], live: bool) -> list[dict[str, Any]]:
     """Call record_verification_run for every local VT with status=passed."""
     state = (
         json.loads(VT_RUN_STATE_PATH.read_text())
@@ -657,8 +727,10 @@ def record_runs(
     print(f"record_runs: scanning {len(items)} created VTs")
     for idx, (local_id, info) in enumerate(items, start=1):
         out: dict[str, Any] = {
-            "local_id": local_id, "atlas_dc_id": info.get("dcId", ""),
-            "result": "", "error": "",
+            "local_id": local_id,
+            "atlas_dc_id": info.get("dcId", ""),
+            "result": "",
+            "error": "",
         }
         local = load_local_vt(local_id)
         if not local:
@@ -723,10 +795,21 @@ def record_runs(
 # -- ledger output ----------------------------------------------------
 
 
-def write_kind_ledger(rows: list[dict[str, Any]], csv_path: Path, md_path: Path,
-                      kind: str) -> None:
-    fields = ["kind", "local_id", "atlas_id", "decision", "best_score",
-              "best_atlas", "linked_dis", "linked_dos", "result", "error"]
+def write_kind_ledger(
+    rows: list[dict[str, Any]], csv_path: Path, md_path: Path, kind: str
+) -> None:
+    fields = [
+        "kind",
+        "local_id",
+        "atlas_id",
+        "decision",
+        "best_score",
+        "best_atlas",
+        "linked_dis",
+        "linked_dos",
+        "result",
+        "error",
+    ]
     with csv_path.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
@@ -736,23 +819,38 @@ def write_kind_ledger(rows: list[dict[str, Any]], csv_path: Path, md_path: Path,
     for r in rows:
         key = r.get("decision", "")
         counts[key] = counts.get(key, 0) + 1
-    md = [f"# Phase 3 -- {kind} Migration Ledger", "",
-          f"Run at: {_now_iso()}",
-          f"Total rows: {len(rows)}", "",
-          "## Decision counts", ""]
+    md = [
+        f"# Phase 3 -- {kind} Migration Ledger",
+        "",
+        f"Run at: {_now_iso()}",
+        f"Total rows: {len(rows)}",
+        "",
+        "## Decision counts",
+        "",
+    ]
     for k in sorted(counts):
         md.append(f"- `{k}`: {counts[k]}")
-    md += ["", "## Rows", "",
-           "| Local | Decision | Best Atlas | Score | Linked DI | Linked DO | Result | Error |",
-           "|---|---|---|---|---|---|---|---|"]
+    md += [
+        "",
+        "## Rows",
+        "",
+        "| Local | Decision | Best Atlas | Score | Linked DI | Linked DO | Result | Error |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
     for r in rows:
         md.append(
             "| "
             + " | ".join(
                 str(r.get(k, "")).replace("|", "\\|")
                 for k in (
-                    "local_id", "decision", "best_atlas", "best_score",
-                    "linked_dis", "linked_dos", "result", "error",
+                    "local_id",
+                    "decision",
+                    "best_atlas",
+                    "best_score",
+                    "linked_dis",
+                    "linked_dos",
+                    "result",
+                    "error",
                 )
             )
             + " |"
@@ -791,7 +889,10 @@ def update_mapping_csv_with_results(
             new_match_type = "created-in-atlas"
         else:
             continue
-        if target.get("atlas_id") != new_atlas or target.get("match_type") != new_match_type:
+        if (
+            target.get("atlas_id") != new_atlas
+            or target.get("match_type") != new_match_type
+        ):
             target["atlas_id"] = new_atlas
             target["match_type"] = new_match_type
             note_prefix = "Phase 3"
@@ -811,7 +912,9 @@ def update_mapping_csv_with_results(
 
 def parse_gap_section(kind: str) -> list[str]:
     text = (REPO / "design-controls" / "atlas-id-mapping-gaps.md").read_text()
-    pattern = rf"## {kind} \(total[^)]*\)[\s\S]*?Unmatched local IDs:\s*\n((?:- [^\n]*\n)*)"
+    pattern = (
+        rf"## {kind} \(total[^)]*\)[\s\S]*?Unmatched local IDs:\s*\n((?:- [^\n]*\n)*)"
+    )
     m = re.search(pattern, text)
     if not m:
         return []
@@ -831,8 +934,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--kind", choices=("DO", "VT", "ALL"), default="ALL")
     parser.add_argument("--live", action="store_true")
-    parser.add_argument("--record-runs", action="store_true",
-                        help="After VT migration, call record_verification_run")
+    parser.add_argument(
+        "--record-runs",
+        action="store_true",
+        help="After VT migration, call record_verification_run",
+    )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--filter", type=str, default="")
     args = parser.parse_args()
@@ -854,8 +960,12 @@ def main() -> int:
     do_local_ids = parse_gap_section("DO") if args.kind in ("DO", "ALL") else []
     vt_local_ids = parse_gap_section("VT") if args.kind in ("VT", "ALL") else []
     if args.filter:
-        do_local_ids = [x for x in do_local_ids if x == args.filter or x.startswith(args.filter)]
-        vt_local_ids = [x for x in vt_local_ids if x == args.filter or x.startswith(args.filter)]
+        do_local_ids = [
+            x for x in do_local_ids if x == args.filter or x.startswith(args.filter)
+        ]
+        vt_local_ids = [
+            x for x in vt_local_ids if x == args.filter or x.startswith(args.filter)
+        ]
     if args.limit:
         do_local_ids = do_local_ids[: args.limit]
         vt_local_ids = vt_local_ids[: args.limit]
@@ -879,8 +989,11 @@ def main() -> int:
     for idx, lid in enumerate(do_local_ids, start=1):
         cached = do_state["rows"].get(lid)
         if (
-            args.live and cached
-            and cached.get("result", "").startswith(("created", "create-skipped", "remap-recorded"))
+            args.live
+            and cached
+            and cached.get("result", "").startswith(
+                ("created", "create-skipped", "remap-recorded")
+            )
         ):
             do_rows.append(cached)
             continue
@@ -901,7 +1014,9 @@ def main() -> int:
             print(f"DO mapping CSV patched.")
         print(f"Wrote DO ledger: {DO_LEDGER_CSV}")
 
-    do_mapping = load_di_mapping()  # reload, but DOs aren't in CSV per artefact_type=='DI'
+    do_mapping = (
+        load_di_mapping()
+    )  # reload, but DOs aren't in CSV per artefact_type=='DI'
     do_local_to_atlas: dict[str, str] = {}
     for r in do_rows:
         if r.get("atlas_id"):
@@ -916,14 +1031,22 @@ def main() -> int:
     for idx, lid in enumerate(vt_local_ids, start=1):
         cached = vt_state["rows"].get(lid)
         if (
-            args.live and cached
-            and cached.get("result", "").startswith(("created", "create-skipped", "remap-recorded"))
+            args.live
+            and cached
+            and cached.get("result", "").startswith(
+                ("created", "create-skipped", "remap-recorded")
+            )
         ):
             vt_rows.append(cached)
             continue
         row = process_vt(
-            lid, atlas_vts, di_mapping, do_local_to_atlas,
-            args.live, vt_state, decisions,
+            lid,
+            atlas_vts,
+            di_mapping,
+            do_local_to_atlas,
+            args.live,
+            vt_state,
+            decisions,
         )
         vt_rows.append(row)
         vt_state["rows"][lid] = row

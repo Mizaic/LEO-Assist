@@ -32,10 +32,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).parent))
 from _mcp_transport import McpError, call_tool, initialize  # noqa: E402
+from product import PRODUCT_ID as PRODUCT  # noqa: E402
 
 EVIDENCE = ROOT / "compliance" / "atlas-migration-evidence"
 LEDGER = EVIDENCE / "phase14b-ledger.csv"
-PRODUCT = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 
 # Cancer-site DI/UN to create (Group A).
 CANCER_UN = {
@@ -114,18 +114,26 @@ def _safe_call(name: str, args: dict, subject: str) -> dict | None:
     try:
         out = call_tool(name, args)
     except McpError as e:
-        _append_ledger({
-            "operation": name, "subject": subject,
-            "result": "error", "note": str(e)[:300],
-        })
+        _append_ledger(
+            {
+                "operation": name,
+                "subject": subject,
+                "result": "error",
+                "note": str(e)[:300],
+            }
+        )
         print(f"  ! {name}({subject}): {str(e)[:160]}")
         return None
     err = (out or {}).get("error")
     if err:
-        _append_ledger({
-            "operation": name, "subject": subject,
-            "result": "error", "note": str(err)[:300],
-        })
+        _append_ledger(
+            {
+                "operation": name,
+                "subject": subject,
+                "result": "error",
+                "note": str(err)[:300],
+            }
+        )
         print(f"  ! {name}({subject}): {str(err)[:160]}")
         return None
     return out
@@ -135,7 +143,11 @@ def _resume_id(operation: str, subject: str) -> str | None:
     if not LEDGER.exists():
         return None
     for r in csv.DictReader(LEDGER.open()):
-        if r["operation"] == operation and r["subject"] == subject and r["result"] == "created":
+        if (
+            r["operation"] == operation
+            and r["subject"] == subject
+            and r["result"] == "created"
+        ):
             return r["note"]
     return None
 
@@ -144,9 +156,9 @@ def create_cancer_un_di() -> tuple[str | None, str | None]:
     un_id = _resume_id("create_user_need", CANCER_UN["title"])
     if not un_id:
         print("Creating cancer-site UN...")
-        out = _safe_call("create_user_need",
-                         {"product_id": PRODUCT, **CANCER_UN},
-                         CANCER_UN["title"])
+        out = _safe_call(
+            "create_user_need", {"product_id": PRODUCT, **CANCER_UN}, CANCER_UN["title"]
+        )
         if out is None:
             return None, None
         un_id = (
@@ -154,17 +166,24 @@ def create_cancer_un_di() -> tuple[str | None, str | None]:
             or (out.get("userNeed") or {}).get("dcId")
             or out.get("dc_id")
         )
-        _append_ledger({"operation": "create_user_need",
-                        "subject": CANCER_UN["title"],
-                        "result": "created", "note": un_id or ""})
+        _append_ledger(
+            {
+                "operation": "create_user_need",
+                "subject": CANCER_UN["title"],
+                "result": "created",
+                "note": un_id or "",
+            }
+        )
         print(f"  -> {un_id}")
 
     di_id = _resume_id("create_design_input", CANCER_DI["title"])
     if not di_id:
         print("Creating cancer-site DI...")
-        out = _safe_call("create_design_input",
-                         {"product_id": PRODUCT, **CANCER_DI},
-                         CANCER_DI["title"])
+        out = _safe_call(
+            "create_design_input",
+            {"product_id": PRODUCT, **CANCER_DI},
+            CANCER_DI["title"],
+        )
         if out is None:
             return un_id, None
         di_id = (
@@ -172,9 +191,14 @@ def create_cancer_un_di() -> tuple[str | None, str | None]:
             or (out.get("designInput") or {}).get("dcId")
             or out.get("dc_id")
         )
-        _append_ledger({"operation": "create_design_input",
-                        "subject": CANCER_DI["title"],
-                        "result": "created", "note": di_id or ""})
+        _append_ledger(
+            {
+                "operation": "create_design_input",
+                "subject": CANCER_DI["title"],
+                "result": "created",
+                "note": di_id or "",
+            }
+        )
         print(f"  -> {di_id}")
 
     return un_id, di_id
@@ -182,26 +206,44 @@ def create_cancer_un_di() -> tuple[str | None, str | None]:
 
 def link_chain(un_id: str, di_id: str) -> None:
     if not _resume_id("link_un_di", f"{un_id}->{di_id}"):
-        out = _safe_call("link_design_controls",
-                         {"source_ids": [un_id], "target_ids": [di_id],
-                          "relationship": "HAS_DESIGN_INPUT"},
-                         f"{un_id}->{di_id}")
+        out = _safe_call(
+            "link_design_controls",
+            {
+                "source_ids": [un_id],
+                "target_ids": [di_id],
+                "relationship": "HAS_DESIGN_INPUT",
+            },
+            f"{un_id}->{di_id}",
+        )
         if out is not None:
-            _append_ledger({"operation": "link_un_di",
-                            "subject": f"{un_id}->{di_id}",
-                            "result": "created",
-                            "note": "HAS_DESIGN_INPUT"})
+            _append_ledger(
+                {
+                    "operation": "link_un_di",
+                    "subject": f"{un_id}->{di_id}",
+                    "result": "created",
+                    "note": "HAS_DESIGN_INPUT",
+                }
+            )
             print(f"  linked UN->DI: {un_id} -> {di_id}")
     if not _resume_id("link_do_di", f"{CANCER_DO}->{di_id}"):
-        out = _safe_call("link_design_controls",
-                         {"source_ids": [CANCER_DO], "target_ids": [di_id],
-                          "relationship": "IMPLEMENTS"},
-                         f"{CANCER_DO}->{di_id}")
+        out = _safe_call(
+            "link_design_controls",
+            {
+                "source_ids": [CANCER_DO],
+                "target_ids": [di_id],
+                "relationship": "IMPLEMENTS",
+            },
+            f"{CANCER_DO}->{di_id}",
+        )
         if out is not None:
-            _append_ledger({"operation": "link_do_di",
-                            "subject": f"{CANCER_DO}->{di_id}",
-                            "result": "created",
-                            "note": "IMPLEMENTS"})
+            _append_ledger(
+                {
+                    "operation": "link_do_di",
+                    "subject": f"{CANCER_DO}->{di_id}",
+                    "result": "created",
+                    "note": "IMPLEMENTS",
+                }
+            )
             print(f"  linked DO->DI: {CANCER_DO} -> {di_id}")
 
 
@@ -213,7 +255,9 @@ def update_audit_row_for_encounters() -> None:
     fixed = 0
     for r in rows:
         if r["path"] == "services/ui/src/app/care/encounters/page.tsx":
-            if r.get("owning_atlas_dos") in ("", None) and "DO-F78C84A6" in (r.get("owning_atlas_dis") or ""):
+            if r.get("owning_atlas_dos") in ("", None) and "DO-F78C84A6" in (
+                r.get("owning_atlas_dis") or ""
+            ):
                 r["owning_atlas_dos"] = "DO-F78C84A6"
                 r["owning_atlas_dis"] = ""
                 fixed += 1
@@ -222,10 +266,14 @@ def update_audit_row_for_encounters() -> None:
             w = csv.DictWriter(f, fieldnames=rows[0].keys())
             w.writeheader()
             w.writerows(rows)
-        _append_ledger({"operation": "audit_reclassify",
-                        "subject": "services/ui/src/app/care/encounters/page.tsx",
-                        "result": "fixed",
-                        "note": "DO-F78C84A6 moved from DI -> DO column"})
+        _append_ledger(
+            {
+                "operation": "audit_reclassify",
+                "subject": "services/ui/src/app/care/encounters/page.tsx",
+                "result": "fixed",
+                "note": "DO-F78C84A6 moved from DI -> DO column",
+            }
+        )
         print("  audit: re-classified care/encounters/page.tsx -> DO-F78C84A6")
     else:
         print("  audit: no reclassification needed (already done)")

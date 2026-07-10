@@ -10,7 +10,7 @@
 
 ## Summary
 
-The implementation has been traced against the documented goals in `docs/nlp-pipeline/` and the Atlas MCP design controls (`user-atlas-design-controls`, product `PROD-LEO-CORE-AI-20260415-6AE8A23B`). **All nine verification items pass.**
+The implementation has been traced against the documented goals in `docs/nlp-pipeline/` and the Atlas MCP design controls (`user-atlas-design-controls`, product `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`). **All nine verification items pass.**
 
 ---
 

@@ -104,10 +104,10 @@ def test_deidentify_called_before_hash(client):
     with (
         caller_scope_override(client.app),
         patch(
-            "app.routers.training.deidentify_text",
+            "app.routers.training_gold_labels.deidentify_text",
             return_value=fake_deid,
         ) as mock_deid,
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
     ):
         r = client.post(
             "/training/candidates/from-dry-run",
@@ -133,8 +133,8 @@ def test_upsert_uses_dry_run_correction_source_and_pending_status(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
     ):
         r = client.post(
             "/training/candidates/from-dry-run",
@@ -147,9 +147,7 @@ def test_upsert_uses_dry_run_correction_source_and_pending_status(client):
         )
 
     assert r.status_code == 200
-    upsert_calls = [
-        kwargs for q, kwargs in calls if "MERGE (c:TrainingCandidate" in q
-    ]
+    upsert_calls = [kwargs for q, kwargs in calls if "MERGE (c:TrainingCandidate" in q]
     assert len(upsert_calls) == 1
     upsert = upsert_calls[0]
     assert upsert["source"] == "dry_run_correction"
@@ -173,8 +171,8 @@ def test_whole_note_dry_run_gold_is_quarantined_until_repaired(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
     ):
         r = client.post(
             "/training/candidates/from-dry-run",
@@ -204,8 +202,8 @@ def test_unmappable_entities_are_dropped_and_offsets_re_anchored(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
     ):
         r = client.post(
             "/training/candidates/from-dry-run",
@@ -257,8 +255,8 @@ def test_second_call_is_idempotent(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
     ):
         r = client.post(
             "/training/candidates/from-dry-run",
@@ -269,9 +267,7 @@ def test_second_call_is_idempotent(client):
     payload = r.json()
     assert payload["candidate_id"] == existing_candidate["candidate_id"]
     assert payload["label_id"] == existing_label["label_id"]
-    upsert_candidate_calls = [
-        q for q, _ in calls if "MERGE (c:TrainingCandidate" in q
-    ]
+    upsert_candidate_calls = [q for q, _ in calls if "MERGE (c:TrainingCandidate" in q]
     upsert_label_calls = [q for q, _ in calls if "MERGE (g:GoldLabel" in q]
     assert upsert_candidate_calls == []
     assert upsert_label_calls == []
@@ -338,8 +334,8 @@ def test_response_carries_full_gold_label_payload(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
     ):
         r = client.post(
             "/training/candidates/from-dry-run",
@@ -377,8 +373,8 @@ def test_source_hint_is_truncated_to_64_chars(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
     ):
         r = client.post(
             "/training/candidates/from-dry-run",

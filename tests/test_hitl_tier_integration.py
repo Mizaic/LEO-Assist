@@ -349,25 +349,27 @@ class TestNotCodeableAction:
         import pathlib
 
         # Ask-LEO Smart routing was extracted into a sibling module to keep
-        # the main training router under the file-length limit. Concatenate
-        # both modules so the test still proves the contract holds somewhere
-        # in the training router surface.
-        src = pathlib.Path(
-            "services/api/app/routers/training.py"
-        ).read_text(encoding="utf-8") + pathlib.Path(
-            "services/api/app/routers/_training_askleo.py"
-        ).read_text(encoding="utf-8")
+        # the main training router under the file-length limit; that sibling
+        # is attached to coding_review.py (not training.py) since the
+        # 2026-07 CTO peer-review item 2 core-api router decomposition.
+        # Concatenate both modules so the test still proves the contract
+        # holds somewhere in the training router surface.
+        src = pathlib.Path("services/api/app/routers/coding_review.py").read_text(
+            encoding="utf-8"
+        ) + pathlib.Path("services/api/app/routers/_training_askleo.py").read_text(
+            encoding="utf-8"
+        )
         assert "assertion_warning" in src
         assert "not_codeable" in src
 
     def test_ask_leo_smart_response_includes_assertion_warning_field(self):
         import pathlib
 
-        src = pathlib.Path(
-            "services/api/app/routers/training.py"
-        ).read_text(encoding="utf-8") + pathlib.Path(
-            "services/api/app/routers/_training_askleo.py"
-        ).read_text(encoding="utf-8")
+        src = pathlib.Path("services/api/app/routers/coding_review.py").read_text(
+            encoding="utf-8"
+        ) + pathlib.Path("services/api/app/routers/_training_askleo.py").read_text(
+            encoding="utf-8"
+        )
         assert '"assertion_warning"' in src or "'assertion_warning'" in src
 
 
@@ -384,13 +386,16 @@ class TestTierCalibrationEndpointImport:
         import importlib.util
         import pathlib
 
-        path = pathlib.Path("services/api/app/routers/training.py")
+        # tier-calibration lives in coding_review.py, split out of
+        # training.py in the 2026-07 CTO peer-review item 2: core-api
+        # router decomposition.
+        path = pathlib.Path("services/api/app/routers/coding_review.py")
         src = path.read_text(encoding="utf-8")
         assert "/coding-review/tier-calibration" in src
 
     def test_router_source_references_get_tier_override_stats(self):
         import pathlib
 
-        path = pathlib.Path("services/api/app/routers/training.py")
+        path = pathlib.Path("services/api/app/routers/coding_review.py")
         src = path.read_text(encoding="utf-8")
         assert "GET_TIER_OVERRIDE_STATS" in src

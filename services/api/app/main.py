@@ -64,6 +64,7 @@ from app.routers.terminology import router as terminology_router
 from app.routers.terminology_admin import router as terminology_admin_router
 from app.routers.events import router as events_router
 from app.routers.prompts import router as prompts_router
+from app.routers.llm_usage import router as llm_usage_router
 from app.routers.model_configs import router as model_configs_router
 from app.routers.nice_guidance import router as nice_guidance_router
 from app.routers.nice_diff import router as nice_diff_router
@@ -482,6 +483,7 @@ app.include_router(training_router)
 app.include_router(events_router)
 app.include_router(prompts_router)
 app.include_router(model_configs_router)
+app.include_router(llm_usage_router)
 app.include_router(nice_guidance_router)
 app.include_router(nice_diff_router)
 app.include_router(guidance_rules_router)

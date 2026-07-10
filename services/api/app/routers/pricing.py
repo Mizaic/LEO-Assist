@@ -1,9 +1,17 @@
 """Pricing, margin and discount management router.
 
 Atlas trace:
-  DO: DO-EC41233C
-  DI: DI-9D0DF618
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+  DO: DO-FD338D48
+  DI: DI-21FD1EC2
+  UN: UN-9828175D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-FD338D48")
+
+(2026-07 cost/spend user-need review: the previous header cited
+DO-EC41233C/DI-9D0DF618, which do not exist in Atlas -- the same phantom
+pair is also cited by app/routers/model_configs.py and
+app/routers/terminology.py, and was never a valid trace for any of the
+three. This file's header is now corrected. The other two still need
+their own investigation and are tracked as a follow-up, not fixed here.)
 
 All endpoints require the 'admin' permission.
 

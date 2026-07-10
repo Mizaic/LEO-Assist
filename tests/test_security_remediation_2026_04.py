@@ -57,14 +57,12 @@ _GUARDED_MUTATIONS: list[tuple[str, str]] = [
 
 
 @pytest.mark.parametrize("rel_path,fn_name", _GUARDED_MUTATIONS)
-def test_mutating_endpoints_require_service_token(
-    rel_path: str, fn_name: str
-) -> None:
+def test_mutating_endpoints_require_service_token(rel_path: str, fn_name: str) -> None:
     """The named mutation must have a verify_service_token dependency above it."""
     source = _read(rel_path)
-    assert "verify_service_token" in source, (
-        f"{rel_path} no longer imports verify_service_token"
-    )
+    assert (
+        "verify_service_token" in source
+    ), f"{rel_path} no longer imports verify_service_token"
     # Look at the decorator block immediately preceding the def. We grab
     # the 600 chars before the def; the decorator + dependencies list will
     # comfortably fit in that window.
@@ -85,9 +83,9 @@ def test_mutating_endpoints_require_service_token(
 def test_service_auth_fails_closed_when_secret_missing() -> None:
     source = _read("libs/auth/service_auth.py")
     assert "_is_local_env" in source, "_is_local_env helper removed"
-    assert "Service auth not configured" in source, (
-        "verify_service_token no longer raises when the secret is unset"
-    )
+    assert (
+        "Service auth not configured" in source
+    ), "verify_service_token no longer raises when the secret is unset"
     assert "raise HTTPException(\n            status_code=503" in source, (
         "verify_service_token must raise HTTP 503 when not configured "
         "outside the local env"
@@ -162,7 +160,9 @@ def test_clinician_action_requires_patient_scope() -> None:
 
 
 def test_patient_llm_spend_scoped() -> None:
-    source = _read("services/api/app/routers/model_configs.py")
+    # /analytics/llm-spend/patient moved to app/routers/llm_usage.py
+    # (2026-07 CTO peer-review item 2: core-api router decomposition).
+    source = _read("services/api/app/routers/llm_usage.py")
     assert "require_patient_in_scope" in source
     assert "patient_llm_spend" in source
     snippet = source.split("def patient_llm_spend")[1][:1500]
@@ -176,9 +176,9 @@ def test_pipeline_classification_endpoints_tenant_scoped() -> None:
     source = _read("services/api/app/routers/pipeline.py")
     # Disagreements: non-admin without patient_id is forbidden.
     assert "get_classification_disagreements" in source
-    assert "require_patient_in_scope" in source, (
-        "pipeline.py no longer imports require_patient_in_scope"
-    )
+    assert (
+        "require_patient_in_scope" in source
+    ), "pipeline.py no longer imports require_patient_in_scope"
     # Vote: must enforce tenant scope on the encounter's patient. The
     # implementation does this with an inline gp_id-in-scope.org_ids check
     # rather than the require_patient_in_scope helper, because we only have
@@ -188,9 +188,9 @@ def test_pipeline_classification_endpoints_tenant_scoped() -> None:
         "submit_classification_vote must verify the encounter's GP is in the "
         "caller's org scope"
     )
-    assert "scope.is_admin" in vote_block, (
-        "submit_classification_vote scope check must short-circuit for admins"
-    )
+    assert (
+        "scope.is_admin" in vote_block
+    ), "submit_classification_vote scope check must short-circuit for admins"
     # Report: admin-only.
     report_block = source.split("def get_classification_report")[1][:600]
     assert "scope.is_admin" in report_block, (
@@ -203,7 +203,11 @@ def test_anchor_review_admin_only() -> None:
     source = _read("services/api/app/routers/anchor_review.py")
     assert "require_admin" in source
     # Every endpoint should depend on require_admin, not get_caller_scope.
-    decorators = re.findall(r"@router\.(?:get|post|put|delete)\(.*?\)\s*async def \w+\((?P<args>[^)]*)\)", source, flags=re.DOTALL)
+    decorators = re.findall(
+        r"@router\.(?:get|post|put|delete)\(.*?\)\s*async def \w+\((?P<args>[^)]*)\)",
+        source,
+        flags=re.DOTALL,
+    )
     assert decorators, "no router endpoints found in anchor_review.py"
     for args in decorators:
         assert "require_admin" in args, (
@@ -220,23 +224,23 @@ def test_anchor_review_admin_only() -> None:
 @pytest.mark.parametrize(
     "rel_path,guard",
     [
-        ("services/api/app/routers/training.py", "require_admin"),
+        # sample-node lives in training_corpus.py, split out of training.py
+        # in the 2026-07 CTO peer-review item 2: core-api router decomposition.
+        ("services/api/app/routers/training_corpus.py", "require_admin"),
         ("services/fhir_api/app/routers/schema.py", "verify_service_token"),
     ],
 )
 def test_sample_node_endpoint_locked_down(rel_path: str, guard: str) -> None:
     source = _read(rel_path)
-    assert "_SAMPLE_NODE_LABEL_ALLOWLIST" in source, (
-        f"{rel_path} sample-node endpoint no longer enforces a node_label allowlist"
-    )
+    assert (
+        "_SAMPLE_NODE_LABEL_ALLOWLIST" in source
+    ), f"{rel_path} sample-node endpoint no longer enforces a node_label allowlist"
     assert "_SAMPLE_NODE_GRAPH_ALLOWLIST" in source
-    assert guard in source, (
-        f"{rel_path} sample-node endpoint must be gated by {guard}"
-    )
+    assert guard in source, f"{rel_path} sample-node endpoint must be gated by {guard}"
     # Generic 500 detail (do not leak exception text)
-    assert "sample-node lookup failed" in source, (
-        f"{rel_path} no longer returns a generic error for sample-node failures"
-    )
+    assert (
+        "sample-node lookup failed" in source
+    ), f"{rel_path} no longer returns a generic error for sample-node failures"
 
 
 # ---------------------------------------------------------------------------
@@ -249,15 +253,15 @@ def test_rest_connector_validates_url() -> None:
     assert "_validate_url" in source
     assert "_is_ip_safe" in source
     assert "_ALLOWED_SCHEMES" in source
-    assert "is_private" in source, (
-        "rest_connector SSRF guard must reject RFC1918 / private IPs after DNS"
-    )
+    assert (
+        "is_private" in source
+    ), "rest_connector SSRF guard must reject RFC1918 / private IPs after DNS"
     assert "RestConnectorError" in source
     # The validation must run inside execute_rest_connector
     exec_block = source.split("def execute_rest_connector")[1][:2000]
-    assert "_validate_url" in exec_block, (
-        "execute_rest_connector must call _validate_url before issuing a request"
-    )
+    assert (
+        "_validate_url" in exec_block
+    ), "execute_rest_connector must call _validate_url before issuing a request"
 
 
 # ---------------------------------------------------------------------------
@@ -296,17 +300,17 @@ def test_workflows_pin_third_party_actions(rel_path: str) -> None:
 def test_cd_deploy_validates_image_tag() -> None:
     source = _read(".github/workflows/cd-deploy.yml")
     # Image tag interpolation must go through env vars, not direct ${{ }} in run.
-    assert re.search(r"\^\[A-Za-z0-9\._-\]\+\$", source) or "[A-Za-z0-9._-]" in source, (
-        "cd-deploy.yml no longer validates image_tag against a safe-character regex"
-    )
+    assert (
+        re.search(r"\^\[A-Za-z0-9\._-\]\+\$", source) or "[A-Za-z0-9._-]" in source
+    ), "cd-deploy.yml no longer validates image_tag against a safe-character regex"
 
 
 def test_ci_build_validates_base_sha() -> None:
     source = _read(".github/workflows/ci-build.yml")
     assert "BASE_SHA" in source
-    assert re.search(r"\^\[0-9a-f\]\{0,40\}\$", source), (
-        "ci-build.yml no longer validates BASE_SHA against a hex regex"
-    )
+    assert re.search(
+        r"\^\[0-9a-f\]\{0,40\}\$", source
+    ), "ci-build.yml no longer validates BASE_SHA against a hex regex"
 
 
 # ---------------------------------------------------------------------------
@@ -316,15 +320,13 @@ def test_ci_build_validates_base_sha() -> None:
 
 def test_mail_page_sanitises_body_html() -> None:
     source = _read("services/ui/src/app/mail/page.tsx")
-    assert 'import DOMPurify from "dompurify"' in source, (
-        "mail/page.tsx no longer imports DOMPurify"
-    )
-    assert "DOMPurify.sanitize(selected.body_html" in source, (
-        "mail body_html must be passed through DOMPurify before doc.write"
-    )
-    assert 'sandbox=""' in source, (
-        "mail iframe must use sandbox=\"\" (no allow-* flags)"
-    )
+    assert (
+        'import DOMPurify from "dompurify"' in source
+    ), "mail/page.tsx no longer imports DOMPurify"
+    assert (
+        "DOMPurify.sanitize(selected.body_html" in source
+    ), "mail body_html must be passed through DOMPurify before doc.write"
+    assert 'sandbox=""' in source, 'mail iframe must use sandbox="" (no allow-* flags)'
     assert 'referrerPolicy="no-referrer"' in source
 
 
@@ -334,9 +336,7 @@ def test_mail_page_sanitises_body_html() -> None:
 
 
 def test_mission_control_encounters_forces_org_filter() -> None:
-    source = _read(
-        "services/analytics_api/app/routers/mission_control_encounters.py"
-    )
+    source = _read("services/analytics_api/app/routers/mission_control_encounters.py")
     assert "effective_org" in source
     # The fulltext + vector legs must both filter by effective_org, and
     # non-admin callers without an org must be rejected with 403.
@@ -358,9 +358,9 @@ def test_inference_reload_returns_generic_error() -> None:
         "inference/reload no longer returns a generic 502 detail; "
         "upstream response body could leak internal paths"
     )
-    assert "exc.response.text" not in reload_block, (
-        "inference/reload still leaks the upstream response body to the caller"
-    )
+    assert (
+        "exc.response.text" not in reload_block
+    ), "inference/reload still leaks the upstream response body to the caller"
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +421,7 @@ def test_factory_does_not_log_key_hint() -> None:
         "libs/llm_client/factory.py is back to logging a 4-char hint of the "
         "Azure OpenAI API key; this shrinks the brute-force search space"
     )
-    assert "AZURE_OPENAI_API_KEY) or \"\")[-4:]" not in source
+    assert 'AZURE_OPENAI_API_KEY) or "")[-4:]' not in source
     assert "_key_status" in source, (
         "factory.py should log a configured/missing status instead of any "
         "portion of the actual key"
@@ -442,6 +442,6 @@ def test_secrets_zip_not_in_repo() -> None:
 
 def test_gitignore_blocks_secret_archives() -> None:
     source = _read(".gitignore")
-    assert "*.zip" in source or "secrets.zip" in source, (
-        ".gitignore must block secrets.zip explicitly or all *.zip files"
-    )
+    assert (
+        "*.zip" in source or "secrets.zip" in source
+    ), ".gitignore must block secrets.zip explicitly or all *.zip files"

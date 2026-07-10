@@ -30,8 +30,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from scripts.atlas._mcp_transport import call_tool, initialize  # noqa: E402
+from scripts.atlas.product import PRODUCT_ID  # noqa: E402
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 DEFAULT_OUT = ROOT / "scripts" / "vt_execution" / "mvp_vt_backlog.csv"
 CACHE_DIR = ROOT / "scripts" / "vt_execution" / ".cache"
 MATRIX_CACHE = CACHE_DIR / "matrix.json"
@@ -39,34 +39,69 @@ DO_CACHE = CACHE_DIR / "do_source_refs.json"
 
 # R1 - Referral pipeline (explicit list from the brief).
 R1_UNS = [
-    "UN-AA722A75", "UN-A949A642", "UN-C2F187E9", "UN-412D1ECD", "UN-65571220",
-    "UN-30A82196", "UN-7913344A", "UN-FBBFD5CB", "UN-AFFA1FB3", "UN-575E8DCB",
-    "UN-0374FE26", "UN-04E94B6F", "UN-79318B40", "UN-D7186F4F", "UN-EE9C8DC9",
-    "UN-2D6BD78B", "UN-AA00A211", "UN-39591899", "UN-94BCC4DC", "UN-EAD58F62",
+    "UN-AA722A75",
+    "UN-A949A642",
+    "UN-C2F187E9",
+    "UN-412D1ECD",
+    "UN-65571220",
+    "UN-30A82196",
+    "UN-7913344A",
+    "UN-FBBFD5CB",
+    "UN-AFFA1FB3",
+    "UN-575E8DCB",
+    "UN-0374FE26",
+    "UN-04E94B6F",
+    "UN-79318B40",
+    "UN-D7186F4F",
+    "UN-EE9C8DC9",
+    "UN-2D6BD78B",
+    "UN-AA00A211",
+    "UN-39591899",
+    "UN-94BCC4DC",
+    "UN-EAD58F62",
 ]
 
 # R7 anchor + widget DIs.
 R7_ANCHOR_UN = "UN-64F0E9C3"
 R7_WIDGET_DIS = {
-    "DI-85C95E53", "DI-A1206416", "DI-85944331",
-    "DI-5F121122", "DI-3C06AFD0", "DI-2FBDAC7D",
+    "DI-85C95E53",
+    "DI-A1206416",
+    "DI-85944331",
+    "DI-5F121122",
+    "DI-3C06AFD0",
+    "DI-2FBDAC7D",
 }
 
 # Keyword sets per release (lower-cased substring matching).
 KEYWORDS: dict[str, list[str]] = {
     "R3": [
-        "clinical review", "correction loop", "reviewer", "ask leo",
-        "gold label", "assertion correction", "reviewer queue",
+        "clinical review",
+        "correction loop",
+        "reviewer",
+        "ask leo",
+        "gold label",
+        "assertion correction",
+        "reviewer queue",
         "training feedback",
     ],
     "R4": [
-        "knowledge author", "guideline rule", "terminology authoring",
-        "approval workflow", "cso review", "deployment gate",
-        "change request", "risk-prioritised triage", "rule activation",
+        "knowledge author",
+        "guideline rule",
+        "terminology authoring",
+        "approval workflow",
+        "cso review",
+        "deployment gate",
+        "change request",
+        "risk-prioritised triage",
+        "rule activation",
     ],
     "R5": [
-        "tenant onboarding", "user management", "audit log",
-        "multi-tenant", "rbac", "ods sync",
+        "tenant onboarding",
+        "user management",
+        "audit log",
+        "multi-tenant",
+        "rbac",
+        "ods sync",
         # 'admin' alone is too broad; include only if combined.
     ],
     "R7": ["widget", "embedding", " sdk", "browser sdk"],
@@ -76,12 +111,23 @@ KEYWORDS: dict[str, list[str]] = {
 RELEASE_ORDER = ["R1", "R3", "R4", "R5", "R7"]
 
 CSV_COLS = [
-    "vt_dcid", "di_dcid", "un_dcid", "release",
-    "framework", "automation_status",
-    "test_file_path", "on_disk", "current_status",
-    "owner", "run_started_at", "run_finished_at",
-    "run_result", "run_log_path", "atlas_updated_at",
-    "vt_uuid", "vt_title",
+    "vt_dcid",
+    "di_dcid",
+    "un_dcid",
+    "release",
+    "framework",
+    "automation_status",
+    "test_file_path",
+    "on_disk",
+    "current_status",
+    "owner",
+    "run_started_at",
+    "run_finished_at",
+    "run_result",
+    "run_log_path",
+    "atlas_updated_at",
+    "vt_uuid",
+    "vt_title",
 ]
 
 PATH_RE = re.compile(
@@ -112,10 +158,12 @@ def fetch_matrix(use_cache: bool) -> dict:
         "get_traceability_matrix",
         {"product_id": PRODUCT_ID},
     )
-    print(f"  matrix fetch ok in {time.time() - t0:.1f}s "
-          f"(nodes={len(out.get('nodes', []))}, "
-          f"links={len(out.get('links', []))}, "
-          f"rows={len(out.get('rows', []))})")
+    print(
+        f"  matrix fetch ok in {time.time() - t0:.1f}s "
+        f"(nodes={len(out.get('nodes', []))}, "
+        f"links={len(out.get('links', []))}, "
+        f"rows={len(out.get('rows', []))})"
+    )
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     MATRIX_CACHE.write_text(json.dumps(out))
     return out
@@ -132,16 +180,15 @@ def fetch_do_source_ref(do_dcid: str, cache: dict) -> dict:
             {"dc_type": "design-output", "dc_id": do_dcid},
         )
     except Exception as exc:
-        print(f"    ! DO fetch failed for {do_dcid}: {exc}",
-              file=sys.stderr)
-        cache[do_dcid] = {"description": "", "source_reference": "",
-                          "title": ""}
+        print(f"    ! DO fetch failed for {do_dcid}: {exc}", file=sys.stderr)
+        cache[do_dcid] = {"description": "", "source_reference": "", "title": ""}
         return cache[do_dcid]
     do = resp.get("designOutput") or resp.get("design_output") or {}
     cache[do_dcid] = {
         "description": do.get("description", "") or "",
-        "source_reference": (do.get("source_reference")
-                             or do.get("sourceReference") or ""),
+        "source_reference": (
+            do.get("source_reference") or do.get("sourceReference") or ""
+        ),
         "title": do.get("title", "") or "",
     }
     return cache[do_dcid]
@@ -176,15 +223,15 @@ def is_test_path(p: str) -> bool:
     return (
         "/tests/" in pl
         or "__tests__" in pl
-        or pl.endswith((".test.ts", ".test.tsx", ".test.js", ".spec.ts",
-                        ".spec.tsx"))
+        or pl.endswith((".test.ts", ".test.tsx", ".test.js", ".spec.ts", ".spec.tsx"))
         or "/e2e/" in pl
         or pl.startswith("tests/")
     )
 
 
-def vt_paths_and_framework(do_blobs: list[dict],
-                           vt_desc: str | None) -> tuple[str, str, str]:
+def vt_paths_and_framework(
+    do_blobs: list[dict], vt_desc: str | None
+) -> tuple[str, str, str]:
     """Returns (test_file_path, framework, automation_status)."""
     candidates: list[str] = []
     for do in do_blobs:
@@ -208,8 +255,7 @@ def vt_paths_and_framework(do_blobs: list[dict],
 
 
 def vt_status_norm(node: dict) -> str:
-    raw = (node.get("executionStatus") or node.get("execution_status")
-           or "").lower()
+    raw = (node.get("executionStatus") or node.get("execution_status") or "").lower()
     if raw == "passed":
         return "passed"
     if raw == "failed":
@@ -226,11 +272,14 @@ def classify_release(un_node: dict, di_nodes_for_un: list[dict]) -> str | None:
     if any(di["dcId"] in R7_WIDGET_DIS for di in di_nodes_for_un):
         return "R7"
     haystack = (
-        (un_node.get("title") or "") + " "
-        + (un_node.get("description") or "") + " "
-        + " ".join((di.get("title") or "") + " "
-                   + (di.get("description") or "")
-                   for di in di_nodes_for_un)
+        (un_node.get("title") or "")
+        + " "
+        + (un_node.get("description") or "")
+        + " "
+        + " ".join(
+            (di.get("title") or "") + " " + (di.get("description") or "")
+            for di in di_nodes_for_un
+        )
     ).lower()
     for release in ("R3", "R4", "R5", "R7"):
         for kw in KEYWORDS[release]:
@@ -243,10 +292,13 @@ def build() -> tuple[list[dict], list[str]]:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--no-cache-matrix", action="store_true")
-    parser.add_argument("--skip-do-fetch", action="store_true",
-                        help="Skip per-DO source_reference fetches; "
-                             "rely on cached entries + matrix descriptions. "
-                             "Useful when Atlas DO fetches are flaky.")
+    parser.add_argument(
+        "--skip-do-fetch",
+        action="store_true",
+        help="Skip per-DO source_reference fetches; "
+        "rely on cached entries + matrix descriptions. "
+        "Useful when Atlas DO fetches are flaky.",
+    )
     args = parser.parse_args()
 
     matrix = fetch_matrix(use_cache=not args.no_cache_matrix)
@@ -300,8 +352,10 @@ def build() -> tuple[list[dict], list[str]]:
 
     fresh = [d for d in do_dcids_needed if d not in do_cache]
     if fresh and not args.skip_do_fetch:
-        print(f"\nstep 3: fetching {len(fresh)} DO source_refs (one-off, "
-              "cached for future runs) ...")
+        print(
+            f"\nstep 3: fetching {len(fresh)} DO source_refs (one-off, "
+            "cached for future runs) ..."
+        )
         for i, dcid in enumerate(sorted(fresh), 1):
             fetch_do_source_ref(dcid, do_cache)
             if i % 10 == 0:
@@ -311,8 +365,10 @@ def build() -> tuple[list[dict], list[str]]:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         DO_CACHE.write_text(json.dumps(do_cache, indent=2))
     elif fresh:
-        print(f"\nstep 3: SKIPPED ({len(fresh)} DOs would need fetching). "
-              "Path inference uses cached entries + matrix descriptions only.")
+        print(
+            f"\nstep 3: SKIPPED ({len(fresh)} DOs would need fetching). "
+            "Path inference uses cached entries + matrix descriptions only."
+        )
 
     print("\nstep 4: emitting rows ...")
     for row in rows_in:
@@ -326,23 +382,19 @@ def build() -> tuple[list[dict], list[str]]:
         vt_nodes = row.get("verificationTests", []) or []
         vt_by_uuid = {vt["id"]: vt for vt in vt_nodes}
 
-        do_uuid_to_dis: dict[str, list[str]] = {do["id"]: []
-                                                for do in do_nodes}
+        do_uuid_to_dis: dict[str, list[str]] = {do["id"]: [] for do in do_nodes}
         vt_to_dis: dict[str, list[str]] = {vt["id"]: [] for vt in vt_nodes}
         for ln in links:
             if ln.get("relationship") == "IMPLEMENTS":
-                if ln["source"] in do_uuid_to_dis and \
-                        ln["target"] in di_uuid_to_dcid:
-                    do_uuid_to_dis[ln["source"]].append(
-                        di_uuid_to_dcid[ln["target"]])
+                if ln["source"] in do_uuid_to_dis and ln["target"] in di_uuid_to_dcid:
+                    do_uuid_to_dis[ln["source"]].append(di_uuid_to_dcid[ln["target"]])
             elif ln.get("relationship") == "VERIFIES":
-                if ln["source"] in vt_to_dis and \
-                        ln["target"] in di_uuid_to_dcid:
-                    vt_to_dis[ln["source"]].append(
-                        di_uuid_to_dcid[ln["target"]])
+                if ln["source"] in vt_to_dis and ln["target"] in di_uuid_to_dcid:
+                    vt_to_dis[ln["source"]].append(di_uuid_to_dcid[ln["target"]])
 
-        di_to_dos: dict[str, list[dict]] = {dcid: [] for dcid
-                                            in di_uuid_to_dcid.values()}
+        di_to_dos: dict[str, list[dict]] = {
+            dcid: [] for dcid in di_uuid_to_dcid.values()
+        }
         for do in do_nodes:
             for di_dcid in do_uuid_to_dis.get(do["id"], []):
                 blob = do_cache.get(do["dcId"]) or {
@@ -364,29 +416,37 @@ def build() -> tuple[list[dict], list[str]]:
                     vt_node.get("description", ""),
                 )
                 on_disk = bool(test_path) and (ROOT / test_path).exists()
-                out_rows.append({
-                    "vt_dcid": vt_node["dcId"],
-                    "di_dcid": di_dcid,
-                    "un_dcid": un_dcid,
-                    "release": rel,
-                    "framework": framework,
-                    "automation_status": automation,
-                    "test_file_path": test_path,
-                    "on_disk": str(on_disk).lower(),
-                    "current_status": vt_status_norm(vt_node),
-                    "owner": "",
-                    "run_started_at": "",
-                    "run_finished_at": "",
-                    "run_result": "",
-                    "run_log_path": "",
-                    "atlas_updated_at": "",
-                    "vt_uuid": vt_node["id"],
-                    "vt_title": (vt_node.get("title") or "")[:200],
-                })
+                out_rows.append(
+                    {
+                        "vt_dcid": vt_node["dcId"],
+                        "di_dcid": di_dcid,
+                        "un_dcid": un_dcid,
+                        "release": rel,
+                        "framework": framework,
+                        "automation_status": automation,
+                        "test_file_path": test_path,
+                        "on_disk": str(on_disk).lower(),
+                        "current_status": vt_status_norm(vt_node),
+                        "owner": "",
+                        "run_started_at": "",
+                        "run_finished_at": "",
+                        "run_result": "",
+                        "run_log_path": "",
+                        "atlas_updated_at": "",
+                        "vt_uuid": vt_node["id"],
+                        "vt_title": (vt_node.get("title") or "")[:200],
+                    }
+                )
 
     out_rows = dedupe_rows(out_rows)
-    out_rows.sort(key=lambda r: (RELEASE_ORDER.index(r["release"]),
-                                 r["un_dcid"], r["di_dcid"], r["vt_dcid"]))
+    out_rows.sort(
+        key=lambda r: (
+            RELEASE_ORDER.index(r["release"]),
+            r["un_dcid"],
+            r["di_dcid"],
+            r["vt_dcid"],
+        )
+    )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", newline="") as f:
@@ -430,10 +490,10 @@ def report(rows: list[dict], not_found: list[str]) -> None:
         by_rel_disk.setdefault((rel, r["on_disk"] == "true"), set()).add(vt)
         by_rel_auto.setdefault((rel, r["automation_status"]), set()).add(vt)
     total_distinct = len({r["vt_dcid"] for r in rows})
-    total_not_exec = len({r["vt_dcid"] for r in rows
-                          if r["current_status"] == "not_executed"})
-    total_passed = len({r["vt_dcid"] for r in rows
-                        if r["current_status"] == "passed"})
+    total_not_exec = len(
+        {r["vt_dcid"] for r in rows if r["current_status"] == "not_executed"}
+    )
+    total_passed = len({r["vt_dcid"] for r in rows if r["current_status"] == "passed"})
 
     for rel in RELEASE_ORDER:
         if rel not in by_release:

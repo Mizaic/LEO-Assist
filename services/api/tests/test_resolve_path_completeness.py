@@ -60,7 +60,7 @@ class TestBatchResolveCodingReviewRequest:
     """BatchResolveCodingReviewRequest must expose resolved_assertion."""
 
     def _model(self):
-        from app.routers.training import BatchResolveCodingReviewRequest
+        from app.routers.coding_review import BatchResolveCodingReviewRequest
 
         return BatchResolveCodingReviewRequest
 
@@ -100,7 +100,7 @@ class TestBatchResolveEndpoint:
     """batch_resolve_coding_review must forward resolved_assertion to the query."""
 
     def _run(self, resolved_assertion: str = "present"):
-        from app.routers.training import (
+        from app.routers.coding_review import (
             BatchResolveCodingReviewRequest,
             batch_resolve_coding_review,
         )
@@ -124,11 +124,11 @@ class TestBatchResolveEndpoint:
 
         with (
             patch(
-                "app.routers.training.PatientGraphClient",
+                "app.routers.coding_review.PatientGraphClient",
                 return_value=mock_client,
             ),
             patch("services.api.app.db.neo4j_client.CodingGraphClient"),
-            patch("app.routers.training._write_coding_ignore_rule"),
+            patch("app.routers.coding_review._write_coding_ignore_rule"),
         ):
             result = batch_resolve_coding_review(body, scope=MagicMock())
 
@@ -158,7 +158,7 @@ class TestSingleResolveCascade:
     """The cascade call inside /{review_id}/resolve must propagate resolved_assertion."""
 
     def _run(self, resolved_assertion: str = "declined"):
-        from app.routers.training import (
+        from app.routers.coding_review import (
             ResolveCodingReviewRequest,
             resolve_coding_review,
         )
@@ -200,7 +200,9 @@ class TestSingleResolveCascade:
         )
 
         with (
-            patch("app.routers.training.PatientGraphClient", side_effect=make_client),
+            patch(
+                "app.routers.coding_review.PatientGraphClient", side_effect=make_client
+            ),
             patch("services.api.app.db.neo4j_client.CodingGraphClient"),
         ):
             resolve_coding_review("rev-001", body, scope=MagicMock())
@@ -226,7 +228,7 @@ class TestRecheckDirectWriteback:
     def _run_recheck_item(
         self, *, scored_coding=None, mock_writeback=None, try_alternatives: bool = False
     ):
-        from app.routers.training import _apply_recheck_item
+        from app.routers.coding_review import _apply_recheck_item
 
         mock_session = MagicMock()
         mock_session.run.return_value.single.return_value = None
@@ -249,7 +251,7 @@ class TestRecheckDirectWriteback:
 
         wb = mock_writeback or MagicMock(return_value=True)
         with patch(
-            "app.routers.training._writeback_recheck_surface_form", wb
+            "app.routers.coding_review._writeback_recheck_surface_form", wb
         ) as wb_mock:
             outcome, ok = _apply_recheck_item(
                 mock_session,
@@ -323,7 +325,7 @@ class TestRecheckEscalationWriteback:
         )
 
     def _run_escalation(self, esc_result, writeback_mock=None):
-        from app.routers.training import _apply_recheck_item
+        from app.routers.coding_review import _apply_recheck_item
 
         mock_session = MagicMock()
         mock_session.run.return_value.single.return_value = None
@@ -338,8 +340,8 @@ class TestRecheckEscalationWriteback:
 
         wb = writeback_mock or MagicMock(return_value=True)
         with (
-            patch("app.routers.training.escalate_coding", return_value=esc_result),
-            patch("app.routers.training._writeback_recheck_surface_form", wb),
+            patch("app.routers.coding_review.escalate_coding", return_value=esc_result),
+            patch("app.routers.coding_review._writeback_recheck_surface_form", wb),
         ):
             outcome, ok = _apply_recheck_item(
                 mock_session,

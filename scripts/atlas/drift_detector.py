@@ -55,6 +55,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).parent))
 from _mcp_transport import McpError, call_tool, initialize  # noqa: E402
+from product import PRODUCT_ID  # noqa: E402
 
 EVIDENCE = ROOT / "compliance" / "atlas-migration-evidence"
 DRIFT_DIR = EVIDENCE / "drift"
@@ -67,8 +68,9 @@ EXTENSIONS = {".py", ".ts", ".tsx"}
 SCAN_ROOTS = [ROOT / "libs", ROOT / "services"]
 ATLAS_TRACE_MARKER = "Atlas trace:"
 DCID_RE = re.compile(r"\b(DO|DI|UN|VT|VAL|R)-([0-9A-Fa-f]{8})\b")
-DO_LINE_RE = re.compile(r"^\s*\*?\s*DO:\s*(DO-[0-9A-Fa-f]{8})\s*$",
-                        re.IGNORECASE | re.MULTILINE)
+DO_LINE_RE = re.compile(
+    r"^\s*\*?\s*DO:\s*(DO-[0-9A-Fa-f]{8})\s*$", re.IGNORECASE | re.MULTILINE
+)
 ALSO_LINE_RE = re.compile(
     r"^\s*\*?\s*Also implements:\s*(.+)$",
     re.IGNORECASE | re.MULTILINE,
@@ -92,6 +94,7 @@ EXCLUDE_PATTERNS = [
 # ----------------------------------------------------------------------
 # IO helpers
 # ----------------------------------------------------------------------
+
 
 def is_excluded(rel: str) -> bool:
     return any(p.search(rel) for p in EXCLUDE_PATTERNS)
@@ -146,6 +149,7 @@ def count_trace_blocks(text: str) -> int:
 # Atlas DO fetch
 # ----------------------------------------------------------------------
 
+
 def fetch_do(dc_id: str) -> dict | None:
     try:
         out = call_tool(
@@ -160,28 +164,20 @@ def fetch_do(dc_id: str) -> dict | None:
         "dcId": dc_id,
         "title": do.get("title", ""),
         "source_reference": (
-            do.get("source_reference")
-            or do.get("sourceReference")
-            or ""
+            do.get("source_reference") or do.get("sourceReference") or ""
         ),
     }
 
 
 def list_atlas_dos() -> list[str]:
     """Return all DO dcIds known to Atlas via the live matrix."""
-    matrix = call_tool(
-        "get_traceability_matrix", {"product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B"}
-    )
+    matrix = call_tool("get_traceability_matrix", {"product_id": PRODUCT_ID})
     seen: set[str] = set()
 
     def walk(node):
         if isinstance(node, dict):
             d = node.get("dcId") or node.get("dc_id")
-            if (
-                isinstance(d, str)
-                and d.startswith("DO-")
-                and len(d) <= 16
-            ):
+            if isinstance(d, str) and d.startswith("DO-") and len(d) <= 16:
                 seen.add(d)
             for v in node.values():
                 walk(v)
@@ -197,6 +193,7 @@ def list_atlas_dos() -> list[str]:
 # Drift checks
 # ----------------------------------------------------------------------
 
+
 def parse_source_reference(value: str) -> tuple[list[str], bool]:
     """Return (paths, has_phase13b_tag)."""
     has_tag = value.endswith("[phase13b]") or "[phase13b]" in value
@@ -207,17 +204,26 @@ def parse_source_reference(value: str) -> tuple[list[str], bool]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--report", action="store_true",
-                    help="report-only mode (never fail)")
-    ap.add_argument("--fast", action="store_true",
-                    help="use phase13c-atlas-cache.json instead of fetching live")
-    ap.add_argument("--limit-dos", type=int, default=0,
-                    help="limit the number of DOs we re-fetch (debug)")
     ap.add_argument(
-        "--dos-from-bucket-ids", action="store_true",
+        "--report", action="store_true", help="report-only mode (never fail)"
+    )
+    ap.add_argument(
+        "--fast",
+        action="store_true",
+        help="use phase13c-atlas-cache.json instead of fetching live",
+    )
+    ap.add_argument(
+        "--limit-dos",
+        type=int,
+        default=0,
+        help="limit the number of DOs we re-fetch (debug)",
+    )
+    ap.add_argument(
+        "--dos-from-bucket-ids",
+        action="store_true",
         help="restrict scan to DOs in phase14d-bucket-ids.json + DOs "
-             "named in any file header (avoids the slow full-Atlas "
-             "list_dos call)",
+        "named in any file header (avoids the slow full-Atlas "
+        "list_dos call)",
     )
     args = ap.parse_args()
 
@@ -267,8 +273,10 @@ def main() -> int:
             return 2
         cache = json.loads(CACHE_JSON.read_text())
         # Cache does not have source_reference; fall back to fetch for those.
-        print("WARNING: --fast cache lacks source_reference; "
-              "doing per-DO fetch only for header-named DOs.")
+        print(
+            "WARNING: --fast cache lacks source_reference; "
+            "doing per-DO fetch only for header-named DOs."
+        )
         targets = set()
         for dos in file_to_dos.values():
             targets.update(dos)
@@ -285,7 +293,9 @@ def main() -> int:
     else:
         if args.dos_from_bucket_ids:
             bid_path = (
-                ROOT / "compliance" / "atlas-migration-evidence"
+                ROOT
+                / "compliance"
+                / "atlas-migration-evidence"
                 / "phase14d-bucket-ids.json"
             )
             bucket_dos: set[str] = set()
@@ -298,8 +308,10 @@ def main() -> int:
                     if d:
                         bucket_dos.add(d)
             all_dos = sorted(bucket_dos)
-            print(f"  scoped to {len(all_dos)} bucket DOs from "
-                  f"phase14d-bucket-ids.json")
+            print(
+                f"  scoped to {len(all_dos)} bucket DOs from "
+                f"phase14d-bucket-ids.json"
+            )
         else:
             all_dos = list_atlas_dos()
         targets = sorted(set(all_dos) | {d for ds in file_to_dos.values() for d in ds})
@@ -314,28 +326,32 @@ def main() -> int:
                 print(f"  ... fetched {i}/{len(targets)}")
 
     # ----- Pass 3: compute drifts -----
-    forward: list[dict] = []     # file -> dco missing the file
-    reverse: list[dict] = []     # Atlas -> file missing or wrong header
+    forward: list[dict] = []  # file -> dco missing the file
+    reverse: list[dict] = []  # Atlas -> file missing or wrong header
     stale_tag: list[dict] = []
     header_inv: list[dict] = []
 
     for d, rec in do_data.items():
         paths, tag = parse_source_reference(rec["source_reference"])
         if tag:
-            stale_tag.append({
-                "dc_id": d,
-                "title": rec["title"],
-                "n_paths": str(len(paths)),
-            })
+            stale_tag.append(
+                {
+                    "dc_id": d,
+                    "title": rec["title"],
+                    "n_paths": str(len(paths)),
+                }
+            )
         for path in paths:
             full = ROOT / path
             if not full.exists():
-                reverse.append({
-                    "dc_id": d,
-                    "path": path,
-                    "category": "missing-file",
-                    "note": "source_reference lists a file that no longer exists",
-                })
+                reverse.append(
+                    {
+                        "dc_id": d,
+                        "path": path,
+                        "category": "missing-file",
+                        "note": "source_reference lists a file that no longer exists",
+                    }
+                )
                 continue
             if is_excluded(path):
                 continue
@@ -345,23 +361,27 @@ def main() -> int:
                 continue
             primary, extras = parse_trace_block(txt)
             if not primary:
-                reverse.append({
-                    "dc_id": d,
-                    "path": path,
-                    "category": "missing-header",
-                    "note": "Atlas DO lists this file but file has no Atlas trace block",
-                })
+                reverse.append(
+                    {
+                        "dc_id": d,
+                        "path": path,
+                        "category": "missing-header",
+                        "note": "Atlas DO lists this file but file has no Atlas trace block",
+                    }
+                )
                 continue
             if d != primary and d not in extras:
-                reverse.append({
-                    "dc_id": d,
-                    "path": path,
-                    "category": "header-points-elsewhere",
-                    "note": (
-                        f"file header points at {primary}, "
-                        f"not {d} (this DO claims it via source_reference)"
-                    ),
-                })
+                reverse.append(
+                    {
+                        "dc_id": d,
+                        "path": path,
+                        "category": "header-points-elsewhere",
+                        "note": (
+                            f"file header points at {primary}, "
+                            f"not {d} (this DO claims it via source_reference)"
+                        ),
+                    }
+                )
 
     for rel, dos in file_to_dos.items():
         for d in dos:
@@ -370,27 +390,33 @@ def main() -> int:
                 continue
             paths, _ = parse_source_reference(rec["source_reference"])
             if rel not in paths:
-                forward.append({
-                    "path": rel,
-                    "dc_id": d,
-                    "note": (
-                        "file header names this DO but DO source_reference "
-                        "does not list the file"
-                    ),
-                })
+                forward.append(
+                    {
+                        "path": rel,
+                        "dc_id": d,
+                        "note": (
+                            "file header names this DO but DO source_reference "
+                            "does not list the file"
+                        ),
+                    }
+                )
 
     for rel in multi_block:
-        header_inv.append({
-            "path": rel,
-            "category": "multiple-blocks",
-            "note": "more than one 'Atlas trace:' marker in the file",
-        })
+        header_inv.append(
+            {
+                "path": rel,
+                "category": "multiple-blocks",
+                "note": "more than one 'Atlas trace:' marker in the file",
+            }
+        )
     for rel in bad_do:
-        header_inv.append({
-            "path": rel,
-            "category": "unparseable-do",
-            "note": "Atlas trace block but no parseable 'DO:' line",
-        })
+        header_inv.append(
+            {
+                "path": rel,
+                "category": "unparseable-do",
+                "note": "Atlas trace block but no parseable 'DO:' line",
+            }
+        )
 
     # ----- Write outputs -----
     today = time.strftime("%Y-%m-%d", time.gmtime())
@@ -410,9 +436,7 @@ def main() -> int:
     rev_path = write(
         "drift-reverse.csv", ["dc_id", "path", "category", "note"], reverse
     )
-    stale_path = write(
-        "drift-stale-tag.csv", ["dc_id", "title", "n_paths"], stale_tag
-    )
+    stale_path = write("drift-stale-tag.csv", ["dc_id", "title", "n_paths"], stale_tag)
     inv_path = write(
         "drift-header-invariant.csv", ["path", "category", "note"], header_inv
     )
@@ -439,11 +463,7 @@ def main() -> int:
     print(f"  invariant:{len(header_inv)}")
     print(f"  summary:  {summary}")
 
-    fail = (
-        len(forward) > 0
-        or len(reverse) > 0
-        or len(header_inv) > 0
-    )
+    fail = len(forward) > 0 or len(reverse) > 0 or len(header_inv) > 0
     if args.report or not fail:
         return 0
     return 1

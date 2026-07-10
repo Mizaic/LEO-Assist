@@ -26,6 +26,28 @@ Usage:
         await invoke_llm_json(...)
 
     print(rec.usage.input_tokens, rec.cost_usd(cfg), rec.calls)
+
+Design decision (2026-07 CTO peer-review item 3, Phase B): do NOT wrap
+``WorkflowEngine`` (libs/workflow/engine.py) in ``LLMUsageRecorder``.
+``WorkflowEngine._write_audit_event`` already sums
+``llm_input_tokens``/``llm_output_tokens``/``llm_cached_tokens``/
+``llm_cost_usd`` directly from its own ``StepResult`` subgraph outputs and
+writes them onto the ``AuditEvent {type:'PipelineRun'}`` node -- that
+manual summation is the coding path's source of truth today, and it is
+what powers `/pricing/orgs`, `/analytics/llm-spend/runs`, and (as of the
+Phase A query extension) `/analytics/llm-spend/patient`.
+
+Adding an ``LLMUsageRecorder`` around the same run would create a SECOND,
+independent accumulator with no reconciliation between the two, risking
+silent double-counting or drift if they ever disagree (e.g. a step that
+updates ``StepResult`` fields without also being inside the recorder's
+active scope, or vice versa). Reserve ``LLMUsageRecorder`` for
+orchestrators that do not already aggregate their own token totals (the
+SBAR orchestrator, `services/analysis_worker/.../sbar_orchestrator.py`,
+is the reference implementation this class was built for). If a future
+change needs the recorder's per-call `agent_task`/`patient_id` breakdown
+inside WorkflowEngine, it must REMOVE the manual summation in the same
+change -- never run both accumulators at once for the same run.
 """
 
 from __future__ import annotations

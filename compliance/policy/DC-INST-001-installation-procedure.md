@@ -7,7 +7,7 @@
 | Status | Draft |
 | Date | 2026-06-12 |
 | Product | LEO Clinical Decision Support (LEO CDS) |
-| Product ID | PROD-LEO-CORE-AI-20260415-6AE8A23B |
+| Product ID | PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4 |
 | Related documents | DC-DEP-001; SVP-LEO-CDS-001; infra/github-oidc/README.md |
 
 ---

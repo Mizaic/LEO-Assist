@@ -9,6 +9,14 @@ Atlas trace:
 GET  /admin/terminology/status        - TRUD package versions + Neo4j counts
 GET  /admin/terminology/sync/stream   - SSE stream: download, extract, load
 GET  /admin/terminology/audit-log     - Immutable audit log of admin actions
+
+Ownership note (2026-07 CTO peer-review item 2: core-api router
+decomposition -- "thin terminology ownership" follow-up): this router is
+genuinely core-api-only admin policy (TRUD sync orchestration + audit
+log) with no equivalent surface in terminology_api, so it needed no
+changes. See services/api/app/routers/terminology.py for the ownership
+note on the *other* terminology router, which does have real duplication
+with terminology_api.
 """
 
 from __future__ import annotations
@@ -67,8 +75,12 @@ def terminology_status(
 @router.get("/audit-log")
 def terminology_audit_log(
     scope: Annotated[CallerScope, Depends(require_admin)],
-    since: Annotated[str | None, Query(description="ISO 8601 lower bound (inclusive)")] = None,
-    until: Annotated[str | None, Query(description="ISO 8601 upper bound (inclusive)")] = None,
+    since: Annotated[
+        str | None, Query(description="ISO 8601 lower bound (inclusive)")
+    ] = None,
+    until: Annotated[
+        str | None, Query(description="ISO 8601 upper bound (inclusive)")
+    ] = None,
 ):
     """Return immutable audit entries for terminology administrator actions."""
     return {"entries": get_entries(since=since, until=until)}

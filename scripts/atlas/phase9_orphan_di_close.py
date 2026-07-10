@@ -40,11 +40,11 @@ DI_DIR = DC / "design-inputs"
 sys.path.insert(0, str(ROOT))
 
 from scripts.atlas._mcp_transport import call_tool, initialize  # noqa: E402
+from scripts.atlas.product import PRODUCT_ID  # noqa: E402
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 LEDGER_PATH = DC / "phase9-ledger.csv"
 LEDGER_COLS = [
-    "kind",          # do | link | di_title_update | error | skip
+    "kind",  # do | link | di_title_update | error | skip
     "atlas_di_uuid",
     "atlas_di_dcid",
     "local_id",
@@ -76,7 +76,8 @@ def append_ledger(rows: list[dict]) -> None:
 
 def is_done(ledger: list[dict], di_uuid: str) -> bool:
     return any(
-        r.get("atlas_di_uuid") == di_uuid and r.get("kind") == "do"
+        r.get("atlas_di_uuid") == di_uuid
+        and r.get("kind") == "do"
         and r.get("decision") in {"created", "skipped-already-linked"}
         for r in ledger
     )
@@ -202,9 +203,7 @@ def main() -> None:
     print("Phase 9 - close orphan DIs by creating DOs")
     initialize()
 
-    gaps = call_tool(
-        "get_traceability_gaps", {"product_id": PRODUCT_ID}
-    )
+    gaps = call_tool("get_traceability_gaps", {"product_id": PRODUCT_ID})
     orphans = gaps.get("orphan_design_inputs") or []
     print(f"  orphan DIs reported by Atlas: {len(orphans)}")
     if not orphans:
