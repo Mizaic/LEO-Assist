@@ -1,7 +1,7 @@
 {
   "name": "leo-ai-cd-env-production",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:Healthcare-Copilot/LEO-AI-CORE:environment:production",
+  "subject": "repo:Mizaic/LEO-AI-CORE:environment:production",
   "description": "GitHub Actions CD deploy-prod job (environment: production)",
   "audiences": ["api://AzureADTokenExchange"]
 }
