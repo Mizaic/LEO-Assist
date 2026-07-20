@@ -329,7 +329,7 @@ describe("BitmapLifecycleSection", () => {
     });
     render(<BitmapLifecycleSection />);
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /compile rules/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /compile candidate/i })).toBeInTheDocument();
     });
   });
 
@@ -404,8 +404,8 @@ describe("BitmapLifecycleSection", () => {
     render(<BitmapLifecycleSection />);
     await waitFor(() => {
       expect(screen.getByText("Rules approved")).toBeInTheDocument();
-      expect(screen.getAllByText("Compile rules").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("Go live")).toBeInTheDocument();
+      expect(screen.getAllByText("Compile candidate").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText("Test and go live")).toBeInTheDocument();
     });
   });
 });

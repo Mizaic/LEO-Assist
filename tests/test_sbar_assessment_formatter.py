@@ -104,9 +104,7 @@ def test_matched_via_renders_specific_seed_in_markdown() -> None:
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["2"])
     assert "Matched on" in out.markdown
-    assert "Smoker" in out.markdown
-    assert "kind of Smoker" in out.markdown
-    assert "`2`" in out.markdown
+    assert "a related coded finding for Smoker" in out.markdown
 
 
 def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
@@ -122,7 +120,37 @@ def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
     assert "Matched on: Smoker" in out.markdown
-    assert "kind of" not in out.markdown
+    assert "related coded finding" not in out.markdown
+
+
+def test_matched_via_dedupes_identical_leaf_labels() -> None:
+    """Repeated CONCEPT leaves with the same label render once in Matched on."""
+    rule = _rule("R-1", priority="routine", name="FIT rule")
+    rule["matched_via"] = [
+        {
+            "node_id": "n1",
+            "primary_concept_id": "262285001",
+            "preferred_term": "Weight decreased (finding)",
+            "matched_concept_ids": ["262285001"],
+        },
+        {
+            "node_id": "n2",
+            "primary_concept_id": "262285001",
+            "preferred_term": "Weight decreased (finding)",
+            "matched_concept_ids": ["262285001"],
+        },
+        {
+            "node_id": "n3",
+            "primary_concept_id": "448765001",
+            "preferred_term": "Weight decreased (finding)",
+            "matched_concept_ids": ["448765001"],
+        },
+    ]
+    out = format_assessment(matched_rules=[rule], patient_codes=["262285001"])
+    assert "Matched on: Weight decreased" in out.markdown
+    assert out.markdown.count("Weight decreased") == 1
+    # Audit snapshot still keeps every leaf that fired.
+    assert len(out.rules[0]["matched_via"]) == 3
 
 
 def test_matched_via_preserved_in_rule_snapshot() -> None:

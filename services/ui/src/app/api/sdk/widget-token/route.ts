@@ -16,6 +16,7 @@
  */
 import { type NextRequest, NextResponse } from "next/server";
 import { serverFetch } from "@/lib/serverFetch";
+import { fetchInitialSession } from "@/lib/serverSession";
 
 const CORE_API_BASE = (
   process.env.INTERNAL_API_BASE ??
@@ -24,6 +25,20 @@ const CORE_API_BASE = (
 ).replace(/\/+$/, "");
 
 export async function POST(request: NextRequest) {
+  const session = await fetchInitialSession();
+  if (!session?.user?.email) {
+    return NextResponse.json(
+      { detail: "Sign in required to mint a widget token" },
+      { status: 401 },
+    );
+  }
+  if (!session.isPlatformAdmin) {
+    return NextResponse.json(
+      { detail: "Admin access required to mint a widget token" },
+      { status: 403 },
+    );
+  }
+
   const hostSecret = process.env.SCENARIO_SDK_HOST_SECRET;
   if (!hostSecret) {
     return NextResponse.json(

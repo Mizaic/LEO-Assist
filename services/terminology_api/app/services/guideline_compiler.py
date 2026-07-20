@@ -177,7 +177,9 @@ RETURN
     coalesce(proc.preferred_term, proc.fsn, proc.term, proc.id, proc.conceptId) AS name,
     ha.strength          AS strength,
     ha.priority          AS priority,
-    ha.dueDays           AS due_days
+    ha.dueDays           AS due_days,
+    coalesce(ha.actionKind, 'snomed_procedure')     AS action_kind,
+    ha.actionText        AS action_text
 ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
 """
 
@@ -380,12 +382,22 @@ class GuidelineCompiler:
             or criterion.get("term")
             or criterion.get("name")
         )
+        from libs.terminology.local_concepts import validate_action_kind
+
+        action_kind = validate_action_kind(
+            item.get("action_kind") or criterion.get("action_kind")
+        )
+        action_text = item.get("action_text") or criterion.get("action_text")
         return {
             "concept_id": str(concept_id),
             "name": name,
-            "strength": item.get("strength") or criterion.get("strength") or "unspecified",
+            "strength": item.get("strength")
+            or criterion.get("strength")
+            or "unspecified",
             "priority": item.get("priority") or criterion.get("priority") or "routine",
             "due_days": item.get("due_days", criterion.get("due_days")),
+            "action_kind": action_kind,
+            "action_text": action_text,
         }
 
     @staticmethod
@@ -470,13 +482,18 @@ class GuidelineCompiler:
         enforce_action_scope: bool = False,
         distance_child_override: int | None = None,
         distance_parent_override: int | None = None,
+        activate: bool = False,
     ) -> dict:
         """Compile all active rules and store as a versioned ruleset.
 
         CPU-bound work runs in a thread pool to avoid blocking the event loop.
 
+        By default ``activate=False`` so the new version is a candidate
+        only. Callers must activate explicitly (DI-8DD23CE2).
+
         Args:
             version: Version label for the new ruleset (e.g. ``v20260308-1``).
+            activate: When True, flip the scope current pointer to this version.
 
         Returns:
             Summary dict with ``version``, ``rule_count``, and ``compile_timestamp``.
@@ -505,6 +522,7 @@ class GuidelineCompiler:
         ruleset["scope_id"] = scope.scope_id
         ruleset["policy_mode"] = policy_mode
         ruleset["compile_stats"] = dict(self._compile_stats)
+        ruleset["activated_on_compile"] = bool(activate)
 
         self._store.write_ruleset(
             version,
@@ -512,17 +530,19 @@ class GuidelineCompiler:
             scope_type=scope.scope_type,
             scope_id=scope.scope_id,
         )
-        self._store.set_current_version(
-            version,
-            scope_type=scope.scope_type,
-            scope_id=scope.scope_id,
-        )
+        if activate:
+            self._store.set_current_version(
+                version,
+                scope_type=scope.scope_type,
+                scope_id=scope.scope_id,
+            )
         logger.info(
-            "Compiled ruleset %s scope=%s/%s policy=%s: %d rules",
+            "Compiled ruleset %s scope=%s/%s policy=%s activate=%s: %d rules",
             version,
             scope.scope_type,
             scope.scope_id,
             policy_mode,
+            activate,
             len(ruleset.get("rules", [])),
         )
         return {
@@ -533,6 +553,7 @@ class GuidelineCompiler:
             "scope_id": scope.scope_id,
             "policy_mode": policy_mode,
             "compile_stats": dict(self._compile_stats),
+            "activated": bool(activate),
         }
 
     def _compile_ruleset(
@@ -1068,6 +1089,8 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                     "strength": row.get("strength") or "unspecified",
                     "priority": row.get("priority") or "routine",
                     "due_days": row.get("due_days"),
+                    "action_kind": row.get("action_kind") or "snomed_procedure",
+                    "action_text": row.get("action_text"),
                 }
             )
 
@@ -1551,9 +1574,7 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
             deps.extend(GuidelineCompiler._collect_rule_fired_deps(child))
         return deps
 
-    def _detect_rule_fired_cycles(
-        self, compiled_rules: list[dict[str, Any]]
-    ) -> None:
+    def _detect_rule_fired_cycles(self, compiled_rules: list[dict[str, Any]]) -> None:
         """DFS cycle detection across RULE_FIRED dependency edges.
 
         Logs a warning in compile_stats for every cycle found. The evaluator's

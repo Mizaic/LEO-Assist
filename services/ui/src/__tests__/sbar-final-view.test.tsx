@@ -327,6 +327,27 @@ describe("SbarFinalView", () => {
     ).toBeNull();
   });
 
+  it("source-records chips coerce non-string source ids without crashing", async () => {
+    const user = userEvent.setup();
+    render(
+      <SbarFinalView
+        markdown={SAMPLE}
+        backgroundParts={[
+          {
+            ...SAMPLE_BACKGROUND_PARTS[0],
+            // Wire payloads occasionally deliver Neo4j integers.
+            sourceIds: [42 as unknown as string, "enc-safe"],
+          },
+        ]}
+      />,
+    );
+    await user.click(
+      screen.getByTestId("sbar-final-section-background-sources-toggle"),
+    );
+    expect(screen.getByText("42")).toBeInTheDocument();
+    expect(screen.getByText("enc-safe")).toBeInTheDocument();
+  });
+
   it("does not show the completeness chip when completenessFinding is not supplied", () => {
     render(<SbarFinalView markdown={SAMPLE} />);
     expect(

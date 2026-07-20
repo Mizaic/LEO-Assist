@@ -83,9 +83,13 @@ function toBackgroundPart(raw: unknown): SbarBackgroundPart | null {
     ? (o.record_range as unknown[])
     : [0, 0];
   const sourceIds = Array.isArray(o.source_ids)
-    ? (o.source_ids as unknown[]).filter(
-        (s): s is string => typeof s === "string",
-      )
+    ? (o.source_ids as unknown[])
+        .map((s) => {
+          if (typeof s === "string") return s;
+          if (typeof s === "number" && Number.isFinite(s)) return String(s);
+          return "";
+        })
+        .filter((s) => s.length > 0)
     : [];
   const status =
     o.status === "failed" || o.error_code ? "failed" : "completed";

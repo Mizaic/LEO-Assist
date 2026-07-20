@@ -29,8 +29,26 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useMotion } from "@leo/design-system";
 
 import type { EditableLogicNode, NodeUpdate } from "../types";
-import type { GuidanceRulePickerEntry } from "@/app/admin/knowledge/test-patients/types";
 import { popVariants } from "../../motionPresets";
+
+/**
+ * One row from GET /guidance/rule-picker -- plain-English rule choice
+ * for the RULE_FIRED dependency picker. The author never has to look
+ * at `rule_id`: `display_label` is always populated (verbatim NICE
+ * recommendation, chapter title plus a SNOMED cue, etc.).
+ */
+interface GuidanceRulePickerEntry {
+  rule_id: string;
+  status: string | null;
+  name: string | null;
+  display_label: string;
+  recommendation_text: string | null;
+  chapter_title: string | null;
+  action_priority: string | null;
+  trigger_terms: string[];
+  guideline_id: string | null;
+  guideline_title: string | null;
+}
 
 interface Props {
   node: EditableLogicNode;
@@ -70,7 +88,7 @@ export default function RuleFiredRow({
     }
     setLoading(true);
     const params = new URLSearchParams({ guideline_id: guidelineId });
-    fetch(`/api/guidance/test-patients/rules?${params}`)
+    fetch(`/api/guidance/rule-picker?${params}`)
       .then((r) => r.json())
       .then((data: GuidanceRulePickerEntry[]) => {
         const stem = (id: string) => id.split(":edit:")[0];

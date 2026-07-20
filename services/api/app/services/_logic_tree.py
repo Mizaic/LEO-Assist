@@ -11,14 +11,9 @@ constraint as a nested JSON tree on ``rule.logicJson``. There are no
 knowledge graph, so any code that needs to know "what does this rule
 trigger on?" must read the JSON, not the relationships.
 
-Two consumers share this walker so they always see the same answer:
-
-  - test_patient_scaffolder -- needs the full trigger list and any
-    demographic constraints to instruct Haiku what to draft and to
-    reject drafts that break a constraint.
-  - test_patient_service.list_rules_for_picker -- needs the first few
-    SNOMED preferred-terms so the rule picker can show a concrete cue
-    next to the rule name.
+Consumer: ``app.routers.guidance_rule_picker.list_rules_for_picker`` --
+needs the first few SNOMED preferred-terms so the rule picker can show
+a concrete cue next to the rule name.
 
 Tree shape (abbreviated):
 

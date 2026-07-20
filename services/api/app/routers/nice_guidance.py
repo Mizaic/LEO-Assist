@@ -346,6 +346,7 @@ async def ingest_guideline(
     diff_result: dict | None = None
     if req.diff_job_id:
         from app.routers.nice_diff import _diff_jobs
+
         diff_job = _diff_jobs.get(req.diff_job_id)
         if diff_job and diff_job.get("status") == "done":
             diff_result = diff_job.get("diff")
@@ -408,15 +409,19 @@ def list_jobs(scope: CallerScope = Depends(require_admin)) -> list[dict]:
 
 _FETCH_LOADED_GUIDELINES = """
 MATCH (g:Guideline)
-WHERE g.source = 'nice_syndication_api'
+WHERE g.source IN ['nice_syndication_api', 'local_guideline']
 OPTIONAL MATCH (g)-[:HAS_CHAPTER]->(ch:Chapter)
 OPTIONAL MATCH (g)-[:HAS_RECOMMENDATION]->(r:Recommendation)
 OPTIONAL MATCH (r)-[:HAS_RULE]->(rule:AppropriatenessRule)
+OPTIONAL MATCH (g)-[:HAS_DOMAIN]->(domain:AuditDomain)
 RETURN
     g.id              AS code,
     g.title           AS title,
     g.type            AS guidance_type,
     g.publicationDate AS publication_date,
+    g.source          AS guideline_source,
+    collect(DISTINCT domain.id)[0]   AS domain_id,
+    collect(DISTINCT domain.name)[0] AS domain_name,
     count(DISTINCT ch)   AS chapter_count,
     count(DISTINCT r)    AS recommendation_count,
     count(DISTINCT CASE WHEN rule.status = 'pending_review' THEN rule END) AS rules_pending,
@@ -451,6 +456,9 @@ def list_loaded_guidelines(
                 "title": r.get("title", ""),
                 "guidance_type": r.get("guidance_type", ""),
                 "publication_date": r.get("publication_date", ""),
+                "guideline_source": r.get("guideline_source", ""),
+                "domain_id": r.get("domain_id") or "",
+                "domain_name": r.get("domain_name") or "",
                 "chapter_count": r.get("chapter_count", 0),
                 "recommendation_count": r.get("recommendation_count", 0),
                 "rules_pending": r.get("rules_pending", 0),
@@ -787,9 +795,7 @@ def _collect_leaf_items(chapter_data: dict[str, Any]) -> list[dict[str, Any]]:
     return results
 
 
-def _run_ingest(
-    job_id: str, code: str, diff_result: dict | None = None
-) -> None:
+def _run_ingest(job_id: str, code: str, diff_result: dict | None = None) -> None:
     """Background thread: fetch from NICE API and upsert to Neo4j."""
     import asyncio
 
@@ -803,7 +809,9 @@ def _run_ingest(
         loop.close()
 
 
-async def _async_ingest(job_id: str, code: str, diff_result: dict | None = None) -> None:
+async def _async_ingest(
+    job_id: str, code: str, diff_result: dict | None = None
+) -> None:
     """Async ingest: NICE Syndication API -> Neo4j hierarchical graph.
 
     When *diff_result* is supplied (smart ingest) only rules for changed or
@@ -848,23 +856,28 @@ async def _async_ingest(job_id: str, code: str, diff_result: dict | None = None)
     _emit(job_id, "progress", {"step": "Saving guideline node..."})
 
     guideline_id, ingest_version = upserter.upsert_guideline(guidance)
-    old_version_id = f"{guideline_id}:v{ingest_version - 1}" if ingest_version > 1 else None
+    old_version_id = (
+        f"{guideline_id}:v{ingest_version - 1}" if ingest_version > 1 else None
+    )
     version_id = f"{guideline_id}:v{ingest_version}"
 
     if ingest_version > 1:
-        _emit(job_id, "progress", {
-            "step": f"Archiving previous version (v{ingest_version - 1}) for audit trail...",
-        })
+        _emit(
+            job_id,
+            "progress",
+            {
+                "step": f"Archiving previous version (v{ingest_version - 1}) for audit trail...",
+            },
+        )
 
     # Smart ingest: only supersede rules for changed/removed recs.
     # Full ingest: supersede all (changed_numbers=None).
     changed_numbers: list[str] | None = None
     unchanged_numbers: list[str] = []
     if diff_result and ingest_version > 1:
-        changed_numbers = (
-            [c["number"] for c in diff_result.get("modified", [])]
-            + [c["number"] for c in diff_result.get("removed", [])]
-        )
+        changed_numbers = [c["number"] for c in diff_result.get("modified", [])] + [
+            c["number"] for c in diff_result.get("removed", [])
+        ]
         unchanged_numbers = diff_result.get("_unchanged_numbers", [])
 
     superseded = upserter.clear_guideline_content(guideline_id, changed_numbers)
@@ -948,15 +961,21 @@ async def _async_ingest(job_id: str, code: str, diff_result: dict | None = None)
                 total_recs += 1
 
     title = guidance.get("Title", code)
-    guidance_type = guidance.get("GuidanceType", guidance.get("Type", "clinical-guideline"))
+    guidance_type = guidance.get(
+        "GuidanceType", guidance.get("Type", "clinical-guideline")
+    )
     await client.add_to_catalogue(code, title, guidance_type)
 
     # Smart ingest: re-attach unchanged rules to the new rec nodes.
     reattached = 0
     if unchanged_numbers and old_version_id:
-        _emit(job_id, "progress", {
-            "step": f"Re-attaching {len(unchanged_numbers)} unchanged rule set(s)...",
-        })
+        _emit(
+            job_id,
+            "progress",
+            {
+                "step": f"Re-attaching {len(unchanged_numbers)} unchanged rule set(s)...",
+            },
+        )
         reattached = upserter.reattach_unchanged_rules(
             guideline_id, old_version_id, version_id, unchanged_numbers
         )

@@ -86,6 +86,15 @@ class LogicSeed(BaseModel):
     include_descendants: bool = True
     distance_child: int | None = None
 
+    @model_validator(mode="after")
+    def _force_exact_for_local(self) -> "LogicSeed":
+        from libs.terminology.local_concepts import is_local_concept_id
+
+        if is_local_concept_id(self.snomed_concept_id):
+            self.include_descendants = False
+            self.distance_child = 0
+        return self
+
 
 class LogicCriterion(BaseModel):
     """Resolved SNOMED criterion attached to a CONCEPT node.
@@ -157,12 +166,17 @@ class RuleAction(BaseModel):
     A rule may recommend more than one procedure (e.g. "offer an X-ray
     and refer for a blood test"), each carrying its own strength. See
     DI-42246DA7 acceptance criteria (multi-action support).
+
+    ``action_kind='narrative'`` means free-text guidance (action_text),
+    not a SNOMED procedure for compliance checks.
     """
 
     model_config = {"extra": "forbid"}
 
     criterion: LogicCriterion
     strength: str = Field(default="unspecified", max_length=64)
+    action_kind: str = Field(default="snomed_procedure", max_length=32)
+    action_text: str | None = Field(default=None, max_length=4000)
 
 
 class LogicNode(BaseModel):
@@ -571,6 +585,8 @@ def _actions_payload(actions: list["RuleAction"]) -> list[dict[str, Any]]:
             "preferred_term": ra.criterion.preferred_term,
             "semantic_tag": ra.criterion.semantic_tag or "procedure",
             "strength": ra.strength or "unspecified",
+            "action_kind": ra.action_kind or "snomed_procedure",
+            "action_text": ra.action_text,
             "verification_status": "human_edited",
         }
         for ra in actions

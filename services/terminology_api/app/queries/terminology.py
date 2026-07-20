@@ -13,6 +13,32 @@ Atlas trace (terminology resolve):
 
 _SF_RESOLVABLE = "coalesce(sf.status, 'approved') IN ['approved', 'active']"
 
+# Local SurfaceForms resolve only when contained in an active package
+# (global, or tenant matching $org_id). Non-local (SNOMED) paths unchanged.
+_SF_LOCAL_PACKAGE_OK = (
+    "("
+    "coalesce(cs.is_local, false) = false "
+    "OR EXISTS { "
+    "  MATCH (pkg:LocalTerminologyPackage {status: 'active'})-[:CONTAINS]->(cs) "
+    "  WHERE pkg.scope = 'global' "
+    "     OR ($org_id IS NOT NULL AND pkg.scope = 'tenant' "
+    "         AND pkg.org_id = $org_id) "
+    "} "
+    ")"
+)
+
+_SF_LOCAL_PACKAGE_OK_C = (
+    "("
+    "coalesce(c.is_local, false) = false "
+    "OR EXISTS { "
+    "  MATCH (pkg:LocalTerminologyPackage {status: 'active'})-[:CONTAINS]->(c) "
+    "  WHERE pkg.scope = 'global' "
+    "     OR ($org_id IS NOT NULL AND pkg.scope = 'tenant' "
+    "         AND pkg.org_id = $org_id) "
+    "} "
+    ")"
+)
+
 _NORMALISED_TAG_EXPR = (
     "toLower("
     "replace("
@@ -60,6 +86,8 @@ RETURN c.id AS snomed_concept_id,
        c.fsn AS term,
        c.semantic_tag AS semantic_tag,
        c.module_id AS module_id,
+       coalesce(c.code_system, 'snomed') AS code_system,
+       coalesce(c.is_local, false) AS is_local,
        icd10,
        read_code,
        best_score AS score,
@@ -111,6 +139,8 @@ RETURN c.id AS snomed_concept_id,
        c.fsn AS term,
        c.semantic_tag AS semantic_tag,
        c.module_id AS module_id,
+       coalesce(c.code_system, 'snomed') AS code_system,
+       coalesce(c.is_local, false) AS is_local,
        icd10,
        read_code,
        best_score AS score,
@@ -131,6 +161,7 @@ EXACT_SURFACE_FORM_QUERY = """
 MATCH (sf:SurfaceForm {normalized: $normalized})-[m:MAPS_TO]->(c:Concept)
 WHERE c.active = true AND """
 EXACT_SURFACE_FORM_QUERY += _SF_RESOLVABLE
+EXACT_SURFACE_FORM_QUERY += " AND " + _SF_LOCAL_PACKAGE_OK_C
 EXACT_SURFACE_FORM_QUERY += """
 WITH sf, c, max(coalesce(m.confidence, 0.0)) AS best_confidence
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
@@ -161,6 +192,7 @@ WITH node AS sf, score LIMIT 200
 MATCH (sf)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true AND """
 FULLTEXT_SURFACE_FORM_QUERY += _SF_RESOLVABLE
+FULLTEXT_SURFACE_FORM_QUERY += " AND " + _SF_LOCAL_PACKAGE_OK_C
 FULLTEXT_SURFACE_FORM_QUERY += """
 WITH c, sf, max(score) AS best_score
 ORDER BY best_score DESC
@@ -188,6 +220,7 @@ CALL db.index.vector.queryNodes($index_name, $k, $embedding) YIELD node AS sf, s
 MATCH (sf:SurfaceForm)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true AND """
 VECTOR_SURFACE_FORM_QUERY += _SF_RESOLVABLE
+VECTOR_SURFACE_FORM_QUERY += " AND " + _SF_LOCAL_PACKAGE_OK_C
 VECTOR_SURFACE_FORM_QUERY += """
 OPTIONAL MATCH (c)-[:MAPS_TO_READ]->(rd:ReadCode)
 WITH c, max(score) AS best_score, collect(DISTINCT rd.code) AS read_codes
@@ -224,6 +257,9 @@ WITH norm, [x IN raw_term_hits WHERE x IS NOT NULL] AS term_hits
 OPTIONAL MATCH (sf:SurfaceForm {normalized: norm})-[m:MAPS_TO]->(cs:Concept)
 WHERE cs.active = true
   AND coalesce(sf.status, 'approved') IN ['approved', 'active']
+  AND """
+BATCH_EXACT_QUERY += _SF_LOCAL_PACKAGE_OK
+BATCH_EXACT_QUERY += """
 WITH norm, term_hits, sf, cs, max(coalesce(m.confidence, 0.0)) AS best_conf
 OPTIONAL MATCH (cs)-[:MAPS_TO_READ]->(rds:ReadCode)
 WITH norm, term_hits, cs, sf, best_conf, collect(DISTINCT rds.code) AS rds_codes
@@ -265,6 +301,9 @@ WITH sfnode, sfscore LIMIT 200
 MATCH (sfnode)-[:MAPS_TO]->(c:Concept)
 WHERE c.active = true
   AND coalesce(sfnode.status, 'approved') IN ['approved', 'active']
+  AND """
+BATCH_FULLTEXT_QUERY += _SF_LOCAL_PACKAGE_OK_C
+BATCH_FULLTEXT_QUERY += """
 WITH c, sfnode, max(sfscore) AS best_score
 ORDER BY best_score DESC
 LIMIT $k

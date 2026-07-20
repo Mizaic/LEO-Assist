@@ -28,6 +28,7 @@ REFERRAL_HANDOFF_KEYS: tuple[str, ...] = (
     "referral_id",
     "ubrn",
     "guideline_ids",
+    "org_id",
 )
 
 
@@ -63,7 +64,9 @@ def apply_referral_handoff_fields(
     nested_context = dict((body or {}).get("context") or {})
     nested_context.update(request.context or {})
     nested_context.update(handoff)
-    state.update(merge_referral_message_fields({**(body or {}), "context": nested_context}))
+    state.update(
+        merge_referral_message_fields({**(body or {}), "context": nested_context})
+    )
 
 
 def default_source_fields(
@@ -104,6 +107,42 @@ def load_document_chunks_into_state(
         loaded.get("errors"),
     )
     state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
+
+
+def enrich_patient_org_id(
+    client: PatientGraphClient,
+    patient_id: str,
+    state: dict[str, Any],
+) -> None:
+    """Set state.org_id from job context or patient registration.
+
+    Prefer an existing org_id (e.g. context override). Otherwise derive from
+    HAS_GENERAL_PRACTITIONER or REGISTERED_IN. Missing org is allowed --
+    never raises.
+    """
+    existing = str(state.get("org_id") or "").strip()
+    if existing:
+        state["org_id"] = existing
+        return
+    if not patient_id:
+        return
+    try:
+        rows = client.run(
+            "MATCH (p:Patient) WHERE toString(p.id) = $pid "
+            "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp) "
+            "OPTIONAL MATCH (p)-[:REGISTERED_IN]->(reg) "
+            "RETURN coalesce(gp.id, reg.id) AS org_id "
+            "LIMIT 1",
+            pid=patient_id,
+        )
+    except Exception:
+        logger.debug("enrich_patient_org_id query failed", exc_info=True)
+        return
+    if not rows:
+        return
+    org_id = rows[0].get("org_id")
+    if org_id:
+        state["org_id"] = str(org_id)
 
 
 def enrich_patient_demographics(
@@ -194,9 +233,7 @@ def load_step_state(
     apply_referral_handoff_fields(state, request, body)
     if extra_state:
         state.update(extra_state)
-    source_type, source_id, source_text_property = default_source_fields(
-        request, state
-    )
+    source_type, source_id, source_text_property = default_source_fields(request, state)
     state.update(
         {
             "patient_id": request.patient_id,
@@ -218,6 +255,7 @@ def load_step_state(
             ),
             "completeness_domain": request.completeness_domain,
             "completeness_subdomain": request.completeness_subdomain,
+            "guideline_ruleset_version": request.guideline_ruleset_version,
             "errors": list(state.get("errors") or []),
         }
     )
@@ -232,5 +270,6 @@ def load_step_state(
         if rows:
             state["encounter_text"] = rows[0].get("text") or ""
     enrich_patient_demographics(client, request.patient_id, state)
+    enrich_patient_org_id(client, request.patient_id, state)
     _load_prompt_config(state, request.run_id)
     return state

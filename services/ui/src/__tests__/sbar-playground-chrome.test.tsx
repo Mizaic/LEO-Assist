@@ -1,20 +1,9 @@
 /**
- * VT-LEO-AI-184 -- SBAR Playground page chrome
+ * VT-LEO-AI-184 -- SBAR Playground retired into Validation Lab.
  *
- * Static-source verification (per the VT-LEO-AI-142 pattern) for the
- * AI Summarisation playground introduced by DI-LEO-AI-194:
- *   - The page is wired into the Knowledge tab registry under
- *     `ai-summarisation`, with stable URL key and copy.
- *   - The playground component carries the test-only banner, fields
- *     for patient id, situation artefacts, background sources, and
- *     guideline ids, plus a submit control.
- *   - The new UI proxy routes exist at
- *     /api/sbar/jobs, /api/sbar/jobs/{runId}/events, and
- *     /api/sbar/assessments/{assessmentId}.
- *
- * A live render of the playground is not attempted here -- the
- * component opens an EventSource on submit and the stream itself is
- * exercised by Playwright in `sbar-playground.spec.ts`.
+ * The clinical harness now lives at /admin/validation-lab.
+ * Legacy component files may remain for reference until deleted;
+ * Knowledge registry must not re-mount the playground tab.
  */
 import fs from "fs";
 import path from "path";
@@ -24,217 +13,49 @@ const ROOT = path.resolve(__dirname, "..", "app");
 const FILES = {
   knowledgePage: path.join(ROOT, "admin", "knowledge", "page.tsx"),
   playgroundPage: path.join(ROOT, "admin", "ai-summarisation", "page.tsx"),
-  playgroundComponent: path.join(
-    ROOT,
-    "admin",
-    "ai-summarisation",
-    "SbarPlayground.tsx",
-  ),
+  validationLab: path.join(ROOT, "admin", "validation-lab", "page.tsx"),
   copy: path.resolve(__dirname, "..", "lib", "knowledgeCopy.ts"),
   hook: path.resolve(__dirname, "..", "hooks", "useSbarStream.ts"),
-  jobsRoute: path.join(ROOT, "api", "sbar", "jobs", "route.ts"),
-  eventsRoute: path.join(
-    ROOT,
-    "api",
-    "sbar",
-    "jobs",
-    "[runId]",
-    "events",
-    "route.ts",
-  ),
-  assessmentRoute: path.join(
-    ROOT,
-    "api",
-    "sbar",
-    "assessments",
-    "[assessmentId]",
-    "route.ts",
-  ),
 };
 
 function read(p: string): string {
   return fs.readFileSync(p, "utf8");
 }
 
-describe("VT-LEO-AI-184 SBAR playground chrome", () => {
-  it("registers the ai-summarisation tab", () => {
+describe("VT-LEO-AI-184 SBAR playground retired to Validation Lab", () => {
+  it("registers Validation Lab instead of ai-summarisation", () => {
     const src = read(FILES.knowledgePage);
-    expect(src).toMatch(
-      /key:\s*"ai-summarisation",\s*label:\s*"AI Summarisation"/,
-    );
-    expect(src).toMatch(/AiSummarisationPage/);
-    expect(src).toMatch(/admin\/ai-summarisation\/page/);
+    expect(src).toMatch(/key:\s*"validation-lab"/);
+    expect(src).toMatch(/ValidationLabPage/);
+    expect(src).not.toMatch(/AiSummarisationPage/);
   });
 
-  it("declares ai-summarisation copy with a default block", () => {
+  it("declares validation-lab copy", () => {
     const src = read(FILES.copy);
-    expect(src).toMatch(/"ai-summarisation":\s*\{/);
-    expect(src).toMatch(/Try out the SBAR summary/);
+    expect(src).toMatch(/"validation-lab":\s*\{/);
+    expect(src).toMatch(/Validation Lab/);
+    expect(src).not.toMatch(/"ai-summarisation":\s*\{/);
   });
 
-  it("exposes the SbarPlayground page entry", () => {
+  it("legacy ai-summarisation page redirects to Validation Lab", () => {
     const src = read(FILES.playgroundPage);
-    expect(src).toMatch(/import\("\.\/SbarPlayground"\)/);
-    expect(src).toMatch(/AiSummarisationPage/);
+    expect(src).toMatch(/\/admin\/validation-lab/);
+    expect(src).toMatch(/router\.replace/);
   });
 
-  it("playground renders the test-only banner and consumes the four shared primitives", () => {
-    const src = read(FILES.playgroundComponent);
-    for (const id of [
-      "sbar-test-only-banner",
-      "sbar-pick-patient",
-      "sbar-pick-sources",
-      "sbar-concern",
-      "sbar-submit",
-    ]) {
-      expect(src).toContain(id);
-    }
-    expect(src).toMatch(/PatientFinder/);
-    expect(src).toMatch(/SummarisationContextSelect/);
-    expect(src).toMatch(/BackgroundSourcePicker/);
-    expect(src).toMatch(/GuidelinePicker/);
+  it("Validation Lab mounts the single patient wizard flow with LeoSbarHost", () => {
+    const src = read(FILES.validationLab);
+    const cases = read(
+      path.join(ROOT, "admin", "validation-lab", "LabCasesPanel.tsx"),
+    );
+    expect(src).toMatch(/validation-lab-page/);
+    expect(src).toMatch(/LabCasesPanel/);
+    expect(cases).toMatch(/LeoSbarHost/);
   });
 
-  it("playground surfaces all four SBAR stages", () => {
-    const src = read(FILES.playgroundComponent);
-    expect(src).toContain("data-testid={`sbar-stage-${stage}`}");
-    // STAGE_LABELS / STAGE_THEME live in the shared sbar-final
-    // module so other apps can reuse the same palette and copy.
-    expect(src).toMatch(/STAGE_LABELS,?\s*\n?\s*STAGE_THEME/);
-  });
-
-  it("hook posts to /api/sbar/jobs and subscribes to the events SSE", () => {
+  it("hook still posts to /api/sbar/jobs for non-Lab consumers", () => {
     const src = read(FILES.hook);
     expect(src).toContain('"/api/sbar/jobs"');
-    expect(src).toMatch(/method:\s*"POST"/);
-    expect(src).toContain("`${origin}/api/sbar/jobs/${encodeURIComponent(runId)}/events`");
-    expect(src).toContain("/api/sbar/assessments/");
-    expect(src).toMatch(/sbar_started/);
-    expect(src).toMatch(/sbar_stage_started/);
-    expect(src).toMatch(/sbar_stage_completed/);
     expect(src).toMatch(/sbar_completed/);
-  });
-
-  it("UI proxy: /api/sbar/jobs forwards POST to the Core API", () => {
-    const src = read(FILES.jobsRoute);
-    expect(src).toMatch(/export async function POST/);
-    expect(src).toContain("/sbar/jobs");
-    expect(src).toMatch(/CORE_API_URL/);
-  });
-
-  it("UI proxy: events route streams text/event-stream", () => {
-    const src = read(FILES.eventsRoute);
-    expect(src).toMatch(/text\/event-stream/);
-    expect(src).toMatch(/X-Accel-Buffering/);
-    expect(src).toMatch(/\/sbar\/jobs\//);
-  });
-
-  it("UI proxy: assessments route forwards GET", () => {
-    const src = read(FILES.assessmentRoute);
-    expect(src).toMatch(/export async function GET/);
-    expect(src).toMatch(/\/sbar\/assessments\//);
-  });
-
-  it("renders stage previews through the shared Markdown viewer with themed cards", () => {
-    const src = read(FILES.playgroundComponent);
-    // Tiptap-backed MarkdownEditor is the canonical viewer for any
-    // patient-readable Markdown surface; reuse it instead of
-    // pre-wrap monospace blobs.
-    expect(src).toContain(
-      'import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor"',
-    );
-    // No raw pre-wrap dump for stage previews.
-    expect(src).not.toMatch(/whiteSpace:\s*"pre-wrap"/);
-    expect(src).not.toMatch(/ui-monospace,\s*SFMono-Regular/);
-    // Per-stage themed cards (palette comes from the shared module).
-    expect(src).toMatch(/STAGE_THEME/);
-    // Stage previews render the markdown viewer in view mode.
-    const viewMatches = src.match(/<MarkdownEditor[\s\S]*?mode="view"/g) ?? [];
-    expect(viewMatches.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("delegates the final SBAR to the standalone SbarFinalDialog component", () => {
-    const src = read(FILES.playgroundComponent);
-    // Standalone view + dialog live in the shared module so other
-    // applications can embed them without depending on the playground.
-    expect(src).toMatch(/from\s+"@\/components\/sbar-final"/);
-    expect(src).toContain("SbarFinalDialog");
-    // No inline duplicate of the final cards in the playground itself.
-    expect(src).not.toContain("data-testid={`sbar-final-section-${stage}`}");
-    // The Done. status converts into a "View full SBAR" action button
-    // when finalContent is available. The button is success-coloured
-    // only when there are no errors; with errors it shifts to
-    // warning. See VT-LEO-AI-514 TC-009.
-    expect(src).toContain('data-testid="sbar-view-full-button"');
-    expect(src).toMatch(/color=\{sbar\.errors\.length === 0 \? "success" : "warning"\}/);
-  });
-
-  // VT-LEO-AI-514 TC-008 / TC-009 -- structured errors[] / notices[]
-  // surfaced from the orchestrator (DI-LEO-AI-516). Reviewers must
-  // see plain-English error and notice Alerts above the result card,
-  // and the result button must shift colour when errors are present.
-  it("hook exposes errors and notices arrays populated from sbar_completed", () => {
-    const src = read(FILES.hook);
-    expect(src).toContain("export interface SbarErrorDetail");
-    expect(src).toContain("export interface SbarNotice");
-    expect(src).toMatch(/errors:\s*SbarErrorDetail\[\];/);
-    expect(src).toMatch(/notices:\s*SbarNotice\[\];/);
-    // The on('sbar_completed') handler reads the wire arrays.
-    expect(src).toMatch(/Array\.isArray\(d\.errors\)/);
-    expect(src).toMatch(/Array\.isArray\(d\.notices\)/);
-    // Per-stage notices are appended as the stage finishes, not
-    // only at the end.
-    expect(src).toMatch(/d\.notice\s*\?\?\s*null/);
-  });
-
-  // VT-LEO-AI-520 TC-010 / TC-011 -- per-part progress events for
-  // the partitioned Background flow. The hook MUST translate the
-  // sbar_stage_progress wire event into a typed per-stage
-  // partProgress object and the playground MUST surface a
-  // "part i of N" chip on the running stage so the reviewer is not
-  // staring at a frozen card while a multi-part Background is in
-  // flight.
-  it("hook handles sbar_stage_progress and exposes typed partProgress", () => {
-    const src = read(FILES.hook);
-    expect(src).toContain("export interface SbarStagePartProgress");
-    expect(src).toContain('on("sbar_stage_progress"');
-    // Status string is rendered in plain English and includes the
-    // part counter so users see progress in the running label too.
-    expect(src).toMatch(/Generating \$\{stage\} \(part \$\{partIndex\} of \$\{partTotal\}\)/);
-    // There is intentionally no "reduce" phase any more -- per
-    // the no-reduce architecture switch.
-    expect(src).not.toMatch(/phase\s*===?\s*"reduce"/);
-    expect(src).not.toMatch(/Combining stage parts/);
-  });
-
-  it("playground renders the part progress chip on the running stage", () => {
-    const src = read(FILES.playgroundComponent);
-    expect(src).toMatch(/partProgress/);
-    expect(src).toMatch(/part \$\{s\.partProgress\.partIndex\} of \$\{s\.partProgress\.partTotal\}/);
-    expect(src).toContain('data-testid={`sbar-stage-${stage}-part-progress`}');
-    // The chip only shows for multi-part runs that are still
-    // running; once the stage completes the chip is hidden so the
-    // final preview is not cluttered.
-    expect(src).toMatch(/partTotal\s*>\s*1/);
-    expect(src).toMatch(/s\.status\s*===?\s*"running"/);
-  });
-
-  it("playground renders sbar-errors-alert and sbar-notices-alert with friendly text", () => {
-    const src = read(FILES.playgroundComponent);
-    expect(src).toContain('data-testid="sbar-errors-alert"');
-    expect(src).toContain('data-testid="sbar-notices-alert"');
-    // The errors Alert is severity='warning' (not error -- the run
-    // produced a draft we want the reviewer to inspect, not abort).
-    expect(src).toMatch(
-      /sbar\.errors\.length > 0[\s\S]{0,200}severity="warning"[\s\S]{0,200}data-testid="sbar-errors-alert"/,
-    );
-    // The notices Alert is severity='info' (informational).
-    expect(src).toMatch(
-      /sbar\.notices\.length > 0[\s\S]{0,200}severity="info"[\s\S]{0,200}data-testid="sbar-notices-alert"/,
-    );
-    // No raw vendor strings should be referenced anywhere in the
-    // playground source -- friendly text is built server side.
-    expect(src).not.toMatch(/ValidationException/);
-    expect(src).not.toMatch(/Converse operation/);
   });
 });

@@ -191,6 +191,114 @@ def upsert_surface_form_mapping(
         client.close()
 
 
+class CreateLocalWithAliasRequest(BaseModel):
+    display_name: str
+    alias: str
+    package_id: str
+    concept_kind: str = "finding"
+    concept_id: Optional[str] = None
+    description: Optional[str] = None
+    actor: str = "knowledge-admin"
+    approve: bool = False
+    org_id: Optional[str] = None
+
+
+@router.post("/surface-forms/create-local-with-alias")
+def create_local_with_alias(
+    body: CreateLocalWithAliasRequest, _: None = Depends(verify_service_token)
+):
+    """Create a LEO-local Concept, bind it to a package, and map an alias.
+
+    Happy path: concept + CONTAINS + pending (or approved) alias.
+    Non-happy: missing package_id, package/org mismatch, empty alias.
+    """
+    from services.terminology_api.app.routers.local_concepts import (
+        LocalConceptCreate,
+        create_local_concept,
+    )
+    from services.terminology_api.app.services.local_package_admin import (
+        CONTAINS_CONCEPT,
+        GET_PACKAGE,
+    )
+    from services.terminology_api.app.services.surface_form_admin import (
+        approve_surface_form_mapping,
+    )
+
+    package_id = (body.package_id or "").strip()
+    if not package_id:
+        raise HTTPException(status_code=422, detail="package_id is required")
+    alias = (body.alias or "").strip()
+    if not alias:
+        raise HTTPException(status_code=422, detail="alias is required")
+    normalized = " ".join(alias.lower().split())
+
+    client = KnowledgeGraphClient()
+    try:
+        pkg_rows = client.run(GET_PACKAGE, id=package_id)
+        if not pkg_rows:
+            raise HTTPException(status_code=404, detail="Package not found")
+        pkg = pkg_rows[0]
+        if pkg.get("scope") == "tenant":
+            caller_org = (body.org_id or "").strip() or None
+            pkg_org = (pkg.get("org_id") or "").strip() or None
+            if not caller_org or caller_org != pkg_org:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Tenant package does not match organisation scope.",
+                )
+    finally:
+        client.close()
+
+    concept = create_local_concept(
+        LocalConceptCreate(
+            display_name=body.display_name,
+            concept_kind=body.concept_kind,  # type: ignore[arg-type]
+            concept_id=body.concept_id,
+            description=body.description,
+            created_by=body.actor,
+        )
+    )
+    client = KnowledgeGraphClient()
+    try:
+        link_rows = client.run(
+            CONTAINS_CONCEPT, package_id=package_id, concept_id=concept.id
+        )
+        if not link_rows:
+            raise HTTPException(
+                status_code=500, detail="Failed to bind concept to package"
+            )
+    finally:
+        client.close()
+
+    mapping = upsert_surface_form_mapping(
+        UpsertMappingRequest(
+            normalized=normalized,
+            form=alias,
+            concept_id=concept.id,
+            source="manual",
+            provenance="create_local_with_alias",
+            actor=body.actor,
+        ),
+        _=None,
+    )
+    if body.approve:
+        client = KnowledgeGraphClient()
+        try:
+            mapping = approve_surface_form_mapping(
+                client,
+                normalized=normalized,
+                reviewer=body.actor,
+                concept_id=concept.id,
+            )
+        finally:
+            client.close()
+    return {
+        "concept": concept.model_dump(),
+        "mapping": mapping,
+        "package_id": package_id,
+    }
+
+
 # -- Approve / deactivate ------------------------------------------------------
 
 

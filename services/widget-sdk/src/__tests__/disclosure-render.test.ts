@@ -15,6 +15,7 @@
  */
 
 import type { SbarAssessmentPayload } from "../data/types";
+import { formatSourceLabel } from "../sbar/disclosure";
 import { renderSurface } from "../sbar/surface";
 
 const PAYLOAD: SbarAssessmentPayload = {
@@ -141,5 +142,45 @@ describe("VT-DI-85C95E53-AC1 disclosure renders identically across variants", ()
     const event = events.find((e) => e.type === "leo:source-clicked");
     expect(event).toBeDefined();
     expect(event!.detail.sourceId).toBe("enc-003");
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog"]'),
+    ).not.toBeNull();
+  });
+
+  test("TC-5: enriched sources show clinician-friendly labels", () => {
+    const mount = document.createElement("div");
+    document.body.appendChild(mount);
+    const enriched: SbarAssessmentPayload = {
+      ...PAYLOAD,
+      backgroundParts: [
+        {
+          index: 1,
+          total: 1,
+          recordCount: 1,
+          recordRange: [1, 1],
+          sourceIds: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+          sources: [
+            {
+              id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              type: "Chunk",
+              label: "Letter chunk 1",
+              preview: "Progressive jaundice.",
+            },
+          ],
+          status: "completed",
+        },
+      ],
+    };
+    renderSurface(mount, { payload: enriched, emit: () => {} });
+    mount
+      .querySelector<HTMLButtonElement>(
+        '[data-testid="leo-disclosure-background-toggle"]',
+      )!
+      .click();
+    const chip = mount.querySelector<HTMLButtonElement>(
+      '.leo-source-chip[data-source-id="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]',
+    );
+    expect(chip?.textContent).toBe("Letter chunk 1");
+    expect(formatSourceLabel("uuid:form:encounter")).toContain("encounter");
   });
 });

@@ -2,62 +2,52 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 /**
- * VT-LEO-AI-185 / VT-LEO-AI-230..233 -- AI Summarisation Playground
- * end-to-end smoke
+ * Validation Lab smoke (replaces retired AI Summarisation playground e2e).
  *
- * Verifies the SBAR playground tab under /admin/knowledge:
- *   - Loads with the test-only safety banner up front (R-LEO-AI-185).
- *   - Renders the four picker primitives:
- *       * Patient finder    (DI-LEO-AI-230)
- *       * Summarisation context  (DI-LEO-AI-231)
- *       * Background source picker (DI-LEO-AI-232)
- *       * Guideline picker     (DI-LEO-AI-233)
- *   - Surfaces the new "Concern" QSIR free-text field with the
- *     500-character cap (DI-LEO-AI-233).
- *   - Has zero critical or serious axe violations on the chrome.
- *   - Submit stays disabled until a patient + a background source are
- *     picked (R-LEO-AI-211 -- can't run without explicit selection).
- *
- * Submitting the job and watching the SSE stream is gated on a worker
- * being reachable, so we stop short of clicking submit -- the
- * orchestrator is exercised by the Python integration tests.
+ * Atlas: UN-4DCE95C8 / DI-A898556B / VT-22F3EF6A
  */
-test.describe("SBAR playground (VT-LEO-AI-185)", () => {
-  test("renders the safety banner and the four picker primitives", async ({
+test.describe("Validation Lab (retired SBAR playground)", () => {
+  test("loads Validation Lab chrome with gold + run controls", async ({
     page,
   }) => {
-    await page.goto("/admin/knowledge?tab=ai-summarisation");
+    await page.goto("/admin/knowledge?tab=validation-lab");
     await page.waitForLoadState("networkidle");
 
+    await expect(page.getByTestId("validation-lab-page")).toBeVisible();
+    await expect(page.getByTestId("validation-lab-tab-cases")).toBeVisible();
+    await expect(page.getByTestId("validation-lab-tab-fixtures")).toBeVisible();
+    await expect(page.getByTestId("validation-lab-create")).toBeVisible();
+    await expect(page.getByTestId("validation-lab-run")).toBeVisible();
+    await expect(page.getByTestId("validation-lab-promote")).toBeVisible();
+    await expect(page.getByTestId("validation-lab-dry-run")).toBeVisible();
     await expect(
-      page.getByTestId("sbar-test-only-banner"),
-    ).toContainText("Test only");
-
-    // Patient finder open button (DI-230).
-    await expect(page.getByTestId("sbar-pick-patient")).toBeVisible();
-    // Background source picker trigger (DI-232).
-    await expect(page.getByTestId("sbar-pick-sources")).toBeVisible();
-    // Concern free-text field (DI-233).
-    await expect(page.getByTestId("sbar-concern")).toBeVisible();
-    // Submit defaults to disabled (no patient + no sources picked).
-    await expect(page.getByTestId("sbar-submit")).toBeVisible();
-    await expect(page.getByTestId("sbar-submit")).toBeDisabled();
+      page.getByTestId("validation-lab-gold-entities"),
+    ).toBeVisible();
   });
 
-  test("Concern textarea enforces the 500-character cap", async ({ page }) => {
-    await page.goto("/admin/knowledge?tab=ai-summarisation");
+  test("Fixtures view hosts the former Test Patients library", async ({
+    page,
+  }) => {
+    await page.goto("/admin/knowledge?tab=validation-lab&view=fixtures");
     await page.waitForLoadState("networkidle");
+    await expect(
+      page.getByTestId("validation-lab-fixtures-panel"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("test-patients-lab-gold-notice"),
+    ).toBeVisible();
+  });
 
-    const concern = page.getByTestId("sbar-concern");
-    await concern.click();
-    // Browser-enforced maxlength: typing >500 chars truncates input.
-    await concern.fill("x".repeat(550));
-    const value = await concern.inputValue();
-    expect(value.length).toBeLessThanOrEqual(500);
+  test("legacy ai-summarisation URL redirects toward Validation Lab", async ({
+    page,
+  }) => {
+    await page.goto("/admin/ai-summarisation");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveURL(/validation-lab/);
   });
 
   test("zero critical or serious axe violations", async ({ page }) => {
-    await page.goto("/admin/knowledge?tab=ai-summarisation");
+    await page.goto("/admin/knowledge?tab=validation-lab");
     await page.waitForLoadState("networkidle");
 
     const results = await new AxeBuilder({ page })
@@ -67,6 +57,6 @@ test.describe("SBAR playground (VT-LEO-AI-185)", () => {
     const blockers = results.violations.filter(
       (v) => v.impact === "critical" || v.impact === "serious",
     );
-    expect(blockers, JSON.stringify(blockers, null, 2)).toEqual([]);
+    expect(blockers).toEqual([]);
   });
 });

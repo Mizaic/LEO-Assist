@@ -31,6 +31,7 @@ class StepRequest:
     guideline_ids: list[str] = field(default_factory=list)
     completeness_domain: str | None = None
     completeness_subdomain: str | None = None
+    guideline_ruleset_version: str | None = None
     attempt: int = 1
     context: dict[str, Any] = field(default_factory=dict)
 
@@ -81,6 +82,8 @@ class StepRequest:
             or context.get("completeness_domain"),
             completeness_subdomain=body.get("completeness_subdomain")
             or context.get("completeness_subdomain"),
+            guideline_ruleset_version=body.get("guideline_ruleset_version")
+            or context.get("guideline_ruleset_version"),
             attempt=int(body.get("attempt") or context.get("attempt") or 1),
             context=context,
         )
@@ -103,6 +106,7 @@ class StepRequest:
             "guideline_id": self.guideline_id,
             "completeness_domain": self.completeness_domain,
             "completeness_subdomain": self.completeness_subdomain,
+            "guideline_ruleset_version": self.guideline_ruleset_version,
             "attempt": 1,
             "context": dict(self.context),
             "chunk_ids": list(self.context.get("chunk_ids") or []),

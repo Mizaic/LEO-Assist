@@ -315,10 +315,6 @@ async function installGuidelineFixtures(
       body: JSON.stringify({ ok: true }),
     });
   });
-
-  await page.route("**/api/guidance/test-patients/replay-reports*", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: "[]" }),
-  );
 }
 
 // -- Protocol ----------------------------------------------------------------

@@ -27,6 +27,12 @@ jest.mock("@/components/markdown-editor/MarkdownEditor", () => ({
   ),
 }));
 
+jest.mock("@/components/sbar-final/LeoSbarHost", () => ({
+  LeoSbarHost: ({ assessmentId }: { assessmentId: string }) => (
+    <div data-testid="leo-sbar-host-stub">{assessmentId}</div>
+  ),
+}));
+
 const BASE_EPISODE: EpisodeDetail = {
   episodeId: "ep-breast-1",
   patientId: "P1",
@@ -40,6 +46,7 @@ const BASE_EPISODE: EpisodeDetail = {
     confidence: 0.95,
   },
   sbarMarkdown: "# SBAR\n\n## Situation\nRight breast lesion.\n",
+  assessmentId: "ass-episode-1",
   coherenceFlags: [],
   codingQaFlags: [],
 };
@@ -146,7 +153,11 @@ describe("EpisodeDetailPanel live render", () => {
     const onRegenerate = jest.fn();
     render(
       <EpisodeDetailPanel
-        episode={{ ...BASE_EPISODE, sbarMarkdown: "" }}
+        episode={{
+          ...BASE_EPISODE,
+          sbarMarkdown: "",
+          assessmentId: null,
+        }}
         onRegenerateSbar={onRegenerate}
       />,
     );

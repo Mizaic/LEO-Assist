@@ -26,7 +26,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import ToggleButton from "@mui/material/ToggleButton";
 import { motion as fm } from "framer-motion";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
@@ -137,6 +139,8 @@ interface AliasConflict {
 }
 
 export default function SurfaceFormsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   // ── Search + pagination ───────────────────────────────────
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
@@ -591,7 +595,20 @@ export default function SurfaceFormsPage() {
     [total, groups.length, totalAliases, query, pendingCount],
   );
 
+  useEffect(() => {
+    if (searchParams?.get("createLocal") === "1") {
+      router.replace("/admin/guidance/local-concepts");
+    }
+  }, [searchParams, router]);
+
   const toolbarActions: ToolbarAction[] = [
+    {
+      id: "create-local-concept",
+      label: "Create local concept",
+      icon: <CategoryOutlinedIcon fontSize="small" />,
+      variant: "secondary",
+      onClick: () => router.push("/admin/guidance/local-concepts"),
+    },
     {
       id: "audit-log",
       label: auditLogLoading ? "Loading log" : "Change log",

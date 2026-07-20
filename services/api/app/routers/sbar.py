@@ -171,8 +171,28 @@ async def enqueue_scenario_run(
         missing = sorted(set(body.case_ids) - found)
         raise HTTPException(status_code=404, detail=f"Scenario(s) not found: {missing}")
 
+    empty_md = [
+        str(case.get("case_id"))
+        for case in cases
+        if not str(case.get("markdown_body") or "").strip()
+    ]
+    if empty_md:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Scenario(s) missing markdown_body: {empty_md}",
+        )
+
     child_runs = {str(case["case_id"]): f"{run_id}:{case['case_id']}" for case in cases}
     _ensure_scenario_run_schema()
+    try:
+        chunk_ids_by_case = _scaffold_scenario_referrals(run_id, cases, child_runs)
+    except Exception as exc:
+        logger.exception("Scenario referral scaffold failed for run %s", run_id)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to scaffold referral graph: {exc}",
+        ) from exc
+
     _create_scenario_run(
         run_id=run_id,
         body=body,
@@ -182,8 +202,9 @@ async def enqueue_scenario_run(
         or getattr(scope, "user_id", None)
         or "ui",
     )
-    _upsert_synthetic_encounters(run_id, cases, child_runs)
-    await _publish_scenario_children(run_id, body, cases, child_runs, scope)
+    await _publish_scenario_children(
+        run_id, body, cases, child_runs, scope, chunk_ids_by_case
+    )
     return ScenarioRunResponse(run_id=run_id, child_runs=child_runs)
 
 
@@ -440,57 +461,52 @@ def _create_scenario_run(
         client.close()
 
 
-def _upsert_synthetic_encounters(
+def _scaffold_scenario_referrals(
     parent_run_id: str,
     cases: list[dict[str, Any]],
     child_runs: dict[str, str],
-) -> None:
-    from libs.neo4j_client.client import PatientGraphClient
+) -> dict[str, list[str]]:
+    """Materialise production-shaped referral graphs; return case_id -> chunk_ids."""
+    from libs.referral_simulator.ids import (
+        document_reference_id,
+        encounter_id_for_referral,
+        referral_id_for_child_run,
+        scenario_patient_id,
+    )
+    from libs.referral_simulator.scaffold import SOURCE_SCENARIO, scaffold_referral
 
-    client = PatientGraphClient()
-    try:
-        for case in cases:
-            case_id = str(case["case_id"])
-            child_run_id = child_runs[case_id]
-            patient_id = _synthetic_patient_id(case_id)
-            encounter_id = _synthetic_encounter_id(child_run_id)
-            synthetic_patient = case.get("synthetic_patient") or {}
-            patient_name = " ".join(
-                part
-                for part in (
-                    synthetic_patient.get("given_name"),
-                    synthetic_patient.get("family_name"),
-                )
-                if part
+    chunk_ids_by_case: dict[str, list[str]] = {}
+    for case in cases:
+        case_id = str(case["case_id"])
+        child_run_id = child_runs[case_id]
+        referral_id = referral_id_for_child_run(child_run_id)
+        dr_id = document_reference_id(referral_id)
+        encounter_id = encounter_id_for_referral(referral_id)
+        synthetic_patient = case.get("synthetic_patient") or {}
+        patient_name = " ".join(
+            part
+            for part in (
+                synthetic_patient.get("given_name"),
+                synthetic_patient.get("family_name"),
             )
-            client.run(
-                "MERGE (p:Patient {id: $patient_id}) "
-                "SET p.source = 'ai_summarisation_scenario', "
-                "    p.synthetic = true, "
-                "    p.case_id = $case_id, "
-                "    p.parent_run_id = $parent_run_id, "
-                "    p.name = $patient_name, "
-                "    p.gender = $patient_gender, "
-                "    p.birthDate = $patient_birth_date, "
-                "    p.nhsNumber = $synthetic_nhs_number "
-                "MERGE (e:Encounter {id: $encounter_id}) "
-                "SET e.text = $text, "
-                "    e.case_id = $case_id, "
-                "    e.source = 'ai_summarisation_scenario', "
-                "    e.parent_run_id = $parent_run_id "
-                "MERGE (p)-[:HAS_ENCOUNTER]->(e)",
-                patient_id=patient_id,
-                encounter_id=encounter_id,
-                text=case.get("markdown_body") or "",
-                case_id=case_id,
-                parent_run_id=parent_run_id,
-                patient_name=patient_name or None,
-                patient_gender=synthetic_patient.get("gender"),
-                patient_birth_date=synthetic_patient.get("date_of_birth"),
-                synthetic_nhs_number=synthetic_patient.get("synthetic_nhs_number"),
-            )
-    finally:
-        client.close()
+            if part
+        )
+        chunk_ids_by_case[case_id] = scaffold_referral(
+            patient_id=scenario_patient_id(case_id),
+            referral_id=referral_id,
+            dr_id=dr_id,
+            text=str(case.get("markdown_body") or ""),
+            encounter_id=encounter_id,
+            source=SOURCE_SCENARIO,
+            patient_sex=synthetic_patient.get("gender"),
+            patient_name=patient_name,
+            nhs_number=str(synthetic_patient.get("synthetic_nhs_number") or ""),
+            birth_date=str(synthetic_patient.get("date_of_birth") or ""),
+            case_id=case_id,
+            parent_run_id=parent_run_id,
+            document_title=f"Scenario referral {case_id}",
+        )
+    return chunk_ids_by_case
 
 
 async def _publish_scenario_children(
@@ -499,40 +515,51 @@ async def _publish_scenario_children(
     cases: list[dict[str, Any]],
     child_runs: dict[str, str],
     scope: CallerScope,
+    chunk_ids_by_case: dict[str, list[str]],
 ) -> None:
     from libs.message_bus.base import Message
     from libs.message_bus.factory import create_message_bus
+    from libs.referral_simulator.ids import (
+        document_reference_id,
+        encounter_id_for_referral,
+        referral_id_for_child_run,
+        scenario_patient_id,
+    )
+    from libs.referral_simulator.message import build_referral_received_message
+    from libs.referral_simulator.scaffold import SOURCE_SCENARIO
 
     bus = create_message_bus()
     try:
         for case in cases:
             case_id = str(case["case_id"])
             child_run_id = child_runs[case_id]
+            referral_id = referral_id_for_child_run(child_run_id)
+            msg_body = build_referral_received_message(
+                patient_id=scenario_patient_id(case_id),
+                encounter_id=encounter_id_for_referral(referral_id),
+                referral_id=referral_id,
+                document_reference_id=document_reference_id(referral_id),
+                chunk_ids=chunk_ids_by_case[case_id],
+                run_id=child_run_id,
+                plan_definition_id=body.plan_definition_id,
+                guideline_id=body.guideline_id,
+                completeness_domain=body.completeness_domain,
+                completeness_subdomain=body.completeness_subdomain,
+                context={
+                    "source": SOURCE_SCENARIO,
+                    "case_id": case_id,
+                    "parent_run_id": parent_run_id,
+                    "site": case.get("site"),
+                },
+            )
+            if getattr(scope, "user_id", None):
+                msg_body["requested_by"] = scope.user_id
+            if getattr(scope, "tenant_id", None):
+                msg_body["tenant_id"] = scope.tenant_id
             await bus.send(
                 PIPELINE_QUEUE,
                 Message(
-                    body={
-                        "event_type": "referral-received",
-                        "run_id": child_run_id,
-                        "workflow_id": body.plan_definition_id,
-                        "plan_definition_id": body.plan_definition_id,
-                        "patient_id": _synthetic_patient_id(case_id),
-                        "encounter_id": _synthetic_encounter_id(child_run_id),
-                        "guideline_id": body.guideline_id,
-                        "completeness_domain": body.completeness_domain,
-                        "completeness_subdomain": body.completeness_subdomain,
-                        "source_node_type": "Encounter",
-                        "source_node_id": _synthetic_encounter_id(child_run_id),
-                        "source_text_property": "text",
-                        "requested_by": getattr(scope, "user_id", None),
-                        "tenant_id": getattr(scope, "tenant_id", None),
-                        "context": {
-                            "source": "ai_summarisation_scenario",
-                            "case_id": case_id,
-                            "parent_run_id": parent_run_id,
-                            "site": case.get("site"),
-                        },
-                    },
+                    body=msg_body,
                     correlation_id=child_run_id,
                     subject="referral-received",
                 ),
@@ -540,16 +567,6 @@ async def _publish_scenario_children(
     finally:
         await bus.close()
     _update_scenario_parent_status(parent_run_id)
-
-
-def _synthetic_patient_id(case_id: str) -> str:
-    safe = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in case_id)
-    return f"scenario-sbar-{safe}"
-
-
-def _synthetic_encounter_id(child_run_id: str) -> str:
-    safe = "".join(ch if ch.isalnum() or ch in "-_:" else "_" for ch in child_run_id)
-    return f"{safe}:encounter"
 
 
 def _list_scenario_run_rows(limit: int) -> list[dict[str, Any]]:
@@ -677,10 +694,10 @@ def _normalise_audit_fallback(
     """Build a PipelineRun-shaped dict from legacy :AuditEvent nodes.
 
     DurableStepRunner (the only writer of :PipelineRun/:PipelineStageRun) is
-    gated behind DURABLE_ENGINE_ENABLED, which defaults to "false" and is not
-    set anywhere in this repo's env config. With the flag off, every
-    referral run -- including AI Summarisation scenario runs -- executes via
-    the legacy WorkflowEngine, which only ever writes :AuditEvent nodes.
+    gated behind DURABLE_ENGINE_ENABLED (defaults to "all"). When the flag is
+    explicitly set to "false", referral runs -- including AI Summarisation
+    scenario runs -- execute via the legacy WorkflowEngine, which only ever
+    writes :AuditEvent nodes.
     Without this fallback, _load_child_pipeline_runs never finds a
     :PipelineRun node, so every child case is stuck showing "queued"
     forever (via the {"status": "queued"} default below) while the parent

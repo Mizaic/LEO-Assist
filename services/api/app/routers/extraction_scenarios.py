@@ -647,7 +647,9 @@ def _mark_publish_failed(
 
 
 def _scoring_rules() -> dict[str, bool]:
-    from libs.validation.clinical_extraction_scenario_loader import load_expected_strings
+    from libs.validation.clinical_extraction_scenario_loader import (
+        load_expected_strings,
+    )
 
     doc = load_expected_strings()
     normalisation = doc.get("normalisation")
@@ -672,7 +674,9 @@ def _score_case_from_node(case: dict[str, Any]) -> dict[str, Any]:
     return score_case(case, extracted_entities, _scoring_rules())
 
 
-def _score_case_from_terms(case: dict[str, Any], extracted_entities: list[dict[str, str]]) -> dict:
+def _score_case_from_terms(
+    case: dict[str, Any], extracted_entities: list[dict[str, str]]
+) -> dict:
     from libs.validation.clinical_extraction_scenario_loader import score_case
 
     cleaned_terms = _normalise_validation_terms(extracted_entities, case)
@@ -786,31 +790,22 @@ def _build_quick_run_referral_message(
     guideline_id: str | None,
     completeness_subdomain: str | None,
 ) -> dict[str, Any]:
-    body: dict[str, Any] = {
-        "event_type": "referral-received",
-        "plan_definition_id": _REFERRAL_PLAN,
-        "patient_id": patient_id,
-        "encounter_id": encounter_id,
-        "referral_id": referral_id,
-        "document_reference_id": dr_id,
-        "chunk_ids": chunk_ids,
-        "text_segmentation_mode": "document_chunks",
-        "run_id": run_id,
-        "mode": "referral_assessment",
-        "output_target": "patient_graph",
-        "source_node_type": "ReferralRequest",
-        "source_node_id": referral_id,
-        "dry_run": False,
-        "capture_validation_output": True,
-        "context": {"referral_id": referral_id},
-    }
-    if guideline_id:
-        body["guideline_id"] = guideline_id
-        body["guideline_scope_type"] = "guideline"
-        body["guideline_scope_id"] = guideline_id
-        body["completeness_domain"] = "cancer_referrals"
-        if completeness_subdomain:
-            body["completeness_subdomain"] = completeness_subdomain
+    from libs.referral_simulator.message import build_referral_received_message
+
+    body = build_referral_received_message(
+        patient_id=patient_id,
+        encounter_id=encounter_id,
+        referral_id=referral_id,
+        document_reference_id=dr_id,
+        chunk_ids=chunk_ids,
+        run_id=run_id,
+        plan_definition_id=_REFERRAL_PLAN,
+        guideline_id=guideline_id,
+        completeness_domain="cancer_referrals" if guideline_id else None,
+        completeness_subdomain=completeness_subdomain if guideline_id else None,
+        context={"referral_id": referral_id},
+    )
+    body["capture_validation_output"] = True
     return body
 
 
@@ -881,9 +876,7 @@ def _refresh_quick_run_encounter(run_id: str) -> None:
 
     client = PatientGraphClient()
     try:
-        rows = client.run(
-            query, run_id=run_id, statuses=list(_AUDIT_TERMINAL_STATUSES)
-        )
+        rows = client.run(query, run_id=run_id, statuses=list(_AUDIT_TERMINAL_STATUSES))
     finally:
         client.close()
 
@@ -914,18 +907,21 @@ def _refresh_quick_run_encounter(run_id: str) -> None:
         if worker_status in ("completed", "needs_review", "empty_extraction")
         else "failed"
     )
-    _set_run(run_id, {
-        "status": ui_status,
-        "progress": 100,
-        "stage_snapshots": snapshots or {},
-        "entity_count": len(entities),
-        "entities": entities,
-        "coded_entities": coded_entities,
-        "model_provider": row.get("extraction_provider", ""),
-        "model_tier": row.get("extraction_model_tier", ""),
-        "worker_status": worker_status,
-        "completed_at": _now_iso(),
-    })
+    _set_run(
+        run_id,
+        {
+            "status": ui_status,
+            "progress": 100,
+            "stage_snapshots": snapshots or {},
+            "entity_count": len(entities),
+            "entities": entities,
+            "coded_entities": coded_entities,
+            "model_provider": row.get("extraction_provider", ""),
+            "model_tier": row.get("extraction_model_tier", ""),
+            "worker_status": worker_status,
+            "completed_at": _now_iso(),
+        },
+    )
 
 
 def _refresh_quick_run_referral(run_id: str) -> None:
@@ -972,16 +968,19 @@ def _refresh_quick_run_referral(run_id: str) -> None:
             logger.warning("quick-run referral coded fetch failed: %s", exc)
 
     ui_status = "completed" if worker_status in ("completed",) else "failed"
-    _set_run(run_id, {
-        "status": ui_status,
-        "progress": 100,
-        "stage_snapshots": snapshots,
-        "entity_count": len(final_entities),
-        "entities": final_entities,
-        "coded_entities": coded_entities,
-        "worker_status": worker_status,
-        "completed_at": _now_iso(),
-    })
+    _set_run(
+        run_id,
+        {
+            "status": ui_status,
+            "progress": 100,
+            "stage_snapshots": snapshots,
+            "entity_count": len(final_entities),
+            "entities": final_entities,
+            "coded_entities": coded_entities,
+            "worker_status": worker_status,
+            "completed_at": _now_iso(),
+        },
+    )
 
 
 _ENCOUNTER_CODED_QUERY = """
@@ -1064,9 +1063,7 @@ def _coerce_coded_rows(rows: list[Any]) -> list[dict[str, Any]]:
     ]
 
 
-def _fetch_encounter_codes(
-    patient_id: str, encounter_id: str
-) -> list[dict[str, Any]]:
+def _fetch_encounter_codes(patient_id: str, encounter_id: str) -> list[dict[str, Any]]:
     from app.db.neo4j_client import PatientGraphClient
 
     client = PatientGraphClient()
@@ -1163,18 +1160,32 @@ def quick_run(
         dr_id = f"qr-{uid}:doc"
         encounter_id = f"qr-{uid}:enc"
         chunk_ids = scaffold_referral(
-            patient_id, referral_id, dr_id, body.text,
-            patient_age=body.patient_age, patient_sex=body.patient_sex,
+            patient_id,
+            referral_id,
+            dr_id,
+            body.text,
+            encounter_id=encounter_id,
+            patient_age=body.patient_age,
+            patient_sex=body.patient_sex,
         )
         msg = _build_quick_run_referral_message(
-            patient_id, encounter_id, referral_id, dr_id, chunk_ids,
-            run_id, body.guideline_id, body.completeness_subdomain,
+            patient_id,
+            encounter_id,
+            referral_id,
+            dr_id,
+            chunk_ids,
+            run_id,
+            body.guideline_id,
+            body.completeness_subdomain,
         )
     else:
         encounter_id = f"qe-{uid}:enc"
         scaffold_encounter(
-            patient_id, encounter_id, body.text,
-            patient_age=body.patient_age, patient_sex=body.patient_sex,
+            patient_id,
+            encounter_id,
+            body.text,
+            patient_age=body.patient_age,
+            patient_sex=body.patient_sex,
         )
         msg = _build_quick_run_encounter_message(patient_id, encounter_id, run_id)
 
@@ -1209,9 +1220,7 @@ def delete_quick_run(
     with _runs_lock:
         job = _runs.get(run_id)
     if not job or not job.get("quick_run"):
-        raise HTTPException(
-            status_code=404, detail=f"Quick-run {run_id!r} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Quick-run {run_id!r} not found")
     patient_id = str(job.get("patient_id") or "")
     if patient_id:
         try:
@@ -1321,7 +1330,12 @@ def _terms_from_validation_output(
     if not isinstance(terms, list):
         return []
     raw_entities = [
-        {"text": str(term.get("text") or "").strip(), "semantic_tag": str(term.get("label") or term.get("semantic_tag") or "finding")}
+        {
+            "text": str(term.get("text") or "").strip(),
+            "semantic_tag": str(
+                term.get("label") or term.get("semantic_tag") or "finding"
+            ),
+        }
         for term in terms
         if isinstance(term, dict) and str(term.get("text") or "").strip()
     ]
@@ -1360,10 +1374,14 @@ def _entity_texts(entities: Any) -> list[dict[str, str]]:
             continue
         text = entity.get("text") or entity.get("surface_form")
         if isinstance(text, str) and text.strip():
-            texts.append({
-                "text": text.strip(), 
-                "semantic_tag": str(entity.get("label") or entity.get("semantic_tag") or "finding")
-            })
+            texts.append(
+                {
+                    "text": text.strip(),
+                    "semantic_tag": str(
+                        entity.get("label") or entity.get("semantic_tag") or "finding"
+                    ),
+                }
+            )
     return texts
 
 

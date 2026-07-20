@@ -382,9 +382,7 @@ def _expand_icb_scope(client: PatientGraphClient, icb_id: str) -> list[str]:
     return list(ids)
 
 
-def _expand_service_provider_scope(
-    client: PatientGraphClient, sp_id: str
-) -> list[str]:
+def _expand_service_provider_scope(client: PatientGraphClient, sp_id: str) -> list[str]:
     """Service Provider scope: just the SP org id itself.
 
     Patient visibility is determined by the referral path filter in

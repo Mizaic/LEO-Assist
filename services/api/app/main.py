@@ -69,7 +69,9 @@ from app.routers.model_configs import router as model_configs_router
 from app.routers.nice_guidance import router as nice_guidance_router
 from app.routers.nice_diff import router as nice_diff_router
 from app.routers.guidance_rules import router as guidance_rules_router
-from app.routers.test_patients import router as test_patients_router
+from app.routers.local_guidance import router as local_guidance_router
+from app.routers.guideline_shadow import router as guideline_shadow_router
+from app.routers.guidance_rule_picker import router as guidance_rule_picker_router
 from app.routers.pricing import router as pricing_router
 from app.routers.lab_result_config import router as lab_result_config_router
 from app.routers.ncda_pathway_config import router as ncda_pathway_config_router
@@ -81,6 +83,7 @@ from app.routers.extraction_scenario_mutations import (
 )
 from app.routers.coding_validation import router as coding_validation_router
 from app.routers.validation_runs import router as validation_runs_router
+from app.routers.validation_lab import router as validation_lab_router
 from app.routers.sdk_auth import router as sdk_auth_router
 from app.routers.sdk_governance import router as sdk_governance_router
 from app.routers.sdk_release import router as sdk_release_router
@@ -487,7 +490,9 @@ app.include_router(llm_usage_router)
 app.include_router(nice_guidance_router)
 app.include_router(nice_diff_router)
 app.include_router(guidance_rules_router)
-app.include_router(test_patients_router)
+app.include_router(local_guidance_router)
+app.include_router(guideline_shadow_router)
+app.include_router(guidance_rule_picker_router)
 app.include_router(pricing_router)
 app.include_router(lab_result_config_router)
 app.include_router(ncda_pathway_config_router)
@@ -498,6 +503,7 @@ app.include_router(extraction_scenarios_router)
 app.include_router(extraction_scenario_mutations_router)
 app.include_router(coding_validation_router)
 app.include_router(validation_runs_router)
+app.include_router(validation_lab_router)
 app.include_router(sdk_auth_router)
 app.include_router(sdk_telemetry_router)
 app.include_router(sdk_release_router)

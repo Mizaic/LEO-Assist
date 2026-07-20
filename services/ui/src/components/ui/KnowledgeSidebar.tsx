@@ -5,15 +5,12 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
-import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import RouteOutlinedIcon from "@mui/icons-material/RouteOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
-import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
-import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import ScienceIcon from "@mui/icons-material/Science";
 import SearchIcon from "@mui/icons-material/Search";
 import type { KnowledgeTabKey } from "@/lib/knowledgeCopy";
 
@@ -36,7 +33,6 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { key: "surface-forms", label: "Surface Forms", icon: <TextFieldsOutlinedIcon sx={{ fontSize: 18 }} /> },
       { key: "context-rules", label: "Context Rules", icon: <AccountTreeOutlinedIcon sx={{ fontSize: 18 }} /> },
       { key: "ai-instructions", label: "AI Instructions", icon: <PsychologyOutlinedIcon sx={{ fontSize: 18 }} /> },
-      { key: "ai-summarisation", label: "AI Summarisation", icon: <AutoAwesomeOutlinedIcon sx={{ fontSize: 18 }} /> },
     ],
   },
   {
@@ -52,14 +48,12 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     tabs: [
       { key: "terminology", label: "Terminology", icon: <HubOutlinedIcon sx={{ fontSize: 18 }} /> },
       { key: "results-labs", label: "Results / Labs", icon: <ScienceOutlinedIcon sx={{ fontSize: 18 }} /> },
-      { key: "extraction-scenarios", label: "Extraction Scenarios", icon: <BiotechOutlinedIcon sx={{ fontSize: 18 }} /> },
     ],
   },
   {
     label: "Quality",
     tabs: [
-      { key: "test-patients", label: "Test Patients", icon: <GroupOutlinedIcon sx={{ fontSize: 18 }} /> },
-      { key: "coding-validation", label: "Coding Validation", icon: <FactCheckOutlinedIcon sx={{ fontSize: 18 }} /> },
+      { key: "validation-lab", label: "Validation Lab", icon: <ScienceIcon sx={{ fontSize: 18 }} /> },
     ],
   },
 ];

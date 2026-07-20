@@ -74,6 +74,10 @@ from libs.ner.breast_screening_outcome_recovery import (
     recover_breast_screening_outcome_finding,
 )
 from libs.ner.request_reason_recovery import recover_request_reason_entities
+from libs.ner.local_concept_recovery import (
+    LocalConceptPattern,
+    recover_local_concept_entities,
+)
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
@@ -1219,11 +1223,13 @@ def run_post_processing_with_trace(
     rules: list[PostProcessorRule] | None = None,
     enable_disorder_gate: bool = False,
     coding_mode: str = "hitl",
+    local_concept_patterns: list[LocalConceptPattern] | None = None,
 ) -> tuple[list[dict], list[dict[str, Any]]]:
     """Run post-processing and return (entities, per-layer trace)."""
     working = [dict(e) for e in entities]
     _snapshot_extractor_assertions(working)
     layer_trace: list[dict[str, Any]] = []
+    _local_patterns = local_concept_patterns or []
 
     def _run_layer(
         layer_id: str,
@@ -1388,6 +1394,17 @@ def run_post_processing_with_trace(
         ),
     )
 
+    # Layer 3c3: LEO-local concept exact-match recovery (approved aliases)
+    _run_layer(
+        "layer_3c3",
+        "Local Concept Recovery",
+        lambda current: recover_local_concept_entities(
+            encounter_text, current, _local_patterns
+        ),
+        skip_when=not _local_patterns,
+        skip_reason="no local concept patterns",
+    )
+
     # Layer 3d: Cross-Line Lab Finding Merge (DI-B5C78811, DO-728930A1,
     # VT-29880CC8). Extend an observable_entity span forward across at
     # most one blank line when the next non-blank line begins with a
@@ -1508,6 +1525,7 @@ def run_post_processing(
     rules: list[PostProcessorRule] | None = None,
     enable_disorder_gate: bool = False,
     coding_mode: str = "hitl",
+    local_concept_patterns: list[LocalConceptPattern] | None = None,
 ) -> list[dict]:
     """Canonical post-processing stack applied identically to training and runtime.
 
@@ -1519,6 +1537,8 @@ def run_post_processing(
         enable_disorder_gate: When True, run the LLM disorder gate (Layer 9).
             Defaults to True in training, False at runtime.
         coding_mode: Coding mode forwarded to the disorder gate.
+        local_concept_patterns: Optional approved LEO-local alias patterns
+            for Layer 3c3 exact-match recovery.
 
     Returns:
         The (mutated) entity list after all layers have run.
@@ -1529,5 +1549,6 @@ def run_post_processing(
         rules=rules,
         enable_disorder_gate=enable_disorder_gate,
         coding_mode=coding_mode,
+        local_concept_patterns=local_concept_patterns,
     )
     return processed

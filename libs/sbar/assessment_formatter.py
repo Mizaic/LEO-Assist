@@ -290,9 +290,11 @@ def _rule_due_days(rule: dict[str, Any]) -> Any:
 
 def _render_action_lines(rule: dict[str, Any]) -> list[str]:
     """Return one 'Action: ...' line per recommended action on a rule."""
+    from libs.guidance.narrative_actions import display_action_label
+
     lines: list[str] = []
     for action in _rule_actions(rule):
-        name = (action.get("name") or "").strip()
+        name = display_action_label(action)
         if not name:
             continue
         due_days = action.get("due_days")
@@ -331,6 +333,29 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
     return out
 
 
+def _chip_label(entry: dict[str, Any]) -> str:
+    """Return a short preferred-term label for a matched_via entry."""
+    chip_label = (entry.get("preferred_term") or "").strip() or "matched code"
+    # Best-effort: strip a trailing semantic-tag bracket for readability.
+    if " (" in chip_label and chip_label.endswith(")"):
+        return chip_label.rsplit(" (", 1)[0]
+    return chip_label
+
+
+def _matched_via_fragment(entry: dict[str, Any]) -> str | None:
+    """Render one matched_via leaf as a short display fragment, or None."""
+    hits = list(entry.get("matched_concept_ids") or [])
+    if not hits:
+        return None
+    primary = entry.get("primary_concept_id")
+    chip_label = _chip_label(entry)
+    if hits == [primary]:
+        return chip_label
+    if len(hits) == 1:
+        return f"a related coded finding for {chip_label}"
+    return f"related coded findings for {chip_label}"
+
+
 def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
     """Render per-leaf hits as a short, plain-English line for SBAR.
 
@@ -338,31 +363,27 @@ def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
     rather than only the rule. Output uses sentence case and short labels
     so the reading age stays at 9-11 (per `health-literacy.mdc`).
 
+    Duplicate leaf labels are collapsed (same concept chip appearing more
+    than once in an OR tree) so clinicians see each distinct match once.
+    The full ``matched_via`` list is still kept on the rule snapshot for
+    audit.
+
     Examples:
         - One leaf, one hit, exact match  -> "Smoker"
-        - One leaf, one hit, descendant   -> "Cigarette smoker (a kind of Smoker)"
-        - One leaf, two hits -> "Cigarette smoker, Pipe smoker (kinds of Smoker)"
-        - Two leaves                      -> "Smoker; History of asbestos exposure"
+        - One leaf, one hit, descendant   -> "a related coded finding for Smoker"
+        - Two distinct leaves             -> "Smoker; History of asbestos exposure"
+        - Three identical leaf labels     -> "Weight decreased"
     """
     if not matched_via:
         return ""
     fragments: list[str] = []
+    seen: set[str] = set()
     for entry in matched_via:
-        hits = list(entry.get("matched_concept_ids") or [])
-        if not hits:
+        fragment = _matched_via_fragment(entry)
+        if not fragment or fragment in seen:
             continue
-        primary = entry.get("primary_concept_id")
-        chip_label = (entry.get("preferred_term") or "").strip() or "matched code"
-        # Best-effort: strip a trailing semantic-tag bracket for readability.
-        if " (" in chip_label and chip_label.endswith(")"):
-            chip_label = chip_label.rsplit(" (", 1)[0]
-        if hits == [primary]:
-            fragments.append(chip_label)
-            continue
-        if len(hits) == 1:
-            fragments.append(f"a related coded finding for {chip_label}")
-        else:
-            fragments.append(f"related coded findings for {chip_label}")
+        seen.add(fragment)
+        fragments.append(fragment)
     return "; ".join(fragments)
 
 

@@ -65,6 +65,7 @@ class TerminologyState(TypedDict, total=False):
     confidence_threshold: float
     patient_age: float
     patient_sex: str
+    org_id: str
     errors: list[str]
 
 
@@ -256,7 +257,10 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
                     label := e.get("semantic_tag") or e.get("label")
                 ):
                     tag_map[lookup] = str(label)
-        results = TerminologyClient().resolve(terms, expected_tags=tag_map or None)
+        org_id = str(state.get("org_id") or "").strip() or None
+        results = TerminologyClient().resolve(
+            terms, expected_tags=tag_map or None, org_id=org_id
+        )
         resolved = []
         for idx, entity in enumerate(entities):
             lookup = lookup_by_index.get(idx) or ""

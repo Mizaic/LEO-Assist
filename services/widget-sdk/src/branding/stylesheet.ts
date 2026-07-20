@@ -321,6 +321,58 @@ em, i { font-style: italic; }
   outline-offset: 2px;
 }
 
+.leo-source-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 16px;
+}
+
+.leo-source-dialog-card {
+  background: ${BRAND.light.surface};
+  color: ${BRAND.light.text};
+  border-radius: 12px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: auto;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+}
+
+.leo-source-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.leo-source-dialog-close {
+  border: 1px solid ${BRAND.light.border};
+  background: ${BRAND.light.surfaceMuted};
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.leo-source-dialog-meta {
+  font-size: 12px;
+  color: ${BRAND.light.textMuted};
+  margin: 0 0 8px;
+}
+
+.leo-source-dialog-body {
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  margin: 0;
+}
+
 
 /* ------ Completeness panel ------ */
 

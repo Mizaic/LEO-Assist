@@ -364,6 +364,26 @@ class GuidanceRuleGenerator:
         if not verbatim.strip():
             return None
 
+        from libs.guidance.recommendation_triage import triage_recommendation
+
+        triage = triage_recommendation(verbatim)
+        if triage == "no_rule":
+            logger.info(
+                "Recommendation %s triaged no_rule -- stubbing without LLM extract",
+                rec.get("id"),
+            )
+            return self._write_generation_stub(
+                guideline_id,
+                rec,
+                outcome="no_rule_expected",
+                errors=["triage:no_rule"],
+                coded={
+                    "no_rule_expected": True,
+                    "reason": "triaged_information_or_advice_only",
+                    "triage": triage,
+                },
+            )
+
         if self._subgraph is None:
             logger.error(
                 "Cannot extract rule for recommendation %s — "

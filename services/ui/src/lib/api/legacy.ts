@@ -457,6 +457,105 @@ export async function deleteSurfaceFormMapping(normalized: string, conceptId: st
   );
 }
 
+export type LocalTerminologyPackage = {
+  id: string;
+  name: string;
+  scope: "global" | "tenant" | string;
+  org_id?: string | null;
+  status: string;
+  version?: number;
+  concept_count?: number;
+};
+
+export async function listLocalTerminologyPackages(params?: {
+  status?: string;
+  scope?: string;
+  org_id?: string;
+}) {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.scope) qs.set("scope", params.scope);
+  if (params?.org_id) qs.set("org_id", params.org_id);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return fetchJson<{
+    items: LocalTerminologyPackage[];
+    total: number;
+  }>(`${API_BASE}/api/terminology/local-packages${suffix}`);
+}
+
+export async function createLocalTerminologyPackage(body: {
+  name: string;
+  scope: "global" | "tenant";
+  org_id?: string;
+}) {
+  return fetchJson<LocalTerminologyPackage>(
+    `${API_BASE}/api/terminology/local-packages`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export async function createLocalConceptWithAlias(body: {
+  display_name: string;
+  alias: string;
+  package_id: string;
+  concept_kind?: "finding" | "procedure" | "narrative_action" | "both";
+  concept_id?: string;
+  description?: string;
+  approve?: boolean;
+  org_id?: string;
+}) {
+  return fetchJson<{
+    concept: {
+      id: string;
+      fsn: string;
+      preferred_term?: string;
+      code_system: string;
+      concept_kind?: string;
+      active: boolean;
+    };
+    mapping: {
+      normalized: string;
+      form: string;
+      concept_id: string;
+      status?: string;
+    };
+    package_id: string;
+  }>(`${API_BASE}/api/terminology/surface-forms/create-local-with-alias`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      display_name: body.display_name,
+      alias: body.alias,
+      package_id: body.package_id,
+      concept_kind: body.concept_kind ?? "finding",
+      concept_id: body.concept_id,
+      description: body.description,
+      approve: body.approve ?? false,
+      org_id: body.org_id,
+      actor: "knowledge-admin",
+    }),
+  });
+}
+
+export async function dryRunLocalConceptRecovery(body: {
+  sample_text: string;
+  aliases: Array<{ form: string; concept_id: string; fsn?: string }>;
+}) {
+  return fetchJson<{
+    matched_count: number;
+    pattern_count: number;
+    entities: Array<{ text: string; snomed_concept_id: string }>;
+  }>(`${API_BASE}/api/terminology/local-concepts/dry-run-recovery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 export async function upsertSurfaceFormMapping(
   normalized: string,
   form: string,

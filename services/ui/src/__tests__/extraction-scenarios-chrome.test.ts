@@ -45,38 +45,39 @@ const FAST_API_ROUTER = "services/api/app/routers/extraction_scenarios.py";
 const MUTATIONS_ROUTER = "services/api/app/routers/extraction_scenario_mutations.py";
 const CYPHER = "libs/cypher/extraction_scenario_queries.py";
 
-describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
-  test("TC-001: KnowledgeTabKey union includes extraction-scenarios", () => {
+describe("VT-24D7A846 - Extraction Scenarios folded into Validation Lab", () => {
+  test("TC-001: KnowledgeTabKey union includes validation-lab", () => {
     const copy = src(KNOWLEDGE_COPY);
-    expect(copy).toMatch(/["']extraction-scenarios["']/);
+    expect(copy).toMatch(/["']validation-lab["']/);
+    expect(copy).not.toMatch(/["']extraction-scenarios["']/);
   });
 
-  test("TC-002: KNOWLEDGE_TAB_COPY has an extraction-scenarios entry", () => {
+  test("TC-002: KNOWLEDGE_TAB_COPY has a validation-lab entry", () => {
     const copy = src(KNOWLEDGE_COPY);
-    expect(copy).toMatch(/"extraction-scenarios"\s*:/);
-    expect(copy).toMatch(/VAL-87173594/);
+    expect(copy).toMatch(/"validation-lab"\s*:/);
+    expect(copy).toMatch(/Validation Lab/);
   });
 
-  test("TC-003: knowledge/page.tsx TAB_WIDTH includes extraction-scenarios as wide", () => {
+  test("TC-003: knowledge/page.tsx TAB_WIDTH includes validation-lab as wide", () => {
     const page = src(KNOWLEDGE_PAGE);
-    expect(page).toMatch(/"extraction-scenarios":\s*"wide"/);
+    expect(page).toMatch(/"validation-lab":\s*"wide"/);
   });
 
-  test("TC-004: knowledge/page.tsx TABS list includes extraction-scenarios", () => {
+  test("TC-004: knowledge/page.tsx TABS list includes validation-lab", () => {
     const page = src(KNOWLEDGE_PAGE);
-    expect(page).toMatch(/key:\s*["']extraction-scenarios["']/);
-    expect(page).toMatch(/label:\s*["']Extraction Scenarios["']/);
+    expect(page).toMatch(/key:\s*["']validation-lab["']/);
+    expect(page).toMatch(/label:\s*["']Validation Lab["']/);
   });
 
-  test("TC-005: knowledge/page.tsx TAB_PANELS includes extraction-scenarios component", () => {
+  test("TC-005: knowledge/page.tsx TAB_PANELS includes Validation Lab", () => {
     const page = src(KNOWLEDGE_PAGE);
-    expect(page).toMatch(/"extraction-scenarios":\s*ExtractionScenariosPage/);
+    expect(page).toMatch(/"validation-lab":\s*ValidationLabPage/);
   });
 
-  test("TC-006: knowledge/page.tsx declares ExtractionScenariosPage with dynamic()", () => {
+  test("TC-006: knowledge/page.tsx declares ValidationLabPage with dynamic()", () => {
     const page = src(KNOWLEDGE_PAGE);
-    expect(page).toMatch(/ExtractionScenariosPage\s*=\s*dynamic/);
-    expect(page).toMatch(/admin\/extraction-scenarios\/page/);
+    expect(page).toMatch(/ValidationLabPage\s*=\s*dynamic/);
+    expect(page).toMatch(/admin\/validation-lab\/page/);
   });
 
   test("TC-007: API file has the correct base route", () => {
@@ -152,7 +153,7 @@ describe("VT-24D7A846 - Extraction Scenarios admin surface chrome", () => {
   test("TC-013: /admin/extraction-scenarios redirect exists in next.config.mjs", () => {
     const config = src(NEXT_CONFIG);
     expect(config).toMatch(/source.*\/admin\/extraction-scenarios/);
-    expect(config).toMatch(/destination.*\/admin\/knowledge\?tab=extraction-scenarios/);
+    expect(config).toMatch(/destination.*\/admin\/validation-lab/);
   });
 
   test("TC-014: FastAPI router exposes all required endpoints", () => {

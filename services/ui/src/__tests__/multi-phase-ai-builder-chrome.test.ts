@@ -52,9 +52,19 @@ describe("auditDraftChatAdapter -- multi-phase types", () => {
     expect(src).toContain("warnings: string[]");
   });
 
+  test("DashboardPlan supports pages and zone narratives", () => {
+    expect(src).toContain("pages?: PlannedPage[]");
+    expect(src).toContain("zone1_narrative?: string");
+    expect(src).toContain("zone2_narrative?: string");
+  });
+
   test("exports PlannedTile with reason field", () => {
     expect(src).toContain("PlannedTile");
     expect(src).toContain("reason: string");
+  });
+
+  test("PlannedTile carries optional page_id", () => {
+    expect(src).toContain("page_id?: string");
   });
 
   test("exports BuildSummary", () => {

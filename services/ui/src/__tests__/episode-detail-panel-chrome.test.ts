@@ -8,7 +8,7 @@
  *
  * Static-source verification (per VT-LEO-AI-142 pattern) for the
  * Phase 4 EpisodeDetailPanel:
- *   - Imports the canonical SbarFinalView (no fork).
+ *   - Imports LeoSbarHost for clinical SBAR (CDN widget).
  *   - Exposes the episode header, canonical code card, coherence
  *     flags, coding QA flags, and per-episode SBAR section with
  *     stable test ids.
@@ -39,11 +39,11 @@ describe("EpisodeDetailPanel chrome", () => {
     expect(src).toMatch(/DI:\s*DI-E8FE404D/);
   });
 
-  test("TC-002: imports SbarFinalView from the canonical module", () => {
+  test("TC-002: imports LeoSbarHost for CDN clinical SBAR", () => {
     const src = read(PANEL_FILE);
-    expect(src).toMatch(
-      /import\s*\{[^}]*SbarFinalView[^}]*\}\s*from\s*["']@\/components\/sbar-final\/SbarFinalView["']/,
-    );
+    expect(src).toMatch(/LeoSbarHost/);
+    expect(src).toMatch(/@\/components\/sbar-final\/LeoSbarHost/);
+    expect(src).not.toMatch(/SbarFinalView/);
   });
 
   test("TC-003: header renders site, status, and encounter-count chips", () => {

@@ -27,7 +27,7 @@ import LocalHospitalOutlinedIcon from "@mui/icons-material/LocalHospitalOutlined
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import type { PatientDetail, EpisodeSummaryEpr, CodedEntityRow, AssessmentRow } from "@/lib/patientEprApi";
 import { fetchCodedEntities, fetchEprAssessments } from "@/lib/patientEprApi";
-import { SbarFinalView, type SbarBackgroundPart, type CompletenessFinding } from "@/components/sbar-final";
+import { LeoSbarHost } from "@/components/sbar-final";
 
 const ENTITY_TYPE_LABEL: Record<string, string> = {
   disorder: "Conditions",
@@ -194,21 +194,6 @@ function ProblemList({ patientId }: { patientId: string }) {
   );
 }
 
-function buildSbarMarkdown(row: AssessmentRow): string {
-  if (row.content) return row.content;
-  const parts: string[] = [];
-  if (row.situation) parts.push(`## Situation\n\n${row.situation}`);
-  if (row.background) parts.push(`## Background\n\n${row.background}`);
-  if (row.assessment) parts.push(`## Assessment\n\n${row.assessment}`);
-  if (row.recommendation) parts.push(`## Recommendation\n\n${row.recommendation}`);
-  return parts.join("\n\n");
-}
-
-function parseSafe<T>(json: string | null): T | undefined {
-  if (!json) return undefined;
-  try { return JSON.parse(json) as T; } catch { return undefined; }
-}
-
 function SbarSummaryPanel({ patientId }: { patientId: string }) {
   const [rows, setRows] = useState<AssessmentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,18 +216,13 @@ function SbarSummaryPanel({ patientId }: { patientId: string }) {
   }
 
   const latest = rows[0];
-  const markdown = buildSbarMarkdown(latest);
-
-  if (!markdown.trim()) {
+  if (!latest.assessment_id) {
     return (
       <Typography variant="caption" color="text.secondary" fontStyle="italic">
         SBAR draft in progress.
       </Typography>
     );
   }
-
-  const backgroundParts = parseSafe<SbarBackgroundPart[]>(latest.background_parts);
-  const completenessFinding = parseSafe<CompletenessFinding>(latest.completeness_result_json);
 
   return (
     <Box>
@@ -251,12 +231,9 @@ function SbarSummaryPanel({ patientId }: { patientId: string }) {
           {latest.episode_label} -- {latest.created_at.slice(0, 10)}
         </Typography>
       )}
-      <SbarFinalView
-        markdown={markdown}
-        backgroundParts={backgroundParts}
-        completenessFinding={completenessFinding}
-        dense
-        testIdPrefix={`epr-sbar-${latest.assessment_id}`}
+      <LeoSbarHost
+        assessmentId={latest.assessment_id}
+        testId={`epr-sbar-${latest.assessment_id}`}
       />
     </Box>
   );

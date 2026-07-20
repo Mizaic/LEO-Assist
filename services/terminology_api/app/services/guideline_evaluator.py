@@ -40,9 +40,7 @@ logger = logging.getLogger(__name__)
 def _rule_stem(rule_id: str | None) -> str:
     """Return the canonical rule identity, stripping any ``:edit:*`` chain.
 
-    Mirrors :func:`services.api.app.services.test_patient_service._rule_stem`
-    -- duplicated here to keep the terminology service free of an upstream
-    import. Every rule edit appends ``:edit:<8 hex>`` to the predecessor id;
+    Every rule edit appends ``:edit:<8 hex>`` to the predecessor id;
     the compiled bitmap only carries the head of the SUPERSEDES chain, so a
     saved rule_id may be one or more edits behind the active version. The
     stem (everything before the first ``:edit:``) is the stable logical

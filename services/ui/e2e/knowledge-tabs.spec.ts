@@ -22,7 +22,7 @@ const KNOWLEDGE_TABS = [
   "domains",
   "terminology",
   "results-labs",
-  "ai-summarisation",
+  "validation-lab",
 ] as const;
 
 test.describe("knowledge tabs (VT-LEO-AI-171)", () => {

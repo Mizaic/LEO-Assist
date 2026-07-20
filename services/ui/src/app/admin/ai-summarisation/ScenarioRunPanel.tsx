@@ -50,6 +50,7 @@ import {
   startScenarioRun,
   type ReferralAssessmentCompletedEvent,
   type ScenarioRunChild,
+  type ScenarioRunChildStage,
   type ScenarioRunSummary,
 } from "./scenarioRunsApi";
 
@@ -182,6 +183,21 @@ function normaliseCompletenessFinding(
   }
 }
 
+function _coerceSourceIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item === "string" && item) {
+      out.push(item);
+      continue;
+    }
+    if (typeof item === "number" && Number.isFinite(item)) {
+      out.push(String(item));
+    }
+  }
+  return out;
+}
+
 function normaliseBackgroundParts(
   parts?: Array<Record<string, unknown>>,
 ): SbarBackgroundPart[] {
@@ -193,10 +209,12 @@ function normaliseBackgroundParts(
       number,
       number,
     ],
-    sourceIds: (part.sourceIds ?? part.source_ids ?? []) as string[],
+    sourceIds: _coerceSourceIds(part.sourceIds ?? part.source_ids),
     status: part.status === "failed" ? "failed" : "completed",
     errorCode: (part.errorCode ?? part.error_code ?? null) as string | null,
-    errorMessage: (part.errorMessage ?? part.error_message ?? null) as string | null,
+    errorMessage: (part.errorMessage ?? part.error_message ?? null) as
+      | string
+      | null,
   }));
 }
 
@@ -212,6 +230,17 @@ function statusColor(status: string): "success" | "info" | "error" | "default" {
   if (status === "failed") return "error";
   if (status === "running" || status === "queued") return "info";
   return "default";
+}
+
+/** Prefer subgraph/event label; fall back to action id (strip act-ref- prefix). */
+function stageDisplayName(stage: ScenarioRunChildStage): string {
+  const eventType = (stage.event_type || "").trim();
+  if (eventType && eventType !== "durable_step") {
+    return eventType;
+  }
+  const stepId = (stage.step_id || "").trim();
+  if (!stepId) return eventType || "step";
+  return stepId.replace(/^act-ref-/, "").replace(/^act-/, "");
 }
 
 function formatDate(value?: string | null): string {
@@ -887,7 +916,8 @@ function ChildRunCard({ child }: { child: ScenarioRunChild }) {
                 size="small"
                 variant="outlined"
                 color={statusColor(stage.status)}
-                label={`${stage.event_type}: ${stage.status}`}
+                label={`${stageDisplayName(stage)}: ${stage.status}`}
+                title={stage.step_id}
                 sx={stageActive ? PULSE_SX : undefined}
               />
             );

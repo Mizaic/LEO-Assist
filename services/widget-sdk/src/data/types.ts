@@ -35,12 +35,23 @@ export interface SbarSection {
  * mitigates R-4965BCD2: a reviewer must be able to see exactly which
  * encounter records each Background claim was synthesised from.
  */
+/** Clinician-facing source metadata for disclosure chips. */
+export interface SbarSourceRef {
+  id: string;
+  type?: string;
+  label?: string;
+  preview?: string;
+  date?: string | null;
+}
+
 export interface SbarBackgroundPart {
   index: number;
   total: number;
   recordCount: number;
   recordRange: [number, number];
   sourceIds: string[];
+  /** Optional enriched sources (label/preview). Falls back to sourceIds. */
+  sources?: SbarSourceRef[];
   status: "completed" | "failed";
   errorCode?: string | null;
   errorMessage?: string | null;

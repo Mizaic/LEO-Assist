@@ -37,6 +37,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import GavelIcon from "@mui/icons-material/Gavel";
+import {
+  defaultSelectedForTriage,
+  triageRecommendation,
+} from "@/lib/recommendationTriage";
 
 import EditRuleDialog, { type EditableRule } from "./EditRuleDialog";
 import { ruleToEditable } from "./ruleReviewHelpers";
@@ -84,6 +88,7 @@ type SelectionMap = Record<string, RecSelection>;
 interface Props {
   code: string | null;
   guidelineTitle: string;
+  source?: "nice_syndication_api" | "local_guideline";
   onClose: () => void;
   onRulesGenerated: () => void;
 }
@@ -265,8 +270,12 @@ function ChapterSection({ chapter, selection, onChangeRec }: ChapterSectionProps
 
 // -- API helpers ------------------------------------------------------------
 
-async function fetchSubgraph(code: string): Promise<SubgraphData> {
-  const r = await fetch(`/api/nice/${encodeURIComponent(code)}/subgraph`);
+async function fetchSubgraph(
+  code: string,
+  source: "nice_syndication_api" | "local_guideline",
+): Promise<SubgraphData> {
+  const base = source === "local_guideline" ? "/api/guidance/local" : "/api/nice";
+  const r = await fetch(`${base}/${encodeURIComponent(code)}/subgraph`);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
@@ -308,11 +317,18 @@ async function createBlankRule(recId: string): Promise<Rule> {
 // -- Selection helpers -------------------------------------------------------
 
 function buildInitialSelection(chapters: ChapterEntry[]): SelectionMap {
+  // Pre-select only ruleable buckets (full_rule / trigger_plus_narrative).
+  // Information-only recommendations default unchecked to save LLM cost.
   const map: SelectionMap = {};
   for (const ch of chapters) {
     for (const rec of ch.recommendations) {
       if (!rec.is_normative) continue;
-      map[rec.rec_id] = { checked: rec.rules.length === 0, mode: "ai" };
+      const bucket = triageRecommendation(rec.verbatim || rec.title || "");
+      const ruleable = defaultSelectedForTriage(bucket);
+      map[rec.rec_id] = {
+        checked: rec.rules.length === 0 && ruleable,
+        mode: "ai",
+      };
     }
   }
   return map;
@@ -399,7 +415,7 @@ function DialogFooter({
 // -- Main dialog ------------------------------------------------------------
 
 export default function RecommendationPickerDialog({
-  code, guidelineTitle, onClose, onRulesGenerated,
+  code, guidelineTitle, source = "nice_syndication_api", onClose, onRulesGenerated,
 }: Props) {
   const [data, setData] = useState<SubgraphData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -424,11 +440,11 @@ export default function RecommendationPickerDialog({
     if (!code) { setData(null); setSelection({}); setGenerationDone(false); return; }
     setLoadingData(true);
     setLoadError(null);
-    fetchSubgraph(code)
+      fetchSubgraph(code, source)
       .then((d) => { setData(d); setSelection(buildInitialSelection(d.chapters)); })
       .catch((e) => setLoadError(e instanceof Error ? e.message : "Could not load recommendations."))
       .finally(() => setLoadingData(false));
-  }, [code]);
+  }, [code, source]);
 
   const updateRec = useCallback((recId: string, patch: Partial<RecSelection>) => {
     setSelection((prev) => ({ ...prev, [recId]: { ...prev[recId], ...patch } }));

@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from libs.message_bus.base import Message, MessageBusAdapter
-from libs.neo4j_client.client import PatientGraphClient
+from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
 from libs.workflow.durable_steps import StepRequest
 from libs.workflow.durable_steps import StepResult as DurableStepResult
 from libs.workflow.pipeline_stage_store import PipelineStageStore
@@ -89,7 +89,7 @@ def is_durable_runner_enabled(plan_id: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Neo4j action loading (synchronous via PatientGraphClient)
+# Neo4j action loading (PlanDefinition lives on the Knowledge Graph)
 # ---------------------------------------------------------------------------
 
 _LOAD_ACTIONS_QUERY = """
@@ -146,16 +146,29 @@ def _record_to_action(row: dict[str, Any]) -> _Action:
     )
 
 
-def _load_all_actions(client: PatientGraphClient, plan_id: str) -> list[_Action]:
-    rows = client.run(_LOAD_ACTIONS_QUERY, plan_id=plan_id)
-    return [_record_to_action(r) for r in (rows or [])]
+def _load_all_actions(plan_id: str) -> list[_Action]:
+    """Load PlanDefinition actions from the Knowledge Graph.
+
+    PlanDefinitions / Actions are KG resources (same as WorkflowEngine).
+    PipelineRun / PipelineStage state stays on the Patient Graph.
+    """
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(_LOAD_ACTIONS_QUERY, plan_id=plan_id)
+        return [_record_to_action(r) for r in (rows or [])]
+    finally:
+        client.close()
 
 
-def _get_plan_workflow_mode(client: PatientGraphClient, plan_id: str) -> str:
-    rows = client.run(_LOAD_PLAN_QUERY, plan_id=plan_id)
-    if rows:
-        return str(rows[0].get("workflow_mode") or "")
-    return ""
+def _get_plan_workflow_mode(plan_id: str) -> str:
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(_LOAD_PLAN_QUERY, plan_id=plan_id)
+        if rows:
+            return str(rows[0].get("workflow_mode") or "")
+        return ""
+    finally:
+        client.close()
 
 
 # ---------------------------------------------------------------------------
@@ -220,9 +233,7 @@ def _rule_matches(actual: Any, operator: str, expected: Any) -> bool:
         return actual is not None
     if operator == "contains":
         return (
-            expected is not None
-            and actual is not None
-            and str(expected) in str(actual)
+            expected is not None and actual is not None and str(expected) in str(actual)
         )
     if operator == "!=":
         return str(actual) != str(expected)
@@ -240,9 +251,7 @@ def _rule_matches(actual: Any, operator: str, expected: Any) -> bool:
 
 
 def _evaluate_condition_port(action: _Action, state: dict[str, Any]) -> str:
-    params = (
-        action.config.get("params", {}) if isinstance(action.config, dict) else {}
-    )
+    params = action.config.get("params", {}) if isinstance(action.config, dict) else {}
     rules = params.get("rules") or action.config.get("rules") or []
     default_port = str(
         params.get("defaultPort") or action.config.get("defaultPort") or "else"
@@ -372,16 +381,12 @@ def _with_metrics(
 # ---------------------------------------------------------------------------
 
 
-async def _execute_action(
-    action: _Action, state: dict[str, Any]
-) -> DurableStepResult:
+async def _execute_action(action: _Action, state: dict[str, Any]) -> DurableStepResult:
     if action.node_type == "trigger":
         return DurableStepResult(status="completed")
     if action.node_type == "condition":
         port = _evaluate_condition_port(action, state)
-        return DurableStepResult(
-            status="completed", output={"condition_port": port}
-        )
+        return DurableStepResult(status="completed", output={"condition_port": port})
     from libs.pipeline_graph.registry import get_registry
 
     graph = get_registry().build(action.subgraph_id)
@@ -457,7 +462,7 @@ class DurableStepRunner:
             store = PipelineStageStore(client)
             store.ensure_schema()
             store.upsert_run(request, status="running")
-            all_actions = _load_all_actions(client, request.plan_definition_id)
+            all_actions = _load_all_actions(request.plan_definition_id)
             outgoing = _build_outgoing_edges(all_actions)
             trigger_action = next(
                 (a for a in all_actions if a.trigger_name == trigger_event),
@@ -465,9 +470,11 @@ class DurableStepRunner:
             )
             if trigger_action is None:
                 logger.warning(
-                    "DurableStepRunner.start: no trigger action for event=%s plan=%s",
+                    "DurableStepRunner.start: no trigger action for "
+                    "event=%s plan=%s actions_loaded=%d",
                     trigger_event,
                     request.plan_definition_id,
+                    len(all_actions),
                 )
                 return
             if trigger_action.node_type == "trigger":
@@ -509,7 +516,7 @@ class DurableStepRunner:
             store = PipelineStageStore(client)
             store.ensure_schema()
             store.upsert_run(request, status="running")
-            all_actions = _load_all_actions(client, request.plan_definition_id)
+            all_actions = _load_all_actions(request.plan_definition_id)
             action_map = {a.action_id: a for a in all_actions}
             action = action_map.get(action_id)
             if action is None:
@@ -517,17 +524,44 @@ class DurableStepRunner:
                     f"Action '{action_id}' not found in plan "
                     f"'{request.plan_definition_id}'"
                 )
+            # Persist a readable stage label (subgraph id) instead of the
+            # generic durable_step event_type used on the bus message.
+            stage_label = action.subgraph_id or action.node_type or action_id
+            if request.event_type == DURABLE_STEP_EVENT:
+                request = StepRequest.from_message(
+                    {
+                        **body,
+                        "step_id": request.step_id or action_id,
+                        "event_type": stage_label,
+                    }
+                )
             loaded = load_step_state(client, store, request, body=body)
             store.start_stage(request, loaded)
             _emit_progress(publish_progress, request, "durable_step_started", action_id)
             result = await _execute_action(action, loaded)
             result = _with_metrics(result, started, loaded)
+            # Resolve successors before complete_stage so PipelineRun stays
+            # "running" while more durable_step messages are in flight.
+            # PipelineStageStore.complete_stage treats missing next_event_type
+            # as terminal "completed", which stopped the scenario-runs UI
+            # auto-refresh mid-pipeline.
+            outgoing = _build_outgoing_edges(all_actions)
+            next_ids = _resolve_next_action_ids(action, result, outgoing)
+            if next_ids:
+                result = DurableStepResult(
+                    status=result.status,
+                    output=result.output,
+                    output_refs=result.output_refs,
+                    warnings=result.warnings,
+                    errors=result.errors,
+                    metrics=result.metrics,
+                    next_event_type=DURABLE_STEP_EVENT,
+                    next_step_id=next_ids[0],
+                )
             store.complete_stage(request, result)
             _emit_progress(
                 publish_progress, request, "durable_step_completed", action_id, result
             )
-            outgoing = _build_outgoing_edges(all_actions)
-            next_ids = _resolve_next_action_ids(action, result, outgoing)
             if next_ids:
                 for next_id in next_ids:
                     await _publish_durable_step(bus, queue_name, request, next_id)

@@ -78,7 +78,10 @@ export interface AuditDraftAssistantProps {
     section?: string,
     storyHeadline?: string,
     highlightKey?: string,
+    pageId?: string,
   ) => void;
+  onApplyPages?: (pages: { page_id: string; title: string; kind?: string }[]) => void;
+  onAddNarratives?: (zone1: string, zone2: string) => void;
 }
 
 const SUGGESTIONS = [
@@ -118,6 +121,8 @@ export default function AuditDraftAssistant({
   onClose,
   tiles,
   onAddTile,
+  onApplyPages,
+  onAddNarratives,
 }: AuditDraftAssistantProps) {
   const [phase, setPhase] = useState<AssistantPhase>("idle");
   const [items, setItems] = useState<MessageItem[]>([]);
@@ -272,7 +277,22 @@ export default function AuditDraftAssistant({
       phase: "build",
       history: [],
       approvedTiles: pendingPlan.tiles,
+      approvedPages: pendingPlan.pages ?? [],
+      zone1Narrative: pendingPlan.zone1_narrative ?? "",
+      zone2Narrative: pendingPlan.zone2_narrative ?? "",
       signal: abortRef.current.signal,
+      onPagesProposed: (pages) => {
+        onApplyPages?.(
+          pages.map((p) => ({
+            page_id: p.page_id,
+            title: p.label,
+            kind: p.kind,
+          })),
+        );
+      },
+      onNarrativesProposed: (z1, z2) => {
+        onAddNarratives?.(z1, z2);
+      },
       onTileAdded: (tile: PlannedTile) => {
         onAddTile(
           tile.metric_id,
@@ -281,6 +301,7 @@ export default function AuditDraftAssistant({
           tile.section,
           tile.story_headline,
           tile.highlight_key,
+          tile.page_id,
         );
         added++;
       },
@@ -302,7 +323,7 @@ export default function AuditDraftAssistant({
       },
     });
     void added; // used via onTileAdded
-  }, [pendingPlan, onAddTile, phase]);
+  }, [pendingPlan, onAddTile, onApplyPages, onAddNarratives, phase]);
 
   // -- Phase: revise --------------------------------------------------------
 

@@ -26,6 +26,7 @@ class ComplianceState(TypedDict, total=False):
     guideline_scope_type: str
     guideline_scope_id: str
     guideline_id: str
+    guideline_ruleset_version: str
     patient_age: float
     patient_sex: str
     patient_observations: list[dict[str, Any]]
@@ -70,6 +71,10 @@ def _evaluate_guideline(state: ComplianceState, codes: list[str]) -> dict[str, A
     active_medications = list(state.get("active_medications") or [])
     allergies = list(state.get("allergies") or [])
     treatment_history = list(state.get("treatment_history") or [])
+    # Per-run override only -- never touches the Redis "current version"
+    # pointer used by real traffic. Set by Validation Lab candidate-ruleset
+    # testing (libs/validation_lab/pipeline.py); absent on live referrals.
+    ruleset_version = state.get("guideline_ruleset_version") or None
     result = GuidelineEvaluator().evaluate_patient(
         codes,
         pathway_filter=scope_id or None,
@@ -77,11 +82,14 @@ def _evaluate_guideline(state: ComplianceState, codes: list[str]) -> dict[str, A
         patient_sex=state.get("patient_sex"),
         scope_type=scope_type if scope_id else None,
         scope_id=scope_id or None,
+        ruleset_version=ruleset_version,
         patient_observations=observations,
         active_medications=active_medications or None,
         allergies=allergies or None,
         treatment_history=treatment_history or None,
     )
+    if ruleset_version:
+        result["ruleset_version"] = ruleset_version
     result["patient_code_count"] = len(codes)
     result["patient_observation_count"] = len(observations or [])
     result["patient_medication_count"] = len(active_medications)

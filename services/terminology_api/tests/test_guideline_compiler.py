@@ -416,9 +416,7 @@ def test_compiled_rule_includes_multiple_actions_from_action_records(
             "due_days": 14,
         },
     ]
-    ruleset = compiler._build_ruleset(
-        rows, mock_session, action_records=action_records
-    )
+    ruleset = compiler._build_ruleset(rows, mock_session, action_records=action_records)
 
     rule = ruleset["rules"][0]
     assert len(rule["actions"]) == 2
@@ -435,7 +433,9 @@ def test_compiled_rule_includes_multiple_actions_from_action_records(
     assert rule["action"] == rule["actions"][0]
 
 
-def test_action_records_merged_by_rule_id_not_cross_joined(compiler, store, mock_session):
+def test_action_records_merged_by_rule_id_not_cross_joined(
+    compiler, store, mock_session
+):
     """action_records for a DIFFERENT rule_id must not leak onto this rule --
     proves the merge is keyed on rule_id, not positional."""
     rows = [_make_row(rule_id="r1", concept_id="443416000")]
@@ -449,9 +449,7 @@ def test_action_records_merged_by_rule_id_not_cross_joined(compiler, store, mock
             "due_days": None,
         }
     ]
-    ruleset = compiler._build_ruleset(
-        rows, mock_session, action_records=action_records
-    )
+    ruleset = compiler._build_ruleset(rows, mock_session, action_records=action_records)
     rule = ruleset["rules"][0]
     assert rule["actions"] == []
     assert rule["action"] is None
@@ -503,13 +501,24 @@ def test_actions_from_action_json_list_parses_multiple_items(
 
 
 @pytest.mark.asyncio
-async def test_compile_and_store_writes_version_and_sets_current(compiler, store):
-    """compile_and_store writes ruleset and sets active version pointer."""
+async def test_compile_and_store_writes_candidate_without_activate(compiler, store):
+    """Default compile writes a candidate and does not flip the live pointer."""
     with patch.object(compiler, "_compile_ruleset", return_value={"rules": []}):
         summary = await compiler.compile_and_store("v20260308")
 
     assert summary["version"] == "v20260308"
+    assert summary["activated"] is False
     store.write_ruleset.assert_called_once()
+    store.set_current_version.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_compile_and_store_activate_true_sets_current(compiler, store):
+    """activate=True flips the scope current pointer after write."""
+    with patch.object(compiler, "_compile_ruleset", return_value={"rules": []}):
+        summary = await compiler.compile_and_store("v20260308", activate=True)
+
+    assert summary["activated"] is True
     store.set_current_version.assert_called_once_with(
         "v20260308", scope_type="global", scope_id="default"
     )

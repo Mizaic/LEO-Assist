@@ -33,7 +33,7 @@ export interface Org {
   ods_sync_status?: string;
   ods_discrepancy?: Record<string, { ods: string; leo: string }>;
   ods_sync_last_checked?: string;
-  type: string; // gp | icb | alliance | pcn | organization
+  type: string; // gp | icb | alliance | pcn | service_provider | organization
   labels: string[];
   patient_count: number;
   parent_id?: string;
@@ -96,6 +96,16 @@ export interface AuthConfig {
 
 export async function listOrgs(): Promise<Org[]> {
   return api.get<Org[]>(`${ADMIN_BASE}/orgs`);
+}
+
+export interface OrgService {
+  id: string;
+  name?: string;
+  code?: string;
+}
+
+export async function listOrgServices(orgId: string): Promise<OrgService[]> {
+  return api.get<OrgService[]>(`${ADMIN_BASE}/orgs/${encodeURIComponent(orgId)}/services`);
 }
 
 export interface OrgGraphNode {

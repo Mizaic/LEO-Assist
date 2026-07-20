@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 
 class _EmptyGlobalReport:
     def to_dict(self) -> dict:
@@ -150,3 +152,57 @@ def test_compliance_uses_guideline_evaluator_when_scope_configured(monkeypatch):
 
     assert captured == {"codes": ["71711000112103"], "scope": "NG12"}
     assert result["guideline_result"]["is_compliant"] is True
+
+
+def test_evaluate_guideline_passes_ruleset_version_override(monkeypatch):
+    """Validation Lab candidate testing (Phase 3/6): a per-run
+    guideline_ruleset_version on state must reach GuidelineEvaluator, and
+    never mutate the live Redis "current version" pointer."""
+    from libs.pipeline_graph.subgraphs import compliance
+
+    captured_kwargs: dict[str, Any] = {}
+
+    class FakeEvaluator:
+        def evaluate_patient(self, codes, *args, **kwargs):
+            captured_kwargs.update(kwargs)
+            return {"matched_rules": []}
+
+    monkeypatch.setattr(
+        "services.terminology_api.app.services.guideline_evaluator.GuidelineEvaluator",
+        FakeEvaluator,
+    )
+
+    result = compliance._evaluate_guideline(
+        {
+            "guideline_scope_id": "NG12",
+            "entities": [],
+            "guideline_ruleset_version": "candidate-7",
+        },
+        codes=["71711000112103"],
+    )
+
+    assert captured_kwargs["ruleset_version"] == "candidate-7"
+    assert result["ruleset_version"] == "candidate-7"
+
+
+def test_evaluate_guideline_omits_ruleset_version_when_unset(monkeypatch):
+    from libs.pipeline_graph.subgraphs import compliance
+
+    captured_kwargs: dict[str, Any] = {}
+
+    class FakeEvaluator:
+        def evaluate_patient(self, codes, *args, **kwargs):
+            captured_kwargs.update(kwargs)
+            return {"matched_rules": []}
+
+    monkeypatch.setattr(
+        "services.terminology_api.app.services.guideline_evaluator.GuidelineEvaluator",
+        FakeEvaluator,
+    )
+
+    result = compliance._evaluate_guideline(
+        {"guideline_scope_id": "NG12", "entities": []}, codes=[]
+    )
+
+    assert captured_kwargs["ruleset_version"] is None
+    assert "ruleset_version" not in result

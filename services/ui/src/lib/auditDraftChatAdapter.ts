@@ -37,11 +37,18 @@ export interface GatherRequirementsResult {
 
 // -- Planning phase ----------------------------------------------------------
 
+export interface PlannedPage {
+  page_id: string;
+  label: string;
+  kind?: "snapshot" | "report";
+}
+
 export interface PlannedTile {
   metric_id: string;
   label: string;
   tile_type: string;
   section?: string;
+  page_id?: string;
   reason: string;
   story_headline?: string;
   highlight_key?: string;
@@ -50,6 +57,9 @@ export interface PlannedTile {
 export interface DashboardPlan {
   rationale: string;
   tiles: PlannedTile[];
+  pages?: PlannedPage[];
+  zone1_narrative?: string;
+  zone2_narrative?: string;
   warnings: string[];
 }
 
@@ -81,6 +91,10 @@ export interface SendMessageOptions {
   answers?: Record<string, string>;
   /** Approved tiles to add (build phase only). */
   approvedTiles?: PlannedTile[];
+  /** Approved pages from the plan (build phase). */
+  approvedPages?: PlannedPage[];
+  zone1Narrative?: string;
+  zone2Narrative?: string;
   /** Tiles already on the grid. */
   currentTiles?: { metric_id: string; label: string }[];
   existingMetricIds?: string[];
@@ -88,6 +102,8 @@ export interface SendMessageOptions {
   onText?: (delta: string) => void;
   onQuestions?: (result: GatherRequirementsResult) => void;
   onPlan?: (plan: DashboardPlan) => void;
+  onPagesProposed?: (pages: PlannedPage[]) => void;
+  onNarrativesProposed?: (zone1: string, zone2: string) => void;
   onTileAdded?: (tile: PlannedTile) => void;
   onBuildComplete?: (summary: BuildSummary) => void;
   onFinish: () => void;
@@ -114,11 +130,16 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
     history,
     answers = {},
     approvedTiles = [],
+    approvedPages = [],
+    zone1Narrative = "",
+    zone2Narrative = "",
     currentTiles = [],
     existingMetricIds = [],
     onText,
     onQuestions,
     onPlan,
+    onPagesProposed,
+    onNarrativesProposed,
     onTileAdded,
     onBuildComplete,
     onFinish,
@@ -146,6 +167,9 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
         phase,
         answers,
         approved_tiles: approvedTiles,
+        approved_pages: approvedPages,
+        zone1_narrative: zone1Narrative,
+        zone2_narrative: zone2Narrative,
         current_tiles: currentTiles,
         existing_metric_ids: existingMetricIds,
       }),
@@ -190,6 +214,13 @@ export async function sendMessage(opts: SendMessageOptions): Promise<void> {
         } else if (type === "plan-available") {
           const input = (event.input as Record<string, unknown>) ?? {};
           onPlan?.(input as unknown as DashboardPlan);
+        } else if (type === "pages-proposed") {
+          onPagesProposed?.((event.pages as PlannedPage[]) ?? []);
+        } else if (type === "narratives-proposed") {
+          onNarrativesProposed?.(
+            (event.zone1_narrative as string) ?? "",
+            (event.zone2_narrative as string) ?? "",
+          );
         } else if (type === "tile-added") {
           const tile = event.tile as PlannedTile;
           if (tile) onTileAdded?.(tile);

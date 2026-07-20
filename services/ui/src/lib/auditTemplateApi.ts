@@ -91,6 +91,7 @@ export interface AuditTile {
 export interface AuditPage {
   page_id: string;
   title: string;
+  kind?: "snapshot" | "report";
 }
 
 export type AuditTemplateStatus = "draft" | "published" | "archived";

@@ -226,6 +226,7 @@ RETURN rule.id AS rule_id,
 
 _CREATE_BLANK_RULE = """
 MATCH (rec:Recommendation {id: $rec_id})
+WHERE NOT coalesce(rec.likelyIncorrect, false)
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (ch)<-[:HAS_CHAPTER]-(g:Guideline)
 WITH rec, ch, g
@@ -278,17 +279,26 @@ WHERE ($guideline_id IS NULL OR
 RETURN rule.id AS rule_id
 """
 
+_FETCH_INCORRECT_RECOMMENDATIONS = """
+MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(rec:Recommendation)
+WHERE coalesce(rec.likelyIncorrect, false)
+  AND ($recommendation_ids IS NULL OR rec.id IN $recommendation_ids)
+RETURN rec.id AS rec_id
+LIMIT 1
+"""
+
 _FETCH_RULE_FOR_PROMOTION = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-()<-[:HAS_RECOMMENDATION]-(g:Guideline)
 OPTIONAL MATCH (g)<-[:CLASSIFIES_GUIDELINE]-(sub:TaxonomySubcategory)-[:HAS_DOMAIN]->(domain:AuditDomain {source: 'nice'})
+OPTIONAL MATCH (g)-[:HAS_DOMAIN]->(local_domain:AuditDomain)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[:HAS_CRITERIA]->(concept)
 RETURN rule.status AS status,
        coalesce(rule.schemaVersion, 1) AS schema_version,
        rule.logicJson AS logic_json,
        g.id AS guideline_id,
-       domain.id AS domain_id,
-       domain.name AS domain_name,
+       coalesce(local_domain.id, domain.id) AS domain_id,
+       coalesce(local_domain.name, domain.name) AS domain_name,
        collect(DISTINCT {concept_id: coalesce(concept.id, concept.conceptId), term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)}) AS concepts
 """
 
@@ -653,7 +663,10 @@ async def ai_redraft_rule(
     if logic_tree is None:
         raise HTTPException(
             status_code=422,
-            detail={"message": "AI could not extract a rule structure.", "errors": errors},
+            detail={
+                "message": "AI could not extract a rule structure.",
+                "errors": errors,
+            },
         )
 
     return {"logic_tree": logic_tree, "errors": errors}
@@ -718,8 +731,10 @@ def _write_dry_run_audit_event(
         except Exception:
             cost_usd = 0.0
 
-        status = "completed" if coded is not None and not errors else (
-            "partial" if coded is not None else "failed"
+        status = (
+            "completed"
+            if coded is not None and not errors
+            else ("partial" if coded is not None else "failed")
         )
         first_error = errors[0][:400] if errors else None
 
@@ -771,11 +786,30 @@ async def generate_rules(
     recommendations (already supported by the pipeline worker).
     """
     _ = scope
+    _reject_likely_incorrect_recommendations(req)
     return await _proxy_pipeline_worker_json(
         "POST",
         "/guidance/generate",
         json_body=req.model_dump(exclude_none=True),
     )
+
+
+def _reject_likely_incorrect_recommendations(req: GenerateRulesRequest) -> None:
+    """Prevent AI rule generation from an unverified local recommendation."""
+    client = _kg_client()
+    try:
+        rows = client.run(
+            _FETCH_INCORRECT_RECOMMENDATIONS,
+            guideline_id=req.guideline_id,
+            recommendation_ids=req.recommendation_ids,
+        )
+    finally:
+        client.close()
+    if rows:
+        raise HTTPException(
+            status_code=422,
+            detail="Fix guideline verification issues before generating rules.",
+        )
 
 
 @router.post("/rules/create-blank", status_code=201)
@@ -798,17 +832,35 @@ def create_blank_rule(
             rec_id=req.rec_id,
             rule_id=rule_id,
         )
+        if not records:
+            blocked = client.run(
+                "MATCH (rec:Recommendation {id: $rec_id}) "
+                "WHERE coalesce(rec.likelyIncorrect, false) "
+                "RETURN rec.id AS id LIMIT 1",
+                rec_id=req.rec_id,
+            )
+            if blocked:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Fix guideline verification issues before creating a rule."
+                    ),
+                )
+            raise HTTPException(
+                status_code=404,
+                detail=f"Recommendation not found: {req.rec_id}",
+            )
+        row = records[0]
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.error("create_blank_rule Neo4j error: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Could not create rule stub.") from exc
-
-    if not records:
         raise HTTPException(
-            status_code=404,
-            detail=f"Recommendation not found: {req.rec_id}",
-        )
+            status_code=500, detail="Could not create rule stub."
+        ) from exc
+    finally:
+        client.close()
 
-    row = records[0]
     return {
         "rule_id": row["rule_id"],
         "rule": {
@@ -1103,8 +1155,8 @@ def promote_rule_to_domain(
             raise HTTPException(
                 status_code=404,
                 detail=(
-                    "No NICE domain is linked to this guideline. "
-                    "Run a catalogue sync first to build the NICE taxonomy."
+                    "No domain is linked to this guideline. "
+                    "Link a domain before promoting this rule."
                 ),
             )
 
@@ -1268,7 +1320,8 @@ def _format_rule(r: dict) -> dict:
         "has_predecessor": bool(r.get("has_predecessor")),
         "predecessor_id": r.get("predecessor_id"),
         "previous_recommendation_text": r.get("previous_recommendation_text") or None,
-        "previous_recommendation_number": r.get("previous_recommendation_number") or None,
+        "previous_recommendation_number": r.get("previous_recommendation_number")
+        or None,
     }
 
 

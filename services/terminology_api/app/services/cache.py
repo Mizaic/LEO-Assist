@@ -31,12 +31,22 @@ class TerminologyCache:
         )
 
     def generate_key(
-        self, term: str, expected_tag: str | None, enrich_lab_domain: bool
+        self,
+        term: str,
+        expected_tag: str | None,
+        enrich_lab_domain: bool,
+        org_id: str | None = None,
+        package_fingerprint: str = "",
     ) -> str:
         """Generate a deterministic composite cache key."""
         text_hash = hashlib.md5(term.strip().lower().encode("utf-8")).hexdigest()
         tag_str = (expected_tag or "").strip().lower()
-        return f"term_resolve:v1:{text_hash}:{tag_str}:{enrich_lab_domain}"
+        org_str = (org_id or "").strip() or "_"
+        fp = (package_fingerprint or "").strip() or "_"
+        return (
+            f"term_resolve:v2:{text_hash}:{tag_str}:{enrich_lab_domain}"
+            f":{org_str}:{fp}"
+        )
 
     def mget(self, keys: list[str]) -> dict[str, Any]:
         """Fetch multiple cache keys, returning a dict mapping key to deserialized payload."""

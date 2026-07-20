@@ -572,6 +572,12 @@ SET o:ServiceProvider
 RETURN o.id AS id
 """
 
+LIST_ORG_SERVICES = """
+MATCH (s:Service)-[:PROVIDES_SERVICE]->(o:Organization {id: $org_id})
+RETURN s.id AS id, s.name AS name, s.code AS code
+ORDER BY s.name
+"""
+
 LIST_ORGS_WITH_ODS_CODE = """
 MATCH (o:Organization)
 WHERE o.odsCode IS NOT NULL AND o.odsCode <> ''

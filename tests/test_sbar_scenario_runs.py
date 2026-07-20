@@ -60,7 +60,9 @@ def test_scenario_run_enqueues_referral_messages(monkeypatch) -> None:
     )
     monkeypatch.setattr(sbar_module, "_create_scenario_run", lambda **_: None)
     monkeypatch.setattr(
-        sbar_module, "_upsert_synthetic_encounters", lambda *_, **__: None
+        sbar_module,
+        "_scaffold_scenario_referrals",
+        lambda *_a, **_k: {"upper_gi_letter_001": ["chunk-1"]},
     )
     monkeypatch.setattr(
         sbar_module, "_update_scenario_parent_status", lambda *_, **__: None
@@ -87,6 +89,8 @@ def test_scenario_run_enqueues_referral_messages(monkeypatch) -> None:
     assert message.body["event_type"] == "referral-received"
     assert message.body["plan_definition_id"] == "pd-referral-assessment"
     assert message.body["guideline_id"] == "NG12"
+    assert message.body["chunk_ids"] == ["chunk-1"]
+    assert message.body["source_node_type"] == "ReferralRequest"
     assert message.body["context"]["case_id"] == "upper_gi_letter_001"
     assert message.body["context"]["source"] == "ai_summarisation_scenario"
 
@@ -186,19 +190,16 @@ def test_scenario_run_detail_serializes_neo4j_datetime(monkeypatch) -> None:
 def test_scenario_synthetic_patient_demographics_are_written(monkeypatch) -> None:
     calls: list[dict[str, object]] = []
 
-    class FakePatientClient:
-        def run(self, _query: str, **params):
-            calls.append(params)
-            return []
+    def fake_scaffold(**kwargs):
+        calls.append(kwargs)
+        return ["chunk-1"]
 
-        def close(self):
-            return None
+    monkeypatch.setattr(
+        "libs.referral_simulator.scaffold.scaffold_referral",
+        fake_scaffold,
+    )
 
-    import libs.neo4j_client.client as neo_client_module
-
-    monkeypatch.setattr(neo_client_module, "PatientGraphClient", FakePatientClient)
-
-    sbar_module._upsert_synthetic_encounters(
+    chunk_ids = sbar_module._scaffold_scenario_referrals(
         "parent-1",
         [
             {
@@ -216,7 +217,8 @@ def test_scenario_synthetic_patient_demographics_are_written(monkeypatch) -> Non
         {"upper_gi_form_001": "parent-1:upper_gi_form_001"},
     )
 
+    assert chunk_ids == {"upper_gi_form_001": ["chunk-1"]}
     assert calls[0]["patient_name"] == "Synthetic Given 005 Synthetic Family 005"
-    assert calls[0]["patient_gender"] == "Male"
-    assert calls[0]["patient_birth_date"] == "1945-06-06"
-    assert calls[0]["synthetic_nhs_number"] == "SYN-NHS-000005"
+    assert calls[0]["patient_sex"] == "Male"
+    assert calls[0]["birth_date"] == "1945-06-06"
+    assert calls[0]["nhs_number"] == "SYN-NHS-000005"

@@ -48,12 +48,14 @@ import {
   assignOrgRole,
   deleteOrg,
   listOrgs,
+  listOrgServices,
   listOrgUsers,
   patchOrg,
   releaseGpFromPcn,
   removeOrgRole,
   removeUserFromOrg,
   type Org,
+  type OrgService,
   type User,
 } from "@/lib/api/admin";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -70,6 +72,7 @@ const ORG_TYPE_CONFIG: Record<
   pcn: { label: "PCN", color: "warning" },
   icb: { label: "ICB", color: "info" },
   alliance: { label: "Cancer Alliance", color: "secondary" },
+  service_provider: { label: "Service Provider", color: "info" },
   organization: { label: "Organisation", color: "default" },
 };
 
@@ -151,6 +154,8 @@ interface OrgDrawerProps {
 export default function OrgDrawer({ org, onClose, onChanged }: OrgDrawerProps) {
   const [pcns, setPcns] = useState<Org[]>([]);
   const [loadingPcns, setLoadingPcns] = useState(false);
+  const [spServices, setSpServices] = useState<OrgService[]>([]);
+  const [loadingSpServices, setLoadingSpServices] = useState(false);
 
   // People
   const [orgUsers, setOrgUsers] = useState<User[]>([]);
@@ -194,6 +199,19 @@ export default function OrgDrawer({ org, onClose, onChanged }: OrgDrawerProps) {
       .then((all) => setPcns(all.filter((o) => o.type === "pcn")))
       .catch(() => setPcns([]))
       .finally(() => setLoadingPcns(false));
+  }, [org?.id, org?.type]);
+
+  // Fetch linked services when a Service Provider drawer is opened
+  useEffect(() => {
+    if (!org || org.type !== "service_provider") {
+      setSpServices([]);
+      return;
+    }
+    setLoadingSpServices(true);
+    listOrgServices(org.id)
+      .then(setSpServices)
+      .catch(() => setSpServices([]))
+      .finally(() => setLoadingSpServices(false));
   }, [org?.id, org?.type]);
 
   // Fetch users whenever the drawer opens for an org
@@ -546,6 +564,41 @@ export default function OrgDrawer({ org, onClose, onChanged }: OrgDrawerProps) {
               </Box>
             )}
           </Box>
+
+          {/* ---- Linked services (Service Provider only) ---- */}
+          {org.type === "service_provider" && (
+            <>
+              <SectionTitle>Linked services</SectionTitle>
+              <Divider />
+              <Box sx={{ mt: 0.5 }}>
+                {loadingSpServices ? (
+                  <CircularProgress size={16} aria-label="Loading services" />
+                ) : spServices.length === 0 ? (
+                  <Typography variant="caption" color="text.disabled">
+                    No services linked to this organisation yet.
+                  </Typography>
+                ) : (
+                  <List dense disablePadding>
+                    {spServices.map((svc) => (
+                      <ListItem key={svc.id} disableGutters sx={{ py: 0.25 }}>
+                        <ListItemAvatar sx={{ minWidth: 36 }}>
+                          <Avatar sx={{ width: 28, height: 28, bgcolor: "info.light" }}>
+                            <LocalHospitalIcon sx={{ fontSize: 16 }} />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={svc.name || svc.id}
+                          secondary={svc.code || svc.id}
+                          primaryTypographyProps={{ variant: "body2", fontWeight: 500 }}
+                          secondaryTypographyProps={{ variant: "caption" }}
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </Box>
+            </>
+          )}
 
           {/* ---- PCN membership (GP only) ---- */}
           {org.type === "gp" && (

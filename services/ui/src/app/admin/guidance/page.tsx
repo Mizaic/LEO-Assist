@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -38,6 +39,7 @@ import BitmapLifecycleSection from "./BitmapLifecycleSection";
 import GuidelineBuilderSplash, {
   GUIDANCE_SPLASH_SESSION_KEY,
 } from "./GuidelineBuilderSplash";
+import LocalGuidelineImportDialog from "./LocalGuidelineImportDialog";
 import { popSpring, staggerDelay } from "./motionPresets";
 
 type StepId = "load" | "inspect" | "review" | "compile";
@@ -130,6 +132,7 @@ export default function GuidancePage() {
   const [activeStep, setActiveStep] = useState<StepId>("load");
   const [stats, setStats] = useState<PageStats>({ guidelinesLoaded: 0, rulesPending: 0, rulesApproved: 0, activeBitmapVersion: "--" });
   const [showSplash, setShowSplash] = useState(false);
+  const [showLocalImport, setShowLocalImport] = useState(false);
   const { reducedMotion } = useMotion();
 
   useEffect(() => {
@@ -179,7 +182,23 @@ export default function GuidancePage() {
       {/* -- Summary hero ------------------------------------------------- */}
       <Box sx={{ mb: 2 }}>
         <StatHero stats={statTiles} />
+        <Button sx={{ mt: 1 }} variant="contained" onClick={() => setShowLocalImport(true)}>
+          Import local guideline
+        </Button>
       </Box>
+      <LocalGuidelineImportDialog
+        open={showLocalImport}
+        onClose={() => setShowLocalImport(false)}
+        onImported={() => {
+          setLoadedRefreshKey((n) => n + 1);
+          setActiveStep("load");
+          window.setTimeout(() => {
+            document
+              .querySelector("#loaded-guidelines")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 100);
+        }}
+      />
 
       {/* -- Jump strip --------------------------------------------------- */}
       <Box

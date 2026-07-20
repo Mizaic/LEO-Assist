@@ -88,13 +88,59 @@ SECRET_MAP: dict[str, str] = {
     "SDK_WIDGET_TOKEN_SECRET": "sdk-widget-token-secret",
 }
 
+# Optional local/dev features. Missing these in Key Vault must not spam
+# startup logs -- mail Graph is only needed for mailbox tooling, not the
+# referral / SBAR pipeline worker.
+_OPTIONAL_KV_SECRET_NAMES: frozenset[str] = frozenset(
+    {
+        "mail-graph-tenant-id",
+        "mail-graph-client-id",
+        "mail-graph-client-secret",
+    }
+)
 
-def _load_local_secrets_fallback() -> int:
+
+def _is_secret_not_found(exc: BaseException) -> bool:
+    """True when Key Vault answered that the secret name does not exist."""
+    name = type(exc).__name__
+    if name in {"ResourceNotFoundError", "SecretNotFound"}:
+        return True
+    msg = str(exc)
+    return "SecretNotFound" in msg or ("(name/id)" in msg and "was not found" in msg)
+
+
+def _is_credential_failure(exc: BaseException) -> bool:
+    """True when Key Vault access failed because auth itself is broken.
+
+    Distinguishes a one-off missing secret (keep trying other names) from an
+    expired `az login` / DefaultAzureCredential collapse (abort the loop).
+    """
+    name = type(exc).__name__
+    if name in {
+        "ClientAuthenticationError",
+        "CredentialUnavailableError",
+        "AuthenticationRequiredError",
+    }:
+        return True
+    msg = str(exc).lower()
+    return (
+        "defaultazurecredential failed" in msg
+        or "aadsts70043" in msg
+        or "refresh token has expired" in msg
+        or "authentication failed" in msg
+    )
+
+
+def _load_local_secrets_fallback(only_keys: set[str] | None = None) -> int:
     """Load secrets/.env.secrets into os.environ when KV is disabled.
 
     Used in local development when AZURE_KEYVAULT_URL is not set. Existing
     env vars are NOT overwritten (override=False) so anything explicitly
     exported in the shell still wins.
+
+    When `only_keys` is given, only those keys are considered (used by the
+    KV-recovery path below, so a KV outage never leaks unrelated local-only
+    values into an environment that otherwise trusts Key Vault).
 
     Returns the number of vars loaded (0 if the file does not exist).
 
@@ -116,6 +162,8 @@ def _load_local_secrets_fallback() -> int:
                 key = key.strip()
                 value = value.strip()
                 if not key:
+                    continue
+                if only_keys is not None and key not in only_keys:
                     continue
                 if key in os.environ:
                     continue
@@ -171,15 +219,50 @@ def load_keyvault_secrets() -> None:
 
     client = SecretClient(vault_url=vault_url, credential=get_credential())
     loaded = 0
+    failed_keys: set[str] = set()
+    auth_broken = False
     for env_key, kv_name in SECRET_MAP.items():
+        if auth_broken:
+            failed_keys.add(env_key)
+            continue
         try:
             secret = client.get_secret(kv_name)
             os.environ[env_key] = secret.value or ""
             loaded += 1
         except Exception as exc:
-            logger.warning(
-                "Could not load KV secret %s -> %s: %s", kv_name, env_key, exc
-            )
+            failed_keys.add(env_key)
+            if _is_credential_failure(exc):
+                # One expired az login would otherwise retry DefaultAzureCredential
+                # for every remaining secret (~30 huge stack traces). Bail out of
+                # the KV loop and recover from secrets/.env.secrets once.
+                auth_broken = True
+                logger.warning(
+                    "Key Vault authentication failed on first secret "
+                    "(%s -> %s): %s. Skipping remaining KV fetches and "
+                    "falling back to local secrets file if present.",
+                    kv_name,
+                    env_key,
+                    exc,
+                )
+            elif _is_secret_not_found(exc) and kv_name in _OPTIONAL_KV_SECRET_NAMES:
+                logger.info(
+                    "Optional KV secret %s not present; skipping (%s)",
+                    kv_name,
+                    env_key,
+                )
+            elif _is_secret_not_found(exc):
+                logger.warning(
+                    "Could not load KV secret %s -> %s (not found in vault)",
+                    kv_name,
+                    env_key,
+                )
+            else:
+                logger.warning(
+                    "Could not load KV secret %s -> %s: %s",
+                    kv_name,
+                    env_key,
+                    exc,
+                )
 
     logger.info(
         "Loaded %d/%d secrets from Key Vault %s",
@@ -187,3 +270,25 @@ def load_keyvault_secrets() -> None:
         len(SECRET_MAP),
         vault_url,
     )
+
+    if failed_keys:
+        # Belt-and-braces recovery: a stale az login, a revoked credential, or
+        # a transient KV outage must not silently leave every downstream
+        # service without Neo4j/Bedrock/etc credentials (see
+        # services/analytics_api dashboards.py PatientGraphClient failures).
+        # secrets/.env.secrets does not exist in any deployed environment, so
+        # this is a genuine no-op there -- it only helps local dev recover
+        # from an expired `az login` session.
+        recovered = _load_local_secrets_fallback(only_keys=failed_keys)
+        if recovered:
+            logger.warning(
+                "Key Vault fetch failed for %d secret(s) (%s) -- recovered %d "
+                "from local %s as a fallback. This MUST NOT happen in a "
+                "deployed environment; if it does, Key Vault access is "
+                "broken and needs investigating (e.g. expired credential, "
+                "missing RBAC, network policy).",
+                len(failed_keys),
+                ", ".join(sorted(failed_keys)),
+                recovered,
+                _LOCAL_SECRETS_FILE,
+            )

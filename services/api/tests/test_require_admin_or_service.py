@@ -1,8 +1,9 @@
 """Unit tests for require_admin_or_service -- VT-LEO-AI-166 (DI-LEO-AI-167).
 
-Covers the post-compile replay hook that lets terminology-api call
-/guidance/test-patients/replay using a SERVICE_AUTH_SECRET Bearer token,
-while the admin UI continues to call the same endpoint with a session cookie.
+Covers the generic service-to-service auth dependency that lets another
+internal service call an admin endpoint with a SERVICE_AUTH_SECRET Bearer
+token, while the admin UI continues to call the same endpoint with a
+session cookie.
 """
 
 from __future__ import annotations

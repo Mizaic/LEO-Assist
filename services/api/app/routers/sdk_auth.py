@@ -217,6 +217,79 @@ def proxy_sbar(
     return _load_sbar_payload(assessment_id, claims.tenant_id)
 
 
+@router.get("/sbar/{assessment_id}/sources/{source_id}")
+def proxy_sbar_source(
+    assessment_id: str,
+    source_id: str,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Assessment-scoped source text for the widget dialog."""
+    token = _extract_bearer(authorization)
+    try:
+        claims = verify_widget_token(token)
+    except WidgetTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid widget token: {exc}",
+        ) from exc
+
+    if claims.assessment_id != assessment_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Widget token assessment-id does not match the requested "
+                "assessment-id"
+            ),
+        )
+
+    payload = _load_sbar_payload(assessment_id, claims.tenant_id)
+    allowed: set[str] = set()
+    label = source_id
+    preview = ""
+    stype = "Record"
+    for part in payload.background_parts:
+        for sid in part.get("sourceIds") or []:
+            allowed.add(str(sid))
+        for src in part.get("sources") or []:
+            sid = str(src.get("id") or "")
+            allowed.add(sid)
+            if sid == source_id:
+                label = str(src.get("label") or sid)
+                preview = str(src.get("preview") or "")
+                stype = str(src.get("type") or "Record")
+    if source_id not in allowed:
+        raise HTTPException(status_code=404, detail="Source not on assessment")
+
+    text = preview
+    try:
+        from libs.neo4j_client.client import PatientGraphClient
+        from libs.sbar.source_resolver import (
+            _resolve_chunk,
+            _resolve_encounter,
+        )
+
+        client = PatientGraphClient()
+        try:
+            with client.session() as session:
+                if stype.lower() == "encounter":
+                    resolved = _resolve_encounter(session, source_id)
+                else:
+                    resolved = _resolve_chunk(session, source_id)
+                if resolved and resolved.text:
+                    text = resolved.text
+        finally:
+            client.close()
+    except Exception:
+        logger.debug("source text resolve failed for %s", source_id, exc_info=True)
+
+    return {
+        "id": source_id,
+        "type": stype,
+        "label": label,
+        "text": text or preview or "",
+    }
+
+
 def _decode_assessment_rules(raw: Any) -> list[dict]:
     """Decode the assessment_rules field into a list of rule dicts.
 
@@ -288,6 +361,19 @@ def _query_assessment_from_neo4j(assessment_id: str) -> dict | None:
     return assessment_to_dict(row)
 
 
+def _normalise_source_ref(raw: Any) -> dict:
+    if not isinstance(raw, dict):
+        return {"id": str(raw or ""), "label": str(raw or ""), "preview": ""}
+    sid = str(raw.get("id") or "")
+    return {
+        "id": sid,
+        "type": raw.get("type") or "Record",
+        "label": raw.get("label") or sid,
+        "preview": raw.get("preview") or "",
+        "date": raw.get("date"),
+    }
+
+
 def _normalise_background_part(part: Any) -> dict:
     """Convert a snake_case background part to the camelCase widget contract.
 
@@ -297,12 +383,21 @@ def _normalise_background_part(part: Any) -> dict:
     """
     if not isinstance(part, dict):
         return part
+    raw_sources = part.get("sources") or []
+    sources = [_normalise_source_ref(s) for s in raw_sources]
+    source_ids = part.get("sourceIds") or part.get("source_ids") or []
+    if not sources and source_ids:
+        sources = [
+            {"id": str(s), "type": "Record", "label": str(s), "preview": ""}
+            for s in source_ids
+        ]
     return {
         "index": part.get("index", 0),
         "total": part.get("total", 1),
         "recordCount": part.get("recordCount") or part.get("record_count", 0),
         "recordRange": part.get("recordRange") or part.get("record_range") or [0, 0],
-        "sourceIds": part.get("sourceIds") or part.get("source_ids") or [],
+        "sourceIds": source_ids,
+        "sources": sources,
         "status": part.get("status", "completed"),
         "errorCode": part.get("errorCode") or part.get("error_code"),
         "errorMessage": part.get("errorMessage") or part.get("error_message"),
@@ -329,9 +424,7 @@ def _to_completeness_findings(raw_json: str | None) -> dict | None:
         return None
     matched = result.get("matched_groups") or []
     missing = result.get("missing_groups") or []
-    required_fields = [
-        g["name"] for g in (matched + missing) if g.get("required")
-    ]
+    required_fields = [g["name"] for g in (matched + missing) if g.get("required")]
     present_fields = [g["name"] for g in matched]
     missing_fields = [g["name"] for g in missing if g.get("required")]
     unclear_fields = [g["name"] for g in missing if not g.get("required")]
@@ -359,9 +452,7 @@ def _load_sbar_payload(assessment_id: str, tenant_id: str) -> SbarPayload:
     background_parts = [_normalise_background_part(p) for p in raw_parts]
 
     generated_at = record.get("updated_at") or record.get("created_at") or ""
-    completeness = _to_completeness_findings(
-        record.get("completeness_result_json")
-    )
+    completeness = _to_completeness_findings(record.get("completeness_result_json"))
     return SbarPayload(
         assessment_id=assessment_id,
         tenant_id=tenant_id,

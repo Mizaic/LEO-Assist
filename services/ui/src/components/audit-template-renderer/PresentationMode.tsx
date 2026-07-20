@@ -33,6 +33,8 @@ import WidgetTile from "./WidgetTile";
 interface PresentationModeProps {
   template: AuditTemplate;
   orgId: string;
+  /** When set, only these tiles are presented (active page). */
+  tiles?: AuditTemplate["tiles"];
   mockResults?: Map<string, MetricRunResult>;
   onClose: () => void;
 }
@@ -45,9 +47,13 @@ type Slide =
 // Build slide deck from template
 // ---------------------------------------------------------------------------
 
-function buildSlides(template: AuditTemplate): Slide[] {
-  const groups: Record<string, typeof template.tiles> = {};
-  for (const tile of template.tiles) {
+function buildSlides(
+  template: AuditTemplate,
+  pageTiles?: AuditTemplate["tiles"],
+): Slide[] {
+  const source = pageTiles ?? template.tiles;
+  const groups: Record<string, typeof source> = {};
+  for (const tile of source) {
     const key = tile.section?.trim() || "General";
     if (!groups[key]) groups[key] = [];
     groups[key].push(tile);
@@ -183,11 +189,12 @@ function TileSlide({
 export default function PresentationMode({
   template,
   orgId,
+  tiles,
   mockResults,
   onClose,
 }: PresentationModeProps) {
   const reduced = useReducedMotion();
-  const slides = useMemo(() => buildSlides(template), [template]);
+  const slides = useMemo(() => buildSlides(template, tiles), [template, tiles]);
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
 

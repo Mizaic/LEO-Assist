@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -13,6 +12,7 @@ from libs.workflow.durable_step_runner import (
     _Action,
     _build_outgoing_edges,
     _evaluate_condition_port,
+    _load_all_actions,
     _resolve_next_action_ids,
     is_durable_runner_enabled,
 )
@@ -39,6 +39,43 @@ def test_true_flag_enables_all(monkeypatch):
     monkeypatch.setenv("DURABLE_ENGINE_ENABLED", "true")
     assert is_durable_runner_enabled("pd-referral-assessment") is True
     assert is_durable_runner_enabled("pd-gp-encounter-coding") is True
+
+
+# ---------------------------------------------------------------------------
+# _load_all_actions (Knowledge Graph, not Patient Graph)
+# ---------------------------------------------------------------------------
+
+
+def test_load_all_actions_uses_knowledge_graph_client():
+    """PlanDefinitions live on the KG; patient graph has none."""
+    trigger_row = {
+        "a": {
+            "id": "act-ref-durable-start",
+            "canvas_id": "act-ref-durable-start",
+            "nodeType": "trigger",
+            "trigger_name": "referral-received",
+            "sequence": 0,
+            "relatedActions": [],
+        },
+        "ad": None,
+    }
+    mock_kg = MagicMock()
+    mock_kg.run.return_value = [trigger_row]
+    mock_kg.close = MagicMock()
+
+    with patch(
+        "libs.workflow.durable_step_runner.KnowledgeGraphClient",
+        return_value=mock_kg,
+    ) as kg_cls:
+        actions = _load_all_actions("pd-referral-assessment")
+
+    kg_cls.assert_called_once_with()
+    mock_kg.run.assert_called_once()
+    assert mock_kg.run.call_args.kwargs["plan_id"] == "pd-referral-assessment"
+    mock_kg.close.assert_called_once()
+    assert len(actions) == 1
+    assert actions[0].trigger_name == "referral-received"
+    assert actions[0].node_type == "trigger"
 
 
 # ---------------------------------------------------------------------------
@@ -136,9 +173,7 @@ def test_resolve_next_condition_takes_default():
         ],
     )
     outgoing = _build_outgoing_edges([cond, ok_action, fail_action])
-    result = DurableStepResult(
-        status="completed", output={"condition_port": "else"}
-    )
+    result = DurableStepResult(status="completed", output={"condition_port": "else"})
     next_ids = _resolve_next_action_ids(cond, result, outgoing)
     assert next_ids == ["act-fail"]
 
@@ -249,7 +284,7 @@ async def test_run_step_invokes_subgraph_and_publishes_next():
                 start_stage=MagicMock(),
                 complete_stage=MagicMock(),
             ),
-        ),
+        ) as store_cls,
         patch(
             "libs.workflow.durable_step_runner.load_step_state",
             return_value={"patient_id": "p-002", "entities": []},
@@ -262,6 +297,11 @@ async def test_run_step_invokes_subgraph_and_publishes_next():
         result = await DurableStepRunner.run_step(body, bus=mock_bus)
 
     assert result.status == "completed"
+    assert result.next_event_type == DURABLE_STEP_EVENT
+    assert result.next_step_id == "act-ref-post-process"
+    store = store_cls.return_value
+    completed_result = store.complete_stage.call_args[0][1]
+    assert completed_result.next_event_type == DURABLE_STEP_EVENT
     mock_bus.send.assert_called_once()
     sent_body = mock_bus.send.call_args[0][1].body
     assert sent_body["action_id"] == "act-ref-post-process"

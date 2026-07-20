@@ -70,6 +70,11 @@ const PREFIX_RULES: PrefixRule[] = [
   { prefix: "/api/mail/", rewrite: (r) => `${coreApi()}/mail/${r}` },
   { prefix: "/api/proxy/", rewrite: (r) => `${coreApi()}/api/proxy/${r}` },
   { prefix: "/api/patients/", rewrite: (r) => `${coreApi()}/patients/${r}` },
+  // SBAR scenario-runs / assessments / jobs. Nested App Router handlers under
+  // app/api/sbar/** currently 404 under Turbopack (only the shallow routes
+  // resolve), so proxy them to Core API. SSE events stay on the Route Handler
+  // (see early return in proxy()) so the long-lived stream is not rewritten.
+  { prefix: "/api/sbar/", rewrite: (r) => `${coreApi()}/sbar/${r}` },
   // -- Pipeline Worker routes (must come BEFORE the generic /api/pipeline/ rule) --
   // All interactive dry-run endpoints run on the pipeline worker, not the Core API,
   // so that LLM/NLP work does not compete with live API request serving.
@@ -143,6 +148,14 @@ const PREFIX_RULES: PrefixRule[] = [
   { prefix: "/api/service-configs", rewrite: () => `${coreApi()}/service-configs` },
   { prefix: "/api/nice/", rewrite: (r) => `${coreApi()}/nice/${r}` },
   { prefix: "/api/guidance/", rewrite: (r) => `${coreApi()}/guidance/${r}` },
+  {
+    prefix: "/api/validation-lab/",
+    rewrite: (r) => `${coreApi()}/validation-lab/${r}`,
+  },
+  {
+    prefix: "/api/validation-lab",
+    rewrite: () => `${coreApi()}/validation-lab`,
+  },
 ];
 
 function proxyRewrite(request: NextRequest, dest: string): NextResponse {
@@ -187,6 +200,13 @@ export function proxy(request: NextRequest) {
   // so integration tests work without a real auth backend.
   if (pathname === "/auth/session" && isE2eAuthMode()) {
     return NextResponse.json(E2E_SESSION_PAYLOAD);
+  }
+
+  // Long-lived SBAR SSE stream -- keep the dedicated Route Handler.
+  // NextResponse.rewrite() to Core would also work, but the App Router
+  // handler sets Cache-Control / X-Accel-Buffering for proxies.
+  if (/^\/api\/sbar\/jobs\/[^/]+\/events$/.test(pathname)) {
+    return NextResponse.next();
   }
 
   const isMutation = method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
@@ -236,6 +256,7 @@ export const config = {
     "/api/mail/:path*",
     "/api/proxy/:path*",
     "/api/patients/:path*",
+    "/api/sbar/:path*",
     "/api/pipeline/:path*",
     "/api/review/:path*",
     "/api/work/:path*",
@@ -267,5 +288,7 @@ export const config = {
     "/api/service-configs/:path*",
     "/api/nice/:path*",
     "/api/guidance/:path*",
+    "/api/validation-lab",
+    "/api/validation-lab/:path*",
   ],
 };

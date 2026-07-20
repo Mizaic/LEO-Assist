@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "source": "terminology_exact_fsn_v1",
+  "notes": "INTERPRETS_AS mappings verified against Knowledge Graph Concept.fsn via terminology search. Only high/low/out_of_range bands are stored; critically_* fall back to high/low in the classifier. Normal is omitted because derived findings skip normals.",
+  "mappings": [
+    {
+      "concept_ids": ["365616006", "1107511000000100", "271026005"],
+      "display_name": "Haemoglobin",
+      "interpretations": {
+        "high": {"concept_id": "131141003", "term": "Hemoglobin above reference range (finding)"},
+        "low": {"concept_id": "165397008", "term": "Hemoglobin below reference range (finding)"},
+        "out_of_range": {"concept_id": "441793007", "term": "Hemoglobin level outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104187009", "997491000000108"],
+      "display_name": "Amylase",
+      "interpretations": {
+        "high": {"concept_id": "275739007", "term": "Serum amylase above reference range (finding)"},
+        "out_of_range": {"concept_id": "166572003", "term": "Serum amylase (pancreatic) outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["365625004", "1110441000000100"],
+      "display_name": "White blood cell count",
+      "interpretations": {
+        "high": {"concept_id": "142918008", "term": "Leucocytosis (finding)"},
+        "low": {"concept_id": "142917003", "term": "Leucopenia (finding)"},
+        "out_of_range": {"concept_id": "165509000", "term": "White blood cell count outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["365631001", "1022651000000100"],
+      "display_name": "Platelet count",
+      "interpretations": {
+        "high": {"concept_id": "415115007", "term": "Platelet count above reference range (finding)"},
+        "low": {"concept_id": "415116008", "term": "Platelet count below reference range (finding)"},
+        "out_of_range": {"concept_id": "165558001", "term": "Platelet count outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["365632008", "1022491000000106"],
+      "display_name": "Mean corpuscular volume",
+      "interpretations": {
+        "high": {"concept_id": "165454002", "term": "Mean corpuscular volume above reference range (finding)"},
+        "low": {"concept_id": "165455001", "term": "Mean corpuscular volume below reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104166004", "1012681000000101"],
+      "display_name": "Sodium",
+      "interpretations": {
+        "high": {"concept_id": "1153565002", "term": "Serum sodium above reference range (finding)"},
+        "low": {"concept_id": "1153567005", "term": "Serum sodium below reference range (finding)"},
+        "out_of_range": {"concept_id": "166693005", "term": "Serum sodium level outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104167008", "1012671000000103"],
+      "display_name": "Potassium",
+      "interpretations": {
+        "high": {"concept_id": "166689004", "term": "Serum potassium level above reference range (finding)"},
+        "low": {"concept_id": "166690008", "term": "Serum potassium level below reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104147008", "1000731000000107", "113075003"],
+      "display_name": "Creatinine",
+      "interpretations": {
+        "high": {"concept_id": "166717003", "term": "Serum creatinine above reference range (finding)"},
+        "low": {"concept_id": "166715006", "term": "Serum creatinine below reference range (finding)"},
+        "out_of_range": {"concept_id": "166714005", "term": "Serum creatinine outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104172004", "1018251000000107", "45896005"],
+      "display_name": "Alanine aminotransferase",
+      "interpretations": {
+        "high": {"concept_id": "409673008", "term": "Alanine aminotransferase above reference range (finding)"},
+        "low": {"concept_id": "1162723004", "term": "Alanine aminotransferase below reference range (finding)"},
+        "out_of_range": {"concept_id": "166646003", "term": "Alanine aminotransferase outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104173009", "1000621000000104"],
+      "display_name": "Alkaline phosphatase",
+      "interpretations": {
+        "high": {"concept_id": "274770006", "term": "Alkaline phosphatase above reference range (finding)"},
+        "low": {"concept_id": "1153478004", "term": "Serum alkaline phosphatase below reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104171006", "999691000000104"],
+      "display_name": "Bilirubin",
+      "interpretations": {
+        "high": {"concept_id": "166612004", "term": "Serum bilirubin above reference range (finding)"},
+        "low": {"concept_id": "124078008", "term": "Bilirubin level below reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104169006", "1000821000000103"],
+      "display_name": "Albumin",
+      "interpretations": {
+        "high": {"concept_id": "1153476000", "term": "Serum albumin above reference range (finding)"},
+        "low": {"concept_id": "1153477009", "term": "Serum albumin below reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104174003", "1001371000000100"],
+      "display_name": "C-reactive protein",
+      "interpretations": {
+        "high": {"concept_id": "119971000119104", "term": "C-reactive protein above reference range (finding)"},
+        "out_of_range": {"concept_id": "166584001", "term": "C-reactive protein outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104164001", "1022511000000103"],
+      "display_name": "Erythrocyte sedimentation rate",
+      "interpretations": {
+        "high": {"concept_id": "165468009", "term": "Erythrocyte sedimentation rate above reference range (finding)"},
+        "low": {"concept_id": "165466008", "term": "Erythrocyte sedimentation rate below reference range (finding)"},
+        "out_of_range": {"concept_id": "165465007", "term": "Erythrocyte sedimentation rate outside reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["365755007", "993381000000106", "269078001"],
+      "display_name": "Ferritin",
+      "interpretations": {
+        "high": {"concept_id": "390943009", "term": "Serum ferritin above reference range (finding)"},
+        "low": {"concept_id": "126121000119104", "term": "Serum ferritin level below reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104175002", "1000691000000101"],
+      "display_name": "Calcium",
+      "interpretations": {
+        "high": {"concept_id": "166702002", "term": "Serum calcium level above reference range (finding)"},
+        "low": {"concept_id": "1187258003", "term": "Serum calcium below reference range (finding)"}
+      }
+    },
+    {
+      "concept_ids": ["104177005", "1003671000000109"],
+      "display_name": "HbA1c",
+      "interpretations": {
+        "high": {"concept_id": "444751005", "term": "Hemoglobin A1c above reference range (finding)"}
+      }
+    }
+  ]
+}
