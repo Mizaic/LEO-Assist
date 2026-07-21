@@ -1,5 +1,10 @@
 """Reusable contract for durable pub/sub workflow steps.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Durable steps receive IDs and scope, reload their inputs from Neo4j, persist
 their output, and publish the next event. They are intentionally small so the
 same step can be reused by multiple PlanDefinitions.

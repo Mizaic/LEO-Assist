@@ -1,5 +1,10 @@
 """LocalTerminologyPackage CRUD, activate/retire, and active-patterns.
 
+Atlas trace:
+  DO: DO-77A48DBC
+  DI: DI-4746A178, DI-B7FEA996, DI-F8634363
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-77A48DBC")
+
 Atlas:
   DI: DI-FB0066CA
   DO: DO-7CF39715

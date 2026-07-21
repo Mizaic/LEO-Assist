@@ -1,5 +1,10 @@
 """NICE guideline diff -- compare stored recs against the live NICE API.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Provides:
   POST /nice/{code}/diff/start    -- trigger an async diff job
   GET  /nice/{code}/diff/{job_id} -- poll the diff result

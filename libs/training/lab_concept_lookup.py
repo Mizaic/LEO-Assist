@@ -1,4 +1,10 @@
-"""Lookup surface variants for deterministic lab-triple entities."""
+"""Lookup surface variants for deterministic lab-triple entities.
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+"""
 
 from __future__ import annotations
 

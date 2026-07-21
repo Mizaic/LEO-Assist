@@ -1,5 +1,10 @@
 """Per-site NCDA pathway configuration.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Defines typical-time bands per cancer-site for the reviewer UI traffic-light
 rendering and the auxiliary attachment policy. National breach thresholds
 are fixed at the NCDA level (FDS-28, treatment-31, referral-62) and live

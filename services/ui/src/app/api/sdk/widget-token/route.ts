@@ -14,6 +14,11 @@
  *
  * Body:  { assessment_id: string }
  * Reply: { widget_token: string, expires_at: number, ttl_seconds: number }
+ *
+ * Atlas trace:
+ *   DO: DO-19BBE973
+ *   DI: DI-B746E19E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-19BBE973")
  */
 import { type NextRequest, NextResponse } from "next/server";
 import { serverFetch } from "@/lib/serverFetch";

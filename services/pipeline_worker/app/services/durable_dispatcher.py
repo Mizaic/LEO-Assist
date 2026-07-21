@@ -1,5 +1,10 @@
 """Dispatch durable workflow messages from the shared pipeline queue.
 
+Atlas trace:
+  DO: DO-C2F6CA16
+  DI: DI-06CB6881
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C2F6CA16")
+
 Routing rules:
 
 1. DURABLE_STEP_EVENT in-flight messages -- always routed to DurableStepRunner

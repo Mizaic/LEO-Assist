@@ -1,5 +1,10 @@
 """Stage 4 - Role classifier inference module.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Loads the joblib artifact produced by services.training_worker.app
 .ncda_role_trainer.train_role_classifier and exposes a predict() that
 returns per-encounter role probabilities + outcome attribute.

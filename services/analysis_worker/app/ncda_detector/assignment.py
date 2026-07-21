@@ -1,5 +1,10 @@
 """Stage 7 - Pair assignment, auxiliary attachment, cohort labelling.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Greedy max-probability matching for FTR-Dx with per-Dx uniqueness; FTR may
 bind to >=1 Dx. Deterministic auxiliary attachment of nearest in-interval
 SEEN and (when outcome is cancer_found) nearest post-Dx TREATMENT.

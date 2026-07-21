@@ -1,5 +1,10 @@
 """Knowledge-graph promotion for cancer_audit ``stage_of_diagnosis`` subdomain.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 1. Upserts ``ValueSet`` node ``ncda-stage-of-diagnosis`` (FHIR-shaped ``rawJson``) so
    ``DomainRegistry`` / anchor / analytics load the same concept set as the JSON file.
 2. ``MERGE (AuditDomain {id: cancer_audit})-[:HAS_SUBDOMAIN]->(ValueSet)``.

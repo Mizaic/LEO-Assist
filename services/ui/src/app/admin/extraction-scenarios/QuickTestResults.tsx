@@ -4,6 +4,11 @@
  * Stage snapshot terms are plain strings (entity surface forms captured after
  * each pipeline subgraph). The final entity list has richer objects with
  * label, assertion, and confidence fields.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
 "use client";
 

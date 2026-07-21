@@ -1,5 +1,10 @@
 """Relation-linker prompt (~3k tokens).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Purpose: given entities that have already had deterministic R16d relations
 (interprets, component_of) added, this narrow prompt emits the harder
 semantic relations: finding_site, associated_finding, qualifies.

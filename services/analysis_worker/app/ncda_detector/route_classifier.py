@@ -1,5 +1,10 @@
 """Deterministic place-of-presentation / diagnosis-route labels for NCDA pathways.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Uses the same inputs as inference (text + Read codes + roles).  No ML.
 
 These routes explain *how* the patient reached diagnosis relative to primary-care

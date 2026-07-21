@@ -931,6 +931,15 @@
       "risks": [],
       "title": "SNOMED CT Resolution Service"
     },
+    "DO-158BE606": {
+      "dcId": "DO-158BE606",
+      "design_inputs": [
+        "DI-2289D095"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
+    },
     "DO-16CE412B": {
       "dcId": "DO-16CE412B",
       "design_inputs": [
@@ -1253,6 +1262,15 @@
       "risks": [],
       "title": "Pathway Explorer research API and GDS services"
     },
+    "DO-3A70C3DD": {
+      "dcId": "DO-3A70C3DD",
+      "design_inputs": [
+        "DI-724CD8A5"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
+    },
     "DO-3AD4D385": {
       "dcId": "DO-3AD4D385",
       "design_inputs": [
@@ -1387,6 +1405,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "LLM-Based AppropriatenessRule Authoring with HITL Review Queue"
+    },
+    "DO-5C88CA8F": {
+      "dcId": "DO-5C88CA8F",
+      "design_inputs": [
+        "DI-A1206416"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
     },
     "DO-5D032346": {
       "dcId": "DO-5D032346",
@@ -1612,6 +1639,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "SafetyNetAlert with Dedup, Escalation, and LoopConfig Kill Switch"
+    },
+    "DO-728930A1": {
+      "dcId": "DO-728930A1",
+      "design_inputs": [
+        "DI-16CE412B"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
     },
     "DO-77A48DBC": {
       "dcId": "DO-77A48DBC",
@@ -1871,6 +1907,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Suggest-Aliases LLM Endpoint (Concepts Router) and Model Inference Reload Safeguard"
+    },
+    "DO-A0ADDB38": {
+      "dcId": "DO-A0ADDB38",
+      "design_inputs": [
+        "DI-EB716E68"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
     },
     "DO-A11695DB": {
       "dcId": "DO-A11695DB",
@@ -2304,6 +2349,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Bitmap Store, Guideline Compiler, and Evaluator in Terminology API"
+    },
+    "DO-E981C7B1": {
+      "dcId": "DO-E981C7B1",
+      "design_inputs": [
+        "DI-D6E5F94E"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
     },
     "DO-EC41233C": {
       "dcId": "DO-EC41233C",

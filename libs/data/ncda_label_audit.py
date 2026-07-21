@@ -1,5 +1,10 @@
 """NCDA label audit data layer.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Stage 1 of the NCDA detector plan writes findings about the reviewed
 EpisodeOfCare label set. Findings flow into a Neo4j :NCDALabelAudit node
 keyed by (patient_id, episode_id, encounter_id, finding_type) so reviewer

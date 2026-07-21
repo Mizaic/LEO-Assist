@@ -1,5 +1,10 @@
 """Replay curator-reviewed episodes as detector output.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Reviewed EpisodeOfCare rows are the clinical source of truth. The v2
 detector must not regenerate or reshape them during calibration or later
 pipeline runs.

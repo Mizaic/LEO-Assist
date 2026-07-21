@@ -1,5 +1,10 @@
 """Phrase-level extraction validation scoring helpers.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Normalises extracted and gold terms before phrase F1 so long model spans,
 lab abbreviations, and template variants align with the clinician-approved
 gold corpus.

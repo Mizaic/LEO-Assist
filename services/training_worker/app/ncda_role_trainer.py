@@ -1,5 +1,10 @@
 """Stage 4 - Encounter role classifier training.
 
+Atlas trace:
+  DO: DO-9488B454
+  DI: DI-D46D83FA
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9488B454")
+
 Trains a multi-class classifier over {ftr, seen, dx, treatment, none} plus a
 binary sub-head for Dx outcome {cancer_found, cancer_excluded}.
 

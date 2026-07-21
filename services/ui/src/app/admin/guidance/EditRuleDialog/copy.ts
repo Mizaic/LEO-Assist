@@ -27,6 +27,10 @@ export const GROUP_KIND_LABELS: Record<LogicNodeKind, string> = {
   CONCEPT: "Symptom, sign, procedure, or situation",
   DEMOGRAPHIC: "Patient detail",
   OBSERVATION: "Lab value or reading",
+  MEDICATION: "Medicine the patient takes",
+  ALLERGY: "Allergy the patient has",
+  TREATMENT_HISTORY: "Past treatment or procedure",
+  RULE_FIRED: "Depends on another rule",
 };
 
 /** Short label used inside small chips / badges. */
@@ -38,6 +42,10 @@ export const GROUP_KIND_SHORT: Record<LogicNodeKind, string> = {
   CONCEPT: "Symptom",
   DEMOGRAPHIC: "Patient detail",
   OBSERVATION: "Lab value",
+  MEDICATION: "Medicine",
+  ALLERGY: "Allergy",
+  TREATMENT_HISTORY: "Past treatment",
+  RULE_FIRED: "Other rule",
 };
 
 /**

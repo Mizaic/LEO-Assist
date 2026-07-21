@@ -1,5 +1,10 @@
 """Extended metric registry: 18 new audit metrics added in Phase 2.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 Tiers:
   A -- Referral quality (Assessment-based, 4 metrics)
   B -- Demographics intelligence (4 metrics)

@@ -1,4 +1,10 @@
-"""Validation Lab A&G pipeline helpers (resolve ubrn + enqueue)."""
+"""Validation Lab A&G pipeline helpers (resolve ubrn + enqueue).
+
+Atlas trace:
+  DO: DO-E981C7B1
+  DI: DI-D6E5F94E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E981C7B1")
+"""
 
 from __future__ import annotations
 

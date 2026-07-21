@@ -9,8 +9,12 @@
  * Per-site typical bands come from the Stage 8 pathway-config endpoint
  * (/api/ncda/pathway-config). When a site has no override the defaults in
  * libs/domains/ncda_pathway_config.py apply.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 import { daysBetween } from "@/lib/pathwayRisk";
 
 export type NcdaCohort = "1a" | "1b" | "2" | "3" | "4";

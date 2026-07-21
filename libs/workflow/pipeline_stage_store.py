@@ -1,4 +1,10 @@
-"""Durable store for pipeline run and stage outputs."""
+"""Durable store for pipeline run and stage outputs.
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+"""
 
 from __future__ import annotations
 

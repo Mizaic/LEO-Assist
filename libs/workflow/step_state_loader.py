@@ -1,5 +1,10 @@
 """Shared pipeline state loader for durable pub/sub workflows.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Extracted from referral_durable_steps so both the legacy referral runner
 and the new DurableStepRunner can share the same enrichment logic.
 """

@@ -1,5 +1,10 @@
 """Core metric registry: 14 original audit metrics.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 Internal module -- import via audit_metric_queries.py.
 """
 

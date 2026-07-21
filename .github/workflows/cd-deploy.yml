@@ -5,6 +5,12 @@ name: CD - Deploy
 #   DI: DI-71087A9E
 #   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6036D724")
 #
+# Selective deploy (dev via workflow_run):
+#   Reads CI artifact built-services.json and only retags Container Apps
+#   that were rebuilt. Bicep uses imageTag=latest so unchanged services
+#   keep their current :latest digest. val/prod promotions still require
+#   an immutable sha-* tag that exists for every service image.
+#
 # Hardening notes
 #   - Third-party / Microsoft-owned actions are pinned to immutable commit
 #     SHAs with the human-readable tag in a comment. Renovate (or a manual
@@ -30,10 +36,14 @@ on:
       image_tag:
         description: Image tag to deploy (default = sha of HEAD)
         required: false
+      services:
+        description: Optional comma-separated services to retag (dev only; empty = all)
+        required: false
 
 permissions:
   id-token: write
   contents: read
+  actions: read
 
 env:
   ACR_LOGIN_SERVER: leoaicr.azurecr.io
@@ -55,22 +65,65 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
 
-      - name: Resolve image tag
+      - name: Resolve image tag and built services
         id: tag
         env:
           INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          INPUT_SERVICES: ${{ github.event.inputs.services }}
           WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_NAME: ${{ github.event_name }}
           GITHUB_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          ALL_SERVICES="core-api terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker ui"
           TAG="$INPUT_IMAGE_TAG"
-          if [ -z "$TAG" ]; then
-            TAG="sha-${WORKFLOW_RUN_HEAD_SHA:-$GITHUB_SHA}"
+          SERVICES=""
+          BICEP_TAG="latest"
+          BUILD_ALL="false"
+
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            TAG="sha-${WORKFLOW_RUN_HEAD_SHA}"
+            mkdir -p /tmp/ci-manifest
+            if gh run download "$WORKFLOW_RUN_ID" \
+              --name built-services \
+              --dir /tmp/ci-manifest; then
+              SERVICES="$(jq -r '.services // [] | join(",")' /tmp/ci-manifest/built-services.json)"
+              BUILD_ALL="$(jq -r 'if .build_all then "true" else "false" end' /tmp/ci-manifest/built-services.json)"
+            else
+              echo "No built-services artifact; deploying no image retags."
+              SERVICES=""
+            fi
+            if [ "$BUILD_ALL" = "true" ]; then
+              BICEP_TAG="$TAG"
+              SERVICES="$(echo "$ALL_SERVICES" | tr ' ' ',')"
+            fi
+          else
+            if [ -z "$TAG" ]; then
+              TAG="sha-${GITHUB_SHA}"
+            fi
+            if [ -n "$INPUT_SERVICES" ]; then
+              SERVICES="$(echo "$INPUT_SERVICES" | tr ',' ' ' | xargs | tr ' ' ',')"
+            else
+              SERVICES="$(echo "$ALL_SERVICES" | tr ' ' ',')"
+            fi
+            BICEP_TAG="$TAG"
           fi
+
           if ! [[ "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
             echo "image_tag $TAG contains disallowed characters" >&2
             exit 1
           fi
+          if ! [[ "$BICEP_TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "bicep_tag $BICEP_TAG contains disallowed characters" >&2
+            exit 1
+          fi
+
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "bicep_tag=$BICEP_TAG" >> "$GITHUB_OUTPUT"
+          echo "services=$SERVICES" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag=$TAG bicep_tag=$BICEP_TAG services=${SERVICES:-none}"
 
       - name: Azure login (OIDC)
         uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2
@@ -80,10 +133,10 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # Applies infra/bicep/main.bicep: Container App env vars (internal URLs, secrets refs,
-      # FRONTEND_URL, etc.). Image tags below only update container images.
+      # FRONTEND_URL, etc.). Image tags below only update container images that CI rebuilt.
       - name: Deploy Bicep stack
         env:
-          IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          IMAGE_TAG: ${{ steps.tag.outputs.bicep_tag }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           az deployment group create \
@@ -96,16 +149,26 @@ jobs:
       - name: Update Container App image tags
         env:
           IMAGE_TAG: ${{ steps.tag.outputs.tag }}
+          SERVICES_CSV: ${{ steps.tag.outputs.services }}
         run: |
+          set -euo pipefail
+          if [ -z "$SERVICES_CSV" ]; then
+            echo "No rebuilt services to retag; leaving running revisions unchanged."
+            exit 0
+          fi
           # Must match images built in ci-build.yml and apps in infra/bicep/modules/container-apps.bicep
-          # Parity with scripts/start_leo-ai-core.sh (--services names: api, terminology_api, ...)
-          SERVICES="core-api terminology-api fhir-api analytics-api model-inference training-worker research-worker pipeline-worker ui"
+          SERVICES="$(echo "$SERVICES_CSV" | tr ',' ' ')"
           for SERVICE in $SERVICES; do
+            if ! [[ "$SERVICE" =~ ^[A-Za-z0-9._-]+$ ]]; then
+              echo "Refusing invalid service name: $SERVICE" >&2
+              exit 1
+            fi
             az containerapp update \
               --name "$SERVICE" \
               --resource-group leo-ai-dev \
               --image "${ACR_LOGIN_SERVER}/${SERVICE}:${IMAGE_TAG}" \
               --output none
+            echo "Updated $SERVICE -> ${ACR_LOGIN_SERVER}/${SERVICE}:${IMAGE_TAG}"
           done
 
       - name: Post-deploy smoke checks

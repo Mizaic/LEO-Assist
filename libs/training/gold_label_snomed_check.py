@@ -1,5 +1,10 @@
 """SNOMED proposal checks for gold-label and AI first-pass workflows.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 This module is runtime-safe: API services import it directly, so it must not
 live under ``scripts``. It validates a proposed text/semantic-tag pair against
 terminology candidates and exposes a small audit for already-coded entities.

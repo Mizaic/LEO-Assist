@@ -1,5 +1,10 @@
 """Structured-verify prompt (~3k tokens).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Purpose: regex already extracted the lab/vitals triples; this narrow prompt
 asks Haiku only 'did the regex miss any lab or vitals rows?'
 

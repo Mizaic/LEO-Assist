@@ -5,6 +5,11 @@
  * (mark_correct, relabel, delete_milestone, add_to_read_code_lookup) write
  * back via the audit API; Stage 2 tidy migration blocks on any open
  * severity='high' row.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
 "use client";
 

@@ -2,6 +2,11 @@
  * LogPanel -- streaming sync output with copy-to-clipboard and Clear controls.
  *
  * Design Controls: DI-340279C1, DO-CFA1ED55.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
 "use client";
 

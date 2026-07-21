@@ -1,4 +1,10 @@
-/** Infer a human-readable encounter label from the encounter id suffix. */
+/** Infer a human-readable encounter label from the encounter id suffix.
+ *
+ * Atlas trace:
+ *   DO: DO-5F9A50D8
+ *   DI: DI-1D584D40
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5F9A50D8")
+ */
 export function encounterTypeLabel(
   encounterId: string,
   fallback: string

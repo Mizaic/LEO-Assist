@@ -1,5 +1,10 @@
 """Fill identity placeholders in Validation Lab referral letters.
 
+Atlas trace:
+  DO: DO-E981C7B1
+  DI: DI-D6E5F94E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E981C7B1")
+
 Atlas: DI-3002D641 / DO-9F47D376
 """
 

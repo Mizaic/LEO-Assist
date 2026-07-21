@@ -5,8 +5,12 @@
  *
  * Mirrors libs/oncology/prior_consultations.py NCDA_FACTOR_LABELS and
  * the NCDA pro forma groupings so the UI matches the GP's wording.
+ *
+ * Atlas trace:
+ *   DO: DO-2E8544FD
+ *   DI: DI-C65FD45B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2E8544FD")
  */
-
 // ---------------------------------------------------------------------------
 // Factor labels
 // ---------------------------------------------------------------------------

@@ -1,5 +1,10 @@
 """Read-only Cypher backing the "pick a rule" pickers in the rule editor.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 Used by the RULE_FIRED logic-tree leaf (a rule can depend on another
 rule having fired) and any other UI surface that needs a plain-English
 list of active rules to choose from. This has no dependency on the

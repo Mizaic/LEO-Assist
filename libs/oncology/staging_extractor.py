@@ -1,5 +1,10 @@
 """NCDA cancer episode staging extractor.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Scans milestoned encounter texts for staging information and returns a
 :class:`StagingResult` carrying the detected system, raw value, and an
 early/intermediate/late classification.

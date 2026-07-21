@@ -3,8 +3,12 @@
  *
  * Configures the synthetic demo fetcher before registering the custom
  * element so the in-page <leo-sbar> loads stub data from the CDN origin.
+ *
+ * Atlas trace:
+ *   DO: DO-5C88CA8F
+ *   DI: DI-A1206416
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5C88CA8F")
  */
-
 import { configureDemoFetcher } from "../src/demo/fixture";
 import { registerLeoSbarElement } from "../src/component";
 import { LEO_EVENT_NAMES } from "../src/data/types";

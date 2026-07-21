@@ -1,5 +1,10 @@
 """Quick-run scaffold -- thin wrapper over libs.referral_simulator.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Creates and cleans up temporary Patient+Encounter (encounter mode) or
 Patient+ReferralRequest+DocumentReference+Chunk (referral mode) nodes
 in the patient graph. Referral mode delegates to the shared simulator.

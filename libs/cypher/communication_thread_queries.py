@@ -1,4 +1,10 @@
-"""Read-only Cypher for A&G communication_thread pipeline loading."""
+"""Read-only Cypher for A&G communication_thread pipeline loading.
+
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+"""
 
 from __future__ import annotations
 

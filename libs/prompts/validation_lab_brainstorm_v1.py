@@ -1,5 +1,10 @@
 """Prompts and tool configs for Validation Lab scenario brainstorm.
 
+Atlas trace:
+  DO: DO-A0ADDB38
+  DI: DI-EB716E68
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A0ADDB38")
+
 Atlas: DI-EB716E68 / DO-A0ADDB38
 """
 

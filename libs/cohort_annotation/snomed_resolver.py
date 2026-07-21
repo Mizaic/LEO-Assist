@@ -1,5 +1,10 @@
 """SNOMED concept resolution for cancer cohort annotation entities.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Wraps TerminologyClient.search() with label-aware scoring and tiered
 auto-accept logic so we do NOT blindly take the top-1 result.
 

@@ -1,5 +1,10 @@
 """Gold-label granularity helpers for NER training data repair.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 These helpers keep whole-note or partial annotations out of the spaCy
 training export. A spancat example is treated as exhaustive, so any
 unlabelled candidate span in a long note becomes negative training signal.

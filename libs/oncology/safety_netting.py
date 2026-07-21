@@ -1,5 +1,10 @@
 """Safety-netting signal detection for NCDA cancer episodes.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 NCDA Section 8 ("Safety netting") asks the auditor to record whether the
 GP documented a safety-netting plan during the workup of a confirmed
 cancer (e.g. "if you develop new bleeding, return immediately"; or the

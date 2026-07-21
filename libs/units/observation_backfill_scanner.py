@@ -1,5 +1,10 @@
 """Pure scanner for observation-threshold findings in clinical text.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Atlas trace (Phase 6):
     UN: UN-26E57FA1
     DI: DI-4C8A09C3

@@ -1,5 +1,10 @@
 """Deterministic expectedTrigger via GuidelineEvaluator.
 
+Atlas trace:
+  DO: DO-A0ADDB38
+  DI: DI-EB716E68
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-A0ADDB38")
+
 Atlas: DI-EB716E68 / DO-A0ADDB38
 
 expectedTrigger is non-null only when a rule_id is attached AND that rule

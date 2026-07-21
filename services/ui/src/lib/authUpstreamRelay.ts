@@ -6,6 +6,11 @@
  * browser must never see that Location; only same-host infra redirects are
  * followed here so the final response (Azure AD or post-login dashboard) and
  * Set-Cookie headers are relayed on the UI origin.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
 import { NextRequest, NextResponse } from "next/server";
 import { serverFetch } from "@/lib/serverFetch";

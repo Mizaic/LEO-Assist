@@ -1,5 +1,10 @@
 """Purge all Validation Lab synthetic data sources.
 
+Atlas trace:
+  DO: DO-3A70C3DD
+  DI: DI-724CD8A5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A70C3DD")
+
 Atlas: DI-724CD8A5
 
 This module backs `scripts/reset_validation_lab.py`. It exists so the

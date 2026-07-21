@@ -1,5 +1,10 @@
 """Stage 2 consolidation rules for tidying reviewed-episode milestones.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Pure functions that decide how non-canonical milestones map onto the
 strict NCDA-4 vocabulary {referral, first_seen, diagnosis_confirmed,
 treatment_started}, and whether a Dx encounter carries

@@ -1,5 +1,10 @@
 """Stage 12 - NCDA detector evaluation harness.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Pure metric functions consumed by:
   - scripts/ncda/evaluate.py (the runnable evaluation script).
   - services/training_worker/app/jobs/ncda_nightly.py (gating promotion).

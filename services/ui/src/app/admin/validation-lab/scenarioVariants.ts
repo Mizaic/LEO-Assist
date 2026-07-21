@@ -2,8 +2,12 @@
  * Map brainstorm ScenarioVariant cards onto createCase payloads.
  *
  * Atlas: DI-EB716E68 / DO-A0ADDB38
+ *
+ * Atlas trace:
+ *   DO: DO-A0ADDB38
+ *   DI: DI-EB716E68
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-A0ADDB38")
  */
-
 import type { CreateCasePayload, PmhCategory } from "./labApi";
 
 export interface EquityBlock {

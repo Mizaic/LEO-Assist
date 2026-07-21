@@ -8,6 +8,11 @@
  * GET /sdk/sbar/{assessmentId} endpoint and returns the response.
  *
  * No Next.js session required -- the widget token is the only credential.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
 import { type NextRequest, NextResponse } from "next/server";
 import { serverFetch } from "@/lib/serverFetch";

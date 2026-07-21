@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
+ */
 "use client";
 
 /** One Validation Lab test-patient card. Atlas: DI-EB716E68 / DI-12D40786 */

@@ -103,6 +103,9 @@ EXCLUDE_PATTERNS: list[tuple[re.Pattern, str]] = [
      "playwright config (test infra)"),
     (re.compile(r"(^|/)scripts/probe_[^/]+\.py$"),
      "ad-hoc probe script (Class A)"),
+    (re.compile(r"(^|/)\.venv(/|$)"), "local virtualenv"),
+    (re.compile(r"(^|/)venv(/|$)"), "local virtualenv"),
+    (re.compile(r"(^|/)site-packages(/|$)"), "installed site-packages"),
 ]
 
 

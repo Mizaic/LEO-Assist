@@ -1,5 +1,10 @@
 """Align LLM quote strings to absolute character offsets in encounter text.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Each annotated entity carries a `sentence_id` (1-indexed) and a verbatim
 `quote`.  The export already computed sentence `start`/`end` offsets, so
 we just need to find the quote inside the sentence and add the sentence's

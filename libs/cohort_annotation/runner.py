@@ -1,5 +1,10 @@
 """Encounter-level and batch runner for the cohort annotation pipeline.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Usage:
     from libs.cohort_annotation.runner import annotate_encounter, annotate_batch
 

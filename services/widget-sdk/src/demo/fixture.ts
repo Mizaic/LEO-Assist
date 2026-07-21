@@ -4,8 +4,12 @@
  * No real patient data. Used by the CDN demo card (/demo/) and the
  * iframe ?demo=1 mode so hosts can verify CDN + widget behaviour
  * before wiring auth and live assessments.
+ *
+ * Atlas trace:
+ *   DO: DO-5C88CA8F
+ *   DI: DI-A1206416
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5C88CA8F")
  */
-
 import type { SbarAssessmentPayload } from "../data/types";
 import { configureFetcher } from "../data/fetcher";
 

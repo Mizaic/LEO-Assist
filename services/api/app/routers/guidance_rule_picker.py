@@ -1,5 +1,10 @@
 """The "pick a rule" endpoint used by the logic-tree RULE_FIRED editor.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Split out of the retired test-patients router -- this endpoint has no
 dependency on the :TestPatient library, it just lists active rules in
 plain English so an author can pick a prerequisite rule.

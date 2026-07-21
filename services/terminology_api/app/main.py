@@ -1,5 +1,10 @@
 """Terminology API service.
 
+Atlas trace:
+  DO: DO-77A48DBC
+  DI: DI-4746A178, DI-B7FEA996, DI-F8634363
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-77A48DBC")
+
 Atlas trace (local clinical language mappings):
   UN: UN-72B60B2D
   DI: DI-47D2CD86

@@ -8,6 +8,11 @@
  * Atlas IDs that must be used when recording manually:
  *   VT-29880CC8   extraction scenario verification test
  *   VAL-87173594  phrase-level F1 validation test
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
 "use client";
 
