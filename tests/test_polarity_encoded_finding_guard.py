@@ -160,12 +160,19 @@ def test_terminology_subgraph_calls_polarity_guard():
     assert (
         "fix_polarity_encoded_findings" in src
     ), "terminology.py must import and call fix_polarity_encoded_findings"
-    # Verify it is called after fix_double_negated_situations
+    assert (
+        "apply_false_absent_assertion_guards" in src
+    ), "terminology.py must call apply_false_absent_assertion_guards"
+    # Verify call order after fix_double_negated_situations
     idx_double = src.find("fix_double_negated_situations(resolved)")
     idx_polarity = src.find("fix_polarity_encoded_findings(resolved)")
+    idx_false_absent = src.find("apply_false_absent_assertion_guards(resolved)")
     assert (
         idx_polarity > idx_double
     ), "fix_polarity_encoded_findings must be called after fix_double_negated_situations"
+    assert (
+        idx_false_absent > idx_polarity
+    ), "apply_false_absent_assertion_guards must run after polarity guard"
 
 
 # ---------------------------------------------------------------------------

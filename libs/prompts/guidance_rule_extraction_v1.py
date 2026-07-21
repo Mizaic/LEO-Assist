@@ -229,6 +229,77 @@ Age:
 Sex:
 - `{"kind":"demographic","field":"sex","operator":"=","value":"female","raw_term":"female sex"}`
 
+**Combined age + sex thresholds (very common -- read carefully):**
+
+NICE often gives a DIFFERENT age threshold for women and men in the same
+sentence, for example "in all women aged 65 years and over and all men aged
+75 years and over". A phrase like "women aged 65 years and over" encodes
+TWO constraints -- sex AND age -- and you MUST emit BOTH, wrapped in an
+`AND`. NEVER collapse it to a single age-only leaf: an age-only leaf would
+incorrectly match men in that age range too, which is a patient-safety
+defect (a rule matching the wrong patient population).
+
+`women aged 65 years and over` ->
+```
+{
+  "kind": "AND",
+  "children": [
+    {
+      "kind": "demographic", "field": "sex", "operator": "=",
+      "value": "female", "raw_term": "women aged 65 years and over"
+    },
+    {
+      "kind": "demographic", "field": "age", "operator": ">=",
+      "value": 65, "unit": "years", "raw_term": "women aged 65 years and over"
+    }
+  ]
+}
+```
+
+When NICE lists several age+sex combinations for the same recommendation
+(for example "women 65+, men 75+, or under those ages with risk factors"),
+build one `AND` branch per combination as above and `OR` the branches
+together. Do not drop the sex leaf from any branch just because the
+overall structure is already an `OR`.
+
+**Trans-inclusive / reproductive-organ phrasing (do NOT collapse to `sex`):**
+
+NICE often widens a gendered population to cover trans and non-binary
+patients, for example "women, and trans men and non-binary people with
+female reproductive organs" or "men, and trans women and non-binary people
+with male reproductive organs". Do NOT map this to a `sex` demographic --
+a trans man in this population may be recorded as `sex=male` in the
+patient record, so a `sex="female"` leaf would wrongly EXCLUDE the exact
+patients the clause means to include. Instead emit a `concept` leaf naming
+the anatomy, and -- just like the age+sex case above -- keep ANY age
+threshold in the same clause as a separate `demographic` leaf. Dropping the
+age threshold here is a patient-safety defect just as it is for the plain
+sex+age case.
+
+`women, and trans men and non-binary people with female reproductive
+organs, who are aged 39 or under with persistent symptoms` ->
+```
+{
+  "kind": "AND",
+  "children": [
+    {
+      "kind": "concept",
+      "term": {
+        "text": "presence of female reproductive organs",
+        "search_terms": ["cervix uteri", "uterus", "ovary structure",
+                          "fallopian tube"]
+      }
+    },
+    {
+      "kind": "demographic", "field": "age", "operator": "<=",
+      "value": 39, "unit": "years",
+      "raw_term": "aged 39 or under"
+    },
+    { "kind": "concept", "term": { "text": "persistent symptoms" } }
+  ]
+}
+```
+
 ## Lab values and numeric thresholds (observation leaves)
 
 When NICE gives a numeric threshold on a named lab value or clinical \

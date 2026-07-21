@@ -1,13 +1,14 @@
 """Suppress informational 2WW / referral routing spans from extraction output.
 
 Atlas trace:
-  DI: DI-B5C78811, DI-1B3B5375
-  DO: DO-728930A1
+  DI: DI-B5C78811, DI-1B3B5375, DI-95CB940F
+  DO: DO-728930A1, DO-847F1ED5
   UN: UN-89E2AE36
 
 UK referral templates often repeat pathway labels (2WW submitted, refer under
 pathway) that are true in the document but are not phrase-level clinical facts.
-Named tests (MRI arranged, FIT+, CA125 raised) and symptoms must be kept.
+Named tests, symptoms, and site-named suspected-cancer situations must be kept.
+Pure transport (referral placed/submitted, e-Referral) remains dropped.
 """
 
 from __future__ import annotations
@@ -31,11 +32,39 @@ _NAMED_TEST_RE = re.compile(
 _KEEP_ACTION_RE = re.compile(
     r"\b(?:"
     r"patient\s+declined\s+referral|declined\s+referral|"
-    r"(?:MRI|colonoscopy|CT|ultrasound|gastroscopy|bronchoscopy)\s+.{0,40}\b(?:arranged|booked|ordered)|"
-    r"(?:arranged|booked|ordered).{0,40}\b(?:MRI|colonoscopy|CT|ultrasound)\b|"
+    r"(?:MRI|colonoscopy|CT|ultrasound|gastroscopy|bronchoscopy)"
+    r"\s+.{0,40}\b(?:arranged|booked|ordered)|"
+    r"(?:arranged|booked|ordered)"
+    r".{0,40}\b(?:MRI|colonoscopy|CT|ultrasound)\b|"
     r"urgent\s+MRI\s+scan\s+of\s+the\s+brain|"
     r"MRI\s+scan\s+of\s+the\s+brain\s+has\s+been\s+arranged"
     r")\b",
+    re.IGNORECASE,
+)
+
+_SITE = (
+    r"(?:breast|lung|skin|prostate|ovarian|ovary|cervix|cervical|endometrial|"
+    r"colorectal|bowel|stomach|gastric|oesophageal|esophageal|pancreatic|"
+    r"pancreas|liver|bladder|kidney|renal|testis|testicular|brain|cns|"
+    r"lymphoma|leukaemia|leukemia|myeloma|sarcoma|"
+    r"head\s+and\s+(?:or\s+)?neck|lower\s+gi|upper\s+gi|"
+    r"upper\s+gastrointestinal|lower\s+gastrointestinal|"
+    r"urolog(?:y|ical)|gynaecolog(?:y|ical)|gynecolog(?:y|ical)|"
+    r"haematolog(?:y|ical)|hematolog(?:y|ical))"
+)
+
+# Site / organ-system cancer suspicion -- keep as clinical situation content.
+_CLINICAL_SUSPICION_RE = re.compile(
+    rf"\b(?:"
+    rf"suspected\s+{_SITE}\s+cancer\b|"
+    rf"{_SITE}\s+suspected\s+cancer\b|"
+    rf"suspected\s+(?:cancer\s+pathway\s+for\s+)?{_SITE}\s+cancer\b|"
+    rf"(?:cancer\s+pathway\s+for\s+){_SITE}\s+cancer\b|"
+    rf"(?:gastric|stomach|oesophageal|esophageal|colorectal|pancreatic|"
+    rf"breast|lung|skin|prostate)\s+malignancy\b|"
+    rf"malignant\s+neoplasm\s+of\s+.+\s+suspected\b|"
+    rf".+\s+cancer\s+suspected\b"
+    rf")",
     re.IGNORECASE,
 )
 
@@ -44,36 +73,34 @@ _ROUTING_2WW_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Pure transport / form plumbing -- not clinical suspicion.
 _REFERRAL_ROUTING_RE = re.compile(
     r"\b(?:"
     r"referral\s+(?:placed|submitted|sent|complete|completed)|"
     r"referral\s+placed|"
     r"e-?referral|"
-    r"refer\s+this\s+patient\s+under\s+the\b|"
-    r"referred\s+under\s+the\s+.+\s+(?:pathway|referral\s+form)|"
-    r"suspected\s+.+\s+cancer\s+referral\b|"
-    r"(?:urgent\s+)?(?:.+?\s+)?suspected\s+cancer\s+referral\b|"
-    r"(?:suspected\s+)?.+?\s+cancer\s+pathway\b|"
-    r"(?:urgent\s+)?(?:2\s*ww|two-?week\s+wait|fast\s+track)\s+pathway\b|"
-    r"^suspected\s+(?:head\s+and\s+neck|brain\s+and\s+cns|lung|breast|lower\s+gi|upper\s+gi|urology|gynaecology|haematology|skin)\s+cancer$|"
-    r".+\s+suspected\s+cancer\s+pathway\b|"
     r"2ww\s+.+\s+referral\s+(?:placed|submitted|sent)?|"
-    r"(?:2\s*ww|two\s+week\s+wait|fast\s+track)\s+.+\s+referral\b|"
+    r"(?:2\s*ww|two\s+week\s+wait|fast\s+track)\s+.+\s+referral\s+"
+    r"(?:placed|submitted|sent)\b|"
     r"urgent\s+(?:2\s*ww|two\s+week\s+wait)\s+.+\s+referral\s+for\b|"
-    r"(?:2\s*ww|two\s+week\s+wait)\s+(?:lower\s+gi|brain|lung|breast|upper\s+gi|"
-    r"head\s+and\s+neck|urology|gynaecology|haematology|skin|prostate|nss)\b"
+    r"(?:urgent\s+)?(?:2\s*ww|two-?week\s+wait|fast\s+track)\s+pathway\b"
     r")",
     re.IGNORECASE,
 )
 
 _GENERIC_REFERRAL_ONLY_RE = re.compile(
     r"^(?:"
-    r"(?:urgent\s+)?(?:2\s*ww|two-?week\s+wait|fast\s+track)\s+(?:.+?\s+)?(?:referral|pathway)\b|"
+    r"(?:urgent\s+)?(?:2\s*ww|two-?week\s+wait|fast\s+track)\s+(?:.+?\s+)?"
+    r"(?:referral|pathway)\b|"
     r".+?\s+referral\s+(?:placed|submitted)\b|"
-    r"refer\s+this\s+patient\b|"
-    r"(?:urgent\s+)?(?:.+?\s+)?suspected\s+cancer\s+(?:referral|pathway)\b|"
-    r"^suspected\s+(?:head\s+and\s+neck|brain\s+and\s+cns|lung|breast|lower\s+gi|upper\s+gi|urology|gynaecology|haematology|skin)\s+cancer$"
+    r"refer\s+this\s+patient\b(?!\s+under\s+the\s+.+\s+cancer)"
     r")\.?$",
+    re.IGNORECASE,
+)
+
+# Transport-only "refer under pathway" with no site-named clinical suspicion.
+_TRANSPORT_REFER_UNDER_RE = re.compile(
+    r"\b(?:refer\s+this\s+patient\s+under\s+the|referred\s+under\s+the)\b",
     re.IGNORECASE,
 )
 
@@ -87,6 +114,8 @@ def should_keep_referral_span(text: str) -> bool:
         return True
     if _KEEP_ACTION_RE.search(stripped):
         return True
+    if _CLINICAL_SUSPICION_RE.search(stripped):
+        return True
     return False
 
 
@@ -99,6 +128,9 @@ def is_informational_referral_routing(text: str) -> bool:
         return False
 
     if _REFERRAL_ROUTING_RE.search(stripped):
+        return True
+
+    if _TRANSPORT_REFER_UNDER_RE.search(stripped):
         return True
 
     if _ROUTING_2WW_RE.search(stripped) and re.search(

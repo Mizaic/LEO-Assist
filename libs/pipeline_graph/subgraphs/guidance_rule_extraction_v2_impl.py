@@ -173,15 +173,46 @@ _AGE_OPERATOR_MAP = {
     "younger": "<",
     "less": "<",
 }
-_SEX_TERMS = {
+_SEX_TERM_MAP = {
     "female": "female",
-    "female sex": "female",
     "woman": "female",
     "women": "female",
     "male": "male",
-    "male sex": "male",
     "man": "male",
     "men": "male",
+}
+# Word-boundary search, not exact match: NICE phrases routinely combine
+# sex and age in one clause (e.g. "women aged 65 years and over"), and an
+# exact-string lookup like the old `_SEX_TERMS` dict would never match
+# inside that longer phrase. `\b` boundaries stop "women" from being
+# mistaken for a match on "men".
+_SEX_RE = re.compile(
+    r"\b(" + "|".join(_SEX_TERM_MAP) + r")\b",
+    re.IGNORECASE,
+)
+
+# NICE guidelines routinely extend a gendered population to trans and
+# non-binary patients with matching anatomy, e.g. "women, and trans men and
+# non-binary people with female reproductive organs" or "... registered
+# female at birth". Forcing that clause into the binary `sex` demographic
+# field would wrongly EXCLUDE the exact patients the guideline means to
+# include (a trans man may be recorded as sex=male in the patient record).
+# Detect the cue plus the organ/birth-registration qualifier that tells us
+# which anatomy is meant, and route it to a reproductive-anatomy concept
+# leaf instead -- see R-4E4F22EF and the runtime anatomy convention already
+# established for DI-9AA2CDA5 (guideline_evaluator._FEMALE_ANATOMY_SNOMED /
+# _MALE_ANATOMY_SNOMED).
+_TRANS_INCLUSIVE_CUE_RE = re.compile(
+    r"\btrans (?:man|men|woman|women)\b|\bnon-binary people\b",
+    re.IGNORECASE,
+)
+_REPRODUCTIVE_ORGAN_SEX_RE = re.compile(
+    r"\b(male|female) reproductive organs\b|\bregistered (male|female) at birth\b",
+    re.IGNORECASE,
+)
+_ORGAN_SEARCH_TERMS: dict[str, list[str]] = {
+    "female": ["cervix uteri", "uterus", "ovary structure", "fallopian tube"],
+    "male": ["prostate gland", "testis"],
 }
 
 _VAGUE_SYMPTOM_PHRASE_RE = re.compile(
@@ -572,10 +603,36 @@ def _parse_age_constraint(term: str) -> dict[str, Any] | None:
 
 
 def _parse_sex_constraint(term: str) -> dict[str, Any] | None:
-    mapped = _SEX_TERMS.get(term.strip().lower())
-    if not mapped:
+    m = _SEX_RE.search(term)
+    if not m:
         return None
+    mapped = _SEX_TERM_MAP[m.group(1).lower()]
     return {"field": "sex", "operator": "=", "value": mapped, "raw_term": term}
+
+
+def _parse_organ_presence_constraint(term: str) -> dict[str, Any] | None:
+    """Detect trans-inclusive reproductive-anatomy phrasing in one term.
+
+    Only fires when BOTH the trans-inclusive cue ("trans men and non-binary
+    people") AND an explicit organ/birth-registration qualifier ("... female
+    reproductive organs" / "... registered male at birth") are present, so a
+    stray mention of "trans" elsewhere in a recommendation does not trigger a
+    false positive.
+    """
+    if not _TRANS_INCLUSIVE_CUE_RE.search(term):
+        return None
+    m = _REPRODUCTIVE_ORGAN_SEX_RE.search(term)
+    if not m:
+        return None
+    organ_sex = (m.group(1) or m.group(2)).lower()
+    return {
+        "kind": "concept",
+        "term": {
+            "text": f"presence of {organ_sex} reproductive organs",
+            "search_terms": _ORGAN_SEARCH_TERMS[organ_sex],
+        },
+        "raw_term": term,
+    }
 
 
 def _make_term_obj(value: Any) -> dict[str, Any]:
@@ -1032,13 +1089,41 @@ def _infer_expected_tag_for_term_obj(
 
 
 def _make_demographic_or_concept(value: Any) -> dict[str, Any]:
+    """Convert one raw legacy term string into a demographic/concept leaf.
+
+    A single NICE clause frequently encodes BOTH an age and a sex
+    constraint (e.g. "women aged 65 years and over"). Returning only the
+    first match found silently drops the other constraint, which changes
+    which patients the rule matches -- see R-4E4F22EF (rule matches the
+    wrong patient population). When both are present, AND them together
+    instead of picking one.
+
+    Trans-inclusive phrasing (e.g. "trans men and non-binary people with
+    female reproductive organs") is handled the same way, but the anatomy
+    fact becomes a `concept` leaf rather than a `sex` demographic -- see
+    `_parse_organ_presence_constraint`. When organ-presence wording is
+    found, it takes priority over a plain sex match on the same clause
+    (e.g. the "women" in "women, and trans men ... with female reproductive
+    organs"), since forcing `sex="female"` there would wrongly exclude the
+    exact patients the clause means to include.
+    """
     term = _make_term_obj(value)
     age = _parse_age_constraint(term["text"])
+    organ = _parse_organ_presence_constraint(term["text"])
+    sex = None if organ else _parse_sex_constraint(term["text"])
+
+    leaves: list[dict[str, Any]] = []
     if age:
-        return {"kind": "demographic", **age}
-    sex = _parse_sex_constraint(term["text"])
-    if sex:
-        return {"kind": "demographic", **sex}
+        leaves.append({"kind": "demographic", **age})
+    if organ:
+        leaves.append(organ)
+    elif sex:
+        leaves.append({"kind": "demographic", **sex})
+
+    if len(leaves) == 1:
+        return leaves[0]
+    if len(leaves) > 1:
+        return {"kind": "AND", "children": leaves}
     return {"kind": "concept", "term": term}
 
 
@@ -3500,14 +3585,170 @@ def _finalise_observations(
     return out, downgrades
 
 
+_SEX_MENTION_RE = re.compile(r"\b(women|woman|female|men|man|male)\b", re.IGNORECASE)
+
+
+def _tree_has_sex_node(node: dict[str, Any] | None) -> bool:
+    """True if a `demographic`/`field=sex` leaf exists anywhere in the tree."""
+    if not isinstance(node, dict):
+        return False
+    if (
+        str(node.get("kind") or "").lower() == "demographic"
+        and str(node.get("field") or "").lower() == "sex"
+    ):
+        return True
+    return any(
+        _tree_has_sex_node(child)
+        for child in (node.get("children") or [])
+        if isinstance(child, dict)
+    )
+
+
+def _flag_missing_sex_constraint(
+    rec: dict[str, Any], coded: dict[str, Any]
+) -> dict[str, Any]:
+    """Force human review when sex-specific wording has no sex leaf anywhere.
+
+    NICE recommendations routinely give a different age threshold for women
+    and men in the same sentence (e.g. "women aged 65 and over, men aged 75
+    and over"). Extraction can get every age leaf right while still dropping
+    the sex leaf -- the rule then looks complete to a reviewer but matches
+    the wrong patient population (R-4E4F22EF). This is a deterministic
+    safety net that only detects the omission and escalates it; it does not
+    attempt to repair the tree.
+    """
+    verbatim = str(rec.get("verbatim") or "")
+    if not _SEX_MENTION_RE.search(verbatim):
+        return coded
+    if _tree_has_sex_node(coded.get("logic_tree")):
+        return coded
+    coded["needs_human_review"] = True
+    hitl_terms = list(coded.get("hitl_terms") or [])
+    hitl_terms.append(
+        {
+            "kind": "safety_check",
+            "reason": "sex_constraint_possibly_dropped",
+            "detail": (
+                "Recommendation text mentions a sex (women/men/female/male) "
+                "but the extracted logic tree has no sex demographic node -- "
+                "check whether an age branch should be sex-specific."
+            ),
+        }
+    )
+    coded["hitl_terms"] = hitl_terms
+    return coded
+
+
+# Broader than _TRANS_INCLUSIVE_CUE_RE + _REPRODUCTIVE_ORGAN_SEX_RE above:
+# this checks the whole recommendation verbatim (not one candidate term) for
+# ANY of the trans-inclusive/anatomy cues NICE uses, so the safety net still
+# fires even when the LLM emitted `logic_tree` directly in its own output
+# (the normal path -- see _normalise_to_logic_tree) rather than going
+# through the legacy present/absent term list that _make_demographic_or_concept
+# handles.
+_TRANS_INCLUSIVE_MENTION_RE = re.compile(
+    r"\btrans (?:man|men|woman|women)\b|\bnon-binary people\b|"
+    r"\breproductive organs\b|\bregistered (?:male|female) at birth\b",
+    re.IGNORECASE,
+)
+_ORGAN_TERM_RE = re.compile(
+    r"reproductive organ|\bcervix\b|\buterus\b|\bovary\b|\bovaries\b|"
+    r"\bprostate\b|\btestis\b|\btestes\b|\bfallopian tube\b",
+    re.IGNORECASE,
+)
+
+
+def _tree_has_age_node(node: dict[str, Any] | None) -> bool:
+    """True if a `demographic`/`field=age` leaf exists anywhere in the tree."""
+    if not isinstance(node, dict):
+        return False
+    if (
+        str(node.get("kind") or "").lower() == "demographic"
+        and str(node.get("field") or "").lower() == "age"
+    ):
+        return True
+    return any(
+        _tree_has_age_node(child)
+        for child in (node.get("children") or [])
+        if isinstance(child, dict)
+    )
+
+
+def _tree_has_organ_or_sex_node(node: dict[str, Any] | None) -> bool:
+    """True if a sex demographic leaf, or a concept leaf naming reproductive
+    anatomy, exists anywhere in the tree.
+    """
+    if not isinstance(node, dict):
+        return False
+    kind = str(node.get("kind") or "").lower()
+    if kind == "demographic" and str(node.get("field") or "").lower() == "sex":
+        return True
+    if kind == "concept":
+        term_text = str((node.get("term") or {}).get("text") or "")
+        if _ORGAN_TERM_RE.search(term_text):
+            return True
+    return any(
+        _tree_has_organ_or_sex_node(child)
+        for child in (node.get("children") or [])
+        if isinstance(child, dict)
+    )
+
+
+def _flag_missing_age_or_organ_constraint(
+    rec: dict[str, Any], coded: dict[str, Any]
+) -> dict[str, Any]:
+    """Force human review when trans-inclusive/organ-presence wording drops
+    the age threshold or the anatomy scope it was paired with.
+
+    NICE recommendations that extend a gendered population to "trans men
+    and non-binary people with female reproductive organs" (etc.) often
+    carry an age threshold in the same clause. Extraction has been observed
+    to drop BOTH the age threshold and the anatomy scope for this phrasing
+    (e.g. NG12 1.5.6, "aged 39 or under" silently dropped), which is a
+    worse failure than the plain sex-drop case -- the rule ends up with no
+    population scoping at all. This is a deterministic safety net that only
+    detects the omission and escalates it; it does not attempt to repair
+    the tree (R-4E4F22EF).
+    """
+    verbatim = str(rec.get("verbatim") or "")
+    if not _TRANS_INCLUSIVE_MENTION_RE.search(verbatim):
+        return coded
+    tree = coded.get("logic_tree")
+    reasons = []
+    if _AGE_RE.search(verbatim) and not _tree_has_age_node(tree):
+        reasons.append("age_constraint_possibly_dropped")
+    if not _tree_has_organ_or_sex_node(tree):
+        reasons.append("anatomy_scope_possibly_dropped")
+    if not reasons:
+        return coded
+    coded["needs_human_review"] = True
+    hitl_terms = list(coded.get("hitl_terms") or [])
+    hitl_terms.append(
+        {
+            "kind": "safety_check",
+            "reason": "trans_inclusive_population_scope_possibly_dropped",
+            "detail": (
+                "Recommendation text uses trans-inclusive or reproductive-"
+                "organ wording (e.g. 'trans men and non-binary people with "
+                "female reproductive organs') but the extracted logic tree "
+                f"is missing: {', '.join(reasons)}. Check that both the age "
+                "threshold and the anatomy scope are represented."
+            ),
+        }
+    )
+    coded["hitl_terms"] = hitl_terms
+    return coded
+
+
 def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     verified = verify_codes(state)
+    rec = state.get("recommendation") or {}
     if verified.get("coded_criteria") is not None:
         coded = dict(verified["coded_criteria"] or {})
         coded.setdefault("needs_human_review", bool(state.get("agentic_terms")))
         coded.setdefault("hitl_terms", list(state.get("agentic_terms") or []))
         try:
-            coded = _apply_authoring_gate(state.get("recommendation") or {}, coded)
+            coded = _apply_authoring_gate(rec, coded)
         except Exception:
             logger.exception(
                 "Authoring gate failed; preserving coded criteria and routing to HITL."
@@ -3530,6 +3771,8 @@ def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                     len(downgrades),
                     ", ".join(f"{nid}({cid})" for nid, cid in downgrades),
                 )
+        coded = _flag_missing_sex_constraint(rec, coded)
+        coded = _flag_missing_age_or_organ_constraint(rec, coded)
         verified["coded_criteria"] = coded
         return verified
 
@@ -3542,9 +3785,11 @@ def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     if candidate_criteria and hitl_terms:
         partial = _build_partial_from_candidates(candidate_criteria, hitl_terms)
         try:
-            partial = _apply_authoring_gate(state.get("recommendation") or {}, partial)
+            partial = _apply_authoring_gate(rec, partial)
         except Exception:
             logger.exception("Authoring gate failed on partial output.")
+        partial = _flag_missing_sex_constraint(rec, partial)
+        partial = _flag_missing_age_or_organ_constraint(rec, partial)
         return {
             "coded_criteria": partial,
             "errors": errors,

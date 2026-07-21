@@ -54,8 +54,18 @@ OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter {source: $source})
 OPTIONAL MATCH (p)-[:HAS_DOCUMENT_REFERENCE]->(dr:DocumentReference {source: $source})
 OPTIONAL MATCH (dr)-[:HAS_CHUNK]->(c:Chunk)
 OPTIONAL MATCH (rr:ReferralRequest {source: $source})-[:FOR_PATIENT]->(p)
+OPTIONAL MATCH (cr:CommunicationRequest {source: $source})-[:FOR_PATIENT]->(p)
+OPTIONAL MATCH (cr)-[:HAS_CONVERSATION]->(comm:Communication)
+OPTIONAL MATCH (cr)-[:HAS_RESPONSE]->(agr:AdviceAndGuidanceResponse)
+OPTIONAL MATCH (cr)-[:HAS_DOCUMENT]->(cr_dr:DocumentReference)
+OPTIONAL MATCH (comm)-[:HAS_DOCUMENT]->(comm_dr:DocumentReference)
+OPTIONAL MATCH (cr_dr)-[:HAS_CHUNK]->(cr_ch:Chunk)
+OPTIONAL MATCH (comm_dr)-[:HAS_CHUNK]->(comm_ch:Chunk)
 OPTIONAL MATCH (p)-[:HAS_CONDITION|HAS_MEDICATION_STATEMENT|HAS_ALLERGY]->(pmh)
-DETACH DELETE e, c, dr, rr, pmh, p
+OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare {source: $source})
+OPTIONAL MATCH (p)-[:REGISTERED_IN]->(org:Organization {source: $source})
+DETACH DELETE e, c, dr, rr, pmh, p, cr, comm, agr, cr_dr, comm_dr,
+              cr_ch, comm_ch, ep, org
 RETURN deleted_count
 """
 

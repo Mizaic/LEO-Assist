@@ -67,6 +67,8 @@ export function PatientHeader({ detail, loading }: Props) {
   const avatarBg = hasAlerts ? "#B45309" : "#1E40AF";
   const age = ageFromBirthDate(detail.birth_date);
   const genderAge = [detail.gender ?? "", age].filter(Boolean).join(" ");
+  const displayName =
+    (detail.display_name || "").trim() || detail.patient_id;
 
   return (
     <Box
@@ -88,13 +90,13 @@ export function PatientHeader({ detail, loading }: Props) {
             flexShrink: 0,
           }}
         >
-          {initials(detail.patient_id)}
+          {initials(displayName)}
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 160 }}>
           <Stack direction="row" spacing={1.5} alignItems="baseline" flexWrap="wrap">
             <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
-              {detail.patient_id}
+              {displayName}
             </Typography>
             {detail.nhs_number && (
               <Typography variant="caption" color="text.secondary" fontFamily="monospace">

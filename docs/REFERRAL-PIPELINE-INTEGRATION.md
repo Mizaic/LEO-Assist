@@ -245,7 +245,7 @@ print(f"Submitted run_id={run_id}")
 | `referral_id` | Yes | ID of the `(:ReferralRequest)` node |
 | `document_reference_id` | Yes | ID of the `(:DocumentReference)` bundle (e.g. `{ubrn}:leo-referral-bundle`) |
 | `chunk_ids` | Yes | Non-empty list of `(:Chunk)` ids that hold the referral text |
-| `text_segmentation_mode` | Yes | Must be `"document_chunks"` for the production handoff |
+| `text_segmentation_mode` | Yes | `"document_chunks"` for referral handoff, or `"communication_thread"` for A&G |
 | `guideline_id` | Yes | NICE guideline to evaluate (e.g. `"NG12"`) |
 | `completeness_domain` | Yes | Completeness domain key (e.g. `"cancer_referrals"`) |
 | `completeness_subdomain` | No | Completeness subdomain key (e.g. `"lower_gi"`) |
@@ -257,6 +257,36 @@ print(f"Submitted run_id={run_id}")
 
 Shared builders: `libs/referral_simulator.message.build_referral_received_message`
 and graph materialisation via `libs/referral_simulator.scaffold.scaffold_referral`.
+
+### Advice and Guidance (`communication_thread`)
+
+For Advice and Guidance (A&G) cases the same `referral-received` trigger and
+`pd-referral-assessment` workflow apply, but clinical text is assembled from
+the communication thread rather than referral document chunks:
+
+```text
+(:Patient)<-[:FOR_PATIENT]-(:CommunicationRequest)
+     -[:HAS_CONVERSATION]->(:Communication {note, category})
+     -[:HAS_DOCUMENT]->(:DocumentReference)-[:HAS_CHUNK]->(:Chunk)   // optional
+     -[:HAS_RESPONSE]->(:AdviceAndGuidanceResponse {responseText})    // optional
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `communication_request_id` | Yes | ID of the `(:CommunicationRequest)` node |
+| `ubrn` | Yes | Unique booking reference on the CommunicationRequest |
+| `encounter_id` | Yes | Correlation id (e.g. `{ubrn}:ag-assessment`) |
+| `text_segmentation_mode` | Yes | Must be `"communication_thread"` |
+| `chunk_ids` | No | Optional override; loader auto-discovers attachment chunks via `HAS_DOCUMENT` |
+| `source_node_type` | Yes | `"CommunicationRequest"` |
+| `source_node_id` | Yes | Same as `communication_request_id` |
+| `mode` | No | Context discriminator only: `"ag_assessment"` |
+
+Attachment segments are only emitted when linked `(:Chunk)` nodes exist with
+non-empty `text`. Thread-only runs (no `HAS_DOCUMENT` edges) are valid.
+
+Shared builder: `libs/referral_simulator.message.build_communication_assessment_message`.
+Loader: `libs/pipeline/communication_thread_loader.py`.
 
 ---
 

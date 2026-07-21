@@ -469,6 +469,7 @@ class LabelVerifyStartRequest(BaseModel):
 class GuidanceGenerateRequest(BaseModel):
     guideline_id: str
     only_without_rules: bool = False
+    recommendation_ids: list[str] | None = None
 
 
 class WorkerTraceEncounter(BaseModel):
@@ -1356,6 +1357,7 @@ def _run_guidance_generation(
     guideline_id: str,
     *,
     only_without_rules: bool = False,
+    recommendation_ids: list[str] | None = None,
 ) -> None:
     from libs.neo4j_client.client import KnowledgeGraphClient
     from services.pipeline_worker.app.services.guidance_rule_generator import (
@@ -1369,6 +1371,7 @@ def _run_guidance_generation(
             rule_ids = generator.generate_rules_for_guideline(
                 guideline_id,
                 only_without_rules=only_without_rules,
+                recommendation_ids=recommendation_ids,
             )
         finally:
             client.close()
@@ -1420,7 +1423,10 @@ async def guidance_generate(body: GuidanceGenerateRequest) -> dict[str, Any]:
     thread = threading.Thread(
         target=_run_guidance_generation,
         args=(job_id, body.guideline_id),
-        kwargs={"only_without_rules": body.only_without_rules},
+        kwargs={
+            "only_without_rules": body.only_without_rules,
+            "recommendation_ids": body.recommendation_ids,
+        },
         daemon=True,
         name="guidance-generate",
     )

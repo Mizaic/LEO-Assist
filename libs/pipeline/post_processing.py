@@ -63,7 +63,9 @@ from libs.ner.context_detector import normalize_situation_lookup
 from libs.ner.lab_triple_recovery import recover_lab_triples
 from libs.ner.lab_value_guard import should_suppress_disorder
 from libs.ner.referral_routing_guard import should_suppress_referral_routing_entity
-from libs.ner.precision_gates import is_permitted_body_structure as _is_permitted_body_structure
+from libs.ner.precision_gates import (
+    is_permitted_body_structure as _is_permitted_body_structure,
+)
 from libs.ner.observable_post_processor import normalize_observable_entities
 from libs.ner.post_processor_rules import PostProcessorRule, apply_rules_to_entities
 from libs.pipeline.extraction_term_normaliser import (
@@ -582,7 +584,9 @@ def merge_cross_line_lab_findings(
 # train/validate skew on phrase-level F1.
 
 
-def clean_observable_surface_forms(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def clean_observable_surface_forms(
+    entities: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """Apply the shared surface-form cleanup to every observable_entity.
 
     Idempotent. Records the original surface form under ``__raw_text`` for
@@ -713,7 +717,10 @@ def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
         if _REF_RANGE_ONLY_RE.match(text):
             suppress_indices.add(i)
 
-        if label in {"body_structure", "body structure"} and not _is_permitted_body_structure(
+        if label in {
+            "body_structure",
+            "body structure",
+        } and not _is_permitted_body_structure(
             ent.get("snomed_concept_id") or ent.get("concept_id")
         ):
             suppress_indices.add(i)
@@ -1028,6 +1035,182 @@ def fix_polarity_encoded_findings(entities: list[dict[str, Any]]) -> None:
             term,
             ent.get("concept_id"),
         )
+
+
+# -- Layer 7d (c): Lifestyle status + PMH false-absent guards (DI-0F9542BF) --
+
+_LIFESTYLE_STATUS_CONCEPT_IDS = frozenset(
+    {
+        "8517006",  # Ex-smoker (finding)
+        "266919005",  # Never smoked tobacco (finding)
+        "8392000",  # Non-smoker (finding)
+    }
+)
+
+# Only status phrases that already encode polarity. Do not match bare "smoker"
+# (true "not a smoker" / "denies smoking" must stay absent).
+_LIFESTYLE_STATUS_TEXT_RE = re.compile(
+    r"\b(ex[-\s]?smoker|former\s+smoker|never\s+smoked|non[-\s]?smoker)\b",
+    re.IGNORECASE,
+)
+
+_PMH_POSITIVE_RE = re.compile(
+    r"\b(?:background|history|hx|h/?o)\s+of\b",
+    re.IGNORECASE,
+)
+
+_PMH_NEGATED_RE = re.compile(
+    r"\b(?:no|denies|without|nil)\s+(?:known\s+)?"
+    r"(?:background|history|hx|h/?o)\s+of\b",
+    re.IGNORECASE,
+)
+
+
+def _lifestyle_status_blob(ent: dict[str, Any]) -> str:
+    parts = [
+        ent.get("term"),
+        ent.get("preferred_term"),
+        ent.get("text"),
+        ent.get("evidence"),
+        ent.get("lookup_term"),
+    ]
+    return " ".join(str(p) for p in parts if p)
+
+
+def fix_lifestyle_status_assertions(entities: list[dict[str, Any]]) -> None:
+    """Restore present for lifestyle status concepts wrongly marked absent.
+
+    Status concepts such as Ex-smoker already encode cessation. Marking them
+    absent inverts meaning (as if the patient were not an ex-smoker). Idempotent.
+    Atlas: DI-0F9542BF / DO-15449C6E / VT-A1919820.
+    """
+    for ent in entities:
+        if ent.get("assertion") == "present":
+            continue
+        concept_id = str(ent.get("concept_id") or ent.get("conceptId") or "").strip()
+        blob = _lifestyle_status_blob(ent)
+        if concept_id not in _LIFESTYLE_STATUS_CONCEPT_IDS and not (
+            blob and _LIFESTYLE_STATUS_TEXT_RE.search(blob)
+        ):
+            continue
+        ent["assertion"] = "present"
+        ent["_assertion_guard"] = "lifestyle_status"
+        logger.info(
+            "lifestyle_status_guard: restored present | text=%r concept=%s",
+            blob[:80],
+            concept_id or None,
+        )
+
+
+def fix_pmh_list_false_absent(entities: list[dict[str, Any]]) -> None:
+    """Restore present when LLM absents a condition inside a positive PMH list.
+
+    Covers 'background of X and Y' / 'history of X' when ConText cannot overwrite
+    a sticky LLM absent. Leaves true 'no history of X' untouched. Idempotent.
+    Atlas: DI-0F9542BF / DO-15449C6E / VT-A1919820.
+    """
+    for ent in entities:
+        if ent.get("assertion") != "absent":
+            continue
+        sentence = str(
+            ent.get("evidence_sentence") or ent.get("sentence") or ent.get("text") or ""
+        )
+        if not sentence:
+            continue
+        if _PMH_NEGATED_RE.search(sentence):
+            continue
+        if not _PMH_POSITIVE_RE.search(sentence):
+            continue
+        ent["assertion"] = "present"
+        ent["_assertion_guard"] = "pmh_list_false_absent"
+        logger.info(
+            "pmh_list_guard: assertion restored to present | evidence=%r",
+            (ent.get("evidence") or ent.get("text") or "")[:80],
+        )
+
+
+_SITUATION_SUSPECTED_CANCER_RE = re.compile(
+    r"(?:"
+    r"\bsuspected\b.+\bcancer\b|"
+    r"\bcancer\b.+\bsuspected\b|"
+    r"malignant\s+neoplasm\s+of\s+.+\s+suspected|"
+    r"\b(?:gastric|stomach|oesophageal|esophageal|colorectal|pancreatic|"
+    r"breast|lung|skin|prostate)\s+malignancy\b|"
+    r"cancer\s+pathway\s+for\s+.+\bcancer\b"
+    r")",
+    re.IGNORECASE,
+)
+
+_SITUATION_FAMILY_HISTORY_RE = re.compile(
+    r"(?:"
+    r"\bfamily\s+history\s+of\b|"
+    r"\bfamily\s+history\s*:|"
+    r"\bfh(?:x)?\s+of\b|"
+    r"\b(?:mother|father|mum|mom|dad|sibling|sister|brother|"
+    r"parent|grandmother|grandfather)\s+had\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _is_situation_entity(ent: dict[str, Any]) -> bool:
+    tag = str(ent.get("semantic_tag") or ent.get("label") or "").lower().strip()
+    if tag == "situation":
+        return True
+    term = str(ent.get("term") or "")
+    return bool(re.search(r"\(situation\)\s*$", term, re.IGNORECASE))
+
+
+def _situation_guard_blob(ent: dict[str, Any]) -> str:
+    parts = [
+        ent.get("text"),
+        ent.get("evidence"),
+        ent.get("term"),
+        ent.get("normalized"),
+        ent.get("normalized_lookup"),
+        ent.get("lookup_term"),
+    ]
+    return " ".join(str(p) for p in parts if p)
+
+
+def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
+    """Restore present for suspected-cancer and FH situation concepts.
+
+    ConText maps 'suspected' -> possible and 'mum'/'fhx' -> family. For SNOMED
+    situation concepts those cues are already encoded in the concept; assertion
+    must stay present. Idempotent.
+    Atlas: DI-95CB940F / DO-847F1ED5 / VT-BA44A8B3.
+    """
+    for ent in entities:
+        if ent.get("assertion") == "present":
+            continue
+        if not _is_situation_entity(ent):
+            continue
+        blob = _situation_guard_blob(ent)
+        if not blob:
+            continue
+        if _SITUATION_SUSPECTED_CANCER_RE.search(blob):
+            ent["assertion"] = "present"
+            ent["_assertion_guard"] = "situation_suspected_cancer"
+            logger.info(
+                "situation_present_guard: restored present (suspected) | text=%r",
+                blob[:80],
+            )
+            continue
+        if _SITUATION_FAMILY_HISTORY_RE.search(blob):
+            ent["assertion"] = "present"
+            ent["_assertion_guard"] = "situation_family_history"
+            logger.info(
+                "situation_present_guard: restored present (family history) | text=%r",
+                blob[:80],
+            )
+
+
+def apply_false_absent_assertion_guards(entities: list[dict[str, Any]]) -> None:
+    """Run lifestyle-status, PMH, and situation-present guards in shared order."""
+    fix_lifestyle_status_assertions(entities)
+    fix_pmh_list_false_absent(entities)
+    fix_situation_present_assertions(entities)
 
 
 # ── Layer 8: Situation Lookup Normalisation ──
@@ -1482,13 +1665,14 @@ def run_post_processing_with_trace(
         )[1],
     )
 
-    # Layer 7d: Double-Negation Guards
-    # Fires only for entities that already carry a resolved SNOMED preferred
-    # term (training path).  Runtime entities have no term yet at this point;
-    # they are handled by terminology._resolve_terms after SNOMED resolution.
+    # Layer 7d: Double-Negation + false-absent guards
+    # Polarity / double-neg need a resolved SNOMED preferred term (training
+    # path). Lifestyle + PMH guards also use evidence text and run here for
+    # both paths; terminology._resolve_terms re-runs them after SNOMED resolve.
     def _run_double_neg_guards(current: list) -> list:
         fix_double_negated_situations(current)
         fix_polarity_encoded_findings(current)
+        apply_false_absent_assertion_guards(current)
         return current
 
     _run_layer("layer_7d", "Double-Negation Guards", _run_double_neg_guards)

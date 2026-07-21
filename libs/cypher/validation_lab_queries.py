@@ -11,13 +11,27 @@ processes.
 UPSERT_VALIDATION_CASE = """
 MERGE (c:ValidationCase {id: $case_id})
 SET c.title = $title,
+    c.summary = $summary,
+    c.tags = $tags,
     c.referral_text = $referral_text,
+    c.case_type = $case_type,
+    c.scenario_type = $scenario_type,
     c.pmh_json = $pmh_json,
     c.encounters_json = $encounters_json,
+    c.ag_thread_json = $ag_thread_json,
+    c.ag_response_text = $ag_response_text,
+    c.gp_encounter_json = $gp_encounter_json,
+    c.reason_for_submission = $reason_for_submission,
+    c.verbalisation_seed = $verbalisation_seed,
+    c.nhs_number = $nhs_number,
+    c.gp_practice_name = $gp_practice_name,
+    c.gp_encounter_id = $gp_encounter_id,
     c.patient_id = $patient_id,
     c.encounter_id = $encounter_id,
     c.referral_id = $referral_id,
     c.document_reference_id = $document_reference_id,
+    c.communication_request_id = $communication_request_id,
+    c.ubrn = $ubrn,
     c.chunk_ids = $chunk_ids,
     c.background_encounter_ids = $background_encounter_ids,
     c.plan_id = $plan_id,
@@ -33,8 +47,13 @@ MATCH (c:ValidationCase {id: $case_id})
 OPTIONAL MATCH (c)-[:HAS_LAB_RUN]->(r:ValidationLabRun)
 WITH c, r ORDER BY r.created_at DESC
 RETURN c {
-  .id, .title, .referral_text, .pmh_json, .encounters_json,
+  .id, .title, .summary, .tags, .referral_text, .case_type, .scenario_type,
+  .pmh_json,
+  .encounters_json, .ag_thread_json, .ag_response_text,
+  .gp_encounter_json, .reason_for_submission, .verbalisation_seed,
+  .nhs_number, .gp_practice_name, .gp_encounter_id,
   .patient_id, .encounter_id, .referral_id, .document_reference_id,
+  .communication_request_id, .ubrn,
   .chunk_ids, .background_encounter_ids, .plan_id,
   .gold_json, .created_at, .updated_at, .created_by
 } AS case,
@@ -46,11 +65,38 @@ collect(r {
 
 LIST_VALIDATION_CASES = """
 MATCH (c:ValidationCase)
-RETURN c {
-  .id, .title, .patient_id, .plan_id, .updated_at, .created_at
+RETURN {
+  id: c.id,
+  title: c.title,
+  summary: coalesce(c.summary, ''),
+  tags: coalesce(c.tags, []),
+  referral_preview: CASE
+    WHEN c.referral_text IS NULL THEN ''
+    ELSE substring(c.referral_text, 0, 180)
+  END,
+  patient_id: c.patient_id,
+  plan_id: c.plan_id,
+  case_type: coalesce(c.case_type, 'referral'),
+  scenario_type: coalesce(c.scenario_type, 'generic'),
+  updated_at: c.updated_at,
+  created_at: c.created_at,
+  has_gold: CASE
+    WHEN c.gold_json IS NULL OR c.gold_json = '' OR c.gold_json = '{}'
+    THEN false
+    ELSE true
+  END
 } AS case
 ORDER BY c.updated_at DESC
 LIMIT $limit
+"""
+
+DELETE_VALIDATION_CASE = """
+MATCH (c:ValidationCase {id: $case_id})
+OPTIONAL MATCH (c)-[:HAS_LAB_RUN]->(r:ValidationLabRun)
+WITH c, c.patient_id AS patient_id, collect(r) AS runs
+FOREACH (run IN runs | DETACH DELETE run)
+DETACH DELETE c
+RETURN patient_id
 """
 
 UPSERT_LAB_RUN = """
@@ -114,5 +160,21 @@ RETURN p.id AS patient_id,
        dr.id AS document_reference_id,
        collect(DISTINCT ch {.id, .text}) AS chunks,
        collect(DISTINCT pmh {.id, .term, .snomed_concept_id}) AS pmh_items,
-       collect(DISTINCT bg {.id, .label, .text}) AS background_encounters
+       collect(DISTINCT bg {.id, .label, .text, .encounter_kind}) AS background_encounters
+"""
+
+PROBE_AG_SHAPE = """
+MATCH (p:Patient {id: $patient_id})
+OPTIONAL MATCH (cr:CommunicationRequest {id: $communication_request_id})
+      -[:FOR_PATIENT]->(p)
+OPTIONAL MATCH (cr)-[:HAS_CONVERSATION]->(c:Communication)
+OPTIONAL MATCH (cr)-[:HAS_RESPONSE]->(agr:AdviceAndGuidanceResponse)
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(gp:Encounter)
+WHERE gp.encounter_kind = 'gp_consultation'
+RETURN p.id AS patient_id,
+       cr.id AS communication_request_id,
+       cr.ubrn AS ubrn,
+       collect(DISTINCT c {.id, .category, .note}) AS communications,
+       agr.id AS agr_id,
+       collect(DISTINCT gp {.id, .label, .text, .encounter_kind}) AS gp_encounters
 """

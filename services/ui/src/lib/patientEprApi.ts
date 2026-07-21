@@ -86,6 +86,7 @@ export interface CodedEntityRow {
 
 export interface PatientDetail {
   patient_id: string;
+  display_name?: string | null;
   nhs_number: string | null;
   gender: string | null;
   birth_date: string | null;

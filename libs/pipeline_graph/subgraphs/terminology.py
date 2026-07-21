@@ -14,6 +14,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from libs.pipeline.post_processing import (
+    apply_false_absent_assertion_guards,
     fix_double_negated_situations,
     fix_polarity_encoded_findings,
 )
@@ -280,6 +281,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             )
         fix_double_negated_situations(resolved)
         fix_polarity_encoded_findings(resolved)
+        apply_false_absent_assertion_guards(resolved)
         resolved = enrich_lab_result_findings(
             resolved,
             patient_sex=state.get("patient_sex"),

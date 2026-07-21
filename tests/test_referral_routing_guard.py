@@ -1,4 +1,4 @@
-"""VT coverage for referral routing suppression (DI-B5C78811 / UN-89E2AE36)."""
+"""VT coverage for referral routing suppression (DI-B5C78811 / DI-95CB940F)."""
 
 from __future__ import annotations
 
@@ -39,9 +39,28 @@ def test_fit_plus_kept() -> None:
     assert not is_informational_referral_routing("FIT-")
 
 
-def test_letter_boilerplate_suppressed() -> None:
+def test_breast_suspected_pathway_kept() -> None:
+    """Site-named suspected cancer is clinical situation content, not DROP."""
+    text = "refer this patient under the breast suspected cancer pathway"
+    assert should_keep_referral_span(text)
+    assert not is_informational_referral_routing(text)
+
+
+def test_stomach_pathway_kept() -> None:
+    text = "suspected cancer pathway for stomach cancer"
+    assert should_keep_referral_span(text)
+    assert not is_informational_referral_routing(text)
+
+
+def test_gastric_malignancy_kept() -> None:
+    assert should_keep_referral_span("gastric malignancy")
+    assert not is_informational_referral_routing("gastric malignancy")
+
+
+def test_referral_placed_still_dropped() -> None:
+    assert is_informational_referral_routing("2WW referral placed")
     assert is_informational_referral_routing(
-        "refer this patient under the breast suspected cancer pathway"
+        "Plan: 2WW lower GI referral submitted via e-Referral Service today."
     )
 
 
@@ -75,4 +94,10 @@ def test_should_suppress_entity_dict() -> None:
     )
     assert not should_suppress_referral_routing_entity(
         {"text": "urgent MRI scan of the brain", "label": "procedure"}
+    )
+    assert not should_suppress_referral_routing_entity(
+        {
+            "text": "breast suspected cancer pathway",
+            "label": "situation",
+        }
     )

@@ -206,3 +206,29 @@ def test_evaluate_guideline_omits_ruleset_version_when_unset(monkeypatch):
 
     assert captured_kwargs["ruleset_version"] is None
     assert "ruleset_version" not in result
+
+
+def test_evaluate_guideline_works_with_communication_thread_state(monkeypatch):
+    from libs.pipeline.communication_thread_loader import COMMUNICATION_THREAD_MODE
+    from libs.pipeline_graph.subgraphs import compliance
+
+    class FakeEvaluator:
+        def evaluate_patient(self, codes, *args, **kwargs):
+            return {"matched_rules": ["rule-1"]}
+
+    monkeypatch.setattr(
+        "services.terminology_api.app.services.guideline_evaluator.GuidelineEvaluator",
+        FakeEvaluator,
+    )
+
+    result = compliance._evaluate_guideline(
+        {
+            "guideline_scope_id": "NG12",
+            "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
+            "encounter_text": "[REQUESTER] Abdominal pain",
+            "entities": [],
+        },
+        codes=["21522001"],
+    )
+
+    assert result["matched_rules"] == ["rule-1"]

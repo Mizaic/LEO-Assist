@@ -14,6 +14,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import CircularProgress from "@mui/material/CircularProgress";
 import UnauthorizedScreen from "@/components/UnauthorizedScreen";
+import { sessionHasLeoAccess } from "@/lib/sessionAccess";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
@@ -364,10 +365,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // No valid session on a protected route — show the full unauthorized screen,
+  // No valid session on a protected route -- show the full unauthorized screen,
   // do NOT render the page or the nav drawer.
   if (status === "unauthenticated" && isProtected) {
     return <UnauthorizedScreen onSignIn={signIn} />;
+  }
+
+  // Authenticated Microsoft user with no LEO role (and not platform admin):
+  // block the shell and page children so clinical data never flashes.
+  if (
+    status === "authenticated" &&
+    isProtected &&
+    !sessionHasLeoAccess(session)
+  ) {
+    return (
+      <UnauthorizedScreen variant="no-access" onSignOut={() => void signOut()} />
+    );
   }
 
   if (isPublicPage) {

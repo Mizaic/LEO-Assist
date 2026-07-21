@@ -27,6 +27,8 @@ interface Props {
   items: TimelineItem[];
   loading?: boolean;
   error?: string | null;
+  /** Optional handler -- typically used for encounter rows. */
+  onItemClick?: (item: TimelineItem) => void;
 }
 
 const ITEM_TYPE_CONFIG: Record<
@@ -72,7 +74,12 @@ function formatDate(iso: string): string {
   }
 }
 
-export function ActivityTimeline({ items, loading, error }: Props) {
+export function ActivityTimeline({
+  items,
+  loading,
+  error,
+  onItemClick,
+}: Props) {
   if (loading) {
     return (
       <Stack spacing={1.5}>
@@ -116,6 +123,7 @@ export function ActivityTimeline({ items, loading, error }: Props) {
       />
       {items.map((item, idx) => {
         const cfg = getConfig(item.item_type);
+        const clickable = Boolean(onItemClick) && item.item_type === "encounter";
         return (
           <Box
             key={`${item.item_type}-${item.item_id}-${idx}`}
@@ -142,12 +150,21 @@ export function ActivityTimeline({ items, loading, error }: Props) {
             </Box>
             {/* Content */}
             <Box
+              component={clickable ? "button" : "div"}
+              type={clickable ? "button" : undefined}
+              onClick={clickable ? () => onItemClick?.(item) : undefined}
               sx={{
                 flex: 1,
                 border: "1px solid #E2E8F0",
                 borderRadius: "8px",
                 p: "10px 14px",
                 bgcolor: "#FAFAFA",
+                textAlign: "left",
+                font: "inherit",
+                cursor: clickable ? "pointer" : "default",
+                "&:hover": clickable
+                  ? { borderColor: "#94A3B8", bgcolor: "#F8FAFC" }
+                  : undefined,
               }}
             >
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">

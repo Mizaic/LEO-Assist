@@ -26,6 +26,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   mfa_required:
     "Two-step login (MFA) is required for this system. " +
     "Please sign in again and complete the Microsoft Authenticator check.",
+  no_access:
+    "Your Microsoft sign-in worked, but your account has not been given " +
+    "access to LEO. Ask your system administrator to assign a LEO role.",
+  tenant_not_allowed:
+    "Your organisation is not set up for LEO yet. Ask your system " +
+    "administrator for help.",
 };
 
 function SignInContent() {

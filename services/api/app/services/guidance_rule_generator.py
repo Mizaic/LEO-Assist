@@ -495,7 +495,7 @@ class GuidanceRuleGenerator:
                 rec["id"],
             )
             coded = {**coded, "needs_human_review": True}
-            rule_id = self._write_rule(guideline_id, rec, raw, coded)
+            rule_id = self._write_rule(guideline_id, rec, raw, coded, errors=errors_out)
             self._write_guidance_audit_event(
                 rec=rec,
                 guideline_id=guideline_id,
@@ -507,7 +507,7 @@ class GuidanceRuleGenerator:
             )
             return rule_id
 
-        rule_id = self._write_rule(guideline_id, rec, raw, coded)
+        rule_id = self._write_rule(guideline_id, rec, raw, coded, errors=errors_out)
         status = (
             "partial" if bool((coded or {}).get("needs_human_review")) else "success"
         )
@@ -596,9 +596,7 @@ class GuidanceRuleGenerator:
                 compile_scope_id=guideline_id,
                 schema_version=2,
                 logic_json=json.dumps(logic_tree),
-                raw_logic_json=(
-                    json.dumps(raw_tree) if raw_tree is not None else None
-                ),
+                raw_logic_json=(json.dumps(raw_tree) if raw_tree is not None else None),
                 verifier_json=json.dumps(verifier),
                 action_json=None,
             )
@@ -624,12 +622,44 @@ class GuidanceRuleGenerator:
 
     # ── Neo4j write ────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _build_verifier_payload(
+        coded: dict[str, Any], errors: list[str] | None = None
+    ) -> dict[str, Any] | None:
+        """Merge the LLM verifier verdict with pipeline-level review signals.
+
+        ``coded["verifier"]`` is the raw code-verifier LLM output (only
+        ``overall_status`` / ``leaf_decisions`` / ``action_decision`` --
+        see guidance_rule_code_verifier_output_schema.py). It never carries
+        ``needs_human_review``. Writing it to Neo4j unmerged, as this method
+        used to do, silently dropped every ``needs_human_review`` /
+        ``hitl_terms`` flag that assemble_result() set (including the
+        sex-constraint safety check), so the UI's "Needs review" chip never
+        lit up for those rules even though the pipeline had already flagged
+        them for a reviewer.
+        """
+        verifier = dict(coded.get("verifier") or {})
+        needs_review = bool(coded.get("needs_human_review")) or bool(
+            coded.get("hitl_terms")
+        )
+        if not verifier and not needs_review and not errors:
+            return None
+        if needs_review:
+            verifier["needs_human_review"] = True
+        if coded.get("hitl_terms"):
+            verifier["hitl_terms"] = coded["hitl_terms"]
+        if errors:
+            verifier["errors"] = list(errors)[:20]
+        return verifier
+
     def _write_rule(
         self,
         guideline_id: str,
         rec: dict[str, Any],
         raw: dict[str, Any] | None,
         coded: dict[str, Any],
+        *,
+        errors: list[str] | None = None,
     ) -> str:
         """Write AppropriatenessRule, CriteriaGroups, ActionGroup, ReviewTask.
 
@@ -645,6 +675,7 @@ class GuidanceRuleGenerator:
         urgency = rec.get("urgency") or "routine"
         priority_meta = _urgency_to_priority(urgency)
         actions = self._resolve_actions(coded)
+        verifier_payload = self._build_verifier_payload(coded, errors)
 
         with self._driver.session() as session:
             session.run(
@@ -666,8 +697,8 @@ class GuidanceRuleGenerator:
                     else None
                 ),
                 verifier_json=(
-                    json.dumps(coded.get("verifier"))
-                    if coded.get("verifier") is not None
+                    json.dumps(verifier_payload)
+                    if verifier_payload is not None
                     else None
                 ),
                 action_json=(json.dumps(actions) if actions else None),

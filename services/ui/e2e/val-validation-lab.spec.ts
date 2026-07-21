@@ -18,12 +18,15 @@ loadPlaywrightEnv();
  *   VT: VT-22F3EF6A
  *
  * Full create->run->promote against a live API is environment-gated.
- * This VAL records chrome + control presence when Atlas env is configured.
+ * This VAL records chrome + control presence for the single guided
+ * "new test patient -> build profile -> encounters -> referral -> submit"
+ * wizard when Atlas env is configured. It never submits a referral
+ * against the live API -- that would trigger a real pipeline run.
  */
 const PROTOCOL = [
   "Open Validation Lab from Knowledge",
-  "Confirm case authoring and gold fields are visible",
-  "Confirm dry-run opt-in and Save as gold controls exist",
+  "Confirm the new-patient wizard mounts with step 1 fields visible",
+  "Step through profile, encounters and referral to the submit step",
   "Confirm SBAR surface is CDN widget host (LeoSbarHost mount point)",
 ] as const;
 
@@ -50,6 +53,8 @@ test.describe("VAL Validation Lab chrome @val", () => {
       await ctx.page.goto("/admin/knowledge?tab=validation-lab");
       await ctx.page.waitForLoadState("networkidle");
       await expect(ctx.page.getByTestId("validation-lab-page")).toBeVisible();
+      await expect(ctx.page.getByTestId("create-patient-wizard")).toBeVisible();
+      await expect(ctx.page.getByTestId("wizard-title")).toBeVisible();
       await recordProtocolStep({
         request: ctx.request,
         runId: ctx.runId,
@@ -58,16 +63,18 @@ test.describe("VAL Validation Lab chrome @val", () => {
         testInfo: ctx.testInfo,
         protocol: PROTOCOL,
         stepIndex: 0,
-        notes: "Validation Lab page visible",
+        notes: "Validation Lab page + new-patient wizard step 1 visible",
       });
       ctx.lastCompletedStep.value = 0;
 
-      await expect(
-        ctx.page.getByTestId("validation-lab-clinical-text"),
-      ).toBeVisible();
-      await expect(
-        ctx.page.getByTestId("validation-lab-gold-entities"),
-      ).toBeVisible();
+      await ctx.page.getByTestId("wizard-title").fill("VAL chrome test patient");
+      await ctx.page.getByTestId("wizard-next").click();
+      await expect(ctx.page.getByTestId("wizard-step-profile")).toBeVisible();
+      await ctx.page.getByTestId("wizard-next").click();
+      await expect(ctx.page.getByTestId("wizard-step-encounters")).toBeVisible();
+      await ctx.page.getByTestId("wizard-next").click();
+      await expect(ctx.page.getByTestId("wizard-step-referral")).toBeVisible();
+      await expect(ctx.page.getByTestId("wizard-referral-text")).toBeVisible();
       await recordProtocolStep({
         request: ctx.request,
         runId: ctx.runId,
@@ -76,12 +83,16 @@ test.describe("VAL Validation Lab chrome @val", () => {
         testInfo: ctx.testInfo,
         protocol: PROTOCOL,
         stepIndex: 1,
-        notes: "Authoring + gold fields present",
+        notes: "Profile, encounters and referral steps present",
       });
       ctx.lastCompletedStep.value = 1;
 
-      await expect(ctx.page.getByTestId("validation-lab-dry-run")).toBeVisible();
-      await expect(ctx.page.getByTestId("validation-lab-promote")).toBeVisible();
+      await ctx.page.getByTestId("wizard-referral-text").fill(
+        "VAL chrome test only -- this run is never submitted.",
+      );
+      await ctx.page.getByTestId("wizard-next").click();
+      await expect(ctx.page.getByTestId("wizard-step-submit")).toBeVisible();
+      await expect(ctx.page.getByTestId("wizard-submit")).toBeVisible();
       await recordProtocolStep({
         request: ctx.request,
         runId: ctx.runId,
@@ -90,13 +101,12 @@ test.describe("VAL Validation Lab chrome @val", () => {
         testInfo: ctx.testInfo,
         protocol: PROTOCOL,
         stepIndex: 2,
-        notes: "Dry-run and promote controls present",
+        notes: "Reached submit step without triggering a real pipeline run",
       });
       ctx.lastCompletedStep.value = 2;
 
-      // Widget mounts after a successful SBAR run; assert host import surface
-      // via page source contract already covered by jest -- here assert empty
-      // state does not mount a second SbarFinalView.
+      // Widget mounts after a successful SBAR run; assert empty state does
+      // not mount a legacy SbarFinalView (retired chrome).
       await expect(ctx.page.locator("text=SbarFinalView")).toHaveCount(0);
       await recordProtocolStep({
         request: ctx.request,

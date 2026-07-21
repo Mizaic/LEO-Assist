@@ -14,11 +14,49 @@ import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
+type UnauthorizedVariant = "unauthenticated" | "no-access";
+
 interface UnauthorizedScreenProps {
-  onSignIn: () => void;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
+  variant?: UnauthorizedVariant;
 }
 
-export default function UnauthorizedScreen({ onSignIn }: UnauthorizedScreenProps) {
+const COPY: Record<
+  UnauthorizedVariant,
+  { title: string; body: string; help: string; action: string }
+> = {
+  unauthenticated: {
+    title: "You need to sign in first",
+    body:
+      "This page is for authorised Mizaic staff only. Please sign in with " +
+      "your Microsoft account to continue.",
+    help:
+      "Not sure if you have an account? Ask your system administrator to " +
+      "set one up for you.",
+    action: "Sign in with Microsoft",
+  },
+  "no-access": {
+    title: "You do not have access",
+    body:
+      "Your Microsoft sign-in worked, but your account has not been given " +
+      "access to LEO. Ask your system administrator to assign a LEO role.",
+    help:
+      "If you think this is a mistake, contact your system administrator. " +
+      "Do not try to open clinical pages again until access is granted.",
+    action: "Sign out",
+  },
+};
+
+export default function UnauthorizedScreen({
+  onSignIn,
+  onSignOut,
+  variant = "unauthenticated",
+}: UnauthorizedScreenProps) {
+  const copy = COPY[variant];
+  const onAction =
+    variant === "no-access" ? onSignOut : onSignIn;
+
   return (
     <Box
       sx={{
@@ -42,7 +80,6 @@ export default function UnauthorizedScreen({ onSignIn }: UnauthorizedScreenProps
           gap: 2,
         }}
       >
-        {/* Icon */}
         <Box
           sx={{
             width: 72,
@@ -57,42 +94,48 @@ export default function UnauthorizedScreen({ onSignIn }: UnauthorizedScreenProps
           <LockOutlinedIcon sx={{ fontSize: 36, color: "primary.main" }} />
         </Box>
 
-        {/* Main message — plain English, reading age ~11 */}
         <Typography
           variant="h5"
+          component="h1"
           sx={{ fontWeight: 700, textAlign: "center", color: "text.primary" }}
         >
-          You need to sign in first
+          {copy.title}
         </Typography>
 
         <Typography
           variant="body1"
           sx={{ color: "text.secondary", textAlign: "center", lineHeight: 1.65 }}
         >
-          This page is for authorised Mizaic staff only. Please sign in with
-          your Microsoft account to continue.
+          {copy.body}
         </Typography>
 
-        {/* Primary action */}
-        <Button
-          variant="contained"
-          size="large"
-          onClick={onSignIn}
-          sx={{ mt: 1, px: 5, py: 1.3, fontWeight: 700, fontSize: "1rem", width: "100%" }}
-        >
-          Sign in with Microsoft
-        </Button>
+        {onAction ? (
+          <Button
+            variant="contained"
+            size="large"
+            onClick={onAction}
+            sx={{
+              mt: 1,
+              px: 5,
+              py: 1.3,
+              fontWeight: 700,
+              fontSize: "1rem",
+              width: "100%",
+            }}
+          >
+            {copy.action}
+          </Button>
+        ) : null}
 
-        {/* "Need access?" help text */}
-        <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center" }}>
-          Not sure if you have an account?{" "}
-          <strong>Ask your system administrator</strong> to set one up for
-          you.
+        <Typography
+          variant="body2"
+          sx={{ color: "text.secondary", textAlign: "center" }}
+        >
+          {copy.help}
         </Typography>
 
         <Divider sx={{ width: "100%", mt: 1 }} />
 
-        {/* Legal notice — smaller, clearly secondary */}
         <Typography
           variant="caption"
           component="p"

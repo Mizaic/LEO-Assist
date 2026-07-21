@@ -38,9 +38,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import GavelIcon from "@mui/icons-material/Gavel";
 import {
-  defaultSelectedForTriage,
-  triageRecommendation,
-} from "@/lib/recommendationTriage";
+  allNormativeRecs,
+  buildInitialSelection,
+  type RecMode,
+  type RecSelection,
+  type SelectionMap,
+} from "./recommendationPickerSelection";
 
 import EditRuleDialog, { type EditableRule } from "./EditRuleDialog";
 import { ruleToEditable } from "./ruleReviewHelpers";
@@ -76,14 +79,14 @@ interface SubgraphData {
   chapters: ChapterEntry[];
 }
 
-type RecMode = "ai" | "hand";
-
-interface RecSelection {
-  checked: boolean;
-  mode: RecMode;
+export interface AttachedRecommendation {
+  recId: string;
+  guidelineCode: string;
+  verbatim: string;
+  recTitle: string;
+  ruleId: string;
+  ruleStatus: string;
 }
-
-type SelectionMap = Record<string, RecSelection>;
 
 interface Props {
   code: string | null;
@@ -91,6 +94,9 @@ interface Props {
   source?: "nice_syndication_api" | "local_guideline";
   onClose: () => void;
   onRulesGenerated: () => void;
+  /** When "attach", selected recs are returned via onAttach instead of drafting rules. */
+  mode?: "rules" | "attach";
+  onAttach?: (recs: AttachedRecommendation[]) => void;
 }
 
 // -- Status badge -----------------------------------------------------------
@@ -127,9 +133,10 @@ interface RecRowProps {
   rec: RecEntry;
   sel: RecSelection;
   onChange: (patch: Partial<RecSelection>) => void;
+  attachMode?: boolean;
 }
 
-function RecRow({ rec, sel, onChange }: RecRowProps) {
+function RecRow({ rec, sel, onChange, attachMode = false }: RecRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasRule = rec.rules.length > 0;
   const preview = rec.verbatim ? rec.verbatim.slice(0, 120) : "(no text stored)";
@@ -181,7 +188,17 @@ function RecRow({ rec, sel, onChange }: RecRowProps) {
             </Typography>
           </Stack>
 
-          {sel.checked && (
+          {sel.checked && attachMode && hasRule ? (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 0.75, display: "block", fontSize: "0.68rem" }}
+            >
+              Existing rule can score whether the test case should fire
+            </Typography>
+          ) : null}
+
+          {sel.checked && !attachMode && (
             <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.75 }}>
               <ToggleButtonGroup
                 size="small"
@@ -218,9 +235,15 @@ interface ChapterSectionProps {
   chapter: ChapterEntry;
   selection: SelectionMap;
   onChangeRec: (recId: string, patch: Partial<RecSelection>) => void;
+  attachMode?: boolean;
 }
 
-function ChapterSection({ chapter, selection, onChangeRec }: ChapterSectionProps) {
+function ChapterSection({
+  chapter,
+  selection,
+  onChangeRec,
+  attachMode = false,
+}: ChapterSectionProps) {
   const normative = chapter.recommendations.filter((r) => r.is_normative);
   const [open, setOpen] = useState(true);
 
@@ -259,6 +282,7 @@ function ChapterSection({ chapter, selection, onChangeRec }: ChapterSectionProps
                 rec={rec}
                 sel={selection[rec.rec_id] ?? { checked: false, mode: "ai" }}
                 onChange={(patch) => onChangeRec(rec.rec_id, patch)}
+                attachMode={attachMode}
               />
             ))
           )}
@@ -314,30 +338,6 @@ async function createBlankRule(recId: string): Promise<Rule> {
   return data.rule;
 }
 
-// -- Selection helpers -------------------------------------------------------
-
-function buildInitialSelection(chapters: ChapterEntry[]): SelectionMap {
-  // Pre-select only ruleable buckets (full_rule / trigger_plus_narrative).
-  // Information-only recommendations default unchecked to save LLM cost.
-  const map: SelectionMap = {};
-  for (const ch of chapters) {
-    for (const rec of ch.recommendations) {
-      if (!rec.is_normative) continue;
-      const bucket = triageRecommendation(rec.verbatim || rec.title || "");
-      const ruleable = defaultSelectedForTriage(bucket);
-      map[rec.rec_id] = {
-        checked: rec.rules.length === 0 && ruleable,
-        mode: "ai",
-      };
-    }
-  }
-  return map;
-}
-
-function allNormativeRecs(chapters: ChapterEntry[]): RecEntry[] {
-  return chapters.flatMap((ch) => ch.recommendations.filter((r) => r.is_normative));
-}
-
 // -- Dialog footer -----------------------------------------------------------
 
 interface FooterProps {
@@ -350,13 +350,17 @@ interface FooterProps {
   onGenerate: () => void;
   onBuildHand: () => void;
   onClose: () => void;
+  attachMode?: boolean;
+  attachCount?: number;
+  onAttach?: () => void;
 }
 
 function DialogFooter({
   aiCount, handCount, generating, creatingStub,
   generationDone, generationError, onGenerate, onBuildHand, onClose,
+  attachMode = false, attachCount = 0, onAttach,
 }: FooterProps) {
-  const totalSelected = aiCount + handCount;
+  const totalSelected = attachMode ? attachCount : aiCount + handCount;
   return (
     <Box
       sx={{
@@ -367,7 +371,7 @@ function DialogFooter({
       {generationError && (
         <Alert severity="error" sx={{ mb: 1, py: 0.3, fontSize: "0.78rem" }}>{generationError}</Alert>
       )}
-      {generationDone && (
+      {generationDone && !attachMode && (
         <Alert severity="success" sx={{ mb: 1, py: 0.3, fontSize: "0.78rem" }}>
           AI drafts generated. Rules are in the review queue.
         </Alert>
@@ -378,15 +382,26 @@ function DialogFooter({
       <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
         <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
           {totalSelected === 0 ? "No recommendations selected" : `${totalSelected} selected`}
-          {aiCount > 0 && ` · ${aiCount} AI draft`}
-          {handCount > 0 && ` · ${handCount} by hand`}
+          {!attachMode && aiCount > 0 && ` · ${aiCount} AI draft`}
+          {!attachMode && handCount > 0 && ` · ${handCount} by hand`}
         </Typography>
 
         <Stack direction="row" spacing={1}>
           <Button variant="outlined" size="small" onClick={onClose}>
             {generationDone ? "Close" : "Cancel"}
           </Button>
-          {handCount > 0 && (
+          {attachMode ? (
+            <Button
+              variant="contained"
+              size="small"
+              color="primary"
+              onClick={onAttach}
+              disabled={attachCount === 0}
+            >
+              Attach selected ({attachCount})
+            </Button>
+          ) : null}
+          {!attachMode && handCount > 0 && (
             <Button
               variant="outlined" size="small" color="primary"
               startIcon={creatingStub ? <CircularProgress size={13} color="inherit" /> : <BuildIcon sx={{ fontSize: 14 }} />}
@@ -396,7 +411,7 @@ function DialogFooter({
               Build by hand ({handCount})
             </Button>
           )}
-          {aiCount > 0 && (
+          {!attachMode && aiCount > 0 && (
             <Button
               variant="contained" size="small" color="primary"
               startIcon={generating ? <CircularProgress size={13} color="inherit" /> : <AutoAwesomeIcon sx={{ fontSize: 14 }} />}
@@ -415,8 +430,15 @@ function DialogFooter({
 // -- Main dialog ------------------------------------------------------------
 
 export default function RecommendationPickerDialog({
-  code, guidelineTitle, source = "nice_syndication_api", onClose, onRulesGenerated,
+  code,
+  guidelineTitle,
+  source = "nice_syndication_api",
+  onClose,
+  onRulesGenerated,
+  mode = "rules",
+  onAttach,
 }: Props) {
+  const attachMode = mode === "attach";
   const [data, setData] = useState<SubgraphData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(false);
@@ -441,10 +463,13 @@ export default function RecommendationPickerDialog({
     setLoadingData(true);
     setLoadError(null);
       fetchSubgraph(code, source)
-      .then((d) => { setData(d); setSelection(buildInitialSelection(d.chapters)); })
+      .then((d) => {
+        setData(d);
+        setSelection(buildInitialSelection(d.chapters, attachMode));
+      })
       .catch((e) => setLoadError(e instanceof Error ? e.message : "Could not load recommendations."))
       .finally(() => setLoadingData(false));
-  }, [code, source]);
+  }, [code, source, attachMode]);
 
   const updateRec = useCallback((recId: string, patch: Partial<RecSelection>) => {
     setSelection((prev) => ({ ...prev, [recId]: { ...prev[recId], ...patch } }));
@@ -574,7 +599,9 @@ export default function RecommendationPickerDialog({
                 {guidelineTitle || code}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, fontSize: "0.8rem" }}>
-                Select recommendations to create rules for
+                {attachMode
+                  ? "Select recommendations to attach to this test scenario"
+                  : "Select recommendations to create rules for"}
               </Typography>
             </Box>
             <IconButton size="small" onClick={onClose} disabled={generating || creatingStub}
@@ -619,9 +646,15 @@ export default function RecommendationPickerDialog({
                     </Typography>
                   }
                 />
-                <Typography variant="caption" color="text.secondary">
-                  {allNoRules} without rules
-                </Typography>
+                {!attachMode ? (
+                  <Typography variant="caption" color="text.secondary">
+                    {allNoRules} without rules
+                  </Typography>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    Start with none selected — tick the ones to test
+                  </Typography>
+                )}
               </Stack>
 
               {data.chapters.map((ch) => (
@@ -630,6 +663,7 @@ export default function RecommendationPickerDialog({
                   chapter={ch}
                   selection={selection}
                   onChangeRec={updateRec}
+                  attachMode={attachMode}
                 />
               ))}
             </>
@@ -647,6 +681,26 @@ export default function RecommendationPickerDialog({
             onGenerate={handleGenerate}
             onBuildHand={handleBuildHand}
             onClose={onClose}
+            attachMode={attachMode}
+            attachCount={allRecs.filter((r) => selection[r.rec_id]?.checked).length}
+            onAttach={() => {
+              if (!onAttach || !code) return;
+              const attached: AttachedRecommendation[] = allRecs
+                .filter((r) => selection[r.rec_id]?.checked)
+                .map((r) => {
+                  const active = r.rules.find((rule) => rule.status === "active");
+                  const first = r.rules[0];
+                  return {
+                    recId: r.rec_id,
+                    guidelineCode: code,
+                    verbatim: r.verbatim || "",
+                    recTitle: r.rec_title || "",
+                    ruleId: (active || first)?.rule_id || "",
+                    ruleStatus: (active || first)?.status || "",
+                  };
+                });
+              onAttach(attached);
+            }}
           />
         )}
       </Dialog>

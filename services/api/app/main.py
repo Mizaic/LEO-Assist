@@ -84,6 +84,9 @@ from app.routers.extraction_scenario_mutations import (
 from app.routers.coding_validation import router as coding_validation_router
 from app.routers.validation_runs import router as validation_runs_router
 from app.routers.validation_lab import router as validation_lab_router
+from app.routers.validation_lab_brainstorm import (
+    router as validation_lab_brainstorm_router,
+)
 from app.routers.sdk_auth import router as sdk_auth_router
 from app.routers.sdk_governance import router as sdk_governance_router
 from app.routers.sdk_release import router as sdk_release_router
@@ -504,6 +507,7 @@ app.include_router(extraction_scenario_mutations_router)
 app.include_router(coding_validation_router)
 app.include_router(validation_runs_router)
 app.include_router(validation_lab_router)
+app.include_router(validation_lab_brainstorm_router)
 app.include_router(sdk_auth_router)
 app.include_router(sdk_telemetry_router)
 app.include_router(sdk_release_router)

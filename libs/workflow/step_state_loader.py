@@ -16,6 +16,10 @@ from libs.pipeline.document_chunk_loader import (
     load_document_chunks_from_neo4j,
     merge_referral_message_fields,
 )
+from libs.pipeline.communication_thread_loader import (
+    is_communication_thread_mode,
+    load_communication_thread_from_neo4j,
+)
 from libs.workflow.durable_steps import StepRequest
 from libs.workflow.pipeline_stage_store import PipelineStageStore
 
@@ -23,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 REFERRAL_HANDOFF_KEYS: tuple[str, ...] = (
     "chunk_ids",
+    "communication_request_id",
     "document_reference_id",
     "text_segmentation_mode",
     "referral_id",
@@ -81,6 +86,13 @@ def default_source_fields(
             doc_ref or (request.source_node_id or request.encounter_id),
             text_property,
         )
+    if is_communication_thread_mode(state):
+        cr_id = str(state.get("communication_request_id") or "").strip()
+        return (
+            "CommunicationRequest",
+            cr_id or (request.source_node_id or request.encounter_id),
+            "note",
+        )
     return (
         request.source_node_type or "Encounter",
         request.source_node_id or request.encounter_id,
@@ -104,6 +116,36 @@ def load_document_chunks_into_state(
         "document_chunks load failed run_id=%s chunk_count=%d errors=%s",
         request.run_id,
         len(chunk_ids),
+        loaded.get("errors"),
+    )
+    state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
+
+
+def load_communication_thread_into_state(
+    client: PatientGraphClient,
+    state: dict[str, Any],
+    request: StepRequest,
+) -> None:
+    if state.get("sentences"):
+        return
+    cr_id = str(state.get("communication_request_id") or "").strip()
+    if not cr_id:
+        state["errors"] = list(state.get("errors") or []) + [
+            "communication_thread mode requires communication_request_id"
+        ]
+        return
+    loaded = load_communication_thread_from_neo4j(
+        client,
+        cr_id,
+        chunk_ids=chunk_ids_from_state(state) or None,
+    )
+    state.update(loaded)
+    if not loaded.get("errors"):
+        return
+    logger.warning(
+        "communication_thread load failed run_id=%s cr_id=%s errors=%s",
+        request.run_id,
+        cr_id,
         loaded.get("errors"),
     )
     state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
@@ -261,6 +303,8 @@ def load_step_state(
     )
     if is_document_chunks_mode(state):
         load_document_chunks_into_state(client, state, request)
+    elif is_communication_thread_mode(state):
+        load_communication_thread_into_state(client, state, request)
     elif not state.get("encounter_text") and request.encounter_id:
         rows = client.run(
             "MATCH (e:Encounter {id: $encounter_id}) "

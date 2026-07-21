@@ -53,6 +53,7 @@ router = APIRouter()
 
 class PatientSummary(BaseModel):
     patient_id: str
+    display_name: Optional[str] = None
     nhs_number: Optional[str] = None
     gender: Optional[str] = None
     birth_date: Optional[str] = None
@@ -86,6 +87,7 @@ class EpisodeSummary(BaseModel):
 
 class PatientDetail(BaseModel):
     patient_id: str
+    display_name: Optional[str] = None
     nhs_number: Optional[str] = None
     gender: Optional[str] = None
     birth_date: Optional[str] = None
@@ -122,6 +124,7 @@ def _row_to_patient_summary(row: dict[str, Any]) -> PatientSummary:
     raw_tags = [t for t in (row.get("raw_tags") or []) if t]
     return PatientSummary(
         patient_id=row.get("patient_id", ""),
+        display_name=row.get("display_name") or row.get("patient_id", ""),
         nhs_number=row.get("nhs_number"),
         gender=row.get("gender"),
         birth_date=row.get("birth_date"),
@@ -134,9 +137,7 @@ def _row_to_patient_summary(row: dict[str, Any]) -> PatientSummary:
         referral_count=int(row.get("referral_count") or 0),
         coded_concept_count=int(row.get("coded_concept_count") or 0),
         semantic_tags=raw_tags,
-        condition_types=[
-            ct for ct in (row.get("condition_types") or []) if ct
-        ],
+        condition_types=[ct for ct in (row.get("condition_types") or []) if ct],
     )
 
 
@@ -277,6 +278,7 @@ def get_patient_detail(
 
     return PatientDetail(
         patient_id=row.get("patient_id", patient_id),
+        display_name=row.get("display_name") or row.get("patient_id", patient_id),
         nhs_number=row.get("nhs_number"),
         gender=row.get("gender"),
         birth_date=row.get("birth_date"),

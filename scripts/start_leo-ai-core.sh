@@ -143,33 +143,11 @@ echo "  LEO-AI-CORE - Local Dev Startup"
 echo ""
 echo "  [py]   Bootstrap interpreter: $($PY_BOOTSTRAP -V) ($PY_BOOTSTRAP)"
 
-# Load .env-style files into this shell (export). Later files override earlier.
-# import_dotenv PATH [override: 0|1]
-import_dotenv() {
-  local path="$1"
-  local override="${2:-0}"
-  local count=0
-  [[ -f "$path" ]] || { echo "$count"; return 0; }
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    [[ -z "$line" || "$line" == \#* ]] && continue
-    [[ "$line" != *=* ]] && continue
-    local key="${line%%=*}"
-    local val="${line#*=}"
-    key="${key#"${key%%[![:space:]]*}"}"
-    key="${key%"${key##*[![:space:]]}"}"
-    val="${val#"${val%%[![:space:]]*}"}"
-    val="${val%"${val##*[![:space:]]}"}"
-    local already=""
-    eval "already=\${$key+x}"
-    if [[ "$override" == "1" ]] || [[ -z "$already" ]]; then
-      export "${key}=${val}"
-      count=$((count + 1))
-    fi
-  done < "$path"
-  echo "$count"
-}
+# Load .env-style files into this shell (export). Shared with Terminal launchers
+# so Core API and UI use the same SDK_HOST_SHARED_SECRET.
+# shellcheck source=scripts/lib/load_leo_dev_env.sh
+source "${SCRIPT_DIR}/lib/load_leo_dev_env.sh"
+import_dotenv() { _leo_import_dotenv "$@"; }
 
 n="$(import_dotenv "${REPO_ROOT}/secrets/.env" 0)"
 if [[ "$n" -gt 0 ]]; then echo "  [env]  Loaded $n vars from secrets/.env"; fi
@@ -184,6 +162,9 @@ if [[ "$n" -gt 0 ]]; then
 else
   echo "  [env]  secrets/.env.config not found - using system env vars only."
 fi
+
+n="$(import_dotenv "${REPO_ROOT}/.env" 0)"
+if [[ "$n" -gt 0 ]]; then echo "  [env]  Loaded $n vars from .env"; fi
 
 if [[ "$SKIP_MCP_REGISTER" -eq 0 ]]; then
   MCP_JSON="${HOME}/.cursor/mcp.json"
@@ -322,6 +303,13 @@ start_service_window() {
     # Force a friendly terminal title for this service tab/window.
     printf 'printf %q\n' $'\033]0;'"${title}"$'\007\033]1;'"${title}"$'\007'
     printf 'export PYTHONPATH=%q\n' "$REPO_ROOT"
+    # Re-load secrets into THIS Terminal window. macOS Terminal "do script"
+    # does not inherit exports from the start script process, which previously
+    # left Core API on a stale SDK_HOST_SHARED_SECRET while the UI minted
+    # tokens with SCENARIO_SDK_HOST_SECRET from services/ui/.env.local.
+    printf 'export LEO_REPO_ROOT=%q\n' "$REPO_ROOT"
+    printf '# shellcheck disable=SC1091\n'
+    printf 'source %q\n' "${SCRIPT_DIR}/lib/load_leo_dev_env.sh"
     if [[ -n "${TERMINOLOGY_API_URLS:-}" ]]; then
       printf 'export TERMINOLOGY_API_URLS=%q\n' "$TERMINOLOGY_API_URLS"
     fi

@@ -48,6 +48,8 @@ class FakeClient:
             return self._upsert_run(params)
         if "ValidationLabRun {id: $run_id}" in q:
             return self._get_run(params)
+        if "DETACH DELETE c" in q and "ValidationCase {id: $case_id}" in q:
+            return self._delete_case(params)
         if "MATCH (c:ValidationCase {id: $case_id})" in q and "HAS_LAB_RUN" in q:
             return self._get_case_with_runs(params)
         if "MATCH (c:ValidationCase)" in q and "LIMIT" in q:
@@ -125,6 +127,14 @@ class FakeClient:
             case["gold_json"] = params["gold_json"]
         return [{"c": case}]
 
+    def _delete_case(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        cid = params["case_id"]
+        case = self.cases.pop(cid, None)
+        self.runs = {
+            rid: run for rid, run in self.runs.items() if run.get("_case_id") != cid
+        }
+        return [{"patient_id": (case or {}).get("patient_id")}]
+
     def _get_assessment(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         row = self.assessments.get(params["assessment_id"])
         return [row] if row else []
@@ -183,6 +193,79 @@ def test_create_case_with_pmh_and_encounters(monkeypatch: pytest.MonkeyPatch):
     assert case["encounters"][0]["label"] == "GP note"
 
 
+def test_delete_case_removes_case_and_cleans_graph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = FakeClient()
+    monkeypatch.setattr(lab_service, "materialise_case", _fake_materialise("p-del"))
+    cleaned: list[str] = []
+    monkeypatch.setattr(
+        "libs.validation_lab.scaffold.cleanup_case_graph",
+        lambda patient_id: cleaned.append(patient_id),
+    )
+    lab_service.create_case(
+        client,
+        ValidationCaseSpec(
+            case_id="case-del",
+            title="To delete",
+            referral_text="Delete me.",
+        ),
+    )
+    out = lab_service.delete_case(client, "case-del")
+    assert out["deleted"] is True
+    assert out["case_id"] == "case-del"
+    assert cleaned == ["p-del"]
+    with pytest.raises(KeyError):
+        lab_service.get_case(client, "case-del")
+
+
+def test_get_case_serialises_neo4j_datetime_like_values() -> None:
+    class FakeNeoDateTime:
+        def iso_format(self) -> str:
+            return "2026-07-20T14:00:00.000000000+00:00"
+
+    client = FakeClient()
+    client.cases["case-dt"] = {
+        "id": "case-dt",
+        "title": "t",
+        "created_at": FakeNeoDateTime(),
+        "gold_json": "{}",
+        "pmh_json": "[]",
+        "encounters_json": "[]",
+        "ag_thread_json": "[]",
+        "gp_encounter_json": "{}",
+    }
+    case = lab_service.get_case(client, "case-dt")
+    assert case["created_at"] == "2026-07-20T14:00:00.000000000+00:00"
+    assert lab_service._json_safe({"nested": FakeNeoDateTime()}) == {
+        "nested": "2026-07-20T14:00:00.000000000+00:00"
+    }
+
+
+def test_get_run_serialises_neo4j_datetime_like_values() -> None:
+    class FakeNeoDateTime:
+        def iso_format(self) -> str:
+            return "2026-07-20T15:00:00.000000000+00:00"
+
+    client = FakeClient()
+    client.cases["case-run-dt"] = {
+        "id": "case-run-dt",
+        "title": "t",
+        "created_at": FakeNeoDateTime(),
+        "gold_json": "{}",
+    }
+    client.runs["run-dt"] = {
+        "id": "run-dt",
+        "_case_id": "case-run-dt",
+        "status": "queued",
+        "created_at": FakeNeoDateTime(),
+        "outputs_json": "{}",
+    }
+    packed = lab_service.get_run(client, "case-run-dt", "run-dt")
+    assert packed["run"]["created_at"] == "2026-07-20T15:00:00.000000000+00:00"
+    assert packed["case"]["created_at"] == "2026-07-20T15:00:00.000000000+00:00"
+
+
 def test_start_run_production_only_enqueues_never_fabricates(
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -227,6 +310,31 @@ def test_start_run_dry_run_never_enqueues(monkeypatch: pytest.MonkeyPatch):
     )
     assert packed["run"]["status"] == "completed"
     assert published == []
+
+
+def test_start_run_marks_failed_when_publish_raises(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    client = FakeClient()
+    monkeypatch.setattr(lab_service, "materialise_case", _fake_materialise("p-fail"))
+    lab_service.create_case(
+        client,
+        ValidationCaseSpec(case_id="case-fail", title="t", referral_text="body"),
+    )
+
+    def _boom(_body: dict[str, Any], _run_id: str) -> None:
+        raise RuntimeError("Service Bus auth error")
+
+    packed = lab_service.start_run(
+        client,
+        case_id="case-fail",
+        plan_id="pd-referral-assessment",
+        phase_ids=["extraction", "sbar"],
+        persist_mode=PersistMode.production,
+        publish=_boom,
+    )
+    assert packed["run"]["status"] == "failed"
+    assert "Service Bus auth error" in (packed["run"].get("error_message") or "")
 
 
 def test_dry_run_cannot_promote_gold(monkeypatch: pytest.MonkeyPatch):

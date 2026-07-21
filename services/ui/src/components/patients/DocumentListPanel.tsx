@@ -23,12 +23,14 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import type { DocumentRow } from "@/lib/patientEprApi";
-import { fetchEprDocuments } from "@/lib/patientEprApi";
+import { fetchEprAssessments, fetchEprDocuments } from "@/lib/patientEprApi";
 import { DocumentViewer } from "./DocumentViewer";
 import {
   categoryLabel,
   fileKindLabel,
   inferFileKind,
+  isSbarDocument,
+  mergeDocumentsNewestFirst,
   type DocumentFileKind,
 } from "./documentFormat";
 
@@ -205,12 +207,23 @@ function matchesFilter(doc: DocumentRow, filter: string): boolean {
   const t = doc.document_type.toLowerCase();
   const title = doc.title.toLowerCase();
   const cat = (doc.category ?? "").toLowerCase();
-  if (filter === "sbar") return t.includes("sbar") || Boolean(doc.sbar);
+  if (filter === "sbar") return isSbarDocument(doc);
   if (filter === "referral") {
-    return t.includes("referral") || title.includes("referral") || cat.includes("referral");
+    return (
+      t.includes("referral") ||
+      title.includes("referral") ||
+      cat.includes("referral")
+    );
   }
   if (filter === "letter") {
-    return t.includes("letter") || t.includes("clinic") || cat.includes("letter");
+    if (isSbarDocument(doc)) return false;
+    return (
+      t.includes("letter") ||
+      t.includes("clinic") ||
+      t.includes("document") ||
+      cat.includes("letter") ||
+      Boolean(doc.text_preview?.trim().toLowerCase().startsWith("dear "))
+    );
   }
   if (filter === "summary") {
     return t.includes("summary") || t.includes("discharge") || cat.includes("summary");
@@ -234,15 +247,32 @@ export function DocumentListPanel({ patientId, scopeEpisodeIds }: Props) {
   useEffect(() => {
     setLoading(true);
     setSelectedId(null);
-    fetchEprDocuments(patientId)
-      .then((rows) => {
-        const scoped = scopeEpisodeIds
-          ? rows.filter((r) => !r.episode_id || scopeEpisodeIds.includes(r.episode_id))
+    setError(null);
+    Promise.all([
+      fetchEprDocuments(patientId),
+      fetchEprAssessments(patientId).catch(() => []),
+    ])
+      .then(([rows, assessments]) => {
+        const scopedDocs = scopeEpisodeIds
+          ? rows.filter(
+              (r) => !r.episode_id || scopeEpisodeIds.includes(r.episode_id),
+            )
           : rows;
-        setDocs(scoped);
-        setSelectedId(scoped[0]?.document_id ?? null);
+        const scopedAssessments = scopeEpisodeIds
+          ? assessments.filter(
+              (a) => !a.episode_id || scopeEpisodeIds.includes(a.episode_id),
+            )
+          : assessments;
+        const merged = mergeDocumentsNewestFirst(
+          scopedDocs,
+          scopedAssessments,
+        );
+        setDocs(merged);
+        setSelectedId(merged[0]?.document_id ?? null);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load documents."))
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : "Failed to load documents."),
+      )
       .finally(() => setLoading(false));
   }, [patientId, scopeEpisodeIds]);
 

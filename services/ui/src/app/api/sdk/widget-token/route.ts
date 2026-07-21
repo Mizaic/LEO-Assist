@@ -7,6 +7,7 @@
  *
  * Required env vars (see .env.example):
  *   SCENARIO_SDK_HOST_SECRET  -- must match SDK_HOST_SHARED_SECRET in the API
+ *     (falls back to SDK_HOST_SHARED_SECRET when unset)
  *   SCENARIO_SDK_HOST_ENABLED -- must be "1" in the API so the host is seeded
  *   SCENARIO_SDK_HOST_ID      -- defaults to "leo-scenario-runner"
  *   SCENARIO_SDK_TENANT_ID    -- defaults to "dev-tenant"
@@ -39,10 +40,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const hostSecret = process.env.SCENARIO_SDK_HOST_SECRET;
+  const hostSecret =
+    process.env.SCENARIO_SDK_HOST_SECRET ||
+    process.env.SDK_HOST_SHARED_SECRET ||
+    "";
   if (!hostSecret) {
     return NextResponse.json(
-      { detail: "SCENARIO_SDK_HOST_SECRET is not configured on the UI server" },
+      {
+        detail:
+          "SCENARIO_SDK_HOST_SECRET (or SDK_HOST_SHARED_SECRET) is not configured on the UI server",
+      },
       { status: 503 },
     );
   }

@@ -52,6 +52,9 @@ def test_vtb193debb_tc002_worker_subscribes_and_publishes_run_channel_events() -
     callback = _read(PROGRESS_CALLBACK)
 
     assert 'QUEUE_NAME = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")' in worker
+    lab_pipeline = _read(ROOT / "libs/validation_lab/pipeline.py")
+    assert 'os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")' in lab_pipeline
+    assert "leo-pipeline-jobs" not in lab_pipeline
     assert "_run_consumer(bus, on_message)" in worker
     assert "handler.handle_message(msg, step_callback=step_callback)" in worker
     assert "publish_progress(run_id, payload)" in callback

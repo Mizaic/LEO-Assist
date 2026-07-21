@@ -310,6 +310,7 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                             "sentence_id": sid,
                             "text": s.get("text", ""),
                             "terms": terms_by_sentence.pop(sid, []),
+                            "persist_source_label": s.get("persist_source_label"),
                         }
                     )
                 # Include any terms that did not carry a sentence_id.
@@ -319,19 +320,20 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                         {"sentence_id": sid, "text": fallback_text, "terms": terms}
                     )
 
-                source_label = (
-                    "Chunk"
-                    if str(state.get("text_segmentation_mode") or "")
-                    == "document_chunks"
-                    else "Encounter"
-                )
+                mode = str(state.get("text_segmentation_mode") or "")
+                if mode == "document_chunks":
+                    default_source_label = "Chunk"
+                elif mode == "communication_thread":
+                    default_source_label = "Communication"
+                else:
+                    default_source_label = "Encounter"
                 docs_written = write_documents_from_sentences_payload(
                     encounter_id=encounter_id,
                     sentences_payload=sentences_payload,
                     session=session,
                     source="pipeline",
                     run_id=run_id,
-                    source_label=source_label,
+                    source_label=default_source_label,
                 )
 
                 for e in entities:

@@ -139,13 +139,13 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Will refer to cardiology if no improvement.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "refer to cardiology", "lookup_term": "referral to cardiology", "semantic_tag": "procedure", "assertion": "hypothetical", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: family ────────────────────────────────────────────────────
+    # ── Assertion: family history as situation + present ─────────────────────
     {
         "category": "assertion:family",
         "model_scope": "any",
         "description": "Family history",
         "input": "[s0] Mother had breast cancer.",
-        "output": '{"terms": [{"sentence_id": "s0", "text": "breast cancer", "lookup_term": "breast cancer", "semantic_tag": "disorder", "assertion": "family", "value": null, "unit": null, "reference_range": null}]}',
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Mother had breast cancer", "lookup_term": "family history of malignant neoplasm of breast", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     # ── Assertion: refuted ───────────────────────────────────────────────────
     {
@@ -300,9 +300,9 @@ EXTRACTION_EXAMPLES: list[dict] = [
     {
         "category": "precision:referral_scope",
         "model_scope": "any",
-        "description": "Referral boilerplate only -- no clinical entity",
+        "description": "Breast suspected pathway -- situation present",
         "input": "[s0] Refer this patient under the breast suspected cancer pathway.",
-        "output": '{"terms": []}',
+        "output": '{"terms": [{"sentence_id": "s0", "text": "breast suspected cancer pathway", "lookup_term": "malignant neoplasm of breast suspected", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
         "category": "precision:referral_scope:ng12_mri",
@@ -314,9 +314,16 @@ EXTRACTION_EXAMPLES: list[dict] = [
     {
         "category": "precision:referral_scope:lower_gi_fit",
         "model_scope": "any",
-        "description": "Lower GI -- FIT+ and symptoms, skip referral placed",
+        "description": "Lower GI -- suspected situation, FIT+, symptoms; skip referral placed",
         "input": "[s0] Problem: Suspected lower GI cancer -- FIT+ in lab feed; 2WW referral placed. History: fresh rectal bleeding and change in bowel habit.",
-        "output": '{"terms": [{"sentence_id": "s0", "text": "FIT+", "lookup_term": "faecal immunochemical test positive", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "fresh rectal bleeding", "lookup_term": "rectal bleeding", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "change in bowel habit", "lookup_term": "change in bowel habit", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Suspected lower GI cancer", "lookup_term": "malignant neoplasm of lower gastrointestinal tract suspected", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "FIT+", "lookup_term": "faecal immunochemical test positive", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "fresh rectal bleeding", "lookup_term": "rectal bleeding", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "change in bowel habit", "lookup_term": "change in bowel habit", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "precision:referral_scope:upper_gi_stomach",
+        "model_scope": "any",
+        "description": "Upper GI stomach pathway -- situation present",
+        "input": "[s0] Refer under the suspected cancer pathway for stomach cancer.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "suspected cancer pathway for stomach cancer", "lookup_term": "malignant neoplasm of upper gastrointestinal tract suspected", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
         "category": "precision:referral_scope:submitted",

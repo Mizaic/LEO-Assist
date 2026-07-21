@@ -24,6 +24,7 @@ import {
   extractSourceFilename,
   fileKindLabel,
   inferFileKind,
+  isSbarDocument,
 } from "./documentFormat";
 
 type ViewMode = "rendered" | "raw";
@@ -104,7 +105,7 @@ export function DocumentViewer({ doc }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("rendered");
   const kind = inferFileKind(doc);
   const sourceFile = extractSourceFilename(doc.full_text);
-  const isSbar = doc.document_type.toLowerCase().includes("sbar") || Boolean(doc.sbar);
+  const isSbar = isSbarDocument(doc);
   const assessmentId = doc.sbar?.sbar_id?.trim() || "";
   const sbarMd = buildSbarMarkdown(doc);
   const body = useMemo(

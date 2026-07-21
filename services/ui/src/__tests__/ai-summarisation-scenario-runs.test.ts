@@ -102,6 +102,7 @@ describe("AI summarisation scenario runs", () => {
     expect(source).toContain("sdk/auth/exchange");
     expect(source).toContain("X-Mizaic-Host-Secret");
     expect(source).toContain("SCENARIO_SDK_HOST_SECRET");
+    expect(source).toContain("SDK_HOST_SHARED_SECRET");
     expect(source).toContain("widget_token");
     expect(source).toContain("assessment_id");
   });

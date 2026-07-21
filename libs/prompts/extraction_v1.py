@@ -150,24 +150,27 @@ KEEP (extract when present in sentence_subset):
 - blood-panel observables: abbrev in text (Hb, Plts, Ferritin), value in fields
 - named tests arranged or booked: urgent MRI scan of the brain, colonoscopy arranged
 - patient declined referral (clinical decision)
+- site-named suspected cancer as situation (present): "suspected breast cancer",
+  "breast suspected cancer pathway", "suspected cancer pathway for stomach cancer",
+  "gastric malignancy", "suspected lower GI cancer"
+- positive family history as situation (present): "Mother had breast cancer",
+  "FH of breast cancer", "family history of bowel cancer"
 - NSS / SystmOne safety checklist items when echoed in free text (warfarin treatment,
   NOAC treatment, metformin treatment, insulin treatment, eGFR, BMI, smoking status)
 
-DROP (do not extract -- informational routing):
-- "Urgent 2WW ... referral" email/form headers
+DROP (do not extract -- informational routing / transport only):
+- "Urgent 2WW ... referral" email/form headers with no site/clinical content
 - "2WW ... referral placed/submitted/sent", e-Referral transport lines
-- "refer this patient under the ... pathway"
-- "suspected ... cancer referral" or site pathway name only (no new symptom/result)
-- repeating the same 2WW label in Problem and Plan when a named test is already extracted
+- bare "refer this patient under the ... pathway" ONLY when no cancer site is named
+- repeating the same 2WW transport label in Problem and Plan when a named test is
+  already extracted
 - long narrative clauses when a shorter faithful phrase exists in the source
 
-Default for 2WW templates: symptoms, investigation findings, and labs only.
-Problem-line "suspected X cancer" without a separate clinical detail is routing context
-for validation-style extraction -- skip unless sentence_subset is only that suspicion
-with no symptoms or results elsewhere in the sentence.
+Default for 2WW templates: symptoms, investigation findings, labs, and site-named
+suspected-cancer / family-history situations. Pure transport remains out of scope.
 
 When sentence_subset mixes a referral header with symptoms, extract the
-symptoms/findings/investigations only -- skip the referral header.
+symptoms/findings/investigations and any site-named suspicion -- skip transport headers.
 
 Use the shortest faithful clinical span:
 - Prefer "visual disturbance" over a long eye-symptom sentence when that phrase appears.
@@ -420,6 +423,13 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
 3. Certainty: suspected, probable, possible, provisional, query/?/working
    - "suspected mesothelioma" -> lookup_term: "suspected mesothelioma"
      (set semantic_tag: finding or situation; use assertion possible when uncertain)
+   - site-named suspected cancer -> situation + present (NOT disorder + possible):
+     "suspected cancer pathway for stomach cancer" ->
+       lookup_term: "malignant neoplasm of upper gastrointestinal tract suspected"
+       semantic_tag: situation, assertion: present
+     "breast suspected cancer pathway" ->
+       lookup_term: "malignant neoplasm of breast suspected"
+       semantic_tag: situation, assertion: present
 4. Severity / grade / stage when stated: mild, moderate, severe, stage N
    - "severe anaemia" -> lookup_term: "severe anaemia"
 5. Laterality and site: left, right, bilateral, unilateral, distal, proximal,
@@ -452,10 +462,22 @@ Assign assertion from explicit linguistic cues in sentence_subset:
 - absent / refuted: negation (no, denies, without, ruled out)
 - planned: booked, referred, awaiting, arranged
 - historical: resolved, past, previous, had (when clearly past)
-- possible: suspected, query, ?, concerning for
-- family: family history, FH, mother/father had
+- possible: suspected, query, ?, concerning for -- EXCEPT situation concepts below
+- family: family history on a disorder span only -- prefer situation + present instead
 - declined / cancelled: patient declined, DNA, cancelled
 - present: default when none of the above apply
+
+Situation concepts that MUST use assertion present (not possible / family):
+- "* suspected (situation)" / "malignant neoplasm of ... suspected" / site-named
+  suspected cancer pathway phrases
+- "Family history of * (situation)" / "FH of ..." / "Mother had ..." coded as
+  family-history situation. lookup_term shape:
+  "family history of malignant neoplasm of breast"
+
+Do NOT mark absent for these common UK referral patterns:
+- "background of X" / "history of X" -- X is present (or historical), never absent
+- "former smoker" / "ex-smoker" / "quit N years ago" -- Ex-smoker is present
+- "has not responded to ... (drug)" -- the drug is present (treatment failure)
 
 Post-processing may override assertion; still emit the best-supported value.
 

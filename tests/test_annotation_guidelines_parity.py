@@ -23,11 +23,12 @@ def test_ex_smoker_few_shot_uses_finding_not_situation() -> None:
     assert terms[0]["text"] == "Ex-smoker"
 
 
-def test_fast_track_referral_few_shot_has_procedure_and_situation() -> None:
-    example = _example_by_description("2WW referral - procedure and situation")
+def test_breast_suspected_pathway_few_shot_is_situation() -> None:
+    example = _example_by_description("Breast suspected pathway -- situation present")
     tags = {t["semantic_tag"] for t in json.loads(example["output"])["terms"]}
-    assert "procedure" in tags
-    assert "situation" in tags
+    assert tags == {"situation"}
+    terms = json.loads(example["output"])["terms"]
+    assert terms[0]["assertion"] == "present"
 
 
 def test_extraction_prompt_requires_assertion() -> None:
@@ -37,7 +38,8 @@ def test_extraction_prompt_requires_assertion() -> None:
 
 
 def test_extraction_prompt_has_blood_results_table_section() -> None:
-    assert "Blood Results markdown tables" in EXTRACTION_SYSTEM_V1
+    assert "Blood Tests" in EXTRACTION_SYSTEM_V1
+    assert "one observable entity per parameter" in EXTRACTION_SYSTEM_V1
 
 
 def test_blood_panel_examples_exist() -> None:
@@ -47,6 +49,10 @@ def test_blood_panel_examples_exist() -> None:
 
 def test_guidelines_rule_10_ex_smoker_is_finding() -> None:
     assert "Ex-smoker | finding | present" in ANNOTATION_GUIDELINES_V1
+
+
+def test_guidelines_fh_situation_is_present() -> None:
+    assert "FH of breast cancer | situation | present" in ANNOTATION_GUIDELINES_V1
 
 
 def test_llm_extractor_parses_assertion_from_json() -> None:

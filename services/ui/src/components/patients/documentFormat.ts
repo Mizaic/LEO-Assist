@@ -1,7 +1,7 @@
 /**
  * Helpers for inferring clinical document file type and source filename.
  */
-import type { DocumentRow } from "@/lib/patientEprApi";
+import type { AssessmentRow, DocumentRow } from "@/lib/patientEprApi";
 
 export type DocumentFileKind = "pdf" | "word" | "markdown" | "letter" | "unknown";
 
@@ -63,4 +63,60 @@ export function fileKindLabel(kind: DocumentFileKind): string {
 export function categoryLabel(category: string | null): string {
   if (!category) return "";
   return category.replace(/_/g, " ");
+}
+
+export function isSbarDocument(doc: DocumentRow): boolean {
+  const type = doc.document_type.toLowerCase();
+  const category = (doc.category ?? "").toLowerCase();
+  return type.includes("sbar") || category === "sbar";
+}
+
+/** Map a patient Assessment into a Documents-tab row (SBAR). */
+export function assessmentToDocumentRow(row: AssessmentRow): DocumentRow {
+  const preview =
+    row.situation ||
+    row.content ||
+    "Clinical SBAR summary";
+  return {
+    document_id: `assessment:${row.assessment_id}`,
+    document_date: row.created_at,
+    document_type: "SBAR",
+    title: `SBAR -- ${row.episode_label || "Patient summary"}`,
+    category: "sbar",
+    text_preview: preview.slice(0, 200),
+    full_text: row.content || "",
+    content_type: null,
+    original_url: null,
+    markdown_url: null,
+    episode_id: row.episode_id,
+    episode_label: row.episode_label || "General",
+    sbar: {
+      sbar_id: row.assessment_id,
+      status: row.status,
+      situation: row.situation,
+      background: row.background,
+      assessment: row.assessment,
+      recommendation: row.recommendation,
+    },
+  };
+}
+
+/** Merge DocumentReferences with Assessment SBARs; newest first. */
+export function mergeDocumentsNewestFirst(
+  docs: DocumentRow[],
+  assessments: AssessmentRow[],
+): DocumentRow[] {
+  const existingSbarIds = new Set(
+    docs
+      .filter((d) => isSbarDocument(d) && d.sbar?.sbar_id)
+      .map((d) => d.sbar!.sbar_id),
+  );
+  const sbarDocs = assessments
+    .filter((a) => a.assessment_id && !existingSbarIds.has(a.assessment_id))
+    .map(assessmentToDocumentRow);
+  return [...docs, ...sbarDocs].sort((a, b) => {
+    const ta = a.document_date ? Date.parse(a.document_date) : 0;
+    const tb = b.document_date ? Date.parse(b.document_date) : 0;
+    return tb - ta;
+  });
 }

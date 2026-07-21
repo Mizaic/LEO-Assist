@@ -11,12 +11,18 @@ not a self-fulfilling echo.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
 from libs.cypher.sbar_assessment_queries import GET_ASSESSMENT
-from libs.referral_simulator.message import build_referral_received_message
+from libs.referral_simulator.message import (
+    build_communication_assessment_message,
+    build_referral_received_message,
+)
 from libs.validation_lab.gold import RunOutputs
 from libs.validation_lab.models import PersistMode
 
@@ -24,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 PublishFn = Callable[[dict[str, Any], str], None]
 
-_PIPELINE_QUEUE = "leo-pipeline-jobs"
+_PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 _TERMINAL_STATUSES = {"completed", "failed"}
 
 _GET_PIPELINE_RUN = """
@@ -61,6 +67,21 @@ def build_pipeline_message(
     Validation Lab patient without touching the live "current version"
     pointer used by production traffic.
     """
+    if case.get("case_type") == "ag" or case.get("communication_request_id"):
+        body = build_communication_assessment_message(
+            patient_id=case["patient_id"],
+            communication_request_id=case.get("communication_request_id") or "",
+            ubrn=case.get("ubrn") or case.get("case_id") or "",
+            run_id=run_id,
+            plan_definition_id=plan_id or "pd-referral-assessment",
+            guideline_ruleset_version=ruleset_version,
+            chunk_ids=list(case.get("chunk_ids") or []) or None,
+            context={"case_id": case.get("id"), "source": "validation-lab"},
+        )
+        body["dry_run"] = dry_run
+        body["capture_validation_output"] = True
+        return body
+
     body = build_referral_received_message(
         patient_id=case["patient_id"],
         encounter_id=case.get("encounter_id") or "",
@@ -77,10 +98,18 @@ def build_pipeline_message(
     return body
 
 
-def default_publish(body: dict[str, Any], run_id: str) -> None:
-    """Publish to the coding pipeline queue (best-effort)."""
-    import asyncio
+def _run_coro_sync(coro_factory: Callable[[], Any]) -> Any:
+    """Run a coroutine from sync code, even if an event loop is active."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro_factory())
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        return executor.submit(lambda: asyncio.run(coro_factory())).result()
 
+
+def default_publish(body: dict[str, Any], run_id: str) -> None:
+    """Publish to the coding pipeline queue (same queue as the worker)."""
     from libs.message_bus.base import Message
     from libs.message_bus.factory import create_message_bus
 
@@ -96,9 +125,21 @@ def default_publish(body: dict[str, Any], run_id: str) -> None:
                 ),
             )
         finally:
-            await bus.close()
+            try:
+                await bus.close()
+            except BaseException:
+                logger.debug("message bus close failed after publish", exc_info=True)
 
-    asyncio.run(_send())
+    _run_coro_sync(_send)
+
+
+def first_pipeline_error(outputs: RunOutputs) -> str:
+    """Return the first phase pipeline_error, if enqueue failed."""
+    for row in outputs.phase_outputs or []:
+        err = str(row.get("pipeline_error") or "").strip()
+        if err:
+            return err
+    return ""
 
 
 def execute_lab_run(
