@@ -305,9 +305,11 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
       _section?: string,
       storyHeadline?: string,
       highlightKey?: string,
+      pageId?: string,
     ) => {
+      const targetPage = pageId || activePageId;
       setTiles((prev) => {
-        const index = tilesForPage(prev, activePageId, isFirstPage).length;
+        const index = tilesForPage(prev, targetPage, targetPage === pages[0]?.page_id).length;
         const col = (index % 3) * 4;
         const story =
           storyHeadline || highlightKey
@@ -319,15 +321,60 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
           tile_type: tile_type as AuditTile["tile_type"],
           metric_id,
           param_overrides: {},
-          page_id: activePageId,
+          page_id: targetPage,
           layout: { x: col, y: Math.floor(index / 3) * 3, w: 4, h: 3 },
           story,
         };
         return [...prev, newTileEntry];
       });
     },
-    [activePageId, isFirstPage],
+    [activePageId, pages],
   );
+
+  const handleApplyPagesFromAI = useCallback(
+    (proposed: { page_id: string; title: string; kind?: string }[]) => {
+      if (!proposed.length) return;
+      setPages(
+        proposed.map((p) => ({
+          page_id: p.page_id,
+          title: p.title,
+          kind: (p.kind as AuditPage["kind"]) || undefined,
+        })),
+      );
+      setActivePageId(proposed[0].page_id);
+    },
+    [],
+  );
+
+  const handleAddNarrativesFromAI = useCallback((zone1: string, zone2: string) => {
+    setTiles((prev) => {
+      const next = [...prev];
+      const pageId = pages[0]?.page_id || activePageId;
+      if (zone1.trim()) {
+        next.push({
+          tile_id: `tile-zone1-${Date.now()}`,
+          label: "Zone 1 narrative",
+          tile_type: "text",
+          metric_id: "content-callout",
+          param_overrides: { text: zone1, accentColour: "#0284C7", icon: "info" },
+          page_id: pageId,
+          layout: { x: 0, y: 0, w: 6, h: 2 },
+        });
+      }
+      if (zone2.trim()) {
+        next.push({
+          tile_id: `tile-zone2-${Date.now()}`,
+          label: "Zone 2 narrative",
+          tile_type: "text",
+          metric_id: "content-callout",
+          param_overrides: { text: zone2, accentColour: "#B45309", icon: "info" },
+          page_id: pageId,
+          layout: { x: 6, y: 0, w: 6, h: 2 },
+        });
+      }
+      return next;
+    });
+  }, [activePageId, pages]);
 
   const handleSave = async () => {
     if (!title.trim()) return;
@@ -544,6 +591,8 @@ export default function TemplateEditor({ initial }: TemplateEditorProps) {
         onClose={() => setAssistantOpen(false)}
         tiles={tiles.map((t) => ({ metric_id: t.metric_id, label: t.label }))}
         onAddTile={handleAddTileFromAI}
+        onApplyPages={handleApplyPagesFromAI}
+        onAddNarratives={handleAddNarrativesFromAI}
       />
     </Box>
   );

@@ -70,6 +70,10 @@ ORG_PATIENT_FILTER = (
     "    WHERE _gp.id IN $scope_org_ids "
     "  } "
     "  OR EXISTS { "
+    "    MATCH (p)-[:REGISTERED_IN]->(_org_reg) "
+    "    WHERE _org_reg.id IN $scope_org_ids "
+    "  } "
+    "  OR EXISTS { "
     "    MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)-[:IN_WORKFLOW]->(:Workflow)"
     "    -[:FOR_SERVICE]->(:Service)<-[:PROVIDES_SERVICE]-(_sp:Organization) "
     "    WHERE _sp.id IN $scope_org_ids "
@@ -378,9 +382,7 @@ def _expand_icb_scope(client: PatientGraphClient, icb_id: str) -> list[str]:
     return list(ids)
 
 
-def _expand_service_provider_scope(
-    client: PatientGraphClient, sp_id: str
-) -> list[str]:
+def _expand_service_provider_scope(client: PatientGraphClient, sp_id: str) -> list[str]:
     """Service Provider scope: just the SP org id itself.
 
     Patient visibility is determined by the referral path filter in

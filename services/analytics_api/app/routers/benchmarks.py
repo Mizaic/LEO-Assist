@@ -1,10 +1,9 @@
 """Benchmark comparison endpoints.
 
 Atlas trace:
-  DO: DO-11A2361E
-  Also implements: DO-D537B955
-  DI: DI-94359E76, DI-F46D7A68
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-11A2361E")
+  DO: DO-249AADD3
+  Also implements: DO-B226E498
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-249AADD3")
 
 Provides organization-level benchmarks and peer comparisons
 for KPI metrics from cancer episodes.

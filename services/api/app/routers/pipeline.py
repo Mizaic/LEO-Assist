@@ -1,10 +1,8 @@
 """Pipeline endpoints for candidate generation.
 
 Atlas trace:
-  DO: DO-245F62CB
-  Also implements: DO-7B357FD6, DO-A26CD350, DO-B6E80BEE
-  DI: DI-091CBBAB, DI-176EA4FF, DI-693FFEEA, DI-705C806B, DI-B0A1E549, DI-B8674FBF
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-245F62CB")
+  DO: DO-4641EEE1
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4641EEE1")
 """
 
 from __future__ import annotations
@@ -1105,7 +1103,8 @@ async def run_episode_bundle(
     """Trigger episode-aware coding for one EpisodeOfCare.
 
     Atlas trace:
-      DI: DI-E8FE404D (Episode-aware coding pipeline)
+      DI: DI-FA2E369F (CDS pipeline workflow initiation)
+      DO: DO-4641EEE1
     """
     patient_id = (payload.patient_id or "").strip()
     episode_id = (payload.episode_id or "").strip()

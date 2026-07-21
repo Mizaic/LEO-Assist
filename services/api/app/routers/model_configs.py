@@ -1,4 +1,4 @@
-"""ModelConfig CRUD + LLM spend analytics router.
+"""ModelConfig + ServiceConfig CRUD router.
 
 Atlas trace:
   DO: DO-EC41233C
@@ -10,9 +10,12 @@ Exposes:
   POST   /model-configs                 — create a new ModelConfig node
   PUT    /model-configs/{key}           — update rates (marks source='user')
   DELETE /model-configs/{key}           — remove a ModelConfig node
-  GET  /analytics/llm-spend/patient   — per-patient token + cost history
-  GET  /analytics/llm-spend/org       — org-level aggregate spend
-  GET  /analytics/llm-spend/runs      — pipeline run spend (AuditEvent)
+  GET/PUT /service-configs[/{key}]      — service configuration CRUD
+
+LLM spend analytics (GET /analytics/llm-spend/patient, /runs) moved to
+app/routers/llm_usage.py (2026-07 CTO peer-review item 2: core-api router
+decomposition -- billing/observability is a distinct concern from
+provider/pricing config CRUD). No URL path changed.
 """
 
 from __future__ import annotations
@@ -21,23 +24,19 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.db.neo4j_client import CodingGraphClient, PatientGraphClient
+from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
 from libs.auth.org_scope import (
     CallerScope,
     get_caller_scope,
-    require_patient_in_scope,
 )
 from libs.cypher.model_config_queries import (
     CREATE_MODEL_CONFIG,
     DELETE_MODEL_CONFIG,
     GET_MODEL_CONFIG,
-    GET_AUDIT_EVENT_SPEND,
-    GET_AUDIT_EVENT_SPEND_TOTALS,
-    GET_PATIENT_LLM_SPEND,
     LIST_MODEL_CONFIGS,
     UPDATE_MODEL_CONFIG,
 )
@@ -258,160 +257,3 @@ def upsert_service_config(
         return {"key": key, "status": "updated"}
     finally:
         client.close()
-
-
-# ── LLM spend analytics ───────────────────────────────────────────────────────
-
-
-@router.get("/analytics/llm-spend/patient")
-def patient_llm_spend(
-    patient_id: str = Query(...),
-    from_date: str | None = Query(None, alias="from"),
-    to_date: str | None = Query(None, alias="to"),
-    scope: CallerScope = Depends(get_caller_scope),
-):
-    """Return per-encounter LLM usage for a patient.
-
-    Tenant scoping: non-admin callers may only query patients whose
-    registered GP is within their org hierarchy. The check raises 404
-    (deliberately indistinguishable from a non-existent patient) when
-    the caller is out of scope, so the endpoint cannot be used to
-    enumerate patient ids belonging to other tenants.
-    """
-    client = PatientGraphClient()
-    try:
-        require_patient_in_scope(client, scope, patient_id)
-        with client.session() as session:
-            rows = session.run(
-                GET_PATIENT_LLM_SPEND,
-                patient_id=patient_id,
-                from_date=from_date,
-                to_date=to_date,
-            ).data()
-    finally:
-        client.close()
-
-    encounters = []
-    total_input = total_output = total_cached = total_cost = 0
-    for row in rows:
-        usage: dict = {}
-        raw = row.get("llmUsageJson")
-        if raw:
-            try:
-                usage = json.loads(raw) if isinstance(raw, str) else raw
-            except Exception:
-                usage = {}
-        enc = {
-            "candidateId": row.get("candidateId", ""),
-            "encounterId": row.get("encounterId", ""),
-            "updatedAt": str(row.get("updatedAt") or ""),
-            "modelName": row.get("modelName", ""),
-            "inputTokens": int(usage.get("input_tokens", 0)),
-            "outputTokens": int(usage.get("output_tokens", 0)),
-            "cachedTokens": int(usage.get("cached_input_tokens", 0)),
-            "costUsd": float(usage.get("cost_usd") or 0),
-            "source": row.get("source") or "coding_extraction",
-        }
-        encounters.append(enc)
-        total_input += enc["inputTokens"]
-        total_output += enc["outputTokens"]
-        total_cached += enc["cachedTokens"]
-        total_cost += enc["costUsd"]
-
-    return {
-        "patientId": patient_id,
-        "encounters": encounters,
-        "totals": {
-            "inputTokens": total_input,
-            "outputTokens": total_output,
-            "cachedTokens": total_cached,
-            "costUsd": round(total_cost, 6),
-            "cacheHitRate": (
-                round(total_cached / total_input, 4) if total_input > 0 else 0
-            ),
-        },
-    }
-
-
-@router.get("/analytics/llm-spend/runs")
-def run_llm_spend(
-    patient_id: str | None = Query(None),
-    org_id: str | None = Query(None),
-    from_date: str | None = Query(None, alias="from"),
-    to_date: str | None = Query(None, alias="to"),
-    limit: int = Query(100, le=500),
-    scope: CallerScope = Depends(get_caller_scope),
-):
-    """Return per-pipeline-run LLM token spend from AuditEvent nodes.
-
-    Totals are computed from the full date range (no limit) so they are
-    never under-counted when the run list is capped. Org scoping restricts
-    results to patients in the caller's org hierarchy.
-    """
-    is_admin = scope.is_admin
-    org_ids = scope.org_ids or []
-    selected_org_id = (org_id or "").strip() or None
-
-    if selected_org_id and (not is_admin) and (selected_org_id not in org_ids):
-        raise HTTPException(status_code=403, detail="org_id is outside your scope")
-
-    shared_params: dict = {
-        "patient_id": patient_id,
-        "selected_org_id": selected_org_id,
-        "from_date": from_date,
-        "to_date": to_date,
-        "is_admin": is_admin,
-        "org_ids": org_ids,
-    }
-
-    client = PatientGraphClient()
-    try:
-        with client.session() as session:
-            rows = session.run(
-                GET_AUDIT_EVENT_SPEND,
-                **shared_params,
-                limit=limit,
-            ).data()
-            agg_rows = session.run(
-                GET_AUDIT_EVENT_SPEND_TOTALS,
-                **shared_params,
-            ).data()
-    finally:
-        client.close()
-
-    runs = [
-        {
-            "runId": row.get("runId", ""),
-            "patientId": row.get("patientId", ""),
-            "encounterId": row.get("encounterId", ""),
-            "status": row.get("status", ""),
-            "durationMs": int(row.get("durationMs") or 0),
-            "inputTokens": int(row.get("inputTokens") or 0),
-            "outputTokens": int(row.get("outputTokens") or 0),
-            "cachedTokens": int(row.get("cachedTokens") or 0),
-            "costUsd": float(row.get("costUsd") or 0),
-            "createdAt": str(row.get("createdAt") or ""),
-        }
-        for row in rows
-    ]
-
-    agg = agg_rows[0] if agg_rows else {}
-    total_input = int(agg.get("inputTokens") or 0)
-    total_output = int(agg.get("outputTokens") or 0)
-    total_cached = int(agg.get("cachedTokens") or 0)
-    total_cost = float(agg.get("costUsd") or 0)
-    run_count = int(agg.get("runCount") or 0)
-
-    return {
-        "runs": runs,
-        "totals": {
-            "runCount": run_count,
-            "inputTokens": total_input,
-            "outputTokens": total_output,
-            "cachedTokens": total_cached,
-            "costUsd": round(total_cost, 6),
-            "cacheHitRate": (
-                round(total_cached / total_input, 4) if total_input > 0 else 0
-            ),
-        },
-    }

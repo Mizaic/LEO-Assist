@@ -18,12 +18,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.deps import require_admin
-from app.routers.training import (
-    COUNT_GOLD_LABELS_PAGE,
+from app.routers.training import router as training_router
+from app.routers.training_candidates import (
     COUNT_TRAINING_CANDIDATES_PAGE,
-    GET_GOLD_LABELS_PAGE,
     GET_TRAINING_CANDIDATES_PAGE,
-    router as training_router,
+)
+from app.routers.training_gold_labels import (
+    COUNT_GOLD_LABELS_PAGE,
+    GET_GOLD_LABELS_PAGE,
 )
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.search.term_expansion import expand_search_terms
@@ -99,7 +101,7 @@ def test_list_training_candidates_forwards_expanded_terms_to_cypher(
     captured: list[tuple[str, dict]] = []
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = _capture_session(captured)
@@ -128,7 +130,7 @@ def test_list_training_candidates_no_search_passes_empty_terms(client) -> None:
     captured: list[tuple[str, dict]] = []
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = _capture_session(captured)
@@ -150,7 +152,7 @@ def test_list_gold_labels_forwards_expanded_terms_to_cypher(client) -> None:
     captured: list[tuple[str, dict]] = []
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = _capture_session(captured)
@@ -182,9 +184,7 @@ def test_candidate_cypher_includes_terms_branch() -> None:
 
 def test_gold_label_cypher_includes_terms_branch() -> None:
     assert "$terms" in GET_GOLD_LABELS_PAGE
-    assert "ANY(t IN $terms WHERE toLower(g.text) CONTAINS t)" in (
-        GET_GOLD_LABELS_PAGE
-    )
+    assert "ANY(t IN $terms WHERE toLower(g.text) CONTAINS t)" in (GET_GOLD_LABELS_PAGE)
     assert "$terms" in COUNT_GOLD_LABELS_PAGE
 
 

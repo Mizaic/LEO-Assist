@@ -41,6 +41,8 @@ compliance/
 infra/
 # Heavy one-off investigations (~242MB). Keep scripts/*.py for images that COPY scripts/ (fhir-api).
 scripts/investigations/
+# Retired ad-hoc debug/fix/trigger scripts (see scripts/archive/README.md). Not maintained, not needed at runtime.
+scripts/archive/
 exports/
 training/
 *.md

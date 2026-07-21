@@ -574,3 +574,169 @@ def test_diagnose_annotates_concept_leaf_with_matched_concept_ids(evaluator_fact
     leaf = out["annotated_tree"]
     assert leaf["matched_concept_ids"] == ["2"]
     assert leaf["matched"] is True
+
+
+def _make_sex_demographic_rule(rule_id: str = "r_sex") -> dict:
+    """Build a schema-v2 rule with a DEMOGRAPHIC sex=female node."""
+    return {
+        "rule_id": rule_id,
+        "name": "Sex-specific rule",
+        "strength": "refer",
+        "guideline_id": "NG151",
+        "guideline_title": "Test guideline",
+        "chapter_title": None,
+        "recommendation_verbatim": "Refer if female",
+        "schema_version": 2,
+        "criteria_groups": [],
+        "applies_to": [],
+        "action": None,
+        "logic_tree": {
+            "kind": "DEMOGRAPHIC",
+            "field": "sex",
+            "operator": "=",
+            "value": "female",
+            "children": [],
+        },
+    }
+
+
+class TestPdsGenderGate:
+    """DI-9AA2CDA5 clauses (a), (b), (d), (e) -- PDS gender gating."""
+
+    def _ruleset_with_sex_rule(self) -> dict:
+        return {"version": "v1", "rules": [_make_sex_demographic_rule()]}
+
+    def test_other_sex_sets_review_flag(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset_with_sex_rule())
+        result = ev.evaluate_patient(["443416000"], patient_sex="other")
+        assert result["gender_review_flag"] is True
+        assert result["gender_review_reason"] == "pds_gender_unusable"
+        assert result["limitation_notice"] is None
+
+    def test_unknown_sex_sets_review_flag(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset_with_sex_rule())
+        result = ev.evaluate_patient(["443416000"], patient_sex="unknown")
+        assert result["gender_review_flag"] is True
+        assert result["gender_review_reason"] == "pds_gender_unusable"
+
+    def test_other_sex_counts_skipped_sex_sensitive_rules(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset_with_sex_rule())
+        result = ev.evaluate_patient([], patient_sex="other")
+        assert result["gender_sensitive_rules_skipped"] == 1
+
+    def test_male_sex_returns_limitation_notice(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset_with_sex_rule())
+        result = ev.evaluate_patient([], patient_sex="male")
+        assert result["gender_review_flag"] is False
+        assert result["gender_review_reason"] is None
+        assert "reproductive anatomy" in result["limitation_notice"]
+
+    def test_female_sex_returns_limitation_notice(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset_with_sex_rule())
+        result = ev.evaluate_patient([], patient_sex="female")
+        assert result["gender_review_flag"] is False
+        assert "reproductive anatomy" in result["limitation_notice"]
+
+    def test_no_sex_no_flag_no_notice(self, evaluator_factory):
+        bm = BitMap([1])
+        ruleset = {
+            "version": "v1",
+            "rules": [_make_rule(criteria_groups=[{"mode": "ALL", "bitmap_id": "bm1"}])],
+        }
+        ev = evaluator_factory(
+            current_ruleset=ruleset,
+            int_id_map={"443416000": 1},
+            bitmaps={"bm1": bm},
+        )
+        result = ev.evaluate_patient(["443416000"])
+        assert result["gender_review_flag"] is False
+        assert result["gender_review_reason"] is None
+        assert result["limitation_notice"] is None
+        assert result["gender_basis"] is None
+
+    def test_gender_basis_pds_gender_when_sex_supplied(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset_with_sex_rule())
+        result = ev.evaluate_patient([], patient_sex="female")
+        assert result["gender_basis"] == "pds_gender"
+
+    def test_gender_basis_none_when_no_sex(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset={"version": "v1", "rules": []})
+        result = ev.evaluate_patient([])
+        assert result["gender_basis"] is None
+
+    def test_gender_fields_present_on_not_compiled_response(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=None)
+        result = ev.evaluate_patient([], patient_sex="female")
+        assert "gender_review_flag" in result
+        assert "gender_basis" in result
+        assert result["not_compiled"] is True
+
+    def test_unusable_sex_skips_sex_snomed_injection(self, evaluator_factory):
+        """When PDS gender is unusable, sex SNOMED codes are not injected."""
+        female_snomed = "248152002"
+        bm = BitMap([99])
+        rule = {
+            "rule_id": "r_female",
+            "schema_version": 1,
+            "criteria_groups": [{"mode": "ALL", "bitmap_id": "bm_female"}],
+            "applies_to": [],
+        }
+        ev = evaluator_factory(
+            current_ruleset={"version": "v1", "rules": [rule]},
+            int_id_map={female_snomed: 99},
+            bitmaps={"bm_female": bm},
+        )
+        result_binary = ev.evaluate_patient([], patient_sex="female")
+        result_other = ev.evaluate_patient([], patient_sex="other")
+        assert len(result_binary["matched_rules"]) == 1
+        assert len(result_other["matched_rules"]) == 0
+
+
+class TestAnatomyConflict:
+    """DI-9AA2CDA5 clause (c) -- anatomy/gender conflict detection."""
+
+    def _ruleset(self) -> dict:
+        return {"version": "v1", "rules": []}
+
+    def test_male_patient_with_cervix_code_sets_conflict_flag(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset())
+        result = ev.evaluate_patient(["71252005"], patient_sex="male")
+        assert result["gender_review_flag"] is True
+        assert result["gender_review_reason"] == "anatomy_conflict"
+        assert result["gender_basis"] == "anatomy_evidence"
+
+    def test_female_patient_with_prostate_code_sets_conflict_flag(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset())
+        result = ev.evaluate_patient(["41216001"], patient_sex="female")
+        assert result["gender_review_flag"] is True
+        assert result["gender_review_reason"] == "anatomy_conflict"
+
+    def test_no_conflict_when_anatomy_matches_sex(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset())
+        result = ev.evaluate_patient(["71252005"], patient_sex="female")
+        assert result["gender_review_flag"] is False
+        assert result["gender_review_reason"] is None
+
+    def test_no_anatomy_codes_no_inferred_conflict(self, evaluator_factory):
+        """Clause (d): no anatomy evidence means no conflict flag is raised."""
+        ev = evaluator_factory(current_ruleset=self._ruleset())
+        result = ev.evaluate_patient(["443416000"], patient_sex="male")
+        assert result["gender_review_flag"] is False
+        assert result["gender_review_reason"] is None
+
+    def test_gender_basis_anatomy_evidence_when_conflict(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset())
+        result = ev.evaluate_patient(["71252005"], patient_sex="male")
+        assert result["gender_basis"] == "anatomy_evidence"
+
+    def test_gender_basis_pds_gender_when_no_conflict(self, evaluator_factory):
+        ev = evaluator_factory(current_ruleset=self._ruleset())
+        result = ev.evaluate_patient(["443416000"], patient_sex="female")
+        assert result["gender_basis"] == "pds_gender"
+
+    def test_anatomy_conflict_overrides_limitation_notice(self, evaluator_factory):
+        """When anatomy conflict fires, limitation_notice is cleared."""
+        ev = evaluator_factory(current_ruleset=self._ruleset())
+        result = ev.evaluate_patient(["41216001"], patient_sex="female")
+        assert result["gender_review_flag"] is True
+        assert result["limitation_notice"] is None

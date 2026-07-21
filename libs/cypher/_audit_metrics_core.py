@@ -14,11 +14,16 @@ from typing import Any
 # Tenant guard: restricts patients to orgs in the caller's scope.
 # Empty-list bypass: when $scope_org_ids is [] (platform admin), all patients
 # are visible. Non-admin callers always have at least one org ID.
+#
+# Two traversal paths:
+#   1. HAS_GENERAL_PRACTITIONER -- primary care / GP practice scope
+#   2. REGISTERED_IN            -- secondary care trust / site scope (e.g. M0L1I)
 ORG_GUARD = (
-    "(size($scope_org_ids) = 0 OR EXISTS { "
-    "MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(_gp) "
-    "WHERE _gp.id IN $scope_org_ids "
-    "})"
+    "(size($scope_org_ids) = 0 "
+    "OR EXISTS { MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(_gp) "
+    "WHERE _gp.id IN $scope_org_ids } "
+    "OR EXISTS { MATCH (p)-[:REGISTERED_IN]->(_org_reg) "
+    "WHERE _org_reg.id IN $scope_org_ids })"
 )
 
 # Episode status filter: exclude phantom/merged/related-closed episodes.

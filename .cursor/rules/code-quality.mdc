@@ -100,16 +100,17 @@ A test is done when:
 1. The test file exists at a path referenced from the Atlas VT's
    `protocol_steps` or `description` (or from the linked DO's
    `source_reference`). Look the VT up via `get_design_control(
-   dc_type="verification_test", dc_id="VT-XXXXXXXX")`.
+   dc_type="verification-test", dc_id="VT-XXXXXXXX")`.
 2. The test names match the VT's `acceptance_criteria` one-for-one.
 3. The full local test command is green (jest for UI work, pytest
    for backend) with `--no-coverage`.
 4. The Atlas VT has a recorded run with `result="pass"` via
    `record_verification_run(vt_id=<UUID>, ...)`. Confirm via
-   `get_design_control(dc_type="verification_test", dc_id=...)`.
+   `get_design_control(dc_type="verification-test", dc_id=...)`.
 5. Atlas traceability is intact: `get_traceability_gaps(product_id=
-   "PROD-LEO-CORE-AI-20260415-6AE8A23B")` does not list this DI / DO
-   in `orphan_design_inputs` or `orphan_design_outputs`.
+   "PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4")` does not
+   list this DI / DO in `orphan_design_inputs` or
+   `orphan_design_outputs`.
 
 ## Commits
 

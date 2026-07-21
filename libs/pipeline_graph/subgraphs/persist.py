@@ -1,10 +1,10 @@
 """Persistence subgraph for writing to patient graph and gold training.
 
 Atlas trace:
-  DO: DO-8620A68B
-  Also implements: DO-93E086B0
-  DI: DI-2D9F5064, DI-5A802C83, DI-F2C18D2E
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8620A68B")
+  DO: DO-728930A1
+  Also implements: DO-572A5C05, DO-4641EEE1 (routes output to extraction,
+  terminology, and pipeline-handoff persistence paths respectively)
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 Routes based on ``output_target`` in state:
 - ``patient_graph`` - writes :DOCUMENTS/:HAS_<tag> links and CodingDecision nodes
@@ -310,6 +310,7 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                             "sentence_id": sid,
                             "text": s.get("text", ""),
                             "terms": terms_by_sentence.pop(sid, []),
+                            "persist_source_label": s.get("persist_source_label"),
                         }
                     )
                 # Include any terms that did not carry a sentence_id.
@@ -319,19 +320,20 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                         {"sentence_id": sid, "text": fallback_text, "terms": terms}
                     )
 
-                source_label = (
-                    "Chunk"
-                    if str(state.get("text_segmentation_mode") or "")
-                    == "document_chunks"
-                    else "Encounter"
-                )
+                mode = str(state.get("text_segmentation_mode") or "")
+                if mode == "document_chunks":
+                    default_source_label = "Chunk"
+                elif mode == "communication_thread":
+                    default_source_label = "Communication"
+                else:
+                    default_source_label = "Encounter"
                 docs_written = write_documents_from_sentences_payload(
                     encounter_id=encounter_id,
                     sentences_payload=sentences_payload,
                     session=session,
                     source="pipeline",
                     run_id=run_id,
-                    source_label=source_label,
+                    source_label=default_source_label,
                 )
 
                 for e in entities:

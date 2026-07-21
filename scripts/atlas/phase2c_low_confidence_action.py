@@ -61,8 +61,7 @@ PHASE2_STATE = REPO / "scripts" / "atlas" / ".phase2_un_di_state.json"
 
 sys.path.insert(0, str(REPO / "scripts" / "atlas"))
 import _mcp_transport as mcp  # noqa: E402
-
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
+from product import PRODUCT_ID  # noqa: E402
 
 
 def _now_iso() -> str:
@@ -121,9 +120,7 @@ def load_local_di(local_id: str) -> dict[str, Any] | None:
         "requirement": _norm_text(item.get("requirement")),
         "rationale": _norm_text(item.get("rationale")),
         "input_type": (item.get("type") or "").strip().lower() or "functional",
-        "verification_method": (
-            item.get("verification") or {}
-        ).get("method") or "Test",
+        "verification_method": (item.get("verification") or {}).get("method") or "Test",
         "safety_class": (item.get("safety_class") or "").strip().upper() or None,
         "acceptance_criteria": ac,
         "derived_from": list(item.get("derived_from") or []),
@@ -163,9 +160,7 @@ def load_un_mapping(rows: list[dict[str, str]]) -> dict[str, str]:
             and dec.get("atlas_dc_id")
         ):
             out[lid] = dec["atlas_dc_id"]
-    state = (
-        json.loads(PHASE2_STATE.read_text()) if PHASE2_STATE.exists() else {}
-    )
+    state = json.loads(PHASE2_STATE.read_text()) if PHASE2_STATE.exists() else {}
     for lid, info in (state.get("created_uns") or {}).items():
         if isinstance(info, dict) and info.get("dcId"):
             out[lid] = info["dcId"]
@@ -180,8 +175,8 @@ def load_state() -> dict[str, Any]:
         return {
             "started_at": None,
             "updated_at": None,
-            "rollbacks": {},   # atlas_dc_id -> result
-            "actions": {},     # local_id -> result row
+            "rollbacks": {},  # atlas_dc_id -> result
+            "actions": {},  # local_id -> result row
         }
     return json.loads(STATE_PATH.read_text())
 
@@ -209,8 +204,11 @@ def rollback_pollution(
 ) -> dict[str, Any]:
     """Remove ACs that came from the wrongly-merged local DI."""
     out: dict[str, Any] = {
-        "atlas_dc_id": atlas_dc_id, "kept": 0, "removed": 0,
-        "result": "", "error": "",
+        "atlas_dc_id": atlas_dc_id,
+        "kept": 0,
+        "removed": 0,
+        "result": "",
+        "error": "",
     }
     cached = state["rollbacks"].get(atlas_dc_id)
     if cached and cached.get("result", "").startswith(("rolled-back", "noop")):
@@ -266,7 +264,10 @@ def create_atlas_di(
 ) -> dict[str, Any]:
     """Create a new Atlas DI with full local content, link parents."""
     out: dict[str, Any] = {
-        "result": "", "error": "", "new_dc_id": "", "new_uuid": "",
+        "result": "",
+        "error": "",
+        "new_dc_id": "",
+        "new_uuid": "",
         "linked_uns": 0,
     }
     if not live:
@@ -337,9 +338,9 @@ def main() -> int:
     decisions_all: dict[str, Any] = json.loads(DECISIONS_PATH.read_text())
     rows = load_mapping_rows()
     low_conf = [
-        r for r in rows
-        if r.get("artefact_type") == "DI"
-        and r.get("match_type") == "low-confidence"
+        r
+        for r in rows
+        if r.get("artefact_type") == "DI" and r.get("match_type") == "low-confidence"
     ]
     if args.filter:
         low_conf = [r for r in low_conf if r.get("local_id") == args.filter]
@@ -387,14 +388,13 @@ def main() -> int:
             ledger.append(result_row)
             continue
 
-        is_confirm = (
-            decision == "remap" and target_atlas == wrong_atlas
-        )
+        is_confirm = decision == "remap" and target_atlas == wrong_atlas
         do_rollback = not args.skip_rollback and not is_confirm
 
         if do_rollback:
-            rb = rollback_pollution(wrong_atlas, local["acceptance_criteria"],
-                                    args.live, state)
+            rb = rollback_pollution(
+                wrong_atlas, local["acceptance_criteria"], args.live, state
+            )
             result_row["rollback_result"] = rb["result"]
             if rb.get("error"):
                 result_row["error"] = rb["error"]
@@ -422,12 +422,11 @@ def main() -> int:
             cached = state["actions"].get(lid)
             if cached and cached.get("new_dc_id"):
                 result_row["new_dc_id"] = cached["new_dc_id"]
-                result_row["action_result"] = (
-                    f"created earlier ({cached['new_dc_id']})"
-                )
+                result_row["action_result"] = f"created earlier ({cached['new_dc_id']})"
             else:
                 parent_dcids = [
-                    un_mapping[pun] for pun in (local.get("derived_from") or [])
+                    un_mapping[pun]
+                    for pun in (local.get("derived_from") or [])
                     if pun in un_mapping
                 ]
                 cr = create_atlas_di(local, parent_dcids, args.live)
@@ -474,8 +473,14 @@ def main() -> int:
 
 def write_ledger(rows: list[dict[str, Any]]) -> None:
     fields = [
-        "local_id", "wrong_atlas", "decision", "target_atlas",
-        "rollback_result", "action_result", "new_dc_id", "error",
+        "local_id",
+        "wrong_atlas",
+        "decision",
+        "target_atlas",
+        "rollback_result",
+        "action_result",
+        "new_dc_id",
+        "error",
     ]
     with LEDGER_CSV.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
@@ -488,23 +493,38 @@ def write_ledger(rows: list[dict[str, Any]]) -> None:
         key = r.get("decision", "")
         counts[key] = counts.get(key, 0) + 1
 
-    md = ["# Phase 2c -- Low-Confidence DI Action Ledger", "",
-          f"Run at: {_now_iso()}",
-          f"Total rows: {len(rows)}", "",
-          "## Decision counts", ""]
+    md = [
+        "# Phase 2c -- Low-Confidence DI Action Ledger",
+        "",
+        f"Run at: {_now_iso()}",
+        f"Total rows: {len(rows)}",
+        "",
+        "## Decision counts",
+        "",
+    ]
     for k in sorted(counts):
         md.append(f"- `{k}`: {counts[k]}")
-    md += ["", "## Rows", "",
-           "| Local | Wrong target | Decision | Target | Rollback | Action | New DC | Error |",
-           "|---|---|---|---|---|---|---|---|"]
+    md += [
+        "",
+        "## Rows",
+        "",
+        "| Local | Wrong target | Decision | Target | Rollback | Action | New DC | Error |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
     for r in rows:
         md.append(
             "| "
             + " | ".join(
                 str(r.get(k, "")).replace("|", "\\|")
                 for k in (
-                    "local_id", "wrong_atlas", "decision", "target_atlas",
-                    "rollback_result", "action_result", "new_dc_id", "error",
+                    "local_id",
+                    "wrong_atlas",
+                    "decision",
+                    "target_atlas",
+                    "rollback_result",
+                    "action_result",
+                    "new_dc_id",
+                    "error",
                 )
             )
             + " |"

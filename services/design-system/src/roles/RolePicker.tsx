@@ -372,11 +372,17 @@ export function RolePicker({ pinned = false, onConfirm, userName, organizations 
   // Platform admins skip the org step -- they work across all orgs.
   const multiOrg = !isPlatformAdmin && organizations.length > 1;
   const [step, setStep] = useState<1 | 2>(multiOrg ? 1 : 2);
-  const [currentOrgId, setCurrentOrgId] = useState<string>(selectedOrgId ?? organizations[0]?.id ?? "");
+  const [currentOrgId, setCurrentOrgId] = useState<string>(
+    selectedOrgId ?? organizations[0]?.id ?? "",
+  );
   const [choice, setChoice] = useState<Role | null>(() => (selectedRole != null && allowedRoles.includes(selectedRole) ? selectedRole : null));
   const [query, setQuery] = useState("");
   const { favs, toggle: toggleFav } = useFavourites();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedOrgId) setCurrentOrgId(selectedOrgId);
+  }, [selectedOrgId]);
 
   useEffect(() => {
     containerRef.current?.focus();

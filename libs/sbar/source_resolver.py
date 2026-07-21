@@ -203,11 +203,16 @@ _DOCUMENT_REFERENCE_CHUNKS = """
 MATCH (dr:DocumentReference {id: $source_id})
 OPTIONAL MATCH (dr)-[r:HAS_CHUNK]->(c:Chunk)
 WITH dr, c, r
-ORDER BY coalesce(r.ordinal, 0) ASC
-WITH dr, collect(c) AS chunks
+ORDER BY coalesce(r.ordinal, c.ordinal, 0) ASC
+WITH dr, collect(
+  CASE WHEN c IS NULL THEN NULL ELSE {
+    id: toString(c.id),
+    ordinal: coalesce(r.ordinal, c.ordinal, 0)
+  } END
+) AS raw_chunks
 OPTIONAL MATCH (dr)-[:HAS_CONTENT]->(drc:DocumentReferenceContent)
 RETURN coalesce(dr.id, '') AS id,
-       chunks               AS chunks,
+       [row IN raw_chunks WHERE row IS NOT NULL] AS chunks,
        coalesce(drc.data, '') AS fallback_text
 """
 
@@ -410,6 +415,39 @@ def _resolve_encounter(session: Any, encounter_id: str) -> ResolvedSource:
     )
 
 
+def _chunk_business_id(chunk: Any) -> str | None:
+    """Return the Chunk business ``id`` property, never Neo4j identity.
+
+    neo4j.graph.Node exposes ``.id`` as the legacy integer element id.
+    Using that value in ``MATCH (c:Chunk {id: $source_id})`` always
+    misses, so Background resolves to empty text. Prefer mapping /
+    property access for the stored hash id.
+    """
+    if chunk is None:
+        return None
+    value: Any = None
+    if isinstance(chunk, dict):
+        value = chunk.get("id")
+    else:
+        try:
+            value = chunk["id"]
+        except (KeyError, TypeError):
+            getter = getattr(chunk, "get", None)
+            if callable(getter):
+                value = getter("id")
+    if value is None:
+        return None
+    # Reject bare legacy element ids that slipped through as ints.
+    if isinstance(value, int):
+        logger.warning(
+            "Ignoring integer Chunk identity %s; expected business id property",
+            value,
+        )
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def _resolve_document_reference(
     session: Any, document_reference_id: str
 ) -> list[ResolvedSource]:
@@ -441,7 +479,7 @@ def _resolve_document_reference(
         ]
     out: list[ResolvedSource] = []
     for chunk in chunks:
-        cid = chunk.get("id") if isinstance(chunk, dict) else getattr(chunk, "id", None)
+        cid = _chunk_business_id(chunk)
         if not cid:
             continue
         out.append(_resolve_chunk(session, cid))
@@ -449,17 +487,18 @@ def _resolve_document_reference(
 
 
 def _resolve_chunk(session: Any, chunk_id: str) -> ResolvedSource:
-    rec = session.run(_CHUNK_TEXT_AND_CODES, source_id=chunk_id).single()
+    source_id = str(chunk_id or "").strip()
+    rec = session.run(_CHUNK_TEXT_AND_CODES, source_id=source_id).single()
     if rec is None:
         return ResolvedSource(
             source_label="Chunk",
-            source_id=chunk_id,
+            source_id=source_id,
             metadata={"error": "not_found"},
         )
-    codes = _coerce_codes(rec["codes"], source_label="Chunk", source_id=chunk_id)
+    codes = _coerce_codes(rec["codes"], source_label="Chunk", source_id=source_id)
     return ResolvedSource(
         source_label="Chunk",
-        source_id=chunk_id,
+        source_id=source_id,
         text=rec["text"] or None,
         codes=codes,
         metadata={"ordinal": rec["ordinal"]},

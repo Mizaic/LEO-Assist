@@ -194,10 +194,12 @@ MERGE (ag)-[ha:HAS_ACTION]->(proc)
 ON CREATE SET
     ha.rawTerm  = $raw_term,
     ha.priority = $priority,
-    ha.dueDays  = $due_days
+    ha.dueDays  = $due_days,
+    ha.strength = $strength
 ON MATCH SET
     ha.priority = $priority,
-    ha.dueDays  = $due_days
+    ha.dueDays  = $due_days,
+    ha.strength = $strength
 """
 
 _UPSERT_APPLIES_TO = """
@@ -362,6 +364,26 @@ class GuidanceRuleGenerator:
         if not verbatim.strip():
             return None
 
+        from libs.guidance.recommendation_triage import triage_recommendation
+
+        triage = triage_recommendation(verbatim)
+        if triage == "no_rule":
+            logger.info(
+                "Recommendation %s triaged no_rule -- stubbing without LLM extract",
+                rec.get("id"),
+            )
+            return self._write_generation_stub(
+                guideline_id,
+                rec,
+                outcome="no_rule_expected",
+                errors=["triage:no_rule"],
+                coded={
+                    "no_rule_expected": True,
+                    "reason": "triaged_information_or_advice_only",
+                    "triage": triage,
+                },
+            )
+
         if self._subgraph is None:
             logger.error(
                 "Cannot extract rule for recommendation %s — "
@@ -473,7 +495,7 @@ class GuidanceRuleGenerator:
                 rec["id"],
             )
             coded = {**coded, "needs_human_review": True}
-            rule_id = self._write_rule(guideline_id, rec, raw, coded)
+            rule_id = self._write_rule(guideline_id, rec, raw, coded, errors=errors_out)
             self._write_guidance_audit_event(
                 rec=rec,
                 guideline_id=guideline_id,
@@ -485,7 +507,7 @@ class GuidanceRuleGenerator:
             )
             return rule_id
 
-        rule_id = self._write_rule(guideline_id, rec, raw, coded)
+        rule_id = self._write_rule(guideline_id, rec, raw, coded, errors=errors_out)
         status = (
             "partial" if bool((coded or {}).get("needs_human_review")) else "success"
         )
@@ -499,6 +521,21 @@ class GuidanceRuleGenerator:
             rule_id=rule_id,
         )
         return rule_id
+
+    @staticmethod
+    def _resolve_actions(coded: dict[str, Any]) -> list[dict[str, Any]]:
+        """Return the recommended actions for a rule as a list.
+
+        Prefers ``coded["actions"]`` (the multi-action shape). Falls back
+        to a 1-item list from the legacy singular ``coded["action"]`` so
+        this generator keeps working unchanged until the extraction
+        pipeline (Phase 6) emits ``actions`` directly.
+        """
+        actions = coded.get("actions")
+        if isinstance(actions, list) and actions:
+            return actions
+        legacy = coded.get("action")
+        return [legacy] if legacy else []
 
     def _empty_logic_tree(
         self, rec: dict[str, Any], coded: dict[str, Any] | None = None
@@ -559,9 +596,7 @@ class GuidanceRuleGenerator:
                 compile_scope_id=guideline_id,
                 schema_version=2,
                 logic_json=json.dumps(logic_tree),
-                raw_logic_json=(
-                    json.dumps(raw_tree) if raw_tree is not None else None
-                ),
+                raw_logic_json=(json.dumps(raw_tree) if raw_tree is not None else None),
                 verifier_json=json.dumps(verifier),
                 action_json=None,
             )
@@ -587,12 +622,44 @@ class GuidanceRuleGenerator:
 
     # ── Neo4j write ────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _build_verifier_payload(
+        coded: dict[str, Any], errors: list[str] | None = None
+    ) -> dict[str, Any] | None:
+        """Merge the LLM verifier verdict with pipeline-level review signals.
+
+        ``coded["verifier"]`` is the raw code-verifier LLM output (only
+        ``overall_status`` / ``leaf_decisions`` / ``action_decision`` --
+        see guidance_rule_code_verifier_output_schema.py). It never carries
+        ``needs_human_review``. Writing it to Neo4j unmerged, as this method
+        used to do, silently dropped every ``needs_human_review`` /
+        ``hitl_terms`` flag that assemble_result() set (including the
+        sex-constraint safety check), so the UI's "Needs review" chip never
+        lit up for those rules even though the pipeline had already flagged
+        them for a reviewer.
+        """
+        verifier = dict(coded.get("verifier") or {})
+        needs_review = bool(coded.get("needs_human_review")) or bool(
+            coded.get("hitl_terms")
+        )
+        if not verifier and not needs_review and not errors:
+            return None
+        if needs_review:
+            verifier["needs_human_review"] = True
+        if coded.get("hitl_terms"):
+            verifier["hitl_terms"] = coded["hitl_terms"]
+        if errors:
+            verifier["errors"] = list(errors)[:20]
+        return verifier
+
     def _write_rule(
         self,
         guideline_id: str,
         rec: dict[str, Any],
         raw: dict[str, Any] | None,
         coded: dict[str, Any],
+        *,
+        errors: list[str] | None = None,
     ) -> str:
         """Write AppropriatenessRule, CriteriaGroups, ActionGroup, ReviewTask.
 
@@ -607,6 +674,8 @@ class GuidanceRuleGenerator:
 
         urgency = rec.get("urgency") or "routine"
         priority_meta = _urgency_to_priority(urgency)
+        actions = self._resolve_actions(coded)
+        verifier_payload = self._build_verifier_payload(coded, errors)
 
         with self._driver.session() as session:
             session.run(
@@ -628,15 +697,11 @@ class GuidanceRuleGenerator:
                     else None
                 ),
                 verifier_json=(
-                    json.dumps(coded.get("verifier"))
-                    if coded.get("verifier") is not None
+                    json.dumps(verifier_payload)
+                    if verifier_payload is not None
                     else None
                 ),
-                action_json=(
-                    json.dumps(coded.get("action"))
-                    if coded.get("action") is not None
-                    else None
-                ),
+                action_json=(json.dumps(actions) if actions else None),
             )
 
             if int(coded.get("schema_version") or 1) != 2:
@@ -652,18 +717,7 @@ class GuidanceRuleGenerator:
                         group_suffix=str(idx),
                     )
 
-            action = coded.get("action")
-            if action and action.get("snomed_concept_id"):
-                self._write_action_group(session, rule_id, action, priority_meta)
-            elif action:
-                logger.error(
-                    "Action %r for rule %s has no SNOMED code — action group NOT written. "
-                    "HCCP-Agents will receive a rule match with no recommended procedure. "
-                    "This likely means the Terminology API was unavailable during extraction. "
-                    "Re-generate this rule when the Terminology API is healthy.",
-                    action.get("term"),
-                    rule_id,
-                )
+            self._write_action_groups(session, rule_id, actions, priority_meta)
 
             if int(coded.get("schema_version") or 1) != 2:
                 for constraint in coded.get("applies_to") or []:
@@ -787,6 +841,35 @@ class GuidanceRuleGenerator:
             constraint.get("unit"),
         )
 
+    def _write_action_groups(
+        self,
+        session,
+        rule_id: str,
+        actions: list[dict[str, Any]],
+        priority_meta: dict[str, Any] | None = None,
+    ) -> None:
+        """Write one HAS_ACTION edge per recommended action.
+
+        All actions for a rule share one ``ActionGroup`` -- the
+        ``(ActionGroup)-[:HAS_ACTION]->(Concept)`` pattern already supports
+        multiple distinct edges from one ActionGroup, so this is a loop
+        over the existing per-action MERGE, not a schema change. Actions
+        with no resolved SNOMED code are skipped with an error log (same
+        conservative-fail behaviour as the previous singular-action path).
+        """
+        for action in actions or []:
+            if action and action.get("snomed_concept_id"):
+                self._write_action_group(session, rule_id, action, priority_meta)
+            elif action:
+                logger.error(
+                    "Action %r for rule %s has no SNOMED code -- action group NOT written. "
+                    "HCCP-Agents will receive a rule match with no recommended procedure. "
+                    "This likely means the Terminology API was unavailable during extraction. "
+                    "Re-generate this rule when the Terminology API is healthy.",
+                    action.get("term"),
+                    rule_id,
+                )
+
     def _write_action_group(
         self,
         session,
@@ -818,6 +901,7 @@ class GuidanceRuleGenerator:
             raw_term=action["term"],
             priority=priority_meta["priority"],
             due_days=priority_meta["due_days"],
+            strength=action.get("strength") or "unspecified",
         )
 
     # ── Billing audit ───────────────────────────────────────────────────────────

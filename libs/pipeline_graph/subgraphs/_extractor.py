@@ -1,10 +1,8 @@
 """Thin adapter that provides an ExtractorProvider for the extraction subgraph.
 
 Atlas trace:
-  DO: DO-0289F3A5
-  Also implements: DO-83EBEE2C, DO-94EAC337
-  DI: DI-48AD06E5, DI-A0C90595, DI-B954388C, DI-F298AE65
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0289F3A5")
+  DO: DO-728930A1
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 Prompt assembly
 ---------------

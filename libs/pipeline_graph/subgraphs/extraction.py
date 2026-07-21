@@ -1,9 +1,9 @@
 """Extraction subgraph wrapping sentence splitter and extractor registry.
 
 Atlas trace:
-  DO: DO-1D5031E0
-  DI: DI-702F4583
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-1D5031E0")
+  DO: DO-728930A1
+  Also implements: DO-416BA91D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 Prompt resolution order:
 1. ``prompt_config`` dict in state (populated from Neo4j by the parent graph)
@@ -156,6 +156,11 @@ _SOURCE_NODE_CONFIG = {
         "graph": "patient",
         "id_property": "id",
         "text_properties": ("text",),
+    },
+    "Communication": {
+        "graph": "patient",
+        "id_property": "id",
+        "text_properties": ("note",),
     },
     "ExtractionScenario": {
         "graph": "knowledge",
@@ -422,11 +427,72 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
     }
 
 
+def load_communication_thread(state: ExtractionState) -> dict[str, Any]:
+    """Use pre-loaded A&G thread sentences (no SentenceSplitter)."""
+    from libs.pipeline.communication_thread_loader import COMMUNICATION_THREAD_MODE
+    from libs.pipeline.document_chunk_loader import (
+        CHUNK_TEXT_SEPARATOR,
+        chunk_ids_from_state,
+    )
+
+    raw_sentences = state.get("sentences") or []
+    if raw_sentences:
+        encounter_text = state.get("encounter_text") or ""
+        if not encounter_text:
+            encounter_text = CHUNK_TEXT_SEPARATOR.join(
+                str(s.get("text") or "") for s in raw_sentences if s.get("text")
+            )
+        return {
+            "encounter_text": encounter_text,
+            "sentences": raw_sentences,
+            "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
+        }
+
+    cr_id = str(state.get("communication_request_id") or "").strip()
+    if not cr_id:
+        return {
+            "encounter_text": "",
+            "sentences": [],
+            "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
+            "errors": [
+                "communication_thread mode requires communication_request_id "
+                "or pre-loaded sentences"
+            ],
+        }
+
+    from libs.neo4j_client.client import PatientGraphClient
+    from libs.pipeline.communication_thread_loader import (
+        load_communication_thread_from_neo4j,
+    )
+
+    loaded = load_communication_thread_from_neo4j(
+        PatientGraphClient(),
+        cr_id,
+        chunk_ids=chunk_ids_from_state(state) or None,
+    )
+    if loaded.get("sentences"):
+        return {
+            "encounter_text": loaded.get("encounter_text") or "",
+            "sentences": loaded.get("sentences") or [],
+            "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
+            "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
+        }
+    return {
+        "encounter_text": "",
+        "sentences": [],
+        "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
+        "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
+    }
+
+
 def resolve_text_units(state: ExtractionState) -> dict[str, Any]:
+    from libs.pipeline.communication_thread_loader import is_communication_thread_mode
     from libs.pipeline.document_chunk_loader import is_document_chunks_mode
 
     if is_document_chunks_mode(state):
         return load_document_chunks(state)
+    if is_communication_thread_mode(state):
+        return load_communication_thread(state)
     return split_sentences(state)
 
 
@@ -514,11 +580,11 @@ def _run_llm_extraction(
         max_few_shot = int(cfg.get("maxFewShot") or 20)
     except (TypeError, ValueError):
         max_few_shot = 20
+    import json as _json
+
     few_shot_raw = cfg.get("fewShotExamples")
     few_shot_examples: list[dict] | None = None
     if few_shot_raw:
-        import json as _json
-
         try:
             few_shot_examples = (
                 _json.loads(few_shot_raw)
@@ -527,6 +593,24 @@ def _run_llm_extraction(
             )
         except Exception:
             few_shot_examples = None
+
+    # When prompt_config is absent from state (e.g. referral durable pipeline
+    # which bypasses WorkflowEngine), fall back to loading examples from the
+    # registry so both encounter and referral paths get the same few-shot pool.
+    if few_shot_examples is None and not cfg:
+        try:
+            from libs.prompts.registry import get_prompt_config
+
+            fallback_cfg = get_prompt_config("extraction", version=1)
+            fallback_raw = fallback_cfg.get("fewShotExamples")
+            if fallback_raw:
+                few_shot_examples = (
+                    _json.loads(fallback_raw)
+                    if isinstance(fallback_raw, str)
+                    else fallback_raw
+                )
+        except Exception:
+            pass
 
     try:
         prompt_version = int(cfg.get("version") or 1)

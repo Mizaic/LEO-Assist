@@ -1,10 +1,9 @@
 """WorkflowEngine: interprets FHIR PlanDefinitions stored in Neo4j,
 
 Atlas trace:
-  DO: DO-7B357FD6
-  Also implements: DO-8620A68B, DO-93E086B0, DO-A26CD350
-  DI: DI-091CBBAB, DI-176EA4FF, DI-5A802C83, DI-693FFEEA, DI-705C806B, DI-B0A1E549, DI-F2C18D2E
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7B357FD6")
+  DO: DO-4641EEE1
+  Also implements: DO-416BA91D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4641EEE1")
 
 matches incoming events to actions, resolves ActivityDefinitions to
 subgraph configurations, and dispatches execution via SubgraphRegistry.
@@ -135,6 +134,7 @@ class WorkflowEngine:
             "errors": [],
         }
         pipeline_state.update(event.context)
+        self._enrich_patient_demographics(event.patient_id, pipeline_state)
         from libs.workflow.model_defaults import apply_single_model_defaults
 
         apply_single_model_defaults(pipeline_state)
@@ -911,6 +911,35 @@ class WorkflowEngine:
             schedule_after_seconds=delay_seconds,
         )
 
+    def _enrich_patient_demographics(
+        self, patient_id: str, pipeline_state: dict[str, Any]
+    ) -> None:
+        """Populate patient_age/patient_sex on pipeline_state from the Patient node.
+
+        Age- and sex-gated NG12 guideline logic nodes fail CLOSED whenever
+        patient_age/patient_sex are absent (see guideline_evaluator.py). This
+        engine previously never populated either field, so every age/sex
+        constraint silently failed closed for every real referral. Shares
+        the query/parsing logic with the durable step runner via
+        step_state_loader.enrich_patient_demographics so both pipelines stay
+        in sync.
+        """
+        if not patient_id:
+            return
+        try:
+            from libs.neo4j_client.client import PatientGraphClient
+            from libs.workflow.step_state_loader import enrich_patient_demographics
+
+            client = PatientGraphClient()
+            try:
+                enrich_patient_demographics(client, patient_id, pipeline_state)
+            finally:
+                client.close()
+        except Exception as exc:
+            logger.warning(
+                "Failed to load patient demographics for %s: %s", patient_id, exc
+            )
+
     def _load_prompt_config(self, config_id: str) -> dict[str, Any]:
         """Load a PromptConfig from Neo4j by ID, returning a dict for subgraph state.
 
@@ -1296,7 +1325,18 @@ class WorkflowEngine:
         status: str,
         pipeline_state: dict[str, Any],
     ) -> None:
-        """Write a PipelineRun AuditEvent to the patient graph."""
+        """Write a PipelineRun AuditEvent to the patient graph.
+
+        Design decision (2026-07 CTO peer-review item 3, Phase B): the
+        manual token/cost summation below (`total_input`, `total_output`,
+        `total_cached`, `total_cost`) is this coding path's deliberate
+        source of truth. It is NOT wrapped in
+        `libs.llm_client.usage_recorder.LLMUsageRecorder`, and must not be
+        without removing this summation in the same change -- two
+        accumulators for one run risks silent double-counting or drift.
+        See `libs/llm_client/usage_recorder.py`'s module docstring for the
+        full rationale and the SBAR orchestrator for the recorder pattern.
+        """
         if not self._audit_driver:
             return
         max_attempts = 3

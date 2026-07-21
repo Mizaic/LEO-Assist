@@ -89,7 +89,6 @@ describe("mergeEditedRuleIntoCache (synonym-set persistence regression)", () => 
       "r1:edit:abcd1234",
       {
         name: PRE_EDIT_RULE.name,
-        strength: PRE_EDIT_RULE.strength,
         logic_tree: NEW_LOGIC_TREE_WITH_EXTRA_SEEDS,
       },
     );
@@ -109,7 +108,6 @@ describe("mergeEditedRuleIntoCache (synonym-set persistence regression)", () => 
       "r1:edit:abcd1234",
       {
         name: PRE_EDIT_RULE.name,
-        strength: PRE_EDIT_RULE.strength,
         logic_tree: NEW_LOGIC_TREE_WITH_EXTRA_SEEDS,
       },
     );
@@ -127,7 +125,6 @@ describe("mergeEditedRuleIntoCache (synonym-set persistence regression)", () => 
       "r1:edit:abcd1234",
       {
         name: PRE_EDIT_RULE.name,
-        strength: PRE_EDIT_RULE.strength,
         logic_tree: NEW_LOGIC_TREE_WITH_EXTRA_SEEDS,
       },
     );
@@ -136,42 +133,50 @@ describe("mergeEditedRuleIntoCache (synonym-set persistence regression)", () => 
     expect(merged.status).toBe("active");
   });
 
-  it("keeps the pre-edit action when the reviewer did not change it", () => {
+  it("keeps the pre-edit actions when the reviewer did not change them", () => {
     const merged = mergeEditedRuleIntoCache(
       PRE_EDIT_RULE,
       "r1:edit:abcd1234",
       {
         name: PRE_EDIT_RULE.name,
-        strength: PRE_EDIT_RULE.strength,
         logic_tree: NEW_LOGIC_TREE_WITH_EXTRA_SEEDS,
       },
     );
 
-    // Mirrors BE behaviour: _decide_rule_with_edits coalesces null
-    // action_json back to the predecessor's action so a recommendation
-    // never silently loses its coded action.
+    // Mirrors BE behaviour: _decide_rule_with_edits coalesces a null
+    // actions payload back to the predecessor's actionJson so a
+    // recommendation never silently loses its coded procedures.
+    expect(merged.actions).toBeUndefined();
     expect(merged.action?.snomed_concept_id).toBe("710081004");
   });
 
-  it("overlays the new action when the reviewer changed it", () => {
+  it("overlays the new actions array when the reviewer changed it", () => {
     const merged = mergeEditedRuleIntoCache(
       PRE_EDIT_RULE,
       "r1:edit:abcd1234",
       {
         name: PRE_EDIT_RULE.name,
-        strength: PRE_EDIT_RULE.strength,
         logic_tree: NEW_LOGIC_TREE_WITH_EXTRA_SEEDS,
-        action: {
-          snomed_concept_id: "313306003",
-          preferred_term: "Refer to smoking cessation clinic",
-        },
+        actions: [
+          {
+            criterion: {
+              snomed_concept_id: "313306003",
+              preferred_term: "Refer to smoking cessation clinic",
+            },
+            strength: "refer",
+          },
+        ],
       },
     );
 
-    expect(merged.action?.snomed_concept_id).toBe("313306003");
-    expect(merged.action?.preferred_term).toBe(
+    expect(merged.actions?.[0]?.criterion.snomed_concept_id).toBe(
+      "313306003",
+    );
+    expect(merged.actions?.[0]?.criterion.preferred_term).toBe(
       "Refer to smoking cessation clinic",
     );
+    // The derived top-level strength field mirrors actions[0].strength.
+    expect(merged.strength).toBe("refer");
   });
 
   it("falls back to the pre-edit name and strength when the payload omits them", () => {
@@ -273,7 +278,6 @@ describe("mergeEditedRuleIntoCache name/strength fallback", () => {
       "r1:edit:abcd1234",
       {
         name: "",
-        strength: "",
         logic_tree: NEW_LOGIC_TREE_WITH_EXTRA_SEEDS,
       },
     );

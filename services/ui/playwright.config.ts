@@ -30,7 +30,7 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         storageState: "e2e/.auth/user.json",
         colorScheme: "light",
-        reducedMotion: "reduce",
+        contextOptions: { reducedMotion: "reduce" },
       },
       dependencies: ["setup"],
     },
@@ -49,6 +49,18 @@ export default defineConfig({
         storageState: "e2e/.auth/user.json",
       },
       dependencies: ["setup"],
+    },
+    // Fully API-stubbed journeys that mock auth/session themselves.
+    {
+      name: "stubbed-chromium",
+      testMatch:
+        /(local-concepts-wizard|surface-forms-local-concept-wizard|validation-lab-brainstorm-drawer)\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: { cookies: [], origins: [] },
+        colorScheme: "light",
+        contextOptions: { reducedMotion: "reduce" },
+      },
     },
   ],
 

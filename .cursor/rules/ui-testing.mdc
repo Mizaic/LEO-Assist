@@ -207,8 +207,9 @@ A Class B UI change is NOT done until ALL of the following are true:
 6. For any new visible surface, the corresponding Playwright spec is
    updated AND `a11y-baseline.spec.ts` still passes.
 7. Atlas traceability is intact: `get_traceability_gaps(product_id=
-   "PROD-LEO-CORE-AI-20260415-6AE8A23B")` does not list this DI / DO
-   in `orphan_design_inputs` or `orphan_design_outputs`.
+   "PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4")` does not
+   list this DI / DO in `orphan_design_inputs` or
+   `orphan_design_outputs`.
 
 ---
 

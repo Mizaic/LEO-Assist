@@ -22,19 +22,25 @@
  * Design Controls: DI-LEO-AI-149, DO-LEO-AI-145, VT-LEO-AI-147.
  */
 
-import { useEffect, useState } from "react";
-import { motion as fm } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { SegmentedTabs, StatHero, type StatTile } from "@leo/design-system";
+import { SegmentedTabs, StatHero, useMotion, type StatTile } from "@leo/design-system";
 
 import NiceLoaderSection from "./NiceLoaderSection";
 import LoadedGuidelinesPanel from "./LoadedGuidelinesPanel";
 import RuleReviewSection from "./RuleReviewSection";
 import BitmapLifecycleSection from "./BitmapLifecycleSection";
+import GuidelineBuilderSplash, {
+  GUIDANCE_SPLASH_SESSION_KEY,
+} from "./GuidelineBuilderSplash";
+import LocalGuidelineImportDialog from "./LocalGuidelineImportDialog";
+import { popSpring, staggerDelay } from "./motionPresets";
 
 type StepId = "load" | "inspect" | "review" | "compile";
 
@@ -45,17 +51,18 @@ interface StepCardProps {
   description: string;
   accent: string;
   index: number;
+  reducedMotion: boolean;
   children: React.ReactNode;
 }
 
-function StepCard({ id, step, title, description, accent, index, children }: StepCardProps) {
+function StepCard({ id, step, title, description, accent, index, reducedMotion, children }: StepCardProps) {
   return (
     <fm.section
       id={id}
       aria-labelledby={`${id}-title`}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: "easeOut", delay: Math.min(index, 6) * 0.05 }}
+      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 26, scale: 0.96 }}
+      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+      transition={popSpring(reducedMotion, staggerDelay(index, 0.08, 6))}
       style={{ position: "relative", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 22, marginBottom: 20 }}
     >
       <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 18, bottom: 18, width: 3, borderRadius: 2, background: accent, }} />
@@ -124,10 +131,32 @@ export default function GuidancePage() {
   const [bitmapRefreshKey, setBitmapRefreshKey] = useState(0);
   const [activeStep, setActiveStep] = useState<StepId>("load");
   const [stats, setStats] = useState<PageStats>({ guidelinesLoaded: 0, rulesPending: 0, rulesApproved: 0, activeBitmapVersion: "--" });
+  const [showSplash, setShowSplash] = useState(false);
+  const [showLocalImport, setShowLocalImport] = useState(false);
+  const { reducedMotion } = useMotion();
 
   useEffect(() => {
     fetchPageStats().then(setStats).catch(() => {});
   }, [loadedRefreshKey, ruleRefreshKey, bitmapRefreshKey]);
+
+  useEffect(() => {
+    try {
+      if (!sessionStorage.getItem(GUIDANCE_SPLASH_SESSION_KEY)) {
+        setShowSplash(true);
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing) -- skip splash.
+    }
+  }, []);
+
+  const dismissSplash = useCallback(() => {
+    try {
+      sessionStorage.setItem(GUIDANCE_SPLASH_SESSION_KEY, "1");
+    } catch {
+      // Best-effort only; not seeing the splash again is not safety-relevant.
+    }
+    setShowSplash(false);
+  }, []);
 
   const statTiles: StatTile[] = [
     { id: "loaded", label: "Guidelines loaded", value: stats.guidelinesLoaded },
@@ -146,10 +175,30 @@ export default function GuidancePage() {
 
   return (
     <Box>
+      <AnimatePresence>
+        {showSplash && <GuidelineBuilderSplash key="guidance-splash" onDismiss={dismissSplash} />}
+      </AnimatePresence>
+
       {/* -- Summary hero ------------------------------------------------- */}
       <Box sx={{ mb: 2 }}>
         <StatHero stats={statTiles} />
+        <Button sx={{ mt: 1 }} variant="contained" onClick={() => setShowLocalImport(true)}>
+          Import local guideline
+        </Button>
       </Box>
+      <LocalGuidelineImportDialog
+        open={showLocalImport}
+        onClose={() => setShowLocalImport(false)}
+        onImported={() => {
+          setLoadedRefreshKey((n) => n + 1);
+          setActiveStep("load");
+          window.setTimeout(() => {
+            document
+              .querySelector("#loaded-guidelines")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 100);
+        }}
+      />
 
       {/* -- Jump strip --------------------------------------------------- */}
       <Box
@@ -165,22 +214,22 @@ export default function GuidancePage() {
       </Box>
 
       {/* -- Step 1: Load ------------------------------------------------- */}
-      <StepCard id="nice-loader" index={0} step={1} title="Find and load a guideline" description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system." accent="#1F3A8A">
+      <StepCard id="nice-loader" index={0} step={1} title="Find and load a guideline" description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system." accent="#1F3A8A" reducedMotion={reducedMotion}>
         <NiceLoaderSection onGuidelineLoaded={() => setLoadedRefreshKey((n) => n + 1)} />
       </StepCard>
 
       {/* -- Inspect: What is in the graph -------------------------------- */}
-      <StepCard id="loaded-guidelines" index={1} title="What is in the knowledge graph" description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation." accent="#64748B">
+      <StepCard id="loaded-guidelines" index={1} title="What is in the knowledge graph" description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation." accent="#64748B" reducedMotion={reducedMotion}>
         <LoadedGuidelinesPanel refreshKey={loadedRefreshKey} onRulesGenerated={() => setRuleRefreshKey((n) => n + 1)} />
       </StepCard>
 
       {/* -- Step 2: Review ----------------------------------------------- */}
-      <StepCard id="rule-review" index={2} step={2} title="Check and approve AI-generated rules" description="The AI has suggested the criteria for each recommendation. Read each one and click 'Looks right', 'Edit', or 'Reject'." accent="#1F3A8A">
+      <StepCard id="rule-review" index={2} step={2} title="Check and approve AI-generated rules" description="The AI has suggested the criteria for each recommendation. Read each one and click 'Looks right', 'Edit', or 'Reject'." accent="#1F3A8A" reducedMotion={reducedMotion}>
         <RuleReviewSection refreshKey={ruleRefreshKey} />
       </StepCard>
 
       {/* -- Step 3: Compile ---------------------------------------------- */}
-      <StepCard id="bitmap-lifecycle" index={3} step={3} title="Compile and go live" description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included." accent="#14B8A6">
+      <StepCard id="bitmap-lifecycle" index={3} step={3} title="Compile and go live" description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included." accent="#14B8A6" reducedMotion={reducedMotion}>
         <BitmapLifecycleSection onVersionActivated={() => setBitmapRefreshKey((n) => n + 1)} />
       </StepCard>
     </Box>

@@ -16,6 +16,7 @@ import math
 from typing import Any, Iterable
 
 from libs.cypher.lab_result_config_queries import GET_LAB_RESULT_CONFIG
+from libs.lab_results.concept_aliases import resolve_lab_config_concept_id
 from libs.neo4j_client.client import KnowledgeGraphClient
 
 logger = logging.getLogger(__name__)
@@ -78,15 +79,20 @@ def get_lab_config(
     use_cache: bool = True,
 ) -> LabConfig | None:
     """Load one observable's lab metadata from the Knowledge Graph."""
-    key = str(concept_id or "").strip()
-    if not key:
+    requested = str(concept_id or "").strip()
+    if not requested:
         return None
-    if use_cache and session is None and key in _CONFIG_CACHE:
-        return _CONFIG_CACHE[key]
+    key = resolve_lab_config_concept_id(requested)
+    if use_cache and session is None and requested in _CONFIG_CACHE:
+        return _CONFIG_CACHE[requested]
     row = _fetch_config_row(key, session=session)
+    if row is None and key != requested:
+        row = _fetch_config_row(requested, session=session)
     config = _row_to_config(row) if row else None
     if use_cache and session is None:
-        _CONFIG_CACHE[key] = config
+        _CONFIG_CACHE[requested] = config
+        if key != requested:
+            _CONFIG_CACHE[key] = config
     return config
 
 

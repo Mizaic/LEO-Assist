@@ -18,12 +18,13 @@ import Typography from "@mui/material/Typography";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import type { DocumentRow } from "@/lib/patientEprApi";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
-import { SbarFinalView } from "@/components/sbar-final/SbarFinalView";
+import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
 import {
   categoryLabel,
   extractSourceFilename,
   fileKindLabel,
   inferFileKind,
+  isSbarDocument,
 } from "./documentFormat";
 
 type ViewMode = "rendered" | "raw";
@@ -104,7 +105,8 @@ export function DocumentViewer({ doc }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("rendered");
   const kind = inferFileKind(doc);
   const sourceFile = extractSourceFilename(doc.full_text);
-  const isSbar = doc.document_type.toLowerCase().includes("sbar") || Boolean(doc.sbar);
+  const isSbar = isSbarDocument(doc);
+  const assessmentId = doc.sbar?.sbar_id?.trim() || "";
   const sbarMd = buildSbarMarkdown(doc);
   const body = useMemo(
     () => stripDocHeader(doc.full_text || doc.text_preview || ""),
@@ -157,8 +159,13 @@ export function DocumentViewer({ doc }: Props) {
         )}
       </Stack>
 
-      {isSbar && sbarMd ? (
-        <SbarFinalView markdown={sbarMd} testOnly={false} />
+      {isSbar && assessmentId ? (
+        <LeoSbarHost assessmentId={assessmentId} testId="document-sbar" />
+      ) : isSbar && sbarMd ? (
+        <Alert severity="warning" data-testid="document-sbar-missing-id">
+          This SBAR document is missing an assessment id. Open it from an
+          Assessment row so the CDN widget can load the clinical summary.
+        </Alert>
       ) : body ? (
         <>
           <Stack

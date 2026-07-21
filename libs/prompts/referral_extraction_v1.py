@@ -35,7 +35,11 @@ Priority:
 3. Exclude admin and template noise.
 
 Extract:
-- referral pathway phrases (2WW, fast track referral, urgent suspected cancer referral)
+- site-named suspected cancer as situation (present), for example
+  "suspected breast cancer", "breast suspected cancer pathway",
+  "suspected cancer pathway for stomach cancer", "gastric malignancy"
+- positive family history as situation (present), for example
+  "Mother had breast cancer", "FH of breast cancer"
 - referral-relevant findings and symptoms (for example haematuria, rectal bleeding,
   neck lump, progressive dysphagia, loss of appetite, vomiting, weight loss,
   difficulty swallowing, abdominal pain, fatigue)
@@ -58,19 +62,25 @@ Do not suppress content from these cells as section-heading or admin noise.
 Treat every symptom, sign, investigation result, and finding after the colon
 as a high-priority extraction target.
 
-Do not extract:
+Do not extract (transport / admin only):
 - standalone admin workflow noise (appointment booked, letter sent, reviewed)
 - the label phrases themselves (section headings or form field labels)
 - values with no labelled clinical parameter
 - bare pathway codes with no clinical meaning beyond admin routing
+- "2WW ... referral placed/submitted/sent", e-Referral plumbing
+- email/form headers with no site or clinical content
 
 2WW / fast track rules:
-- If sentence_subset states a fast-track/2WW referral, extract that phrase.
+- KEEP site-named suspected cancer as situation (present); DROP pure transport.
 - If sentence_subset documents attendance in a fast-track clinic, extract as a finding.
 - If text explicitly says no malignancy found after completed fast-track workup,
   extract that finding.
 - Do not require literal words "referral", "2WW", or "pathway" before extracting
   red-flag symptoms, signs, or abnormal findings.
+- lookup_term shapes for situations:
+  "malignant neoplasm of upper gastrointestinal tract suspected",
+  "malignant neoplasm of breast suspected",
+  "family history of malignant neoplasm of breast"
 
 Surface form rules:
 - text must be exact source span from sentence_subset.
@@ -80,4 +90,3 @@ Surface form rules:
 
 Return no entities when only administrative referral plumbing is present.
 """
-

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any, Awaitable, Callable
 
 from libs.llm_client.json_helper import invoke_llm_json
@@ -92,9 +93,7 @@ def _select_primary_rule_id(rules: list[dict[str, Any]]) -> str | None:
 
     def _sort_key(r: dict[str, Any]) -> tuple[int, int]:
         action = r.get("action") or {}
-        p = priority_rank.get(
-            (action.get("priority") or "").lower(), 9
-        )
+        p = priority_rank.get((action.get("priority") or "").lower(), 9)
         s = STRENGTH_RANK.get((r.get("strength") or "").lower(), 9)
         return (p, s)
 
@@ -231,8 +230,7 @@ def _stitch_partials_deterministic(parts: list[dict[str, Any]]) -> str:
         rr_text = _format_record_range(int(rr[0]), int(rr[1]))
         if part.get("error_message"):
             heading = (
-                f"### Part {idx} of {total} -- {rr_text} "
-                "-- this part did not finish"
+                f"### Part {idx} of {total} -- {rr_text} " "-- this part did not finish"
             )
             body = (
                 "(Background for these records could not be generated. "
@@ -316,6 +314,75 @@ async def _invoke_background_part(
     }
 
 
+_UUID_PREFIX_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:",
+    re.IGNORECASE,
+)
+
+
+def _friendly_source_label(source_id: str, source_type: str = "") -> str:
+    """Clinician-facing chip label from a raw source id + type."""
+    text = str(source_id or "").strip()
+    if not text:
+        return source_type or "Clinical record"
+    stripped = _UUID_PREFIX_RE.sub("", text)
+    parts = stripped.split(":")
+    if len(parts) >= 2 and stripped != text:
+        label = ":".join(parts[:-1])
+        kind = parts[-1]
+        return f"{label} ({kind})"
+    if source_type:
+        short = (
+            stripped if len(stripped) <= 24 else f"{stripped[:10]}...{stripped[-6:]}"
+        )
+        return f"{source_type}: {short}"
+    if len(stripped) > 28:
+        return f"Clinical record ({stripped[:8]}...)"
+    return stripped
+
+
+def _sources_from_part(part: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build enriched source refs for the widget disclosure."""
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for d in part.get("descriptors") or []:
+        if isinstance(d, dict):
+            sid = str(d.get("source_id") or "").strip()
+            stype = str(d.get("source_label") or "")
+            preview = str(d.get("preview") or "")
+        else:
+            sid = str(getattr(d, "source_id", "") or "").strip()
+            stype = str(getattr(d, "source_label", "") or "")
+            preview = str(getattr(d, "preview", "") or "")
+        if not sid or sid in seen:
+            continue
+        seen.add(sid)
+        out.append(
+            {
+                "id": sid,
+                "type": stype or "Record",
+                "label": _friendly_source_label(sid, stype),
+                "preview": preview[:200],
+            }
+        )
+    if out:
+        return out
+    for sid in part.get("source_ids") or []:
+        text = str(sid or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        out.append(
+            {
+                "id": text,
+                "type": "Record",
+                "label": _friendly_source_label(text),
+                "preview": "",
+            }
+        )
+    return out
+
+
 def _build_part_summary(
     part: dict[str, Any],
 ) -> dict[str, Any]:
@@ -327,6 +394,7 @@ def _build_part_summary(
         "record_count": part["record_count"],
         "record_range": [int(rr[0]), int(rr[1])],
         "source_ids": list(part.get("source_ids") or []),
+        "sources": _sources_from_part(part),
         "status": "completed" if not part.get("error_code") else "failed",
         "error_code": part.get("error_code"),
         "error_message": part.get("error_message"),

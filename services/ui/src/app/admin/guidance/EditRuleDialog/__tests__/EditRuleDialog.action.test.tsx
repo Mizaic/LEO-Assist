@@ -1,21 +1,34 @@
 /**
- * EditRuleDialog action editing tests -- VT-LEO-AI-168 (DI-LEO-AI-170).
+ * EditRuleDialog multi-action editing tests -- VT-LEO-AI-168 (DI-42246DA7).
  *
  * Verifies:
- *   - The recommended SNOMED procedure ("action") is rendered as a
- *     chip with a tooltip including the SNOMED code.
- *   - Clicking the action chip targets the right-hand search panel.
- *   - Picking a search hit while the action is targeted updates the
- *     ``action`` field in the save payload (and the action panel).
- *   - The save payload omits ``action`` when the reviewer never touched
- *     it, so the server preserves the predecessor's actionJson
- *     unchanged.
+ *   - A rule with one recommended procedure renders it as a single row
+ *     (SNOMED chip + strength Select), with the delete icon disabled.
+ *   - "Add another procedure" appends a second, independently-editable
+ *     row with its own strength.
+ *   - Removing a row is allowed once there are 2+ rows; removing the
+ *     last remaining row is blocked (disabled with a tooltip / inline
+ *     hint), never producing an empty ``actions`` array.
+ *   - Picking a search hit while a row is targeted updates only that
+ *     row's criterion.
+ *   - The save payload carries the full ``actions`` array once any row
+ *     has been touched, and omits it entirely when the reviewer never
+ *     touched the procedures.
  */
 
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 import EditRuleDialog from "..";
+
+/** MUI Select is not a native <select>; open its listbox and click an option. */
+async function selectStrength(labelPattern: RegExp, optionText: string) {
+  const input = screen.getByLabelText(labelPattern);
+  const combobox = input.closest('[role="combobox"]') ?? input;
+  fireEvent.mouseDown(combobox);
+  const listbox = await screen.findByRole("listbox");
+  fireEvent.click(within(listbox).getByText(optionText));
+}
 
 const SAMPLE_RULE = {
   rule_id: "rule:NG12:abc",
@@ -38,12 +51,17 @@ const SAMPLE_RULE = {
       },
     ],
   },
-  action: {
-    snomed_concept_id: "168731009",
-    preferred_term: "Plain chest X-ray (procedure)",
-    semantic_tag: "procedure",
-    term: "chest X-ray",
-  },
+  actions: [
+    {
+      criterion: {
+        snomed_concept_id: "168731009",
+        preferred_term: "Plain chest X-ray (procedure)",
+        semantic_tag: "procedure",
+        term: "chest X-ray",
+      },
+      strength: "offer",
+    },
+  ],
 };
 
 function mockSearch(hits: unknown[] = []) {
@@ -64,19 +82,20 @@ function mockSearch(hits: unknown[] = []) {
 }
 
 /**
- * The widescreen editor splits the form across four steps. The action
- * chip lives on step 2 ("What should the system suggest?") and the
- * reason field lives on step 4 ("Save your change").
+ * The widescreen editor splits the form across three steps. The
+ * recommended-procedures panel lives on step 2 ("What should the
+ * system suggest?") and the reason field lives on step 3 ("Save your
+ * change").
  */
-function goToStep(stepNumber: 1 | 2 | 3 | 4) {
+function goToStep(stepNumber: 1 | 2 | 3) {
   const rail = screen.getAllByRole("button", {
-    name: new RegExp(`^Step ${stepNumber} of 4`, "i"),
+    name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
   });
   fireEvent.click(rail[0]);
 }
 
 function fillReason(text: string) {
-  goToStep(4);
+  goToStep(3);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
     target: { value: text },
   });
@@ -86,9 +105,8 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
-  // VT-168-TC-005
-  it("renders the action chip with the friendly label and SNOMED tooltip", () => {
+describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
+  it("renders a single action row with the friendly label and SNOMED tooltip, delete disabled", () => {
     mockSearch();
     render(
       <EditRuleDialog
@@ -101,7 +119,7 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
 
     goToStep(2);
     const region = screen.getByRole("region", {
-      name: /recommended procedure for this rule/i,
+      name: /recommended procedures for this rule/i,
     });
     expect(region).toBeInTheDocument();
 
@@ -109,18 +127,22 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
       name: /plain chest x-ray\. click to pick a different procedure\./i,
     });
     expect(chip).toBeInTheDocument();
-    // Tooltip carries the SNOMED code.
     expect(chip).toHaveAttribute(
       "aria-label",
       expect.stringContaining("Plain chest X-ray"),
     );
+
+    const removeButton = screen.getByRole("button", {
+      name: /remove procedure 1/i,
+    });
+    expect(removeButton).toBeDisabled();
   });
 
-  it("shows an empty-state when the rule has no action coded", () => {
+  it("shows an empty-state row when the rule has no action coded", () => {
     mockSearch();
     render(
       <EditRuleDialog
-        rule={{ ...SAMPLE_RULE, action: null }}
+        rule={{ ...SAMPLE_RULE, actions: [] }}
         open
         onClose={() => {}}
         onSave={() => {}}
@@ -134,8 +156,65 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
     ).toBeInTheDocument();
   });
 
-  // VT-168-TC-006
-  it("picking a search hit while the action chip is selected updates the saved action", async () => {
+  it("adding another procedure appends an independently-editable second row", async () => {
+    mockSearch();
+    render(
+      <EditRuleDialog
+        rule={SAMPLE_RULE}
+        open
+        onClose={() => {}}
+        onSave={() => {}}
+      />,
+    );
+    goToStep(2);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /add another recommended procedure/i }),
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: /no procedure picked yet\. click to pick a different procedure\./i,
+      }),
+    ).toBeInTheDocument();
+    // Both rows can now have their strengths set independently.
+    expect(
+      screen.getByLabelText(/what should the system suggest for procedure 1/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/what should the system suggest for procedure 2/i),
+    ).toBeInTheDocument();
+    // With 2 rows, both delete icons are enabled.
+    expect(screen.getByRole("button", { name: /remove procedure 1/i })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /remove procedure 2/i })).not.toBeDisabled();
+  });
+
+  it("removing a row is allowed with 2+ rows; removing the last remaining row is blocked", async () => {
+    mockSearch();
+    render(
+      <EditRuleDialog
+        rule={SAMPLE_RULE}
+        open
+        onClose={() => {}}
+        onSave={() => {}}
+      />,
+    );
+    goToStep(2);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /add another recommended procedure/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /remove procedure 2/i }));
+
+    // Back down to a single row; its delete icon is disabled again.
+    expect(
+      screen.queryByLabelText(/what should the system suggest for procedure 2/i),
+    ).not.toBeInTheDocument();
+    const removeButton = screen.getByRole("button", { name: /remove procedure 1/i });
+    expect(removeButton).toBeDisabled();
+  });
+
+  it("picking a search hit while a row is selected updates only that row's saved procedure", async () => {
     mockSearch([
       {
         snomed_concept_id: "16310003",
@@ -160,7 +239,6 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
       }),
     );
 
-    // Search panel heading switches to the action variant.
     expect(
       screen.getByRole("heading", { name: /swap the recommended procedure/i }),
     ).toBeInTheDocument();
@@ -174,7 +252,6 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
       screen.getByRole("button", { name: /^Use Diagnostic ultrasound$/i }),
     );
 
-    // Action chip refreshes with the new label.
     expect(
       screen.getByRole("button", {
         name: /diagnostic ultrasound\. click to pick a different procedure\./i,
@@ -188,15 +265,74 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
     const payload = onSave.mock.calls[0][0];
-    expect(payload.action).toBeDefined();
-    expect(payload.action.snomed_concept_id).toBe("16310003");
-    expect(payload.action.preferred_term).toBe(
+    expect(payload.actions).toBeDefined();
+    expect(payload.actions).toHaveLength(1);
+    expect(payload.actions[0].criterion.snomed_concept_id).toBe("16310003");
+    expect(payload.actions[0].criterion.preferred_term).toBe(
       "Diagnostic ultrasound (procedure)",
     );
-    expect(payload.action.semantic_tag).toBe("procedure");
+    expect(payload.actions[0].criterion.semantic_tag).toBe("procedure");
+    expect(payload.actions[0].strength).toBe("offer");
   });
 
-  it("omits action from the save payload when the reviewer never touched it", async () => {
+  it("adding a second procedure with a different strength and saving persists both", async () => {
+    mockSearch([
+      {
+        snomed_concept_id: "16310003",
+        term: "Diagnostic ultrasound (procedure)",
+        semantic_tag: "procedure",
+      },
+    ]);
+    const onSave = jest.fn();
+    render(
+      <EditRuleDialog
+        rule={SAMPLE_RULE}
+        open
+        onClose={() => {}}
+        onSave={onSave}
+      />,
+    );
+    goToStep(2);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /add another recommended procedure/i }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /no procedure picked yet\. click to pick a different procedure\./i,
+      }),
+    );
+    fireEvent.change(screen.getByLabelText(/search clinical terms/i), {
+      target: { value: "ultrasound" },
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /^Use Diagnostic ultrasound$/i }),
+      ).toBeInTheDocument();
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Use Diagnostic ultrasound$/i }),
+    );
+
+    await selectStrength(
+      /what should the system suggest for procedure 2/i,
+      "Refer urgently",
+    );
+
+    fillReason("Added a second procedure at a different strength");
+    fireEvent.click(
+      screen.getByRole("button", { name: /save your changes/i }),
+    );
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.actions).toHaveLength(2);
+    expect(payload.actions[0].strength).toBe("offer");
+    expect(payload.actions[1].criterion.snomed_concept_id).toBe("16310003");
+    expect(payload.actions[1].strength).toBe("refer");
+  });
+
+  it("omits actions from the save payload when the reviewer never touched them", async () => {
     mockSearch();
     const onSave = jest.fn();
     render(
@@ -215,6 +351,36 @@ describe("EditRuleDialog -- action editing (VT-LEO-AI-168)", () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
 
     const payload = onSave.mock.calls[0][0];
-    expect(payload.action).toBeUndefined();
+    expect(payload.actions).toBeUndefined();
+  });
+
+  it("renders without crash when actions[] uses flat API shape (no criterion wrapper)", () => {
+    mockSearch();
+    render(
+      <EditRuleDialog
+        rule={{
+          ...SAMPLE_RULE,
+          actions: [
+            {
+              snomed_concept_id: "168731009",
+              preferred_term: "Plain chest X-ray (procedure)",
+              semantic_tag: "procedure",
+              term: "chest X-ray",
+              strength: "offer",
+            } as unknown as (typeof SAMPLE_RULE.actions)[0],
+          ],
+        }}
+        open
+        onClose={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    goToStep(2);
+    expect(
+      screen.getByRole("button", {
+        name: /plain chest x-ray\. click to pick a different procedure\./i,
+      }),
+    ).toBeInTheDocument();
   });
 });

@@ -106,15 +106,30 @@ def test_cypher_returns_distance_fields(compiler):
     assert "distance_parent" in _FETCH_ACTIVE_RULES
 
 
-def test_cypher_returns_action_fields(compiler):
-    """Cypher query must return action priority and due_days from HAS_ACTION edge."""
+def test_cypher_active_rules_no_longer_joins_actions(compiler):
+    """_FETCH_ACTIVE_RULES must not join HAS_ACTION -- actions are fetched
+    separately by _FETCH_ACTIONS to avoid an NxM cross-join with criteria
+    rows (Phase 4: multiple recommended procedures per rule)."""
     from services.terminology_api.app.services.guideline_compiler import (
         _FETCH_ACTIVE_RULES,
     )
 
-    assert "action_priority" in _FETCH_ACTIVE_RULES
-    assert "action_due_days" in _FETCH_ACTIVE_RULES
-    assert "action_concept_id" in _FETCH_ACTIVE_RULES
+    assert "HAS_ACTION" not in _FETCH_ACTIVE_RULES
+    assert "action_concept_id" not in _FETCH_ACTIVE_RULES
+
+
+def test_cypher_returns_action_fields(compiler):
+    """_FETCH_ACTIONS must return concept_id/name/strength/priority/due_days
+    from each HAS_ACTION edge, one row per recommended action."""
+    from services.terminology_api.app.services.guideline_compiler import (
+        _FETCH_ACTIONS,
+    )
+
+    assert "HAS_ACTION" in _FETCH_ACTIONS
+    assert "concept_id" in _FETCH_ACTIONS
+    assert "strength" in _FETCH_ACTIONS
+    assert "priority" in _FETCH_ACTIONS
+    assert "due_days" in _FETCH_ACTIONS
 
 
 def test_scope_query_includes_guideline_filter(compiler):
@@ -129,6 +144,13 @@ def test_scope_query_includes_domain_filter_for_subdomain_scope(compiler):
         CompileScope(scope_type="subdomain", scope_id="cancer_audit:symptoms")
     )
     assert "dom.id = $scope_domain_id" in query
+
+
+def test_actions_scope_query_includes_guideline_filter(compiler):
+    query = compiler._build_fetch_actions_query(
+        CompileScope(scope_type="guideline", scope_id="NG12")
+    )
+    assert "g.id = $scope_id" in query
 
 
 # ── Core compilation ─────────────────────────────────────────────────────────
@@ -366,17 +388,137 @@ def test_action_backfilled_from_later_rows(compiler, store, mock_session):
     assert rule["action"]["priority"] == "urgent"
 
 
+# -- Multi-action (Phase 4: multiple recommended procedures per rule) -------
+
+
+def test_compiled_rule_includes_multiple_actions_from_action_records(
+    compiler, store, mock_session
+):
+    """Two HAS_ACTION rows for one rule compile into a 2-item actions list,
+    each keeping its own concept and strength, with rule-level priority/due_days
+    shared across both (priority/due_days stay rule-level per the plan)."""
+    rows = [_make_row(concept_id="443416000")]
+    action_records = [
+        {
+            "rule_id": "r1",
+            "concept_id": "306206005",
+            "name": "Suspected cancer pathway referral",
+            "strength": "refer",
+            "priority": "2ww",
+            "due_days": 14,
+        },
+        {
+            "rule_id": "r1",
+            "concept_id": "168537006",
+            "name": "Full blood count",
+            "strength": "offer",
+            "priority": "2ww",
+            "due_days": 14,
+        },
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session, action_records=action_records)
+
+    rule = ruleset["rules"][0]
+    assert len(rule["actions"]) == 2
+    concept_ids = {a["concept_id"] for a in rule["actions"]}
+    assert concept_ids == {"306206005", "168537006"}
+    strengths = {a["concept_id"]: a["strength"] for a in rule["actions"]}
+    assert strengths["306206005"] == "refer"
+    assert strengths["168537006"] == "offer"
+    for action in rule["actions"]:
+        assert action["priority"] == "2ww"
+        assert action["due_days"] == 14
+
+    # Back-compat shim: "action" (singular) equals actions[0].
+    assert rule["action"] == rule["actions"][0]
+
+
+def test_action_records_merged_by_rule_id_not_cross_joined(
+    compiler, store, mock_session
+):
+    """action_records for a DIFFERENT rule_id must not leak onto this rule --
+    proves the merge is keyed on rule_id, not positional."""
+    rows = [_make_row(rule_id="r1", concept_id="443416000")]
+    action_records = [
+        {
+            "rule_id": "r_other",
+            "concept_id": "999999",
+            "name": "Unrelated action",
+            "strength": "consider",
+            "priority": "routine",
+            "due_days": None,
+        }
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session, action_records=action_records)
+    rule = ruleset["rules"][0]
+    assert rule["actions"] == []
+    assert rule["action"] is None
+
+
+def test_actions_from_action_json_list_parses_multiple_items(
+    compiler, store, mock_session
+):
+    """Human-edit path (guidance_rule_edit.py) writes actionJson as a JSON
+    array; the compiler must parse every item, not just the first, when no
+    HAS_ACTION edges exist (action_records empty)."""
+    import json
+
+    action_json = json.dumps(
+        [
+            {
+                "term": "2ww referral",
+                "snomed_concept_id": "306206005",
+                "preferred_term": "Suspected cancer pathway referral",
+                "semantic_tag": "procedure",
+                "strength": "refer",
+                "verification_status": "verified",
+            },
+            {
+                "term": "FBC",
+                "snomed_concept_id": "168537006",
+                "preferred_term": "Full blood count",
+                "semantic_tag": "procedure",
+                "strength": "offer",
+                "verification_status": "verified",
+            },
+        ]
+    )
+    rows = [
+        _make_row(
+            concept_id="443416000",
+            action_json=action_json,
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session, action_records=[])
+
+    rule = ruleset["rules"][0]
+    assert len(rule["actions"]) == 2
+    concept_ids = {a["concept_id"] for a in rule["actions"]}
+    assert concept_ids == {"306206005", "168537006"}
+
+
 # ── Async compilation ────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_compile_and_store_writes_version_and_sets_current(compiler, store):
-    """compile_and_store writes ruleset and sets active version pointer."""
+async def test_compile_and_store_writes_candidate_without_activate(compiler, store):
+    """Default compile writes a candidate and does not flip the live pointer."""
     with patch.object(compiler, "_compile_ruleset", return_value={"rules": []}):
         summary = await compiler.compile_and_store("v20260308")
 
     assert summary["version"] == "v20260308"
+    assert summary["activated"] is False
     store.write_ruleset.assert_called_once()
+    store.set_current_version.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_compile_and_store_activate_true_sets_current(compiler, store):
+    """activate=True flips the scope current pointer after write."""
+    with patch.object(compiler, "_compile_ruleset", return_value={"rules": []}):
+        summary = await compiler.compile_and_store("v20260308", activate=True)
+
+    assert summary["activated"] is True
     store.set_current_version.assert_called_once_with(
         "v20260308", scope_type="global", scope_id="default"
     )
@@ -577,3 +719,120 @@ def test_synonym_set_empty_after_exclusions_falls_back_to_primary(
     ruleset = compiler._build_ruleset(rows, mock_session)
     leaf = ruleset["rules"][0]["logic_tree"]
     assert leaf["seed_concept_ids"] == ["1"]
+
+
+def test_synonym_seeds_use_per_seed_distance_child_in_closure(
+    compiler, store, mock_session
+):
+    """Two seeds with different per-seed ``distance_child`` values must each
+    query their own IS_A hop count and keep their own closure -- one seed's
+    depth must not be clamped to another seed's depth on the same criterion.
+
+    Regression test for the "chip codes editor" depth spinner (UI field
+    ``LogicSeed.distance_child``): confirms the value is not UI-only and
+    actually changes the compiled concept closure fed into ``put_bitmap``.
+    """
+
+    def fake_run(query, params=None, **kwargs):
+        bag = params if isinstance(params, dict) else kwargs
+        seed = bag.get("concept_id")
+        if "IS_A*1..2" in query:
+            return [{"concept_id": seed}, {"concept_id": f"{seed}_depth2_child"}]
+        if "IS_A*1..5" in query:
+            return [
+                {"concept_id": seed},
+                {"concept_id": f"{seed}_depth5_child_a"},
+                {"concept_id": f"{seed}_depth5_child_b"},
+            ]
+        return [{"concept_id": seed}]
+
+    mock_session.run.side_effect = fake_run
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "primary_concept_id": "1",
+                    "preferred_term": "Abdominal bloating",
+                    "seeds": [
+                        {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Abdominal bloating",
+                            "include_descendants": True,
+                            "distance_child": 2,
+                        },
+                        {
+                            "snomed_concept_id": "2",
+                            "preferred_term": "Bloating NOS",
+                            "include_descendants": True,
+                            "distance_child": 5,
+                        },
+                    ],
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+
+    # Depth-2 seed only pulls in its single stub child.
+    assert "1_depth2_child" in leaf["seed_concept_ids"]
+    assert "1_depth5_child_a" not in leaf["seed_concept_ids"]
+
+    # Depth-5 seed pulls in both of its stub children -- proves the deeper
+    # seed was not clamped down to the shallower seed's depth.
+    assert "2_depth5_child_a" in leaf["seed_concept_ids"]
+    assert "2_depth5_child_b" in leaf["seed_concept_ids"]
+
+    # The bitmap actually built from this closure must include the deeper
+    # seed's extra descendants, not just the shallow seed's.
+    int_ids_used = store.put_bitmap.call_args[0][0]
+    assert len(int_ids_used) == len(leaf["seed_concept_ids"])
+
+    # Echoed seed metadata preserves each seed's own depth (not collapsed to
+    # a single rule-wide value).
+    echoed = {
+        s["snomed_concept_id"]: s["distance_child"] for s in leaf["criterion"]["seeds"]
+    }
+    assert echoed["1"] == 2
+    assert echoed["2"] == 5
+
+
+def test_synonym_seed_distance_child_defaults_to_three_when_unset(
+    compiler, store, mock_session
+):
+    """A seed with no explicit ``distance_child`` falls back to depth 3,
+    matching the rule-level legacy default -- not depth 0 (exact-match)."""
+
+    def fake_run(query, params=None, **kwargs):
+        bag = params if isinstance(params, dict) else kwargs
+        seed = bag.get("concept_id")
+        if "IS_A*1..3" in query:
+            return [{"concept_id": seed}, {"concept_id": f"{seed}_default_child"}]
+        return [{"concept_id": seed}]
+
+    mock_session.run.side_effect = fake_run
+    rows = [
+        _v2_concept_row(
+            {
+                "kind": "concept",
+                "criterion": {
+                    "node_id": "n1",
+                    "primary_concept_id": "1",
+                    "preferred_term": "Abdominal bloating",
+                    "seeds": [
+                        {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Abdominal bloating",
+                            "include_descendants": True,
+                            "distance_child": None,
+                        },
+                    ],
+                },
+            }
+        )
+    ]
+    ruleset = compiler._build_ruleset(rows, mock_session)
+    leaf = ruleset["rules"][0]["logic_tree"]
+    assert "1_default_child" in leaf["seed_concept_ids"]

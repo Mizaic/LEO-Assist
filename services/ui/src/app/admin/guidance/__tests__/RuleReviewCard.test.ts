@@ -101,3 +101,36 @@ describe("Fallback rule - is_default flag", () => {
     expect(STEP2_SRC).toMatch(/onIsDefaultChange/);
   });
 });
+
+describe("RuleReviewCard - stale AI-generation warnings hidden once reviewed", () => {
+  test("TC-016: generation_outcome chip is gated on rule.status === pending_review", () => {
+    const headerStart = CARD_SRC.indexOf("function RuleCardHeader");
+    const headerEnd = CARD_SRC.indexOf("function RuleGenerationAlert");
+    const headerFn = CARD_SRC.slice(headerStart, headerEnd);
+    expect(headerFn).toMatch(
+      /rule\.status\s*===\s*["']pending_review["']\s*&&\s*rule\.generation_outcome\s*&&\s*rule\.generation_outcome\s*!==\s*["']success["']/,
+    );
+  });
+
+  test("TC-017: needs_human_review chip is gated on rule.status === pending_review", () => {
+    const headerStart = CARD_SRC.indexOf("function RuleCardHeader");
+    const headerEnd = CARD_SRC.indexOf("function RuleGenerationAlert");
+    const headerFn = CARD_SRC.slice(headerStart, headerEnd);
+    expect(headerFn).toMatch(
+      /rule\.status\s*===\s*["']pending_review["']\s*&&\s*rule\.needs_human_review\s*&&\s*!rule\.generation_outcome/,
+    );
+  });
+
+  test("TC-018: RuleGenerationAlert returns null before rendering the banner when rule is no longer pending_review", () => {
+    const fnStart = CARD_SRC.indexOf("function RuleGenerationAlert");
+    const fnEnd = CARD_SRC.indexOf("function RuleCardActions");
+    const alertFn = CARD_SRC.slice(fnStart, fnEnd);
+    const guardIdx = alertFn.search(
+      /if\s*\(\s*rule\.status\s*!==\s*["']pending_review["']\s*\)\s*return\s*null;/,
+    );
+    const existingGuardIdx = alertFn.indexOf("if (!rule.generation_errors?.length) return null;");
+    expect(guardIdx).toBeGreaterThan(-1);
+    expect(existingGuardIdx).toBeGreaterThan(-1);
+    expect(guardIdx).toBeLessThan(existingGuardIdx);
+  });
+});

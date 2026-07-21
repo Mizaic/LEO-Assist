@@ -26,6 +26,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import ToggleButton from "@mui/material/ToggleButton";
 import { motion as fm } from "framer-motion";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import Box from "@mui/material/Box";
@@ -135,15 +139,19 @@ interface AliasConflict {
 }
 
 export default function SurfaceFormsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   // ── Search + pagination ───────────────────────────────────
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
+  const [pendingOnly, setPendingOnly] = useState(false);
 
   // ── Data ─────────────────────────────────────────────────
   const [groups, setGroups] = useState<ConceptGroup[]>([]);
   const [total, setTotal] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -195,11 +203,21 @@ export default function SurfaceFormsPage() {
   // ── Scroll-to refs per concept ────────────────────────────
   const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const load = useCallback(async (q: string, p: number, rpp: number) => {
+  const load = useCallback(async (
+    q: string,
+    p: number,
+    rpp: number,
+    pending: boolean,
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchGroupedSurfaceForms(q || undefined, rpp, p * rpp);
+      const result = await fetchGroupedSurfaceForms(
+        q || undefined,
+        rpp,
+        p * rpp,
+        pending ? "pending" : undefined,
+      );
       setGroups(result.items);
       setTotal(result.total);
     } catch (e) {
@@ -209,9 +227,20 @@ export default function SurfaceFormsPage() {
     }
   }, []);
 
+  const loadPendingCount = useCallback(async () => {
+    try {
+      const result = await fetchGroupedSurfaceForms(undefined, 1, 0, "pending");
+      setPendingCount(result.total);
+    } catch { /* silent */ }
+  }, []);
+
   useEffect(() => {
-    load(query, page, rowsPerPage);
-  }, [query, page, rowsPerPage, load]);
+    load(query, page, rowsPerPage, pendingOnly);
+  }, [query, page, rowsPerPage, pendingOnly, load]);
+
+  useEffect(() => {
+    loadPendingCount();
+  }, [loadPendingCount]);
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
@@ -247,7 +276,7 @@ export default function SurfaceFormsPage() {
         ...prev,
         [conceptId]: (prev[conceptId] ?? []).filter((s) => s !== form),
       }));
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add suggestion");
     }
@@ -284,7 +313,7 @@ export default function SurfaceFormsPage() {
       const result = await deduplicateSurfaceForms();
       setDedupeResult(result.duplicates_removed);
       setDuplicates(null);
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Deduplication failed");
     } finally {
@@ -317,7 +346,8 @@ export default function SurfaceFormsPage() {
     setActioningAlias(sf.normalized);
     try {
       await approveSurfaceFormMapping(sf.normalized, { conceptId });
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
+      loadPendingCount();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to approve alias");
     } finally {
@@ -329,7 +359,7 @@ export default function SurfaceFormsPage() {
     setActioningAlias(sf.normalized);
     try {
       await deactivateSurfaceFormMapping(sf.normalized);
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to deactivate alias");
     } finally {
@@ -343,7 +373,7 @@ export default function SurfaceFormsPage() {
     try {
       await deleteSurfaceFormMapping(normalized, conceptId);
       await refreshDuplicates();
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to remove mapping");
     } finally {
@@ -357,7 +387,7 @@ export default function SurfaceFormsPage() {
     try {
       await keepSurfaceFormMapping(normalized, conceptId);
       await refreshDuplicates();
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update mapping");
     } finally {
@@ -429,7 +459,7 @@ export default function SurfaceFormsPage() {
       setGroups((prev) => prev.filter((g) => g.concept_id !== deleteTarget.concept_id));
       setDeleteTarget(null);
       // Reload to sync server state
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete concept group");
       setDeleteTarget(null);
@@ -518,7 +548,7 @@ export default function SurfaceFormsPage() {
       setAddAliasFor(null);
       setAddAliasInput("");
       setAliasConflict(null);
-      load(query, page, rowsPerPage);
+      load(query, page, rowsPerPage, pendingOnly);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add alias");
     } finally {
@@ -554,11 +584,31 @@ export default function SurfaceFormsPage() {
         hint: "Surface-form text the pipeline recognises",
         tone: "positive",
       },
+      {
+        id: "pending",
+        label: "Needs approval",
+        value: pendingCount.toLocaleString(),
+        hint: "Aliases added but not yet approved for the pipeline",
+        tone: pendingCount > 0 ? "warning" : "positive",
+      },
     ],
-    [total, groups.length, totalAliases, query],
+    [total, groups.length, totalAliases, query, pendingCount],
   );
 
+  useEffect(() => {
+    if (searchParams?.get("createLocal") === "1") {
+      router.replace("/admin/guidance/local-concepts");
+    }
+  }, [searchParams, router]);
+
   const toolbarActions: ToolbarAction[] = [
+    {
+      id: "create-local-concept",
+      label: "Create local concept",
+      icon: <CategoryOutlinedIcon fontSize="small" />,
+      variant: "secondary",
+      onClick: () => router.push("/admin/guidance/local-concepts"),
+    },
     {
       id: "audit-log",
       label: auditLogLoading ? "Loading log" : "Change log",
@@ -619,15 +669,35 @@ export default function SurfaceFormsPage() {
           aria-label="Search surface forms"
           trailing={<ToolbarActions actions={toolbarActions} />}
         />
-        {loading ? (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", mt: 1 }}
-          >
-            Loading...
-          </Typography>
-        ) : null}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+          <Tooltip title={pendingOnly ? "Showing only aliases needing approval -- click to show all" : "Show only aliases needing approval"}>
+            <ToggleButton
+              value="pending"
+              selected={pendingOnly}
+              size="small"
+              color="warning"
+              onChange={() => { setPendingOnly((v) => !v); setPage(0); }}
+              aria-label="Show only pending approval"
+              sx={{ gap: 0.5, px: 1.5, py: 0.5, fontSize: "0.75rem", textTransform: "none" }}
+            >
+              <PendingActionsIcon sx={{ fontSize: 16 }} />
+              {pendingOnly ? "Showing: needs approval" : "Needs approval"}
+              {pendingCount > 0 && (
+                <Chip
+                  label={pendingCount}
+                  size="small"
+                  color="warning"
+                  sx={{ height: 18, fontSize: "0.65rem", ml: 0.5 }}
+                />
+              )}
+            </ToggleButton>
+          </Tooltip>
+          {loading && (
+            <Typography variant="caption" color="text.secondary">
+              Loading...
+            </Typography>
+          )}
+        </Box>
       </Box>
 
       {/* ── Deduplication result banner ──────────────────────── */}

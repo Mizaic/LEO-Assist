@@ -70,8 +70,31 @@ class DraftRequest(BaseModel):
     phase: Literal["intent", "discover", "build"] = "intent"
     answers: dict[str, str] = {}
     approved_tiles: list[dict[str, Any]] = []
+    approved_pages: list[dict[str, Any]] = []
+    zone1_narrative: str = ""
+    zone2_narrative: str = ""
     current_tiles: list[dict[str, Any]] = []
     existing_metric_ids: list[str] = []
+
+
+# Keep in sync with services/ui/src/lib/auditTemplateApi.ts WIDGET_CATALOGUE
+_VALID_WIDGETS: frozenset[str] = frozenset(
+    {
+        "symptoms_ppv",
+        "blood_signal",
+        "cancer_type",
+        "cancer_stage",
+        "diagnostic_intervals",
+        "consultations",
+        "safety_netting",
+        "investigations",
+        "avoidable_delays",
+        "care_obstructions",
+        "place_of_presentation",
+        "demographics",
+        "comorbidities",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +200,22 @@ _PROPOSE_DASHBOARD_TOOL: dict[str, Any] = {
                             "and how they address the user's needs."
                         ),
                     },
+                    "pages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "page_id": {"type": "string"},
+                                "label": {"type": "string"},
+                                "kind": {
+                                    "type": "string",
+                                    "description": "snapshot or report",
+                                },
+                            },
+                            "required": ["page_id", "label"],
+                        },
+                        "description": "Named report pages/tabs for the draft.",
+                    },
                     "tiles": {
                         "type": "array",
                         "items": {
@@ -186,6 +225,10 @@ _PROPOSE_DASHBOARD_TOOL: dict[str, Any] = {
                                 "label": {"type": "string"},
                                 "tile_type": {"type": "string"},
                                 "section": {"type": "string"},
+                                "page_id": {
+                                    "type": "string",
+                                    "description": "Target page_id from pages[].",
+                                },
                                 "reason": {
                                     "type": "string",
                                     "description": (
@@ -211,6 +254,14 @@ _PROPOSE_DASHBOARD_TOOL: dict[str, Any] = {
                             },
                             "required": ["metric_id", "label", "tile_type", "reason"],
                         },
+                    },
+                    "zone1_narrative": {
+                        "type": "string",
+                        "description": "Optional Zone 1 scorecard narrative.",
+                    },
+                    "zone2_narrative": {
+                        "type": "string",
+                        "description": "Optional Zone 2 priorities narrative.",
                     },
                     "warnings": {
                         "type": "array",
@@ -265,8 +316,7 @@ def _intent_system_prompt(catalogue: list[dict[str, Any]]) -> str:
         "  - Whether to include specialised clinical signal widgets\n\n"
         "Always mark the most sensible default as recommended=true in each "
         "question's option list.\n\n"
-        "Available metrics for reference:\n"
-        + metric_list
+        "Available metrics for reference:\n" + metric_list
     )
 
 
@@ -287,19 +337,20 @@ def _discover_system_prompt(
         "You are an expert NHS clinical audit architect. Based on the user's "
         "requirements and the answers below, propose a well-structured dashboard "
         "by calling the propose_dashboard tool.\n\n"
-        "User's answers to discovery questions:\n"
-        + answers_text
-        + "\n\n"
+        "User's answers to discovery questions:\n" + answers_text + "\n\n"
         "Design guidelines:\n"
+        "  - Propose pages[] with page_id, label, and kind (snapshot or report).\n"
+        "  - Assign each tile a page_id from pages[].\n"
         "  - Choose tile_type from: kpi_strip, bar_chart, line_chart, table, "
-        "interval_plot, or widget (for symptoms_ppv / blood_signal).\n"
+        "interval_plot, or widget (any WIDGET_CATALOGUE id).\n"
         "  - Group related tiles under a section name.\n"
-        "  - Use only metric_id values from the catalogue below.\n"
+        "  - Use only metric_id values from the catalogue below (or widget ids).\n"
+        "  - Optionally draft zone1_narrative and zone2_narrative for the "
+        "snapshot page.\n"
         "  - Where appropriate, suggest a story_headline (one-sentence DataPOV) "
         "and a highlight_key to emphasise the most important data point.\n"
         "  - Flag any tiles that need special infrastructure in warnings.\n\n"
-        "Available metrics:\n"
-        + metric_list
+        "Available metrics:\n" + metric_list
     )
 
 
@@ -321,14 +372,25 @@ def _build_phase(body: DraftRequest):
     """Validate approved tiles against the catalogue and emit add events."""
     catalogue = get_catalogue()
     valid_ids = {m["metric_id"] for m in catalogue}
-    valid_widgets = {"symptoms_ppv", "blood_signal"}
+
+    if body.approved_pages:
+        yield _sse("pages-proposed", {"pages": body.approved_pages})
+
+    if body.zone1_narrative or body.zone2_narrative:
+        yield _sse(
+            "narratives-proposed",
+            {
+                "zone1_narrative": body.zone1_narrative,
+                "zone2_narrative": body.zone2_narrative,
+            },
+        )
 
     added: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
 
     for tile in body.approved_tiles:
         mid = tile.get("metric_id", "")
-        if mid in valid_ids or mid in valid_widgets:
+        if mid in valid_ids or mid in _VALID_WIDGETS:
             added.append(tile)
             yield _sse("tile-added", {"tile": tile})
         else:

@@ -403,6 +403,29 @@ async def release_gp_from_pcn(
         client.close()
 
 
+@router.get("/orgs/{org_id}/services")
+async def list_org_services(
+    org_id: str,
+    scope: CallerScope = Depends(require_admin_or_org_admin),
+) -> list[dict[str, Any]]:
+    """List services linked to a Service Provider org via PROVIDES_SERVICE."""
+    if not scope.is_admin and org_id not in scope.org_ids:
+        raise HTTPException(403, "Access to this organisation is outside your scope")
+    client = _client()
+    try:
+        rows = client.run(aq.LIST_ORG_SERVICES, org_id=org_id)
+        return [
+            {
+                "id": r.get("id"),
+                "name": r.get("name"),
+                "code": r.get("code"),
+            }
+            for r in rows
+        ]
+    finally:
+        client.close()
+
+
 @router.get("/orgs/{org_id}/users")
 async def list_org_users(
     org_id: str,

@@ -104,9 +104,7 @@ def test_matched_via_renders_specific_seed_in_markdown() -> None:
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["2"])
     assert "Matched on" in out.markdown
-    assert "Smoker" in out.markdown
-    assert "kind of Smoker" in out.markdown
-    assert "`2`" in out.markdown
+    assert "a related coded finding for Smoker" in out.markdown
 
 
 def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
@@ -122,7 +120,37 @@ def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
     assert "Matched on: Smoker" in out.markdown
-    assert "kind of" not in out.markdown
+    assert "related coded finding" not in out.markdown
+
+
+def test_matched_via_dedupes_identical_leaf_labels() -> None:
+    """Repeated CONCEPT leaves with the same label render once in Matched on."""
+    rule = _rule("R-1", priority="routine", name="FIT rule")
+    rule["matched_via"] = [
+        {
+            "node_id": "n1",
+            "primary_concept_id": "262285001",
+            "preferred_term": "Weight decreased (finding)",
+            "matched_concept_ids": ["262285001"],
+        },
+        {
+            "node_id": "n2",
+            "primary_concept_id": "262285001",
+            "preferred_term": "Weight decreased (finding)",
+            "matched_concept_ids": ["262285001"],
+        },
+        {
+            "node_id": "n3",
+            "primary_concept_id": "448765001",
+            "preferred_term": "Weight decreased (finding)",
+            "matched_concept_ids": ["448765001"],
+        },
+    ]
+    out = format_assessment(matched_rules=[rule], patient_codes=["262285001"])
+    assert "Matched on: Weight decreased" in out.markdown
+    assert out.markdown.count("Weight decreased") == 1
+    # Audit snapshot still keeps every leaf that fired.
+    assert len(out.rules[0]["matched_via"]) == 3
 
 
 def test_matched_via_preserved_in_rule_snapshot() -> None:
@@ -147,3 +175,99 @@ def test_no_matched_via_keeps_legacy_markdown_behaviour() -> None:
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
     assert "Matched on" not in out.markdown
     assert "matched_via" not in out.rules[0]
+
+
+# -- Multi-action (Phase 4b: multiple recommended procedures per rule) ------
+
+
+def _rule_with_actions(
+    rid: str,
+    *,
+    priority: str,
+    actions: list[dict],
+    due_days: int | None = None,
+    name: str = "Rule",
+    strength: str = "strong",
+    guideline_id: str = "G-1",
+) -> dict:
+    """Build a rule using the new evaluator ``actions`` list shape.
+
+    Mirrors ``_format_match``'s output: ``actions`` is the source of truth
+    and ``action`` (singular) is the back-compat shim equal to actions[0].
+    """
+    return {
+        "rule_id": rid,
+        "name": name,
+        "strength": strength,
+        "guideline_id": guideline_id,
+        "guideline_title": "Test guideline",
+        "chapter_title": "Ch1",
+        "recommendation_verbatim": "Refer urgently to specialist",
+        "actions": actions,
+        "action": actions[0] if actions else None,
+        "confidence": 1.0,
+    }
+
+
+def test_single_action_via_actions_list_is_byte_identical_to_legacy_action() -> None:
+    """CRITICAL REGRESSION GUARD: a rule with exactly one action, expressed
+    via the new ``actions`` list, must produce byte-identical markdown and
+    an identical rule snapshot to the legacy singular ``action`` shape."""
+    legacy_rule = _rule("R-1", priority="urgent", due_days=7)
+    new_rule = _rule_with_actions(
+        "R-1",
+        priority="urgent",
+        due_days=7,
+        actions=[{"priority": "urgent", "due_days": 7, "name": "Specialist referral"}],
+    )
+
+    legacy_out = format_assessment(matched_rules=[legacy_rule], patient_codes=["1"])
+    new_out = format_assessment(matched_rules=[new_rule], patient_codes=["1"])
+
+    assert new_out.markdown == legacy_out.markdown
+    assert new_out.pathway_hints == legacy_out.pathway_hints
+    # Snapshots differ only in the extra "actions" key the new shape adds;
+    # every pre-existing key/value must be unchanged.
+    legacy_snap = legacy_out.rules[0]
+    new_snap = new_out.rules[0]
+    for key, value in legacy_snap.items():
+        assert new_snap[key] == value
+
+
+def test_two_actions_render_one_line_each_and_keep_rule_level_priority() -> None:
+    """A rule with two recommended actions must render one 'Action:' line
+    per action, while priority/due_days-based sorting and headings stay
+    rule-level (unaffected by the number of actions)."""
+    rule = _rule_with_actions(
+        "R-2ACTIONS",
+        priority="2ww",
+        due_days=14,
+        name="Suspected cancer",
+        actions=[
+            {
+                "priority": "2ww",
+                "due_days": 14,
+                "name": "Suspected cancer pathway referral",
+            },
+            {
+                "priority": "2ww",
+                "due_days": 14,
+                "name": "Full blood count",
+            },
+        ],
+    )
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+
+    assert "Action: Suspected cancer pathway referral (within 14 days)" in out.markdown
+    assert "Action: Full blood count (within 14 days)" in out.markdown
+    assert out.markdown.count("Action:") == 2
+    # Still exactly one 2WW heading -- priority stays rule-level, not per-action.
+    assert out.markdown.count("### Two week wait") == 1
+
+
+def test_rule_with_no_actions_renders_no_action_lines() -> None:
+    """A rule with an empty actions list renders zero 'Action:' lines
+    instead of raising, matching the legacy None-action behaviour."""
+    rule = _rule_with_actions("R-NOACTION", priority="routine", actions=[])
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+    assert "Action:" not in out.markdown

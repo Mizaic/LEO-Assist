@@ -1,23 +1,62 @@
-"""SBAR canvas subgraph was removed in favour of the durable pub/sub orchestrator.
-
-The legacy module ``libs.pipeline_graph/subgraphs/sbar.py`` is intentionally
-gone. Production SBAR work runs through
-``services.pipeline_worker.app.services.sbar_orchestrator`` and the referral
-durable workflow registry (see ``tests/test_durable_referral_workflow.py``).
-"""
+"""Unit tests for libs/pipeline_graph/subgraphs/sbar.py."""
 
 from __future__ import annotations
 
-from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
-def test_legacy_sbar_subgraph_module_removed():
-    assert not Path("libs/pipeline_graph/subgraphs/sbar.py").exists()
+def test_sbar_subgraph_compiles():
+    from libs.pipeline_graph.subgraphs.sbar import build_sbar_subgraph
+
+    sg = build_sbar_subgraph()
+    assert sg is not None
 
 
-def test_referral_plan_documents_sbar_deprecation():
-    from scripts.seed_plan_definitions import PLAN_DEFINITIONS
+def test_sbar_run_returns_assessment_id():
+    # Patch the async function itself -- avoids creating an unawaited coroutine.
+    async def _mock_async(_state):
+        return {
+            "sbar_assessment_id": "assess-123",
+            "sbar_status": "completed",
+            "errors": [],
+            "review_status": "pending_review",
+        }
 
-    plan = next(p for p in PLAN_DEFINITIONS if p.get("id") == "pd-referral-assessment")
-    assert "sbar" in plan.get("_deprecatedSubgraphs", [])
-    assert all(action.get("_subgraphId") != "sbar" for action in plan.get("action", []))
+    from libs.pipeline_graph.subgraphs.sbar import _run_sbar
+
+    with patch("libs.pipeline_graph.subgraphs.sbar._async_run_sbar", _mock_async):
+        result = _run_sbar(
+            {
+                "patient_id": "p-1",
+                "encounter_id": "e-1",
+                "run_id": "r-1",
+                "guideline_ids": ["g-1"],
+            }
+        )
+    assert result["sbar_assessment_id"] == "assess-123"
+    assert result["review_status"] == "pending_review"
+
+
+def test_sbar_run_handles_exception():
+    async def _mock_async(_state):
+        raise RuntimeError("orchestrator failed")
+
+    from libs.pipeline_graph.subgraphs.sbar import _run_sbar
+
+    with patch("libs.pipeline_graph.subgraphs.sbar._async_run_sbar", _mock_async):
+        result = _run_sbar({"encounter_id": "e-1", "run_id": "r-1"})
+    assert result["sbar_status"] == "error"
+    assert any("orchestrator failed" in e for e in result.get("errors", []))
+
+
+def test_assessment_id_is_deterministic():
+    from libs.pipeline_graph.subgraphs.sbar import _assessment_id
+
+    id1 = _assessment_id("run-abc", "enc-xyz")
+    id2 = _assessment_id("run-abc", "enc-xyz")
+    id3 = _assessment_id("run-abc", "enc-different")
+    assert id1 == id2
+    assert id1 != id3
+    assert len(id1) == 32

@@ -76,6 +76,14 @@ describe("VT-04B722C3 patient detail full record - static-source", () => {
     expect(src).not.toMatch(/tumour_type\s*:\s*string[^|]/);
   });
 
+  test("AC4b - PatientHeader prefers display_name over raw patient_id", () => {
+    const header = read(
+      "services/ui/src/components/patients/PatientHeader.tsx",
+    );
+    expect(header).toContain("display_name");
+    expect(header).toContain("displayName");
+  });
+
   // Timeline must render items in date order - uses item_date field from TimelineItem
   test("AC3 - ActivityTimeline uses item_date for chronological ordering", () => {
     const src = read(TIMELINE);

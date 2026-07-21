@@ -472,6 +472,62 @@
       "max_scope": 8,
       "description": "Advice to monitor and report symptoms indicates counselling context, not confirmed symptom presence.",
       "example": "look out for these and report back to surgery -> counselling context"
+    },
+    {
+      "literal": "not responded",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Treatment-failure phrase. Blocks bare 'not' from negating the medicine the patient is on.",
+      "example": "has not responded to omeprazole -> omeprazole stays present"
+    },
+    {
+      "literal": "not responded adequately",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Treatment-failure phrase with 'adequately'. Blocks bare 'not' from negating the active medicine.",
+      "example": "has not responded adequately to PPI therapy (omeprazole) -> omeprazole stays present"
+    },
+    {
+      "literal": "has not responded",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Treatment-failure phrase. Blocks bare 'not' from negating the medicine the patient is on.",
+      "example": "has not responded to proton pump inhibitor therapy -> drug stays present"
+    },
+    {
+      "literal": "have not responded",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Plural treatment-failure phrase. Blocks bare 'not' from negating the active medicine.",
+      "example": "symptoms have not responded to omeprazole -> omeprazole stays present"
+    },
+    {
+      "literal": "does not respond",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Treatment-failure phrase. Blocks bare 'not' from negating the medicine the patient is on.",
+      "example": "does not respond to standard PPI therapy -> drug stays present"
+    },
+    {
+      "literal": "did not respond",
+      "category": "NEGATED_EXISTENCE",
+      "direction": "PSEUDO",
+      "max_scope": null,
+      "description": "Past treatment-failure phrase. Blocks bare 'not' from negating the medicine tried.",
+      "example": "did not respond to omeprazole -> omeprazole stays present"
+    },
+    {
+      "literal": "background of",
+      "category": "HISTORICAL",
+      "direction": "FORWARD",
+      "max_scope": 10,
+      "description": "Past medical history list cue without a colon. Conditions that follow are existing background conditions.",
+      "example": "background of GORD and obesity -> GORD and obesity are background conditions"
     }
   ]
 }

@@ -8,7 +8,7 @@
 | Effective Date   | TBD (see §17 Revision History)                                        |
 | Standards        | ISO 13485:2016 §7.3; IEC 62304:2006+A1:2015 §5; AAMI TIR34971:2023; EU AI Act Annex IV (Art. 11); MDCG 2019-11; FDA GMLP (Guiding Principles for Good Machine Learning Practice) |
 | Classification   | QMS — Design Controls — Software Specification                        |
-| Product          | PROD-LEO-CORE-AI-20260415-6AE8A23B                                    |
+| Product          | PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4                  |
 | Safety Class     | B (inherited from DI-37B3DC71)                                        |
 | Owner            | QA/RA Lead, ML Engineering Lead                                       |
 | Change Control   | CR-06F0668F (Waves 0-5 rollout)                                        |
@@ -415,7 +415,7 @@ This document currently references CR-06F0668F (Waves 0-5 rollout).
 | §13 Post-market | MDCG 2019-11; DC-CM-001; DC-PR-001 |
 | §15 Change control | DC-CM-001; CR-06F0668F |
 
-A consolidated trace view is available via `get_traceability_matrix(product_id="PROD-LEO-CORE-AI-20260415-6AE8A23B")` in Atlas.
+A consolidated trace view is available via `get_traceability_matrix(product_id="PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4")` in Atlas.
 
 ---
 

@@ -1,10 +1,9 @@
 """Progress callback factory for the pipeline_worker message bus consumer.
 
 Atlas trace:
-  DI: DI-705C806B
-  DO: DO-A26CD350
+  DO: DO-4641EEE1
   VT: VT-297D9C18
-  Look up via: get_design_control(dc_type="design-input", dc_id="DI-705C806B")
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-4641EEE1")
 
 Builds a step_callback that the WorkflowEngine invokes after each step
 and at run completion. The callback publishes events to Redis pub/sub via

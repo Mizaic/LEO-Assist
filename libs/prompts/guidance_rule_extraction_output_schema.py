@@ -103,10 +103,37 @@ _LOGIC_NODE_SCHEMA = {
     },
 }
 
+#: Strength values a single recommended action can carry. Mirrors
+#: STRENGTH_LABELS in
+#: services/ui/src/app/admin/guidance/EditRuleDialog/copy.ts -- keep in sync.
+_ACTION_STRENGTH_ENUM = [
+    "offer",
+    "consider",
+    "refer",
+    "discuss",
+    "safety_net",
+    "do_not_offer",
+    "unspecified",
+]
+
+_ACTION_ITEM_SCHEMA = {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+        "text": {"type": "string"},
+        "search_terms": {
+            "type": "array",
+            "items": {"type": "string"},
+            "maxItems": 5,
+        },
+        "strength": {"type": "string", "enum": _ACTION_STRENGTH_ENUM},
+    },
+}
+
 GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
     "description": "Return ONLY valid JSON — no explanation, no markdown, no preamble.",
     "type": "object",
-    "required": ["schema_version", "logic_tree", "action"],
+    "required": ["schema_version", "logic_tree", "actions"],
     "properties": {
         "schema_version": {"type": "integer", "enum": [2]},
         "logic_tree": {
@@ -115,17 +142,9 @@ GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
                 {"type": "null"},
             ],
         },
-        "action": {
-            "type": ["object", "null"],
-            "required": ["text"],
-            "properties": {
-                "text": {"type": "string"},
-                "search_terms": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "maxItems": 5,
-                },
-            },
+        "actions": {
+            "type": "array",
+            "items": _ACTION_ITEM_SCHEMA,
         },
     },
 }
@@ -150,7 +169,7 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
             '{"kind":"NOT","children":['
             '{"kind":"allergy","substance_concept_id":"764146007","allergy_class":"penicillin","term":"penicillin allergy"}'
             "]}"
-            ']},"action":{"text":"test for H. pylori","search_terms":["Helicobacter pylori testing","H pylori urea breath test"]}}'
+            ']},"actions":[{"text":"test for H. pylori","search_terms":["Helicobacter pylori testing","H pylori urea breath test"],"strength":"consider"}]}'
         ),
         "category": "guidance_rule_extraction",
         "model_scope": "any",
@@ -174,7 +193,7 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
             '{"kind":"demographic","field":"age","operator":">=","value":40,"unit":"years","raw_term":"age 40 and over"},'
             '{"kind":"concept","term":{"text":"haemoptysis","source_text":"unexplained haemoptysis","search_terms":["haemoptysis"]}}'
             "]}"
-            ']},"action":{"text":"fast track referral for suspected lung cancer","search_terms":["fast track referral for suspected lung cancer"]}}'
+            ']},"actions":[{"text":"fast track referral for suspected lung cancer","search_terms":["fast track referral for suspected lung cancer"],"strength":"refer"}]}'
         ),
         "category": "guidance_rule_extraction",
         "model_scope": "any",
@@ -217,7 +236,7 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
             '{"kind":"concept","term":{"text":"loss of appetite","source_text":"appetite loss","search_terms":["loss of appetite","appetite loss"]}}'
             "]}"
             "]}"
-            ']},"action":{"text":"urgent chest X-ray","search_terms":["urgent chest X-ray","plain X-ray of chest"]}}'
+            ']},"actions":[{"text":"urgent chest X-ray","search_terms":["urgent chest X-ray","plain X-ray of chest"],"strength":"offer"}]}'
         ),
         "category": "guidance_rule_extraction",
         "model_scope": "any",
@@ -272,7 +291,38 @@ GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
             '{"kind":"concept","term":{"text":"loss of appetite","source_text":"appetite loss","search_terms":["loss of appetite","appetite loss"]}}'
             "]}"
             "]}"
-            ']},"action":{"text":"urgent chest X-ray","search_terms":["urgent chest X-ray","plain X-ray of chest"]}}'
+            ']},"actions":[{"text":"urgent chest X-ray","search_terms":["urgent chest X-ray","plain X-ray of chest"],"strength":"offer"}]}'
+        ),
+        "category": "guidance_rule_extraction",
+        "model_scope": "any",
+        "core": True,
+        "deidentified": True,
+    },
+    {
+        "id": "gre-ex-005",
+        "description": (
+            "RA cervical myelopathy: two distinct actions with different "
+            "strengths -- offer an urgent MRI scan AND separately refer for a "
+            "specialist surgical opinion"
+        ),
+        "input": (
+            "Section: Rheumatoid arthritis in adults\n"
+            "Recommendation 1.10.5: If an adult with RA develops any symptoms or signs "
+            "that suggest cervical myelopathy (for example, paraesthesia, weakness, "
+            "unsteadiness, reduced power, extensor plantars), request an urgent MRI "
+            "scan, and refer for a specialist surgical opinion.\n"
+            "Urgency: urgent  Strength: offer"
+        ),
+        "output": (
+            '{"schema_version":2,"logic_tree":{"kind":"AND","children":['
+            '{"kind":"concept","term":{"text":"rheumatoid arthritis","search_terms":["rheumatoid arthritis"]}},'
+            '{"kind":"concept","term":{"text":"symptoms or signs suggestive of cervical myelopathy",'
+            '"source_text":"symptoms or signs that suggest cervical myelopathy",'
+            '"search_terms":["cervical myelopathy","paraesthesia","weakness","extensor plantars"]}}'
+            ']},"actions":['
+            '{"text":"urgent MRI scan of cervical spine","search_terms":["urgent MRI scan of cervical spine","MRI cervical spine"],"strength":"offer"},'
+            '{"text":"referral for specialist surgical opinion","search_terms":["referral for specialist surgical opinion","referral to spinal surgery"],"strength":"refer"}'
+            "]}"
         ),
         "category": "guidance_rule_extraction",
         "model_scope": "any",

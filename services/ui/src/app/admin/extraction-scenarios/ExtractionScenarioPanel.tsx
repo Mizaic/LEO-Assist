@@ -22,6 +22,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -50,6 +51,7 @@ import type {
   ValidationRunStatus,
 } from "./types";
 import CaseReviewDrawer from "./CaseReviewDrawer";
+import QuickTestDrawer from "./QuickTestDrawer";
 import RunResultsDrawer from "./RunResultsDrawer";
 import ScenarioEditorDialog from "./ScenarioEditorDialog";
 
@@ -110,6 +112,7 @@ export default function ExtractionScenarioPanel() {
   const [runDrawerOpen, setRunDrawerOpen] = useState(false);
   const [currentRun, setCurrentRun] = useState<ValidationRunStatus | null>(null);
   const [triggering, setTriggering] = useState(false);
+  const [quickTestOpen, setQuickTestOpen] = useState(false);
   const [difficultyFilter, setDifficultyFilter] = useState<Set<string>>(
     new Set(),
   );
@@ -245,6 +248,12 @@ export default function ExtractionScenarioPanel() {
         ),
         onClick: handleRunValidation,
         disabled: triggering,
+      },
+      {
+        id: "quick-test",
+        label: "Quick test",
+        icon: <ScienceOutlinedIcon fontSize="small" />,
+        onClick: () => setQuickTestOpen(true),
       },
     ],
     [handleRunValidation, openCreateEditor, triggering],
@@ -430,6 +439,11 @@ export default function ExtractionScenarioPanel() {
         open={runDrawerOpen}
         onClose={() => setRunDrawerOpen(false)}
         onRunUpdate={setCurrentRun}
+      />
+
+      <QuickTestDrawer
+        open={quickTestOpen}
+        onClose={() => setQuickTestOpen(false)}
       />
 
       <ScenarioEditorDialog

@@ -14,9 +14,8 @@
  *   2. Surface deterministic coherence flags AND cross-encounter coding
  *      QA flags as accordioned alerts, each with the specific review
  *      action a reviewer can take.
- *   3. Render the per-episode SBAR via the existing SbarFinalView
- *      with a scope chip ("Episode <id>") so it cannot be confused
- *      with the patient-level rollup.
+ *   3. Render the per-episode SBAR via CDN LeoSbarHost when
+ *      assessmentId is present (DI-A898556B).
  */
 "use client";
 
@@ -27,10 +26,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import {
-  SbarFinalView,
-  type CompletenessFinding,
-} from "@/components/sbar-final/SbarFinalView";
+import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
 
 export type CoherenceFlagCode =
   | "narrative_contradiction"
@@ -74,7 +70,8 @@ export interface EpisodeDetail {
   encounterIds: string[];
   canonicalCode?: CanonicalCode | null;
   sbarMarkdown?: string | null;
-  completenessFinding?: CompletenessFinding | null;
+  /** Canonical Assessment id for CDN leo-sbar mount. */
+  assessmentId?: string | null;
   coherenceFlags?: CoherenceFlag[];
   codingQaFlags?: CodingQAFlag[];
 }
@@ -193,9 +190,9 @@ export default function EpisodeDetailPanel({
       )}
 
       <SbarSection
+        assessmentId={episode.assessmentId ?? null}
         markdown={episode.sbarMarkdown ?? ""}
         episodeId={episode.episodeId}
-        completenessFinding={episode.completenessFinding}
         onRegenerate={onRegenerateSbar}
       />
     </Box>
@@ -315,17 +312,17 @@ function CanonicalCodeCard({
 }
 
 function SbarSection({
+  assessmentId,
   markdown,
   episodeId,
-  completenessFinding,
   onRegenerate,
 }: {
+  assessmentId: string | null;
   markdown: string;
   episodeId: string;
-  completenessFinding?: CompletenessFinding | null;
   onRegenerate?: () => void;
 }) {
-  if (!markdown) {
+  if (!assessmentId && !markdown) {
     return (
       <Alert
         severity="info"
@@ -369,12 +366,17 @@ function SbarSection({
           </Button>
         )}
       </Stack>
-      <SbarFinalView
-        markdown={markdown}
-        completenessFinding={completenessFinding}
-        testIdPrefix={`episode-${episodeId}-sbar`}
-        dense
-      />
+      {assessmentId ? (
+        <LeoSbarHost
+          assessmentId={assessmentId}
+          testId={`episode-${episodeId}-sbar`}
+        />
+      ) : (
+        <Alert severity="warning" data-testid="episode-sbar-missing-id">
+          This episode SBAR is missing an assessment id. Open Validation Lab
+          or regenerate the SBAR so the CDN widget can load it.
+        </Alert>
+      )}
     </Box>
   );
 }

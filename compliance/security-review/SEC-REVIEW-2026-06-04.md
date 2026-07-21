@@ -6,7 +6,7 @@
 | Status | Draft -- advisory; all findings require human owner acceptance |
 | Date | 2026-06-04 |
 | Reviewer | Security and Privacy Review (agent-assisted, evidence-led) |
-| Product | LEO-AI-CORE (PROD-LEO-CORE-AI-20260415-6AE8A23B), IEC 62304 Class B CDS |
+| Product | LEO-AI-CORE (PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4), IEC 62304 Class B CDS |
 | Scope | services/api, services/ui, libs/*, infra config; compliance/policy/* baseline |
 | Method | Static code review with file:line evidence. No live patient data accessed. No application code changed. |
 
@@ -502,7 +502,7 @@ that Class C controls be escalated rather than invented).
 
 Two findings are safety-relevant and, on owner acceptance, warrant Atlas
 artefacts (to be created through `user-atlas-design-controls` against
-PROD-LEO-CORE-AI-20260415-6AE8A23B, all Class B with the human-review gate
+PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4, all Class B with the human-review gate
 intact):
 
 - **Proposed Risk (from F1):** "Unauthenticated write to clinical terminology

@@ -64,10 +64,20 @@ Before your first submission:
    (optionally) `Listen` rights on the `referral-assessments-output` queue.
    Request these from the LEO ops team.
 
-2. **Patient and encounter data** -- the pipeline reads encounter text from
-   the Neo4j patient graph. The `patient_id` and `encounter_id` you supply
-   must already exist as `(:Patient)` and `(:Encounter)` nodes before you
-   submit the job. If they do not exist, the extraction step fails closed.
+2. **Patient + referral document graph** -- the production contract is
+   document-chunk handoff, not Encounter text. Before you submit a job the
+   patient graph must already contain:
+
+   ```text
+   (:Patient)<-[:FOR_PATIENT]-(:ReferralRequest)
+        -[:HAS_DOCUMENT]->(:DocumentReference)-[:HAS_CHUNK]->(:Chunk)
+   ```
+
+   The trigger message must include `referral_id`, `document_reference_id`,
+   `chunk_ids`, and `text_segmentation_mode: "document_chunks"`.
+   `encounter_id` is a correlation id only; extraction reads `:Chunk.text`.
+   AI summarisation scenario runs materialise this shape via
+   `libs/referral_simulator` from scenario markdown.
 
 3. **Host onboarding** -- if you are also embedding the SBAR widget, your
    host product must complete the governance onboarding described in
@@ -152,16 +162,21 @@ worker, default `pipeline-jobs`).
   "plan_definition_id": "pd-referral-assessment",
   "workflow_id": "pd-referral-assessment",
   "patient_id": "patient-9990000001",
-  "encounter_id": "enc-20260605-001",
+  "encounter_id": "000049831707:referral-assessment",
+  "referral_id": "000049831707",
+  "document_reference_id": "000049831707:leo-referral-bundle",
+  "chunk_ids": ["chunk-id-1", "chunk-id-2"],
+  "text_segmentation_mode": "document_chunks",
   "guideline_id": "NG12",
   "completeness_domain": "cancer_referrals",
   "completeness_subdomain": "lower_gi",
-  "source_node_type": "Encounter",
-  "source_node_id": "enc-20260605-001",
+  "source_node_type": "ReferralRequest",
+  "source_node_id": "000049831707",
   "tenant_id": "your-org-id",
   "requested_by": "clinician-user-id",
   "context": {
-    "source": "host_product_name",
+    "source": "hccp_referral_prep",
+    "referral_id": "000049831707",
     "parent_run_id": null
   }
 }
@@ -185,15 +200,22 @@ body = {
     "plan_definition_id": "pd-referral-assessment",
     "workflow_id": "pd-referral-assessment",
     "patient_id": "patient-9990000001",
-    "encounter_id": "enc-20260605-001",
+    "encounter_id": "000049831707:referral-assessment",
+    "referral_id": "000049831707",
+    "document_reference_id": "000049831707:leo-referral-bundle",
+    "chunk_ids": ["chunk-id-1", "chunk-id-2"],
+    "text_segmentation_mode": "document_chunks",
     "guideline_id": "NG12",
     "completeness_domain": "cancer_referrals",
     "completeness_subdomain": "lower_gi",
-    "source_node_type": "Encounter",
-    "source_node_id": "enc-20260605-001",
+    "source_node_type": "ReferralRequest",
+    "source_node_id": "000049831707",
     "tenant_id": "your-org-id",
     "requested_by": "user@example.com",
-    "context": {"source": "host_product_name"},
+    "context": {
+        "source": "hccp_referral_prep",
+        "referral_id": "000049831707",
+    },
 }
 
 with ServiceBusClient.from_connection_string(CONNECTION_STR) as client:
@@ -219,16 +241,52 @@ print(f"Submitted run_id={run_id}")
 | `plan_definition_id` | Yes | Must be `"pd-referral-assessment"` |
 | `workflow_id` | No | Defaults to `plan_definition_id` if omitted |
 | `patient_id` | Yes | ID of the `(:Patient)` node in the LEO patient graph |
-| `encounter_id` | Yes | ID of the `(:Encounter)` node whose `.text` property is the referral text |
+| `encounter_id` | Yes | Correlation encounter id (e.g. `{ubrn}:referral-assessment`). Not the text source in document_chunks mode |
+| `referral_id` | Yes | ID of the `(:ReferralRequest)` node |
+| `document_reference_id` | Yes | ID of the `(:DocumentReference)` bundle (e.g. `{ubrn}:leo-referral-bundle`) |
+| `chunk_ids` | Yes | Non-empty list of `(:Chunk)` ids that hold the referral text |
+| `text_segmentation_mode` | Yes | `"document_chunks"` for referral handoff, or `"communication_thread"` for A&G |
 | `guideline_id` | Yes | NICE guideline to evaluate (e.g. `"NG12"`) |
 | `completeness_domain` | Yes | Completeness domain key (e.g. `"cancer_referrals"`) |
 | `completeness_subdomain` | No | Completeness subdomain key (e.g. `"lower_gi"`) |
-| `source_node_type` | No | Defaults to `"Encounter"`. Only change if the source text lives on a non-Encounter node |
-| `source_node_id` | No | Defaults to `encounter_id` |
-| `source_text_property` | No | Property on the source node containing the referral text. Defaults to `"text"` |
+| `source_node_type` | Yes | `"ReferralRequest"` for production referrals |
+| `source_node_id` | Yes | Same as `referral_id` |
 | `tenant_id` | No | Your organisation ID for telemetry attribution |
 | `requested_by` | No | User or service identity for audit trail |
-| `context` | No | Arbitrary key-value pairs forwarded to every pipeline step |
+| `context` | No | Arbitrary key-value pairs forwarded to every pipeline step (include `referral_id`) |
+
+Shared builders: `libs/referral_simulator.message.build_referral_received_message`
+and graph materialisation via `libs/referral_simulator.scaffold.scaffold_referral`.
+
+### Advice and Guidance (`communication_thread`)
+
+For Advice and Guidance (A&G) cases the same `referral-received` trigger and
+`pd-referral-assessment` workflow apply, but clinical text is assembled from
+the communication thread rather than referral document chunks:
+
+```text
+(:Patient)<-[:FOR_PATIENT]-(:CommunicationRequest)
+     -[:HAS_CONVERSATION]->(:Communication {note, category})
+     -[:HAS_DOCUMENT]->(:DocumentReference)-[:HAS_CHUNK]->(:Chunk)   // optional
+     -[:HAS_RESPONSE]->(:AdviceAndGuidanceResponse {responseText})    // optional
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `communication_request_id` | Yes | ID of the `(:CommunicationRequest)` node |
+| `ubrn` | Yes | Unique booking reference on the CommunicationRequest |
+| `encounter_id` | Yes | Correlation id (e.g. `{ubrn}:ag-assessment`) |
+| `text_segmentation_mode` | Yes | Must be `"communication_thread"` |
+| `chunk_ids` | No | Optional override; loader auto-discovers attachment chunks via `HAS_DOCUMENT` |
+| `source_node_type` | Yes | `"CommunicationRequest"` |
+| `source_node_id` | Yes | Same as `communication_request_id` |
+| `mode` | No | Context discriminator only: `"ag_assessment"` |
+
+Attachment segments are only emitted when linked `(:Chunk)` nodes exist with
+non-empty `text`. Thread-only runs (no `HAS_DOCUMENT` edges) are valid.
+
+Shared builder: `libs/referral_simulator.message.build_communication_assessment_message`.
+Loader: `libs/pipeline/communication_thread_loader.py`.
 
 ---
 
@@ -439,4 +497,4 @@ Look up any artefact via:
 get_design_control(dc_type="design_input", dc_id="DI-06CB6881")
 ```
 
-Product: `PROD-LEO-CORE-AI-20260415-6AE8A23B`
+Product: `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`

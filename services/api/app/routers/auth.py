@@ -45,6 +45,7 @@ from libs.auth.entra_group_sync import (
     read_current_role_names,
     resolve_and_sync_entra_groups,
 )
+from libs.auth.session_access import may_issue_session
 from libs.auth.practitioner_org_context import fetch_practitioner_org_context
 from libs.auth.density_state import (
     DensityNotAllowedError,
@@ -518,6 +519,23 @@ def callback(
             resolved_roles = []
     else:
         resolved_roles = sync_result.role_names
+
+    # Users in an allowed tenant can complete Entra login without any LEO
+    # roles. Do not issue a session cookie for them -- otherwise the UI
+    # hydrates as authenticated and briefly paints clinical chrome before
+    # later API 401s force re-auth.
+    if not may_issue_session(is_admin, resolved_roles):
+        logger.warning(
+            "Login blocked: no LEO roles for %s (admin=%s roles=%s)",
+            normalised_email,
+            is_admin,
+            resolved_roles,
+        )
+        emit_login_failure(reason="no_access", ip=client_ip)
+        return RedirectResponse(
+            url=f"{fe}/sign-in?error=no_access",
+            status_code=302,
+        )
 
     session_id = create_session_id()
     save_session(

@@ -1,10 +1,8 @@
 """DOCUMENTS relationship and semantic link queries.
 
 Atlas trace:
-  DO: DO-0DD91ACD
-  Also implements: DO-210CF040
-  DI: DI-BB64E479, DI-E7AFFDA5
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0DD91ACD")
+  DO: DO-728930A1
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 Centralised from services/api/app/models/neo4j_schema.py.
 
@@ -54,10 +52,11 @@ _LABEL_BY_TAG: dict[str, str] = {
 # patient encounter. Body structures and organisms are not clinical events
 # -- they are anatomy/taxonomy reference nodes. Writing them as findings
 # produces noise that the audit agent then has to correct.
+# body structure was removed from this set to allow reproductive anatomy
+# SNOMED concepts (cervix, uterus, ovary, prostate, testis, fallopian tube)
+# to be persisted for gender/anatomy conflict detection (DI-9AA2CDA5).
 _BLOCKED_SEMANTIC_TAGS: frozenset[str] = frozenset(
     {
-        "bodystructure",
-        "body structure",
         "organism",
         "virus",
         "bacterium",
@@ -86,7 +85,9 @@ def _label_for_tag(tag: str) -> str:
     return _LABEL_BY_TAG.get(normalised, "SnomedConcept")
 
 
-_VALID_SOURCE_LABELS: frozenset[str] = frozenset({"Encounter", "Chunk"})
+_VALID_SOURCE_LABELS: frozenset[str] = frozenset(
+    {"Encounter", "Chunk", "Communication"}
+)
 
 
 def _build_upsert_query(
@@ -119,6 +120,12 @@ def _build_upsert_query(
         match_clause = (
             "MATCH (src:Encounter {id: $source_id})"
             "<-[:HAS_ENCOUNTER]-(p:Patient)"
+        )
+    elif source_label == "Communication":
+        match_clause = (
+            "MATCH (src:Communication {id: $source_id})"
+            "<-[:HAS_CONVERSATION]-(:CommunicationRequest)"
+            "-[:FOR_PATIENT]->(p:Patient)"
         )
     else:
         # For Chunk sources, the Patient-level shortcut is opportunistic:
@@ -435,9 +442,15 @@ def write_documents_from_sentences_payload(
     for sentence_index, sentence in enumerate(sentences_payload):
         sentence_text = sentence.get("text") or ""
         sentence_source_id = str(sentence.get("sentence_id") or encounter_id).strip()
-        link_source_id = (
-            sentence_source_id if source_label == "Chunk" else encounter_id
-        )
+        sentence_source_label = str(
+            sentence.get("persist_source_label") or source_label
+        ).strip()
+        if sentence_source_label == "Chunk":
+            link_source_id = sentence_source_id
+        elif sentence_source_label == "Communication":
+            link_source_id = sentence_source_id
+        else:
+            link_source_id = encounter_id
         for term in sentence.get("terms", []):
             coding = term.get("coding") or {}
             concept_id = coding.get("snomed_concept_id")
@@ -477,7 +490,7 @@ def write_documents_from_sentences_payload(
             label = _label_for_tag(semantic_tag)
             rel_type = _REL_BY_LABEL.get(label, "HAS_CONCEPT")
             query = _build_upsert_query(
-                label, rel_type, source_label=source_label
+                label, rel_type, source_label=sentence_source_label
             )
 
             modifiers = term.get("modifiers") or {}

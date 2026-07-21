@@ -115,6 +115,10 @@ class AuditPage(BaseModel):
 
     page_id: str = Field(max_length=80)
     title: str = Field(max_length=120)
+    kind: Optional[str] = Field(
+        default=None,
+        description="Optional page kind: snapshot or report",
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -3,8 +3,11 @@
 Inputs:
   - scripts/atlas_consistency/all_leo_uns_full.json
     (pre-fetched snapshot of all 137 non-obsolete UNs for
-    PROD-LEO-CORE-AI-20260415-6AE8A23B, with personas, needs, and
-    embedded traceability_edges for HAS_DESIGN_INPUT relationships)
+    PROD-LEO-CORE-AI-20260415-6AE8A23B [historical product id reference:
+    this describes the id the snapshot file was captured under, not the
+    live/current product id -- see scripts/atlas/product.py], with
+    personas, needs, and embedded traceability_edges for
+    HAS_DESIGN_INPUT relationships)
   - candidate UN list from list_design_review_artifact_candidates
   - candidate Risk list from list_design_review_artifact_candidates
 
@@ -27,8 +30,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from build_backlog import classify_release  # noqa: E402
 
-BASE = Path("/Users/robsmith/.cursor/projects/"
-            "Users-robsmith-Documents-github-LEO-AI-CORE/agent-tools")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from scripts.atlas.product import PRODUCT_ID  # noqa: E402
+
+BASE = Path(
+    "/Users/robsmith/.cursor/projects/"
+    "Users-robsmith-Documents-github-LEO-AI-CORE/agent-tools"
+)
 UN_CANDIDATES = BASE / "1ac261f3-59f6-4d9f-9bcf-e1cb9359f75d.txt"
 RISK_CANDIDATES = BASE / "6fcd2e1c-1a39-4450-a719-1cadbbb9f7cc.txt"
 
@@ -59,7 +67,7 @@ LEGITIMATE_PERSONAS = {
 
 # Personas that are NOT users of the product.
 REJECT_PERSONAS = {
-    "AI Coding Agent",   # the software itself, not a user
+    "AI Coding Agent",  # the software itself, not a user
     None,
     "",
 }
@@ -92,21 +100,62 @@ def derive_release_wave(un: dict) -> str:
 
 
 MACHINE_SUBJECTS = {
-    "pipeline", "worker", "scheduler", "orchestrator", "service",
-    "router", "module", "engine", "api", "system", "server", "job",
-    "daemon", "coding worker pipeline", "fastapi router",
-    "pipeline worker", "pipeline orchestrator", "platform scheduler",
-    "coding worker", "analysis worker",
+    "pipeline",
+    "worker",
+    "scheduler",
+    "orchestrator",
+    "service",
+    "router",
+    "module",
+    "engine",
+    "api",
+    "system",
+    "server",
+    "job",
+    "daemon",
+    "coding worker pipeline",
+    "fastapi router",
+    "pipeline worker",
+    "pipeline orchestrator",
+    "platform scheduler",
+    "coding worker",
+    "analysis worker",
 }
 
 USER_ROLE_KEYWORDS = (
-    "clinician", "clinical", "nurse", "doctor", "gp", "practitioner",
-    "pharmacist", "radiologist", "oncolog", "surgeon", "coder",
-    "auditor", "reviewer", "developer", "engineer", "administrator",
-    "admin", "operator", "officer", "manager", "lead", "author",
-    "patient", "user", "staff", "team", "supervisor", "personnel",
-    "safety officer", "knowledge author", "data protection officer",
-    "product manager", "regulatory",
+    "clinician",
+    "clinical",
+    "nurse",
+    "doctor",
+    "gp",
+    "practitioner",
+    "pharmacist",
+    "radiologist",
+    "oncolog",
+    "surgeon",
+    "coder",
+    "auditor",
+    "reviewer",
+    "developer",
+    "engineer",
+    "administrator",
+    "admin",
+    "operator",
+    "officer",
+    "manager",
+    "lead",
+    "author",
+    "patient",
+    "user",
+    "staff",
+    "team",
+    "supervisor",
+    "personnel",
+    "safety officer",
+    "knowledge author",
+    "data protection officer",
+    "product manager",
+    "regulatory",
 )
 
 
@@ -129,13 +178,11 @@ def un_is_user_story(un: dict) -> tuple[bool, str]:
     #    (This is the classic anti-pattern - DI text mislabelled as UN.)
     for lead in ("as the ", "as a ", "as an "):
         if lowered.startswith(lead):
-            rest = lowered[len(lead):]
+            rest = lowered[len(lead) :]
             subject = rest.split(",")[0].split(" i need")[0].strip()
             subject_words = subject.split()
             # Check if the subject words overlap with any machine subject
-            machine_hit = any(
-                word in MACHINE_SUBJECTS for word in subject_words
-            )
+            machine_hit = any(word in MACHINE_SUBJECTS for word in subject_words)
             # If the subject contains a human role word, accept even if
             # it also contains a technical noun (e.g. 'platform operator').
             human_hit = any(role in subject for role in USER_ROLE_KEYWORDS)
@@ -255,8 +302,10 @@ def main() -> None:
 
     # Also include risks directly linked to accepted UNs (HAS_RISK if exists)
     for ln in links:
-        if (ln.get("relationship") == "HAS_RISK"
-                and ln["source"] in accepted_mvp_un_uuids):
+        if (
+            ln.get("relationship") == "HAS_RISK"
+            and ln["source"] in accepted_mvp_un_uuids
+        ):
             if ln["target"] in risk_cand_ids:
                 mvp_risk_uuids.add(ln["target"])
 
@@ -270,7 +319,7 @@ def main() -> None:
     # Emit attach payload
     payload = {
         "review_id": REVIEW_ID,
-        "product_id": "PROD-LEO-CORE-AI-20260415-6AE8A23B",
+        "product_id": PRODUCT_ID,
         "user_needs": sorted(accepted_mvp_un_uuids),
         "design_inputs": sorted(mvp_di_uuids),
         "risks": sorted(mvp_risk_uuids),
@@ -279,6 +328,7 @@ def main() -> None:
 
     # Emit summary MD
     from collections import Counter
+
     decision_counts = Counter(r["decision"] for r in rows)
     persona_counts = Counter(r["persona"] for r in rows)
     wave_counts = Counter(r["release_wave"] for r in rows)
@@ -355,15 +405,14 @@ def main() -> None:
     # Accepted UN list grouped by wave
     lines += ["## Accepted MVP UNs (attach list)", ""]
     for wave in ("R1", "R3", "R4", "R5", "R7"):
-        wave_rows = [r for r in rows
-                     if r["decision"] == "attach" and r["release_wave"] == wave]
+        wave_rows = [
+            r for r in rows if r["decision"] == "attach" and r["release_wave"] == wave
+        ]
         if wave_rows:
             lines.append(f"### {wave} ({len(wave_rows)})")
             lines.append("")
             for r in wave_rows:
-                lines.append(
-                    f"- `{r['dc_id']}` ({r['persona']}) :: {r['title'][:100]}"
-                )
+                lines.append(f"- `{r['dc_id']}` ({r['persona']}) :: {r['title'][:100]}")
             lines.append("")
 
     OUT_MD.write_text("\n".join(lines))

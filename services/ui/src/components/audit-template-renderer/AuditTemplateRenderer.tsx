@@ -307,6 +307,7 @@ export default function AuditTemplateRenderer({
             <PresentationMode
               template={template}
               orgId={orgId}
+              tiles={visibleTiles}
               onClose={() => setPresentationOpen(false)}
             />
           </fm.div>

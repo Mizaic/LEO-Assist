@@ -78,8 +78,7 @@ LINKS_STATE_PATH = REPO / "scripts" / "atlas" / ".phase4_risk_links_state.json"
 
 sys.path.insert(0, str(REPO / "scripts" / "atlas"))
 import _mcp_transport as mcp  # noqa: E402
-
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
+from product import PRODUCT_ID  # noqa: E402
 
 # De-duplication thresholds.
 #  - At or above REMAP_HARD (or TITLE_REMAP on title alone, or any FMEA
@@ -94,20 +93,74 @@ TITLE_REMAP = 0.50
 REVIEW_BAND_LOW = 0.40
 
 STOPWORDS = {
-    "the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "at", "by",
-    "with", "is", "are", "be", "been", "shall", "must", "should", "system",
-    "as", "so", "that", "their", "this", "from", "into", "via", "any", "all",
-    "when", "able", "can", "will", "leo", "ai", "leoai", "using", "use",
-    "user", "need", "needs", "have", "has", "not", "than", "then",
-    "patient", "data", "could", "may", "would",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "for",
+    "in",
+    "on",
+    "at",
+    "by",
+    "with",
+    "is",
+    "are",
+    "be",
+    "been",
+    "shall",
+    "must",
+    "should",
+    "system",
+    "as",
+    "so",
+    "that",
+    "their",
+    "this",
+    "from",
+    "into",
+    "via",
+    "any",
+    "all",
+    "when",
+    "able",
+    "can",
+    "will",
+    "leo",
+    "ai",
+    "leoai",
+    "using",
+    "use",
+    "user",
+    "need",
+    "needs",
+    "have",
+    "has",
+    "not",
+    "than",
+    "then",
+    "patient",
+    "data",
+    "could",
+    "may",
+    "would",
 }
 
 SEVERITY_MAP = {
-    "negligible": 1, "minor": 2, "serious": 3, "critical": 4, "catastrophic": 5,
+    "negligible": 1,
+    "minor": 2,
+    "serious": 3,
+    "critical": 4,
+    "catastrophic": 5,
 }
 RISK_LEVEL_MAP = {
-    "low": "low", "medium": "medium", "high": "high",
-    "unacceptable": "unacceptable", "critical": "high",
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "unacceptable": "unacceptable",
+    "critical": "high",
 }
 ACCEPTABILITY_MAP = {
     "acceptable": "acceptable",
@@ -116,8 +169,12 @@ ACCEPTABILITY_MAP = {
     "unacceptable": "unacceptable",
 }
 PROB_MAP = {
-    "improbable": 1, "remote": 2, "unlikely": 2, "occasional": 3,
-    "probable": 4, "frequent": 5,
+    "improbable": 1,
+    "remote": 2,
+    "unlikely": 2,
+    "occasional": 3,
+    "probable": 4,
+    "frequent": 5,
 }
 
 
@@ -142,7 +199,9 @@ def _norm_text(value: Any) -> str:
 
 def _tokens(text: str) -> set[str]:
     out: set[str] = set()
-    for raw in _norm(text).replace("/", " ").replace("-", " ").replace(".", " ").split():
+    for raw in (
+        _norm(text).replace("/", " ").replace("-", " ").replace(".", " ").split()
+    ):
         tok = "".join(ch for ch in raw if ch.isalnum())
         if not tok or tok in STOPWORDS or len(tok) < 3:
             continue
@@ -209,6 +268,7 @@ def load_local_yaml_risk(local_id: str) -> dict[str, Any] | None:
     item = _load_yaml_doc(RISK_DIR / f"{local_id}.yaml", local_id)
     if not item:
         return None
+
     def _as_dict(v: Any) -> dict[str, Any]:
         return v if isinstance(v, dict) else {}
 
@@ -256,15 +316,18 @@ def load_local_yaml_risk(local_id: str) -> dict[str, Any] | None:
         "residual_probability": residual.get("probability"),
         "residual_detectability": residual.get("detectability"),
         "residual_risk_score": residual.get("rpn"),
-        "residual_risk_level": (residual.get("risk_level") or "").lower().strip() or None,
-        "residual_acceptability": (residual.get("acceptability") or "").lower().strip() or None,
+        "residual_risk_level": (residual.get("risk_level") or "").lower().strip()
+        or None,
+        "residual_acceptability": (residual.get("acceptability") or "").lower().strip()
+        or None,
         "residual_justification": _norm_text(residual.get("justification")),
         "mitigation_plan_description": " || ".join(plan_pieces)[:4000] or None,
         "mitigation_control_type": primary_control_type or None,
         "mitigation_effectiveness": primary_effect or None,
         "monitoring_plan": _norm_text(monitoring.get("monitoring_plan")),
         "monitoring_metrics": _coerce_str_list(monitoring.get("metrics"))[:25] or None,
-        "review_frequency": (monitoring.get("review_frequency") or "").lower().strip() or None,
+        "review_frequency": (monitoring.get("review_frequency") or "").lower().strip()
+        or None,
         "identified_by": _norm_text(metadata.get("identified_by")),
         "identified_date": _norm_text(metadata.get("identified_date")),
         "tags": _coerce_str_list(item.get("tags")) or None,
@@ -329,57 +392,65 @@ def load_csv_fmea_gap_risks(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
         title = _norm_text(r.get("Title"))
         if not title:
             continue
-        out.append({
-            "id": ridx or f"FMEA-GAP-{r.get('Master_ID')}",
-            "title": title,
-            "hazard_description": _norm_text(r.get("Hazardous_Situation"))[:1000],
-            "hazardous_situation": _norm_text(r.get("Hazardous_Situation")),
-            "harm_description": _norm_text(r.get("Notes")),
-            "harm_severity": _coerce_severity(r.get("Harm_Severity", "")),
-            "hazard_category": "software_defect",
-            "initial_severity": _to_int(r.get("S")),
-            "initial_probability": _to_int(r.get("P")),
-            "initial_detectability": _to_int(r.get("D")),
-            "initial_risk_score": _to_int(r.get("RPN")),
-            "residual_severity": (
-                _to_int(r.get("Residual_Severity"))
-                or _coerce_probability_int(r.get("Residual_Severity", ""))
-                or _to_int(r.get("Revised_S"))
-            ),
-            "residual_probability": (
-                _to_int(r.get("Residual_Probability"))
-                or _coerce_probability_int(r.get("Residual_Probability", ""))
-                or _to_int(r.get("Revised_P"))
-            ),
-            "residual_detectability": (
-                _to_int(r.get("Residual_Detectability")) or _to_int(r.get("Revised_D"))
-            ),
-            "residual_risk_score": (
-                _to_int(r.get("Residual_RPN")) or _to_int(r.get("Revised_RPN"))
-            ),
-            "residual_risk_level": None,
-            "residual_acceptability": _coerce_acceptability(r.get("Residual_Acceptability", "")),
-            "residual_justification": _norm_text(r.get("Notes")),
-            "mitigation_plan_description": _norm_text(r.get("Notes"))[:4000] or None,
-            "mitigation_control_type": None,
-            "mitigation_effectiveness": None,
-            "monitoring_plan": None,
-            "monitoring_metrics": None,
-            "review_frequency": None,
-            "identified_by": "FMEA workshop",
-            "identified_date": "2026-04-16",
-            "tags": _coerce_str_list(r.get("STRIDE_Categories")) or None,
-            "status": "analyzed",
-            "safety_class": (r.get("Safety_Class") or "").strip().upper() or None,
-            "design_inputs": _coerce_str_list(r.get("Mitigating_DIs")),
-            "verification_tests": [],
-            "fmea_refs": _coerce_str_list(r.get("Source_FMEA_IDs")),
-            "source": "fmea_gap",
-        })
+        out.append(
+            {
+                "id": ridx or f"FMEA-GAP-{r.get('Master_ID')}",
+                "title": title,
+                "hazard_description": _norm_text(r.get("Hazardous_Situation"))[:1000],
+                "hazardous_situation": _norm_text(r.get("Hazardous_Situation")),
+                "harm_description": _norm_text(r.get("Notes")),
+                "harm_severity": _coerce_severity(r.get("Harm_Severity", "")),
+                "hazard_category": "software_defect",
+                "initial_severity": _to_int(r.get("S")),
+                "initial_probability": _to_int(r.get("P")),
+                "initial_detectability": _to_int(r.get("D")),
+                "initial_risk_score": _to_int(r.get("RPN")),
+                "residual_severity": (
+                    _to_int(r.get("Residual_Severity"))
+                    or _coerce_probability_int(r.get("Residual_Severity", ""))
+                    or _to_int(r.get("Revised_S"))
+                ),
+                "residual_probability": (
+                    _to_int(r.get("Residual_Probability"))
+                    or _coerce_probability_int(r.get("Residual_Probability", ""))
+                    or _to_int(r.get("Revised_P"))
+                ),
+                "residual_detectability": (
+                    _to_int(r.get("Residual_Detectability"))
+                    or _to_int(r.get("Revised_D"))
+                ),
+                "residual_risk_score": (
+                    _to_int(r.get("Residual_RPN")) or _to_int(r.get("Revised_RPN"))
+                ),
+                "residual_risk_level": None,
+                "residual_acceptability": _coerce_acceptability(
+                    r.get("Residual_Acceptability", "")
+                ),
+                "residual_justification": _norm_text(r.get("Notes")),
+                "mitigation_plan_description": _norm_text(r.get("Notes"))[:4000]
+                or None,
+                "mitigation_control_type": None,
+                "mitigation_effectiveness": None,
+                "monitoring_plan": None,
+                "monitoring_metrics": None,
+                "review_frequency": None,
+                "identified_by": "FMEA workshop",
+                "identified_date": "2026-04-16",
+                "tags": _coerce_str_list(r.get("STRIDE_Categories")) or None,
+                "status": "analyzed",
+                "safety_class": (r.get("Safety_Class") or "").strip().upper() or None,
+                "design_inputs": _coerce_str_list(r.get("Mitigating_DIs")),
+                "verification_tests": [],
+                "fmea_refs": _coerce_str_list(r.get("Source_FMEA_IDs")),
+                "source": "fmea_gap",
+            }
+        )
     return out
 
 
-def collect_yaml_fmea_refs_from_master(rows: list[dict[str, str]]) -> dict[str, list[str]]:
+def collect_yaml_fmea_refs_from_master(
+    rows: list[dict[str, str]]
+) -> dict[str, list[str]]:
     """For YAML-backed master rows, capture their declared FMEA refs."""
     out: dict[str, list[str]] = {}
     for r in rows:
@@ -421,19 +492,19 @@ def best_match_risk(
     """Return (atlas_node, combined_score, title_only_score)."""
     title_q = local["title"]
     full_q = " ".join(
-        s for s in (
+        s
+        for s in (
             local["title"],
             local.get("hazard_description") or "",
             local.get("hazardous_situation") or "",
             local.get("harm_description") or "",
-        ) if s
+        )
+        if s
     )
     best: tuple[dict[str, Any] | None, float, float] = (None, 0.0, 0.0)
     for n in atlas:
         a_title = n.get("title") or ""
-        a_full = " ".join(
-            s for s in (a_title, n.get("description") or "") if s
-        )
+        a_full = " ".join(s for s in (a_title, n.get("description") or "") if s)
         full_score = _sim(full_q, a_full)
         title_score = _sim(title_q, a_title)
         score = max(full_score, title_score)
@@ -520,17 +591,30 @@ def build_create_args(local: dict[str, Any]) -> dict[str, Any]:
     args["description"] = (" ".join(desc_pieces))[:4000]
 
     for k in (
-        "hazard_description", "hazardous_situation", "harm_description",
-        "hazard_category", "harm_severity",
-        "initial_severity", "initial_probability", "initial_detectability",
+        "hazard_description",
+        "hazardous_situation",
+        "harm_description",
+        "hazard_category",
+        "harm_severity",
+        "initial_severity",
+        "initial_probability",
+        "initial_detectability",
         "initial_risk_score",
-        "residual_severity", "residual_probability", "residual_detectability",
-        "residual_risk_score", "residual_risk_level", "residual_acceptability",
+        "residual_severity",
+        "residual_probability",
+        "residual_detectability",
+        "residual_risk_score",
+        "residual_risk_level",
+        "residual_acceptability",
         "residual_justification",
-        "mitigation_plan_description", "mitigation_control_type",
+        "mitigation_plan_description",
+        "mitigation_control_type",
         "mitigation_effectiveness",
-        "monitoring_plan", "monitoring_metrics", "review_frequency",
-        "identified_by", "identified_date",
+        "monitoring_plan",
+        "monitoring_metrics",
+        "review_frequency",
+        "identified_by",
+        "identified_date",
         "tags",
     ):
         v = local.get(k)
@@ -588,10 +672,18 @@ def process_risk(
     decisions: dict[str, Any],
 ) -> dict[str, Any]:
     row: dict[str, Any] = {
-        "local_id": local["id"], "source": local["source"],
-        "atlas_id": "", "decision": "", "best_score": 0.0,
-        "title_score": 0.0, "best_atlas_id": "", "best_atlas_title": "",
-        "fmea_match": "", "linked_dis": 0, "result": "", "error": "",
+        "local_id": local["id"],
+        "source": local["source"],
+        "atlas_id": "",
+        "decision": "",
+        "best_score": 0.0,
+        "title_score": 0.0,
+        "best_atlas_id": "",
+        "best_atlas_title": "",
+        "fmea_match": "",
+        "linked_dis": 0,
+        "result": "",
+        "error": "",
     }
 
     fmea_match: str | None = None
@@ -681,9 +773,18 @@ def process_risk(
 
 def write_ledger(rows: list[dict[str, Any]]) -> None:
     fields = [
-        "local_id", "source", "decision", "atlas_id", "best_atlas_id",
-        "best_atlas_title", "best_score", "title_score", "fmea_match",
-        "linked_dis", "result", "error",
+        "local_id",
+        "source",
+        "decision",
+        "atlas_id",
+        "best_atlas_id",
+        "best_atlas_title",
+        "best_score",
+        "title_score",
+        "fmea_match",
+        "linked_dis",
+        "result",
+        "error",
     ]
     with LEDGER_CSV.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
@@ -694,25 +795,41 @@ def write_ledger(rows: list[dict[str, Any]]) -> None:
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["decision"]] = counts.get(r["decision"], 0) + 1
-    md = ["# Phase 4 -- Risk Migration Ledger", "",
-          f"Run at: {_now_iso()}",
-          f"Total rows: {len(rows)}", "",
-          "## Decision counts", ""]
+    md = [
+        "# Phase 4 -- Risk Migration Ledger",
+        "",
+        f"Run at: {_now_iso()}",
+        f"Total rows: {len(rows)}",
+        "",
+        "## Decision counts",
+        "",
+    ]
     for k in sorted(counts):
         md.append(f"- `{k}`: {counts[k]}")
-    md += ["", "## Rows", "",
-           "| Local | Source | Decision | Atlas | BestAtlas | Score | TitleScore | FMEA | LinkedDIs | Result | Error |",
-           "|---|---|---|---|---|---|---|---|---|---|---|"]
+    md += [
+        "",
+        "## Rows",
+        "",
+        "| Local | Source | Decision | Atlas | BestAtlas | Score | TitleScore | FMEA | LinkedDIs | Result | Error |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
     for r in rows:
         md.append(
             "| "
             + " | ".join(
                 str(r.get(k, "")).replace("|", "\\|")
                 for k in (
-                    "local_id", "source", "decision", "atlas_id",
+                    "local_id",
+                    "source",
+                    "decision",
+                    "atlas_id",
                     "best_atlas_id",
-                    "best_score", "title_score", "fmea_match",
-                    "linked_dis", "result", "error",
+                    "best_score",
+                    "title_score",
+                    "fmea_match",
+                    "linked_dis",
+                    "result",
+                    "error",
                 )
             )
             + " |"
@@ -720,20 +837,25 @@ def write_ledger(rows: list[dict[str, Any]]) -> None:
     LEDGER_MD.write_text("\n".join(md) + "\n")
 
 
-def write_review_report(rows: list[dict[str, Any]], locals_by_id: dict[str, dict[str, Any]]) -> None:
+def write_review_report(
+    rows: list[dict[str, Any]], locals_by_id: dict[str, dict[str, Any]]
+) -> None:
     band = [r for r in rows if r["decision"] == "create-review"]
     band.sort(key=lambda r: -float(r["best_score"]))
-    md = ["# Phase 4 -- Risk Review Band (0.40 <= score < 0.55)", "",
-          f"Total candidates needing manual confirmation: {len(band)}",
-          "",
-          "Default decision: CREATE (do NOT silently merge).",
-          "To remap a row to its best-match Atlas risk instead of creating",
-          "a new one, add an entry to `scripts/atlas/phase4_decisions.json`",
-          'in the form `{\"R-LEO-AI-XXX\": {\"decision\": \"remap\", "atlas_dc_id": "R-XXXXXXXX\"}}`',
-          "and re-run with --live.",
-          "",
-          "| Local ID | Score | Best Atlas | Local Title | Atlas Title |",
-          "|---|---|---|---|---|"]
+    md = [
+        "# Phase 4 -- Risk Review Band (0.40 <= score < 0.55)",
+        "",
+        f"Total candidates needing manual confirmation: {len(band)}",
+        "",
+        "Default decision: CREATE (do NOT silently merge).",
+        "To remap a row to its best-match Atlas risk instead of creating",
+        "a new one, add an entry to `scripts/atlas/phase4_decisions.json`",
+        'in the form `{"R-LEO-AI-XXX": {"decision": "remap", "atlas_dc_id": "R-XXXXXXXX"}}`',
+        "and re-run with --live.",
+        "",
+        "| Local ID | Score | Best Atlas | Local Title | Atlas Title |",
+        "|---|---|---|---|---|",
+    ]
     for r in band:
         local = locals_by_id.get(r["local_id"], {})
         ltitle = (local.get("title") or "")[:160].replace("|", "\\|")
@@ -752,7 +874,9 @@ def write_links_ledger(links_state: dict[str, Any]) -> None:
         w.writeheader()
         for key, info in sorted(links_state.get("linked", {}).items()):
             risk, dis = key.split("<-", 1)
-            w.writerow({"risk_dc_id": risk, "di_dc_ids": dis, "linked_at": info.get("at", "")})
+            w.writerow(
+                {"risk_dc_id": risk, "di_dc_ids": dis, "linked_at": info.get("at", "")}
+            )
 
 
 # -- main -------------------------------------------------------------
@@ -761,16 +885,17 @@ def write_links_ledger(links_state: dict[str, Any]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true")
-    parser.add_argument("--skip-create", action="store_true",
-                        help="Process remaps + links only, do not create new risks")
+    parser.add_argument(
+        "--skip-create",
+        action="store_true",
+        help="Process remaps + links only, do not create new risks",
+    )
     parser.add_argument("--filter", type=str, default="")
-    parser.add_argument("--source", choices=("yaml", "fmea_gap", "all"),
-                        default="all")
+    parser.add_argument("--source", choices=("yaml", "fmea_gap", "all"), default="all")
     args = parser.parse_args()
 
     decisions = (
-        json.loads(DECISIONS_PATH.read_text())
-        if DECISIONS_PATH.exists() else {}
+        json.loads(DECISIONS_PATH.read_text()) if DECISIONS_PATH.exists() else {}
     )
 
     print("Loading Atlas snapshot ...")
@@ -791,7 +916,9 @@ def main() -> int:
             if not local.get("fmea_refs"):
                 local["fmea_refs"] = yaml_fmea.get(lid, [])
             locals_list.append(local)
-        print(f"  YAML risks loaded: {sum(1 for x in locals_list if x['source']=='yaml')}")
+        print(
+            f"  YAML risks loaded: {sum(1 for x in locals_list if x['source']=='yaml')}"
+        )
     if args.source in ("fmea_gap", "all"):
         master_rows = load_master_rows()
         gaps = load_csv_fmea_gap_risks(master_rows)
@@ -800,7 +927,8 @@ def main() -> int:
 
     if args.filter:
         locals_list = [
-            x for x in locals_list
+            x
+            for x in locals_list
             if x["id"] == args.filter or x["id"].startswith(args.filter)
         ]
     print(
@@ -827,14 +955,24 @@ def main() -> int:
     for idx, local in enumerate(locals_list, start=1):
         cached = state["rows"].get(local["id"])
         if (
-            args.live and cached
-            and cached.get("result", "").startswith(("created", "create-skipped", "remap"))
+            args.live
+            and cached
+            and cached.get("result", "").startswith(
+                ("created", "create-skipped", "remap")
+            )
         ):
             rows.append(cached)
             continue
         row = process_risk(
-            local, atlas, fmea_index, di_mapping, args.live,
-            args.skip_create, state, links_state, decisions,
+            local,
+            atlas,
+            fmea_index,
+            di_mapping,
+            args.live,
+            args.skip_create,
+            state,
+            links_state,
+            decisions,
         )
         rows.append(row)
         state["rows"][local["id"]] = row

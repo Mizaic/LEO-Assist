@@ -44,6 +44,7 @@ _RESOLVE_RETRY_DELAY_SECONDS = 0.2
 class ResolveRequest(BaseModel):
     terms: list[str] = Field(..., min_length=1)
     expected_tags: Optional[dict[str, str]] = None
+    org_id: Optional[str] = None
 
 
 class CandidateResponse(BaseModel):
@@ -94,6 +95,7 @@ def resolve_terms(body: ResolveRequest):
                     body.terms,
                     neo4j_session=session,
                     expected_tags=body.expected_tags,
+                    org_id=body.org_id,
                 )
                 t_resolve = time.perf_counter()
                 break

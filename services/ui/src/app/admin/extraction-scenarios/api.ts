@@ -4,6 +4,8 @@
 
 import type {
   ExtractionScenarioDetail,
+  QuickRunRequest,
+  QuickRunResult,
   ScenarioListResponse,
   ScenarioWritePayload,
   ValidationRunStatus,
@@ -90,4 +92,30 @@ export async function getRunStatus(runId: string): Promise<ValidationRunStatus> 
   const res = await fetch(`${BASE}/runs/${runId}`, { headers: headers() });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+export async function startQuickRun(
+  req: QuickRunRequest,
+): Promise<{ run_id: string; patient_id: string }> {
+  const res = await fetch(`${BASE}/quick-run`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify(req),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function pollQuickRun(runId: string): Promise<QuickRunResult> {
+  const res = await fetch(`${BASE}/runs/${runId}`, { headers: headers() });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteQuickRun(runId: string): Promise<void> {
+  const res = await fetch(`${BASE}/quick-run/${runId}`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  if (!res.ok) throw new Error(await res.text());
 }

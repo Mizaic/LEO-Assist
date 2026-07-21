@@ -23,6 +23,9 @@
  *   - getSubgraphLabel   : helper
  *
  * Design Controls: DI-LEO-AI-165, DO-LEO-AI-164, R-LEO-AI-166, VT-LEO-AI-163.
+ *
+ * Clinical gold corpora live in Validation Lab (docs/VALIDATION-LAB.md).
+ * Pathway probes remain PlanDefinition authoring aids only.
  */
 
 import { SUBGRAPH_OPTIONS, SUBGRAPH_IO } from "../config/subgraphs";

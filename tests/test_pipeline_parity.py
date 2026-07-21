@@ -242,3 +242,40 @@ def test_parity_multiple_entities_mixed_types() -> None:
             },
         ],
     )
+
+
+def test_parity_body_structure_permitted_reproductive_anatomy_survives() -> None:
+    """A permitted reproductive anatomy body_structure entity survives both paths."""
+    entity = {
+        "text": "prostate gland",
+        "label": "body_structure",
+        "snomed_concept_id": "41216001",
+        "start": 0,
+        "end": 14,
+        "assertion": "present",
+    }
+    encounter = "Referred with prostate gland concern."
+    training_out = _run_training_mode(encounter, [dict(entity)])
+    runtime_out = _run_runtime_mode(encounter, [dict(entity)])
+    assert len(training_out) == 1, "training: reproductive body_structure was suppressed"
+    assert len(runtime_out) == 1, "runtime: reproductive body_structure was suppressed"
+    assert training_out[0]["label"] == "body_structure"
+    assert runtime_out[0]["label"] == "body_structure"
+    assert training_out == runtime_out
+
+
+def test_parity_body_structure_non_reproductive_is_suppressed() -> None:
+    """Non-reproductive body_structure is suppressed identically on both paths."""
+    entity = {
+        "text": "left knee",
+        "label": "body_structure",
+        "snomed_concept_id": "57707001",
+        "start": 0,
+        "end": 9,
+        "assertion": "present",
+    }
+    encounter = "Patient has pain in left knee."
+    training_out = _run_training_mode(encounter, [dict(entity)])
+    runtime_out = _run_runtime_mode(encounter, [dict(entity)])
+    assert training_out == []
+    assert runtime_out == []

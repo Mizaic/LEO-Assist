@@ -9,22 +9,41 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { motion as fm } from "framer-motion";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import InputAdornment from "@mui/material/InputAdornment";
+import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import NewReleasesOutlinedIcon from "@mui/icons-material/NewReleasesOutlined";
+import PageviewOutlinedIcon from "@mui/icons-material/PageviewOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SearchIcon from "@mui/icons-material/Search";
+import SystemUpdateAltOutlinedIcon from "@mui/icons-material/SystemUpdateAltOutlined";
 
-import { EmptyState, ReviewListCard, ToolbarActions, type ReviewListItem } from "@leo/design-system";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import GuidelineSubgraphDrawer from "./GuidelineSubgraphDrawer";
+import {
+  EmptyState,
+  ReviewListCard,
+  SkeletonList,
+  ToolbarActions,
+  useMotion,
+  type ReviewListItem,
+} from "@leo/design-system";
+import GuidelineChangesDrawer from "./GuidelineChangesDrawer";
+import LocalGuidelineChangesDrawer from "./LocalGuidelineChangesDrawer";
+import LocalGuidelineLinkDomainDialog from "./LocalGuidelineLinkDomainDialog";
+import RecommendationPickerDialog from "./RecommendationPickerDialog";
+import { bounceInteraction } from "./motionPresets";
 
 interface LoadedGuideline {
   code: string;
@@ -36,11 +55,113 @@ interface LoadedGuideline {
   rules_pending: number;
   rules_approved: number;
   rules_rejected: number;
+  guideline_source: "nice_syndication_api" | "local_guideline";
+  domain_id?: string;
+  domain_name?: string;
 }
+
+interface UpdateStatus {
+  checking: boolean;
+  available: boolean | null;
+  remoteDate: string;
+  ingestDate: string;
+  error: string | null;
+}
+
+type UpdateStatusMap = Record<string, UpdateStatus>;
 
 interface Props {
   refreshKey?: number;
   onRulesGenerated?: () => void;
+}
+
+type StatusFilter = "all" | "no-rules" | "pending" | "active";
+
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "no-rules", label: "No rules" },
+  { value: "pending", label: "Pending" },
+  { value: "active", label: "Active" },
+];
+
+function matchesStatusFilter(g: LoadedGuideline, f: StatusFilter): boolean {
+  const total = g.rules_pending + g.rules_approved + g.rules_rejected;
+  if (f === "no-rules") return total === 0;
+  if (f === "pending") return g.rules_pending > 0;
+  if (f === "active") return g.rules_approved > 0;
+  return true;
+}
+
+function filterGuidelines(
+  list: LoadedGuideline[],
+  search: string,
+  status: StatusFilter,
+): LoadedGuideline[] {
+  const q = search.trim().toLowerCase();
+  return list.filter((g) => {
+    const textMatch =
+      !q || g.code.toLowerCase().includes(q) || (g.title || "").toLowerCase().includes(q);
+    return textMatch && matchesStatusFilter(g, status);
+  });
+}
+
+interface FilterBarProps {
+  search: string;
+  onSearch: (v: string) => void;
+  status: StatusFilter;
+  onStatus: (v: StatusFilter) => void;
+  totalCount: number;
+  visibleCount: number;
+}
+
+function GuidelineFilterBar({
+  search, onSearch, status, onStatus, totalCount, visibleCount,
+}: FilterBarProps) {
+  const { reducedMotion } = useMotion();
+  return (
+    <Stack spacing={1} sx={{ mb: 1.5 }}>
+      <TextField
+        size="small"
+        placeholder="Search by code or title..."
+        value={search}
+        onChange={(e) => onSearch(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+            </InputAdornment>
+          ),
+        }}
+        sx={{ maxWidth: 420 }}
+        aria-label="Search guidelines"
+      />
+      <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
+        {STATUS_FILTERS.map((f) => (
+          <fm.div
+            key={f.value}
+            style={{ display: "inline-flex" }}
+            animate={status === f.value && !reducedMotion ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            {...bounceInteraction(reducedMotion)}
+          >
+            <Chip
+              label={f.label}
+              size="small"
+              variant={status === f.value ? "filled" : "outlined"}
+              color={status === f.value ? "primary" : "default"}
+              onClick={() => onStatus(f.value)}
+              sx={{ cursor: "pointer" }}
+            />
+          </fm.div>
+        ))}
+        {(search || status !== "all") && (
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+            {visibleCount} of {totalCount}
+          </Typography>
+        )}
+      </Stack>
+    </Stack>
+  );
 }
 
 function ruleStatusPill(g: LoadedGuideline): ReactNode {
@@ -53,14 +174,68 @@ function ruleStatusPill(g: LoadedGuideline): ReactNode {
   return <Chip label={parts.join(" / ")} size="small" variant="outlined" />;
 }
 
+function formatUpdateDate(iso: string): string {
+  const day = iso.split("T")[0];
+  if (!day) return iso;
+  const [y, m, d] = day.split("-");
+  return `${d}/${m}/${y}`;
+}
+
 function buildGuidelineItem(
   g: LoadedGuideline,
-  generating: string | null,
-  onGenerate: (code: string, hasRules: boolean) => void,
-  onInspect: (code: string) => void,
+  reingesting: string | null,
+  deleting: string | null,
+  updateStatus: UpdateStatus | undefined,
+  onRecommendations: (code: string, title: string, source: LoadedGuideline["guideline_source"]) => void,
+  onReviewChanges: (code: string) => void,
+  onUpdateLocal: (code: string) => void,
+  onLinkDomain: (code: string) => void,
+  onDeleteLocal: (code: string) => void,
 ): ReviewListItem {
-  const hasRules = g.rules_pending + g.rules_approved + g.rules_rejected > 0;
-  const isGenerating = generating === g.code;
+  const isReingesting = reingesting === g.code;
+  const isDeleting = deleting === g.code;
+
+  const updateChip = (() => {
+    if (!updateStatus) return null;
+    if (updateStatus.checking) {
+      return (
+        <Chip
+          icon={<CircularProgress size={10} color="inherit" />}
+          label="Checking..."
+          size="small"
+          variant="outlined"
+          sx={{ color: "text.secondary", borderColor: "divider" }}
+        />
+      );
+    }
+    if (updateStatus.available) {
+      const label = updateStatus.remoteDate
+        ? `Update available - ${formatUpdateDate(updateStatus.remoteDate)}`
+        : "Update available";
+      const tip = updateStatus.ingestDate
+        ? `NICE updated this guideline after it was last ingested (${formatUpdateDate(updateStatus.ingestDate)}). Re-ingest to get the latest recommendations.`
+        : "NICE has published changes to this guideline. Re-ingest to get the latest recommendations.";
+      return (
+        <Tooltip title={tip}>
+          <Chip
+            icon={<NewReleasesOutlinedIcon fontSize="small" />}
+            label={label}
+            size="small"
+            sx={{ bgcolor: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A", fontWeight: 600, cursor: "default" }}
+          />
+        </Tooltip>
+      );
+    }
+    if (updateStatus.available === false) {
+      return (
+        <Chip label="Up to date" size="small" sx={{ bgcolor: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0" }} />
+      );
+    }
+    if (updateStatus.error) {
+      return <Chip label="Check failed" size="small" color="error" variant="outlined" />;
+    }
+    return null;
+  })();
 
   return {
     id: g.code,
@@ -68,6 +243,7 @@ function buildGuidelineItem(
     title: (
       <Stack direction="row" spacing={1} alignItems="center">
         <Chip label={g.code} size="small" sx={{ bgcolor: "#DBEAFE", color: "#1D4ED8", border: "1px solid #BFDBFE", fontWeight: 700 }} />
+        <Chip label={g.guideline_source === "local_guideline" ? "Local" : "NICE"} size="small" variant="outlined" />
         <Typography variant="body2" sx={{ fontWeight: 500 }}>{g.title || g.code}</Typography>
       </Stack>
     ),
@@ -78,28 +254,93 @@ function buildGuidelineItem(
         {g.guidance_type && <span>{g.guidance_type}</span>}
       </Stack>
     ),
-    chips: ruleStatusPill(g),
+    chips: (
+      <Stack direction="row" spacing={0.5} flexWrap="wrap">
+        {ruleStatusPill(g)}
+        {g.guideline_source === "local_guideline" && g.domain_name && (
+          <Chip label={g.domain_name} size="small" variant="outlined" />
+        )}
+        {updateChip}
+      </Stack>
+    ),
     actions: (
       <Stack direction="row" spacing={0.5} alignItems="center">
-        <Tooltip title={hasRules ? "Re-generate rules (replaces drafts)" : "Ask the AI to write rules for each recommendation"}>
+        {updateStatus?.available && (
+          <Tooltip title="See exactly what has changed and decide whether to update">
+            <span>
+              <Button
+                size="small"
+                variant="contained"
+                color="warning"
+                disabled={isReingesting}
+                startIcon={isReingesting ? <CircularProgress size={14} color="inherit" /> : <PageviewOutlinedIcon fontSize="small" />}
+                onClick={() => onReviewChanges(g.code)}
+                aria-label={`Review changes for ${g.code} before re-ingesting`}
+              >
+                {isReingesting ? "Updating..." : "Review changes"}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+        {g.guideline_source === "local_guideline" && (
+          <Tooltip title="Paste an updated local guideline and review the diff">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                color="warning"
+                disabled={isReingesting || isDeleting}
+                onClick={() => onUpdateLocal(g.code)}
+                aria-label={`Update local guideline ${g.code}`}
+              >
+                Update guideline
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+        {g.guideline_source === "local_guideline" && (
+          <Tooltip title="Link an audit domain so approved rules can be promoted">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={isReingesting || isDeleting}
+                onClick={() => onLinkDomain(g.code)}
+                aria-label={`Link domain for ${g.code}`}
+              >
+                Link domain
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+        {g.guideline_source === "local_guideline" && (
+          <Tooltip title="Delete this local guideline and its chapters, recommendations, and rules">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                disabled={isReingesting || isDeleting}
+                onClick={() => onDeleteLocal(g.code)}
+                aria-label={`Delete local guideline ${g.code}`}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
+        <Tooltip title="View recommendations and create or generate rules">
           <span>
             <Button
               size="small"
-              variant={hasRules ? "outlined" : "contained"}
-              color={hasRules ? "warning" : "primary"}
-              disabled={isGenerating || g.recommendation_count === 0}
-              startIcon={isGenerating ? <CircularProgress size={14} color="inherit" /> : <AutoFixHighOutlinedIcon fontSize="small" />}
-              onClick={() => onGenerate(g.code, hasRules)}
-              aria-label={`Generate rules for ${g.code}`}
+              variant="outlined"
+              color="primary"
+              disabled={isReingesting || isDeleting || g.recommendation_count === 0}
+              startIcon={<MenuBookIcon fontSize="small" />}
+              onClick={() => onRecommendations(g.code, g.title || g.code, g.guideline_source)}
+              aria-label={`Manage recommendations for ${g.code}`}
             >
-              {isGenerating ? "Generating..." : hasRules ? "Re-generate" : "Generate rules"}
-            </Button>
-          </span>
-        </Tooltip>
-        <Tooltip title="Inspect what is stored in Neo4j for this guideline">
-          <span>
-            <Button size="small" variant="outlined" onClick={() => onInspect(g.code)} aria-label={`Inspect Neo4j subgraph for ${g.code}`}>
-              <AccountTreeIcon fontSize="small" />
+              Recommendations
             </Button>
           </span>
         </Tooltip>
@@ -109,13 +350,22 @@ function buildGuidelineItem(
 }
 
 export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: Props) {
+  const router = useRouter();
   const [guidelines, setGuidelines] = useState<LoadedGuideline[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generating, setGenerating] = useState<string | null>(null);
-  const [generateError, setGenerateError] = useState<string | null>(null);
-  const [confirmCode, setConfirmCode] = useState<string | null>(null);
-  const [inspectCode, setInspectCode] = useState<string | null>(null);
+  const [updateStatuses, setUpdateStatuses] = useState<UpdateStatusMap>({});
+  const [reingesting, setReingesting] = useState<string | null>(null);
+  const [changesDrawerCode, setChangesDrawerCode] = useState<string | null>(null);
+  const [localChangesCode, setLocalChangesCode] = useState<string | null>(null);
+  const [linkDomainCode, setLinkDomainCode] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [page, setPage] = useState(1);
+  const [pickerCode, setPickerCode] = useState<string | null>(null);
+  const [pickerTitle, setPickerTitle] = useState("");
+  const [pickerSource, setPickerSource] = useState<LoadedGuideline["guideline_source"]>("nice_syndication_api");
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
@@ -136,98 +386,267 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
 
   useEffect(() => { fetchLoaded(); }, [fetchLoaded, refreshKey]);
 
-  const handleGenerate = useCallback(async (code: string) => {
-    setConfirmCode(null);
-    setGenerating(code);
-    setGenerateError(null);
-    if (pollRef.current) clearTimeout(pollRef.current);
+  const handleOpenPicker = useCallback((code: string, title: string, source: LoadedGuideline["guideline_source"]) => {
+    setPickerCode(code);
+    setPickerTitle(title);
+    setPickerSource(source);
+  }, []);
 
+  const handleDeleteLocal = useCallback(async (code: string) => {
+    const confirmed = window.confirm(
+      `Delete local guideline ${code}?\n\nThis permanently removes its chapters, recommendations, and rules from the knowledge graph. Shared audit domains are kept.`,
+    );
+    if (!confirmed) return;
+    setDeleting(code);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/guidance/local/${encodeURIComponent(code)}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: { "X-Requested-With": "XMLHttpRequest" },
+        },
+      );
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        const detail =
+          body && typeof body === "object" && typeof (body as { detail?: unknown }).detail === "string"
+            ? (body as { detail: string }).detail
+            : response.statusText;
+        throw new Error(detail || "Could not delete the guideline.");
+      }
+      await fetchLoaded();
+      onRulesGenerated?.();
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "Could not delete the guideline.",
+      );
+    } finally {
+      setDeleting(null);
+    }
+  }, [fetchLoaded, onRulesGenerated]);
+
+  const checkUpdates = useCallback(async () => {
+    const niceGuidelines = guidelines.filter(
+      (g) => g.guideline_source !== "local_guideline",
+    );
+    if (niceGuidelines.length === 0) return;
+    setUpdateStatuses((prev) => ({
+      ...prev,
+      ...Object.fromEntries(
+        niceGuidelines.map((g) => [
+          g.code,
+          { checking: true, available: null, remoteDate: "", ingestDate: "", error: null },
+        ]),
+      ),
+    }));
+    await Promise.all(
+      niceGuidelines.map(async (g) => {
+        try {
+          const r = await fetch(`/api/nice/${g.code}/check-update`);
+          if (!r.ok) throw new Error(r.statusText);
+          const data = await r.json();
+          setUpdateStatuses((prev) => ({
+            ...prev,
+            [g.code]: {
+              checking: false,
+              available: data.update_available as boolean,
+              remoteDate: data.remote_date as string,
+              ingestDate: data.ingest_date as string,
+              error: null,
+            },
+          }));
+        } catch {
+          setUpdateStatuses((prev) => ({
+            ...prev,
+            [g.code]: {
+              checking: false,
+              available: null,
+              remoteDate: "",
+              ingestDate: "",
+              error: "Check failed",
+            },
+          }));
+        }
+      })
+    );
+  }, [guidelines]);
+
+  const handleReingest = useCallback(async (code: string, diffJobId?: string) => {
+    setReingesting(code);
     let jobId: string;
     try {
-      const r = await fetch("/api/guidance/rules/generate", {
+      const r = await fetch("/api/nice/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guideline_id: code, only_without_rules: true }),
+        body: JSON.stringify({ code, diff_job_id: diffJobId ?? null }),
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({ detail: r.statusText }));
-        throw new Error(body.detail || r.statusText);
+        throw new Error((body as { detail?: string }).detail || r.statusText);
       }
-      jobId = (await r.json()).job_id;
-    } catch (e) {
-      setGenerateError(e instanceof Error ? e.message : "Could not start rule generation. Please try again.");
-      setGenerating(null);
+      jobId = (await r.json() as { job_id: string }).job_id;
+    } catch {
+      setReingesting(null);
       return;
     }
 
-    async function poll() {
+    async function pollReingest() {
       try {
-        const r = await fetch(`/api/guidance/rules/generate/${jobId}`);
+        const r = await fetch(`/api/nice/jobs/${jobId}/status`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const job = await r.json();
-        if (job.status === "done") { await fetchLoaded(); onRulesGenerated?.(); setGenerating(null); return; }
-        if (job.status === "error") { setGenerateError(job.error || "Rule generation failed."); await fetchLoaded(); setGenerating(null); return; }
-        pollRef.current = setTimeout(poll, 5000);
+        const job = await r.json() as { status: string };
+        if (job.status === "done") {
+          await fetchLoaded();
+          setUpdateStatuses((prev) => ({ ...prev, [code]: { checking: false, available: false, remoteDate: "", ingestDate: "", error: null } }));
+          onRulesGenerated?.();
+          setReingesting(null);
+          return;
+        }
+        if (job.status === "error") { setReingesting(null); return; }
+        pollRef.current = setTimeout(pollReingest, 3000);
       } catch {
-        setGenerateError("Lost contact with the server. Check the review queue to see if rules were created.");
-        await fetchLoaded();
-        onRulesGenerated?.();
-        setGenerating(null);
+        setReingesting(null);
       }
     }
 
-    pollRef.current = setTimeout(poll, 3000);
+    pollRef.current = setTimeout(pollReingest, 3000);
   }, [fetchLoaded, onRulesGenerated]);
 
   if (loading) {
-    return <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}><CircularProgress size={24} aria-label="Loading loaded guidelines" /></Box>;
+    return <SkeletonList rows={4} itemHeight={64} data-testid="loaded-guidelines-skeleton" />;
   }
 
   if (error) return <Alert severity="error">{error}</Alert>;
 
+  const PAGE_SIZE = 10;
+  const visible = filterGuidelines(guidelines, search, statusFilter);
+  const pageCount = Math.ceil(visible.length / PAGE_SIZE);
+  const safePage = Math.min(page, pageCount || 1);
+  const pageSlice = visible.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
   return (
     <Box>
-      {generateError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setGenerateError(null)}>{generateError}</Alert>}
-
       {/* -- Toolbar -------------------------------------------------------- */}
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
         <Typography variant="body2" color="text.secondary">
           {guidelines.length} guideline{guidelines.length !== 1 ? "s" : ""} in the knowledge graph
         </Typography>
         <ToolbarActions
-          actions={[{ id: "refresh", label: "Refresh", variant: "ghost", onClick: fetchLoaded, icon: <RefreshIcon fontSize="small" />, loading }]}
+          actions={[
+            {
+              id: "local-concepts",
+              label: "Create local concept",
+              variant: "secondary",
+              icon: <CategoryOutlinedIcon fontSize="small" />,
+              onClick: () =>
+                router.push("/settings/surface-forms?createLocal=1"),
+            },
+            {
+              id: "check-updates",
+              label: Object.values(updateStatuses).some((s) => s.checking) ? "Checking..." : "Check for updates",
+              variant: "secondary",
+              icon: <SystemUpdateAltOutlinedIcon fontSize="small" />,
+              onClick: checkUpdates,
+              loading: Object.values(updateStatuses).some((s) => s.checking),
+              disabled: guidelines.length === 0,
+            },
+            { id: "refresh", label: "Refresh", variant: "ghost", onClick: fetchLoaded, icon: <RefreshIcon fontSize="small" />, loading },
+          ]}
         />
       </Stack>
+
+      {/* -- Filter bar ----------------------------------------------------- */}
+      {guidelines.length > 0 && (
+        <GuidelineFilterBar
+          search={search}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
+          status={statusFilter}
+          onStatus={(v) => { setStatusFilter(v); setPage(1); }}
+          totalCount={guidelines.length}
+          visibleCount={visible.length}
+        />
+      )}
 
       {/* -- List ----------------------------------------------------------- */}
       {guidelines.length === 0 ? (
         <EmptyState
           icon={<MenuBookOutlinedIcon fontSize="large" />}
           title="No guidelines loaded yet"
-          body="Load a NICE guideline above to get started."
+          body="Load a NICE guideline or import a local guideline to get started."
           data-testid="guidelines-empty"
         />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={<SearchIcon fontSize="large" />}
+          title="No guidelines match"
+          body="Try a different search or filter."
+          data-testid="guidelines-no-match"
+        />
       ) : (
-        <ReviewListCard
-          items={guidelines.map((g) =>
-            buildGuidelineItem(g, generating, (code, hasRules) => (hasRules ? setConfirmCode(code) : handleGenerate(code)), setInspectCode)
+        <>
+          <ReviewListCard
+            items={pageSlice.map((g) =>
+              buildGuidelineItem(
+                g,
+                reingesting,
+                deleting,
+                updateStatuses[g.code],
+                handleOpenPicker,
+                setChangesDrawerCode,
+                setLocalChangesCode,
+                setLinkDomainCode,
+                handleDeleteLocal,
+              )
+            )}
+          />
+          {pageCount > 1 && (
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1.5 }}>
+              <Typography variant="caption" color="text.secondary">
+                Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, visible.length)} of {visible.length}
+              </Typography>
+              <Pagination
+                count={pageCount}
+                page={safePage}
+                onChange={(_, p) => setPage(p)}
+                size="small"
+                color="primary"
+                aria-label="Guidelines page"
+              />
+            </Stack>
           )}
-        />
+        </>
       )}
 
-      {confirmCode && (
-        <ConfirmDialog
-          title="Replace existing rules?"
-          body={`This will delete all draft rules for ${confirmCode} and ask the AI to write new ones. Rules you have already approved will also be deleted. Are you sure?`}
-          confirmLabel="Yes, re-generate"
-          cancelLabel="Cancel"
-          variant="danger"
-          onConfirm={() => handleGenerate(confirmCode)}
-          onCancel={() => setConfirmCode(null)}
-        />
-      )}
+      <GuidelineChangesDrawer
+        code={changesDrawerCode}
+        onClose={() => setChangesDrawerCode(null)}
+        onConfirmIngest={(code, diffJobId) => {
+          setChangesDrawerCode(null);
+          handleReingest(code, diffJobId);
+        }}
+      />
 
-      <GuidelineSubgraphDrawer code={inspectCode} onClose={() => setInspectCode(null)} />
+      <LocalGuidelineChangesDrawer
+        code={localChangesCode}
+        onClose={() => setLocalChangesCode(null)}
+        onImported={() => { fetchLoaded(); onRulesGenerated?.(); }}
+      />
+
+      <LocalGuidelineLinkDomainDialog
+        guidelineCode={linkDomainCode}
+        onClose={() => setLinkDomainCode(null)}
+        onLinked={() => { fetchLoaded(); onRulesGenerated?.(); }}
+      />
+
+      <RecommendationPickerDialog
+        code={pickerCode}
+        guidelineTitle={pickerTitle}
+        source={pickerSource}
+        onClose={() => setPickerCode(null)}
+        onRulesGenerated={() => { fetchLoaded(); onRulesGenerated?.(); }}
+      />
     </Box>
   );
 }

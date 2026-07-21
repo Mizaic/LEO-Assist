@@ -21,7 +21,9 @@ import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 ROUTER = ROOT / "services" / "analytics_api" / "app" / "routers" / "patients_epr.py"
-QUERIES = ROOT / "services" / "analytics_api" / "app" / "routers" / "patients_epr_queries.py"
+QUERIES = (
+    ROOT / "services" / "analytics_api" / "app" / "routers" / "patients_epr_queries.py"
+)
 
 
 def _read(p: pathlib.Path) -> str:
@@ -32,25 +34,45 @@ def _read(p: pathlib.Path) -> str:
 # AC6 - query extraction
 # ---------------------------------------------------------------------------
 
+
 def test_ac6_cypher_extracted_to_queries_module():
     """Cypher strings must live in patients_epr_queries.py, not inline."""
     router_src = _read(ROUTER)
     queries_src = _read(QUERIES)
     assert QUERIES.exists(), "patients_epr_queries.py must exist"
     # Router imports from the queries module
-    assert "patients_epr_queries" in router_src, (
-        "patients_epr.py must import from patients_epr_queries"
-    )
+    assert (
+        "patients_epr_queries" in router_src
+    ), "patients_epr.py must import from patients_epr_queries"
     # Heavy Cypher does not live inline in the router
-    assert "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->" not in router_src, (
-        "Cypher should be in patients_epr_queries.py, not patients_epr.py"
-    )
+    assert (
+        "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->" not in router_src
+    ), "Cypher should be in patients_epr_queries.py, not patients_epr.py"
     assert "OPTIONAL MATCH" in queries_src
+
+
+def test_care_ready_detail_returns_display_name_and_gp_coalesce():
+    """Lab patients: display_name from p.name; GP via HAS_GP or REGISTERED_IN."""
+    queries_src = _read(QUERIES)
+    router_src = _read(ROUTER)
+    assert "coalesce(p.name, p.id) AS display_name" in queries_src
+    assert "REGISTERED_IN" in queries_src
+    assert "coalesce(ep.episode_id, ep.id)" in queries_src
+    assert "display_name" in router_src
+
+
+def test_care_ready_patient_detail_model_includes_display_name():
+    router_src = _read(ROUTER)
+    assert (
+        "display_name: Optional[str]" in router_src
+        or "display_name: Optional[str]" in router_src
+    )
 
 
 # ---------------------------------------------------------------------------
 # AC4 - route declaration order
 # ---------------------------------------------------------------------------
+
 
 def test_ac4_facets_route_declared_before_patient_id_route():
     """/patients/facets must appear before /patients/{patient_id} in the file."""
@@ -59,14 +81,15 @@ def test_ac4_facets_route_declared_before_patient_id_route():
     idx_detail = src.find('"/patients/{patient_id}"')
     assert idx_facets != -1, '"/patients/facets" route must exist'
     assert idx_detail != -1, '"/patients/{patient_id}" route must exist'
-    assert idx_facets < idx_detail, (
-        "/patients/facets must be declared before /patients/{patient_id}"
-    )
+    assert (
+        idx_facets < idx_detail
+    ), "/patients/facets must be declared before /patients/{patient_id}"
 
 
 # ---------------------------------------------------------------------------
 # AC1 - facets endpoint
 # ---------------------------------------------------------------------------
+
 
 def test_ac1_facets_endpoint_returns_condition_types_field():
     """Facets endpoint response model must expose condition_types."""
@@ -97,11 +120,12 @@ def test_ac1_facets_cypher_returns_distinct_condition_types():
 # AC2 - filter params on GET /patients
 # ---------------------------------------------------------------------------
 
+
 def test_ac2_list_patients_accepts_condition_type_param():
     """list_patients must declare a condition_type Query param."""
     src = _read(ROUTER)
     assert "condition_type" in src
-    assert 'Query(default=None' in src
+    assert "Query(default=None" in src
 
 
 def test_ac2_list_patients_accepts_has_alerts_param():
@@ -123,6 +147,7 @@ def test_ac2_filter_params_passed_to_cypher():
 # AC3 - server-side EXISTS subquery filtering
 # ---------------------------------------------------------------------------
 
+
 def test_ac3_condition_type_filter_uses_exists_subquery():
     """Condition-type filter must use a Cypher EXISTS subquery, not post-filter."""
     queries_src = _read(QUERIES)
@@ -142,6 +167,7 @@ def test_ac3_has_alerts_filter_uses_exists_subquery():
 # ---------------------------------------------------------------------------
 # AC5 - both admin and scoped variants carry the filter conditions
 # ---------------------------------------------------------------------------
+
 
 def test_ac5_admin_list_query_carries_condition_type_filter():
     queries_src = _read(QUERIES)
@@ -169,10 +195,10 @@ def test_ac5_count_queries_carry_filter_conditions():
     assert "COUNT_PATIENTS_SCOPED" in queries_src
     # Both count queries reference the same shared fragment
     count_idx = queries_src.find("COUNT_PATIENTS_ADMIN")
-    assert "_FILTER_CONDITIONS" in queries_src[count_idx - 500: count_idx + 500] or \
-           "_FILTER_CONDITIONS" in queries_src, (
-        "_FILTER_CONDITIONS must be used in count queries section"
-    )
+    assert (
+        "_FILTER_CONDITIONS" in queries_src[count_idx - 500 : count_idx + 500]
+        or "_FILTER_CONDITIONS" in queries_src
+    ), "_FILTER_CONDITIONS must be used in count queries section"
 
 
 def test_coded_entities_query_uses_pipeline_relationships():

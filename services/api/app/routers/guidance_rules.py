@@ -101,6 +101,8 @@ WHERE ($status IS NULL OR rule.status = $status)
        })
 WITH rule
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)<-[:HAS_RECOMMENDATION]-(g:Guideline)
+WITH rule, rec, g ORDER BY coalesce(rec.versionId, '') DESC
+WITH rule, head(collect(rec)) AS rec, head(collect(g)) AS g
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
@@ -116,6 +118,8 @@ RETURN rule.id AS rule_id,
        coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
        rule.reviewedAt AS reviewed_at,
        rule.reviewedBy AS reviewed_by,
+       rule.previousRecommendationText AS previous_recommendation_text,
+       rule.previousRecommendationNumber AS previous_recommendation_number,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
@@ -160,7 +164,10 @@ RETURN
 
 _FETCH_RULE_BY_ID = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
+WITH rule
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)<-[:HAS_RECOMMENDATION]-(g:Guideline)
+WITH rule, rec, g ORDER BY coalesce(rec.versionId, '') DESC
+WITH rule, head(collect(rec)) AS rec, head(collect(g)) AS g
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
@@ -176,6 +183,8 @@ RETURN rule.id AS rule_id,
        coalesce(rule.updatedAt, rule.createdAt) AS updated_at,
        rule.reviewedAt AS reviewed_at,
        rule.reviewedBy AS reviewed_by,
+       rule.previousRecommendationText AS previous_recommendation_text,
+       rule.previousRecommendationNumber AS previous_recommendation_number,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
@@ -215,6 +224,35 @@ RETURN rule.id AS rule_id,
        }) AS criteria
 """
 
+_CREATE_BLANK_RULE = """
+MATCH (rec:Recommendation {id: $rec_id})
+WHERE NOT coalesce(rec.likelyIncorrect, false)
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (ch)<-[:HAS_CHAPTER]-(g:Guideline)
+WITH rec, ch, g
+CREATE (rule:AppropriatenessRule {
+    id: $rule_id,
+    name: coalesce(rec.title, $rec_id),
+    status: 'pending_review',
+    schemaVersion: 2,
+    logicJson: '{}',
+    actionJson: null,
+    verifierJson: null,
+    createdAt: datetime(),
+    guidelineId: coalesce(g.id, '')
+})
+MERGE (rec)-[:HAS_RULE]->(rule)
+RETURN rule.id AS rule_id,
+       rule.name AS name,
+       rule.status AS status,
+       coalesce(rule.schemaVersion, 2) AS schema_version,
+       rule.logicJson AS logic_json,
+       rule.createdAt AS created_at,
+       rec.verbatim AS recommendation_text,
+       g.id AS guideline_id,
+       ch.title AS chapter_title
+"""
+
 _UPDATE_RULE_STATUS = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
 SET rule.status = $status,
@@ -241,17 +279,26 @@ WHERE ($guideline_id IS NULL OR
 RETURN rule.id AS rule_id
 """
 
+_FETCH_INCORRECT_RECOMMENDATIONS = """
+MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(rec:Recommendation)
+WHERE coalesce(rec.likelyIncorrect, false)
+  AND ($recommendation_ids IS NULL OR rec.id IN $recommendation_ids)
+RETURN rec.id AS rec_id
+LIMIT 1
+"""
+
 _FETCH_RULE_FOR_PROMOTION = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-()<-[:HAS_RECOMMENDATION]-(g:Guideline)
 OPTIONAL MATCH (g)<-[:CLASSIFIES_GUIDELINE]-(sub:TaxonomySubcategory)-[:HAS_DOMAIN]->(domain:AuditDomain {source: 'nice'})
+OPTIONAL MATCH (g)-[:HAS_DOMAIN]->(local_domain:AuditDomain)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[:HAS_CRITERIA]->(concept)
 RETURN rule.status AS status,
        coalesce(rule.schemaVersion, 1) AS schema_version,
        rule.logicJson AS logic_json,
        g.id AS guideline_id,
-       domain.id AS domain_id,
-       domain.name AS domain_name,
+       coalesce(local_domain.id, domain.id) AS domain_id,
+       coalesce(local_domain.name, domain.name) AS domain_name,
        collect(DISTINCT {concept_id: coalesce(concept.id, concept.conceptId), term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)}) AS concepts
 """
 
@@ -297,6 +344,11 @@ MERGE (rule)-[:HAS_AUDIT_EVENT]->(audit)
 class GenerateRulesRequest(BaseModel):
     guideline_id: str
     only_without_rules: bool = False
+    recommendation_ids: list[str] | None = None
+
+
+class CreateBlankRuleRequest(BaseModel):
+    rec_id: str
 
 
 class RuleDecisionRequest(BaseModel):
@@ -503,6 +555,123 @@ async def test_rule_extraction(
     return response_body
 
 
+# ---------------------------------------------------------------------------
+# AI-assisted re-draft endpoint (rule editor "Draft from NICE text" feature)
+# ---------------------------------------------------------------------------
+
+_FETCH_REC_FOR_RULE = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)
+WITH rule, rec ORDER BY coalesce(rec.versionId, '') DESC
+WITH rule, head(collect(rec)) AS rec
+OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
+OPTIONAL MATCH (ch)<-[:HAS_CHAPTER]-(g:Guideline)
+RETURN rec.id        AS rec_id,
+       rec.verbatim  AS verbatim,
+       rec.title     AS title,
+       rec.urgency   AS urgency,
+       rec.strength  AS strength,
+       rec.sectionTitle AS section_title,
+       ch.title      AS chapter_title,
+       coalesce(g.id, rule.guidelineId, '') AS guideline_id
+"""
+
+
+@router.post("/rules/review/{rule_id}/ai-redraft", status_code=200)
+async def ai_redraft_rule(
+    rule_id: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Re-run the guidance rule extraction subgraph for a rule's linked
+    NICE recommendation and return the proposed ``logic_tree`` JSON.
+
+    This is advisory only: nothing is written to Neo4j.  The UI shows
+    the proposed tree for the reviewer to accept, edit, or discard.
+
+    Returns:
+        ``{"logic_tree": {...}, "errors": [...]}``
+
+    Raises:
+        404 if rule or its recommendation is not found.
+        422 if the recommendation has no verbatim text.
+        504 on extraction timeout.
+    """
+    loop = asyncio.get_running_loop()
+
+    client = _kg_client()
+    try:
+        rows = await loop.run_in_executor(
+            None,
+            lambda: client.run(_FETCH_REC_FOR_RULE, rule_id=rule_id),
+        )
+    finally:
+        client.close()
+
+    if not rows or not rows[0].get("verbatim"):
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Rule not found or has no linked recommendation text. "
+                "Re-ingest the guideline to attach recommendation text."
+            ),
+        )
+
+    row = rows[0]
+    rec = {
+        "id": row.get("rec_id", ""),
+        "verbatim": row.get("verbatim", ""),
+        "title": row.get("title", ""),
+        "urgency": row.get("urgency", ""),
+        "strength": row.get("strength", ""),
+        "section_title": row.get("section_title", ""),
+        "chapter_title": row.get("chapter_title", ""),
+    }
+    guideline_id = row.get("guideline_id", "")
+
+    try:
+        subgraph = get_registry().build("guidance_rule_extraction")
+        result = await asyncio.wait_for(
+            loop.run_in_executor(
+                None,
+                lambda: subgraph.invoke(
+                    {"recommendation": rec, "guideline_id": guideline_id}
+                ),
+            ),
+            timeout=float(_EXTRACTION_TIMEOUT_S),
+        )
+    except asyncio.TimeoutError:
+        logger.error(
+            "AI redraft timed out after %ss for rule %s",
+            _EXTRACTION_TIMEOUT_S,
+            rule_id,
+        )
+        raise HTTPException(
+            status_code=504,
+            detail=(
+                f"AI redraft timed out after {_EXTRACTION_TIMEOUT_S}s. "
+                "Try again shortly."
+            ),
+        )
+    except Exception as exc:
+        logger.exception("AI redraft failed for rule %s", rule_id)
+        raise HTTPException(status_code=500, detail=f"Extraction pipeline error: {exc}")
+
+    errors = result.get("errors") or []
+    coded = result.get("coded_criteria") or {}
+    logic_tree = coded.get("logic_tree")
+
+    if logic_tree is None:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "AI could not extract a rule structure.",
+                "errors": errors,
+            },
+        )
+
+    return {"logic_tree": logic_tree, "errors": errors}
+
+
 # DI-LEO-AI-518: persist a PipelineRun :AuditEvent for guidance dry-run
 # invocations so /admin/billing surfaces the cost of the rule editor's
 # "Test extraction" button. Best-effort -- never raises, never blocks.
@@ -562,8 +731,10 @@ def _write_dry_run_audit_event(
         except Exception:
             cost_usd = 0.0
 
-        status = "completed" if coded is not None and not errors else (
-            "partial" if coded is not None else "failed"
+        status = (
+            "completed"
+            if coded is not None and not errors
+            else ("partial" if coded is not None else "failed")
         )
         first_error = errors[0][:400] if errors else None
 
@@ -610,13 +781,109 @@ async def generate_rules(
     Returns a job ID immediately. Rule generation runs in the background.
     Rules will appear in the review queue once complete.
     Poll GET /rules/generate/{job_id} to track progress.
+
+    Pass ``recommendation_ids`` to restrict generation to a subset of
+    recommendations (already supported by the pipeline worker).
     """
     _ = scope
+    _reject_likely_incorrect_recommendations(req)
     return await _proxy_pipeline_worker_json(
         "POST",
         "/guidance/generate",
-        json_body=req.model_dump(),
+        json_body=req.model_dump(exclude_none=True),
     )
+
+
+def _reject_likely_incorrect_recommendations(req: GenerateRulesRequest) -> None:
+    """Prevent AI rule generation from an unverified local recommendation."""
+    client = _kg_client()
+    try:
+        rows = client.run(
+            _FETCH_INCORRECT_RECOMMENDATIONS,
+            guideline_id=req.guideline_id,
+            recommendation_ids=req.recommendation_ids,
+        )
+    finally:
+        client.close()
+    if rows:
+        raise HTTPException(
+            status_code=422,
+            detail="Fix guideline verification issues before generating rules.",
+        )
+
+
+@router.post("/rules/create-blank", status_code=201)
+def create_blank_rule(
+    req: CreateBlankRuleRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Create an empty AppropriatenessRule stub for a recommendation.
+
+    Used by the "Build by hand" flow in the recommendation picker dialog.
+    Returns the new rule detail so the frontend can open EditRuleDialog
+    immediately without a separate fetch.
+    """
+    _ = scope
+    rule_id = f"rule:{uuid.uuid4()}"
+    client = _kg_client()
+    try:
+        records = client.run(
+            _CREATE_BLANK_RULE,
+            rec_id=req.rec_id,
+            rule_id=rule_id,
+        )
+        if not records:
+            blocked = client.run(
+                "MATCH (rec:Recommendation {id: $rec_id}) "
+                "WHERE coalesce(rec.likelyIncorrect, false) "
+                "RETURN rec.id AS id LIMIT 1",
+                rec_id=req.rec_id,
+            )
+            if blocked:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Fix guideline verification issues before creating a rule."
+                    ),
+                )
+            raise HTTPException(
+                status_code=404,
+                detail=f"Recommendation not found: {req.rec_id}",
+            )
+        row = records[0]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("create_blank_rule Neo4j error: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Could not create rule stub."
+        ) from exc
+    finally:
+        client.close()
+
+    return {
+        "rule_id": row["rule_id"],
+        "rule": {
+            "rule_id": row["rule_id"],
+            "name": row["name"],
+            "status": row["status"],
+            "schema_version": row["schema_version"],
+            "logic_json": row["logic_json"],
+            "action_json": None,
+            "verifier_json": None,
+            "created_at": str(row["created_at"]) if row.get("created_at") else None,
+            "updated_at": None,
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "guideline_id": row.get("guideline_id"),
+            "guideline_version": None,
+            "chapter_title": row.get("chapter_title"),
+            "recommendation_text": row.get("recommendation_text"),
+            "criteria": [],
+            "has_predecessor": False,
+            "predecessor_id": None,
+        },
+    }
 
 
 @router.get("/rules/generate/{job_id}")
@@ -888,8 +1155,8 @@ def promote_rule_to_domain(
             raise HTTPException(
                 status_code=404,
                 detail=(
-                    "No NICE domain is linked to this guideline. "
-                    "Run a catalogue sync first to build the NICE taxonomy."
+                    "No domain is linked to this guideline. "
+                    "Link a domain before promoting this rule."
                 ),
             )
 
@@ -1010,6 +1277,7 @@ def _format_rule(r: dict) -> dict:
     logic_tree = _parse_logic_json(r.get("logic_json")) if schema_version == 2 else None
     logic_concepts = _logic_tree_concepts(logic_tree) if logic_tree else []
     verifier = _parse_verifier_json(r.get("verifier_json"))
+    actions = _parse_actions_json(r.get("action_json"))
     display_plain_english = (
         _plain_english_logic(logic_tree)
         if logic_tree is not None
@@ -1029,7 +1297,11 @@ def _format_rule(r: dict) -> dict:
         "present_criteria": present,
         "absent_criteria": absent,
         "logic_tree": logic_tree,
-        "action": _parse_action_json(r.get("action_json")),
+        # "action" is a read-only derived flat criterion (actions[0].criterion)
+        # kept for FE code that has not yet migrated to the actions[] list.
+        # See DI-42246DA7 acceptance criteria (multi-action support).
+        "action": actions[0]["criterion"] if actions else None,
+        "actions": actions,
         "criteria_concepts": logic_concepts,
         "generation_outcome": verifier.get("generation_outcome"),
         "needs_human_review": bool(verifier.get("needs_human_review")),
@@ -1047,6 +1319,9 @@ def _format_rule(r: dict) -> dict:
         "reviewed_by": str(r.get("reviewed_by") or ""),
         "has_predecessor": bool(r.get("has_predecessor")),
         "predecessor_id": r.get("predecessor_id"),
+        "previous_recommendation_text": r.get("previous_recommendation_text") or None,
+        "previous_recommendation_number": r.get("previous_recommendation_number")
+        or None,
     }
 
 
@@ -1061,33 +1336,51 @@ def _parse_verifier_json(raw: object) -> dict:
     return payload if isinstance(payload, dict) else {}
 
 
-def _parse_action_json(raw: object) -> dict | None:
-    """Parse the stored actionJson into the structured ``action`` field.
-
-    Surfacing this lets the EditRuleDialog show -- and let reviewers
-    correct -- the SNOMED-coded recommended procedure that fires when
-    the rule matches a patient (DI-LEO-AI-170).
-
-    Returns ``None`` when the rule has no action coded; otherwise a
-    dict with ``snomed_concept_id``, ``preferred_term``, ``semantic_tag``,
-    and ``term`` keys.
-    """
-    if not raw:
-        return None
-    try:
-        payload = json.loads(raw) if isinstance(raw, str) else raw
-    except (TypeError, ValueError):
-        return None
-    if not isinstance(payload, dict):
-        return None
+def _format_action_item(payload: dict) -> dict:
+    """Format one stored action dict into the nested RuleAction API shape."""
     snomed_id = payload.get("snomed_concept_id")
     preferred = payload.get("preferred_term") or payload.get("term") or ""
     return {
-        "snomed_concept_id": str(snomed_id) if snomed_id else None,
-        "preferred_term": str(preferred),
-        "semantic_tag": str(payload.get("semantic_tag") or ""),
-        "term": str(payload.get("term") or preferred),
+        "criterion": {
+            "snomed_concept_id": str(snomed_id) if snomed_id else None,
+            "preferred_term": str(preferred),
+            "semantic_tag": str(payload.get("semantic_tag") or ""),
+            "term": str(payload.get("term") or preferred),
+        },
+        "strength": str(payload.get("strength") or "unspecified"),
     }
+
+
+def _parse_actions_json(raw: object) -> list[dict]:
+    """Parse the stored actionJson into the structured ``actions`` list.
+
+    Surfacing this lets the EditRuleDialog show -- and let reviewers
+    correct -- the SNOMED-coded recommended procedures that fire when
+    the rule matches a patient (DI-LEO-AI-170, DI-42246DA7).
+
+    Handles both the current array shape (``[{...}, ...]``, one or more
+    recommended actions) and the legacy single-object shape written
+    before multi-action support existed -- the latter is wrapped in a
+    one-item list so old rows never need a backfill migration.
+
+    Returns an empty list when the rule has no action coded or the
+    stored JSON is malformed; otherwise a list of nested RuleAction
+    dicts each with ``criterion`` (snomed_concept_id, preferred_term,
+    semantic_tag, term) and ``strength`` keys.
+    """
+    if not raw:
+        return []
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return []
+    if isinstance(payload, list):
+        items = [p for p in payload if isinstance(p, dict)]
+    elif isinstance(payload, dict):
+        items = [payload]
+    else:
+        return []
+    return [_format_action_item(p) for p in items]
 
 
 def _plain_english_criteria(present: list[dict], absent: list[dict]) -> str:

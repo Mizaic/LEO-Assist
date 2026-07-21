@@ -56,6 +56,7 @@ export interface SurfaceEvent {
     assessmentId: string;
     stage?: SbarStageName;
     sourceId?: string;
+    label?: string;
     missingFields?: string[];
     unclearFields?: string[];
   };
@@ -285,10 +286,15 @@ export function renderSurface(
         type: LEO_EVENT_NAMES.disclosureClosed,
         detail: { assessmentId: payload.assessmentId, stage },
       }),
-    onSourceClicked: ({ stage, sourceId }) =>
+    onSourceClicked: ({ stage, sourceId, label }) =>
       emit({
         type: LEO_EVENT_NAMES.sourceClicked,
-        detail: { assessmentId: payload.assessmentId, stage, sourceId },
+        detail: {
+          assessmentId: payload.assessmentId,
+          stage,
+          sourceId,
+          ...(label ? { label } : {}),
+        },
       }),
   });
 

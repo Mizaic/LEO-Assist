@@ -129,6 +129,66 @@ export interface ValidationRunStatus {
 
 export type StatusFilter = "all" | "approved" | "draft";
 
+// ---------------------------------------------------------------------------
+// Quick-run types
+// ---------------------------------------------------------------------------
+
+export type QuickRunMode = "encounter" | "referral";
+
+export interface QuickRunRequest {
+  mode: QuickRunMode;
+  text: string;
+  patient_age?: number;
+  patient_sex?: string;
+  guideline_id?: string;
+  completeness_subdomain?: string;
+}
+
+/** Stage snapshots store terms as plain strings (entity surface forms). */
+export interface StageSnapshot {
+  entity_count: number;
+  terms: string[];
+}
+
+/** Final extracted entity (from validation_output.terms). */
+export interface ExtractedEntity {
+  text: string;
+  label?: string;
+  semantic_tag?: string;
+  assertion?: string;
+  confidence?: number;
+}
+
+/** SNOMED-coded result written by the persist subgraph after coding. */
+export interface CodedEntity {
+  concept_id: string;
+  term: string;
+  semantic_tag: string;
+  evidence: string;
+  assertion: string;
+  confidence?: number | null;
+  decision_tier?: string | null;
+}
+
+export interface QuickRunResult {
+  run_id: string;
+  status: "running" | "completed" | "failed";
+  progress: number;
+  mode: QuickRunMode;
+  patient_id: string;
+  guideline_id?: string;
+  triggered_at: string;
+  completed_at?: string;
+  stage_snapshots?: Record<string, StageSnapshot>;
+  entity_count?: number;
+  entities?: ExtractedEntity[];
+  coded_entities?: CodedEntity[];
+  model_provider?: string;
+  model_tier?: string;
+  worker_status?: string;
+  error?: string;
+}
+
 export interface ScenarioWritePayload {
   case_id?: string;
   site: string;

@@ -1,10 +1,8 @@
 """Canonical terminology resolution client.
 
 Atlas trace:
-  DO: DO-27B414B3
-  Also implements: DO-4D563ADF
-  DI: DI-12015DBC, DI-6A0B55A4, DI-DA7584D8
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-27B414B3")
+  DO: DO-572A5C05
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-572A5C05")
 
 Provides both synchronous and asynchronous clients for the Terminology API.
 All pipeline code should import from here — do NOT duplicate.
@@ -484,6 +482,7 @@ class TerminologyClient:
         terms: list[str],
         expected_tags: dict[str, str] | None,
         runtime: dict[str, float | int],
+        org_id: str | None = None,
     ) -> dict[str, list[ResolvedTerm]]:
         import httpx
 
@@ -498,6 +497,8 @@ class TerminologyClient:
             body["expected_tags"] = {
                 term: tag for term, tag in expected_tags.items() if term in terms
             }
+        if org_id:
+            body["org_id"] = org_id
         cache_key = _build_cache_key(body, "resolve")
         cached = _cache_get_json(cache_key)
         if isinstance(cached, dict):
@@ -571,12 +572,14 @@ class TerminologyClient:
         self,
         terms: list[str],
         expected_tags: dict[str, str] | None = None,
+        org_id: str | None = None,
     ) -> dict[str, list[ResolvedTerm]]:
         """Resolve a batch of terms to SNOMED concepts.
 
         Returns a dict mapping each input term to a list of candidates.
         Input terms are normalised before lookup (lab values and EMIS
         suffixes stripped) but results are re-keyed to the original terms.
+        org_id scopes leo_local SurfaceForms to active packages.
         """
         if not terms:
             return {}
@@ -610,10 +613,11 @@ class TerminologyClient:
             max(self._max_retries, int(runtime["max_retries"]))
         )
         chunk_size = int(runtime["max_terms_per_request"])
+        oid = (org_id or "").strip() or None
 
         aggregated: dict[str, list[ResolvedTerm]] = {}
         for batch in _chunk_terms(normalised_unique, chunk_size):
-            batch_results = self._resolve_batch(batch, norm_tags, runtime)
+            batch_results = self._resolve_batch(batch, norm_tags, runtime, org_id=oid)
             if not batch_results and batch:
                 return {}
             aggregated.update(batch_results)

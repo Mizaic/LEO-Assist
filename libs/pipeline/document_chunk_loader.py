@@ -25,6 +25,7 @@ def merge_referral_message_fields(body: dict[str, Any]) -> dict[str, Any]:
     context = dict(body.get("context") or {})
     for key in (
         "chunk_ids",
+        "communication_request_id",
         "document_reference_id",
         "text_segmentation_mode",
         "referral_id",

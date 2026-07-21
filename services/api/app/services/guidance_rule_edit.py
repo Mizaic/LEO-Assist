@@ -52,6 +52,7 @@ _GROUP_KINDS = {"AND", "OR", "NOT", "AT_LEAST"}
 # OBSERVATION is the Phase 5 numeric-threshold leaf.
 # MEDICATION, ALLERGY, and TREATMENT_HISTORY are Sprint 1 management-pathway
 # leaves (DI-2199E670 / DO-0EC3A9CB). They do not use the bitmap path.
+# RULE_FIRED is the chained-evaluation leaf (DI-8899D4F3 / DO-274E5A61).
 _LEAF_KINDS = {
     "CONCEPT",
     "DEMOGRAPHIC",
@@ -59,8 +60,10 @@ _LEAF_KINDS = {
     "MEDICATION",
     "ALLERGY",
     "TREATMENT_HISTORY",
+    "RULE_FIRED",
 }
 _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
+_VALID_RULE_FIRED_OUTCOMES = {"fired", "not_fired"}
 
 
 # -- Pydantic models -----------------------------------------------------------
@@ -82,6 +85,15 @@ class LogicSeed(BaseModel):
     semantic_tag: str = ""
     include_descendants: bool = True
     distance_child: int | None = None
+
+    @model_validator(mode="after")
+    def _force_exact_for_local(self) -> "LogicSeed":
+        from libs.terminology.local_concepts import is_local_concept_id
+
+        if is_local_concept_id(self.snomed_concept_id):
+            self.include_descendants = False
+            self.distance_child = 0
+        return self
 
 
 class LogicCriterion(BaseModel):
@@ -148,6 +160,25 @@ class LogicCriterion(BaseModel):
         return self
 
 
+class RuleAction(BaseModel):
+    """One recommended clinical action attached to a rule.
+
+    A rule may recommend more than one procedure (e.g. "offer an X-ray
+    and refer for a blood test"), each carrying its own strength. See
+    DI-42246DA7 acceptance criteria (multi-action support).
+
+    ``action_kind='narrative'`` means free-text guidance (action_text),
+    not a SNOMED procedure for compliance checks.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    criterion: LogicCriterion
+    strength: str = Field(default="unspecified", max_length=64)
+    action_kind: str = Field(default="snomed_procedure", max_length=32)
+    action_text: str | None = Field(default=None, max_length=4000)
+
+
 class LogicNode(BaseModel):
     """One node in the rule logic tree. Recursive via ``children``.
 
@@ -164,7 +195,7 @@ class LogicNode(BaseModel):
     criterion: LogicCriterion | None = None
     field: str | None = None
     operator: str | None = None
-    value: float | str | None = None
+    value: float | str | list[float] | None = None
     unit: str | None = None
     # Carries the Phase 5 OBSERVATION leaf payload (numeric threshold,
     # recency window, optional temporal / reference-range / trend /
@@ -195,6 +226,13 @@ class LogicNode(BaseModel):
     # phone-sized viewport. Whitespace-only values normalise to None so
     # downstream consumers see a single "no name set" shape.
     name: str | None = Field(default=None, max_length=80)
+    # RULE_FIRED chained-evaluation fields (DI-8899D4F3 / DO-274E5A61).
+    # referenced_rule_id: the rule that must have fired (or not fired) for
+    # this leaf to be True. display_name carries the human-readable label
+    # stored at authoring time so the editor shows a name even when the
+    # referenced rule has since been renamed.
+    referenced_rule_id: str | None = None
+    display_name: str | None = None
 
     @field_validator("kind")
     @classmethod
@@ -236,8 +274,13 @@ class LogicNode(BaseModel):
 class RuleUpdates(BaseModel):
     """Fields a reviewer may change on a pending rule.
 
-    ``action`` is the SNOMED-coded recommended procedure that fires when
-    the rule matches (e.g. "Plain chest X-ray"). When omitted, the
+    ``actions`` is the list of SNOMED-coded recommended procedures that
+    fire when the rule matches, each with its own strength (e.g. "Offer
+    a chest X-ray" + "Refer for a blood test"). ``action`` and the
+    top-level ``strength`` are deprecated singular aliases kept for
+    backward compatibility with older frontend builds during a rolling
+    deploy -- when only they are supplied, ``actions`` is synthesised
+    server-side as a single-item list. When both are omitted, the
     predecessor rule's existing actionJson is preserved unchanged --
     there is deliberately no path that silently nulls it out (DI-170).
     """
@@ -248,6 +291,15 @@ class RuleUpdates(BaseModel):
     strength: str | None = Field(default=None, max_length=64)
     logic_tree: LogicNode
     action: LogicCriterion | None = None
+    actions: list[RuleAction] | None = None
+
+    @model_validator(mode="after")
+    def _synthesise_actions_from_legacy_fields(self) -> "RuleUpdates":
+        if self.actions is None and self.action is not None:
+            self.actions = [
+                RuleAction(criterion=self.action, strength=self.strength or "unspecified")
+            ]
+        return self
 
 
 # -- Validation ----------------------------------------------------------------
@@ -304,6 +356,9 @@ def _walk(
         return
     if kind == "OBSERVATION":
         _validate_observation_node(node, concept_ids)
+        return
+    if kind == "RULE_FIRED":
+        _validate_rule_fired_node(node)
         return
 
     children = node.children or []
@@ -375,8 +430,25 @@ def _validate_demographic_node(node: LogicNode) -> None:
         raise LogicTreeValidationError(
             f"DEMOGRAPHIC node has unsupported operator {node.operator!r}."
         )
-    if node.value is None or (isinstance(node.value, str) and not node.value.strip()):
+    if node.operator == "between":
+        if not (isinstance(node.value, list) and len(node.value) == 2):
+            raise LogicTreeValidationError(
+                "DEMOGRAPHIC 'between' node requires value as a two-element list [low, high]."
+            )
+    elif node.value is None or (isinstance(node.value, str) and not node.value.strip()):
         raise LogicTreeValidationError("DEMOGRAPHIC node is missing a value.")
+
+
+def _validate_rule_fired_node(node: LogicNode) -> None:
+    if not (node.referenced_rule_id or "").strip():
+        raise LogicTreeValidationError(
+            "RULE_FIRED node requires a non-empty referenced_rule_id."
+        )
+    outcome = (node.outcome or "").strip()
+    if outcome not in _VALID_RULE_FIRED_OUTCOMES:
+        raise LogicTreeValidationError(
+            f"RULE_FIRED node outcome must be 'fired' or 'not_fired'; got {outcome!r}."
+        )
 
 
 # -- Cypher --------------------------------------------------------------------
@@ -498,20 +570,65 @@ def reject_sibling_pending_rules(
     return [str(rule_id) for rule_id in rejected]
 
 
-def _action_payload(action: LogicCriterion) -> dict[str, Any]:
-    """Compose the actionJson payload persisted on an edited rule.
+def _actions_payload(actions: list["RuleAction"]) -> list[dict[str, Any]]:
+    """Compose the actionJson array payload persisted on an edited rule.
 
-    Mirrors the shape produced by the rule extraction pipeline so that
-    downstream consumers (bitmap compiler, inference engine, UI display)
-    keep working without a schema change.
+    Mirrors the shape produced by the rule extraction pipeline (plus a
+    per-action ``strength``) so that downstream consumers (bitmap
+    compiler, inference engine, UI display) can read either the legacy
+    single-object shape or this new array shape without a migration.
     """
-    return {
-        "term": action.term or action.preferred_term,
-        "snomed_concept_id": action.snomed_concept_id,
-        "preferred_term": action.preferred_term,
-        "semantic_tag": action.semantic_tag or "procedure",
-        "verification_status": "human_edited",
-    }
+    return [
+        {
+            "term": ra.criterion.term or ra.criterion.preferred_term,
+            "snomed_concept_id": ra.criterion.snomed_concept_id,
+            "preferred_term": ra.criterion.preferred_term,
+            "semantic_tag": ra.criterion.semantic_tag or "procedure",
+            "strength": ra.strength or "unspecified",
+            "action_kind": ra.action_kind or "snomed_procedure",
+            "action_text": ra.action_text,
+            "verification_status": "human_edited",
+        }
+        for ra in actions
+    ]
+
+
+def _action_concept_ids(actions: list["RuleAction"]) -> set[str]:
+    """Collect every SNOMED concept id referenced across a list of actions.
+
+    Mirrors the seed/exclusion handling ``_walk`` applies to CONCEPT
+    logic-tree nodes so a multi-seed action criterion is fully verified.
+    """
+    ids: set[str] = set()
+    for ra in actions:
+        crit = ra.criterion
+        if crit.seeds:
+            for seed in crit.seeds:
+                ids.add(seed.snomed_concept_id)
+            for excluded in crit.excluded_concept_ids:
+                ids.add(excluded)
+        else:
+            ids.add(crit.snomed_concept_id)
+    return ids
+
+
+def _check_no_duplicate_action_concepts(actions: list["RuleAction"]) -> None:
+    """Reject a rule whose actions recommend the same SNOMED procedure twice.
+
+    Two actions sharing a primary concept id is always a mistake (either
+    a duplicate row from the UI or an AI-generation glitch) and would
+    otherwise silently double up a recommendation in the SBAR narrative.
+    """
+    seen: dict[str, int] = {}
+    for index, ra in enumerate(actions):
+        concept_id = ra.criterion.snomed_concept_id
+        if concept_id in seen:
+            raise LogicTreeValidationError(
+                f"Duplicate recommended action: SNOMED concept {concept_id!r} "
+                f"appears in both action {seen[concept_id]} and {index}. "
+                "Each recommended action must be a distinct procedure."
+            )
+        seen[concept_id] = index
 
 
 # -- Public entry point --------------------------------------------------------
@@ -541,10 +658,11 @@ def apply_rule_edit(
     Returns ``{rule_id, predecessor_id}`` on success.
     """
     concept_ids = validate_logic_tree(updates.logic_tree)
-    # Action SNOMED concept (when supplied) is verified alongside the
+    # Action SNOMED concepts (when supplied) are verified alongside the
     # logic-tree concepts so a single round-trip catches all unknowns.
-    if updates.action is not None:
-        concept_ids = set(concept_ids) | {updates.action.snomed_concept_id}
+    if updates.actions:
+        _check_no_duplicate_action_concepts(updates.actions)
+        concept_ids = set(concept_ids) | _action_concept_ids(updates.actions)
 
     pred_rows = client.run(_FETCH_PREDECESSOR, rule_id=predecessor_rule_id)
     if not pred_rows:
@@ -567,13 +685,16 @@ def apply_rule_edit(
 
     new_rule_id = f"{predecessor_rule_id}:edit:{str(uuid.uuid4())[:8]}"
     new_name = (updates.name or pred.get("name") or "").strip()[:200]
-    new_strength = (updates.strength or pred.get("strength") or "unspecified").strip()
+    if updates.actions:
+        new_strength = (updates.actions[0].strength or "unspecified").strip()
+    else:
+        new_strength = (updates.strength or pred.get("strength") or "unspecified").strip()
     logic_json = json.dumps(updates.logic_tree.model_dump(exclude_none=True))
-    # Pass None when the reviewer did not change the action, so the
+    # Pass None when the reviewer did not change any action, so the
     # _INSERT_EDITED_RULE coalesce falls through to pred.actionJson and
     # we never silently null out a previously-coded recommendation.
     action_json: str | None = (
-        json.dumps(_action_payload(updates.action)) if updates.action is not None else None
+        json.dumps(_actions_payload(updates.actions)) if updates.actions else None
     )
 
     rows = client.run(
@@ -615,6 +736,7 @@ __all__ = [
     "LogicTreeValidationError",
     "ObservationLeaf",
     "ObservationLeafValidationError",
+    "RuleAction",
     "RuleUpdates",
     "apply_rule_edit",
     "reject_sibling_pending_rules",

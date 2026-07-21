@@ -1,9 +1,8 @@
 """Domain configuration endpoints.
 
 Atlas trace:
-  DO: DO-2340F614
-  DI: DI-4885D9FF
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2340F614")
+  DO: DO-730BDB1C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-730BDB1C")
 
 Two-level hierarchy:
   AuditDomain  (Cancer Audit, Cardiology Audit, QOF, ...)

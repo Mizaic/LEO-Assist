@@ -451,3 +451,50 @@ def test_deterministic_does_not_prefer_x_negation_cue_for_real_negation_word() -
         model_b_label="finding",
     )
     assert result is None
+
+
+# -- body_structure normalisation rules (DI-9AA2CDA5 Sprint 2) --
+
+
+def test_body_structure_reproductive_anatomy_is_not_relabeled() -> None:
+    """Permitted reproductive anatomy body_structure entities pass through unchanged."""
+    entities = [
+        {
+            "text": "cervix uteri",
+            "label": "body_structure",
+            "snomed_concept_id": "71252005",
+            "start": 0,
+            "end": 12,
+        }
+    ]
+    _normalise_entity_types(entities)
+    assert entities[0]["label"] == "body_structure"
+
+
+def test_body_structure_non_reproductive_is_suppressed() -> None:
+    """body_structure entities outside the reproductive anatomy set are suppressed."""
+    entities = [
+        {
+            "text": "left knee",
+            "label": "body_structure",
+            "snomed_concept_id": "57707001",
+            "start": 0,
+            "end": 9,
+        }
+    ]
+    _normalise_entity_types(entities)
+    assert entities == []
+
+
+def test_body_structure_unknown_concept_id_is_suppressed() -> None:
+    """body_structure entities with no concept_id are suppressed (fail closed)."""
+    entities = [
+        {
+            "text": "some body part",
+            "label": "body structure",
+            "start": 0,
+            "end": 14,
+        }
+    ]
+    _normalise_entity_types(entities)
+    assert entities == []

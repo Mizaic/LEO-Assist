@@ -14,7 +14,7 @@ Specials starting with `existing-DO-<dcid>` reuse the existing DO and
 only update its source_reference to merge in the new files.
 """
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
+from product import PRODUCT_ID  # noqa: E402,F401
 
 # Default safety class for every bucket. Override per bucket if needed.
 DEFAULT_SAFETY_CLASS = "B"
@@ -23,12 +23,12 @@ DEFAULT_SAFETY_CLASS = "B"
 def _ui_un(area: str, who: str, what: str, why: str) -> dict:
     return {
         "title": f"{area} surface for {who}",
-        "description": (
-            f"As {who}, I need {what} so that {why}."
+        "description": (f"As {who}, I need {what} so that {why}."),
+        "stakeholder_types": (
+            ["Clinician", "Clinical Safety Officer"]
+            if "clinician" in who.lower() or "review" in who.lower()
+            else ["Clinician", "Developer"]
         ),
-        "stakeholder_types": ["Clinician", "Clinical Safety Officer"]
-        if "clinician" in who.lower() or "review" in who.lower()
-        else ["Clinician", "Developer"],
         "rationale": (
             f"The {area} surface is the primary touch-point for the "
             "intended-use workflow it serves; explicit traceability lets "
@@ -41,8 +41,7 @@ def _ui_un(area: str, who: str, what: str, why: str) -> dict:
             "source_reference.",
             "Every file in the bucket carries the canonical Atlas trace "
             "header pointing at this DO.",
-            "The DO is reachable from a UN and parented by a DI in "
-            "Atlas.",
+            "The DO is reachable from a UN and parented by a DI in " "Atlas.",
         ],
         "priority": "MUST",
         "safety_class": DEFAULT_SAFETY_CLASS,
@@ -110,7 +109,6 @@ BUCKET_META: dict[str, dict] = {
             "guidance, monitoring dashboards, and onboarding flows.",
         ),
     },
-
     "ui-care-portal": {
         "un": _ui_un(
             "Care portal",
@@ -141,7 +139,6 @@ BUCKET_META: dict[str, dict] = {
             "list and timeline components that drive the care portal.",
         ),
     },
-
     "ui-mission-control": {
         "un": _ui_un(
             "Encounter Mission Control",
@@ -160,8 +157,7 @@ BUCKET_META: dict[str, dict] = {
                 "Live pipeline events appear without manual refresh.",
                 "Reviewer actions complete optimistically and reconcile "
                 "against the server response.",
-                "Escalation entry points are present for every "
-                "reviewable artefact.",
+                "Escalation entry points are present for every " "reviewable artefact.",
             ],
         ),
         "do": _do(
@@ -170,7 +166,6 @@ BUCKET_META: dict[str, dict] = {
             "implementing the per-encounter Mission Control workspace.",
         ),
     },
-
     "ui-pathway-explorer": {
         "un": _ui_un(
             "Pathway Explorer",
@@ -186,8 +181,7 @@ BUCKET_META: dict[str, dict] = {
             "lists, escalation-rule editors, and pathway risk overlays "
             "for the configured cancer pathway taxonomy.",
             [
-                "Pathway map reflects the latest published pathway "
-                "definition.",
+                "Pathway map reflects the latest published pathway " "definition.",
                 "Escalation rule edits round-trip through the API and "
                 "appear in the next render.",
                 "Pathway risk overlay differentiates priority bands "
@@ -201,7 +195,6 @@ BUCKET_META: dict[str, dict] = {
             "that together render the Pathway Explorer surface.",
         ),
     },
-
     "ui-document-editor": {
         "un": _ui_un(
             "Document and gold-label editor",
@@ -218,8 +211,7 @@ BUCKET_META: dict[str, dict] = {
             "with schema validation, and expose context-rule and "
             "safety-netting tooling.",
             [
-                "Edits dispatch the correct mutation and refresh local "
-                "state.",
+                "Edits dispatch the correct mutation and refresh local " "state.",
                 "Schema-builder catches invalid gold-label shapes "
                 "before submission.",
                 "Safety-netting overlays render any safety-critical "
@@ -234,7 +226,6 @@ BUCKET_META: dict[str, dict] = {
             "and standalone editor utilities.",
         ),
     },
-
     "ui-audit-and-analytics": {
         "un": _ui_un(
             "Audit, dashboards and benchmarks",
@@ -252,8 +243,7 @@ BUCKET_META: dict[str, dict] = {
             "episode timelines, training games, and report exports.",
             [
                 "Charts respect the global date filter context.",
-                "Benchmarks load lazily and degrade gracefully on slow "
-                "tenants.",
+                "Benchmarks load lazily and degrade gracefully on slow " "tenants.",
                 "Reports export to the documented file shapes (CSV, "
                 "PDF) without losing column metadata.",
             ],
@@ -266,7 +256,6 @@ BUCKET_META: dict[str, dict] = {
             "/cohorts, /reports, /measures.",
         ),
     },
-
     "ui-operations-and-tenant": {
         "un": _ui_un(
             "Operations console and tenant integration",
@@ -298,7 +287,6 @@ BUCKET_META: dict[str, dict] = {
             "Entra integration components.",
         ),
     },
-
     "ui-settings-and-auth": {
         "un": _ui_un(
             "Settings, auth and onboarding",
@@ -317,8 +305,7 @@ BUCKET_META: dict[str, dict] = {
             [
                 "Sign-in flows complete via the configured Entra app.",
                 "Onboarding only shows for users without a tenant role.",
-                "Settings changes persist server-side and survive a "
-                "reload.",
+                "Settings changes persist server-side and survive a " "reload.",
             ],
         ),
         "do": _do(
@@ -328,7 +315,6 @@ BUCKET_META: dict[str, dict] = {
             "implementing the auth, settings, and onboarding shell.",
         ),
     },
-
     "ui-frontend-api-client": {
         "un": _ui_un(
             "Frontend API client and proxy",
@@ -359,7 +345,6 @@ BUCKET_META: dict[str, dict] = {
             "/api/* proxy routes, and the proxy.ts entry-point.",
         ),
     },
-
     "ui-shared-utilities": {
         "un": _ui_un(
             "Shared frontend utilities",
@@ -377,8 +362,7 @@ BUCKET_META: dict[str, dict] = {
             "services/ui/src/{lib, hooks, context, stores}/* with one "
             "canonical implementation per concern.",
             [
-                "Hooks follow the use* naming convention and are "
-                "test-covered.",
+                "Hooks follow the use* naming convention and are " "test-covered.",
                 "Contexts expose typed providers; consumers use the "
                 "context type, not its primitives.",
                 "Lib helpers are pure functions with deterministic "
@@ -392,7 +376,6 @@ BUCKET_META: dict[str, dict] = {
             "AuthProviderWrapper / UnauthorizedScreen components.",
         ),
     },
-
     "design-system": {
         "un": _ui_un(
             "Design system",
@@ -425,7 +408,6 @@ BUCKET_META: dict[str, dict] = {
             "provider.",
         ),
     },
-
     # ---- Backend services/api ----
     "api-routers": {
         "un": _ui_un(
@@ -445,8 +427,7 @@ BUCKET_META: dict[str, dict] = {
             [
                 "Every router enforces the standard auth dependency.",
                 "Every mutating endpoint emits an audit event.",
-                "Routers are versioned via path prefix and "
-                "documented in OpenAPI.",
+                "Routers are versioned via path prefix and " "documented in OpenAPI.",
             ],
         ),
         "do": _do(
@@ -456,7 +437,6 @@ BUCKET_META: dict[str, dict] = {
             "consumed by the UI and external callers.",
         ),
     },
-
     "api-services-ai-first-pass": {
         "un": _ui_un(
             "AI first-pass candidate generation",
@@ -476,8 +456,7 @@ BUCKET_META: dict[str, dict] = {
             [
                 "Candidate generation is deterministic given the same "
                 "input and model version.",
-                "Scoring exposes per-candidate confidence the UI can "
-                "render.",
+                "Scoring exposes per-candidate confidence the UI can " "render.",
                 "Review queue entries carry provenance back to the "
                 "originating document and span.",
             ],
@@ -490,7 +469,6 @@ BUCKET_META: dict[str, dict] = {
             "handling for the AI first pass.",
         ),
     },
-
     "api-services": {
         "un": _ui_un(
             "API service tier",
@@ -498,8 +476,7 @@ BUCKET_META: dict[str, dict] = {
             "a service tier that implements training, context "
             "reconciliation, label verification, mail, sync, and "
             "tenant seeding business logic",
-            "routers stay thin and orchestration logic is unit-tested "
-            "and reusable",
+            "routers stay thin and orchestration logic is unit-tested " "and reusable",
         ),
         "di": _di(
             "API service tier SHALL implement business logic outside routers",
@@ -509,8 +486,7 @@ BUCKET_META: dict[str, dict] = {
             "tenant seeding, model config seeding, etc) and shall not "
             "depend on the router layer.",
             [
-                "Service modules are importable without starting the "
-                "FastAPI app.",
+                "Service modules are importable without starting the " "FastAPI app.",
                 "Each service has a clear public function signature "
                 "with typed inputs/outputs.",
                 "Side effects (DB writes, HTTP calls) are isolated "
@@ -525,7 +501,6 @@ BUCKET_META: dict[str, dict] = {
             "routers.",
         ),
     },
-
     "api-models-and-main": {
         "un": _ui_un(
             "API entrypoint and shared models",
@@ -545,8 +520,7 @@ BUCKET_META: dict[str, dict] = {
             [
                 "main.py wires every router, the standard middleware, "
                 "and observability hooks.",
-                "Contracts in models/* are imported by both routers "
-                "and services.",
+                "Contracts in models/* are imported by both routers " "and services.",
                 "Schema changes are backwards-compatible or versioned.",
             ],
         ),
@@ -556,7 +530,6 @@ BUCKET_META: dict[str, dict] = {
             "contract modules under services/api/app/models/*.",
         ),
     },
-
     # ---- Workers / pipeline / libs ----
     "analysis-worker": {
         "un": _ui_un(
@@ -576,12 +549,10 @@ BUCKET_META: dict[str, dict] = {
             "into structured episodes consumed by the rest of the "
             "platform.",
             [
-                "Each analyzer is pure given its inputs (no global "
-                "mutable state).",
+                "Each analyzer is pure given its inputs (no global " "mutable state).",
                 "The episode builder dispatch is deterministic per "
                 "site and document.",
-                "Analyzers expose explicit fail-open / fail-closed "
-                "behaviour.",
+                "Analyzers expose explicit fail-open / fail-closed " "behaviour.",
             ],
         ),
         "do": _do(
@@ -591,7 +562,6 @@ BUCKET_META: dict[str, dict] = {
             "episodes.",
         ),
     },
-
     "pipeline-graph-subgraphs": {
         "un": _ui_un(
             "Pipeline graph subgraphs",
@@ -607,12 +577,10 @@ BUCKET_META: dict[str, dict] = {
             "LangGraph subgraph definitions and shared helpers that "
             "compose the runtime extraction pipeline.",
             [
-                "Each subgraph is independently importable and "
-                "testable.",
+                "Each subgraph is independently importable and " "testable.",
                 "Shared helpers do not import from individual "
                 "subgraphs (no circular dependencies).",
-                "Subgraph wiring is configuration-driven where "
-                "feasible.",
+                "Subgraph wiring is configuration-driven where " "feasible.",
             ],
         ),
         "do": _do(
@@ -622,7 +590,6 @@ BUCKET_META: dict[str, dict] = {
             "extraction pipeline.",
         ),
     },
-
     "pipeline-worker": {
         "un": _ui_un(
             "Pipeline worker entrypoints",
@@ -630,8 +597,7 @@ BUCKET_META: dict[str, dict] = {
             "a pipeline worker bootstrap that subscribes to work, "
             "dispatches it to the right pipeline graph, and reports "
             "telemetry",
-            "the platform processes documents reliably with one "
-            "audited entry point",
+            "the platform processes documents reliably with one " "audited entry point",
         ),
         "di": _di(
             "Pipeline worker SHALL bootstrap and dispatch work reliably",
@@ -639,8 +605,7 @@ BUCKET_META: dict[str, dict] = {
             "subscribe to the work queue, dispatch each document to "
             "the right pipeline graph, and emit telemetry.",
             [
-                "Worker startup logs the active model and graph "
-                "version.",
+                "Worker startup logs the active model and graph " "version.",
                 "Failed dispatches are retried with bounded backoff.",
                 "Telemetry events distinguish success, retryable "
                 "failure, and terminal failure.",
@@ -652,7 +617,6 @@ BUCKET_META: dict[str, dict] = {
             "the worker bootstrap and dispatch loop.",
         ),
     },
-
     "coding-worker": {
         "un": _ui_un(
             "Coding worker entrypoints",
@@ -668,10 +632,8 @@ BUCKET_META: dict[str, dict] = {
             "coding pipeline for each document, and emit telemetry.",
             [
                 "Worker startup logs the coding pipeline version.",
-                "Each document is coded exactly once unless explicitly "
-                "re-queued.",
-                "Telemetry mirrors the pipeline worker schema for "
-                "consistency.",
+                "Each document is coded exactly once unless explicitly " "re-queued.",
+                "Telemetry mirrors the pipeline worker schema for " "consistency.",
             ],
         ),
         "do": _do(
@@ -680,7 +642,6 @@ BUCKET_META: dict[str, dict] = {
             "the coding worker bootstrap and dispatch loop.",
         ),
     },
-
     "terminology-tools": {
         "un": _ui_un(
             "Terminology tooling and Neo4j MCP tools",
@@ -697,12 +658,9 @@ BUCKET_META: dict[str, dict] = {
             "services/neo4j_mcp/tools/* shall expose the read-only "
             "Neo4j MCP tools used by Cursor agents.",
             [
-                "Maintenance scripts are idempotent and "
-                "resume-safe.",
-                "MCP tools are read-only and reject mutating "
-                "Cypher.",
-                "Both surfaces emit structured logs the platform "
-                "can audit.",
+                "Maintenance scripts are idempotent and " "resume-safe.",
+                "MCP tools are read-only and reject mutating " "Cypher.",
+                "Both surfaces emit structured logs the platform " "can audit.",
             ],
         ),
         "do": _do(
@@ -711,13 +669,11 @@ BUCKET_META: dict[str, dict] = {
             "Neo4j MCP tool modules under services/neo4j_mcp/tools/*.",
         ),
     },
-
     "prompts-episode-engine": {
         "un": _ui_un(
             "Episode engine prompts",
             "the episode engine maintainer",
-            "versioned prompt templates for the episode engine LLM "
-            "steps",
+            "versioned prompt templates for the episode engine LLM " "steps",
             "we can iterate on episode-engine prompts under change "
             "control without scattering them across the codebase",
         ),
@@ -727,12 +683,9 @@ BUCKET_META: dict[str, dict] = {
             "templates the episode engine uses to drive its LLM "
             "steps, with explicit versioning.",
             [
-                "Prompts are pure Python data with no runtime "
-                "dependencies.",
-                "Each prompt has a stable identifier referenced by "
-                "the engine.",
-                "Prompt changes are reviewable via diff in pull "
-                "requests.",
+                "Prompts are pure Python data with no runtime " "dependencies.",
+                "Each prompt has a stable identifier referenced by " "the engine.",
+                "Prompt changes are reviewable via diff in pull " "requests.",
             ],
         ),
         "do": _do(
@@ -741,7 +694,6 @@ BUCKET_META: dict[str, dict] = {
             "consumed by the episode engine LLM steps.",
         ),
     },
-
     "analytics-and-ods-sync": {
         "un": _ui_un(
             "Analytics API and ODS sync",
@@ -757,12 +709,9 @@ BUCKET_META: dict[str, dict] = {
             "read API; services/ods_sync/app/* shall implement the "
             "scheduled ODS reference data sync.",
             [
-                "Analytics API endpoints are paginated and filterable "
-                "by date.",
-                "ODS sync runs on a schedule and records its last "
-                "successful run.",
-                "Both services log structured events the platform "
-                "can audit.",
+                "Analytics API endpoints are paginated and filterable " "by date.",
+                "ODS sync runs on a schedule and records its last " "successful run.",
+                "Both services log structured events the platform " "can audit.",
             ],
         ),
         "do": _do(
@@ -772,7 +721,6 @@ BUCKET_META: dict[str, dict] = {
             "API and scheduled ODS sync.",
         ),
     },
-
     "libs-cypher-helpers": {
         "un": _ui_un(
             "Cypher query helpers",
@@ -790,8 +738,7 @@ BUCKET_META: dict[str, dict] = {
             [
                 "Each query builder returns parameterised Cypher (no "
                 "string interpolation of values).",
-                "Every query is unit-tested against the canonical "
-                "graph schema.",
+                "Every query is unit-tested against the canonical " "graph schema.",
                 "Renames at the schema level are made in libs/cypher "
                 "first, then propagated.",
             ],
@@ -802,7 +749,6 @@ BUCKET_META: dict[str, dict] = {
             "backend service that talks to Neo4j.",
         ),
     },
-
     "libs-shared-utilities": {
         "un": _ui_un(
             "Shared backend libraries",
@@ -820,10 +766,8 @@ BUCKET_META: dict[str, dict] = {
             "domains, etc).",
             [
                 "Each shared module has a focused public surface.",
-                "Imports flow from libs/* into services/*, never the "
-                "other way.",
-                "Mocks for shared modules live in tests/, not in "
-                "production code.",
+                "Imports flow from libs/* into services/*, never the " "other way.",
+                "Mocks for shared modules live in tests/, not in " "production code.",
             ],
         ),
         "do": _do(

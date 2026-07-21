@@ -23,9 +23,31 @@ class PostProcessingState(TypedDict, total=False):
     rules: list[dict[str, Any]]
     enable_disorder_gate: bool
     coding_mode: str
+    org_id: str
+    local_concept_patterns: list[Any]
     processed_entities: list[dict[str, Any]]
     post_processing_trace: list[dict[str, Any]]
     errors: list[str]
+
+
+def _resolve_local_patterns(state: PostProcessingState) -> list[Any]:
+    """Use injected patterns, else load active package patterns for org_id."""
+    injected = state.get("local_concept_patterns")
+    if injected is not None:
+        return list(injected or [])
+    org_id = str(state.get("org_id") or "").strip() or None
+    try:
+        from libs.neo4j_client.client import KnowledgeGraphClient
+        from libs.ner.local_concept_recovery import load_active_package_patterns
+
+        client = KnowledgeGraphClient()
+        try:
+            return load_active_package_patterns(client, org_id)
+        finally:
+            client.close()
+    except Exception:
+        logger.debug("active local package pattern load skipped", exc_info=True)
+        return []
 
 
 def run_post_process(state: PostProcessingState) -> dict[str, Any]:
@@ -40,12 +62,14 @@ def run_post_process(state: PostProcessingState) -> dict[str, Any]:
         enable_disorder_gate = state.get("enable_disorder_gate", False)
         coding_mode = state.get("coding_mode", "hitl")
         rules = parse_rules(raw_rules) if raw_rules else None
+        patterns = _resolve_local_patterns(state)
         processed, layer_trace = run_post_processing_with_trace(
             encounter_text,
             entities,
             rules=rules,
             enable_disorder_gate=enable_disorder_gate,
             coding_mode=coding_mode,
+            local_concept_patterns=patterns,
         )
         return {
             "entities": processed,

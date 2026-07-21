@@ -6,10 +6,13 @@
  */
 
 import {
+  addPrerequisiteToOrSymptoms,
   applyUpdate,
   assignNodeIds,
   findValidationError,
+  hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
+  isOrGroupSymptomsOnly,
   isTreeVisuallyEmpty,
   promoteOrPrerequisites,
   stripNodeIds,
@@ -82,6 +85,45 @@ describe("treeOps", () => {
     );
   });
 
+  it("add_group nests a new empty OR sub-group under an AND pathway, enabling AND + a set of OR's", () => {
+    const tree = makeTree();
+    const updated = applyUpdate(tree, {
+      kind: "add_group",
+      parentNodeId: tree.node_id,
+      groupKind: "OR",
+    });
+    expect(updated!.children).toHaveLength(3);
+    const newGroup = updated!.children![2];
+    expect(newGroup.kind).toBe("OR");
+    expect(newGroup.children).toEqual([]);
+    // The new sub-group can then take its own CONCEPT children,
+    // OR'd together, while sitting alongside the AND siblings.
+    const withConcept = applyUpdate(updated!, {
+      kind: "add_concept",
+      parentNodeId: newGroup.node_id,
+      criterion: {
+        snomed_concept_id: "84229001",
+        preferred_term: "Fatigue (finding)",
+        semantic_tag: "finding",
+      },
+    });
+    expect(withConcept!.children![2].children).toHaveLength(1);
+    expect(withConcept!.children![2].children![0].criterion?.snomed_concept_id).toBe(
+      "84229001",
+    );
+  });
+
+  it("add_group is a no-op when the target cannot have children", () => {
+    const tree = makeTree();
+    const conceptNode = tree.children![1].children![0];
+    const updated = applyUpdate(tree, {
+      kind: "add_group",
+      parentNodeId: conceptNode.node_id,
+      groupKind: "AND",
+    });
+    expect(updated).toEqual(tree);
+  });
+
   it("remove deletes the targeted node and refuses to remove the root", () => {
     const tree = makeTree();
     const ageNode = tree.children![0];
@@ -110,7 +152,7 @@ describe("treeOps", () => {
     const tree = assignNodeIds({ kind: "AND", children: [] });
     const msg = findValidationError(tree);
     expect(msg).toMatch(/empty/i);
-    expect(msg).toMatch(/symptom or patient detail/i);
+    expect(msg).toMatch(/symptom, procedure, situation, or patient detail/i);
   });
 
   it("findValidationError flags AT_LEAST whose min exceeds children", () => {
@@ -131,7 +173,7 @@ describe("treeOps", () => {
       children: [{ kind: "CONCEPT", criterion: { snomed_concept_id: "", preferred_term: "?" } }],
     });
     const msg = findValidationError(tree);
-    expect(msg).toMatch(/pick a symptom or sign/i);
+    expect(msg).toMatch(/pick a symptom, sign, procedure, or situation/i);
     expect(msg).toMatch(/search box on the right/i);
   });
 
@@ -467,5 +509,86 @@ describe("hasOrRootWithPrerequisites", () => {
 
   it("returns false for null", () => {
     expect(hasOrRootWithPrerequisites(null)).toBe(false);
+  });
+});
+
+describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
+  function makeOrSymptoms(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: {
+            snomed_concept_id: "262285001",
+            preferred_term: "Weight decreased",
+          },
+        },
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "84229001", preferred_term: "Fatigue" },
+        },
+        {
+          kind: "CONCEPT",
+          criterion: {
+            snomed_concept_id: "62315008",
+            preferred_term: "Altered bowel function",
+          },
+        },
+      ],
+    });
+  }
+
+  it("detects OR root with symptom leaves only", () => {
+    const tree = makeOrSymptoms();
+    expect(isOrGroupSymptomsOnly(tree)).toBe(true);
+    expect(hasOrRootSymptomsOnly(tree)).toBe(true);
+  });
+
+  it("add_demographic restructures OR symptoms into AND[demographic, OR[symptoms]]", () => {
+    const tree = makeOrSymptoms();
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: tree.node_id,
+    });
+    expect(updated!.kind).toBe("AND");
+    const kids = updated!.children ?? [];
+    expect(kids[0].kind).toBe("DEMOGRAPHIC");
+    expect(kids[1].kind).toBe("OR");
+    expect(kids[1].children).toHaveLength(3);
+  });
+
+  it("add_demographic on AND root still appends without restructuring", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+        },
+      ],
+    });
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: tree.node_id,
+    });
+    expect(updated!.kind).toBe("AND");
+    expect(updated!.children).toHaveLength(2);
+    expect(updated!.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
+  });
+
+  it("addPrerequisiteToOrSymptoms preserves all symptom nodes", () => {
+    const tree = makeOrSymptoms();
+    const prereq = assignNodeIds({
+      kind: "DEMOGRAPHIC",
+      field: "sex",
+      operator: "=",
+      value: "female",
+      unit: null,
+    });
+    const fixed = addPrerequisiteToOrSymptoms(tree, prereq);
+    expect(fixed.kind).toBe("AND");
+    expect(fixed.children![0].field).toBe("sex");
+    expect(fixed.children![1].children).toHaveLength(3);
   });
 });

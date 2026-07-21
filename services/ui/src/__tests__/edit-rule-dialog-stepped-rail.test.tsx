@@ -1,8 +1,8 @@
 /**
  * VT-LEO-AI-511 -- TC-002 rail navigation.
  *
- * Verifies that the StepRail renders four numbered jump-able steps and
- * that clicking a rail item swaps the visible step canvas.
+ * Verifies that the StepRail renders three numbered jump-able steps
+ * and that clicking a rail item swaps the visible step canvas.
  */
 
 import React from "react";
@@ -54,7 +54,7 @@ afterEach(() => {
 });
 
 describe("EditRuleDialog stepped rail -- VT-511-TC-002", () => {
-  it("renders four numbered jump-able steps with state chips and navigates on click", () => {
+  it("renders three numbered jump-able steps with state chips and navigates on click", () => {
     mockSearch();
     render(
       <EditRuleDialog
@@ -70,33 +70,33 @@ describe("EditRuleDialog stepped rail -- VT-511-TC-002", () => {
       screen.getByRole("navigation", { name: /steps to change this rule/i }),
     ).toBeInTheDocument();
 
-    // Four numbered step buttons are present.
-    for (const n of [1, 2, 3, 4]) {
+    // Three numbered step buttons are present.
+    for (const n of [1, 2, 3]) {
       const btn = screen.getByRole("button", {
-        name: new RegExp(`^Step ${n} of 4`, "i"),
+        name: new RegExp(`^Step ${n} of 3`, "i"),
       });
       expect(btn).toBeInTheDocument();
     }
 
-    // Step 1 starts current; the canvas region is "Step 1 of 4".
+    // Step 1 starts current; the canvas region is "Step 1 of 3".
     expect(
-      screen.getByRole("region", { name: /^Step 1 of 4$/i }),
+      screen.getByRole("region", { name: /^Step 1 of 3$/i }),
     ).toBeInTheDocument();
 
-    // Click step 4: the Save reason field appears (only on step 4).
+    // Click step 3: the Save reason field appears (only on step 3).
     fireEvent.click(
-      screen.getByRole("button", { name: /^Step 4 of 4/i }),
+      screen.getByRole("button", { name: /^Step 3 of 3/i }),
     );
     expect(
       screen.getByLabelText(/why are you changing this rule/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("region", { name: /^Step 4 of 4$/i }),
+      screen.getByRole("region", { name: /^Step 3 of 3$/i }),
     ).toBeInTheDocument();
 
     // Jump back to step 2: action chip and strength dropdown appear.
     fireEvent.click(
-      screen.getByRole("button", { name: /^Step 2 of 4/i }),
+      screen.getByRole("button", { name: /^Step 2 of 3/i }),
     );
     expect(
       screen.getAllByLabelText(/short name for this rule/i)[0],

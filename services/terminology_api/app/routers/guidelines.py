@@ -17,16 +17,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
-import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from libs.auth.service_auth import get_service_auth_header, verify_service_token
+from libs.auth.service_auth import verify_service_token
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 from services.terminology_api.app.services.guideline_compiler import (
     CompileScope,
@@ -127,6 +125,13 @@ class EvaluateRequest(BaseModel):
     ``APPLIES_TO`` constraints (e.g. age >= 40).  Rules that require an age
     check are skipped when this is not supplied."""
     patient_sex: str | None = None
+    """NHS PDS administrative gender.  Accepted values:
+    ``"male"`` or ``"female"`` -- rules are evaluated and a limitation notice
+    is returned reminding the clinician that PDS gender does not confirm
+    reproductive anatomy.  ``"other"`` or ``"unknown"`` -- gender-specific
+    and anatomy-specific NICE rules are not applied and ``gender_review_flag``
+    is set in the response.  ``None`` (default) -- existing fail-closed
+    behaviour; DEMOGRAPHIC sex nodes will not fire."""
     scope_type: Literal["global", "guideline", "domain", "subdomain", "custom"] = (
         "global"
     )
@@ -161,6 +166,8 @@ class CompileRequest(BaseModel):
     enforce_action_scope: bool = False
     distance_child_override: int | None = None
     distance_parent_override: int | None = None
+    # DI candidate gate: compile writes a version; activate is separate.
+    activate: bool = False
 
 
 class ActivateRequest(BaseModel):
@@ -190,20 +197,14 @@ def evaluate_patient(req: EvaluateRequest) -> dict:
         scope_id=req.scope_id,
         ruleset_version=req.ruleset_version,
         patient_observations=(
-            [obs.model_dump() for obs in req.observations]
-            if req.observations
-            else None
+            [obs.model_dump() for obs in req.observations] if req.observations else None
         ),
         active_medications=(
             [m.model_dump() for m in req.active_medications]
             if req.active_medications
             else None
         ),
-        allergies=(
-            [a.model_dump() for a in req.allergies]
-            if req.allergies
-            else None
-        ),
+        allergies=([a.model_dump() for a in req.allergies] if req.allergies else None),
         treatment_history=(
             [t.model_dump() for t in req.treatment_history]
             if req.treatment_history
@@ -262,20 +263,14 @@ def diagnose_patient(req: DiagnoseRequest) -> dict:
         scope_id=req.scope_id,
         ruleset_version=req.ruleset_version,
         patient_observations=(
-            [obs.model_dump() for obs in req.observations]
-            if req.observations
-            else None
+            [obs.model_dump() for obs in req.observations] if req.observations else None
         ),
         active_medications=(
             [m.model_dump() for m in req.active_medications]
             if req.active_medications
             else None
         ),
-        allergies=(
-            [a.model_dump() for a in req.allergies]
-            if req.allergies
-            else None
-        ),
+        allergies=([a.model_dump() for a in req.allergies] if req.allergies else None),
         treatment_history=(
             [t.model_dump() for t in req.treatment_history]
             if req.treatment_history
@@ -334,18 +329,15 @@ async def compile_draft_bitmap(body: CompileDraftRequest) -> dict:
     by SNOMED closure expansion against Neo4j.
 
     Returns the version + scope so the caller can immediately POST to
-    ``/guidelines/evaluate`` (or to the core API's
-    ``/guidance/test-patients/sandbox-replay``) using the same
-    scope_type=custom, scope_id=<sandbox>.
+    ``/guidelines/evaluate`` using the same scope_type=custom,
+    scope_id=<sandbox>.
     """
     if not body.rules:
         raise HTTPException(
             status_code=400, detail="compile-draft requires at least one rule"
         )
     if not body.scope_id:
-        raise HTTPException(
-            status_code=400, detail="compile-draft requires a scope_id"
-        )
+        raise HTTPException(status_code=400, detail="compile-draft requires a scope_id")
     scope = CompileScope.from_values("custom", body.scope_id)
     if scope.scope_type != "custom":
         raise HTTPException(
@@ -412,9 +404,12 @@ async def compile_bitmap(
     Only rules with status ``active`` are compiled -- rules awaiting review
     are never included.
 
-    Returns a job ID immediately. Check
-    ``GET /terminology/guidelines/bitmap/status`` to see when compilation
-    completes.
+    By default the new version is a **candidate** (``activate=false``) and
+    does not become live. Pass ``activate=true`` only when an explicit
+    go-live is intended. Prefer Activate after fixture + historic tests.
+
+    Returns a job ID immediately. Poll
+    ``GET /terminology/guidelines/bitmap/jobs/{job_id}`` or list versions.
     """
     job_id = str(uuid.uuid4())
     version = f"v{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
@@ -428,6 +423,7 @@ async def compile_bitmap(
         "scope_type": scope.scope_type,
         "scope_id": scope.scope_id,
         "policy_mode": body.policy_mode,
+        "activate": bool(body.activate),
     }
     background_tasks.add_task(_run_compile, job_id, version, body.model_dump())
     return {
@@ -435,7 +431,18 @@ async def compile_bitmap(
         "version": version,
         "scope_type": scope.scope_type,
         "scope_id": scope.scope_id,
+        "activate": bool(body.activate),
+        "status": "candidate" if not body.activate else "activating",
     }
+
+
+@router.get("/guidelines/bitmap/jobs/{job_id}")
+def get_compile_job(job_id: str) -> dict:
+    """Return in-memory compile job status for candidate polling."""
+    job = _compile_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Compile job not found")
+    return dict(job)
 
 
 @router.get("/guidelines/bitmap/versions")
@@ -601,6 +608,7 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
             enforce_action_scope=bool(request_body.get("enforce_action_scope", False)),
             distance_child_override=request_body.get("distance_child_override"),
             distance_parent_override=request_body.get("distance_parent_override"),
+            activate=bool(request_body.get("activate", False)),
         )
         _compile_jobs[job_id].update(
             {
@@ -609,7 +617,10 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
                 **summary,
             }
         )
-        await _trigger_test_patient_replay(version, scope)
+        # Candidate testing against real Validation Lab patients is now a
+        # manual step from the Bitmap Lifecycle UI (pinned via
+        # guideline_ruleset_version on the real referral pipeline), not an
+        # automatic post-compile hook. See libs/validation_lab/pipeline.py.
     except Exception as exc:
         logger.exception("Bitmap compile failed for version %s", version)
         _compile_jobs[job_id].update(
@@ -618,42 +629,3 @@ async def _run_compile(job_id: str, version: str, request_body: dict) -> None:
                 "error": str(exc),
             }
         )
-
-
-CORE_API_URL = os.getenv("CORE_API_URL", "http://localhost:8000").rstrip("/")
-_REPLAY_TIMEOUT_S = float(os.getenv("TEST_PATIENT_REPLAY_TIMEOUT", "60"))
-
-
-async def _trigger_test_patient_replay(version: str, scope: CompileScope) -> None:
-    """POST to the core API to replay saved test patients post-compile.
-
-    Failures are logged but never block the compile; the deploy already
-    succeeded.  The reviewer sees regressions in the admin UI.
-    """
-    if os.getenv("DISABLE_TEST_PATIENT_REPLAY") in ("1", "true"):
-        return
-    body = {
-        "scope_type": scope.scope_type,
-        "scope_id": scope.scope_id,
-        "ruleset_version": version,
-        "guideline_id": (
-            scope.scope_id if scope.scope_type == "guideline" else None
-        ),
-        "persist_report": True,
-    }
-    url = f"{CORE_API_URL}/guidance/test-patients/replay"
-    headers = {
-        "X-Requested-With": "XMLHttpRequest",
-        **get_service_auth_header(),
-    }
-    try:
-        async with httpx.AsyncClient(timeout=_REPLAY_TIMEOUT_S) as client:
-            resp = await client.post(url, json=body, headers=headers)
-        if resp.status_code >= 400:
-            logger.warning(
-                "Test patient replay returned %s: %s",
-                resp.status_code,
-                resp.text[:200],
-            )
-    except Exception as exc:
-        logger.warning("Test patient replay POST failed: %s", exc)

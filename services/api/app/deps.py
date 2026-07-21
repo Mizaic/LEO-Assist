@@ -158,8 +158,7 @@ def require_admin_or_service(
 
     Used on endpoints that can legitimately be called from the admin UI
     (session cookie) and from another internal service over ACA's internal
-    network (e.g. terminology-api -> /guidance/test-patients/replay after a
-    successful guideline compile, see DI-LEO-AI-167).
+    network (service-to-service Bearer token, see DI-LEO-AI-167).
 
     Behaviour:
       - Bearer token + SERVICE_AUTH_SECRET configured: validate timing-safe,

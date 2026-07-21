@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -41,7 +41,6 @@ import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
-import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -59,6 +58,7 @@ import HubIcon from "@mui/icons-material/Hub";
 import BlockIcon from "@mui/icons-material/Block";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 
+import BlockedCodesPanel from "./BlockedCodesPanel";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import SeedDescendantsList from "./SeedDescendantsList";
 import { friendlyTerm } from "./copy";
@@ -382,7 +382,7 @@ function SynonymEditorBody({
                   seedConceptId={seed.snomed_concept_id}
                   seedTerm={seed.preferred_term ?? ""}
                   includeDescendants={seed.include_descendants ?? true}
-                  depth={seed.distance_child ?? 3}
+                  depth={Math.max(1, seed.distance_child ?? 3)}
                   excludedIds={excluded}
                   onBlock={(cid) =>
                     onUpdate({
@@ -413,99 +413,12 @@ function SynonymEditorBody({
         </Button>
       </Box>
 
-      <Box>
-        <Stack
-          direction="row"
-          alignItems="baseline"
-          spacing={0.75}
-          sx={{ mb: 0.5 }}
-        >
-          <BlockIcon sx={{ fontSize: 14, color: "error.main", alignSelf: "center" }} />
-          <Typography variant="caption" sx={{ fontWeight: 700, color: "text.primary" }}>
-            Blocked codes
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {excluded.length} total
-          </Typography>
-        </Stack>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: "block", mb: 0.75, lineHeight: 1.45 }}
-        >
-          These codes will not fire the rule, even if they sit under a
-          chip code.
-        </Typography>
-        <Stack
-          direction="row"
-          spacing={0.5}
-          sx={{ mt: 0.5, flexWrap: "wrap", rowGap: 0.5 }}
-        >
-          {excluded.length === 0 ? (
-            <Box
-              sx={{
-                width: "100%",
-                py: 0.75,
-                px: 1,
-                borderRadius: 1,
-                border: "1px dashed",
-                borderColor: "divider",
-                color: "text.secondary",
-              }}
-            >
-              <Typography variant="caption">
-                Nothing blocked yet.
-              </Typography>
-            </Box>
-          ) : (
-            excluded.map((cid) => (
-              <Chip
-                key={cid}
-                icon={<BlockIcon sx={{ fontSize: 12 }} />}
-                label={`code ${cid}`}
-                size="small"
-                variant="outlined"
-                color="error"
-                onDelete={() =>
-                  onUpdate({
-                    kind: "remove_excluded",
-                    nodeId,
-                    conceptId: cid,
-                  })
-                }
-                deleteIcon={<CloseIcon sx={{ fontSize: 13 }} />}
-                sx={{
-                  height: 24,
-                  fontSize: "0.7rem",
-                  bgcolor: "error.50",
-                  borderColor: "error.light",
-                  "& .MuiChip-icon": { color: "error.dark", ml: 0.5 },
-                }}
-              />
-            ))
-          )}
-        </Stack>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          sx={{ mt: 1 }}
-          alignItems={{ xs: "stretch", sm: "center" }}
-        >
-          <Button
-            size="small"
-            startIcon={<BlockIcon />}
-            onClick={() => setSearchMode("add_excluded")}
-            sx={{ textTransform: "none", fontWeight: 600 }}
-          >
-            Search a code to block
-          </Button>
-          <ManualBlockField
-            onAdd={(cid) =>
-              onUpdate({ kind: "add_excluded", nodeId, conceptId: cid })
-            }
-          />
-        </Stack>
-      </Box>
+      <BlockedCodesPanel
+        nodeId={nodeId}
+        excluded={excluded}
+        onUpdate={onUpdate}
+        onRequestSearch={() => setSearchMode("add_excluded")}
+      />
 
       {searchMode !== "none" && (
         <Box
@@ -535,7 +448,11 @@ function SynonymEditorBody({
                     snomed_concept_id: criterion.snomed_concept_id,
                     preferred_term: criterion.preferred_term,
                     semantic_tag: criterion.semantic_tag,
-                    include_descendants: true,
+                    // Default new synonyms to "exact code only". The author
+                    // opts in to descendant expansion per-seed via the
+                    // toggle so it is never on for a code they have not
+                    // reviewed yet.
+                    include_descendants: false,
                   },
                 });
               } else {
@@ -660,27 +577,36 @@ function SeedRow({
         />
       </Tooltip>
       {includeDescendants && (
-        <TextField
-          size="small"
-          type="number"
-          value={seed.distance_child ?? ""}
-          placeholder="depth"
-          onChange={(e) => {
-            const raw = e.target.value;
-            if (raw === "") {
-              onSetDistance(null);
-              return;
-            }
-            const n = Number(raw);
-            onSetDistance(Number.isFinite(n) ? n : null);
-          }}
-          inputProps={{
-            min: 0,
-            max: 12,
-            "aria-label": `Descendant depth for ${friendly}`,
-          }}
-          sx={{ width: 64 }}
-        />
+        <Tooltip title="How many levels of more specific codes to include. Minimum is 1." arrow>
+          <TextField
+            size="small"
+            type="number"
+            value={seed.distance_child ?? ""}
+            placeholder="depth"
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") {
+                onSetDistance(null);
+                return;
+              }
+              const n = Number(raw);
+              if (!Number.isFinite(n)) {
+                onSetDistance(null);
+                return;
+              }
+              // Depth 0 with the toggle on would match nothing beyond the
+              // exact code -- the same as switching the toggle off -- so
+              // we never let the author land on a value below 1.
+              onSetDistance(Math.max(1, Math.floor(n)));
+            }}
+            inputProps={{
+              min: 1,
+              max: 12,
+              "aria-label": `Descendant depth for ${friendly}, minimum 1`,
+            }}
+            sx={{ width: 64 }}
+          />
+        </Tooltip>
       )}
       <Tooltip title={canRemove ? "Remove this code" : "A chip needs at least one code."} arrow>
         <span>
@@ -698,31 +624,3 @@ function SeedRow({
   );
 }
 
-function ManualBlockField({ onAdd }: { onAdd: (conceptId: string) => void }) {
-  const [value, setValue] = useState("");
-  const trimmed = value.trim();
-  const isNumeric = /^\d{4,18}$/.test(trimmed);
-  return (
-    <Stack direction="row" spacing={0.5} alignItems="center">
-      <TextField
-        size="small"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="paste SNOMED id"
-        inputProps={{ "aria-label": "Block a SNOMED code by id" }}
-        sx={{ width: 160 }}
-      />
-      <Button
-        size="small"
-        variant="outlined"
-        disabled={!isNumeric}
-        onClick={() => {
-          onAdd(trimmed);
-          setValue("");
-        }}
-      >
-        Block
-      </Button>
-    </Stack>
-  );
-}

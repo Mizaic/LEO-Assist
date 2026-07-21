@@ -143,8 +143,14 @@ const nextConfig = {
       { source: "/admin/billing", destination: "/admin/platform?tab=billing", permanent: true },
       { source: "/admin/models", destination: "/admin/platform?tab=model-config", permanent: true },
       { source: "/admin/data-quality", destination: "/admin/platform?tab=data-quality", permanent: true },
-      // Extraction scenarios direct link
-      { source: "/admin/extraction-scenarios", destination: "/admin/knowledge?tab=extraction-scenarios", permanent: true },
+      // Retired harnesses -> Validation Lab (UN-4DCE95C8)
+      { source: "/admin/extraction-scenarios", destination: "/admin/validation-lab", permanent: true },
+      { source: "/admin/ai-summarisation", destination: "/admin/validation-lab", permanent: true },
+      { source: "/admin/coding-validation", destination: "/admin/validation-lab", permanent: true },
+      { source: "/admin/knowledge", has: [{ type: "query", key: "tab", value: "extraction-scenarios" }], destination: "/admin/knowledge?tab=validation-lab", permanent: true },
+      { source: "/admin/knowledge", has: [{ type: "query", key: "tab", value: "ai-summarisation" }], destination: "/admin/knowledge?tab=validation-lab", permanent: true },
+      { source: "/admin/knowledge", has: [{ type: "query", key: "tab", value: "coding-validation" }], destination: "/admin/knowledge?tab=validation-lab", permanent: true },
+      { source: "/admin/knowledge", has: [{ type: "query", key: "tab", value: "test-patients" }], destination: "/admin/knowledge?tab=validation-lab", permanent: true },
     ];
   },
   // Proxying is handled at runtime by src/middleware.ts so the same

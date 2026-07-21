@@ -2,35 +2,33 @@
  * Source-record disclosure renderer.
  *
  * Atlas trace:
- *   DI: DI-85C95E53 (acceptance criterion 1 - both variants render
- *       byte-identical disclosure markup for the same payload)
- *   DI: DI-5F121122 (disclosure-engagement telemetry feeds off the
- *       open / close / source-id-clicked events emitted here)
- *   Risk mitigated: R-4965BCD2 (the disclosure is the safety control
- *       that lets the reviewing clinician verify each Background claim
- *       against the original encounter records)
- *
- * SHARED ACROSS BOTH VARIANTS: this module is imported unchanged by
- * both the Shadow-DOM web component and the iframe shell. The exact
- * same DOM structure and class names are emitted regardless of which
- * trust boundary the host chose. That is what makes acceptance
- * criterion 1 of DI-85C95E53 ("byte-identical rendering of the
- * source-record disclosure given the same assessment payload") true
- * by construction rather than by parallel implementation.
+ *   DI: DI-85C95E53, DI-A898556B
+ *   Risk mitigated: R-4965BCD2
  */
 
-import type { SbarBackgroundPart, SbarStageName } from "../data/types";
+import type {
+  SbarBackgroundPart,
+  SbarSourceRef,
+  SbarStageName,
+} from "../data/types";
 
 export interface DisclosureCallbacks {
   onOpen(part: { stage: SbarStageName }): void;
   onClose(part: { stage: SbarStageName }): void;
-  onSourceClicked(payload: { stage: SbarStageName; sourceId: string }): void;
+  onSourceClicked(payload: {
+    stage: SbarStageName;
+    sourceId: string;
+    label?: string;
+  }): void;
 }
 
 interface DisclosureProps {
   stage: SbarStageName;
   parts: SbarBackgroundPart[];
 }
+
+const UUID_PREFIX_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:/i;
 
 function _formatRecordRange(start: number, end: number): string {
   if (start <= 0 || end <= 0) return "no records";
@@ -54,6 +52,47 @@ function _escape(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/** Clinician-facing label; keeps raw id on data-source-id. */
+export function formatSourceLabel(id: string, typeHint = ""): string {
+  const text = String(id || "").trim();
+  if (!text) return typeHint || "Clinical record";
+  const stripped = text.replace(UUID_PREFIX_RE, "");
+  const parts = stripped.split(":");
+  if (parts.length >= 2 && stripped !== text) {
+    const label = parts.slice(0, -1).join(":");
+    const kind = parts[parts.length - 1];
+    return `${label} (${kind})`;
+  }
+  if (typeHint) {
+    const short =
+      stripped.length <= 24
+        ? stripped
+        : `${stripped.slice(0, 10)}...${stripped.slice(-6)}`;
+    return `${typeHint}: ${short}`;
+  }
+  if (stripped.length > 28) {
+    return `Clinical record (${stripped.slice(0, 8)}...)`;
+  }
+  return stripped;
+}
+
+function _resolveSources(part: SbarBackgroundPart): SbarSourceRef[] {
+  if (Array.isArray(part.sources) && part.sources.length > 0) {
+    return part.sources.map((s) => ({
+      id: s.id,
+      type: s.type,
+      label: s.label || formatSourceLabel(s.id, s.type || ""),
+      preview: s.preview || "",
+      date: s.date ?? null,
+    }));
+  }
+  return (part.sourceIds || []).map((id) => ({
+    id,
+    label: formatSourceLabel(id),
+    preview: "",
+  }));
+}
+
 /**
  * Build the deterministic HTML markup for a source-record disclosure
  * panel. Returns an empty string when the payload contains no source
@@ -65,14 +104,22 @@ export function renderDisclosureHtml({ stage, parts }: DisclosureProps): string 
   const partRows = parts
     .filter((p) => p.sourceIds.length > 0)
     .map((p, i) => {
-      const chips = p.sourceIds
-        .map(
-          (id) =>
+      const sources = _resolveSources(p);
+      const chips = sources
+        .map((src) => {
+          const label = src.label || formatSourceLabel(src.id, src.type || "");
+          const title = src.preview
+            ? `${label} -- ${src.preview}`
+            : src.id;
+          return (
             '<button type="button" class="leo-source-chip" ' +
-            `data-source-id="${_escape(id)}" data-stage="${stage}" ` +
-            `aria-label="Open source record ${_escape(id)}">` +
-            `${_escape(id)}</button>`,
-        )
+            `data-source-id="${_escape(src.id)}" data-stage="${stage}" ` +
+            `data-source-label="${_escape(label)}" ` +
+            `title="${_escape(title)}" ` +
+            `aria-label="Open source record ${_escape(label)}">` +
+            `${_escape(label)}</button>`
+          );
+        })
         .join("");
       const failedSuffix =
         p.status === "failed" ? " -- this part did not finish" : "";
@@ -99,11 +146,44 @@ export function renderDisclosureHtml({ stage, parts }: DisclosureProps): string 
   );
 }
 
+function _openSourceDialog(
+  root: ParentNode,
+  title: string,
+  body: string,
+  sourceId: string,
+): void {
+  const host =
+    root instanceof ShadowRoot
+      ? root
+      : (root as Document).body || (root as HTMLElement);
+  const existing = (host as ParentNode).querySelector?.(".leo-source-dialog");
+  existing?.remove();
+  const dialog = document.createElement("div");
+  dialog.className = "leo-source-dialog";
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("data-testid", "leo-source-dialog");
+  dialog.innerHTML =
+    `<div class="leo-source-dialog-card">` +
+    `<header class="leo-source-dialog-header">` +
+    `<strong>${_escape(title)}</strong>` +
+    `<button type="button" class="leo-source-dialog-close" aria-label="Close">` +
+    `Close</button></header>` +
+    `<p class="leo-source-dialog-meta">Technical id: ${_escape(sourceId)}</p>` +
+    `<pre class="leo-source-dialog-body">${_escape(body)}</pre>` +
+    `</div>`;
+  const close = () => dialog.remove();
+  dialog
+    .querySelector(".leo-source-dialog-close")
+    ?.addEventListener("click", close);
+  dialog.addEventListener("click", (ev) => {
+    if (ev.target === dialog) close();
+  });
+  (host as HTMLElement | ShadowRoot).appendChild(dialog);
+}
+
 /**
  * Wire toggle + chip click handlers on a rendered disclosure subtree.
- * The root argument is the container that holds the disclosure markup
- * (a shadow root for the web-component variant, document.body for the
- * iframe variant). Returns a teardown callback.
  */
 export function attachDisclosureHandlers(
   root: ParentNode,
@@ -133,7 +213,10 @@ export function attachDisclosureHandlers(
     if (chip) {
       const stage = chip.getAttribute("data-stage") as SbarStageName;
       const sourceId = chip.getAttribute("data-source-id") ?? "";
-      callbacks.onSourceClicked({ stage, sourceId });
+      const label = chip.getAttribute("data-source-label") ?? undefined;
+      callbacks.onSourceClicked({ stage, sourceId, label });
+      const preview = chip.getAttribute("title") || label || sourceId;
+      _openSourceDialog(root, label || sourceId, preview, sourceId);
     }
   }
 

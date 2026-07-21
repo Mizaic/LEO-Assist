@@ -2,14 +2,15 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-E647765A
- *   DI: DI-0C8FBAF7
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  */
 import type {
   CriterionResult,
   LogicTreeNode,
   RuleCriterion as Criterion,
 } from "./RuleLogicView";
+import type { RuleAction } from "./EditRuleDialog/types";
 
 export interface ActionConcept {
   snomed_concept_id: string | null;
@@ -33,9 +34,15 @@ export interface Rule {
   absent_criteria: Criterion[];
   logic_tree?: LogicTreeNode | null;
   criteria_concepts?: CriterionResult[];
+  /** One or more recommended procedures, each with its own strength. */
+  actions?: RuleAction[];
+  /** Deprecated: legacy single recommended procedure, kept for rules
+   *  and callers not yet migrated to ``actions``. */
   action?: ActionConcept | null;
   has_predecessor: boolean;
   predecessor_id?: string;
+  previous_recommendation_text?: string | null;
+  previous_recommendation_number?: string | null;
   created_at?: string;
   updated_at?: string;
   reviewed_at?: string;

@@ -38,7 +38,7 @@ Lines starting with >> show real gold-verified span examples:
    If a phrase describes a patient's status, suspected diagnosis, or
    family background rather than a direct action, use "situation".
    >> suspected lower GI cancer | situation | present | SNOMED: 315274008
-   >> FH of breast cancer | situation | absent | SNOMED: 429740004
+   >> FH of breast cancer | situation | present | SNOMED: 429740004
    >> no cancer present | situation | present | SNOMED: 395100000
 
 4) Keep all labels when a phrase has more than one correct label.

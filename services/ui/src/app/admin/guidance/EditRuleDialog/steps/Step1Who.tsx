@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -15,38 +15,28 @@
  * source toggle, and (when the tree is empty) a friendly empty-state
  * CTA.
  *
- * Search is no longer rendered as a sibling column. Instead the
- * parent dialog opens a chip-anchored ChipSearchPopover next to the
- * chip / +Add button the reviewer just clicked. This step component
- * is therefore purely about showing the rule.
- *
- * Design Controls: UN-LEO-AI-094 (v2), DI-LEO-AI-512 (v2),
- *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
+ * The LogicTreeEditor is mounted directly -- no Accordion or BlockEditor
+ * wrapper. Every rule uses the consumer-grade operator-tree builder.
  */
 
-import { useState } from "react";
-import Accordion from "@mui/material/Accordion";
-import AccordionDetails from "@mui/material/AccordionDetails";
-import AccordionSummary from "@mui/material/AccordionSummary";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Link from "@mui/material/Link";
+import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-import BlockEditor from "../BlockEditor";
+import AIDraftButton from "../AIDraftButton";
 import LogicTreeEditor from "../LogicTreeEditor";
-import { type SandboxImpactBadge } from "../SentenceCanvas";
 import {
-  CANVAS_CARDS,
   DUPLICATE_SETS_ALERT,
   STEP_HELPERS,
   STEP_TITLES,
+  OR_SYMPTOMS_PREREQUISITE_HINT,
 } from "../copy";
 import {
+  hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
   isTreeVisuallyEmpty,
   promoteOrPrerequisites,
@@ -66,8 +56,6 @@ interface Props {
   selectedNodeId: string | null;
   duplicates: DuplicateSet[];
   recommendationText?: string;
-  showRecommendation: boolean;
-  onToggleRecommendation: () => void;
 
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
@@ -78,8 +66,14 @@ interface Props {
   onRequestCoach: (nodeId: string, anchor: HTMLElement) => void;
   /** Trigger an empty-state +Add when the tree has no children yet. */
   onAddFirstSymptom: (anchor: HTMLElement) => void;
-  /** Phase 4 sandbox impact badge surfaced on each canvas card. */
-  sandboxBadge?: SandboxImpactBadge;
+  onAddFirstDemographic?: () => void;
+  onAddFirstObservation?: () => void;
+  /** Rule ID used by the AI-draft button. Empty string when unsaved. */
+  ruleId?: string;
+  /** Called when the AI draft succeeds; replaces the current tree. */
+  onAIDraft?: (tree: EditableLogicNode) => void;
+  /** Guideline ID for RULE_FIRED rule picker (DI-6AE25829). */
+  guidelineId?: string;
 }
 
 export default function Step1Who({
@@ -87,14 +81,16 @@ export default function Step1Who({
   selectedNodeId,
   duplicates,
   recommendationText,
-  showRecommendation,
-  onToggleRecommendation,
   onSelectNode,
   onUpdate,
   onRequestAdd,
   onRequestCoach,
   onAddFirstSymptom,
-  sandboxBadge,
+  onAddFirstDemographic,
+  onAddFirstObservation,
+  ruleId = "",
+  onAIDraft,
+  guidelineId,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
 
@@ -102,6 +98,17 @@ export default function Step1Who({
     tree,
     onUpdate,
   });
+
+  const showStructureWarning = tree && hasOrRootWithPrerequisites(tree);
+  const showPrerequisiteHint = tree && hasOrRootSymptomsOnly(tree);
+
+  function handleFixStructure() {
+    if (!tree) return;
+    const fixed = promoteOrPrerequisites(tree);
+    if (fixed !== tree) {
+      onUpdate({ kind: "replace_root", node: fixed });
+    }
+  }
 
   return (
     <Stack spacing={2} sx={{ minWidth: 0 }}>
@@ -137,102 +144,11 @@ export default function Step1Who({
 
       {confirmDialogs}
 
-      {recommendationText && (
-        <Box>
-          <Link
-            component="button"
-            type="button"
-            variant="caption"
-            onClick={onToggleRecommendation}
-            sx={{ textTransform: "none" }}
-          >
-            {showRecommendation
-              ? "Hide the original NICE text"
-              : "Show the original NICE text"}
-          </Link>
-          {showRecommendation && (
-            <Box
-              sx={{
-                mt: 0.5,
-                p: 1.25,
-                borderRadius: 1,
-                bgcolor: "grey.50",
-                border: "1px solid",
-                borderColor: "grey.200",
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ fontStyle: "italic", lineHeight: 1.6 }}
-              >
-                &ldquo;{recommendationText}&rdquo;
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      )}
-
-      {treeIsEmpty ? (
-        <EmptyTreeState onAddFirstSymptom={onAddFirstSymptom} />
-      ) : (
-        tree && (
-          <CanvasAndAdvanced
-            tree={tree}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={onSelectNode}
-            onUpdate={wrappedOnUpdate}
-            onRequestAdd={onRequestAdd}
-            onRequestCoach={onRequestCoach}
-          />
-        )
-      )}
-    </Stack>
-  );
-}
-
-/**
- * Phase 3 layout: the SentenceCanvas is the primary editing surface.
- * The operator-tree editor is demoted to an Advanced-view Accordion
- * directly underneath; first-time reviewers never see it but power
- * users can expand it to access kind selectors, deep nesting, or any
- * shape the canvas reports as "unsupported".
- *
- * The Accordion auto-opens when the canvas reports it cannot render
- * the current shape so the user is not stranded -- the canvas's
- * "Open Advanced view" button calls into the same setter.
- */
-function CanvasAndAdvanced({
-  tree,
-  selectedNodeId,
-  onSelectNode,
-  onUpdate,
-  onRequestAdd,
-  onRequestCoach,
-}: Pick<
-  Props,
-  | "selectedNodeId"
-  | "onSelectNode"
-  | "onUpdate"
-  | "onRequestAdd"
-  | "onRequestCoach"
-> & { tree: EditableLogicNode }) {
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const showStructureWarning = hasOrRootWithPrerequisites(tree);
-
-  function handleFixStructure() {
-    const fixed = promoteOrPrerequisites(tree);
-    if (fixed !== tree) {
-      onUpdate({ kind: "replace_root", node: fixed });
-    }
-  }
-
-  return (
-    <Box sx={{ minWidth: 0 }}>
       {showStructureWarning && (
         <Alert
           severity="warning"
           role="status"
-          sx={{ mb: 2, py: 0.75 }}
+          sx={{ py: 0.75 }}
           action={
             <Button
               size="small"
@@ -248,63 +164,83 @@ function CanvasAndAdvanced({
           <strong>Age looks like a prerequisite, not a pathway.</strong>{" "}
           Age (or a lab value) should always apply -- it should not be a
           pathway alternative. Click <strong>Fix structure</strong> to move
-          it above the pathways so patients must always match it.
+          it above the pathways.
         </Alert>
       )}
-      <BlockEditor
-        tree={tree}
-        selectedNodeId={selectedNodeId}
-        onSelectNode={onSelectNode}
-        onUpdate={onUpdate}
-        onRequestAdd={onRequestAdd}
-        onRequestCoach={onRequestCoach}
-      />
-      <Accordion
-        expanded={advancedOpen}
-        onChange={(_e, expanded) => setAdvancedOpen(expanded)}
-        sx={{
-          mt: 2,
-          boxShadow: "none",
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: 1.5,
-          "&:before": { display: "none" },
-          bgcolor: "grey.50",
-        }}
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon fontSize="small" />}
-          aria-label={CANVAS_CARDS.advancedAccordionTitle}
-          sx={{ minHeight: 44, "& .MuiAccordionSummary-content": { my: 0.75 } }}
+
+      {showPrerequisiteHint && (
+        <Alert
+          severity="info"
+          role="status"
+          aria-label={OR_SYMPTOMS_PREREQUISITE_HINT.ariaLabel}
+          sx={{ py: 0.75 }}
         >
-          <Box>
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 600, color: "text.primary" }}
-            >
-              {CANVAS_CARDS.advancedAccordionTitle}
-            </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: "block", lineHeight: 1.4 }}
-            >
-              {CANVAS_CARDS.advancedAccordionHint}
-            </Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails sx={{ pt: 0 }}>
-          <LogicTreeEditor
-            root={tree}
-            selectedNodeId={selectedNodeId}
-            onSelect={onSelectNode}
-            onUpdate={onUpdate}
-            onRequestAdd={onRequestAdd}
-            onRequestCoach={onRequestCoach}
-          />
-        </AccordionDetails>
-      </Accordion>
-    </Box>
+          {OR_SYMPTOMS_PREREQUISITE_HINT.lead}{" "}
+          {OR_SYMPTOMS_PREREQUISITE_HINT.action}{" "}
+          <strong>{OR_SYMPTOMS_PREREQUISITE_HINT.actionStrong}</strong>{" "}
+          {OR_SYMPTOMS_PREREQUISITE_HINT.tail}
+        </Alert>
+      )}
+
+      {recommendationText && (
+        <Box
+          sx={{
+            p: 1.5,
+            borderLeft: "4px solid",
+            borderColor: "primary.main",
+            bgcolor: "primary.50",
+            borderRadius: "0 8px 8px 0",
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, color: "primary.dark", display: "block", mb: 0.5, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "0.68rem" }}
+          >
+            NICE recommendation
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontStyle: "italic", lineHeight: 1.6, color: "text.primary" }}
+          >
+            {recommendationText}
+          </Typography>
+        </Box>
+      )}
+
+      {treeIsEmpty ? (
+        <EmptyTreeState
+          onAddFirstSymptom={onAddFirstSymptom}
+          onAddFirstDemographic={onAddFirstDemographic}
+          onAddFirstObservation={onAddFirstObservation}
+          ruleId={ruleId}
+          onAIDraft={onAIDraft}
+        />
+      ) : (
+        tree && (
+          <Stack spacing={1.5}>
+            {ruleId && onAIDraft && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                <AIDraftButton
+                  ruleId={ruleId}
+                  onDraft={onAIDraft}
+                  variant="secondary"
+                />
+              </Box>
+            )}
+            <LogicTreeEditor
+              root={tree}
+              selectedNodeId={selectedNodeId}
+              onSelect={onSelectNode}
+              onUpdate={wrappedOnUpdate}
+              onRequestAdd={onRequestAdd}
+              onRequestCoach={onRequestCoach}
+              guidelineId={guidelineId}
+              currentRuleId={ruleId || undefined}
+            />
+          </Stack>
+        )
+      )}
+    </Stack>
   );
 }
 
@@ -329,58 +265,88 @@ function StepHeader() {
   );
 }
 
-/**
- * Friendly empty state shown when the rule has no children. A
- * first-time reviewer should never see a blank canvas with no
- * obvious next action; this gives them one short sentence and a
- * primary CTA they can click to start.
- */
+const emptyAddBtnSx = {
+  borderRadius: 999,
+  textTransform: "none",
+  fontWeight: 500,
+  px: 2,
+  border: "1.5px dashed",
+  borderColor: "divider",
+  color: "text.secondary",
+  bgcolor: "transparent",
+  "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: "primary.50" },
+} as const;
+
 function EmptyTreeState({
   onAddFirstSymptom,
+  onAddFirstDemographic,
+  onAddFirstObservation,
+  ruleId,
+  onAIDraft,
 }: {
   onAddFirstSymptom: (anchor: HTMLElement) => void;
+  onAddFirstDemographic?: () => void;
+  onAddFirstObservation?: () => void;
+  ruleId?: string;
+  onAIDraft?: (tree: EditableLogicNode) => void;
 }) {
   return (
     <Box
       role="status"
       aria-label="This rule is empty"
       sx={{
-        p: 3,
-        borderRadius: 2,
-        border: "1px dashed",
-        borderColor: "divider",
-        bgcolor: "grey.50",
-        textAlign: "center",
+        p: 3, borderRadius: 2,
+        border: "1px dashed", borderColor: "divider",
+        bgcolor: "grey.50", textAlign: "center",
       }}
     >
-      <Typography
-        variant="body1"
-        sx={{ fontWeight: 600, mb: 0.5, color: "text.primary" }}
-      >
-        This rule has no symptoms yet.
+      <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5, color: "text.primary" }}>
+        What does this rule apply to?
       </Typography>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ lineHeight: 1.5, mb: 2 }}
-      >
-        Start by picking the first symptom or sign the patient must have
-        for this rule to apply.
+      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5, mb: 2.5 }}>
+        Start with a symptom, procedure, situation, patient detail (like age or sex), or a lab result.
       </Typography>
-      <Button
-        variant="contained"
-        startIcon={<AddRoundedIcon fontSize="small" />}
-        onClick={(e) => onAddFirstSymptom(e.currentTarget)}
-        aria-label="Add the first symptom or sign to this rule"
-        sx={{
-          borderRadius: 999,
-          textTransform: "none",
-          fontWeight: 600,
-          px: 2.5,
-        }}
-      >
-        Add the first symptom
-      </Button>
+
+      <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" sx={{ rowGap: 1, mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<AddRoundedIcon fontSize="small" />}
+          onClick={(e) => onAddFirstSymptom(e.currentTarget)}
+          aria-label="Add the first symptom, sign, procedure, or situation to this rule"
+          sx={emptyAddBtnSx}
+        >
+          Symptom, procedure, or situation
+        </Button>
+        {onAddFirstDemographic && (
+          <Button
+            variant="outlined"
+            startIcon={<AddRoundedIcon fontSize="small" />}
+            onClick={onAddFirstDemographic}
+            aria-label="Add a patient detail such as age or sex"
+            sx={emptyAddBtnSx}
+          >
+            Patient detail (age, sex&hellip;)
+          </Button>
+        )}
+        {onAddFirstObservation && (
+          <Button
+            variant="outlined"
+            startIcon={<AddRoundedIcon fontSize="small" />}
+            onClick={onAddFirstObservation}
+            aria-label="Add a lab value or measurement"
+            sx={emptyAddBtnSx}
+          >
+            Lab value or reading
+          </Button>
+        )}
+      </Stack>
+
+      {ruleId && onAIDraft && (
+        <>
+          <Divider sx={{ my: 2 }}>or let AI draft it</Divider>
+          <AIDraftButton ruleId={ruleId} onDraft={onAIDraft} variant="primary-cta" />
+        </>
+      )}
     </Box>
   );
 }

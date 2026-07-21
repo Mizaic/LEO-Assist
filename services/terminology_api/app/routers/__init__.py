@@ -7,6 +7,8 @@ __all__ = [
     "concepts_router",
     "surface_forms_router",
     "guidelines_router",
+    "local_concepts_router",
+    "local_packages_router",
 ]
 
 
@@ -41,6 +43,14 @@ def __getattr__(name: str):
         return router
     if name == "guidelines_router":
         from services.terminology_api.app.routers.guidelines import router
+
+        return router
+    if name == "local_concepts_router":
+        from services.terminology_api.app.routers.local_concepts import router
+
+        return router
+    if name == "local_packages_router":
+        from services.terminology_api.app.routers.local_packages import router
 
         return router
     raise AttributeError(name)

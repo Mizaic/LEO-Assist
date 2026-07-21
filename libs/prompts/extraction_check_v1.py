@@ -89,11 +89,11 @@ EXTRACTION_CHECK_EXAMPLES_V1 = [
     {
         "id": "ec-c",
         "category": "assertion_fix",
-        "description": "Family history should not be present",
+        "description": "Family history should be situation present",
         "core": True,
         "model_scope": "any",
         "input": "Encounter: Family history of bowel cancer. Entities: [{text:'bowel cancer',label:'disorder',assertion:'present'}]",
-        "output": '{"drop":[],"correct_assertion":[{"index":0,"assertion":"family"}],"correct_label":[],"add":[]}',
+        "output": '{"drop":[],"correct_assertion":[{"index":0,"assertion":"present"}],"correct_label":[{"index":0,"label":"situation"}],"add":[]}',
     },
     {
         "id": "ec-d",

@@ -164,6 +164,7 @@ class PartitionDescriptor:
     slice_total: int
     char_count: int
     record_index: int = 0  # 1-indexed position in original sources
+    preview: str = ""  # bounded clinician-facing snippet
 
 
 @dataclass
@@ -512,6 +513,7 @@ def partition_background_sources(
                 slice_total=s.slice_total,
                 char_count=len(s.text),
                 record_index=s.record_index,
+                preview=(s.text or "").strip()[:200],
             )
             for s in part_slices
         ]

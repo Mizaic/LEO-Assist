@@ -1,9 +1,8 @@
 """Lexical SNOMED/Read code resolution.
 
 Atlas trace:
-  DO: DO-14D58359
-  DI: DI-F8634363
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-14D58359")
+  DO: DO-E0193D2A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E0193D2A")
 
 Ported from PCA services/api/app/services/v3/coding_resolver.py.
 Runs two retrieval branches (exact surface-form, fulltext) and fuses scores.
@@ -43,6 +42,7 @@ HAS_ASSOCIATED_FINDING edges materialised by the phase-3 loader).
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 import time
@@ -409,6 +409,26 @@ class CodingResolver:
             if row.get("concept_id")
         }
 
+    def _package_fingerprint(self, neo4j_session, org_id: str | None) -> str:
+        """Stable fingerprint of active packages visible for org_id."""
+        try:
+            rows = list(
+                neo4j_session.run(
+                    """
+                    MATCH (p:LocalTerminologyPackage {status: 'active'})
+                    WHERE p.scope = 'global'
+                       OR ($org_id IS NOT NULL AND p.scope = 'tenant'
+                           AND p.org_id = $org_id)
+                    RETURN p.id AS id, coalesce(p.version, 1) AS version
+                    """,
+                    org_id=(org_id or "").strip() or None,
+                )
+            )
+            parts = sorted(f"{r['id']}:{r['version']}" for r in rows if r.get("id"))
+            return hashlib.md5("|".join(parts).encode("utf-8")).hexdigest()[:12]
+        except Exception:
+            return ""
+
     def resolve_candidates(
         self,
         term_texts: list[str],
@@ -416,24 +436,34 @@ class CodingResolver:
         neo4j_session,
         expected_tags: dict[str, str] | None = None,
         enrich_lab_domain: bool = True,
+        org_id: str | None = None,
     ) -> dict[str, list[CodingCandidate]]:
         """Resolve a list of clinical terms to ranked SNOMED candidates.
 
         Uses batched Neo4j queries: ~4 round trips total regardless of how
         many terms are in the list, instead of the previous N × 8-12 per-term
-        sequential queries.
+        sequential queries. Local SurfaceForms are limited to active packages
+        for org_id (global + matching tenant).
         """
         if not term_texts:
             return {}
 
         t0 = time.perf_counter()
         unique_texts = list(dict.fromkeys(term_texts))
+        oid = (org_id or "").strip() or None
+        package_fp = self._package_fingerprint(neo4j_session, oid)
 
         # ── 1. Cache Interception ─────────────────────────────────────────────
         cache_keys: dict[str, str] = {}
         for text in unique_texts:
             tag = (expected_tags or {}).get(text)
-            cache_keys[text] = self._cache.generate_key(text, tag, enrich_lab_domain)
+            cache_keys[text] = self._cache.generate_key(
+                text,
+                tag,
+                enrich_lab_domain,
+                org_id=oid,
+                package_fingerprint=package_fp,
+            )
 
         cached_payloads = self._cache.mget(list(cache_keys.values()))
 
@@ -463,7 +493,7 @@ class CodingResolver:
         # ── Batch exact branch (Term + SurfaceForm, 1 round trip) ──────────────
         normalized_map: dict[str, str] = {t: normalize_surface(t) for t in misses}
         exact_hit_terms: set[str] = self._batch_exact(
-            misses, normalized_map, neo4j_session, merged_all
+            misses, normalized_map, neo4j_session, merged_all, org_id=oid
         )
         t_exact = time.perf_counter()
         logger.debug(
@@ -478,7 +508,7 @@ class CodingResolver:
         # Short-circuit: skip if a term got exact hits from BOTH Term and SurfaceForm.
         fulltext_needed = [t for t in misses if t not in exact_hit_terms]
         if fulltext_needed:
-            self._batch_fulltext(fulltext_needed, neo4j_session, merged_all)
+            self._batch_fulltext(fulltext_needed, neo4j_session, merged_all, org_id=oid)
         t_fulltext = time.perf_counter()
         logger.debug(
             "[resolver] fulltext  terms_needed=%d  elapsed=%.3fs",
@@ -531,9 +561,9 @@ class CodingResolver:
         for text in misses:
             key = cache_keys[text]
             cache_writes[key] = [asdict(c) for c in results.get(text, [])]
-            
+
         self._cache.msetex(cache_writes)
-        
+
         resolved = sum(1 for text in misses if results.get(text))
         t_fuse = time.perf_counter()
         logger.info(
@@ -556,6 +586,7 @@ class CodingResolver:
         normalized_map: dict[str, str],
         session,
         merged_all: dict[str, dict[str, dict[str, Any]]],
+        org_id: str | None = None,
     ) -> set[str]:
         """Run batched exact match (Term + SurfaceForm) for all terms.
 
@@ -571,12 +602,15 @@ class CodingResolver:
         if not norm_to_terms:
             return set()
 
+        oid = (org_id or "").strip() or None
+
         # Probe SurfaceForm label existence once (cached on instance)
         if self._surface_form_exact_ok is None:
             try:
                 probe = list(
                     session.run(
-                        "CALL db.labels() YIELD label WHERE label = 'SurfaceForm' RETURN 1 AS ok LIMIT 1"
+                        "CALL db.labels() YIELD label "
+                        "WHERE label = 'SurfaceForm' RETURN 1 AS ok LIMIT 1"
                     )
                 )
                 self._surface_form_exact_ok = bool(probe)
@@ -591,6 +625,7 @@ class CodingResolver:
                 session.run(
                     BATCH_EXACT_QUERY,
                     normalized_terms=list(norm_to_terms.keys()),
+                    org_id=oid,
                 )
             )
             for row in rows:
@@ -603,10 +638,9 @@ class CodingResolver:
                         hit_terms.add(orig_term)
         except Exception:
             logger.debug(
-                "BATCH_EXACT_QUERY failed — falling back to per-term exact",
+                "BATCH_EXACT_QUERY failed - falling back to per-term exact",
                 exc_info=True,
             )
-            # Fallback: per-term exact queries
             for term in terms:
                 norm = normalized_map[term]
                 if not norm:
@@ -619,7 +653,10 @@ class CodingResolver:
                         hit_terms.add(term)
                     if self._surface_form_exact_ok:
                         for rec in session.run(
-                            EXACT_SURFACE_FORM_QUERY, normalized=norm, k=self.k_exact
+                            EXACT_SURFACE_FORM_QUERY,
+                            normalized=norm,
+                            k=self.k_exact,
+                            org_id=oid,
                         ):
                             _push(merged_all[term], dict(rec), "lexical_exact")
                             hit_terms.add(term)
@@ -633,14 +670,14 @@ class CodingResolver:
         terms: list[str],
         session,
         merged_all: dict[str, dict[str, dict[str, Any]]],
+        org_id: str | None = None,
     ) -> None:
         """Run batched fulltext search for the given terms.
 
         Runs one UNION query per fulltext variant (phrase / raw / AND-tokens),
         merging results for each concept into merged_all per term.
         """
-        # Build the union of all fulltext query variants across all terms.
-        # We run one Neo4j query per variant string, not per term.
+        oid = (org_id or "").strip() or None
         variant_to_terms: dict[str, list[str]] = {}
         for term in terms:
             for ft_q in _build_fulltext_queries(term):
@@ -649,10 +686,13 @@ class CodingResolver:
         for ft_q, _ in variant_to_terms.items():
             try:
                 rows = list(
-                    session.run(BATCH_FULLTEXT_QUERY, ft_query=ft_q, k=self.k_fulltext)
+                    session.run(
+                        BATCH_FULLTEXT_QUERY,
+                        ft_query=ft_q,
+                        k=self.k_fulltext,
+                        org_id=oid,
+                    )
                 )
-                # The UNION query returns hits for the single ft_query string.
-                # We associate those hits back to all terms that produced this variant.
                 for term in variant_to_terms[ft_q]:
                     for rec in rows:
                         _push(merged_all[term], dict(rec), "lexical")
@@ -661,16 +701,22 @@ class CodingResolver:
             except Exception as exc:
                 if "no such fulltext schema index" in str(exc).lower():
                     self._surface_form_fulltext_ok = False
-                # Fall back to individual queries for this variant
                 for term in variant_to_terms[ft_q]:
                     try:
                         for rec in session.run(
                             FULLTEXT_QUERY, ft_query=ft_q, k=self.k_fulltext
                         ):
                             _push(merged_all[term], dict(rec), "lexical")
+                        if self._surface_form_fulltext_ok is not False:
+                            for rec in session.run(
+                                FULLTEXT_SURFACE_FORM_QUERY,
+                                ft_query=ft_q,
+                                k=self.k_fulltext,
+                                org_id=oid,
+                            ):
+                                _push(merged_all[term], dict(rec), "lexical")
                     except Exception:
                         pass
-
 
     def _fuse_and_rank(
         self,
@@ -767,6 +813,7 @@ class CodingResolver:
         mention: str,
         session,
         expected_tag: str | None = None,
+        org_id: str | None = None,
     ) -> list[CodingCandidate]:
         """Resolve a single term using sequential per-term queries.
 
@@ -775,6 +822,7 @@ class CodingResolver:
         """
         normalized = normalize_surface(mention)
         merged: dict[str, dict[str, Any]] = {}
+        oid = (org_id or "").strip() or None
 
         # Branch 1: exact
         if normalized:
@@ -785,7 +833,9 @@ class CodingResolver:
                     if self._surface_form_exact_ok is None:
                         probe = list(
                             session.run(
-                                "CALL db.labels() YIELD label WHERE label = 'SurfaceForm' RETURN 1 AS ok LIMIT 1"
+                                "CALL db.labels() YIELD label "
+                                "WHERE label = 'SurfaceForm' "
+                                "RETURN 1 AS ok LIMIT 1"
                             )
                         )
                         self._surface_form_exact_ok = bool(probe)
@@ -796,6 +846,7 @@ class CodingResolver:
                             EXACT_SURFACE_FORM_QUERY,
                             normalized=normalized,
                             k=self.k_exact,
+                            org_id=oid,
                         ):
                             _push(merged, dict(rec), "lexical_exact")
                 except Exception:
@@ -816,6 +867,7 @@ class CodingResolver:
                         FULLTEXT_SURFACE_FORM_QUERY,
                         ft_query=ft_query,
                         k=self.k_fulltext,
+                        org_id=oid,
                     ):
                         _push(merged, dict(rec), "lexical")
                     if self._surface_form_fulltext_ok is None:

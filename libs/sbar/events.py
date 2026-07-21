@@ -1,9 +1,8 @@
 """Queue contract for SBAR generation jobs.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  DO: DO-3CAFDCC3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3CAFDCC3")
 
 A producer (Admin UI playground, encounter-created hook, referral writer)
 publishes a ``sbar_requested`` message to the ``pipeline-jobs`` queue. The

@@ -81,14 +81,28 @@ def list_grouped_surface_forms(
         default=None,
         description="Filter by surface form text, concept name, SNOMED ID, or Read code",
     ),
+    status_filter: Optional[str] = Query(
+        default=None,
+        description="Filter by surface form status (e.g. 'pending', 'approved', 'active')",
+    ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
     """Return surface forms grouped by SNOMED concept, with pagination."""
     client = KnowledgeGraphClient()
     try:
-        rows = client.run(GROUPED_SURFACE_FORMS, q=q, offset=offset, limit=limit)
-        count_rows = client.run(COUNT_GROUPED_SURFACE_FORMS, q=q)
+        rows = client.run(
+            GROUPED_SURFACE_FORMS,
+            q=q,
+            status_filter=status_filter,
+            offset=offset,
+            limit=limit,
+        )
+        count_rows = client.run(
+            COUNT_GROUPED_SURFACE_FORMS,
+            q=q,
+            status_filter=status_filter,
+        )
         total = count_rows[0]["total"] if count_rows else 0
         return {"items": rows, "total": total, "offset": offset, "limit": limit}
     finally:
@@ -175,6 +189,114 @@ def upsert_surface_form_mapping(
         return row
     finally:
         client.close()
+
+
+class CreateLocalWithAliasRequest(BaseModel):
+    display_name: str
+    alias: str
+    package_id: str
+    concept_kind: str = "finding"
+    concept_id: Optional[str] = None
+    description: Optional[str] = None
+    actor: str = "knowledge-admin"
+    approve: bool = False
+    org_id: Optional[str] = None
+
+
+@router.post("/surface-forms/create-local-with-alias")
+def create_local_with_alias(
+    body: CreateLocalWithAliasRequest, _: None = Depends(verify_service_token)
+):
+    """Create a LEO-local Concept, bind it to a package, and map an alias.
+
+    Happy path: concept + CONTAINS + pending (or approved) alias.
+    Non-happy: missing package_id, package/org mismatch, empty alias.
+    """
+    from services.terminology_api.app.routers.local_concepts import (
+        LocalConceptCreate,
+        create_local_concept,
+    )
+    from services.terminology_api.app.services.local_package_admin import (
+        CONTAINS_CONCEPT,
+        GET_PACKAGE,
+    )
+    from services.terminology_api.app.services.surface_form_admin import (
+        approve_surface_form_mapping,
+    )
+
+    package_id = (body.package_id or "").strip()
+    if not package_id:
+        raise HTTPException(status_code=422, detail="package_id is required")
+    alias = (body.alias or "").strip()
+    if not alias:
+        raise HTTPException(status_code=422, detail="alias is required")
+    normalized = " ".join(alias.lower().split())
+
+    client = KnowledgeGraphClient()
+    try:
+        pkg_rows = client.run(GET_PACKAGE, id=package_id)
+        if not pkg_rows:
+            raise HTTPException(status_code=404, detail="Package not found")
+        pkg = pkg_rows[0]
+        if pkg.get("scope") == "tenant":
+            caller_org = (body.org_id or "").strip() or None
+            pkg_org = (pkg.get("org_id") or "").strip() or None
+            if not caller_org or caller_org != pkg_org:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Tenant package does not match organisation scope.",
+                )
+    finally:
+        client.close()
+
+    concept = create_local_concept(
+        LocalConceptCreate(
+            display_name=body.display_name,
+            concept_kind=body.concept_kind,  # type: ignore[arg-type]
+            concept_id=body.concept_id,
+            description=body.description,
+            created_by=body.actor,
+        )
+    )
+    client = KnowledgeGraphClient()
+    try:
+        link_rows = client.run(
+            CONTAINS_CONCEPT, package_id=package_id, concept_id=concept.id
+        )
+        if not link_rows:
+            raise HTTPException(
+                status_code=500, detail="Failed to bind concept to package"
+            )
+    finally:
+        client.close()
+
+    mapping = upsert_surface_form_mapping(
+        UpsertMappingRequest(
+            normalized=normalized,
+            form=alias,
+            concept_id=concept.id,
+            source="manual",
+            provenance="create_local_with_alias",
+            actor=body.actor,
+        ),
+        _=None,
+    )
+    if body.approve:
+        client = KnowledgeGraphClient()
+        try:
+            mapping = approve_surface_form_mapping(
+                client,
+                normalized=normalized,
+                reviewer=body.actor,
+                concept_id=concept.id,
+            )
+        finally:
+            client.close()
+    return {
+        "concept": concept.model_dump(),
+        "mapping": mapping,
+        "package_id": package_id,
+    }
 
 
 # -- Approve / deactivate ------------------------------------------------------

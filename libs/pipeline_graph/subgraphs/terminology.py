@@ -1,10 +1,8 @@
 """Terminology resolution subgraph wrapping libs.terminology.client.
 
 Atlas trace:
-  DO: DO-16FFE9D3
-  Also implements: DO-36C09C0E, DO-8620A68B
-  DI: DI-04105500, DI-4247C7E5, DI-5A802C83
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-16FFE9D3")
+  DO: DO-572A5C05
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-572A5C05")
 """
 
 from __future__ import annotations
@@ -16,6 +14,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from libs.pipeline.post_processing import (
+    apply_false_absent_assertion_guards,
     fix_double_negated_situations,
     fix_polarity_encoded_findings,
 )
@@ -67,14 +66,81 @@ class TerminologyState(TypedDict, total=False):
     confidence_threshold: float
     patient_age: float
     patient_sex: str
+    org_id: str
     errors: list[str]
+
+
+# Leading tokens that are never useful as the core SNOMED lookup term.
+# Stripping them increases the chance of an exact-branch hit.
+_LOOKUP_STRIP_PREFIXES = frozenset(
+    {
+        "moderate",
+        "mild",
+        "severe",
+        "marked",
+        "significant",
+        "bilateral",
+        "left",
+        "right",
+        "small",
+        "large",
+        "central",
+        "peripheral",
+        "anterior",
+        "posterior",
+        "medial",
+        "lateral",
+        "proximal",
+        "distal",
+        "diffuse",
+        "focal",
+        "generalised",
+        "generalized",
+        "extensive",
+        "complex",
+        "simple",
+        "high-risk",
+        "high risk",
+        "low-risk",
+        "low risk",
+    }
+)
+
+
+def _strip_leading_modifiers(text: str) -> str:
+    """Remove leading qualifier words that hurt SNOMED lexical matching.
+
+    Drops one leading token at a time (case-insensitive) while the first
+    word is a known non-clinical modifier.  Stops as soon as the first
+    word is clinical so we never strip the concept itself.
+    """
+    words = text.split()
+    while words and words[0].lower().rstrip("-,;") in _LOOKUP_STRIP_PREFIXES:
+        words = words[1:]
+    return " ".join(words) if words else text
 
 
 def _resolve_lookup_term(entity: dict[str, Any]) -> str:
     lookup = str(entity.get("lookup_term") or "").strip()
+    text = str(entity.get("text") or "").strip()
+
+    # When the LLM sets lookup_term to the same value as text (or leaves it
+    # empty), strip leading qualifier/laterality tokens so the SNOMED
+    # resolver sees "ovary enlarged" instead of "left ovary enlarged" and
+    # "ascites" instead of "moderate ascites".
+    if not lookup or lookup.lower() == text.lower():
+        stripped = _strip_leading_modifiers(text)
+        if stripped and stripped != text:
+            return stripped
+        if not lookup:
+            # Fall through to relation-based enrichment below.
+            pass
+        else:
+            return lookup
+
     if lookup:
         return lookup
-    text = str(entity.get("text") or "").strip()
+
     relations = list(entity.get("__relations") or [])
     for rel in relations:
         if not isinstance(rel, dict):
@@ -192,7 +258,10 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
                     label := e.get("semantic_tag") or e.get("label")
                 ):
                     tag_map[lookup] = str(label)
-        results = TerminologyClient().resolve(terms, expected_tags=tag_map or None)
+        org_id = str(state.get("org_id") or "").strip() or None
+        results = TerminologyClient().resolve(
+            terms, expected_tags=tag_map or None, org_id=org_id
+        )
         resolved = []
         for idx, entity in enumerate(entities):
             lookup = lookup_by_index.get(idx) or ""
@@ -212,6 +281,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             )
         fix_double_negated_situations(resolved)
         fix_polarity_encoded_findings(resolved)
+        apply_false_absent_assertion_guards(resolved)
         resolved = enrich_lab_result_findings(
             resolved,
             patient_sex=state.get("patient_sex"),

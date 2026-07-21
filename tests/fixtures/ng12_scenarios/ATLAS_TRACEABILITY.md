@@ -1,6 +1,6 @@
 # NG12 fixtures sprint -- Atlas traceability (read-only spike)
 
-Product: `PROD-LEO-CORE-AI-20260415-6AE8A23B`.
+Product: `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`.
 
 This note satisfies sprint task **NG12-AT-004** before Class B changes ship.
 Use the **`user-atlas-design-controls`** MCP server for authoritative lookups.

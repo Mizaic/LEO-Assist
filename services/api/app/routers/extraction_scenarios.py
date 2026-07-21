@@ -72,6 +72,20 @@ class RunRequest(BaseModel):
     model_mode: str | None = None
 
 
+class QuickRunMode(str):
+    encounter = "encounter"
+    referral = "referral"
+
+
+class QuickRunRequest(BaseModel):
+    mode: str = "encounter"  # "encounter" | "referral"
+    text: str
+    patient_age: Optional[float] = None
+    patient_sex: Optional[str] = None  # "male" | "female" | "unknown"
+    guideline_id: Optional[str] = None
+    completeness_subdomain: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -184,8 +198,11 @@ def get_run(
     with _runs_lock:
         job = _runs.get(run_id)
     if job:
-        if job.get("status") == "running" and job.get("production_path"):
-            _refresh_production_run(run_id, job)
+        if job.get("status") == "running":
+            if job.get("quick_run"):
+                _refresh_quick_run(run_id, job)
+            elif job.get("production_path"):
+                _refresh_production_run(run_id, job)
             with _runs_lock:
                 job = _runs.get(run_id, job)
         return job
@@ -630,7 +647,9 @@ def _mark_publish_failed(
 
 
 def _scoring_rules() -> dict[str, bool]:
-    from libs.validation.clinical_extraction_scenario_loader import load_expected_strings
+    from libs.validation.clinical_extraction_scenario_loader import (
+        load_expected_strings,
+    )
 
     doc = load_expected_strings()
     normalisation = doc.get("normalisation")
@@ -655,7 +674,9 @@ def _score_case_from_node(case: dict[str, Any]) -> dict[str, Any]:
     return score_case(case, extracted_entities, _scoring_rules())
 
 
-def _score_case_from_terms(case: dict[str, Any], extracted_entities: list[dict[str, str]]) -> dict:
+def _score_case_from_terms(
+    case: dict[str, Any], extracted_entities: list[dict[str, str]]
+) -> dict:
     from libs.validation.clinical_extraction_scenario_loader import score_case
 
     cleaned_terms = _normalise_validation_terms(extracted_entities, case)
@@ -727,6 +748,488 @@ async def _publish_production_validation_jobs_async(
     finally:
         await bus.close()
     return sent
+
+
+# ---------------------------------------------------------------------------
+# Quick-run helpers (POST /quick-run, DELETE /quick-run/:run_id)
+# ---------------------------------------------------------------------------
+
+_ENCOUNTER_PLAN = "pd-gp-encounter-coding"
+_REFERRAL_PLAN = "pd-referral-assessment"
+
+
+def _build_quick_run_encounter_message(
+    patient_id: str, encounter_id: str, run_id: str
+) -> dict[str, Any]:
+    return {
+        "event_type": "encounter-created",
+        "plan_definition_id": _ENCOUNTER_PLAN,
+        "patient_id": patient_id,
+        "encounter_id": encounter_id,
+        "run_id": run_id,
+        "mode": "extract_encounter",
+        "dry_run": False,
+        "trigger_analysis": False,
+        "context": {
+            "encounter_id": encounter_id,
+            "plan_definition_id": _ENCOUNTER_PLAN,
+            "mode": "extract_encounter",
+            "dry_run": False,
+            "capture_validation_output": True,
+        },
+    }
+
+
+def _build_quick_run_referral_message(
+    patient_id: str,
+    encounter_id: str,
+    referral_id: str,
+    dr_id: str,
+    chunk_ids: list[str],
+    run_id: str,
+    guideline_id: str | None,
+    completeness_subdomain: str | None,
+) -> dict[str, Any]:
+    from libs.referral_simulator.message import build_referral_received_message
+
+    body = build_referral_received_message(
+        patient_id=patient_id,
+        encounter_id=encounter_id,
+        referral_id=referral_id,
+        document_reference_id=dr_id,
+        chunk_ids=chunk_ids,
+        run_id=run_id,
+        plan_definition_id=_REFERRAL_PLAN,
+        guideline_id=guideline_id,
+        completeness_domain="cancer_referrals" if guideline_id else None,
+        completeness_subdomain=completeness_subdomain if guideline_id else None,
+        context={"referral_id": referral_id},
+    )
+    body["capture_validation_output"] = True
+    return body
+
+
+def _publish_quick_run_message(body: dict[str, Any], run_id: str) -> None:
+    import asyncio
+
+    from libs.message_bus.base import Message
+    from libs.message_bus.factory import create_message_bus
+
+    async def _send() -> None:
+        bus = create_message_bus()
+        try:
+            await bus.send(
+                _PIPELINE_QUEUE,
+                Message(body=body, correlation_id=run_id, subject=body["event_type"]),
+            )
+        finally:
+            await bus.close()
+
+    asyncio.run(_send())
+
+
+_AUDIT_TERMINAL_STATUSES = (
+    "completed",
+    "error",
+    "empty_extraction",
+    "needs_review",
+    "failed",
+)
+
+# Mapping from the PipelineStageRun.step_id values written by the durable
+# referral workflow to the canonical snapshot keys used by the UI stage viewer.
+# The durable steps use "durable-ref-*" IDs; the UI expects the plain keys
+# that match STAGE_LABELS in QuickTestResults.tsx.
+_REFERRAL_STEP_TO_SNAPSHOT_KEY: dict[str, str] = {
+    "durable-ref-extraction": "extraction",
+    "durable-ref-post-processing": "post_processing",
+    "durable-ref-relation-linking": "relation_linking",
+    "durable-ref-extraction-check": "extraction_check",
+}
+_REFERRAL_SNAPSHOT_STEPS = tuple(_REFERRAL_STEP_TO_SNAPSHOT_KEY.keys())
+
+
+def _refresh_quick_run(run_id: str, job: dict[str, Any]) -> None:
+    """Poll for quick-run completion.
+
+    Encounter mode: polls AuditEvent (written by WorkflowEngine).
+    Referral mode:  polls PipelineRun (written by durable step store).
+    """
+    if job.get("mode") == "referral":
+        _refresh_quick_run_referral(run_id)
+    else:
+        _refresh_quick_run_encounter(run_id)
+
+
+def _refresh_quick_run_encounter(run_id: str) -> None:
+    """Poll AuditEvent written by WorkflowEngine for encounter quick-runs."""
+    query = """
+    MATCH (ae:AuditEvent)
+    WHERE ae.run_id = $run_id AND ae.status IN $statuses
+    RETURN ae.status AS status,
+           ae.validation_output AS validation_output,
+           ae.extraction_provider AS extraction_provider,
+           ae.extraction_model_tier AS extraction_model_tier
+    LIMIT 1
+    """
+    from app.db.neo4j_client import PatientGraphClient
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(query, run_id=run_id, statuses=list(_AUDIT_TERMINAL_STATUSES))
+    finally:
+        client.close()
+
+    if not rows:
+        return
+
+    row = dict(rows[0])
+    worker_status = str(row.get("status") or "")
+    snapshots = _stage_snapshots_from_validation_output(row)
+    payload = _json_loads_safe(row.get("validation_output"))
+    entities = []
+    if isinstance(payload, dict):
+        entities = payload.get("terms") or []
+
+    with _runs_lock:
+        job = _runs.get(run_id, {})
+    patient_id = str(job.get("patient_id") or "")
+    encounter_id = str(job.get("encounter_id") or "")
+    coded_entities: list[dict[str, Any]] = []
+    if patient_id and encounter_id and worker_status not in ("error", "failed"):
+        try:
+            coded_entities = _fetch_encounter_codes(patient_id, encounter_id)
+        except Exception as exc:
+            logger.warning("quick-run coded fetch failed: %s", exc)
+
+    ui_status = (
+        "completed"
+        if worker_status in ("completed", "needs_review", "empty_extraction")
+        else "failed"
+    )
+    _set_run(
+        run_id,
+        {
+            "status": ui_status,
+            "progress": 100,
+            "stage_snapshots": snapshots or {},
+            "entity_count": len(entities),
+            "entities": entities,
+            "coded_entities": coded_entities,
+            "model_provider": row.get("extraction_provider", ""),
+            "model_tier": row.get("extraction_model_tier", ""),
+            "worker_status": worker_status,
+            "completed_at": _now_iso(),
+        },
+    )
+
+
+def _refresh_quick_run_referral(run_id: str) -> None:
+    """Poll PipelineRun / PipelineStageRun for referral durable quick-runs."""
+    run_query = """
+    MATCH (r:PipelineRun {id: $run_id})
+    WHERE r.status IN $statuses
+    RETURN r.status AS status
+    LIMIT 1
+    """
+    stage_query = """
+    MATCH (:PipelineRun {id: $run_id})-[:HAS_STAGE]->(s:PipelineStageRun)
+    WHERE s.step_id IN $steps AND s.status = 'completed'
+    RETURN s.step_id AS step_id, s.output_json AS output_json
+    ORDER BY s.completed_at ASC
+    """
+    from app.db.neo4j_client import PatientGraphClient
+
+    client = PatientGraphClient()
+    try:
+        run_rows = client.run(
+            run_query, run_id=run_id, statuses=list(_AUDIT_TERMINAL_STATUSES)
+        )
+        if not run_rows:
+            return
+        worker_status = str((dict(run_rows[0])).get("status") or "")
+        stage_rows = client.run(
+            stage_query, run_id=run_id, steps=list(_REFERRAL_SNAPSHOT_STEPS)
+        )
+    finally:
+        client.close()
+
+    snapshots = _build_referral_snapshots(stage_rows)
+    final_entities = _referral_final_entities(stage_rows)
+
+    with _runs_lock:
+        job = _runs.get(run_id, {})
+    referral_id = str(job.get("referral_id") or "")
+    coded_entities: list[dict[str, Any]] = []
+    if referral_id and worker_status in ("completed",):
+        try:
+            coded_entities = _fetch_referral_codes(referral_id)
+        except Exception as exc:
+            logger.warning("quick-run referral coded fetch failed: %s", exc)
+
+    ui_status = "completed" if worker_status in ("completed",) else "failed"
+    _set_run(
+        run_id,
+        {
+            "status": ui_status,
+            "progress": 100,
+            "stage_snapshots": snapshots,
+            "entity_count": len(final_entities),
+            "entities": final_entities,
+            "coded_entities": coded_entities,
+            "worker_status": worker_status,
+            "completed_at": _now_iso(),
+        },
+    )
+
+
+_ENCOUNTER_CODED_QUERY = """
+MATCH (p:Patient {id: $patient_id})-[:HAS_ENCOUNTER]->(e:Encounter {id: $encounter_id})
+OPTIONAL MATCH (e)-[r:DOCUMENTS]->(s)
+WHERE NOT r.source = 'lab_coder_v1'
+RETURN toString(s.conceptId) AS concept_id,
+       coalesce(s.name, s.term) AS term,
+       s.semanticTag AS semantic_tag,
+       r.evidence AS evidence,
+       r.context AS context_json,
+       r.confidence AS confidence,
+       r.decision_tier AS decision_tier
+ORDER BY r.coded_at DESC
+"""
+
+_REFERRAL_CODED_QUERY = """
+MATCH (rr:ReferralRequest {id: $referral_id})-[:HAS_DOCUMENT]->(dr:DocumentReference)
+MATCH (dr)-[:HAS_CHUNK]->(c:Chunk)-[r:DOCUMENTS]->(s)
+RETURN toString(s.conceptId) AS concept_id,
+       coalesce(s.name, s.term) AS term,
+       s.semanticTag AS semantic_tag,
+       r.evidence AS evidence,
+       r.context AS context_json,
+       r.confidence AS confidence,
+       r.decision_tier AS decision_tier,
+       c.ordinal AS ordinal
+ORDER BY c.ordinal ASC
+"""
+
+
+def _parse_assertion(context_json: Any) -> str:
+    """Extract the assertion string from the r.context JSON blob.
+
+    r.context is stored as a JSON string: {"assertion": "present", ...}
+    Fall back to treating the raw value as a plain string if not valid JSON.
+    """
+    if not context_json:
+        return "present"
+    raw = str(context_json)
+    try:
+        ctx = json.loads(raw)
+        if isinstance(ctx, dict):
+            return str(ctx.get("assertion") or "present")
+    except Exception:
+        pass
+    if raw.startswith("{"):
+        return "present"
+    return raw
+
+
+def _parse_confidence(raw: Any) -> float | None:
+    """Safely coerce a Neo4j confidence value to float.
+
+    Returns None for missing values and for the 0.0 fallback so the UI
+    shows '-' rather than '0%' when no real score was recorded.
+    """
+    if raw is None:
+        return None
+    try:
+        val = float(raw)
+        return val if val > 0.0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _coerce_coded_rows(rows: list[Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "concept_id": str(row.get("concept_id") or ""),
+            "term": str(row.get("term") or ""),
+            "semantic_tag": str(row.get("semantic_tag") or ""),
+            "evidence": str(row.get("evidence") or ""),
+            "assertion": _parse_assertion(row.get("context_json")),
+            "confidence": _parse_confidence(row.get("confidence")),
+            "decision_tier": row.get("decision_tier"),
+        }
+        for row in rows
+        if row.get("concept_id")
+    ]
+
+
+def _fetch_encounter_codes(patient_id: str, encounter_id: str) -> list[dict[str, Any]]:
+    from app.db.neo4j_client import PatientGraphClient
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(
+            _ENCOUNTER_CODED_QUERY,
+            patient_id=patient_id,
+            encounter_id=encounter_id,
+        )
+    finally:
+        client.close()
+    return _coerce_coded_rows(rows)
+
+
+def _fetch_referral_codes(referral_id: str) -> list[dict[str, Any]]:
+    from app.db.neo4j_client import PatientGraphClient
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(_REFERRAL_CODED_QUERY, referral_id=referral_id)
+    finally:
+        client.close()
+    return _coerce_coded_rows(rows)
+
+
+def _build_referral_snapshots(
+    stage_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build stage_snapshots from PipelineStageRun output rows.
+
+    Maps durable step IDs (e.g. "durable-ref-extraction") to the canonical
+    snapshot keys the UI expects (e.g. "extraction").
+    """
+    snapshots: dict[str, Any] = {}
+    for row in stage_rows:
+        raw_step_id = str(row.get("step_id") or "")
+        snapshot_key = _REFERRAL_STEP_TO_SNAPSHOT_KEY.get(raw_step_id, raw_step_id)
+        output = _json_loads_safe(row.get("output_json"))
+        if not isinstance(output, dict):
+            continue
+        entities = output.get("entities") or []
+        terms = [
+            str(e.get("text") or "").strip()
+            for e in entities
+            if isinstance(e, dict) and str(e.get("text") or "").strip()
+        ]
+        snapshots[snapshot_key] = {"entity_count": len(terms), "terms": terms[:200]}
+    return snapshots
+
+
+def _referral_final_entities(
+    stage_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return entities from the last extraction snapshot stage."""
+    last_output: dict[str, Any] = {}
+    for row in stage_rows:
+        output = _json_loads_safe(row.get("output_json"))
+        if isinstance(output, dict) and output.get("entities"):
+            last_output = output
+    entities = last_output.get("entities") or []
+    return [
+        {
+            "text": str(e.get("text") or ""),
+            "semantic_tag": str(e.get("label") or e.get("semantic_tag") or "finding"),
+            "assertion": e.get("assertion"),
+            "confidence": e.get("confidence"),
+        }
+        for e in entities
+        if isinstance(e, dict) and str(e.get("text") or "").strip()
+    ]
+
+
+@router.post("/quick-run")
+def quick_run(
+    body: QuickRunRequest,
+    _scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Scaffold an ephemeral demo patient, publish to the pipeline worker, and
+    return a run_id for polling via GET /extraction-scenarios/runs/{run_id}.
+
+    Encounter mode: creates Patient + Encounter -> pd-gp-encounter-coding.
+    Referral mode:  creates Patient + ReferralRequest + DocumentReference +
+    Chunks -> pd-referral-assessment.
+    """
+    from app.services.quick_run_scaffold import scaffold_encounter, scaffold_referral
+
+    run_id = str(uuid.uuid4())
+    uid = run_id.replace("-", "")[:12]
+    patient_id = f"quick-test-{uid}"
+    triggered_at = _now_iso()
+
+    if body.mode == "referral":
+        referral_id = f"qr-{uid}"
+        dr_id = f"qr-{uid}:doc"
+        encounter_id = f"qr-{uid}:enc"
+        chunk_ids = scaffold_referral(
+            patient_id,
+            referral_id,
+            dr_id,
+            body.text,
+            encounter_id=encounter_id,
+            patient_age=body.patient_age,
+            patient_sex=body.patient_sex,
+        )
+        msg = _build_quick_run_referral_message(
+            patient_id,
+            encounter_id,
+            referral_id,
+            dr_id,
+            chunk_ids,
+            run_id,
+            body.guideline_id,
+            body.completeness_subdomain,
+        )
+    else:
+        encounter_id = f"qe-{uid}:enc"
+        scaffold_encounter(
+            patient_id,
+            encounter_id,
+            body.text,
+            patient_age=body.patient_age,
+            patient_sex=body.patient_sex,
+        )
+        msg = _build_quick_run_encounter_message(patient_id, encounter_id, run_id)
+
+    _publish_quick_run_message(msg, run_id)
+    job_meta: dict[str, Any] = {
+        "run_id": run_id,
+        "status": "running",
+        "progress": 0,
+        "quick_run": True,
+        "mode": body.mode,
+        "patient_id": patient_id,
+        "guideline_id": body.guideline_id,
+        "triggered_by": "ui",
+        "triggered_at": triggered_at,
+        "production_path": False,
+        "encounter_id": encounter_id,
+    }
+    if body.mode == "referral":
+        job_meta["referral_id"] = referral_id
+    _set_run(run_id, job_meta)
+    return {"run_id": run_id, "patient_id": patient_id, "status": "running"}
+
+
+@router.delete("/quick-run/{run_id}")
+def delete_quick_run(
+    run_id: str,
+    _scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Clean up the ephemeral patient graph nodes created for a quick-run."""
+    from app.services.quick_run_scaffold import cleanup_quick_run
+
+    with _runs_lock:
+        job = _runs.get(run_id)
+    if not job or not job.get("quick_run"):
+        raise HTTPException(status_code=404, detail=f"Quick-run {run_id!r} not found")
+    patient_id = str(job.get("patient_id") or "")
+    if patient_id:
+        try:
+            cleanup_quick_run(patient_id)
+        except Exception as exc:
+            logger.warning("quick-run cleanup failed for %s: %s", patient_id, exc)
+    with _runs_lock:
+        _runs.pop(run_id, None)
+    return {"deleted": True, "patient_id": patient_id}
 
 
 def _build_validation_context(
@@ -827,7 +1330,12 @@ def _terms_from_validation_output(
     if not isinstance(terms, list):
         return []
     raw_entities = [
-        {"text": str(term.get("text") or "").strip(), "semantic_tag": str(term.get("label") or term.get("semantic_tag") or "finding")}
+        {
+            "text": str(term.get("text") or "").strip(),
+            "semantic_tag": str(
+                term.get("label") or term.get("semantic_tag") or "finding"
+            ),
+        }
         for term in terms
         if isinstance(term, dict) and str(term.get("text") or "").strip()
     ]
@@ -866,10 +1374,14 @@ def _entity_texts(entities: Any) -> list[dict[str, str]]:
             continue
         text = entity.get("text") or entity.get("surface_form")
         if isinstance(text, str) and text.strip():
-            texts.append({
-                "text": text.strip(), 
-                "semantic_tag": str(entity.get("label") or entity.get("semantic_tag") or "finding")
-            })
+            texts.append(
+                {
+                    "text": text.strip(),
+                    "semantic_tag": str(
+                        entity.get("label") or entity.get("semantic_tag") or "finding"
+                    ),
+                }
+            )
     return texts
 
 

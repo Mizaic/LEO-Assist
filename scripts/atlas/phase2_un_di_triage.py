@@ -57,17 +57,60 @@ DECISIONS_PATH = REPO / "scripts" / "atlas" / "phase2_decisions.json"
 
 sys.path.insert(0, str(REPO / "scripts" / "atlas"))
 import _mcp_transport as mcp  # noqa: E402
+from product import PRODUCT_ID  # noqa: E402
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 REMAP_THRESHOLD = 0.30
 HUMAN_REVIEW_THRESHOLD = 0.40  # >= this, late-bind without human review
 
 STOPWORDS = {
-    "the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "at", "by",
-    "with", "is", "are", "be", "been", "shall", "must", "should", "system",
-    "as", "so", "that", "their", "this", "from", "into", "via", "any", "all",
-    "when", "able", "can", "will", "leo", "ai", "leoai", "using", "use",
-    "user", "need", "needs", "have", "has", "not", "than", "then",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "for",
+    "in",
+    "on",
+    "at",
+    "by",
+    "with",
+    "is",
+    "are",
+    "be",
+    "been",
+    "shall",
+    "must",
+    "should",
+    "system",
+    "as",
+    "so",
+    "that",
+    "their",
+    "this",
+    "from",
+    "into",
+    "via",
+    "any",
+    "all",
+    "when",
+    "able",
+    "can",
+    "will",
+    "leo",
+    "ai",
+    "leoai",
+    "using",
+    "use",
+    "user",
+    "need",
+    "needs",
+    "have",
+    "has",
+    "not",
+    "than",
+    "then",
 }
 
 
@@ -108,7 +151,9 @@ def _sim(a: str, b: str) -> float:
 def parse_gap_section(kind: str) -> list[str]:
     """Extract unmatched local IDs for a section ('UN', 'DI', 'DO', etc.)."""
     text = GAPS_MD.read_text()
-    pattern = rf"## {kind} \(total[^)]*\)[\s\S]*?Unmatched local IDs:\s*\n((?:- [^\n]*\n)*)"
+    pattern = (
+        rf"## {kind} \(total[^)]*\)[\s\S]*?Unmatched local IDs:\s*\n((?:- [^\n]*\n)*)"
+    )
     m = re.search(pattern, text)
     if not m:
         return []
@@ -220,7 +265,9 @@ def best_match(
 ) -> tuple[dict[str, Any] | None, float]:
     best: tuple[dict[str, Any] | None, float] = (None, 0.0)
     for node in atlas_nodes:
-        text = " ".join(filter(None, [node.get("title", ""), node.get("description", "")]))
+        text = " ".join(
+            filter(None, [node.get("title", ""), node.get("description", "")])
+        )
         score = _sim(query_text, text)
         if score > best[1]:
             best = (node, score)
@@ -256,13 +303,22 @@ def save_state(state: dict[str, Any]) -> None:
 # -- UN handling ------------------------------------------------------
 
 
-def process_un(local_id: str, atlas_uns: list[dict[str, Any]],
-               live: bool, state: dict[str, Any],
-               decisions: dict[str, Any]) -> dict[str, Any]:
+def process_un(
+    local_id: str,
+    atlas_uns: list[dict[str, Any]],
+    live: bool,
+    state: dict[str, Any],
+    decisions: dict[str, Any],
+) -> dict[str, Any]:
     row: dict[str, Any] = {
-        "kind": "UN", "local_id": local_id, "atlas_id": "",
-        "decision": "", "best_score": 0.0, "best_atlas": "",
-        "result": "", "error": "",
+        "kind": "UN",
+        "local_id": local_id,
+        "atlas_id": "",
+        "decision": "",
+        "best_score": 0.0,
+        "best_atlas": "",
+        "result": "",
+        "error": "",
     }
     local = load_local_un(local_id)
     if not local:
@@ -303,9 +359,8 @@ def process_un(local_id: str, atlas_uns: list[dict[str, Any]],
         "product_id": PRODUCT_ID,
         "title": local["title"][:200] or local_id,
         "description": local["description"] or local["title"],
-        "stakeholder_types": (override or {}).get(
-            "stakeholder_types"
-        ) or local["stakeholder_types"],
+        "stakeholder_types": (override or {}).get("stakeholder_types")
+        or local["stakeholder_types"],
     }
     if local.get("rationale"):
         args["rationale"] = local["rationale"]
@@ -332,8 +387,9 @@ def process_un(local_id: str, atlas_uns: list[dict[str, Any]],
 # -- DI handling ------------------------------------------------------
 
 
-def resolve_un_dcid(un_local_id: str, un_mapping: dict[str, str],
-                    state: dict[str, Any]) -> str | None:
+def resolve_un_dcid(
+    un_local_id: str, un_mapping: dict[str, str], state: dict[str, Any]
+) -> str | None:
     if un_local_id in un_mapping:
         return un_mapping[un_local_id]
     created = state["created_uns"].get(un_local_id)
@@ -342,14 +398,23 @@ def resolve_un_dcid(un_local_id: str, un_mapping: dict[str, str],
     return None
 
 
-def process_di(local_id: str, atlas_dis: list[dict[str, Any]],
-               un_mapping: dict[str, str], live: bool,
-               state: dict[str, Any],
-               decisions: dict[str, Any]) -> dict[str, Any]:
+def process_di(
+    local_id: str,
+    atlas_dis: list[dict[str, Any]],
+    un_mapping: dict[str, str],
+    live: bool,
+    state: dict[str, Any],
+    decisions: dict[str, Any],
+) -> dict[str, Any]:
     row: dict[str, Any] = {
-        "kind": "DI", "local_id": local_id, "atlas_id": "",
-        "decision": "", "best_score": 0.0, "best_atlas": "",
-        "result": "", "error": "",
+        "kind": "DI",
+        "local_id": local_id,
+        "atlas_id": "",
+        "decision": "",
+        "best_score": 0.0,
+        "best_atlas": "",
+        "result": "",
+        "error": "",
     }
     local = load_local_di(local_id)
     if not local:
@@ -433,11 +498,14 @@ def process_di(local_id: str, atlas_dis: list[dict[str, Any]],
     # fire_atlas_fmea -- it works with both dcId and UUID for links.
     if parent_dc_ids and new_dc_id:
         try:
-            mcp.call_tool("link_design_controls", {
-                "source_ids": parent_dc_ids,
-                "target_ids": [new_dc_id],
-                "relationship": "HAS_DESIGN_INPUT",
-            })
+            mcp.call_tool(
+                "link_design_controls",
+                {
+                    "source_ids": parent_dc_ids,
+                    "target_ids": [new_dc_id],
+                    "relationship": "HAS_DESIGN_INPUT",
+                },
+            )
             row["result"] = f"created+linked({len(parent_dc_ids)} UNs)"
         except mcp.McpError as e:
             row["result"] = "created (link_error)"
@@ -452,8 +520,16 @@ def process_di(local_id: str, atlas_dis: list[dict[str, Any]],
 
 
 def write_ledger(rows: list[dict[str, Any]]) -> None:
-    fields = ["kind", "local_id", "atlas_id", "decision", "best_score",
-              "best_atlas", "result", "error"]
+    fields = [
+        "kind",
+        "local_id",
+        "atlas_id",
+        "decision",
+        "best_score",
+        "best_atlas",
+        "result",
+        "error",
+    ]
     with LEDGER_CSV.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -464,20 +540,36 @@ def write_ledger(rows: list[dict[str, Any]]) -> None:
     for r in rows:
         key = f"{r['kind']}:{r['decision']}"
         counts[key] = counts.get(key, 0) + 1
-    md = ["# Phase 2 -- UN/DI Triage Ledger", "",
-          f"Run at: {_now_iso()}",
-          f"Total rows: {len(rows)}", "",
-          "## Decision counts", ""]
+    md = [
+        "# Phase 2 -- UN/DI Triage Ledger",
+        "",
+        f"Run at: {_now_iso()}",
+        f"Total rows: {len(rows)}",
+        "",
+        "## Decision counts",
+        "",
+    ]
     for k in sorted(counts):
         md.append(f"- `{k}`: {counts[k]}")
-    md += ["", "## Rows", "",
-           "| Kind | Local | Decision | Best Atlas | Score | Result | Error |",
-           "|---|---|---|---|---|---|---|"]
+    md += [
+        "",
+        "## Rows",
+        "",
+        "| Kind | Local | Decision | Best Atlas | Score | Result | Error |",
+        "|---|---|---|---|---|---|---|",
+    ]
     for r in rows:
         cells = [
             str(r.get(k, "")).replace("|", "\\|")
-            for k in ("kind", "local_id", "decision", "best_atlas", "best_score",
-                      "result", "error")
+            for k in (
+                "kind",
+                "local_id",
+                "decision",
+                "best_atlas",
+                "best_score",
+                "result",
+                "error",
+            )
         ]
         md.append("| " + " | ".join(cells) + " |")
     LEDGER_MD.write_text("\n".join(md) + "\n")
@@ -537,8 +629,10 @@ def main() -> int:
         rows.append(row)
         state["rows"][lid] = row
         save_state(state)
-        print(f"  UN [{idx}/{len(un_ids)}] {lid}: {row['decision']} "
-              f"score={row['best_score']} -> {row['result']}")
+        print(
+            f"  UN [{idx}/{len(un_ids)}] {lid}: {row['decision']} "
+            f"score={row['best_score']} -> {row['result']}"
+        )
         time.sleep(0.05)
 
     for idx, lid in enumerate(di_ids, start=1):
@@ -556,8 +650,10 @@ def main() -> int:
         rows.append(row)
         state["rows"][lid] = row
         save_state(state)
-        print(f"  DI [{idx}/{len(di_ids)}] {lid}: {row['decision']} "
-              f"score={row['best_score']} -> {row['result']}")
+        print(
+            f"  DI [{idx}/{len(di_ids)}] {lid}: {row['decision']} "
+            f"score={row['best_score']} -> {row['result']}"
+        )
         time.sleep(0.05)
 
     save_state(state)

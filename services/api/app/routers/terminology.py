@@ -4,6 +4,41 @@ Atlas trace:
   DO: DO-EC41233C
   DI: DI-9D0DF618
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
+Ownership note (2026-07 CTO peer-review item 2: core-api router
+decomposition -- "thin terminology ownership" follow-up):
+
+The UI proxy (services/ui/src/proxy.ts) routes ALL `/api/terminology/*`
+traffic directly to terminology_api, never to core-api -- so this router's
+`search`, `semantic-tags`, `surface-forms/*` (list/grouped/delete/
+duplicates/deduplicate), and `concepts/{id}/descendants` handlers duplicate
+logic that also lives in services/terminology_api/app/routers/{search,
+surface_forms,concepts}.py, and are not reached by the primary UI path.
+`upsert_surface_form_mapping` still has direct test coverage
+(tests/test_knowledge_graph_data_governance.py) asserting a core-api-
+specific `actor`/`created_by` contract, so this file is not dead code --
+its exact remaining caller(s) were not identified during this review pass.
+
+A concrete drift was found while investigating: terminology_api's
+`search_terms` sanitises Lucene special characters and normalises semantic
+tags before querying (services/terminology_api/app/routers/search.py);
+this file's `search_terms` does neither, so identical queries can behave
+differently depending on which surface handles them (e.g. a query
+containing "/" can fail here but succeed via terminology_api).
+
+Decision: do not silently consolidate or delete duplicated handlers in
+this pass -- the caller(s) of the core-api surface are not confirmed, and
+either action (HTTP delegation via libs.terminology.client.TerminologyClient,
+or removal) is a behaviour change that needs its own tests and an owner
+sign-off, not a "pure move". `writeback`, `surface-forms/{normalized}/
+approve|deactivate`, and `surface-forms/audit-log` already delegate to the
+shared services.terminology_api.app.services.* functions (not duplicated
+Cypher) and are the model to follow for any future consolidation of the
+remaining handlers.
+
+terminology_admin.py (admin TRUD sync + audit log) has no such overlap --
+it is genuinely core-api-only admin policy and is out of scope for this
+note.
 """
 
 from __future__ import annotations

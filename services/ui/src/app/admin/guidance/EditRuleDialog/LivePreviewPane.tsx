@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -16,8 +16,9 @@
  *      shown elsewhere in the editor, but always pinned open here so
  *      the user can see their edits make sense without parsing the
  *      logic tree.
- *   2. "What the system will do" -- one short sentence built from
- *      the strength label and the action SNOMED preferred term.
+ *   2. "What the system will do" -- one short line per recommended
+ *      procedure, each built from that action's strength label and
+ *      SNOMED preferred term.
  *
  * On step 4 the pane swaps to a "Before / After" variant: two
  * side-by-side summary cards computed from the original tree (`before`)
@@ -38,38 +39,32 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import SummaryCard from "./SummaryCard";
 import { STRENGTH_LABELS, friendlyTerm } from "./copy";
 import type { RuleSummary } from "./treeToSentence";
-import type { LogicCriterion } from "./types";
+import type { RuleAction } from "./types";
 
 interface SystemRecapProps {
-  strength: string;
-  action: LogicCriterion | null;
+  actions: RuleAction[];
 }
 
 interface Props {
   /** Live summary of the tree the user is editing. */
   summary: RuleSummary;
-  /** Current strength code (e.g. "offer", "consider"). */
-  strength: string;
-  /** Current action SNOMED criterion. */
-  action: LogicCriterion | null;
+  /** Current recommended procedures, each with its own strength. */
+  actions: RuleAction[];
   /**
    * When true (step 4), render a Before / After diff using `summary`
    * as the after, and `beforeSummary` as the before.
    */
   showBeforeAfter?: boolean;
   beforeSummary?: RuleSummary;
-  beforeStrength?: string;
-  beforeAction?: LogicCriterion | null;
+  beforeActions?: RuleAction[];
 }
 
 export default function LivePreviewPane({
   summary,
-  strength,
-  action,
+  actions,
   showBeforeAfter,
   beforeSummary,
-  beforeStrength,
-  beforeAction,
+  beforeActions,
 }: Props) {
   if (showBeforeAfter && beforeSummary) {
     return (
@@ -121,10 +116,7 @@ export default function LivePreviewPane({
             </Typography>
             <SummaryCard summary={beforeSummary} defaultExpanded />
             <Box sx={{ mt: 1 }}>
-              <SystemRecap
-                strength={beforeStrength ?? "unspecified"}
-                action={beforeAction ?? null}
-              />
+              <SystemRecap actions={beforeActions ?? []} />
             </Box>
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -141,7 +133,7 @@ export default function LivePreviewPane({
             </Typography>
             <SummaryCard summary={summary} defaultExpanded />
             <Box sx={{ mt: 1 }}>
-              <SystemRecap strength={strength} action={action} />
+              <SystemRecap actions={actions} />
             </Box>
           </Box>
         </Stack>
@@ -180,17 +172,63 @@ export default function LivePreviewPane({
         </Typography>
       </Stack>
       <SummaryCard summary={summary} defaultExpanded />
-      <SystemRecap strength={strength} action={action} />
+      <SystemRecap actions={actions} />
     </Box>
   );
 }
 
-function SystemRecap({ strength, action }: SystemRecapProps) {
-  const strengthLabel =
+function strengthLabelFor(strength: string): string {
+  return (
     STRENGTH_LABELS.find((o) => o.value === strength)?.label ??
-    "Not specified yet";
-  const procedure = friendlyTerm(action?.preferred_term);
-  const ready = Boolean(procedure);
+    "Not specified yet"
+  );
+}
+
+/** One "If this rule matches: <strength> - <procedure>." line per action. */
+function SystemRecapLine({ action }: { action: RuleAction }) {
+  const procedure = friendlyTerm(action.criterion?.preferred_term);
+  return (
+    <Typography
+      variant="body2"
+      sx={{ lineHeight: 1.6, mt: 0.75, fontWeight: 500 }}
+    >
+      If this rule matches:{" "}
+      <Box
+        component="span"
+        sx={{
+          fontWeight: 700,
+          color: procedure ? "success.dark" : "warning.dark",
+        }}
+      >
+        {strengthLabelFor(action.strength)}
+      </Box>
+      {procedure ? (
+        <>
+          {" "}-{" "}
+          <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+            {procedure}
+          </Box>
+        </>
+      ) : (
+        <>
+          {" "}-{" "}
+          <Box
+            component="span"
+            sx={{ fontStyle: "italic", color: "text.secondary" }}
+          >
+            no procedure picked yet
+          </Box>
+        </>
+      )}
+      .
+    </Typography>
+  );
+}
+
+function SystemRecap({ actions }: SystemRecapProps) {
+  const ready =
+    actions.length > 0 &&
+    actions.every((a) => Boolean(a.criterion?.snomed_concept_id));
   return (
     <Box
       role="region"
@@ -234,43 +272,16 @@ function SystemRecap({ strength, action }: SystemRecapProps) {
             What the system will do
           </Typography>
         </Stack>
-        <Typography
-          variant="body2"
-          sx={{ lineHeight: 1.6, mt: 0.75, fontWeight: 500 }}
-        >
-          If this rule matches:{" "}
-          <Box
-            component="span"
-            sx={{
-              fontWeight: 700,
-              color: ready ? "success.dark" : "warning.dark",
-            }}
+        {actions.length === 0 ? (
+          <Typography
+            variant="body2"
+            sx={{ lineHeight: 1.6, mt: 0.75, fontStyle: "italic", color: "text.secondary" }}
           >
-            {strengthLabel}
-          </Box>
-          {procedure ? (
-            <>
-              {" "}-{" "}
-              <Box
-                component="span"
-                sx={{ fontWeight: 700, color: "text.primary" }}
-              >
-                {procedure}
-              </Box>
-            </>
-          ) : (
-            <>
-              {" "}-{" "}
-              <Box
-                component="span"
-                sx={{ fontStyle: "italic", color: "text.secondary" }}
-              >
-                no procedure picked yet
-              </Box>
-            </>
-          )}
-          .
-        </Typography>
+            No procedure picked yet.
+          </Typography>
+        ) : (
+          actions.map((action, i) => <SystemRecapLine key={i} action={action} />)
+        )}
       </Box>
     </Box>
   );

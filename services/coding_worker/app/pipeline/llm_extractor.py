@@ -1,10 +1,9 @@
 """Auto-stamped Atlas trace.
 
 Atlas trace:
-  DO: DO-0289F3A5
-  Also implements: DO-64BDC193, DO-6CD07544, DO-94EAC337
-  DI: DI-48AD06E5, DI-88C8BBCD, DI-A0579B64, DI-A0C90595, DI-F298AE65
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-0289F3A5")
+  DO: DO-728930A1
+  Also implements: DO-416BA91D
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 """
 
 from __future__ import annotations
@@ -175,7 +174,7 @@ Full schema when entities exist:
       "sentence_id": "<id from the Sentences list>",
       "text": "<exact span as written in the sentence>",
       "lookup_term": "<standard clinical term for SNOMED lookup; preserve onset/chronicity/certainty/laterality qualifiers>",
-      "semantic_tag": "<disorder|finding|procedure|substance|product|observable entity|situation|regime/therapy|staging scale>",
+      "semantic_tag": "<disorder|finding|procedure|substance|product|observable entity|situation|regime/therapy|staging scale|body structure>",
       "confidence": 0.92,
       "numeric_value": "<numeric value if observable entity, else empty string>",
       "unit": "<unit if observable entity, else empty string>",

@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -110,8 +110,18 @@ export default function SeedDescendantsList({
   const [rows, setRows] = useState<DescendantRow[] | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
+  /**
+   * The depth prop is always a positive integer by the time it reaches this
+   * component (the caller clamps to >=1 -- see SynonymChipEditor.tsx). We
+   * only fall back to the rule default for a genuinely missing value, so a
+   * real depth change always produces a different API call. Previously any
+   * value <=0 was silently rewritten to 3, which made distinct depths the
+   * author picked (e.g. 0 vs 1) look identical in the preview.
+   */
   const effectiveDepth = useMemo(() => {
-    if (typeof depth === "number" && depth > 0) return depth;
+    if (typeof depth === "number" && Number.isFinite(depth) && depth >= 1) {
+      return depth;
+    }
     return DEFAULT_DEPTH_FALLBACK;
   }, [depth]);
 

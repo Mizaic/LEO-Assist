@@ -75,10 +75,15 @@ describe("VT-32FBAA69 audit template builder - static-source", () => {
   // DO-A9863AB6 AC2 - metrics drag from the library onto the canvas, and the
   // canvas accepts the drop (library-to-canvas DnD).
   test("AC2 - library metrics are draggable and TileGrid is a drop target", () => {
-    const pickerSrc = read(METRIC_PICKER);
-    expect(pickerSrc).toContain("draggable");
-    expect(pickerSrc).toContain("application/x-audit-metric");
-    const gridSrc = read(TILE_GRID);
+    // Drag sources live in DataPanel (MetricPicker composes it).
+    const dataPanelSrc = read(
+      "services/ui/src/components/audit-template-builder/DataPanel.tsx",
+    );
+    expect(dataPanelSrc).toContain("draggable");
+    expect(dataPanelSrc).toContain("application/x-audit-metric");
+    const gridSrc = read(
+      "services/ui/src/components/audit-template-builder/CanvasGrid.tsx",
+    );
     expect(gridSrc).toContain("onDrop");
     expect(gridSrc).toContain("application/x-audit-metric");
     expect(gridSrc).toContain("onDropMetric");
@@ -114,7 +119,7 @@ describe("VT-32FBAA69 audit template builder - static-source", () => {
     expect(src).toContain("createTemplate");
     expect(src).toContain("updateTemplate");
     expect(src).toContain("MetricPicker");
-    expect(src).toContain("TileGrid");
+    expect(src).toMatch(/TileGrid|CanvasGrid/);
     expect(src).toContain("PublishDialog");
   });
 
@@ -180,6 +185,12 @@ describe("VT-32FBAA69 audit template builder - static-source", () => {
     expect(src).toContain("New template");
     expect(src).toContain("archiveTemplate");
     expect(src).toContain("EditOutlined");
+  });
+
+  test("CanvasGrid includes KeyboardSensor for accessible DnD", () => {
+    const src = read("services/ui/src/components/audit-template-builder/CanvasGrid.tsx");
+    expect(src).toContain("KeyboardSensor");
+    expect(src).toContain("sortableKeyboardCoordinates");
   });
 
   // All source files carry Atlas trace header

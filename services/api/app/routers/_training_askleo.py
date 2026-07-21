@@ -35,6 +35,7 @@ class AskLeoRankRequest(BaseModel):
     encounter_text: str = ""
     candidates: list[dict[str, Any]]
     tier: str = "small"
+    entity_semantic_tag: str = "disorder"
 
 
 class AskLeoSmartRequest(BaseModel):
@@ -44,6 +45,7 @@ class AskLeoSmartRequest(BaseModel):
     semantic_tags: list[str] = []
     tier: str = "small"
     assertion: str = "present"
+    entity_semantic_tag: str = "disorder"
 
 
 _ASSERTION_NOTES: dict[str, str] = {
@@ -141,7 +143,7 @@ def register_askleo_routes(router) -> None:
         )
 
         if is_lab_result_sentence(body.encounter_text or ""):
-            if should_suppress_disorder(
+            if body.entity_semantic_tag != "body_structure" and should_suppress_disorder(
                 entity_text=body.entity_text,
                 entity_semantic_tag="disorder",
                 entity_normalized=body.entity_text,
@@ -239,7 +241,7 @@ def register_askleo_routes(router) -> None:
         safe_encounter = sanitise_for_prompt(body.encounter_text, max_chars=16_000)
 
         if is_lab_result_sentence(safe_encounter or ""):
-            if should_suppress_disorder(
+            if body.entity_semantic_tag != "body_structure" and should_suppress_disorder(
                 entity_text=safe_entity,
                 entity_semantic_tag="disorder",
                 entity_normalized=safe_entity,

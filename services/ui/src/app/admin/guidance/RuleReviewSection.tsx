@@ -2,25 +2,31 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-E647765A
- *   DI: DI-0C8FBAF7
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-E647765A")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+
+import { useMotion } from "@leo/design-system";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EditRuleDialog from "./EditRuleDialog";
 import { formatRelativeUpdatedAt } from "./RuleReviewCard";
 import RuleReviewPool from "./RuleReviewPool";
+import { popVariants } from "./motionPresets";
 import {
   fetchRules,
   filterRulesForReview,
@@ -48,11 +54,50 @@ export type {
 } from "./ruleReviewTypes";
 export { formatRelativeUpdatedAt } from "./RuleReviewCard";
 
+interface GuidelineChipFilterProps {
+  guidelineIds: string[];
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+}
+
+function GuidelineChipFilter({ guidelineIds, selected, onSelect }: GuidelineChipFilterProps) {
+  if (guidelineIds.length < 2) return null;
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, display: "block", mb: 0.75 }}>
+        Filter by guideline
+      </Typography>
+      <Stack direction="row" spacing={0.75} flexWrap="wrap">
+        <Chip
+          label="All"
+          size="small"
+          variant={selected === null ? "filled" : "outlined"}
+          color={selected === null ? "primary" : "default"}
+          onClick={() => onSelect(null)}
+          sx={{ cursor: "pointer" }}
+        />
+        {guidelineIds.map((id) => (
+          <Chip
+            key={id}
+            label={id}
+            size="small"
+            variant={selected === id ? "filled" : "outlined"}
+            color={selected === id ? "primary" : "default"}
+            onClick={() => onSelect(id)}
+            sx={{ cursor: "pointer", fontWeight: selected === id ? 700 : 400 }}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+}
+
 interface Props {
   refreshKey?: number;
 }
 
 export default function RuleReviewSection({ refreshKey }: Props) {
+  const { reducedMotion } = useMotion();
   const [pendingRules, setPendingRules] = useState<Rule[]>([]);
   const [approvedRules, setApprovedRules] = useState<Rule[]>([]);
   const [supersededRules, setSupersededRules] = useState<Rule[]>([]);
@@ -73,10 +118,25 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [promoteBusy, setPromoteBusy] = useState<string | null>(null);
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
+  const [guidelineFilter, setGuidelineFilter] = useState<string | null>(null);
+
+  const allGuidelineIds = useMemo(() => {
+    const ids = new Set([
+      ...pendingRules.map((r) => r.guideline_id),
+      ...approvedRules.map((r) => r.guideline_id),
+    ].filter(Boolean));
+    return [...ids].sort();
+  }, [pendingRules, approvedRules]);
+
+  const filterByGuideline = useCallback(
+    (rules: Rule[]) =>
+      guidelineFilter ? rules.filter((r) => r.guideline_id === guidelineFilter) : rules,
+    [guidelineFilter],
+  );
 
   const pendingVisible = useMemo(
-    () => filterRulesForReview(pendingRules, sessionApproved, "pending_review"),
-    [pendingRules, sessionApproved],
+    () => filterRulesForReview(filterByGuideline(pendingRules), sessionApproved, "pending_review"),
+    [pendingRules, sessionApproved, filterByGuideline],
   );
 
   const editableRule = useMemo(() => (editRule ? ruleToEditable(editRule) : null), [editRule]);
@@ -145,15 +205,9 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const handleSaveEdit = useCallback(
     async (payload: {
       name: string;
-      strength: string;
       logic_tree: Record<string, unknown>;
       reason: string;
-      action?: {
-        snomed_concept_id: string;
-        preferred_term: string;
-        semantic_tag?: string;
-        term?: string;
-      };
+      actions?: Array<Record<string, unknown>>;
     }) => {
       if (!editRule) return;
       setEditSaving(true);
@@ -168,9 +222,8 @@ export default function RuleReviewSection({ refreshKey }: Props) {
             reason: payload.reason,
             updates: {
               name: payload.name,
-              strength: payload.strength,
               logic_tree: payload.logic_tree,
-              ...(payload.action ? { action: payload.action } : {}),
+              ...(payload.actions ? { actions: payload.actions } : {}),
             },
           }),
         });
@@ -270,51 +323,77 @@ export default function RuleReviewSection({ refreshKey }: Props) {
             Approved in this session
           </Typography>
           <Stack spacing={1}>
-            {sessionApproved.map((rule) => (
-              <Box
-                key={rule.rule_id}
-                sx={{
-                  p: 1.5,
-                  border: "1px solid",
-                  borderColor: "success.light",
-                  borderRadius: 1.5,
-                  bgcolor: "#F0FDF4",
-                }}
-              >
-                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
-                  {rule.name || rule.rule_id}
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="primary"
-                    startIcon={<EditOutlinedIcon fontSize="small" />}
-                    onClick={() => setEditRule(rule)}
-                    aria-label={`Edit approved rule ${rule.rule_id}`}
+            <AnimatePresence initial={false}>
+              {sessionApproved.map((rule) => (
+                <fm.div
+                  key={rule.rule_id}
+                  layout
+                  variants={popVariants(reducedMotion)}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      border: "1px solid",
+                      borderColor: "success.light",
+                      borderRadius: 1.5,
+                      bgcolor: "#F0FDF4",
+                    }}
                   >
-                    Edit
-                  </Button>
-                  {promotedRules[rule.rule_id] ? (
-                    <Alert severity="success" sx={{ py: 0, px: 1, fontSize: "0.75rem", flex: 1 }}>
-                      Added to {promotedRules[rule.rule_id].domain_name}
-                    </Alert>
-                  ) : (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={promoteBusy === rule.rule_id}
-                      onClick={() => setPromoteConfirmRule(rule)}
-                    >
-                      Add to domain
-                    </Button>
-                  )}
-                </Stack>
-              </Box>
-            ))}
+                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
+                      <fm.div
+                        initial={reducedMotion ? undefined : { scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 420, damping: 18, delay: reducedMotion ? 0 : 0.1 }}
+                        style={{ display: "flex" }}
+                      >
+                        <CheckCircleRoundedIcon fontSize="small" color="success" />
+                      </fm.div>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {rule.name || rule.rule_id}
+                      </Typography>
+                    </Stack>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        startIcon={<EditOutlinedIcon fontSize="small" />}
+                        onClick={() => setEditRule(rule)}
+                        aria-label={`Edit approved rule ${rule.rule_id}`}
+                      >
+                        Edit
+                      </Button>
+                      {promotedRules[rule.rule_id] ? (
+                        <Alert severity="success" sx={{ py: 0, px: 1, fontSize: "0.75rem", flex: 1 }}>
+                          Added to {promotedRules[rule.rule_id].domain_name}
+                        </Alert>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={promoteBusy === rule.rule_id}
+                          onClick={() => setPromoteConfirmRule(rule)}
+                        >
+                          Add to domain
+                        </Button>
+                      )}
+                    </Stack>
+                  </Box>
+                </fm.div>
+              ))}
+            </AnimatePresence>
           </Stack>
         </Box>
       ) : null}
+
+      <GuidelineChipFilter
+        guidelineIds={allGuidelineIds}
+        selected={guidelineFilter}
+        onSelect={setGuidelineFilter}
+      />
 
       <Stack spacing={2.5}>
         <RuleReviewPool
@@ -339,7 +418,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           title="Approved"
           helper="Rules already checked and used when you compile the live lookup index."
           statusFilter="active"
-          rules={approvedRules}
+          rules={filterByGuideline(approvedRules)}
           loading={loadingApproved}
           expandedRules={expandedRules}
           busy={busy}

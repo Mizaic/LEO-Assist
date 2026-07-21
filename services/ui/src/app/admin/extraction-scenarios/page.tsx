@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * Auto-stamped Atlas trace.
  *
@@ -8,24 +10,31 @@
  *   VT: VT-24D7A846
  *   VAL-87173594  phrase-level F1 validation
  *   VT-29880CC8   extraction scenario verification
+ *
+ * Retired harness -- redirects to Validation Lab.
+ * See docs/VALIDATION-LAB.md (UN-4DCE95C8).
  */
-"use client";
 
-import { Suspense } from "react";
-import CircularProgress from "@mui/material/CircularProgress";
-import Stack from "@mui/material/Stack";
-import ExtractionScenarioPanel from "./ExtractionScenarioPanel";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 
-export default function ExtractionScenariosPage() {
+export default function ExtractionScenariosRedirectPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/admin/validation-lab");
+  }, [router]);
+
   return (
-    <Suspense
-      fallback={
-        <Stack alignItems="center" sx={{ pt: 6 }}>
-          <CircularProgress size={28} />
-        </Stack>
-      }
-    >
-      <ExtractionScenarioPanel />
-    </Suspense>
+    <Box sx={{ p: 3 }} data-testid="extraction-scenarios-retired">
+      <Typography variant="h5" component="h1" sx={{ mb: 1 }}>
+        Moved to Validation Lab
+      </Typography>
+      <Alert severity="info">
+        Extraction scenario validation now lives in Validation Lab. Redirecting…
+      </Alert>
+    </Box>
   );
 }

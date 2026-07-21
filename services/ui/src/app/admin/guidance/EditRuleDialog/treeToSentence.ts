@@ -11,9 +11,9 @@
  * a lead sentence followed by an optional bullet list of pathways.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 import { OBSERVATION_MODE_LABELS, friendlyTerm, recencyLabel } from "./copy";
 import type {
@@ -40,12 +40,13 @@ export interface RuleSummary {
   isWellShaped: boolean;
 }
 
-const AGE_OPERATORS: Record<string, (v: string, unit: string) => string> = {
+const AGE_OPERATORS: Record<string, (v: string, unit: string, v2?: string) => string> = {
   ">=": (v, u) => `${v} ${u} or older`,
   "<=": (v, u) => `${v} ${u} or younger`,
   ">": (v, u) => `over ${v} ${u}`,
   "<": (v, u) => `under ${v} ${u}`,
   "=": (v, u) => `exactly ${v} ${u}`,
+  "between": (v, u, v2) => v2 ? `aged ${v}\u2013${v2} ${u}`.replace(" years", " years").trimEnd() : `aged ${v}+ ${u}`,
 };
 
 const SEX_VALUES: Record<string, string> = {
@@ -59,11 +60,12 @@ function demographicToText(node: EditableLogicNode): string {
   const field = node.field ?? "age";
   const op = node.operator ?? "=";
   const value = String(node.value ?? "");
+  const value2 = node.value2 != null ? String(node.value2) : undefined;
   const unit = node.unit ?? "";
   if (!value) return "is a patient with an unfilled detail";
   if (field === "age") {
     const fmt = AGE_OPERATORS[op] ?? ((v: string, u: string) => `${op} ${v} ${u}`);
-    return `is ${fmt(value, unit || "years")}`;
+    return `is ${fmt(value, unit || "years", value2)}`;
   }
   if (field === "sex") {
     return `is ${SEX_VALUES[value.toLowerCase()] ?? value}`;
@@ -201,6 +203,12 @@ function leafToCondition(
       ? observationToText(node.observation)
       : "has a lab value that still needs to be filled in";
   }
+  if (node.kind === "RULE_FIRED") {
+    const name = node.display_name || node.referenced_rule_id || "another rule";
+    return node.outcome === "not_fired"
+      ? `did NOT meet the criteria for "${name}"`
+      : `already meets the criteria for "${name}"`;
+  }
   if (node.kind === "AT_LEAST") {
     const concepts = (node.children ?? []).filter((c) => c.kind === "CONCEPT");
     const list = listOfConcepts(concepts, resolve);
@@ -258,7 +266,7 @@ export function treeToSentence(
 ): RuleSummary {
   if (!node) {
     return {
-      lead: "This rule has no conditions yet. Add a symptom or patient detail to get started.",
+      lead: "This rule has no conditions yet. Add a symptom, procedure, situation, or patient detail to get started.",
       isWellShaped: false,
     };
   }

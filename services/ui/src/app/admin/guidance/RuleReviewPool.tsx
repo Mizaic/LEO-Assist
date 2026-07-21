@@ -2,8 +2,8 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-E647765A
- *   DI: DI-0C8FBAF7
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  */
 "use client";
 
@@ -11,7 +11,6 @@ import { useEffect, useMemo, useState } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -23,7 +22,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 
-import { EmptyState, FilterBar } from "@leo/design-system";
+import { EmptyState, FilterBar, SkeletonList } from "@leo/design-system";
 
 import { RuleAccordionCard } from "./RuleReviewCard";
 import { STRENGTH_LABELS } from "./EditRuleDialog/copy";
@@ -210,9 +209,7 @@ export default function RuleReviewPool({
       </Stack>
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress size={28} aria-label={`Loading ${title.toLowerCase()}`} />
-        </Box>
+        <SkeletonList rows={3} itemHeight={72} data-testid={`${poolId}-pool-skeleton`} />
       ) : filteredRules.length === 0 ? (
         <EmptyState icon={<HistoryOutlinedIcon fontSize="large" />} title={emptyTitle} body={emptyBody} />
       ) : (

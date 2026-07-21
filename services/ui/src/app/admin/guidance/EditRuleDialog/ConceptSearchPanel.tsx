@@ -2,15 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-D6CE2AA5
- *   DI: DI-A3107424
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-D6CE2AA5")
- *
- * Phase 6 trace (OBSERVATION leaf search affordance):
- *   UN: UN-26E57FA1
- *   DI: DI-4C8A09C3
- *   DO: DO-CB6324A3
- *   VT: VT-1A7862B9 (execution_status=passed)
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -76,6 +70,12 @@ interface Props {
    * panel keeps the Phase 1 single-button behaviour.
    */
   onPickObservation?: (seed: ObservationSeed) => void;
+  /**
+   * When true, the search is restricted to SNOMED observable_entity
+   * concepts (lab values). Pass when replacing an OBSERVATION leaf so
+   * the user only sees measurable quantities, not disorders or procedures.
+   */
+  filterToObservable?: boolean;
 }
 
 /**
@@ -116,6 +116,7 @@ export default function ConceptSearchPanel({
   initialQuery,
   onPick,
   onPickObservation,
+  filterToObservable = false,
 }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [hits, setHits] = useState<ConceptSearchHit[]>([]);
@@ -136,7 +137,8 @@ export default function ConceptSearchPanel({
     setLoading(true);
     setError(null);
     const handle = window.setTimeout(() => {
-      const url = `/api/terminology/search?q=${encodeURIComponent(trimmed)}&limit=15`;
+      const tag = filterToObservable ? "&semantic_tag=observable_entity" : "";
+      const url = `/api/terminology/search?q=${encodeURIComponent(trimmed)}&limit=15${tag}`;
       fetch(url)
         .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
         .then((rows: ConceptSearchHit[]) => {
@@ -146,7 +148,7 @@ export default function ConceptSearchPanel({
         .finally(() => setLoading(false));
     }, SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
-  }, [query]);
+  }, [query, filterToObservable]);
 
   const heading =
     mode === "replace_action"

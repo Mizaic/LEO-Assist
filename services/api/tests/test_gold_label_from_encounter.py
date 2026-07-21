@@ -58,7 +58,9 @@ def client(app: FastAPI):
 # -- Mock helpers ------------------------------------------------------------
 
 
-def _patient_session_with(encounter_row: dict[str, Any] | None, link_rows: list[dict[str, Any]]):
+def _patient_session_with(
+    encounter_row: dict[str, Any] | None, link_rows: list[dict[str, Any]]
+):
     """Return a (PatientGraphClient mock, recorded calls) pair.
 
     The mock returns ``encounter_row`` for GET_ENCOUNTER lookups and
@@ -131,7 +133,10 @@ def _patch_targets():
     """Standard set of patches used by every happy-path test below."""
 
     return [
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ]
 
 
@@ -184,10 +189,13 @@ def test_happy_path_maps_live_links_to_gold_entities(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.PatientGraphClient", return_value=pgc),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch("app.routers.training_gold_labels.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ):
         r = client.post(
             "/training/gold-labels/from-encounter",
@@ -205,9 +213,7 @@ def test_happy_path_maps_live_links_to_gold_entities(client):
     assert payload["dropped_link_count"] == 0
     assert sorted(payload["baseline_concept_ids"]) == ["195967001", "73211009"]
 
-    upsert = next(
-        kwargs for q, kwargs in kcalls if "MERGE (c:TrainingCandidate" in q
-    )
+    upsert = next(kwargs for q, kwargs in kcalls if "MERGE (c:TrainingCandidate" in q)
     persisted = json.loads(upsert["entities_json"])
     by_concept = {ent["snomed_concept_id"]: ent for ent in persisted}
     assert set(by_concept) == {"73211009", "195967001"}
@@ -215,7 +221,7 @@ def test_happy_path_maps_live_links_to_gold_entities(client):
     assert diabetes["label"] == "disorder"
     assert diabetes["semantic_tag"] == "disorder"
     assert diabetes["assertion"] == "present"
-    assert deid[diabetes["start"]: diabetes["end"]] == diabetes["text"]
+    assert deid[diabetes["start"] : diabetes["end"]] == diabetes["text"]
     assert "type 2 diabetes mellitus" in diabetes["text"]
 
 
@@ -251,10 +257,13 @@ def test_from_encounter_quarantines_whole_note_gold_until_repaired(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.PatientGraphClient", return_value=pgc),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch("app.routers.training_gold_labels.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ):
         r = client.post(
             "/training/gold-labels/from-encounter",
@@ -280,7 +289,12 @@ def test_second_call_is_idempotent(client):
     deid = "patient attended with cough"
     candidate_id = hashlib.sha256(deid.encode()).hexdigest()
 
-    encounter_row = {"encounter_id": "enc-1", "date": "2026-04-18", "text": raw, "coded_count": 0}
+    encounter_row = {
+        "encounter_id": "enc-1",
+        "date": "2026-04-18",
+        "text": raw,
+        "coded_count": 0,
+    }
     link_rows: list[dict[str, Any]] = []
 
     existing_candidate = {
@@ -305,10 +319,13 @@ def test_second_call_is_idempotent(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.PatientGraphClient", return_value=pgc),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch("app.routers.training_gold_labels.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ):
         r = client.post(
             "/training/gold-labels/from-encounter",
@@ -396,10 +413,13 @@ def test_uncoded_encounter_returns_live_entities_not_stale_gold(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.PatientGraphClient", return_value=pgc),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch("app.routers.training_gold_labels.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ):
         r = client.post(
             "/training/gold-labels/from-encounter",
@@ -428,9 +448,12 @@ def test_missing_encounter_returns_404(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.PatientGraphClient", return_value=pgc),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch("app.routers.training_gold_labels.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ):
         r = client.post(
             "/training/gold-labels/from-encounter",
@@ -446,16 +469,24 @@ def test_missing_encounter_returns_404(client):
 
 def test_empty_encounter_text_returns_400(client):
     pgc, _ = _patient_session_with(
-        encounter_row={"encounter_id": "enc-1", "date": "x", "text": "   ", "coded_count": 0},
+        encounter_row={
+            "encounter_id": "enc-1",
+            "date": "x",
+            "text": "   ",
+            "coded_count": 0,
+        },
         link_rows=[],
     )
     kg, _ = _kg_session_capture({})
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.PatientGraphClient", return_value=pgc),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch("app.routers.training_gold_labels.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ):
         r = client.post(
             "/training/gold-labels/from-encounter",
@@ -533,10 +564,13 @@ def test_unmappable_links_are_dropped_and_counted(client):
 
     with (
         caller_scope_override(client.app),
-        patch("app.routers.training.PatientGraphClient", return_value=pgc),
-        patch("app.routers.training.KnowledgeGraphClient", return_value=kg),
-        patch("app.routers.training.deidentify_text", return_value=deid),
-        patch("app.routers.training.require_patient_in_scope", return_value=None),
+        patch("app.routers.training_gold_labels.PatientGraphClient", return_value=pgc),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient", return_value=kg),
+        patch("app.routers.training_gold_labels.deidentify_text", return_value=deid),
+        patch(
+            "app.routers.training_gold_labels.require_patient_in_scope",
+            return_value=None,
+        ),
     ):
         r = client.post(
             "/training/gold-labels/from-encounter",
@@ -558,7 +592,7 @@ def test_unmappable_links_are_dropped_and_counted(client):
 def test_semantic_tag_normalisation(client):
     """Spaces and slashes are normalised; unknown tags fall back safely."""
 
-    from app.routers.training import _ner_label_for_semantic_tag
+    from app.routers.training_gold_labels import _ner_label_for_semantic_tag
 
     assert _ner_label_for_semantic_tag("observable entity") == "observable_entity"
     assert _ner_label_for_semantic_tag("regime/therapy") == "regime_therapy"

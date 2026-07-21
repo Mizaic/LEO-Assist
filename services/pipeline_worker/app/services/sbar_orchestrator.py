@@ -1,9 +1,8 @@
 """End-to-end orchestrator for an SBAR generation job.
 
 Atlas trace:
-  DO: DO-C2F6CA16
-  DI: DI-06CB6881
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-C2F6CA16")
+  DO: DO-3CAFDCC3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3CAFDCC3")
 
 Triggered from the pipeline-jobs queue with event_type='sbar_requested'.
 Persists the :Assessment incrementally so a partial Assessment is

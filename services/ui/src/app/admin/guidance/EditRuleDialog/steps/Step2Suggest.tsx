@@ -2,19 +2,21 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
 /**
  * Step 2 -- "What should the system suggest?"
  *
- * Three controls in a responsive 2-column grid:
- *   - The action SNOMED chip (procedure suggested when the rule fires).
- *   - The strength dropdown (offer / consider / refer / safety net / do not offer).
+ * Three controls stacked vertically:
+ *   - The recommended-procedures panel (one or more SNOMED chips, each
+ *     with its own strength dropdown -- offer / consider / refer /
+ *     safety net / do not offer).
  *   - The short rule name shown in the review queue.
+ *   - The fallback-rule switch.
  *
  * State lives in the parent dialog. This file is presentational so it
  * can be swapped out, snapshot-tested, and reused from a future
@@ -25,26 +27,25 @@
 
 import Box from "@mui/material/Box";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
-import ActionPanel from "../ActionPanel";
-import { STEP_HELPERS, STEP_TITLES, STRENGTH_LABELS } from "../copy";
-import type { LogicCriterion } from "../types";
+import ActionsPanel from "../ActionsPanel";
+import { STEP_HELPERS, STEP_TITLES } from "../copy";
+import type { RuleAction } from "../types";
 
 interface Props {
   name: string;
   onNameChange: (next: string) => void;
-  strength: string;
-  onStrengthChange: (next: string) => void;
-  action: LogicCriterion | null;
-  isActionSelected: boolean;
-  onSelectAction: () => void;
+  actions: RuleAction[];
+  selectedActionIndex: number | null;
+  onSelectAction: (index: number) => void;
+  onActionStrengthChange: (index: number, strength: string) => void;
+  onRemoveAction: (index: number) => void;
+  onAddAction: () => void;
   isDefault: boolean;
   onIsDefaultChange: (next: boolean) => void;
 }
@@ -52,11 +53,12 @@ interface Props {
 export default function Step2Suggest({
   name,
   onNameChange,
-  strength,
-  onStrengthChange,
-  action,
-  isActionSelected,
+  actions,
+  selectedActionIndex,
   onSelectAction,
+  onActionStrengthChange,
+  onRemoveAction,
+  onAddAction,
   isDefault,
   onIsDefaultChange,
 }: Props) {
@@ -79,59 +81,26 @@ export default function Step2Suggest({
         </Typography>
       </Box>
 
-      <ActionPanel
-        action={action}
-        isSelected={isActionSelected}
-        onSelect={onSelectAction}
+      <ActionsPanel
+        actions={actions}
+        selectedIndex={selectedActionIndex}
+        onSelectAction={onSelectAction}
+        onStrengthChange={onActionStrengthChange}
+        onRemoveAction={onRemoveAction}
+        onAddAction={onAddAction}
       />
 
-      <Stack
-        direction={{ xs: "column", md: "row" }}
-        spacing={2}
-        alignItems="stretch"
-      >
-        <TextField
-          size="small"
-          label="Short name for this rule"
-          helperText="Shown to clinicians in the review queue."
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          inputProps={{
-            "aria-label": "Short name for this rule",
-            maxLength: 200,
-          }}
-          sx={{ flex: 2 }}
-        />
-        <Box sx={{ flex: 1, minWidth: 220 }}>
-          <Typography
-            variant="caption"
-            component="label"
-            htmlFor="edit-rule-strength"
-            sx={{
-              display: "block",
-              color: "text.secondary",
-              mb: 0.25,
-              ml: 0.5,
-            }}
-          >
-            What should the system suggest?
-          </Typography>
-          <Select
-            id="edit-rule-strength"
-            size="small"
-            fullWidth
-            value={strength}
-            onChange={(e) => onStrengthChange(String(e.target.value))}
-            inputProps={{ "aria-label": "What should the system suggest" }}
-          >
-            {STRENGTH_LABELS.map((o) => (
-              <MenuItem key={o.value} value={o.value}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-      </Stack>
+      <TextField
+        size="small"
+        label="Short name for this rule"
+        helperText="Shown to clinicians in the review queue."
+        value={name}
+        onChange={(e) => onNameChange(e.target.value)}
+        inputProps={{
+          "aria-label": "Short name for this rule",
+          maxLength: 200,
+        }}
+      />
 
       <Tooltip
         title="Use this for narrative recommendations that apply when no more specific rule has already fired for this patient."

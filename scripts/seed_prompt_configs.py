@@ -792,12 +792,30 @@ as:
 4. For wording such as `suggestive of`, `suspicious of`, `raises suspicion of`,
    or `consistent with`, keep the leaf at finding/situation level unless the
    NICE text is explicitly diagnostic.
-5. Use `demographic` nodes for age or sex.
-6. If an exact site-specific referral term is unavailable, prefer the closest
+5. Use `demographic` nodes for age or sex. When NICE gives a DIFFERENT age
+   threshold for women and men in the same clause (e.g. "women aged 65 and
+   over and men aged 75 and over"), emit BOTH the sex and age leaves under
+   an `AND` -- never collapse to an age-only leaf, which would incorrectly
+   match the other sex in that age range.
+6. NG12 routinely widens a gendered population to trans and non-binary
+   patients using anatomy wording, e.g. "women, and trans men and
+   non-binary people with female reproductive organs" or "men, and trans
+   women and non-binary people with male reproductive organs". Do NOT map
+   this to a `sex` demographic -- a trans man in this population may be
+   recorded as `sex=male` in the patient record, so `sex="female"` would
+   wrongly EXCLUDE the exact patients the clause means to include. Instead
+   emit a `concept` leaf such as
+   `{"kind":"concept","term":{"text":"presence of female reproductive organs",
+   "search_terms":["cervix uteri","uterus","ovary structure","fallopian tube"]}}`
+   (or the male equivalent with `["prostate gland","testis"]`), and keep any
+   age threshold in the same clause as a separate `demographic` leaf under
+   an `AND` -- do not drop the age leaf just because the population wording
+   is complex.
+7. If an exact site-specific referral term is unavailable, prefer the closest
    specialty umbrella referral that preserves site intent (`gynaecological`,
    `urological`, `upper gastrointestinal`) rather than a wrong-site referral.
-7. Do not inflate urgency. Keep `non-urgent` or `routine` actions as such.
-8. If the recommendation is a service standard with no patient trigger, return
+8. Do not inflate urgency. Keep `non-urgent` or `routine` actions as such.
+9. If the recommendation is a service standard with no patient trigger, return
    `logic_tree: null` and `action: null`.
 
 ## Output format

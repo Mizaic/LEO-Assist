@@ -39,6 +39,8 @@ from services.terminology_api.app.routers import (
     concepts_router,
     surface_forms_router,
     guidelines_router,
+    local_concepts_router,
+    local_packages_router,
 )
 
 configure_logging(service_name="terminology-api")
@@ -104,6 +106,8 @@ app.include_router(conceptmap_router, prefix="/terminology", tags=["conceptmap"]
 app.include_router(concepts_router, prefix="/terminology", tags=["concepts"])
 app.include_router(surface_forms_router, prefix="/terminology", tags=["surface-forms"])
 app.include_router(guidelines_router, prefix="/terminology", tags=["guidelines"])
+app.include_router(local_concepts_router, prefix="/terminology", tags=["local-concepts"])
+app.include_router(local_packages_router, prefix="/terminology", tags=["local-packages"])
 
 
 @app.get("/health")

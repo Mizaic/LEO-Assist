@@ -1,9 +1,8 @@
 """Deterministic Assessment narrative from /terminology/guidelines/evaluate.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  DO: DO-B226E498
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-B226E498")
 
 V1 deliberately avoids LLM interpretation of the matched rules. The
 Assessment section presents matched rules verbatim with structured
@@ -20,12 +19,20 @@ The roaring-bitmap evaluator returns ``matched_rules`` shaped like::
       "guideline_title": "Suspected lung cancer",
       "chapter_title": "Referral criteria",
       "recommendation_verbatim": "Refer for chest X-ray within 2 weeks",
-      "action": {
-        "priority": "2ww",          # "2ww" | "urgent" | "routine"
-        "due_days": 14,
-        "snomed_concept_id": "...",
-        "name": "Chest X-ray request"
-      },
+      "actions": [
+        {
+          "priority": "2ww",          # "2ww" | "urgent" | "routine" -- same
+                                       # across every action on a rule
+          "due_days": 14,
+          "concept_id": "...",
+          "name": "Chest X-ray request",
+          "strength": "offer"
+        },
+        ...
+      ],
+      # "action" (actions[0], or None when empty) is kept for one release
+      # as a read-only back-compat field -- see guideline_compiler.py.
+      "action": {...},
       "confidence": 1.0
     }
 """
@@ -202,9 +209,7 @@ def format_assessment(
     rules_sorted = sorted(
         matched_rules,
         key=lambda r: (
-            _PRIORITY_ORDER.get(
-                ((r.get("action") or {}).get("priority") or "routine"), 9
-            ),
+            _PRIORITY_ORDER.get(_rule_raw_priority(r) or "routine", 9),
             -(r.get("confidence") or 0.0),
             r.get("name") or "",
         ),
@@ -216,7 +221,7 @@ def format_assessment(
         "routine": [],
     }
     for rule in rules_sorted:
-        prio = ((rule.get("action") or {}).get("priority") or "routine").lower()
+        prio = (_rule_raw_priority(rule) or "routine").lower()
         by_priority.setdefault(prio, []).append(rule)
 
     lines: list[str] = []
@@ -251,6 +256,55 @@ def format_assessment(
 # ---------------------------------------------------------------------------
 
 
+def _rule_actions(rule: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return a rule's actions as a list, tolerating the legacy singular shape.
+
+    Prefers ``rule["actions"]`` (the multi-action shape emitted by
+    ``guideline_evaluator._format_match``). Falls back to a 1-item list
+    built from the legacy ``rule["action"]`` dict so callers/fixtures that
+    only supply the singular field keep working unchanged.
+    """
+    actions = rule.get("actions")
+    if isinstance(actions, list) and actions:
+        return actions
+    legacy = rule.get("action")
+    return [legacy] if legacy else []
+
+
+def _rule_raw_priority(rule: dict[str, Any]) -> str | None:
+    """Return a rule's priority without defaulting (None when no action).
+
+    Priority is rule-level (derived from the NICE recommendation's
+    urgency), so every action on a rule carries the same value -- reading
+    the first action is sufficient.
+    """
+    actions = _rule_actions(rule)
+    return actions[0].get("priority") if actions else None
+
+
+def _rule_due_days(rule: dict[str, Any]) -> Any:
+    """Return a rule's due_days without defaulting (None when no action)."""
+    actions = _rule_actions(rule)
+    return actions[0].get("due_days") if actions else None
+
+
+def _render_action_lines(rule: dict[str, Any]) -> list[str]:
+    """Return one 'Action: ...' line per recommended action on a rule."""
+    from libs.guidance.narrative_actions import display_action_label
+
+    lines: list[str] = []
+    for action in _rule_actions(rule):
+        name = display_action_label(action)
+        if not name:
+            continue
+        due_days = action.get("due_days")
+        if due_days:
+            lines.append(f"Action: {name} (within {due_days} days)")
+        else:
+            lines.append(f"Action: {name}")
+    return lines
+
+
 def _render_rule_bullet(rule: dict[str, Any]) -> str:
     title = (
         rule.get("name")
@@ -260,9 +314,6 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
     )
     strength = (rule.get("strength") or "").strip()
     rec = (rule.get("recommendation_verbatim") or "").strip()
-    action = rule.get("action") or {}
-    due_days = action.get("due_days")
-    action_name = (action.get("name") or "").strip()
 
     parts = [f"- **{title}**"]
     if strength:
@@ -273,16 +324,36 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
     matched_via_line = _render_matched_via(rule.get("matched_via"))
     if matched_via_line:
         out += f"\n  - Matched on: {matched_via_line}"
-    if action_name:
-        if due_days:
-            out += f"\n  - Action: {action_name} (within {due_days} days)"
-        else:
-            out += f"\n  - Action: {action_name}"
+    for action_line in _render_action_lines(rule):
+        out += f"\n  - {action_line}"
     gid = rule.get("guideline_id")
     gtitle = rule.get("guideline_title")
     if gtitle or gid:
         out += f"\n  - Guideline: {gtitle or gid}"
     return out
+
+
+def _chip_label(entry: dict[str, Any]) -> str:
+    """Return a short preferred-term label for a matched_via entry."""
+    chip_label = (entry.get("preferred_term") or "").strip() or "matched code"
+    # Best-effort: strip a trailing semantic-tag bracket for readability.
+    if " (" in chip_label and chip_label.endswith(")"):
+        return chip_label.rsplit(" (", 1)[0]
+    return chip_label
+
+
+def _matched_via_fragment(entry: dict[str, Any]) -> str | None:
+    """Render one matched_via leaf as a short display fragment, or None."""
+    hits = list(entry.get("matched_concept_ids") or [])
+    if not hits:
+        return None
+    primary = entry.get("primary_concept_id")
+    chip_label = _chip_label(entry)
+    if hits == [primary]:
+        return chip_label
+    if len(hits) == 1:
+        return f"a related coded finding for {chip_label}"
+    return f"related coded findings for {chip_label}"
 
 
 def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
@@ -292,31 +363,27 @@ def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
     rather than only the rule. Output uses sentence case and short labels
     so the reading age stays at 9-11 (per `health-literacy.mdc`).
 
+    Duplicate leaf labels are collapsed (same concept chip appearing more
+    than once in an OR tree) so clinicians see each distinct match once.
+    The full ``matched_via`` list is still kept on the rule snapshot for
+    audit.
+
     Examples:
         - One leaf, one hit, exact match  -> "Smoker"
-        - One leaf, one hit, descendant   -> "Cigarette smoker (a kind of Smoker)"
-        - One leaf, two hits -> "Cigarette smoker, Pipe smoker (kinds of Smoker)"
-        - Two leaves                      -> "Smoker; History of asbestos exposure"
+        - One leaf, one hit, descendant   -> "a related coded finding for Smoker"
+        - Two distinct leaves             -> "Smoker; History of asbestos exposure"
+        - Three identical leaf labels     -> "Weight decreased"
     """
     if not matched_via:
         return ""
     fragments: list[str] = []
+    seen: set[str] = set()
     for entry in matched_via:
-        hits = list(entry.get("matched_concept_ids") or [])
-        if not hits:
+        fragment = _matched_via_fragment(entry)
+        if not fragment or fragment in seen:
             continue
-        primary = entry.get("primary_concept_id")
-        chip_label = (entry.get("preferred_term") or "").strip() or "matched code"
-        # Best-effort: strip a trailing semantic-tag bracket for readability.
-        if " (" in chip_label and chip_label.endswith(")"):
-            chip_label = chip_label.rsplit(" (", 1)[0]
-        if hits == [primary]:
-            fragments.append(chip_label)
-            continue
-        if len(hits) == 1:
-            fragments.append(f"a related coded finding for {chip_label}")
-        else:
-            fragments.append(f"related coded findings for {chip_label}")
+        seen.add(fragment)
+        fragments.append(fragment)
     return "; ".join(fragments)
 
 
@@ -336,8 +403,13 @@ def _rule_snapshot(rule: dict[str, Any]) -> dict[str, Any]:
 
     ``matched_via`` (DI-LEO-AI-510) is preserved so downstream renderers
     and audit tooling can show which synonym seed caused the rule to fire.
+
+    ``action`` (singular) keeps its historical priority/due_days-only shape
+    for back-compat with ``prompt_calls.py``'s bullet-1 selection, since
+    priority/due_days are rule-level and identical across every action.
     """
-    action = rule.get("action") or {}
+    actions = _rule_actions(rule)
+    first_action = actions[0] if actions else {}
     snapshot: dict[str, Any] = {
         "rule_id": rule.get("rule_id"),
         "name": rule.get("name"),
@@ -346,8 +418,8 @@ def _rule_snapshot(rule: dict[str, Any]) -> dict[str, Any]:
         "guideline_title": rule.get("guideline_title"),
         "chapter_title": rule.get("chapter_title"),
         "action": {
-            "priority": action.get("priority"),
-            "due_days": action.get("due_days"),
+            "priority": first_action.get("priority"),
+            "due_days": first_action.get("due_days"),
         },
     }
     matched_via = rule.get("matched_via")
@@ -363,11 +435,9 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
     summaries of the rule output so reviewers can audit them. See
     DI-LEO-AI-189 for the mapping rules.
     """
-    twoww = [r for r in rules if ((r.get("action") or {}).get("priority")) == "2ww"]
-    urgent = [r for r in rules if ((r.get("action") or {}).get("priority")) == "urgent"]
-    routine = [
-        r for r in rules if ((r.get("action") or {}).get("priority")) == "routine"
-    ]
+    twoww = [r for r in rules if _rule_raw_priority(r) == "2ww"]
+    urgent = [r for r in rules if _rule_raw_priority(r) == "urgent"]
+    routine = [r for r in rules if _rule_raw_priority(r) == "routine"]
     conditional = [
         r for r in rules if (r.get("strength") or "").lower() == "conditional"
     ]
@@ -376,9 +446,7 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
     stt_evidence: str | None = None
     if twoww:
         due_days = [
-            (r.get("action") or {}).get("due_days")
-            for r in twoww
-            if (r.get("action") or {}).get("due_days") is not None
+            _rule_due_days(r) for r in twoww if _rule_due_days(r) is not None
         ]
         if due_days:
             stt = f"Within {min(due_days)} days (two-week wait)"

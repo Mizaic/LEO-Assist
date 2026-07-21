@@ -192,6 +192,36 @@ RETURN ae.run_id               AS candidateId,
          cost_usd:      toFloat(coalesce(ae.llm_cost_usd, 0))
        })                      AS llmUsageJson,
        coalesce(ae.subtype, 'guidance')  AS source
+UNION
+// 2026-07 CTO peer-review item 3 (Phase A): include the general coding
+// PipelineRun :AuditEvent rows written by WorkflowEngine._write_audit_event
+// (libs/workflow/engine.py) -- these runs power /pricing/orgs and
+// /analytics/llm-spend/runs today (via GET_AUDIT_EVENT_SPEND / the
+// AuditEvent-generic ORG_SPEND_SUMMARY query) but were never visible in
+// the per-patient drill-down. WorkflowEngine writes no `subtype`, so we
+// exclude subtypes already carried by the two arms above to guarantee
+// this arm cannot double-count episode-engine or guidance rows.
+MATCH (ae:AuditEvent {type: 'PipelineRun'})
+WHERE (ae.subtype IS NULL OR ae.subtype NOT IN
+        ['episode_engine', 'guidance_rule_extraction', 'guidance_rule_dry_run'])
+  AND ae.patient_id = $patient_id
+  AND ae.llm_input_tokens IS NOT NULL
+  AND ($from_date IS NULL OR ae.created_at >= datetime($from_date))
+  AND ($to_date   IS NULL OR ae.created_at <= datetime($to_date))
+RETURN ae.run_id               AS candidateId,
+       coalesce(ae.encounter_id, '') AS encounterId,
+       ae.created_at           AS updatedAt,
+       coalesce(ae.extraction_model_tier, 'small') AS modelName,
+       apoc.convert.toJson({
+         input_tokens:  toInteger(coalesce(ae.llm_input_tokens, 0)),
+         output_tokens: toInteger(coalesce(ae.llm_output_tokens, 0)),
+         cached_input_tokens: toInteger(coalesce(ae.llm_cached_tokens, 0)),
+         total_tokens:  toInteger(coalesce(ae.llm_input_tokens, 0)) +
+                        toInteger(coalesce(ae.llm_output_tokens, 0)),
+         llm_calls:     toInteger(coalesce(ae.step_count, 0)),
+         cost_usd:      toFloat(coalesce(ae.llm_cost_usd, 0))
+       })                      AS llmUsageJson,
+       'coding_pipeline_run'   AS source
 """
 
 GET_ORG_LLM_SPEND = """

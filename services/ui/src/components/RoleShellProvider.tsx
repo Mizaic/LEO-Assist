@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MotionProvider,
   RoleGate,
@@ -49,14 +49,18 @@ function toOrgOptions(
   }));
 }
 
-function resolveInitialOrgId(
-  orgs: OrgOption[],
-): string {
-  try {
-    const stored = typeof window !== "undefined" ? localStorage.getItem(ORG_STORAGE_KEY) : null;
-    if (stored && stored !== "__all__" && orgs.find((o) => o.id === stored)) return stored;
-  } catch { /* noop */ }
+function defaultOrgId(orgs: OrgOption[]): string {
   return orgs[0]?.id ?? "";
+}
+
+function readStoredOrgId(orgs: OrgOption[]): string | null {
+  try {
+    const stored = localStorage.getItem(ORG_STORAGE_KEY);
+    if (stored && stored !== "__all__" && orgs.some((o) => o.id === stored)) {
+      return stored;
+    }
+  } catch { /* noop */ }
+  return null;
 }
 
 export default function RoleShellProvider({
@@ -65,10 +69,19 @@ export default function RoleShellProvider({
   children: React.ReactNode;
 }) {
   const { session, status, refetch: refetchAuth } = useAuth();
-  const orgOptions = toOrgOptions(session?.organizations);
-  const [selectedOrgId, setSelectedOrgId] = useState<string>(
-    () => resolveInitialOrgId(orgOptions),
+  const orgOptions = useMemo(
+    () => toOrgOptions(session?.organizations),
+    [session?.organizations],
   );
+  const [selectedOrgId, setSelectedOrgId] = useState<string>(() =>
+    defaultOrgId(orgOptions),
+  );
+
+  useEffect(() => {
+    if (orgOptions.length === 0) return;
+    const stored = readStoredOrgId(orgOptions);
+    if (stored) setSelectedOrgId(stored);
+  }, [orgOptions]);
 
   const initial = toRoleState(
     session?.selectedRole ?? null,

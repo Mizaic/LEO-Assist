@@ -93,6 +93,35 @@ GENERIC_BODY_PART_TERMS: frozenset[str] = frozenset(
     }
 )
 
+# SNOMED concept IDs for the six reproductive anatomy organs that the
+# extraction pipeline is permitted to emit as body_structure entities
+# (DI-9AA2CDA5 clause c).  Any body_structure entity whose resolved
+# concept_id is NOT in this set is suppressed before persist.
+REPRODUCTIVE_ANATOMY_SNOMED_IDS: frozenset[int] = frozenset(
+    {
+        71252005,  # cervix uteri
+        35039007,  # uterus
+        15497006,  # ovary structure
+        41216001,  # prostate gland
+        40689003,  # testis
+        31435000,  # fallopian tube
+    }
+)
+
+
+def is_permitted_body_structure(concept_id: int | str | None) -> bool:
+    """Return True when concept_id is an allowed reproductive anatomy organ.
+
+    Suppresses body_structure entities for all other anatomy to avoid
+    broad body-site noise in the NER pipeline.
+    """
+    if concept_id is None:
+        return False
+    try:
+        return int(concept_id) in REPRODUCTIVE_ANATOMY_SNOMED_IDS
+    except (TypeError, ValueError):
+        return False
+
 # Surface forms that are very frequently false positives across all domains
 GLOBAL_FP_SURFACE_FORMS: frozenset[str] = frozenset(
     {

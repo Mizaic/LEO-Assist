@@ -35,8 +35,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 from _mcp_transport import McpError, call_tool, initialize  # noqa: E402
+from product import PRODUCT_ID  # noqa: E402
 
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
 EVIDENCE = ROOT / "compliance" / "atlas-migration-evidence"
 AUDIT_CSV = EVIDENCE / "phase13a-do-source-reference-audit.csv"
 LEDGER_CSV = EVIDENCE / "phase13b-ledger.csv"
@@ -44,22 +44,22 @@ REVIEW_CSV = EVIDENCE / "phase13b-review-queue.csv"
 INDEX_CSV = EVIDENCE / "phase13b-atlas-do-index.csv"
 
 LEDGER_COLS = [
-    "kind",          # update | skip | review | error
+    "kind",  # update | skip | review | error
     "atlas_dcid",
-    "decision",      # updated | already_phase13b | no_evidence | not_in_audit
+    "decision",  # updated | already_phase13b | no_evidence | not_in_audit
     "source_path_count",
     "note",
     "ts",
 ]
 REVIEW_COLS = [
     "atlas_dcid",
-    "category",      # ledger-but-no-paths | not-in-audit
+    "category",  # ledger-but-no-paths | not-in-audit
     "title",
     "note",
 ]
 
 PHASE13B_TAG = "[phase13b]"
-MAX_FIELD = 4000   # safety bound on source_reference length
+MAX_FIELD = 4000  # safety bound on source_reference length
 
 
 def _now() -> str:
@@ -173,9 +173,11 @@ def main() -> int:
 
     in_audit = set(audit_by_dcid)
     in_atlas = {r["atlas_dcid"] for r in atlas_dos}
-    print(f"  -> overlap: {len(in_audit & in_atlas)}; "
-          f"in atlas but not in audit: {len(in_atlas - in_audit)}; "
-          f"in audit but not in atlas: {len(in_audit - in_atlas)}")
+    print(
+        f"  -> overlap: {len(in_audit & in_atlas)}; "
+        f"in atlas but not in audit: {len(in_atlas - in_audit)}; "
+        f"in audit but not in atlas: {len(in_audit - in_atlas)}"
+    )
 
     write_index(
         [
@@ -190,9 +192,10 @@ def main() -> int:
 
     ledger = load_ledger()
     done_dcids = {
-        r["atlas_dcid"] for r in ledger
-        if r.get("decision") in {"updated", "already_phase13b", "no_evidence",
-                                  "not_in_audit"}
+        r["atlas_dcid"]
+        for r in ledger
+        if r.get("decision")
+        in {"updated", "already_phase13b", "no_evidence", "not_in_audit"}
     }
     print(f"  -> {len(done_dcids)} DOs already in ledger; resuming after them")
 
@@ -208,56 +211,62 @@ def main() -> int:
             continue
         path_count = int(r.get("expected_source_path_count", "0") or 0)
         if path_count == 0:
-            review_rows.append({
-                "atlas_dcid": dcid,
-                "category": "ledger-but-no-paths",
-                "title": "",
-                "note": (
-                    f"phases_with_evidence={r.get('phases_with_evidence', '')}; "
-                    f"legacy_ids={r.get('legacy_ids', '')}"
-                ),
-            })
-            new_ledger.append({
-                "kind": "review",
-                "atlas_dcid": dcid,
-                "decision": "no_evidence",
-                "source_path_count": "0",
-                "note": "ledger evidence but no file paths",
-                "ts": _now(),
-            })
+            review_rows.append(
+                {
+                    "atlas_dcid": dcid,
+                    "category": "ledger-but-no-paths",
+                    "title": "",
+                    "note": (
+                        f"phases_with_evidence={r.get('phases_with_evidence', '')}; "
+                        f"legacy_ids={r.get('legacy_ids', '')}"
+                    ),
+                }
+            )
+            new_ledger.append(
+                {
+                    "kind": "review",
+                    "atlas_dcid": dcid,
+                    "decision": "no_evidence",
+                    "source_path_count": "0",
+                    "note": "ledger evidence but no file paths",
+                    "ts": _now(),
+                }
+            )
             skips += 1
             continue
         body = build_source_reference(r["expected_source_paths"])
         decision, note = update_one(dcid, body)
         if decision == "updated":
             updates += 1
-            new_ledger.append({
-                "kind": "update",
-                "atlas_dcid": dcid,
-                "decision": "updated",
-                "source_path_count": str(path_count),
-                "note": (
-                    f"phases={r.get('phases_with_evidence', '')}; "
-                    f"legacy={r.get('legacy_ids', '')}"
-                ),
-                "ts": _now(),
-            })
+            new_ledger.append(
+                {
+                    "kind": "update",
+                    "atlas_dcid": dcid,
+                    "decision": "updated",
+                    "source_path_count": str(path_count),
+                    "note": (
+                        f"phases={r.get('phases_with_evidence', '')}; "
+                        f"legacy={r.get('legacy_ids', '')}"
+                    ),
+                    "ts": _now(),
+                }
+            )
         else:
             errors += 1
-            new_ledger.append({
-                "kind": "error",
-                "atlas_dcid": dcid,
-                "decision": "error",
-                "source_path_count": str(path_count),
-                "note": note,
-                "ts": _now(),
-            })
+            new_ledger.append(
+                {
+                    "kind": "error",
+                    "atlas_dcid": dcid,
+                    "decision": "error",
+                    "source_path_count": str(path_count),
+                    "note": note,
+                    "ts": _now(),
+                }
+            )
         if (updates + errors + skips) % 25 == 0:
             append_ledger(new_ledger)
             new_ledger = []
-            print(
-                f"  ... progress: updates={updates} skips={skips} errors={errors}"
-            )
+            print(f"  ... progress: updates={updates} skips={skips} errors={errors}")
 
     if new_ledger:
         append_ledger(new_ledger)
@@ -276,20 +285,24 @@ def main() -> int:
         )
         if already:
             continue
-        final_review.append({
-            "atlas_dcid": dcid,
-            "category": "not-in-audit",
-            "title": title_by_dcid.get(dcid, ""),
-            "note": "no ledger evidence; likely Phase 2 stub",
-        })
-        new_ledger.append({
-            "kind": "review",
-            "atlas_dcid": dcid,
-            "decision": "not_in_audit",
-            "source_path_count": "0",
-            "note": "no ledger evidence; likely Phase 2 stub",
-            "ts": _now(),
-        })
+        final_review.append(
+            {
+                "atlas_dcid": dcid,
+                "category": "not-in-audit",
+                "title": title_by_dcid.get(dcid, ""),
+                "note": "no ledger evidence; likely Phase 2 stub",
+            }
+        )
+        new_ledger.append(
+            {
+                "kind": "review",
+                "atlas_dcid": dcid,
+                "decision": "not_in_audit",
+                "source_path_count": "0",
+                "note": "no ledger evidence; likely Phase 2 stub",
+                "ts": _now(),
+            }
+        )
     if new_ledger:
         append_ledger(new_ledger)
     write_review(final_review)

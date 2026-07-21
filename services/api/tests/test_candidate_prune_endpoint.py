@@ -75,8 +75,8 @@ def test_preview_returns_assessment_payload_and_does_not_delete(client):
 
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
-        patch("app.routers.training.TerminologyClient") as MockTerm,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.TerminologyClient") as MockTerm,
         patch(
             "app.services.candidate_prune.assess_candidates",
             return_value=[fake_assessment],
@@ -139,7 +139,7 @@ def test_execute_skips_completed_candidate_via_toctou_recheck(client):
 
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -183,7 +183,7 @@ def test_execute_deletes_pending_candidate_and_returns_counts(client):
 
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()
@@ -208,7 +208,7 @@ def test_execute_deletes_pending_candidate_and_returns_counts(client):
 def test_execute_reports_not_found_when_id_missing(client):
     with (
         admin_scope_override(client.app),
-        patch("app.routers.training.KnowledgeGraphClient") as MockKG,
+        patch("app.routers.training_candidates.KnowledgeGraphClient") as MockKG,
     ):
         kg = MockKG.return_value
         inner = MagicMock()

@@ -31,7 +31,7 @@ from libs.pipeline.label_filter import (  # noqa: E402
     compute_export_diagnostics,
     compute_lab_triple_diagnostics,
 )
-from services.api.app.routers.training import (  # noqa: E402
+from services.api.app.routers.training_gold_labels import (  # noqa: E402
     _ENTITY_STORED_TO_DISPLAY,
     _extract_phrase_conflicts,
     _load_phrase_multilabel_policy,
@@ -63,8 +63,7 @@ def _label_distribution(client: KnowledgeGraphClient) -> dict[str, Any]:
         "total_records": total_records,
         "total_entities": sum(counter.values()),
         "distribution": [
-            {"label": lbl, "count": cnt}
-            for lbl, cnt in counter.most_common()
+            {"label": lbl, "count": cnt} for lbl, cnt in counter.most_common()
         ],
     }
 
@@ -121,9 +120,7 @@ def snapshot() -> dict[str, Any]:
             "assertion_filtered_count": len(
                 export_diag.get("assertion_filtered") or []
             ),
-            "span_misaligned_count": len(
-                export_diag.get("span_misaligned") or []
-            ),
+            "span_misaligned_count": len(export_diag.get("span_misaligned") or []),
         },
         "phrase_consistency": {
             "total_phrases_examined": phrase.get("total_phrases_examined"),
@@ -145,8 +142,7 @@ def snapshot() -> dict[str, Any]:
             "missing_observable": lab_diag.get("missing_observable"),
             "missing_finding": lab_diag.get("missing_finding"),
             "sample_record_ids": [
-                r.get("label_id")
-                for r in (lab_diag.get("missing_records") or [])[:10]
+                r.get("label_id") for r in (lab_diag.get("missing_records") or [])[:10]
             ],
         },
     }

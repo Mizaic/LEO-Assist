@@ -12,7 +12,7 @@ QMS-controlled auto-update.
 | User Need  | UN-64F0E9C3  | Embeddable AI surface across the Mizaic portfolio  |
 | Design Inputs | DI-85C95E53, DI-A1206416, DI-85944331, DI-5F121122, DI-3C06AFD0, DI-2FBDAC7D | Distribution, auth, branding, telemetry, auto-update, governance |
 | Risk       | R-4965BCD2   | AI handover summary used without clinician review  |
-| Product    | PROD-LEO-CORE-AI-20260415-6AE8A23B | UKCA Class I, IEC 62304 Class B max          |
+| Product    | PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4 | UKCA Class I, IEC 62304 Class B max          |
 
 Look anything up via:
 

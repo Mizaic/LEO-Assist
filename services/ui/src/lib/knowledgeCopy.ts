@@ -27,10 +27,7 @@ export type KnowledgeTabKey =
   | "domains"
   | "terminology"
   | "results-labs"
-  | "ai-summarisation"
-  | "test-patients"
-  | "extraction-scenarios"
-  | "coding-validation";
+  | "validation-lab";
 
 export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   "training-data": {
@@ -264,69 +261,36 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
     },
   },
 
-  "ai-summarisation": {
+  "validation-lab": {
     default: {
-      title: "AI Summarisation",
-      lede: "Try out the SBAR summary that LEO writes for a patient.",
-      how: "Pick a patient, add a referral or a note, then run.",
-      what: "You see each section as it is written. Test only.",
+      title: "Validation Lab",
+      lede: "One place to build a test patient, run the referral, and save gold.",
+      how: "Add a patient, PMH, and encounters, then write and submit a referral.",
+      what: "One testing path for extraction, codes, rules, and SBAR.",
     },
     clinician: {
-      title: "Try the SBAR helper",
-      lede: "Run a draft SBAR for a patient to see what LEO would write.",
-      how: "Choose the referral or note and click run.",
-      what: "Use it to give us feedback. Do not use it for care yet.",
+      title: "Validation Lab",
+      lede: "Check that LEO still matches the cases your team trusts.",
+      how: "Open a case, run it, and review the SBAR in the shared widget.",
+      what: "Gold cases stop silent drift when prompts or plans change.",
     },
     staff: {
-      title: "SBAR generation playground",
-      lede: "Build a payload and see the live four-stage run.",
-      how: "Add the situation, background and any guideline ids.",
-      what: "Outputs help you tune prompts before they ship.",
+      title: "Validation Lab",
+      lede: "One patient-building flow with a single gold contract per case.",
+      how: "New patient, add PMH and encounters, write the referral, submit.",
+      what: "Replaces separate test-patient and harness pages.",
     },
     qa_ra_lead: {
-      title: "SBAR generation harness",
-      lede: "Manual entry point to the production sbar_requested queue.",
-      how: "Compose a payload, watch SSE stages, inspect the persisted Assessment.",
-      what: "Use to verify prompt + roaring-bitmap behaviour against fixtures.",
+      title: "Validation Lab (evidence)",
+      lede: "Production-shaped patients run through the real referral pipeline.",
+      how: "Persist like production by default. Dry-run cannot promote gold.",
+      what: "Supports DI-724CD8A5, DI-2289D095, DI-9138BAC9, DI-A898556B.",
     },
     platform_admin: {
-      title: "SBAR pipeline test surface",
-      lede: "Direct enqueue to the pipeline-jobs queue with the SBAR contract.",
-      how: "Submit a payload and watch the worker pick it up.",
-      what: "Useful for smoke-testing worker scale-out and Redis relay.",
-    },
-  },
-
-  "test-patients": {
-    default: {
-      title: "Test Patients",
-      lede: "Fake patients you can use to check the AI before a change goes live.",
-      how: "Pick what you want to test, then build or copy a patient.",
-      what: "You can replay them any time to see if the AI still works.",
-    },
-    clinician: {
-      title: "Test patients",
-      lede: "Pretend patients used to check the tool, never real people.",
-      how: "Open one to see what notes and codes it carries.",
-      what: "Test patients are tagged with test_ so they cannot be mistaken for real ones.",
-    },
-    staff: {
-      title: "Test patient library",
-      lede: "One place to keep test patients for every part of the AI.",
-      how: "Pick which part of the AI to test, then build a patient or copy a real one.",
-      what: "Replay any time to spot a change in how the AI behaves.",
-    },
-    qa_ra_lead: {
-      title: "Test patient library (regression bench)",
-      lede: "Centralised fixtures for NLP, episode build, guideline firing and SBAR generation.",
-      how: "Filter by aspect, replay before sign-off, and review per-aspect drift in one place.",
-      what: "Each fixture carries an is_test flag and a separate :TestPatient label so leakage into clinician surfaces is structurally impossible (R-8C0CC94B).",
-    },
-    platform_admin: {
-      title: "Test patient graph",
-      lede: "Synthetic :TestPatient subgraph next to real :Patient rows.",
-      how: "Use the clone-from-real action to seed a fixture from a real patient with PII stripped.",
-      what: "All cloned encounters and documents carry is_test = true so any property-level filter can also exclude them.",
+      title: "Validation Lab",
+      lede: "Admin surface for :ValidationCase patients and their pipeline runs.",
+      how: "Build a patient with the wizard, then run and promote gold.",
+      what: "Pathway probes stay on the pathway builder for plan authoring only.",
     },
   },
 
@@ -396,68 +360,4 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
     },
   },
 
-  "extraction-scenarios": {
-    default: {
-      title: "Extraction Scenarios",
-      lede: "Gold-standard test cases that check how well LEO reads clinical notes.",
-      how: "Open a scenario, check the expected phrases, and mark it approved.",
-      what: "Approved scenarios run in the validation check to score LEO's accuracy.",
-    },
-    clinician: {
-      title: "Extraction check cases",
-      lede: "Short clinical notes with the phrases LEO should pick out.",
-      how: "Open a case. Check the list of phrases. Click Approve if they look right.",
-      what: "Your approval means the case is used to grade LEO on real referrals.",
-    },
-    staff: {
-      title: "Extraction scenario review",
-      lede: "Test cases waiting for a clinician to check the expected phrases.",
-      how: "Open a case. Review the Markdown and the phrase list. Approve or flag.",
-      what: "Approved cases make the F1 score meaningful.",
-    },
-    qa_ra_lead: {
-      title: "Extraction gold set (evidence)",
-      lede: "Phrase-level ground truth used to score the extraction pipeline (VAL-87173594).",
-      how: "Review per-case F1 after a run. Sign off on the set before a release.",
-      what: "The F1 score and run record are required for IEC 62304 evidence.",
-    },
-    platform_admin: {
-      title: "Extraction scenario corpus",
-      lede: "80 synthetic scenarios seeded into Neo4j at deploy time.",
-      how: "Trigger a validation run to score the active extraction model.",
-      what: "Results are stored as :ExtractionValidationRun nodes and recorded in Atlas.",
-    },
-  },
-  "coding-validation": {
-    default: {
-      title: "Coding Validation",
-      lede: "Check that LEO picked the right code.",
-      how: "Open a term, check the code, and save your choice.",
-      what: "Saved fixes help LEO choose safer codes next time.",
-    },
-    clinician: {
-      title: "Coding Validation",
-      lede: "Check clinical coding of extractions.",
-      how: "Accept mappings or edit the surface form to find a better code.",
-      what: "Keeps the clinical coding accurate.",
-    },
-    staff: {
-      title: "Coding Validation",
-      lede: "Validate terminology mapping.",
-      how: "Ensure terms resolve to safe SNOMED codes.",
-      what: "Maintains terminology mapping accuracy.",
-    },
-    qa_ra_lead: {
-      title: "Coding Validation (VAL-41005BA4)",
-      lede: "Verify safe terminology resolution.",
-      how: "Check resolution scores, blocked mappings, and safe attachments.",
-      what: "Evidence for VAL-41005BA4 terminology resolution.",
-    },
-    platform_admin: {
-      title: "Coding validation store",
-      lede: "Saved coding checks and their linked SNOMED choices.",
-      how: "Review failed loads and check the backing graph state.",
-      what: "Stable storage keeps validation results available for audit.",
-    },
-  },
 };

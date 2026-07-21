@@ -70,6 +70,160 @@ const CURATED: Record<string, MockRows> = {
     { metric: "Referral completeness", value: 91.7, target: 95.0 },
   ],
 
+  // -- Tier F: ReferralRequest audit metrics --
+  rr_status_distribution: [
+    { status: "AWAITING_TRIAGE", count: 228 },
+    { status: "ACTIVE", count: 74 },
+    { status: "DEFERRED_TO_PROVIDER", count: 18 },
+    { status: "CLOSED", count: 6 },
+  ],
+
+  rr_priority_distribution: [
+    { priority: "TWO_WEEK_WAIT", count: 270 },
+    { priority: "URGENT", count: 37 },
+    { priority: "ROUTINE", count: 15 },
+    { priority: "unknown", count: 4 },
+  ],
+
+  rr_monthly_trend: buildMonthly(12, 18, 42),
+
+  rr_yoy_trend: [
+    { month: "01", year: "2024", count: 18 }, { month: "02", year: "2024", count: 22 },
+    { month: "03", year: "2024", count: 29 }, { month: "04", year: "2024", count: 25 },
+    { month: "05", year: "2024", count: 31 }, { month: "06", year: "2024", count: 27 },
+    { month: "01", year: "2025", count: 24 }, { month: "02", year: "2025", count: 28 },
+    { month: "03", year: "2025", count: 35 }, { month: "04", year: "2025", count: 31 },
+    { month: "05", year: "2025", count: 38 }, { month: "06", year: "2025", count: 42 },
+  ],
+
+  rr_by_service: [
+    { service: "Fast track cancer referral", count: 290 },
+    { service: "Lower GI - Colorectal", count: 54 },
+    { service: "Breast Services", count: 48 },
+    { service: "Upper GI", count: 32 },
+    { service: "Gynaecology", count: 28 },
+    { service: "Other", count: 14 },
+  ],
+
+  rr_by_commissioning_org: [
+    { organisation: "NHS Trust A", count: 145 },
+    { organisation: "NHS Trust B", count: 98 },
+    { organisation: "PCN Central", count: 67 },
+    { organisation: "PCN North", count: 43 },
+    { organisation: "PCN South", count: 21 },
+  ],
+
+  rr_avg_days_to_appointment: [
+    { metric: "Avg days to first appointment", value: 18.5, target: 14.0 },
+  ],
+
+  rr_workflow_state: [
+    { state: "AWAITING_TRIAGE", count: 228 },
+    { state: "ACTIVE", count: 74 },
+    { state: "DEFERRED_TO_PROVIDER", count: 18 },
+    { state: "CLOSED", count: 6 },
+  ],
+
+  rr_wait_time_distribution: [
+    { band: "0-2 weeks", count: 45 },
+    { band: "2-4 weeks", count: 88 },
+    { band: "4-8 weeks", count: 112 },
+    { band: "8-12 weeks", count: 54 },
+    { band: "12+ weeks", count: 27 },
+  ],
+
+  rr_wait_time_breaches_by_service: [
+    { service: "Upper GI", total: 32, breaches: 11, breach_pct: 34.4 },
+    { service: "Gynaecology", total: 28, breaches: 8, breach_pct: 28.6 },
+    { service: "Lower GI - Colorectal", total: 54, breaches: 12, breach_pct: 22.2 },
+    { service: "Breast Services", total: 48, breaches: 7, breach_pct: 14.6 },
+    { service: "Fast track cancer referral", total: 290, breaches: 28, breach_pct: 9.7 },
+  ],
+
+  rr_peer_review_analysis: [
+    { ai_assessment: "Appropriate - 2WW", count: 198 },
+    { ai_assessment: "Appropriate - Urgent", count: 54 },
+    { ai_assessment: "Consider downgrade", count: 38 },
+    { ai_assessment: "Consider upgrade", count: 22 },
+    { ai_assessment: "Insufficient information", count: 14 },
+  ],
+
+  rr_top_conditions: [
+    { condition: "Rectal bleeding", count: 89 },
+    { condition: "Change in bowel habit", count: 74 },
+    { condition: "Breast lump", count: 61 },
+    { condition: "Postmenopausal bleeding", count: 48 },
+    { condition: "Unexplained weight loss", count: 37 },
+    { condition: "Abdominal pain", count: 29 },
+    { condition: "Dysphagia", count: 18 },
+  ],
+
+  rr_top_medications: [
+    { medication: "Aspirin", count: 145 },
+    { medication: "Metformin", count: 98 },
+    { medication: "Atorvastatin", count: 87 },
+    { medication: "Omeprazole", count: 74 },
+    { medication: "Amlodipine", count: 61 },
+  ],
+
+  rr_abnormal_observations: [
+    { observation: "Haemoglobin (low)", count: 78 },
+    { observation: "CEA (elevated)", count: 45 },
+    { observation: "CRP (elevated)", count: 38 },
+    { observation: "Ferritin (low)", count: 29 },
+    { observation: "CA125 (elevated)", count: 18 },
+  ],
+
+  rr_outcome_flow: [
+    { priority: "TWO_WEEK_WAIT", state: "AWAITING_TRIAGE", count: 228 },
+    { priority: "TWO_WEEK_WAIT", state: "ACTIVE", count: 42 },
+    { priority: "URGENT", state: "AWAITING_TRIAGE", count: 27 },
+    { priority: "ROUTINE", state: "DEFERRED_TO_PROVIDER", count: 15 },
+    { priority: "URGENT", state: "ACTIVE", count: 10 },
+  ],
+
+  rr_patient_gender: [
+    { gender: "female", count: 162 },
+    { gender: "male", count: 159 },
+    { gender: "other", count: 3 },
+    { gender: "unknown", count: 2 },
+  ],
+
+  rr_patient_age_bands: [
+    { age_band: "Under 18", count: 0 },
+    { age_band: "18-29", count: 19 },
+    { age_band: "30-44", count: 49 },
+    { age_band: "45-59", count: 91 },
+    { age_band: "60-74", count: 93 },
+    { age_band: "75+", count: 70 },
+  ],
+
+  rr_imd_distribution: [
+    { imd_group: "Most deprived (1-3)", count: 89 },
+    { imd_group: "Middle (4-7)", count: 156 },
+    { imd_group: "Least deprived (8-10)", count: 81 },
+  ],
+
+  rr_document_types: [
+    { doc_type: "application/pdf", count: 364 },
+    { doc_type: "unknown", count: 176 },
+    { doc_type: "Word document", count: 95 },
+    { doc_type: "text/html", count: 5 },
+    { doc_type: "text/markdown", count: 2 },
+  ],
+
+  rr_data_completeness: [
+    { field: "Commissioning org", present_n: 0, total: 326, pct: 0.0 },
+    { field: "Service", present_n: 95, total: 326, pct: 29.1 },
+    { field: "Appointment", present_n: 232, total: 326, pct: 71.2 },
+    { field: "Document", present_n: 326, total: 326, pct: 100.0 },
+    { field: "Patient", present_n: 324, total: 326, pct: 99.4 },
+  ],
+
+  rr_dq_score: [
+    { metric: "Data quality score (%)", value: 28.5, target: 95.0 },
+  ],
+
   unactioned_alerts_by_age: [
     { age_bucket: "0-3 days", count: 4 },
     { age_bucket: "4-7 days", count: 7 },

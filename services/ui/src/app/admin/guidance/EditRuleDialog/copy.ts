@@ -12,9 +12,9 @@
  *   - explain before you name
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 import type { LogicNodeKind } from "./types";
 
@@ -24,7 +24,7 @@ export const GROUP_KIND_LABELS: Record<LogicNodeKind, string> = {
   OR: "Patient must have ANY of these",
   NOT: "Patient must NOT have any of these",
   AT_LEAST: "Patient must have at least N of these",
-  CONCEPT: "Symptom or sign",
+  CONCEPT: "Symptom, sign, procedure, or situation",
   DEMOGRAPHIC: "Patient detail",
   OBSERVATION: "Lab value or reading",
 };
@@ -132,7 +132,7 @@ export function friendlyTerm(raw: string | undefined | null): string {
  * SentenceCanvas reuse the same vocabulary in its empty states.
  */
 export const ADD_BAR_LABELS = {
-  symptom: "Add a symptom or sign",
+  symptom: "Add a symptom, sign, procedure, or situation",
   group: "Add a sub-group",
   detail: "Add a patient detail",
   choice: "Add a choice (any of these)",
@@ -173,17 +173,34 @@ export function atLeastClusterLabel(min: number): string {
  */
 export const CANVAS_CARDS = {
   whoTitle: "Patient must have",
-  whoEmpty: "No patient details or symptoms set yet.",
+  whoEmpty: "No patient details, symptoms, procedures, or situations set yet.",
   pathwaysTitle: "Patient must match one of these pathways",
   pathwaysEmpty: "Add a pathway to give the patient an alternative way to qualify.",
   noneOfTitle: "Patient must NOT have any of these",
-  noneOfEmpty: "Add a symptom the patient must not have.",
+  noneOfEmpty: "Add a symptom, procedure, or situation the patient must not have.",
   unsupportedTitle: "This rule has a complex shape",
   unsupportedBody:
     "We could not show this rule as plain-English sentences. Open the Advanced view (operator tree) to edit it, or simplify the rule.",
-  advancedAccordionTitle: "Advanced view (operator tree)",
-  advancedAccordionHint:
-    "Open this if you need fine-grained control over AND, OR, NOT, or AT LEAST groups. The plain-English canvas above stays in sync.",
+} as const;
+
+/**
+ * AI-assisted drafting copy (Step 1 AI-draft feature).
+ *
+ * The AI draft button calls the ai-redraft endpoint and pre-populates
+ * the editor with an AI-proposed logic tree. The user's role shifts
+ * from builder (needs clinical knowledge) to reviewer (confirms each
+ * pathway's plain-English preview sentence).
+ */
+export const AI_DRAFT = {
+  emptyCtaLabel: "Draft from NICE text",
+  emptyCtaSubtitle:
+    "AI will propose a rule structure. You review each pathway.",
+  regenerateLabel: "Regenerate AI draft",
+  regenerateAria: "Ask AI to regenerate the rule structure from the NICE text",
+  loadingLabel: "Drafting rule...",
+  errorLabel: "AI draft failed. Try again.",
+  badgeLabel: "AI draft - please check",
+  badgeAriaLabel: "This pathway was proposed by AI. Please review it.",
 } as const;
 
 /**
@@ -209,12 +226,17 @@ export const PATHWAY_NAME = {
 } as const;
 
 /**
- * Step IDs for the four-step rule editor.
+ * Step IDs for the three-step rule editor.
  *
  * Kept in display order so a `STEP_ORDER` slice is the canonical
  * "next/prev" lookup.
+ *
+ * The former "try" (sandbox test) step was removed -- reviewers found
+ * the empty-state / duplicate "author a test patient" flow awkward,
+ * and the compile-time guideline-wide replay on Bitmap Lifecycle
+ * already gives them a safety check before a rule goes live.
  */
-export const STEP_IDS = ["who", "suggest", "try", "save"] as const;
+export const STEP_IDS = ["who", "suggest", "save"] as const;
 export type StepId = (typeof STEP_IDS)[number];
 
 /** Plain-English labels for each step.
@@ -225,7 +247,6 @@ export type StepId = (typeof STEP_IDS)[number];
 export const STEP_TITLES: Record<StepId, string> = {
   who: "Who is this rule about?",
   suggest: "What should the system suggest?",
-  try: "Test your change safely",
   save: "Save your change",
 };
 
@@ -233,7 +254,6 @@ export const STEP_TITLES: Record<StepId, string> = {
 export const STEP_SHORT_TITLES: Record<StepId, string> = {
   who: "Who",
   suggest: "Suggest",
-  try: "Test",
   save: "Save",
 };
 
@@ -241,7 +261,6 @@ export const STEP_SHORT_TITLES: Record<StepId, string> = {
 export const STEP_HELPERS: Record<StepId, string> = {
   who: "Pick which patients this rule is about. Click a green pill to swap or change it. Use + Add to add another.",
   suggest: "Pick what the system should tell the clinician when this rule matches.",
-  try: "Run your change against saved test patients in a sandbox. Production is never touched.",
   save: "Tell us why. Save your change, then compile it from Bitmap Lifecycle to make it live.",
 };
 
@@ -254,93 +273,6 @@ export const STEP_STATE_LABELS = {
 
 /** Footer label shown at the bottom of the rail when every step is ready. */
 export const ALL_READY_LABEL = "All ready to save";
-
-/**
- * Copy for the sandbox-only Test Patients panel (Phase 1 redesign).
- *
- * Production is NEVER touched from inside the editor. A draft rule
- * has not been compiled into the live Redis bitmap yet, so testing
- * against the live ruleset would test the OLD rule -- which is
- * misleading and unsafe. The wizard therefore offers exactly one
- * test surface: the throwaway sandbox.
- */
-export const SANDBOX_PANEL = {
-  heading: "Try it in a sandbox",
-  intro:
-    "Compile your unsaved change into a throwaway bitmap and replay the saved test patients through it. Production is never touched.",
-  draftCardTitle: "Test your unsaved change",
-  draftCardCaption:
-    "We compile the rule you are editing right now into a throwaway bitmap, run the saved patients against it, and discard the sandbox. The live rule is not changed.",
-  testButton: "Run sandbox test",
-  testButtonRunning: "Running sandbox test...",
-  noPatientsTitle: "No saved test patients yet",
-  noPatientsBody:
-    "Add a test patient that exercises this rule before you save the change. You can author one with AI from this rule, or open the central library to pick from existing patients.",
-  ruleNotSavedTitle: "Save the rule once before testing",
-  ruleNotSavedBody:
-    "We need a saved rule to attach test patients to. Save once on Step 4, then come back here to run a sandbox test before compiling.",
-  noDraftYetTitle: "Make a change to test",
-  noDraftYetBody:
-    "Edit the rule on Step 1 first. The sandbox tests the unsaved draft against the saved test patients.",
-  compileFailedTitle: "Your draft did not compile into the sandbox",
-  compileFailedBody:
-    "The sandbox only contains rules that compile successfully. If a lab value uses an unregistered observable, or a SNOMED code cannot be resolved, the whole rule is dropped. Fix the conditions on Step 1, then run the sandbox test again. This is not testing against the live production bitmap.",
-  compilePartialBody:
-    (compiled: number, submitted: number) =>
-      `${compiled} of ${submitted} draft rule${submitted === 1 ? "" : "s"} compiled into the sandbox. Check Step 1 for unresolved SNOMED codes or lab values.`,
-} as const;
-
-/**
- * Copy for the per-card sandbox impact badges (Phase 4).
- *
- * After a sandbox replay, each top-level sentence card on the canvas
- * shows a tiny badge summarising how many of the saved test patients
- * the rule fires for. The reviewer sees the impact next to the
- * sentences themselves, instead of having to scroll to the test
- * panel. The summary is whole-rule, not per-card -- a sandbox replay
- * answers "does the rule fire for this patient?", not "which sub-tree
- * matched". The badge is therefore mirrored on every card so the
- * answer is always visible above the fold.
- */
-export const SANDBOX_BADGE = {
-  /** Pill text when a fresh report is available. */
-  freshLabel: (firing: number, total: number) =>
-    total === 0
-      ? "No saved test patients"
-      : firing === total
-        ? `Fires for all ${total} test patient${total === 1 ? "" : "s"}`
-        : firing === 0
-          ? `Fires for 0 of ${total} test patient${total === 1 ? "" : "s"}`
-          : `Fires for ${firing} of ${total} test patient${total === 1 ? "" : "s"}`,
-  staleLabel: "Sandbox out of date - run again",
-  runningLabel: "Running sandbox test...",
-  emptyLabel: "Run a sandbox test to see impact",
-  ariaLabel: "Sandbox replay impact for this rule",
-} as const;
-
-/**
- * Copy for the auto-run + Run now controls on the sandbox panel
- * (Phase 4 -- debounced on-commit replay).
- *
- * The previous Phase-1 design replaced an unsafe live-replay loop
- * with manual sandbox runs only. Reviewers asked for fast feedback
- * back; the answer is auto-run gated on a checkbox, debounced ~1.5s
- * so a single edit does not trigger several runs in a row, and an
- * explicit "Run now" button so the reviewer is never waiting for the
- * debounce to fire.
- */
-export const SANDBOX_AUTORUN = {
-  toggleLabel: "Auto-run sandbox after each edit",
-  toggleHint:
-    "We wait about 1.5 seconds after your last edit, then re-run the sandbox so the impact stays fresh.",
-  runNowLabel: "Run now",
-  runNowAria:
-    "Run the sandbox test against the unsaved draft right now, without waiting for auto-run",
-  runNowRunningAria: "Running the sandbox test now",
-  staleNotice:
-    "Your last edit has not been tested yet. Auto-run will pick it up shortly, or click Run now.",
-  pendingDebounceLabel: "Auto-run pending...",
-} as const;
 
 /**
  * Copy for the "saved, not live yet" banner shown on Step 4.
@@ -485,6 +417,18 @@ export const DUPLICATE_SETS_ALERT = {
     `${count} repeated symptom sets`,
 } as const;
 
+/** Hint when symptoms are OR'd but a patient detail should apply to all of them. */
+export const OR_SYMPTOMS_PREREQUISITE_HINT = {
+  ariaLabel: "How to add a must-have patient detail",
+  lead:
+    "These symptoms are grouped as ANY of these (the patient only needs one).",
+  action:
+    "To also require a patient detail (like sex or age), click",
+  actionStrong: "Add patient detail",
+  tail:
+    "below. We will keep the symptoms as ANY of these and make the patient detail a must-have AND condition -- you do not need to start again.",
+} as const;
+
 /**
  * Centralised ConceptSearchPanel headings + helper copy (Phase 7c).
  *
@@ -495,10 +439,10 @@ export const DUPLICATE_SETS_ALERT = {
 export const SEARCH_PANEL = {
   headings: {
     replace_action: "Swap the recommended procedure",
-    replace: "Swap a symptom or sign",
+    replace: "Swap a symptom, sign, procedure, or situation",
     replace_observation: "Swap the lab value",
-    add: "Add a symptom or sign",
-    idle: "Find a symptom or sign",
+    add: "Add a symptom, sign, procedure, or situation",
+    idle: "Find a symptom, sign, procedure, or situation",
   },
   searchLabel: "Search clinical terms",
   searchPlaceholder: "Type a word, like cough or weight loss",
@@ -509,7 +453,7 @@ export const SEARCH_PANEL = {
     `No clinical terms match "${q}". Try a shorter word or a different spelling.`,
   idleHintLead: "Click a green pill on the left to swap that symptom for a",
   idleHintMid: "different one, or use one of the",
-  idleHintStrong: "+ Add a symptom",
+  idleHintStrong: "+ Add a symptom, procedure, or situation",
   idleHintTail: "buttons inside a group.",
   loadError: "Could not search the clinical terms. Please try again.",
 } as const;

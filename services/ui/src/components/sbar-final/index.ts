@@ -24,3 +24,5 @@ export type {
 } from "./SbarFinalView";
 export { CompletenessPill } from "./CompletenessPill";
 export type { CompletenessPillProps } from "./CompletenessPill";
+export { LeoSbarHost } from "./LeoSbarHost";
+export type { LeoSbarHostProps } from "./LeoSbarHost";

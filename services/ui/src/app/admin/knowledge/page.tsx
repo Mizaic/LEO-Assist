@@ -36,10 +36,7 @@ const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
   domains: "wide",
   terminology: "wide",
   "results-labs": "wide",
-  "ai-summarisation": "wide",
-  "test-patients": "wide",
-  "extraction-scenarios": "wide",
-  "coding-validation": "wide",
+  "validation-lab": "wide",
 };
 
 const GoldDatasetPage = dynamic(() => import("@/app/admin/gold-dataset/page"), { ssr: false });
@@ -51,20 +48,8 @@ const PathwaysPage = dynamic(() => import("@/app/admin/pathways/page"), { ssr: f
 const DomainsPage = dynamic(() => import("@/app/admin/domains/page"), { ssr: false });
 const TerminologyPage = dynamic(() => import("@/app/admin/terminology/page"), { ssr: false });
 const LabResultsPage = dynamic(() => import("@/app/admin/lab-results/page"), { ssr: false });
-const AiSummarisationPage = dynamic(
-  () => import("@/app/admin/ai-summarisation/page"),
-  { ssr: false },
-);
-const TestPatientsPage = dynamic(
-  () => import("@/app/admin/knowledge/test-patients/page"),
-  { ssr: false },
-);
-const ExtractionScenariosPage = dynamic(
-  () => import("@/app/admin/extraction-scenarios/page"),
-  { ssr: false },
-);
-const CodingValidationPage = dynamic(
-  () => import("@/app/admin/coding-validation/page"),
+const ValidationLabPage = dynamic(
+  () => import("@/app/admin/validation-lab/page"),
   { ssr: false },
 );
 
@@ -78,10 +63,7 @@ const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
   domains: DomainsPage,
   terminology: TerminologyPage,
   "results-labs": LabResultsPage,
-  "ai-summarisation": AiSummarisationPage,
-  "test-patients": TestPatientsPage,
-  "extraction-scenarios": ExtractionScenariosPage,
-  "coding-validation": CodingValidationPage,
+  "validation-lab": ValidationLabPage,
 };
 
 // Canonical tab order -- keys are part of URL contract and must stay stable.
@@ -95,10 +77,7 @@ export const TABS: Array<{ key: KnowledgeTabKey; label: string }> = [
   { key: "domains", label: "Domains" },
   { key: "terminology", label: "Terminology" },
   { key: "results-labs", label: "Results/Labs" },
-  { key: "ai-summarisation", label: "AI Summarisation" },
-  { key: "test-patients", label: "Test Patients" },
-  { key: "extraction-scenarios", label: "Extraction Scenarios" },
-  { key: "coding-validation", label: "Coding Validation" },
+  { key: "validation-lab", label: "Validation Lab" },
 ];
 
 function resolveRole(selectedRole: string | null): Role | null {
@@ -111,9 +90,12 @@ export default function KnowledgePage() {
   const auth = useAuth();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const tabParam = (searchParams.get("tab") ?? "training-data") as KnowledgeTabKey;
+  const rawTab = searchParams.get("tab") ?? "training-data";
+  const tabParam = rawTab as KnowledgeTabKey;
   const validKeys = TABS.map((t) => t.key);
-  const activeKey: KnowledgeTabKey = validKeys.includes(tabParam) ? tabParam : "training-data";
+  const activeKey: KnowledgeTabKey = validKeys.includes(tabParam)
+    ? tabParam
+    : "training-data";
   const ActiveBody = TAB_PANELS[activeKey];
   const role = resolveRole(auth.session?.selectedRole ?? null);
 
@@ -123,6 +105,15 @@ export default function KnowledgePage() {
     },
     [router],
   );
+
+  // Retired Test Patients tab -> Validation Lab (single unified flow).
+  useEffect(() => {
+    if (rawTab !== "test-patients") return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", "validation-lab");
+    params.delete("view");
+    router.replace(`/admin/knowledge?${params.toString()}`);
+  }, [rawTab, router, searchParams]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

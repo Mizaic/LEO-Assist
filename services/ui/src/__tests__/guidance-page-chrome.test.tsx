@@ -58,7 +58,7 @@ describe("VT-LEO-AI-150 - Clinical Guidelines chrome", () => {
     expect(src).toMatch(/<NiceLoaderSection[\s\S]*?onGuidelineLoaded=/);
     expect(src).toMatch(/<LoadedGuidelinesPanel[\s\S]*?refreshKey=/);
     expect(src).toMatch(/<RuleReviewSection[\s\S]*?refreshKey=/);
-    expect(src).toMatch(/<BitmapLifecycleSection\s*\/>/);
+    expect(src).toMatch(/<BitmapLifecycleSection[\s\S]*?onVersionActivated=/);
   });
 
   test("TC-006: preserves both refresh-key state bridges between sections", () => {

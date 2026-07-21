@@ -2,10 +2,8 @@
  * Phase 6 UI tests for the OBSERVATION leaf.
  *
  * Atlas trace:
- *   UN: UN-26E57FA1
- *   DI: DI-4C8A09C3
- *   DO: DO-CB6324A3
- *   VT: VT-1A7862B9 (execution_status=passed)
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
  *
  * Covers:
  *   - treeOps: add_observation, set_observation, set_name (restored
@@ -23,7 +21,6 @@
 import { applyUpdate, assignNodeIds, findValidationError, observationWithCriterion } from "../treeOps";
 import type { LogicNodeSeed } from "../treeOps";
 import { treeToSentence } from "../treeToSentence";
-import { treeToCanvas } from "../treeToCanvas";
 import type {
   EditableLogicNode,
   EditableObservationPayload,
@@ -188,32 +185,3 @@ describe("Phase 6 OBSERVATION leaf -- treeToSentence", () => {
   });
 });
 
-describe("Phase 6 OBSERVATION leaf -- treeToCanvas", () => {
-  it("maps an OBSERVATION leaf to an observation row inside the Who card", () => {
-    const root = tree({
-      kind: "AND",
-      children: [
-        { kind: "OBSERVATION", observation: observation() },
-      ],
-    });
-    const canvas = treeToCanvas(root);
-    expect(canvas.kind).toBe("canvas");
-    if (canvas.kind !== "canvas") return;
-    const observationRows = (canvas.whoCard?.rows ?? []).filter(
-      (row) => row.variant === "observation",
-    );
-    expect(observationRows.length).toBe(1);
-    expect(observationRows[0].node.observation?.operator).toBe(">=");
-  });
-
-  it("maps a top-level OBSERVATION leaf to a well-shaped canvas", () => {
-    const root = tree({
-      kind: "OBSERVATION",
-      observation: observation(),
-    });
-    const canvas = treeToCanvas(root);
-    expect(canvas.kind).toBe("canvas");
-    if (canvas.kind !== "canvas") return;
-    expect(canvas.whoCard?.rows[0].variant).toBe("observation");
-  });
-});

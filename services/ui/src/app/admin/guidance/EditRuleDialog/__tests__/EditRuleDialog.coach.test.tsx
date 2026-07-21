@@ -71,12 +71,12 @@ function mockSearch(hits: unknown[] = []) {
 }
 
 /**
- * The widescreen editor splits the form across four steps. The reason
- * field lives on step 4 ("Save your change").
+ * The widescreen editor splits the form across three steps. The
+ * reason field lives on step 3 ("Save your change").
  */
 function fillReason(text: string) {
   const rail = screen.getAllByRole("button", {
-    name: /^Step 4 of 4/i,
+    name: /^Step 3 of 3/i,
   });
   fireEvent.click(rail[0]);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {

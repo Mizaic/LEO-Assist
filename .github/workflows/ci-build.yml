@@ -64,7 +64,11 @@ jobs:
             exit 0
           fi
 
-          PY_CHANGED="$(git diff --name-only "$BASE_SHA" HEAD -- '*.py' || true)"
+          # scripts/archive/** holds retired, unmaintained ad-hoc scripts
+          # (see scripts/archive/README.md) -- excluded so moving legacy
+          # code there doesn't force a behaviour-neutral reformat of code
+          # nobody is meant to run or maintain.
+          PY_CHANGED="$(git diff --name-only "$BASE_SHA" HEAD -- '*.py' ':(exclude)scripts/archive/**' || true)"
           if [ -z "$PY_CHANGED" ]; then
             echo "No Python file changes; skipping black."
             exit 0
@@ -79,6 +83,27 @@ jobs:
 
       - name: Atlas trace headers (every Class B+ source file)
         run: python3 scripts/atlas/check_atlas_trace_headers.py
+
+      - name: Product id canonical (no drift to superseded Atlas id)
+        run: python3 -m pytest tests/test_product_id_canonical.py -v
+
+      - name: Router size guard (new routers, non-blocking)
+        env:
+          EVENT_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          BASE_SHA="$EVENT_BEFORE_SHA"
+          if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{0,40}$ ]]; then
+            echo "Refusing to use non-hex BASE_SHA: $BASE_SHA"
+            exit 0
+          fi
+          if [ -z "$BASE_SHA" ]; then
+            BASE_SHA="$(git rev-list --max-count=1 HEAD^ || true)"
+          fi
+          if [ -z "$BASE_SHA" ]; then
+            echo "No base SHA available; skipping router size guard."
+            exit 0
+          fi
+          python3 scripts/router_size_guard.py --changed-since "$BASE_SHA"
 
       - name: Lint - flake8
         env:
@@ -98,7 +123,10 @@ jobs:
             exit 0
           fi
 
-          PY_CHANGED="$(git diff --name-only "$BASE_SHA" HEAD -- '*.py' || true)"
+          # scripts/archive/** holds retired, unmaintained ad-hoc scripts
+          # (see scripts/archive/README.md) -- excluded for the same reason
+          # as the black step above.
+          PY_CHANGED="$(git diff --name-only "$BASE_SHA" HEAD -- '*.py' ':(exclude)scripts/archive/**' || true)"
           if [ -z "$PY_CHANGED" ]; then
             echo "No Python file changes; skipping flake8."
             exit 0

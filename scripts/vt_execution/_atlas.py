@@ -13,8 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from scripts.atlas._mcp_transport import call_tool, initialize  # noqa: E402
-
-PRODUCT_ID = "PROD-LEO-CORE-AI-20260415-6AE8A23B"
+from scripts.atlas.product import PRODUCT_ID  # noqa: E402
 
 _INITIALISED = False
 

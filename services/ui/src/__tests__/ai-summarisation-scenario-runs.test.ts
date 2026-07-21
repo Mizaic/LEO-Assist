@@ -8,13 +8,12 @@ function readUi(relativePath: string): string {
 }
 
 describe("AI summarisation scenario runs", () => {
-  it("keeps the manual SBAR playground and adds scenario runs", () => {
+  it("redirects the AI summarisation page to Validation Lab", () => {
     const source = readUi("app/admin/ai-summarisation/page.tsx");
 
-    expect(source).toContain("Manual SBAR playground");
-    expect(source).toContain("Scenario runs");
-    expect(source).toContain("SbarPlayground");
-    expect(source).toContain("ScenarioRunPanel");
+    expect(source).toContain("/admin/validation-lab");
+    expect(source).toContain("router.replace");
+    expect(source).toContain("Moved to Validation Lab");
   });
 
   it("uses the scenario run API and shows persisted SBAR detail", () => {
@@ -38,6 +37,14 @@ describe("AI summarisation scenario runs", () => {
     expect(source).toContain("LinearProgress");
     expect(source).toContain("Skeleton");
     expect(source).toContain("Auto-refreshing");
+  });
+
+  it("labels pipeline stages by subgraph or action id, not durable_step", () => {
+    const source = readUi("app/admin/ai-summarisation/ScenarioRunPanel.tsx");
+
+    expect(source).toContain("stageDisplayName");
+    expect(source).toContain('eventType !== "durable_step"');
+    expect(source).toContain("stageDisplayName(stage)");
   });
 
   it("adds two validation tabs to the run detail dialog", () => {
@@ -95,6 +102,7 @@ describe("AI summarisation scenario runs", () => {
     expect(source).toContain("sdk/auth/exchange");
     expect(source).toContain("X-Mizaic-Host-Secret");
     expect(source).toContain("SCENARIO_SDK_HOST_SECRET");
+    expect(source).toContain("SDK_HOST_SHARED_SECRET");
     expect(source).toContain("widget_token");
     expect(source).toContain("assessment_id");
   });

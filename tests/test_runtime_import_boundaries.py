@@ -15,12 +15,23 @@ RUNTIME_ROOTS = (
 )
 SKIP_PARTS = {".git", ".venv", "venv", "__pycache__"}
 
+# Subtrees excluded from Docker builds (see .dockerignore) and therefore
+# never shipped in a runtime image -- exempt from this boundary check.
+EXCLUDED_SUBTREES = ("scripts/archive",)
+
+
+def _is_excluded(path: Path) -> bool:
+    rel = path.relative_to(ROOT).as_posix()
+    return any(rel == sub or rel.startswith(sub + "/") for sub in EXCLUDED_SUBTREES)
+
 
 def _python_files(root: Path) -> list[Path]:
     return [
         path
         for path in root.rglob("*.py")
-        if path.is_file() and not any(part in SKIP_PARTS for part in path.parts)
+        if path.is_file()
+        and not any(part in SKIP_PARTS for part in path.parts)
+        and not _is_excluded(path)
     ]
 
 

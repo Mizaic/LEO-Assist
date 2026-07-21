@@ -31,7 +31,9 @@ _FILTER_CONDITIONS = (
 # ---------------------------------------------------------------------------
 
 _AGG_TAIL = (
-    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
+    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gpGp:Organization) "
+    "OPTIONAL MATCH (p)-[:REGISTERED_IN]->(gpReg:Organization) "
+    "WITH p, coalesce(gpGp, gpReg) AS gp "
     "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
     "  WHERE NOT ep.status IN ['merged', 'closed_phantom', 'closed_related'] "
     "OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(enc:Encounter) "
@@ -52,6 +54,7 @@ _AGG_TAIL = (
     "collect(DISTINCT coalesce(ep.condition_type, ep.cancer_type)) AS condition_types "
     "RETURN "
     "  p.id AS patient_id, "
+    "  coalesce(p.name, p.id) AS display_name, "
     "  p.nhsNumber AS nhs_number, "
     "  p.gender AS gender, "
     "  p.birthDate AS birth_date, "
@@ -73,7 +76,9 @@ _AGG_TAIL = (
 
 LIST_PATIENTS_SCOPED = (
     "MATCH (p:Patient) "
-    "WHERE " + _ORG_GUARD + " AND "
+    "WHERE "
+    + _ORG_GUARD
+    + " AND "
     + _FILTER_CONDITIONS
     + "WITH p ORDER BY p.id ASC SKIP $skip LIMIT $limit "
     + _AGG_TAIL
@@ -81,7 +86,8 @@ LIST_PATIENTS_SCOPED = (
 
 LIST_PATIENTS_ADMIN = (
     "MATCH (p:Patient) "
-    "WHERE " + _FILTER_CONDITIONS
+    "WHERE "
+    + _FILTER_CONDITIONS
     + "WITH p ORDER BY p.id ASC SKIP $skip LIMIT $limit "
     + _AGG_TAIL
 )
@@ -92,15 +98,11 @@ LIST_PATIENTS_ADMIN = (
 
 COUNT_PATIENTS_SCOPED = (
     "MATCH (p:Patient) "
-    "WHERE " + _ORG_GUARD + " AND "
-    + _FILTER_CONDITIONS
-    + "RETURN count(p) AS total"
+    "WHERE " + _ORG_GUARD + " AND " + _FILTER_CONDITIONS + "RETURN count(p) AS total"
 )
 
 COUNT_PATIENTS_ADMIN = (
-    "MATCH (p:Patient) "
-    "WHERE " + _FILTER_CONDITIONS
-    + "RETURN count(p) AS total"
+    "MATCH (p:Patient) " "WHERE " + _FILTER_CONDITIONS + "RETURN count(p) AS total"
 )
 
 # ---------------------------------------------------------------------------
@@ -133,7 +135,7 @@ FACETS_ADMIN = (
 
 _EPISODE_COLLECT = (
     "collect(DISTINCT { "
-    "  episode_id: ep.episode_id, "
+    "  episode_id: coalesce(ep.episode_id, ep.id), "
     "  condition_type: coalesce(ep.condition_type, ep.cancer_type), "
     "  status: ep.status, "
     "  referral_date: toString(ep.referral_date), "
@@ -152,31 +154,39 @@ _EPISODE_COLLECT = (
 _PATIENT_DETAIL_RETURN = (
     "RETURN "
     "  p.id AS patient_id, "
+    "  coalesce(p.name, p.id) AS display_name, "
     "  p.nhsNumber AS nhs_number, "
     "  p.gender AS gender, "
     "  p.birthDate AS birth_date, "
     "  gp.name AS practice_name, "
-    "  count(DISTINCT alert) AS active_alert_count, "
-    + _EPISODE_COLLECT
+    "  count(DISTINCT alert) AS active_alert_count, " + _EPISODE_COLLECT
+)
+
+_GP_OPTIONAL = (
+    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gpGp:Organization) "
+    "OPTIONAL MATCH (p)-[:REGISTERED_IN]->(gpReg:Organization) "
+    "WITH p, coalesce(gpGp, gpReg) AS gp "
 )
 
 GET_PATIENT_DETAIL_SCOPED = (
     "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
-    "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    "WHERE "
+    + _ORG_GUARD
+    + " "
+    + _GP_OPTIONAL
+    + "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
     "OPTIONAL MATCH (p)-[:HAS_SAFETY_NET_ALERT]->(alert:SafetyNetAlert) "
     "  WHERE alert.resolved_at IS NULL "
-    + _PATIENT_DETAIL_RETURN
+    "WITH p, gp, ep, alert " + _PATIENT_DETAIL_RETURN
 )
 
 GET_PATIENT_DETAIL_ADMIN = (
     "MATCH (p:Patient {id: $patient_id}) "
-    "OPTIONAL MATCH (p)-[:HAS_GENERAL_PRACTITIONER]->(gp:Organization) "
-    "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
+    + _GP_OPTIONAL
+    + "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
     "OPTIONAL MATCH (p)-[:HAS_SAFETY_NET_ALERT]->(alert:SafetyNetAlert) "
     "  WHERE alert.resolved_at IS NULL "
-    + _PATIENT_DETAIL_RETURN
+    "WITH p, gp, ep, alert " + _PATIENT_DETAIL_RETURN
 )
 
 # ---------------------------------------------------------------------------
@@ -194,7 +204,7 @@ _TIMELINE_BODY = (
     "  UNION "
     "  WITH p "
     "  OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
-    "  RETURN 'episode' AS item_type, ep.episode_id AS item_id, "
+    "  RETURN 'episode' AS item_type, coalesce(ep.episode_id, ep.id) AS item_id, "
     "         toString(ep.referral_date) AS item_date, "
     "         coalesce(ep.condition_type, ep.cancer_type, 'Episode') AS label, "
     "         ep.status AS extra "
@@ -214,15 +224,10 @@ _TIMELINE_BODY = (
 )
 
 GET_TIMELINE_SCOPED = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    + _TIMELINE_BODY
+    "MATCH (p:Patient {id: $patient_id}) " "WHERE " + _ORG_GUARD + " " + _TIMELINE_BODY
 )
 
-GET_TIMELINE_ADMIN = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    + _TIMELINE_BODY
-)
+GET_TIMELINE_ADMIN = "MATCH (p:Patient {id: $patient_id}) " + _TIMELINE_BODY
 
 # ---------------------------------------------------------------------------
 # Encounter list with text preview
@@ -246,14 +251,10 @@ _ENCOUNTERS_BODY = (
 
 GET_ENCOUNTERS_SCOPED = (
     "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    + _ENCOUNTERS_BODY
+    "WHERE " + _ORG_GUARD + " " + _ENCOUNTERS_BODY
 )
 
-GET_ENCOUNTERS_ADMIN = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    + _ENCOUNTERS_BODY
-)
+GET_ENCOUNTERS_ADMIN = "MATCH (p:Patient {id: $patient_id}) " + _ENCOUNTERS_BODY
 
 # ---------------------------------------------------------------------------
 # Encounter detail (full text + coded terms)
@@ -291,13 +292,11 @@ _ENCOUNTER_DETAIL_BODY = (
 
 GET_ENCOUNTER_DETAIL_SCOPED = (
     "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    + _ENCOUNTER_DETAIL_BODY
+    "WHERE " + _ORG_GUARD + " " + _ENCOUNTER_DETAIL_BODY
 )
 
 GET_ENCOUNTER_DETAIL_ADMIN = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    + _ENCOUNTER_DETAIL_BODY
+    "MATCH (p:Patient {id: $patient_id}) " + _ENCOUNTER_DETAIL_BODY
 )
 
 # ---------------------------------------------------------------------------
@@ -344,15 +343,10 @@ _DOCUMENTS_BODY = (
 )
 
 GET_DOCUMENTS_SCOPED = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    + _DOCUMENTS_BODY
+    "MATCH (p:Patient {id: $patient_id}) " "WHERE " + _ORG_GUARD + " " + _DOCUMENTS_BODY
 )
 
-GET_DOCUMENTS_ADMIN = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    + _DOCUMENTS_BODY
-)
+GET_DOCUMENTS_ADMIN = "MATCH (p:Patient {id: $patient_id}) " + _DOCUMENTS_BODY
 
 # ---------------------------------------------------------------------------
 # Patient-level SBAR assessments (episode-scoped + rollup)
@@ -387,15 +381,11 @@ _ASSESSMENTS_JOIN = (
 
 GET_ASSESSMENTS_SCOPED = (
     "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    + _ASSESSMENTS_JOIN
-    + _ASSESSMENTS_RETURN
+    "WHERE " + _ORG_GUARD + " " + _ASSESSMENTS_JOIN + _ASSESSMENTS_RETURN
 )
 
 GET_ASSESSMENTS_ADMIN = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    + _ASSESSMENTS_JOIN
-    + _ASSESSMENTS_RETURN
+    "MATCH (p:Patient {id: $patient_id}) " + _ASSESSMENTS_JOIN + _ASSESSMENTS_RETURN
 )
 
 # ---------------------------------------------------------------------------
@@ -416,15 +406,10 @@ _ALERTS_BODY = (
 )
 
 GET_ALERTS_SCOPED = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    + _ALERTS_BODY
+    "MATCH (p:Patient {id: $patient_id}) " "WHERE " + _ORG_GUARD + " " + _ALERTS_BODY
 )
 
-GET_ALERTS_ADMIN = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    + _ALERTS_BODY
-)
+GET_ALERTS_ADMIN = "MATCH (p:Patient {id: $patient_id}) " + _ALERTS_BODY
 
 PATCH_ALERT = (
     "MATCH (p:Patient {id: $patient_id})-[:HAS_SAFETY_NET_ALERT]->"
@@ -504,14 +489,10 @@ _CODED_ENTITIES_BODY = (
 
 GET_CODED_ENTITIES_SCOPED = (
     "MATCH (p:Patient {id: $patient_id}) "
-    "WHERE " + _ORG_GUARD + " "
-    + _CODED_ENTITIES_BODY
+    "WHERE " + _ORG_GUARD + " " + _CODED_ENTITIES_BODY
 )
 
-GET_CODED_ENTITIES_ADMIN = (
-    "MATCH (p:Patient {id: $patient_id}) "
-    + _CODED_ENTITIES_BODY
-)
+GET_CODED_ENTITIES_ADMIN = "MATCH (p:Patient {id: $patient_id}) " + _CODED_ENTITIES_BODY
 
 # ---------------------------------------------------------------------------
 # Episode milestones

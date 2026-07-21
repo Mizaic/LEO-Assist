@@ -225,10 +225,15 @@ const UUID_PREFIX_RE =
  *   -> "upper_gi_form_001 (encounter)"
  *
  * IDs that do not start with a UUID are returned unchanged.
+ * Non-string wire values (Neo4j integers, null) are coerced first so a
+ * malformed background_parts payload cannot crash the SBAR view.
  */
-function _formatSourceId(id: string): string {
-  const stripped = id.replace(UUID_PREFIX_RE, "");
-  if (stripped === id) return id;
+function _formatSourceId(id: unknown): string {
+  if (id == null) return "";
+  const text = typeof id === "string" ? id : String(id);
+  if (!text) return "";
+  const stripped = text.replace(UUID_PREFIX_RE, "");
+  if (stripped === text) return text;
   const parts = stripped.split(":");
   if (parts.length >= 2) {
     const label = parts.slice(0, -1).join(":");
@@ -306,16 +311,21 @@ function SectionSourcesPanel({
                   : ""}
               </Typography>
               <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                {(p.sourceIds ?? []).map((id) => (
-                  <Chip
-                    key={id}
-                    size="small"
-                    variant="outlined"
-                    label={_formatSourceId(id)}
-                    title={id}
-                    sx={{ height: 20, fontSize: "0.65rem" }}
-                  />
-                ))}
+                {(p.sourceIds ?? []).map((id, idIndex) => {
+                  const label = _formatSourceId(id);
+                  const title =
+                    typeof id === "string" ? id : label || String(id);
+                  return (
+                    <Chip
+                      key={`${label || "source"}-${idIndex}`}
+                      size="small"
+                      variant="outlined"
+                      label={label || "source"}
+                      title={title}
+                      sx={{ height: 20, fontSize: "0.65rem" }}
+                    />
+                  );
+                })}
               </Stack>
             </Box>
           ))}

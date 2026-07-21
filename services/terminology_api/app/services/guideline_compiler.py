@@ -25,10 +25,15 @@ concept only — the bitmap still works, just without hierarchy widening.
 
 Action metadata
 ---------------
-The compiled rule output includes ``action`` with ``concept_id``, ``name``,
-``priority`` ("2ww" | "urgent" | "routine"), and ``due_days`` (int | None).
-This is read directly from the ``HAS_ACTION`` edge properties written by the
-rule generator, so no Neo4j re-query is needed at evaluation time.
+The compiled rule output includes ``actions``, a list of
+``{concept_id, name, strength, priority, due_days}`` dicts -- one per
+``HAS_ACTION`` edge (a rule can recommend more than one procedure).
+``action`` (singular) is kept as a read-only derived field equal to
+``actions[0]`` (or ``None`` when empty) for one release as a back-compat
+shim -- removable once ``libs/sbar`` is confirmed migrated to ``actions``.
+Action metadata is read directly from the ``HAS_ACTION`` edge properties
+written by the rule generator, so no Neo4j re-query is needed at
+evaluation time.
 """
 
 from __future__ import annotations
@@ -116,7 +121,6 @@ OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (g)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
 OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
-OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc)
 RETURN
     rule.id              AS rule_id,
     rule.name            AS name,
@@ -134,11 +138,7 @@ RETURN
     hc.predicate         AS predicate,
     coalesce(concept.id, concept.conceptId)         AS concept_id,
     coalesce(hc.distanceChild,  0) AS distance_child,
-    coalesce(hc.distanceParent, 0) AS distance_parent,
-    coalesce(proc.id, proc.conceptId)               AS action_concept_id,
-    coalesce(proc.preferred_term, proc.fsn, proc.term, proc.id, proc.conceptId) AS action_name,
-    ha.priority          AS action_priority,
-    ha.dueDays           AS action_due_days
+    coalesce(hc.distanceParent, 0) AS distance_parent
 ORDER BY rule.id, grp.id, coalesce(concept.id, concept.conceptId)
 """
 
@@ -159,6 +159,28 @@ RETURN
     at.value             AS value,
     at.unit              AS unit
 ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
+"""
+
+# Separate query for recommended actions (HAS_ACTION edges) -- fetched once
+# per compile run and merged into the compiled rules by rule_id, mirroring
+# _FETCH_APPLIES_TO above. Kept separate from _FETCH_ACTIVE_RULES so a rule
+# with N criteria rows and M action rows does not produce an NxM cross-join.
+# Same dual-graph tolerance as _FETCH_ACTIVE_RULES (see DUAL-GRAPH NOTE
+# above): `proc` binds unlabeled so both `:Concept` and legacy
+# `:SnomedConcept` action targets resolve.
+_FETCH_ACTIONS = """
+MATCH (rule:AppropriatenessRule {status: 'active'})
+    -[:HAS_ACTION_GROUP]->(:ActionGroup)-[ha:HAS_ACTION]->(proc)
+RETURN
+    rule.id              AS rule_id,
+    coalesce(proc.id, proc.conceptId)               AS concept_id,
+    coalesce(proc.preferred_term, proc.fsn, proc.term, proc.id, proc.conceptId) AS name,
+    ha.strength          AS strength,
+    ha.priority          AS priority,
+    ha.dueDays           AS due_days,
+    coalesce(ha.actionKind, 'snomed_procedure')     AS action_kind,
+    ha.actionText        AS action_text
+ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
 """
 
 
@@ -185,6 +207,7 @@ class GuidelineCompiler:
         "policy_violations": 0,
         "out_of_scope_concepts": 0,
         "out_of_scope_actions": 0,
+        "cycle_warnings": 0,
     }
 
     def __init__(self, store: BitmapStore | None = None) -> None:
@@ -331,7 +354,79 @@ class GuidelineCompiler:
             driver.close()
         self._compile_stats["rules_included"] = len(compiled_rules)
         self._compile_stats["rules_excluded"] = max(0, len(rules) - len(compiled_rules))
+        self._detect_rule_fired_cycles(compiled_rules)
         return {"rules": compiled_rules}
+
+    @staticmethod
+    def _normalise_action_item(item: dict[str, Any]) -> dict[str, Any] | None:
+        """Coerce one draft action item into the compiled action shape.
+
+        Accepts either a ``RuleAction``-shaped item (``{criterion: {...},
+        strength: ...}``) or a flat legacy action dict (``{snomed_concept_id
+        | concept_id, preferred_term | term | name, priority, due_days,
+        strength}``). Returns ``None`` when no SNOMED concept id is present.
+        """
+        criterion = item.get("criterion")
+        if not isinstance(criterion, dict):
+            criterion = item
+        concept_id = (
+            item.get("concept_id")
+            or criterion.get("snomed_concept_id")
+            or criterion.get("concept_id")
+        )
+        if not concept_id:
+            return None
+        name = (
+            item.get("name")
+            or criterion.get("preferred_term")
+            or criterion.get("term")
+            or criterion.get("name")
+        )
+        from libs.terminology.local_concepts import validate_action_kind
+
+        action_kind = validate_action_kind(
+            item.get("action_kind") or criterion.get("action_kind")
+        )
+        action_text = item.get("action_text") or criterion.get("action_text")
+        return {
+            "concept_id": str(concept_id),
+            "name": name,
+            "strength": item.get("strength")
+            or criterion.get("strength")
+            or "unspecified",
+            "priority": item.get("priority") or criterion.get("priority") or "routine",
+            "due_days": item.get("due_days", criterion.get("due_days")),
+            "action_kind": action_kind,
+            "action_text": action_text,
+        }
+
+    @staticmethod
+    def _normalise_draft_actions(rule_in: dict[str, Any]) -> list[dict[str, Any]]:
+        """Build the draft-compile ``actions`` list from either shape.
+
+        Prefers the new ``rule_in["actions"]`` array; falls back to the
+        legacy singular ``action``/``action_concept_id``/``action_name``
+        fields so pre-Phase-3 UI builds keep compiling correctly.
+        """
+        actions_in = rule_in.get("actions")
+        if isinstance(actions_in, list) and actions_in:
+            normalised = [
+                GuidelineCompiler._normalise_action_item(item)
+                for item in actions_in
+                if isinstance(item, dict)
+            ]
+            return [a for a in normalised if a]
+
+        legacy_action = rule_in.get("action") or {}
+        legacy_item = {
+            "concept_id": rule_in.get("action_concept_id"),
+            "name": rule_in.get("action_name"),
+            "priority": rule_in.get("action_priority"),
+            "due_days": rule_in.get("action_due_days"),
+            "criterion": legacy_action,
+        }
+        normalised_legacy = GuidelineCompiler._normalise_action_item(legacy_item)
+        return [normalised_legacy] if normalised_legacy else []
 
     @staticmethod
     def _normalise_draft_rule(rule_in: dict[str, Any]) -> dict[str, Any] | None:
@@ -353,18 +448,6 @@ class GuidelineCompiler:
                 "compile_drafts: rule %s has no logic_tree/logicJson", rule_id
             )
             return None
-        action = rule_in.get("action") or {}
-        action_concept_id = (
-            rule_in.get("action_concept_id")
-            or action.get("snomed_concept_id")
-            or action.get("concept_id")
-        )
-        action_name = (
-            rule_in.get("action_name")
-            or action.get("preferred_term")
-            or action.get("term")
-            or action.get("name")
-        )
         return {
             "rule_id": str(rule_id),
             "name": rule_in.get("name") or "",
@@ -378,12 +461,9 @@ class GuidelineCompiler:
             "recommendation_verbatim": rule_in.get("recommendation_verbatim")
             or rule_in.get("recommendation_text")
             or "",
-            "action_concept_id": action_concept_id,
-            "action_name": action_name,
-            "action_priority": rule_in.get("action_priority")
-            or action.get("priority")
-            or "routine",
-            "action_due_days": rule_in.get("action_due_days") or action.get("due_days"),
+            "actions": GuidelineCompiler._normalise_draft_actions(rule_in),
+            "action_priority": rule_in.get("action_priority"),
+            "action_due_days": rule_in.get("action_due_days"),
             "action_json": rule_in.get("action_json"),
             "applies_to": list(rule_in.get("applies_to") or []),
         }
@@ -402,13 +482,18 @@ class GuidelineCompiler:
         enforce_action_scope: bool = False,
         distance_child_override: int | None = None,
         distance_parent_override: int | None = None,
+        activate: bool = False,
     ) -> dict:
         """Compile all active rules and store as a versioned ruleset.
 
         CPU-bound work runs in a thread pool to avoid blocking the event loop.
 
+        By default ``activate=False`` so the new version is a candidate
+        only. Callers must activate explicitly (DI-8DD23CE2).
+
         Args:
             version: Version label for the new ruleset (e.g. ``v20260308-1``).
+            activate: When True, flip the scope current pointer to this version.
 
         Returns:
             Summary dict with ``version``, ``rule_count``, and ``compile_timestamp``.
@@ -437,6 +522,7 @@ class GuidelineCompiler:
         ruleset["scope_id"] = scope.scope_id
         ruleset["policy_mode"] = policy_mode
         ruleset["compile_stats"] = dict(self._compile_stats)
+        ruleset["activated_on_compile"] = bool(activate)
 
         self._store.write_ruleset(
             version,
@@ -444,17 +530,19 @@ class GuidelineCompiler:
             scope_type=scope.scope_type,
             scope_id=scope.scope_id,
         )
-        self._store.set_current_version(
-            version,
-            scope_type=scope.scope_type,
-            scope_id=scope.scope_id,
-        )
+        if activate:
+            self._store.set_current_version(
+                version,
+                scope_type=scope.scope_type,
+                scope_id=scope.scope_id,
+            )
         logger.info(
-            "Compiled ruleset %s scope=%s/%s policy=%s: %d rules",
+            "Compiled ruleset %s scope=%s/%s policy=%s activate=%s: %d rules",
             version,
             scope.scope_type,
             scope.scope_id,
             policy_mode,
+            activate,
             len(ruleset.get("rules", [])),
         )
         return {
@@ -465,6 +553,7 @@ class GuidelineCompiler:
             "scope_id": scope.scope_id,
             "policy_mode": policy_mode,
             "compile_stats": dict(self._compile_stats),
+            "activated": bool(activate),
         }
 
     def _compile_ruleset(
@@ -508,6 +597,18 @@ class GuidelineCompiler:
                         ),
                     )
                 )
+                action_records = list(
+                    session.run(
+                        self._build_fetch_actions_query(scope),
+                        statuses=statuses,
+                        scope_id=scope.scope_id,
+                        scope_domain_id=(
+                            scope.scope_id.split(":", 1)[0]
+                            if scope.scope_type == "subdomain"
+                            else scope.scope_id
+                        ),
+                    )
+                )
                 policy = self._build_policy(
                     session,
                     scope,
@@ -522,6 +623,7 @@ class GuidelineCompiler:
                     records,
                     session,
                     applies_to_records,
+                    action_records,
                     policy=policy,
                     distance_child_override=distance_child_override,
                     distance_parent_override=distance_parent_override,
@@ -543,8 +645,7 @@ OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (g)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp:CriteriaGroup)
 OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)
-OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc)
-WITH g, rec, rule, ch, dom, grp, hc, concept, ag, ha, proc
+WITH g, rec, rule, ch, dom, grp, hc, concept
 WHERE {where_clause}
 RETURN
     rule.id              AS rule_id,
@@ -563,11 +664,7 @@ RETURN
     hc.predicate         AS predicate,
     coalesce(concept.id, concept.conceptId)         AS concept_id,
     coalesce(hc.distanceChild,  0) AS distance_child,
-    coalesce(hc.distanceParent, 0) AS distance_parent,
-    coalesce(proc.id, proc.conceptId)               AS action_concept_id,
-    coalesce(proc.preferred_term, proc.fsn, proc.term, proc.id, proc.conceptId) AS action_name,
-    ha.priority          AS action_priority,
-    ha.dueDays           AS action_due_days
+    coalesce(hc.distanceParent, 0) AS distance_parent
 ORDER BY rule.id, grp.id, coalesce(concept.id, concept.conceptId)
 """
 
@@ -595,6 +692,30 @@ RETURN
     at.value             AS value,
     at.unit              AS unit
 ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
+"""
+
+    def _build_fetch_actions_query(self, scope: CompileScope) -> str:
+        """Same scope filter as the other fetch queries; see _FETCH_ACTIONS."""
+        where = ["coalesce(rule.status, 'active') IN $statuses"]
+        if scope.scope_type == "guideline":
+            where.append("g.id = $scope_id")
+        elif scope.scope_type in {"domain", "subdomain"}:
+            where.append("dom.id = $scope_domain_id")
+        where_clause = " AND ".join(where)
+        # Dual-graph tolerance: see DUAL-GRAPH NOTE above _FETCH_ACTIVE_RULES.
+        return f"""
+MATCH (rule:AppropriatenessRule)-[:HAS_ACTION_GROUP]->(:ActionGroup)-[ha:HAS_ACTION]->(proc)
+OPTIONAL MATCH (rec:Recommendation)-[:HAS_RULE]->(rule)<-[:HAS_RECOMMENDATION]-(g:Guideline)-[:IN_SUBCATEGORY]->(:TaxonomySubcategory)-[:IN_DOMAIN]->(dom:AuditDomain)
+WITH rule, ha, proc, dom, g
+WHERE {where_clause}
+RETURN
+    rule.id              AS rule_id,
+    coalesce(proc.id, proc.conceptId)               AS concept_id,
+    coalesce(proc.preferred_term, proc.fsn, proc.term, proc.id, proc.conceptId) AS name,
+    ha.strength          AS strength,
+    ha.priority          AS priority,
+    ha.dueDays           AS due_days
+ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
 """
 
     def _build_policy(
@@ -768,11 +889,39 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
         self._closure_cache[cache_key] = result
         return result
 
+    @staticmethod
+    def _merge_legacy_row_action(rule_data: dict[str, Any], row: Any) -> None:
+        """Back-compat: populate ``actions`` from a joined per-row column.
+
+        Pre-Phase-4 callers (and any row shape that still carries
+        ``action_concept_id`` directly, e.g. hand-built test fixtures) do not
+        supply a separate ``action_records`` result set. When that is the
+        case, this reproduces the old "keep the first action seen" merge so
+        those callers keep working unchanged. Once ``action_records`` (from
+        ``_FETCH_ACTIONS``) is supplied, real rows never carry these columns
+        and this is a no-op.
+        """
+        if rule_data["actions"]:
+            return
+        concept_id = row.get("action_concept_id")
+        if not concept_id:
+            return
+        rule_data["actions"].append(
+            {
+                "concept_id": concept_id,
+                "name": row.get("action_name"),
+                "strength": row.get("action_strength") or "unspecified",
+                "priority": row.get("action_priority") or "routine",
+                "due_days": row.get("action_due_days"),
+            }
+        )
+
     def _build_ruleset(
         self,
         records: list[Any],
         session,
         applies_to_records: list[Any] | None = None,
+        action_records: list[Any] | None = None,
         *,
         policy: CompilePolicy | None = None,
         distance_child_override: int | None = None,
@@ -792,7 +941,9 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
                 {"mode": "ANY", "bitmap_id": "bm:def..."},
                 {"mode": "NOT", "bitmap_id": "bm:ghi..."},
               ],
-              "action": {...} | None,
+              "actions": [{"concept_id": ..., "name": ..., "strength": ...,
+                           "priority": ..., "due_days": ...}, ...],
+              "action": {...} | None,  # actions[0], back-compat shim
               "applies_to": [...],
             }
 
@@ -804,6 +955,9 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             records: Raw records from the ``_FETCH_ACTIVE_RULES`` Cypher query.
             session: Active Neo4j session (for SNOMED closure queries).
             applies_to_records: Raw records from ``_FETCH_APPLIES_TO``.
+            action_records: Raw records from ``_FETCH_ACTIONS``. When omitted,
+                per-row ``action_concept_id`` columns are used instead (see
+                ``_merge_legacy_row_action``).
         """
         policy = policy or CompilePolicy()
         by_rule: dict[str, dict] = {}
@@ -836,19 +990,13 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
                     "recommendation_verbatim": row.get("recommendation_verbatim", ""),
                     "group_ids_ordered": [],  # preserves insertion order
                     "applies_to": [],
-                    "action_concept_id": row.get("action_concept_id"),
-                    "action_name": row.get("action_name"),
-                    "action_priority": row.get("action_priority", "routine"),
+                    "actions": [],
+                    "action_priority": row.get("action_priority"),
                     "action_due_days": row.get("action_due_days"),
                     "guideline_domain_id": row.get("guideline_domain_id"),
                 }
-            else:
-                rule = by_rule[rule_id]
-                if not rule["action_concept_id"] and row.get("action_concept_id"):
-                    rule["action_concept_id"] = row["action_concept_id"]
-                    rule["action_name"] = row.get("action_name")
-                    rule["action_priority"] = row.get("action_priority", "routine")
-                    rule["action_due_days"] = row.get("action_due_days")
+
+            self._merge_legacy_row_action(by_rule[rule_id], row)
 
             if not group_id:
                 continue
@@ -923,6 +1071,29 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
                 }
             )
 
+        # Merge recommended actions (HAS_ACTION edges) into their rules.
+        # Fetched as a separate per-rule-id query (_FETCH_ACTIONS) so a rule
+        # with multiple criteria rows AND multiple action rows does not
+        # cross-join; this mirrors the APPLIES_TO merge above.
+        for row in action_records or []:
+            rule_id = str(row["rule_id"])
+            if rule_id not in by_rule:
+                continue
+            concept_id = row.get("concept_id")
+            if not concept_id:
+                continue
+            by_rule[rule_id]["actions"].append(
+                {
+                    "concept_id": concept_id,
+                    "name": row.get("name"),
+                    "strength": row.get("strength") or "unspecified",
+                    "priority": row.get("priority") or "routine",
+                    "due_days": row.get("due_days"),
+                    "action_kind": row.get("action_kind") or "snomed_procedure",
+                    "action_text": row.get("action_text"),
+                }
+            )
+
         compiled_rules = []
         for rule_data in by_rule.values():
             if int(rule_data.get("schema_version") or 1) == 2 and rule_data.get(
@@ -973,6 +1144,7 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             0,
             int(self._compile_stats.get("rules_seen") or 0) - len(compiled_rules),
         )
+        self._detect_rule_fired_cycles(compiled_rules)
         return {"rules": compiled_rules}
 
     def _seeds_from_criterion(self, criterion: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1390,6 +1562,59 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             "term": node.get("term", ""),
         }
 
+    @staticmethod
+    def _collect_rule_fired_deps(node: dict[str, Any]) -> list[str]:
+        """Return all referenced_rule_id values found in RULE_FIRED leaves."""
+        kind = str(node.get("kind") or "").upper()
+        if kind == "RULE_FIRED":
+            ref = node.get("referenced_rule_id")
+            return [ref] if ref else []
+        deps: list[str] = []
+        for child in node.get("children") or []:
+            deps.extend(GuidelineCompiler._collect_rule_fired_deps(child))
+        return deps
+
+    def _detect_rule_fired_cycles(self, compiled_rules: list[dict[str, Any]]) -> None:
+        """DFS cycle detection across RULE_FIRED dependency edges.
+
+        Logs a warning in compile_stats for every cycle found. The evaluator's
+        _in_progress guard is the runtime safety net; this is an early-warning
+        signal for administrators. Atlas trace: DO-274E5A61 / DI-8899D4F3.
+        """
+        adj: dict[str, list[str]] = {}
+        for rule in compiled_rules:
+            rule_id = rule.get("rule_id", "")
+            tree = rule.get("logic_tree") or {}
+            adj[rule_id] = self._collect_rule_fired_deps(tree)
+
+        visited: set[str] = set()
+        in_stack: set[str] = set()
+
+        def _dfs(node_id: str) -> bool:
+            if node_id in in_stack:
+                return True
+            if node_id in visited:
+                return False
+            visited.add(node_id)
+            in_stack.add(node_id)
+            for neighbour in adj.get(node_id, []):
+                if _dfs(neighbour):
+                    return True
+            in_stack.discard(node_id)
+            return False
+
+        for rule_id in list(adj):
+            if rule_id not in visited:
+                if _dfs(rule_id):
+                    self._compile_stats["cycle_warnings"] = (
+                        int(self._compile_stats.get("cycle_warnings") or 0) + 1
+                    )
+                    logger.warning(
+                        "RULE_FIRED cycle detected involving rule %r -- "
+                        "affected rules will return False (fail-closed) at evaluation time.",
+                        rule_id,
+                    )
+
     def _compile_logic_tree_node(
         self,
         node: dict[str, Any] | None,
@@ -1428,6 +1653,14 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             return self._compile_allergy_leaf(node)
         if kind == "treatment_history":
             return self._compile_treatment_history_leaf(node)
+        if kind == "rule_fired":
+            return {
+                "kind": "RULE_FIRED",
+                "node_id": node.get("node_id"),
+                "referenced_rule_id": node.get("referenced_rule_id"),
+                "outcome": node.get("outcome", "fired"),
+                "display_name": node.get("display_name"),
+            }
 
         children = []
         for child in node.get("children") or []:
@@ -1447,6 +1680,84 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             "min": node.get("min"),
             "children": children,
         }
+
+    @staticmethod
+    def _actions_from_action_json(rule_data: dict[str, Any]) -> list[dict[str, Any]]:
+        """Fallback source for rules with no HAS_ACTION edges (human-edit path).
+
+        ``action_json`` tolerates both the legacy single-object shape and
+        the new JSON-array shape written by ``guidance_rule_edit.py``
+        (``{term, snomed_concept_id, preferred_term, semantic_tag,
+        strength, verification_status}`` per item). Rule-level
+        ``action_priority``/``action_due_days`` are reused for every item
+        since actionJson-only rules have no per-action priority source.
+        """
+        action_json = rule_data.get("action_json")
+        if isinstance(action_json, list):
+            items = [a for a in action_json if isinstance(a, dict)]
+        elif isinstance(action_json, dict):
+            items = [action_json]
+        else:
+            items = []
+        priority = rule_data.get("action_priority") or "routine"
+        due_days = rule_data.get("action_due_days")
+        out: list[dict[str, Any]] = []
+        for item in items:
+            concept_id = item.get("snomed_concept_id")
+            if not concept_id:
+                continue
+            out.append(
+                {
+                    "concept_id": concept_id,
+                    "name": item.get("preferred_term") or item.get("term"),
+                    "strength": item.get("strength") or "unspecified",
+                    "priority": priority,
+                    "due_days": due_days,
+                }
+            )
+        return out
+
+    def _build_compiled_actions(
+        self, rule_data: dict[str, Any], policy: CompilePolicy
+    ) -> list[dict[str, Any]]:
+        """Build the compiled ``actions`` list for one rule.
+
+        Prefers ``rule_data["actions"]`` (from HAS_ACTION edges, merged in
+        by ``_build_ruleset``). Falls back to ``action_json`` only when no
+        HAS_ACTION-sourced actions exist at all -- matches the previous
+        singular-action if/elif precedence (a filtered/out-of-scope action
+        does not fall through to the actionJson source).
+        """
+        source = rule_data.get("actions") or self._actions_from_action_json(rule_data)
+        actions: list[dict[str, Any]] = []
+        for item in source:
+            concept_id = item.get("concept_id")
+            if not concept_id:
+                continue
+            if (
+                policy.allowed_concept_ids
+                and policy.enforce_action_scope
+                and str(concept_id) not in policy.allowed_concept_ids
+            ):
+                self._compile_stats["policy_violations"] += 1
+                self._compile_stats["out_of_scope_actions"] += 1
+                if policy.mode != "strict":
+                    logger.warning(
+                        "Action concept %s for rule %s is outside policy scope.",
+                        concept_id,
+                        rule_data.get("rule_id"),
+                    )
+                continue
+            actions.append(
+                {
+                    "concept_id": concept_id,
+                    "name": item.get("name"),
+                    "strength": item.get("strength") or "unspecified",
+                    "priority": item.get("priority") or "routine",
+                    "due_days": item.get("due_days"),
+                }
+            )
+        return actions
 
     def _compile_schema_v2_rule(
         self,
@@ -1482,39 +1793,7 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             )
             return None
 
-        action = None
-        if rule_data.get("action_concept_id"):
-            if (
-                policy.allowed_concept_ids
-                and policy.enforce_action_scope
-                and str(rule_data["action_concept_id"])
-                not in policy.allowed_concept_ids
-            ):
-                self._compile_stats["policy_violations"] += 1
-                self._compile_stats["out_of_scope_actions"] += 1
-                if policy.mode != "strict":
-                    logger.warning(
-                        "Action concept %s for rule %s is outside policy scope.",
-                        rule_data["action_concept_id"],
-                        rule_data["rule_id"],
-                    )
-            else:
-                action = {
-                    "concept_id": rule_data["action_concept_id"],
-                    "name": rule_data.get("action_name"),
-                    "priority": rule_data.get("action_priority") or "routine",
-                    "due_days": rule_data.get("action_due_days"),
-                }
-        elif rule_data.get("action_json"):
-            action_json = dict(rule_data["action_json"])
-            if action_json.get("snomed_concept_id"):
-                action = {
-                    "concept_id": action_json["snomed_concept_id"],
-                    "name": action_json.get("preferred_term")
-                    or action_json.get("term"),
-                    "priority": rule_data.get("action_priority") or "routine",
-                    "due_days": rule_data.get("action_due_days"),
-                }
+        actions = self._build_compiled_actions(rule_data, policy)
 
         return {
             "rule_id": rule_data["rule_id"],
@@ -1527,7 +1806,10 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             "chapter_title": rule_data.get("chapter_title"),
             "recommendation_verbatim": rule_data["recommendation_verbatim"],
             "logic_tree": compiled_tree,
-            "action": action,
+            "actions": actions,
+            # Back-compat shim for one release -- removable once libs/sbar
+            # (Phase 4b) is confirmed migrated to reading "actions".
+            "action": actions[0] if actions else None,
         }
 
     def _compile_one_rule(
@@ -1544,26 +1826,11 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             groups: List of ``{mode, bitmap_id}`` dicts, one per CriteriaGroup.
 
         Returns:
-            Compiled rule dict with ``criteria_groups``, ``action``, and
-            ``applies_to`` fields consumed by the evaluator.
+            Compiled rule dict with ``criteria_groups``, ``actions``,
+            ``action`` (back-compat shim), and ``applies_to`` fields
+            consumed by the evaluator.
         """
-        action: dict | None = None
-        if rule_data.get("action_concept_id"):
-            if (
-                policy.allowed_concept_ids
-                and policy.enforce_action_scope
-                and str(rule_data["action_concept_id"])
-                not in policy.allowed_concept_ids
-            ):
-                self._compile_stats["policy_violations"] += 1
-                self._compile_stats["out_of_scope_actions"] += 1
-            else:
-                action = {
-                    "concept_id": rule_data["action_concept_id"],
-                    "name": rule_data.get("action_name"),
-                    "priority": rule_data.get("action_priority") or "routine",
-                    "due_days": rule_data.get("action_due_days"),
-                }
+        actions = self._build_compiled_actions(rule_data, policy)
 
         return {
             "rule_id": rule_data["rule_id"],
@@ -1576,6 +1843,9 @@ ORDER BY rule.id, coalesce(concept.id, concept.conceptId)
             "chapter_title": rule_data.get("chapter_title"),
             "recommendation_verbatim": rule_data["recommendation_verbatim"],
             "criteria_groups": groups,
-            "action": action,
+            "actions": actions,
+            # Back-compat shim for one release -- removable once libs/sbar
+            # (Phase 4b) is confirmed migrated to reading "actions".
+            "action": actions[0] if actions else None,
             "applies_to": rule_data.get("applies_to") or [],
         }

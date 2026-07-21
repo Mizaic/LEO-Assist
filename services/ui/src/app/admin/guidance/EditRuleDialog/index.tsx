@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-D6CE2AA5
- *   DI: DI-A3107424
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-D6CE2AA5")
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
@@ -43,7 +43,8 @@
  *                  VT-LEO-AI-511 (v2).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -56,11 +57,14 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import type { TransitionProps } from "@mui/material/transitions";
 import CloseIcon from "@mui/icons-material/Close";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+
+import { useMotion } from "@leo/design-system";
 
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
@@ -70,11 +74,8 @@ import HorizontalStepper, {
   type StepState,
 } from "./HorizontalStepper";
 import LivePreviewPane from "./LivePreviewPane";
-import type { SandboxImpactBadge } from "./SentenceCanvas";
-import type { SandboxReportState } from "./TestPatientsPanel";
 import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
-import Step3Try from "./steps/Step3Try";
 import Step4Save from "./steps/Step4Save";
 import {
   DIALOG_CHROME,
@@ -87,28 +88,42 @@ import {
   applyUpdate,
   assignNodeIds,
   canHaveChildren,
+  findActionsValidationError,
   findValidationError,
   hasOrRootWithPrerequisites,
   observationWithCriterion,
   promoteOrPrerequisites,
+  sanitiseActionsForSave,
   stripNodeIds,
   wrapRootInAnd,
 } from "./treeOps";
 import { findDuplicateConceptGroups } from "./namedSets";
 import { treeToSentence } from "./treeToSentence";
 import { detectVaguePhrase } from "./vaguePhrases";
-import type { EditableLogicNode, LogicCriterion, NodeUpdate } from "./types";
+import { slidePanelVariants } from "../motionPresets";
+import { normalizeRuleActions } from "../actionShape";
+import type {
+  EditableLogicNode,
+  LogicCriterion,
+  NodeUpdate,
+  RuleAction,
+} from "./types";
 
 export interface EditableRule {
   rule_id: string;
   name?: string;
+  /** Deprecated rule-level strength; used only to seed a legacy single
+   *  action's strength when ``actions`` is absent (back-compat). */
   strength?: string;
   guideline_id?: string;
   chapter_title?: string;
   recommendation_text?: string;
   logic_tree?: unknown;
-  /** Recommended SNOMED procedure that fires when the rule matches.
-   *  Surfaced from the API's actionJson; null when uncoded. */
+  /** One or more recommended procedures, each with its own strength. */
+  actions?: RuleAction[];
+  /** Deprecated: legacy single recommended SNOMED procedure. Surfaced
+   *  from the API's actionJson for rules not yet migrated to
+   *  ``actions``; null when uncoded. */
   action?: LogicCriterion | null;
   /** When true this rule fires only if no other rule in the guideline matched. */
   is_default?: boolean;
@@ -121,12 +136,11 @@ interface Props {
   onClose: () => void;
   onSave: (payload: {
     name: string;
-    strength: string;
     logic_tree: Record<string, unknown>;
     reason: string;
-    /** Only set when the reviewer changed the action SNOMED concept;
+    /** Only set when the reviewer changed the recommended procedures;
      *  omitting it preserves the predecessor's actionJson server-side. */
-    action?: LogicCriterion;
+    actions?: Array<Record<string, unknown>>;
     is_default?: boolean;
   }) => void;
 }
@@ -137,6 +151,8 @@ interface SearchTarget {
   nodeId: string | null;
   /** When mode is ``replace``, distinguishes symptom chips from lab values. */
   replaceKind: "concept" | "observation" | null;
+  /** When mode is ``replace_action``, which row of ``actions`` is targeted. */
+  actionIndex: number | null;
   initialQuery: string;
   focusLabel: string | null;
   /**
@@ -155,10 +171,103 @@ const IDLE_TARGET: SearchTarget = {
   parentNodeId: null,
   nodeId: null,
   replaceKind: null,
+  actionIndex: null,
   initialQuery: "",
   focusLabel: null,
   anchorEl: null,
 };
+
+/**
+ * Derive the editor's initial ``actions`` array from a loaded rule.
+ * Prefers the new ``actions`` field; falls back to the legacy singular
+ * ``action``/``strength`` pair (wrapped as a 1-item array) so rules
+ * from a server that has not migrated yet still edit correctly.
+ */
+function deriveInitialActions(rule: EditableRule): RuleAction[] {
+  const normalized = normalizeRuleActions(rule.actions as unknown[] | undefined);
+  if (normalized && normalized.length > 0) return normalized;
+  if (rule.action) {
+    return [{ criterion: rule.action, strength: rule.strength || "unspecified" }];
+  }
+  // A rule always needs at least one recommended-procedure row so the
+  // reviewer has somewhere to pick a code; seed a blank one rather than
+  // starting from an empty list. A leftover rule-level ``strength`` from
+  // a not-yet-migrated legacy rule is preserved on that blank row rather
+  // than silently dropped.
+  return [
+    {
+      criterion: { snomed_concept_id: "", preferred_term: "" },
+      strength: rule.strength || "unspecified",
+    },
+  ];
+}
+
+/** Blank action row seeded by "+ Add another procedure". */
+function makeBlankAction(): RuleAction {
+  return {
+    criterion: { snomed_concept_id: "", preferred_term: "" },
+    strength: "unspecified",
+  };
+}
+
+/**
+ * Bouncy pop-in/out transition for the rule editor Dialog, replacing MUI's
+ * flat default fade. Lifecycle callbacks (onEnter/onEntered/onExit/
+ * onExited) are driven by a timer matched to the spring's settle time,
+ * not by framer's onAnimationComplete -- this keeps Modal's focus and
+ * unmount handling deterministic in both real browsers and jsdom tests.
+ */
+const BouncyDialogTransition = forwardRef<
+  HTMLDivElement,
+  TransitionProps & { children: React.ReactElement }
+>(function BouncyDialogTransition(props, ref) {
+  const {
+    children,
+    in: inProp,
+    appear,
+    mountOnEnter,
+    unmountOnExit,
+    timeout,
+    easing,
+    addEndListener,
+    onEnter,
+    onEntering,
+    onEntered,
+    onExit,
+    onExiting,
+    onExited,
+    ...other
+  } = props;
+  const { reducedMotion } = useMotion();
+  const settleMs = reducedMotion ? 0 : 260;
+
+  useEffect(() => {
+    if (inProp) {
+      onEnter?.(null as unknown as HTMLElement, true);
+      const t = setTimeout(() => onEntered?.(null as unknown as HTMLElement, true), settleMs);
+      return () => clearTimeout(t);
+    }
+    onExit?.(null as unknown as HTMLElement);
+    const t = setTimeout(() => onExited?.(null as unknown as HTMLElement), settleMs);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inProp, settleMs]);
+
+  const hidden = reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 28 };
+  const visible = reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 };
+
+  return (
+    <fm.div
+      ref={ref}
+      initial={hidden}
+      animate={inProp ? visible : hidden}
+      transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 340, damping: 28 }}
+      {...other}
+    >
+      {children}
+    </fm.div>
+  );
+});
 
 export default function EditRuleDialog({
   rule,
@@ -172,38 +281,27 @@ export default function EditRuleDialog({
     null,
   );
   const [name, setName] = useState("");
-  const [strength, setStrength] = useState("unspecified");
-  const [originalStrength, setOriginalStrength] = useState("unspecified");
   const [reason, setReason] = useState("");
   const [searchTarget, setSearchTarget] = useState<SearchTarget>(IDLE_TARGET);
-  const [showRecommendation, setShowRecommendation] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [coach, setCoach] = useState<{
     nodeId: string;
     anchor: HTMLElement;
   } | null>(null);
-  // The SNOMED-coded recommended procedure (action) -- separate from the
-  // logic tree because it is what the system *suggests* when the rule
-  // matches, not what the patient must have. ``actionDirty`` lets us
-  // omit ``action`` from the save payload when the reviewer never
-  // touched it, so the server preserves the predecessor's actionJson
+  // The SNOMED-coded recommended procedures (actions) -- separate from
+  // the logic tree because they are what the system *suggests* when the
+  // rule matches, not what the patient must have. ``actionsDirty`` lets
+  // us omit ``actions`` from the save payload when the reviewer never
+  // touched them, so the server preserves the predecessor's actionJson
   // unchanged (DI-LEO-AI-170 safety constraint).
-  const [action, setAction] = useState<LogicCriterion | null>(null);
-  const [originalAction, setOriginalAction] = useState<LogicCriterion | null>(
-    null,
-  );
-  const [actionDirty, setActionDirty] = useState(false);
+  const [actions, setActions] = useState<RuleAction[]>([]);
+  const [originalActions, setOriginalActions] = useState<RuleAction[]>([]);
+  const [actionsDirty, setActionsDirty] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
-  /**
-   * Phase 4 -- latest sandbox replay summary, pushed up from
-   * TestPatientsPanel (via Step3Try) so the SentenceCanvas in
-   * Step1Who can render an inline fire/no-fire badge per card. Reset
-   * when the rule prop changes (different rule => previous badges
-   * are not for this rule).
-   */
-  const [sandboxReport, setSandboxReport] =
-    useState<SandboxReportState | null>(null);
+  const [stepDirection, setStepDirection] = useState<1 | -1>(1);
+  const prevStepIndexRef = useRef(0);
+  const { reducedMotion } = useMotion();
 
   useEffect(() => {
     if (!rule) return;
@@ -214,33 +312,16 @@ export default function EditRuleDialog({
     setTree(initialTree);
     setOriginalTree(initialTree);
     setName(rule.name ?? "");
-    setStrength(rule.strength || "unspecified");
-    setOriginalStrength(rule.strength || "unspecified");
     setReason("");
     setSearchTarget(IDLE_TARGET);
-    setShowRecommendation(false);
     setCoach(null);
-    setAction(rule.action ?? null);
-    setOriginalAction(rule.action ?? null);
-    setActionDirty(false);
+    const initialActions = deriveInitialActions(rule);
+    setActions(initialActions);
+    setOriginalActions(initialActions);
+    setActionsDirty(false);
     setIsDefault(rule.is_default ?? false);
     setCurrentStepId("who");
-    setSandboxReport(null);
   }, [rule]);
-
-  /**
-   * Convert the panel's `SandboxReportState` (which carries the
-   * signature it was produced against) into the canvas-facing
-   * `SandboxImpactBadge`. The signature is intentionally stripped
-   * here -- the canvas only needs status + counts. */
-  const sandboxBadge: SandboxImpactBadge | undefined = useMemo(() => {
-    if (!sandboxReport) return undefined;
-    return {
-      status: sandboxReport.status,
-      firingPatients: sandboxReport.firingPatients,
-      totalPatients: sandboxReport.totalPatients,
-    };
-  }, [sandboxReport]);
 
   const summary = useMemo(() => treeToSentence(tree), [tree]);
   const beforeSummary = useMemo(
@@ -259,9 +340,13 @@ export default function EditRuleDialog({
     searchTarget.anchorEl !== null;
 
   const validationError = useMemo(() => findValidationError(tree), [tree]);
+  const actionsError = useMemo(
+    () => findActionsValidationError(actions),
+    [actions],
+  );
   const reasonReady = reason.trim().length >= 3;
   const canSave =
-    !!tree && !validationError && reasonReady && !saving;
+    !!tree && !validationError && !actionsError && reasonReady && !saving;
 
   const stepDescriptors: StepDescriptor[] = useMemo(() => {
     const whoState: StepState = !tree
@@ -269,26 +354,29 @@ export default function EditRuleDialog({
       : validationError
         ? "in_progress"
         : "ready";
-    const suggestState: StepState =
-      action && action.snomed_concept_id
-        ? "ready"
-        : strength === "unspecified" && !action
-          ? "not_started"
-          : "in_progress";
-    // Step 3 is opt-in evidence -- it never blocks save, so we mark
-    // it ready unconditionally so the user does not feel pressured
-    // to compile a sandbox before saving a wording-only fix.
-    const tryState: StepState = "ready";
+    const allCoded =
+      actions.length > 0 &&
+      actions.every((a) => Boolean(a.criterion?.snomed_concept_id));
+    const allBlank = actions.every(
+      (a) => !a.criterion?.snomed_concept_id && a.strength === "unspecified",
+    );
+    const suggestState: StepState = allCoded
+      ? "ready"
+      : allBlank
+        ? "not_started"
+        : "in_progress";
     const saveState: StepState = reasonReady ? "ready" : "not_started";
     return [
       { id: "who", state: whoState },
       { id: "suggest", state: suggestState },
-      { id: "try", state: tryState },
       { id: "save", state: saveState },
     ];
-  }, [tree, validationError, action, strength, reasonReady]);
+  }, [tree, validationError, actions, reasonReady]);
 
   const handleJumpStep = useCallback((next: StepId) => {
+    const nextIndex = STEP_IDS.indexOf(next);
+    setStepDirection(nextIndex >= prevStepIndexRef.current ? 1 : -1);
+    prevStepIndexRef.current = nextIndex;
     setCurrentStepId(next);
     setSearchTarget(IDLE_TARGET);
   }, []);
@@ -349,7 +437,7 @@ export default function EditRuleDialog({
       initialQuery: friendly,
       focusLabel: friendly
         ? `Swapping: ${friendly}`
-        : "Pick a symptom or sign for the empty pill",
+        : "Pick a symptom, sign, procedure, or situation for the empty pill",
       anchorEl: anchor ?? null,
     });
   }
@@ -368,7 +456,7 @@ export default function EditRuleDialog({
       initialQuery: "",
       focusLabel: parent
         ? `Adding to: ${groupLabel(parent.kind)}`
-        : "Adding a symptom or sign",
+        : "Adding a symptom, sign, procedure, or situation",
       anchorEl: anchor ?? null,
     });
   }
@@ -378,6 +466,16 @@ export default function EditRuleDialog({
   function handleAddFirstSymptom(anchor: HTMLElement) {
     if (!tree) return;
     handleRequestAdd(tree.node_id, anchor);
+  }
+
+  function handleAddFirstDemographic() {
+    if (!tree) return;
+    handleUpdate({ kind: "add_demographic", parentNodeId: tree.node_id });
+  }
+
+  function handleAddFirstObservation() {
+    if (!tree) return;
+    handleUpdate({ kind: "add_observation", parentNodeId: tree.node_id });
   }
 
   function handleRequestCoach(nodeId: string, anchor: HTMLElement) {
@@ -428,25 +526,47 @@ export default function EditRuleDialog({
     setCoach(null);
   }
 
-  function handleSelectAction() {
-    const friendly = friendlyTerm(action?.preferred_term);
+  function handleSelectAction(index: number) {
+    const friendly = friendlyTerm(actions[index]?.criterion?.preferred_term);
     setSearchTarget({
       mode: "replace_action",
       parentNodeId: null,
       nodeId: null,
       replaceKind: null,
+      actionIndex: index,
       initialQuery: friendly,
       focusLabel: friendly
-        ? `Swapping the procedure: ${friendly}`
-        : "Pick the procedure the system should suggest",
+        ? `Swapping procedure ${index + 1}: ${friendly}`
+        : `Pick the procedure for row ${index + 1}`,
       anchorEl: null,
     });
   }
 
+  function handleActionStrengthChange(index: number, strength: string) {
+    setActions((prev) =>
+      prev.map((a, i) => (i === index ? { ...a, strength } : a)),
+    );
+    setActionsDirty(true);
+  }
+
+  function handleAddAction() {
+    setActions((prev) => [...prev, makeBlankAction()]);
+    setActionsDirty(true);
+  }
+
+  function handleRemoveAction(index: number) {
+    setActions((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+    setActionsDirty(true);
+    if (searchTarget.mode === "replace_action" && searchTarget.actionIndex === index) {
+      setSearchTarget(IDLE_TARGET);
+    }
+  }
+
   function handlePick(criterion: LogicCriterion) {
-    if (searchTarget.mode === "replace_action") {
-      setAction(criterion);
-      setActionDirty(true);
+    if (searchTarget.mode === "replace_action" && searchTarget.actionIndex !== null) {
+      const idx = searchTarget.actionIndex;
+      setActions((prev) => prev.map((a, i) => (i === idx ? { ...a, criterion } : a)));
+      setActionsDirty(true);
       setSearchTarget(IDLE_TARGET);
       return;
     }
@@ -535,10 +655,9 @@ export default function EditRuleDialog({
     if (!tree || !canSave) return;
     onSave({
       name: name.trim(),
-      strength,
       logic_tree: stripNodeIds(tree),
       reason: reason.trim(),
-      ...(actionDirty && action ? { action } : {}),
+      ...(actionsDirty ? { actions: sanitiseActionsForSave(actions) } : {}),
       is_default: isDefault,
     });
   }
@@ -551,14 +670,23 @@ export default function EditRuleDialog({
       fullScreen={fullscreen}
       maxWidth="xl"
       disableEnforceFocus
+      TransitionComponent={BouncyDialogTransition}
       aria-labelledby="edit-rule-dialog-title"
       PaperProps={{
         sx: fullscreen
-          ? { display: "flex", flexDirection: "column" }
+          ? { display: "flex", flexDirection: "column", overflow: "hidden" }
           : {
-              minHeight: "80vh",
+              // An explicit `height` (not just `minHeight`) is required here:
+              // without it, Paper sizes to its content's natural height and
+              // the descendant `flex: 1, minHeight: 0` chain below has
+              // nothing definite to shrink against, so the canvas / preview
+              // columns never get a bounded box to scroll inside -- the
+              // whole dialog just grows past the viewport instead.
+              height: "80vh",
+              maxHeight: "calc(100vh - 64px)",
               display: "flex",
               flexDirection: "column",
+              overflow: "hidden",
             },
       }}
     >
@@ -651,12 +779,22 @@ export default function EditRuleDialog({
           </IconButton>
         </Stack>
       </DialogTitle>
-      <DialogContent dividers sx={{ p: 0 }}>
+      <DialogContent
+        dividers
+        sx={{
+          p: 0,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+      >
         <Box
           sx={{
             display: "flex",
             flexDirection: "column",
-            minHeight: "100%",
+            flex: "1 1 auto",
+            minHeight: 0,
           }}
         >
           <HorizontalStepper
@@ -668,9 +806,10 @@ export default function EditRuleDialog({
             sx={{
               display: "flex",
               flexDirection: { xs: "column", md: "row" },
-              flex: 1,
+              flex: "1 1 auto",
               minHeight: 0,
               minWidth: 0,
+              overflow: { xs: "auto", md: "hidden" },
             }}
           >
             <Box
@@ -679,10 +818,22 @@ export default function EditRuleDialog({
               sx={{
                 p: { xs: 2, md: 3 },
                 minWidth: 0,
+                minHeight: 0,
                 flex: { xs: "1 1 auto", md: "0 0 60%" },
                 width: { xs: "100%", md: "60%" },
-                overflowY: "auto",
+                overflowY: { xs: "visible", md: "auto" },
               }}
+            >
+            <fm.div
+              key={currentStepId}
+              variants={slidePanelVariants(reducedMotion, stepDirection)}
+              initial="initial"
+              animate="animate"
+              transition={
+                reducedMotion
+                  ? { duration: 0 }
+                  : { type: "spring", stiffness: 320, damping: 30 }
+              }
             >
             {validationError && currentStepId === "who" && (
               <Alert
@@ -699,28 +850,41 @@ export default function EditRuleDialog({
                 selectedNodeId={searchTarget.nodeId}
                 duplicates={duplicates}
                 recommendationText={rule?.recommendation_text}
-                showRecommendation={showRecommendation}
-                onToggleRecommendation={() =>
-                  setShowRecommendation((v) => !v)
-                }
                 onSelectNode={handleSelectNode}
                 onUpdate={handleUpdate}
                 onRequestAdd={handleRequestAdd}
                 onRequestCoach={handleRequestCoach}
                 onAddFirstSymptom={handleAddFirstSymptom}
-                sandboxBadge={sandboxBadge}
+                onAddFirstDemographic={handleAddFirstDemographic}
+                onAddFirstObservation={handleAddFirstObservation}
+                ruleId={rule?.rule_id ?? ""}
+                guidelineId={rule?.guideline_id}
+                onAIDraft={(aiTree) => {
+                  const withIds = assignNodeIds(aiTree);
+                  setTree(withIds);
+                }}
               />
             )}
             {currentStepId === "suggest" && (
               <Stack spacing={2}>
+                {actionsError && (
+                  <Alert severity="warning" sx={{ py: 0.5 }} role="status">
+                    {actionsError}
+                  </Alert>
+                )}
                 <Step2Suggest
                   name={name}
                   onNameChange={setName}
-                  strength={strength}
-                  onStrengthChange={setStrength}
-                  action={action}
-                  isActionSelected={searchTarget.mode === "replace_action"}
+                  actions={actions}
+                  selectedActionIndex={
+                    searchTarget.mode === "replace_action"
+                      ? searchTarget.actionIndex
+                      : null
+                  }
                   onSelectAction={handleSelectAction}
+                  onActionStrengthChange={handleActionStrengthChange}
+                  onRemoveAction={handleRemoveAction}
+                  onAddAction={handleAddAction}
                   isDefault={isDefault}
                   onIsDefaultChange={setIsDefault}
                 />
@@ -762,42 +926,6 @@ export default function EditRuleDialog({
                 )}
               </Stack>
             )}
-            {/* Step 3 stays mounted across all steps so the
-                debounced sandbox auto-run keeps producing inline
-                impact badges for Step 1 even while the reviewer is
-                still editing the canvas (Phase 4). The panel hides
-                its visual tree when the reviewer is not on the
-                "try" step but its replay loop continues. */}
-            <Box
-              sx={{
-                display: currentStepId === "try" ? "block" : "none",
-              }}
-              aria-hidden={currentStepId !== "try"}
-            >
-              <Step3Try
-                ruleId={rule?.rule_id ?? ""}
-                guidelineId={rule?.guideline_id}
-                ruleName={name || rule?.name}
-                recommendationText={rule?.recommendation_text}
-                draftRule={
-                  tree && rule?.rule_id
-                    ? {
-                        rule_id: rule.rule_id,
-                        name: name || rule.name || "",
-                        strength: strength || "unspecified",
-                        guideline_id: rule.guideline_id,
-                        guideline_title: rule.chapter_title || "",
-                        chapter_title: rule.chapter_title,
-                        recommendation_verbatim:
-                          rule.recommendation_text || "",
-                        logic_tree: stripNodeIds(tree),
-                        ...(actionDirty && action ? { action } : {}),
-                      }
-                    : null
-                }
-                onSandboxReportChange={setSandboxReport}
-              />
-            </Box>
             {currentStepId === "save" && (
               <Step4Save
                 reason={reason}
@@ -806,10 +934,13 @@ export default function EditRuleDialog({
                 reasonError={
                   validationError
                     ? `Fix the rule first: ${validationError}`
-                    : undefined
+                    : actionsError
+                      ? `Fix the rule first: ${actionsError}`
+                      : undefined
                 }
               />
             )}
+            </fm.div>
             </Box>
             <Box
               sx={{
@@ -819,18 +950,16 @@ export default function EditRuleDialog({
                 borderLeft: { xs: "none", md: "1px solid" },
                 borderColor: "divider",
                 bgcolor: "grey.50",
-                overflowY: "auto",
+                overflowY: { xs: "visible", md: "auto" },
                 minHeight: 0,
               }}
             >
               <LivePreviewPane
                 summary={summary}
-                strength={strength}
-                action={action}
+                actions={actions}
                 showBeforeAfter={currentStepId === "save"}
                 beforeSummary={beforeSummary}
-                beforeStrength={originalStrength}
-                beforeAction={originalAction}
+                beforeActions={originalActions}
               />
             </Box>
           </Box>

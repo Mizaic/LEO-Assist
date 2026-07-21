@@ -1,20 +1,30 @@
 "use client";
 
-import { Suspense } from "react";
-import CircularProgress from "@mui/material/CircularProgress";
-import Stack from "@mui/material/Stack";
-import CodingValidationPanel from "./CodingValidationPanel";
+/**
+ * Retired harness -- redirects to Validation Lab.
+ * See docs/VALIDATION-LAB.md (UN-4DCE95C8).
+ */
 
-export default function CodingValidationPage() {
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+
+export default function CodingValidationRedirectPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/admin/validation-lab");
+  }, [router]);
+
   return (
-    <Suspense
-      fallback={
-        <Stack alignItems="center" sx={{ pt: 6 }}>
-          <CircularProgress size={28} />
-        </Stack>
-      }
-    >
-      <CodingValidationPanel />
-    </Suspense>
+    <Box sx={{ p: 3 }} data-testid="coding-validation-retired">
+      <Typography variant="h5" component="h1" sx={{ mb: 1 }}>
+        Moved to Validation Lab
+      </Typography>
+      <Alert severity="info">
+        Coding validation gold editing now lives in Validation Lab. Redirecting…
+      </Alert>
+    </Box>
   );
 }
