@@ -216,6 +216,7 @@ export function KnowledgeCommandPalette({
     >
       <Box
         data-testid="knowledge-command-palette"
+        tabIndex={-1}
         sx={{
           width: "100%",
           maxWidth: 560,

@@ -9,6 +9,15 @@ describe("pathway subgraph config", () => {
     expect(ids.has("guidance_rule_extraction")).toBe(true);
     expect(ids.has("rest_connector")).toBe(true);
     expect(ids.has("queue_publish")).toBe(true);
+    expect(ids.has("coding_verifier")).toBe(true);
+    expect(ids.has("referral_reason")).toBe(true);
+    expect(ids.has("sbar")).toBe(true);
+  });
+
+  it("adds next/prev sequence ports for durable canvas wiring", () => {
+    const keys = getPortsFromDescriptor("extraction").map((port) => port.key);
+    expect(keys).toContain("prev");
+    expect(keys).toContain("next");
   });
 
   it("derives ports for guidance rule extraction", () => {

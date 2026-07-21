@@ -63,14 +63,12 @@ export function assignNodeIds(node: LogicNodeSeed): EditableLogicNode {
   } as EditableLogicNode;
 
   // Split persisted [low, high] pair back into value + value2 for the editor.
-  if (
-    base.operator === "between" &&
-    Array.isArray(base.value) &&
-    (base.value as unknown[]).length === 2
-  ) {
-    const [lo, hi] = base.value as [unknown, unknown];
-    base.value = lo as number | string;
-    base.value2 = hi as number | string;
+  if (base.operator === "between" && Array.isArray(base.value)) {
+    const pair = base.value as unknown as Array<number | string>;
+    if (pair.length === 2) {
+      base.value = pair[0];
+      base.value2 = pair[1];
+    }
   }
 
   return base;

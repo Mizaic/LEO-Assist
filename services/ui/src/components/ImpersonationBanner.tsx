@@ -14,7 +14,7 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
-import { ROLE_COPY } from "@leo/design-system";
+import { ROLE_COPY, isRole } from "@leo/design-system";
 
 interface ImpersonationBannerProps {
   selectedRole: string;
@@ -25,7 +25,9 @@ export default function ImpersonationBanner({
   selectedRole,
   onExit,
 }: ImpersonationBannerProps) {
-  const roleLabel = ROLE_COPY[selectedRole]?.label ?? selectedRole;
+  const roleLabel = isRole(selectedRole)
+    ? ROLE_COPY[selectedRole].label
+    : selectedRole;
 
   return (
     <Box

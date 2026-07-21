@@ -369,7 +369,7 @@ export async function listRoles(): Promise<Role[]> {
 export interface OnboardRequest {
   organisation: {
     name: string;
-    type: 'gp' | 'icb' | 'alliance' | 'pcn';
+    type: 'gp' | 'icb' | 'alliance' | 'pcn' | 'service_provider';
     ods_code: string;
     parent_org_id?: string;
     region?: string;

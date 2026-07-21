@@ -21,6 +21,9 @@ const SUBGRAPH_OPTIONS_RAW = [
   { id: "compliance",        label: "Check Compliance",       color: "#795548", category: "Quality",         description: "Compare the results against clinical guidelines and flag any gaps." },
   { id: "quality_check",     label: "Quality Check",          color: "#009688", category: "Quality",         description: "Check for missing data, inconsistencies, and NHS target compliance." },
   { id: "persist",           label: "Save Results",           color: "#607D8B", category: "Data",            description: "Write the final clinical facts to the patient record or gold training dataset." },
+  { id: "coding_verifier",   label: "LLM Coding Verifier",    color: "#C62828", category: "Quality",         description: "Ask a second AI model to accept, reject, or escalate each coded clinical fact before it is saved." },
+  { id: "referral_reason",   label: "Extract Referral Reason", color: "#00838F", category: "Clinical AI",    description: "Pull a short plain-English referral reason from the referral document chunks." },
+  { id: "sbar",              label: "Generate SBAR",          color: "#1565C0", category: "Reports",         description: "Build a Situation, Background, Assessment, Recommendation summary from graph-backed clinical facts." },
   { id: "durable_referral_workflow", label: "Start Durable Referral Workflow", color: "#00ACC1", category: "Integration", description: "Start a graph-backed referral workflow where each step is triggered by pub/sub and persists its output." },
   { id: "durable_step",      label: "Durable Workflow Step",   color: "#00BCD4", category: "Integration",     description: "Run a reusable pub/sub step that loads inputs from Neo4j, persists outputs, and emits the next event." },
   { id: "anchor_detect",     label: "Detect Key Findings",    color: "#E91E63", category: "Reports",         description: "Identify the significant clinical findings that start a new episode of care." },
@@ -90,6 +93,19 @@ export const SUBGRAPH_IO: Record<string, {
     reads: ["entities", "encounter_id", "patient_id"],
     writes: ["documents_written", "training_labels_written"],
     requiredFields: { entities: ["text", "lookup_term", "semantic_tag", "assertion"] },
+  },
+  coding_verifier: {
+    reads: ["entities", "encounter_text"],
+    writes: ["entities", "errors"],
+    requiredFields: { entities: ["text", "lookup_term", "semantic_tag", "assertion"] },
+  },
+  referral_reason: {
+    reads: ["patient_id", "encounter_id", "run_id"],
+    writes: ["referral_reason", "errors"],
+  },
+  sbar: {
+    reads: ["patient_id", "encounter_id", "run_id"],
+    writes: ["sbar_report", "Assessment", "errors"],
   },
   durable_referral_workflow: {
     reads: ["patient_id", "encounter_id", "run_id"],
@@ -188,6 +204,9 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   post_processing: "post_process",
   terminology: "terminology",
   tier_classify: "tier_classify",
+  coding_verifier: "llm",
+  referral_reason: "llm",
+  sbar: "llm",
   surface_form_validation: "generic",
   safety_net: "generic",
   relation_linking: "llm",
@@ -256,7 +275,13 @@ export function getPortsFromDescriptor(
   fieldMappings?: FieldMappingRow[],
 ): PortDefinition[] {
   const io = SUBGRAPH_IO[subgraphId];
-  if (!io) return [];
+  if (!io) {
+    // Unknown subgraphs still expose sequence ports so durable edges can attach.
+    return [
+      { key: "prev", direction: "input", dataType: "string", required: false },
+      { key: "next", direction: "output", dataType: "string", required: false },
+    ];
+  }
 
   const inputs = io.reads.map((key) => ({
     key,
@@ -284,7 +309,14 @@ export function getPortsFromDescriptor(
           required: false,
         }));
 
-  return [...inputs, ...outputs];
+  // Sequence ports: durable plans wire next -> prev; clinical payloads stay
+  // graph-backed and do not travel on these handles.
+  const sequencePorts: PortDefinition[] = [
+    { key: "prev", direction: "input", dataType: "string", required: false },
+    { key: "next", direction: "output", dataType: "string", required: false },
+  ];
+
+  return [...inputs, ...outputs, ...sequencePorts];
 }
 
 

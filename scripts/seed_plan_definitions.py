@@ -627,7 +627,9 @@ PLAN_DEFINITIONS = [
         "status": "active",
         "description": "Durable referral document processing: each clinical step is pub/sub triggered, reloads graph-backed inputs, persists outputs, and emits completion before the next step runs.",
         "_workflowMode": "durable_pubsub",
-        "_deprecatedSubgraphs": ["sbar"],
+        # Legacy in-memory SBAR path is retired; canvas still uses subgraph
+        # id "sbar" which wraps SBAROrchestrator for DurableStepRunner.
+        "_deprecatedSubgraphs": ["legacy_sbar_in_memory"],
         "_durableSteps": [
             {
                 "step_id": "durable-ref-extraction",
@@ -670,6 +672,15 @@ PLAN_DEFINITIONS = [
                 "event_type": "terminology_requested",
                 "loads": ["ExtractionCheckResult"],
                 "persists": ["TerminologyResult"],
+                "emits_on_success": "coding_verifier_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-coding-verifier",
+                "event_type": "coding_verifier_requested",
+                "loads": ["TerminologyResult"],
+                "persists": ["CodingVerifierResult"],
                 "emits_on_success": "clinical_facts_persist_requested",
                 "emits_on_failure": "durable_step_failed",
                 "idempotency_key": "run_id:step_id",
@@ -677,7 +688,7 @@ PLAN_DEFINITIONS = [
             {
                 "step_id": "durable-ref-clinical-facts-persist",
                 "event_type": "clinical_facts_persist_requested",
-                "loads": ["TerminologyResult"],
+                "loads": ["CodingVerifierResult"],
                 "persists": ["DOCUMENTS", "CodingDecision"],
                 "emits_on_success": "compliance_requested",
                 "emits_on_failure": "durable_step_failed",
@@ -697,6 +708,15 @@ PLAN_DEFINITIONS = [
                 "event_type": "completeness_requested",
                 "loads": ["DOCUMENTS", "GuidelineResult"],
                 "persists": ["CompletenessResult", "QualityReport"],
+                "emits_on_success": "referral_reason_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-referral-reason",
+                "event_type": "referral_reason_requested",
+                "loads": ["DOCUMENTS", "CompletenessResult"],
+                "persists": ["ReferralReason"],
                 "emits_on_success": "sbar_requested",
                 "emits_on_failure": "durable_step_failed",
                 "idempotency_key": "run_id:step_id",
@@ -719,6 +739,7 @@ PLAN_DEFINITIONS = [
                 "_sequence": 0,
                 "_nodeType": "trigger",
                 "_subgraphId": "trigger",
+                "_durableEventType": "referral_received",
                 "trigger": [{"type": "data-changed", "name": "referral-received"}],
                 "definitionCanonical": "ActivityDefinition/ad-referral-durable-start",
             },
@@ -727,8 +748,19 @@ PLAN_DEFINITIONS = [
                 "title": "Extract Key Facts",
                 "_sequence": 1,
                 "_subgraphId": "extraction",
+                "_durableEventType": "extraction_requested",
+                "definitionCanonical": "ActivityDefinition/ad-extraction-referral",
                 "relatedAction": [
                     {"actionId": "act-ref-durable-start", "relationship": "after-end"}
+                ],
+                # Durable plans sequence via next/prev ports; clinical I/O is
+                # graph-backed and does not travel on these canvas wires.
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-durable-start",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
                 ],
             },
             {
@@ -736,8 +768,16 @@ PLAN_DEFINITIONS = [
                 "title": "Post-Process Entities",
                 "_sequence": 2,
                 "_subgraphId": "post_processing",
+                "_durableEventType": "post_processing_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-extract", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-extract",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
                 ],
             },
             {
@@ -745,8 +785,16 @@ PLAN_DEFINITIONS = [
                 "title": "Link Entity Relations",
                 "_sequence": 3,
                 "_subgraphId": "relation_linking",
+                "_durableEventType": "relation_linking_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-post-process", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-post-process",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
                 ],
             },
             {
@@ -754,8 +802,16 @@ PLAN_DEFINITIONS = [
                 "title": "Extraction Quality Check",
                 "_sequence": 4,
                 "_subgraphId": "extraction_check",
+                "_durableEventType": "extraction_check_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-relation-link", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-relation-link",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
                 ],
             },
             {
@@ -763,10 +819,18 @@ PLAN_DEFINITIONS = [
                 "title": "Resolve Terminology",
                 "_sequence": 5,
                 "_subgraphId": "terminology",
+                "_durableEventType": "terminology_requested",
                 "relatedAction": [
                     {
                         "actionId": "act-ref-extraction-check",
                         "relationship": "after-end",
+                    }
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-extraction-check",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
                     }
                 ],
             },
@@ -775,8 +839,16 @@ PLAN_DEFINITIONS = [
                 "title": "LLM Coding Verifier",
                 "_sequence": 6,
                 "_subgraphId": "coding_verifier",
+                "_durableEventType": "coding_verifier_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-terminology", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-terminology",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
                 ],
             },
             {
@@ -784,10 +856,18 @@ PLAN_DEFINITIONS = [
                 "title": "Persist Clinical Facts",
                 "_sequence": 7,
                 "_subgraphId": "persist",
+                "_durableEventType": "clinical_facts_persist_requested",
                 "relatedAction": [
                     {
                         "actionId": "act-ref-coding-verify",
                         "relationship": "after-end",
+                    }
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-coding-verify",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
                     }
                 ],
             },
@@ -796,8 +876,16 @@ PLAN_DEFINITIONS = [
                 "title": "Compliance Check",
                 "_sequence": 8,
                 "_subgraphId": "compliance",
+                "_durableEventType": "compliance_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-persist-facts", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-persist-facts",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
                 ],
             },
             {
@@ -805,8 +893,16 @@ PLAN_DEFINITIONS = [
                 "title": "Assess Completeness",
                 "_sequence": 9,
                 "_subgraphId": "quality_check",
+                "_durableEventType": "completeness_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-compliance", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-compliance",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
                 ],
             },
             {
@@ -814,10 +910,18 @@ PLAN_DEFINITIONS = [
                 "title": "Extract Referral Reason",
                 "_sequence": 10,
                 "_subgraphId": "referral_reason",
+                "_durableEventType": "referral_reason_requested",
                 "relatedAction": [
                     {
                         "actionId": "act-ref-completeness",
                         "relationship": "after-end",
+                    }
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-completeness",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
                     }
                 ],
             },
@@ -826,12 +930,20 @@ PLAN_DEFINITIONS = [
                 "title": "Generate SBAR",
                 "_sequence": 11,
                 "_subgraphId": "sbar",
+                "_durableEventType": "sbar_requested",
                 "_completionQueue": "referral-assessments-output",
                 "_completionEventType": "referral_assessment_completed",
                 "relatedAction": [
                     {
                         "actionId": "act-ref-referral-reason",
                         "relationship": "after-end",
+                    }
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-referral-reason",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
                     }
                 ],
             },
@@ -1047,23 +1159,36 @@ def _to_ui_format(pd_def: dict) -> dict:
         if act.get("trigger"):
             trigger_action_id = act.get("id", "")
             break
+
+    # Canvas-only Start node lives in sourceNodes + canvasEdges so the
+    # pathway editor does not drop it when filtering actions.
+    source_nodes: list[dict] = []
+    canvas_edges: list[dict] = []
     if trigger_action_id:
-        ui_actions.insert(
-            0,
+        source_nodes.append(
             {
                 "id": "__source__",
-                "subgraphId": "source",
-                "label": "Start",
-                "nodeType": "source",
                 "position": {"x": 60, "y": 80},
-                "config": {},
-            },
+                "data": {
+                    "label": "Start",
+                    "outputs": ["patient_id", "encounter_id", "encounter_text", "next"],
+                },
+            }
         )
-        ui_edges.insert(0, {"source": "__source__", "target": trigger_action_id})
+        canvas_edges.append(
+            {
+                "source": "__source__",
+                "target": trigger_action_id,
+                "sourceHandle": "next",
+                "targetHandle": "prev",
+            }
+        )
 
     result = dict(pd_def)
     result["actions"] = ui_actions
     result["edges"] = ui_edges
+    result["sourceNodes"] = source_nodes
+    result["canvasEdges"] = canvas_edges
 
     first_trigger = {}
     for act in fhir_actions:

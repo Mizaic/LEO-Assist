@@ -261,7 +261,7 @@ export function OverviewPanel({
         ) : (
           <Grid container spacing={1.5}>
             {detail.episodes.map((ep, i) => (
-              <Grid item xs={12} sm={6} lg={4} key={ep.episode_id ?? String(i)}>
+              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={ep.episode_id ?? String(i)}>
                 <EpisodeCard ep={ep} />
               </Grid>
             ))}
@@ -290,7 +290,7 @@ export function OverviewPanel({
         sx={{ display: { xs: "flex", xl: "none" } }}
         data-testid="epr-overview-context-fallback"
       >
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Paper variant="outlined" sx={{ p: 2, borderRadius: "10px" }}>
             <SectionHeader
               icon={
@@ -306,7 +306,7 @@ export function OverviewPanel({
             />
           </Paper>
         </Grid>
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <Paper variant="outlined" sx={{ p: 2, borderRadius: "10px" }}>
             <SectionHeader
               icon={
