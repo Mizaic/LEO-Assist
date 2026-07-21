@@ -12,6 +12,11 @@
  *   - Wide recharts (strip plots): wrap children in a Box with an
  *     explicit `sx={{ height: 360 }}` and pass a larger chartHeight prop
  *     to the chart component.
+ *
+ * Atlas trace:
+ *   DO: DO-2E8544FD
+ *   DI: DI-C65FD45B
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2E8544FD")
  */
 "use client";
 

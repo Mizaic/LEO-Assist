@@ -1,5 +1,10 @@
 """HTTP surface for the historic guideline shadow-diff.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Mounted under ``/guidance/shadow`` (the proxy at /api/* exposes this to
 the browser). All endpoints require the ai.admin role. This is the
 surviving half of the retired test-patient "shadow-diff" endpoint --

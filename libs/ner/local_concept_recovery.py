@@ -1,5 +1,10 @@
 """Exact-match recovery of approved LEO-local concept aliases from clinical text.
 
+Atlas trace:
+  DO: DO-8EF2EC20
+  DI: DI-2F963FC6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8EF2EC20")
+
 Loaded patterns come from Neo4j SurfaceForm -> local Concept mappings
 (status approved/active). Fail-closed: empty pattern list is a no-op.
 """

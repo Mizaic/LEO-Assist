@@ -41,6 +41,13 @@ describe("EditRuleDialog/copy", () => {
       expect(GROUP_KIND_LABELS.OR).toMatch(/ANY of these/);
       expect(GROUP_KIND_LABELS.NOT).toMatch(/NOT have any of these/);
       expect(GROUP_KIND_LABELS.AT_LEAST).toMatch(/at least N of these/);
+      expect(GROUP_KIND_LABELS.MEDICATION).toMatch(/Medicine/);
+      expect(GROUP_KIND_LABELS.ALLERGY).toMatch(/Allergy/);
+      expect(GROUP_KIND_LABELS.TREATMENT_HISTORY).toMatch(/Past treatment/);
+      expect(GROUP_KIND_LABELS.RULE_FIRED).toMatch(/another rule/);
+      expect(Object.keys(GROUP_KIND_LABELS).sort()).toEqual(
+        Object.keys(GROUP_KIND_SHORT).sort(),
+      );
     });
 
     it("uses everyday words instead of technical jargon (health-literacy gate)", () => {

@@ -1,5 +1,10 @@
 """Cypher query strings for the domain-agnostic patient EPR endpoints.
 
+Atlas trace:
+  DO: DO-31410049
+  DI: DI-F46494AE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-31410049")
+
 Kept in a separate module so patients_epr.py stays within the 500-LOC limit.
 All queries accept $search, $condition_type, $has_alerts, $skip, $limit.
 Scoped variants additionally require $scope_org_ids.

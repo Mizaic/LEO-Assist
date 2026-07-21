@@ -1,5 +1,10 @@
 """Deterministic encounter pre-classifier.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Classifies each encounter into one of five classes without an LLM call,
 routing the majority of processing cost before any API call is made.
 

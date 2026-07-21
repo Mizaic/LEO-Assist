@@ -1,5 +1,10 @@
 """Validators for annotation output.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Four hard checks applied to every entity and relation:
 1. Verbatim quote alignment -- quote must be a case-sensitive substring of
    the indicated sentence.

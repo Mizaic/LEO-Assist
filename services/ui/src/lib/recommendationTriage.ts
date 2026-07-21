@@ -1,8 +1,12 @@
 /**
  * Client-side mirror of libs/guidance/recommendation_triage.py.
  * Used to pre-select ruleable recommendations in the picker.
+ *
+ * Atlas trace:
+ *   DO: DO-CD075278
+ *   DI: DI-B5EEBC4C
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-CD075278")
  */
-
 export type TriageBucket = "full_rule" | "trigger_plus_narrative" | "no_rule";
 
 const REFERRAL_RE =

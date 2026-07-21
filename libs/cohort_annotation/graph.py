@@ -1,5 +1,10 @@
 """LangGraph annotation pipeline for the cancer cohort.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Nine nodes:
   1.  pre_classify       -- deterministic EncounterClass routing
   2.  deterministic_extract -- regex lab/vitals extraction

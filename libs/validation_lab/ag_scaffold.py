@@ -1,4 +1,10 @@
-"""Materialise Validation Lab A&G cases into production-shaped Neo4j graphs."""
+"""Materialise Validation Lab A&G cases into production-shaped Neo4j graphs.
+
+Atlas trace:
+  DO: DO-E981C7B1
+  DI: DI-D6E5F94E
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E981C7B1")
+"""
 
 from __future__ import annotations
 

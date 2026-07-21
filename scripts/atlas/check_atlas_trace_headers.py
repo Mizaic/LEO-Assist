@@ -54,6 +54,9 @@ EXCLUDE_PATTERNS: list[re.Pattern] = [
     re.compile(r"\.next/"),
     re.compile(r"dist/"),
     re.compile(r"build/"),
+    re.compile(r"(^|/)\.venv(/|$)"),
+    re.compile(r"(^|/)venv(/|$)"),
+    re.compile(r"(^|/)site-packages(/|$)"),
 ]
 
 

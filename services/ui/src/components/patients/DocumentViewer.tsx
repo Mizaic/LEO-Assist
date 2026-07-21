@@ -3,6 +3,11 @@
  *
  * Renders chunk text as markdown, with raw toggle and open-original link
  * when a PDF or Word file URL is available.
+ *
+ * Atlas trace:
+ *   DO: DO-5F9A50D8
+ *   DI: DI-1D584D40
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5F9A50D8")
  */
 "use client";
 

@@ -1,5 +1,10 @@
 """Validation Lab domain models.
 
+Atlas trace:
+  DO: DO-3A70C3DD
+  DI: DI-724CD8A5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A70C3DD")
+
 A Validation Lab case is one synthetic test patient: optional structured
 past medical history (PMH), zero or more background encounters (prior
 context only -- never submitted to the pipeline), and exactly one

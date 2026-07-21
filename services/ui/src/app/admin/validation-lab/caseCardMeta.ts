@@ -2,8 +2,12 @@
  * Display helpers for Validation Lab test-patient cards.
  *
  * Atlas: DI-EB716E68 / DI-12D40786
+ *
+ * Atlas trace:
+ *   DO: DO-A0ADDB38
+ *   DI: DI-EB716E68
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-A0ADDB38")
  */
-
 import type { LabCase } from "./labApi";
 
 /** Compare strings so embedded numbers sort 1,2,10 not 1,10,2. */

@@ -1,5 +1,10 @@
 """Stage 6 - Linkage-classifier feature extraction.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Pure functions that take one CandidatePair plus the patient's surrounding
 encounter context and produce a feature dict for the linkage classifier.
 

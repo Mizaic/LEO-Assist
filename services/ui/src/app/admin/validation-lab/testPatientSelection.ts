@@ -2,8 +2,12 @@
  * Selection helpers for Validation Lab test-patient multi-select.
  *
  * Atlas: DI-43E908C6 / VT-3959DFB3 / DO-158BE606
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 export function toggleId(selected: Set<string>, id: string): Set<string> {
   const next = new Set(selected);
   if (next.has(id)) next.delete(id);

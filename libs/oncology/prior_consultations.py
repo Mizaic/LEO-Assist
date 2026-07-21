@@ -1,5 +1,10 @@
 """Prior cancer-related consultations and NCDA "multiple consultations" factors.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 The NCDA (National Cancer Diagnosis Audit) primary-care pro forma asks
 the GP, for every confirmed cancer episode:
 

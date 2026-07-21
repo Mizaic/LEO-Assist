@@ -2,8 +2,12 @@
  * Shared SNOMED search helper for the Validation Lab wizard.
  *
  * Atlas: DI-724CD8A5
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 export interface TerminologyHit {
   snomed_concept_id: string;
   term: string;

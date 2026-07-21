@@ -1,5 +1,10 @@
 """Stage 6 - Pair-linkage classifier training.
 
+Atlas trace:
+  DO: DO-9488B454
+  DI: DI-D46D83FA
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9488B454")
+
 Binary head: P(same_pathway | pair_features). Pooled gold + silver positives
 and negatives; class-weighted to oversample cancer_excluded positives.
 

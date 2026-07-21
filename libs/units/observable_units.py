@@ -1,5 +1,10 @@
 """Canonical-unit registry and reference ranges for clinical observables.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Atlas trace (Phase 5b):
     UN: UN-26E57FA1
     DI: DI-7790EEA5

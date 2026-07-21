@@ -1,5 +1,10 @@
 """Stage 5 - Candidate (FTR, Dx) pair generator.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Consumes role-classifier outputs and emits candidate pairs for the linkage
 classifier (Stage 6). Auxiliary anchors (SEEN, TREATMENT) travel through
 as a per-patient table; they are attached deterministically by Stage 7.

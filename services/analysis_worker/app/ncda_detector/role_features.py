@@ -1,5 +1,10 @@
 """Stage 4 - Role classifier feature extraction.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Pure functions that transform an encounter row into a feature dict suitable
 for downstream sklearn pipelines (DictVectorizer + classifier) or, in
 production, LightGBM.

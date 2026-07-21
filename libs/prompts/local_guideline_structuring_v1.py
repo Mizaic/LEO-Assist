@@ -1,4 +1,10 @@
-"""Prompt contract for local guideline structure extraction."""
+"""Prompt contract for local guideline structure extraction.
+
+Atlas trace:
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
+"""
 
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 

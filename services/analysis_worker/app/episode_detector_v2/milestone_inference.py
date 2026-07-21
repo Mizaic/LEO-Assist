@@ -1,5 +1,10 @@
 """Infer UI-supported milestone links for v2 detector episodes.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 The v2 detector resolves episode membership, but the reviewer UI needs
 typed ``IS_PART_OF`` relationships. This module turns the resolved
 episode plus its source timeline into curation-ready milestone links.

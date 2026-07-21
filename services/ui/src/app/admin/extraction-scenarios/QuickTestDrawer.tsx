@@ -6,6 +6,11 @@
  *
  * Polls GET /extraction-scenarios/runs/:run_id until status = "completed" | "failed".
  * A "Clear" button removes the ephemeral demo patient nodes from Neo4j.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
 "use client";
 

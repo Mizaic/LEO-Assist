@@ -1,4 +1,10 @@
-"""Pipeline helpers for derived lab-result findings."""
+"""Pipeline helpers for derived lab-result findings.
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+"""
 
 from __future__ import annotations
 

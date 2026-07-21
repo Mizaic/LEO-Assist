@@ -1,4 +1,10 @@
-"""Recover clinically meaningful reasons embedded in lab request text."""
+"""Recover clinically meaningful reasons embedded in lab request text.
+
+Atlas trace:
+  DO: DO-8EF2EC20
+  DI: DI-2F963FC6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8EF2EC20")
+"""
 
 from __future__ import annotations
 

@@ -1,5 +1,10 @@
 """Stage 3 silver-label generation logic.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Pure functions plus a pluggable LLM-callback Protocol. The orchestrating
 script lives in scripts/ncda/build_silver_labels.py.
 

@@ -1,5 +1,10 @@
 """Production-shaped Lab run helpers (bus message + real run polling).
 
+Atlas trace:
+  DO: DO-3A70C3DD
+  DI: DI-724CD8A5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A70C3DD")
+
 Atlas: DI-2289D095
 
 `execute_lab_run` only ever enqueues the real `referral-received` message

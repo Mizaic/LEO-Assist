@@ -1,5 +1,10 @@
 """Narrative annotation prompt (~12k tokens).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Purpose: extract all non-lab clinical entities from a GP encounter.
 Lab/vitals spans are handled by the deterministic extractor and
 structured_verify; this prompt must NOT re-annotate structured rows.

@@ -1,5 +1,10 @@
 """Non-production patient id constants for tests and redacted documentation.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 These are 10-digit strings in the 99900xxxxx range. They are **not** real NHS
 numbers and must never be used as live clinical identifiers. Use them only in
 unit tests, fixtures, and doc examples.

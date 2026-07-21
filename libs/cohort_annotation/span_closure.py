@@ -1,5 +1,10 @@
 """Span closure: complete partial lab/vitals nested triples and deduplicate.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 When the LLM emits only 1 or 2 of the expected 3 spans for a lab/vitals
 line, this module deterministically supplies the missing span using
 libs.training.lab_span_detector. It also deduplicates across deterministic

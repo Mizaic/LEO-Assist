@@ -11,8 +11,12 @@
  *
  * No external dependencies. XSS-safe: raw text is HTML-escaped before
  * any inline pattern substitution so patterns can only EMIT known tags.
+ *
+ * Atlas trace:
+ *   DO: DO-5C88CA8F
+ *   DI: DI-A1206416
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5C88CA8F")
  */
-
 const RULE_CITATION_RE = /\[RULE:\s*[^\]]+\]/g;
 const HEADING_RE = /^(#{2,4})\s+(.+)$/;
 const LIST_ITEM_RE = /^(\s*)[-*]\s+(.+)$/;

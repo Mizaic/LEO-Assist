@@ -1,4 +1,10 @@
-"""Cypher for AI summarisation scenario run history."""
+"""Cypher for AI summarisation scenario run history.
+
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+"""
 
 AI_SUMMARISATION_SCENARIO_CONSTRAINTS = [
     "CREATE CONSTRAINT ai_sbar_scenario_run_id IF NOT EXISTS "

@@ -1,5 +1,10 @@
 """GP Read-code-to-NCDA-role lookup table.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 This module maps GP Read code identifiers (the alphanumeric strings that
 appear inside parentheses in encounter text, e.g. "XaMeA", "XE1vW", "J5031")
 to canonical NCDA roles plus an optional outcome attribute.

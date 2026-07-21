@@ -2,6 +2,11 @@
  * Shared helpers for EPR episode swimlane cards.
  *
  * Atlas: DI-357A7468 / DO-5D3EA371
+ *
+ * Atlas trace:
+ *   DO: DO-5F9A50D8
+ *   DI: DI-1D584D40
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5F9A50D8")
  */
 import type { EpisodeSummaryEpr, TimelineItem } from "@/lib/patientEprApi";
 

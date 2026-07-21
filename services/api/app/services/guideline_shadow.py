@@ -1,5 +1,10 @@
 """Historic guideline shadow-diff: candidate vs baseline, real patients only.
 
+Atlas trace:
+  DO: DO-92F92EFB
+  DI: DI-88C1715A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
+
 Used by the Bitmap Lifecycle "Historic shadow" action (DI-8DD23CE2).
 Compares match sets for real, already-coded patients from the patient
 graph -- it never activates the candidate and never writes anything.

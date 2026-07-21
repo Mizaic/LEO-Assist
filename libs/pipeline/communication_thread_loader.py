@@ -1,4 +1,10 @@
-"""Load A&G CommunicationRequest threads as LEO extraction units."""
+"""Load A&G CommunicationRequest threads as LEO extraction units.
+
+Atlas trace:
+  DO: DO-728930A1
+  DI: DI-16CE412B, DI-B5C78811
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
+"""
 
 from __future__ import annotations
 

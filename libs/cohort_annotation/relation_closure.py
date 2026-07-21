@@ -1,5 +1,10 @@
 """Deterministic relation closure (R16d + simple finding_site heuristics).
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 R16d: for every lab/vitals triple on the same sentence, emit:
     FINDING  -interprets->   OBSERVABLE_ENTITY
     OBSERVABLE_ENTITY -component_of-> PROCEDURE

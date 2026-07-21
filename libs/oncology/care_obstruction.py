@@ -1,5 +1,10 @@
 """Care-obstruction signal detection for NCDA cancer episodes.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 The NCDA report asks reviewers to record events that delayed the workup
 between Fast Track Referral (FTR) and diagnosis: rejected referrals,
 DNAs, cancellations, and other access barriers.  These events are

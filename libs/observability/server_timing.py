@@ -1,5 +1,10 @@
 """Server-Timing middleware for FastAPI / Starlette.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Adds a `Server-Timing` response header so clients (and the browser
 DevTools network panel) can attribute time to the backend handler.
 This makes Phase 6 perf regressions obvious without needing to read

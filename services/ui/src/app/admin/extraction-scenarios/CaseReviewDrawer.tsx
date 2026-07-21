@@ -7,6 +7,11 @@
  *   Right: expected_strings table with value/unit where available
  *
  * Atlas: DI-1B3B5375, DI-B492CAFD, DO-416BA91D, VT-24D7A846.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
 "use client";
 

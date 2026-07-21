@@ -6,8 +6,12 @@
  * presets accept a `reducedMotion` flag (from `useMotion()` in
  * @leo/design-system) and collapse to an instant, opacity-only transition
  * when true, so `prefers-reduced-motion` is always honoured.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-
 import type { Transition, Variants } from "framer-motion";
 
 const BOUNCY_SPRING: Transition = {

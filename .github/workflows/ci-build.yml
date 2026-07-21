@@ -5,6 +5,11 @@ name: CI - Build and Push Images
 #   DI: DI-71087A9E
 #   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6036D724")
 #
+# Selective builds:
+#   detect-changes maps git paths -> affected images. Shared blast-radius
+#   paths (libs/, root requirements, this workflow) rebuild everything.
+#   Weekly schedule + workflow_dispatch force_all rebuild the full matrix.
+#
 # Hardening notes
 #   - Third-party / Microsoft-owned actions are pinned to immutable commit
 #     SHAs with the human-readable tag in a comment.
@@ -14,7 +19,17 @@ name: CI - Build and Push Images
 on:
   push:
     branches: [main]
+  schedule:
+    # Weekly full rebuild (Sunday 03:17 UTC) to warm caches and catch
+    # shared-path misses.
+    - cron: "17 3 * * 0"
   workflow_dispatch:
+    inputs:
+      force_all:
+        description: Rebuild every service image
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   id-token: write   # required for OIDC federated credential
@@ -27,6 +42,72 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  detect-changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.detect.outputs.services }}
+      build_ui: ${{ steps.detect.outputs.build_ui }}
+      has_backend: ${{ steps.detect.outputs.has_backend }}
+      build_all: ${{ steps.detect.outputs.build_all }}
+      services_csv: ${{ steps.detect.outputs.services_csv }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed services
+        id: detect
+        env:
+          EVENT_BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          FORCE_ALL_INPUT: ${{ github.event.inputs.force_all }}
+        run: |
+          set -euo pipefail
+          FORCE_ALL="false"
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            FORCE_ALL="true"
+          fi
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$FORCE_ALL_INPUT" = "true" ] || [ -z "$FORCE_ALL_INPUT" ]; then
+              FORCE_ALL="true"
+            fi
+          fi
+
+          if [ "$FORCE_ALL" = "true" ]; then
+            python3 scripts/ci/detect_changed_services.py --force-all
+            exit 0
+          fi
+
+          BASE_SHA="$EVENT_BEFORE_SHA"
+          if ! [[ "$BASE_SHA" =~ ^[0-9a-f]{0,40}$ ]]; then
+            echo "Refusing to use non-hex BASE_SHA: $BASE_SHA"
+            exit 1
+          fi
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-list --max-count=1 HEAD^ || true)"
+          fi
+          if [ -z "$BASE_SHA" ]; then
+            echo "No base SHA; forcing full rebuild."
+            python3 scripts/ci/detect_changed_services.py --force-all
+            exit 0
+          fi
+
+          python3 scripts/ci/detect_changed_services.py --base "$BASE_SHA" --head HEAD
+
+      - name: Summarise selection
+        env:
+          SERVICES_CSV: ${{ steps.detect.outputs.services_csv }}
+          BUILD_ALL: ${{ steps.detect.outputs.build_all }}
+        run: |
+          {
+            echo "## Selective image builds"
+            echo ""
+            echo "- build_all: \`${BUILD_ALL}\`"
+            echo "- services: \`${SERVICES_CSV:-none}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   test:
     name: Run Tests
     continue-on-error: true
@@ -147,6 +228,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Selective-build detector unit tests
+        run: pytest tests/test_detect_changed_services.py -v --tb=short
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Run tests (non-blocking)
         run: |
           set +e
@@ -176,7 +262,8 @@ jobs:
 
   ui-a11y:
     name: UI accessibility gate (VT-LEO-AI-113/114/115/116)
-    needs: [test]
+    needs: [test, detect-changes]
+    if: needs.detect-changes.outputs.build_ui == 'true' || needs.detect-changes.outputs.build_all == 'true'
     continue-on-error: true
     runs-on: ubuntu-latest
     defaults:
@@ -235,28 +322,13 @@ jobs:
 
   build-push:
     name: Build ${{ matrix.service }}
-    needs: [test]
+    needs: [test, detect-changes]
+    if: needs.detect-changes.outputs.has_backend == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - service: core-api
-            dockerfile: infra/dockerfiles/Dockerfile.core-api
-          - service: terminology-api
-            dockerfile: infra/dockerfiles/Dockerfile.terminology-api
-          - service: fhir-api
-            dockerfile: infra/dockerfiles/Dockerfile.fhir-api
-          - service: analytics-api
-            dockerfile: infra/dockerfiles/Dockerfile.analytics-api
-          - service: pipeline-worker
-            dockerfile: infra/dockerfiles/Dockerfile.pipeline-worker
-          - service: model-inference
-            dockerfile: infra/dockerfiles/Dockerfile.model-inference
-          - service: training-worker
-            dockerfile: infra/dockerfiles/Dockerfile.training-worker
-          - service: research-worker
-            dockerfile: infra/dockerfiles/Dockerfile.research-worker
+        include: ${{ fromJson(needs.detect-changes.outputs.services) }}
 
     steps:
       - name: Checkout
@@ -333,7 +405,8 @@ jobs:
 
   build-push-ui:
     name: Build ui
-    needs: [test]
+    needs: [test, detect-changes]
+    if: needs.detect-changes.outputs.build_ui == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -399,3 +472,49 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
         run: |
           docker inspect --format='{{index .RepoDigests 0}}' "${ACR_LOGIN_SERVER}/ui:sha-${GITHUB_SHA}"
+
+  publish-build-manifest:
+    name: Publish build manifest
+    needs: [detect-changes, build-push, build-push-ui]
+    if: always() && needs.detect-changes.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Write manifest
+        env:
+          SERVICES_CSV: ${{ needs.detect-changes.outputs.services_csv }}
+          BUILD_ALL: ${{ needs.detect-changes.outputs.build_all }}
+          BUILD_UI: ${{ needs.detect-changes.outputs.build_ui }}
+          HAS_BACKEND: ${{ needs.detect-changes.outputs.has_backend }}
+          GITHUB_SHA: ${{ github.sha }}
+          BACKEND_RESULT: ${{ needs.build-push.result }}
+          UI_RESULT: ${{ needs.build-push-ui.result }}
+        run: |
+          set -euo pipefail
+          # Fail the manifest job if a selected build failed.
+          if [ "$HAS_BACKEND" = "true" ] && [ "$BACKEND_RESULT" != "success" ] && [ "$BACKEND_RESULT" != "skipped" ]; then
+            echo "Backend image build failed: $BACKEND_RESULT"
+            exit 1
+          fi
+          if [ "$HAS_BACKEND" = "true" ] && [ "$BACKEND_RESULT" = "skipped" ]; then
+            echo "Backend builds were expected but skipped"
+            exit 1
+          fi
+          if [ "$BUILD_UI" = "true" ] && [ "$UI_RESULT" != "success" ] && [ "$UI_RESULT" != "skipped" ]; then
+            echo "UI image build failed: $UI_RESULT"
+            exit 1
+          fi
+          if [ "$BUILD_UI" = "true" ] && [ "$UI_RESULT" = "skipped" ]; then
+            echo "UI build was expected but skipped"
+            exit 1
+          fi
+          python3 scripts/ci/write_build_manifest.py
+
+      - name: Upload build manifest
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4
+        with:
+          name: built-services
+          path: dist/built-services.json
+          if-no-files-found: error

@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-5C88CA8F
+ *   DI: DI-A1206416
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5C88CA8F")
+ */
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
 

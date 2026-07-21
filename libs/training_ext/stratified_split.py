@@ -1,5 +1,10 @@
 """Multi-label iterative stratified split.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Covers Wave 2 (F6, F20) of the World-Class Clinical NER plan.
 
 Adapts Sechidis et al. (2011) "On the Stratification of Multi-Label Data" to

@@ -1,5 +1,10 @@
 """FTR clustering: collapse same-referral duplicates before pair generation.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 When a Fast Track Referral is entered into the EMR it often appears across
 several encounters in quick succession:
   - GP consultation note (2WW decision made)

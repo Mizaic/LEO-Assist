@@ -1,5 +1,10 @@
 """Stage 11 - Nightly self-learning job for the NCDA detector.
 
+Atlas trace:
+  DO: DO-9488B454
+  DI: DI-D46D83FA
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-9488B454")
+
 Pipeline:
     1. Pull new reviewer signoffs from ncda_label_audit + active-learning
        queue.

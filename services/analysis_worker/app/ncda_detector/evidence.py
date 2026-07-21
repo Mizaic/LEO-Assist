@@ -1,5 +1,10 @@
 """Stage 10 - NCDA evidence packager.
 
+Atlas trace:
+  DO: DO-2C1A2392
+  DI: DI-7FF67ECE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C1A2392")
+
 Builds per-anchor and per-pair evidence for each EpisodeOfCare candidate
 emitted by Stage 7 assignment. Output is consumed by:
 

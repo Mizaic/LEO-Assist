@@ -1,5 +1,10 @@
 """First-presentation date inference for NCDA detector episodes.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Uses a text-keyword scan backwards from the episode anchor date (referral_date
 for cohort 1a/1b; end_date for cohort 3) to find the earliest GP encounter
 where the patient mentioned symptoms relevant to their cancer site.

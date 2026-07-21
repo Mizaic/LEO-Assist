@@ -3,8 +3,12 @@
  * demographics -> PMH -> encounters -> referral -> real pipeline run.
  *
  * Atlas: DO-3A70C3DD / DI-724CD8A5 / DI-2289D095 / DI-9138BAC9
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 export type PmhCategory = "condition" | "medication" | "allergy";
 export type LabCaseType = "referral" | "ag";
 export type LabScenarioType = "generic" | "spo_ag" | "ras_referral";

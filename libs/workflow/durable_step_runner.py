@@ -1,5 +1,10 @@
 """Unified durable step runner for pub/sub driven pipelines.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Replaces both the synchronous WorkflowEngine path and the hard-coded
 REFERRAL_STEPS handler. Step ordering comes from relatedActions in the
 Neo4j PlanDefinition; execution is one pub/sub message per step; state
