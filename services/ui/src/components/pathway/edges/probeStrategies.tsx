@@ -111,6 +111,8 @@ export const PROBE_STRATEGIES: Record<string, ProbeStrategy> = {
   queue_publish: queuePublish,
   guidance_rule_extraction: guidanceRuleExtraction,
   relation_linking: relationLinking,
+  coding_verifier: terminology,
+  referral_reason: qualityCheck,
   hitl_ner_queue: hitlQueue,
   hitl_coding_queue: hitlQueue,
 };

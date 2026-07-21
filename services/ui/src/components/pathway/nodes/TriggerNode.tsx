@@ -31,6 +31,7 @@ function TriggerNodeComponent({ data, selected }: NodeProps) {
     "patient_id",
     "encounter_id",
     "encounter_text",
+    "next",
   ];
   const triggerLabel = d.triggerEvent || "manual";
 
@@ -43,6 +44,13 @@ function TriggerNodeComponent({ data, selected }: NodeProps) {
       onActivate={d.onConfigure}
       sx={{ bgcolor: "#FFF8E1" }}
     >
+      <NodeHandle
+        id="prev"
+        type="target"
+        color={TRIGGER_PORT_COLOR}
+        top="50%"
+        tooltip="Sequence input from the Start node"
+      />
       <NodeHeader
         icon={<BoltIcon fontSize="small" color="warning" />}
         title={d.label || "Trigger"}

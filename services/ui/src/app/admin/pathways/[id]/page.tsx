@@ -3089,7 +3089,8 @@ function useValidationWarnings(
       if (inputSource !== "previous_step") continue;
 
       const subgraphId = (node.data as unknown as ActionNodeData)?.subgraphId || "";
-      if (durable && subgraphId === "sbar") {
+      const eventType = cfg?.durableEventType || "";
+      if (durable && subgraphId === "sbar" && eventType !== "sbar_requested") {
         warnings.push({
           severity: "error",
           message: "Durable workflows cannot use the legacy SBAR subgraph. Use the sbar_requested durable step.",
@@ -3798,6 +3799,11 @@ export default function PathwayBuilderPage() {
             .filter((a) => !isCanvasOnlyNodeType(a.nodeType)) // legacy guard: skip old canvas-only nodes saved as actions
             .map((a, i) => {
               const cfg = hydrateActionConfig(a);
+              const isDurablePlan = data._workflowMode === "durable_pubsub";
+              if (isDurablePlan) {
+                cfg.workflowMode = "durable_pubsub";
+                cfg.inputSource = "graph";
+              }
               const durableMeta = (data._durableSteps || []).find(
                 (step) => step.event_type === (a.durableEventType || cfg.durableEventType),
               );
@@ -4000,7 +4006,7 @@ export default function PathwayBuilderPage() {
         id,
         type: "trigger",
         position: { x: 80, y: 80 },
-        data: { label: "Trigger", subgraphId: "trigger", color: "#FFC107", triggerEvent, outputPorts: ["patient_id", "encounter_id", "encounter_text"], onConfigure: () => openConfigurator(id) },
+        data: { label: "Trigger", subgraphId: "trigger", color: "#FFC107", triggerEvent, outputPorts: ["patient_id", "encounter_id", "encounter_text", "next"], onConfigure: () => openConfigurator(id) },
       } as Node]);
       return;
     }
@@ -4980,6 +4986,11 @@ export default function PathwayBuilderPage() {
         .filter((a) => !isCanvasOnlyNodeType(a.nodeType))
         .map((a, i) => {
         const cfg = hydrateActionConfig(a);
+        const isDurablePlan = data._workflowMode === "durable_pubsub";
+        if (isDurablePlan) {
+          cfg.workflowMode = "durable_pubsub";
+          cfg.inputSource = "graph";
+        }
         const durableMeta = (data._durableSteps || []).find(
           (step) => step.event_type === (a.durableEventType || cfg.durableEventType),
         );

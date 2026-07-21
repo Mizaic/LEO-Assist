@@ -77,7 +77,8 @@ def test_gp_encounter_coding_uses_canonical_extraction_front_end():
 def test_validation_plan_front_end_matches_production(plan_id):
     """Every aligned validation plan must run the same first four stages."""
     plan = _plan_by_id(plan_id)
-    stages = _action_subgraphs(plan)
+    # Durable plans may start with a trigger node; compare clinical stages only.
+    stages = [s for s in _action_subgraphs(plan) if s != "trigger"]
     assert stages[: len(EXTRACTION_STAGES)] == list(EXTRACTION_STAGES), (
         f"{plan_id} front-end {stages[: len(EXTRACTION_STAGES)]} does not "
         f"match production canonical front-end {list(EXTRACTION_STAGES)}"
@@ -105,17 +106,21 @@ def test_production_referral_assessment_uses_full_clinical_chain():
     plan = _plan_by_id("pd-referral-assessment")
 
     assert _action_subgraphs(plan) == [
+        "trigger",
         "extraction",
         "post_processing",
         "relation_linking",
         "extraction_check",
         "terminology",
+        "coding_verifier",
+        "persist",
         "compliance",
         "quality_check",
+        "referral_reason",
         "sbar",
-        "human_review_gate",
-        "persist",
     ]
     assert plan["action"][0]["trigger"] == [
         {"type": "data-changed", "name": "referral-received"}
     ]
+    assert plan["_workflowMode"] == "durable_pubsub"
+    assert all(a.get("_durableEventType") for a in plan["action"])

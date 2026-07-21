@@ -224,19 +224,12 @@ const BouncyDialogTransition = forwardRef<
   const {
     children,
     in: inProp,
-    appear,
-    mountOnEnter,
-    unmountOnExit,
-    timeout,
-    easing,
-    addEndListener,
     onEnter,
-    onEntering,
     onEntered,
     onExit,
-    onExiting,
     onExited,
-    ...other
+    className,
+    style,
   } = props;
   const { reducedMotion } = useMotion();
   const settleMs = reducedMotion ? 0 : 260;
@@ -256,13 +249,18 @@ const BouncyDialogTransition = forwardRef<
   const hidden = reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9, y: 28 };
   const visible = reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 };
 
+  // Do not spread MUI TransitionProps onto fm.div -- boolean enter/exit
+  // and React drag handlers conflict with framer-motion's prop types.
+  // tabIndex=-1: Modal focuses this transition root for assistive tech.
   return (
     <fm.div
       ref={ref}
+      className={className}
+      style={style as React.CSSProperties | undefined}
+      tabIndex={-1}
       initial={hidden}
       animate={inProp ? visible : hidden}
       transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 340, damping: 28 }}
-      {...other}
     >
       {children}
     </fm.div>
@@ -416,6 +414,7 @@ export default function EditRuleDialog({
         parentNodeId: null,
         nodeId,
         replaceKind: "observation",
+        actionIndex: null,
         initialQuery: friendly,
         focusLabel: friendly
           ? `Swapping lab value: ${friendly}`
@@ -434,6 +433,7 @@ export default function EditRuleDialog({
       parentNodeId: null,
       nodeId,
       replaceKind: "concept",
+      actionIndex: null,
       initialQuery: friendly,
       focusLabel: friendly
         ? `Swapping: ${friendly}`
@@ -453,6 +453,7 @@ export default function EditRuleDialog({
       parentNodeId,
       nodeId: null,
       replaceKind: null,
+      actionIndex: null,
       initialQuery: "",
       focusLabel: parent
         ? `Adding to: ${groupLabel(parent.kind)}`
@@ -519,6 +520,7 @@ export default function EditRuleDialog({
       parentNodeId: parent?.node_id ?? null,
       nodeId: null,
       replaceKind: null,
+      actionIndex: null,
       initialQuery: topic,
       focusLabel: `Adding to: ${parent ? groupLabel(parent.kind) : "the rule"}`,
       anchorEl: coach.anchor,

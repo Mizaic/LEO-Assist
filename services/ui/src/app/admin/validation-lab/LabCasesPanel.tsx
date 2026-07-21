@@ -270,20 +270,25 @@ export default function LabCasesPanel() {
             >
               View patient
             </Button>
-            <Button
-              variant="outlined"
-              disabled={!detail.patient_id}
-              href={
-                detail.patient_id
-                  ? carePatientHref(detail.patient_id)
-                  : undefined
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="validation-lab-open-care"
-            >
-              Open in Care
-            </Button>
+            {detail.patient_id ? (
+              <Button
+                variant="outlined"
+                href={carePatientHref(detail.patient_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="validation-lab-open-care"
+              >
+                Open in Care
+              </Button>
+            ) : (
+              <Button
+                variant="outlined"
+                disabled
+                data-testid="validation-lab-open-care"
+              >
+                Open in Care
+              </Button>
+            )}
             <Button
               variant="outlined"
               onClick={() => void onPromote()}

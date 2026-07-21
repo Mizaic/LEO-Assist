@@ -37,19 +37,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Pick a note, mark the code that fits, and save it.",
       what: "LEO uses saved notes to learn from and score itself on.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Gold notes",
       lede: "A small set of real notes coded by a clinician.",
       how: "Open a note, confirm the code or fix it, and save.",
       what: "Your fix helps LEO get coding right for the next patient.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Gold dataset queue",
       lede: "This is the queue of notes waiting for your sign-off.",
       how: "Open the top note. Check the code. Approve or change it.",
       what: "Approved notes move into the gold set used to grade LEO.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Gold dataset (evidence)",
       lede: "Labelled notes used as the ground truth for accuracy scoring.",
       how: "Review inter-rater agreement, sign off on drift, and export the set.",
@@ -70,19 +70,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Add a phrase, link it to a code, and save.",
       what: "LEO will pick up the phrase in new notes and code it.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Phrase shortcuts",
       lede: "Local phrases your team writes that mean the same thing.",
       how: "Add a phrase and link it to the code you want LEO to pick.",
       what: "LEO reads the phrase as that code from now on.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Surface forms queue",
       lede: "Clinician phrases waiting to be linked to a SNOMED code.",
       how: "Search for the code. Link it. Save the pair.",
       what: "The next note that uses the phrase gets coded right.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Lexicon change log",
       lede: "Every surface form mapping, author, and review status.",
       how: "Audit new mappings weekly and retire unused ones.",
@@ -103,19 +103,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Pick a trigger word and say what it means in context.",
       what: "LEO will apply the rule whenever it sees the trigger.",
     },
-    clinician: {
+    triage_clinician: {
       title: "When words mean the other thing",
       lede: "A rule like 'family history of' means the patient does not have it.",
       how: "Pick a trigger and say what it flips the meaning to.",
       what: "LEO will spot the trigger and not code the patient with it.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Context rule review",
       lede: "ConText rules that flip meaning (negated, history, family).",
       how: "Check the trigger. Approve it or send it back.",
       what: "Approved rules run in the pipeline tonight.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "ConText gate (NegEx + family)",
       lede: "Trigger phrases that flip an observation to negated, historic, family, or suspected.",
       how: "Audit new triggers weekly, verify dual-path parity, log sign-off.",
@@ -136,19 +136,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a prompt, change the wording, and save it.",
       what: "LEO uses the new wording from the next run onwards.",
     },
-    clinician: {
+    triage_clinician: {
       title: "How LEO is asked",
       lede: "The words LEO sends to a model to get a coding answer.",
       how: "Open a prompt to see what LEO asks and how it should reply.",
       what: "A clearer prompt means fewer borderline reviews for you.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Prompt library",
       lede: "The prompts you queue for review before a release.",
       how: "Diff the old and new prompt. Approve or send back.",
       what: "Approved prompts ship with the next deploy.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Prompt registry",
       lede: "Versioned prompts with change log, owner, and sign-off.",
       how: "Confirm the diff, record the risk impact, then sign.",
@@ -169,19 +169,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a guideline, check the rule, and approve it.",
       what: "LEO checks each note against the rules and flags gaps.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Guideline prompts",
       lede: "Simple rules like 'if BP is high, check it again'.",
       how: "Open the rule. Tick 'approve' if it matches your practice.",
       what: "LEO will show the prompt on the next matching patient.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Guidance rules queue",
       lede: "Rules drafted from NICE and local guides, waiting for sign-off.",
       how: "Read the rule. Check the code link. Approve or amend.",
       what: "Approved rules flag gaps in the next audit sweep.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Clinical guideline gate",
       lede: "Rule authoring, NICE mapping, and sign-off for safety-netting prompts.",
       how: "Verify citation. Confirm severity. Record approval.",
@@ -202,19 +202,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a pathway, check each step's event, graph inputs, and saved outputs.",
       what: "LEO runs each step independently and records what it produced.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Patient pathways",
       lede: "The care steps you expect for a patient with a condition.",
       how: "Open a pathway to see the steps and the target days.",
       what: "LEO tells you if a patient is behind on a step.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Pathway setup",
       lede: "The durable pathway rules LEO uses for audit, alerts, and referral workflows.",
       how: "Pick a pathway. Check durable step wiring and publish a reviewed version.",
       what: "Each active step reloads data from Neo4j and saves its result.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Durable workflow authoring",
       lede: "FHIR PlanDefinitions that drive pub/sub clinical workflow steps.",
       how: "Review triggers, persisted artefacts, event edges, and the version diff.",
@@ -235,19 +235,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a domain, add or remove a code, and save.",
       what: "Notes that match any code in the domain count as that domain.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Code groups",
       lede: "A set of codes LEO treats as one concept (for example 'diabetes').",
       how: "Open a domain. Add a missing code. Save.",
       what: "The next audit uses the updated group for counts.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Domain lists",
       lede: "SNOMED code lists grouped by meaning for QOF and audit.",
       how: "Search a code. Add it to the domain. Save.",
       what: "Domain changes re-score the next audit run.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Domain set versioning",
       lede: "Versioned SNOMED ECL expressions and enumerated code lists.",
       how: "Check ECL syntax. Diff. Approve or send back.",
@@ -268,19 +268,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Add a patient, PMH, and encounters, then write and submit a referral.",
       what: "One testing path for extraction, codes, rules, and SBAR.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Validation Lab",
       lede: "Check that LEO still matches the cases your team trusts.",
       how: "Open a case, run it, and review the SBAR in the shared widget.",
       what: "Gold cases stop silent drift when prompts or plans change.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Validation Lab",
       lede: "One patient-building flow with a single gold contract per case.",
       how: "New patient, add PMH and encounters, write the referral, submit.",
       what: "Replaces separate test-patient and harness pages.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Validation Lab (evidence)",
       lede: "Production-shaped patients run through the real referral pipeline.",
       how: "Persist like production by default. Dry-run cannot promote gold.",
@@ -301,19 +301,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Search a code, open it, and check its links.",
       what: "Links drive how LEO groups codes in audits.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Code browser",
       lede: "Look up a SNOMED code and see what sits above or below it.",
       how: "Type a word or code. Open the result.",
       what: "You can copy the code into a consult note.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Terminology tools",
       lede: "SNOMED browser, mapping, and release notes.",
       how: "Use the browser to find a code. Check the map to local terms.",
       what: "Mappings feed into the surface form list.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Ontology management",
       lede: "Active SNOMED edition, version, and pending ingest jobs.",
       how: "Verify the edition. Run a release upgrade in staging first.",
@@ -334,19 +334,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Pick a lab code, add its unit rules and safe ranges, then save.",
       what: "LEO uses this to spot high, low, and out-of-range results.",
     },
-    clinician: {
+    triage_clinician: {
       title: "Lab result rules",
       lede: "The normal ranges and result meanings used by LEO.",
       how: "Check the lab, unit, and SNOMED finding match your practice.",
       what: "Correct ranges help LEO explain why a result is abnormal.",
     },
-    staff: {
+    clinical_administrator: {
       title: "Lab config queue",
       lede: "Lab ranges, unit conversions, and abnormal finding codes.",
       how: "Add the observable code, accepted units, ranges, and findings.",
       what: "Saved config is used by guideline tests and result alerts.",
     },
-    qa_ra_lead: {
+    auditor: {
       title: "Lab metadata control",
       lede: "Governed reference ranges and interpretation mappings for lab safety checks.",
       how: "Review source, demographic bands, unit conversion, and derived finding codes.",

@@ -558,18 +558,31 @@ export default function RecommendationPickerDialog({
   }
 
   async function handleSaveEdit(payload: {
-    name: string; strength: string; logic_tree: Record<string, unknown>; reason: string;
+    name: string;
+    logic_tree: Record<string, unknown>;
+    reason: string;
+    actions?: Array<Record<string, unknown>>;
+    is_default?: boolean;
   }) {
     if (!editRule) return;
     setEditSaving(true);
     setEditError(null);
     try {
+      const updates: Record<string, unknown> = {
+        name: payload.name,
+        logic_tree: payload.logic_tree,
+      };
+      if (payload.actions !== undefined) updates.actions = payload.actions;
+      if (payload.is_default !== undefined) updates.is_default = payload.is_default;
       const resp = await fetch(`/api/guidance/rules/review/${editRule.rule_id}/decision`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "edit", reviewer: "admin", reason: payload.reason, updates: {
-          name: payload.name, strength: payload.strength, logic_tree: payload.logic_tree,
-        }}),
+        body: JSON.stringify({
+          action: "edit",
+          reviewer: "admin",
+          reason: payload.reason,
+          updates,
+        }),
       });
       if (!resp.ok) throw new Error(await resp.text());
       setEditRule(null);
