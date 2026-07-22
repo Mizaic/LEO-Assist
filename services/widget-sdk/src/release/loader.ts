@@ -28,7 +28,10 @@ export interface FetchActiveBuildArgs {
 }
 
 function _normaliseMajor(value: number | string): string {
-  return String(value).split(".")[0];
+  const text = String(value);
+  // split(".") on any string always yields at least one element; the
+  // fallback only satisfies noUncheckedIndexedAccess, it is never hit.
+  return text.split(".")[0] ?? text;
 }
 
 export async function fetchActiveBuild(
@@ -63,7 +66,8 @@ export async function fetchActiveBuild(
         `against pinned major ${args.pinnedMajor}`,
     );
   }
-  if (_normaliseMajor(body.active.split(".")[0]) !== _normaliseMajor(args.pinnedMajor)) {
+  const activeMajor = body.active.split(".")[0] ?? body.active;
+  if (_normaliseMajor(activeMajor) !== _normaliseMajor(args.pinnedMajor)) {
     throw new Error(
       `leo-widget: manifest active build ${body.active} does not start with pinned major ${args.pinnedMajor}`,
     );

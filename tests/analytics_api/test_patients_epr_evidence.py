@@ -10,13 +10,16 @@ files. No live Neo4j connection is required, matching the sibling
 test_patients_epr_router.py convention.
 
 Covers:
-    AC1 - Mentions endpoint returns encounter id, date, and assertion.
-    AC2 - Mentions query reads :DOCUMENTS off Encounter, not the bare
-          patient-level HAS_* shortcut edges (which carry no properties).
+    AC1 - Mentions endpoint returns source id/type, date, and assertion.
+    AC2 - Mentions query reads :DOCUMENTS off all three source node types
+          (Encounter, Chunk via DocumentReference, Communication), not the
+          bare patient-level HAS_* shortcut edges (which carry no
+          properties) and not just the Encounter path.
     AC3 - Mentions are ordered most-recent-first.
     AC4 - Mention-detail endpoint returns the evidence sentence, name
           (preferred term), and read code for one dated mention.
-    AC5 - Mention-detail 404s when no matching :DOCUMENTS link exists.
+    AC5 - Mention-detail 404s when no matching :DOCUMENTS link exists, and
+          400s on an invalid source_type.
     AC6 - Both admin and scoped Cypher variants exist and carry the org
           guard on the scoped path.
     AC7 - Cypher strings live in a separate queries module (LOC limit).
@@ -58,21 +61,37 @@ def test_ac7_cypher_extracted_to_queries_module():
 
 
 # ---------------------------------------------------------------------------
-# AC2 - reads :DOCUMENTS, not the bare patient-level shortcut edges
+# AC2 - all three :DOCUMENTS source types, not just Encounter
 # ---------------------------------------------------------------------------
 
 
-def test_ac2_mentions_query_reads_documents_relationship_not_shortcut():
-    """Evidence must come from :DOCUMENTS, since HAS_* edges carry no props."""
+def test_ac2_mentions_query_covers_encounter_source():
     queries_src = _read(QUERIES)
-    assert "-[r:DOCUMENTS]->(s)" in queries_src
-    assert "r.evidence_sentence" in queries_src
-    assert "r.context" in queries_src
+    assert "(p)-[:HAS_ENCOUNTER]->(src:Encounter)-[r:DOCUMENTS]->(s)" in queries_src
+
+
+def test_ac2_mentions_query_covers_document_chunk_source():
+    """Coded entities from the document/chunk pipeline must not be dropped.
+
+    :DOCUMENTS can hang off a :Chunk reached via the patient's
+    :DocumentReference, per libs/cypher/documents_queries.py
+    _VALID_SOURCE_LABELS. Missing this branch is why a chip could show
+    'No recorded mentions found' despite being on the problem list.
+    """
+    queries_src = _read(QUERIES)
+    assert "HAS_DOCUMENT_REFERENCE|HAS_DOCUMENT" in queries_src
+    assert "-[:HAS_CHUNK]->(src:Chunk)-[r:DOCUMENTS]->(s)" in queries_src
+
+
+def test_ac2_mentions_query_covers_communication_source():
+    queries_src = _read(QUERIES)
+    assert "CommunicationRequest" in queries_src
+    assert "-[:HAS_CONVERSATION]->(src:Communication)-[r:DOCUMENTS]->(s)" in queries_src
 
 
 def test_ac2_mentions_query_matches_by_concept_id():
     queries_src = _read(QUERIES)
-    assert "toString(s.conceptId) = toString($concept_id)" in queries_src
+    assert queries_src.count("toString(s.conceptId) = toString($concept_id)") >= 3
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +101,7 @@ def test_ac2_mentions_query_matches_by_concept_id():
 
 def test_ac3_mentions_ordered_most_recent_first():
     queries_src = _read(QUERIES)
-    assert "ORDER BY coalesce(e.date, r.coded_at) DESC" in queries_src
+    assert "ORDER BY coalesce(source_date, coded_at) DESC" in queries_src
 
 
 # ---------------------------------------------------------------------------
@@ -90,11 +109,12 @@ def test_ac3_mentions_ordered_most_recent_first():
 # ---------------------------------------------------------------------------
 
 
-def test_ac1_mentions_endpoint_returns_encounter_date_and_assertion():
+def test_ac1_mentions_endpoint_returns_source_date_and_assertion():
     router_src = _read(ROUTER)
     assert "class ConceptMention(BaseModel):" in router_src
-    assert "encounter_id: str" in router_src
-    assert "encounter_date: Optional[str]" in router_src
+    assert "source_id: str" in router_src
+    assert "source_type: str" in router_src
+    assert "source_date: Optional[str]" in router_src
     assert "assertion: Optional[str]" in router_src
 
 
@@ -111,22 +131,30 @@ def test_ac1_mentions_route_declared():
     assert '"/patients/{patient_id}/coded-entities/{concept_id}/mentions"' in router_src
 
 
-def test_ac4_mention_detail_route_declared():
+def test_ac4_mention_detail_route_declared_with_source_type():
     router_src = _read(ROUTER)
     assert (
-        '"/patients/{patient_id}/coded-entities/{concept_id}/mentions/{encounter_id}"'
-        in router_src
+        '"/patients/{patient_id}/coded-entities/{concept_id}/mentions/'
+        '{source_type}/{source_id}"' in router_src
     )
 
 
 # ---------------------------------------------------------------------------
-# AC5 - 404 on missing mention
+# AC5 - 404 on missing mention, 400 on invalid source_type
 # ---------------------------------------------------------------------------
 
 
 def test_ac5_mention_detail_raises_404_when_not_found():
     router_src = _read(ROUTER)
     assert "raise HTTPException(status_code=404" in router_src
+
+
+def test_ac5_mention_detail_rejects_invalid_source_type():
+    router_src = _read(ROUTER)
+    assert "_VALID_SOURCE_TYPES" in router_src
+    assert "raise HTTPException(\n            status_code=400" in router_src or (
+        "status_code=400" in router_src
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -153,3 +181,13 @@ def test_ac6_router_picks_admin_or_scoped_by_caller_scope():
         "def _pick_query(scope: CallerScope, admin_q: str, scoped_q: str)" in router_src
     )
     assert "scope.is_admin" in router_src
+
+
+def test_ac6_mention_detail_query_filters_by_source_type_param():
+    """The detail query's UNION branches must gate on $source_type.
+
+    Otherwise a source_id collision across node types (e.g. an Encounter
+    and a Chunk sharing an id string) could return the wrong evidence.
+    """
+    queries_src = _read(QUERIES)
+    assert queries_src.count("$source_type = ") >= 3

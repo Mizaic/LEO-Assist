@@ -20,7 +20,17 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { MentionRow } from "./MentionRow";
 import { useConceptEvidence } from "./useConceptEvidence";
 
-const CHIP_SX = { height: 20, fontSize: 10, bgcolor: "#F1F5F9", color: "#334155" };
+const CHIP_SX = {
+  height: 20,
+  fontSize: 10,
+  fontWeight: 600,
+  bgcolor: "#F1F5F9",
+  color: "#334155",
+  border: "1px solid transparent",
+  transition: "background-color 120ms ease, border-color 120ms ease",
+  "&:hover": { bgcolor: "#E2E8F0", borderColor: "#CBD5E1" },
+  "&:focus-visible": { outline: "2px solid #2563EB", outlineOffset: "1px" },
+};
 
 interface CodedEntityChipProps {
   patientId: string;
@@ -61,14 +71,37 @@ export function CodedEntityChip({ patientId, name, conceptId }: CodedEntityChipP
         anchorEl={anchorRef.current}
         onClose={() => setOpen(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        slotProps={{ paper: { role: "dialog", "aria-labelledby": titleId, sx: { maxWidth: 320, p: 2 } } }}
+        slotProps={{
+          paper: {
+            role: "dialog",
+            "aria-labelledby": titleId,
+            sx: {
+              maxWidth: 340,
+              minWidth: 280,
+              p: 2,
+              borderRadius: 2,
+              boxShadow: "0 8px 24px rgba(15, 23, 42, 0.14)",
+            },
+          },
+        }}
       >
-        <Typography id={titleId} variant="subtitle2" fontWeight={700} sx={{ mb: 0.25 }}>
+        <Typography id={titleId} variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
           {name}
         </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-          SNOMED CT {conceptId}
-        </Typography>
+        <Chip
+          label={`SNOMED CT ${conceptId}`}
+          size="small"
+          sx={{
+            height: 20,
+            fontSize: "0.6875rem",
+            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+            fontWeight: 600,
+            bgcolor: "#EEF2FF",
+            color: "#4338CA",
+            mb: 1.25,
+            "& .MuiChip-label": { px: 0.8 },
+          }}
+        />
 
         {evidence.mentionsLoading && (
           <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1 }}>
@@ -92,18 +125,21 @@ export function CodedEntityChip({ patientId, name, conceptId }: CodedEntityChipP
         )}
 
         {evidence.mentions !== null && evidence.mentions.length > 0 && (
-          <Stack component="ul" sx={{ m: 0, p: 0 }} spacing={0.5}>
-            {evidence.mentions.map((m) => (
-              <MentionRow
-                key={m.encounter_id}
-                mention={m}
-                expanded={evidence.expandedId === m.encounter_id}
-                detail={evidence.details[m.encounter_id]}
-                detailLoading={evidence.detailLoadingId === m.encounter_id}
-                detailError={evidence.detailError}
-                onToggle={evidence.toggleDate}
-              />
-            ))}
+          <Stack component="ul" sx={{ m: 0, p: 0 }} spacing={0.75}>
+            {evidence.mentions.map((m) => {
+              const key = evidence.mentionKey(m.source_type, m.source_id);
+              return (
+                <MentionRow
+                  key={key}
+                  mention={m}
+                  expanded={evidence.expandedKey === key}
+                  detail={evidence.details[key]}
+                  detailLoading={evidence.detailLoadingKey === key}
+                  detailError={evidence.detailError}
+                  onToggle={evidence.toggleMention}
+                />
+              );
+            })}
           </Stack>
         )}
       </Popover>

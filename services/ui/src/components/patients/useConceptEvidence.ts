@@ -13,10 +13,16 @@ import {
   fetchConceptMentions,
   type ConceptMention,
   type ConceptMentionDetail,
+  type ConceptMentionSourceType,
 } from "@/lib/patientEprApi";
 
 function errorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
+}
+
+/** A mention's source type and id together are the only stable identity. */
+function mentionKey(sourceType: ConceptMentionSourceType, sourceId: string): string {
+  return `${sourceType}:${sourceId}`;
 }
 
 /**
@@ -29,27 +35,29 @@ export function useConceptEvidence(patientId: string, conceptId: string | null) 
   const [mentions, setMentions] = useState<ConceptMention[] | null>(null);
   const [mentionsLoading, setMentionsLoading] = useState(false);
   const [mentionsError, setMentionsError] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, ConceptMentionDetail>>({});
-  const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
+  const [detailLoadingKey, setDetailLoadingKey] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
 
   const loadDetail = useCallback(
-    async (encounterId: string) => {
-      if (!conceptId || details[encounterId]) return;
-      setDetailLoadingId(encounterId);
+    async (sourceType: ConceptMentionSourceType, sourceId: string) => {
+      const key = mentionKey(sourceType, sourceId);
+      if (!conceptId || details[key]) return;
+      setDetailLoadingKey(key);
       setDetailError(null);
       try {
         const detail = await fetchConceptMentionDetail(
           patientId,
           conceptId,
-          encounterId
+          sourceType,
+          sourceId
         );
-        setDetails((prev) => ({ ...prev, [encounterId]: detail }));
+        setDetails((prev) => ({ ...prev, [key]: detail }));
       } catch (err) {
         setDetailError(errorMessage(err, "Unable to load this mention."));
       } finally {
-        setDetailLoadingId(null);
+        setDetailLoadingKey(null);
       }
     },
     [conceptId, details, patientId]
@@ -63,8 +71,9 @@ export function useConceptEvidence(patientId: string, conceptId: string | null) 
       const rows = await fetchConceptMentions(patientId, conceptId);
       setMentions(rows);
       if (rows.length === 1) {
-        setExpandedId(rows[0].encounter_id);
-        void loadDetail(rows[0].encounter_id);
+        const [only] = rows;
+        setExpandedKey(mentionKey(only.source_type, only.source_id));
+        void loadDetail(only.source_type, only.source_id);
       }
     } catch (err) {
       setMentionsError(errorMessage(err, "Unable to load evidence."));
@@ -73,24 +82,26 @@ export function useConceptEvidence(patientId: string, conceptId: string | null) 
     }
   }, [conceptId, mentions, patientId, loadDetail]);
 
-  const toggleDate = useCallback(
-    (encounterId: string) => {
-      const next = expandedId === encounterId ? null : encounterId;
-      setExpandedId(next);
-      if (next) void loadDetail(next);
+  const toggleMention = useCallback(
+    (sourceType: ConceptMentionSourceType, sourceId: string) => {
+      const key = mentionKey(sourceType, sourceId);
+      const next = expandedKey === key ? null : key;
+      setExpandedKey(next);
+      if (next) void loadDetail(sourceType, sourceId);
     },
-    [expandedId, loadDetail]
+    [expandedKey, loadDetail]
   );
 
   return {
     mentions,
     mentionsLoading,
     mentionsError,
-    expandedId,
+    expandedKey,
     details,
-    detailLoadingId,
+    detailLoadingKey,
     detailError,
     loadMentions,
-    toggleDate,
+    toggleMention,
+    mentionKey,
   };
 }

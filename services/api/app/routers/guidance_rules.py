@@ -106,6 +106,16 @@ WITH rule, head(collect(rec)) AS rec, head(collect(g)) AS g
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
+WITH rule, rec, g, ch, pred,
+     collect({
+         predicate: hc.predicate,
+         concept_id: coalesce(concept.id, concept.conceptId),
+         preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
+     }) AS criteria
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)-[ha:HAS_ACTION]->()
+WITH rule, rec, g, ch, pred, criteria,
+     head([p IN collect(ha.priority) WHERE p IS NOT NULL | p]) AS action_priority,
+     head([d IN collect(ha.dueDays) WHERE d IS NOT NULL | d]) AS action_due_days
 RETURN rule.id AS rule_id,
        rule.name AS name,
        rule.strength AS strength,
@@ -124,11 +134,9 @@ RETURN rule.id AS rule_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
-       collect({
-           predicate: hc.predicate,
-           concept_id: coalesce(concept.id, concept.conceptId),
-           preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
-       }) AS criteria,
+       criteria,
+       action_priority,
+       action_due_days,
        pred.id IS NOT NULL AS has_predecessor,
        pred.id AS predecessor_id
 ORDER BY rule.createdAt DESC
@@ -171,6 +179,16 @@ WITH rule, head(collect(rec)) AS rec, head(collect(g)) AS g
 OPTIONAL MATCH (rec)<-[:HAS_RECOMMENDATION]-(ch:Chapter)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
 OPTIONAL MATCH (rule)-[:SUPERSEDES]->(pred:AppropriatenessRule)
+WITH rule, rec, g, ch, pred,
+     collect({
+         predicate: hc.predicate,
+         concept_id: coalesce(concept.id, concept.conceptId),
+         preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
+     }) AS criteria
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)-[ha:HAS_ACTION]->()
+WITH rule, rec, g, ch, pred, criteria,
+     head([p IN collect(ha.priority) WHERE p IS NOT NULL | p]) AS action_priority,
+     head([d IN collect(ha.dueDays) WHERE d IS NOT NULL | d]) AS action_due_days
 RETURN rule.id AS rule_id,
        rule.name AS name,
        rule.strength AS strength,
@@ -189,11 +207,9 @@ RETURN rule.id AS rule_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
-       collect({
-           predicate: hc.predicate,
-           concept_id: coalesce(concept.id, concept.conceptId),
-           preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
-       }) AS criteria,
+       criteria,
+       action_priority,
+       action_due_days,
        pred.id IS NOT NULL AS has_predecessor,
        pred.id AS predecessor_id
 """
@@ -202,6 +218,16 @@ _FETCH_RULE_DETAIL = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
 OPTIONAL MATCH (rule)<-[:HAS_RULE]-(rec:Recommendation)<-[:HAS_RECOMMENDATION]-(g:Guideline)
 OPTIONAL MATCH (rule)-[:HAS_CRITERIA_GROUP]->(grp)-[hc:HAS_CRITERIA]->(concept)
+WITH rule, rec, g,
+     collect({
+         predicate: hc.predicate,
+         concept_id: coalesce(concept.id, concept.conceptId),
+         preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
+     }) AS criteria
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)-[ha:HAS_ACTION]->()
+WITH rule, rec, g, criteria,
+     head([p IN collect(ha.priority) WHERE p IS NOT NULL | p]) AS action_priority,
+     head([d IN collect(ha.dueDays) WHERE d IS NOT NULL | d]) AS action_due_days
 RETURN rule.id AS rule_id,
        rule.name AS name,
        rule.strength AS strength,
@@ -217,11 +243,9 @@ RETURN rule.id AS rule_id,
        g.id AS guideline_id,
        g.title AS guideline_title,
        rec.verbatim AS recommendation_text,
-       collect({
-           predicate: hc.predicate,
-           concept_id: coalesce(concept.id, concept.conceptId),
-           preferred_term: coalesce(concept.preferred_term, concept.fsn, concept.term, concept.id, concept.conceptId)
-       }) AS criteria
+       criteria,
+       action_priority,
+       action_due_days
 """
 
 _CREATE_BLANK_RULE = """
@@ -1302,6 +1326,11 @@ def _format_rule(r: dict) -> dict:
         # See DI-42246DA7 acceptance criteria (multi-action support).
         "action": actions[0]["criterion"] if actions else None,
         "actions": actions,
+        # Rule-level clinical priority from HAS_ACTION edges. Surfaced so
+        # the EditRuleDialog PriorityPanel can show and edit urgency
+        # without a second round-trip.
+        "action_priority": r.get("action_priority") or None,
+        "action_due_days": r.get("action_due_days"),
         "criteria_concepts": logic_concepts,
         "generation_outcome": verifier.get("generation_outcome"),
         "needs_human_review": bool(verifier.get("needs_human_review")),

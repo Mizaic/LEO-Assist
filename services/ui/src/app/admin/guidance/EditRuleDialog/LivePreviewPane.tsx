@@ -37,12 +37,14 @@ import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 
 import SummaryCard from "./SummaryCard";
-import { STRENGTH_LABELS, friendlyTerm } from "./copy";
+import { STRENGTH_LABELS, friendlyTerm, priorityLabel } from "./copy";
 import type { RuleSummary } from "./treeToSentence";
-import type { RuleAction } from "./types";
+import type { RuleAction, RulePriority } from "./types";
 
 interface SystemRecapProps {
   actions: RuleAction[];
+  priority?: RulePriority | null;
+  dueDays?: number | null;
 }
 
 interface Props {
@@ -50,6 +52,8 @@ interface Props {
   summary: RuleSummary;
   /** Current recommended procedures, each with its own strength. */
   actions: RuleAction[];
+  priority?: RulePriority | null;
+  dueDays?: number | null;
   /**
    * When true (step 4), render a Before / After diff using `summary`
    * as the after, and `beforeSummary` as the before.
@@ -57,14 +61,20 @@ interface Props {
   showBeforeAfter?: boolean;
   beforeSummary?: RuleSummary;
   beforeActions?: RuleAction[];
+  beforePriority?: RulePriority | null;
+  beforeDueDays?: number | null;
 }
 
 export default function LivePreviewPane({
   summary,
   actions,
+  priority,
+  dueDays,
   showBeforeAfter,
   beforeSummary,
   beforeActions,
+  beforePriority,
+  beforeDueDays,
 }: Props) {
   if (showBeforeAfter && beforeSummary) {
     return (
@@ -116,7 +126,11 @@ export default function LivePreviewPane({
             </Typography>
             <SummaryCard summary={beforeSummary} defaultExpanded />
             <Box sx={{ mt: 1 }}>
-              <SystemRecap actions={beforeActions ?? []} />
+              <SystemRecap
+                actions={beforeActions ?? []}
+                priority={beforePriority}
+                dueDays={beforeDueDays}
+              />
             </Box>
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -133,7 +147,11 @@ export default function LivePreviewPane({
             </Typography>
             <SummaryCard summary={summary} defaultExpanded />
             <Box sx={{ mt: 1 }}>
-              <SystemRecap actions={actions} />
+              <SystemRecap
+                actions={actions}
+                priority={priority}
+                dueDays={dueDays}
+              />
             </Box>
           </Box>
         </Stack>
@@ -172,7 +190,7 @@ export default function LivePreviewPane({
         </Typography>
       </Stack>
       <SummaryCard summary={summary} defaultExpanded />
-      <SystemRecap actions={actions} />
+      <SystemRecap actions={actions} priority={priority} dueDays={dueDays} />
     </Box>
   );
 }
@@ -225,10 +243,11 @@ function SystemRecapLine({ action }: { action: RuleAction }) {
   );
 }
 
-function SystemRecap({ actions }: SystemRecapProps) {
+function SystemRecap({ actions, priority, dueDays }: SystemRecapProps) {
   const ready =
     actions.length > 0 &&
     actions.every((a) => Boolean(a.criterion?.snomed_concept_id));
+  const priorityText = priorityLabel(priority, dueDays);
   return (
     <Box
       role="region"
@@ -272,6 +291,16 @@ function SystemRecap({ actions }: SystemRecapProps) {
             What the system will do
           </Typography>
         </Stack>
+        <Typography
+          variant="body2"
+          sx={{ lineHeight: 1.6, mt: 0.75, fontWeight: 500 }}
+          aria-label={`Clinical priority: ${priorityText}`}
+        >
+          Priority:{" "}
+          <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
+            {priorityText}
+          </Box>
+        </Typography>
         {actions.length === 0 ? (
           <Typography
             variant="body2"

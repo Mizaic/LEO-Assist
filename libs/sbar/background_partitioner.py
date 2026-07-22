@@ -166,7 +166,11 @@ class PartitionDescriptor:
     slice_total: int
     char_count: int
     record_index: int = 0  # 1-indexed position in original sources
-    preview: str = ""  # bounded clinician-facing snippet
+    preview: str = ""  # short clinician-facing snippet (chip hover text)
+    # Exact text this slice contributed to the LLM prompt (already
+    # sanitised + capped at _PER_SOURCE_CHAR_CAP). Lets a reviewer see
+    # precisely what the model saw for this record, not just a preview.
+    full_text: str = ""
 
 
 @dataclass
@@ -525,6 +529,7 @@ def partition_background_sources(
                 char_count=len(s.text),
                 record_index=s.record_index,
                 preview=(s.text or "").strip()[:200],
+                full_text=(s.text or "").strip(),
             )
             for s in part_slices
         ]

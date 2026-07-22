@@ -107,9 +107,29 @@ export interface SbarBackgroundPart {
   recordCount: number;
   recordRange: [number, number];
   sourceIds: string[];
+  /** Optional enriched sources (label/preview/fullText). Falls back to
+   *  plain ``sourceIds`` chips when absent. */
+  sources?: SbarSourceRef[];
   status: "completed" | "failed";
   errorCode?: string | null;
   errorMessage?: string | null;
+}
+
+/**
+ * Clinician-facing source metadata for a "Show source records" chip.
+ * Mirrors the dicts built by libs.sbar.prompt_calls._sources_from_part
+ * and the widget SDK's structurally-identical ``SbarSourceRef``.
+ */
+export interface SbarSourceRef {
+  id: string;
+  type?: string;
+  label?: string;
+  preview?: string;
+  /** Exact record text this source contributed to the Background LLM
+   *  prompt. Empty for legacy Assessments generated before this field
+   *  existed -- the dialog falls back to ``preview``. */
+  fullText?: string;
+  date?: string | null;
 }
 
 // Belt-and-braces strip for legacy ``<!-- sources: ... -->`` HTML
@@ -252,10 +272,53 @@ function _partLabel(part: SbarBackgroundPart): string {
 }
 
 /**
+ * Resolve one part's chips, preferring the enriched ``sources`` array
+ * (label/preview/fullText) and falling back to bare ``sourceIds`` for
+ * legacy Assessments persisted before ``sources`` existed.
+ */
+function _resolvePartSources(part: SbarBackgroundPart): SbarSourceRef[] {
+  if (Array.isArray(part.sources) && part.sources.length > 0) {
+    return part.sources.map((s) => ({
+      id: s.id,
+      type: s.type,
+      label: s.label || _formatSourceId(s.id),
+      preview: s.preview || "",
+      fullText: s.fullText || "",
+      date: s.date ?? null,
+    }));
+  }
+  return (part.sourceIds ?? []).map((id) => {
+    const text = typeof id === "string" ? id : String(id ?? "");
+    return { id: text, label: _formatSourceId(text) || "source" };
+  });
+}
+
+/** Body + explanatory note for the source-record dialog. Prefers the
+ *  exact text the LLM saw; falls back to the short preview for legacy
+ *  Assessments, and finally to an explicit "nothing to show" state. */
+function _dialogBodyAndNote(source: SbarSourceRef): { body: string; note: string } {
+  if (source.fullText?.trim()) {
+    return {
+      body: source.fullText,
+      note: "Exact record text used to generate this section.",
+    };
+  }
+  if (source.preview?.trim()) {
+    return {
+      body: source.preview,
+      note: "Short preview only -- the full record text is not available for this item.",
+    };
+  }
+  return { body: "No extract is available for this record.", note: "" };
+}
+
+/**
  * Per-section "Show source records" disclosure. The source IDs are
  * audit-only metadata - reviewers only see them when they explicitly
  * ask, so the panel starts collapsed and is hidden entirely when
- * the section has no structured source data.
+ * the section has no structured source data. Clicking a chip opens a
+ * read-only dialog with the exact record text the LLM saw, so a
+ * reviewer can check the AI-generated Background against source.
  */
 function SectionSourcesPanel({
   testIdPrefix,
@@ -264,9 +327,13 @@ function SectionSourcesPanel({
   ink,
 }: SectionSourcesPanelProps) {
   const [open, setOpen] = useState(false);
+  const [activeSource, setActiveSource] = useState<SbarSourceRef | null>(null);
   if (parts.length === 0) return null;
   const totalIds = parts.reduce((acc, p) => acc + (p.sourceIds?.length ?? 0), 0);
   if (totalIds === 0) return null;
+  const { body: dialogBody, note: dialogNote } = activeSource
+    ? _dialogBodyAndNote(activeSource)
+    : { body: "", note: "" };
   return (
     <Box
       sx={{ px: 1.75, pb: 1, pt: 0.25 }}
@@ -311,26 +378,89 @@ function SectionSourcesPanel({
                   : ""}
               </Typography>
               <Stack direction="row" flexWrap="wrap" gap={0.5}>
-                {(p.sourceIds ?? []).map((id, idIndex) => {
-                  const label = _formatSourceId(id);
-                  const title =
-                    typeof id === "string" ? id : label || String(id);
-                  return (
-                    <Chip
-                      key={`${label || "source"}-${idIndex}`}
-                      size="small"
-                      variant="outlined"
-                      label={label || "source"}
-                      title={title}
-                      sx={{ height: 20, fontSize: "0.65rem" }}
-                    />
-                  );
-                })}
+                {_resolvePartSources(p).map((source, idIndex) => (
+                  <Chip
+                    key={`${source.label || "source"}-${idIndex}`}
+                    size="small"
+                    variant="outlined"
+                    clickable
+                    label={source.label || "source"}
+                    title={source.id}
+                    onClick={() => setActiveSource(source)}
+                    sx={{ height: 20, fontSize: "0.65rem" }}
+                  />
+                ))}
               </Stack>
             </Box>
           ))}
         </Stack>
       </Collapse>
+      <Dialog
+        open={activeSource !== null}
+        onClose={() => setActiveSource(null)}
+        maxWidth="sm"
+        fullWidth
+        scroll="paper"
+        data-testid={`${testIdPrefix}-section-${stage}-source-dialog`}
+      >
+        <DialogTitle sx={{ pr: 6 }}>
+          <Typography variant="subtitle1" component="span" fontWeight={700}>
+            {activeSource?.label || activeSource?.id}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", fontFamily: "monospace", mt: 0.25 }}
+          >
+            Technical id: {activeSource?.id}
+          </Typography>
+          <IconButton
+            aria-label="Close"
+            onClick={() => setActiveSource(null)}
+            size="small"
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {dialogNote && (
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                fontStyle: "italic",
+                color: "text.secondary",
+                mb: 1.25,
+                pb: 1,
+                borderBottom: "1px solid",
+                borderColor: "divider",
+              }}
+              data-testid={`${testIdPrefix}-section-${stage}-source-dialog-note`}
+            >
+              {dialogNote}
+            </Typography>
+          )}
+          <Typography
+            variant="body2"
+            component="pre"
+            sx={{
+              whiteSpace: "pre-wrap",
+              fontFamily: "inherit",
+              lineHeight: 1.6,
+              m: 0,
+            }}
+            data-testid={`${testIdPrefix}-section-${stage}-source-dialog-body`}
+          >
+            {dialogBody}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setActiveSource(null)} variant="contained">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

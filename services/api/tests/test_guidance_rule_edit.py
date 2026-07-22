@@ -20,6 +20,8 @@ from fastapi.testclient import TestClient
 
 from app.routers.guidance_rules import router
 from app.services.guidance_rule_edit import (
+    _UPSERT_EDITED_ACTION,
+    _UPSERT_EDITED_ACTION_GROUP,
     EditNotApplicable,
     LogicNode,
     LogicTreeValidationError,
@@ -91,45 +93,56 @@ class TestValidateLogicTree:
             validate_logic_tree(node)
 
     def test_rejects_at_least_min_above_child_count(self) -> None:
-        node = LogicNode.model_validate({
-            "kind": "AT_LEAST",
-            "min": 5,
-            "children": [_concept_node("1", "A"), _concept_node("2", "B")],
-        })
+        node = LogicNode.model_validate(
+            {
+                "kind": "AT_LEAST",
+                "min": 5,
+                "children": [_concept_node("1", "A"), _concept_node("2", "B")],
+            }
+        )
         with pytest.raises(LogicTreeValidationError, match="cannot be greater"):
             validate_logic_tree(node)
 
     def test_rejects_at_least_min_zero(self) -> None:
-        node = LogicNode.model_validate({
-            "kind": "AT_LEAST",
-            "min": 0,
-            "children": [_concept_node()],
-        })
+        node = LogicNode.model_validate(
+            {
+                "kind": "AT_LEAST",
+                "min": 0,
+                "children": [_concept_node()],
+            }
+        )
         with pytest.raises(LogicTreeValidationError, match="min >= 1"):
             validate_logic_tree(node)
 
     def test_rejects_not_with_two_children(self) -> None:
-        node = LogicNode.model_validate({
-            "kind": "NOT",
-            "children": [_concept_node("1", "A"), _concept_node("2", "B")],
-        })
+        node = LogicNode.model_validate(
+            {
+                "kind": "NOT",
+                "children": [_concept_node("1", "A"), _concept_node("2", "B")],
+            }
+        )
         with pytest.raises(LogicTreeValidationError, match="exactly one child"):
             validate_logic_tree(node)
 
     def test_rejects_concept_without_snomed_id(self) -> None:
         with pytest.raises(Exception):
             LogicNode.model_validate(
-                {"kind": "CONCEPT", "criterion": {"snomed_concept_id": "", "preferred_term": "x"}}
+                {
+                    "kind": "CONCEPT",
+                    "criterion": {"snomed_concept_id": "", "preferred_term": "x"},
+                }
             )
 
     def test_rejects_demographic_with_unsupported_field(self) -> None:
-        node = LogicNode.model_validate({
-            "kind": "DEMOGRAPHIC",
-            "field": "weight",
-            "operator": ">=",
-            "value": 70,
-            "unit": "kg",
-        })
+        node = LogicNode.model_validate(
+            {
+                "kind": "DEMOGRAPHIC",
+                "field": "weight",
+                "operator": ">=",
+                "value": 70,
+                "unit": "kg",
+            }
+        )
         with pytest.raises(LogicTreeValidationError, match="unsupported field"):
             validate_logic_tree(node)
 
@@ -144,7 +157,9 @@ class TestValidateLogicTree:
     def test_rejects_excessive_node_count(self) -> None:
         children = [_concept_node(str(i), f"c{i}") for i in range(MAX_NODE_COUNT + 5)]
         node = LogicNode.model_validate({"kind": "AND", "children": children})
-        with pytest.raises(LogicTreeValidationError, match=f"max allowed is {MAX_NODE_COUNT}"):
+        with pytest.raises(
+            LogicTreeValidationError, match=f"max allowed is {MAX_NODE_COUNT}"
+        ):
             validate_logic_tree(node)
 
     def test_rejects_unknown_node_kind(self) -> None:
@@ -332,13 +347,23 @@ class TestApplyRuleEdit:
 
     def test_writes_new_rule_and_supersedes_predecessor(self) -> None:
         # 1: predecessor lookup, 2: concept verify, 3: insert, 4: reject siblings
-        client = _mock_kg_client([
-            [{"status": "pending_review", "name": "Old", "strength": "offer",
-              "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "Refer..."}],
-            [{"concept_id": "49727002", "exists": True}],
-            [{"id": "rule:rec-1:edit:abcd1234"}],
-            [{"rejected_ids": ["rule:rec-1:dup"]}],
-        ])
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "pending_review",
+                        "name": "Old",
+                        "strength": "offer",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "Refer...",
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": True}],
+                [{"id": "rule:rec-1:edit:abcd1234"}],
+                [{"rejected_ids": ["rule:rec-1:dup"]}],
+            ]
+        )
         result = apply_rule_edit(
             client,
             predecessor_rule_id="rule:rec-1:old",
@@ -362,10 +387,20 @@ class TestApplyRuleEdit:
             )
 
     def test_rejects_when_predecessor_is_already_superseded(self) -> None:
-        client = _mock_kg_client([
-            [{"status": "superseded", "name": "Old", "strength": "offer",
-              "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "..."}],
-        ])
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "superseded",
+                        "name": "Old",
+                        "strength": "offer",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "...",
+                    }
+                ],
+            ]
+        )
         with pytest.raises(EditNotApplicable, match="status is 'superseded'"):
             apply_rule_edit(
                 client,
@@ -376,11 +411,21 @@ class TestApplyRuleEdit:
             )
 
     def test_rejects_unknown_concept_ids(self) -> None:
-        client = _mock_kg_client([
-            [{"status": "pending_review", "name": "Old", "strength": "offer",
-              "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "..."}],
-            [{"concept_id": "49727002", "exists": False}],
-        ])
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "pending_review",
+                        "name": "Old",
+                        "strength": "offer",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "...",
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": False}],
+            ]
+        )
         with pytest.raises(LogicTreeValidationError, match="Unknown SNOMED concept"):
             apply_rule_edit(
                 client,
@@ -418,14 +463,23 @@ class TestApplyRuleEdit:
         # the verify round-trip as Neo4j would: a single row per id
         # with exists=true (because the OR over the two OPTIONAL MATCHes
         # resolved). The save MUST succeed.
-        client = _mock_kg_client([
-            [{"status": "pending_review", "name": "Old", "strength": "offer",
-              "compile_scope_id": "NG12", "recommendation_id": "rec-1",
-              "verbatim": "Refer..."}],
-            [{"concept_id": "49727002", "exists": True}],
-            [{"id": "rule:rec-1:edit:abcd1234"}],
-            [{"rejected_ids": []}],
-        ])
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "pending_review",
+                        "name": "Old",
+                        "strength": "offer",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "Refer...",
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": True}],
+                [{"id": "rule:rec-1:edit:abcd1234"}],
+                [{"rejected_ids": []}],
+            ]
+        )
         result = apply_rule_edit(
             client,
             predecessor_rule_id="rule:rec-1:old",
@@ -436,11 +490,292 @@ class TestApplyRuleEdit:
         assert result["rule_id"].startswith("rule:rec-1:old:edit:")
 
 
+class TestEditedRuleCarriesForwardActionPriority:
+    """Regression: an edited rule MUST keep its predecessor's HAS_ACTION_GROUP
+    priority/due_days -- see NCR for the NG12 1.2.10 "urgent, direct access
+    ultrasound scan (within 2 weeks)" rule that was silently downgraded to
+    "routine" after a human edit dropped its action-group edges. This must
+    hold for ANY guideline rule, not just that one recommendation.
+    """
+
+    def _updates(self, root: dict | None = None) -> RuleUpdates:
+        return RuleUpdates.model_validate(
+            {
+                "name": "Edited rule",
+                "strength": "consider",
+                "logic_tree": root or _and_root(),
+            }
+        )
+
+    def test_predecessor_action_priority_is_recreated_on_the_new_rule(self) -> None:
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "pending_review",
+                        "name": "Rule: 1.2.10",
+                        "strength": "consider",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "1.2.10 Consider an urgent...",
+                        "actions": [
+                            {
+                                "concept_id": "169250003",
+                                "preferred_term": (
+                                    "Ultrasound scan of gallbladder (procedure)"
+                                ),
+                                "raw_term": "ultrasound scan",
+                                "priority": "2ww",
+                                "due_days": 14,
+                                "strength": "consider",
+                            }
+                        ],
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": True}],
+                [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                [{"id": "rule:rec-1:old:edit:abcd1234:ACTION"}],
+                [None],
+                [{"rejected_ids": []}],
+            ]
+        )
+
+        result = apply_rule_edit(
+            client,
+            predecessor_rule_id="rule:rec-1:old",
+            updates=self._updates(),
+            reviewer="qa-lead",
+            reason="Tightened criteria, did not touch actions",
+        )
+
+        assert result["rule_id"].startswith("rule:rec-1:old:edit:")
+        action_group_call = client.run.call_args_list[3]
+        assert action_group_call.args[0] == _UPSERT_EDITED_ACTION_GROUP
+        assert action_group_call.kwargs["rule_id"] == result["rule_id"]
+
+        action_call = client.run.call_args_list[4]
+        assert action_call.args[0] == _UPSERT_EDITED_ACTION
+        assert action_call.kwargs["concept_id"] == "169250003"
+        assert action_call.kwargs["priority"] == "2ww"
+        assert action_call.kwargs["due_days"] == 14
+
+    def test_no_action_writes_when_predecessor_had_no_actions(self) -> None:
+        """Matches pre-existing AI-stub behaviour: no action data in, none out."""
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "pending_review",
+                        "name": "Old",
+                        "strength": "offer",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "...",
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": True}],
+                [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                [{"rejected_ids": []}],
+            ]
+        )
+        apply_rule_edit(
+            client,
+            predecessor_rule_id="rule:rec-1:old",
+            updates=self._updates(),
+            reviewer="qa-lead",
+            reason="No prior action data",
+        )
+        assert client.run.call_count == 4
+
+    def test_reviewer_supplied_actions_keep_predecessor_priority(self) -> None:
+        """A reviewer changing the recommended procedure must not change urgency."""
+        updates = RuleUpdates.model_validate(
+            {
+                "name": "Edited rule",
+                "logic_tree": _and_root(),
+                "actions": [
+                    {
+                        "criterion": {
+                            "snomed_concept_id": "77477000",
+                            "preferred_term": "CT scan of abdomen (procedure)",
+                            "semantic_tag": "procedure",
+                        },
+                        "strength": "offer",
+                    }
+                ],
+            }
+        )
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "active",
+                        "name": "Rule: 1.2.10",
+                        "strength": "consider",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "1.2.10 Consider an urgent...",
+                        "actions": [
+                            {
+                                "concept_id": "169250003",
+                                "preferred_term": (
+                                    "Ultrasound scan of gallbladder (procedure)"
+                                ),
+                                "raw_term": "ultrasound scan",
+                                "priority": "2ww",
+                                "due_days": 14,
+                                "strength": "consider",
+                            }
+                        ],
+                    }
+                ],
+                [{"concept_id": "77477000", "exists": True}],
+                [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                [{"id": "rule:rec-1:old:edit:abcd1234:ACTION"}],
+                [None],
+                [{"rejected_ids": []}],
+            ]
+        )
+
+        apply_rule_edit(
+            client,
+            predecessor_rule_id="rule:rec-1:old",
+            updates=updates,
+            reviewer="qa-lead",
+            reason="Swapped ultrasound for CT",
+        )
+
+        action_call = client.run.call_args_list[4]
+        assert action_call.kwargs["concept_id"] == "77477000"
+        assert action_call.kwargs["priority"] == "2ww"
+        assert action_call.kwargs["due_days"] == 14
+
+    def test_reviewer_can_override_priority_and_due_days(self) -> None:
+        """Explicit priority on RuleUpdates wins over the predecessor."""
+        updates = RuleUpdates.model_validate(
+            {
+                "name": "Edited rule",
+                "logic_tree": _and_root(),
+                "priority": "urgent",
+                "due_days": 7,
+            }
+        )
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "pending_review",
+                        "name": "Rule: 1.2.10",
+                        "strength": "consider",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "1.2.10 Consider an urgent...",
+                        "actions": [
+                            {
+                                "concept_id": "169250003",
+                                "preferred_term": (
+                                    "Ultrasound scan of gallbladder (procedure)"
+                                ),
+                                "raw_term": "ultrasound scan",
+                                "priority": "2ww",
+                                "due_days": 14,
+                                "strength": "consider",
+                            }
+                        ],
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": True}],
+                [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                [{"id": "rule:rec-1:old:edit:abcd1234:ACTION"}],
+                [None],
+                [{"rejected_ids": []}],
+            ]
+        )
+
+        apply_rule_edit(
+            client,
+            predecessor_rule_id="rule:rec-1:old",
+            updates=updates,
+            reviewer="qa-lead",
+            reason="Corrected priority to urgent 1 week",
+        )
+
+        action_call = client.run.call_args_list[4]
+        assert action_call.kwargs["priority"] == "urgent"
+        assert action_call.kwargs["due_days"] == 7
+
+    def test_routine_override_clears_due_days(self) -> None:
+        updates = RuleUpdates.model_validate(
+            {
+                "name": "Edited rule",
+                "logic_tree": _and_root(),
+                "priority": "routine",
+                "due_days": 14,
+            }
+        )
+        assert updates.due_days is None
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "pending_review",
+                        "name": "Rule: 1.2.3",
+                        "strength": "consider",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "...",
+                        "actions": [
+                            {
+                                "concept_id": "76009000",
+                                "preferred_term": (
+                                    "Esophagogastroduodenoscopy (procedure)"
+                                ),
+                                "raw_term": "endoscopy",
+                                "priority": "2ww",
+                                "due_days": 14,
+                                "strength": "consider",
+                            }
+                        ],
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": True}],
+                [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                [{"id": "rule:rec-1:old:edit:abcd1234:ACTION"}],
+                [None],
+                [{"rejected_ids": []}],
+            ]
+        )
+
+        apply_rule_edit(
+            client,
+            predecessor_rule_id="rule:rec-1:old",
+            updates=updates,
+            reviewer="qa-lead",
+            reason="Downgraded to routine",
+        )
+
+        action_call = client.run.call_args_list[4]
+        assert action_call.kwargs["priority"] == "routine"
+        assert action_call.kwargs["due_days"] is None
+
+    def test_rejects_invalid_priority_value(self) -> None:
+        with pytest.raises(Exception, match="priority must be one of"):
+            RuleUpdates.model_validate(
+                {
+                    "name": "Edited rule",
+                    "logic_tree": _and_root(),
+                    "priority": "asap",
+                }
+            )
+
+
 class TestRejectSiblingPendingRules:
     def test_returns_rejected_rule_ids(self) -> None:
-        client = _mock_kg_client([
-            [{"rejected_ids": ["rule:rec-1:dup-a", "rule:rec-1:dup-b"]}],
-        ])
+        client = _mock_kg_client(
+            [
+                [{"rejected_ids": ["rule:rec-1:dup-a", "rule:rec-1:dup-b"]}],
+            ]
+        )
 
         rejected = reject_sibling_pending_rules(
             client,
@@ -457,13 +792,23 @@ class TestRejectSiblingPendingRules:
 class TestDecisionRouterEditPath:
     def test_returns_new_rule_id_with_predecessor(self, client: TestClient) -> None:
         with patch("app.routers.guidance_rules._kg_client") as mock_factory:
-            mock_factory.return_value = _mock_kg_client([
-                [{"status": "pending_review", "name": "Old", "strength": "offer",
-                  "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "..."}],
-                [{"concept_id": "49727002", "exists": True}],
-                [{"id": "rule:rec-1:old:edit:abcd1234"}],
-                [{"rejected_ids": []}],
-            ])
+            mock_factory.return_value = _mock_kg_client(
+                [
+                    [
+                        {
+                            "status": "pending_review",
+                            "name": "Old",
+                            "strength": "offer",
+                            "compile_scope_id": "NG12",
+                            "recommendation_id": "rec-1",
+                            "verbatim": "...",
+                        }
+                    ],
+                    [{"concept_id": "49727002", "exists": True}],
+                    [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                    [{"rejected_ids": []}],
+                ]
+            )
             resp = client.post(
                 "/guidance/rules/review/rule:rec-1:old/decision",
                 json={
@@ -485,10 +830,20 @@ class TestDecisionRouterEditPath:
 
     def test_returns_422_on_invalid_logic_tree(self, client: TestClient) -> None:
         with patch("app.routers.guidance_rules._kg_client") as mock_factory:
-            mock_factory.return_value = _mock_kg_client([
-                [{"status": "pending_review", "name": "Old", "strength": "offer",
-                  "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "..."}],
-            ])
+            mock_factory.return_value = _mock_kg_client(
+                [
+                    [
+                        {
+                            "status": "pending_review",
+                            "name": "Old",
+                            "strength": "offer",
+                            "compile_scope_id": "NG12",
+                            "recommendation_id": "rec-1",
+                            "verbatim": "...",
+                        }
+                    ],
+                ]
+            )
             resp = client.post(
                 "/guidance/rules/review/rule:rec-1:old/decision",
                 json={
@@ -503,12 +858,24 @@ class TestDecisionRouterEditPath:
             )
         assert resp.status_code == 422
 
-    def test_returns_409_when_predecessor_not_editable(self, client: TestClient) -> None:
+    def test_returns_409_when_predecessor_not_editable(
+        self, client: TestClient
+    ) -> None:
         with patch("app.routers.guidance_rules._kg_client") as mock_factory:
-            mock_factory.return_value = _mock_kg_client([
-                [{"status": "rejected", "name": "Old", "strength": "offer",
-                  "compile_scope_id": "NG12", "recommendation_id": "rec-1", "verbatim": "..."}],
-            ])
+            mock_factory.return_value = _mock_kg_client(
+                [
+                    [
+                        {
+                            "status": "rejected",
+                            "name": "Old",
+                            "strength": "offer",
+                            "compile_scope_id": "NG12",
+                            "recommendation_id": "rec-1",
+                            "verbatim": "...",
+                        }
+                    ],
+                ]
+            )
             resp = client.post(
                 "/guidance/rules/review/rule:rec-1:old/decision",
                 json={
@@ -523,12 +890,16 @@ class TestDecisionRouterEditPath:
             )
         assert resp.status_code == 409
 
-    def test_edit_without_updates_falls_back_to_status_change(self, client: TestClient) -> None:
+    def test_edit_without_updates_falls_back_to_status_change(
+        self, client: TestClient
+    ) -> None:
         with patch("app.routers.guidance_rules._kg_client") as mock_factory:
-            mock_factory.return_value = _mock_kg_client([
-                [{"id": "rule:rec-1:old"}],
-                [{"rejected_ids": []}],
-            ])
+            mock_factory.return_value = _mock_kg_client(
+                [
+                    [{"id": "rule:rec-1:old"}],
+                    [{"rejected_ids": []}],
+                ]
+            )
             resp = client.post(
                 "/guidance/rules/review/rule:rec-1:old/decision",
                 json={

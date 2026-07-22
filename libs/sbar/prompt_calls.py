@@ -386,10 +386,12 @@ def _sources_from_part(part: dict[str, Any]) -> list[dict[str, Any]]:
             sid = str(d.get("source_id") or "").strip()
             stype = str(d.get("source_label") or "")
             preview = str(d.get("preview") or "")
+            full_text = str(d.get("full_text") or "")
         else:
             sid = str(getattr(d, "source_id", "") or "").strip()
             stype = str(getattr(d, "source_label", "") or "")
             preview = str(getattr(d, "preview", "") or "")
+            full_text = str(getattr(d, "full_text", "") or "")
         if not sid or sid in seen:
             continue
         seen.add(sid)
@@ -399,6 +401,11 @@ def _sources_from_part(part: dict[str, Any]) -> list[dict[str, Any]]:
                 "type": stype or "Record",
                 "label": _friendly_source_label(sid, stype),
                 "preview": preview[:200],
+                # Exact record text the LLM saw for this source, already
+                # bounded to _PER_SOURCE_CHAR_CAP by the partitioner.
+                # Lets a reviewer verify the Background text against the
+                # real source record, not just a 200-char preview.
+                "full_text": full_text,
             }
         )
     if out:
@@ -414,6 +421,7 @@ def _sources_from_part(part: dict[str, Any]) -> list[dict[str, Any]]:
                 "type": "Record",
                 "label": _friendly_source_label(text),
                 "preview": "",
+                "full_text": "",
             }
         )
     return out

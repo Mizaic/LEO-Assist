@@ -237,6 +237,60 @@ class TestListPendingRules:
         assert rules[0]["guideline_version"] == 2
         assert rules[0]["chapter_title"] == "Referral for suspected cancer"
 
+    def test_surfaces_action_priority_and_due_days(self, test_client):
+        """list_pending_rules exposes rule-level clinical priority for the editor."""
+        raw_row = {
+            "rule_id": "r-priority",
+            "name": "Rule: 1.2.10",
+            "status": "pending_review",
+            "strength": "consider",
+            "guideline_id": "NG12",
+            "recommendation_text": (
+                "Consider an urgent, direct access ultrasound scan "
+                "(to be done within 2 weeks)."
+            ),
+            "criteria": [
+                {
+                    "predicate": "PRESENT",
+                    "concept_id": "300344005",
+                    "preferred_term": "Gallbladder enlarged",
+                }
+            ],
+            "action_priority": "2ww",
+            "action_due_days": 14,
+        }
+
+        with patch("app.routers.guidance_rules._kg_client") as mock_cls:
+            mock_cls.return_value = _mock_kg_client([[raw_row]])
+            resp = test_client.get("/guidance/rules/review")
+
+        assert resp.status_code == 200
+        rules = resp.json()
+        assert rules[0]["action_priority"] == "2ww"
+        assert rules[0]["action_due_days"] == 14
+
+    def test_action_priority_null_when_no_action_edges(self, test_client):
+        raw_row = {
+            "rule_id": "r-no-priority",
+            "name": "Stub rule",
+            "status": "pending_review",
+            "strength": "offer",
+            "guideline_id": "NG12",
+            "recommendation_text": "Offer review.",
+            "criteria": [],
+            "action_priority": None,
+            "action_due_days": None,
+        }
+
+        with patch("app.routers.guidance_rules._kg_client") as mock_cls:
+            mock_cls.return_value = _mock_kg_client([[raw_row]])
+            resp = test_client.get("/guidance/rules/review")
+
+        assert resp.status_code == 200
+        rules = resp.json()
+        assert rules[0]["action_priority"] is None
+        assert rules[0]["action_due_days"] is None
+
 
 # ── compute_diff tests ─────────────────────────────────────────────────────
 

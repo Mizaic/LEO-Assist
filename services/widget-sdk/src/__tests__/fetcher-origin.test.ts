@@ -15,9 +15,12 @@
 
 import {
   configureFetcher,
+  configureSourceTextFetcher,
   fetchAssessment,
+  fetchSourceText,
   normalisePayload,
   type FetchAssessmentArgs,
+  type FetchSourceTextArgs,
 } from "../data/fetcher";
 
 const ALLOWED_ORIGIN = "https://proxy.host.example";
@@ -96,6 +99,69 @@ describe("fetchAssessment proxy-origin guard - DI-A1206416 AC2", () => {
     const init = stub.mock.calls[0][1] as RequestInit;
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer tok-xyz");
+  });
+});
+
+describe("fetchSourceText proxy-origin guard - DI-A898556B AC3", () => {
+  let originalFetch: typeof fetch;
+  let stub: jest.Mock;
+
+  beforeEach(() => {
+    configureSourceTextFetcher(null);
+    originalFetch = global.fetch;
+    stub = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        id: "chunk-1",
+        type: "Chunk",
+        label: "Referral letter chunk 1",
+        text: "Dear Colleague,\n\nFull letter text.",
+      }),
+    });
+    global.fetch = stub as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    configureSourceTextFetcher(null);
+    global.fetch = originalFetch;
+  });
+
+  function _args(overrides: Partial<FetchSourceTextArgs>): FetchSourceTextArgs {
+    return {
+      assessmentId: "ASSESS-1",
+      sourceId: "chunk-1",
+      widgetToken: "ignored-by-test",
+      proxyOrigin: ALLOWED_ORIGIN,
+      allowedProxyOrigins: [ALLOWED_ORIGIN],
+      ...overrides,
+    };
+  }
+
+  test("calls the assessment-scoped sources endpoint with Bearer auth", async () => {
+    const result = await fetchSourceText(_args({ widgetToken: "tok-xyz" }));
+    expect(stub).toHaveBeenCalledTimes(1);
+    expect(stub.mock.calls[0][0]).toBe(
+      `${ALLOWED_ORIGIN}/sdk/sbar/ASSESS-1/sources/chunk-1`,
+    );
+    const init = stub.mock.calls[0][1] as RequestInit;
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer tok-xyz");
+    expect(result.text).toBe("Dear Colleague,\n\nFull letter text.");
+  });
+
+  test("refuses and never calls fetch when proxy origin is foreign", async () => {
+    await expect(
+      fetchSourceText(_args({ proxyOrigin: FOREIGN_ORIGIN })),
+    ).rejects.toThrow("leo-widget: refusing to fetch from non-proxy origin");
+    expect(stub).not.toHaveBeenCalled();
+  });
+
+  test("rejects when the response is not ok", async () => {
+    stub.mockResolvedValue({ ok: false, status: 404 });
+    await expect(fetchSourceText(_args({}))).rejects.toThrow(
+      "leo-widget: source text fetch failed (404)",
+    );
   });
 });
 

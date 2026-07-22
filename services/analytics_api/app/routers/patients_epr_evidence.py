@@ -1,8 +1,9 @@
 """Evidence provenance endpoints for coded problem-list entries.
 
 Lets a clinician check a problem-list chip against source text: every
-dated encounter mention of the concept, and (on request) the evidence
-sentence and assertion recorded for one of those mentions.
+dated mention of the concept -- from an encounter, a document/chunk, or
+a communication thread -- and (on request) the evidence sentence and
+assertion recorded for one of those mentions.
 
 Atlas trace:
   DO: DO-5D3EA371
@@ -29,17 +30,21 @@ from .patients_epr_evidence_queries import (
 
 router = APIRouter()
 
+_VALID_SOURCE_TYPES = {"encounter", "document", "communication"}
+
 
 class ConceptMention(BaseModel):
-    encounter_id: str
-    encounter_date: Optional[str] = None
+    source_id: str
+    source_type: str
+    source_date: Optional[str] = None
     assertion: Optional[str] = None
     confidence: Optional[float] = None
 
 
 class ConceptMentionDetail(BaseModel):
-    encounter_id: str
-    encounter_date: Optional[str] = None
+    source_id: str
+    source_type: str
+    source_date: Optional[str] = None
     concept_id: str
     name: Optional[str] = None
     read_code: Optional[str] = None
@@ -83,11 +88,13 @@ def get_concept_mentions(
     concept_id: str,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> list[ConceptMention]:
-    """Dated encounter mentions for one coded concept (no sentence text).
+    """Dated mentions for one coded concept (no sentence text).
 
-    Deliberately lightweight so opening a problem-list chip stays fast;
-    the evidence sentence for a given date is fetched separately, only
-    when the clinician expands that date.
+    Walks all three :DOCUMENTS source types (encounter, document/chunk,
+    communication) -- see patients_epr_evidence_queries.py. Deliberately
+    lightweight so opening a problem-list chip stays fast; the evidence
+    sentence for a given mention is fetched separately, only when the
+    clinician expands that mention.
     """
     query = _pick_query(scope, GET_CONCEPT_MENTIONS_ADMIN, GET_CONCEPT_MENTIONS_SCOPED)
     params = _cypher_params(scope, patient_id, concept_id=concept_id)
@@ -98,34 +105,45 @@ def get_concept_mentions(
         client.close()
     return [
         ConceptMention(
-            encounter_id=r["encounter_id"],
-            encounter_date=_date_only(r.get("encounter_date")),
+            source_id=r["source_id"],
+            source_type=r["source_type"],
+            source_date=_date_only(r.get("source_date")),
             assertion=_assertion_from_context(r.get("context_json")),
             confidence=(
                 float(r["confidence"]) if r.get("confidence") is not None else None
             ),
         )
         for r in rows
-        if r.get("encounter_id")
+        if r.get("source_id")
     ]
 
 
 @router.get(
-    "/patients/{patient_id}/coded-entities/{concept_id}/mentions/{encounter_id}",
+    "/patients/{patient_id}/coded-entities/{concept_id}/mentions/{source_type}/{source_id}",
     response_model=ConceptMentionDetail,
 )
 def get_concept_mention_detail(
     patient_id: str,
     concept_id: str,
-    encounter_id: str,
+    source_type: str,
+    source_id: str,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> ConceptMentionDetail:
     """Full evidence sentence and assertion for one dated mention."""
+    if source_type not in _VALID_SOURCE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"source_type must be one of {sorted(_VALID_SOURCE_TYPES)}.",
+        )
     query = _pick_query(
         scope, GET_CONCEPT_MENTION_DETAIL_ADMIN, GET_CONCEPT_MENTION_DETAIL_SCOPED
     )
     params = _cypher_params(
-        scope, patient_id, concept_id=concept_id, encounter_id=encounter_id
+        scope,
+        patient_id,
+        concept_id=concept_id,
+        source_type=source_type,
+        source_id=source_id,
     )
     client = PatientGraphClient()
     try:
@@ -136,8 +154,9 @@ def get_concept_mention_detail(
         raise HTTPException(status_code=404, detail="Mention not found.")
     r = rows[0]
     return ConceptMentionDetail(
-        encounter_id=r.get("encounter_id", encounter_id),
-        encounter_date=_date_only(r.get("encounter_date")),
+        source_id=r.get("source_id", source_id),
+        source_type=r.get("source_type", source_type),
+        source_date=_date_only(r.get("source_date")),
         concept_id=concept_id,
         name=r.get("name"),
         read_code=r.get("read_code"),

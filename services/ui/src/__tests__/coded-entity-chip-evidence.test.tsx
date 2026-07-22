@@ -15,6 +15,10 @@
  *           extra selection step.
  *   TC-006: a mentions-fetch failure surfaces a plain-English error, not a
  *           silent empty state.
+ *   TC-007: a concept coded only from a document/chunk (no Encounter
+ *           mention) still shows its mention and fetches detail using the
+ *           document source type -- regression guard for the bug where
+ *           document-sourced concepts showed "No recorded mentions found".
  */
 
 import React from "react";
@@ -56,14 +60,16 @@ describe("VT-7DE8E8ED - CodedEntityChip evidence popover", () => {
   test("TC-003: the popover lists every dated mention, most recent first", async () => {
     mockedFetchMentions.mockResolvedValue([
       {
-        encounter_id: "enc-2",
-        encounter_date: "2026-06-01",
+        source_id: "enc-2",
+        source_type: "encounter",
+        source_date: "2026-06-01",
         assertion: "present",
         confidence: 0.9,
       },
       {
-        encounter_id: "enc-1",
-        encounter_date: "2025-01-15",
+        source_id: "enc-1",
+        source_type: "encounter",
+        source_date: "2025-01-15",
         assertion: "historical",
         confidence: 0.8,
       },
@@ -85,21 +91,24 @@ describe("VT-7DE8E8ED - CodedEntityChip evidence popover", () => {
   test("TC-004: selecting a date fetches and reveals its evidence sentence", async () => {
     mockedFetchMentions.mockResolvedValue([
       {
-        encounter_id: "enc-2",
-        encounter_date: "2026-06-01",
+        source_id: "enc-2",
+        source_type: "encounter",
+        source_date: "2026-06-01",
         assertion: "present",
         confidence: 0.9,
       },
       {
-        encounter_id: "enc-1",
-        encounter_date: "2025-01-15",
+        source_id: "enc-1",
+        source_type: "encounter",
+        source_date: "2025-01-15",
         assertion: "historical",
         confidence: 0.8,
       },
     ]);
     mockedFetchDetail.mockResolvedValue({
-      encounter_id: "enc-2",
-      encounter_date: "2026-06-01",
+      source_id: "enc-2",
+      source_type: "encounter",
+      source_date: "2026-06-01",
       concept_id: "123456",
       name: "Obesity (disorder)",
       read_code: "22K.",
@@ -116,7 +125,12 @@ describe("VT-7DE8E8ED - CodedEntityChip evidence popover", () => {
     fireEvent.click(dateRow);
 
     await waitFor(() => {
-      expect(mockedFetchDetail).toHaveBeenCalledWith("pat-1", "123456", "enc-2");
+      expect(mockedFetchDetail).toHaveBeenCalledWith(
+        "pat-1",
+        "123456",
+        "encounter",
+        "enc-2"
+      );
     });
     expect(
       await screen.findByText(/Patient reports weight gain consistent with obesity\./),
@@ -126,15 +140,17 @@ describe("VT-7DE8E8ED - CodedEntityChip evidence popover", () => {
   test("TC-005: a single-mention concept auto-expands its evidence", async () => {
     mockedFetchMentions.mockResolvedValue([
       {
-        encounter_id: "enc-1",
-        encounter_date: "2026-06-01",
+        source_id: "enc-1",
+        source_type: "encounter",
+        source_date: "2026-06-01",
         assertion: "present",
         confidence: 0.9,
       },
     ]);
     mockedFetchDetail.mockResolvedValue({
-      encounter_id: "enc-1",
-      encounter_date: "2026-06-01",
+      source_id: "enc-1",
+      source_type: "encounter",
+      source_date: "2026-06-01",
       concept_id: "123456",
       name: "Obesity (disorder)",
       read_code: "22K.",
@@ -147,7 +163,12 @@ describe("VT-7DE8E8ED - CodedEntityChip evidence popover", () => {
     fireEvent.click(screen.getByText("Obesity"));
 
     await waitFor(() => {
-      expect(mockedFetchDetail).toHaveBeenCalledWith("pat-1", "123456", "enc-1");
+      expect(mockedFetchDetail).toHaveBeenCalledWith(
+        "pat-1",
+        "123456",
+        "encounter",
+        "enc-1"
+      );
     });
     expect(
       await screen.findByText(/BMI 34, counselled on weight management\./),
@@ -160,5 +181,44 @@ describe("VT-7DE8E8ED - CodedEntityChip evidence popover", () => {
     fireEvent.click(screen.getByText("Obesity"));
 
     expect(await screen.findByText("Unable to load evidence.")).toBeInTheDocument();
+  });
+
+  test("TC-007: a document-sourced mention (no encounter) still shows and expands", async () => {
+    mockedFetchMentions.mockResolvedValue([
+      {
+        source_id: "doc-9",
+        source_type: "document",
+        source_date: "2026-03-10",
+        assertion: "present",
+        confidence: 0.85,
+      },
+    ]);
+    mockedFetchDetail.mockResolvedValue({
+      source_id: "doc-9",
+      source_type: "document",
+      source_date: "2026-03-10",
+      concept_id: "414916001",
+      name: "Obesity (disorder)",
+      read_code: "22K.",
+      assertion: "present",
+      confidence: 0.85,
+      evidence: "obesity",
+      evidence_sentence: "Referral letter notes long-standing obesity.",
+    });
+    render(<CodedEntityChip patientId="pat-1" name="Obesity" conceptId="414916001" />);
+    fireEvent.click(screen.getByText("Obesity"));
+
+    await waitFor(() => {
+      expect(mockedFetchDetail).toHaveBeenCalledWith(
+        "pat-1",
+        "414916001",
+        "document",
+        "doc-9"
+      );
+    });
+    expect(
+      await screen.findByText(/Referral letter notes long-standing obesity\./),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Document")).toBeInTheDocument();
   });
 });

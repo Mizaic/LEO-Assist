@@ -61,6 +61,25 @@ def test_partitioner_returns_one_partition_when_under_budget() -> None:
     assert _all_source_ids_in_partitions(parts) == {"enc-0", "enc-1", "enc-2"}
 
 
+def test_descriptor_full_text_carries_the_exact_llm_prompt_text() -> None:
+    """A reviewer must be able to see exactly what the LLM saw.
+
+    ``full_text`` on the descriptor is the sanitised, capped text for
+    this slice -- not just the 200-char ``preview``. It must match the
+    text this source actually contributed to the partition's LLM
+    prompt (modulo the fixed CONTEXT JSON wrapper).
+    """
+    sources = [_make_source(0, text_len=300)]
+    parts, _ = partition_background_sources(
+        sources, [], referring_specialty=None, max_input_tokens=60000
+    )
+    descriptor = parts[0].descriptors[0]
+    assert descriptor.full_text == "x" * 300
+    assert descriptor.full_text in parts[0].user_message
+    # preview stays short even though full_text is not.
+    assert len(descriptor.preview) <= 200
+
+
 def test_partitioner_splits_into_multiple_parts_preserving_every_source() -> None:
     # 12 sources of 4000 chars each -- total ~48KB of source text. With
     # a tight 8000-token budget (after 4000 reserve = 4000 effective)

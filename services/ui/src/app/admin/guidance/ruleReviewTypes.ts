@@ -39,6 +39,10 @@ export interface Rule {
   /** Deprecated: legacy single recommended procedure, kept for rules
    *  and callers not yet migrated to ``actions``. */
   action?: ActionConcept | null;
+  /** Rule-level clinical priority from HAS_ACTION edges. */
+  action_priority?: "2ww" | "urgent" | "routine" | null;
+  /** Due-days paired with action_priority (null for routine). */
+  action_due_days?: number | null;
   has_predecessor: boolean;
   predecessor_id?: string;
   previous_recommendation_text?: string | null;

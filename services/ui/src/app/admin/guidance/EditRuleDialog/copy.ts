@@ -118,6 +118,27 @@ export const STRENGTH_LABELS: Array<{ value: string; label: string }> = [
 ];
 
 /**
+ * Plain-English label for a rule-level clinical priority. Falls back to
+ * "Not set yet" when the rule has no HAS_ACTION edge priority.
+ */
+export function priorityLabel(
+  priority: string | null | undefined,
+  dueDays?: number | null,
+): string {
+  if (!priority) return "Not set yet";
+  const base =
+    priority === "2ww"
+      ? "2 week wait (urgent suspected cancer)"
+      : priority === "urgent"
+        ? "Urgent"
+        : priority === "routine"
+          ? "Routine"
+          : priority;
+  if (priority === "routine" || dueDays == null) return base;
+  return `${base}, within ${dueDays} days`;
+}
+
+/**
  * Strip the SNOMED semantic tag (e.g. "(finding)", "(disorder)", "(situation)")
  * from a preferred term so the chip reads in everyday English.
  *

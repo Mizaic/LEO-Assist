@@ -68,6 +68,12 @@ export interface RenderSurfaceOptions {
   advisory?: string | null;
   /** Channel for emitting widget events (variant-agnostic). */
   emit(event: SurfaceEvent): void;
+  /**
+   * Optional live source-text lookup, forwarded to the disclosure
+   * dialog for chips whose persisted part has no ``fullText``. See
+   * ``DisclosureCallbacks.resolveSourceText``.
+   */
+  resolveSourceText?(sourceId: string): Promise<string | null | undefined>;
 }
 
 function _escape(text: string): string {
@@ -226,7 +232,7 @@ export function renderSurface(
   root: ParentNode & Node,
   options: RenderSurfaceOptions,
 ): () => void {
-  const { payload, emit, advisory } = options;
+  const { payload, emit, advisory, resolveSourceText } = options;
 
   // Emit completeness events before any DOM mutation so the host can
   // intercept and show a confirmation dialog before the widget paints.
@@ -296,6 +302,7 @@ export function renderSurface(
           ...(label ? { label } : {}),
         },
       }),
+    resolveSourceText,
   });
 
   emit({

@@ -16,7 +16,7 @@
 
 import type { SbarAssessmentPayload } from "../data/types";
 import { formatSourceLabel } from "../sbar/disclosure";
-import { renderSurface } from "../sbar/surface";
+import { renderSurface, type RenderSurfaceOptions } from "../sbar/surface";
 
 const PAYLOAD: SbarAssessmentPayload = {
   assessmentId: "ass-001",
@@ -182,5 +182,213 @@ describe("VT-DI-85C95E53-AC1 disclosure renders identically across variants", ()
     );
     expect(chip?.textContent).toBe("Letter chunk 1");
     expect(formatSourceLabel("uuid:form:encounter")).toContain("encounter");
+  });
+
+  test("TC-6: source dialog shows the exact record text when fullText is present", () => {
+    const mount = document.createElement("div");
+    document.body.appendChild(mount);
+    const withFullText: SbarAssessmentPayload = {
+      ...PAYLOAD,
+      backgroundParts: [
+        {
+          index: 1,
+          total: 1,
+          recordCount: 1,
+          recordRange: [1, 1],
+          sourceIds: ["chunk-full-1"],
+          sources: [
+            {
+              id: "chunk-full-1",
+              type: "Chunk",
+              label: "Referral letter chunk 1",
+              preview: "Dear Colleague,",
+              fullText:
+                "Dear Colleague,\n\nThank you for referring this patient with " +
+                "iron-deficiency anaemia. Full letter text continues here.",
+            },
+          ],
+          status: "completed",
+        },
+      ],
+    };
+    renderSurface(mount, { payload: withFullText, emit: () => {} });
+    mount
+      .querySelector<HTMLButtonElement>(
+        '[data-testid="leo-disclosure-background-toggle"]',
+      )!
+      .click();
+    mount
+      .querySelector<HTMLButtonElement>(
+        '.leo-source-chip[data-source-id="chunk-full-1"]',
+      )!
+      .click();
+    const body = mount.querySelector('[data-testid="leo-source-dialog-body"]');
+    expect(body?.textContent).toContain(
+      "Thank you for referring this patient with iron-deficiency anaemia",
+    );
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-note"]')
+        ?.textContent,
+    ).toMatch(/exact record text/i);
+  });
+
+  test("TC-7: source dialog falls back to the short preview when fullText is absent", () => {
+    const mount = document.createElement("div");
+    document.body.appendChild(mount);
+    renderSurface(mount, {
+      payload: {
+        ...PAYLOAD,
+        backgroundParts: [
+          {
+            index: 1,
+            total: 1,
+            recordCount: 1,
+            recordRange: [1, 1],
+            sourceIds: ["enc-legacy"],
+            sources: [
+              {
+                id: "enc-legacy",
+                type: "Encounter",
+                label: "Encounter (legacy)",
+                preview: "Progressive jaundice.",
+              },
+            ],
+            status: "completed",
+          },
+        ],
+      },
+      emit: () => {},
+    });
+    mount
+      .querySelector<HTMLButtonElement>(
+        '[data-testid="leo-disclosure-background-toggle"]',
+      )!
+      .click();
+    mount
+      .querySelector<HTMLButtonElement>(
+        '.leo-source-chip[data-source-id="enc-legacy"]',
+      )!
+      .click();
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-body"]')
+        ?.textContent,
+    ).toBe("Progressive jaundice.");
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-note"]')
+        ?.textContent,
+    ).toMatch(/short preview only/i);
+  });
+
+  function _renderLegacySource(
+    mount: HTMLElement,
+    resolveSourceText: RenderSurfaceOptions["resolveSourceText"],
+  ): void {
+    renderSurface(mount, {
+      payload: {
+        ...PAYLOAD,
+        backgroundParts: [
+          {
+            index: 1,
+            total: 1,
+            recordCount: 1,
+            recordRange: [1, 1],
+            sourceIds: ["chunk-live-1"],
+            sources: [
+              {
+                id: "chunk-live-1",
+                type: "Chunk",
+                label: "Referral letter chunk 1",
+                preview: "Dear Colleague,",
+              },
+            ],
+            status: "completed",
+          },
+        ],
+      },
+      emit: () => {},
+      resolveSourceText,
+    });
+    mount
+      .querySelector<HTMLButtonElement>(
+        '[data-testid="leo-disclosure-background-toggle"]',
+      )!
+      .click();
+    mount
+      .querySelector<HTMLButtonElement>(
+        '.leo-source-chip[data-source-id="chunk-live-1"]',
+      )!
+      .click();
+  }
+
+  test("TC-8: dialog upgrades in place with live text when resolveSourceText succeeds", async () => {
+    const mount = document.createElement("div");
+    document.body.appendChild(mount);
+    let resolveLive: (text: string) => void = () => {};
+    _renderLegacySource(
+      mount,
+      () =>
+        new Promise<string>((resolve) => {
+          resolveLive = resolve;
+        }),
+    );
+
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-note"]')
+        ?.textContent,
+    ).toMatch(/looking up/i);
+
+    resolveLive("Dear Colleague,\n\nFull letter text resolved live.");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-body"]')
+        ?.textContent,
+    ).toBe("Dear Colleague,\n\nFull letter text resolved live.");
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-note"]')
+        ?.textContent,
+    ).toMatch(/retrieved from the patient record/i);
+  });
+
+  test("TC-9: dialog keeps the preview fallback when resolveSourceText rejects", async () => {
+    const mount = document.createElement("div");
+    document.body.appendChild(mount);
+    _renderLegacySource(mount, () => Promise.reject(new Error("network down")));
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-body"]')
+        ?.textContent,
+    ).toBe("Dear Colleague,");
+    expect(
+      mount.querySelector('[data-testid="leo-source-dialog-note"]')
+        ?.textContent,
+    ).toMatch(/short preview only/i);
+  });
+
+  test("TC-10: closing the dialog before resolveSourceText resolves does not throw or reopen it", async () => {
+    const mount = document.createElement("div");
+    document.body.appendChild(mount);
+    let resolveLive: (text: string) => void = () => {};
+    _renderLegacySource(
+      mount,
+      () =>
+        new Promise<string>((resolve) => {
+          resolveLive = resolve;
+        }),
+    );
+    mount
+      .querySelector<HTMLButtonElement>(".leo-source-dialog-close")!
+      .click();
+    expect(mount.querySelector('[data-testid="leo-source-dialog"]')).toBeNull();
+
+    resolveLive("Late text that must not reappear.");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(mount.querySelector('[data-testid="leo-source-dialog"]')).toBeNull();
   });
 });

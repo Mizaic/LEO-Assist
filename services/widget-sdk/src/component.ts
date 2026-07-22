@@ -19,7 +19,7 @@
 
 import { LEO_EVENT_NAMES } from "./data/types";
 import type { SbarAssessmentPayload } from "./data/types";
-import { fetchAssessment } from "./data/fetcher";
+import { fetchAssessment, fetchSourceText } from "./data/fetcher";
 import { buildShadowStylesheet } from "./branding/stylesheet";
 import { renderSurface } from "./sbar/surface";
 
@@ -97,6 +97,10 @@ export class LeoSbarElement extends HTMLElement {
         advisory,
         emit: (e) =>
           this._emit({ type: e.type, detail: e.detail as Record<string, unknown> }),
+        resolveSourceText: (sourceId) =>
+          fetchSourceText({ assessmentId, sourceId, widgetToken, proxyOrigin })
+            .then((result) => result.text || null)
+            .catch(() => null),
       });
       const previous = _teardowns.get(this);
       if (previous) previous();

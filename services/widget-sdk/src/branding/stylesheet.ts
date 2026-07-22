@@ -361,15 +361,26 @@ em, i { font-style: italic; }
 }
 
 .leo-source-dialog-meta {
-  font-size: 12px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: ${BRAND.light.textMuted};
   margin: 0 0 8px;
 }
 
+.leo-source-dialog-note {
+  font-size: 12px;
+  font-style: italic;
+  color: ${BRAND.light.textMuted};
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid ${BRAND.light.border};
+}
+
 .leo-source-dialog-body {
   white-space: pre-wrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
   margin: 0;
 }
 

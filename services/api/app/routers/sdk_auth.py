@@ -370,6 +370,10 @@ def _normalise_source_ref(raw: Any) -> dict:
         "type": raw.get("type") or "Record",
         "label": raw.get("label") or sid,
         "preview": raw.get("preview") or "",
+        # Exact source-record text used to generate this part of the
+        # Background section. Empty for legacy persisted Assessments
+        # that predate this field; the widget falls back to preview.
+        "fullText": raw.get("full_text") or raw.get("fullText") or "",
         "date": raw.get("date"),
     }
 

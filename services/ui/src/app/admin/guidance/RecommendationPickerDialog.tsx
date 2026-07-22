@@ -562,6 +562,8 @@ export default function RecommendationPickerDialog({
     logic_tree: Record<string, unknown>;
     reason: string;
     actions?: Array<Record<string, unknown>>;
+    priority?: "2ww" | "urgent" | "routine";
+    due_days?: number | null;
     is_default?: boolean;
   }) {
     if (!editRule) return;
@@ -573,6 +575,11 @@ export default function RecommendationPickerDialog({
         logic_tree: payload.logic_tree,
       };
       if (payload.actions !== undefined) updates.actions = payload.actions;
+      if (payload.priority !== undefined) {
+        updates.priority = payload.priority;
+        updates.due_days =
+          payload.priority === "routine" ? null : (payload.due_days ?? null);
+      }
       if (payload.is_default !== undefined) updates.is_default = payload.is_default;
       const resp = await fetch(`/api/guidance/rules/review/${editRule.rule_id}/decision`, {
         method: "POST",

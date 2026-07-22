@@ -55,14 +55,15 @@ function _base64UrlDecode(segment: string): string {
 
 function _decodePayload(token: string): Record<string, unknown> {
   const parts = token.split(".");
-  if (parts.length !== 3) {
+  const payloadSegment = parts[1];
+  if (parts.length !== 3 || payloadSegment === undefined) {
     throw new WidgetTokenError(
       "widget token is not a JWT (expected three dot-separated segments)",
     );
   }
   let raw: string;
   try {
-    raw = _base64UrlDecode(parts[1]);
+    raw = _base64UrlDecode(payloadSegment);
   } catch {
     throw new WidgetTokenError("widget token payload is not base64url");
   }

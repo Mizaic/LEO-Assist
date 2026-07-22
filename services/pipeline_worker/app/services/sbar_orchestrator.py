@@ -363,11 +363,17 @@ class SBAROrchestrator:
                     "assessment_id": assessment_id,
                 },
             )
-            # Exclude negated/absent/uncertain assertions from rule evaluation.
-            # Negated findings ("no rectal mass") must never trigger positive
-            # referral rules. Uncertain/possible findings are also excluded so
-            # the evaluator only acts on confirmed clinical facts.
-            _EXCLUDED_ASSERTIONS = {"absent", "negated", "possible", "uncertain"}
+            # Exclude only definitively ruled-out assertions from rule
+            # evaluation. Negated/refuted findings ("no rectal mass",
+            # "gallbladder not enlarged") must never trigger positive
+            # referral rules. "possible"/"uncertain" findings are
+            # deliberately KEPT: NICE safety-netting rules (e.g. NG12
+            # 1.2.10 "mass consistent with an enlarged gall bladder") are
+            # written to act on exactly this level of clinical certainty
+            # -- a GP's hedged exam finding pending confirmatory imaging.
+            # Dropping them here would silently suppress the 2WW/urgent
+            # referral the guideline exists to trigger. See DI-LEO-AI-189.
+            _EXCLUDED_ASSERTIONS = {"absent", "negated", "refuted"}
             eval_codes = sorted(
                 {
                     c.concept_id

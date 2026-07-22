@@ -84,18 +84,23 @@ export interface CodedEntityRow {
   concept_id: string | null;
 }
 
-/** One dated encounter mention of a coded concept (no evidence sentence yet). */
+/** The kind of node a coded concept's evidence hangs off. */
+export type ConceptMentionSourceType = "encounter" | "document" | "communication";
+
+/** One dated mention of a coded concept (no evidence sentence yet). */
 export interface ConceptMention {
-  encounter_id: string;
-  encounter_date: string | null;
+  source_id: string;
+  source_type: ConceptMentionSourceType;
+  source_date: string | null;
   assertion: string | null;
   confidence: number | null;
 }
 
 /** Full evidence for a single dated mention, fetched on demand. */
 export interface ConceptMentionDetail {
-  encounter_id: string;
-  encounter_date: string | null;
+  source_id: string;
+  source_type: ConceptMentionSourceType;
+  source_date: string | null;
   concept_id: string;
   name: string | null;
   read_code: string | null;
@@ -334,7 +339,13 @@ export async function fetchCodedEntities(
   );
 }
 
-/** Return dated encounter mentions for one coded concept (lightweight, no sentence). */
+/**
+ * Return dated mentions for one coded concept (lightweight, no sentence).
+ *
+ * Covers all three evidence source types (encounter, document/chunk,
+ * communication) -- a concept coded from a document pipeline has no
+ * Encounter-level mention at all, so this must not be encounter-only.
+ */
 export async function fetchConceptMentions(
   patientId: string,
   conceptId: string
@@ -349,11 +360,13 @@ export async function fetchConceptMentions(
 export async function fetchConceptMentionDetail(
   patientId: string,
   conceptId: string,
-  encounterId: string
+  sourceType: ConceptMentionSourceType,
+  sourceId: string
 ): Promise<ConceptMentionDetail> {
   return fetchJson<ConceptMentionDetail>(
     `${ANALYTICS_BASE}/patients/${encodeURIComponent(patientId)}/coded-entities/` +
-      `${encodeURIComponent(conceptId)}/mentions/${encodeURIComponent(encounterId)}`
+      `${encodeURIComponent(conceptId)}/mentions/${encodeURIComponent(sourceType)}/` +
+      `${encodeURIComponent(sourceId)}`
   );
 }
 

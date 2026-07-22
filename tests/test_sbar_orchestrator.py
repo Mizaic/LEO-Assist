@@ -89,6 +89,22 @@ def _patch_integrity_ok(monkeypatch) -> None:
     )
 
 
+def _patch_gate3_noop(monkeypatch) -> None:
+    """Bypass the Gate 3 bounded-recall LLM call, which needs live Bedrock
+    credentials the unit-test environment does not have."""
+    from libs.sbar.orchestrator_gate3 import Gate3Context
+    from libs.sbar.situation_source import SituationSourceResult
+
+    async def _fake_prepare_gate3_context(**_kw):
+        return Gate3Context(structured=SituationSourceResult(headline=""))
+
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator."
+        "prepare_gate3_context",
+        _fake_prepare_gate3_context,
+    )
+
+
 def _make_payload() -> SBARRequestPayload:
     return SBARRequestPayload(
         run_id="run-test",
@@ -315,6 +331,97 @@ def test_orchestrator_passes_patient_demographics_to_guideline_evaluator(
     assert captured["patient_sex"] == "male"
     assert captured["patient_age"] >= 80
     assert captured["patient_codes"] == ["123"]
+
+
+def test_orchestrator_keeps_possible_and_uncertain_codes_for_guideline_evaluation(
+    monkeypatch,
+) -> None:
+    """Regression: NG12-style safety-netting rules (e.g. 1.2.10 'mass
+    consistent with an enlarged gall bladder') must still see hedged exam
+    findings. Only definitively ruled-out assertions (absent/negated/
+    refuted) may be dropped before guideline evaluation; 'possible' and
+    'uncertain' findings MUST reach the evaluator unchanged.
+    """
+    session = _FakeSession()
+    client = _FakeClient(session)
+    captured: dict[str, Any] = {}
+
+    async def _fake_situation(*_a, **_kw):
+        return {"markdown": "Patient context.", "raw": {}, "error": None}
+
+    async def _fake_background(*_a, **_kw):
+        return {"markdown": "- Recent finding.", "raw": {}, "error": None}
+
+    async def _fake_recommendation(*_a, **_kw):
+        return {"markdown": "Clinical review required.", "actions": [], "raw": {}}
+
+    def _fake_evaluate(**kwargs):
+        captured.update(kwargs)
+        return {"matched_rules": [], "active_version": "v1"}
+
+    def _fake_resolve_situation(_session, _input):
+        from libs.sbar.source_resolver import ResolvedSituation
+
+        return ResolvedSituation(patient_id="pat-1", patient_summary={}, artifacts=[])
+
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator.resolve_situation",
+        _fake_resolve_situation,
+    )
+    monkeypatch.setattr(
+        _RESOLVE_BG,
+        lambda _s, _r: [
+            ResolvedSource(
+                source_label="Chunk",
+                source_id="chunk-1",
+                codes=[
+                    ResolvedCode(
+                        concept_id="300344005",
+                        term="Gallbladder enlarged (finding)",
+                        assertion=(
+                            '{"assertion": "possible", "negated": false, '
+                            '"uncertain": true}'
+                        ),
+                    ),
+                    ResolvedCode(
+                        concept_id="162031009",
+                        term="Indigestion (finding)",
+                        assertion=(
+                            '{"assertion": "historical", "negated": false, '
+                            '"uncertain": false, "historical": true}'
+                        ),
+                    ),
+                    ResolvedCode(
+                        concept_id="999999999",
+                        term="Rectal mass (finding)",
+                        assertion=(
+                            '{"assertion": "absent", "negated": true, '
+                            '"uncertain": false}'
+                        ),
+                    ),
+                ],
+            )
+        ],
+    )
+    _patch_integrity_ok(monkeypatch)
+    _patch_gate3_noop(monkeypatch)
+
+    orch = SBAROrchestrator(
+        patient_graph_client=client,
+        publish_progress=MagicMock(),
+        situation_caller=_fake_situation,
+        background_caller=_fake_background,
+        recommendation_caller=_fake_recommendation,
+        evaluator=_fake_evaluate,
+        policy_runtime=_policy_runtime(),
+    )
+
+    asyncio.run(orch.run(_make_payload()))
+
+    eval_codes = captured["patient_codes"]
+    assert "300344005" in eval_codes  # possible/uncertain -- must reach evaluator
+    assert "162031009" in eval_codes  # historical -- must reach evaluator
+    assert "999999999" not in eval_codes  # negated/absent -- must be dropped
 
 
 def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(

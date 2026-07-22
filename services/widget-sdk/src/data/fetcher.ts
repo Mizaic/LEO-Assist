@@ -20,10 +20,14 @@ import type {
   SbarBackgroundPart,
 } from "./types";
 
-export interface FetchAssessmentArgs {
+interface OriginGuardedArgs {
+  proxyOrigin: string;
+  allowedProxyOrigins?: readonly string[];
+}
+
+export interface FetchAssessmentArgs extends OriginGuardedArgs {
   assessmentId: string;
   widgetToken: string;
-  proxyOrigin: string;
   /**
    * Optional allowlist of acceptable proxy origins. Defaults to
    * [args.proxyOrigin] (single allowed origin per widget instance).
@@ -35,6 +39,23 @@ export interface FetchAssessmentArgs {
 export type FetchAssessmentFn = (
   args: FetchAssessmentArgs,
 ) => Promise<SbarAssessmentPayload>;
+
+export interface FetchSourceTextArgs extends OriginGuardedArgs {
+  assessmentId: string;
+  sourceId: string;
+  widgetToken: string;
+}
+
+export interface SourceTextResult {
+  id: string;
+  type: string;
+  label: string;
+  text: string;
+}
+
+export type FetchSourceTextFn = (
+  args: FetchSourceTextArgs,
+) => Promise<SourceTextResult>;
 
 /**
  * Normalise a raw snake_case API response into the camelCase widget
@@ -94,7 +115,7 @@ function _normaliseOrigin(value: string): string {
   }
 }
 
-function _assertAllowedOrigin(args: FetchAssessmentArgs): string {
+function _assertAllowedOrigin(args: OriginGuardedArgs): string {
   const requested = _normaliseOrigin(args.proxyOrigin);
   const allowlist = (args.allowedProxyOrigins ?? [args.proxyOrigin]).map(
     _normaliseOrigin,
@@ -130,5 +151,55 @@ export async function fetchAssessment(
   args: FetchAssessmentArgs,
 ): Promise<SbarAssessmentPayload> {
   const fn = _impl ?? _defaultFetcher;
+  return fn(args);
+}
+
+let _sourceTextImpl: FetchSourceTextFn | null = null;
+
+/** Test / demo seam, mirrors ``configureFetcher``. */
+export function configureSourceTextFetcher(impl: FetchSourceTextFn | null): void {
+  _sourceTextImpl = impl;
+}
+
+/**
+ * Live lookup for a single source record's exact text, used by the
+ * source-record dialog when the persisted background part has no
+ * ``fullText`` (Assessments generated before that field existed).
+ * Same origin allowlist and Bearer-token contract as
+ * ``fetchAssessment`` -- the widget still never talks to Neo4j or the
+ * LEO API directly, only the host-controlled proxy origin.
+ */
+async function _defaultSourceTextFetcher(
+  args: FetchSourceTextArgs,
+): Promise<SourceTextResult> {
+  const origin = _assertAllowedOrigin(args);
+  const url =
+    `${origin}/sdk/sbar/${encodeURIComponent(args.assessmentId)}` +
+    `/sources/${encodeURIComponent(args.sourceId)}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${args.widgetToken}`,
+      Accept: "application/json",
+    },
+    credentials: "omit",
+    mode: "cors",
+  });
+  if (!res.ok) {
+    throw new Error(`leo-widget: source text fetch failed (${res.status})`);
+  }
+  const raw = (await res.json()) as Record<string, unknown>;
+  return {
+    id: String(raw["id"] ?? args.sourceId),
+    type: String(raw["type"] ?? "Record"),
+    label: String(raw["label"] ?? args.sourceId),
+    text: String(raw["text"] ?? ""),
+  };
+}
+
+export async function fetchSourceText(
+  args: FetchSourceTextArgs,
+): Promise<SourceTextResult> {
+  const fn = _sourceTextImpl ?? _defaultSourceTextFetcher;
   return fn(args);
 }
