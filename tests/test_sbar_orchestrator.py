@@ -28,7 +28,11 @@ from libs.sbar.events import (
     SituationArtifactType,
 )
 from libs.sbar.context_integrity import ContextIntegrityResult
+from libs.sbar.policy_runtime import build_runtime
 from libs.sbar.source_resolver import ResolvedCode, ResolvedSource
+from libs.workflow.execution_manifest import build_execution_manifest
+from libs.workflow.plan_manifest import PlanManifest
+from libs.workflow.referral_policy import DEFAULT_REFERRAL_POLICY
 from services.pipeline_worker.app.services.sbar_orchestrator import (
     SBAROrchestrator,
 )
@@ -99,6 +103,34 @@ def _make_payload() -> SBARRequestPayload:
         ],
         guideline_ids=[],
     )
+
+
+def _policy_runtime():
+    plan = PlanManifest(
+        plan_id="pd-referral-assessment",
+        version_id=1,
+        version_node_id="ver-test-1",
+        policy_version="v1",
+        workflow_mode="durable_pubsub",
+        actions=(),
+        referral_policy=dict(DEFAULT_REFERRAL_POLICY),
+    )
+    manifest = build_execution_manifest(
+        plan,
+        prompt_hashes={
+            "situation": "h1",
+            "background": "h2",
+            "recommendation": "h3",
+            "recall": "h4",
+        },
+        model_config={
+            "key": "aws:big",
+            "provider": "aws",
+            "tier": "big",
+            "modelId": "sonnet-test",
+        },
+    )
+    return build_runtime(manifest)
 
 
 @pytest.fixture
@@ -179,6 +211,7 @@ def orchestrator_with_mocks(monkeypatch):
         background_caller=_fake_background,
         recommendation_caller=_fake_recommendation,
         evaluator=_fake_evaluate,
+        policy_runtime=_policy_runtime(),
     )
     return orch, session, publish
 
@@ -274,6 +307,7 @@ def test_orchestrator_passes_patient_demographics_to_guideline_evaluator(
         background_caller=_fake_background,
         recommendation_caller=_fake_recommendation,
         evaluator=_fake_evaluate,
+        policy_runtime=_policy_runtime(),
     )
 
     asyncio.run(orch.run(_make_payload()))
@@ -354,6 +388,7 @@ def test_orchestrator_emits_structured_errors_and_notices_on_sbar_completed(
         background_caller=_bad_background,
         recommendation_caller=_ok_recommendation,
         evaluator=AsyncMock(return_value={"matched_rules": []}),
+        policy_runtime=_policy_runtime(),
     )
     result = asyncio.run(orch.run(_make_payload()))
 
@@ -428,6 +463,7 @@ def test_orchestrator_records_error_when_situation_call_fails(monkeypatch):
         background_caller=_ok,
         recommendation_caller=_ok_recommendation,
         evaluator=AsyncMock(return_value={"matched_rules": []}),
+        policy_runtime=_policy_runtime(),
     )
     result = asyncio.run(orch.run(_make_payload()))
     assert result.status == "draft"

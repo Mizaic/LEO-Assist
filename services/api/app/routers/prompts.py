@@ -29,6 +29,7 @@ from libs.cypher.prompt_config_queries import (
     LIST_PROMPTS,
     UPDATE_PROMPT,
 )
+from libs.llm_usage import LLMCostConfig, LLMUsage
 
 logger = logging.getLogger(__name__)
 
@@ -162,14 +163,29 @@ def _estimate_cost(
     input_tokens: int,
     output_tokens: int,
     cached_tokens: int = 0,
+    *,
+    cache_write_tokens: int = 0,
+    input_excludes_cache: bool = False,
 ) -> float:
-    billable_input = max(0, input_tokens - cached_tokens)
-    return round(
-        billable_input * cost_entry["costPer1mInput"] / 1_000_000
-        + cached_tokens * cost_entry["costPer1mCachedInput"] / 1_000_000
-        + output_tokens * cost_entry["costPer1mOutput"] / 1_000_000,
-        6,
+    """Estimate USD cost using provider-aware token semantics.
+
+    Bedrock: ``input_tokens`` is non-cached only (do not subtract cache).
+    Azure: ``input_tokens`` includes cached; subtract before full-rate billing.
+    """
+    usage = LLMUsage(
+        input_tokens=int(input_tokens or 0),
+        output_tokens=int(output_tokens or 0),
+        cached_input_tokens=int(cached_tokens or 0),
+        cache_creation_input_tokens=int(cache_write_tokens or 0),
+        input_excludes_cache=bool(input_excludes_cache),
     )
+    cfg = LLMCostConfig(
+        cost_per_1m_input=float(cost_entry.get("costPer1mInput") or 0),
+        cost_per_1m_cached_input=float(cost_entry.get("costPer1mCachedInput") or 0),
+        cost_per_1m_output=float(cost_entry.get("costPer1mOutput") or 0),
+        cost_per_1m_cache_write=float(cost_entry.get("costPer1mCacheWrite") or 0),
+    )
+    return round(usage.cost_usd(cfg), 6)
 
 
 def _count_few_shot(raw: str | None) -> int:
@@ -206,6 +222,7 @@ def get_model_costs(scope: CallerScope = Depends(get_caller_scope)):
                         "costPer1mCachedInput": float(
                             r.get("costPer1mCachedInput") or 0
                         ),
+                        "costPer1mCacheWrite": float(r.get("costPer1mCacheWrite") or 0),
                         "costPer1mOutput": float(r.get("costPer1mOutput") or 0),
                     }
                     for r in rows
@@ -608,12 +625,20 @@ def simulate_prompt(
                 "inputTokens": resp.input_tokens,
                 "outputTokens": resp.output_tokens,
                 "cachedInputTokens": resp.cached_input_tokens,
+                "cacheCreationInputTokens": getattr(
+                    resp, "cache_creation_input_tokens", 0
+                )
+                or 0,
             }
             result["llmActualCostUsd"] = _estimate_cost(
                 primary_cost,
                 resp.input_tokens,
                 resp.output_tokens,
                 resp.cached_input_tokens,
+                cache_write_tokens=int(
+                    getattr(resp, "cache_creation_input_tokens", 0) or 0
+                ),
+                input_excludes_cache=primary_provider in ("aws", "bedrock"),
             )
         except Exception as exc:
             logger.warning("Prompt simulation LLM call failed: %s", exc)

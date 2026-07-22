@@ -34,6 +34,7 @@ class FakeClient:
         self.cases: dict[str, dict[str, Any]] = {}
         self.runs: dict[str, dict[str, Any]] = {}
         self.pipeline_runs: dict[str, dict[str, Any]] = {}
+        self.pipeline_stages: dict[str, list[dict[str, Any]]] = {}
         self.assessments: dict[str, dict[str, Any]] = {}
         self.closed = False
 
@@ -59,6 +60,8 @@ class FakeClient:
             return [{"id": params["case_id"]}]
         if "coalesce($title, c.title)" in q:
             return self._patch_case(params)
+        if "HAS_STAGE" in q and "PipelineStageRun" in q and "s.step_id" in q:
+            return list(self.pipeline_stages.get(params["run_id"]) or [])
         if "MATCH (r:PipelineRun {id: $run_id})" in q:
             row = self.pipeline_runs.get(params["run_id"])
             return [row] if row else []
@@ -98,6 +101,9 @@ class FakeClient:
             "status": params["status"],
             "outputs_json": params["outputs_json"],
             "error_message": params["error_message"],
+            "llm_cost_usd": params.get("llm_cost_usd") or 0.0,
+            "llm_total_tokens": params.get("llm_total_tokens") or 0,
+            "llm_calls": params.get("llm_calls") or 0,
         }
         return [{"r": self.runs[rid]}]
 
@@ -383,16 +389,63 @@ def test_refresh_run_reads_real_assessment_once_completed(
         "assessment_rules": ["rule-a"],
         "content": "# SBAR\n",
         "completeness_result_json": "{}",
+        "llm_cost_usd": 0.0123,
+        "llm_input_tokens": 1000,
+        "llm_output_tokens": 200,
+        "llm_cached_tokens": 50,
+        "llm_total_tokens": 1250,
+        "llm_calls": 4,
+        "llm_latency_ms": 900,
+        "llm_model_id": "test-model",
+        "llm_model_provider": "test",
     }
     refreshed = lab_service.refresh_run(client, "c-real", run_id)
     assert refreshed["run"]["status"] == "completed"
     assert refreshed["run"]["outputs"]["snomed_codes"] == ["123456"]
     assert refreshed["run"]["outputs"]["sbar_assessment_id"] == "ass-1"
+    assert refreshed["run"]["outputs"]["llm_usage"]["cost_usd"] == 0.0123
+    assert refreshed["run"]["outputs"]["llm_usage"]["total_tokens"] == 1250
+    assert refreshed["run"]["llm_cost_usd"] == 0.0123
 
     promoted = lab_service.promote_gold(client, "c-real", run_id)
     assert promoted["gold"]["snomed_codes"] == ["123456"]
     score = lab_service.score_case_run(client, "c-real", run_id)
     assert score["pass"] is True
+
+
+def test_read_real_outputs_llm_usage_omitted_when_absent():
+    from libs.validation_lab.pipeline import read_real_outputs
+
+    client = FakeClient()
+    client.assessments["ass-empty"] = {
+        "assessment_codes": [],
+        "assessment_rules": [],
+        "content": "",
+        "completeness_result_json": "{}",
+    }
+    out = read_real_outputs(client, "ass-empty")
+    assert out.llm_usage == {}
+
+
+def test_read_real_outputs_llm_usage_from_assessment():
+    from libs.validation_lab.pipeline import read_real_outputs
+
+    client = FakeClient()
+    client.assessments["ass-cost"] = {
+        "assessment_codes": ["1"],
+        "assessment_rules": [],
+        "content": "x",
+        "completeness_result_json": "{}",
+        "llm_cost_usd": 0.004,
+        "llm_input_tokens": 10,
+        "llm_output_tokens": 5,
+        "llm_cached_tokens": 0,
+        "llm_total_tokens": 15,
+        "llm_calls": 1,
+    }
+    out = read_real_outputs(client, "ass-cost")
+    assert out.llm_usage["cost_usd"] == 0.004
+    assert out.llm_usage["llm_calls"] == 1
 
 
 def test_refresh_run_is_noop_while_still_queued():
@@ -414,6 +467,59 @@ def test_refresh_run_is_noop_while_still_queued():
     }
     result = lab_service.refresh_run(client, "c-pending", "run-pending")
     assert result["run"]["status"] == "queued"
+    assert result["run"]["stage_progress"] == []
+
+
+def test_refresh_run_returns_live_stage_progress_while_running():
+    client = FakeClient()
+    client.cases["c-stages"] = {
+        "id": "c-stages",
+        "patient_id": "p-stages",
+        "gold_json": "{}",
+    }
+    client.runs["run-stages"] = {
+        "id": "run-stages",
+        "_case_id": "c-stages",
+        "persist_mode": "production",
+        "plan_id": "pd-referral-assessment",
+        "phase_ids": ["extraction", "sbar"],
+        "status": "queued",
+        "outputs_json": "{}",
+        "error_message": "",
+    }
+    client.pipeline_runs["run-stages"] = {
+        "status": "running",
+        "assessment_id": "",
+    }
+    client.pipeline_stages["run-stages"] = [
+        {
+            "step_id": "act-ref-extract",
+            "event_type": "extraction_requested",
+            "status": "completed",
+            "worker_id": "replica-a:msg-1",
+            "started_at": "t1",
+            "completed_at": "t2",
+        },
+        {
+            "step_id": "act-ref-sbar",
+            "event_type": "sbar_requested",
+            "status": "running",
+            "worker_id": "replica-b:msg-2",
+            "started_at": "t3",
+            "completed_at": "",
+        },
+    ]
+    result = lab_service.refresh_run(client, "c-stages", "run-stages")
+    assert result["run"]["status"] == "running"
+    stages = result["run"]["stage_progress"]
+    assert [s["step_id"] for s in stages] == [
+        "act-ref-extract",
+        "act-ref-sbar",
+    ]
+    assert stages[0]["status"] == "completed"
+    assert stages[0]["worker_id"] == "replica-a:msg-1"
+    assert stages[1]["status"] == "running"
+    assert stages[1]["worker_id"] == "replica-b:msg-2"
 
 
 def test_update_case_referral_text(monkeypatch: pytest.MonkeyPatch):

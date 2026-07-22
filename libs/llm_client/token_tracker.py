@@ -34,8 +34,25 @@ def set_tracking_callback(callback: Callable[..., Any]) -> None:
     _tracking_callback = callback
 
 
+def _usage_int(usage: dict[str, Any], *keys: str) -> int:
+    """Return the first present numeric usage field from ``keys``."""
+    for key in keys:
+        if key not in usage or usage.get(key) is None:
+            continue
+        try:
+            return int(usage.get(key) or 0)
+        except (TypeError, ValueError):
+            continue
+    return 0
+
+
 def extract_token_counts(response: Any, provider: str) -> Dict[str, Any]:
-    """Extract token counts from a Bedrock or Azure response object."""
+    """Extract token counts from a Bedrock or Azure response object.
+
+    Bedrock Converse / langchain_aws may emit camelCase
+    (``cacheReadInputTokens``) or snake_case
+    (``cache_read_input_tokens``). Both are accepted.
+    """
     counts: dict[str, Any] = {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -43,27 +60,71 @@ def extract_token_counts(response: Any, provider: str) -> Dict[str, Any]:
         "cache_read_input_tokens": 0,
         "input_token_details": None,
         "output_token_details": None,
+        "reasoning_tokens": 0,
     }
     usage = getattr(response, "usage_metadata", None) or {}
     if isinstance(usage, dict):
-        counts["input_tokens"] = usage.get("input_tokens", 0)
-        counts["output_tokens"] = usage.get("output_tokens", 0)
-    else:
-        counts["input_tokens"] = getattr(usage, "input_tokens", 0)
-        counts["output_tokens"] = getattr(usage, "output_tokens", 0)
-
-    meta = getattr(response, "response_metadata", {})
-    if provider == "bedrock":
-        bu = meta.get("usage", {})
-        counts["cache_creation_input_tokens"] = bu.get("cache_creation_input_tokens", 0)
-        counts["cache_read_input_tokens"] = bu.get("cache_read_input_tokens", 0)
-    elif provider == "azure":
-        prompt_details = meta.get("token_usage", {}).get("prompt_tokens_details")
-        completion_details = meta.get("token_usage", {}).get(
-            "completion_tokens_details"
+        counts["input_tokens"] = _usage_int(usage, "input_tokens", "inputTokens")
+        counts["output_tokens"] = _usage_int(usage, "output_tokens", "outputTokens")
+        counts["cache_creation_input_tokens"] = _usage_int(
+            usage,
+            "cache_creation_input_tokens",
+            "cacheWriteInputTokens",
+            "CacheWriteInputTokens",
+            "cache_write_input_tokens",
         )
-        counts["input_token_details"] = prompt_details
-        counts["output_token_details"] = completion_details
+        counts["cache_read_input_tokens"] = _usage_int(
+            usage,
+            "cache_read_input_tokens",
+            "cacheReadInputTokens",
+            "cacheReadInputTokenCount",
+        )
+    else:
+        counts["input_tokens"] = int(getattr(usage, "input_tokens", 0) or 0)
+        counts["output_tokens"] = int(getattr(usage, "output_tokens", 0) or 0)
+
+    meta = getattr(response, "response_metadata", {}) or {}
+    if not isinstance(meta, dict):
+        meta = {}
+    if provider in ("bedrock", "aws"):
+        bu = meta.get("usage") or {}
+        if isinstance(bu, dict):
+            if not counts["cache_creation_input_tokens"]:
+                counts["cache_creation_input_tokens"] = _usage_int(
+                    bu,
+                    "cache_creation_input_tokens",
+                    "cacheWriteInputTokens",
+                    "CacheWriteInputTokens",
+                    "cache_write_input_tokens",
+                )
+            if not counts["cache_read_input_tokens"]:
+                counts["cache_read_input_tokens"] = _usage_int(
+                    bu,
+                    "cache_read_input_tokens",
+                    "cacheReadInputTokens",
+                    "cacheReadInputTokenCount",
+                )
+            if not counts["input_tokens"]:
+                counts["input_tokens"] = _usage_int(bu, "input_tokens", "inputTokens")
+            if not counts["output_tokens"]:
+                counts["output_tokens"] = _usage_int(
+                    bu, "output_tokens", "outputTokens"
+                )
+    elif provider == "azure":
+        token_usage = meta.get("token_usage") or {}
+        if isinstance(token_usage, dict):
+            prompt_details = token_usage.get("prompt_tokens_details")
+            completion_details = token_usage.get("completion_tokens_details")
+            counts["input_token_details"] = prompt_details
+            counts["output_token_details"] = completion_details
+            if isinstance(completion_details, dict):
+                counts["reasoning_tokens"] = _usage_int(
+                    completion_details, "reasoning_tokens"
+                )
+            elif completion_details is not None:
+                counts["reasoning_tokens"] = int(
+                    getattr(completion_details, "reasoning_tokens", 0) or 0
+                )
     return counts
 
 

@@ -16,18 +16,19 @@ MATCH (m:ModelConfig) RETURN count(m) AS total
 
 CREATE_MODEL_CONFIG = """
 CREATE (m:ModelConfig {
-  key:                $key,
-  provider:           $provider,
-  tier:               $tier,
-  display_name:       $display_name,
-  model_id:           $model_id,
-  cost_per_1m_input:  $cost_per_1m_input,
-  cost_per_1m_cached: $cost_per_1m_cached,
-  cost_per_1m_output: $cost_per_1m_output,
-  is_active:          $is_active,
-  source:             'user',
-  created_at:         datetime(),
-  updated_at:         datetime()
+  key:                     $key,
+  provider:                $provider,
+  tier:                    $tier,
+  display_name:            $display_name,
+  model_id:                $model_id,
+  cost_per_1m_input:       $cost_per_1m_input,
+  cost_per_1m_cached:      $cost_per_1m_cached,
+  cost_per_1m_cache_write: $cost_per_1m_cache_write,
+  cost_per_1m_output:      $cost_per_1m_output,
+  is_active:               $is_active,
+  source:                  'user',
+  created_at:              datetime(),
+  updated_at:              datetime()
 })
 RETURN m.key AS key
 """
@@ -46,68 +47,72 @@ FOR (m:ModelConfig) REQUIRE m.key IS UNIQUE
 UPSERT_MODEL_CONFIG = """
 MERGE (m:ModelConfig {key: $key})
 ON CREATE SET
-  m.provider              = $provider,
-  m.tier                  = $tier,
-  m.display_name          = $display_name,
-  m.model_id              = $model_id,
-  m.cost_per_1m_input     = $cost_per_1m_input,
-  m.cost_per_1m_cached    = $cost_per_1m_cached,
-  m.cost_per_1m_output    = $cost_per_1m_output,
-  m.is_active             = $is_active,
-  m.source                = 'seed',
-  m.created_at            = datetime(),
-  m.updated_at            = datetime()
+  m.provider                   = $provider,
+  m.tier                       = $tier,
+  m.display_name               = $display_name,
+  m.model_id                   = $model_id,
+  m.cost_per_1m_input          = $cost_per_1m_input,
+  m.cost_per_1m_cached         = $cost_per_1m_cached,
+  m.cost_per_1m_cache_write    = $cost_per_1m_cache_write,
+  m.cost_per_1m_output         = $cost_per_1m_output,
+  m.is_active                  = $is_active,
+  m.source                     = 'seed',
+  m.created_at                 = datetime(),
+  m.updated_at                 = datetime()
 ON MATCH SET
-  m.display_name          = CASE WHEN m.source = 'seed' THEN $display_name ELSE m.display_name END,
-  m.model_id              = CASE WHEN m.source = 'seed' THEN $model_id ELSE m.model_id END,
-  m.cost_per_1m_input     = CASE WHEN m.source = 'seed' THEN $cost_per_1m_input ELSE m.cost_per_1m_input END,
-  m.cost_per_1m_cached    = CASE WHEN m.source = 'seed' THEN $cost_per_1m_cached ELSE m.cost_per_1m_cached END,
-  m.cost_per_1m_output    = CASE WHEN m.source = 'seed' THEN $cost_per_1m_output ELSE m.cost_per_1m_output END,
-  m.updated_at            = datetime()
+  m.display_name               = CASE WHEN m.source = 'seed' THEN $display_name ELSE m.display_name END,
+  m.cost_per_1m_input          = CASE WHEN m.source = 'seed' THEN $cost_per_1m_input ELSE m.cost_per_1m_input END,
+  m.cost_per_1m_cached         = CASE WHEN m.source = 'seed' THEN $cost_per_1m_cached ELSE m.cost_per_1m_cached END,
+  m.cost_per_1m_cache_write    = CASE WHEN m.source = 'seed' THEN $cost_per_1m_cache_write ELSE m.cost_per_1m_cache_write END,
+  m.cost_per_1m_output         = CASE WHEN m.source = 'seed' THEN $cost_per_1m_output ELSE m.cost_per_1m_output END,
+  m.updated_at                 = datetime()
 RETURN m.key AS key, m.source AS source
 """
 
 LIST_MODEL_CONFIGS = """
 MATCH (m:ModelConfig)
-RETURN m.key                AS key,
-       m.provider           AS provider,
-       m.tier               AS tier,
-       m.display_name       AS displayName,
-       m.model_id           AS modelId,
-       m.cost_per_1m_input  AS costPer1mInput,
-       m.cost_per_1m_cached AS costPer1mCachedInput,
-       m.cost_per_1m_output AS costPer1mOutput,
-       m.is_active          AS isActive,
-       m.source             AS source,
-       m.updated_at         AS updatedAt
+RETURN m.key                     AS key,
+       m.provider                AS provider,
+       m.tier                    AS tier,
+       m.display_name            AS displayName,
+       m.model_id                AS modelId,
+       m.cost_per_1m_input       AS costPer1mInput,
+       m.cost_per_1m_cached      AS costPer1mCachedInput,
+       coalesce(m.cost_per_1m_cache_write, 0.0) AS costPer1mCacheWrite,
+       m.cost_per_1m_output      AS costPer1mOutput,
+       m.is_active               AS isActive,
+       m.source                  AS source,
+       m.updated_at              AS updatedAt
 ORDER BY m.provider, m.tier
 """
 
 GET_MODEL_CONFIG = """
 MATCH (m:ModelConfig {key: $key})
-RETURN m.key                AS key,
-       m.provider           AS provider,
-       m.tier               AS tier,
-       m.display_name       AS displayName,
-       m.model_id           AS modelId,
-       m.cost_per_1m_input  AS costPer1mInput,
-       m.cost_per_1m_cached AS costPer1mCachedInput,
-       m.cost_per_1m_output AS costPer1mOutput,
-       m.is_active          AS isActive,
-       m.source             AS source,
-       m.updated_at         AS updatedAt
+RETURN m.key                     AS key,
+       m.provider                AS provider,
+       m.tier                    AS tier,
+       m.display_name            AS displayName,
+       m.model_id                AS modelId,
+       m.cost_per_1m_input       AS costPer1mInput,
+       m.cost_per_1m_cached      AS costPer1mCachedInput,
+       coalesce(m.cost_per_1m_cache_write, 0.0) AS costPer1mCacheWrite,
+       m.cost_per_1m_output      AS costPer1mOutput,
+       m.is_active               AS isActive,
+       m.source                  AS source,
+       m.updated_at              AS updatedAt
 """
 
 UPDATE_MODEL_CONFIG = """
 MATCH (m:ModelConfig {key: $key})
-SET m.display_name      = $display_name,
-    m.model_id          = $model_id,
-    m.cost_per_1m_input = $cost_per_1m_input,
-    m.cost_per_1m_cached= $cost_per_1m_cached,
-    m.cost_per_1m_output= $cost_per_1m_output,
-    m.is_active         = $is_active,
-    m.source            = 'user',
-    m.updated_at        = datetime()
+SET m.display_name             = $display_name,
+    m.model_id                 = $model_id,
+    m.cost_per_1m_input        = $cost_per_1m_input,
+    m.cost_per_1m_cached       = $cost_per_1m_cached,
+    m.cost_per_1m_cache_write  = $cost_per_1m_cache_write,
+    m.cost_per_1m_output       = $cost_per_1m_output,
+    m.is_active                = $is_active,
+    m.source                   = 'user',
+    m.updated_at               = datetime()
 RETURN m.key AS key
 """
 

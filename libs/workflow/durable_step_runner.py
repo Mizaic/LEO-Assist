@@ -1,9 +1,9 @@
 """Unified durable step runner for pub/sub driven pipelines.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  DO: DO-CE65B1F2
+  DI: DI-36F80B95
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-36F80B95")
 
 Replaces both the synchronous WorkflowEngine path and the hard-coded
 REFERRAL_STEPS handler. Step ordering comes from relatedActions in the
@@ -23,10 +23,9 @@ Message format consumed by run_step():
     ... (all other StepRequest fields)
   }
 
-Controlled by the DURABLE_ENGINE_ENABLED environment variable:
-  false     -- disabled (default, legacy paths still active)
-  referral  -- enable for pd-referral-assessment only
-  true/all  -- enable for all durable_pubsub plans
+Activation is driven by each plan's pinned ``workflowMode`` (``durable_pubsub``)
+from PlanDefinition / PlanDefinitionVersion -- not by a global feature flag.
+Set ``DURABLE_ENGINE_DISABLED=true`` only for emergency rollback of new runs.
 """
 
 from __future__ import annotations
@@ -36,42 +35,45 @@ import json
 import logging
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from libs.message_bus.base import Message, MessageBusAdapter
-from libs.neo4j_client.client import KnowledgeGraphClient, PatientGraphClient
+from libs.neo4j_client.client import PatientGraphClient
 from libs.workflow.durable_steps import StepRequest
 from libs.workflow.durable_steps import StepResult as DurableStepResult
-from libs.workflow.pipeline_stage_store import PipelineStageStore
+from libs.workflow.plan_manifest import (
+    PlanAction as _Action,
+    load_manifest_for_run,
+    load_plan_manifest,
+    resolve_plan_workflow_mode,
+    resolve_policy_version,
+)
+from libs.workflow.pipeline_outbox import dispatch_stage_outbox
+from libs.workflow.pipeline_stage_store import PipelineStageStore, StageClaimResult
+from libs.workflow.run_admission import build_admission_key
+from libs.workflow.stage_lease import (
+    StageLeaseBusyError,
+    StageLeaseStaleError,
+    heartbeat_stage_lease,
+    resolve_lease_owner,
+)
+from libs.workflow.step_contract import StepProvenance, envelope_step_result
 from libs.workflow.step_state_loader import load_step_state
+from libs.workflow.version_admission import (
+    load_rollout_for_plan,
+    select_admission_version,
+)
 
 logger = logging.getLogger(__name__)
 
 DURABLE_STEP_EVENT = "durable_step"
 _PIPELINE_QUEUE = "pipeline-jobs"
 
-_SUBGRAPH_IMPLIES_NODE_TYPE = {"condition": "condition", "trigger": "trigger"}
 _DEFAULT_PORTS = {"else", "default", "false"}
 
 
-# ---------------------------------------------------------------------------
-# ActionDefinition (local, sync-friendly copy of the engine dataclass)
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class _Action:
-    action_id: str
-    subgraph_id: str
-    node_type: str = "action"
-    config: dict[str, Any] = field(default_factory=dict)
-    related_actions: list[Any] = field(default_factory=list)
-    related_edges: list[dict[str, Any]] = field(default_factory=list)
-    sequence: int = 0
-    trigger_name: str = ""
-    completion_queue: str = ""
-    completion_event_type: str = ""
+# PlanAction (_Action) lives in plan_manifest -- pinned snapshot actions only.
 
 
 # ---------------------------------------------------------------------------
@@ -79,105 +81,17 @@ class _Action:
 # ---------------------------------------------------------------------------
 
 
-def _enabled_flag() -> str:
-    return os.getenv("DURABLE_ENGINE_ENABLED", "false").lower()
-
-
 def is_durable_runner_enabled(plan_id: str) -> bool:
-    """Return True when DurableStepRunner should handle this plan."""
-    flag = _enabled_flag()
-    if flag == "false":
+    """Return True when the plan declares durable_pubsub workflow activation."""
+    if os.getenv("DURABLE_ENGINE_DISABLED", "false").lower() == "true":
         return False
-    if flag == "referral":
-        return plan_id == "pd-referral-assessment"
-    return True
+    if not plan_id:
+        return False
+    return resolve_plan_workflow_mode(plan_id) == "durable_pubsub"
 
 
 # ---------------------------------------------------------------------------
-# Neo4j action loading (PlanDefinition lives on the Knowledge Graph)
-# ---------------------------------------------------------------------------
-
-_LOAD_ACTIONS_QUERY = """
-MATCH (pd:PlanDefinition {id: $plan_id})-[:HAS_ACTION]->(a:Action)
-OPTIONAL MATCH (a)-[:USES_DEFINITION]->(ad:ActivityDefinition)
-RETURN a, ad
-ORDER BY a.sequence
-"""
-
-_LOAD_PLAN_QUERY = """
-MATCH (pd:PlanDefinition {id: $plan_id})
-RETURN pd.workflowMode AS workflow_mode
-LIMIT 1
-"""
-
-
-def _record_to_action(row: dict[str, Any]) -> _Action:
-    action_node = row["a"]
-    ad_node = row.get("ad")
-    config: dict[str, Any] = {}
-    if ad_node and ad_node.get("dynamicValues"):
-        try:
-            config = json.loads(ad_node["dynamicValues"])
-        except (json.JSONDecodeError, TypeError):
-            pass
-    related_edges_raw = action_node.get("relatedActionEdges")
-    related_edges: list[dict[str, Any]] = []
-    if related_edges_raw:
-        try:
-            related_edges = json.loads(related_edges_raw)
-        except (json.JSONDecodeError, TypeError):
-            pass
-    action_id = action_node.get("canvas_id") or action_node["id"]
-    resolved_subgraph_id = (
-        ad_node["subgraphId"] if ad_node else action_node.get("subgraphId", "")
-    )
-    implied_node_type = _SUBGRAPH_IMPLIES_NODE_TYPE.get(resolved_subgraph_id)
-    raw_node_type = action_node.get("nodeType") or action_node.get("node_type", "")
-    if implied_node_type is not None:
-        node_type = implied_node_type
-    else:
-        node_type = raw_node_type or "action"
-    return _Action(
-        action_id=action_id,
-        subgraph_id=resolved_subgraph_id,
-        node_type=node_type,
-        config=config,
-        related_actions=action_node.get("relatedActions") or [],
-        related_edges=related_edges,
-        sequence=int(action_node.get("sequence", 0)),
-        trigger_name=action_node.get("trigger_name", ""),
-        completion_queue=action_node.get("completionQueue", ""),
-        completion_event_type=action_node.get("completionEventType", ""),
-    )
-
-
-def _load_all_actions(plan_id: str) -> list[_Action]:
-    """Load PlanDefinition actions from the Knowledge Graph.
-
-    PlanDefinitions / Actions are KG resources (same as WorkflowEngine).
-    PipelineRun / PipelineStage state stays on the Patient Graph.
-    """
-    client = KnowledgeGraphClient()
-    try:
-        rows = client.run(_LOAD_ACTIONS_QUERY, plan_id=plan_id)
-        return [_record_to_action(r) for r in (rows or [])]
-    finally:
-        client.close()
-
-
-def _get_plan_workflow_mode(plan_id: str) -> str:
-    client = KnowledgeGraphClient()
-    try:
-        rows = client.run(_LOAD_PLAN_QUERY, plan_id=plan_id)
-        if rows:
-            return str(rows[0].get("workflow_mode") or "")
-        return ""
-    finally:
-        client.close()
-
-
-# ---------------------------------------------------------------------------
-# Graph traversal helpers (copied from engine.py, adapted for _Action)
+# Graph traversal helpers (PlanAction snapshot edges)
 # ---------------------------------------------------------------------------
 
 
@@ -376,6 +290,7 @@ def _with_metrics(
         warnings=result.warnings,
         errors=result.errors,
         metrics=metrics,
+        provenance=dict(result.provenance),
         next_event_type=result.next_event_type,
         next_step_id=result.next_step_id,
     )
@@ -386,20 +301,47 @@ def _with_metrics(
 # ---------------------------------------------------------------------------
 
 
+def _capability_provenance(action: _Action) -> StepProvenance:
+    from libs.pipeline_graph.capability_registry import (
+        CapabilityMetadata,
+        get_capability_registry,
+    )
+
+    cap_id = action.subgraph_id or action.node_type or action.action_id
+    try:
+        meta = get_capability_registry().get(cap_id)
+    except KeyError:
+        meta = CapabilityMetadata(capability_id=cap_id)
+    return StepProvenance(
+        capability_id=meta.capability_id,
+        capability_type=meta.capability_type,
+        input_schema_version=meta.input_schema_version,
+        output_schema_version=meta.output_schema_version,
+        side_effect_class=meta.side_effect_class,
+    )
+
+
 async def _execute_action(action: _Action, state: dict[str, Any]) -> DurableStepResult:
+    provenance = _capability_provenance(action)
     if action.node_type == "trigger":
-        return DurableStepResult(status="completed")
+        return envelope_step_result(DurableStepResult(status="completed"), provenance)
     if action.node_type == "condition":
         port = _evaluate_condition_port(action, state)
-        return DurableStepResult(status="completed", output={"condition_port": port})
+        return envelope_step_result(
+            DurableStepResult(status="completed", output={"condition_port": port}),
+            provenance,
+        )
     from libs.pipeline_graph.registry import get_registry
 
     graph = get_registry().build(action.subgraph_id)
     output = await asyncio.to_thread(graph.invoke, state)
-    return DurableStepResult(
-        status="completed",
-        output=dict(output or {}),
-        errors=list((output or {}).get("errors") or []),
+    return envelope_step_result(
+        DurableStepResult(
+            status="completed",
+            output=dict(output or {}),
+            errors=list((output or {}).get("errors") or []),
+        ),
+        provenance,
     )
 
 
@@ -437,6 +379,138 @@ def _emit_progress(
 # ---------------------------------------------------------------------------
 
 
+async def _publish_successors(
+    bus: MessageBusAdapter,
+    queue_name: str,
+    request: StepRequest,
+    action: _Action,
+    result: DurableStepResult,
+    next_ids: list[str],
+    store: PipelineStageStore,
+) -> None:
+    """Dispatch outbox successors or publish terminal completion."""
+    if next_ids:
+        await dispatch_stage_outbox(store, bus, request)
+        return
+    await _publish_completion(bus, request, result, action)
+
+
+def _busy_defer(action_id: str, run_id: str) -> None:
+    logger.info(
+        "Deferring durable step -- stage lease held: action_id=%s run_id=%s",
+        action_id,
+        run_id,
+    )
+    raise StageLeaseBusyError(
+        f"stage busy: {action_id} run_id={run_id}",
+        action_id=action_id,
+        run_id=run_id,
+    )
+
+
+async def _repair_successor_outbox(
+    ctx: "_ClaimedStepContext",
+    request: StepRequest,
+    action: _Action,
+    claim: StageClaimResult,
+    all_actions: list[_Action],
+) -> int:
+    """Recreate missing successor outbox rows, then dispatch."""
+    if not claim.next_action_ids:
+        return 0
+    if not ctx.store.should_repair_successor_outbox(
+        request,
+        claim.next_action_ids,
+        next_published=claim.next_published,
+    ):
+        return 0
+    outgoing = _build_outgoing_edges(all_actions)
+    successor_edges = [
+        edge
+        for edge in outgoing.get(action.action_id, [])
+        if edge.get("target") in claim.next_action_ids
+    ]
+    ctx.store.ensure_successor_outbox(
+        request,
+        next_action_ids=claim.next_action_ids,
+        successor_edges=successor_edges,
+        queue_name=ctx.queue_name,
+        body_template=request.to_message(DURABLE_STEP_EVENT, request.step_id),
+    )
+    return await dispatch_stage_outbox(ctx.store, ctx.bus, request)
+
+
+async def _already_completed_result(
+    claim: StageClaimResult,
+    ctx: "_ClaimedStepContext",
+    request: StepRequest,
+    action: _Action,
+    all_actions: list[_Action],
+) -> DurableStepResult:
+    logger.info(
+        "Skipping durable step -- already completed: action_id=%s run_id=%s",
+        ctx.action_id,
+        request.run_id,
+    )
+    result = DurableStepResult(
+        status="completed",
+        output=dict(claim.output),
+        warnings=["already_completed"],
+        next_event_type=DURABLE_STEP_EVENT if claim.next_action_ids else None,
+        next_step_id=claim.next_action_ids[0] if claim.next_action_ids else None,
+    )
+    if claim.next_action_ids and ctx.store.successors_need_enqueue(
+        request.run_id, claim.next_action_ids
+    ):
+        if ctx.store.should_dispatch_successor_outbox(request, claim.next_action_ids):
+            await dispatch_stage_outbox(ctx.store, ctx.bus, request)
+        elif ctx.store.should_repair_successor_outbox(
+            request,
+            claim.next_action_ids,
+            next_published=claim.next_published,
+        ):
+            await _repair_successor_outbox(ctx, request, action, claim, all_actions)
+    _emit_progress(
+        ctx.publish_progress,
+        request,
+        "durable_step_already_completed",
+        ctx.action_id,
+        result,
+    )
+    return result
+
+
+def _attach_next_event(
+    result: DurableStepResult, next_ids: list[str]
+) -> DurableStepResult:
+    if not next_ids:
+        return result
+    return DurableStepResult(
+        status=result.status,
+        output=result.output,
+        output_refs=result.output_refs,
+        warnings=result.warnings,
+        errors=result.errors,
+        metrics=result.metrics,
+        provenance=dict(result.provenance),
+        next_event_type=DURABLE_STEP_EVENT,
+        next_step_id=next_ids[0],
+    )
+
+
+@dataclass
+class _ClaimedStepContext:
+    body: dict[str, Any]
+    action_id: str
+    request: StepRequest
+    client: PatientGraphClient
+    store: PipelineStageStore
+    bus: MessageBusAdapter
+    publish_progress: Any | None
+    queue_name: str
+    started: float
+
+
 class DurableStepRunner:
     """Execute one pipeline action per invocation, then publish the next.
 
@@ -462,12 +536,58 @@ class DurableStepRunner:
         """
         request = StepRequest.from_message(body)
         trigger_event = str(body.get("event_type") or "")
+        admission_key = build_admission_key(body)
+        rollout = load_rollout_for_plan(request.plan_definition_id)
+        policy_version, selection_reason = select_admission_version(
+            body,
+            rollout,
+            admission_key=admission_key,
+        )
+        manifest = load_plan_manifest(request.plan_definition_id, policy_version)
+        from libs.workflow.execution_manifest import build_manifest_for_plan
+
+        execution_manifest = build_manifest_for_plan(manifest)
+        request = StepRequest.from_message(
+            {
+                **body,
+                "policy_version": manifest.policy_version,
+                "plan_version_id": manifest.version_node_id,
+                "execution_manifest": execution_manifest,
+            }
+        )
         client = PatientGraphClient()
         try:
             store = PipelineStageStore(client)
             store.ensure_schema()
-            store.upsert_run(request, status="running")
-            all_actions = _load_all_actions(request.plan_definition_id)
+            admission = store.admit_run(
+                request,
+                admission_key=admission_key,
+                plan_version_id=manifest.version_node_id,
+                policy_version=manifest.policy_version,
+                version_selection_reason=selection_reason,
+                execution_manifest_json=json.dumps(
+                    execution_manifest, sort_keys=True, default=str
+                ),
+            )
+            if admission.run_id != request.run_id:
+                logger.info(
+                    "DurableStepRunner.start: admission remapped "
+                    "message_run_id=%s admitted_run_id=%s status=%s",
+                    request.run_id,
+                    admission.run_id,
+                    admission.status,
+                )
+                request = StepRequest.from_message({**body, "run_id": admission.run_id})
+            if not store.claim_first_step_enqueue(admission.run_id):
+                logger.info(
+                    "DurableStepRunner.start: first step already enqueued "
+                    "run_id=%s message_run_id=%s status=%s",
+                    admission.run_id,
+                    body.get("run_id"),
+                    admission.status,
+                )
+                return
+            all_actions = list(manifest.actions)
             outgoing = _build_outgoing_edges(all_actions)
             trigger_action = next(
                 (a for a in all_actions if a.trigger_name == trigger_event),
@@ -507,9 +627,9 @@ class DurableStepRunner:
     ) -> DurableStepResult:
         """Execute one action from a durable_step message.
 
-        Loads state, runs the subgraph, persists output, then publishes the
-        next action(s). Terminal steps trigger a completion message on the
-        configured completion queue.
+        Claims the PipelineStageRun before work so Service Bus redelivery
+        cannot run the same stage twice. Already-completed stages skip the
+        subgraph and only repair unpublished next-step messages.
         """
         action_id = str(body.get("action_id") or "")
         request = StepRequest.from_message(body)
@@ -517,62 +637,20 @@ class DurableStepRunner:
             request = StepRequest.from_message({**body, "step_id": action_id})
         started = time.monotonic()
         client = PatientGraphClient()
+        store = PipelineStageStore(client)
+        ctx = _ClaimedStepContext(
+            body=body,
+            action_id=action_id,
+            request=request,
+            client=client,
+            store=store,
+            bus=bus,
+            publish_progress=publish_progress,
+            queue_name=queue_name,
+            started=started,
+        )
         try:
-            store = PipelineStageStore(client)
-            store.ensure_schema()
-            store.upsert_run(request, status="running")
-            all_actions = _load_all_actions(request.plan_definition_id)
-            action_map = {a.action_id: a for a in all_actions}
-            action = action_map.get(action_id)
-            if action is None:
-                raise ValueError(
-                    f"Action '{action_id}' not found in plan "
-                    f"'{request.plan_definition_id}'"
-                )
-            # Persist a readable stage label (subgraph id) instead of the
-            # generic durable_step event_type used on the bus message.
-            stage_label = action.subgraph_id or action.node_type or action_id
-            if request.event_type == DURABLE_STEP_EVENT:
-                request = StepRequest.from_message(
-                    {
-                        **body,
-                        "step_id": request.step_id or action_id,
-                        "event_type": stage_label,
-                    }
-                )
-            loaded = load_step_state(client, store, request, body=body)
-            store.start_stage(request, loaded)
-            _emit_progress(publish_progress, request, "durable_step_started", action_id)
-            result = await _execute_action(action, loaded)
-            result = _with_metrics(result, started, loaded)
-            # Resolve successors before complete_stage so PipelineRun stays
-            # "running" while more durable_step messages are in flight.
-            # PipelineStageStore.complete_stage treats missing next_event_type
-            # as terminal "completed", which stopped the scenario-runs UI
-            # auto-refresh mid-pipeline.
-            outgoing = _build_outgoing_edges(all_actions)
-            next_ids = _resolve_next_action_ids(action, result, outgoing)
-            if next_ids:
-                result = DurableStepResult(
-                    status=result.status,
-                    output=result.output,
-                    output_refs=result.output_refs,
-                    warnings=result.warnings,
-                    errors=result.errors,
-                    metrics=result.metrics,
-                    next_event_type=DURABLE_STEP_EVENT,
-                    next_step_id=next_ids[0],
-                )
-            store.complete_stage(request, result)
-            _emit_progress(
-                publish_progress, request, "durable_step_completed", action_id, result
-            )
-            if next_ids:
-                for next_id in next_ids:
-                    await _publish_durable_step(bus, queue_name, request, next_id)
-            else:
-                await _publish_completion(bus, request, result, action)
-            return result
+            return await DurableStepRunner._run_claimed_step(ctx)
         except Exception as exc:
             logger.exception(
                 "DurableStepRunner step failed: action_id=%s run_id=%s",
@@ -590,3 +668,134 @@ class DurableStepRunner:
             raise
         finally:
             client.close()
+
+    @staticmethod
+    async def _run_claimed_step(ctx: _ClaimedStepContext) -> DurableStepResult:
+        # LONG FUNCTION: claim, load, execute, complete, and publish successors.
+        store = ctx.store
+        request = ctx.request
+        action_id = ctx.action_id
+        store.ensure_schema()
+        store.upsert_run(request, status="running")
+        manifest = load_manifest_for_run(
+            request.run_id,
+            request.plan_definition_id,
+            resolve_policy_version(ctx.body),
+            client=ctx.client,
+        )
+        all_actions = list(manifest.actions)
+        action = {a.action_id: a for a in all_actions}.get(action_id)
+        if action is None:
+            raise ValueError(
+                f"Action '{action_id}' not found in plan "
+                f"'{request.plan_definition_id}'"
+            )
+        stage_label = action.subgraph_id or action.node_type or action_id
+        if request.event_type == DURABLE_STEP_EVENT:
+            request = StepRequest.from_message(
+                {
+                    **ctx.body,
+                    "step_id": request.step_id or action_id,
+                    "event_type": stage_label,
+                }
+            )
+        loaded = load_step_state(ctx.client, store, request, body=ctx.body)
+        lease_owner = resolve_lease_owner(ctx.body)
+        claim = store.claim_stage(request, loaded, lease_owner=lease_owner)
+        if claim.outcome == "busy":
+            _busy_defer(action_id, request.run_id)
+        if claim.outcome == "poisoned":
+            poisoned = DurableStepResult(
+                status="poisoned",
+                errors=["stage_poisoned_max_attempts"],
+            )
+            _emit_progress(
+                ctx.publish_progress,
+                request,
+                "durable_step_poisoned",
+                action_id,
+                poisoned,
+            )
+            return poisoned
+        if claim.outcome == "already_completed":
+            return await _already_completed_result(
+                claim, ctx, request, action, all_actions
+            )
+        _emit_progress(ctx.publish_progress, request, "durable_step_started", action_id)
+        heartbeat = asyncio.create_task(
+            heartbeat_stage_lease(
+                store,
+                request,
+                lease_owner=claim.lease_owner,
+                lease_generation=claim.lease_generation,
+                lease_seconds=max(
+                    60, int(os.getenv("PIPELINE_STAGE_LEASE_SECONDS", "3600"))
+                ),
+            )
+        )
+        try:
+            result = await _execute_action(action, loaded)
+        finally:
+            heartbeat.cancel()
+            try:
+                await heartbeat
+            except asyncio.CancelledError:
+                pass
+        result = _with_metrics(result, ctx.started, loaded)
+        outgoing = _build_outgoing_edges(all_actions)
+        next_ids = _resolve_next_action_ids(action, result, outgoing)
+        result = _attach_next_event(result, next_ids)
+        successor_edges = [
+            edge
+            for edge in outgoing.get(action.action_id, [])
+            if edge.get("target") in next_ids
+        ]
+        complete = store.complete_stage(
+            request,
+            result,
+            next_action_ids=next_ids,
+            successor_edges=successor_edges,
+            queue_name=ctx.queue_name,
+            body_template=request.to_message(
+                DURABLE_STEP_EVENT, request.step_id or action_id
+            ),
+            next_published=False,
+            lease_owner=claim.lease_owner,
+            lease_generation=claim.lease_generation,
+        )
+        if complete.outcome == "stale_lease":
+            replay = store.claim_stage(request, loaded, lease_owner=lease_owner)
+            if replay.outcome == "already_completed":
+                logger.info(
+                    "Stale lease on complete -- stage already finished: "
+                    "action_id=%s run_id=%s owner=%s gen=%s",
+                    action_id,
+                    request.run_id,
+                    claim.lease_owner,
+                    claim.lease_generation,
+                )
+                return await _already_completed_result(
+                    replay, ctx, request, action, all_actions
+                )
+            logger.warning(
+                "Stale lease on complete: action_id=%s run_id=%s owner=%s gen=%s",
+                action_id,
+                request.run_id,
+                claim.lease_owner,
+                claim.lease_generation,
+            )
+            raise StageLeaseStaleError(
+                f"stale lease on complete: action_id={action_id} "
+                f"run_id={request.run_id}",
+                action_id=action_id,
+                run_id=request.run_id,
+                lease_owner=claim.lease_owner,
+                lease_generation=claim.lease_generation,
+            )
+        _emit_progress(
+            ctx.publish_progress, request, "durable_step_completed", action_id, result
+        )
+        await _publish_successors(
+            ctx.bus, ctx.queue_name, request, action, result, next_ids, store
+        )
+        return result

@@ -36,6 +36,7 @@ from libs.sbar.source_resolver import (
     ResolvedSituation,
     ResolvedSource,
 )
+from libs.sbar.uncoded_coverage import CoverageReport
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ logger = logging.getLogger(__name__)
 _PROMPT_NAME_SITUATION = "sbar_situation"
 _PROMPT_NAME_BACKGROUND = "sbar_background"
 _PROMPT_NAME_RECOMMENDATION = "sbar_recommendation"
+_PROMPT_NAME_RECALL = "sbar_recall"
 
 
 # Type for the per-part progress callback supplied by the
@@ -133,18 +135,38 @@ def _serialise_recommendation_context(
 PromptFetcher = Callable[[str], str]
 
 
-# SBAR prompts are pinned to v2 -- plain-English narrative with inline
-# [date] markers only (no encounter / document ids). v1 stays seeded for
-# audit / rollback. See DO-LEO-AI-191.
-_SBAR_PROMPT_VERSIONS: dict[str, int] = {
+# Legacy fallback for tests and non-durable callers without an execution manifest.
+_LEGACY_SBAR_PROMPT_VERSIONS: dict[str, int] = {
     _PROMPT_NAME_SITUATION: 2,
     _PROMPT_NAME_BACKGROUND: 2,
     _PROMPT_NAME_RECOMMENDATION: 2,
+    _PROMPT_NAME_RECALL: 1,
 }
 
 
 def _default_prompt(name: str) -> str:
-    return get_prompt(name, version=_SBAR_PROMPT_VERSIONS.get(name, 1))
+    return get_prompt(name, version=_LEGACY_SBAR_PROMPT_VERSIONS.get(name, 1))
+
+
+def _resolve_prompt_fetcher(
+    prompt_fetcher: PromptFetcher | None,
+) -> PromptFetcher:
+    return prompt_fetcher or _default_prompt
+
+
+def _resolve_invoker(
+    invoker: Callable[..., Awaitable[dict[str, Any]]] | None,
+    *,
+    stage: str,
+    policy_runtime: Any | None = None,
+) -> Callable[..., Awaitable[dict[str, Any]]]:
+    if invoker is not None:
+        return invoker
+    if policy_runtime is not None:
+        from libs.sbar.policy_runtime import make_llm_invoker
+
+        return make_llm_invoker(policy_runtime, stage)
+    return invoke_llm_json
 
 
 async def call_situation(
@@ -152,16 +174,28 @@ async def call_situation(
     *,
     extra_context: dict[str, Any] | None = None,
     patient_id: str = "",
-    prompt_fetcher: PromptFetcher = _default_prompt,
-    invoker: Callable[..., Awaitable[dict[str, Any]]] = invoke_llm_json,
+    prompt_fetcher: PromptFetcher | None = None,
+    invoker: Callable[..., Awaitable[dict[str, Any]]] | None = None,
+    policy_runtime: Any | None = None,
 ) -> dict[str, Any]:
-    system = prompt_fetcher(_PROMPT_NAME_SITUATION)
+    fetcher = _resolve_prompt_fetcher(prompt_fetcher)
+    if policy_runtime is not None and prompt_fetcher is None:
+        from libs.sbar.policy_runtime import make_prompt_fetcher
+
+        fetcher = make_prompt_fetcher(policy_runtime)
+    llm = _resolve_invoker(invoker, stage="situation", policy_runtime=policy_runtime)
+    llm_params = {}
+    if policy_runtime is not None:
+        from libs.sbar.policy_runtime import stage_llm_params
+
+        llm_params = stage_llm_params(policy_runtime, "situation")
+    system = fetcher(_PROMPT_NAME_SITUATION)
     user = _serialise_situation_context(resolved, extra_context=extra_context)
-    raw = await invoker(
+    raw = await llm(
         system,
         user,
-        max_tokens=512,
-        temperature=0.0,
+        max_tokens=llm_params.get("max_tokens", 512),
+        temperature=llm_params.get("temperature", 0.0),
         agent_task="sbar_situation",
         patient_id=patient_id,
     )
@@ -253,14 +287,16 @@ async def _invoke_background_part(
     system: str,
     invoker: Callable[..., Awaitable[dict[str, Any]]],
     patient_id: str,
+    llm_params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run one map step. Returns a per-part dict ready for the
     deterministic stitch."""
+    params = llm_params or {"max_tokens": 1024, "temperature": 0.0}
     raw = await invoker(
         system,
         partition.user_message,
-        max_tokens=1024,
-        temperature=0.0,
+        max_tokens=int(params.get("max_tokens") or 1024),
+        temperature=float(params.get("temperature") or 0.0),
         agent_task="sbar_background",
         patient_id=patient_id,
     )
@@ -407,9 +443,11 @@ async def call_background(
     *,
     referring_specialty: str | None = None,
     patient_id: str = "",
-    prompt_fetcher: PromptFetcher = _default_prompt,
-    invoker: Callable[..., Awaitable[dict[str, Any]]] = invoke_llm_json,
+    coverage: CoverageReport | None = None,
+    prompt_fetcher: PromptFetcher | None = None,
+    invoker: Callable[..., Awaitable[dict[str, Any]]] | None = None,
     progress_cb: PartProgressCallback | None = None,
+    policy_runtime: Any | None = None,
 ) -> dict[str, Any]:
     """Generate the SBAR Background section, splitting the run if needed.
 
@@ -432,9 +470,24 @@ async def call_background(
     "Generating Background (part 2 of 5)..." instead of looking
     hung for 30s.
     """
-    system_map = prompt_fetcher(_PROMPT_NAME_BACKGROUND)
+    fetcher = _resolve_prompt_fetcher(prompt_fetcher)
+    if policy_runtime is not None and prompt_fetcher is None:
+        from libs.sbar.policy_runtime import make_prompt_fetcher
+
+        fetcher = make_prompt_fetcher(policy_runtime)
+    llm = _resolve_invoker(invoker, stage="background", policy_runtime=policy_runtime)
+    if policy_runtime is not None:
+        from libs.sbar.policy_runtime import stage_llm_params
+
+        llm_params = stage_llm_params(policy_runtime, "background")
+    else:
+        llm_params = {"max_tokens": 1024, "temperature": 0.0}
+    system_map = fetcher(_PROMPT_NAME_BACKGROUND)
     partitions, partition_report = partition_background_sources(
-        sources, codes, referring_specialty=referring_specialty
+        sources,
+        codes,
+        referring_specialty=referring_specialty,
+        coverage=coverage,
     )
 
     notices: list[str] = []
@@ -480,8 +533,9 @@ async def call_background(
         result = await _invoke_background_part(
             partition,
             system=system_map,
-            invoker=invoker,
+            invoker=llm,
             patient_id=patient_id,
+            llm_params=llm_params,
         )
         part_results.append(result)
         if progress_cb is not None:
@@ -535,6 +589,65 @@ async def call_background(
     }
 
 
+async def call_recall(
+    *,
+    registry: Any,
+    budget: Any,
+    preflight_reasons: list[str],
+    allowed_chunk_ids: list[str],
+    run_id: str = "",
+    patient_id: str = "",
+    prompt_fetcher: PromptFetcher | None = None,
+    policy_runtime: Any | None = None,
+    converse_fn: Callable[..., Awaitable[Any]] | None = None,
+) -> dict[str, Any]:
+    """Run the bounded recall tool loop under manifest policy."""
+    from libs.sbar.recall_loop import run_recall_loop
+
+    fetcher = _resolve_prompt_fetcher(prompt_fetcher)
+    if policy_runtime is not None and prompt_fetcher is None:
+        from libs.sbar.policy_runtime import make_prompt_fetcher
+
+        fetcher = make_prompt_fetcher(policy_runtime)
+    try:
+        system = fetcher(_PROMPT_NAME_RECALL)
+    except RuntimeError:
+        from libs.prompts.sbar_recall_v1 import SBAR_RECALL_SYSTEM_V1
+
+        system = SBAR_RECALL_SYSTEM_V1
+    provider = "aws"
+    tier = "big"
+    if policy_runtime is not None:
+        provider = str(getattr(policy_runtime, "model_provider", None) or provider)
+        tier = str(getattr(policy_runtime, "model_tier", None) or tier)
+
+    result = await run_recall_loop(
+        registry=registry,
+        budget=budget,
+        preflight_reasons=preflight_reasons,
+        allowed_chunk_ids=allowed_chunk_ids,
+        run_id=run_id,
+        system_prompt=system,
+        patient_id=patient_id,
+        provider=provider,
+        tier=tier,
+        converse_fn=converse_fn,
+    )
+    exhaustion = result.exhaustion
+    return {
+        "evidence": result.evidence,
+        "exhaustion": exhaustion,
+        "missing": list(result.missing or []),
+        "llm_calls": result.llm_calls,
+        "audit_log": list(result.audit_log or []),
+        "raw": dict(result.raw or {}),
+        "error": None if result.evidence or not exhaustion else "recall_incomplete",
+        "error_code": (
+            None if result.evidence or not exhaustion else "recall_budget_exhausted"
+        ),
+    }
+
+
 async def call_recommendation(
     *,
     situation_md: str,
@@ -544,10 +657,24 @@ async def call_recommendation(
     guideline_titles: list[str],
     guidelines: list[str],
     patient_id: str = "",
-    prompt_fetcher: PromptFetcher = _default_prompt,
-    invoker: Callable[..., Awaitable[dict[str, Any]]] = invoke_llm_json,
+    prompt_fetcher: PromptFetcher | None = None,
+    invoker: Callable[..., Awaitable[dict[str, Any]]] | None = None,
+    policy_runtime: Any | None = None,
 ) -> dict[str, Any]:
-    system = prompt_fetcher(_PROMPT_NAME_RECOMMENDATION)
+    fetcher = _resolve_prompt_fetcher(prompt_fetcher)
+    if policy_runtime is not None and prompt_fetcher is None:
+        from libs.sbar.policy_runtime import make_prompt_fetcher, stage_llm_params
+
+        fetcher = make_prompt_fetcher(policy_runtime)
+    llm = _resolve_invoker(
+        invoker, stage="recommendation", policy_runtime=policy_runtime
+    )
+    llm_params = (
+        stage_llm_params(policy_runtime, "recommendation")
+        if policy_runtime is not None
+        else {"max_tokens": 1024, "temperature": 0.0}
+    )
+    system = fetcher(_PROMPT_NAME_RECOMMENDATION)
     user = _serialise_recommendation_context(
         situation_md=situation_md,
         background_md=background_md,
@@ -556,11 +683,11 @@ async def call_recommendation(
         guideline_titles=guideline_titles,
         guidelines=guidelines,
     )
-    raw = await invoker(
+    raw = await llm(
         system,
         user,
-        max_tokens=1024,
-        temperature=0.0,
+        max_tokens=int(llm_params.get("max_tokens") or 1024),
+        temperature=float(llm_params.get("temperature") or 0.0),
         agent_task="sbar_recommendation",
         patient_id=patient_id,
     )

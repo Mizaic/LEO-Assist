@@ -25,6 +25,7 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import { caseSummary, caseTags } from "./caseCardMeta";
 import type { LabCase } from "./labApi";
+import { formatUsd } from "./labRunFormat";
 
 function scenarioLabel(value?: string): string {
   if (value === "spo_ag") return "SPoA A&G";
@@ -147,12 +148,28 @@ export default function TestPatientCard({
                 <Typography variant="caption" color="text.secondary">
                   {scenarioLabel(c.scenario_type)} · {c.case_type || "referral"}
                   {c.has_gold ? " · gold" : ""}
+                  {c.latest_run_status
+                    ? ` · ${c.latest_run_status}`
+                    : ""}
+                  {c.latest_llm_cost_usd != null &&
+                  Number(c.latest_llm_cost_usd) > 0
+                    ? ` · ${formatUsd(Number(c.latest_llm_cost_usd))}`
+                    : ""}
                 </Typography>
               </Box>
             </Button>
             <Stack direction="row" spacing={0.5} alignItems="center">
               {c.has_gold ? (
                 <Chip size="small" color="success" label="gold" />
+              ) : null}
+              {c.latest_llm_cost_usd != null &&
+              Number(c.latest_llm_cost_usd) > 0 ? (
+                <Chip
+                  size="small"
+                  variant="outlined"
+                  label={formatUsd(Number(c.latest_llm_cost_usd))}
+                  data-testid={`validation-lab-cost-${c.id}`}
+                />
               ) : null}
               {testing ? (
                 <Chip

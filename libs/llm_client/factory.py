@@ -68,7 +68,13 @@ _AZURE_DEFAULTS = {
 
 @dataclass(frozen=True)
 class LLMResponse:
-    """Unified response from any provider."""
+    """Unified response from any provider.
+
+    ``cached_input_tokens`` = cache reads.
+    ``cache_creation_input_tokens`` = cache writes (Bedrock).
+    ``reasoning_tokens`` = Azure reasoning breakdown when present;
+    Bedrock folds thinking into ``output_tokens``.
+    """
 
     text: str
     input_tokens: int
@@ -77,6 +83,8 @@ class LLMResponse:
     stop_reason: str
     model_id: str
     tool_uses: list[dict[str, Any]] = field(default_factory=list)
+    cache_creation_input_tokens: int = 0
+    reasoning_tokens: int = 0
 
 
 class LLMStreamChunk(TypedDict, total=False):
@@ -125,6 +133,18 @@ def _bedrock_cache_read_tokens(usage: dict[str, Any]) -> int:
         usage.get("cacheReadInputTokens")
         or usage.get("cacheReadInputTokenCount")
         or usage.get("CacheReadInputTokens")
+        or usage.get("cache_read_input_tokens")
+        or 0
+    )
+
+
+def _bedrock_cache_write_tokens(usage: dict[str, Any]) -> int:
+    """Read Bedrock cache-write tokens across SDK/doc field variants."""
+    return int(
+        usage.get("cacheWriteInputTokens")
+        or usage.get("CacheWriteInputTokens")
+        or usage.get("cache_creation_input_tokens")
+        or usage.get("cache_write_input_tokens")
         or 0
     )
 
@@ -165,6 +185,7 @@ def _fire_converse_tracking(
             latency_ms=int(max(0, latency_ms or 0)),
             success=bool(success),
             error_message=str(error_message or "")[:400],
+            input_excludes_cache=model_provider in ("aws", "bedrock"),
         )
     except Exception:
         logger.debug("converse telemetry emission failed", exc_info=True)
@@ -204,21 +225,17 @@ class LLMClient:
         return self._client
 
     def _init_bedrock(self) -> Any:
-        import boto3
-        from botocore.config import Config
+        from libs.llm_client.bedrock_client import get_bedrock_runtime_client
 
-        cfg = Config(
-            connect_timeout=30,
-            read_timeout=90,    # Haiku ~200 tok/s → 8192 tokens ≈ 41s; 90s gives 2× headroom.
-                                # ReadTimeoutError is NOT retried (see bedrock_retry._is_retryable),
-                                # so a hung call fails in 90s and the encounter is recorded as ERROR.
-            retries={"max_attempts": 1, "mode": "standard"},  # our own retry loop handles backoff
-            tcp_keepalive=True,  # prevents NAT gateway (350s idle timeout) from silently dropping
-        )                        # the TCP connection and causing indefinite SSL read hangs
-        return boto3.client(
-            "bedrock-runtime",
-            region_name=self.region or os.getenv("AWS_DEFAULT_REGION", "eu-west-2"),
-            config=cfg,
+        region = self.region or os.getenv("AWS_DEFAULT_REGION", "eu-west-2")
+        # ReadTimeoutError is NOT retried (see bedrock_retry._is_retryable),
+        # so a hung call fails in 90s and the encounter is recorded as ERROR.
+        return get_bedrock_runtime_client(
+            region,
+            30,
+            90,  # Haiku ~200 tok/s -> 8192 tokens ~ 41s; 90s gives 2x headroom.
+            1,  # our own retry loop handles backoff
+            True,  # NAT gateway idle timeout protection
         )
 
     def _init_azure(self) -> Any:
@@ -318,7 +335,7 @@ class LLMClient:
             input_tokens=int(response.input_tokens or 0),
             output_tokens=int(response.output_tokens or 0),
             cache_read_input_tokens=int(response.cached_input_tokens or 0),
-            cache_creation_input_tokens=0,
+            cache_creation_input_tokens=int(response.cache_creation_input_tokens or 0),
             latency_ms=latency_ms,
             success=True,
         )
@@ -441,9 +458,10 @@ class LLMClient:
 
         return LLMResponse(
             text=text,
-            input_tokens=usage.get("inputTokens", 0),
-            output_tokens=usage.get("outputTokens", 0),
+            input_tokens=int(usage.get("inputTokens", 0) or 0),
+            output_tokens=int(usage.get("outputTokens", 0) or 0),
             cached_input_tokens=_bedrock_cache_read_tokens(usage),
+            cache_creation_input_tokens=_bedrock_cache_write_tokens(usage),
             stop_reason=stop_reason,
             model_id=self.model_id,
             tool_uses=tool_uses,
@@ -718,6 +736,8 @@ class LLMClient:
                 if usage
                 else 0
             ),
+            cache_creation_input_tokens=0,
+            reasoning_tokens=int(reasoning_tokens or 0),
             stop_reason=choice.finish_reason if choice else "",
             model_id=self.model_id,
         )
@@ -949,4 +969,7 @@ def _cached_llm_client(
 
 def reset_llm_cache() -> None:
     """Clear the cached LLMClient wrappers (test hook)."""
+    from libs.llm_client.bedrock_client import reset_bedrock_client_cache
+
     _cached_llm_client.cache_clear()
+    reset_bedrock_client_cache()

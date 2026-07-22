@@ -4,6 +4,16 @@ Atlas trace:
   DO: DO-AA3B7FCC
   DI: DI-9456E5BE
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
+Bedrock Converse prompt-caching semantics (AWS docs):
+  inputTokens = non-cached input only
+  total input = inputTokens + cacheReadInputTokens + cacheWriteInputTokens
+  Thinking tokens (extended thinking) are included in outputTokens.
+
+Azure OpenAI semantics:
+  prompt_tokens = total prompt (includes cached)
+  cached portion is in prompt_tokens_details.cached_tokens
+  reasoning_tokens are included in completion_tokens.
 """
 
 from __future__ import annotations
@@ -18,27 +28,67 @@ def _bedrock_cache_read_tokens(usage: dict) -> int:
         usage.get("cacheReadInputTokens")
         or usage.get("cacheReadInputTokenCount")
         or usage.get("CacheReadInputTokens")
+        or usage.get("cache_read_input_tokens")
+        or 0
+    )
+
+
+def _bedrock_cache_write_tokens(usage: dict) -> int:
+    """Read Bedrock cache-write tokens across SDK/doc field variants."""
+    return int(
+        usage.get("cacheWriteInputTokens")
+        or usage.get("CacheWriteInputTokens")
+        or usage.get("cache_creation_input_tokens")
+        or usage.get("cache_write_input_tokens")
         or 0
     )
 
 
 # Baseline per-1M-token cost defaults, mirroring
-# services/api/app/services/model_config_seed.py. EU cross-region inference
-# profile rates verified 2026-03-08. Override at runtime via env vars.
+# services/api/app/services/model_config_seed.py.
+# AWS EU cross-region = Anthropic base * 1.1.
+# Azure defaults use Data Zone (EU) rates from azure.com (2026-07).
+# Cache write (5m) = 1.25x input (Anthropic / Bedrock default TTL).
+# Sources verified 2026-07-22.
 _COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
     "aws": {
         # eu.anthropic.claude-haiku-4-5
-        "small": {"input": 1.10, "cached": 0.110, "output": 5.50},
+        "small": {
+            "input": 1.10,
+            "cached": 0.110,
+            "cache_write": 1.375,
+            "output": 5.50,
+        },
         # eu.anthropic.claude-sonnet-4-6
-        "big": {"input": 3.30, "cached": 0.330, "output": 16.50},
+        "big": {
+            "input": 3.30,
+            "cached": 0.330,
+            "cache_write": 4.125,
+            "output": 16.50,
+        },
         # eu.anthropic.claude-opus-4-6
-        "max": {"input": 5.50, "cached": 0.550, "output": 27.50},
+        "max": {
+            "input": 5.50,
+            "cached": 0.550,
+            "cache_write": 6.875,
+            "output": 27.50,
+        },
     },
     "azure": {
-        # azure/eu/gpt-5-mini
-        "small": {"input": 0.275, "cached": 0.028, "output": 2.20},
-        # azure/eu/gpt-5
-        "big": {"input": 1.375, "cached": 0.138, "output": 11.00},
+        # GPT-5-mini Data Zone
+        "small": {
+            "input": 0.28,
+            "cached": 0.03,
+            "cache_write": 0.28,
+            "output": 2.20,
+        },
+        # GPT-5 Data Zone
+        "big": {
+            "input": 1.38,
+            "cached": 0.14,
+            "cache_write": 1.38,
+            "output": 11.00,
+        },
     },
 }
 
@@ -50,6 +100,7 @@ class LLMCostConfig:
     cost_per_1m_input: float
     cost_per_1m_cached_input: float
     cost_per_1m_output: float
+    cost_per_1m_cache_write: float = 0.0
 
     @classmethod
     def from_env(cls) -> LLMCostConfig:
@@ -58,18 +109,7 @@ class LLMCostConfig:
 
     @classmethod
     def for_tier(cls, tier: str) -> LLMCostConfig:
-        """Resolve cost rates for an explicit tier (small/big/max).
-
-        Reads the same env-var convention as ``from_env`` but lets the
-        caller specify the tier directly -- needed by callers that mix
-        multiple tiers in a single workflow (e.g. the episode engine
-        runs Haiku for stages 1-4 and Sonnet for the reconciler).
-
-        If the env vars are not set, falls back to the same EU-region
-        baseline defaults used by ``services/api/app/services/
-        model_config_seed.py`` so cost calculations work out of the box.
-        """
-
+        """Resolve cost rates for an explicit tier (small/big/max)."""
         provider = os.getenv("PIPELINE_MODEL_PROVIDER", "aws").strip().lower()
         tier_lc = (tier or "small").strip().lower()
         tier_up = tier_lc.upper()
@@ -79,14 +119,15 @@ class LLMCostConfig:
             prefix = f"AWS_BEDROCK_MODEL_{tier_up}_MODEL"
 
         defaults = _COST_DEFAULTS.get(provider, {}).get(
-            tier_lc, {"input": 0.0, "cached": 0.0, "output": 0.0}
+            tier_lc,
+            {"input": 0.0, "cached": 0.0, "cache_write": 0.0, "output": 0.0},
         )
+        input_rate = float(
+            os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", str(defaults["input"]))
+        )
+        write_default = defaults.get("cache_write", input_rate * 1.25)
         return cls(
-            cost_per_1m_input=float(
-                os.getenv(
-                    f"{prefix}_COST_PER_1M_INPUT_TOKEN", str(defaults["input"])
-                )
-            ),
+            cost_per_1m_input=input_rate,
             cost_per_1m_cached_input=float(
                 os.getenv(
                     f"{prefix}_COST_PER_1M_CACHED_INPUT_TOKEN",
@@ -94,8 +135,12 @@ class LLMCostConfig:
                 )
             ),
             cost_per_1m_output=float(
+                os.getenv(f"{prefix}_COST_PER_1M_OUTPUT_TOKEN", str(defaults["output"]))
+            ),
+            cost_per_1m_cache_write=float(
                 os.getenv(
-                    f"{prefix}_COST_PER_1M_OUTPUT_TOKEN", str(defaults["output"])
+                    f"{prefix}_COST_PER_1M_CACHE_WRITE_TOKEN",
+                    str(write_default),
                 )
             ),
         )
@@ -103,22 +148,32 @@ class LLMCostConfig:
 
 @dataclass
 class LLMUsage:
-    """Accumulator for LLM token counts across one or more API calls."""
+    """Accumulator for LLM token counts across one or more API calls.
+
+    ``input_excludes_cache``:
+      True  -- Bedrock Converse: ``input_tokens`` is non-cached only.
+      False -- Azure-style: ``input_tokens`` is total prompt including cache.
+    """
 
     input_tokens: int = 0
     output_tokens: int = 0
     cached_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
     llm_calls: int = 0
+    input_excludes_cache: bool = False
+    reasoning_tokens: int = 0
     _cost_config: LLMCostConfig | None = field(default=None, repr=False)
 
     @classmethod
     def from_bedrock_response(cls, response: dict) -> LLMUsage:
         usage = response.get("usage", {})
         return cls(
-            input_tokens=int(usage.get("inputTokens", 0)),
-            output_tokens=int(usage.get("outputTokens", 0)),
+            input_tokens=int(usage.get("inputTokens", 0) or 0),
+            output_tokens=int(usage.get("outputTokens", 0) or 0),
             cached_input_tokens=_bedrock_cache_read_tokens(usage),
+            cache_creation_input_tokens=_bedrock_cache_write_tokens(usage),
             llm_calls=1,
+            input_excludes_cache=True,
         )
 
     @classmethod
@@ -129,7 +184,12 @@ class LLMUsage:
         self.input_tokens += other.input_tokens
         self.output_tokens += other.output_tokens
         self.cached_input_tokens += other.cached_input_tokens
+        self.cache_creation_input_tokens += other.cache_creation_input_tokens
+        self.reasoning_tokens += other.reasoning_tokens
         self.llm_calls += other.llm_calls
+        self.input_excludes_cache = (
+            self.input_excludes_cache or other.input_excludes_cache
+        )
         return self
 
     def __add__(self, other: LLMUsage) -> LLMUsage:
@@ -137,21 +197,41 @@ class LLMUsage:
             input_tokens=self.input_tokens + other.input_tokens,
             output_tokens=self.output_tokens + other.output_tokens,
             cached_input_tokens=self.cached_input_tokens + other.cached_input_tokens,
+            cache_creation_input_tokens=(
+                self.cache_creation_input_tokens + other.cache_creation_input_tokens
+            ),
+            reasoning_tokens=self.reasoning_tokens + other.reasoning_tokens,
             llm_calls=self.llm_calls + other.llm_calls,
+            input_excludes_cache=(
+                self.input_excludes_cache or other.input_excludes_cache
+            ),
         )
 
     @property
     def total_tokens(self) -> int:
+        if self.input_excludes_cache:
+            return (
+                self.input_tokens
+                + self.cached_input_tokens
+                + self.cache_creation_input_tokens
+                + self.output_tokens
+            )
         return self.input_tokens + self.output_tokens
+
+    def _full_rate_input_tokens(self) -> int:
+        if self.input_excludes_cache:
+            return max(0, int(self.input_tokens))
+        return max(0, int(self.input_tokens) - int(self.cached_input_tokens))
 
     def cost_usd(self, config: LLMCostConfig | None = None) -> float:
         cfg = config or self._cost_config
         if cfg is None:
             return 0.0
-        billable_input = max(0, self.input_tokens - self.cached_input_tokens)
+        write_rate = cfg.cost_per_1m_cache_write or (cfg.cost_per_1m_input * 1.25)
         return (
-            billable_input * cfg.cost_per_1m_input / 1_000_000
+            self._full_rate_input_tokens() * cfg.cost_per_1m_input / 1_000_000
             + self.cached_input_tokens * cfg.cost_per_1m_cached_input / 1_000_000
+            + self.cache_creation_input_tokens * write_rate / 1_000_000
             + self.output_tokens * cfg.cost_per_1m_output / 1_000_000
         )
 
@@ -161,8 +241,11 @@ class LLMUsage:
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "cached_input_tokens": self.cached_input_tokens,
+            "cache_creation_input_tokens": self.cache_creation_input_tokens,
+            "reasoning_tokens": self.reasoning_tokens,
             "total_tokens": self.total_tokens,
             "llm_calls": self.llm_calls,
+            "input_excludes_cache": self.input_excludes_cache,
         }
         if cfg:
             d["cost_usd"] = round(self.cost_usd(cfg), 6)

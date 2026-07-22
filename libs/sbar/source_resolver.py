@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from libs.cypher.prompt_config_queries import GET_PROMPT_BY_NAME
+from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.sbar.events import (
     BackgroundSourceType,
     SBARArtifactRef,
@@ -41,6 +42,10 @@ from libs.sbar.events import (
     SituationArtifactType,
     SummarisationContext,
 )
+
+# Situation gets a short letter extract only. Background keeps the full
+# letter. Atlas: DI-43233166 / DO-FE95EA83.
+_SITUATION_LETTER_MAX_CHARS = 1800
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +116,12 @@ class ResolvedCode:
     semantic_tag: str | None = None
     assertion: str | None = "present"
     evidence: str | None = None
+    evidence_sentence: str | None = None
+    evidence_start: int | None = None
+    evidence_end: int | None = None
+    sentence_index: int | None = None
+    chunk_id: str | None = None
+    run_id: str | None = None
     confidence: float | None = None
     source_label: str | None = None
     source_id: str | None = None
@@ -189,12 +200,18 @@ RETURN coalesce(e.text, '')         AS text,
        coalesce(e.date, '')         AS date,
        coalesce(e.encounter_type, '') AS encounter_type,
        collect({
-         concept_id:    toString(s.conceptId),
-         term:          coalesce(s.name, ''),
-         semantic_tag:  coalesce(s.semanticTag, ''),
-         evidence:      coalesce(d.evidence, ''),
-         confidence:    coalesce(d.confidence, 0.0),
-         assertion:     coalesce(d.context, '')
+         concept_id:        toString(s.conceptId),
+         term:              coalesce(s.name, ''),
+         semantic_tag:      coalesce(s.semanticTag, ''),
+         evidence:          coalesce(d.evidence, ''),
+         evidence_sentence: coalesce(d.evidence_sentence, ''),
+         evidence_start:    coalesce(d.evidence_start, -1),
+         evidence_end:      coalesce(d.evidence_end, -1),
+         sentence_index:    coalesce(d.sentence_index, -1),
+         chunk_id:          coalesce(d.chunk_id, ''),
+         run_id:            coalesce(d.run_id, ''),
+         confidence:        coalesce(d.confidence, 0.0),
+         assertion:         coalesce(d.context, '')
        })                            AS codes
 """
 
@@ -223,12 +240,18 @@ OPTIONAL MATCH (c)-[d:DOCUMENTS]->(s)
 RETURN coalesce(c.text, '')        AS text,
        coalesce(c.ordinal, 0)      AS ordinal,
        collect({
-         concept_id:    toString(s.conceptId),
-         term:          coalesce(s.name, ''),
-         semantic_tag:  coalesce(s.semanticTag, ''),
-         evidence:      coalesce(d.evidence, ''),
-         confidence:    coalesce(d.confidence, 0.0),
-         assertion:     coalesce(d.context, '')
+         concept_id:        toString(s.conceptId),
+         term:              coalesce(s.name, ''),
+         semantic_tag:      coalesce(s.semanticTag, ''),
+         evidence:          coalesce(d.evidence, ''),
+         evidence_sentence: coalesce(d.evidence_sentence, ''),
+         evidence_start:    coalesce(d.evidence_start, -1),
+         evidence_end:      coalesce(d.evidence_end, -1),
+         sentence_index:    coalesce(d.sentence_index, -1),
+         chunk_id:          coalesce(d.chunk_id, toString(c.id)),
+         run_id:            coalesce(d.run_id, ''),
+         confidence:        coalesce(d.confidence, 0.0),
+         assertion:         coalesce(d.context, '')
        })                          AS codes
 """
 
@@ -238,27 +261,66 @@ RETURN coalesce(c.text, '')        AS text,
 # ---------------------------------------------------------------------------
 
 
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return None if parsed < 0 else parsed
+
+
+def _evidence_dedupe_key(
+    row: dict[str, Any],
+    *,
+    source_id: str,
+    concept_id: str,
+    assertion: str,
+) -> tuple[str, str, str, int | None, int | None, int | None]:
+    chunk_id = str(row.get("chunk_id") or source_id or "").strip()
+    return (
+        chunk_id,
+        concept_id,
+        assertion,
+        _optional_int(row.get("sentence_index")),
+        _optional_int(row.get("evidence_start")),
+        _optional_int(row.get("evidence_end")),
+    )
+
+
 def _coerce_codes(
     raw: list[dict[str, Any]] | None, *, source_label: str, source_id: str
 ) -> list[ResolvedCode]:
-    """Filter out null/empty rows produced by OPTIONAL MATCH and dedup."""
+    """Filter null rows and dedupe by chunk offsets and assertion."""
     if not raw:
         return []
-    out: dict[tuple[str, str], ResolvedCode] = {}
+    out: dict[
+        tuple[str, str, str, int | None, int | None, int | None], ResolvedCode
+    ] = {}
     for row in raw:
         cid = str(row.get("concept_id") or "").strip()
         if not cid or cid.lower() == "none":
             continue
         assertion = (row.get("assertion") or "present").strip() or "present"
-        key = (cid, assertion)
+        key = _evidence_dedupe_key(
+            row, source_id=source_id, concept_id=cid, assertion=assertion
+        )
         if key in out:
             continue
+        chunk_id = str(row.get("chunk_id") or source_id or "").strip() or None
         out[key] = ResolvedCode(
             concept_id=cid,
             term=str(row.get("term") or "").strip(),
             semantic_tag=(row.get("semantic_tag") or None) or None,
             assertion=assertion,
             evidence=(row.get("evidence") or None) or None,
+            evidence_sentence=(row.get("evidence_sentence") or None) or None,
+            evidence_start=_optional_int(row.get("evidence_start")),
+            evidence_end=_optional_int(row.get("evidence_end")),
+            sentence_index=_optional_int(row.get("sentence_index")),
+            chunk_id=chunk_id,
+            run_id=(str(row.get("run_id") or "").strip() or None),
             confidence=float(row.get("confidence") or 0.0),
             source_label=source_label,
             source_id=source_id,
@@ -360,7 +422,42 @@ def _resolve_artifact(
         if rec is None:
             return {"type": ref.type.value, "id": ref.id, "error": "not_found"}
         return {"type": ref.type.value, **dict(rec)}
+    if ref.type is SituationArtifactType.document_reference:
+        return _resolve_situation_document_reference(session, ref.id or "")
     return {"type": ref.type.value, "id": ref.id}
+
+
+def _join_resolved_source_text(sources: list[ResolvedSource]) -> str:
+    parts = [str(src.text).strip() for src in sources if (src.text or "").strip()]
+    return "\n\n".join(parts)
+
+
+def _resolve_situation_document_reference(
+    session: Any, document_reference_id: str
+) -> dict[str, Any]:
+    """Return truncated letter text for Situation (not full Background)."""
+    dr_id = str(document_reference_id or "").strip()
+    if not dr_id:
+        return {
+            "type": SituationArtifactType.document_reference.value,
+            "id": dr_id,
+            "error": "not_found",
+        }
+    sources = _resolve_document_reference(session, dr_id)
+    if sources and sources[0].metadata.get("error") == "not_found":
+        return {
+            "type": SituationArtifactType.document_reference.value,
+            "id": dr_id,
+            "error": "not_found",
+        }
+    joined = _join_resolved_source_text(sources)
+    text = sanitise_for_prompt(joined, max_chars=_SITUATION_LETTER_MAX_CHARS)
+    return {
+        "type": SituationArtifactType.document_reference.value,
+        "id": dr_id,
+        "text": text,
+        "truncated": len(joined) > _SITUATION_LETTER_MAX_CHARS,
+    }
 
 
 def resolve_background_sources(
@@ -506,11 +603,24 @@ def _resolve_chunk(session: Any, chunk_id: str) -> ResolvedSource:
 
 
 def aggregate_codes(sources: list[ResolvedSource]) -> list[ResolvedCode]:
-    """Dedup codes across all background sources for the Assessment stage."""
-    out: dict[tuple[str, str], ResolvedCode] = {}
+    """Dedup codes across background sources by chunk offsets and assertion."""
+    out: dict[
+        tuple[str, str, str, int | None, int | None, int | None], ResolvedCode
+    ] = {}
     for src in sources:
         for code in src.codes:
-            key = (code.concept_id, code.assertion or "present")
+            row = {
+                "chunk_id": code.chunk_id or code.source_id,
+                "sentence_index": code.sentence_index,
+                "evidence_start": code.evidence_start,
+                "evidence_end": code.evidence_end,
+            }
+            key = _evidence_dedupe_key(
+                row,
+                source_id=str(code.source_id or ""),
+                concept_id=code.concept_id,
+                assertion=code.assertion or "present",
+            )
             if key not in out:
                 out[key] = code
     return list(out.values())

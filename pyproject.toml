@@ -11,3 +11,8 @@ target-version = ["py312"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+asyncio_mode = "auto"
+markers = [
+    "integration: tests that need live external systems (Neo4j, Service Bus)",
+    "asyncio: async test coroutine",
+]

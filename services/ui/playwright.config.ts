@@ -5,6 +5,16 @@ loadPlaywrightEnv();
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const devPort = new URL(baseURL).port || "3000";
+const isRemoteBaseUrl = (() => {
+  try {
+    const host = new URL(baseURL).hostname;
+    return host !== "localhost" && host !== "127.0.0.1";
+  } catch {
+    return false;
+  }
+})();
+const skipLocalWebServer =
+  process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1" || isRemoteBaseUrl;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -64,9 +74,13 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: `cross-env NEXT_PUBLIC_E2E_MODE=true PORT=${devPort} npm run dev`,
-    url: baseURL,
-    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
-  },
+  ...(skipLocalWebServer
+    ? {}
+    : {
+        webServer: {
+          command: `cross-env NEXT_PUBLIC_E2E_MODE=true PORT=${devPort} npm run dev`,
+          url: baseURL,
+          reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
+        },
+      }),
 });

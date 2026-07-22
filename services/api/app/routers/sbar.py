@@ -693,18 +693,17 @@ def _normalise_audit_fallback(
 ) -> dict[str, Any] | None:
     """Build a PipelineRun-shaped dict from legacy :AuditEvent nodes.
 
-    DurableStepRunner (the only writer of :PipelineRun/:PipelineStageRun) is
-    gated behind DURABLE_ENGINE_ENABLED (defaults to "all"). When the flag is
-    explicitly set to "false", referral runs -- including AI Summarisation
-    scenario runs -- execute via the legacy WorkflowEngine, which only ever
-    writes :AuditEvent nodes.
-    Without this fallback, _load_child_pipeline_runs never finds a
-    :PipelineRun node, so every child case is stuck showing "queued"
-    forever (via the {"status": "queued"} default below) while the parent
-    row is stuck showing "running" (via _child_counts treating non-terminal
-    statuses as "running") -- even after the pipeline has completed. See
-    audit-{run_id} (whole-run status, written by engine.py) and
-    audit-{run_id}:sbar (assessment_id, written by sbar_orchestrator.py).
+    DurableStepRunner writes :PipelineRun/:PipelineStageRun for plans that
+    declare ``workflowMode: durable_pubsub`` (see resolve_plan_workflow_mode).
+    Older in-process WorkflowEngine runs only wrote :AuditEvent nodes; this
+    fallback lets scenario-run polling show completed status for those rows.
+    Without it, _load_child_pipeline_runs never finds a :PipelineRun node, so
+    every child case is stuck showing "queued" forever (via the {"status":
+    "queued"} default below) while the parent row is stuck showing "running"
+    (via _child_counts treating non-terminal statuses as "running") -- even
+    after the pipeline has completed. See audit-{run_id} (whole-run status,
+    written by engine.py) and audit-{run_id}:sbar (assessment_id, written by
+    sbar_orchestrator.py).
     """
     by_id = {str(row.get("id")): row for row in audit_rows}
     main = by_id.get(f"audit-{run_id}")

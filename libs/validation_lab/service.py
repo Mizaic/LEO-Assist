@@ -35,19 +35,36 @@ from libs.validation_lab.gold import (
 from libs.validation_lab.models import PersistMode, ValidationCaseSpec
 from libs.validation_lab.pipeline import (
     PublishFn,
+    attach_stage_progress,
     execute_lab_run,
     first_pipeline_error,
     poll_run_status,
     read_real_outputs,
 )
 from libs.validation_lab.ag_pipeline import (
-    AgPipelineError,
     build_ag_pipeline_message,
     resolve_communication_request,
 )
 from libs.validation_lab.scaffold import materialise_case
 
 JsonLoads = Callable[[str], Any]
+
+
+def _llm_upsert_fields(outputs: RunOutputs | dict[str, Any] | None) -> dict[str, Any]:
+    """Denormalised spend fields for list/card queries (0 when unknown)."""
+    if isinstance(outputs, RunOutputs):
+        usage = outputs.llm_usage or {}
+    elif isinstance(outputs, dict):
+        usage = outputs.get("llm_usage") or {}
+    else:
+        usage = {}
+    if not isinstance(usage, dict):
+        usage = {}
+    return {
+        "llm_cost_usd": float(usage.get("cost_usd") or 0.0),
+        "llm_total_tokens": int(usage.get("total_tokens") or 0),
+        "llm_calls": int(usage.get("llm_calls") or 0),
+    }
 
 
 def _dumps(obj: Any) -> str:
@@ -302,6 +319,7 @@ def start_run(
         status=status,
         outputs_json=_dumps(resolved.to_dict()),
         error_message=enqueue_error[:500],
+        **_llm_upsert_fields(resolved),
     )
     return get_run(client, case_id, run_id)
 
@@ -403,35 +421,54 @@ def get_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
 
 
 def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
-    """Poll the real pipeline for a queued production run and persist the
-    genuine result once it lands. A no-op for dry-run or already-terminal
-    runs."""
+    """Poll the real pipeline for a production Lab run.
+
+    Always returns live ``stage_progress`` from :PipelineStageRun.
+    Persists terminal outputs when the pipeline finishes; bumps Lab status
+    to running when durable work has started.
+    """
     packed = get_run(client, case_id, run_id)
     run = packed["run"]
     if run.get("persist_mode") != PersistMode.production.value:
-        return packed
+        return attach_stage_progress(client, packed, run_id)
     if run.get("status") in ("completed", "failed"):
-        return packed
+        return attach_stage_progress(client, packed, run_id)
+
     status_info = poll_run_status(client, run_id)
     real_status = status_info["status"]
-    if real_status not in ("completed", "failed"):
-        return packed
-    assessment_id = status_info["assessment_id"]
-    outputs = read_real_outputs(client, assessment_id)
-    prior_outputs = run.get("outputs") or {}
-    outputs.phase_outputs = list(prior_outputs.get("phase_outputs") or [])
-    client.run(
-        UPSERT_LAB_RUN,
-        case_id=case_id,
-        run_id=run_id,
-        persist_mode=run["persist_mode"],
-        plan_id=run["plan_id"],
-        phase_ids=run["phase_ids"],
-        status=real_status,
-        outputs_json=_dumps(outputs.to_dict()),
-        error_message="",
-    )
-    return get_run(client, case_id, run_id)
+    if real_status in ("completed", "failed"):
+        outputs = read_real_outputs(client, status_info["assessment_id"])
+        prior = run.get("outputs") or {}
+        outputs.phase_outputs = list(prior.get("phase_outputs") or [])
+        client.run(
+            UPSERT_LAB_RUN,
+            case_id=case_id,
+            run_id=run_id,
+            persist_mode=run["persist_mode"],
+            plan_id=run["plan_id"],
+            phase_ids=run["phase_ids"],
+            status=real_status,
+            outputs_json=_dumps(outputs.to_dict()),
+            error_message="",
+            **_llm_upsert_fields(outputs),
+        )
+        return attach_stage_progress(client, get_run(client, case_id, run_id), run_id)
+
+    if real_status == "running" and run.get("status") == "queued":
+        client.run(
+            UPSERT_LAB_RUN,
+            case_id=case_id,
+            run_id=run_id,
+            persist_mode=run["persist_mode"],
+            plan_id=run["plan_id"],
+            phase_ids=run["phase_ids"],
+            status="running",
+            outputs_json=_dumps(run.get("outputs") or {}),
+            error_message="",
+            **_llm_upsert_fields(run.get("outputs")),
+        )
+        packed = get_run(client, case_id, run_id)
+    return attach_stage_progress(client, packed, run_id)
 
 
 def promote_gold(client: Any, case_id: str, run_id: str) -> dict[str, Any]:

@@ -56,6 +56,10 @@ import libs.prompts.few_shot_selector  # noqa: F401
 
 from libs.message_bus.factory import create_message_bus
 from libs.message_bus.base import Message
+from libs.message_bus.settlement import (
+    MessageDeferError,
+    validate_pipeline_lease_config,
+)
 from libs.utils.logging import configure_logging
 from libs.workflow.engine import ActionDefinition, WorkflowEngine
 from libs.workflow.events import ServiceBusEventHandler
@@ -243,6 +247,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Kick off model warm-up (non-blocking - runs in daemon threads)
     _warm_up()
 
+    for lease_warning in validate_pipeline_lease_config():
+        logger.warning("pipeline lease config: %s", lease_warning)
+
     bus = create_message_bus()
 
     neo4j_driver = None
@@ -280,6 +287,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception:
             body = None
         if isinstance(body, dict):
+            body = {**body, "_message_id": msg.message_id or ""}
             try:
                 from services.coding_worker.app.services.progress_publisher import (
                     publish_progress,
@@ -296,6 +304,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 )
                 if handled:
                     return
+                from libs.workflow.durable_step_runner import is_durable_runner_enabled
+
+                plan_id = str(
+                    body.get("plan_definition_id") or body.get("workflow_id") or ""
+                )
+                if is_durable_runner_enabled(plan_id):
+                    logger.error(
+                        "Durable plan message was not handled: plan_id=%s event_type=%s",
+                        plan_id,
+                        body.get("event_type"),
+                    )
+                    return
+            except MessageDeferError as defer:
+                logger.info(
+                    "Durable step deferred: reason=%s run_id=%s action_id=%s",
+                    defer.reason,
+                    defer.context.get("run_id") or body.get("run_id"),
+                    defer.context.get("action_id") or body.get("action_id"),
+                )
+                raise
             except Exception:
                 logger.exception("Durable workflow job failed")
                 try:
@@ -360,12 +388,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     yield  # serve HTTP requests
 
+    logger.info("Pipeline Worker: shutting down message bus consumer")
+    _consumer_state["running"] = False
+    await bus.close()
     consumer_task.cancel()
     try:
         await consumer_task
     except asyncio.CancelledError:
         pass
-    await bus.close()
     if neo4j_driver is not None:
         await neo4j_driver.close()
     if patient_audit_driver is not None:

@@ -69,7 +69,8 @@ class TestLLMUsage:
         cost = u.cost_usd(cfg)
         assert cost == 1.0 + 0.5  # 1M input * $1 + 100K output * $5
 
-    def test_cost_usd_with_cache(self) -> None:
+    def test_cost_usd_with_cache_azure_style(self) -> None:
+        """Azure: input_tokens includes cached; subtract before full rate."""
         cfg = LLMCostConfig(
             cost_per_1m_input=1.0,
             cost_per_1m_cached_input=0.10,
@@ -80,6 +81,7 @@ class TestLLMUsage:
             output_tokens=100_000,
             cached_input_tokens=400_000,
             llm_calls=5,
+            input_excludes_cache=False,
         )
         cost = u.cost_usd(cfg)
         # billable_input = 600K * $1/1M = $0.60
@@ -87,6 +89,46 @@ class TestLLMUsage:
         # output = 100K * $5/1M = $0.50
         expected = 0.60 + 0.04 + 0.50
         assert abs(cost - expected) < 1e-6
+
+    def test_cost_usd_bedrock_no_double_subtract(self) -> None:
+        """Bedrock: input_tokens is non-cached only; do not subtract cache."""
+        cfg = LLMCostConfig(
+            cost_per_1m_input=1.0,
+            cost_per_1m_cached_input=0.10,
+            cost_per_1m_cache_write=1.25,
+            cost_per_1m_output=5.0,
+        )
+        u = LLMUsage(
+            input_tokens=600_000,
+            output_tokens=100_000,
+            cached_input_tokens=400_000,
+            cache_creation_input_tokens=50_000,
+            llm_calls=1,
+            input_excludes_cache=True,
+        )
+        cost = u.cost_usd(cfg)
+        # full input 600K * $1 = $0.60
+        # cache read 400K * $0.10 = $0.04
+        # cache write 50K * $1.25 = $0.0625
+        # output 100K * $5 = $0.50
+        expected = 0.60 + 0.04 + 0.0625 + 0.50
+        assert abs(cost - expected) < 1e-6
+        assert u.total_tokens == 1_150_000
+
+    def test_from_bedrock_response_cache_write(self) -> None:
+        resp = {
+            "usage": {
+                "inputTokens": 100,
+                "outputTokens": 20,
+                "cacheReadInputTokens": 50,
+                "cacheWriteInputTokens": 30,
+            }
+        }
+        u = LLMUsage.from_bedrock_response(resp)
+        assert u.cached_input_tokens == 50
+        assert u.cache_creation_input_tokens == 30
+        assert u.input_excludes_cache is True
+        assert u.total_tokens == 200
 
     def test_cost_usd_no_config_returns_zero(self) -> None:
         u = LLMUsage(input_tokens=1000, output_tokens=500, llm_calls=1)

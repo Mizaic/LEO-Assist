@@ -1,13 +1,9 @@
 """Regression tests for the scenario-run status fallback in sbar.py.
 
-DurableStepRunner is the only writer of :PipelineRun/:PipelineStageRun nodes,
-but it is gated behind DURABLE_ENGINE_ENABLED which defaults to "false" and
-is unset everywhere in this repo's env config. With the flag off (the
-default in every environment today), referral runs -- including AI
-Summarisation scenario runs launched from /admin/knowledge?tab=ai-summarisation
--- execute via the legacy WorkflowEngine, which only ever writes
-:AuditEvent nodes (audit-{run_id} from engine.py, audit-{run_id}:sbar from
-sbar_orchestrator.py).
+DurableStepRunner writes :PipelineRun/:PipelineStageRun for plans that
+declare ``workflowMode: durable_pubsub``. Older in-process WorkflowEngine
+runs only wrote :AuditEvent nodes (audit-{run_id} from engine.py,
+audit-{run_id}:sbar from sbar_orchestrator.py).
 
 Before this fix, `_normalise_child_run` always defaulted every child case to
 status "queued" whenever no :PipelineRun node existed (i.e. always, in
@@ -102,7 +98,7 @@ def test_normalise_audit_fallback_merges_assessment_id_from_sbar_audit_event() -
 def test_normalise_child_run_falls_back_to_audit_event_when_no_pipeline_run_node() -> (
     None
 ):
-    """No :PipelineRun node exists (DURABLE_ENGINE_ENABLED=false), but the
+    """No :PipelineRun node exists (legacy WorkflowEngine run), but the
     legacy engine's :AuditEvent shows the run actually completed -- the
     child should reflect "completed", not the old hard-coded "queued"."""
     audit_rows = [

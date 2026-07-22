@@ -43,6 +43,7 @@ class SituationArtifactType(str, Enum):
     patient_context = "PatientContext"
     summarisation_context = "SummarisationContext"
     encounter = "Encounter"
+    document_reference = "DocumentReference"
     # Deprecated: removed after one minor version. Producers must migrate
     # to summarisation_context with a SummarisationContext value.
     fixed_text = "FixedText"
@@ -59,7 +60,8 @@ class SummarisationContext(str, Enum):
         Primary care      - clinic_appointment_prep, annual_ltc_review,
                             structured_medication_review,
                             mdt_discussion, ncda, two_week_wait,
-                            frailty_pcsp, learning_disability_ahc
+                            referral_assessment, frailty_pcsp,
+                            learning_disability_ahc
         Secondary care    - hospital_admission, discharge_summary,
                             ooh_handover, outpatient_new_clinic,
                             outpatient_followup_clinic, mdt_specialty,
@@ -87,13 +89,14 @@ class SummarisationContext(str, Enum):
     /admin/knowledge?tab=ai-instructions (see DI-LEO-AI-507).
     """
 
-    # Primary care (8)
+    # Primary care (9)
     clinic_appointment_prep = "clinic_appointment_prep"
     annual_ltc_review = "annual_ltc_review"
     structured_medication_review = "structured_medication_review"
     mdt_discussion = "mdt_discussion"
     ncda = "ncda"
     two_week_wait = "two_week_wait"
+    referral_assessment = "referral_assessment"
     frailty_pcsp = "frailty_pcsp"
     learning_disability_ahc = "learning_disability_ahc"
     # Secondary care (15)
@@ -140,6 +143,7 @@ SUMMARISATION_CONTEXT_GROUPS: dict[SummarisationContext, str] = {
     SummarisationContext.mdt_discussion: "Primary care",
     SummarisationContext.ncda: "Primary care",
     SummarisationContext.two_week_wait: "Primary care",
+    SummarisationContext.referral_assessment: "Primary care",
     SummarisationContext.frailty_pcsp: "Primary care",
     SummarisationContext.learning_disability_ahc: "Primary care",
     # Secondary care
@@ -185,6 +189,7 @@ SUMMARISATION_CONTEXT_LABELS: dict[SummarisationContext, str] = {
     SummarisationContext.mdt_discussion: "MDT prep (primary care)",
     SummarisationContext.ncda: "National Cancer Diagnosis Audit (NCDA)",
     SummarisationContext.two_week_wait: ("Suspected cancer (2WW / Faster Diagnosis)"),
+    SummarisationContext.referral_assessment: "Referral assessment triage",
     SummarisationContext.frailty_pcsp: (
         "Frailty / personalised care and support plan (PCSP)"
     ),
@@ -264,6 +269,19 @@ SUMMARISATION_CONTEXT_PROMPTS: dict[SummarisationContext, str] = {
         "Frame the Situation around the suspected cancer concern, the "
         "2WW / Faster Diagnosis pathway and what the receiving team "
         "needs to action."
+    ),
+    SummarisationContext.referral_assessment: (
+        "Write only the Situation in 1-2 short sentences. Shape: "
+        "who the patient is (age/sex if known), what was requested "
+        "(urgency + investigation or specialty), and ONE headline "
+        "trigger phrase from the letter (for example a palpable mass "
+        "or a stated malignancy concern). Never assume two-week-wait "
+        "or Faster Diagnosis unless the letter says so. Do NOT retell "
+        "the symptom timeline, treatment trials (for example PPI "
+        "failure), examination detail, comorbidities, medicines, or "
+        "negatives -- Background owns those. If a field is not stated, "
+        "omit it. Do not write a missing-from-system-data apology when "
+        "the letter is present."
     ),
     SummarisationContext.frailty_pcsp: (
         "Frame the Situation around a frailty / personalised care and "
@@ -423,8 +441,8 @@ class SBARArtifactRef(BaseModel):
 
     The validator enforces a per-type contract:
 
-    * ``referral_request``, ``procedure_request``, ``patient_context``
-      require a Neo4j node id.
+    * ``referral_request``, ``procedure_request``, ``patient_context``,
+      ``encounter``, ``document_reference`` require a Neo4j node id.
     * ``summarisation_context`` requires a ``context_value`` from
       :class:`SummarisationContext`.
     * The legacy ``fixed_text`` requires a non-empty ``text`` value.

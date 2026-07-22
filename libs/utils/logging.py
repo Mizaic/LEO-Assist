@@ -6,7 +6,8 @@ Atlas trace:
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-89AF1CCE")
 
 Console-first logging for local operations with consistent fields across
-APIs and workers. Keeps a clear migration path to structured export later.
+APIs and workers. Optional ANSI colour by level for terminal sessions.
+Keeps a clear migration path to structured export later.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import contextlib
 import contextvars
 import logging
 import os
+import sys
 from collections.abc import Iterator
 
 _request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
@@ -45,6 +47,23 @@ _DEFAULT_ACCESS_SUPPRESS_PATHS: tuple[str, ...] = (
     "/pipeline/classification-disagreements",
 )
 
+_LOG_FORMAT = (
+    "%(asctime)s %(levelname)s %(name)s "
+    "[svc=%(service)s req=%(request_id)s corr=%(correlation_id)s] "
+    "%(message)s"
+)
+
+# ANSI colours for levelname only (ASCII escapes; keep messages readable).
+_LEVEL_COLOURS: dict[int, str] = {
+    logging.DEBUG: "\033[36m",  # cyan
+    logging.INFO: "\033[32m",  # green
+    logging.WARNING: "\033[33m",  # yellow
+    logging.ERROR: "\033[31m",  # red
+    logging.CRITICAL: "\033[1;31m",  # bold red
+}
+_RESET = "\033[0m"
+_DIM = "\033[2m"
+
 
 class _ContextFilter(logging.Filter):
     def __init__(self, service_name: str) -> None:
@@ -70,6 +89,51 @@ class _AccessNoiseFilter(logging.Filter):
         return not any(path in msg for path in self._suppress_paths)
 
 
+class ColourFormatter(logging.Formatter):
+    """Format records with colour-coded level names for terminal output."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        original_levelname = record.levelname
+        colour = _LEVEL_COLOURS.get(record.levelno)
+        if colour:
+            record.levelname = f"{colour}{original_levelname}{_RESET}"
+        try:
+            rendered = super().format(record)
+        finally:
+            record.levelname = original_levelname
+        stamp = getattr(record, "asctime", None)
+        if colour and stamp:
+            # Dim the timestamp so INFO/WARN/ERROR stand out.
+            rendered = rendered.replace(stamp, f"{_DIM}{stamp}{_RESET}", 1)
+        return rendered
+
+
+def colour_enabled(*, stream: object | None = None) -> bool:
+    """Return True when ANSI colour should be applied to console logs.
+
+    Respects:
+      - NO_COLOR (https://no-color.org/)
+      - LOG_COLOR=auto|always|never (default auto)
+      - FORCE_COLOR / CLICOLOR_FORCE truthy overrides auto when stream is a TTY
+    """
+    if os.getenv("NO_COLOR", "").strip():
+        return False
+
+    mode = os.getenv("LOG_COLOR", "auto").strip().lower()
+    if mode in {"0", "false", "off", "never", "no"}:
+        return False
+    if mode in {"1", "true", "on", "always", "yes"}:
+        return True
+
+    # auto
+    force = os.getenv("FORCE_COLOR", "") or os.getenv("CLICOLOR_FORCE", "")
+    if force.strip() and force.strip() not in {"0", "false", "off"}:
+        return True
+
+    target = stream if stream is not None else sys.stderr
+    return bool(getattr(target, "isatty", lambda: False)())
+
+
 def configure_logging(
     *,
     service_name: str,
@@ -83,17 +147,22 @@ def configure_logging(
 
     logging.basicConfig(
         level=level,
-        format=(
-            "%(asctime)s %(levelname)s %(name)s "
-            "[svc=%(service)s req=%(request_id)s corr=%(correlation_id)s] "
-            "%(message)s"
-        ),
+        format=_LOG_FORMAT,
         force=True,
     )
 
     root = logging.getLogger()
+    use_colour = colour_enabled(stream=sys.stderr)
+    formatter: logging.Formatter
+    if use_colour:
+        formatter = ColourFormatter(_LOG_FORMAT)
+    else:
+        formatter = logging.Formatter(_LOG_FORMAT)
+
     context_filter = _ContextFilter(service_name)
     for handler in root.handlers:
+        handler.setLevel(level)
+        handler.setFormatter(formatter)
         handler.addFilter(context_filter)
 
     suppress_paths_env = os.getenv("ACCESS_LOG_SUPPRESS_PATHS", "")
@@ -107,6 +176,9 @@ def configure_logging(
     for handler in root.handlers:
         handler.addFilter(access_noise_filter)
 
+    # Keep service loggers at the configured floor so info/warn/error all emit.
+    logging.getLogger().setLevel(level)
+    logging.getLogger(service_name).setLevel(level)
     logging.getLogger("uvicorn").setLevel(level)
     logging.getLogger("uvicorn.error").setLevel(level)
     logging.getLogger("uvicorn.access").setLevel(access_level)

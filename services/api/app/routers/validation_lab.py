@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import PatientGraphClient
-from app.deps import require_admin
+from app.deps import require_admin_or_service
 from libs.auth.org_scope import CallerScope
 from libs.validation_lab.models import (
     AgConversationTurn,
@@ -131,7 +131,9 @@ def _client() -> PatientGraphClient:
 
 
 @router.get("/governance")
-def get_governance(_scope: CallerScope = Depends(require_admin)) -> dict[str, Any]:
+def get_governance(
+    _scope: CallerScope = Depends(require_admin_or_service),
+) -> dict[str, Any]:
     """Publish keep/retire matrix for UI and static VTs."""
     return {
         "lab_path": "/admin/validation-lab",
@@ -176,7 +178,7 @@ def get_governance(_scope: CallerScope = Depends(require_admin)) -> dict[str, An
 @router.post("/cases", status_code=status.HTTP_201_CREATED)
 def create_case(
     body: CreateCaseBody,
-    scope: CallerScope = Depends(require_admin),
+    scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     case_id = (body.case_id or "").strip() or uuid.uuid4().hex
     gp_enc = None
@@ -286,7 +288,7 @@ def create_case(
 @router.post("/preview-pmh-narrative")
 def preview_pmh_narrative(
     body: PreviewPmhBody,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     try:
         return lab_service.preview_pmh_narrative(
@@ -302,7 +304,7 @@ def preview_pmh_narrative(
 @router.get("/cases")
 def list_cases(
     limit: int = Query(200, ge=1, le=500),
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> list[dict[str, Any]]:
     client = _client()
     try:
@@ -314,7 +316,7 @@ def list_cases(
 @router.get("/cases/{case_id}")
 def get_case(
     case_id: str,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     client = _client()
     try:
@@ -329,7 +331,7 @@ def get_case(
 def update_case(
     case_id: str,
     body: UpdateCaseBody,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     client = _client()
     try:
@@ -350,7 +352,7 @@ def update_case(
 @router.delete("/cases/{case_id}")
 def delete_case(
     case_id: str,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     client = _client()
     try:
@@ -367,7 +369,7 @@ def delete_case(
 @router.get("/cases/{case_id}/graph-shape")
 def get_graph_shape(
     case_id: str,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     client = _client()
     try:
@@ -382,7 +384,7 @@ def get_graph_shape(
 @router.post("/ag-runs", status_code=status.HTTP_201_CREATED)
 def start_ag_run(
     body: StartAgRunBody,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     from libs.validation_lab.ag_pipeline import AgPipelineError
     from libs.validation_lab.pipeline import default_publish
@@ -412,7 +414,7 @@ def start_ag_run(
 @router.get("/ag-runs/{run_id}")
 def get_ag_run(
     run_id: str,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     client = _client()
     try:
@@ -425,7 +427,7 @@ def get_ag_run(
 def start_run(
     case_id: str,
     body: StartRunBody,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     from libs.validation_lab.gold import RunOutputs
     from libs.validation_lab.pipeline import default_publish
@@ -455,7 +457,7 @@ def start_run(
 def get_run(
     case_id: str,
     run_id: str,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     """Poll a run's real status. Production runs are refreshed from the
     live pipeline (:PipelineRun / :AuditEvent) on every call until terminal."""
@@ -472,7 +474,7 @@ def get_run(
 def promote_gold(
     case_id: str,
     run_id: str,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     client = _client()
     try:
@@ -489,7 +491,7 @@ def promote_gold(
 def score_run(
     case_id: str,
     run_id: str,
-    _scope: CallerScope = Depends(require_admin),
+    _scope: CallerScope = Depends(require_admin_or_service),
 ) -> dict[str, Any]:
     client = _client()
     try:

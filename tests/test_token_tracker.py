@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -24,6 +23,24 @@ class TestExtractTokenCounts:
         assert counts["output_tokens"] == 50
         assert counts["cache_creation_input_tokens"] == 10
         assert counts["cache_read_input_tokens"] == 5
+
+    def test_bedrock_camel_case_cache_fields(self):
+        from libs.llm_client.token_tracker import extract_token_counts
+
+        response = MagicMock()
+        response.usage_metadata = {
+            "inputTokens": 80,
+            "outputTokens": 40,
+            "cacheWriteInputTokens": 15,
+            "cacheReadInputTokens": 25,
+        }
+        response.response_metadata = {}
+
+        counts = extract_token_counts(response, "bedrock")
+        assert counts["input_tokens"] == 80
+        assert counts["output_tokens"] == 40
+        assert counts["cache_creation_input_tokens"] == 15
+        assert counts["cache_read_input_tokens"] == 25
 
     def test_azure_response_with_usage(self):
         from libs.llm_client.token_tracker import extract_token_counts

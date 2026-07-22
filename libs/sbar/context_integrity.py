@@ -175,6 +175,19 @@ def validate_sbar_context(
                         record_id=record_id,
                     )
                 )
+        elif ref.type is SituationArtifactType.document_reference:
+            _append_if_missing(
+                errors,
+                session,
+                _DOCUMENT_FOR_PATIENT,
+                patient_id=patient_id,
+                record_id=record_id,
+                record_type="DocumentReference",
+                code="document_patient_mismatch",
+                message=(
+                    "A situation document is not connected to the " "stated patient."
+                ),
+            )
 
     for src in payload.background:
         record_id = src.id.strip()

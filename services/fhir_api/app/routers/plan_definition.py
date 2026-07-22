@@ -16,6 +16,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from libs.neo4j_client.client import KnowledgeGraphClient
+from libs.pipeline_graph.capability_registry import validate_plan_snapshot
+from libs.workflow.plan_seed import plan_content_hash
 
 router = APIRouter()
 
@@ -273,6 +275,13 @@ def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, A
 
         # 2. When publishing to active, snapshot the current state as an immutable version.
         if resource.get("status") == "active":
+            validation_errors = validate_plan_snapshot(resource)
+            if validation_errors:
+                raise HTTPException(
+                    422,
+                    "PlanDefinition publish failed capability validation: "
+                    + "; ".join(validation_errors),
+                )
             ver_rows = client.run(
                 "MATCH (pd:PlanDefinition {id: $pid})-[:HAS_VERSION]->(v:PlanDefinitionVersion) "
                 "RETURN coalesce(max(v.versionId), 0) AS max_ver",
@@ -280,17 +289,19 @@ def _save_plan_definition(plan_id: str, resource: Dict[str, Any]) -> Dict[str, A
             )
             next_ver = (ver_rows[0]["max_ver"] or 0) + 1 if ver_rows else 1
             now = datetime.now(timezone.utc).isoformat()
+            version_raw = json.dumps(resource)
             client.run(
                 "MATCH (pd:PlanDefinition {id: $pid}) "
                 "CREATE (pd)-[:HAS_VERSION]->(v:PlanDefinitionVersion {"
                 "  id: $vid, planId: $pid, versionId: $ver, "
-                "  status: 'active', rawJson: $raw, "
+                "  status: 'active', rawJson: $raw, contentHash: $content_hash, "
                 "  publishedAt: $now, versionNotes: $notes "
                 "})",
                 pid=plan_id,
                 vid=str(uuid.uuid4()),
                 ver=next_ver,
-                raw=json.dumps(resource),
+                raw=version_raw,
+                content_hash=plan_content_hash(resource),
                 now=now,
                 notes=version_notes,
             )

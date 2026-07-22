@@ -28,7 +28,7 @@ For retrieving the finished SBAR in the browser, see
 
 ## How it works
 
-A single trigger message starts a nine-step durable workflow that runs
+A single trigger message starts an eleven-step durable workflow that runs
 in the LEO pipeline worker:
 
 ```
@@ -40,10 +40,12 @@ trigger: "referral-received"
  3. relation_linking       -- entity-relation graph construction
  4. extraction_check       -- LLM accuracy pass
  5. terminology            -- SNOMED CT resolution
- 6. clinical_facts_persist -- write DOCUMENTS and CodingDecision nodes
- 7. compliance             -- NICE guideline rule evaluation
- 8. completeness           -- referral completeness and quality report
- 9. sbar                   -- SBAR summary generation
+ 6. coding_verifier        -- LLM coding verification pass
+ 7. clinical_facts_persist -- write DOCUMENTS and CodingDecision nodes
+ 8. compliance             -- NICE guideline rule evaluation
+ 9. completeness           -- referral completeness and quality report
+10. referral_reason        -- extract structured referral reason
+11. sbar                   -- SBAR summary generation
           |
           v
  completion: "referral_assessment_completed" -> referral-assessments-output
@@ -459,10 +461,12 @@ Host product backend
         +-- Step 3: relation_linking     (entity graph)
         +-- Step 4: extraction_check     (LLM verification)
         +-- Step 5: terminology          (SNOMED CT)
-        +-- Step 6: persist              (Neo4j write)
-        +-- Step 7: compliance           (NICE guideline check)
-        +-- Step 8: completeness         (quality report)
-        +-- Step 9: sbar                 (SBAR generation)
+        +-- Step 6: coding_verifier      (LLM coding pass)
+        +-- Step 7: persist              (Neo4j write)
+        +-- Step 8: compliance           (NICE guideline check)
+        +-- Step 9: completeness         (quality report)
+        +-- Step 10: referral_reason     (structured reason)
+        +-- Step 11: sbar                (SBAR generation)
         |
         | Progress events -> Redis pub/sub -> GET /api/pipeline/progress/{run_id} (SSE)
         |
@@ -488,7 +492,9 @@ Host product backend
 |---|---|---|
 | User Need | UN-64F0E9C3 | Embeddable AI surface across the Mizaic portfolio |
 | Design Input | DI-06CB6881 | Pipeline worker message bus consumer |
+| Design Input | DI-36F80B95 | Durable stage lease and pub/sub dispatch |
 | Design Output | DO-C2F6CA16 | Pipeline worker -- dual-mode HTTP + message bus |
+| Design Output | DO-CE65B1F2 | DurableStepRunner and stage store |
 | Risk | R-4965BCD2 | AI handover summary used without clinician review |
 
 Look up any artefact via:

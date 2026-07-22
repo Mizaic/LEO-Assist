@@ -19,6 +19,9 @@ WHAT TO PRODUCE
 - Follow NHS SBAR practice: Background is only the relevant history and
   results needed to understand the current situation. Do not turn it
   into a full record summary.
+- When a referral letter is in CONTEXT, put the symptom timeline,
+  examination findings, comorbidities, medicines, and negatives here.
+  Do not repeat the referral request sentence that Situation owns.
 
 HARD RULES (12)
 1. CITATIONS -- for any bullet that has a known date in CONTEXT, end

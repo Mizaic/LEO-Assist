@@ -24,12 +24,12 @@ from libs.prompts.sbar_background_v1 import SBAR_BACKGROUND_SYSTEM_V1
 from libs.prompts.sbar_recommendation_v1 import SBAR_RECOMMENDATION_SYSTEM_V1
 from libs.prompts.sbar_situation_v1 import SBAR_SITUATION_SYSTEM_V1
 from libs.sbar.prompt_calls import (
+    _LEGACY_SBAR_PROMPT_VERSIONS,
     _PROMPT_NAME_BACKGROUND,
     _PROMPT_NAME_RECOMMENDATION,
     _PROMPT_NAME_SITUATION,
-    _SBAR_PROMPT_VERSIONS,
 )
-
+from libs.workflow.referral_policy import DEFAULT_REFERRAL_POLICY
 
 ALL_PROMPTS = {
     "situation": SBAR_SITUATION_SYSTEM_V1,
@@ -41,12 +41,12 @@ ALL_PROMPTS = {
 def test_no_legacy_source_marker_rule():
     """The old ``[SOURCE: <type> <id> <date>]`` rule must be gone."""
     for name, txt in ALL_PROMPTS.items():
-        assert "<type> <id>" not in txt, (
-            f"{name}: legacy SOURCE marker rule must be removed"
-        )
-        assert "[SOURCE: <Encounter|DocumentReference|Chunk>" not in txt, (
-            f"{name}: legacy SOURCE format must be removed"
-        )
+        assert (
+            "<type> <id>" not in txt
+        ), f"{name}: legacy SOURCE marker rule must be removed"
+        assert (
+            "[SOURCE: <Encounter|DocumentReference|Chunk>" not in txt
+        ), f"{name}: legacy SOURCE format must be removed"
 
 
 def _flatten(txt: str) -> str:
@@ -59,37 +59,33 @@ def test_inline_uuid_prohibition_present():
     """Each prompt must explicitly ban inline encounter / document ids."""
     for name, txt in ALL_PROMPTS.items():
         flat = _flatten(txt)
-        assert "UUID-like reference" in flat, (
-            f"{name}: must forbid UUID-like references in narrative"
-        )
-        assert "encounter ids" in flat, (
-            f"{name}: must explicitly call out encounter ids"
-        )
+        assert (
+            "UUID-like reference" in flat
+        ), f"{name}: must forbid UUID-like references in narrative"
+        assert (
+            "encounter ids" in flat
+        ), f"{name}: must explicitly call out encounter ids"
 
     # Situation + Background additionally forbid the literal SOURCE:
     # token inline. Recommendation uses [RULE: ...] markers and so does
     # not need to mention SOURCE: literally.
     for name in ("situation", "background"):
         flat = _flatten(ALL_PROMPTS[name])
-        assert "SOURCE:" in flat, (
-            f"{name}: must reference the literal SOURCE: token to ban it"
-        )
+        assert (
+            "SOURCE:" in flat
+        ), f"{name}: must reference the literal SOURCE: token to ban it"
 
 
 def test_plain_english_rule_present():
     """Reading age 11 + NHS clinical terms allowed + active voice."""
     for name, txt in ALL_PROMPTS.items():
         flat = _flatten(txt)
-        assert "reading age of 11" in flat, (
-            f"{name}: must set reading age of 11"
-        )
-        assert "NHS clinical terms" in flat, (
-            f"{name}: must allow standard NHS clinical terms"
-        )
+        assert "reading age of 11" in flat, f"{name}: must set reading age of 11"
+        assert (
+            "NHS clinical terms" in flat
+        ), f"{name}: must allow standard NHS clinical terms"
         assert "active voice" in flat, f"{name}: must require active voice"
-        assert "British English" in flat, (
-            f"{name}: must require British English"
-        )
+        assert "British English" in flat, f"{name}: must require British English"
 
 
 def test_legacy_reading_age_directive_replaced():
@@ -104,18 +100,25 @@ def test_legacy_reading_age_directive_replaced():
 def test_prompt_injection_rule_intact():
     """CONTEXT free text must still be treated as data, not instructions."""
     for name, txt in ALL_PROMPTS.items():
-        assert "untrusted data" in txt, (
-            f"{name}: prompt-injection rule must still be present"
-        )
+        assert (
+            "untrusted data" in txt
+        ), f"{name}: prompt-injection rule must still be present"
 
 
-def test_runtime_pins_all_three_to_v2():
-    """``_default_prompt`` resolves SBAR fetches to v2."""
-    assert _SBAR_PROMPT_VERSIONS == {
+def test_legacy_fallback_pins_all_three_to_v2():
+    """Legacy fallback resolves SBAR fetches to v2 when no manifest is present."""
+    assert _LEGACY_SBAR_PROMPT_VERSIONS == {
         _PROMPT_NAME_SITUATION: 2,
         _PROMPT_NAME_BACKGROUND: 2,
         _PROMPT_NAME_RECOMMENDATION: 2,
     }
+
+
+def test_default_referral_policy_pins_all_three_to_v2():
+    prompts = DEFAULT_REFERRAL_POLICY["prompts"]
+    assert prompts["situation"]["version"] == 2
+    assert prompts["background"]["version"] == 2
+    assert prompts["recommendation"]["version"] == 2
 
 
 def test_seed_script_registers_both_v1_and_v2():

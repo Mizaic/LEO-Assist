@@ -123,6 +123,29 @@ export interface PhaseOutput {
   pipeline_error?: string;
 }
 
+/** Live durable pipeline stage from :PipelineStageRun (DI-2289D095). */
+export interface StageProgress {
+  step_id: string;
+  event_type?: string;
+  status: string;
+  /** lease_owner while running, else completed_by after finish. */
+  worker_id?: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
+export interface LabRunLlmUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cached_input_tokens?: number;
+  total_tokens?: number;
+  llm_calls?: number;
+  cost_usd?: number;
+  latency_ms?: number;
+  model_id?: string;
+  model_provider?: string;
+}
+
 export interface RunOutputs {
   snomed_codes?: string[];
   completeness?: Record<string, unknown>;
@@ -130,6 +153,7 @@ export interface RunOutputs {
   sbar_assessment_id?: string;
   sbar_markdown?: string;
   phase_outputs?: PhaseOutput[];
+  llm_usage?: LabRunLlmUsage;
 }
 
 export interface LabRun {
@@ -137,7 +161,11 @@ export interface LabRun {
   persist_mode: "production" | "dry_run";
   status: string;
   outputs?: RunOutputs;
+  stage_progress?: StageProgress[];
   error_message?: string;
+  llm_cost_usd?: number;
+  llm_total_tokens?: number;
+  llm_calls?: number;
 }
 
 export interface LabCase {
@@ -165,6 +193,11 @@ export interface LabCase {
   gold?: RunOutputs;
   runs?: LabRun[];
   has_gold?: boolean;
+  latest_run_id?: string | null;
+  latest_run_status?: string | null;
+  latest_llm_cost_usd?: number | null;
+  latest_llm_total_tokens?: number | null;
+  latest_llm_calls?: number | null;
   created_at?: string;
   updated_at?: string;
 }
