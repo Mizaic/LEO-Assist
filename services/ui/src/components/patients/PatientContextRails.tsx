@@ -183,11 +183,13 @@ export function ContextRail({
 }
 
 export function ClinicalContextRail({
+  patientId,
   entities,
   entitiesLoading,
   alertCount,
   onOpenAlerts,
 }: {
+  patientId: string;
   entities: CodedEntityRow[];
   entitiesLoading: boolean;
   alertCount: number;
@@ -205,6 +207,7 @@ export function ClinicalContextRail({
           </Typography>
         </Stack>
         <ProblemListView
+          patientId={patientId}
           entities={problems}
           loading={entitiesLoading}
           maxPerGroup={8}
