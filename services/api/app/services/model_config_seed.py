@@ -5,9 +5,9 @@ Atlas trace:
   DI: DI-88C1715A
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-92F92EFB")
 
-Neo4j is the source of truth.  Env vars / hardcoded defaults are used
-**only** when no ModelConfig nodes exist yet (fresh instance or DR restore).
-If any nodes are found in the graph at startup the seed is skipped entirely.
+Neo4j is the source of truth. Env vars / hardcoded defaults bootstrap
+missing keys and refresh ``source='seed'`` rows on every API start.
+User-edited ModelConfig nodes (``source='user'``) are never overwritten.
 
 Called from ``services/api/app/main.py`` lifespan.
 """
@@ -73,26 +73,54 @@ _COST_ENV_PREFIXES: dict[str, dict[str, str]] = {
 
 
 # ---------------------------------------------------------------------------
-# Baseline cost defaults (EU cross-region inference profile rates, per 1M tokens).
-# EU prefix adds ~10% over US on-demand rates.
-# Sources: cloudprice.net / AWS Bedrock pricing page — verified 2026-03-08.
-# Override any of these at runtime via the corresponding env vars.
+# Baseline cost defaults (USD per 1M tokens). Verified 2026-07-22.
+#
+# AWS EU cross-region inference profiles = Anthropic base * 1.1:
+#   Haiku 4.5: 1.10 / 0.110 / 1.375 write / 5.50
+#   Sonnet 4.6: 3.30 / 0.330 / 4.125 write / 16.50
+#   Opus 4.6: 5.50 / 0.550 / 6.875 write / 27.50
+# Cache write = 5-minute TTL at 1.25x input (Bedrock / Anthropic default).
+#
+# Azure OpenAI Data Zone (EU) from azure.com pricing page:
+#   GPT-5-mini: 0.28 / 0.03 / 2.20
+#   GPT-5: 1.38 / 0.14 / 11.00
+# Azure has no separate cache-write rate; write defaults to input rate.
 # ---------------------------------------------------------------------------
 
 _COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
     "aws": {
-        # eu.anthropic.claude-haiku-4-5-20251001-v1:0
-        "small": {"input": 1.10, "cached": 0.110, "output": 5.50},
-        # eu.anthropic.claude-sonnet-4-6
-        "big": {"input": 3.30, "cached": 0.330, "output": 16.50},
-        # eu.anthropic.claude-opus-4-6-v1
-        "max": {"input": 5.50, "cached": 0.550, "output": 27.50},
+        "small": {
+            "input": 1.10,
+            "cached": 0.110,
+            "cache_write": 1.375,
+            "output": 5.50,
+        },
+        "big": {
+            "input": 3.30,
+            "cached": 0.330,
+            "cache_write": 4.125,
+            "output": 16.50,
+        },
+        "max": {
+            "input": 5.50,
+            "cached": 0.550,
+            "cache_write": 6.875,
+            "output": 27.50,
+        },
     },
     "azure": {
-        # azure/eu/gpt-5-mini-2025-08-07
-        "small": {"input": 0.275, "cached": 0.028, "output": 2.20},
-        # azure/eu/gpt-5-2025-08-07
-        "big": {"input": 1.375, "cached": 0.138, "output": 11.00},
+        "small": {
+            "input": 0.28,
+            "cached": 0.03,
+            "cache_write": 0.28,
+            "output": 2.20,
+        },
+        "big": {
+            "input": 1.38,
+            "cached": 0.14,
+            "cache_write": 1.38,
+            "output": 11.00,
+        },
     },
 }
 
@@ -101,18 +129,26 @@ def _model_seed_row(provider: str, tier: str) -> dict:
     prefix = _COST_ENV_PREFIXES[provider][tier]
     model_id_env = _MODEL_ID_ENVS[provider][tier]
     defaults = _COST_DEFAULTS[provider][tier]
+    input_rate = float(
+        os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", str(defaults["input"]))
+    )
+    write_default = defaults.get("cache_write", input_rate * 1.25)
     return {
         "key": f"{provider}:{tier}",
         "provider": provider,
         "tier": tier,
         "display_name": _DISPLAY_NAMES[provider][tier],
         "model_id": os.getenv(model_id_env, _MODEL_ID_DEFAULTS[provider][tier]),
-        "cost_per_1m_input": float(
-            os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", str(defaults["input"]))
-        ),
+        "cost_per_1m_input": input_rate,
         "cost_per_1m_cached": float(
             os.getenv(
                 f"{prefix}_COST_PER_1M_CACHED_INPUT_TOKEN", str(defaults["cached"])
+            )
+        ),
+        "cost_per_1m_cache_write": float(
+            os.getenv(
+                f"{prefix}_COST_PER_1M_CACHE_WRITE_TOKEN",
+                str(write_default),
             )
         ),
         "cost_per_1m_output": float(
@@ -123,15 +159,13 @@ def _model_seed_row(provider: str, tier: str) -> dict:
 
 
 def seed_model_configs(client) -> None:
-    """Bootstrap ModelConfig nodes if and only if none exist in Neo4j.
+    """Upsert seeded ModelConfig rows; leave user-edited rows untouched.
 
-    On a running instance the graph is always the source of truth — this
-    function exits immediately if any ModelConfig nodes are present.
-    The env-var defaults are only applied on a fresh instance or after a
-    full DR restore where the graph has been wiped.
+    UPSERT_MODEL_CONFIG only overwrites cost/display fields when
+    ``source='seed'``. Missing keys are created. User overrides keep
+    ``source='user'`` and are skipped on MATCH.
     """
     from libs.cypher.model_config_queries import (
-        COUNT_MODEL_CONFIGS,
         CREATE_CONSTRAINT_MODEL_CONFIG,
         UPSERT_MODEL_CONFIG,
     )
@@ -139,29 +173,25 @@ def seed_model_configs(client) -> None:
     try:
         with client.session() as session:
             session.run(CREATE_CONSTRAINT_MODEL_CONFIG)
-            total = session.run(COUNT_MODEL_CONFIGS).single()["total"]
 
-        if total > 0:
-            logger.info(
-                "ModelConfig: %d node(s) already in Neo4j — skipping seed", total
-            )
-            return
-
-        logger.info("ModelConfig: no nodes found — bootstrapping from defaults")
-        seeded = 0
+        upserted = 0
         for provider in ("aws", "azure"):
             for tier in _MODEL_ID_ENVS[provider]:
                 row = _model_seed_row(provider, tier)
                 with client.session() as session:
-                    session.run(UPSERT_MODEL_CONFIG, **row)
+                    result = session.run(UPSERT_MODEL_CONFIG, **row).single()
+                source = (result or {}).get("source", "seed")
                 logger.info(
-                    "ModelConfig %s created (input=$%.2f/1M out=$%.2f/1M cached=$%.3f/1M)",
+                    "ModelConfig %s upserted source=%s "
+                    "(input=$%.2f cached=$%.3f write=$%.3f out=$%.2f /1M)",
                     row["key"],
+                    source,
                     row["cost_per_1m_input"],
-                    row["cost_per_1m_output"],
                     row["cost_per_1m_cached"],
+                    row["cost_per_1m_cache_write"],
+                    row["cost_per_1m_output"],
                 )
-                seeded += 1
-        logger.info("ModelConfig bootstrap done: %d models written", seeded)
+                upserted += 1
+        logger.info("ModelConfig seed refresh done: %d models upserted", upserted)
     except Exception as exc:
         logger.warning("ModelConfig seed failed (non-fatal): %s", exc)

@@ -1,40 +1,26 @@
-"""Verify the pub/sub contract for every step in pd-referral-assessment.
+"""Verify the pub/sub contract for pd-referral-assessment via DurableStepRunner.
 
-Each durable step must:
-  1. Publish the correct next event to ``pipeline-jobs`` (internal steps).
-  2. The terminal step (sbar_requested) must publish
-     ``referral_assessment_completed`` to ``referral-assessments-output``
-     -- NOT to pipeline-jobs -- so downstream consumers receive a clean
-     completion signal without access to the internal step queue.
-  3. Context (including consumer correlation IDs such as ``case_id`` and
-     ``source``) must pass through unchanged to the completion event.
+Replaces the deleted referral_durable_steps module tests (G5.1).
 
 Atlas trace:
-  DO: DO-C2F6CA16  (referral_durable_steps)
-  DI: DI-06CB6881
+  DO: DO-CE65B1F2
+  DI: DI-36F80B95
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.pipeline_worker.app.services.referral_durable_steps import (
-    REFERRAL_OUTPUT_QUEUE,
-    REFERRAL_STEPS,
-    REFERRAL_STEP_BY_EVENT,
-    REFERRAL_WORKFLOW_ID,
-    _build_completion_body,
-    _persist_completion_event,
-    handle_referral_durable_message,
-    start_referral_durable_workflow,
+from libs.message_bus.base import Message
+from libs.workflow.durable_step_runner import (
+    DURABLE_STEP_EVENT,
+    DurableStepRunner,
+    _Action,
 )
-from libs.message_bus.base import Message  # noqa: E402
-from libs.workflow.durable_steps import StepRequest, StepResult  # noqa: E402
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+from libs.workflow.plan_manifest import PlanManifest
+from libs.workflow.pipeline_stage_store import StageClaimResult, StageCompleteResult
 
 FAKE_CONTEXT = {
     "source": "ai_summarisation_scenario",
@@ -43,385 +29,179 @@ FAKE_CONTEXT = {
 }
 
 
-def _request(event_type: str) -> StepRequest:
-    defn = REFERRAL_STEP_BY_EVENT[event_type]
-    return StepRequest(
-        event_type=event_type,
-        run_id="run-abc",
-        workflow_id=REFERRAL_WORKFLOW_ID,
-        step_id=defn.step_id,
-        patient_id="patient-1",
-        encounter_id="encounter-1",
-        plan_definition_id=REFERRAL_WORKFLOW_ID,
-        guideline_id="NG12",
-        completeness_domain="cancer_referrals",
-        completeness_subdomain="upper_gi",
-        context=FAKE_CONTEXT,
+def _manifest(*actions: _Action) -> PlanManifest:
+    return PlanManifest(
+        plan_id="pd-referral-assessment",
+        version_id=1,
+        version_node_id="ver-test-1",
+        policy_version="v1",
+        workflow_mode="durable_pubsub",
+        actions=tuple(actions),
     )
 
 
-def _fake_store():
-    store = MagicMock()
-    store.ensure_schema = MagicMock()
-    store.upsert_run = MagicMock()
-    store.start_stage = MagicMock()
-    store.complete_stage = MagicMock()
-    store.load_accumulated_state = MagicMock(return_value={})
-    return store
+def _terminal_action() -> _Action:
+    return _Action(
+        action_id="act-ref-sbar",
+        subgraph_id="sbar",
+        completion_queue="referral-assessments-output",
+        completion_event_type="referral_assessment_completed",
+    )
 
 
-# ---------------------------------------------------------------------------
-# Step chain integrity
-# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_terminal_sbar_publishes_completion_to_output_queue() -> None:
+    mock_bus = AsyncMock()
+    mock_bus.send = AsyncMock()
+    mock_graph = MagicMock()
+    mock_graph.invoke = MagicMock(return_value={"sbar_assessment_id": "assess-xyz"})
 
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-sbar",
+        "step_id": "act-ref-sbar",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-pubsub-1",
+        "patient_id": "patient-1",
+        "guideline_id": "NG12",
+        "completeness_domain": "cancer_referrals",
+        "completeness_subdomain": "upper_gi",
+        "context": FAKE_CONTEXT,
+        "_message_id": "msg-terminal-1",
+    }
 
-def test_referral_steps_chain_is_complete():
-    """Every internal next_event_type must map to a known step."""
-    known = {s.event_type for s in REFERRAL_STEPS}
-    for step in REFERRAL_STEPS:
-        if step.next_event_type and step.next_step_id:
-            assert step.next_event_type in known, (
-                f"{step.step_id}: next_event_type '{step.next_event_type}' "
-                f"has no matching step definition"
+    store = MagicMock(
+        ensure_schema=MagicMock(),
+        upsert_run=MagicMock(),
+        claim_stage=MagicMock(
+            return_value=StageClaimResult(
+                outcome="claimed",
+                lease_owner="worker-1",
+                lease_generation=1,
             )
-
-
-def test_terminal_step_has_completion_event_type():
-    """The last step must carry a completion_event_type and no next_step_id."""
-    terminal = REFERRAL_STEPS[-1]
-    assert terminal.next_event_type is None
-    assert terminal.next_step_id is None
-    assert terminal.completion_event_type == "referral_assessment_completed"
-
-
-def test_no_human_review_step_in_workflow():
-    """human_review_requested must not be inside the device workflow."""
-    event_types = {s.event_type for s in REFERRAL_STEPS}
-    assert "human_review_requested" not in event_types
-
-
-# ---------------------------------------------------------------------------
-# start_referral_durable_workflow publishes to pipeline-jobs
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_start_publishes_extraction_requested_to_pipeline_queue():
-    bus = AsyncMock()
-    bus.send = AsyncMock()
-    fake_client = MagicMock()
-    fake_client.run = MagicMock(return_value=[])
-    fake_client.close = MagicMock()
+        ),
+        complete_stage=MagicMock(return_value=StageCompleteResult(outcome="completed")),
+        mark_next_published=MagicMock(),
+        renew_stage_lease=MagicMock(return_value=True),
+    )
 
     with (
         patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
-            return_value=fake_client,
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(_terminal_action()),
         ),
         patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
-            return_value=_fake_store(),
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=store,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "patient-1", **FAKE_CONTEXT},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
         ),
     ):
-        await start_referral_durable_workflow(
-            {
-                "event_type": "referral-received",
-                "plan_definition_id": REFERRAL_WORKFLOW_ID,
-                "patient_id": "p1",
-                "encounter_id": "e1",
-                "guideline_id": "NG12",
-                "context": FAKE_CONTEXT,
-            },
-            bus=bus,
-        )
+        await DurableStepRunner.run_step(body, bus=mock_bus)
 
-    assert bus.send.await_count == 1
-    queue, msg = bus.send.await_args.args
-    assert queue == "pipeline-jobs"
+    mock_bus.send.assert_called_once()
+    queue, msg = mock_bus.send.call_args.args
+    assert queue == "referral-assessments-output"
     assert isinstance(msg, Message)
-    assert msg.body["event_type"] == "extraction_requested"
-    assert msg.body["context"] == FAKE_CONTEXT
-
-
-# ---------------------------------------------------------------------------
-# Each internal step publishes the correct next event to pipeline-jobs
-# ---------------------------------------------------------------------------
-
-_INTERNAL_STEPS = [
-    (s.event_type, s.next_event_type)
-    for s in REFERRAL_STEPS
-    if s.next_event_type and s.next_step_id
-]
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("event_type,expected_next", _INTERNAL_STEPS)
-async def test_internal_step_publishes_to_pipeline_queue(
-    event_type: str, expected_next: str
-) -> None:
-    bus = AsyncMock()
-    bus.send = AsyncMock()
-    fake_client = MagicMock()
-    fake_client.run = MagicMock(return_value=[])
-    fake_client.close = MagicMock()
-
-    store = _fake_store()
-    store.load_accumulated_state = MagicMock(return_value={"encounter_text": "text"})
-
-    with (
-        patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
-            return_value=fake_client,
-        ),
-        patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
-            return_value=store,
-        ),
-        patch(
-            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
-            return_value=StepResult(
-                status="completed",
-                output={},
-                next_event_type=expected_next,
-                next_step_id=REFERRAL_STEP_BY_EVENT[expected_next].step_id,
-            ),
-        ),
-    ):
-        step_id = REFERRAL_STEP_BY_EVENT[event_type].step_id
-        await handle_referral_durable_message(
-            _request(event_type).to_message(event_type, step_id),
-            bus=bus,
-        )
-
-    assert bus.send.await_count == 1
-    queue, msg = bus.send.await_args.args
-    assert queue == "pipeline-jobs", (
-        f"{event_type}: expected pipeline-jobs, got {queue}"
-    )
-    assert msg.body["event_type"] == expected_next
-
-
-# ---------------------------------------------------------------------------
-# Terminal step publishes to the output queue, not pipeline-jobs
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_sbar_step_publishes_completion_to_output_queue():
-    bus = AsyncMock()
-    bus.send = AsyncMock()
-    fake_client = MagicMock()
-    fake_client.run = MagicMock(return_value=[])
-    fake_client.close = MagicMock()
-
-    store = _fake_store()
-    store.load_accumulated_state = MagicMock(return_value={})
-
-    with (
-        patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
-            return_value=fake_client,
-        ),
-        patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
-            return_value=store,
-        ),
-        patch(
-            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
-            return_value=StepResult(
-                status="completed",
-                output={"sbar_assessment_id": "assess-xyz"},
-                next_event_type=None,
-                next_step_id=None,
-            ),
-        ),
-    ):
-        await handle_referral_durable_message(
-            _request("sbar_requested").to_message(
-                "sbar_requested", "durable-ref-sbar"
-            ),
-            bus=bus,
-        )
-
-    assert bus.send.await_count == 1
-    queue, msg = bus.send.await_args.args
-    assert queue == REFERRAL_OUTPUT_QUEUE
     assert msg.body["event_type"] == "referral_assessment_completed"
-    assert msg.body["assessment_id"] == "assess-xyz"
-    assert msg.body["status"] == "completed"
+    assert msg.body["sbar_assessment_id"] == "assess-xyz"
     assert msg.body["context"]["case_id"] == "upper_gi_form_001"
-    assert msg.body["context"]["source"] == "ai_summarisation_scenario"
 
 
 @pytest.mark.asyncio
-async def test_sbar_step_completion_status_completed_with_errors_on_partial():
-    bus = AsyncMock()
-    bus.send = AsyncMock()
-    fake_client = MagicMock()
-    fake_client.run = MagicMock(return_value=[])
-    fake_client.close = MagicMock()
+async def test_internal_step_publishes_next_durable_step_to_pipeline_queue() -> None:
+    current = _Action(action_id="act-ref-extract", subgraph_id="extraction")
+    nxt = _Action(
+        action_id="act-ref-post-process",
+        subgraph_id="post_processing",
+        related_actions=[{"actionId": "act-ref-extract"}],
+    )
+    mock_bus = AsyncMock()
+    mock_bus.send = AsyncMock()
+    mock_graph = MagicMock()
+    mock_graph.invoke = MagicMock(return_value={"entities": []})
+
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-extract",
+        "step_id": "act-ref-extract",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-pubsub-2",
+        "patient_id": "patient-1",
+        "context": FAKE_CONTEXT,
+        "_message_id": "msg-internal-1",
+    }
 
     with (
         patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
-            return_value=fake_client,
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(current, nxt),
         ),
         patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
-            return_value=_fake_store(),
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
         ),
         patch(
-            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
-            return_value=StepResult(
-                status="completed",
-                output={"sbar_assessment_id": "assess-err"},
-                errors=["background stage failed"],
-                next_event_type=None,
-                next_step_id=None,
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=MagicMock(
+                ensure_schema=MagicMock(),
+                upsert_run=MagicMock(),
+                claim_stage=MagicMock(
+                    return_value=StageClaimResult(
+                        outcome="claimed",
+                        lease_owner="worker-1",
+                        lease_generation=1,
+                    )
+                ),
+                complete_stage=MagicMock(
+                    return_value=StageCompleteResult(outcome="completed")
+                ),
+                mark_next_published=MagicMock(),
+                renew_stage_lease=MagicMock(return_value=True),
             ),
         ),
-    ):
-        await handle_referral_durable_message(
-            _request("sbar_requested").to_message(
-                "sbar_requested", "durable-ref-sbar"
-            ),
-            bus=bus,
-        )
-
-    _, msg = bus.send.await_args.args
-    assert msg.body["status"] == "completed_with_errors"
-    assert "background stage failed" in msg.body["errors"]
-
-
-# ---------------------------------------------------------------------------
-# Completion body helper
-# ---------------------------------------------------------------------------
-
-
-def test_build_completion_body_passthrough():
-    """Context fields survive into the completion event unchanged."""
-    from services.pipeline_worker.app.services.referral_durable_steps import REFERRAL_STEP_BY_EVENT
-
-    req = _request("sbar_requested")
-    defn = REFERRAL_STEP_BY_EVENT["sbar_requested"]
-    result = StepResult(
-        status="completed",
-        output={"sbar_assessment_id": "assess-1"},
-        errors=[],
-    )
-    body = _build_completion_body(req, result, defn)
-
-    assert body["event_type"] == "referral_assessment_completed"
-    assert body["assessment_id"] == "assess-1"
-    assert body["guideline_id"] == "NG12"
-    assert body["completeness_domain"] == "cancer_referrals"
-    assert body["completeness_subdomain"] == "upper_gi"
-    assert body["context"]["case_id"] == "upper_gi_form_001"
-    assert body["context"]["parent_run_id"] == "parent-run-123"
-    assert body["status"] == "completed"
-
-
-# ---------------------------------------------------------------------------
-# _persist_completion_event writes completion_event_json to the graph
-# ---------------------------------------------------------------------------
-
-
-def test_persist_completion_event_writes_to_neo4j():
-    """_persist_completion_event must call the Neo4j client with the correct
-    query and parameters.  The JSON must be a serialised version of the body."""
-    import json
-
-    from libs.cypher.pipeline_stage_queries import WRITE_PIPELINE_RUN_COMPLETION
-
-    fake_client = MagicMock()
-    fake_client.run = MagicMock(return_value=[])
-    fake_client.close = MagicMock()
-
-    body = {"event_type": "referral_assessment_completed", "assessment_id": "a1"}
-    with patch(
-        "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
-        return_value=fake_client,
-    ):
-        _persist_completion_event("run-42", body)
-
-    fake_client.run.assert_called_once_with(
-        WRITE_PIPELINE_RUN_COMPLETION,
-        run_id="run-42",
-        completion_event_json=json.dumps(body, default=str),
-    )
-    fake_client.close.assert_called_once()
-
-
-def test_persist_completion_event_is_best_effort():
-    """A Neo4j failure must not raise -- just log a warning."""
-    fake_client = MagicMock()
-    fake_client.run = MagicMock(side_effect=RuntimeError("connection refused"))
-    fake_client.close = MagicMock()
-
-    with patch(
-        "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
-        return_value=fake_client,
-    ):
-        # Should not raise
-        _persist_completion_event("run-43", {"event_type": "test"})
-
-    fake_client.close.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_sbar_step_writes_completion_event_to_graph():
-    """The terminal step must persist the completion event to the graph
-    immediately after publishing to the output queue."""
-    bus = AsyncMock()
-    bus.send = AsyncMock()
-    fake_client = MagicMock()
-    fake_client.run = MagicMock(return_value=[])
-    fake_client.close = MagicMock()
-
-    store = _fake_store()
-    with (
         patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PatientGraphClient",
-            return_value=fake_client,
+            "libs.workflow.durable_step_runner.dispatch_stage_outbox",
+            new_callable=AsyncMock,
+        ) as dispatch_mock,
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "patient-1"},
         ),
         patch(
-            "services.pipeline_worker.app.services.referral_durable_steps.PipelineStageStore",
-            return_value=store,
-        ),
-        patch(
-            "services.pipeline_worker.app.services.referral_durable_steps._run_definition",
-            return_value=StepResult(
-                status="completed",
-                output={"sbar_assessment_id": "assess-graph-1"},
-                next_event_type=None,
-                next_step_id=None,
-            ),
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
         ),
     ):
-        await handle_referral_durable_message(
-            _request("sbar_requested").to_message(
-                "sbar_requested", "durable-ref-sbar"
-            ),
-            bus=bus,
-        )
 
-    # PatientGraphClient.run must have been called at least twice:
-    # once for PipelineStageStore internals and once for the completion write.
-    # We look for the WRITE_PIPELINE_RUN_COMPLETION call specifically.
-    from libs.cypher.pipeline_stage_queries import WRITE_PIPELINE_RUN_COMPLETION
+        async def _dispatch(_store, bus, _request):
+            await bus.send(
+                "pipeline-jobs",
+                Message(
+                    body={
+                        "event_type": DURABLE_STEP_EVENT,
+                        "action_id": "act-ref-post-process",
+                        "run_id": "run-pubsub-2",
+                        "patient_id": "patient-1",
+                    }
+                ),
+            )
+            return 1
 
-    completion_calls = [
-        call
-        for call in fake_client.run.call_args_list
-        if call.args and call.args[0] == WRITE_PIPELINE_RUN_COMPLETION
-    ]
-    assert len(completion_calls) == 1, (
-        "WRITE_PIPELINE_RUN_COMPLETION was not called exactly once"
-    )
-    kwargs = completion_calls[0].kwargs
-    assert kwargs["run_id"] is not None
-    import json
+        dispatch_mock.side_effect = _dispatch
+        await DurableStepRunner.run_step(body, bus=mock_bus)
 
-    saved = json.loads(kwargs["completion_event_json"])
-    assert saved["assessment_id"] == "assess-graph-1"
-    assert saved["event_type"] == "referral_assessment_completed"
+    queue, msg = mock_bus.send.call_args.args
+    assert queue == "pipeline-jobs"
+    assert msg.body["event_type"] == DURABLE_STEP_EVENT
+    assert msg.body["action_id"] == "act-ref-post-process"

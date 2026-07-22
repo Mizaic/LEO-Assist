@@ -189,5 +189,6 @@ async def _fire_tracking_callback(
         latency_ms=latency_ms,
         success=success,
         error_message=error_message,
+        input_excludes_cache=provider in ("aws", "bedrock"),
         **counts,
     )

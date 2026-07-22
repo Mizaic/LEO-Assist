@@ -41,6 +41,15 @@ export interface SbarSourceRef {
   type?: string;
   label?: string;
   preview?: string;
+  /**
+   * Exact record text this source contributed to the Background LLM
+   * prompt (bounded to ~4000 chars server-side). Shown in the source
+   * dialog so a reviewer can check the AI output against the real
+   * record, not just a short preview. Empty for legacy Assessments
+   * generated before this field existed -- callers fall back to
+   * ``preview``.
+   */
+  fullText?: string;
   date?: string | null;
 }
 

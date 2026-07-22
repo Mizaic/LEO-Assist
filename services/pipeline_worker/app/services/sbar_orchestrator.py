@@ -30,7 +30,9 @@ from libs.cypher.sbar_assessment_queries import (
     LINK_ASSESSMENT_TO_ENCOUNTER,
     LINK_ASSESSMENT_TO_PROCEDURE_REQUEST,
     LINK_ASSESSMENT_TO_REFERRAL_REQUEST,
+    SET_ASSESSMENT_COMPLIANCE_ALERTS,
     SET_ASSESSMENT_NARRATIVE,
+    SET_ASSESSMENT_PROVENANCE,
     SET_ASSESSMENT_USAGE,
     SET_BACKGROUND,
     SET_RECOMMENDATION,
@@ -43,6 +45,12 @@ from libs.sbar.assessment_formatter import (
     AssessmentNarrative,
     evaluate_codes_against_guidelines,
     format_assessment,
+)
+from libs.sbar.audit_persistence import (
+    AuditPersistenceError,
+    AuditProvenanceBundle,
+    completion_status_from_preconditions,
+    validate_completion_preconditions,
 )
 from libs.sbar.context_integrity import ContextIntegrityResult, validate_sbar_context
 from libs.sbar.error_messages import (
@@ -62,11 +70,17 @@ from libs.sbar.prompt_calls import (
     call_recommendation,
     call_situation,
 )
+from libs.sbar.orchestrator_gate3 import (
+    persist_gate3_assessment_fields,
+    prepare_gate3_context,
+    situation_extra_context,
+)
 from libs.sbar.source_resolver import (
     aggregate_codes,
     resolve_background_sources,
     resolve_situation,
 )
+from libs.sbar.twow_alert import alert_to_dict, evaluate_twow_mismatch
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +141,7 @@ class SBAROrchestrator:
         recommendation_caller=call_recommendation,
         evaluator=evaluate_codes_against_guidelines,
         formatter=format_assessment,
+        policy_runtime: Any | None = None,
     ) -> None:
         self._client = patient_graph_client
         self._publish = publish_progress or _default_publisher()
@@ -135,6 +150,7 @@ class SBAROrchestrator:
         self._call_recommendation = recommendation_caller
         self._evaluate = evaluator
         self._format = formatter
+        self._policy_runtime = policy_runtime
 
     # -- public --------------------------------------------------------
 
@@ -193,6 +209,25 @@ class SBAROrchestrator:
                     session, payload.background
                 )
             aggregated = aggregate_codes(resolved_sources)
+            extra = dict(payload.extra or {})
+            gate3 = await prepare_gate3_context(
+                payload=payload,
+                resolved_situation=resolved_situation,
+                resolved_sources=resolved_sources,
+                aggregated=aggregated,
+                policy_runtime=self._policy_runtime,
+                recall_reason_raw=str(extra.get("referral_reason") or "") or None,
+                allowed_chunk_ids=list(extra.get("chunk_ids") or []),
+            )
+            self._persist_gate3_fields(client, assessment_id, gate3)
+            self._persist_twow_mismatch_alert(
+                client,
+                assessment_id=assessment_id,
+                payload=payload,
+                resolved_situation=resolved_situation,
+                resolved_sources=resolved_sources,
+                run_id=run_id,
+            )
 
             self._emit(
                 run_id,
@@ -226,18 +261,22 @@ class SBAROrchestrator:
 
             sit_task = self._call_situation(
                 resolved_situation,
-                extra_context={
-                    "guideline_ids": payload.guideline_ids,
-                    "concern": (payload.concern or "").strip() or None,
-                },
+                extra_context=situation_extra_context(
+                    gate3,
+                    guideline_ids=payload.guideline_ids,
+                    concern=(payload.concern or "").strip() or None,
+                ),
                 patient_id=payload.situation.patient_id,
+                policy_runtime=self._policy_runtime,
             )
             bg_task = self._call_background(
                 resolved_sources,
                 aggregated,
                 referring_specialty=_first_specialty(resolved_situation),
                 patient_id=payload.situation.patient_id,
+                coverage=gate3.coverage,
                 progress_cb=_on_part_progress,
+                policy_runtime=self._policy_runtime,
             )
             sit_raw, bg_raw = await asyncio.gather(
                 sit_task, bg_task, return_exceptions=True
@@ -324,11 +363,17 @@ class SBAROrchestrator:
                     "assessment_id": assessment_id,
                 },
             )
-            # Exclude negated/absent/uncertain assertions from rule evaluation.
-            # Negated findings ("no rectal mass") must never trigger positive
-            # referral rules. Uncertain/possible findings are also excluded so
-            # the evaluator only acts on confirmed clinical facts.
-            _EXCLUDED_ASSERTIONS = {"absent", "negated", "possible", "uncertain"}
+            # Exclude only definitively ruled-out assertions from rule
+            # evaluation. Negated/refuted findings ("no rectal mass",
+            # "gallbladder not enlarged") must never trigger positive
+            # referral rules. "possible"/"uncertain" findings are
+            # deliberately KEPT: NICE safety-netting rules (e.g. NG12
+            # 1.2.10 "mass consistent with an enlarged gall bladder") are
+            # written to act on exactly this level of clinical certainty
+            # -- a GP's hedged exam finding pending confirmatory imaging.
+            # Dropping them here would silently suppress the 2WW/urgent
+            # referral the guideline exists to trigger. See DI-LEO-AI-189.
+            _EXCLUDED_ASSERTIONS = {"absent", "negated", "refuted"}
             eval_codes = sorted(
                 {
                     c.concept_id
@@ -412,6 +457,7 @@ class SBAROrchestrator:
                     guideline_titles=list(guideline_titles),
                     guidelines=payload.guideline_ids,
                     patient_id=payload.situation.patient_id,
+                    policy_runtime=self._policy_runtime,
                 )
             except Exception as exc:
                 logger.exception("SBAR recommendation call failed")
@@ -451,8 +497,49 @@ class SBAROrchestrator:
             content = _compose_markdown(
                 situation_md, background_md, narrative.markdown, recommendation_md
             )
-            status = "draft" if errors else "completed"
             hints = narrative.pathway_hints or {}
+            audit_event_id = f"audit-{run_id}"
+            manifest = (
+                dict(self._policy_runtime.execution_manifest)
+                if self._policy_runtime is not None
+                else {}
+            )
+            source_accounting = gate3.source_accounting
+            audit_bundle = AuditProvenanceBundle(
+                execution_manifest=manifest,
+                model_provenance=dict(manifest.get("model") or {}),
+                source_accounting=source_accounting,
+                audit_event_id=audit_event_id,
+            )
+            try:
+                self._persist_mandatory_audit(
+                    client=client,
+                    payload=payload,
+                    assessment_id=assessment_id,
+                    run_id=run_id,
+                    bundle=audit_bundle,
+                    recorder=usage_recorder,
+                    duration_s=time.time() - started,
+                    stage_errors=errors,
+                )
+            except AuditPersistenceError as exc:
+                errors.append(f"audit:{exc}")
+                audit_bundle = AuditProvenanceBundle(
+                    execution_manifest=manifest,
+                    model_provenance=dict(manifest.get("model") or {}),
+                    source_accounting=source_accounting,
+                    audit_event_id="",
+                )
+
+            status, audit_blockers = completion_status_from_preconditions(
+                stage_errors=errors,
+                bundle=audit_bundle,
+            )
+            if audit_blockers:
+                for blocker in audit_blockers:
+                    if blocker not in errors:
+                        errors.append(blocker)
+
             self._run_cypher(
                 client,
                 FINALISE_ASSESSMENT,
@@ -470,16 +557,11 @@ class SBAROrchestrator:
 
             duration = time.time() - started
 
-            # DI-LEO-AI-506: best-effort cost telemetry. Failures are
-            # logged at WARNING and do not fail the run.
-            self._record_telemetry(
+            # Operational telemetry remains best-effort.
+            self._record_usage_telemetry(
                 client=client,
-                payload=payload,
                 assessment_id=assessment_id,
                 run_id=run_id,
-                status=status,
-                errors=errors,
-                duration_s=duration,
                 recorder=usage_recorder,
             )
 
@@ -540,6 +622,48 @@ class SBAROrchestrator:
         errors.append(f"{stage}:{message}")
         errors_detail.append(friendly)
         return friendly
+
+    def _persist_twow_mismatch_alert(
+        self,
+        client: Any,
+        *,
+        assessment_id: str,
+        payload: SBARRequestPayload,
+        resolved_situation: Any,
+        resolved_sources: list[Any],
+        run_id: str,
+    ) -> None:
+        referral_id = ""
+        structured_priority = ""
+        for art in resolved_situation.artifacts or []:
+            if art.get("type") == SituationArtifactType.referral_request.value:
+                referral_id = str(art.get("id") or "")
+                structured_priority = str(art.get("priority") or "")
+                break
+        letter_text = "\n".join(
+            str(src.text or "") for src in resolved_sources if (src.text or "").strip()
+        )
+        alert = evaluate_twow_mismatch(
+            structured_priority=structured_priority,
+            letter_text=letter_text,
+            referral_id=referral_id or payload.run_id,
+            run_id=run_id,
+        )
+        if alert is None:
+            return
+        try:
+            self._run_cypher(
+                client,
+                SET_ASSESSMENT_COMPLIANCE_ALERTS,
+                assessment_id=assessment_id,
+                compliance_alerts_json=json.dumps([alert_to_dict(alert)]),
+            )
+        except Exception:
+            logger.warning(
+                "SBAR twow alert: failed to persist for assessment %s",
+                assessment_id,
+                exc_info=True,
+            )
 
     @staticmethod
     def _record_background_notices(
@@ -779,28 +903,133 @@ class SBAROrchestrator:
                     "link encounter %s failed", payload.encounter_id, exc_info=True
                 )
 
-    # -- DI-LEO-AI-506 cost telemetry ----------------------------------
+    # -- Mandatory audit persistence (M2.8) -----------------------------
 
-    def _record_telemetry(
+    def _persist_gate3_fields(
+        self,
+        client: Any,
+        assessment_id: str,
+        gate3: Any,
+    ) -> None:
+        try:
+            persist_gate3_assessment_fields(
+                client,
+                assessment_id=assessment_id,
+                gate3=gate3,
+                run_cypher=self._run_cypher,
+            )
+        except Exception:
+            logger.warning(
+                "SBAR gate3: failed to persist referral reason / recall for %s",
+                assessment_id,
+                exc_info=True,
+            )
+
+    @staticmethod
+    def _build_source_accounting(
+        sources: list[Any],
+        codes: list[Any],
+    ) -> dict[str, int]:
+        source_count = len(sources or [])
+        code_count = len(codes or [])
+        return {
+            "source_count": source_count,
+            "code_count": code_count,
+            "total_sentences": max(code_count, source_count),
+            "covered_sentences": code_count,
+            "uncovered_sentences": max(source_count - code_count, 0),
+        }
+
+    def _persist_mandatory_audit(
         self,
         *,
         client: Any,
         payload: SBARRequestPayload,
         assessment_id: str,
         run_id: str,
-        status: str,
-        errors: list[str],
+        bundle: AuditProvenanceBundle,
+        recorder: LLMUsageRecorder,
         duration_s: float,
+        stage_errors: list[str],
+    ) -> None:
+        """Persist manifest, provenance and audit link before completion."""
+        audit_blockers = validate_completion_preconditions(bundle)
+        if audit_blockers:
+            raise AuditPersistenceError(", ".join(audit_blockers))
+
+        manifest_json = json.dumps(
+            bundle.execution_manifest, default=str, sort_keys=True
+        )
+        prompt_json = json.dumps(
+            (bundle.execution_manifest or {}).get("prompts") or {},
+            default=str,
+            sort_keys=True,
+        )
+        model_json = json.dumps(
+            bundle.model_provenance
+            or (bundle.execution_manifest or {}).get("model")
+            or {},
+            default=str,
+            sort_keys=True,
+        )
+        accounting_json = json.dumps(
+            bundle.source_accounting, default=str, sort_keys=True
+        )
+        self._run_cypher(
+            client,
+            SET_ASSESSMENT_PROVENANCE,
+            assessment_id=assessment_id,
+            execution_manifest_json=manifest_json,
+            prompt_provenance_json=prompt_json,
+            model_provenance_json=model_json,
+            source_accounting_json=accounting_json,
+            audit_event_id=bundle.audit_event_id,
+        )
+
+        cfg = LLMCostConfig.from_env()
+        first_error = stage_errors[0][:400] if stage_errors else None
+        model_provider = "bedrock"
+        model_tier = "big"
+        if self._policy_runtime is not None:
+            model_provider = self._policy_runtime.model_provider or model_provider
+            model_tier = self._policy_runtime.model_tier or model_tier
+        self._run_cypher(
+            client,
+            WRITE_SBAR_AUDIT_EVENT,
+            id=bundle.audit_event_id,
+            plan_definition_id="pd-referral-assessment",
+            patient_id=payload.situation.patient_id,
+            encounter_id=payload.encounter_id or "",
+            run_id=run_id,
+            event_type="sbar_requested",
+            status="completed",
+            step_count=int(recorder.usage.llm_calls),
+            total_duration_ms=int(duration_s * 1000),
+            entity_count=int(bundle.source_accounting.get("code_count") or 0),
+            error_count=len(stage_errors),
+            first_error=first_error,
+            llm_input_tokens=int(recorder.usage.input_tokens),
+            llm_output_tokens=int(recorder.usage.output_tokens),
+            llm_cached_tokens=int(recorder.usage.cached_input_tokens),
+            llm_cost_usd=round(recorder.cost_usd(cfg), 6),
+            extraction_provider=model_provider,
+            extraction_model_tier=model_tier,
+            extraction_prompt_name="sbar",
+            extraction_prompt_version=2,
+            assessment_id=assessment_id,
+        )
+
+    # -- DI-LEO-AI-506 cost telemetry ----------------------------------
+
+    def _record_usage_telemetry(
+        self,
+        *,
+        client: Any,
+        assessment_id: str,
+        run_id: str,
         recorder: LLMUsageRecorder,
     ) -> None:
-        """Persist LLM usage onto :Assessment + a PipelineRun :AuditEvent.
-
-        Best-effort: any failure here is logged at WARNING and never
-        rolls back the run. The wire format mirrors
-        ``libs/workflow/engine.py::_write_audit_event`` so SBAR rows
-        appear in the existing dashboard LLMSpendPanel and the
-        per-tenant billing aggregates without UI changes.
-        """
+        """Best-effort LLM usage denormalisation for dashboard spend views."""
         try:
             cfg = LLMCostConfig.from_env()
         except Exception:
@@ -836,40 +1065,53 @@ class SBAROrchestrator:
                 exc_info=True,
             )
 
+    def _record_telemetry(
+        self,
+        *,
+        client: Any,
+        payload: SBARRequestPayload,
+        assessment_id: str,
+        run_id: str,
+        status: str,
+        errors: list[str],
+        duration_s: float,
+        recorder: LLMUsageRecorder,
+    ) -> None:
+        """Legacy wrapper retained for tests; delegates to split helpers."""
+        manifest = (
+            dict(self._policy_runtime.execution_manifest)
+            if self._policy_runtime is not None
+            else {}
+        )
+        bundle = AuditProvenanceBundle(
+            execution_manifest=manifest,
+            model_provenance=dict(manifest.get("model") or {}),
+            source_accounting=self._build_source_accounting([], []),
+            audit_event_id=f"audit-{run_id}",
+        )
         try:
-            first_error = errors[0][:400] if errors else None
-            self._run_cypher(
-                client,
-                WRITE_SBAR_AUDIT_EVENT,
-                id=f"audit-{run_id}",
-                plan_definition_id="sbar",
-                patient_id=payload.situation.patient_id,
-                encounter_id=payload.encounter_id or "",
-                run_id=run_id,
-                event_type="sbar_requested",
-                status=status,
-                step_count=int(recorder.usage.llm_calls),
-                total_duration_ms=int(duration_s * 1000),
-                entity_count=0,
-                error_count=len(errors),
-                first_error=first_error,
-                llm_input_tokens=int(recorder.usage.input_tokens),
-                llm_output_tokens=int(recorder.usage.output_tokens),
-                llm_cached_tokens=int(recorder.usage.cached_input_tokens),
-                llm_cost_usd=round(recorder.cost_usd(cfg), 6),
-                extraction_provider=recorder.primary_provider or "bedrock",
-                extraction_model_tier="big",
-                extraction_prompt_name="sbar",
-                extraction_prompt_version=2,
+            self._persist_mandatory_audit(
+                client=client,
+                payload=payload,
                 assessment_id=assessment_id,
+                run_id=run_id,
+                bundle=bundle,
+                recorder=recorder,
+                duration_s=duration_s,
+                stage_errors=errors,
             )
-        except Exception:
+        except AuditPersistenceError:
             logger.warning(
-                "SBAR usage telemetry: failed to write PipelineRun AuditEvent"
-                " for run %s",
+                "SBAR mandatory audit persistence failed for run %s",
                 run_id,
                 exc_info=True,
             )
+        self._record_usage_telemetry(
+            client=client,
+            assessment_id=assessment_id,
+            run_id=run_id,
+            recorder=recorder,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -987,7 +1229,36 @@ async def handle_sbar_message(body: dict[str, Any]) -> SBARResult:
     Service Bus consumer can dead-letter the message.
     """
     payload = _coerce_payload(body)
-    return await SBAROrchestrator().run(payload)
+    policy_runtime = _policy_runtime_for_payload(payload)
+    return await SBAROrchestrator(policy_runtime=policy_runtime).run(payload)
+
+
+def _policy_runtime_for_payload(payload: SBARRequestPayload) -> Any | None:
+    """Load pinned manifest for durable referral runs when available."""
+    parent_run = str(payload.upstream_correlation_id or "").strip()
+    if not parent_run:
+        extra = dict(payload.extra or {})
+        parent_run = str(extra.get("parent_run_id") or "").strip()
+    if not parent_run:
+        return None
+    try:
+        from libs.neo4j_client.client import PatientGraphClient
+        from libs.sbar.policy_runtime import build_runtime, load_execution_manifest
+
+        client = PatientGraphClient()
+        try:
+            manifest = load_execution_manifest(client, parent_run)
+        finally:
+            client.close()
+        if manifest:
+            return build_runtime(manifest)
+    except Exception:
+        logger.debug(
+            "handle_sbar_message: execution manifest unavailable for %s",
+            parent_run,
+            exc_info=True,
+        )
+    return None
 
 
 def _coerce_payload(body: dict[str, Any]) -> SBARRequestPayload:

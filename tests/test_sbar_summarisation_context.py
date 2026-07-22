@@ -4,7 +4,7 @@ and per-call cache.
 
 Verifies DI-LEO-AI-231 (extended) and DI-LEO-AI-507 acceptance
 criteria:
-  - The enum has exactly 34 stable members.
+  - The enum has exactly 35 stable members.
   - Every member has a friendly label, a prompt fragment, and a
     display group mapping.
   - SBARArtifactRef accepts type='summarisation_context' with a
@@ -43,12 +43,11 @@ from libs.sbar.source_resolver import (
     resolve_situation,
 )
 
-
 # --- Enum + label/prompt/group parity ---------------------------------------
 
 
-def test_enum_has_exactly_34_members() -> None:
-    assert len(list(SummarisationContext)) == 34
+def test_enum_has_exactly_35_members() -> None:
+    assert len(list(SummarisationContext)) == 35
 
 
 def test_every_member_has_a_label_and_prompt() -> None:
@@ -228,9 +227,7 @@ def test_source_resolver_falls_back_when_session_raises() -> None:
     )
     session = _RaisingSession()
     resolved = _resolve_artifact(session=session, ref=art)
-    expected = SUMMARISATION_CONTEXT_PROMPTS[
-        SummarisationContext.palliative_care_mdt
-    ]
+    expected = SUMMARISATION_CONTEXT_PROMPTS[SummarisationContext.palliative_care_mdt]
     assert resolved["prompt_snippet"] == expected
     assert resolved["prompt_snippet"] is not None
     assert session.calls == 1

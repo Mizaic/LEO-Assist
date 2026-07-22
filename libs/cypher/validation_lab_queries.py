@@ -64,12 +64,16 @@ RETURN c {
 } AS case,
 collect(r {
   .id, .persist_mode, .plan_id, .phase_ids, .status,
-  .outputs_json, .created_at, .error_message
+  .outputs_json, .created_at, .error_message,
+  .llm_cost_usd, .llm_total_tokens, .llm_calls
 })[0..20] AS runs
 """
 
 LIST_VALIDATION_CASES = """
 MATCH (c:ValidationCase)
+OPTIONAL MATCH (c)-[:HAS_LAB_RUN]->(r:ValidationLabRun)
+WITH c, r ORDER BY r.created_at DESC
+WITH c, head(collect(r)) AS latest
 RETURN {
   id: c.id,
   title: c.title,
@@ -89,7 +93,12 @@ RETURN {
     WHEN c.gold_json IS NULL OR c.gold_json = '' OR c.gold_json = '{}'
     THEN false
     ELSE true
-  END
+  END,
+  latest_run_id: latest.id,
+  latest_run_status: latest.status,
+  latest_llm_cost_usd: latest.llm_cost_usd,
+  latest_llm_total_tokens: latest.llm_total_tokens,
+  latest_llm_calls: latest.llm_calls
 } AS case
 ORDER BY c.updated_at DESC
 LIMIT $limit
@@ -113,6 +122,9 @@ SET r.persist_mode = $persist_mode,
     r.status = $status,
     r.outputs_json = $outputs_json,
     r.error_message = $error_message,
+    r.llm_cost_usd = $llm_cost_usd,
+    r.llm_total_tokens = $llm_total_tokens,
+    r.llm_calls = $llm_calls,
     r.created_at = coalesce(r.created_at, datetime()),
     r.updated_at = datetime()
 MERGE (c)-[:HAS_LAB_RUN]->(r)
@@ -124,7 +136,8 @@ MATCH (c:ValidationCase {id: $case_id})
       -[:HAS_LAB_RUN]->(r:ValidationLabRun {id: $run_id})
 RETURN r {
   .id, .persist_mode, .plan_id, .phase_ids, .status,
-  .outputs_json, .created_at, .error_message
+  .outputs_json, .created_at, .error_message,
+  .llm_cost_usd, .llm_total_tokens, .llm_calls
 } AS run,
 c {
   .id, .title, .patient_id, .gold_json,

@@ -14,11 +14,12 @@
  * search / filter / rename / delete / Test (real pipeline run).
  *
  * Atlas: UN-4DCE95C8 / DI-724CD8A5 / DI-2289D095 / DI-9138BAC9 /
- * DI-A898556B / DI-12D40786 / DI-43E908C6
+ * DI-A898556B / DI-12D40786 / DI-43E908C6 / DI-020F98AE /
+ * DI-FE423B8D / DI-62175179
  * DO: DO-158BE606
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -29,6 +30,11 @@ import Typography from "@mui/material/Typography";
 import { PatientShell } from "@/components/patients/PatientShell";
 import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
 import CreatePatientWizard from "./CreatePatientWizard";
+import {
+  initialMultiSheet,
+  runBatchWithLiveProgress,
+} from "./labBatchRunner";
+import RunSheetDialog, { type RunSheetState } from "./RunSheetDialog";
 import TestPatientRolodex from "./TestPatientRolodex";
 import {
   deleteCase,
@@ -38,8 +44,10 @@ import {
   scoreRun,
   updateCase,
   type LabCase,
+  type LabRun,
 } from "./labApi";
-import { runCasePipeline } from "./labRun";
+import { formatUsd } from "./labRunFormat";
+import { pollCasePipeline, queueCasePipeline } from "./labRun";
 
 function carePatientHref(patientId: string): string {
   return `/care/patients/${encodeURIComponent(patientId)}`;
@@ -56,6 +64,8 @@ export default function LabCasesPanel() {
   const [testingCaseId, setTestingCaseId] = useState("");
   const [showWizard, setShowWizard] = useState(true);
   const [viewPatientId, setViewPatientId] = useState<string>("");
+  const [runSheet, setRunSheet] = useState<RunSheetState | null>(null);
+  const sheetOpenRef = useRef(true);
 
   const reloadList = useCallback(async () => {
     setCases(await listCases());
@@ -75,16 +85,54 @@ export default function LabCasesPanel() {
     setShowWizard(false);
   }, []);
 
+  function closeRunSheet() {
+    sheetOpenRef.current = false;
+    setRunSheet(null);
+    setBusy(false);
+  }
+
+  function applySingleTick(caseId: string, title: string, run: LabRun) {
+    if (!sheetOpenRef.current) return;
+    const terminal =
+      run.status === "completed" || run.status === "failed";
+    setRunSheet({
+      mode: "single",
+      caseId,
+      title,
+      runId: run.id,
+      status: run.status,
+      phases: run.outputs?.phase_outputs || [],
+      stages: run.stage_progress || [],
+      llmUsage: run.outputs?.llm_usage,
+      error: run.error_message || undefined,
+      terminal,
+    });
+  }
+
   async function onTest(caseId: string) {
     setBusy(true);
     setTestingCaseId(caseId);
     setError(null);
     setNotice(null);
+    sheetOpenRef.current = true;
     try {
       const labCase = await getCase(caseId);
-      setNotice("Pipeline run started...");
+      const title = labCase.title || caseId;
+      setRunSheet({
+        mode: "single",
+        caseId,
+        title,
+        status: "starting",
+        phases: [],
+        terminal: false,
+      });
       await loadCase(caseId);
-      const finalRun = await runCasePipeline(caseId, labCase.plan_id);
+      const started = await queueCasePipeline(caseId, labCase.plan_id);
+      applySingleTick(caseId, title, started);
+      const finalRun = await pollCasePipeline(caseId, started.id, (run) =>
+        applySingleTick(caseId, title, run),
+      );
+      applySingleTick(caseId, title, finalRun);
       setNotice(`Pipeline run ${finalRun.id}: ${finalRun.status}`);
       if (finalRun.status === "failed") {
         setError(
@@ -96,8 +144,54 @@ export default function LabCasesPanel() {
       await reloadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Pipeline test failed");
+      if (sheetOpenRef.current) {
+        setRunSheet((prev) =>
+          prev && prev.mode === "single"
+            ? {
+                ...prev,
+                status: "failed",
+                error: err instanceof Error ? err.message : "Pipeline test failed",
+                terminal: true,
+              }
+            : prev,
+        );
+      }
     } finally {
       setTestingCaseId("");
+      setBusy(false);
+    }
+  }
+
+  async function onTestMany(caseIds: string[]) {
+    if (!caseIds.length) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    sheetOpenRef.current = true;
+    setRunSheet(initialMultiSheet(caseIds, cases));
+    try {
+      const feedback = await runBatchWithLiveProgress({
+        caseIds,
+        cases,
+        isOpen: () => sheetOpenRef.current,
+        onSheet: (updater) => {
+          setRunSheet((prev) =>
+            prev && prev.mode === "multi" ? updater(prev) : prev,
+          );
+        },
+      });
+      setNotice(feedback.notice);
+      if (feedback.error) setError(feedback.error);
+      await reloadList();
+      if (selectedId && caseIds.includes(selectedId)) {
+        await loadCase(selectedId);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to queue pipeline runs",
+      );
+      await reloadList();
+    } finally {
       setBusy(false);
     }
   }
@@ -168,6 +262,8 @@ export default function LabCasesPanel() {
 
   const latestRun = detail?.runs?.[0];
   const assessmentId = latestRun?.outputs?.sbar_assessment_id;
+  const latestCost =
+    latestRun?.outputs?.llm_usage?.cost_usd ?? latestRun?.llm_cost_usd;
 
   return (
     <Box data-testid="validation-lab-cases-panel">
@@ -220,6 +316,7 @@ export default function LabCasesPanel() {
           onSelect={(id) => void loadCase(id)}
           onViewPatient={setViewPatientId}
           onTest={onTest}
+          onTestMany={onTestMany}
           onRename={onRename}
           onDelete={onDelete}
           onDeleteMany={onDeleteMany}
@@ -238,8 +335,13 @@ export default function LabCasesPanel() {
             {(detail.background_encounter_ids || []).length}
           </Typography>
           {latestRun && (
-            <Typography variant="body2" color="text.secondary">
-              Latest run: {latestRun.id} ({latestRun.status})
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              data-testid="validation-lab-latest-run"
+            >
+              Latest run: {latestRun.id} ({latestRun.status}) ·{" "}
+              {formatUsd(latestCost)}
             </Typography>
           )}
           {score && (
@@ -311,6 +413,8 @@ export default function LabCasesPanel() {
           <LeoSbarHost assessmentId={assessmentId} />
         </Box>
       )}
+
+      <RunSheetDialog sheet={runSheet} onClose={closeRunSheet} />
 
       <Dialog
         fullScreen

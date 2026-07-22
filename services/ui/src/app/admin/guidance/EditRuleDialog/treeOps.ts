@@ -941,3 +941,22 @@ export function findActionsValidationError(actions: RuleAction[]): string | null
   }
   return null;
 }
+
+/**
+ * Validate rule-level clinical priority. Due-days must be blank for
+ * routine priority and a non-negative integer otherwise when set.
+ */
+export function findPriorityValidationError(
+  priority: string,
+  dueDays: number | null,
+): string | null {
+  if (priority !== "2ww" && priority !== "urgent" && priority !== "routine") {
+    return "Pick a clinical priority: 2 week wait, urgent, or routine.";
+  }
+  if (priority === "routine") return null;
+  if (dueDays == null) return null;
+  if (!Number.isFinite(dueDays) || dueDays < 0) {
+    return "Due days must be zero or a positive whole number.";
+  }
+  return null;
+}

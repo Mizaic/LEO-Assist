@@ -89,6 +89,7 @@ import {
   assignNodeIds,
   canHaveChildren,
   findActionsValidationError,
+  findPriorityValidationError,
   findValidationError,
   hasOrRootWithPrerequisites,
   observationWithCriterion,
@@ -107,6 +108,7 @@ import type {
   LogicCriterion,
   NodeUpdate,
   RuleAction,
+  RulePriority,
 } from "./types";
 
 export interface EditableRule {
@@ -125,6 +127,10 @@ export interface EditableRule {
    *  from the API's actionJson for rules not yet migrated to
    *  ``actions``; null when uncoded. */
   action?: LogicCriterion | null;
+  /** Rule-level clinical priority from HAS_ACTION edges. */
+  action_priority?: RulePriority | null;
+  /** Due-days paired with action_priority (null for routine). */
+  action_due_days?: number | null;
   /** When true this rule fires only if no other rule in the guideline matched. */
   is_default?: boolean;
 }
@@ -141,8 +147,18 @@ interface Props {
     /** Only set when the reviewer changed the recommended procedures;
      *  omitting it preserves the predecessor's actionJson server-side. */
     actions?: Array<Record<string, unknown>>;
+    /** Only set when the reviewer changed clinical priority; omitting
+     *  it preserves the predecessor's HAS_ACTION priority server-side. */
+    priority?: RulePriority;
+    due_days?: number | null;
     is_default?: boolean;
   }) => void;
+}
+
+function deriveInitialPriority(rule: EditableRule): RulePriority {
+  const raw = (rule.action_priority || "").toLowerCase();
+  if (raw === "2ww" || raw === "urgent" || raw === "routine") return raw;
+  return "routine";
 }
 
 interface SearchTarget {
@@ -295,6 +311,12 @@ export default function EditRuleDialog({
   const [actions, setActions] = useState<RuleAction[]>([]);
   const [originalActions, setOriginalActions] = useState<RuleAction[]>([]);
   const [actionsDirty, setActionsDirty] = useState(false);
+  const [priority, setPriority] = useState<RulePriority>("routine");
+  const [dueDays, setDueDays] = useState<number | null>(null);
+  const [originalPriority, setOriginalPriority] =
+    useState<RulePriority>("routine");
+  const [originalDueDays, setOriginalDueDays] = useState<number | null>(null);
+  const [priorityDirty, setPriorityDirty] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
   const [stepDirection, setStepDirection] = useState<1 | -1>(1);
@@ -317,6 +339,26 @@ export default function EditRuleDialog({
     setActions(initialActions);
     setOriginalActions(initialActions);
     setActionsDirty(false);
+    const initialPriority = deriveInitialPriority(rule);
+    const initialDueDays =
+      initialPriority === "routine"
+        ? null
+        : rule.action_due_days == null
+          ? null
+          : Number(rule.action_due_days);
+    setPriority(initialPriority);
+    setDueDays(
+      initialDueDays != null && Number.isFinite(initialDueDays)
+        ? initialDueDays
+        : null,
+    );
+    setOriginalPriority(initialPriority);
+    setOriginalDueDays(
+      initialDueDays != null && Number.isFinite(initialDueDays)
+        ? initialDueDays
+        : null,
+    );
+    setPriorityDirty(false);
     setIsDefault(rule.is_default ?? false);
     setCurrentStepId("who");
   }, [rule]);
@@ -342,9 +384,18 @@ export default function EditRuleDialog({
     () => findActionsValidationError(actions),
     [actions],
   );
+  const priorityError = useMemo(
+    () => findPriorityValidationError(priority, dueDays),
+    [priority, dueDays],
+  );
   const reasonReady = reason.trim().length >= 3;
   const canSave =
-    !!tree && !validationError && !actionsError && reasonReady && !saving;
+    !!tree &&
+    !validationError &&
+    !actionsError &&
+    !priorityError &&
+    reasonReady &&
+    !saving;
 
   const stepDescriptors: StepDescriptor[] = useMemo(() => {
     const whoState: StepState = !tree
@@ -564,6 +615,17 @@ export default function EditRuleDialog({
     }
   }
 
+  function handlePriorityChange(next: RulePriority) {
+    setPriority(next);
+    if (next === "routine") setDueDays(null);
+    setPriorityDirty(true);
+  }
+
+  function handleDueDaysChange(next: number | null) {
+    setDueDays(priority === "routine" ? null : next);
+    setPriorityDirty(true);
+  }
+
   function handlePick(criterion: LogicCriterion) {
     if (searchTarget.mode === "replace_action" && searchTarget.actionIndex !== null) {
       const idx = searchTarget.actionIndex;
@@ -660,6 +722,12 @@ export default function EditRuleDialog({
       logic_tree: stripNodeIds(tree),
       reason: reason.trim(),
       ...(actionsDirty ? { actions: sanitiseActionsForSave(actions) } : {}),
+      ...(priorityDirty
+        ? {
+            priority,
+            due_days: priority === "routine" ? null : dueDays,
+          }
+        : {}),
       is_default: isDefault,
     });
   }
@@ -877,6 +945,10 @@ export default function EditRuleDialog({
                 <Step2Suggest
                   name={name}
                   onNameChange={setName}
+                  priority={priority}
+                  dueDays={dueDays}
+                  onPriorityChange={handlePriorityChange}
+                  onDueDaysChange={handleDueDaysChange}
                   actions={actions}
                   selectedActionIndex={
                     searchTarget.mode === "replace_action"
@@ -938,7 +1010,9 @@ export default function EditRuleDialog({
                     ? `Fix the rule first: ${validationError}`
                     : actionsError
                       ? `Fix the rule first: ${actionsError}`
-                      : undefined
+                      : priorityError
+                        ? `Fix the rule first: ${priorityError}`
+                        : undefined
                 }
               />
             )}
@@ -959,9 +1033,13 @@ export default function EditRuleDialog({
               <LivePreviewPane
                 summary={summary}
                 actions={actions}
+                priority={priority}
+                dueDays={dueDays}
                 showBeforeAfter={currentStepId === "save"}
                 beforeSummary={beforeSummary}
                 beforeActions={originalActions}
+                beforePriority={originalPriority}
+                beforeDueDays={originalDueDays}
               />
             </Box>
           </Box>

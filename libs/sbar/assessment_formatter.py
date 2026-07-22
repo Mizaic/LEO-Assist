@@ -289,7 +289,7 @@ def _rule_due_days(rule: dict[str, Any]) -> Any:
 
 
 def _render_action_lines(rule: dict[str, Any]) -> list[str]:
-    """Return one 'Action: ...' line per recommended action on a rule."""
+    """Return one '**Action:** ...' line per recommended action on a rule."""
     from libs.guidance.narrative_actions import display_action_label
 
     lines: list[str] = []
@@ -299,10 +299,24 @@ def _render_action_lines(rule: dict[str, Any]) -> list[str]:
             continue
         due_days = action.get("due_days")
         if due_days:
-            lines.append(f"Action: {name} (within {due_days} days)")
+            lines.append(f"**Action:** {name} (within {due_days} days)")
         else:
-            lines.append(f"Action: {name}")
+            lines.append(f"**Action:** {name}")
     return lines
+
+
+def _render_guideline_line(rule: dict[str, Any]) -> str | None:
+    """Return a bold Guideline landmark with title and code when available.
+
+    Example: ``**Guideline:** Suspected cancer: recognition and referral (`NG12`)``
+    """
+    gid = (rule.get("guideline_id") or "").strip()
+    gtitle = (rule.get("guideline_title") or "").strip()
+    if not gtitle and not gid:
+        return None
+    if gtitle and gid and gtitle != gid:
+        return f"**Guideline:** {gtitle} (`{gid}`)"
+    return f"**Guideline:** {gtitle or gid}"
 
 
 def _render_rule_bullet(rule: dict[str, Any]) -> str:
@@ -320,16 +334,15 @@ def _render_rule_bullet(rule: dict[str, Any]) -> str:
         parts.append(f" _(strength: {strength})_")
     out = "".join(parts)
     if rec:
-        out += f"\n  - Recommendation: {rec}"
+        out += f"\n  - **Recommendation:** {rec}"
     matched_via_line = _render_matched_via(rule.get("matched_via"))
     if matched_via_line:
-        out += f"\n  - Matched on: {matched_via_line}"
+        out += f"\n  - **Matched on:** {matched_via_line}"
     for action_line in _render_action_lines(rule):
         out += f"\n  - {action_line}"
-    gid = rule.get("guideline_id")
-    gtitle = rule.get("guideline_title")
-    if gtitle or gid:
-        out += f"\n  - Guideline: {gtitle or gid}"
+    guideline_line = _render_guideline_line(rule)
+    if guideline_line:
+        out += f"\n  - {guideline_line}"
     return out
 
 

@@ -21,6 +21,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+_DURABLE_VERSION_ROLLOUT: dict[str, Any] = {
+    "defaultVersion": "latest",
+    "canaryVersion": "",
+    "canaryOrgAllowlist": [],
+    "canaryPercent": 0,
+    "rollbackTarget": "",
+}
+
+
+def _durable_plan_meta() -> dict[str, Any]:
+    return {
+        "_workflowMode": "durable_pubsub",
+        "_versionRollout": dict(_DURABLE_VERSION_ROLLOUT),
+    }
+
 
 @dataclass(frozen=True)
 class ValidationWorkflowSpec:
@@ -141,6 +156,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
             "quality check to mirror pd-gp-encounter-coding up to the "
             "extraction boundary."
         ),
+        **_durable_plan_meta(),
         "action": [
             _action(
                 "act-val-extract",
@@ -182,6 +198,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
         "name": "VAL Pathway Criteria Suitability",
         "status": "active",
         "description": "Validation workflow for UN-5F3BF083: map referral reason and assess pathway criteria.",
+        **_durable_plan_meta(),
         "action": [
             _action(
                 "act-val-criteria-extract",
@@ -239,6 +256,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
         "name": "VAL Triage Completeness",
         "status": "active",
         "description": "Validation workflow for UN-AF530E8E: extract referral facts and assess missing or unclear triage information.",
+        **_durable_plan_meta(),
         "action": [
             _action(
                 "act-val-complete-extract",
@@ -288,6 +306,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
         "name": "VAL Terminology Mapping",
         "status": "active",
         "description": "Validation workflow for UN-CBF42476: map extracted facts to recognised clinical terminology.",
+        **_durable_plan_meta(),
         "action": [
             _action(
                 "act-val-term-extract",
@@ -345,6 +364,7 @@ VALIDATION_PLAN_DEFINITIONS: list[dict[str, Any]] = [
         "name": "VAL SBAR Summary",
         "status": "active",
         "description": "Validation workflow for UN-F8819A42: generate a grounded SBAR summary from referral facts.",
+        **_durable_plan_meta(),
         "action": [
             _action(
                 "act-val-sbar-extract",
@@ -405,6 +425,7 @@ REFERRAL_TRIAGE_PLAN_DEFINITION: dict[str, Any] = {
     "name": "Referral Triage End to End",
     "status": "active",
     "description": "End-to-end referral triage workflow composed from UN-scoped stages.",
+    **_durable_plan_meta(),
     "action": [
         _action(
             "act-triage-extract",

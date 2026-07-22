@@ -174,13 +174,157 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(card).toMatch(/validation-lab-test-/);
     expect(card).toMatch(/Test pipeline for/);
     expect(src).toMatch(/async function onTest/);
-    expect(src).toMatch(/runCasePipeline/);
+    expect(src).toMatch(/queueCasePipeline/);
+    expect(src).toMatch(/pollCasePipeline/);
     expect(src).toMatch(/validation-lab-test-pipeline/);
     expect(src).toMatch(/testingCaseId/);
     expect(labRun).toMatch(/persist_mode: "production"/);
     expect(labRun).toMatch(/pd-referral-assessment/);
     expect(labRun).toMatch(/pollRunUntilTerminal/);
     expect(labRun).toMatch(/startRun/);
+  });
+
+  test("TC-013: rolodex Test selected queues then live-polls in parallel", () => {
+    const panel = readFile(
+      "services/ui/src/app/admin/validation-lab/LabCasesPanel.tsx",
+    );
+    const rolodex = readFile(
+      "services/ui/src/app/admin/validation-lab/TestPatientRolodex.tsx",
+    );
+    const labRun = readFile(
+      "services/ui/src/app/admin/validation-lab/labRun.ts",
+    );
+    const batch = readFile(
+      "services/ui/src/app/admin/validation-lab/labBatchRunner.ts",
+    );
+    expect(rolodex).toMatch(/validation-lab-test-selected/);
+    expect(rolodex).toMatch(/onTestMany/);
+    expect(rolodex).toMatch(/Test selected/);
+    expect(panel).toMatch(/async function onTestMany/);
+    expect(panel).toMatch(/runBatchWithLiveProgress/);
+    expect(panel).toMatch(/onTestMany=\{onTestMany\}/);
+    expect(batch).toMatch(/queueCasePipelines/);
+    expect(batch).toMatch(/pollManyCasePipelines/);
+    expect(labRun).toMatch(/export async function queueCasePipelines/);
+    expect(labRun).toMatch(/export async function pollManyCasePipelines/);
+    expect(labRun).toMatch(/export async function queueCasePipeline/);
+    expect(labRun).toMatch(/persist_mode: "production"/);
+    const queueFn = labRun.match(
+      /export async function queueCasePipelines[\s\S]*?^}/m,
+    )?.[0];
+    expect(queueFn).toBeTruthy();
+    expect(queueFn).not.toMatch(/pollRunUntilTerminal/);
+    const pollMany = labRun.match(
+      /export async function pollManyCasePipelines[\s\S]*?^}/m,
+    )?.[0];
+    expect(pollMany).toBeTruthy();
+    expect(pollMany).toMatch(/Promise\.all/);
+    expect(pollMany).toMatch(/getRun/);
+  });
+
+  test("TC-014: run sheet dialog covers single and multi Lab runs", () => {
+    const panel = readFile(
+      "services/ui/src/app/admin/validation-lab/LabCasesPanel.tsx",
+    );
+    const sheet = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetDialog.tsx",
+    );
+    expect(panel).toMatch(/RunSheetDialog/);
+    expect(panel).toMatch(/pollCasePipeline/);
+    expect(panel).toMatch(/runBatchWithLiveProgress/);
+    expect(panel).toMatch(/setRunSheet/);
+    expect(sheet).toMatch(/validation-lab-run-sheet/);
+    expect(sheet).toMatch(/validation-lab-run-sheet-dismiss/);
+    expect(sheet).toMatch(/Work in background/);
+    expect(sheet).toMatch(/Live pipeline progress/);
+    expect(sheet).toMatch(/phase: "queueing" \| "watching"/);
+    expect(sheet).toMatch(/ProgressStrip/);
+    expect(sheet).toMatch(/useMotion/);
+    expect(sheet).toMatch(/reducedMotion/);
+    expect(sheet).toMatch(/framer-motion/);
+    expect(sheet).not.toMatch(/window\.confirm/);
+    expect(sheet).not.toMatch(/\balert\s*\(/);
+  });
+
+  test("TC-016: single run sheet lists stages task-by-task and skips queued as done", () => {
+    const panel = readFile(
+      "services/ui/src/app/admin/validation-lab/LabCasesPanel.tsx",
+    );
+    const sheet = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetDialog.tsx",
+    );
+    const tasks = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetTasks.tsx",
+    );
+    const api = readFile("services/ui/src/app/admin/validation-lab/labApi.ts");
+    expect(api).toMatch(/StageProgress/);
+    expect(api).toMatch(/stage_progress\?:/);
+    expect(panel).toMatch(/stage_progress/);
+    expect(sheet).toMatch(/TaskList/);
+    expect(sheet).toMatch(/stages\?:/);
+    expect(tasks).toMatch(/validation-lab-run-sheet-tasks/);
+    expect(tasks).toMatch(/DONE_STATUSES/);
+    expect(tasks).toMatch(
+      /DONE_STATUSES = new Set\(\[\s*"completed",\s*"failed",\s*"skipped_persist",\s*\]\)/,
+    );
+  });
+
+  test("TC-017: run sheet shows agent name and copy support details", () => {
+    const api = readFile("services/ui/src/app/admin/validation-lab/labApi.ts");
+    const tasks = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetTasks.tsx",
+    );
+    const sheet = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetDialog.tsx",
+    );
+    const support = readFile(
+      "services/ui/src/app/admin/validation-lab/runSheetSupport.ts",
+    );
+    const roster = readFile(
+      "services/ui/src/app/admin/validation-lab/agentRoster.ts",
+    );
+    expect(api).toMatch(/worker_id\?:/);
+    expect(tasks).toMatch(/workerId/);
+    expect(tasks).toMatch(/formatAgentName/);
+    expect(tasks).toMatch(/Agent:/);
+    expect(tasks).toMatch(/validation-lab-run-sheet-worker-/);
+    expect(sheet).toMatch(/validation-lab-run-sheet-copy-support/);
+    expect(sheet).toMatch(/Copy support details/);
+    expect(support).toMatch(/buildSupportContext/);
+    expect(support).toMatch(/agent=/);
+    expect(support).toMatch(/worker=/);
+    expect(roster).toMatch(/PIPELINE_AGENT_ROSTER/);
+    expect(roster).toMatch(/formatAgentName/);
+    expect(roster).toMatch(/"Ada"/);
+  });
+
+  test("TC-015: Lab run cost from Assessment telemetry shown on card and sheet", () => {
+    const api = readFile("services/ui/src/app/admin/validation-lab/labApi.ts");
+    const card = readFile(
+      "services/ui/src/app/admin/validation-lab/TestPatientCard.tsx",
+    );
+    const sheet = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetDialog.tsx",
+    );
+    const panel = readFile(
+      "services/ui/src/app/admin/validation-lab/LabCasesPanel.tsx",
+    );
+    const format = readFile(
+      "services/ui/src/app/admin/validation-lab/labRunFormat.ts",
+    );
+    expect(api).toMatch(/LabRunLlmUsage/);
+    expect(api).toMatch(/llm_usage\?:/);
+    expect(api).toMatch(/latest_llm_cost_usd/);
+    expect(card).toMatch(/validation-lab-cost-/);
+    expect(card).toMatch(/formatUsd/);
+    expect(card).toMatch(/latest_llm_cost_usd/);
+    expect(sheet).toMatch(/validation-lab-run-sheet-cost/);
+    expect(sheet).toMatch(/Cost n\/a/);
+    expect(sheet).toMatch(/sumBatchCostUsd/);
+    expect(sheet).toMatch(/validation-lab-run-sheet-batch-cost/);
+    expect(sheet).toMatch(/Batch cost:/);
+    expect(format).toMatch(/export function sumBatchCostUsd/);
+    expect(panel).toMatch(/formatUsd\(latestCost\)/);
   });
 
   test("TC-009: wizard supports A&G case type and thread builder chrome", () => {

@@ -103,7 +103,7 @@ def test_matched_via_renders_specific_seed_in_markdown() -> None:
         }
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["2"])
-    assert "Matched on" in out.markdown
+    assert "**Matched on:**" in out.markdown
     assert "a related coded finding for Smoker" in out.markdown
 
 
@@ -119,7 +119,7 @@ def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
         }
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
-    assert "Matched on: Smoker" in out.markdown
+    assert "**Matched on:** Smoker" in out.markdown
     assert "related coded finding" not in out.markdown
 
 
@@ -147,7 +147,7 @@ def test_matched_via_dedupes_identical_leaf_labels() -> None:
         },
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["262285001"])
-    assert "Matched on: Weight decreased" in out.markdown
+    assert "**Matched on:** Weight decreased" in out.markdown
     assert out.markdown.count("Weight decreased") == 1
     # Audit snapshot still keeps every leaf that fired.
     assert len(out.rules[0]["matched_via"]) == 3
@@ -170,11 +170,24 @@ def test_matched_via_preserved_in_rule_snapshot() -> None:
 
 
 def test_no_matched_via_keeps_legacy_markdown_behaviour() -> None:
-    """Rules without matched_via render exactly as before (back-compat)."""
+    """Rules without matched_via omit the Matched on landmark (back-compat)."""
     rule = _rule("R-1", priority="urgent")
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
     assert "Matched on" not in out.markdown
     assert "matched_via" not in out.rules[0]
+
+
+def test_assessment_landmarks_are_bold_and_guideline_includes_code() -> None:
+    """Assessment landmarks render as bold Markdown; Guideline shows title + code."""
+    rule = _rule("R-1", priority="urgent", guideline_id="NG12")
+    rule["guideline_title"] = "Suspected cancer: recognition and referral"
+    out = format_assessment(matched_rules=[rule], patient_codes=["1"])
+    assert "**Recommendation:**" in out.markdown
+    assert "**Action:**" in out.markdown
+    assert (
+        "**Guideline:** Suspected cancer: recognition and referral (`NG12`)"
+        in out.markdown
+    )
 
 
 # -- Multi-action (Phase 4b: multiple recommended procedures per rule) ------
@@ -258,9 +271,12 @@ def test_two_actions_render_one_line_each_and_keep_rule_level_priority() -> None
     )
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
 
-    assert "Action: Suspected cancer pathway referral (within 14 days)" in out.markdown
-    assert "Action: Full blood count (within 14 days)" in out.markdown
-    assert out.markdown.count("Action:") == 2
+    assert (
+        "**Action:** Suspected cancer pathway referral (within 14 days)"
+        in out.markdown
+    )
+    assert "**Action:** Full blood count (within 14 days)" in out.markdown
+    assert out.markdown.count("**Action:**") == 2
     # Still exactly one 2WW heading -- priority stays rule-level, not per-action.
     assert out.markdown.count("### Two week wait") == 1
 
@@ -270,4 +286,4 @@ def test_rule_with_no_actions_renders_no_action_lines() -> None:
     instead of raising, matching the legacy None-action behaviour."""
     rule = _rule_with_actions("R-NOACTION", priority="routine", actions=[])
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
-    assert "Action:" not in out.markdown
+    assert "**Action:**" not in out.markdown

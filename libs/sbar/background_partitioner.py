@@ -42,7 +42,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from libs.llm_client.prompt_safety import sanitise_for_prompt
+from libs.sbar.background_envelope import build_codes_first_envelope
 from libs.sbar.source_resolver import ResolvedCode, ResolvedSource
+from libs.sbar.uncoded_coverage import CoverageReport
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +166,11 @@ class PartitionDescriptor:
     slice_total: int
     char_count: int
     record_index: int = 0  # 1-indexed position in original sources
-    preview: str = ""  # bounded clinician-facing snippet
+    preview: str = ""  # short clinician-facing snippet (chip hover text)
+    # Exact text this slice contributed to the LLM prompt (already
+    # sanitised + capped at _PER_SOURCE_CHAR_CAP). Lets a reviewer see
+    # precisely what the model saw for this record, not just a preview.
+    full_text: str = ""
 
 
 @dataclass
@@ -242,18 +248,22 @@ def _build_user_message(
     referring_specialty: str | None,
     part_index: int,
     part_total: int,
+    coverage: CoverageReport | None = None,
 ) -> str:
-    """Build the JSON-in-fence user message for one partition.
-
-    Adds an ``part`` block so the LLM knows it is summarising one
-    chunk of a multi-part run and should not pretend the chunk is
-    the whole patient history.
-    """
-    body: dict[str, Any] = {
-        "referring_specialty": referring_specialty,
-        "codes": _serialise_codes(codes),
-        "sources": [_serialise_source_slice(s) for s in slices],
-    }
+    """Build the JSON-in-fence user message for one partition."""
+    sources = [s.source for s in slices]
+    body = build_codes_first_envelope(
+        sources,
+        codes,
+        coverage,
+        referring_specialty=referring_specialty,
+    )
+    for entry, slice_ in zip(body.get("sources") or [], slices):
+        if slice_.is_split:
+            entry["part_in_record"] = {
+                "index": slice_.slice_index,
+                "total": slice_.slice_total,
+            }
     if part_total > 1:
         body["part"] = {"index": part_index, "total": part_total}
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
@@ -424,6 +434,7 @@ def partition_background_sources(
     codes: list[ResolvedCode],
     *,
     referring_specialty: str | None = None,
+    coverage: CoverageReport | None = None,
     max_input_tokens: int | None = None,
     system_prompt_reserve_tokens: int = _SYSTEM_PROMPT_RESERVE_TOKENS,
     max_parts: int = _MAX_PARTS_DEFAULT,
@@ -446,11 +457,13 @@ def partition_background_sources(
     # Codes appear in EVERY part, so account for them once as a fixed
     # per-part overhead. Same for the referring_specialty + JSON
     # wrapper.
-    overhead_body = {
-        "referring_specialty": referring_specialty,
-        "codes": _serialise_codes(codes),
-        "sources": [],
-    }
+    overhead_body = build_codes_first_envelope(
+        [],
+        codes,
+        coverage,
+        referring_specialty=referring_specialty,
+    )
+    overhead_body["sources"] = []
     overhead_text = (
         "CONTEXT:\n```json\n" + json.dumps(overhead_body, default=str) + "\n```"
     )
@@ -463,6 +476,7 @@ def partition_background_sources(
             referring_specialty=referring_specialty,
             part_index=1,
             part_total=1,
+            coverage=coverage,
         )
         return [
             Partition(
@@ -504,6 +518,7 @@ def partition_background_sources(
             referring_specialty=referring_specialty,
             part_index=idx,
             part_total=total_parts,
+            coverage=coverage,
         )
         descriptors = [
             PartitionDescriptor(
@@ -514,6 +529,7 @@ def partition_background_sources(
                 char_count=len(s.text),
                 record_index=s.record_index,
                 preview=(s.text or "").strip()[:200],
+                full_text=(s.text or "").strip(),
             )
             for s in part_slices
         ]

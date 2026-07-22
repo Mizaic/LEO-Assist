@@ -34,6 +34,7 @@ from libs.validation_lab.models import (
     ValidationCaseSpec,
 )
 from libs.validation_lab.pmh_verbalisation import compose_submission_text
+from libs.validation_lab.patient_age import resolve_patient_age
 from libs.validation_lab.referral_identity import fill_referral_identity
 
 SOURCE_VALIDATION_LAB = "validation-lab"
@@ -90,6 +91,13 @@ OPTIONAL MATCH (p)-[:HAS_CONDITION|HAS_MEDICATION_STATEMENT|HAS_ALLERGY]->(pmh)
 DETACH DELETE pmh
 """
 
+_ENSURE_PATIENT_BIRTH_DATE = """
+MATCH (p:Patient {id: $patient_id})
+WHERE p.birthDate IS NULL OR toString(p.birthDate) = ''
+SET p.birthDate = $birth_date
+RETURN p.id AS patient_id
+"""
+
 
 def _ids_for_case(case_id: str) -> dict[str, str]:
     base = f"lab-{case_id}"
@@ -105,6 +113,23 @@ def _birth_date_from_age(age: float | None) -> str:
     from libs.referral_simulator.scaffold import _birth_date_from_age as _impl
 
     return _impl(age)
+
+
+def _ensure_patient_birth_date(
+    client: Any,
+    patient_id: str,
+    *,
+    patient_age: float | None,
+) -> None:
+    """Idempotent safety net when an older graph node lacks birthDate."""
+    birth_date = _birth_date_from_age(patient_age)
+    if not birth_date or not patient_id:
+        return
+    client.run(
+        _ENSURE_PATIENT_BIRTH_DATE,
+        patient_id=patient_id,
+        birth_date=birth_date,
+    )
 
 
 def render_pmh_narrative(pmh: list[PmhItem]) -> str:
@@ -372,6 +397,14 @@ def materialise_case(
     knowledge_client: Any | None = None,
 ) -> dict[str, Any]:
     """Write patient-graph nodes for the case. Returns graph id map."""
+    gp_text = str(spec.gp_encounter.text or "") if spec.gp_encounter else ""
+    spec.patient_age = resolve_patient_age(
+        patient_age=spec.patient_age,
+        case_id=spec.case_id,
+        referral_text=spec.referral_text,
+        reason_for_submission=spec.reason_for_submission,
+        gp_encounter_text=gp_text,
+    )
     if spec.scenario_type == "spo_ag" and spec.case_type != "ag":
         raise ValueError("spo_ag requires case_type=ag")
     if spec.scenario_type == "ras_referral" and spec.case_type != "referral":
@@ -386,6 +419,11 @@ def materialise_case(
         graph["background_encounter_ids"] = encounter_ids
         _apply_equity_fields(client, graph["patient_id"], spec)
         _apply_care_ready_patient_shape(client, spec, graph)
+        _ensure_patient_birth_date(
+            client,
+            graph["patient_id"],
+            patient_age=spec.patient_age,
+        )
         return graph
 
     ids = _ids_for_case(spec.case_id)
@@ -422,6 +460,11 @@ def materialise_case(
         "submission_text": full_text,
     }
     _apply_care_ready_patient_shape(client, spec, graph)
+    _ensure_patient_birth_date(
+        client,
+        graph["patient_id"],
+        patient_age=spec.patient_age,
+    )
     return graph
 
 

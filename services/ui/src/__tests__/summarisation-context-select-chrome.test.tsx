@@ -10,7 +10,7 @@
  *   - The "Acute" group has been renamed to "Secondary care".
  *   - 14 new options have been added (12 secondary-care +
  *     best_interests_dols + mental_health_tribunal).
- *   - Total enum / option count is 34.
+ *   - Total enum / option count is 35.
  */
 import fs from "fs";
 import path from "path";
@@ -77,7 +77,7 @@ function extractPyEnumMembers(src: string): Set<string> {
 }
 
 describe("VT-LEO-AI-509 SummarisationContextSelect primitive (expanded)", () => {
-  it("renders a card-grid picker with 4 groups and 34 options", () => {
+  it("renders a card-grid picker with 4 groups and 35 options", () => {
     const src = read(PRIMITIVE);
     // Groups are declared in SUMMARISATION_CONTEXT_GROUPS and rendered
     // as section blocks of cards inside a Dialog -- count the data
@@ -88,7 +88,7 @@ describe("VT-LEO-AI-509 SummarisationContextSelect primitive (expanded)", () => 
       src.match(/summarisation-context-option-\$\{o\.value\}/g) ?? [];
     expect(optionTestIds.length).toBeGreaterThan(0);
     const valueLines = src.match(/^\s+value:\s*"[a-z_]+"/gm) ?? [];
-    expect(valueLines.length).toBe(34);
+    expect(valueLines.length).toBe(35);
     // Legacy grouped MUI Select markup is gone -- the picker is now a
     // Dialog, so ListSubheader / MenuItem / FormControl must NOT appear.
     expect(src).not.toContain("<ListSubheader");
@@ -178,6 +178,6 @@ describe("VT-LEO-AI-509 SummarisationContextSelect primitive (expanded)", () => 
     const tsMembers = extractTsUnionMembers(read(PRIMITIVE));
     const pyMembers = extractPyEnumMembers(read(PY_ENUM));
     expect([...tsMembers].sort()).toEqual([...pyMembers].sort());
-    expect(tsMembers.size).toBe(34);
+    expect(tsMembers.size).toBe(35);
   });
 });

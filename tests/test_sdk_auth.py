@@ -322,7 +322,10 @@ def test_sbar_returns_completeness_findings_when_persisted(
             "concept_ids": [12345],
         }
     )
-    record_with_completeness = {**_SAMPLE_RECORD, "completeness_result_json": completeness_json}
+    record_with_completeness = {
+        **_SAMPLE_RECORD,
+        "completeness_result_json": completeness_json,
+    }
     monkeypatch.setattr(
         sdk_auth_module,
         "_query_assessment_from_neo4j",
@@ -342,6 +345,261 @@ def test_sbar_returns_completeness_findings_when_persisted(
     assert cf["presentFields"] == ["Diagnosis"]
     assert cf["missingFields"] == ["Urgency"]
     assert cf["unclearFields"] == ["GP name"]
+
+
+def test_sbar_returns_full_text_for_enriched_background_sources(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proxy carries full_text through as camelCase fullText.
+
+    A reviewer opening a source chip in the widget must see the exact
+    record text the LLM saw, not just the 200-char preview. This pins
+    the snake_case -> camelCase conversion in _normalise_source_ref.
+    """
+    import app.routers.sdk_auth as sdk_auth_module
+
+    record_with_sources = {
+        **_SAMPLE_RECORD,
+        "background_parts": [
+            {
+                "index": 1,
+                "total": 1,
+                "record_count": 1,
+                "record_range": [1, 1],
+                "source_ids": ["chunk-1"],
+                "sources": [
+                    {
+                        "id": "chunk-1",
+                        "type": "Chunk",
+                        "label": "Referral letter chunk 1",
+                        "preview": "Dear Colleague,",
+                        "full_text": "Dear Colleague,\n\nFull letter text here.",
+                    }
+                ],
+                "status": "completed",
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        sdk_auth_module,
+        "_query_assessment_from_neo4j",
+        lambda _id: record_with_sources,
+    )
+
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-1",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    part = body["background_parts"][0]
+    source = part["sources"][0]
+    assert source["fullText"] == "Dear Colleague,\n\nFull letter text here."
+    assert source["preview"] == "Dear Colleague,"
+
+
+def test_sbar_defaults_full_text_to_empty_for_legacy_sources(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy Assessments persisted before full_text existed must not 500."""
+    import app.routers.sdk_auth as sdk_auth_module
+
+    record_with_legacy_sources = {
+        **_SAMPLE_RECORD,
+        "background_parts": [
+            {
+                "index": 1,
+                "total": 1,
+                "record_count": 1,
+                "record_range": [1, 1],
+                "source_ids": ["enc-legacy"],
+                "sources": [
+                    {
+                        "id": "enc-legacy",
+                        "type": "Encounter",
+                        "label": "Encounter (legacy)",
+                        "preview": "Progressive jaundice.",
+                    }
+                ],
+                "status": "completed",
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        sdk_auth_module,
+        "_query_assessment_from_neo4j",
+        lambda _id: record_with_legacy_sources,
+    )
+
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-1",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    source = response.json()["background_parts"][0]["sources"][0]
+    assert source["fullText"] == ""
+    assert source["preview"] == "Progressive jaundice."
+
+
+# ---------------------------------------------------------------------------
+# GET /sdk/sbar/{id}/sources/{source_id} - live source-text lookup for the
+# widget dialog when the persisted part has no full_text (legacy or not
+# yet regenerated Assessments). Atlas: DI-A898556B AC3.
+# ---------------------------------------------------------------------------
+
+
+class _FakeSession:
+    def __enter__(self) -> "_FakeSession":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        return None
+
+
+class _FakeGraphClient:
+    """Stand-in for PatientGraphClient so tests need no live Neo4j."""
+
+    def session(self) -> _FakeSession:
+        return _FakeSession()
+
+    def close(self) -> None:
+        return None
+
+
+def _legacy_record_with_source(source: dict) -> dict:
+    return {
+        **_SAMPLE_RECORD,
+        "background_parts": [
+            {
+                "index": 1,
+                "total": 1,
+                "record_count": 1,
+                "record_range": [1, 1],
+                "source_ids": [source["id"]],
+                "sources": [source],
+                "status": "completed",
+            }
+        ],
+    }
+
+
+def test_source_endpoint_returns_live_text_when_chunk_resolves(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The dialog's live-fetch fallback returns the real chunk text.
+
+    This is what lets an Assessment persisted before full_text existed
+    still show the exact record text, without regenerating the SBAR.
+    """
+    import app.routers.sdk_auth as sdk_auth_module
+    import libs.neo4j_client.client as graph_client_module
+    import libs.sbar.source_resolver as source_resolver_module
+    from libs.sbar.source_resolver import ResolvedSource
+
+    record = _legacy_record_with_source(
+        {
+            "id": "chunk-legacy-1",
+            "type": "Chunk",
+            "label": "Referral letter chunk 1",
+            "preview": "Dear Colleague,",
+        }
+    )
+    monkeypatch.setattr(
+        sdk_auth_module, "_query_assessment_from_neo4j", lambda _id: record
+    )
+    monkeypatch.setattr(graph_client_module, "PatientGraphClient", _FakeGraphClient)
+    full_text = "Dear Colleague,\n\nFull letter text resolved live from Neo4j."
+    monkeypatch.setattr(
+        source_resolver_module,
+        "_resolve_chunk",
+        lambda _session, _id: ResolvedSource(
+            source_label="Chunk", source_id="chunk-legacy-1", text=full_text
+        ),
+    )
+
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-1/sources/chunk-legacy-1",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["text"] == full_text
+    assert body["label"] == "Referral letter chunk 1"
+
+
+def test_source_endpoint_falls_back_to_preview_when_resolve_fails(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A Neo4j lookup failure must degrade to the preview, never 500."""
+    import app.routers.sdk_auth as sdk_auth_module
+    import libs.neo4j_client.client as graph_client_module
+    import libs.sbar.source_resolver as source_resolver_module
+
+    record = _legacy_record_with_source(
+        {
+            "id": "chunk-legacy-2",
+            "type": "Chunk",
+            "label": "Referral letter chunk 2",
+            "preview": "Yours sincerely,",
+        }
+    )
+    monkeypatch.setattr(
+        sdk_auth_module, "_query_assessment_from_neo4j", lambda _id: record
+    )
+    monkeypatch.setattr(graph_client_module, "PatientGraphClient", _FakeGraphClient)
+
+    def _raise(_session: object, _id: str) -> None:
+        raise RuntimeError("neo4j unavailable")
+
+    monkeypatch.setattr(source_resolver_module, "_resolve_chunk", _raise)
+
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-1/sources/chunk-legacy-2",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["text"] == "Yours sincerely,"
+
+
+def test_source_endpoint_404s_for_source_not_on_assessment(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cannot probe arbitrary chunk ids outside this assessment's sources."""
+    import app.routers.sdk_auth as sdk_auth_module
+
+    record = _legacy_record_with_source(
+        {"id": "chunk-on-assessment", "type": "Chunk", "preview": "In scope."}
+    )
+    monkeypatch.setattr(
+        sdk_auth_module, "_query_assessment_from_neo4j", lambda _id: record
+    )
+
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-1/sources/chunk-not-on-assessment",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 404
+
+
+def test_source_endpoint_403s_on_assessment_mismatch(
+    client: TestClient,
+) -> None:
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-2/sources/chunk-1",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 403
 
 
 # ---------------------------------------------------------------------------

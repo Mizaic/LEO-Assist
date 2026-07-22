@@ -232,6 +232,7 @@ export function PatientShell({
           }}
         >
           <ClinicalContextRail
+            patientId={patientId}
             entities={entities}
             entitiesLoading={entitiesLoading}
             alertCount={alertCount}

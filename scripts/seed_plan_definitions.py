@@ -3,15 +3,26 @@
 Usage:
     python -m scripts.seed_plan_definitions
 
-Idempotent — uses MERGE on node IDs.
+Idempotent -- creates missing draft templates only. Published
+PlanDefinitionVersion snapshots are immutable; force-seed never mutates
+active plans or versions referenced by a PipelineRun.
 
 PlanDefinitions:
-  1. gp-encounter-coding   — Primary care encounter NER extraction pipeline
-  2. referral-assessment    — Referral document SBAR generation pipeline
-  3. gold-training-audit    — Gold-standard NER training data pipeline
+  1. gp-encounter-coding   -- Primary care encounter NER extraction pipeline
+  2. referral-assessment    -- Referral document SBAR generation pipeline
+  3. episode-bundle-coding  -- Episode-aware multi-encounter coding pipeline
+  4. gold-training-audit    -- Gold-standard NER training data pipeline
 
 Each PlanDefinition has a sequence of Actions that reference ActivityDefinitions.
 ActivityDefinitions map to subgraph IDs in the SubgraphRegistry.
+
+Pre-deploy (unified pipeline sprint):
+  Run ``python -m scripts.seed_plan_definitions`` against the target Knowledge
+  Graph before cutover so new durable plans (for example
+  ``pd-episode-bundle-coding`` and validation plans) exist as draft templates.
+  Use ``--force`` only to refresh draft templates; active or run-pinned versions
+  are never mutated. Re-run after any seed_plan_definitions.py change in the
+  release branch.
 """
 
 from __future__ import annotations
@@ -31,6 +42,15 @@ from dotenv import load_dotenv
 
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_ROOT / "secrets" / ".env", override=False)
+from libs.workflow.plan_seed import (
+    GET_PLAN_SEED_STATE,
+    GET_VERSION_CONTENT_HASHES,
+    bootstrap_initial_version,
+    plan_content_hash,
+    seed_plan_status,
+    should_seed_plan,
+    should_touch_activity,
+)
 from libs.workflow.validation_workflows import all_validation_plan_definitions
 
 try:
@@ -431,6 +451,13 @@ PLAN_DEFINITIONS = [
         "name": "GP Encounter Coding",
         "status": "active",
         "_workflowMode": "durable_pubsub",
+        "_versionRollout": {
+            "defaultVersion": "latest",
+            "canaryVersion": "",
+            "canaryOrgAllowlist": [],
+            "canaryPercent": 0,
+            "rollbackTarget": "",
+        },
         "description": "Primary care encounter NER extraction, terminology resolution, and persistence. Triggers on new encounter data. Includes optional analytics (anchor detection, episode building, safety netting, quality checks).",
         "action": [
             {
@@ -627,6 +654,35 @@ PLAN_DEFINITIONS = [
         "status": "active",
         "description": "Durable referral document processing: each clinical step is pub/sub triggered, reloads graph-backed inputs, persists outputs, and emits completion before the next step runs.",
         "_workflowMode": "durable_pubsub",
+        "_referralPolicy": {
+            "schemaVersion": "1.0",
+            "extraction": {"windowSize": 10, "windowOverlap": 1},
+            "salvage": {"maxSentences": 50, "includeQualifiers": True},
+            "evidence": {"maxCodesPerChunk": 200, "maxEvidenceChars": 8000},
+            "alerts": {"twowDetectorVersion": "1.0"},
+            "recall": {"maxChunkFetches": 5, "maxLlmCalls": 2, "maxTokens": 50000},
+            "llm": {
+                "situation": {"temperature": 0.0, "maxTokens": 512},
+                "background": {"temperature": 0.0, "maxTokens": 1024},
+                "recommendation": {"temperature": 0.0, "maxTokens": 1024},
+                "runTokenBudget": 200000,
+            },
+            "prompts": {
+                "situation": {"name": "sbar_situation", "version": 2},
+                "background": {"name": "sbar_background", "version": 2},
+                "recommendation": {"name": "sbar_recommendation", "version": 2},
+                "recall": {"name": "sbar_recall", "version": 1},
+            },
+            "models": {"provider": "aws", "tier": "big"},
+            "failureBehaviour": "fail_closed",
+        },
+        "_versionRollout": {
+            "defaultVersion": "latest",
+            "canaryVersion": "",
+            "canaryOrgAllowlist": [],
+            "canaryPercent": 0,
+            "rollbackTarget": "",
+        },
         # Legacy in-memory SBAR path is retired; canvas still uses subgraph
         # id "sbar" which wraps SBAROrchestrator for DurableStepRunner.
         "_deprecatedSubgraphs": ["legacy_sbar_in_memory"],
@@ -950,10 +1006,130 @@ PLAN_DEFINITIONS = [
         ],
     },
     {
+        "id": "pd-episode-bundle-coding",
+        "resourceType": "PlanDefinition",
+        "name": "Episode Bundle Coding",
+        "status": "active",
+        "_workflowMode": "durable_pubsub",
+        "_versionRollout": {
+            "defaultVersion": "latest",
+            "canaryVersion": "",
+            "canaryOrgAllowlist": [],
+            "canaryPercent": 0,
+            "rollbackTarget": "",
+        },
+        "description": (
+            "Episode-aware coding across a bundle of encounters: load the "
+            "anchor encounter, extract and code entities, then persist to "
+            "the patient graph for canonical episode-level review."
+        ),
+        "action": [
+            {
+                "id": "act-ep-load",
+                "title": "Load Episode Encounter",
+                "_sequence": 0,
+                "_subgraphId": "encounter_loader",
+                "trigger": [{"type": "data-changed", "name": "episode_bundle"}],
+                "definitionCanonical": "ActivityDefinition/ad-encounter-loader",
+            },
+            {
+                "id": "act-ep-extract",
+                "title": "Extract Entities",
+                "_sequence": 1,
+                "_subgraphId": "extraction",
+                "definitionCanonical": "ActivityDefinition/ad-extraction-ner",
+                "relatedAction": [
+                    {"actionId": "act-ep-load", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ep-post-process",
+                "title": "Post-Process",
+                "_sequence": 2,
+                "_subgraphId": "post_processing",
+                "definitionCanonical": "ActivityDefinition/ad-post-processing",
+                "relatedAction": [
+                    {"actionId": "act-ep-extract", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ep-relation-link",
+                "title": "Link Entity Relations",
+                "_sequence": 3,
+                "_subgraphId": "relation_linking",
+                "definitionCanonical": "ActivityDefinition/ad-relation-linking",
+                "relatedAction": [
+                    {"actionId": "act-ep-post-process", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ep-extraction-check",
+                "title": "Extraction Quality Check",
+                "_sequence": 4,
+                "_subgraphId": "extraction_check",
+                "definitionCanonical": "ActivityDefinition/ad-extraction-check",
+                "relatedAction": [
+                    {"actionId": "act-ep-relation-link", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ep-terminology",
+                "title": "Resolve Terminology",
+                "_sequence": 5,
+                "_subgraphId": "terminology",
+                "definitionCanonical": "ActivityDefinition/ad-terminology",
+                "relatedAction": [
+                    {
+                        "actionId": "act-ep-extraction-check",
+                        "relationship": "after-end",
+                    }
+                ],
+            },
+            {
+                "id": "act-ep-coding-verify",
+                "title": "LLM Coding Verifier",
+                "_sequence": 6,
+                "_subgraphId": "coding_verifier",
+                "definitionCanonical": "ActivityDefinition/ad-coding-verifier",
+                "relatedAction": [
+                    {"actionId": "act-ep-terminology", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ep-tier-classify",
+                "title": "Classify Tiers",
+                "_sequence": 7,
+                "_subgraphId": "tier_classify",
+                "definitionCanonical": "ActivityDefinition/ad-tier-classify",
+                "relatedAction": [
+                    {"actionId": "act-ep-coding-verify", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ep-persist",
+                "title": "Persist to Patient Graph",
+                "_sequence": 8,
+                "_subgraphId": "persist",
+                "definitionCanonical": "ActivityDefinition/ad-persist-patient",
+                "relatedAction": [
+                    {"actionId": "act-ep-tier-classify", "relationship": "after-end"}
+                ],
+            },
+        ],
+    },
+    {
         "id": "pd-gold-training-audit",
         "resourceType": "PlanDefinition",
         "name": "Gold Training Data",
         "status": "active",
+        "_workflowMode": "durable_pubsub",
+        "_versionRollout": {
+            "defaultVersion": "latest",
+            "canaryVersion": "",
+            "canaryOrgAllowlist": [],
+            "canaryPercent": 0,
+            "rollbackTarget": "",
+        },
         "description": "Gold-standard NER training pipeline: extract with LLM, verify with big model, persist verified results as gold training labels.",
         "action": [
             {
@@ -961,7 +1137,7 @@ PLAN_DEFINITIONS = [
                 "title": "Extract Entities (LLM)",
                 "_sequence": 0,
                 "_subgraphId": "extraction",
-                "trigger": [{"type": "data-changed", "name": "training-run-requested"}],
+                "trigger": [{"type": "data-changed", "name": "gold-training-run"}],
                 "definitionCanonical": "ActivityDefinition/ad-extraction-llm",
             },
             {
@@ -1254,8 +1430,8 @@ MERGE (a)-[:USES_DEFINITION]->(ad)
 """
 
 
-COUNT_PLANS = "MATCH (pd:PlanDefinition) RETURN count(pd) AS cnt"
 COUNT_PLAN_BY_ID = "MATCH (pd:PlanDefinition {id: $id}) RETURN count(pd) AS cnt"
+COUNT_ACTIVITY_BY_ID = "MATCH (ad:ActivityDefinition {id: $id}) RETURN count(ad) AS cnt"
 GET_PROMPT_CONFIG_EXTRACTION = """
 MATCH (p:PromptConfig {name: 'extraction', version: 1})
 RETURN p.id AS id
@@ -1296,8 +1472,8 @@ def _wire_extraction_prompt_config(client) -> None:
 def seed_with_client(client, *, force: bool = False) -> None:
     """Seed PlanDefinitions using an existing KnowledgeGraphClient (for startup hooks).
 
-    Only seeds when no PlanDefinitions exist in Neo4j, to avoid
-    overwriting user-modified pipelines.
+    Creates missing draft templates only. Existing active plans and any
+    PlanDefinitionVersion referenced by a PipelineRun are never mutated.
     """
     try:
         client.run(
@@ -1313,6 +1489,10 @@ def seed_with_client(client, *, force: bool = False) -> None:
         _wire_extraction_prompt_config(client)
 
         for ad in ACTIVITY_DEFINITIONS:
+            existing_row = client.run(COUNT_ACTIVITY_BY_ID, id=ad["id"])
+            existing_count = int(existing_row[0]["cnt"]) if existing_row else 0
+            if not should_touch_activity(existing_count):
+                continue
             dv = ad.get("dynamicValue", [])
             dv_json = (
                 json.dumps(
@@ -1334,20 +1514,33 @@ def seed_with_client(client, *, force: bool = False) -> None:
         for pd in PLAN_DEFINITIONS:
             existing_row = client.run(COUNT_PLAN_BY_ID, id=pd["id"])
             existing_count = int(existing_row[0]["cnt"]) if existing_row else 0
-            if existing_count > 0 and not force:
-                logger.info("[Seed] Skipped existing PlanDefinition id=%s", pd["id"])
+            seed_state = client.run(GET_PLAN_SEED_STATE, id=pd["id"])
+            state = seed_state[0] if seed_state else {}
+            if not should_seed_plan(
+                existing_count,
+                force=force,
+                plan_status=str(state.get("status") or ""),
+                referenced_version_count=int(
+                    state.get("referenced_version_count") or 0
+                ),
+            ):
+                logger.info("[Seed] Skipped immutable PlanDefinition id=%s", pd["id"])
                 continue
+
             ui_pd = _to_ui_format(pd)
+            ui_pd["status"] = seed_plan_status(ui_pd)
             ui_pd["meta"] = {
                 "seeded": True,
                 "seededBy": "scripts/seed_plan_definitions.py",
             }
+            raw_json = json.dumps(ui_pd)
+            content_hash = plan_content_hash(ui_pd)
             client.run(
                 UPSERT_PLAN,
                 id=pd["id"],
-                raw=json.dumps(ui_pd),
+                raw=raw_json,
                 name=pd["name"],
-                status=pd["status"],
+                status=ui_pd["status"],
                 workflow_mode=pd.get("_workflowMode", "legacy_in_process"),
             )
             client.run(CLEAR_ACTIONS, id=pd["id"])
@@ -1379,6 +1572,13 @@ def seed_with_client(client, *, force: bool = False) -> None:
                     client.run(
                         LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id
                     )
+            bootstrap_initial_version(
+                client,
+                plan_id=pd["id"],
+                raw_json=raw_json,
+                content_hash=content_hash,
+                version_node_id=str(uuid.uuid4()),
+            )
 
         logger.info(
             "[Seed] %d ActivityDefinitions processed, %d PlanDefinitions processed (force=%s).",
@@ -1399,7 +1599,7 @@ def main() -> None:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Overwrite existing seeded plan definitions by id",
+        help="Update draft plan templates only; never mutate active/run-pinned versions",
     )
     args = parser.parse_args()
 
@@ -1413,108 +1613,12 @@ def main() -> None:
 
     driver = GraphDatabase.driver(uri, auth=(user, password))
 
-    with driver.session() as session:
-        session.run(
-            "CREATE CONSTRAINT plan_def_id IF NOT EXISTS FOR (pd:PlanDefinition) REQUIRE pd.id IS UNIQUE"
-        )
-        session.run(
-            "CREATE CONSTRAINT activity_def_id IF NOT EXISTS FOR (ad:ActivityDefinition) REQUIRE ad.id IS UNIQUE"
-        )
-        session.run(
-            "CREATE CONSTRAINT action_id IF NOT EXISTS FOR (a:Action) REQUIRE a.id IS UNIQUE"
-        )
-    logger.info("Constraints ensured.")
-
-    with driver.session() as session:
-        prompt_row = session.run(GET_PROMPT_CONFIG_EXTRACTION).single()
-    prompt_config_id = (
-        str(prompt_row["id"]) if prompt_row and prompt_row.get("id") else ""
-    )
-    if prompt_config_id:
-        for ad in ACTIVITY_DEFINITIONS:
-            if ad.get("id") != "ad-extraction-llm":
-                continue
-            dynamic_values = ad.setdefault("dynamicValue", [])
-            for dv in dynamic_values:
-                if dv.get("path") == "prompt_config_id":
-                    dv.setdefault("expression", {})["expression"] = prompt_config_id
-                    break
-
-    for ad in ACTIVITY_DEFINITIONS:
-        dv = ad.get("dynamicValue", [])
-        dv_json = (
-            json.dumps(
-                {v["path"]: v.get("expression", {}).get("expression") for v in dv}
-            )
-            if dv
-            else None
-        )
-        with driver.session() as session:
-            session.run(
-                UPSERT_ACTIVITY,
-                id=ad["id"],
-                raw=json.dumps(ad),
-                name=ad["name"],
-                status=ad["status"],
-                subgraph_id=ad.get("_subgraphId", ""),
-                dynamic_values=dv_json,
-            )
-        logger.info("  ActivityDefinition: %s", ad["name"])
-
-    for pd in PLAN_DEFINITIONS:
-        with driver.session() as session:
-            existing = session.run(COUNT_PLAN_BY_ID, id=pd["id"]).single()
-            existing_count = int(existing["cnt"]) if existing else 0
-        if existing_count > 0 and not args.force:
-            logger.info("  Skipped existing PlanDefinition: %s", pd["id"])
-            continue
-
-        ui_pd = _to_ui_format(pd)
-        with driver.session() as session:
-            session.run(
-                UPSERT_PLAN,
-                id=pd["id"],
-                raw=json.dumps(ui_pd),
-                name=pd["name"],
-                status=pd["status"],
-            )
-            session.run(CLEAR_ACTIONS, id=pd["id"])
-
-        for action in pd.get("action", []):
-            trigger = (action.get("trigger") or [{}])[0]
-            trigger_type = trigger.get("type", "")
-            trigger_name = trigger.get("name", "")
-            definition_ref = action.get("definitionCanonical", "")
-            related_ids = [
-                r.get("actionId", "") for r in (action.get("relatedAction") or [])
-            ]
-            related_edges = action.get("relatedActionEdges") or []
-
+    class _DriverClient:
+        def run(self, query: str, **params):  # noqa: ANN001
             with driver.session() as session:
-                session.run(
-                    CREATE_ACTION,
-                    plan_id=pd["id"],
-                    action_id=action["id"],
-                    node_type=action.get("_nodeType", "action"),
-                    trigger_type=trigger_type,
-                    trigger_name=trigger_name,
-                    condition=None,
-                    sequence=action.get("_sequence", 0),
-                    subgraph_id=action.get("_subgraphId", ""),
-                    durable_event_type=action.get("_durableEventType", ""),
-                    related_actions=related_ids,
-                    related_action_edges=json.dumps(related_edges),
-                )
-                if definition_ref:
-                    activity_id = definition_ref.split("/")[-1]
-                    session.run(
-                        LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id
-                    )
+                return [dict(record) for record in session.run(query, **params)]
 
-        logger.info(
-            "  PlanDefinition: %s (%d actions)", pd["name"], len(pd.get("action", []))
-        )
-
+    seed_with_client(_DriverClient(), force=args.force)
     driver.close()
     logger.info(
         "Done. %d ActivityDefinitions processed, %d PlanDefinitions processed (force=%s).",

@@ -301,6 +301,7 @@ export function OverviewPanel({
               title="Problem list"
             />
             <ProblemListView
+              patientId={detail.patient_id}
               entities={problems}
               loading={entitiesLoading}
             />

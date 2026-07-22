@@ -82,16 +82,14 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
     encounter_id = str(state.get("encounter_id") or "")
     patient_id = str(state.get("patient_id") or "")
     run_id = str(state.get("run_id") or "")
-    workflow_id = str(
-        state.get("workflow_id") or state.get("plan_definition_id") or ""
-    )
+    workflow_id = str(state.get("workflow_id") or state.get("plan_definition_id") or "")
     guideline_ids = list(state.get("guideline_ids") or [])
     referral_id = str(state.get("referral_id") or "").strip()
-    document_reference_id = str(
-        state.get("document_reference_id") or ""
-    ).strip()
+    document_reference_id = str(state.get("document_reference_id") or "").strip()
     assessment_id = _assessment_id(run_id, encounter_id)
 
+    # Atlas: DI-43233166 / DO-FE95EA83 -- letter extract for Situation,
+    # referral_assessment framing (never hardcode a cancer pathway).
     artifacts = [
         SBARArtifactRef(
             type=SituationArtifactType.encounter,
@@ -99,7 +97,7 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
         ),
         SBARArtifactRef(
             type=SituationArtifactType.summarisation_context,
-            context_value=SummarisationContext.two_week_wait,
+            context_value=SummarisationContext.referral_assessment,
         ),
     ]
     if referral_id:
@@ -107,6 +105,13 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             SBARArtifactRef(
                 type=SituationArtifactType.referral_request,
                 id=referral_id,
+            )
+        )
+    if document_reference_id:
+        artifacts.append(
+            SBARArtifactRef(
+                type=SituationArtifactType.document_reference,
+                id=document_reference_id,
             )
         )
     background = [
@@ -137,11 +142,18 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
         background=background,
         upstream_correlation_id=run_id,
         source_system="referral-assessment-pipeline",
-        extra={"parent_run_id": run_id, "workflow_id": workflow_id},
+        extra={
+            "parent_run_id": run_id,
+            "workflow_id": workflow_id,
+            "chunk_ids": list(state.get("chunk_ids") or []),
+            "referral_id": referral_id,
+            "referral_reason": str(state.get("referral_reason") or "").strip(),
+        },
     )
-    result = await SBAROrchestrator().run(payload)
+    result = await SBAROrchestrator(
+        policy_runtime=_runtime_from_state(state),
+    ).run(payload)
 
-    # Persist completeness result to assessment node (best-effort).
     completeness_result = state.get("completeness_result")
     if completeness_result:
         _persist_completeness(assessment_id, completeness_result)
@@ -167,6 +179,12 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
         "errors": result.errors,
         "review_status": "pending_review",
     }
+
+
+def _runtime_from_state(state: SBARSubgraphState) -> Any | None:
+    from libs.sbar.policy_runtime import runtime_from_state
+
+    return runtime_from_state(dict(state))
 
 
 def _count_completeness_failures(completeness_result: dict[str, Any]) -> int:

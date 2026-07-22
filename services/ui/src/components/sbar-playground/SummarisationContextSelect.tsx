@@ -59,6 +59,7 @@ export type SummarisationContextValue =
   | "mdt_discussion"
   | "ncda"
   | "two_week_wait"
+  | "referral_assessment"
   | "frailty_pcsp"
   | "learning_disability_ahc"
   // Secondary care
@@ -142,6 +143,12 @@ export const SUMMARISATION_CONTEXT_GROUPS: ContextGroup[] = [
         label: "Suspected cancer (2WW / Faster Diagnosis)",
         description:
           "An urgent suspected cancer referral. What does the receiving team need to act on?",
+      },
+      {
+        value: "referral_assessment",
+        label: "Referral assessment triage",
+        description:
+          "Read a referral letter. Name urgency, specialty or test, and the main clinical trigger only if the letter says them. Do not assume two-week-wait.",
       },
       {
         value: "frailty_pcsp",

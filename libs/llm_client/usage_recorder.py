@@ -77,6 +77,8 @@ class LLMCallRecord:
     success: bool
     error_message: str = ""
     patient_id: str = ""
+    cache_creation_input_tokens: int = 0
+    input_excludes_cache: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -86,6 +88,8 @@ class LLMCallRecord:
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "cached_input_tokens": self.cached_input_tokens,
+            "cache_creation_input_tokens": self.cache_creation_input_tokens,
+            "input_excludes_cache": self.input_excludes_cache,
             "latency_ms": self.latency_ms,
             "success": self.success,
             "error_message": self.error_message,
@@ -122,7 +126,9 @@ class LLMUsageRecorder:
             input_tokens=int(call.input_tokens),
             output_tokens=int(call.output_tokens),
             cached_input_tokens=int(call.cached_input_tokens),
+            cache_creation_input_tokens=int(call.cache_creation_input_tokens),
             llm_calls=1,
+            input_excludes_cache=bool(call.input_excludes_cache),
         )
         if not self.primary_model and call.model_name:
             self.primary_model = call.model_name
@@ -139,6 +145,7 @@ class LLMUsageRecorder:
             "input_tokens": int(self.usage.input_tokens),
             "output_tokens": int(self.usage.output_tokens),
             "cached_input_tokens": int(self.usage.cached_input_tokens),
+            "cache_creation_input_tokens": int(self.usage.cache_creation_input_tokens),
             "total_tokens": int(self.usage.total_tokens),
             "llm_calls": int(self.usage.llm_calls),
             "total_latency_ms": int(self.total_latency_ms),
@@ -158,29 +165,37 @@ def get_active_recorder() -> Optional[LLMUsageRecorder]:
     return _ACTIVE_RECORDER.get()
 
 
+def _provider_excludes_cache(provider: str) -> bool:
+    return provider.strip().lower() in ("aws", "bedrock")
+
+
 def _default_tracking_callback(**kwargs: Any) -> None:
     """Forward LLM usage from invoke_llm_json into the active recorder.
 
     Mapped from ``track_llm_usage`` keyword arguments to a
-    ``LLMCallRecord``. Cache-creation and cache-read tokens (Bedrock)
-    are added together for the recorder's ``cached_input_tokens`` field;
-    the same convention is used by ``LLMUsage.from_bedrock_response``.
+    ``LLMCallRecord``. Cache reads and cache writes are kept separate so
+    cost math can bill writes at the 1.25x write rate (Bedrock).
     """
     rec = _ACTIVE_RECORDER.get()
     if rec is None:
         return
     try:
-        cached = int(kwargs.get("cache_read_input_tokens") or 0) + int(
-            kwargs.get("cache_creation_input_tokens") or 0
-        )
+        provider = str(kwargs.get("model_provider") or "")
+        excludes = kwargs.get("input_excludes_cache")
+        if excludes is None:
+            excludes = _provider_excludes_cache(provider)
         rec.record(
             LLMCallRecord(
                 agent_task=str(kwargs.get("agent_task") or ""),
                 model_name=str(kwargs.get("model_name") or ""),
-                model_provider=str(kwargs.get("model_provider") or ""),
+                model_provider=provider,
                 input_tokens=int(kwargs.get("input_tokens") or 0),
                 output_tokens=int(kwargs.get("output_tokens") or 0),
-                cached_input_tokens=cached,
+                cached_input_tokens=int(kwargs.get("cache_read_input_tokens") or 0),
+                cache_creation_input_tokens=int(
+                    kwargs.get("cache_creation_input_tokens") or 0
+                ),
+                input_excludes_cache=bool(excludes),
                 latency_ms=int(kwargs.get("latency_ms") or 0),
                 success=bool(kwargs.get("success", True)),
                 error_message=str(kwargs.get("error_message") or ""),

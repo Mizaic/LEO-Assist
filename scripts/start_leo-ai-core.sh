@@ -424,12 +424,37 @@ else
 fi
 
 if [[ "$NO_WORKERS" -eq 0 ]] && should_start "pipeline_worker"; then
+  # Skip ports reserved by other local services (research defaults to 8007).
+  # Friendly agent names match services/ui validation-lab agentRoster.ts.
+  pipeline_agent_names=(
+    Ada Curie Nightingale Faraday Turing Lovelace
+    Pasteur Jenner Hodgkin Seacole Fleming Darwin
+  )
+  reserved_ports=("$RESEARCH_WORKER_PORT" "$TRAINING_WORKER_PORT" "$UI_PORT")
+  worker_port=$PIPELINE_WORKER_PORT
+  pipeline_ports=()
   for ((i = 1; i <= PIPELINE_WORKERS; i++)); do
-    worker_port=$((PIPELINE_WORKER_PORT + i - 1))
-    start_service_window "Pipeline Worker ${i} :${worker_port}" \
-      "export PIPELINE_WORKER_PORT='${worker_port}'; '$VENV_PYTHON' -m uvicorn services.pipeline_worker.app.main:app --host 0.0.0.0 --port ${worker_port} --log-level info"
+    while true; do
+      skip=0
+      for reserved in "${reserved_ports[@]}"; do
+        if [[ "$worker_port" -eq "$reserved" ]]; then
+          skip=1
+          break
+        fi
+      done
+      if [[ "$skip" -eq 0 ]]; then
+        break
+      fi
+      worker_port=$((worker_port + 1))
+    done
+    pipeline_ports+=("$worker_port")
+    agent_idx=$(( (i - 1) % ${#pipeline_agent_names[@]} ))
+    agent_name="${pipeline_agent_names[$agent_idx]}"
+    start_service_window "Pipeline Worker ${agent_name} :${worker_port}" \
+      "export PIPELINE_WORKER_PORT='${worker_port}'; export PIPELINE_WORKER_NAME='${agent_name}'; '$VENV_PYTHON' -m uvicorn services.pipeline_worker.app.main:app --host 0.0.0.0 --port ${worker_port} --log-level info"
+    worker_port=$((worker_port + 1))
   done
-  echo "    Pipeline Workers   (x${PIPELINE_WORKERS} - HTTP :${PIPELINE_WORKER_PORT} + message bus)"
+  echo "    Pipeline Workers   (x${PIPELINE_WORKERS} - HTTP :${pipeline_ports[*]} + message bus)"
   WINDOW_COUNT=$((WINDOW_COUNT + PIPELINE_WORKERS))
 fi
 

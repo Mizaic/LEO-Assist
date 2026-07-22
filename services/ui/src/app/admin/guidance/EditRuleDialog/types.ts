@@ -84,6 +84,23 @@ export interface RuleAction {
 }
 
 /**
+ * Rule-level clinical priority written onto HAS_ACTION edges. Matches
+ * the bitmap compiler / SBAR Assessment bucket vocabulary
+ * (``"2ww"`` | ``"urgent"`` | ``"routine"``).
+ */
+export type RulePriority = "2ww" | "urgent" | "routine";
+
+/** Dropdown options for the PriorityPanel (value + plain-English label). */
+export const RULE_PRIORITIES: ReadonlyArray<{
+  value: RulePriority;
+  label: string;
+}> = [
+  { value: "2ww", label: "2 week wait (urgent suspected cancer)" },
+  { value: "urgent", label: "Urgent" },
+  { value: "routine", label: "Routine" },
+];
+
+/**
  * Comparison operators supported on an OBSERVATION leaf. Mirrors the
  * ``ComparisonOperator`` Literal in
  * ``libs/guidance_schema/observation_leaf.py``.

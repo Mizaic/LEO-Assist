@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -12,11 +13,27 @@ from libs.workflow.durable_step_runner import (
     _Action,
     _build_outgoing_edges,
     _evaluate_condition_port,
-    _load_all_actions,
     _resolve_next_action_ids,
     is_durable_runner_enabled,
 )
 from libs.workflow.durable_steps import StepResult as DurableStepResult
+from libs.workflow.plan_manifest import PlanManifest
+from libs.workflow.pipeline_stage_store import (
+    PipelineStageStore,
+    StageClaimResult,
+    StageCompleteResult,
+)
+
+
+def _manifest(*actions: _Action) -> PlanManifest:
+    return PlanManifest(
+        plan_id="pd-referral-assessment",
+        version_id=1,
+        version_node_id="ver-test-1",
+        policy_version="v1",
+        workflow_mode="durable_pubsub",
+        actions=tuple(actions),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -24,58 +41,98 @@ from libs.workflow.durable_steps import StepResult as DurableStepResult
 # ---------------------------------------------------------------------------
 
 
-def test_disabled_by_default(monkeypatch):
-    monkeypatch.delenv("DURABLE_ENGINE_ENABLED", raising=False)
+def test_kill_switch_blocks_durable_plans(monkeypatch):
+    monkeypatch.setenv("DURABLE_ENGINE_DISABLED", "true")
     assert is_durable_runner_enabled("pd-referral-assessment") is False
-
-
-def test_referral_flag_enables_referral_only(monkeypatch):
-    monkeypatch.setenv("DURABLE_ENGINE_ENABLED", "referral")
-    assert is_durable_runner_enabled("pd-referral-assessment") is True
     assert is_durable_runner_enabled("pd-gp-encounter-coding") is False
 
 
-def test_true_flag_enables_all(monkeypatch):
-    monkeypatch.setenv("DURABLE_ENGINE_ENABLED", "true")
+def test_durable_pubsub_plans_enabled_by_workflow_mode(monkeypatch):
+    monkeypatch.delenv("DURABLE_ENGINE_DISABLED", raising=False)
     assert is_durable_runner_enabled("pd-referral-assessment") is True
+    assert is_durable_runner_enabled("pd-gp-encounter-coding") is True
+    assert is_durable_runner_enabled("pd-gold-training-audit") is True
+    assert is_durable_runner_enabled("pd-episode-bundle-coding") is True
+
+
+def test_non_durable_plan_stays_on_workflow_engine(monkeypatch):
+    monkeypatch.delenv("DURABLE_ENGINE_DISABLED", raising=False)
+    monkeypatch.setattr(
+        "libs.workflow.durable_step_runner.resolve_plan_workflow_mode",
+        lambda plan_id: "" if plan_id == "pd-legacy-in-process" else "durable_pubsub",
+    )
+    assert is_durable_runner_enabled("pd-legacy-in-process") is False
     assert is_durable_runner_enabled("pd-gp-encounter-coding") is True
 
 
 # ---------------------------------------------------------------------------
-# _load_all_actions (Knowledge Graph, not Patient Graph)
+# Plan manifest loading (pinned PlanDefinitionVersion)
 # ---------------------------------------------------------------------------
 
 
-def test_load_all_actions_uses_knowledge_graph_client():
-    """PlanDefinitions live on the KG; patient graph has none."""
-    trigger_row = {
-        "a": {
-            "id": "act-ref-durable-start",
-            "canvas_id": "act-ref-durable-start",
-            "nodeType": "trigger",
-            "trigger_name": "referral-received",
-            "sequence": 0,
-            "relatedActions": [],
-        },
-        "ad": None,
-    }
-    mock_kg = MagicMock()
-    mock_kg.run.return_value = [trigger_row]
-    mock_kg.close = MagicMock()
+def test_start_pins_policy_version_on_admission():
+    trigger_action = _Action(
+        action_id="act-trigger",
+        subgraph_id="trigger",
+        node_type="trigger",
+        trigger_name="referral-received",
+    )
+    manifest = _manifest(trigger_action)
+    mock_store = MagicMock(
+        ensure_schema=MagicMock(),
+        admit_run=MagicMock(
+            return_value=MagicMock(
+                run_id="run-001",
+                created=True,
+                first_step_enqueued=False,
+                status="running",
+            )
+        ),
+        claim_first_step_enqueue=MagicMock(return_value=True),
+    )
+    mock_bus = AsyncMock()
 
-    with patch(
-        "libs.workflow.durable_step_runner.KnowledgeGraphClient",
-        return_value=mock_kg,
-    ) as kg_cls:
-        actions = _load_all_actions("pd-referral-assessment")
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_rollout_for_plan",
+            return_value=__import__(
+                "libs.workflow.version_admission", fromlist=["VersionRollout"]
+            ).VersionRollout(default_version="v1"),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_plan_manifest",
+            return_value=manifest,
+        ),
+        patch(
+            "libs.workflow.execution_manifest.build_manifest_for_plan",
+            return_value={"plan_version_id": "ver-test-1", "policy_version": "v1"},
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=mock_store,
+        ),
+    ):
+        asyncio.run(
+            DurableStepRunner.start(
+                {
+                    "event_type": "referral-received",
+                    "plan_definition_id": "pd-referral-assessment",
+                    "run_id": "run-001",
+                    "patient_id": "p-001",
+                },
+                bus=mock_bus,
+            )
+        )
 
-    kg_cls.assert_called_once_with()
-    mock_kg.run.assert_called_once()
-    assert mock_kg.run.call_args.kwargs["plan_id"] == "pd-referral-assessment"
-    mock_kg.close.assert_called_once()
-    assert len(actions) == 1
-    assert actions[0].trigger_name == "referral-received"
-    assert actions[0].node_type == "trigger"
+    admit_kwargs = mock_store.admit_run.call_args.kwargs
+    assert admit_kwargs["plan_version_id"] == "ver-test-1"
+    assert admit_kwargs["policy_version"] == "v1"
+    assert admit_kwargs["version_selection_reason"] == "default"
+    assert "execution_manifest_json" in admit_kwargs
 
 
 # ---------------------------------------------------------------------------
@@ -209,8 +266,8 @@ async def test_start_publishes_first_action():
 
     with (
         patch(
-            "libs.workflow.durable_step_runner._load_all_actions",
-            return_value=[trigger_action, first_action],
+            "libs.workflow.durable_step_runner.load_plan_manifest",
+            return_value=_manifest(trigger_action, first_action),
         ),
         patch(
             "libs.workflow.durable_step_runner.PatientGraphClient",
@@ -224,7 +281,15 @@ async def test_start_publishes_first_action():
             "libs.workflow.durable_step_runner.PipelineStageStore",
             return_value=MagicMock(
                 ensure_schema=MagicMock(),
-                upsert_run=MagicMock(),
+                admit_run=MagicMock(
+                    return_value=MagicMock(
+                        run_id="run-001",
+                        created=True,
+                        first_step_enqueued=False,
+                        status="running",
+                    )
+                ),
+                claim_first_step_enqueue=MagicMock(return_value=True),
             ),
         ),
     ):
@@ -269,8 +334,8 @@ async def test_run_step_invokes_subgraph_and_publishes_next():
 
     with (
         patch(
-            "libs.workflow.durable_step_runner._load_all_actions",
-            return_value=[current_action, next_action],
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(current_action, next_action),
         ),
         patch(
             "libs.workflow.durable_step_runner.PatientGraphClient",
@@ -281,10 +346,19 @@ async def test_run_step_invokes_subgraph_and_publishes_next():
             return_value=MagicMock(
                 ensure_schema=MagicMock(),
                 upsert_run=MagicMock(),
-                start_stage=MagicMock(),
+                claim_stage=MagicMock(return_value=StageClaimResult(outcome="claimed")),
                 complete_stage=MagicMock(),
+                load_pending_outbox=MagicMock(return_value=[]),
+                has_pending_outbox=MagicMock(return_value=False),
+                mark_outbox_sent=MagicMock(),
+                mark_next_published=MagicMock(),
             ),
         ) as store_cls,
+        patch(
+            "libs.workflow.durable_step_runner.dispatch_stage_outbox",
+            new_callable=AsyncMock,
+            return_value=1,
+        ) as dispatch_mock,
         patch(
             "libs.workflow.durable_step_runner.load_step_state",
             return_value={"patient_id": "p-002", "entities": []},
@@ -302,9 +376,8 @@ async def test_run_step_invokes_subgraph_and_publishes_next():
     store = store_cls.return_value
     completed_result = store.complete_stage.call_args[0][1]
     assert completed_result.next_event_type == DURABLE_STEP_EVENT
-    mock_bus.send.assert_called_once()
-    sent_body = mock_bus.send.call_args[0][1].body
-    assert sent_body["action_id"] == "act-ref-post-process"
+    dispatch_mock.assert_called_once()
+    mock_bus.send.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -332,8 +405,8 @@ async def test_run_step_terminal_publishes_completion():
 
     with (
         patch(
-            "libs.workflow.durable_step_runner._load_all_actions",
-            return_value=[terminal_action],
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(terminal_action),
         ),
         patch(
             "libs.workflow.durable_step_runner.PatientGraphClient",
@@ -344,8 +417,9 @@ async def test_run_step_terminal_publishes_completion():
             return_value=MagicMock(
                 ensure_schema=MagicMock(),
                 upsert_run=MagicMock(),
-                start_stage=MagicMock(),
+                claim_stage=MagicMock(return_value=StageClaimResult(outcome="claimed")),
                 complete_stage=MagicMock(),
+                mark_next_published=MagicMock(),
             ),
         ),
         patch(
@@ -363,3 +437,291 @@ async def test_run_step_terminal_publishes_completion():
     mock_bus.send.assert_called_once()
     sent_body = mock_bus.send.call_args[0][1].body
     assert sent_body["event_type"] == "referral_assessment_completed"
+
+
+@pytest.mark.asyncio
+async def test_run_step_defers_when_stage_busy():
+    action = _Action(action_id="act-ref-extract", subgraph_id="extraction")
+    mock_bus = AsyncMock()
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-extract",
+        "step_id": "act-ref-extract",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-busy",
+        "patient_id": "p-busy",
+        "_message_id": "msg-busy",
+    }
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(action),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=MagicMock(
+                ensure_schema=MagicMock(),
+                upsert_run=MagicMock(),
+                claim_stage=MagicMock(return_value=StageClaimResult(outcome="busy")),
+                complete_stage=MagicMock(),
+            ),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-busy"},
+        ),
+    ):
+        from libs.workflow.stage_lease import StageLeaseBusyError
+
+        with pytest.raises(StageLeaseBusyError):
+            await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    mock_bus.send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_run_step_dual_delivery_executes_subgraph_once():
+    """Two deliveries of the same stage run the subgraph exactly once."""
+    from tests.helpers.claim_race_client import InMemoryClaimClient
+
+    action = _Action(action_id="act-ref-extract", subgraph_id="extraction")
+    nxt = _Action(
+        action_id="act-ref-post-process",
+        subgraph_id="post_processing",
+        related_actions=[{"actionId": "act-ref-extract"}],
+    )
+    client = InMemoryClaimClient()
+    mock_bus = AsyncMock()
+    mock_bus.send = AsyncMock()
+    executions: list[int] = []
+    mock_graph = MagicMock()
+
+    def _invoke(_state):
+        executions.append(1)
+        return {"entities": []}
+
+    mock_graph.invoke = _invoke
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-extract",
+        "step_id": "act-ref-extract",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-dual",
+        "patient_id": "p-dual",
+    }
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(action, nxt),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=client,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-dual"},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
+        ),
+    ):
+        first = await DurableStepRunner.run_step(body, bus=mock_bus)
+        second = await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    assert first.status == "completed"
+    assert second.status == "completed"
+    assert "already_completed" in second.warnings
+    assert executions == [1]
+
+
+@pytest.mark.asyncio
+async def test_run_step_stale_complete_recovers_when_stage_already_finished():
+    """Duplicate delivery that loses the complete race still finishes cleanly."""
+    from tests.helpers.claim_race_client import InMemoryClaimClient
+
+    action = _Action(action_id="act-ref-persist", subgraph_id="persist")
+    client = InMemoryClaimClient()
+    mock_bus = AsyncMock()
+    mock_graph = MagicMock()
+    mock_graph.invoke = MagicMock(return_value={"documents_written": 2})
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-persist",
+        "step_id": "act-ref-persist",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-persist-stale",
+        "patient_id": "p-persist-stale",
+        "_message_id": "msg-persist-stale",
+    }
+    store = PipelineStageStore(client)
+    real_complete = store.complete_stage
+
+    def _complete_as_stale(*args, **kwargs):
+        real_complete(*args, **kwargs)
+        return StageCompleteResult(outcome="stale_lease")
+
+    store.complete_stage = _complete_as_stale  # type: ignore[method-assign]
+
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(action),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=client,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=store,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-persist-stale"},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.dispatch_stage_outbox",
+            new_callable=AsyncMock,
+            return_value=0,
+        ),
+    ):
+        result = await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    assert result.status == "completed"
+    assert "already_completed" in result.warnings
+    mock_graph.invoke.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_run_step_already_completed_republishes_next():
+    current = _Action(action_id="act-ref-extract", subgraph_id="extraction")
+    nxt = _Action(
+        action_id="act-ref-post-process",
+        subgraph_id="post_processing",
+        related_actions=[{"actionId": "act-ref-extract"}],
+    )
+    mock_bus = AsyncMock()
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-extract",
+        "step_id": "act-ref-extract",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-done",
+        "patient_id": "p-done",
+    }
+    store = MagicMock(
+        ensure_schema=MagicMock(),
+        upsert_run=MagicMock(),
+        claim_stage=MagicMock(
+            return_value=StageClaimResult(
+                outcome="already_completed",
+                output={"entities": []},
+                next_action_ids=["act-ref-post-process"],
+                next_published=False,
+            )
+        ),
+        complete_stage=MagicMock(),
+        load_pending_outbox=MagicMock(return_value=[]),
+        has_pending_outbox=MagicMock(return_value=False),
+        mark_outbox_sent=MagicMock(),
+        mark_next_published=MagicMock(),
+    )
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(current, nxt),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=store,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-done"},
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.dispatch_stage_outbox",
+            new_callable=AsyncMock,
+            return_value=1,
+        ) as dispatch_mock,
+    ):
+        result = await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    assert result.status == "completed"
+    assert "already_completed" in result.warnings
+    store.complete_stage.assert_not_called()
+    dispatch_mock.assert_called_once()
+    mock_bus.send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_run_step_stale_lease_without_recovery_raises_defer():
+    """Unrecovered stale complete must raise StageLeaseStaleError for SB abandon."""
+    from libs.workflow.stage_lease import StageLeaseStaleError
+
+    action = _Action(action_id="act-ref-extract", subgraph_id="extraction")
+    mock_bus = AsyncMock()
+    mock_graph = MagicMock()
+    mock_graph.invoke = MagicMock(return_value={"entities": []})
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-ref-extract",
+        "step_id": "act-ref-extract",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-stale-defer",
+        "patient_id": "p-stale-defer",
+        "_message_id": "msg-stale-defer",
+    }
+    claim = StageClaimResult(
+        outcome="claimed",
+        lease_owner="worker-a",
+        lease_generation=1,
+    )
+    store = MagicMock(
+        ensure_schema=MagicMock(),
+        upsert_run=MagicMock(),
+        claim_stage=MagicMock(side_effect=[claim, StageClaimResult(outcome="busy")]),
+        complete_stage=MagicMock(
+            return_value=StageCompleteResult(outcome="stale_lease")
+        ),
+    )
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(action),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=store,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-stale-defer"},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
+        ),
+    ):
+        with pytest.raises(StageLeaseStaleError):
+            await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    mock_graph.invoke.assert_called_once()

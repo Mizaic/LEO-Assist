@@ -69,6 +69,8 @@ export function mergeEditedRuleIntoCache(
      *  but are typed loosely here because they are about to be POSTed
      *  as plain JSON, not consumed as editor state. */
     actions?: Array<Record<string, unknown>>;
+    priority?: "2ww" | "urgent" | "routine";
+    due_days?: number | null;
   },
 ): Rule {
   const actions = payload.actions as unknown as RuleAction[] | undefined;
@@ -80,6 +82,13 @@ export function mergeEditedRuleIntoCache(
     logic_tree: payload.logic_tree as unknown as LogicTreeNode,
     ...(actions
       ? { actions, strength: actions[0]?.strength ?? previous.strength }
+      : {}),
+    ...(payload.priority
+      ? {
+          action_priority: payload.priority,
+          action_due_days:
+            payload.priority === "routine" ? null : (payload.due_days ?? null),
+        }
       : {}),
   };
 }
@@ -159,6 +168,8 @@ export function ruleToEditable(rule: Rule): EditableRule {
     logic_tree: rule.logic_tree,
     actions: normalizeRuleActions(rule.actions as unknown[] | undefined),
     action,
+    action_priority: rule.action_priority ?? null,
+    action_due_days: rule.action_due_days ?? null,
   };
 }
 

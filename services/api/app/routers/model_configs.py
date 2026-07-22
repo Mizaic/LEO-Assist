@@ -62,6 +62,7 @@ class ModelConfigCreate(BaseModel):
     modelId: str
     costPer1mInput: float = 0.0
     costPer1mCachedInput: float = 0.0
+    costPer1mCacheWrite: float = 0.0
     costPer1mOutput: float = 0.0
     isActive: bool = True
 
@@ -71,6 +72,7 @@ class ModelConfigUpdate(BaseModel):
     modelId: str
     costPer1mInput: float
     costPer1mCachedInput: float
+    costPer1mCacheWrite: float = 0.0
     costPer1mOutput: float
     isActive: bool = True
 
@@ -94,6 +96,7 @@ def _row_to_dict(row: dict) -> dict[str, Any]:
         "modelId": row.get("modelId", ""),
         "costPer1mInput": float(row.get("costPer1mInput") or 0),
         "costPer1mCachedInput": float(row.get("costPer1mCachedInput") or 0),
+        "costPer1mCacheWrite": float(row.get("costPer1mCacheWrite") or 0),
         "costPer1mOutput": float(row.get("costPer1mOutput") or 0),
         "isActive": bool(row.get("isActive", True)),
         "source": row.get("source", "seed"),
@@ -156,6 +159,7 @@ def create_model_config(
                 model_id=body.modelId,
                 cost_per_1m_input=body.costPer1mInput,
                 cost_per_1m_cached=body.costPer1mCachedInput,
+                cost_per_1m_cache_write=body.costPer1mCacheWrite,
                 cost_per_1m_output=body.costPer1mOutput,
                 is_active=body.isActive,
             )
@@ -198,6 +202,7 @@ def update_model_config(
                 model_id=body.modelId,
                 cost_per_1m_input=body.costPer1mInput,
                 cost_per_1m_cached=body.costPer1mCachedInput,
+                cost_per_1m_cache_write=body.costPer1mCacheWrite,
                 cost_per_1m_output=body.costPer1mOutput,
                 is_active=body.isActive,
             ).single()

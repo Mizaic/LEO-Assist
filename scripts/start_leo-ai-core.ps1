@@ -403,15 +403,29 @@ if (-not $NoTrainingWorker -and (ShouldStart "training_worker")) {
 #    The first worker runs uvicorn so /test-run/batch SSE is reachable by the UI.
 #    Additional workers (PipelineWorkers > 1) run on sequential ports for scale.
 if (-not $NoWorkers -and (ShouldStart "pipeline_worker")) {
+    # Skip ports reserved by other local services (research worker defaults to 8007 on macOS start script).
+    # Friendly agent names match services/ui validation-lab agentRoster.ts.
+    $pipelineAgentNames = @(
+        "Ada", "Curie", "Nightingale", "Faraday", "Turing", "Lovelace",
+        "Pasteur", "Jenner", "Hodgkin", "Seacole", "Fleming", "Darwin"
+    )
+    $reservedPorts = @($TrainingWorkerPort, 8007, $UiPort)
+    $workerPort = $PipelineWorkerPort
+    $pipelinePorts = @()
     for ($i = 1; $i -le $PipelineWorkers; $i++) {
-        $workerPort = $PipelineWorkerPort + ($i - 1)
-        # Set port env var inline then launch uvicorn. The dual-mode FastAPI app
+        while ($reservedPorts -contains $workerPort) {
+            $workerPort++
+        }
+        $pipelinePorts += $workerPort
+        $agentName = $pipelineAgentNames[($i - 1) % $pipelineAgentNames.Count]
+        # Set port + agent name then launch uvicorn. The dual-mode FastAPI app
         # runs the message bus consumer as a background lifespan task alongside
         # the HTTP server, so /test-run/batch SSE is served here, not on the Core API.
-        Start-ServiceWindow -Title "Pipeline Worker $i :$workerPort" `
-            -Command "`$env:PIPELINE_WORKER_PORT='$workerPort'; & '$VenvPython' -m uvicorn services.pipeline_worker.app.main:app --host 0.0.0.0 --port $workerPort --log-level info"
+        Start-ServiceWindow -Title "Pipeline Worker $agentName :$workerPort" `
+            -Command "`$env:PIPELINE_WORKER_PORT='$workerPort'; `$env:PIPELINE_WORKER_NAME='$agentName'; & '$VenvPython' -m uvicorn services.pipeline_worker.app.main:app --host 0.0.0.0 --port $workerPort --log-level info"
+        $workerPort++
     }
-    Write-Host "    Pipeline Workers   (x$PipelineWorkers - HTTP :$PipelineWorkerPort + message bus)" -ForegroundColor White
+    Write-Host "    Pipeline Workers   (x$PipelineWorkers - HTTP :$($pipelinePorts -join ', ') + message bus)" -ForegroundColor White
     $windowCount += $PipelineWorkers
 }
 

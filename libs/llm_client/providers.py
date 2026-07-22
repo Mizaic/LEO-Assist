@@ -47,23 +47,22 @@ async def get_bedrock_model():
     if _BEDROCK_MODEL:
         return _BEDROCK_MODEL
 
-    import boto3
-    from botocore.config import Config
     from langchain_aws import ChatBedrockConverse
 
-    cfg = Config(
-        connect_timeout=60,
-        read_timeout=300,
-        retries={"max_attempts": 3, "mode": "standard"},
-    )
+    from libs.llm_client.bedrock_client import get_bedrock_runtime_client
+
+    region = os.getenv("AWS_DEFAULT_REGION", "eu-west-2")
     client = await asyncio.to_thread(
-        lambda: boto3.client(
-            "bedrock-runtime", region_name="eu-west-2", config=cfg, verify=True
-        )
+        get_bedrock_runtime_client,
+        region,
+        60,
+        300,
+        3,
+        False,
     )
     _BEDROCK_MODEL = ChatBedrockConverse(
         model=_bedrock_model_id(),
-        region_name="eu-west-2",
+        region_name=region,
         provider="anthropic",
         client=client,
     )
@@ -112,6 +111,15 @@ def _cached_azure_model(
 def reset_azure_model_cache() -> None:
     """Clear cached AzureChatOpenAI wrappers (test hook)."""
     _cached_azure_model.cache_clear()
+
+
+def reset_bedrock_model_cache() -> None:
+    """Clear cached ChatBedrockConverse wrapper (test hook)."""
+    global _BEDROCK_MODEL
+    from libs.llm_client.bedrock_client import reset_bedrock_client_cache
+
+    _BEDROCK_MODEL = None
+    reset_bedrock_client_cache()
 
 
 async def invoke_with_retry(
@@ -311,6 +319,7 @@ async def _fire_invoke_tracking(
             latency_ms=latency_ms,
             success=success,
             error_message=str(error_message or "")[:400],
+            input_excludes_cache=provider in ("aws", "bedrock"),
             **counts,
         )
     except Exception:

@@ -348,6 +348,78 @@ describe("SbarFinalView", () => {
     expect(screen.getByText("enc-safe")).toBeInTheDocument();
   });
 
+  it("clicking an enriched source chip opens a dialog with the exact record text", async () => {
+    const user = userEvent.setup();
+    render(
+      <SbarFinalView
+        markdown={SAMPLE}
+        backgroundParts={[
+          {
+            ...SAMPLE_BACKGROUND_PARTS[0],
+            sourceIds: ["chunk-full-1"],
+            sources: [
+              {
+                id: "chunk-full-1",
+                type: "Chunk",
+                label: "Referral letter chunk 1",
+                preview: "Dear Colleague,",
+                fullText:
+                  "Dear Colleague,\n\nThank you for referring this patient " +
+                  "with iron-deficiency anaemia. Full letter text continues.",
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await user.click(
+      screen.getByTestId("sbar-final-section-background-sources-toggle"),
+    );
+    await user.click(screen.getByText("Referral letter chunk 1"));
+    expect(
+      screen.getByTestId("sbar-final-section-background-source-dialog-body"),
+    ).toHaveTextContent(
+      "Thank you for referring this patient with iron-deficiency anaemia",
+    );
+    expect(
+      screen.getByTestId("sbar-final-section-background-source-dialog-note"),
+    ).toHaveTextContent(/exact record text/i);
+    expect(screen.getByText(/Technical id: chunk-full-1/)).toBeInTheDocument();
+  });
+
+  it("falls back to the short preview when a source has no fullText", async () => {
+    const user = userEvent.setup();
+    render(
+      <SbarFinalView
+        markdown={SAMPLE}
+        backgroundParts={[
+          {
+            ...SAMPLE_BACKGROUND_PARTS[0],
+            sourceIds: ["enc-legacy"],
+            sources: [
+              {
+                id: "enc-legacy",
+                type: "Encounter",
+                label: "Encounter (legacy)",
+                preview: "Progressive jaundice.",
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    await user.click(
+      screen.getByTestId("sbar-final-section-background-sources-toggle"),
+    );
+    await user.click(screen.getByText("Encounter (legacy)"));
+    expect(
+      screen.getByTestId("sbar-final-section-background-source-dialog-body"),
+    ).toHaveTextContent("Progressive jaundice.");
+    expect(
+      screen.getByTestId("sbar-final-section-background-source-dialog-note"),
+    ).toHaveTextContent(/short preview only/i);
+  });
+
   it("does not show the completeness chip when completenessFinding is not supplied", () => {
     render(<SbarFinalView markdown={SAMPLE} />);
     expect(

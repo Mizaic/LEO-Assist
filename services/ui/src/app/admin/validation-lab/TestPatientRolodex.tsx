@@ -8,7 +8,7 @@
  */
 "use client";
 
-/** Rolodex browser for Validation Lab test patients. Atlas: DI-43E908C6 / DO-158BE606 */
+/** Rolodex browser for Validation Lab test patients. Atlas: DI-43E908C6 / DI-020F98AE / DO-158BE606 */
 
 import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
@@ -48,6 +48,7 @@ interface Props {
   onSelect: (caseId: string) => void;
   onViewPatient: (patientId: string) => void;
   onTest: (caseId: string) => Promise<void>;
+  onTestMany: (caseIds: string[]) => Promise<void>;
   onRename: (caseId: string, title: string) => Promise<void>;
   onDelete: (caseId: string) => Promise<void>;
   onDeleteMany: (caseIds: string[]) => Promise<void>;
@@ -82,6 +83,7 @@ export default function TestPatientRolodex({
   onSelect,
   onViewPatient,
   onTest,
+  onTestMany,
   onRename,
   onDelete,
   onDeleteMany,
@@ -202,6 +204,20 @@ export default function TestPatientRolodex({
             }
             label="Select all"
           />
+          <Button
+            size="small"
+            variant="contained"
+            disabled={busy || checkedIds.size === 0}
+            onClick={() => {
+              const ids = Array.from(checkedIds);
+              void onTestMany(ids).then(() => setCheckedIds(clearSelection()));
+            }}
+            data-testid="validation-lab-test-selected"
+          >
+            {checkedIds.size > 0
+              ? `Test selected (${checkedIds.size})`
+              : "Test selected"}
+          </Button>
           <Button
             size="small"
             color="error"

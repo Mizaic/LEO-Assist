@@ -21,7 +21,7 @@
 
 import { LEO_EVENT_NAMES } from "../data/types";
 import type { SbarAssessmentPayload } from "../data/types";
-import { fetchAssessment } from "../data/fetcher";
+import { fetchAssessment, fetchSourceText } from "../data/fetcher";
 import { configureDemoFetcher } from "../demo/fixture";
 import { buildShadowStylesheet } from "../branding/stylesheet";
 import { renderSurface } from "../sbar/surface";
@@ -99,6 +99,15 @@ async function _boot(): Promise<void> {
     payload,
     advisory: ADVISORY,
     emit: (e) => _emit(e),
+    resolveSourceText: (sourceId) =>
+      fetchSourceText({
+        assessmentId: ASSESSMENT_ID,
+        sourceId,
+        widgetToken: WIDGET_TOKEN,
+        proxyOrigin: PROXY_ORIGIN,
+      })
+        .then((result) => result.text || null)
+        .catch(() => null),
   });
 }
 

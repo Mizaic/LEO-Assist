@@ -23,6 +23,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
+from libs.cypher.pipeline_stage_queries import LIST_PIPELINE_STAGE_RUNS
 from libs.cypher.sbar_assessment_queries import GET_ASSESSMENT
 from libs.referral_simulator.message import (
     build_communication_assessment_message,
@@ -43,10 +44,8 @@ MATCH (r:PipelineRun {id: $run_id})
 RETURN r.status AS status, r.assessment_id AS assessment_id
 """
 
-# Legacy fallback when DURABLE_ENGINE_ENABLED=false -- see
-# services/api/app/routers/sbar.py::_normalise_audit_fallback for the
-# full explanation of why :AuditEvent nodes are the only trace in that
-# mode.
+# Legacy fallback for pre-cutover WorkflowEngine runs that only wrote
+# :AuditEvent nodes. Durable plans use :PipelineRun via DurableStepRunner.
 _GET_AUDIT_FALLBACK = """
 MATCH (ae:AuditEvent) WHERE ae.id IN [$main_id, $sbar_id]
 RETURN ae.id AS id, ae.status AS status, ae.assessment_id AS assessment_id
@@ -203,9 +202,8 @@ def execute_lab_run(
 def poll_run_status(client: Any, run_id: str) -> dict[str, str]:
     """Read the real pipeline's status + assessment_id for a Lab run.
 
-    Falls back to legacy :AuditEvent nodes when DurableStepRunner is
-    disabled (DURABLE_ENGINE_ENABLED=false), same as the SBAR router's
-    child-run polling.
+    Prefers :PipelineRun rows written by DurableStepRunner. Falls back to
+    legacy :AuditEvent nodes for older in-process WorkflowEngine runs.
     """
     rows = client.run(_GET_PIPELINE_RUN, run_id=run_id)
     if rows:
@@ -230,6 +228,35 @@ def poll_run_status(client: Any, run_id: str) -> dict[str, str]:
     }
 
 
+def list_stage_progress(client: Any, run_id: str) -> list[dict[str, str]]:
+    """Return live :PipelineStageRun rows for a Lab / durable pipeline run."""
+    rows = client.run(LIST_PIPELINE_STAGE_RUNS, run_id=run_id)
+    out: list[dict[str, str]] = []
+    for row in rows or []:
+        step_id = str(row.get("step_id") or "").strip()
+        if not step_id:
+            continue
+        out.append(
+            {
+                "step_id": step_id,
+                "event_type": str(row.get("event_type") or ""),
+                "status": str(row.get("status") or "pending"),
+                "worker_id": str(row.get("worker_id") or ""),
+                "started_at": str(row.get("started_at") or ""),
+                "completed_at": str(row.get("completed_at") or ""),
+            }
+        )
+    return out
+
+
+def attach_stage_progress(
+    client: Any, packed: dict[str, Any], run_id: str
+) -> dict[str, Any]:
+    """Attach live durable stage rows onto a get_run / refresh payload."""
+    packed["run"]["stage_progress"] = list_stage_progress(client, run_id)
+    return packed
+
+
 def _json_loads_safe(raw: Any) -> Any:
     if isinstance(raw, dict):
         return raw
@@ -239,6 +266,26 @@ def _json_loads_safe(raw: Any) -> Any:
         except json.JSONDecodeError:
             return {}
     return {}
+
+
+def _llm_usage_from_assessment(row: dict[str, Any]) -> dict[str, Any]:
+    """Copy real Assessment telemetry only when cost or tokens are present."""
+    cost = float(row.get("llm_cost_usd") or 0.0)
+    total_tokens = int(row.get("llm_total_tokens") or 0)
+    calls = int(row.get("llm_calls") or 0)
+    if cost <= 0 and total_tokens <= 0 and calls <= 0:
+        return {}
+    return {
+        "input_tokens": int(row.get("llm_input_tokens") or 0),
+        "output_tokens": int(row.get("llm_output_tokens") or 0),
+        "cached_input_tokens": int(row.get("llm_cached_tokens") or 0),
+        "total_tokens": total_tokens,
+        "llm_calls": calls,
+        "cost_usd": round(cost, 6),
+        "latency_ms": int(row.get("llm_latency_ms") or 0),
+        "model_id": str(row.get("llm_model_id") or ""),
+        "model_provider": str(row.get("llm_model_provider") or ""),
+    }
 
 
 def read_real_outputs(client: Any, assessment_id: str) -> RunOutputs:
@@ -262,4 +309,5 @@ def read_real_outputs(client: Any, assessment_id: str) -> RunOutputs:
         completeness=completeness if isinstance(completeness, dict) else {},
         sbar_assessment_id=assessment_id,
         sbar_markdown=str(row.get("content") or ""),
+        llm_usage=_llm_usage_from_assessment(row),
     )

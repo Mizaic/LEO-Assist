@@ -11,6 +11,7 @@ and the new DurableStepRunner can share the same enrichment logic.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -113,6 +114,11 @@ def load_document_chunks_into_state(
     chunk_ids = chunk_ids_from_state(state)
     if not chunk_ids or state.get("sentences"):
         return
+    scope_errors = _validate_trigger_chunk_scope(client, state, chunk_ids)
+    if scope_errors:
+        state["errors"] = list(state.get("errors") or []) + scope_errors
+        state["chunk_scope_failed"] = True
+        return
     loaded = load_document_chunks_from_neo4j(client, chunk_ids)
     state.update(loaded)
     if not loaded.get("errors"):
@@ -124,6 +130,41 @@ def load_document_chunks_into_state(
         loaded.get("errors"),
     )
     state["errors"] = list(state.get("errors") or []) + list(loaded.get("errors") or [])
+
+
+def _validate_trigger_chunk_scope(
+    client: PatientGraphClient,
+    state: dict[str, Any],
+    chunk_ids: list[str],
+) -> list[str]:
+    from libs.sbar.trigger_chunk_scope import (
+        TriggerChunkScopeRequest,
+        validate_trigger_chunk_scope,
+    )
+
+    tenant_id = str(state.get("tenant_id") or "")
+    patient_id = str(state.get("patient_id") or "")
+    referral_id = str(state.get("referral_id") or state.get("case_id") or "")
+    document_reference_id = str(state.get("document_reference_id") or "")
+    try:
+        with client.session() as session:
+            result = validate_trigger_chunk_scope(
+                session,
+                TriggerChunkScopeRequest(
+                    tenant_id=tenant_id,
+                    patient_id=patient_id,
+                    referral_id=referral_id or None,
+                    document_reference_id=document_reference_id or None,
+                    chunk_ids=chunk_ids,
+                ),
+            )
+    except Exception:
+        logger.warning("trigger chunk scope validation failed", exc_info=True)
+        return ["trigger chunk scope validation failed"]
+    if result.ok:
+        state["chunk_ids"] = result.ordered_chunk_ids
+        return []
+    return [err.message for err in result.errors]
 
 
 def load_communication_thread_into_state(
@@ -209,14 +250,17 @@ def enrich_patient_demographics(
         return
     rows = client.run(
         "MATCH (p:Patient {id: $pid}) "
-        "RETURN coalesce(p.birthDate, '') AS birth_date, "
-        "       coalesce(p.gender, '')    AS gender",
+        "RETURN coalesce(toString(p.birthDate), '') AS birth_date, "
+        "       coalesce(p.gender, '') AS gender, "
+        "       coalesce(p.source, '') AS source",
         pid=patient_id,
     )
     if not rows:
         return
     row = rows[0]
     age = age_years_from_str(row.get("birth_date") or "")
+    if age is None and str(row.get("source") or "") == "validation-lab":
+        age = _validation_lab_age_fallback(client, patient_id)
     if age is not None:
         state["patient_age"] = age
     gender = str(row.get("gender") or "").strip().lower()
@@ -228,11 +272,41 @@ def enrich_patient_demographics(
         )
 
 
-def age_years_from_str(birth_date: str) -> float | None:
+def _validation_lab_age_fallback(
+    client: PatientGraphClient,
+    patient_id: str,
+) -> float | None:
+    """Derive age from ValidationCase prose when Patient.birthDate is missing."""
+    from libs.validation_lab.patient_age import validation_lab_age_from_case_row
+
+    rows = client.run(
+        "MATCH (c:ValidationCase {patient_id: $pid}) "
+        "RETURN c.id AS case_id, c.referral_text AS referral_text, "
+        "       c.reason_for_submission AS reason_for_submission, "
+        "       c.gp_encounter_json AS gp_encounter_json "
+        "LIMIT 1",
+        pid=patient_id,
+    )
+    if not rows:
+        return None
+    return validation_lab_age_from_case_row(dict(rows[0]))
+
+
+def age_years_from_str(birth_date: Any) -> float | None:
     """Return decimal age from an ISO-8601 date string, or None."""
     from datetime import date as _date
 
-    val = str(birth_date or "").strip()[:10]
+    if birth_date is None:
+        return None
+    if hasattr(birth_date, "iso_format") and callable(birth_date.iso_format):
+        val = str(birth_date.iso_format()).strip()[:10]
+    elif hasattr(birth_date, "isoformat") and callable(birth_date.isoformat):
+        try:
+            val = str(birth_date.isoformat()).strip()[:10]
+        except TypeError:
+            val = str(birth_date or "").strip()[:10]
+    else:
+        val = str(birth_date or "").strip()[:10]
     if not val:
         return None
     try:
@@ -321,4 +395,29 @@ def load_step_state(
     enrich_patient_demographics(client, request.patient_id, state)
     enrich_patient_org_id(client, request.patient_id, state)
     _load_prompt_config(state, request.run_id)
+    _load_execution_manifest(client, request.run_id, state)
     return state
+
+
+def _load_execution_manifest(
+    client: PatientGraphClient,
+    run_id: str,
+    state: dict[str, Any],
+) -> None:
+    if state.get("execution_manifest"):
+        return
+    try:
+        from libs.sbar.policy_runtime import load_execution_manifest
+
+        manifest = load_execution_manifest(client, run_id)
+        if manifest:
+            state["execution_manifest"] = manifest
+            state["execution_manifest_json"] = json.dumps(
+                manifest, sort_keys=True, default=str
+            )
+    except Exception:
+        logger.debug(
+            "execution_manifest unavailable for run %s",
+            run_id,
+            exc_info=True,
+        )

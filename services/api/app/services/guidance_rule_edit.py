@@ -64,6 +64,9 @@ _LEAF_KINDS = {
 }
 _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
 _VALID_RULE_FIRED_OUTCOMES = {"fired", "not_fired"}
+# Rule-level clinical priority written onto HAS_ACTION edges. Matches the
+# bitmap compiler / SBAR Assessment bucket vocabulary.
+_VALID_PRIORITIES = {"2ww", "urgent", "routine"}
 
 
 # -- Pydantic models -----------------------------------------------------------
@@ -239,7 +242,9 @@ class LogicNode(BaseModel):
     def _check_kind(cls, v: str) -> str:
         upper = v.upper()
         if upper not in _ALL_KINDS:
-            raise ValueError(f"Unknown node kind {v!r}; expected one of {sorted(_ALL_KINDS)}")
+            raise ValueError(
+                f"Unknown node kind {v!r}; expected one of {sorted(_ALL_KINDS)}"
+            )
         return upper
 
     @field_validator("name")
@@ -255,9 +260,7 @@ class LogicNode(BaseModel):
         kind = self.kind
         if kind == "MEDICATION":
             if not (self.drug_class or "").strip():
-                raise ValueError(
-                    "MEDICATION leaf requires a non-empty drug_class."
-                )
+                raise ValueError("MEDICATION leaf requires a non-empty drug_class.")
         elif kind == "ALLERGY":
             if not (self.substance_concept_id or "").strip():
                 raise ValueError(
@@ -283,6 +286,11 @@ class RuleUpdates(BaseModel):
     server-side as a single-item list. When both are omitted, the
     predecessor rule's existing actionJson is preserved unchanged --
     there is deliberately no path that silently nulls it out (DI-170).
+
+    ``priority`` / ``due_days`` are rule-level clinical urgency. When
+    omitted, the predecessor's HAS_ACTION edge values are carried
+    forward unchanged. When supplied, they override the predecessor
+    for every action edge written on the new rule.
     """
 
     model_config = {"extra": "forbid"}
@@ -292,13 +300,31 @@ class RuleUpdates(BaseModel):
     logic_tree: LogicNode
     action: LogicCriterion | None = None
     actions: list[RuleAction] | None = None
+    priority: str | None = None
+    due_days: int | None = Field(default=None, ge=0)
+
+    @field_validator("priority")
+    @classmethod
+    def _check_priority(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalised = v.strip().lower()
+        if normalised not in _VALID_PRIORITIES:
+            raise ValueError(
+                f"priority must be one of {sorted(_VALID_PRIORITIES)}; " f"got {v!r}."
+            )
+        return normalised
 
     @model_validator(mode="after")
     def _synthesise_actions_from_legacy_fields(self) -> "RuleUpdates":
         if self.actions is None and self.action is not None:
             self.actions = [
-                RuleAction(criterion=self.action, strength=self.strength or "unspecified")
+                RuleAction(
+                    criterion=self.action, strength=self.strength or "unspecified"
+                )
             ]
+        if self.priority == "routine" and self.due_days is not None:
+            self.due_days = None
         return self
 
 
@@ -486,12 +512,25 @@ RETURN cid AS concept_id,
 
 _FETCH_PREDECESSOR = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})<-[:HAS_RULE]-(rec:Recommendation)
+OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)-[ha:HAS_ACTION]->(proc)
+WITH rule, rec, collect(
+    CASE WHEN proc IS NULL THEN null ELSE {
+        concept_id:     coalesce(proc.id, proc.conceptId),
+        preferred_term: coalesce(proc.preferred_term, proc.fsn, proc.term,
+                                  proc.id, proc.conceptId),
+        raw_term:       coalesce(ha.rawTerm, ''),
+        priority:       ha.priority,
+        due_days:       ha.dueDays,
+        strength:       coalesce(ha.strength, 'unspecified')
+    } END
+) AS raw_actions
 RETURN rule.status AS status,
        rule.name AS name,
        rule.strength AS strength,
        coalesce(rule.compileScopeId, '') AS compile_scope_id,
        rec.id AS recommendation_id,
-       coalesce(rec.verbatim, '') AS verbatim
+       coalesce(rec.verbatim, '') AS verbatim,
+       [a IN raw_actions WHERE a IS NOT NULL] AS actions
 """
 
 
@@ -535,6 +574,125 @@ ON CREATE SET
 MERGE (rule)-[:HAS_AUDIT_EVENT]->(audit)
 RETURN rule.id AS id
 """
+
+# -- Action-group carry-forward (VT-LEO-AI-152 follow-up) ----------------------
+#
+# _INSERT_EDITED_RULE above only persists the flat `actionJson` property on
+# the new rule -- it never recreates the graph edges
+# (rule)-[:HAS_ACTION_GROUP]->(:ActionGroup)-[:HAS_ACTION {priority, dueDays}]
+# that the bitmap compiler's `_FETCH_ACTIONS` query reads from (see
+# services/terminology_api/app/services/guideline_compiler.py). Without these
+# edges the compiler finds no action for the edited rule and silently
+# defaults priority to "routine" -- which can downgrade an urgent/2WW
+# suspected-cancer referral to routine with no visible error. The two
+# helpers below recreate those edges on every edited rule so this can never
+# happen again, regardless of guideline or patient.
+
+_UPSERT_EDITED_ACTION_GROUP = """
+MATCH (rule:AppropriatenessRule {id: $rule_id})
+MERGE (ag:ActionGroup {id: $group_id})
+ON CREATE SET
+    ag.type      = 'RECOMMENDED',
+    ag.createdAt = datetime()
+MERGE (rule)-[:HAS_ACTION_GROUP]->(ag)
+RETURN ag.id AS id
+"""
+
+_UPSERT_EDITED_ACTION = """
+MATCH (ag:ActionGroup {id: $group_id})
+MERGE (proc:Concept {id: $concept_id})
+ON CREATE SET
+    proc.preferred_term = $preferred_term,
+    proc.semantic_tag   = 'procedure',
+    proc.source         = 'guidance_rule_edit',
+    proc.createdAt      = datetime()
+ON MATCH SET
+    proc.preferred_term = coalesce($preferred_term, proc.preferred_term)
+MERGE (ag)-[ha:HAS_ACTION]->(proc)
+SET ha.rawTerm  = $raw_term,
+    ha.priority = $priority,
+    ha.dueDays  = $due_days,
+    ha.strength = $strength
+"""
+
+
+def _resolve_edited_action_rows(
+    predecessor_actions: list[dict[str, Any]],
+    new_actions: list["RuleAction"] | None,
+    *,
+    override_priority: str | None = None,
+    override_due_days: Any = None,
+) -> tuple[list[dict[str, Any]], str, Any]:
+    """Return ``(action_rows, priority, due_days)`` to persist on an edited rule.
+
+    ``priority``/``due_days`` are rule-level. By default they are carried
+    forward from the predecessor's ``HAS_ACTION`` edges, even when the
+    reviewer supplies new action concepts. When ``override_priority`` is
+    supplied (the reviewer edited the Priority control), that value wins
+    and ``override_due_days`` is applied with it.
+    """
+    priority = "routine"
+    due_days = None
+    if predecessor_actions:
+        priority = predecessor_actions[0].get("priority") or "routine"
+        due_days = predecessor_actions[0].get("due_days")
+
+    if override_priority is not None:
+        priority = override_priority
+        due_days = None if override_priority == "routine" else override_due_days
+
+    if new_actions:
+        rows = [
+            {
+                "concept_id": ra.criterion.snomed_concept_id,
+                "preferred_term": (
+                    ra.criterion.preferred_term or ra.criterion.snomed_concept_id
+                ),
+                "raw_term": ra.criterion.term or ra.criterion.preferred_term or "",
+                "strength": ra.strength or "unspecified",
+            }
+            for ra in new_actions
+            if ra.criterion.snomed_concept_id
+        ]
+    else:
+        rows = predecessor_actions
+
+    return rows, priority, due_days
+
+
+def _write_edited_rule_actions(
+    client: Any,
+    *,
+    rule_id: str,
+    action_rows: list[dict[str, Any]],
+    priority: str,
+    due_days: Any,
+) -> None:
+    """Recreate HAS_ACTION_GROUP/HAS_ACTION edges for an edited rule.
+
+    No-op when there are no action rows to write (predecessor had none and
+    the reviewer did not supply any) -- matches the pre-existing behaviour
+    of AI-generated stub rules that failed action resolution.
+    """
+    if not action_rows:
+        return
+    group_id = f"{rule_id}:ACTION"
+    client.run(_UPSERT_EDITED_ACTION_GROUP, rule_id=rule_id, group_id=group_id)
+    for row in action_rows:
+        concept_id = row.get("concept_id")
+        if not concept_id:
+            continue
+        client.run(
+            _UPSERT_EDITED_ACTION,
+            group_id=group_id,
+            concept_id=concept_id,
+            preferred_term=row.get("preferred_term") or concept_id,
+            raw_term=row.get("raw_term") or "",
+            priority=priority,
+            due_days=due_days,
+            strength=row.get("strength") or "unspecified",
+        )
+
 
 # When the AI generator is re-run, multiple pending_review rules can hang
 # off the same Recommendation via separate [:HAS_RULE] edges. Approving or
@@ -688,7 +846,9 @@ def apply_rule_edit(
     if updates.actions:
         new_strength = (updates.actions[0].strength or "unspecified").strip()
     else:
-        new_strength = (updates.strength or pred.get("strength") or "unspecified").strip()
+        new_strength = (
+            updates.strength or pred.get("strength") or "unspecified"
+        ).strip()
     logic_json = json.dumps(updates.logic_tree.model_dump(exclude_none=True))
     # Pass None when the reviewer did not change any action, so the
     # _INSERT_EDITED_RULE coalesce falls through to pred.actionJson and
@@ -716,6 +876,20 @@ def apply_rule_edit(
             "Edited rule could not be written. The recommendation may have moved."
         )
 
+    action_rows, action_priority, action_due_days = _resolve_edited_action_rows(
+        pred.get("actions") or [],
+        updates.actions,
+        override_priority=updates.priority,
+        override_due_days=updates.due_days,
+    )
+    _write_edited_rule_actions(
+        client,
+        rule_id=new_rule_id,
+        action_rows=action_rows,
+        priority=action_priority,
+        due_days=action_due_days,
+    )
+
     reject_sibling_pending_rules(
         client,
         rule_id=new_rule_id,
@@ -741,6 +915,8 @@ __all__ = [
     "apply_rule_edit",
     "reject_sibling_pending_rules",
     "validate_logic_tree",
+    "_resolve_edited_action_rows",
+    "_write_edited_rule_actions",
 ]
 
 

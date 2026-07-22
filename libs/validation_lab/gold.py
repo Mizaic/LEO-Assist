@@ -60,6 +60,8 @@ class RunOutputs:
     sbar_assessment_id: str = ""
     sbar_markdown: str = ""
     phase_outputs: list[dict[str, Any]] = field(default_factory=list)
+    # Real Assessment telemetry only -- never invent spend figures.
+    llm_usage: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -68,6 +70,7 @@ class RunOutputs:
     def from_dict(cls, raw: Any) -> RunOutputs:
         if not isinstance(raw, dict):
             return cls()
+        usage = raw.get("llm_usage") or {}
         return cls(
             snomed_codes=[str(x) for x in (raw.get("snomed_codes") or [])],
             completeness=dict(raw.get("completeness") or {}),
@@ -75,6 +78,7 @@ class RunOutputs:
             sbar_assessment_id=str(raw.get("sbar_assessment_id") or ""),
             sbar_markdown=str(raw.get("sbar_markdown") or ""),
             phase_outputs=list(raw.get("phase_outputs") or []),
+            llm_usage=dict(usage) if isinstance(usage, dict) else {},
         )
 
     def as_gold(self) -> GoldContract:

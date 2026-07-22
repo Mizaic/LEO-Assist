@@ -69,6 +69,7 @@ class ExtractionState(TypedDict, total=False):
     requested_model_version: str
     strict_model_version: bool
     prompt_config: dict[str, Any]
+    execution_manifest: dict[str, Any]
     sentences: list[dict[str, Any]]
     entities: list[dict[str, Any]]
     extraction_model_name: str
@@ -406,7 +407,9 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
             "encounter_text": "",
             "sentences": [],
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-            "errors": ["document_chunks mode requires chunk_ids or pre-loaded sentences"],
+            "errors": [
+                "document_chunks mode requires chunk_ids or pre-loaded sentences"
+            ],
         }
 
     from libs.neo4j_client.client import PatientGraphClient
@@ -417,7 +420,8 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
             "encounter_text": loaded.get("encounter_text") or "",
             "sentences": loaded.get("sentences") or [],
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-            "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
+            "errors": list(state.get("errors") or [])
+            + list(loaded.get("errors") or []),
         }
     return {
         "encounter_text": "",
@@ -475,7 +479,8 @@ def load_communication_thread(state: ExtractionState) -> dict[str, Any]:
             "encounter_text": loaded.get("encounter_text") or "",
             "sentences": loaded.get("sentences") or [],
             "text_segmentation_mode": COMMUNICATION_THREAD_MODE,
-            "errors": list(state.get("errors") or []) + list(loaded.get("errors") or []),
+            "errors": list(state.get("errors") or [])
+            + list(loaded.get("errors") or []),
         }
     return {
         "encounter_text": "",
@@ -561,6 +566,87 @@ def _run_ner_extraction(
             "cached_tokens": 0,
             "cost_usd": 0.0,
         },
+    }
+
+
+def _extraction_window_policy(state: dict[str, Any]) -> tuple[int, int] | None:
+    """Return (window_size, window_overlap) from pinned manifest, if present."""
+    manifest = state.get("execution_manifest") or {}
+    extraction = manifest.get("extraction") or {}
+    if not extraction:
+        return None
+    window_size = int(extraction.get("windowSize") or 10)
+    window_overlap = int(extraction.get("windowOverlap") or 1)
+    return window_size, window_overlap
+
+
+def _run_windowed_llm_extraction(
+    encounter_text: str,
+    chunks: list[SentenceChunk],
+    state: dict[str, Any],
+    *,
+    window_size: int,
+    window_overlap: int,
+) -> dict[str, Any]:
+    """Run LLM extraction in manifest-sized windows and merge entities."""
+    from libs.pipeline.extraction_window import (
+        ChunkRef,
+        WindowUsage,
+        aggregate_window_usage,
+        merge_window_entities,
+        plan_extraction_windows,
+    )
+
+    chunk_refs = [
+        ChunkRef(chunk_id=str(c.sentence_id or ""), text=str(c.text or ""))
+        for c in chunks
+    ]
+    windows = plan_extraction_windows(
+        chunk_refs,
+        window_size=window_size,
+        window_overlap=window_overlap,
+    )
+    chunk_by_id = {str(c.sentence_id or ""): c for c in chunks}
+    window_outputs: list[list[dict[str, Any]]] = []
+    usages: list[WindowUsage] = []
+    merged_tokens: dict[str, Any] = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cached_tokens": 0,
+        "cost_usd": 0.0,
+    }
+    for window in windows:
+        window_chunks = [
+            chunk_by_id[cid] for cid in window.chunk_ids if cid in chunk_by_id
+        ]
+        if not window_chunks:
+            continue
+        partial = _run_llm_extraction(encounter_text, window_chunks, state)
+        entities = list(partial.get("entities") or [])
+        window_outputs.append(entities)
+        tokens = dict(partial.get("llm_tokens") or {})
+        usages.append(
+            WindowUsage(
+                window_index=window.index,
+                input_tokens=int(tokens.get("input_tokens") or 0),
+                output_tokens=int(tokens.get("output_tokens") or 0),
+                cache_read_tokens=int(tokens.get("cached_tokens") or 0),
+                cost_usd=float(tokens.get("cost_usd") or 0.0),
+            )
+        )
+        merged_tokens["input_tokens"] += int(tokens.get("input_tokens") or 0)
+        merged_tokens["output_tokens"] += int(tokens.get("output_tokens") or 0)
+        merged_tokens["cached_tokens"] += int(tokens.get("cached_tokens") or 0)
+        merged_tokens["cost_usd"] = round(
+            float(merged_tokens["cost_usd"]) + float(tokens.get("cost_usd") or 0.0),
+            6,
+        )
+    merged_entities = merge_window_entities(window_outputs)
+    merged_tokens["window_usage"] = aggregate_window_usage(usages)
+    return {
+        "entities": merged_entities,
+        "llm_tokens": merged_tokens,
+        "extraction_route": "llm-windowed",
     }
 
 
@@ -717,6 +803,19 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             return _enrich_with_blood_panel_entities(llm_result, encounter_text, chunks)
 
         # default: model_mode == "llm"
+        policy = _extraction_window_policy(state)
+        if policy and len(chunks) > policy[0]:
+            from libs.pipeline.document_chunk_loader import is_document_chunks_mode
+
+            if is_document_chunks_mode(state):
+                result = _run_windowed_llm_extraction(
+                    encounter_text,
+                    chunks,
+                    state,
+                    window_size=policy[0],
+                    window_overlap=policy[1],
+                )
+                return _enrich_with_blood_panel_entities(result, encounter_text, chunks)
         result = _run_llm_extraction(encounter_text, chunks, state)
         return _enrich_with_blood_panel_entities(result, encounter_text, chunks)
     except ImportError as e:

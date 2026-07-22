@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
-StepStatus = Literal["completed", "failed", "paused", "skipped"]
+StepStatus = Literal["completed", "failed", "paused", "skipped", "poisoned"]
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,8 @@ class StepRequest:
     completeness_domain: str | None = None
     completeness_subdomain: str | None = None
     guideline_ruleset_version: str | None = None
+    policy_version: str | None = None
+    plan_version_id: str | None = None
     attempt: int = 1
     context: dict[str, Any] = field(default_factory=dict)
 
@@ -89,6 +91,9 @@ class StepRequest:
             or context.get("completeness_subdomain"),
             guideline_ruleset_version=body.get("guideline_ruleset_version")
             or context.get("guideline_ruleset_version"),
+            policy_version=body.get("policy_version") or context.get("policy_version"),
+            plan_version_id=body.get("plan_version_id")
+            or context.get("plan_version_id"),
             attempt=int(body.get("attempt") or context.get("attempt") or 1),
             context=context,
         )
@@ -112,6 +117,8 @@ class StepRequest:
             "completeness_domain": self.completeness_domain,
             "completeness_subdomain": self.completeness_subdomain,
             "guideline_ruleset_version": self.guideline_ruleset_version,
+            "policy_version": self.policy_version,
+            "plan_version_id": self.plan_version_id,
             "attempt": 1,
             "context": dict(self.context),
             "chunk_ids": list(self.context.get("chunk_ids") or []),
@@ -128,6 +135,7 @@ class StepResult:
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     metrics: dict[str, Any] = field(default_factory=dict)
+    provenance: dict[str, Any] = field(default_factory=dict)
     next_event_type: str | None = None
     next_step_id: str | None = None
 
@@ -139,6 +147,7 @@ class StepResult:
             "warnings": self.warnings,
             "errors": self.errors,
             "metrics": self.metrics,
+            "provenance": self.provenance,
             "next_event_type": self.next_event_type,
             "next_step_id": self.next_step_id,
         }

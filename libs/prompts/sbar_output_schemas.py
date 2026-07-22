@@ -11,7 +11,6 @@ These are stored as PromptConfig.outputSchema in Neo4j (seeded from
 
 from __future__ import annotations
 
-
 SBAR_SITUATION_OUTPUT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -58,6 +57,19 @@ SBAR_BACKGROUND_OUTPUT_SCHEMA = {
         "citations": SBAR_SITUATION_OUTPUT_SCHEMA["properties"]["citations"],
         "missing": SBAR_SITUATION_OUTPUT_SCHEMA["properties"]["missing"],
         "conflicts": SBAR_SITUATION_OUTPUT_SCHEMA["properties"]["conflicts"],
+    },
+}
+
+
+SBAR_RECALL_OUTPUT_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["missing"],
+    "properties": {
+        "reason_text": {"type": "string"},
+        "chunk_id": {"type": "string"},
+        "missing": {"type": "array", "items": {"type": "string"}},
+        "complete": {"type": "boolean"},
     },
 }
 

@@ -34,12 +34,17 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import ActionsPanel from "../ActionsPanel";
+import PriorityPanel from "../PriorityPanel";
 import { STEP_HELPERS, STEP_TITLES } from "../copy";
-import type { RuleAction } from "../types";
+import type { RuleAction, RulePriority } from "../types";
 
 interface Props {
   name: string;
   onNameChange: (next: string) => void;
+  priority: RulePriority;
+  dueDays: number | null;
+  onPriorityChange: (next: RulePriority) => void;
+  onDueDaysChange: (next: number | null) => void;
   actions: RuleAction[];
   selectedActionIndex: number | null;
   onSelectAction: (index: number) => void;
@@ -53,6 +58,10 @@ interface Props {
 export default function Step2Suggest({
   name,
   onNameChange,
+  priority,
+  dueDays,
+  onPriorityChange,
+  onDueDaysChange,
   actions,
   selectedActionIndex,
   onSelectAction,
@@ -80,6 +89,13 @@ export default function Step2Suggest({
           {STEP_HELPERS.suggest}
         </Typography>
       </Box>
+
+      <PriorityPanel
+        priority={priority}
+        dueDays={dueDays}
+        onPriorityChange={onPriorityChange}
+        onDueDaysChange={onDueDaysChange}
+      />
 
       <ActionsPanel
         actions={actions}

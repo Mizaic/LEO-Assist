@@ -24,6 +24,7 @@ import json
 import logging
 from typing import Any
 
+from libs.llm_usage import LLMCostConfig, LLMUsage
 from libs.ner.extractor_contract import ExtractionItem
 from libs.ner.span_resolver import SpanResolver
 from libs.nlp.sentence_splitter import SentenceChunk
@@ -290,8 +291,7 @@ class LLMExtractorAdapter:
         llm = create_llm(tier=self._tier)
         safe_encounter = guard_user_clinical_text(encounter_text)
         sentence_block = "\n".join(
-            f"[{s.sentence_id}] {guard_user_clinical_text(s.text)}"
-            for s in sentences
+            f"[{s.sentence_id}] {guard_user_clinical_text(s.text)}" for s in sentences
         )
         dynamic_examples: list[dict] = []
         if self._dynamic_budget > 0:
@@ -330,17 +330,24 @@ class LLMExtractorAdapter:
                 with kg.session() as s:
                     mc = s.run(GET_MODEL_CONFIG, key=provider_key).single()
                 if mc:
-                    billable = max(0, resp.input_tokens - resp.cached_input_tokens)
-                    cost_usd = round(
-                        billable * float(mc["costPer1mInput"] or 0) / 1_000_000
-                        + resp.cached_input_tokens
-                        * float(mc["costPer1mCachedInput"] or 0)
-                        / 1_000_000
-                        + resp.output_tokens
-                        * float(mc["costPer1mOutput"] or 0)
-                        / 1_000_000,
-                        6,
+                    usage = LLMUsage(
+                        input_tokens=int(resp.input_tokens or 0),
+                        output_tokens=int(resp.output_tokens or 0),
+                        cached_input_tokens=int(resp.cached_input_tokens or 0),
+                        cache_creation_input_tokens=int(
+                            getattr(resp, "cache_creation_input_tokens", 0) or 0
+                        ),
+                        input_excludes_cache=self._provider in ("aws", "bedrock"),
                     )
+                    cfg = LLMCostConfig(
+                        cost_per_1m_input=float(mc["costPer1mInput"] or 0),
+                        cost_per_1m_cached_input=float(mc["costPer1mCachedInput"] or 0),
+                        cost_per_1m_output=float(mc["costPer1mOutput"] or 0),
+                        cost_per_1m_cache_write=float(
+                            mc.get("costPer1mCacheWrite") or 0
+                        ),
+                    )
+                    cost_usd = round(usage.cost_usd(cfg), 6)
             finally:
                 kg.close()
         except Exception:

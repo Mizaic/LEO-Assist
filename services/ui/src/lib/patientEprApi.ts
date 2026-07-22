@@ -3,7 +3,7 @@
  *
  * Atlas trace:
  *   DO: DO-EBF0B124, DO-5D3EA371
- *   DI: DI-0ADA35BF, DI-357A7468
+ *   DI: DI-0ADA35BF, DI-357A7468, DI-7DE8E8ED
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-EBF0B124")
  *
  * All patients are returned regardless of episode type. No cancer filter.
@@ -82,6 +82,32 @@ export interface CodedEntityRow {
   entity_type: "disease" | "finding" | "situation" | "medication" | string;
   name: string;
   concept_id: string | null;
+}
+
+/** The kind of node a coded concept's evidence hangs off. */
+export type ConceptMentionSourceType = "encounter" | "document" | "communication";
+
+/** One dated mention of a coded concept (no evidence sentence yet). */
+export interface ConceptMention {
+  source_id: string;
+  source_type: ConceptMentionSourceType;
+  source_date: string | null;
+  assertion: string | null;
+  confidence: number | null;
+}
+
+/** Full evidence for a single dated mention, fetched on demand. */
+export interface ConceptMentionDetail {
+  source_id: string;
+  source_type: ConceptMentionSourceType;
+  source_date: string | null;
+  concept_id: string;
+  name: string | null;
+  read_code: string | null;
+  assertion: string | null;
+  confidence: number | null;
+  evidence: string | null;
+  evidence_sentence: string | null;
 }
 
 export interface PatientDetail {
@@ -310,6 +336,37 @@ export async function fetchCodedEntities(
 ): Promise<CodedEntityRow[]> {
   return fetchJson<CodedEntityRow[]>(
     `${ANALYTICS_BASE}/patients/${encodeURIComponent(patientId)}/coded-entities`
+  );
+}
+
+/**
+ * Return dated mentions for one coded concept (lightweight, no sentence).
+ *
+ * Covers all three evidence source types (encounter, document/chunk,
+ * communication) -- a concept coded from a document pipeline has no
+ * Encounter-level mention at all, so this must not be encounter-only.
+ */
+export async function fetchConceptMentions(
+  patientId: string,
+  conceptId: string
+): Promise<ConceptMention[]> {
+  return fetchJson<ConceptMention[]>(
+    `${ANALYTICS_BASE}/patients/${encodeURIComponent(patientId)}/coded-entities/` +
+      `${encodeURIComponent(conceptId)}/mentions`
+  );
+}
+
+/** Return the evidence sentence for one dated mention of a coded concept. */
+export async function fetchConceptMentionDetail(
+  patientId: string,
+  conceptId: string,
+  sourceType: ConceptMentionSourceType,
+  sourceId: string
+): Promise<ConceptMentionDetail> {
+  return fetchJson<ConceptMentionDetail>(
+    `${ANALYTICS_BASE}/patients/${encodeURIComponent(patientId)}/coded-entities/` +
+      `${encodeURIComponent(conceptId)}/mentions/${encodeURIComponent(sourceType)}/` +
+      `${encodeURIComponent(sourceId)}`
   );
 }
 

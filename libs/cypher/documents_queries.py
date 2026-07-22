@@ -2,6 +2,8 @@
 
 Atlas trace:
   DO: DO-728930A1
+  DI: DI-F71A6A69 (clinical facts storage); DI-79D15317 (deadlock retry)
+  VT: VT-53AEAC08
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-728930A1")
 
 Centralised from services/api/app/models/neo4j_schema.py.
@@ -18,13 +20,100 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import re
+import time
+from dataclasses import dataclass
 from typing import Any
 
-from libs.utils.deidentify import deidentify_with_span
+from neo4j.exceptions import TransientError
+
 from libs.cypher.surface_form_task_queries import INCREMENT_SURFACE_FORM_USE
+from libs.utils.deidentify import deidentify_with_span
 
 logger = logging.getLogger(__name__)
+
+# Concurrent workers MERGEing the same SNOMED concept node can deadlock when
+# lock order differs. All writers sort by concept_id before MERGE; retries
+# cover residual cross-patient contention on shared concept nodes.
+_DOC_WRITE_MAX_RETRIES = 6
+_DOC_WRITE_BASE_DELAY_S = 0.05
+_DOC_WRITE_MAX_JITTER_S = 0.08
+
+
+def _is_neo4j_deadlock(exc: BaseException) -> bool:
+    """True when Neo4j reports a transient deadlock (retryable)."""
+    if isinstance(exc, TransientError):
+        code = str(getattr(exc, "code", "") or "")
+        if "DeadlockDetected" in code:
+            return True
+    return "DeadlockDetected" in str(exc)
+
+
+def _doc_write_backoff_delay(attempt: int) -> float:
+    """Exponential backoff with jitter for deadlock retries."""
+    return _DOC_WRITE_BASE_DELAY_S * (2**attempt) + random.uniform(
+        0, _DOC_WRITE_MAX_JITTER_S
+    )
+
+
+def _session_run_with_deadlock_retry(session: Any, query: str, **params: Any) -> None:
+    """Run a Cypher write, retrying Neo4j deadlocks with short backoff."""
+    concept_id = str(params.get("concept_id") or "")
+    last_exc: BaseException | None = None
+    for attempt in range(_DOC_WRITE_MAX_RETRIES):
+        try:
+            session.run(query, **params)
+            if attempt > 0:
+                logger.debug(
+                    "Neo4j DOCUMENTS write succeeded after %d deadlock retries "
+                    "concept_id=%s",
+                    attempt,
+                    concept_id,
+                )
+            return
+        except Exception as exc:
+            last_exc = exc
+            if not _is_neo4j_deadlock(exc) or attempt >= _DOC_WRITE_MAX_RETRIES - 1:
+                if _is_neo4j_deadlock(exc):
+                    logger.warning(
+                        "Neo4j deadlock on DOCUMENTS write failed after %d attempts "
+                        "concept_id=%s",
+                        _DOC_WRITE_MAX_RETRIES,
+                        concept_id,
+                    )
+                raise
+            delay = _doc_write_backoff_delay(attempt)
+            logger.debug(
+                "Neo4j deadlock on DOCUMENTS write (attempt %d/%d) "
+                "concept_id=%s -- retry in %.2fs",
+                attempt + 1,
+                _DOC_WRITE_MAX_RETRIES,
+                concept_id,
+                delay,
+            )
+            time.sleep(delay)
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("DOCUMENTS write failed after deadlock retries")
+
+
+def _doc_write_sort_key(
+    concept_id: str,
+    link_source_id: str,
+    sentence_index: int,
+) -> tuple[str, str, int]:
+    """Stable lock order: concept node, then source, then sentence index."""
+    return (str(concept_id), str(link_source_id), int(sentence_index))
+
+
+@dataclass(frozen=True)
+class _PendingDocWrite:
+    sort_key: tuple[str, str, int]
+    query: str
+    params: dict[str, Any]
+    surface_form_span: str | None = None
+
 
 # Maps normalised semantic tag → Neo4j node label (mirrors patient_graph_writer.py)
 _LABEL_BY_TAG: dict[str, str] = {
@@ -118,8 +207,7 @@ def _build_upsert_query(
 
     if source_label == "Encounter":
         match_clause = (
-            "MATCH (src:Encounter {id: $source_id})"
-            "<-[:HAS_ENCOUNTER]-(p:Patient)"
+            "MATCH (src:Encounter {id: $source_id})" "<-[:HAS_ENCOUNTER]-(p:Patient)"
         )
     elif source_label == "Communication":
         match_clause = (
@@ -259,9 +347,7 @@ def upsert_encounter_documents_link(
     ``semantic_tag`` is blocked and nothing was written.
     """
     st = (semantic_tag or "").strip()
-    norm_tag = "".join(
-        ch for ch in st.lower() if ch.isalnum() or ch == " "
-    ).strip()
+    norm_tag = "".join(ch for ch in st.lower() if ch.isalnum() or ch == " ").strip()
     if norm_tag in _BLOCKED_SEMANTIC_TAGS or st.lower().replace(" ", "") in {
         t.replace(" ", "") for t in _BLOCKED_SEMANTIC_TAGS
     }:
@@ -276,7 +362,8 @@ def upsert_encounter_documents_link(
     ev_sentence = evidence_sentence if evidence_sentence is not None else span
     term_assertion = assertion or "present"
     conf = float(confidence) if confidence else 0.0
-    session.run(
+    _session_run_with_deadlock_retry(
+        session,
         query,
         patient_id=patient_id,
         encounter_id=encounter_id,
@@ -388,6 +475,172 @@ def _select_evidence_sentence(sentence_text: str, span_text: str) -> str:
     return text
 
 
+def _collect_pending_document_writes(
+    encounter_id: str,
+    sentences_payload: list[dict[str, Any]],
+    *,
+    source: str,
+    model_name: str,
+    model_version: str,
+    contract_version: str,
+    run_id: str,
+    source_label: str,
+    active_terms: set[str],
+) -> list[_PendingDocWrite]:
+    """Build DOCUMENTS upserts sorted for consistent Neo4j lock acquisition."""
+    pending: list[_PendingDocWrite] = []
+    for sentence_index, sentence in enumerate(sentences_payload):
+        sentence_text = sentence.get("text") or ""
+        sentence_source_id = str(sentence.get("sentence_id") or encounter_id).strip()
+        sentence_source_label = str(
+            sentence.get("persist_source_label") or source_label
+        ).strip()
+        if sentence_source_label == "Chunk":
+            link_source_id = sentence_source_id
+        elif sentence_source_label == "Communication":
+            link_source_id = sentence_source_id
+        else:
+            link_source_id = encounter_id
+        for term in sentence.get("terms", []):
+            coding = term.get("coding") or {}
+            concept_id = coding.get("snomed_concept_id")
+            if not concept_id:
+                continue
+
+            semantic_tag = term.get("semantic_tag") or "other"
+            norm_tag = "".join(
+                ch for ch in semantic_tag.lower() if ch.isalnum() or ch == " "
+            ).strip()
+            if norm_tag in _BLOCKED_SEMANTIC_TAGS or semantic_tag.lower().replace(
+                " ", ""
+            ) in {t.replace(" ", "") for t in _BLOCKED_SEMANTIC_TAGS}:
+                logger.debug(
+                    "Skipping write for concept %s: blocked semantic tag '%s'",
+                    concept_id,
+                    semantic_tag,
+                )
+                continue
+            snomed_term_lower = (coding.get("snomed_term") or "").strip().lower()
+            if semantic_tag.lower() == "situation" and snomed_term_lower.startswith(
+                "history of "
+            ):
+                underlying = (
+                    snomed_term_lower.removeprefix("history of ").split("(")[0].strip()
+                )
+                if underlying and underlying in active_terms:
+                    logger.debug(
+                        "Suppressing redundant 'History of %s' situation (active "
+                        "disorder already coded in this encounter)",
+                        underlying,
+                    )
+                    continue
+
+            if not sentence_text or not (term.get("text") or ""):
+                continue
+
+            label = _label_for_tag(semantic_tag)
+            rel_type = _REL_BY_LABEL.get(label, "HAS_CONCEPT")
+            query = _build_upsert_query(
+                label, rel_type, source_label=sentence_source_label
+            )
+            span_text = term.get("text") or ""
+            narrowed_sentence = _select_evidence_sentence(sentence_text, span_text)
+            deident, ev_start, ev_end = deidentify_with_span(
+                narrowed_sentence, span_text
+            )
+            evidence_sentence = deident
+            evidence_start: int | None = None
+            evidence_end: int | None = None
+            if ev_start == -1:
+                logger.debug(
+                    "deidentify_with_span: span not found after deident "
+                    "encounter=%s span=%r -- skipping offsets",
+                    encounter_id,
+                    span_text,
+                )
+            else:
+                evidence_start = ev_start
+                evidence_end = ev_end
+
+            term_assertion = term.get("assertion") or "present"
+            term_source = coding.get("source") or source
+            modifiers = term.get("modifiers") or {}
+            surface_form_span = span_text if term_source == "terminology_api" else None
+
+            sort_key = _doc_write_sort_key(
+                str(concept_id), link_source_id, sentence_index
+            )
+            pending.append(
+                _PendingDocWrite(
+                    sort_key=sort_key,
+                    query=query,
+                    params={
+                        "source_id": link_source_id,
+                        "concept_id": str(concept_id),
+                        "semantic_tag": semantic_tag,
+                        "name": coding.get("snomed_term") or span_text,
+                        "read_code": coding.get("read_code"),
+                        "evidence": span_text,
+                        "confidence": float(coding.get("score") or 0.0),
+                        "domain": term.get("domain") or "clinical",
+                        "context": json.dumps(_assertion_context(term_assertion)),
+                        "modifiers": json.dumps(modifiers),
+                        "body_site": term.get("body_site"),
+                        "body_site_concept_id": term.get("body_site_concept_id"),
+                        "body_site_term": term.get("body_site_term"),
+                        "numeric_value": term.get("numeric_value") or None,
+                        "unit": term.get("unit") or None,
+                        "reference_range": term.get("reference_range") or None,
+                        "source": source,
+                        "model_name": model_name
+                        or term.get("extraction_model_name", ""),
+                        "model_version": model_version
+                        or term.get("extraction_model_version", ""),
+                        "contract_version": contract_version
+                        or term.get("contract_version", ""),
+                        "run_id": run_id,
+                        "audit_flag": bool(term.get("audit_flag", False)),
+                        "decision_tier": term.get("decision_tier"),
+                        "assertion": term_assertion,
+                        "evidence_sentence": evidence_sentence,
+                        "evidence_start": evidence_start,
+                        "evidence_end": evidence_end,
+                        "sentence_index": sentence_index,
+                        "holdout": False,
+                    },
+                    surface_form_span=surface_form_span,
+                )
+            )
+    pending.sort(key=lambda item: item.sort_key)
+    return pending
+
+
+def _execute_pending_document_writes(
+    session: Any,
+    pending: list[_PendingDocWrite],
+    *,
+    encounter_id: str,
+) -> int:
+    """Run sorted DOCUMENTS upserts; return count written."""
+    written = 0
+    for item in pending:
+        concept_id = item.params.get("concept_id")
+        try:
+            _session_run_with_deadlock_retry(session, item.query, **item.params)
+            if item.surface_form_span:
+                _increment_surface_form_use(session, item.surface_form_span)
+            written += 1
+        except Exception:
+            logger.warning(
+                "write_documents_from_sentences_payload: failed for "
+                "encounter=%s concept=%s",
+                encounter_id,
+                concept_id,
+                exc_info=True,
+            )
+    return written
+
+
 def write_documents_from_sentences_payload(
     encounter_id: str,
     sentences_payload: list[dict[str, Any]],
@@ -422,9 +675,7 @@ def write_documents_from_sentences_payload(
 
     Returns the number of DOCUMENTS links written.
     """
-    # Pre-scan: collect active (present-assertion) disorder/finding terms so
-    # "History of X" situation codes can be suppressed when X is already active.
-    _active_terms: set[str] = set()
+    active_terms: set[str] = set()
     for _sent in sentences_payload:
         for _term in _sent.get("terms", []):
             _tag = (_term.get("semantic_tag") or "").lower()
@@ -436,136 +687,20 @@ def write_documents_from_sentences_payload(
                 and _assertion == "present"
                 and _pterm
             ):
-                _active_terms.add(_pterm)
+                active_terms.add(_pterm)
 
-    written = 0
-    for sentence_index, sentence in enumerate(sentences_payload):
-        sentence_text = sentence.get("text") or ""
-        sentence_source_id = str(sentence.get("sentence_id") or encounter_id).strip()
-        sentence_source_label = str(
-            sentence.get("persist_source_label") or source_label
-        ).strip()
-        if sentence_source_label == "Chunk":
-            link_source_id = sentence_source_id
-        elif sentence_source_label == "Communication":
-            link_source_id = sentence_source_id
-        else:
-            link_source_id = encounter_id
-        for term in sentence.get("terms", []):
-            coding = term.get("coding") or {}
-            concept_id = coding.get("snomed_concept_id")
-            if not concept_id:
-                continue
-
-            semantic_tag = term.get("semantic_tag") or "other"
-            norm_tag = "".join(
-                ch for ch in semantic_tag.lower() if ch.isalnum() or ch == " "
-            ).strip()
-            if norm_tag in _BLOCKED_SEMANTIC_TAGS or semantic_tag.lower().replace(
-                " ", ""
-            ) in {t.replace(" ", "") for t in _BLOCKED_SEMANTIC_TAGS}:
-                logger.debug(
-                    "Skipping write for concept %s: blocked semantic tag '%s'",
-                    concept_id,
-                    semantic_tag,
-                )
-                continue
-            # Suppress "History of X (situation)" when active X is already
-            # being written in this payload -- avoids redundant co-coding.
-            snomed_term_lower = (coding.get("snomed_term") or "").strip().lower()
-            if semantic_tag.lower() == "situation" and snomed_term_lower.startswith(
-                "history of "
-            ):
-                underlying = (
-                    snomed_term_lower.removeprefix("history of ").split("(")[0].strip()
-                )
-                if underlying and underlying in _active_terms:
-                    logger.debug(
-                        "Suppressing redundant 'History of %s' situation (active "
-                        "disorder already coded in this encounter)",
-                        underlying,
-                    )
-                    continue
-
-            label = _label_for_tag(semantic_tag)
-            rel_type = _REL_BY_LABEL.get(label, "HAS_CONCEPT")
-            query = _build_upsert_query(
-                label, rel_type, source_label=sentence_source_label
-            )
-
-            modifiers = term.get("modifiers") or {}
-            span_text = term.get("text") or ""
-
-            evidence_sentence: str | None = None
-            evidence_start: int | None = None
-            evidence_end: int | None = None
-            if sentence_text and span_text:
-                narrowed_sentence = _select_evidence_sentence(sentence_text, span_text)
-                deident, ev_start, ev_end = deidentify_with_span(
-                    narrowed_sentence, span_text
-                )
-                evidence_sentence = deident
-                if ev_start == -1:
-                    logger.debug(
-                        "deidentify_with_span: span not found after deident "
-                        "encounter=%s span=%r -- skipping offsets",
-                        encounter_id,
-                        span_text,
-                    )
-                else:
-                    evidence_start = ev_start
-                    evidence_end = ev_end
-
-                try:
-                    term_assertion = term.get("assertion") or "present"
-                    term_source = coding.get("source") or source
-                    session.run(
-                        query,
-                        source_id=link_source_id,
-                        concept_id=str(concept_id),
-                        semantic_tag=semantic_tag,
-                        name=coding.get("snomed_term") or span_text,
-                        read_code=coding.get("read_code"),
-                        evidence=span_text,
-                        confidence=float(coding.get("score") or 0.0),
-                        domain=term.get("domain") or "clinical",
-                        context=json.dumps(_assertion_context(term_assertion)),
-                        modifiers=json.dumps(modifiers),
-                        body_site=term.get("body_site"),
-                        body_site_concept_id=term.get("body_site_concept_id"),
-                        body_site_term=term.get("body_site_term"),
-                        numeric_value=term.get("numeric_value") or None,
-                        unit=term.get("unit") or None,
-                        reference_range=term.get("reference_range") or None,
-                        source=source,
-                        model_name=model_name or term.get("extraction_model_name", ""),
-                        model_version=model_version
-                        or term.get("extraction_model_version", ""),
-                        contract_version=contract_version
-                        or term.get("contract_version", ""),
-                        run_id=run_id,
-                        audit_flag=bool(term.get("audit_flag", False)),
-                        decision_tier=term.get("decision_tier"),
-                        assertion=term_assertion,
-                        evidence_sentence=evidence_sentence,
-                        evidence_start=evidence_start,
-                        evidence_end=evidence_end,
-                        sentence_index=sentence_index,
-                        holdout=False,
-                    )
-                    if term_source == "terminology_api" and span_text:
-                        _increment_surface_form_use(session, span_text)
-                    written += 1
-                except Exception:
-                    logger.warning(
-                        "write_documents_from_sentences_payload: failed for "
-                        "encounter=%s concept=%s",
-                        encounter_id,
-                        concept_id,
-                        exc_info=True,
-                    )
-
-    return written
+    pending = _collect_pending_document_writes(
+        encounter_id,
+        sentences_payload,
+        source=source,
+        model_name=model_name,
+        model_version=model_version,
+        contract_version=contract_version,
+        run_id=run_id,
+        source_label=source_label,
+        active_terms=active_terms,
+    )
+    return _execute_pending_document_writes(session, pending, encounter_id=encounter_id)
 
 
 DELETE_CODED_LINK = """

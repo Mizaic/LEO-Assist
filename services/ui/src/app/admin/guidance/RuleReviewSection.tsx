@@ -208,6 +208,8 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       logic_tree: Record<string, unknown>;
       reason: string;
       actions?: Array<Record<string, unknown>>;
+      priority?: "2ww" | "urgent" | "routine";
+      due_days?: number | null;
     }) => {
       if (!editRule) return;
       setEditSaving(true);
@@ -224,6 +226,15 @@ export default function RuleReviewSection({ refreshKey }: Props) {
               name: payload.name,
               logic_tree: payload.logic_tree,
               ...(payload.actions ? { actions: payload.actions } : {}),
+              ...(payload.priority
+                ? {
+                    priority: payload.priority,
+                    due_days:
+                      payload.priority === "routine"
+                        ? null
+                        : (payload.due_days ?? null),
+                  }
+                : {}),
             },
           }),
         });

@@ -928,6 +928,7 @@ _add(
 # from /admin/prompts. Used by services/pipeline_worker SBAROrchestrator.
 from libs.prompts.sbar_output_schemas import (
     SBAR_BACKGROUND_OUTPUT_SCHEMA,
+    SBAR_RECALL_OUTPUT_SCHEMA,
     SBAR_RECOMMENDATION_OUTPUT_SCHEMA,
     SBAR_SITUATION_OUTPUT_SCHEMA,
 )
@@ -1006,6 +1007,18 @@ _add(
         "age 11) plus a list of discrete actions (priority + rule_ids), "
         "grounded in the rules surfaced by the deterministic Assessment "
         "formatter. Inline [RULE: ...] markers only -- no encounter ids."
+    ),
+)
+_add(
+    "sbar_recall",
+    1,
+    "libs.prompts.sbar_recall_v1.SBAR_RECALL_SYSTEM_V1",
+    output_schema=json.dumps(SBAR_RECALL_OUTPUT_SCHEMA),
+    few_shot_examples=[],
+    max_few_shot=0,
+    description=(
+        "SBAR bounded recall loop. Retrieves referral reason evidence "
+        "via manifest-scoped tools with submit_recall_result output."
     ),
 )
 # DI-LEO-AI-517 / DO-LEO-AI-517: REDUCE prompt for the partition +

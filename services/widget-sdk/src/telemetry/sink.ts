@@ -130,6 +130,9 @@ export class TelemetrySink {
     try {
       while (this._queue.length > 0) {
         const next = this._queue[0];
+        if (next === undefined) {
+          return;
+        }
         const ok = await this._send(next);
         if (!ok) {
           this._scheduleRetry();

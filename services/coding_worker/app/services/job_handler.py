@@ -1,7 +1,7 @@
-"""Service Bus handler: validate coding jobs and run WorkflowEngine.
+"""Service Bus handler: validate coding jobs and run DurableStepRunner.
 
 Atlas trace:
-  DO: DO-4641EEE1
+  DO: DO-4641EEE1, DO-CE65B1F2
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-4641EEE1")
 """
 
@@ -23,6 +23,9 @@ _ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 _ALLOWED_MODES = frozenset(
     {"all", "extract_encounter", "extract_patient", "episode_bundle"}
 )
+_PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
+_ENCOUNTER_PLAN = "pd-gp-encounter-coding"
+_EPISODE_PLAN = "pd-episode-bundle-coding"
 
 
 class CodingJobMessage(BaseModel):
@@ -125,9 +128,49 @@ def _build_progress_callback(
     return _callback
 
 
-async def _dispatch_engine_for_encounter(
-    handler,
-    step_callback,
+def _encounter_context(
+    *,
+    dry_run: bool,
+    encounter_id: str,
+    trigger_analysis: bool,
+) -> dict[str, Any]:
+    return {
+        "dry_run": dry_run,
+        "mode": "extract_encounter",
+        "encounter_id": encounter_id,
+        "trigger_analysis": trigger_analysis,
+    }
+
+
+async def _dispatch_durable_trigger(
+    bus: Any,
+    base_body: dict[str, Any],
+    *,
+    event_type: str,
+    patient_id: str,
+    encounter_id: str | None,
+    plan_definition_id: str,
+    run_id: str,
+    context: dict[str, Any],
+) -> None:
+    from libs.workflow.durable_step_runner import DurableStepRunner
+
+    body = {
+        "event_type": event_type,
+        "patient_id": patient_id,
+        "encounter_id": encounter_id,
+        "plan_definition_id": plan_definition_id,
+        "workflow_id": plan_definition_id,
+        "run_id": run_id,
+        "context": context,
+    }
+    if base_body.get("tenant_id"):
+        body["tenant_id"] = base_body["tenant_id"]
+    await DurableStepRunner.start(body, bus=bus, queue_name=_PIPELINE_QUEUE)
+
+
+async def _dispatch_durable_for_encounter(
+    bus: Any,
     base_body: dict[str, Any],
     *,
     patient_id: str,
@@ -136,29 +179,24 @@ async def _dispatch_engine_for_encounter(
     dry_run: bool,
     trigger_analysis: bool,
 ) -> None:
-    body = {
-        "event_type": str(base_body.get("event_type") or "encounter-created"),
-        "patient_id": patient_id,
-        "encounter_id": encounter_id,
-        "plan_definition_id": str(
-            base_body.get("plan_definition_id") or "pd-gp-encounter-coding"
+    await _dispatch_durable_trigger(
+        bus,
+        base_body,
+        event_type=str(base_body.get("event_type") or "encounter-created"),
+        patient_id=patient_id,
+        encounter_id=encounter_id,
+        plan_definition_id=str(base_body.get("plan_definition_id") or _ENCOUNTER_PLAN),
+        run_id=run_id,
+        context=_encounter_context(
+            dry_run=dry_run,
+            encounter_id=encounter_id,
+            trigger_analysis=trigger_analysis,
         ),
-        "context": {
-            "dry_run": dry_run,
-            "mode": "extract_encounter",
-            "encounter_id": encounter_id,
-            "trigger_analysis": trigger_analysis,
-        },
-    }
-    await handler.handle_message(
-        Message(body=body, correlation_id=run_id, subject="encounter-created"),
-        step_callback=step_callback,
     )
 
 
-async def _dispatch_engine_for_episode_bundle(
-    handler,
-    step_callback,
+async def _dispatch_durable_for_episode_bundle(
+    bus: Any,
     base_body: dict[str, Any],
     *,
     patient_id: str,
@@ -169,21 +207,15 @@ async def _dispatch_engine_for_episode_bundle(
     dry_run: bool,
     trigger_analysis: bool,
 ) -> None:
-    """Dispatch a single episode-bundle event.
-
-    The event holds the episode envelope plus the ordered list of
-    encounter_ids that belong to it. WorkflowEngine receives a single
-    `episode_bundle` event and decides internally how to fan out per
-    encounter so each LLM call sees the bundle context.
-    """
-    body = {
-        "event_type": "episode_bundle",
-        "patient_id": patient_id,
-        "encounter_id": (encounter_ids[0] if encounter_ids else None),
-        "plan_definition_id": str(
-            base_body.get("plan_definition_id") or "pd-episode-bundle-coding"
-        ),
-        "context": {
+    await _dispatch_durable_trigger(
+        bus,
+        base_body,
+        event_type="episode_bundle",
+        patient_id=patient_id,
+        encounter_id=(encounter_ids[0] if encounter_ids else None),
+        plan_definition_id=str(base_body.get("plan_definition_id") or _EPISODE_PLAN),
+        run_id=run_id,
+        context={
             "dry_run": dry_run,
             "mode": "episode_bundle",
             "episode_id": episode_id,
@@ -191,21 +223,12 @@ async def _dispatch_engine_for_episode_bundle(
             "episode_context": dict(episode_context or {}),
             "trigger_analysis": trigger_analysis,
         },
-    }
-    await handler.handle_message(
-        Message(body=body, correlation_id=run_id, subject="episode-bundle"),
-        step_callback=step_callback,
     )
 
 
 async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
-    from libs.neo4j_client.client import (
-        PatientGraphClient,
-        get_async_driver,
-        get_async_patient_driver,
-    )
-    from libs.workflow.engine import WorkflowEngine
-    from libs.workflow.events import ServiceBusEventHandler
+    from libs.message_bus.factory import create_message_bus
+    from libs.neo4j_client.client import PatientGraphClient
 
     body = raw_message.body if isinstance(raw_message.body, dict) else {}
     run_id = str(
@@ -214,28 +237,14 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
     if not run_id:
         run_id = f"run-{job.patient_id}"
 
-    driver = get_async_driver()
-    audit_driver = None
+    bus = create_message_bus()
     try:
-        audit_driver = get_async_patient_driver()
-    except Exception:
-        logger.warning(
-            "Patient Graph async driver unavailable — spend audit writes disabled"
-        )
-    try:
-        engine = WorkflowEngine(
-            neo4j_driver=driver,
-            audit_neo4j_driver=audit_driver,
-        )
-        handler = ServiceBusEventHandler(engine)
-
         if job.mode == "extract_encounter":
             if not job.encounter_id:
                 logger.error("extract_encounter job missing encounter_id")
                 return
-            await _dispatch_engine_for_encounter(
-                handler,
-                _build_progress_callback(run_id, patient_id=job.patient_id),
+            await _dispatch_durable_for_encounter(
+                bus,
                 body,
                 patient_id=job.patient_id,
                 encounter_id=job.encounter_id,
@@ -247,13 +256,10 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
 
         if job.mode == "episode_bundle":
             if not job.episode_id or not job.encounter_ids:
-                logger.error(
-                    "episode_bundle job missing episode_id or encounter_ids"
-                )
+                logger.error("episode_bundle job missing episode_id or encounter_ids")
                 return
-            await _dispatch_engine_for_episode_bundle(
-                handler,
-                _build_progress_callback(run_id, patient_id=job.patient_id),
+            await _dispatch_durable_for_episode_bundle(
+                bus,
                 body,
                 patient_id=job.patient_id,
                 episode_id=job.episode_id,
@@ -288,26 +294,16 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
             if str(row.get("encounter_id") or "").strip()
         ]
 
-        # Bound per-patient encounter parallelism. Each encounter still
-        # holds the upstream LLM rate limit etc., so we cap with a
-        # semaphore. Default 4 concurrent encounters per patient.
         try:
-            max_parallel = max(
-                1, int(os.getenv("CODING_ENCOUNTER_PARALLELISM", "4"))
-            )
+            max_parallel = max(1, int(os.getenv("CODING_ENCOUNTER_PARALLELISM", "4")))
         except ValueError:
             max_parallel = 4
         sem = asyncio.Semaphore(max_parallel)
 
         async def _run_one(encounter_id: str) -> None:
             async with sem:
-                await _dispatch_engine_for_encounter(
-                    handler,
-                    _build_progress_callback(
-                        run_id,
-                        patient_id=job.patient_id,
-                        suppress_run_completed=True,
-                    ),
+                await _dispatch_durable_for_encounter(
+                    bus,
                     body,
                     patient_id=job.patient_id,
                     encounter_id=encounter_id,
@@ -353,6 +349,4 @@ async def _run_coding_job(job: CodingJobMessage, raw_message: Message) -> None:
                 exc_info=True,
             )
     finally:
-        if audit_driver is not None:
-            await audit_driver.close()
-        await driver.close()
+        await bus.close()

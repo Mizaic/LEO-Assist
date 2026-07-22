@@ -180,6 +180,17 @@ RETURN a.id AS id, a.status AS status
 # SBAR rows alongside :EncounterCandidate rows. The flat fields mirror
 # the wire format used by the coding pipeline AuditEvent so the same UI
 # components render both.
+SET_ASSESSMENT_PROVENANCE = """
+MATCH (a:Assessment {id: $assessment_id})
+SET a.execution_manifest_json = $execution_manifest_json,
+    a.prompt_provenance_json = $prompt_provenance_json,
+    a.model_provenance_json = $model_provenance_json,
+    a.source_accounting_json = $source_accounting_json,
+    a.audit_event_id = $audit_event_id,
+    a.updated_at = datetime()
+RETURN a.id AS id
+"""
+
 SET_ASSESSMENT_USAGE = """
 MATCH (a:Assessment {id: $assessment_id})
 SET a.llm_usage_json     = $llm_usage_json,
@@ -243,6 +254,22 @@ SET a.completeness_result_json  = $completeness_result_json,
 RETURN a.id AS id
 """
 
+SET_ASSESSMENT_COMPLIANCE_ALERTS = """
+MATCH (a:Assessment {id: $assessment_id})
+SET a.compliance_alerts_json = $compliance_alerts_json,
+    a.updated_at             = datetime()
+RETURN a.id AS id
+"""
+
+SET_ASSESSMENT_GATE3 = """
+MATCH (a:Assessment {id: $assessment_id})
+SET a.referral_reason_evidence_json = $referral_reason_evidence_json,
+    a.recall_exhaustion_json        = $recall_exhaustion_json,
+    a.recall_needs_review           = $recall_needs_review,
+    a.updated_at                    = datetime()
+RETURN a.id AS id
+"""
+
 
 GET_ASSESSMENT = """
 MATCH (a:Assessment {id: $assessment_id})
@@ -273,6 +300,20 @@ RETURN a.id                            AS id,
        a.rtr_evidence                  AS rtr_evidence,
        a.errors                        AS errors,
        a.completeness_result_json      AS completeness_result_json,
+       a.compliance_alerts_json        AS compliance_alerts_json,
+       a.referral_reason_evidence_json AS referral_reason_evidence_json,
+       a.recall_exhaustion_json        AS recall_exhaustion_json,
+       a.recall_needs_review           AS recall_needs_review,
+       a.llm_usage_json                AS llm_usage_json,
+       a.llm_input_tokens              AS llm_input_tokens,
+       a.llm_output_tokens             AS llm_output_tokens,
+       a.llm_cached_tokens             AS llm_cached_tokens,
+       a.llm_total_tokens              AS llm_total_tokens,
+       a.llm_calls                     AS llm_calls,
+       a.llm_cost_usd                  AS llm_cost_usd,
+       a.llm_latency_ms                AS llm_latency_ms,
+       a.llm_model_id                  AS llm_model_id,
+       a.llm_model_provider            AS llm_model_provider,
        p.id                            AS patient_id
 """
 
@@ -337,4 +378,51 @@ def assessment_to_dict(record: Any) -> dict[str, Any]:
         "rtr_evidence": record["rtr_evidence"],
         "errors": record["errors"] or [],
         "completeness_result_json": record.get("completeness_result_json"),
+        "compliance_alerts": _decode_compliance_alerts(
+            record.get("compliance_alerts_json")
+        ),
+        "referral_reason_evidence": _decode_json_object(
+            record.get("referral_reason_evidence_json")
+        ),
+        "recall_exhaustion": _decode_json_object(record.get("recall_exhaustion_json")),
+        "recall_needs_review": bool(record.get("recall_needs_review")),
+        "llm_usage_json": record.get("llm_usage_json"),
+        "llm_input_tokens": int(record.get("llm_input_tokens") or 0),
+        "llm_output_tokens": int(record.get("llm_output_tokens") or 0),
+        "llm_cached_tokens": int(record.get("llm_cached_tokens") or 0),
+        "llm_total_tokens": int(record.get("llm_total_tokens") or 0),
+        "llm_calls": int(record.get("llm_calls") or 0),
+        "llm_cost_usd": float(record.get("llm_cost_usd") or 0.0),
+        "llm_latency_ms": int(record.get("llm_latency_ms") or 0),
+        "llm_model_id": record.get("llm_model_id") or "",
+        "llm_model_provider": record.get("llm_model_provider") or "",
     }
+
+
+def _decode_json_object(raw: Any) -> dict[str, Any] | None:
+    if not raw:
+        return None
+    if isinstance(raw, dict):
+        return dict(raw)
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        return parsed if isinstance(parsed, dict) else None
+    return None
+
+
+def _decode_compliance_alerts(raw: Any) -> list[dict[str, Any]]:
+    if not raw:
+        return []
+    if isinstance(raw, list):
+        return [item for item in raw if isinstance(item, dict)]
+    if isinstance(raw, str):
+        try:
+            parsed = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return []
+        if isinstance(parsed, list):
+            return [item for item in parsed if isinstance(item, dict)]
+    return []

@@ -11,7 +11,7 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5C88CA8F")
  */
 import type { SbarAssessmentPayload } from "../data/types";
-import { configureFetcher } from "../data/fetcher";
+import { configureFetcher, configureSourceTextFetcher } from "../data/fetcher";
 
 export const DEMO_ASSESSMENT_ID = "ass-2WW-demo";
 
@@ -42,5 +42,14 @@ export function configureDemoFetcher(assessmentId?: string): void {
   configureFetcher(async () => ({
     ...DEMO_SBAR_PAYLOAD,
     assessmentId: id,
+  }));
+  configureSourceTextFetcher(async ({ sourceId }) => ({
+    id: sourceId,
+    type: "Encounter",
+    label: sourceId,
+    text:
+      "Demo record text. In production this dialog shows the exact " +
+      "record text the LLM used to write this part of the Background " +
+      `section for source ${sourceId}.`,
   }));
 }

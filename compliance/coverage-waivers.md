@@ -513,7 +513,29 @@ fully cleared and removed from the open list:
 - **Owner**: Engineering Lead (update Atlas DOs once 404s are resolved; raise a new VT for
   the consumer-grade pathway-card layout and record a run).
 
-## Review cadence
+## W-022 -- Gate 4 U4.6 remainder deferred (validation sync runner + analysis worker)
+
+- **Added**: 2026-07-22.
+- **Scope**:
+  - `services/api/app/services/validation_workflow_runner.py` still uses the
+    in-process `WorkflowEngine` loop for developer scoring helpers
+    (`execute_validation_workflow_sync`). Production extraction validation runs
+    enqueue `validation-run-requested` on `pipeline-jobs` and execute via
+    `DurableStepRunner` (verified by `tests/test_un_validation_workflows.py`).
+  - `services/analysis_worker/` jobs (episode detection, NCDA clustering, anchor
+    detection) remain on the analysis queue and are not part of the unified
+    durable pipeline sprint.
+- **Status**: accepted, scheduled post-release.
+- **Justification**: All eight Gate 4 remainder PlanDefinitions declare
+  `durable_pubsub` in seed and pass `tests/test_gate4_remainder_migration.py`
+  (VT-F210824D). The sync validation runner is a dry-run dev path only; it does
+  not admit production pipeline runs. Analysis worker migration is a separate
+  U4.6 track with no patient-record writeback without human review.
+- **Owner**: Engineering Lead.
+- **Clear by**: 2026-09-30 -- migrate or retire sync validation runner; assess
+  analysis-worker durable admission in a follow-on sprint.
+
+---
 
 - **Per-release**: Engineering Lead inspects W-004 / W-007 /
   W-013 / W-015 / W-016 / W-017 / W-018 via the CSO queue.

@@ -35,7 +35,12 @@ def captured_callback(monkeypatch):
 # ----- Bedrock stubs ----------------------------------------------------
 
 
-def _bedrock_response(input_tokens: int, output_tokens: int, cache_read: int = 0):
+def _bedrock_response(
+    input_tokens: int,
+    output_tokens: int,
+    cache_read: int = 0,
+    cache_write: int = 0,
+):
     return {
         "output": {
             "message": {"content": [{"text": '{"ok": true}'}]},
@@ -45,6 +50,7 @@ def _bedrock_response(input_tokens: int, output_tokens: int, cache_read: int = 0
             "inputTokens": input_tokens,
             "outputTokens": output_tokens,
             "cacheReadInputTokens": cache_read,
+            "cacheWriteInputTokens": cache_write,
         },
     }
 
@@ -162,7 +168,7 @@ def test_bedrock_converse_fires_tracking_with_matching_tokens(
     stub_bedrock, captured_callback
 ):
     stub_bedrock["response"] = _bedrock_response(
-        input_tokens=120, output_tokens=30, cache_read=50
+        input_tokens=120, output_tokens=30, cache_read=50, cache_write=15
     )
     client = _make_bedrock_client()
 
@@ -176,6 +182,7 @@ def test_bedrock_converse_fires_tracking_with_matching_tokens(
     assert response.input_tokens == 120
     assert response.output_tokens == 30
     assert response.cached_input_tokens == 50
+    assert response.cache_creation_input_tokens == 15
 
     assert len(captured_callback) == 1
     payload = captured_callback[0]
@@ -186,6 +193,8 @@ def test_bedrock_converse_fires_tracking_with_matching_tokens(
     assert payload["input_tokens"] == 120
     assert payload["output_tokens"] == 30
     assert payload["cache_read_input_tokens"] == 50
+    assert payload["cache_creation_input_tokens"] == 15
+    assert payload["input_excludes_cache"] is True
     assert payload["latency_ms"] >= 0
     assert payload["success"] is True
 

@@ -39,15 +39,21 @@ def _assert_in_order(text: str, before: str, after: str) -> None:
 
 
 def test_vt37607f4b_valid_job_starts_workflow() -> None:
-    """VT-37607F4B -- a valid CDS job starts the workflow engine."""
-    job = CodingJobMessage(patient_id="p-1", encounter_id="e-1", mode="extract_encounter")
+    """VT-37607F4B -- a valid CDS job starts the durable pipeline runner."""
+    job = CodingJobMessage(
+        patient_id="p-1", encounter_id="e-1", mode="extract_encounter"
+    )
     handler = _read(JOB_HANDLER)
 
     assert job.patient_id == "p-1"
     assert job.encounter_id == "e-1"
-    assert "WorkflowEngine(" in handler
-    assert "ServiceBusEventHandler(engine)" in handler
-    assert "handler.handle_message(" in handler
+    assert "WorkflowEngine(" not in handler
+    assert "from libs.workflow.durable_step_runner import DurableStepRunner" in handler
+    assert (
+        "await DurableStepRunner.start(body, bus=bus, queue_name=_PIPELINE_QUEUE)"
+        in handler
+    )
+    assert "await _dispatch_durable_for_encounter(" in handler
 
 
 def test_vtb91ee9f2_worker_receives_pipeline_messages() -> None:
@@ -75,7 +81,7 @@ def test_vtcbb3c8e8_message_keeps_run_and_case_context() -> None:
     handler = _read(JOB_HANDLER)
     router = _read(PIPELINE_ROUTER)
 
-    assert "raw_message.correlation_id or body.get(\"run_id\")" in handler
+    assert 'raw_message.correlation_id or body.get("run_id")' in handler
     assert '"patient_id": patient_id' in handler
     assert '"encounter_id": encounter_id' in handler
     assert "correlation_id=run_id" in router
@@ -115,7 +121,10 @@ def test_vt3902ebf7_neo4j_persist_failure_blocks_success_event() -> None:
 
     assert error == "persist_patient_graph: neo4j unavailable"
     engine = _read(WORKFLOW_ENGINE)
-    assert 'done_type = "run_error" if final_status == "error" else "run_completed"' in engine
+    assert (
+        'done_type = "run_error" if final_status == "error" else "run_completed"'
+        in engine
+    )
 
 
 def test_vtf9794391_audit_write_happens_before_completion_event() -> None:
@@ -136,7 +145,7 @@ def test_vt1b3a081f_completion_event_is_not_a_clinical_record_write() -> None:
     worker = _read(PIPELINE_WORKER)
 
     assert "publish_progress(run_id, payload)" in callback
-    assert "update_from_event(patient_id or \"\", run_id, payload)" in callback
+    assert 'update_from_event(patient_id or "", run_id, payload)' in callback
     assert "write_documents_from_sentences_payload" not in callback
     assert "write_documents_from_sentences_payload" not in worker
 

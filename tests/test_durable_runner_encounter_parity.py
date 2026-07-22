@@ -18,6 +18,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from libs.workflow.durable_step_runner import DURABLE_STEP_EVENT
+
 
 def _load_plan_def(plan_id: str) -> dict:
     repo_root = os.path.join(os.path.dirname(__file__), "..")
@@ -80,9 +82,7 @@ def test_gp_encounter_chain_starts_with_encounter_loader():
 def test_gp_encounter_chain_contains_coding_verifier():
     plan = _load_plan_def("pd-gp-encounter-coding")
     chain = _walk_action_chain(plan["action"])
-    assert "coding_verifier" in chain, (
-        f"coding_verifier not found in chain: {chain}"
-    )
+    assert "coding_verifier" in chain, f"coding_verifier not found in chain: {chain}"
 
 
 def test_gp_encounter_coding_verifier_before_coding_route():
@@ -105,9 +105,97 @@ def test_gp_encounter_no_placeholder_subgraph_ids():
     placeholder_ids = {"durable_step", ""}
     for action in plan["action"]:
         subgraph_id = action.get("_subgraphId", "")
-        assert subgraph_id not in placeholder_ids, (
-            f"Action '{action['id']}' uses placeholder subgraphId '{subgraph_id}'"
-        )
+        assert (
+            subgraph_id not in placeholder_ids
+        ), f"Action '{action['id']}' uses placeholder subgraphId '{subgraph_id}'"
+
+
+def test_gp_encounter_plan_pins_version_rollout():
+    plan = _load_plan_def("pd-gp-encounter-coding")
+    rollout = plan.get("_versionRollout") or {}
+    assert rollout.get("defaultVersion") == "latest"
+
+
+def test_gp_encounter_chain_matches_clinical_happy_path():
+    """Main pass-through branch must preserve source->extract->code->persist order."""
+    plan = _load_plan_def("pd-gp-encounter-coding")
+    chain = _walk_action_chain(plan["action"])
+    expected_prefix = [
+        "encounter_loader",
+        "extraction",
+        "post_processing",
+        "relation_linking",
+        "extraction_check",
+        "condition",
+        "terminology",
+        "coding_verifier",
+        "condition",
+        "tier_classify",
+        "persist",
+    ]
+    assert chain[: len(expected_prefix)] == expected_prefix
+
+
+@pytest.mark.asyncio
+async def test_encounter_extract_dual_delivery_executes_subgraph_once():
+    """Two deliveries of the same durable stage run the subgraph exactly once."""
+    from tests.helpers.claim_race_client import InMemoryClaimClient
+
+    from libs.workflow.durable_step_runner import DurableStepRunner, _Action
+    from libs.workflow.plan_manifest import PlanManifest
+
+    action = _Action(action_id="act-extract", subgraph_id="extraction")
+    manifest = PlanManifest(
+        plan_id="pd-gp-encounter-coding",
+        version_id=1,
+        version_node_id="ver-enc-dual",
+        policy_version="v1",
+        workflow_mode="durable_pubsub",
+        actions=(action,),
+    )
+    client = InMemoryClaimClient()
+    mock_bus = AsyncMock()
+    executions: list[int] = []
+    mock_graph = MagicMock()
+
+    def _invoke(_state):
+        executions.append(1)
+        return {"entities": []}
+
+    mock_graph.invoke = _invoke
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-extract",
+        "step_id": "act-extract",
+        "plan_definition_id": "pd-gp-encounter-coding",
+        "run_id": "run-enc-dual",
+        "patient_id": "p-enc-dual",
+    }
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=manifest,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=client,
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-enc-dual"},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
+        ),
+    ):
+        first = await DurableStepRunner.run_step(body, bus=mock_bus)
+        second = await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    assert first.status == "completed"
+    assert second.status == "completed"
+    assert "already_completed" in second.warnings
+    assert executions == [1]
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +207,7 @@ def test_gp_encounter_no_placeholder_subgraph_ids():
 async def test_start_publishes_encounter_loader_directly():
     """encounter_loader has trigger_name and node_type=action -- start() publishes it."""
     from libs.workflow.durable_step_runner import DurableStepRunner, _Action
+    from libs.workflow.plan_manifest import PlanManifest
 
     encounter_loader = _Action(
         action_id="act-load-encounter",
@@ -130,6 +219,14 @@ async def test_start_publishes_encounter_loader_directly():
         action_id="act-extract",
         subgraph_id="extraction",
         related_actions=[{"actionId": "act-load-encounter"}],
+    )
+    manifest = PlanManifest(
+        plan_id="pd-gp-encounter-coding",
+        version_id=1,
+        version_node_id="ver-enc-1",
+        policy_version="v1",
+        workflow_mode="durable_pubsub",
+        actions=(encounter_loader, extract_action),
     )
 
     mock_bus = AsyncMock()
@@ -145,8 +242,8 @@ async def test_start_publishes_encounter_loader_directly():
 
     with (
         patch(
-            "libs.workflow.durable_step_runner._load_all_actions",
-            return_value=[encounter_loader, extract_action],
+            "libs.workflow.durable_step_runner.load_plan_manifest",
+            return_value=manifest,
         ),
         patch(
             "libs.workflow.durable_step_runner.PatientGraphClient",
@@ -156,7 +253,15 @@ async def test_start_publishes_encounter_loader_directly():
             "libs.workflow.durable_step_runner.PipelineStageStore",
             return_value=MagicMock(
                 ensure_schema=MagicMock(),
-                upsert_run=MagicMock(),
+                admit_run=MagicMock(
+                    return_value=MagicMock(
+                        run_id="run-enc-001",
+                        created=True,
+                        first_step_enqueued=False,
+                        status="running",
+                    )
+                ),
+                claim_first_step_enqueue=MagicMock(return_value=True),
             ),
         ),
     ):

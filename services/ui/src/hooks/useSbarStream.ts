@@ -60,6 +60,20 @@ export interface SbarStagePartProgress {
   errorCode: string | null;
 }
 
+/** Enriched source metadata for the "Show source records" disclosure.
+ *  Mirrors the dicts built by libs.sbar.prompt_calls._sources_from_part.
+ *  ``fullText`` is the exact record text the LLM saw for this source
+ *  (empty for legacy Assessments generated before this field existed --
+ *  callers fall back to ``preview``). */
+export interface SbarSourceRef {
+  id: string;
+  type?: string;
+  label?: string;
+  preview?: string;
+  fullText?: string;
+  date?: string | null;
+}
+
 /** Structured per-partition summary for the SBAR Background stage.
  *  Mirrors libs.sbar.prompt_calls._build_part_summary. The UI uses
  *  this to render a "Show source records" disclosure on the
@@ -71,9 +85,32 @@ export interface SbarBackgroundPart {
   recordCount: number;
   recordRange: [number, number];
   sourceIds: string[];
+  /** Optional enriched sources (label/preview/fullText). Falls back
+   *  to plain ``sourceIds`` chips when absent. */
+  sources?: SbarSourceRef[];
   status: "completed" | "failed";
   errorCode: string | null;
   errorMessage: string | null;
+}
+
+function toSourceRef(raw: unknown): SbarSourceRef | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const id = typeof o.id === "string" ? o.id : String(o.id ?? "");
+  if (!id) return null;
+  return {
+    id,
+    type: typeof o.type === "string" ? o.type : undefined,
+    label: typeof o.label === "string" ? o.label : undefined,
+    preview: typeof o.preview === "string" ? o.preview : "",
+    fullText:
+      typeof o.full_text === "string"
+        ? o.full_text
+        : typeof o.fullText === "string"
+          ? o.fullText
+          : "",
+    date: typeof o.date === "string" ? o.date : null,
+  };
 }
 
 function toBackgroundPart(raw: unknown): SbarBackgroundPart | null {
@@ -91,6 +128,11 @@ function toBackgroundPart(raw: unknown): SbarBackgroundPart | null {
         })
         .filter((s) => s.length > 0)
     : [];
+  const sources = Array.isArray(o.sources)
+    ? (o.sources as unknown[])
+        .map(toSourceRef)
+        .filter((s): s is SbarSourceRef => s !== null)
+    : [];
   const status =
     o.status === "failed" || o.error_code ? "failed" : "completed";
   return {
@@ -99,6 +141,7 @@ function toBackgroundPart(raw: unknown): SbarBackgroundPart | null {
     recordCount: Number(o.record_count ?? sourceIds.length),
     recordRange: [Number(range[0] ?? 0), Number(range[1] ?? 0)],
     sourceIds,
+    sources: sources.length > 0 ? sources : undefined,
     status,
     errorCode: typeof o.error_code === "string" ? o.error_code : null,
     errorMessage:

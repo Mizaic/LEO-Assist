@@ -3,7 +3,7 @@
  *
  * Atlas trace:
  *   DO: DO-5D3EA371
- *   DI: DI-357A7468
+ *   DI: DI-357A7468, DI-7DE8E8ED
  */
 "use client";
 
@@ -13,6 +13,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { CodedEntityRow } from "@/lib/patientEprApi";
+import { CodedEntityChip } from "./CodedEntityChip";
 
 const ENTITY_TYPE_LABEL: Record<string, string> = {
   disorder: "Conditions",
@@ -26,12 +27,14 @@ const ENTITY_TYPE_LABEL: Record<string, string> = {
 };
 
 interface Props {
+  patientId: string;
   entities: CodedEntityRow[];
   loading?: boolean;
   maxPerGroup?: number;
 }
 
 export function ProblemListView({
+  patientId,
   entities,
   loading = false,
   maxPerGroup = 6,
@@ -80,11 +83,11 @@ export function ProblemListView({
           </Typography>
           <Stack direction="row" flexWrap="wrap" gap={0.5}>
             {items.slice(0, maxPerGroup).map((e, i) => (
-              <Chip
+              <CodedEntityChip
                 key={`${e.name}-${i}`}
-                label={e.name}
-                size="small"
-                sx={{ height: 20, fontSize: 10, bgcolor: "#F1F5F9", color: "#334155" }}
+                patientId={patientId}
+                name={e.name}
+                conceptId={e.concept_id}
               />
             ))}
             {items.length > maxPerGroup && (
