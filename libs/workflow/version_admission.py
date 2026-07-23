@@ -1,5 +1,10 @@
 """Controlled workflow version admission for new pipeline runs (M2.7).
 
+Atlas trace:
+  DO: DO-55FE7CB1
+  DI: DI-090D4939, DI-29BF950F, DI-33376FBB, DI-8788B246, DI-9EE8D65E, DI-AB1C442D, DI-CB01B8A6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-55FE7CB1")
+
 Selects the pinned PlanDefinitionVersion for a new run using an approved org
 allowlist or deterministic allocation. Rollback adjusts the default for new
 runs only; in-flight runs retain their admission manifest.

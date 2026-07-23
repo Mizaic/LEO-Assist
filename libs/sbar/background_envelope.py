@@ -1,5 +1,10 @@
 """Codes-first Background user-message envelope (A3.5).
 
+Atlas trace:
+  DO: DO-FA365C59
+  DI: DI-3AAB5328
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-FA365C59")
+
 Sends codes, assertions, evidence spans and approved salvage sentences only.
 Does not dump full chunk prose when codes exist for that chunk.
 """

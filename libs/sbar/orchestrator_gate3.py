@@ -1,4 +1,10 @@
-"""Gate 3 orchestrator prep: coverage, recall, structured Situation (D3/E3/A3)."""
+"""Gate 3 orchestrator prep: coverage, recall, structured Situation (D3/E3/A3).
+
+Atlas trace:
+  DO: DO-8CD63B3B
+  DI: DI-CC00ABBD
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8CD63B3B")
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,10 @@
-"""SBAR bounded recall system prompt and tool config (Gate 3 E3)."""
+"""SBAR bounded recall system prompt and tool config (Gate 3 E3).
+
+Atlas trace:
+  DO: DO-8CD63B3B
+  DI: DI-CC00ABBD
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8CD63B3B")
+"""
 
 from __future__ import annotations
 

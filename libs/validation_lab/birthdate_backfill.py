@@ -1,5 +1,11 @@
 """Backfill Validation Lab Patient.birthDate from case prose.
 
+Atlas trace:
+  DO: DO-6FF1E931
+  DI: DI-169C1EB9
+  Risks: R-64AC4E14
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6FF1E931")
+
 Existing lab patients may have birthDate unset while ValidationCase referral
 text mentions age (for example "62-year-old"). Pipeline compliance needs
 birthDate on the Patient node, not just a runtime fallback.

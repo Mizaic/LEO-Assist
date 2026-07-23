@@ -1,5 +1,11 @@
 """Resolve Validation Lab patient age for scaffold and pipeline enrichment.
 
+Atlas trace:
+  DO: DO-6FF1E931
+  DI: DI-169C1EB9
+  Risks: R-64AC4E14
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6FF1E931")
+
 Age-gated NG12 compliance rules need patient_age on pipeline state.
 Lab cases often mention age in referral prose without setting patient_age
 explicitly (for example G5.9 wizard runs).

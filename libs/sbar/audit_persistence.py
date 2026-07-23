@@ -1,4 +1,10 @@
-"""Mandatory SBAR audit persistence preconditions (M2.8)."""
+"""Mandatory SBAR audit persistence preconditions (M2.8).
+
+Atlas trace:
+  DO: DO-025F8C6C
+  DI: DI-075775FF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-025F8C6C")
+"""
 
 from __future__ import annotations
 

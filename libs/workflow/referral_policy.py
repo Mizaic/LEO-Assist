@@ -1,5 +1,10 @@
 """Versioned referral clinical policy schema (M2.2).
 
+Atlas trace:
+  DO: DO-E89DE9EE
+  DI: DI-090D4939, DI-29BF950F, DI-33376FBB, DI-8788B246, DI-9EE8D65E, DI-AB1C442D, DI-CB01B8A6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-E89DE9EE")
+
 Embedded in PlanDefinition snapshots as ``_referralPolicy``. Invalid or
 out-of-bound values fail plan publication; production never falls back to
 hidden Python defaults for referral assessment runs.

@@ -1,4 +1,10 @@
-"""Scoped recall tools for bounded referral retrieval (E3.1)."""
+"""Scoped recall tools for bounded referral retrieval (E3.1).
+
+Atlas trace:
+  DO: DO-3A28C048
+  DI: DI-E6BA4E80
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A28C048")
+"""
 
 from __future__ import annotations
 

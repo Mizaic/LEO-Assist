@@ -1,4 +1,10 @@
-"""SBAR runtime helpers driven by pinned execution manifest (M2.3/M2.4)."""
+"""SBAR runtime helpers driven by pinned execution manifest (M2.3/M2.4).
+
+Atlas trace:
+  DO: DO-04CEDFB1
+  DI: DI-090D4939, DI-29BF950F, DI-33376FBB, DI-8788B246, DI-9EE8D65E, DI-AB1C442D, DI-CB01B8A6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-04CEDFB1")
+"""
 
 from __future__ import annotations
 

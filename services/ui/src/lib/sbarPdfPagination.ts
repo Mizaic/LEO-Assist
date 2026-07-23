@@ -5,7 +5,11 @@
  * cards). Only slices inside a block when that block alone is taller
  * than one page.
  *
- * Atlas: DO-BEE23936 / DI-B03BD651
+ * Atlas trace:
+ *   DO: DO-598A4BB1
+ *   DI: DI-15BC0C79
+ *   Risks: R-7299F8D7
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-598A4BB1")
  */
 
 export interface PdfBlock {
