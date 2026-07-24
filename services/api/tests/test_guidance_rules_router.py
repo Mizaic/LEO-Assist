@@ -269,6 +269,59 @@ class TestListPendingRules:
         assert rules[0]["action_priority"] == "2ww"
         assert rules[0]["action_due_days"] == 14
 
+    def test_recommendation_structure_null_for_plain_sentence(self, test_client):
+        """A recommendation with no list markup surfaces recommendation_structure=None."""
+        raw_row = {
+            "rule_id": "r-plain",
+            "name": "Plain sentence rule",
+            "status": "pending_review",
+            "strength": "offer",
+            "guideline_id": "NG12",
+            "recommendation_text": "Offer an urgent chest X-ray.",
+            "list_structure_json": None,
+            "criteria": [],
+        }
+
+        with patch("app.routers.guidance_rules._kg_client") as mock_cls:
+            mock_cls.return_value = _mock_kg_client([[raw_row]])
+            resp = test_client.get("/guidance/rules/review")
+
+        assert resp.status_code == 200
+        assert resp.json()[0]["recommendation_structure"] is None
+
+    def test_recommendation_structure_surfaced_for_list_recommendation(
+        self, test_client
+    ):
+        """A recommendation with parsed list markup surfaces the list tree,
+        letting the highlight-to-build wizard's pathway-split step prefer
+        it over the ", or"-boundary heuristic (NG12 1.2.9)."""
+        list_structure_json = (
+            '{"lead_text": "Consider endoscopy if:", '
+            '"items": [{"text": "unexplained haemoptysis", "start": 23, '
+            '"end": 47}]}'
+        )
+        raw_row = {
+            "rule_id": "r-list",
+            "name": "NG12 1.2.9",
+            "status": "pending_review",
+            "strength": "consider",
+            "guideline_id": "NG12",
+            "recommendation_text": "Consider endoscopy if: unexplained haemoptysis",
+            "list_structure_json": list_structure_json,
+            "criteria": [],
+        }
+
+        with patch("app.routers.guidance_rules._kg_client") as mock_cls:
+            mock_cls.return_value = _mock_kg_client([[raw_row]])
+            resp = test_client.get("/guidance/rules/review")
+
+        assert resp.status_code == 200
+        structure = resp.json()[0]["recommendation_structure"]
+        assert structure["lead_text"] == "Consider endoscopy if:"
+        assert structure["items"][0]["text"] == "unexplained haemoptysis"
+        assert structure["items"][0]["start"] == 23
+        assert structure["items"][0]["end"] == 47
+
     def test_action_priority_null_when_no_action_edges(self, test_client):
         raw_row = {
             "rule_id": "r-no-priority",

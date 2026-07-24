@@ -217,6 +217,134 @@ class TestValueSetService:
             assert result is None
 
 
+class TestPriorConceptResolutions:
+    """Tests for the concept-mapping nudge's prior-resolution lookup."""
+
+    @patch(
+        "services.terminology_api.app.services.prior_resolutions.KnowledgeGraphClient"
+    )
+    def test_empty_term_short_circuits_without_a_query(self, MockKG):
+        from services.terminology_api.app.services.prior_resolutions import (
+            find_prior_concept_resolutions,
+        )
+
+        result = find_prior_concept_resolutions("   ")
+        assert result == []
+        MockKG.assert_not_called()
+
+    @patch(
+        "services.terminology_api.app.services.prior_resolutions.KnowledgeGraphClient"
+    )
+    def test_ranks_by_frequency_across_rules(self, MockKG):
+        from services.terminology_api.app.services.prior_resolutions import (
+            find_prior_concept_resolutions,
+        )
+
+        MockKG.return_value.run.return_value = [
+            {
+                "rule_id": "rule-1",
+                "logic_json": json.dumps(
+                    {
+                        "kind": "concept",
+                        "criterion": {
+                            "snomed_concept_id": "422587007",
+                            "term": "vomiting",
+                            "preferred_term": "Vomiting (finding)",
+                        },
+                    }
+                ),
+            },
+            {
+                "rule_id": "rule-2",
+                "logic_json": json.dumps(
+                    {
+                        "kind": "AND",
+                        "children": [
+                            {
+                                "kind": "concept",
+                                "criterion": {
+                                    "snomed_concept_id": "422587007",
+                                    "preferred_term": "Vomiting (finding)",
+                                },
+                            },
+                            {
+                                "kind": "concept",
+                                "criterion": {
+                                    "snomed_concept_id": "999999999",
+                                    "term": "vomiting",
+                                    "preferred_term": "A different vomiting (finding)",
+                                },
+                            },
+                        ],
+                    }
+                ),
+            },
+        ]
+
+        result = find_prior_concept_resolutions("Vomiting")
+        assert result[0]["snomed_concept_id"] == "422587007"
+        assert result[0]["count"] == 2
+        assert result[1]["snomed_concept_id"] == "999999999"
+        assert result[1]["count"] == 1
+
+    @patch(
+        "services.terminology_api.app.services.prior_resolutions.KnowledgeGraphClient"
+    )
+    def test_ignores_rules_where_term_only_matches_a_different_criterion(self, MockKG):
+        from services.terminology_api.app.services.prior_resolutions import (
+            find_prior_concept_resolutions,
+        )
+
+        # A CONTAINS pre-filter hit whose actual concept criteria never
+        # mention "vomiting" (e.g. it appears inside an unrelated field)
+        # must not be counted -- the Python walker re-checks the exact
+        # normalised term before accumulating a hit.
+        MockKG.return_value.run.return_value = [
+            {
+                "rule_id": "rule-3",
+                "logic_json": json.dumps(
+                    {
+                        "kind": "concept",
+                        "criterion": {
+                            "snomed_concept_id": "1",
+                            "preferred_term": "Nausea (finding)",
+                        },
+                    }
+                ),
+            }
+        ]
+
+        assert find_prior_concept_resolutions("vomiting") == []
+
+    @patch(
+        "services.terminology_api.app.services.prior_resolutions.KnowledgeGraphClient"
+    )
+    def test_respects_limit(self, MockKG):
+        from services.terminology_api.app.services.prior_resolutions import (
+            find_prior_concept_resolutions,
+        )
+
+        MockKG.return_value.run.return_value = [
+            {
+                "rule_id": f"rule-{i}",
+                "logic_json": json.dumps(
+                    {
+                        "kind": "concept",
+                        "criterion": {
+                            "snomed_concept_id": str(i),
+                            "term": "vomiting",
+                            "preferred_term": f"Vomiting variant {i}",
+                        },
+                    }
+                ),
+            }
+            for i in range(10)
+        ]
+
+        result = find_prior_concept_resolutions("vomiting", limit=3)
+        assert len(result) == 3
+
+
 class TestResolveRouterRetry:
     """Tests for retry behaviour in terminology resolve router."""
 

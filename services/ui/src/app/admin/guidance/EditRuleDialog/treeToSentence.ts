@@ -56,7 +56,13 @@ const SEX_VALUES: Record<string, string> = {
   f: "female",
 };
 
-function demographicToText(node: EditableLogicNode): string {
+/**
+ * Exported so the SentenceEditor canvas (fill-in-the-blank prose
+ * builder) can reuse the exact same wording as this read-only
+ * preview instead of duplicating the phrasing rules. Pure
+ * export-visibility change; behaviour is unchanged.
+ */
+export function demographicToText(node: EditableLogicNode): string {
   const field = node.field ?? "age";
   const op = node.operator ?? "=";
   const value = String(node.value ?? "");
@@ -81,7 +87,7 @@ function demographicToText(node: EditableLogicNode): string {
  */
 export type TermResolver = (conceptId: string) => string | undefined;
 
-function conceptText(node: EditableLogicNode, resolve?: TermResolver): string {
+export function conceptText(node: EditableLogicNode, resolve?: TermResolver): string {
   const c = node.criterion;
   const seeds = c?.seeds ?? [];
   const exclusions = c?.excluded_concept_ids ?? [];
@@ -161,7 +167,7 @@ function observationOperatorText(op: string): string {
   }
 }
 
-function observationToText(obs: EditableObservationPayload): string {
+export function observationToText(obs: EditableObservationPayload): string {
   const term = friendlyTerm(obs.observable_term).toLowerCase() || "a lab value";
 
   // Advanced modes are summarised softly so clinicians see the shape

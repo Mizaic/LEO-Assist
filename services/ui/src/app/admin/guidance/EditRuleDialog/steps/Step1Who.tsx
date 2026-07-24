@@ -28,7 +28,12 @@ import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import AIDraftButton from "../AIDraftButton";
+import HighlightWizard from "../HighlightWizard";
 import LogicTreeEditor from "../LogicTreeEditor";
+import SentenceEditor from "../SentenceEditor";
+import EmptySentenceState from "../SentenceEditor/EmptySentenceState";
+import type { RecommendationStructure } from "../SentenceEditor/pathwayTextSplit";
+import ViewModeToggle, { useViewMode } from "../ViewModeToggle";
 import {
   DUPLICATE_SETS_ALERT,
   STEP_HELPERS,
@@ -56,12 +61,17 @@ interface Props {
   selectedNodeId: string | null;
   duplicates: DuplicateSet[];
   recommendationText?: string;
+  /** NICE HTML list tree for this recommendation -- lets the guided
+   *  wizard's pathway-split step prefer real structure over the
+   *  ", or"-boundary heuristic. Null/absent for plain sentences. */
+  recommendationStructure?: RecommendationStructure | null;
 
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (
     parentNodeId: string,
     anchor?: HTMLElement | null,
+    initialQuery?: string,
   ) => void;
   onRequestCoach: (nodeId: string, anchor: HTMLElement) => void;
   /** Trigger an empty-state +Add when the tree has no children yet. */
@@ -81,6 +91,7 @@ export default function Step1Who({
   selectedNodeId,
   duplicates,
   recommendationText,
+  recommendationStructure,
   onSelectNode,
   onUpdate,
   onRequestAdd,
@@ -93,6 +104,7 @@ export default function Step1Who({
   guidelineId,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
+  const [viewMode, setViewMode] = useViewMode();
 
   const { wrappedOnUpdate, confirmDialogs } = useConfirmEdits({
     tree,
@@ -207,36 +219,81 @@ export default function Step1Who({
         </Box>
       )}
 
-      {treeIsEmpty ? (
-        <EmptyTreeState
-          onAddFirstSymptom={onAddFirstSymptom}
-          onAddFirstDemographic={onAddFirstDemographic}
-          onAddFirstObservation={onAddFirstObservation}
-          ruleId={ruleId}
-          onAIDraft={onAIDraft}
+      {viewMode === "guided" && tree ? (
+        <HighlightWizard
+          tree={tree}
+          recommendationText={recommendationText}
+          recommendationStructure={recommendationStructure}
+          selectedNodeId={selectedNodeId}
+          onSelectNode={onSelectNode}
+          onUpdate={wrappedOnUpdate}
+          onRequestAdd={onRequestAdd}
+          onRequestCoach={onRequestCoach}
+          onSkipToManual={() => setViewMode("advanced")}
+          guidelineId={guidelineId}
+          currentRuleId={ruleId || undefined}
         />
+      ) : treeIsEmpty ? (
+        viewMode === "simple" ? (
+          <EmptySentenceState
+            onAddFirstSymptom={onAddFirstSymptom}
+            onAddFirstDemographic={onAddFirstDemographic}
+            onAddFirstObservation={onAddFirstObservation}
+            ruleId={ruleId}
+            onAIDraft={onAIDraft}
+          />
+        ) : (
+          <EmptyTreeState
+            onAddFirstSymptom={onAddFirstSymptom}
+            onAddFirstDemographic={onAddFirstDemographic}
+            onAddFirstObservation={onAddFirstObservation}
+            ruleId={ruleId}
+            onAIDraft={onAIDraft}
+          />
+        )
       ) : (
         tree && (
           <Stack spacing={1.5}>
-            {ruleId && onAIDraft && (
-              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              spacing={1}
+              flexWrap="wrap"
+              sx={{ rowGap: 1 }}
+            >
+              <ViewModeToggle value={viewMode} onChange={setViewMode} />
+              {ruleId && onAIDraft && (
                 <AIDraftButton
                   ruleId={ruleId}
                   onDraft={onAIDraft}
                   variant="secondary"
                 />
-              </Box>
+              )}
+            </Stack>
+            {viewMode === "simple" ? (
+              <SentenceEditor
+                root={tree}
+                selectedNodeId={selectedNodeId}
+                onSelect={onSelectNode}
+                onUpdate={wrappedOnUpdate}
+                onRequestAdd={onRequestAdd}
+                onRequestCoach={onRequestCoach}
+                guidelineId={guidelineId}
+                currentRuleId={ruleId || undefined}
+              />
+            ) : (
+              <LogicTreeEditor
+                root={tree}
+                selectedNodeId={selectedNodeId}
+                onSelect={onSelectNode}
+                onUpdate={wrappedOnUpdate}
+                onRequestAdd={onRequestAdd}
+                onRequestCoach={onRequestCoach}
+                guidelineId={guidelineId}
+                currentRuleId={ruleId || undefined}
+              />
             )}
-            <LogicTreeEditor
-              root={tree}
-              selectedNodeId={selectedNodeId}
-              onSelect={onSelectNode}
-              onUpdate={wrappedOnUpdate}
-              onRequestAdd={onRequestAdd}
-              onRequestCoach={onRequestCoach}
-              guidelineId={guidelineId}
-              currentRuleId={ruleId || undefined}
-            />
           </Stack>
         )
       )}

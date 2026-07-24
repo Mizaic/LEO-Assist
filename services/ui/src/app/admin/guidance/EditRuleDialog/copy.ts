@@ -485,5 +485,14 @@ export const SEARCH_PANEL = {
   idleHintStrong: "+ Add a symptom, procedure, or situation",
   idleHintTail: "buttons inside a group.",
   loadError: "Could not search the clinical terms. Please try again.",
+  /** Soft nudge only -- a suggested default from how other rules
+   *  already coded this phrase, never an auto-applied pick. The
+   *  reviewer always has to tap "Use this" themselves. */
+  priorResolutionOneHeading: (term: string) =>
+    `Other rules use this code for "${term}"`,
+  priorResolutionManyHeading: (term: string) =>
+    `Other rules use these codes for "${term}"`,
+  priorResolutionCount: (count: number) =>
+    count === 1 ? "Used once" : `Used ${count} times`,
 } as const;
 

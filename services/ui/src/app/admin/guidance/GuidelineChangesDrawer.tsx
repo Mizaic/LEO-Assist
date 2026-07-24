@@ -17,6 +17,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
@@ -51,6 +52,21 @@ interface ModifiedRec {
   rules: AffectedRule[];
 }
 
+/**
+ * A "clears the similarity floor but not the margin" pairing between a
+ * recommendation that disappeared (removed_number) and one that newly
+ * appeared (added_number) -- see recommendation_key_matcher.py's module
+ * docstring. Genuinely ambiguous: a plausible move exists but isn't
+ * confident enough for the ingest-time matcher to carry the identity
+ * forward silently, so the reviewer must say yes or no explicitly before
+ * re-ingest can be confirmed.
+ */
+interface PossibleMove {
+  removed_number: string;
+  added_number: string;
+  score: number | null;
+}
+
 interface DiffResult {
   added: AddedRec[];
   removed: RemovedRec[];
@@ -59,6 +75,15 @@ interface DiffResult {
   total_stored: number;
   total_remote: number;
   _unchanged_numbers: string[];
+  possible_moves: PossibleMove[];
+}
+
+/** One admin answer per possible-move pairing, keyed by
+ * "removed_number|added_number". Undefined = not yet answered. */
+type PossibleMoveAnswers = Record<string, "moved" | "unrelated">;
+
+function moveKey(move: PossibleMove): string {
+  return `${move.removed_number}|${move.added_number}`;
 }
 
 interface DiffJob {
@@ -169,6 +194,86 @@ function SideBySide({
 }
 
 // ---------------------------------------------------------------------------
+// Possible moves -- ambiguous renumber pairings needing an explicit yes/no
+// ---------------------------------------------------------------------------
+
+function PossibleMovesSection({
+  moves,
+  answers,
+  onAnswer,
+}: {
+  moves: PossibleMove[];
+  answers: PossibleMoveAnswers;
+  onAnswer: (move: PossibleMove, answer: "moved" | "unrelated") => void;
+}) {
+  if (moves.length === 0) return null;
+  return (
+    <Box sx={{ mb: 3 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: "#5B21B6" }}>
+        <HelpOutlineIcon fontSize="small" sx={{ verticalAlign: "middle", mr: 0.5 }} />
+        Possible moves needing your check ({moves.length})
+      </Typography>
+      <Typography variant="body2" sx={{ mb: 1.5, color: "text.secondary" }}>
+        These recommendations look similar enough that they might be the same
+        one, just renumbered. We are not sure, so please check each one
+        before you can confirm.
+      </Typography>
+      <Stack spacing={1.5}>
+        {moves.map((move) => {
+          const key = moveKey(move);
+          const answer = answers[key];
+          return (
+            <Box
+              key={key}
+              data-testid={`possible-move-${key}`}
+              sx={{
+                border: "1px solid #DDD6FE",
+                borderRadius: 1,
+                p: 1.5,
+                bgcolor: "#F5F3FF",
+              }}
+            >
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Did <strong>{move.removed_number}</strong> move to become{" "}
+                <strong>{move.added_number}</strong>?
+                {move.score !== null && (
+                  <Typography
+                    component="span"
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ ml: 1 }}
+                  >
+                    ({Math.round(move.score * 100)}% text match)
+                  </Typography>
+                )}
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  size="small"
+                  variant={answer === "moved" ? "contained" : "outlined"}
+                  color="secondary"
+                  onClick={() => onAnswer(move, "moved")}
+                >
+                  Yes, it moved
+                </Button>
+                <Button
+                  size="small"
+                  variant={answer === "unrelated" ? "contained" : "outlined"}
+                  color="inherit"
+                  onClick={() => onAnswer(move, "unrelated")}
+                >
+                  No, unrelated
+                </Button>
+              </Stack>
+            </Box>
+          );
+        })}
+      </Stack>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Summary banner
 // ---------------------------------------------------------------------------
 
@@ -246,7 +351,15 @@ export default function GuidelineChangesDrawer({
   const [diffJobId, setDiffJobId] = useState<string | null>(null);
   const [diffJob, setDiffJob] = useState<DiffJob | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [moveAnswers, setMoveAnswers] = useState<PossibleMoveAnswers>({});
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleAnswerMove = useCallback(
+    (move: PossibleMove, answer: "moved" | "unrelated") => {
+      setMoveAnswers((prev) => ({ ...prev, [moveKey(move)]: answer }));
+    },
+    []
+  );
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) clearTimeout(pollRef.current);
@@ -278,6 +391,7 @@ export default function GuidelineChangesDrawer({
       setDiffJobId(null);
       setDiffJob(null);
       setStartError(null);
+      setMoveAnswers({});
       return;
     }
 
@@ -286,6 +400,7 @@ export default function GuidelineChangesDrawer({
     setDiffJobId(null);
     setDiffJob(null);
     setStartError(null);
+    setMoveAnswers({});
 
     fetch(`/api/nice/${code}/diff/start`, { method: "POST" })
       .then(async (r) => {
@@ -320,6 +435,10 @@ export default function GuidelineChangesDrawer({
   const hasChanges = diff
     ? diff.added.length + diff.removed.length + diff.modified.length > 0
     : false;
+  const possibleMoves = diff?.possible_moves ?? [];
+  const allMovesAnswered = possibleMoves.every(
+    (move) => moveAnswers[moveKey(move)] !== undefined
+  );
 
   return (
     <Drawer
@@ -376,6 +495,12 @@ export default function GuidelineChangesDrawer({
         {diff && hasChanges && (
           <Box>
             <DiffSummary diff={diff} />
+
+            <PossibleMovesSection
+              moves={possibleMoves}
+              answers={moveAnswers}
+              onAnswer={handleAnswerMove}
+            />
 
             {/* Modified */}
             {diff.modified.length > 0 && (
@@ -441,17 +566,26 @@ export default function GuidelineChangesDrawer({
         <Box sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider" }}>
           <Divider sx={{ mb: 2 }} />
           {hasChanges ? (
-            <Stack direction="row" spacing={1} justifyContent="flex-end">
-              <Button variant="outlined" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="warning"
-                onClick={handleConfirm}
-              >
-                Confirm re-ingest
-              </Button>
+            <Stack alignItems="flex-end" spacing={1}>
+              {!allMovesAnswered && (
+                <Typography variant="caption" color="text.secondary">
+                  Please answer yes or no for every possible move above
+                  before you confirm.
+                </Typography>
+              )}
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                <Button variant="outlined" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  onClick={handleConfirm}
+                  disabled={!allMovesAnswered}
+                >
+                  Confirm re-ingest
+                </Button>
+              </Stack>
             </Stack>
           ) : (
             <Stack direction="row" justifyContent="flex-end">

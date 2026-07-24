@@ -84,8 +84,20 @@ function fillReason(text: string) {
   });
 }
 
+const VIEW_MODE_STORAGE_KEY = "leo.editRuleDialog.viewMode";
+
+beforeEach(() => {
+  // The Concept Coach lightbulb only exists on the Advanced tree
+  // canvas (LogicTreeEditor/ConceptPill.tsx) -- it was never ported to
+  // the Simple sentence canvas either. Guided is now the default
+  // view, so force Advanced explicitly rather than relying on a
+  // default that no longer lands here.
+  window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, "advanced");
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
+  window.localStorage.clear();
 });
 
 describe("EditRuleDialog phase 3 (always-visible LivePreviewPane)", () => {

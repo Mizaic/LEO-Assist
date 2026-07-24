@@ -511,6 +511,42 @@ class TestExtractRecommendationsFromSection:
         recs = _extract_recommendations_from_section(section_json, "NG12")
         assert all(r["isNormative"] is True for r in recs)
 
+    def test_list_structure_is_none_for_plain_sentence_recs(self):
+        """Neither fixture article has a <ul> -- ListStructure is None, not omitted."""
+        section_json = {
+            "Content": self._NG12_SECTION_HTML,
+            "SectionId": "sec-1.1",
+            "Title": "Lung cancer",
+        }
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        assert all("ListStructure" in r for r in recs)
+        assert all(r["ListStructure"] is None for r in recs)
+
+    def test_list_structure_populated_for_recs_with_nested_lists(self):
+        """A recommendation with a <ul> gets a parsed, offset-aligned ListStructure."""
+        html = """
+        <article class="numbered-paragraph" id="ng12-1_2_9">
+          <h5>1.2.9</h5>
+          <div>
+            <p>Consider referral in people with:</p>
+            <ul class="itemizedlist">
+              <li class="listitem"><p>haematemesis, or</p></li>
+              <li class="listitem"><p>a raised platelet count</p></li>
+            </ul>
+          </div>
+        </article>
+        """
+        section_json = {"Content": html, "SectionId": "sec-1.2", "Title": "GI cancers"}
+        recs = _extract_recommendations_from_section(section_json, "NG12")
+        structure = recs[0]["ListStructure"]
+        assert structure is not None
+        assert [item["text"] for item in structure["items"]] == [
+            "haematemesis",
+            "a raised platelet count",
+        ]
+        for item in structure["items"]:
+            assert recs[0]["Text"][item["start"] : item["end"]] == item["text"]
+
 
 class TestCollectLeafItems:
     """Unit tests for the _collect_leaf_items helper."""

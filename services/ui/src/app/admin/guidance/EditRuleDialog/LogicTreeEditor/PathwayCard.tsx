@@ -42,7 +42,11 @@ interface Props {
   currentRuleId?: string;
 }
 
-const CARD_ACCENTS = [
+/**
+ * Exported so PathwaySentenceCard (Simple canvas) cycles through the
+ * exact same per-pathway accent colors as this boxed card.
+ */
+export const CARD_ACCENTS = [
   "#2563EB", "#0891b2", "#7C3AED", "#059669", "#D97706",
 ] as const;
 
@@ -184,7 +188,12 @@ export default function PathwayCard({
 
 // -- Editable pathway name ---------------------------------------------------
 
-function PathwayNameInput({
+/**
+ * Exported so PathwaySentenceCard (Simple canvas) reuses the exact same
+ * debounced-draft/commit-on-blur name editor as this boxed card,
+ * instead of duplicating the focus-preserving logic.
+ */
+export function PathwayNameInput({
   node,
   positional,
   onUpdate,

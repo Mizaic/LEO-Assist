@@ -16,6 +16,7 @@ import userEvent from "@testing-library/user-event";
 import LogicTreeEditor from "../LogicTreeEditor";
 import { assignNodeIds } from "../treeOps";
 import type { EditableLogicNode } from "../types";
+import { makeNg12129Tree } from "./fixtures/ng12129";
 
 function makeAtLeastTree(): EditableLogicNode {
   return assignNodeIds({
@@ -362,6 +363,48 @@ describe("LogicTreeEditor -- OR-root pathway list layout", () => {
       parentNodeId: pathwayA?.node_id,
       groupKind: "OR",
     });
+  });
+});
+
+describe("LogicTreeEditor -- pathway split nested inside a demographic AND (NG12 1.2.9)", () => {
+  // Regression test for the pathway-detection consistency fix: before
+  // this fix, LogicTreeEditor/index.tsx's isPathwayRoot() only checked
+  // the literal root node, so a real rule shaped
+  // AND[DEMOGRAPHIC(age>=55), OR[6 pathways]] rendered as one nested
+  // blob here even though the read-only Check & approve view
+  // (RuleLogicView.tsx) already rendered it as 6 lettered cards.
+  it("renders 6 lettered pathway cards, not a nested blob", () => {
+    render(
+      <LogicTreeEditor
+        root={makeNg12129Tree()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    for (const letter of ["A", "B", "C", "D", "E", "F"]) {
+      expect(screen.getByTestId(`pathway-card-${letter}`)).toBeInTheDocument();
+    }
+  });
+
+  it("renders the demographic prerequisite once above the pathway list, not inside pathway card A", () => {
+    render(
+      <LogicTreeEditor
+        root={makeNg12129Tree()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    const lead = screen.getByRole("group", {
+      name: /applies to every pathway below/i,
+    });
+    expect(within(lead).getByText(/age/i)).toBeInTheDocument();
+
+    const cardA = screen.getByTestId("pathway-card-A");
+    expect(within(cardA).queryByText(/age/i)).not.toBeInTheDocument();
   });
 });
 

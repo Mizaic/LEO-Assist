@@ -1,0 +1,403 @@
+import { test, expect, type Locator, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+
+/**
+ * Guided rule-edit journey for the highlight-to-build wizard, driven
+ * against a fixture modelled on the real NG12 1.2.9 (upper GI
+ * endoscopy) recommendation -- one age prerequisite, then a
+ * structured 4-situation split, with two of those situations each
+ * carrying their own nested "any of the following" cluster.
+ *
+ * Atlas trace: DI-42246DA7 / DO-F8C56339
+ *
+ * Drives every step type the wizard supports in one pass:
+ *   Step 1 -- auto-anchors the existing age prerequisite, reviewer
+ *             confirms "no, nothing else".
+ *   Step 2 -- the guideline's own `recommendation_structure` (4 top
+ *             level list items) is preferred over the ", or "-text
+ *             heuristic; reviewer confirms "looks right".
+ *   Step 3 -- repeated once per situation: two plain single-row
+ *             situations (search-and-pick one concept each), then
+ *             two situations with a nested cluster -- one confirmed
+ *             as "only one needs to match" (AT_LEAST, lazily
+ *             materializing a subgroup), one as "all must match"
+ *             (plain AND) -- covering both cluster-grouping choices.
+ *   Review -- the built tree hands off to the existing SentenceEditor
+ *             canvas unchanged.
+ *
+ * Free-text-selection ("highlight more text") itself is exercised at
+ * the component level by HighlightableRecommendationText's own
+ * live-render tests and the wizard orchestrator's live-render tests
+ * (HighlightWizard.test.tsx) -- this spec's job is the real-browser,
+ * real-route, real-axe pass over the click-driven happy path, not a
+ * second copy of that coverage.
+ *
+ * All backend calls are intercepted with route stubs so the spec runs
+ * in CI without a live API, matching the pattern established by
+ * sentence-editor-guided-journey.spec.ts.
+ */
+
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
+
+interface FixtureItem {
+  text: string;
+  start: number;
+  end: number;
+  children?: FixtureItem[];
+}
+
+interface Fixture {
+  text: string;
+  leadText: string;
+  items: FixtureItem[];
+  trailingText: string;
+}
+
+/**
+ * Builds the flattened recommendation text plus its structure items
+ * by appending each piece in order and recording real offsets as we
+ * go -- avoids hand-counted, fragile character positions.
+ */
+function buildNg12129Fixture(): Fixture {
+  const leadText =
+    "Consider non-urgent, direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55 or over with: ";
+  const trailingText = " [2015]";
+
+  let text = leadText;
+  const append = (s: string) => {
+    text += s;
+  };
+  const appendItem = (label: string): FixtureItem => {
+    const start = text.length;
+    append(label);
+    return { text: label, start, end: text.length };
+  };
+  const appendChildren = (labels: string[]): FixtureItem[] => {
+    return labels.map((label, i) => {
+      if (i > 0) append(", ");
+      return appendItem(label);
+    });
+  };
+
+  const itemA = appendItem("treatment-resistant dyspepsia");
+  append(" or ");
+  const itemB = appendItem("upper abdominal pain with low haemoglobin levels");
+  append(" or ");
+  const itemC = appendItem("raised platelet count with any of the following");
+  append(": ");
+  const itemCChildren = appendChildren(["nausea", "vomiting"]);
+  append(" or ");
+  const itemD = appendItem("nausea or vomiting with any of the following");
+  append(": ");
+  const itemDChildren = appendChildren(["weight loss", "reflux"]);
+  append(trailingText);
+
+  return {
+    text,
+    leadText: leadText.trim(),
+    trailingText: trailingText.trim(),
+    items: [
+      itemA,
+      itemB,
+      { ...itemC, children: itemCChildren },
+      { ...itemD, children: itemDChildren },
+    ],
+  };
+}
+
+const FIXTURE = buildNg12129Fixture();
+
+function ageLeaf() {
+  return {
+    node_id: "age",
+    kind: "DEMOGRAPHIC",
+    field: "age",
+    operator: ">=",
+    value: "55",
+  };
+}
+
+const RULE = {
+  rule_id: "e2e-highlight-wizard-ng12-129",
+  name: "E2E -- Highlight wizard guided journey (NG12 1.2.9)",
+  status: "pending_review",
+  strength: "SHOULD",
+  schema_version: 2,
+  guideline_id: "NG12",
+  guideline_version: 1,
+  chapter_title: "Chapter 1",
+  recommendation_text: FIXTURE.text,
+  recommendation_structure: {
+    lead_text: FIXTURE.leadText,
+    items: FIXTURE.items,
+    trailing_text: FIXTURE.trailingText,
+  },
+  plain_english: "This rule checks for upper GI endoscopy referral criteria.",
+  present_criteria: [],
+  absent_criteria: [],
+  logic_tree: { node_id: "root", kind: "AND", children: [ageLeaf()] },
+  action: {
+    snomed_concept_id: "112788007",
+    preferred_term: "Endoscopic examination of upper gastrointestinal tract",
+    semantic_tag: "procedure",
+  },
+  has_predecessor: false,
+  updated_at: "2026-07-01T09:00:00Z",
+};
+
+/** Exact-match lookup: every row's `initialQuery` is deterministic
+ *  (the row's own verbatim text), so the fixture stubs on exact
+ *  equality rather than a startsWith prefix -- avoids any risk of
+ *  one row's stub accidentally matching another row's search. */
+const SEARCH_HITS: Record<
+  string,
+  { snomed_concept_id: string; term: string; semantic_tag: string }
+> = {
+  "treatment-resistant dyspepsia": {
+    snomed_concept_id: "concept-a",
+    term: "Treatment-resistant dyspepsia",
+    semantic_tag: "finding",
+  },
+  "upper abdominal pain with low haemoglobin levels": {
+    snomed_concept_id: "concept-b",
+    term: "Upper abdominal pain with low haemoglobin",
+    semantic_tag: "finding",
+  },
+  "raised platelet count with any of the following": {
+    snomed_concept_id: "concept-c-lead",
+    term: "Raised platelet count",
+    semantic_tag: "finding",
+  },
+  nausea: {
+    snomed_concept_id: "concept-nausea",
+    term: "Nausea",
+    semantic_tag: "finding",
+  },
+  vomiting: {
+    snomed_concept_id: "concept-vomiting",
+    term: "Vomiting",
+    semantic_tag: "finding",
+  },
+  "nausea or vomiting with any of the following": {
+    snomed_concept_id: "concept-d-lead",
+    term: "Nausea or vomiting",
+    semantic_tag: "finding",
+  },
+  "weight loss": {
+    snomed_concept_id: "concept-weight-loss",
+    term: "Weight loss",
+    semantic_tag: "finding",
+  },
+  reflux: {
+    snomed_concept_id: "concept-reflux",
+    term: "Reflux",
+    semantic_tag: "finding",
+  },
+};
+
+async function installEditDialogFixtures(page: Page) {
+  await page.route("**/api/guidance/rules/review*status=pending_review*", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([RULE]) }),
+  );
+  await page.route("**/api/guidance/rules/review*status=active*", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) }),
+  );
+  await page.route("**/api/guidance/rules/review*status=superseded*", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) }),
+  );
+  await page.route("**/api/guidance/rules/review/*/decision", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ rule_id: RULE.rule_id }) }),
+  );
+  await page.route("**/api/terminology/prior-resolutions*", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) }),
+  );
+  await page.route("**/api/terminology/search*", (route) => {
+    const url = new URL(route.request().url());
+    const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+    const hit = SEARCH_HITS[q];
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(hit ? [hit] : []) });
+  });
+}
+
+/** Seeds the reviewer's view-mode preference before the app boots,
+ *  since useViewMode() only reads localStorage in a post-mount
+ *  effect. Explicit even though "guided" is already the default, so
+ *  this spec keeps passing if that default ever changes. */
+async function seedViewMode(page: Page, mode: "guided" | "simple" | "advanced") {
+  await page.addInitScript(
+    ([key, value]) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        // Private browsing / storage quota -- proceeds with the
+        // in-memory default instead of a persisted preference.
+      }
+    },
+    ["leo.editRuleDialog.viewMode", mode],
+  );
+}
+
+async function openEditDialog(page: Page) {
+  await installEditDialogFixtures(page);
+  await page.goto("/admin/knowledge?tab=clinical-guidelines");
+  await page.waitForLoadState("load");
+
+  await page
+    .getByRole("button", { name: /skip the guideline builder intro animation/i })
+    .click({ timeout: 3000 })
+    .catch(() => {});
+
+  await page.locator("#rule-review").scrollIntoViewIfNeeded();
+  await page.getByRole("button", { name: `Toggle rule from ${RULE.guideline_id}` }).click();
+  await page.getByRole("button", { name: `Edit rule ${RULE.rule_id}` }).click();
+
+  const dialog = page.getByRole("dialog", { name: /Change this rule/i });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByTestId("highlight-wizard")).toBeVisible();
+  return dialog;
+}
+
+/** Scopes the axe scan to the Edit-rule dialog only -- the rest of
+ *  the guidance page sits behind the modal backdrop and is out of
+ *  scope for this feature. */
+async function runAxeAndAssertClean(page: Page) {
+  const results = await new AxeBuilder({ page })
+    .include('[role="dialog"]')
+    .withTags([...WCAG_TAGS])
+    .analyze();
+  const blockers = results.violations.filter(
+    (v) => v.impact === "critical" || v.impact === "serious",
+  );
+  expect(
+    blockers,
+    JSON.stringify(
+      blockers.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.map((n) => n.target).flat() })),
+      null,
+      2,
+    ),
+  ).toEqual([]);
+}
+
+/** Clicks a Step 3 row (by its own [start, end) span) and picks the
+ *  stubbed SNOMED hit registered for that row's exact text. Relies
+ *  on ConceptSearchPanel pre-filling the search box from the row's
+ *  own text (`initialQuery`), so no typing is needed here. */
+async function pickConceptForRow(page: Page, row: Locator, rowText: string) {
+  const hit = SEARCH_HITS[rowText];
+  if (!hit) throw new Error(`No stubbed search hit registered for row text: "${rowText}"`);
+  await row.click();
+  const useButton = page.getByRole("button", { name: `Use ${hit.term}` });
+  await expect(useButton).toBeVisible();
+  await useButton.click();
+  await expect(useButton).toBeHidden();
+}
+
+function rowTestId(item: FixtureItem): string {
+  return `list-row-${item.start}-${item.end}`;
+}
+
+test.describe("Highlight-to-build wizard guided journey (NG12 1.2.9 fixture, DI-42246DA7)", () => {
+  test("walks Step 1 through Review across all four situations, zero axe blockers at every step", async ({
+    page,
+  }) => {
+    await seedViewMode(page, "guided");
+    const dialog = await openEditDialog(page);
+
+    // -- Step 1: the existing age prerequisite auto-anchors onto
+    // "aged 55 or over" with no reviewer action needed.
+    await expect(dialog.getByText("Step 1 of 3")).toBeVisible();
+    await expect(dialog.getByTestId("prerequisite-row-age")).toHaveAttribute("data-has-anchor", "true");
+    await runAxeAndAssertClean(page);
+
+    await dialog.getByRole("button", { name: "No, nothing else" }).click();
+
+    // -- Step 2: the guideline's own 4-item list structure is
+    // preferred over the ", or " text heuristic.
+    await expect(dialog.getByText("The guideline lists 4 situations. Here they are.")).toBeVisible();
+    await expect(dialog.getByText("Found from the guideline's own list formatting.")).toBeVisible();
+    await runAxeAndAssertClean(page);
+
+    await dialog.getByRole("button", { name: "Looks right, continue" }).click();
+
+    // -- Step 3, situation A: one plain row, search-and-pick.
+    await expect(dialog.getByText(/situation a \(1 of 4\)/i)).toBeVisible();
+    const [itemA, itemB, itemC, itemD] = FIXTURE.items;
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(itemA)), itemA.text);
+    await runAxeAndAssertClean(page);
+    await dialog.getByRole("button", { name: /confirm situation a, next -> b/i }).click();
+
+    // -- Step 3, situation B: one plain row, search-and-pick.
+    await expect(dialog.getByText(/situation b \(2 of 4\)/i)).toBeVisible();
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(itemB)), itemB.text);
+    await dialog.getByRole("button", { name: /confirm situation b, next -> c/i }).click();
+
+    // -- Step 3, situation C: a nested "any of the following"
+    // cluster -- confirm "only one needs to match" (AT_LEAST), which
+    // lazily materializes a subgroup on the first child row's own add.
+    await expect(dialog.getByText(/situation c \(3 of 4\)/i)).toBeVisible();
+    // Scoped to the cluster-grouping group (not a bare text match): the
+    // same "We noticed..." copy is intentionally reused as the disabled
+    // Confirm button's blocked-reason caption below, so a plain getByText
+    // would be ambiguous between the two.
+    await expect(
+      dialog.getByRole("group", { name: /we noticed "any of the following"/i }),
+    ).toBeVisible();
+    await dialog.getByRole("button", { name: /only one needs to match/i }).click();
+
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(itemC)), itemC.text);
+    const [nauseaRow, vomitingRow] = itemC.children!;
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(nauseaRow)), nauseaRow.text);
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(vomitingRow)), vomitingRow.text);
+    await runAxeAndAssertClean(page);
+    await dialog.getByRole("button", { name: /confirm situation c, next -> d/i }).click();
+
+    // -- Step 3, situation D: a nested cluster too -- this time
+    // confirm "all must match" (plain AND), covering both grouping
+    // choices across the two cluster situations.
+    await expect(dialog.getByText(/situation d \(4 of 4\)/i)).toBeVisible();
+    await dialog.getByRole("button", { name: "All must match" }).click();
+
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(itemD)), itemD.text);
+    const [weightLossRow, refluxRow] = itemD.children!;
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(weightLossRow)), weightLossRow.text);
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(refluxRow)), refluxRow.text);
+    // Last situation -- no "next" pathway, so the label drops the arrow.
+    await dialog.getByRole("button", { name: /^confirm situation d$/i }).click();
+
+    // -- Review: the wizard hands off to the same SentenceEditor
+    // canvas a reviewer would otherwise land on directly. Assertions
+    // target each concept's own chip (an accessible button, "<term>.
+    // Click to swap, X to remove.") rather than a bare text match --
+    // the guideline quote box above the wizard, and each pathway
+    // card's own "Preview: Applies to patients..." caption, both echo
+    // the same term text, so an unscoped getByText would be ambiguous.
+    await expect(dialog.getByText("Here's the rule you built")).toBeVisible();
+    const sentenceEditor = dialog.getByTestId("sentence-editor");
+    await expect(sentenceEditor).toBeVisible();
+    await expect(
+      sentenceEditor.getByRole("button", { name: /^Treatment-resistant dyspepsia\./i }),
+    ).toBeVisible();
+    await expect(
+      sentenceEditor.getByRole("button", { name: /^Nausea\./i }),
+    ).toBeVisible();
+    await expect(
+      sentenceEditor.getByRole("button", { name: /^Weight loss\./i }),
+    ).toBeVisible();
+    await runAxeAndAssertClean(page);
+  });
+
+  test("Skip to Advanced view is reachable and keyboard-operable from any wizard step", async ({ page }) => {
+    await seedViewMode(page, "guided");
+    const dialog = await openEditDialog(page);
+
+    const skipButton = dialog.getByRole("button", { name: "Skip to Advanced view" });
+    await expect(skipButton).toBeVisible();
+    await skipButton.focus();
+    await page.keyboard.press("Enter");
+
+    await expect(dialog.getByTestId("segmented-tab-advanced")).toHaveAttribute("aria-selected", "true");
+    await expect(dialog.getByTestId("logic-tree-editor")).toBeVisible();
+    // The pre-existing age leaf survives the mode switch untouched.
+    await expect(dialog.getByText(/aged 55/i)).toBeVisible();
+  });
+});

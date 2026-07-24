@@ -93,6 +93,7 @@ import {
   findValidationError,
   hasOrRootWithPrerequisites,
   observationWithCriterion,
+  ensurePathwayKeys,
   promoteOrPrerequisites,
   sanitiseActionsForSave,
   stripNodeIds,
@@ -110,6 +111,7 @@ import type {
   RuleAction,
   RulePriority,
 } from "./types";
+import type { RecommendationStructure } from "./SentenceEditor/pathwayTextSplit";
 
 export interface EditableRule {
   rule_id: string;
@@ -120,6 +122,11 @@ export interface EditableRule {
   guideline_id?: string;
   chapter_title?: string;
   recommendation_text?: string;
+  /** NICE HTML list tree for this recommendation, when it is a list
+   *  rather than a plain sentence -- lets the highlight-to-build
+   *  wizard's pathway-split step prefer real structure over the
+   *  ", or"-boundary heuristic. Null/absent for plain sentences. */
+  recommendation_structure?: RecommendationStructure | null;
   logic_tree?: unknown;
   /** One or more recommended procedures, each with its own strength. */
   actions?: RuleAction[];
@@ -325,10 +332,29 @@ export default function EditRuleDialog({
 
   useEffect(() => {
     if (!rule) return;
-    const initialTree =
-      rule.logic_tree && typeof rule.logic_tree === "object"
-        ? assignNodeIds(rule.logic_tree as EditableLogicNode)
-        : assignNodeIds({ kind: "AND", children: [] });
+    // wrapRootInAnd: some pending-review AI-extracted rules persist a
+    // single criterion as a BARE leaf root (e.g. NG12 1.2.8's
+    // {"kind": "concept", "criterion": {...}}), with no AND wrapper.
+    // GroupSentence / GroupBody both assume the root is a group (they
+    // read node.children, the kind Select, etc.) -- fed a bare leaf
+    // they rendered it as an empty group ("nothing yet"), silently
+    // hiding the one real criterion from the reviewer. A reviewer who
+    // then used "+ add another symptom" to add back the very same
+    // criterion they could not see ended up with it TWICE once the
+    // add flow's own wrapRootInAnd finally surfaced the hidden
+    // original alongside the new pick. Wrapping unconditionally here
+    // guarantees both canvases always receive a real group root.
+    // ensurePathwayKeys: backfills a stable pathway_key onto every
+    // pathway that predates this field (see the "Stable identity"
+    // plan section / pathway-stable-key). Safe to run on every load --
+    // a pathway that already has a key is left untouched.
+    const initialTree = ensurePathwayKeys(
+      wrapRootInAnd(
+        rule.logic_tree && typeof rule.logic_tree === "object"
+          ? assignNodeIds(rule.logic_tree as EditableLogicNode)
+          : assignNodeIds({ kind: "AND", children: [] }),
+      ),
+    );
     setTree(initialTree);
     setOriginalTree(initialTree);
     setName(rule.name ?? "");
@@ -371,13 +397,17 @@ export default function EditRuleDialog({
   const duplicates = useMemo(() => findDuplicateConceptGroups(tree), [tree]);
 
   // The chip-anchored search popover is open whenever there is an
-  // active concept-picking target with an anchor element. The
-  // `replace_action` slot in Step 2 still renders the search inline
-  // (it is not a chip-anchored interaction) so we only treat it as
-  // the chip popover when the anchor is set.
-  const chipPopoverOpen =
-    (searchTarget.mode === "replace" || searchTarget.mode === "add") &&
-    searchTarget.anchorEl !== null;
+  // active concept-picking target. Most triggers supply a real
+  // anchor element (the chip / +Add button just clicked) so the
+  // popover appears right next to it; the guided highlight-to-build
+  // wizard's own row clicks (Step 1's "highlight more text" confirm,
+  // Step 3's list rows) have no single DOM anchor to point at and
+  // pass `undefined` -- MUI's Popover tolerates a null anchorEl by
+  // falling back to a top-left position, which is an acceptable
+  // trade-off for a full-width guided flow. The `replace_action` slot
+  // in Step 2 still renders the search inline (it is not a
+  // chip-anchored interaction), so it is excluded here regardless.
+  const chipPopoverOpen = searchTarget.mode === "replace" || searchTarget.mode === "add";
 
   const validationError = useMemo(() => findValidationError(tree), [tree]);
   const actionsError = useMemo(
@@ -496,6 +526,7 @@ export default function EditRuleDialog({
   function handleRequestAdd(
     parentNodeId: string,
     anchor?: HTMLElement | null,
+    initialQuery?: string,
   ) {
     if (!tree) return;
     const parent = findNode(tree, parentNodeId);
@@ -505,7 +536,7 @@ export default function EditRuleDialog({
       nodeId: null,
       replaceKind: null,
       actionIndex: null,
-      initialQuery: "",
+      initialQuery: initialQuery ?? "",
       focusLabel: parent
         ? `Adding to: ${groupLabel(parent.kind)}`
         : "Adding a symptom, sign, procedure, or situation",
@@ -920,6 +951,7 @@ export default function EditRuleDialog({
                 selectedNodeId={searchTarget.nodeId}
                 duplicates={duplicates}
                 recommendationText={rule?.recommendation_text}
+                recommendationStructure={rule?.recommendation_structure}
                 onSelectNode={handleSelectNode}
                 onUpdate={handleUpdate}
                 onRequestAdd={handleRequestAdd}

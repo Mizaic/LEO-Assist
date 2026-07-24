@@ -29,6 +29,11 @@ from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
 from app.routers.nice_guidance import _extract_recommendations_from_section
 from app.services.nice_api_client import NICE_CODE_RE, NiceApiClient
+from app.services.recommendation_key_matcher import (
+    NewRecommendation,
+    OldRecommendation,
+    match_recommendation_keys,
+)
 from libs.auth.org_scope import CallerScope
 
 logger = logging.getLogger(__name__)
@@ -60,16 +65,81 @@ def _norm(text: str) -> str:
     return " ".join(text.split()) if text else ""
 
 
+def _compute_possible_moves(
+    added: list[dict[str, Any]], removed: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Surface ambiguous "possible move" pairings between recommendations
+    that disappeared (``removed``) and ones that newly appeared (``added``)
+    in the same diff.
+
+    Reuses the exact floor-plus-margin matcher used at real ingest time
+    (``recommendation_key_matcher.match_recommendation_keys``) so this
+    preview and the ingest's own identity resolution never disagree about
+    what counts as "plausible but not confident". Only pairings that clear
+    ``SIMILARITY_FLOOR`` but not ``SIMILARITY_MARGIN`` are returned:
+
+    - Below the floor: not plausible at all, not shown.
+    - Floor and margin both cleared: a confident match, carried forward
+      silently at ingest with no admin input needed -- not shown here
+      either, so the admin isn't asked to confirm something already safe.
+    - Floor cleared, margin not: the genuinely ambiguous middle case this
+      function exists for -- a plausible move exists but isn't confident,
+      so ``GuidelineChangesDrawer`` must ask an explicit yes/no before the
+      admin can confirm re-ingest (per the ``nice-renumber-ambiguous-
+      prompt`` plan item).
+    """
+    new_recs = [
+        NewRecommendation(ref=a["number"], number=a["number"], text=a.get("text", ""))
+        for a in added
+    ]
+    old_recs = [
+        OldRecommendation(
+            number=r["number"], text=r.get("text", ""), recommendation_key=r["number"]
+        )
+        for r in removed
+    ]
+    matches = match_recommendation_keys(new_recs, old_recs)
+
+    possible_moves = []
+    for a in added:
+        match = matches[a["number"]]
+        if not match.ambiguous_candidate_number:
+            continue
+        possible_moves.append(
+            {
+                "removed_number": match.ambiguous_candidate_number,
+                "added_number": a["number"],
+                "score": (
+                    round(match.ambiguous_score, 3)
+                    if match.ambiguous_score is not None
+                    else None
+                ),
+            }
+        )
+    return possible_moves
+
+
 def _compute_diff(stored: list[dict], remote: list[dict]) -> dict[str, Any]:
     s = {r["number"]: r for r in stored if r.get("number")}
     rem = {r["number"]: r for r in remote if r.get("number")}
     added = [
-        {"number": n, "text": rem[n]["text"], "section_title": rem[n].get("section_title", "")}
-        for n in rem if n not in s
+        {
+            "number": n,
+            "text": rem[n]["text"],
+            "section_title": rem[n].get("section_title", ""),
+        }
+        for n in rem
+        if n not in s
     ]
     removed = [
-        {"number": n, "text": s[n]["text"], "section_title": s[n].get("section_title", ""), "rules": []}
-        for n in s if n not in rem
+        {
+            "number": n,
+            "text": s[n]["text"],
+            "section_title": s[n].get("section_title", ""),
+            "rules": [],
+        }
+        for n in s
+        if n not in rem
     ]
     modified = [
         {
@@ -79,16 +149,21 @@ def _compute_diff(stored: list[dict], remote: list[dict]) -> dict[str, Any]:
             "new_text": rem[n]["text"],
             "rules": [],
         }
-        for n in s if n in rem and _norm(s[n]["text"]) != _norm(rem[n]["text"])
+        for n in s
+        if n in rem and _norm(s[n]["text"]) != _norm(rem[n]["text"])
     ]
     unchanged_numbers = [
         n for n in s if n in rem and _norm(s[n]["text"]) == _norm(rem[n]["text"])
     ]
     return {
-        "added": added, "removed": removed, "modified": modified,
+        "added": added,
+        "removed": removed,
+        "modified": modified,
         "unchanged_count": len(unchanged_numbers),
-        "total_stored": len(s), "total_remote": len(rem),
+        "total_stored": len(s),
+        "total_remote": len(rem),
         "_unchanged_numbers": unchanged_numbers,
+        "possible_moves": _compute_possible_moves(added, removed),
     }
 
 
@@ -105,7 +180,11 @@ def _annotate_rules(diff: dict[str, Any], code: str) -> int:
     by_num: dict[str, list[dict]] = {}
     for r in rows:
         by_num.setdefault(r["number"], []).append(
-            {"rule_id": r["rule_id"], "name": r["rule_name"], "status": r["rule_status"]}
+            {
+                "rule_id": r["rule_id"],
+                "name": r["rule_name"],
+                "status": r["rule_status"],
+            }
         )
     for item in diff["modified"] + diff["removed"]:
         item["rules"] = by_num.get(item["number"], [])
@@ -133,8 +212,13 @@ async def _fetch_remote_recs(code: str) -> list[dict]:
             for item in _extract_recommendations_from_section(section_data, code):
                 title, text = item.get("Title", ""), item.get("Text", "")
                 if title and text:
-                    recs.append({"number": title, "text": text,
-                                 "section_title": item.get("SectionTitle", "")})
+                    recs.append(
+                        {
+                            "number": title,
+                            "text": text,
+                            "section_title": item.get("SectionTitle", ""),
+                        }
+                    )
     return recs
 
 
@@ -147,20 +231,28 @@ async def _async_diff(job_id: str, code: str) -> None:
     finally:
         neo.close()
     stored = [
-        {"number": r["number"], "text": r.get("text", ""),
-         "section_title": r.get("section_title", "")}
-        for r in stored_rows if r.get("number")
+        {
+            "number": r["number"],
+            "text": r.get("text", ""),
+            "section_title": r.get("section_title", ""),
+        }
+        for r in stored_rows
+        if r.get("number")
     ]
-    _diff_jobs[job_id]["step"] = (
-        f"Fetching {len(stored)} recommendations from NICE API..."
-    )
+    _diff_jobs[job_id][
+        "step"
+    ] = f"Fetching {len(stored)} recommendations from NICE API..."
     remote = await _fetch_remote_recs(code)
     diff = _compute_diff(stored, remote)
     rules_at_risk = _annotate_rules(diff, code)
-    _diff_jobs[job_id].update({
-        "status": "done", "step": "Complete",
-        "diff": diff, "rules_at_risk": rules_at_risk,
-    })
+    _diff_jobs[job_id].update(
+        {
+            "status": "done",
+            "step": "Complete",
+            "diff": diff,
+            "rules_at_risk": rules_at_risk,
+        }
+    )
 
 
 def _run_diff(job_id: str, code: str) -> None:
@@ -197,8 +289,12 @@ async def start_diff(
     if not NICE_CODE_RE.match(code_upper):
         raise HTTPException(status_code=422, detail=f"Invalid NICE code: {code}")
     job_id = str(uuid.uuid4())
-    _diff_jobs[job_id] = {"job_id": job_id, "code": code_upper,
-                          "status": "running", "step": "Queued"}
+    _diff_jobs[job_id] = {
+        "job_id": job_id,
+        "code": code_upper,
+        "status": "running",
+        "step": "Queued",
+    }
     threading.Thread(target=_run_diff, args=(job_id, code_upper), daemon=True).start()
     return {"job_id": job_id}
 

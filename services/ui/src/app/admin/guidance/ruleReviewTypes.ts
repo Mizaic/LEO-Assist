@@ -11,6 +11,7 @@ import type {
   RuleCriterion as Criterion,
 } from "./RuleLogicView";
 import type { RuleAction } from "./EditRuleDialog/types";
+import type { RecommendationStructure } from "./EditRuleDialog/SentenceEditor/pathwayTextSplit";
 
 export interface ActionConcept {
   snomed_concept_id: string | null;
@@ -29,6 +30,10 @@ export interface Rule {
   guideline_version?: number;
   chapter_title?: string;
   recommendation_text: string;
+  /** NICE HTML list tree (lead text + <li> items with offsets) when the
+   *  recommendation is a list rather than a plain sentence. Null for
+   *  plain-sentence recommendations -- see nice_list_parser.py. */
+  recommendation_structure?: RecommendationStructure | null;
   plain_english: string;
   present_criteria: Criterion[];
   absent_criteria: Criterion[];

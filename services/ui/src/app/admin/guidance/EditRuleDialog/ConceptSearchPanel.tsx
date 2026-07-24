@@ -42,6 +42,7 @@ import type {
   ConceptSearchHit,
   EditableObservationPayload,
   LogicCriterion,
+  PriorConceptResolution,
 } from "./types";
 
 /**
@@ -76,6 +77,13 @@ interface Props {
    * the user only sees measurable quantities, not disorders or procedures.
    */
   filterToObservable?: boolean;
+  /** When false, the heading block is omitted (popover supplies its own). */
+  showHeading?: boolean;
+  /**
+   * When true, the results list fills remaining popover height instead of
+   * using a fixed maxHeight suited to the old right-hand column layout.
+   */
+  embedded?: boolean;
 }
 
 /**
@@ -109,6 +117,45 @@ export function isLikelyObservable(hit: ConceptSearchHit): boolean {
 }
 
 const SEARCH_DEBOUNCE_MS = 250;
+const PRIOR_RESOLUTIONS_MIN_QUERY_LENGTH = 2;
+
+/**
+ * "Has this phrase already been coded elsewhere in the rule library?"
+ * Fetched once per ``initialQuery`` (the highlighted/focused phrase),
+ * independent of the reviewer's own live-typed search text -- the
+ * nudge is about what THEY highlighted, not what they are currently
+ * typing into the search box. Soft nudge only: this never calls
+ * ``onPick`` itself, it only supplies the list a banner renders.
+ */
+function usePriorConceptResolutions(
+  initialQuery: string,
+  mode: Props["mode"],
+): PriorConceptResolution[] {
+  const [resolutions, setResolutions] = useState<PriorConceptResolution[]>([]);
+
+  useEffect(() => {
+    const trimmed = initialQuery.trim();
+    if (mode === "idle" || trimmed.length < PRIOR_RESOLUTIONS_MIN_QUERY_LENGTH) {
+      setResolutions([]);
+      return;
+    }
+    let cancelled = false;
+    const url = `/api/terminology/prior-resolutions?term=${encodeURIComponent(trimmed)}`;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
+      .then((rows: PriorConceptResolution[]) => {
+        if (!cancelled) setResolutions(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setResolutions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialQuery, mode]);
+
+  return resolutions;
+}
 
 export default function ConceptSearchPanel({
   mode,
@@ -117,11 +164,14 @@ export default function ConceptSearchPanel({
   onPick,
   onPickObservation,
   filterToObservable = false,
+  showHeading = true,
+  embedded = false,
 }: Props) {
   const [query, setQuery] = useState(initialQuery);
   const [hits, setHits] = useState<ConceptSearchHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const priorResolutions = usePriorConceptResolutions(initialQuery, mode);
 
   useEffect(() => {
     setQuery(initialQuery);
@@ -160,17 +210,25 @@ export default function ConceptSearchPanel({
           : SEARCH_PANEL.headings.idle;
 
   return (
-    <Stack spacing={1.5} sx={{ height: "100%" }}>
-      <Box>
-        <Typography variant="subtitle2" sx={{ mb: 0.25, fontWeight: 700 }}>
-          {heading}
-        </Typography>
-        {focusLabel && (
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-            {focusLabel}
+    <Stack
+      spacing={1.5}
+      sx={{
+        height: "100%",
+        ...(embedded ? { flex: 1, minHeight: 0 } : {}),
+      }}
+    >
+      {showHeading && (
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 0.25, fontWeight: 700 }}>
+            {heading}
           </Typography>
-        )}
-      </Box>
+          {focusLabel && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+              {focusLabel}
+            </Typography>
+          )}
+        </Box>
+      )}
       <TextField
         size="small"
         value={query}
@@ -181,6 +239,13 @@ export default function ConceptSearchPanel({
         inputProps={{ "aria-label": SEARCH_PANEL.searchAriaLabel }}
         disabled={mode === "idle"}
       />
+      {priorResolutions.length > 0 && (
+        <PriorResolutionNudge
+          term={initialQuery.trim()}
+          resolutions={priorResolutions}
+          onPick={onPick}
+        />
+      )}
       {error && (
         <Alert severity="warning" sx={{ py: 0.5 }}>
           {error}
@@ -189,8 +254,8 @@ export default function ConceptSearchPanel({
       <Box
         sx={{
           flex: 1,
-          minHeight: 200,
-          maxHeight: 480,
+          minHeight: embedded ? 0 : 200,
+          maxHeight: embedded ? undefined : 480,
           overflowY: "auto",
           border: "1px solid",
           borderColor: "divider",
@@ -253,6 +318,78 @@ export default function ConceptSearchPanel({
           ))}
       </Box>
     </Stack>
+  );
+}
+
+function PriorResolutionNudge({
+  term,
+  resolutions,
+  onPick,
+}: {
+  term: string;
+  resolutions: PriorConceptResolution[];
+  onPick: (criterion: LogicCriterion) => void;
+}) {
+  const heading =
+    resolutions.length === 1
+      ? SEARCH_PANEL.priorResolutionOneHeading(term)
+      : SEARCH_PANEL.priorResolutionManyHeading(term);
+  return (
+    <Box
+      role="group"
+      aria-label={heading}
+      sx={{
+        p: 1,
+        borderRadius: 1.5,
+        bgcolor: "primary.50",
+        border: "1px solid",
+        borderColor: "primary.100",
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
+      >
+        {heading}
+      </Typography>
+      <Stack spacing={0.5}>
+        {resolutions.map((r) => {
+          const friendly = friendlyTerm(r.preferred_term);
+          return (
+            <Stack
+              key={r.snomed_concept_id}
+              direction="row"
+              alignItems="center"
+              spacing={1}
+            >
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {friendly}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {SEARCH_PANEL.priorResolutionCount(r.count)}
+                </Typography>
+              </Box>
+              <Button
+                size="small"
+                variant="outlined"
+                aria-label={`Use ${friendly} (previously used for "${term}")`}
+                onClick={() =>
+                  onPick({
+                    snomed_concept_id: r.snomed_concept_id,
+                    preferred_term: r.preferred_term,
+                    semantic_tag: r.semantic_tag ?? undefined,
+                    term,
+                  })
+                }
+              >
+                Use this
+              </Button>
+            </Stack>
+          );
+        })}
+      </Stack>
+    </Box>
   );
 }
 

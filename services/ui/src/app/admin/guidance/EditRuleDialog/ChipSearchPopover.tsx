@@ -99,11 +99,14 @@ export default function ChipSearchPopover({
           sx: {
             width: { xs: "calc(100vw - 32px)", sm: 420 },
             maxWidth: "calc(100vw - 32px)",
+            maxHeight: "min(70vh, calc(100vh - 32px))",
             mt: 0.5,
             borderRadius: 2,
             boxShadow:
               "0 4px 12px rgba(15, 23, 42, 0.08), 0 16px 40px rgba(15, 23, 42, 0.12)",
             overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
           },
         },
       }}
@@ -113,6 +116,7 @@ export default function ChipSearchPopover({
         alignItems="center"
         spacing={1}
         sx={{
+          flexShrink: 0,
           px: 1.5,
           py: 1,
           borderBottom: "1px solid",
@@ -148,10 +152,21 @@ export default function ChipSearchPopover({
           </IconButton>
         </Tooltip>
       </Stack>
-      <Box sx={{ p: 1.5 }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
+          p: 1.5,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <ConceptSearchPanel
           mode={mode}
           focusLabel={null}
+          showHeading={false}
+          embedded
           initialQuery={initialQuery}
           onPick={onPick}
           onPickObservation={mode === "add" ? onPickObservation : undefined}

@@ -83,8 +83,19 @@ function fillReason(text: string) {
   });
 }
 
+const VIEW_MODE_STORAGE_KEY = "leo.editRuleDialog.viewMode";
+
+beforeEach(() => {
+  // Guided is now the default view, but these tests exercise the
+  // chip-based canvas directly (pill aria-labels, chip-anchored
+  // search popover) -- force Simple so they keep testing that
+  // canvas rather than the highlight-to-build wizard.
+  window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, "simple");
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
+  window.localStorage.clear();
 });
 
 describe("EditRuleDialog", () => {
@@ -311,5 +322,56 @@ describe("EditRuleDialog", () => {
         name: /^Plain X-ray of chest\. Click to swap, X to remove\.$/i,
       }),
     ).toBeInTheDocument();
+  });
+
+  // Regression: NG12 1.2.8 ("...in people with haematemesis") persists
+  // in Neo4j as a BARE leaf root -- {"kind": "concept", "criterion":
+  // {...}} -- with no AND wrapper, because the raw AI-extraction
+  // pipeline never wraps a single-criterion recommendation. Before the
+  // fix, LogicTreeEditor/GroupBody and SentenceEditor/GroupSentence
+  // both unconditionally treated the root as a GROUP (reading
+  // node.children, rendering the kind Select, etc.), so a bare leaf
+  // root rendered as an empty "nothing yet" group -- the one real
+  // criterion was invisible. A reviewer who then used "+ add another
+  // symptom" to add the very symptom the guideline already required
+  // ended up with it TWICE, because the add flow's own wrapRootInAnd
+  // finally surfaced the hidden original alongside the new pick.
+  it("shows a bare single-criterion logic_tree (NG12 1.2.8 shape) as one pill, not an empty group", () => {
+    mockSearch();
+    const bareLeafRule = {
+      rule_id: "rule:NG12:v1:CH002:SEC001:R007:dee9d93f",
+      name: "Rule: 1.2.8",
+      strength: "consider",
+      guideline_id: "NG12",
+      recommendation_text:
+        "1.2.8 Consider non-urgent, direct access upper gastrointestinal endoscopy to assess for stomach cancer in people with haematemesis. [2015]",
+      logic_tree: {
+        kind: "concept",
+        node_id: "n1",
+        criterion: {
+          node_id: "n1",
+          term: "haematemesis",
+          snomed_concept_id: "8765009",
+          preferred_term: "Hematemesis (disorder)",
+          semantic_tag: "disorder",
+        },
+      },
+    };
+    render(
+      <EditRuleDialog rule={bareLeafRule} open onClose={() => {}} onSave={() => {}} />,
+    );
+
+    // The one stored criterion renders as a single removable pill...
+    expect(
+      screen.getByRole("button", {
+        name: /^Hematemesis\. Click to swap, X to remove\.$/i,
+      }),
+    ).toBeInTheDocument();
+    // ...exactly once...
+    expect(
+      screen.getAllByRole("button", { name: /^Hematemesis\./i }),
+    ).toHaveLength(1);
+    // ...and the canvas never claims the (non-empty) group is empty.
+    expect(screen.queryByText(/nothing yet/i)).not.toBeInTheDocument();
   });
 });

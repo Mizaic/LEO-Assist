@@ -165,6 +165,7 @@ export function ruleToEditable(rule: Rule): EditableRule {
     guideline_id: rule.guideline_id,
     chapter_title: rule.chapter_title,
     recommendation_text: rule.recommendation_text,
+    recommendation_structure: rule.recommendation_structure ?? null,
     logic_tree: rule.logic_tree,
     actions: normalizeRuleActions(rule.actions as unknown[] | undefined),
     action,

@@ -19,6 +19,9 @@ from services.terminology_api.app.queries.terminology import (
     TERMINOLOGY_SEARCH,
     TERMINOLOGY_SEARCH_FILTERED,
 )
+from services.terminology_api.app.services.prior_resolutions import (
+    find_prior_concept_resolutions,
+)
 
 router = APIRouter()
 
@@ -73,3 +76,16 @@ def search_terms(
         return client.run(TERMINOLOGY_SEARCH, q=safe_q, limit=limit)
     finally:
         client.close()
+
+
+@router.get("/prior-resolutions")
+def prior_resolutions(
+    term: str = Query(min_length=1),
+    limit: int = Query(default=5, ge=1, le=20),
+):
+    """Rank SNOMED concepts a free-text phrase has already been coded as
+    elsewhere in the guidance rule library -- a soft nudge for the
+    concept search panel, never an auto-applied pick (see
+    ``services/terminology_api/app/services/prior_resolutions.py``).
+    """
+    return find_prior_concept_resolutions(term, limit=limit)

@@ -35,6 +35,11 @@ from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
 from app.services.nice_api_client import NICE_CODE_RE, NiceApiClient, parse_nice_ms_date
 from app.services.nice_graph_upserter import NiceGraphUpserter
+from app.services.recommendation_key_matcher import (
+    NewRecommendation,
+    OldRecommendation,
+    match_recommendation_keys,
+)
 from libs.auth.org_scope import CallerScope
 
 logger = logging.getLogger(__name__)
@@ -721,6 +726,13 @@ def _extract_recommendations_from_section(
     (rule generator, bitmap compiler) can distinguish canonical recs from any
     legacy fallback data that may already be in the graph.
 
+    Alongside the flattened ``Text``, each dict also carries
+    ``ListStructure`` -- the recommendation's own nested list markup,
+    parsed by :func:`nice_list_parser.parse_recommendation_list_structure`
+    and offset-aligned to that SAME ``Text`` string. ``None`` when the
+    recommendation is a plain sentence with no ``<ul>`` at all (most of
+    them). See the highlight-to-build wizard plan's "Ingestion" section.
+
     Args:
         section_json: Parsed NICE section JSON (must contain ``Content``).
         guidance_number: NICE guidance code (used to construct stable IDs).
@@ -729,10 +741,13 @@ def _extract_recommendations_from_section(
     Returns:
         List of recommendation dicts, each with ``Text`` (verbatim clinical text),
         ``Title`` (number/heading), ``SectionId``, ``SectionTitle``,
-        ``ChapterId``, and ``isNormative`` keys.  Empty list if the section
-        contains no ``<article class="numbered-paragraph">`` elements.
+        ``ChapterId``, ``ListStructure``, and ``isNormative`` keys.  Empty
+        list if the section contains no ``<article class="numbered-paragraph">``
+        elements.
     """
     from bs4 import BeautifulSoup  # imported here to keep module-level imports light
+
+    from app.services.nice_list_parser import parse_recommendation_list_structure
 
     html = (section_json or {}).get("Content") or ""
     if not html:
@@ -763,6 +778,9 @@ def _extract_recommendations_from_section(
                 "ChapterId": chapter_id_from_api,
                 # True = came from a canonical <article> element, not a cross-ref table
                 "isNormative": True,
+                "ListStructure": parse_recommendation_list_structure(
+                    article, inner_text
+                ),
             }
         )
 
@@ -807,6 +825,156 @@ def _run_ingest(job_id: str, code: str, diff_result: dict | None = None) -> None
         _emit(job_id, "error", {"status": "error", "error": str(exc)})
     finally:
         loop.close()
+
+
+async def _walk_chapter_recommendations(
+    client: NiceApiClient,
+    upserter: NiceGraphUpserter,
+    code: str,
+    chapters: list[dict[str, Any]],
+    guideline_id: str,
+    version_id: str,
+    job_id: str,
+) -> list[dict[str, Any]]:
+    """Walk every chapter/section, upserting Chapter nodes and collecting
+    every recommendation found -- one dict per recommendation:
+    ``{"rec_id", "chapter_id", "item"}``.
+
+    Recommendation *upserting* is deliberately deferred to the caller:
+    ``recommendation_key_matcher.match_recommendation_keys()`` needs to see
+    every new recommendation's number before it can safely resolve any
+    single one's stable identity (an old recommendation whose number
+    survives elsewhere must never be claimed by a different new
+    recommendation's text-similarity fallback -- see that module's
+    docstring). Chapter nodes have no such dependency, so they're still
+    upserted here, same as before this was extracted.
+    """
+    entries: list[dict[str, Any]] = []
+    for ch_idx, chapter in enumerate(chapters):
+        chapter_id = f"{version_id}:CH{ch_idx:03d}"
+        chapter_title = chapter.get("Title", f"Chapter {ch_idx + 1}")
+        upserter.upsert_chapter(
+            guideline_id, chapter_id, chapter_title, ch_idx, version_id=version_id
+        )
+
+        href = chapter.get("Href", "") or chapter.get("Uri", "")
+        if not href:
+            continue
+
+        try:
+            chapter_data = await client.get_chapter_content(href)
+        except RuntimeError as exc:
+            logger.debug("Could not fetch chapter '%s': %s", chapter_title, exc)
+            continue
+
+        section_uris = client.get_section_uris(chapter_data)
+        logger.debug("Chapter '%s' has %d section(s)", chapter_title, len(section_uris))
+        if not section_uris:
+            # Some chapters (appendices, evidence reviews) have no section
+            # links -- skip them; they don't contain numbered recommendations.
+            logger.debug("Skipping chapter '%s' — no section links", chapter_title)
+            continue
+
+        for sec_idx, sec_uri in enumerate(section_uris):
+            entries.extend(
+                await _collect_section_recommendations(
+                    client, code, sec_uri, chapter_id, sec_idx, chapter_title, job_id
+                )
+            )
+    return entries
+
+
+async def _collect_section_recommendations(
+    client: NiceApiClient,
+    code: str,
+    sec_uri: str,
+    chapter_id: str,
+    sec_idx: int,
+    chapter_title: str,
+    job_id: str,
+) -> list[dict[str, Any]]:
+    """Fetch one section and return its recommendations as collected
+    entries, or ``[]`` on fetch failure / no recommendations."""
+    try:
+        section_data = await client.get_section_content(sec_uri)
+    except RuntimeError as exc:
+        logger.debug("Could not fetch section %s: %s", sec_uri, exc)
+        return []
+
+    rec_items = _extract_recommendations_from_section(
+        section_data, code, chapter_id=chapter_id
+    )
+    if not rec_items:
+        logger.debug("Section %s yielded no recommendations", sec_uri)
+        return []
+
+    _emit(
+        job_id,
+        "progress",
+        {
+            "step": (
+                f"'{chapter_title}' › section {sec_idx + 1}: "
+                f"{len(rec_items)} recommendation(s)…"
+            ),
+        },
+    )
+    return [
+        {
+            "rec_id": f"{chapter_id}:SEC{sec_idx:03d}:R{rec_idx:03d}",
+            "chapter_id": chapter_id,
+            "item": item,
+        }
+        for rec_idx, item in enumerate(rec_items)
+    ]
+
+
+def _resolve_and_upsert_recommendations(
+    upserter: NiceGraphUpserter,
+    guideline_id: str,
+    version_id: str,
+    rec_entries: list[dict[str, Any]],
+    old_recs: list[dict[str, Any]],
+) -> int:
+    """Resolve a stable ``recommendation_key`` for every collected
+    recommendation, then upsert each one with its resolved identity.
+
+    ``old_recs`` empty (first-ever ingest) mints a fresh key for
+    everything, no matching attempted -- see
+    ``recommendation_key_matcher.match_recommendation_keys()``.
+
+    Returns the number of recommendations upserted.
+    """
+    new_recs = [
+        NewRecommendation(
+            ref=entry["rec_id"],
+            number=entry["item"].get("Title", ""),
+            text=entry["item"].get("Text", entry["item"].get("Title", "")),
+        )
+        for entry in rec_entries
+    ]
+    old_recommendations = [
+        OldRecommendation(
+            number=row["number"],
+            text=row.get("text") or "",
+            recommendation_key=row["recommendation_key"],
+        )
+        for row in old_recs
+        if row.get("number")
+    ]
+    key_matches = match_recommendation_keys(new_recs, old_recommendations)
+
+    for entry in rec_entries:
+        match = key_matches[entry["rec_id"]]
+        upserter.upsert_recommendation(
+            guideline_id,
+            entry["rec_id"],
+            entry["item"],
+            chapter_id=entry["chapter_id"],
+            version_id=version_id,
+            recommendation_key=match.recommendation_key,
+            renumbered_from=match.renumbered_from,
+        )
+    return len(rec_entries)
 
 
 async def _async_ingest(
@@ -894,71 +1062,18 @@ async def _async_ingest(
     chapters = await client.get_chapters(code)
     logger.info("Guideline %s v%d: %d chapter(s)", code, ingest_version, len(chapters))
 
-    total_recs = 0
-    for ch_idx, chapter in enumerate(chapters):
-        chapter_id = f"{version_id}:CH{ch_idx:03d}"
-        chapter_title = chapter.get("Title", f"Chapter {ch_idx + 1}")
-        upserter.upsert_chapter(
-            guideline_id, chapter_id, chapter_title, ch_idx, version_id=version_id
-        )
+    rec_entries = await _walk_chapter_recommendations(
+        client, upserter, code, chapters, guideline_id, version_id, job_id
+    )
 
-        href = chapter.get("Href", "") or chapter.get("Uri", "")
-        if not href:
-            continue
-
-        # ── Level 2: fetch chapter → get section URIs ──────────────────────
-        try:
-            chapter_data = await client.get_chapter_content(href)
-        except RuntimeError as exc:
-            logger.debug("Could not fetch chapter '%s': %s", chapter_title, exc)
-            continue
-
-        section_uris = client.get_section_uris(chapter_data)
-        logger.debug("Chapter '%s' has %d section(s)", chapter_title, len(section_uris))
-
-        if not section_uris:
-            # Some chapters (appendices, evidence reviews) have no section links —
-            # skip them; they don't contain numbered recommendations.
-            logger.debug("Skipping chapter '%s' — no section links", chapter_title)
-            continue
-
-        # ── Level 3: fetch each section → parse Content HTML ───────────────
-        for sec_idx, sec_uri in enumerate(section_uris):
-            try:
-                section_data = await client.get_section_content(sec_uri)
-            except RuntimeError as exc:
-                logger.debug("Could not fetch section %s: %s", sec_uri, exc)
-                continue
-
-            rec_items = _extract_recommendations_from_section(
-                section_data, code, chapter_id=chapter_id
-            )
-
-            if not rec_items:
-                logger.debug("Section %s yielded no recommendations", sec_uri)
-                continue
-
-            _emit(
-                job_id,
-                "progress",
-                {
-                    "step": (
-                        f"'{chapter_title}' › section {sec_idx + 1}: "
-                        f"{len(rec_items)} recommendation(s)…"
-                    ),
-                },
-            )
-
-            for rec_idx, item in enumerate(rec_items):
-                rec_id = f"{chapter_id}:SEC{sec_idx:03d}:R{rec_idx:03d}"
-                upserter.upsert_recommendation(
-                    guideline_id,
-                    rec_id,
-                    item,
-                    chapter_id=chapter_id,
-                    version_id=version_id,
-                )
-                total_recs += 1
+    old_recs = (
+        upserter.fetch_recommendations_for_key_matching(guideline_id, old_version_id)
+        if old_version_id
+        else []
+    )
+    total_recs = _resolve_and_upsert_recommendations(
+        upserter, guideline_id, version_id, rec_entries, old_recs
+    )
 
     title = guidance.get("Title", code)
     guidance_type = guidance.get(
