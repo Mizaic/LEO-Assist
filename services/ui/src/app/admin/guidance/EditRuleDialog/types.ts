@@ -66,6 +66,36 @@ export interface LogicCriterion {
   excluded_concept_ids?: string[];
   /** Names which seed supplies the chip's headline label. */
   primary_concept_id?: string;
+  /**
+   * AI extraction confidence (0..1), written once by the coding
+   * pipeline (``libs/pipeline_graph/subgraphs/
+   * guidance_rule_extraction_v2_impl.py``) and never modified
+   * afterwards. Banded via
+   * ``services/ui/src/lib/terminologyConfidence.ts``
+   * (``getTerminologyConfidenceBand``). Absent on hand-authored
+   * criteria (no AI ever scored them).
+   */
+  confidence?: number | null;
+  /**
+   * True when the AI extractor flagged this criterion for mandatory
+   * human review. Cleared implicitly once ``human_reviewed_at`` is
+   * stamped -- the wizard/canvas gate reads
+   * ``needs_human_review && !human_reviewed_at``, never
+   * ``needs_human_review`` alone, so a reviewed row never re-gates on
+   * reopen. See ``confidenceGate.ts``.
+   */
+  needs_human_review?: boolean;
+  /**
+   * When a reviewer's explicit tap confirms or changes a medium/low
+   * confidence or needs-human-review row, these are stamped. Modeled
+   * directly on ``CodingReview.resolved_at`` / ``resolved_by``
+   * (``libs/cypher/coding_review_queries.py``): a separate, human-only
+   * pair that is fully decoupled from the AI's own immutable
+   * ``confidence`` score, so "reviewed once" and "the AI got more
+   * sure" are never conflated.
+   */
+  human_reviewed_at?: string | null;
+  human_reviewed_by?: string | null;
 }
 
 /**
@@ -178,6 +208,20 @@ export interface EditableLogicNode {
   node_id: string;
   kind: LogicNodeKind;
   children?: EditableLogicNode[];
+  /**
+   * Immutable pathway identity (stable-identity plan section). Minted
+   * once when a pathway group is first created (either backfilled on
+   * load for a legacy OR-split child, or freshly minted when a new
+   * pathway is added / a split produces new pathway(s)) and, unlike
+   * ``node_id``, PRESERVED through ``stripNodeIds`` so it survives
+   * into the persisted ``logic_tree`` and round-trips back on the next
+   * load. Decoupled from the cosmetic, index-derived A/B/C letter --
+   * inserting or removing a pathway never changes another pathway's
+   * ``pathway_key``, even though it does change its displayed letter.
+   * Only meaningful on a direct child of a pathway-split OR; absent
+   * (undefined) on every other node.
+   */
+  pathway_key?: string;
   min?: number;
   criterion?: LogicCriterion;
   field?: string;
@@ -217,6 +261,33 @@ export interface EditableLogicNode {
   referenced_rule_id?: string;
   outcome?: "fired" | "not_fired";
   display_name?: string;
+  /**
+   * Marks which of a pathway's (at most two) AT_LEAST subgroups this
+   * one is, when the highlight wizard's Step 3 detected BOTH a
+   * marker-less lead-or cluster (e.g. "nausea or vomiting") AND a
+   * trailing "any of the following" cluster in the same pathway (see
+   * `PathwayRows.leadCluster`'s doc comment in wizardMapping.ts).
+   * Undefined is treated as "trailing" -- the overwhelmingly common
+   * single-cluster case, so existing pathways with one unmarked
+   * AT_LEAST subgroup keep working unchanged. Purely a routing aid
+   * for `findClusterSubgroupByRole`; the compiler and evaluator
+   * ignore it like every other unknown field.
+   */
+  cluster_role?: "lead" | "trailing";
+  /**
+   * The exact text of the Step 3 (or Step 1) row this leaf was added
+   * for, when it was created via the highlight-to-build wizard's
+   * row-click or highlight-a-sub-phrase add flow. A picked SNOMED
+   * term very often does not share any words with the guideline's own
+   * wording (e.g. "Indigestion" for a row that says "treatment-
+   * resistant dyspepsia"), so `buildRowResolver`'s fuzzy text match
+   * alone cannot re-discover which row this leaf answers. This exact
+   * string gives it a reliable, non-fuzzy way to do that. Persisted on
+   * the logic-tree leaf (API ``LogicNode.source_row_text``); the
+   * compiler and evaluator ignore it. Absent on leaves authored any
+   * other way (AI draft, Advanced/Sentence editor).
+   */
+  source_row_text?: string;
 }
 
 /** Server response shape from /api/terminology/search. */
@@ -227,6 +298,20 @@ export interface ConceptSearchHit {
   score?: number;
 }
 
+/**
+ * Server response shape from /api/terminology/prior-resolutions: how a
+ * free-text phrase has already been coded elsewhere in the guidance
+ * rule library. Surfaced as a soft nudge only -- a suggested default,
+ * never an auto-applied pick (see the highlight-to-build wizard plan's
+ * rubber-stamping-risk discussion).
+ */
+export interface PriorConceptResolution {
+  snomed_concept_id: string;
+  preferred_term: string;
+  semantic_tag: string | null;
+  count: number;
+}
+
 /** Patches the dialog can apply to a node. */
 export type NodeUpdate =
   | { kind: "replace_concept"; nodeId: string; criterion: LogicCriterion }
@@ -234,9 +319,28 @@ export type NodeUpdate =
   | { kind: "set_demographic"; nodeId: string; field: string; operator: string; value: string; value2?: string; unit: string | null }
   | { kind: "change_kind"; nodeId: string; newKind: LogicNodeKind }
   | { kind: "remove"; nodeId: string }
-  | { kind: "add_concept"; parentNodeId: string; criterion: LogicCriterion }
-  | { kind: "add_group"; parentNodeId: string; groupKind: "AND" | "OR" | "NOT" | "AT_LEAST" }
-  | { kind: "add_demographic"; parentNodeId: string }
+  | {
+      kind: "add_concept";
+      parentNodeId: string;
+      criterion: LogicCriterion;
+      /** See `EditableLogicNode.source_row_text`'s doc comment. */
+      sourceRowText?: string;
+    }
+  | {
+      kind: "add_group";
+      parentNodeId: string;
+      groupKind: "AND" | "OR" | "NOT" | "AT_LEAST";
+      /** See `EditableLogicNode.cluster_role`'s doc comment -- only
+       *  meaningful when `groupKind === "AT_LEAST"` and the pathway
+       *  needs a SECOND, independently-graded subgroup. */
+      clusterRole?: "lead" | "trailing";
+    }
+  | {
+      kind: "add_demographic";
+      parentNodeId: string;
+      /** Defaults to age when omitted. Sex seeds a sex leaf instead. */
+      field?: "age" | "sex";
+    }
   // -- Phase 2: optional pathway name --
   | { kind: "set_name"; nodeId: string; name: string }
   // -- Phase 6a: OBSERVATION leaf --
@@ -273,6 +377,26 @@ export type NodeUpdate =
       referenced_rule_id: string;
       outcome: "fired" | "not_fired";
       display_name: string;
+    }
+  // -- Pathway boundary revision (highlight-to-build wizard, "Split and
+  // merge a pathway boundary" plan section) -- both operate on an
+  // existing pathway (a direct child of the tree's pathway-split OR)
+  // and its children by reference, never via assignNodeIds, so a
+  // confirmed leaf's node_id / criterion survive untouched. Both always
+  // mint fresh pathway_key(s) and retire the originals -- the container
+  // changes shape and gets a new identity; what's inside it does not.
+  | {
+      kind: "split_pathway";
+      /** The pathway node (OR child) to partition. */
+      nodeId: string;
+      /** Index into that pathway's children where the second group starts. */
+      splitAt: number;
+    }
+  | {
+      kind: "merge_pathways";
+      /** Two sibling pathway nodes (both children of the same OR) to combine. */
+      firstNodeId: string;
+      secondNodeId: string;
     };
 
 export const GROUP_KINDS: ReadonlyArray<LogicNodeKind> = ["AND", "OR", "NOT", "AT_LEAST"];

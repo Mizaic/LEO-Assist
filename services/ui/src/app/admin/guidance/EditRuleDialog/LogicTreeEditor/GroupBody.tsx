@@ -228,7 +228,12 @@ export default function GroupBody({
 
 // -- Collapsible group header for nested sub-groups -------------------------
 
-function describeChildren(node: EditableLogicNode): string {
+/**
+ * Exported so the SentenceEditor canvas can show the exact same
+ * one-line "(2 conditions, 1 patient detail)" summary for a collapsed
+ * sub-group as this boxed view does. Pure export-visibility change.
+ */
+export function describeChildren(node: EditableLogicNode): string {
   const children = node.children ?? [];
   const concepts = children.filter((c) => c.kind === "CONCEPT").length;
   const demographics = children.filter((c) => c.kind === "DEMOGRAPHIC").length;

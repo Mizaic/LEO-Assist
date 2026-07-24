@@ -4,7 +4,11 @@
  * Mirrors the leo-sbar stage cards, markdown renderer, and LEO chrome so
  * html2canvas produces a PDF that matches the on-screen widget.
  *
- * Atlas: DO-BEE23936 / DI-B03BD651
+ * Atlas trace:
+ *   DO: DO-598A4BB1
+ *   DI: DI-15BC0C79
+ *   Risks: R-7299F8D7
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-598A4BB1")
  */
 import {
   STAGE_LABELS,

@@ -49,6 +49,14 @@ const EMPTY_COPY: Record<RuleStatusFilter, string> = {
   pending_review: "No rules waiting for review. Load a guideline first, then generate rules.",
   active: "No active rules yet. Approve a pending rule to make it active.",
   superseded: "No superseded rules. Edits to active rules will appear here as a read-only history.",
+  rejected: "No excluded recommendations yet. Confirm 'no rule needed' or reject a pending rule.",
+};
+
+const EMPTY_TITLE: Record<RuleStatusFilter, string> = {
+  pending_review: "No rules pending",
+  active: "No active rules",
+  superseded: "No superseded rules",
+  rejected: "No excluded recommendations",
 };
 
 export default function RuleReviewList({ sessionApproved, ruleList, statusFilter, listActions, sessionActions }: Props) {
@@ -79,7 +87,7 @@ export default function RuleReviewList({ sessionApproved, ruleList, statusFilter
       {ruleList.rules.length === 0 ? (
         <EmptyState
           icon={<HistoryOutlinedIcon fontSize="large" />}
-          title={statusFilter === "pending_review" ? "No rules pending" : statusFilter === "active" ? "No active rules" : "No superseded rules"}
+          title={EMPTY_TITLE[statusFilter]}
           body={EMPTY_COPY[statusFilter]}
           data-testid="rule-list-empty"
         />

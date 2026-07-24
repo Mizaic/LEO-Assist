@@ -1,5 +1,10 @@
 """Validate trigger chunk scope before extraction or SBAR retrieval (A3.1).
 
+Atlas trace:
+  DO: DO-3A28C048
+  DI: DI-E6BA4E80
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A28C048")
+
 Every chunk in the trigger list must belong to the stated referral,
 DocumentReference, patient and tenant. Preserves trigger order and rejects
 duplicates or unknown chunk ids without returning clinical text.

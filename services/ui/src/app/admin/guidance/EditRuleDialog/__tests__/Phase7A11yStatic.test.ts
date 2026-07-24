@@ -24,9 +24,21 @@ describe("Phase 7d -- wizard a11y static guard rails", () => {
     expect(src).toMatch(/aria-label["']?\s*:\s*heading/);
   });
 
-  it("LogicTreeEditor root has role=tree and aria-label", () => {
+  it("ChipSearchPopover caps height and hides the inner search heading", () => {
+    const src = read("ChipSearchPopover.tsx");
+    expect(src).toMatch(/maxHeight:\s*["']min\(70vh,\s*calc\(100vh - 32px\)\)["']/);
+    expect(src).toMatch(/showHeading=\{false\}/);
+    expect(src).toMatch(/\bembedded\b/);
+  });
+
+  it("LogicTreeEditor root has role=group (not tree) and aria-label", () => {
+    // role="group", not "tree": the canvas is a labelled container of
+    // ordinary interactive controls, not an ARIA tree widget with
+    // treeitem children. "tree" trips axe's aria-required-children
+    // check as soon as real content is a direct child.
     const src = read("LogicTreeEditor/index.tsx");
-    expect(src).toContain('role="tree"');
+    expect(src).toContain('role="group"');
+    expect(src).not.toContain('role="tree"');
     expect(src).toContain("aria-label");
   });
 

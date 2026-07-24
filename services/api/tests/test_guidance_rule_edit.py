@@ -237,6 +237,72 @@ class TestPathwayName:
         assert "name" not in wire["children"][1]
 
 
+# -- Wizard source_row_text (highlight-to-build reopen) ---------------------
+
+
+class TestSourceRowText:
+    """LogicNode.source_row_text carries the guideline row a CONCEPT
+    leaf answers, so Guided can re-resolve rows after save/reopen.
+
+    Atlas trace: DI-A3107424 / DO-D6CE2AA5 (rule edit schema).
+    """
+
+    def test_source_row_text_round_trips_on_concept_leaf(self) -> None:
+        node = LogicNode.model_validate(
+            {
+                "kind": "CONCEPT",
+                "source_row_text": "treatment-resistant dyspepsia",
+                "criterion": {
+                    "snomed_concept_id": "266463007",
+                    "preferred_term": "Indigestion",
+                },
+            }
+        )
+        assert node.source_row_text == "treatment-resistant dyspepsia"
+        wire = node.model_dump(exclude_none=True)
+        assert wire["source_row_text"] == "treatment-resistant dyspepsia"
+
+    def test_source_row_text_strips_whitespace(self) -> None:
+        node = LogicNode.model_validate(
+            {
+                "kind": "CONCEPT",
+                "source_row_text": "  nausea  ",
+                "criterion": {
+                    "snomed_concept_id": "422587007",
+                    "preferred_term": "Nausea",
+                },
+            }
+        )
+        assert node.source_row_text == "nausea"
+
+    def test_whitespace_only_source_row_text_normalises_to_none(self) -> None:
+        node = LogicNode.model_validate(
+            {
+                "kind": "CONCEPT",
+                "source_row_text": "   ",
+                "criterion": {
+                    "snomed_concept_id": "1",
+                    "preferred_term": "Cough",
+                },
+            }
+        )
+        assert node.source_row_text is None
+        assert "source_row_text" not in node.model_dump(exclude_none=True)
+
+    def test_source_row_text_max_length_enforced(self) -> None:
+        with pytest.raises(Exception):
+            LogicNode.model_validate(
+                {
+                    "kind": "CONCEPT",
+                    "source_row_text": "x" * 501,
+                    "criterion": {
+                        "snomed_concept_id": "1",
+                        "preferred_term": "Cough",
+                    },
+                }
+            )
+
+
 # -- Synonym set (UN-LEO-AI-093 / DI-LEO-AI-508) ----------------------------
 
 

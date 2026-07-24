@@ -9,11 +9,13 @@ import {
   addPrerequisiteToOrSymptoms,
   applyUpdate,
   assignNodeIds,
+  ensurePathwayKeys,
   findValidationError,
   hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
   isOrGroupSymptomsOnly,
   isTreeVisuallyEmpty,
+  mintPathwayKey,
   promoteOrPrerequisites,
   stripNodeIds,
   wrapRootInAnd,
@@ -83,6 +85,43 @@ describe("treeOps", () => {
     expect(updated!.children![1].children![1].criterion?.snomed_concept_id).toBe(
       "267036007"
     );
+  });
+
+  // See EditableLogicNode.source_row_text's doc comment: the
+  // highlight-to-build wizard tags a leaf it adds with the row's own
+  // text, so the row can find its way back to that leaf even when the
+  // picked SNOMED term shares no wording with it.
+  it("add_concept tags the new leaf with sourceRowText when provided", () => {
+    const tree = makeTree();
+    const orGroup = tree.children![1];
+    const updated = applyUpdate(tree, {
+      kind: "add_concept",
+      parentNodeId: orGroup.node_id,
+      criterion: {
+        snomed_concept_id: "162031009",
+        preferred_term: "Indigestion",
+        semantic_tag: "finding",
+      },
+      sourceRowText: "treatment-resistant dyspepsia",
+    });
+    expect(updated!.children![1].children![1].source_row_text).toBe(
+      "treatment-resistant dyspepsia",
+    );
+  });
+
+  it("add_concept leaves source_row_text unset when sourceRowText is omitted", () => {
+    const tree = makeTree();
+    const orGroup = tree.children![1];
+    const updated = applyUpdate(tree, {
+      kind: "add_concept",
+      parentNodeId: orGroup.node_id,
+      criterion: {
+        snomed_concept_id: "267036007",
+        preferred_term: "Dyspnea (finding)",
+        semantic_tag: "finding",
+      },
+    });
+    expect(updated!.children![1].children![1].source_row_text).toBeUndefined();
   });
 
   it("add_group nests a new empty OR sub-group under an AND pathway, enabling AND + a set of OR's", () => {
@@ -250,6 +289,38 @@ describe("treeOps", () => {
     );
   });
 
+  it("stripNodeIds persists a non-empty source_row_text, trimmed", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "162031009", preferred_term: "Indigestion" },
+          source_row_text: "  treatment-resistant dyspepsia  ",
+        },
+      ],
+    });
+    const stripped = stripNodeIds(tree);
+    const concept = (stripped.children as Array<Record<string, unknown>>)[0];
+    expect(concept.source_row_text).toBe("treatment-resistant dyspepsia");
+  });
+
+  it("stripNodeIds drops an empty/whitespace-only source_row_text", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "162031009", preferred_term: "Indigestion" },
+          source_row_text: "   ",
+        },
+      ],
+    });
+    const stripped = stripNodeIds(tree);
+    const concept = (stripped.children as Array<Record<string, unknown>>)[0];
+    expect("source_row_text" in concept).toBe(false);
+  });
+
   // ---------------------------------------------------------------------
   // Criterion / seed sanitisation (regression for the 422 bug where the
   // BE LogicCriterion model rejected LLM-provenance fields the FE was
@@ -309,6 +380,13 @@ describe("treeOps", () => {
     expect(crit.term).toBe("smoker");
     expect(crit.primary_concept_id).toBe("77176002");
     expect(Array.isArray(crit.seeds)).toBe(true);
+    // confidence-surfacing (highlight-to-build wizard): these two now
+    // round-trip through save on purpose, unlike the rest of the LLM
+    // provenance blob below -- see confidenceGate.ts for why stripping
+    // them used to throw away the anti-rubber-stamp signal after the
+    // first review pass.
+    expect(crit.confidence).toBe(0.97);
+    expect(crit.needs_human_review).toBe(false);
 
     // Forbidden keys are stripped before POST.
     for (const k of [
@@ -320,9 +398,7 @@ describe("treeOps", () => {
       "candidates",
       "verification_status",
       "verification_reason",
-      "confidence",
       "resolver_turns",
-      "needs_human_review",
       "search_history",
     ]) {
       expect(k in crit).toBe(false);
@@ -577,6 +653,97 @@ describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
     expect(updated!.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
   });
 
+  it("add_demographic with field sex appends under pathway AND without lifting to global", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "DEMOGRAPHIC",
+          field: "age",
+          operator: ">=",
+          value: 55,
+          unit: "years",
+        },
+        {
+          kind: "OR",
+          children: [
+            {
+              kind: "AND",
+              pathway_key: "pw_a",
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "1", preferred_term: "Nausea" },
+                },
+              ],
+            },
+            {
+              kind: "AND",
+              pathway_key: "pw_b",
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "2", preferred_term: "Vomiting" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const pathwayA = tree.children![1].children![0];
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: pathwayA.node_id,
+      field: "sex",
+    });
+    expect(updated!.kind).toBe("AND");
+    const globalKids = updated!.children ?? [];
+    expect(globalKids.filter((c) => c.kind === "DEMOGRAPHIC")).toHaveLength(1);
+    expect(globalKids[0].field).toBe("age");
+    const updatedPwA = globalKids[1].children![0];
+    const sexLeaf = updatedPwA.children!.find((c) => c.kind === "DEMOGRAPHIC");
+    expect(sexLeaf?.field).toBe("sex");
+    expect(sexLeaf?.value).toBe("female");
+    expect(globalKids[1].children![1].children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(
+      false,
+    );
+  });
+
+  it("promoteOrPrerequisites leaves demos nested inside pathway ANDs untouched", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "DEMOGRAPHIC",
+              field: "sex",
+              operator: "=",
+              value: "female",
+              unit: null,
+            },
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "1", preferred_term: "Nausea" },
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "2", preferred_term: "Vomiting" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(promoteOrPrerequisites(tree)).toBe(tree);
+  });
+
   it("addPrerequisiteToOrSymptoms preserves all symptom nodes", () => {
     const tree = makeOrSymptoms();
     const prereq = assignNodeIds({
@@ -590,5 +757,249 @@ describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
     expect(fixed.kind).toBe("AND");
     expect(fixed.children![0].field).toBe("sex");
     expect(fixed.children![1].children).toHaveLength(3);
+  });
+});
+
+describe("pathway_key stable identity", () => {
+  function makePathwaySplitTree(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "AND",
+      children: [
+        { kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: 55, unit: "years" },
+        {
+          kind: "OR",
+          children: [
+            { kind: "AND", children: [{ kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "A" } }] },
+            { kind: "AND", children: [{ kind: "CONCEPT", criterion: { snomed_concept_id: "2", preferred_term: "B" } }] },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("mintPathwayKey returns distinct keys on successive calls", () => {
+    const a = mintPathwayKey();
+    const b = mintPathwayKey();
+    expect(a).not.toBe(b);
+    expect(a.startsWith("pw_")).toBe(true);
+  });
+
+  it("ensurePathwayKeys backfills a key onto every pathway that lacks one", () => {
+    const tree = makePathwaySplitTree();
+    const keyed = ensurePathwayKeys(tree);
+    const orNode = keyed.children!.find((c) => c.kind === "OR")!;
+    const keys = orNode.children!.map((c) => c.pathway_key);
+    expect(keys.every((k) => typeof k === "string" && k.length > 0)).toBe(true);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("ensurePathwayKeys leaves an already-keyed pathway untouched", () => {
+    const tree = makePathwaySplitTree();
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    orNode.children![0].pathway_key = "pw_existing";
+    const keyed = ensurePathwayKeys(tree);
+    const reKeyedOr = keyed.children!.find((c) => c.kind === "OR")!;
+    expect(reKeyedOr.children![0].pathway_key).toBe("pw_existing");
+    expect(reKeyedOr.children![1].pathway_key).toBeTruthy();
+    expect(reKeyedOr.children![1].pathway_key).not.toBe("pw_existing");
+  });
+
+  it("ensurePathwayKeys is a no-op on a tree with no pathway split", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [{ kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "A" } }],
+    });
+    const keyed = ensurePathwayKeys(tree);
+    expect(keyed).toEqual(tree);
+  });
+
+  it("add_group on a pathway-split OR mints a fresh pathway_key on the new pathway", () => {
+    const tree = ensurePathwayKeys(makePathwaySplitTree());
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    const updated = applyUpdate(tree, {
+      kind: "add_group",
+      parentNodeId: orNode.node_id,
+      groupKind: "AND",
+    });
+    const updatedOr = updated!.children!.find((c) => c.kind === "OR")!;
+    expect(updatedOr.children).toHaveLength(3);
+    const newPathway = updatedOr.children![2];
+    expect(newPathway.pathway_key).toBeTruthy();
+    const allKeys = updatedOr.children!.map((c) => c.pathway_key);
+    expect(new Set(allKeys).size).toBe(3);
+  });
+
+  it("add_group on a non-pathway parent does not set pathway_key", () => {
+    const tree = assignNodeIds({ kind: "AND", children: [] });
+    const updated = applyUpdate(tree, {
+      kind: "add_group",
+      parentNodeId: tree.node_id,
+      groupKind: "OR",
+    });
+    expect(updated!.children![0].pathway_key).toBeUndefined();
+  });
+
+  it("stripNodeIds preserves pathway_key but not node_id", () => {
+    const tree = ensurePathwayKeys(makePathwaySplitTree());
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    const stripped = stripNodeIds(orNode.children![0]);
+    expect(stripped.pathway_key).toBe(orNode.children![0].pathway_key);
+    expect(stripped.node_id).toBeUndefined();
+  });
+
+  it("stripNodeIds omits pathway_key entirely on nodes that never had one", () => {
+    const tree = assignNodeIds({
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "1", preferred_term: "A" },
+    });
+    const stripped = stripNodeIds(tree);
+    expect("pathway_key" in stripped).toBe(false);
+  });
+});
+
+describe("split_pathway / merge_pathways", () => {
+  function makeFourSymptomPathway(): EditableLogicNode {
+    // A single pathway (AND child of the OR) with 4 CONCEPT leaves,
+    // pre-keyed, ready to split.
+    return ensurePathwayKeys(
+      assignNodeIds({
+        kind: "AND",
+        children: [
+          { kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: 55, unit: "years" },
+          {
+            kind: "OR",
+            children: [
+              {
+                kind: "AND",
+                children: [
+                  { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "Nausea" } },
+                  { kind: "CONCEPT", criterion: { snomed_concept_id: "2", preferred_term: "Vomiting" } },
+                  { kind: "CONCEPT", criterion: { snomed_concept_id: "3", preferred_term: "Weight loss" } },
+                  { kind: "CONCEPT", criterion: { snomed_concept_id: "4", preferred_term: "Reflux" } },
+                ],
+              },
+              {
+                kind: "AND",
+                children: [
+                  { kind: "CONCEPT", criterion: { snomed_concept_id: "5", preferred_term: "Haemoptysis" } },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+  }
+
+  it("split_pathway partitions children at splitAt into two new sibling pathways", () => {
+    const tree = makeFourSymptomPathway();
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    const targetPathway = orNode.children![0];
+    const originalKey = targetPathway.pathway_key;
+
+    const updated = applyUpdate(tree, {
+      kind: "split_pathway",
+      nodeId: targetPathway.node_id,
+      splitAt: 2,
+    })!;
+    const updatedOr = updated.children!.find((c) => c.kind === "OR")!;
+    expect(updatedOr.children).toHaveLength(3);
+
+    const [first, second, untouched] = updatedOr.children!;
+    expect(first.children).toHaveLength(2);
+    expect(second.children).toHaveLength(2);
+    expect(first.children!.map((c) => c.criterion?.snomed_concept_id)).toEqual(["1", "2"]);
+    expect(second.children!.map((c) => c.criterion?.snomed_concept_id)).toEqual(["3", "4"]);
+    expect(untouched.children).toHaveLength(1);
+    expect(untouched.children![0].criterion?.snomed_concept_id).toBe("5");
+
+    // New pathways get fresh, distinct keys; the original is retired.
+    expect(first.pathway_key).toBeTruthy();
+    expect(second.pathway_key).toBeTruthy();
+    expect(first.pathway_key).not.toBe(second.pathway_key);
+    expect(first.pathway_key).not.toBe(originalKey);
+    expect(second.pathway_key).not.toBe(originalKey);
+  });
+
+  it("split_pathway is a no-op when splitAt would leave one side empty", () => {
+    const tree = makeFourSymptomPathway();
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    const singleLeafPathway = orNode.children![1];
+
+    const updated = applyUpdate(tree, {
+      kind: "split_pathway",
+      nodeId: singleLeafPathway.node_id,
+      splitAt: 1,
+    })!;
+    expect(updated).toEqual(tree);
+  });
+
+  it("merge_pathways concatenates two siblings' children into one new pathway", () => {
+    const tree = makeFourSymptomPathway();
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    const [pathwayA, pathwayB] = orNode.children!;
+
+    const updated = applyUpdate(tree, {
+      kind: "merge_pathways",
+      firstNodeId: pathwayA.node_id,
+      secondNodeId: pathwayB.node_id,
+    })!;
+    const updatedOr = updated.children!.find((c) => c.kind === "OR")!;
+    expect(updatedOr.children).toHaveLength(1);
+
+    const merged = updatedOr.children![0];
+    expect(merged.children!.map((c) => c.criterion?.snomed_concept_id)).toEqual([
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
+    expect(merged.pathway_key).toBeTruthy();
+    expect(merged.pathway_key).not.toBe(pathwayA.pathway_key);
+    expect(merged.pathway_key).not.toBe(pathwayB.pathway_key);
+  });
+
+  it("a confirmed leaf's node_id and criterion survive a split-then-merge round-trip", () => {
+    const tree = makeFourSymptomPathway();
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    const targetPathway = orNode.children![0];
+    const originalLeafIds = targetPathway.children!.map((c) => c.node_id);
+    const originalConceptIds = targetPathway.children!.map((c) => c.criterion?.snomed_concept_id);
+
+    const afterSplit = applyUpdate(tree, {
+      kind: "split_pathway",
+      nodeId: targetPathway.node_id,
+      splitAt: 2,
+    })!;
+    const orAfterSplit = afterSplit.children!.find((c) => c.kind === "OR")!;
+    const [firstHalf, secondHalf] = orAfterSplit.children!;
+
+    const afterMerge = applyUpdate(afterSplit, {
+      kind: "merge_pathways",
+      firstNodeId: firstHalf.node_id,
+      secondNodeId: secondHalf.node_id,
+    })!;
+    const orAfterMerge = afterMerge.children!.find((c) => c.kind === "OR")!;
+    const rebuiltPathway = orAfterMerge.children![0];
+
+    expect(rebuiltPathway.children!.map((c) => c.node_id)).toEqual(originalLeafIds);
+    expect(rebuiltPathway.children!.map((c) => c.criterion?.snomed_concept_id)).toEqual(
+      originalConceptIds,
+    );
+  });
+
+  it("merge_pathways is a no-op when the two ids are not siblings", () => {
+    const tree = makeFourSymptomPathway();
+    const orNode = tree.children!.find((c) => c.kind === "OR")!;
+    const pathwayA = orNode.children![0];
+    const leafInsideA = pathwayA.children![0];
+
+    const updated = applyUpdate(tree, {
+      kind: "merge_pathways",
+      firstNodeId: pathwayA.node_id,
+      secondNodeId: leafInsideA.node_id,
+    })!;
+    expect(updated).toEqual(tree);
   });
 });

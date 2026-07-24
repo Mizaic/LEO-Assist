@@ -1,5 +1,10 @@
 """Pinned execution manifest snapshot for PipelineRun admission (M2.5).
 
+Atlas trace:
+  DO: DO-04CEDFB1
+  DI: DI-090D4939, DI-29BF950F, DI-33376FBB, DI-8788B246, DI-9EE8D65E, DI-AB1C442D, DI-CB01B8A6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-04CEDFB1")
+
 Captures clinical policy, prompt pins, model config and LLM parameters so a
 run can answer what exact settings were used without reading live graph state.
 """

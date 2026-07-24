@@ -378,9 +378,10 @@ describe("RuleReviewSection -- dual pools (Tier 1)", () => {
       path.resolve(__dirname, "../ruleReviewTypes.ts"),
       "utf-8",
     );
-    expect(typesSource).toMatch(
-      /export type RuleStatusFilter = "pending_review" \| "active" \| "superseded";/,
-    );
+    expect(typesSource).toMatch(/"pending_review"/);
+    expect(typesSource).toMatch(/"active"/);
+    expect(typesSource).toMatch(/"superseded"/);
+    expect(typesSource).toMatch(/"rejected"/);
   });
 
   it("loads pending and active rule pools in parallel", () => {
@@ -399,6 +400,8 @@ describe("RuleReviewSection -- dual pools (Tier 1)", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(/title="Awaiting review"/);
     expect(RULE_REVIEW_SOURCE).toMatch(/poolId="approved"/);
     expect(RULE_REVIEW_SOURCE).toMatch(/title="Approved"/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/poolId="excluded"/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/title="Excluded"/);
   });
 
   it("scopes Approve all to the awaiting-review pool only", () => {
@@ -409,7 +412,13 @@ describe("RuleReviewSection -- dual pools (Tier 1)", () => {
 
   it("passes approve and reject handlers only to the pending pool", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(/onApprove=\{\(rule\) => decide\(rule, "approve"\)\}/);
-    expect(RULE_REVIEW_SOURCE).toMatch(/onReject=\{\(rule\) => decide\(rule, "reject", "Rejected by reviewer"\)\}/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/No coded rule needed/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/Rejected by reviewer/);
+  });
+
+  it("loads rejected rules into the Excluded pool", () => {
+    expect(RULE_REVIEW_SOURCE).toMatch(/fetchRules\("rejected"\)/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/sessionExcluded/);
   });
 
   it("lazy-loads superseded history behind a disclosure control", () => {

@@ -30,8 +30,17 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import { STRENGTH_LABELS, friendlyTerm } from "./EditRuleDialog/copy";
+import { isPathwaySplit } from "./EditRuleDialog/pathwayDetection";
 import type { LogicSeed, RuleAction } from "./EditRuleDialog/types";
 import { normalizeRuleActions } from "./actionShape";
+
+/**
+ * Re-exported for backwards compatibility -- the canonical definition
+ * now lives in EditRuleDialog/pathwayDetection.ts so LogicTreeEditor
+ * and SentenceEditor can share it too. Prefer importing directly from
+ * pathwayDetection.ts in new code.
+ */
+export { isPathwaySplit };
 
 /**
  * An AT_LEAST group whose children are all SNOMED concepts is rendered as
@@ -157,19 +166,6 @@ export interface RuleForLogicView {
 }
 
 // -- Helpers ----------------------------------------------------------------
-
-/**
- * Match the editor's heuristic: an OR near the top of the tree that has
- * 2+ children is the "patient must match one of these pathways" pattern.
- * Anything deeper than depth 1 is treated as a regular nested OR (so we
- * never recurse into a card and produce another card layer).
- */
-export function isPathwaySplit(node: LogicTreeNode, depth: number): boolean {
-  const kind = String(node.kind || "").toUpperCase();
-  if (kind !== "OR") return false;
-  if (depth > 1) return false;
-  return (node.children?.length ?? 0) >= 2;
-}
 
 const PATHWAY_ACCENTS = [
   { stripe: "primary.main", chipBg: "primary.50", chipFg: "primary.dark" },

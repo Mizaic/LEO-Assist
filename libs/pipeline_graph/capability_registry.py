@@ -1,5 +1,11 @@
 """Capability metadata registry for pipeline subgraphs (M2.0a).
 
+Atlas trace:
+  DO: DO-13EEC645
+  DI: DI-5D0F6FBA
+  Risks: R-77D2EB0C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-13EEC645")
+
 Each registered subgraph exposes side-effect class, schema versions and retry
 semantics so plan publication can reject incompatible workflow steps.
 """

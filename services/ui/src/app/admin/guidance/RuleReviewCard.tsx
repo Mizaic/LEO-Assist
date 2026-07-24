@@ -67,6 +67,7 @@ const STATUS_ACCENT: Record<RuleStatusFilter, string> = {
   pending_review: "#B45309",
   active: "#047857",
   superseded: "#475569",
+  rejected: "#6B7280",
 };
 
 // -- Interfaces ---------------------------------------------------------------
@@ -257,6 +258,7 @@ function RuleGenerationAlert({ rule }: { rule: Rule }) {
     return (
       <Alert severity="info" sx={{ mb: 1.5 }}>
         This recommendation describes a service or discussion -- no coded rule is needed.
+        Confirming moves it to the Excluded list so it is not compiled for live patients.
         <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
           {rule.generation_errors.slice(0, 5).map((err) => (
             <Typography key={err} component="li" variant="caption" sx={{ display: "list-item" }}>{err}</Typography>
@@ -281,8 +283,18 @@ function RuleCardActions({ rule, callbacks, isBusy }: { rule: Rule; callbacks: R
   if (rule.generation_outcome === "no_rule_expected") {
     return (
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-        {callbacks.onApprove && (
-          <Button variant="contained" color="success" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onApprove!(); }} aria-label={`Confirm no rule needed for ${rule.rule_id}`}>
+        {callbacks.onReject && (
+          <Button
+            variant="contained"
+            color="inherit"
+            size="small"
+            disabled={isBusy}
+            onClick={(e) => {
+              e.stopPropagation();
+              callbacks.onReject!();
+            }}
+            aria-label={`Confirm no rule needed for ${rule.rule_id}`}
+          >
             Confirm no rule needed
           </Button>
         )}

@@ -1,4 +1,10 @@
-"""Adjudicated 2WW / Faster Diagnosis mention detector (B3.2)."""
+"""Adjudicated 2WW / Faster Diagnosis mention detector (B3.2).
+
+Atlas trace:
+  DO: DO-79266FAB
+  DI: DI-C31E59C4
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-79266FAB")
+"""
 
 from __future__ import annotations
 

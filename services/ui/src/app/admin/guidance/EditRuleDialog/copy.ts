@@ -485,5 +485,55 @@ export const SEARCH_PANEL = {
   idleHintStrong: "+ Add a symptom, procedure, or situation",
   idleHintTail: "buttons inside a group.",
   loadError: "Could not search the clinical terms. Please try again.",
+  /** Soft nudge only -- a suggested default from how other rules
+   *  already coded this phrase, never an auto-applied pick. The
+   *  reviewer always has to tap "Use this" themselves. */
+  priorResolutionOneHeading: (term: string) =>
+    `Other rules use this code for "${term}"`,
+  priorResolutionManyHeading: (term: string) =>
+    `Other rules use these codes for "${term}"`,
+  priorResolutionCount: (count: number) =>
+    count === 1 ? "Used once" : `Used ${count} times`,
+} as const;
+
+/**
+ * MultiConceptPicker: "highlight a word, assign one or more SNOMED codes"
+ * (the NER-style pick). Unlike SEARCH_PANEL's one-pick-per-click flow,
+ * every result carries a checkbox and, once ticked, an explicit depth
+ * field defaulting to 0 (exact match only) -- see multiConceptSeed.ts for
+ * why this default deliberately differs from the legacy add flow.
+ */
+export const MULTI_CONCEPT_PICKER = {
+  searchLabel: "Search clinical terms",
+  searchPlaceholder: "Type a word, like cough or weight loss",
+  resultsAriaLabel: "Search results",
+  noResults: (q: string) =>
+    `No clinical terms match "${q}". Try a shorter word or a different spelling.`,
+  loadError: "Could not search the clinical terms. Please try again.",
+  selectAriaLabel: (term: string) => `Select ${term}`,
+  depthAriaLabel: (term: string) =>
+    `Depth for ${term}: how many levels of more specific terms to include, 0 for exact match only`,
+  depthHelp:
+    "0 matches this term exactly. Each level up also matches more specific terms underneath it. Hover to see which codes are included.",
+  depthPreviewExact: (term: string) =>
+    `Only "${term}" will match -- this exact code, nothing more specific.`,
+  depthPreviewLoading: "Loading more specific codes...",
+  depthPreviewError: "Could not load the codes for this depth. Try again.",
+  depthPreviewEmpty: (term: string, depth: number) =>
+    `No more specific codes under "${term}" at depth ${depth}.`,
+  depthPreviewHeading: (
+    term: string,
+    depth: number,
+    count: number,
+    capped: boolean,
+  ) =>
+    capped
+      ? `"${term}" at depth ${depth} also includes ${count}+ more specific codes (scroll to see them):`
+      : `"${term}" at depth ${depth} also includes ${count} more specific code${count === 1 ? "" : "s"}:`,
+  depthPreviewApiCap:
+    "Showing the first 200 codes from the terminology service. Raise depth carefully if you need a narrower set.",
+  confirmLabel: (n: number) => (n === 1 ? "Add 1 code" : `Add ${n} codes`),
+  emptyHint:
+    "Tick one or more results below, then confirm. Each one can match exactly, or match more specific terms too.",
 } as const;
 

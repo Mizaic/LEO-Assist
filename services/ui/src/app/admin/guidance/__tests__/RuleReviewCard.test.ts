@@ -3,7 +3,8 @@
  * the 'discuss' strength label, and the is_default fallback badge.
  *
  * Verifies:
- *   - no_rule_expected: shows "Confirm no rule needed" button, not "Reject"
+ *   - no_rule_expected: shows "Confirm no rule needed" wired to onReject
+ *     (exclude list), not onApprove
  *   - no_rule_expected: uses severity="info" alert, not severity="warning"
  *   - normal rules: shows "Looks right" and "Reject", not "Confirm no rule needed"
  *   - 'discuss' strength option exists in STRENGTH_LABELS
@@ -33,12 +34,16 @@ describe("RuleReviewCard - no_rule_expected action branching", () => {
     expect(CARD_SRC).toMatch(/Confirm no rule needed/);
   });
 
-  test("TC-003: Reject button is absent from the no_rule_expected branch", () => {
-    const confirmIdx = CARD_SRC.indexOf("Confirm no rule needed");
-    const rejectIdx = CARD_SRC.indexOf(">Reject<");
-    expect(confirmIdx).toBeGreaterThan(-1);
-    expect(rejectIdx).toBeGreaterThan(-1);
-    expect(Math.abs(rejectIdx - confirmIdx)).toBeGreaterThan(300);
+  test("TC-003: Confirm no rule needed uses onReject (exclude), not onApprove", () => {
+    const fnStart = CARD_SRC.indexOf("function RuleCardActions");
+    const fnEnd = CARD_SRC.indexOf("function RuleCardBody", fnStart);
+    const actionsFn = CARD_SRC.slice(fnStart, fnEnd);
+    // First branch ends before the standard "Looks right" return.
+    const branchEnd = actionsFn.indexOf("return (", actionsFn.indexOf("Confirm no rule needed"));
+    const noRuleBranch = actionsFn.slice(0, branchEnd);
+    expect(noRuleBranch).toMatch(/Confirm no rule needed/);
+    expect(noRuleBranch).toMatch(/callbacks\.onReject/);
+    expect(noRuleBranch).not.toMatch(/callbacks\.onApprove/);
   });
 
   test("TC-004: no_rule_expected alert uses severity info", () => {

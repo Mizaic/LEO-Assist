@@ -1,5 +1,11 @@
 """Universal durable step contract (M2.0).
 
+Atlas trace:
+  DO: DO-13EEC645
+  DI: DI-5D0F6FBA
+  Risks: R-77D2EB0C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-13EEC645")
+
 Versioned envelope for execution context, provenance, side effects and budgets.
 Every capability returns the same status/provenance shape via envelope_step_result().
 """

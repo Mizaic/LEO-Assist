@@ -737,6 +737,7 @@ export default function RecommendationPickerDialog({
         rule={editRule}
         open={!!editRule}
         saving={editSaving}
+        saveError={editError}
         onClose={handleCloseEdit}
         onSave={handleSaveEdit}
       />

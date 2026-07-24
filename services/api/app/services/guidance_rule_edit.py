@@ -119,6 +119,17 @@ class LogicCriterion(BaseModel):
     seeds: list[LogicSeed] = Field(default_factory=list)
     excluded_concept_ids: list[str] = Field(default_factory=list)
     primary_concept_id: str = ""
+    # AI extraction confidence signal (highlight-to-build wizard). Written
+    # once by the coding pipeline, never modified after. `None` on
+    # hand-authored criteria. `needs_human_review` is only meaningful
+    # combined with `human_reviewed_at`: a reviewer's explicit confirm/
+    # change action stamps the latter, which the FE gate reads as
+    # "already reviewed" instead of clearing the flag itself, so the AI's
+    # original review recommendation stays visible as an audit trail.
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    needs_human_review: bool = False
+    human_reviewed_at: str | None = None
+    human_reviewed_by: str | None = None
 
     @model_validator(mode="after")
     def _normalise(self) -> "LogicCriterion":
@@ -193,6 +204,13 @@ class LogicNode(BaseModel):
 
     kind: str
     node_id: str | None = None
+    # Immutable pathway identity (stable-identity plan section). Unlike
+    # node_id (client-only, dropped before every save), pathway_key IS
+    # persisted -- it round-trips through logicJson so a pathway keeps
+    # the same identity across edits, decoupled from its cosmetic,
+    # index-derived display letter. Only meaningful on a direct child
+    # of a pathway-split OR; the FE never sets it elsewhere.
+    pathway_key: str | None = None
     children: list["LogicNode"] | None = None
     min: int | None = None
     criterion: LogicCriterion | None = None
@@ -236,6 +254,13 @@ class LogicNode(BaseModel):
     # referenced rule has since been renamed.
     referenced_rule_id: str | None = None
     display_name: str | None = None
+    # Exact guideline row wording this CONCEPT leaf answers, when the
+    # leaf was added via the highlight-to-build wizard. The picked
+    # SNOMED preferred term often shares no words with the NICE row
+    # (e.g. "Indigestion" for "treatment-resistant dyspepsia"), so the
+    # editor needs this provenance to re-resolve the row on reopen.
+    # Compiler / evaluator ignore it. Cap matches a long NICE bullet.
+    source_row_text: str | None = Field(default=None, max_length=500)
 
     @field_validator("kind")
     @classmethod
@@ -250,6 +275,14 @@ class LogicNode(BaseModel):
     @field_validator("name")
     @classmethod
     def _check_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        trimmed = v.strip()
+        return trimmed if trimmed else None
+
+    @field_validator("source_row_text")
+    @classmethod
+    def _check_source_row_text(cls, v: str | None) -> str | None:
         if v is None:
             return None
         trimmed = v.strip()

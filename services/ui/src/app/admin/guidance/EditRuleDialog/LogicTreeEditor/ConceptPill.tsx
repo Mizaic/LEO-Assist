@@ -16,6 +16,7 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import { useMotion } from "@leo/design-system";
 
 import { friendlyTerm } from "../copy";
+import ConfidenceBadge from "../ConfidenceBadge";
 import { detectVaguePhrase } from "../vaguePhrases";
 import SynonymChipEditor from "../SynonymChipEditor";
 import type { EditableLogicNode, NodeUpdate } from "../types";
@@ -98,6 +99,7 @@ export default function ConceptPill({
         {node.criterion?.snomed_concept_id && (
           <SynonymChipEditor node={node} onUpdate={onUpdate} />
         )}
+        <ConfidenceBadge criterion={node.criterion} />
       </Stack>
     </fm.div>
   );

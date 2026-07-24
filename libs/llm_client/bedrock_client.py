@@ -1,5 +1,10 @@
 """Process-wide Bedrock boto3 client factory with sized connection pools.
 
+Atlas trace:
+  DO: DO-BE20BE85
+  DI: DI-7939EADD
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BE20BE85")
+
 Each boto3 ``bedrock-runtime`` client owns an urllib3 connection pool. The
 default pool size is 10, which is too small when the pipeline worker handles
 several Service Bus messages concurrently and each step may issue overlapping

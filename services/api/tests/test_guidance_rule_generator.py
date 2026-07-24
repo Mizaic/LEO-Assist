@@ -148,7 +148,7 @@ class TestParseOutput:
         assert result is not None
         assert result["schema_version"] == 2
         assert result["logic_tree"]["kind"] == "AND"
-        assert result["action"]["text"] == "2ww referral"
+        assert result["actions"][0]["text"] == "2ww referral"
 
     def test_old_present_absent_format_normalised_to_criteria_groups(self):
         """Old format converted: present → ALL group, absent → NOT group."""
@@ -157,13 +157,13 @@ class TestParseOutput:
         assert result is not None
         assert result["schema_version"] == 2
         assert result["logic_tree"]["kind"] == "AND"
-        assert result["action"]["text"] == "2ww referral"
+        assert result["actions"][0]["text"] == "2ww referral"
 
     def test_extracts_json_from_prose(self):
         raw = 'Sure! Here it is: {"schema_version":2,"logic_tree":{"kind":"OR","children":[{"kind":"concept","term":{"text":"chest X-ray"}}]},"action":null} Done.'
         result = self._parse(raw)
         assert result is not None
-        assert result["action"] is None
+        assert result["actions"] == []
 
     def test_assigns_node_ids(self):
         raw = '{"schema_version":2,"logic_tree":{"kind":"OR","children":[{"kind":"concept","term":{"text":"a"}},{"kind":"concept","term":{"text":"b"}}]},"action":null}'
@@ -239,10 +239,12 @@ class TestCodeSnomed:
                         }
                     ],
                 },
-                "action": {
-                    "text": "suspected cancer referral",
-                    "search_terms": ["suspected cancer referral"],
-                },
+                "actions": [
+                    {
+                        "text": "suspected cancer referral",
+                        "search_terms": ["suspected cancer referral"],
+                    }
+                ],
             }
         }
 
@@ -275,7 +277,7 @@ class TestCodeSnomed:
         leaf = result["candidate_criteria"]["logic_tree"]["children"][0]["criterion"]
         assert leaf["candidates"][0]["concept_id"] == "405749005"
         assert (
-            result["candidate_criteria"]["action"]["candidates"][0]["concept_id"]
+            result["candidate_criteria"]["actions"][0]["candidates"][0]["concept_id"]
             == "123"
         )
 
@@ -307,31 +309,34 @@ class TestCodeSnomed:
             "search_history": [["x"]],
             "reason": "stubbed for unit test",
         }
-        with patch(
-            "libs.terminology.client.TerminologyClient.resolve", return_value={}
-        ), patch(
-            "libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl."
-            "_run_agentic_resolver",
-            return_value=empty_agentic,
+        with (
+            patch("libs.terminology.client.TerminologyClient.resolve", return_value={}),
+            patch(
+                "libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl."
+                "_run_agentic_resolver",
+                return_value=empty_agentic,
+            ),
         ):
             result = code_snomed(
                 {
                     "raw_criteria": {
                         "schema_version": 2,
                         "logic_tree": None,
-                        "action": {"text": "x", "search_terms": ["x"]},
+                        "actions": [{"text": "x", "search_terms": ["x"]}],
                     }
                 }
             )
 
         candidate = result["candidate_criteria"]
-        assert candidate is not None, (
-            "expected a populated candidate_criteria so HITL routing can fire"
-        )
-        action = candidate.get("action") or {}
-        assert action.get("candidates") == [], (
-            "no SNOMED candidates should be selected when Terminology returns nothing"
-        )
+        assert (
+            candidate is not None
+        ), "expected a populated candidate_criteria so HITL routing can fire"
+        actions = candidate.get("actions") or []
+        assert actions, "expected the action to still be present, unresolved"
+        action = actions[0]
+        assert (
+            action.get("candidates") == []
+        ), "no SNOMED candidates should be selected when Terminology returns nothing"
         assert float(action.get("confidence") or 0.0) == 0.0
         hitl_terms = candidate.get("hitl_terms") or []
         assert hitl_terms, "expected the unresolved term to be routed to HITL"
@@ -463,7 +468,7 @@ class TestGenerationStub:
             },
             {
                 "id": "NG12:v1:CH000:R001",
-                "verbatim": "Offer chest X-ray.",
+                "verbatim": "Offer urgent chest X-ray for suspected lung cancer.",
                 "title": "1.1.2",
                 "urgency": "urgent_2w",
                 "strength": "offer",
@@ -472,7 +477,9 @@ class TestGenerationStub:
         ]
 
         with patch.object(gen, "_fetch_recommendations", return_value=recs):
-            with patch.object(gen, "_write_rule", return_value="rule:test") as write_rule:
+            with patch.object(
+                gen, "_write_rule", return_value="rule:test"
+            ) as write_rule:
                 result = gen.generate_rules_for_guideline(
                     "NG12",
                     only_without_rules=True,
@@ -1088,16 +1095,26 @@ class TestAgenticExpansionAndPartial:
                         "search_terms": [],
                     },
                 },
-                "action": {
-                    "text": "fast track referral for suspected oesophageal cancer",
-                    "search_terms": [],
-                },
+                "actions": [
+                    {
+                        "text": "fast track referral for suspected oesophageal cancer",
+                        "search_terms": [],
+                    }
+                ],
             },
         }
-        out = expand_leaves(state)
+        # The semantic-expansion LLM call is out of scope for this unit test
+        # (it needs live Bedrock credentials); stub it so the deterministic
+        # variant-expansion path is exercised without a network dependency.
+        with patch(
+            "libs.pipeline_graph.subgraphs.guidance_rule_extraction_v2_impl."
+            "_run_small_to_big_expansion_tool_loop",
+            return_value=["signs of pleural effusion (llm)"],
+        ):
+            out = expand_leaves(state)
         expanded = out["expanded_criteria"]
         term = expanded["logic_tree"]["term"]
-        action = expanded["action"]
+        action = expanded["actions"][0]
         assert term["original_phrase"] == "chest signs compatible with pleural disease"
         assert term["expansion_source"] == "abstract_phrase+semantic_llm"
         assert "pleural disease signs" in term["search_terms"]

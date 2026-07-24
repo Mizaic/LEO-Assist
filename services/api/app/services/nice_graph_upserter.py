@@ -51,8 +51,10 @@ Graph model
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import uuid
 from typing import Any
 
 from app.services.nice_api_client import parse_nice_ms_date
@@ -157,25 +159,29 @@ _UPSERT_RECOMMENDATION = """
 MATCH (g:Guideline {id: $guideline_id})
 MERGE (r:Recommendation {id: $id})
 ON CREATE SET
-    r.verbatim        = $verbatim,
-    r.title           = $title,
-    r.number          = $number,
-    r.urgency         = $urgency,
-    r.strength        = $strength,
-    r.sectionTitle    = $section_title,
-    r.isNormative     = $is_normative,
-    r.guidelineId     = $guideline_id,
-    r.versionId       = $version_id,
-    r.source          = 'nice_syndication_api',
-    r.status          = 'loaded',
-    r.createdAt       = datetime()
+    r.verbatim          = $verbatim,
+    r.title             = $title,
+    r.number            = $number,
+    r.urgency           = $urgency,
+    r.strength          = $strength,
+    r.sectionTitle      = $section_title,
+    r.isNormative       = $is_normative,
+    r.guidelineId       = $guideline_id,
+    r.versionId         = $version_id,
+    r.listStructureJson = $list_structure_json,
+    r.recommendationKey = $recommendation_key,
+    r.renumberedFrom    = $renumbered_from,
+    r.source            = 'nice_syndication_api',
+    r.status            = 'loaded',
+    r.createdAt         = datetime()
 ON MATCH SET
-    r.verbatim        = $verbatim,
-    r.title           = $title,
-    r.number          = $number,
-    r.sectionTitle    = $section_title,
-    r.isNormative     = $is_normative,
-    r.updatedAt       = datetime()
+    r.verbatim          = $verbatim,
+    r.title             = $title,
+    r.number            = $number,
+    r.sectionTitle      = $section_title,
+    r.isNormative       = $is_normative,
+    r.listStructureJson = $list_structure_json,
+    r.updatedAt         = datetime()
 MERGE (g)-[:HAS_RECOMMENDATION]->(r)
 WITH r
 FOREACH (ch_id IN CASE WHEN $chapter_id IS NOT NULL THEN [$chapter_id] ELSE [] END |
@@ -183,6 +189,12 @@ FOREACH (ch_id IN CASE WHEN $chapter_id IS NOT NULL THEN [$chapter_id] ELSE [] E
     MERGE (ch)-[:HAS_RECOMMENDATION]->(r)
 )
 RETURN r.id AS id
+"""
+
+_FETCH_RECS_FOR_KEY_MATCHING = """
+MATCH (r:Recommendation {guidelineId: $guideline_id, versionId: $version_id})
+WHERE r.recommendationKey IS NOT NULL
+RETURN r.number AS number, r.verbatim AS text, r.recommendationKey AS recommendation_key
 """
 
 # ── Taxonomy ───────────────────────────────────────────────────────────────
@@ -285,7 +297,9 @@ class NiceGraphUpserter:
             "code": code,
             "title": guidance_json.get("Title", ""),
             "guidance_number": guidance_json.get("GuidanceNumber", code),
-            "guidance_type": guidance_json.get("GuidanceType", guidance_json.get("Type", "")),
+            "guidance_type": guidance_json.get(
+                "GuidanceType", guidance_json.get("Type", "")
+            ),
             "pub_date": parse_nice_ms_date(meta.get("Issued") or ""),
             "last_modified_date": parse_nice_ms_date(
                 guidance_json.get("LastModified") or meta.get("Modified") or ""
@@ -434,6 +448,8 @@ class NiceGraphUpserter:
         rec: dict[str, Any],
         chapter_id: str | None = None,
         version_id: str = "",
+        recommendation_key: str | None = None,
+        renumbered_from: str | None = None,
     ) -> str:
         """Store a Recommendation node linked to Guideline and Chapter.
 
@@ -447,12 +463,33 @@ class NiceGraphUpserter:
         the NICE section heading (e.g. "Lung cancer", "Oesophageal cancer").
         This is read from ``rec["SectionTitle"]`` when present.
 
+        ``listStructureJson`` captures the recommendation's own nested list
+        markup (see ``nice_list_parser.parse_recommendation_list_structure``)
+        as a JSON string, read from ``rec["ListStructure"]``. ``None`` (not
+        written / cleared to null) when the recommendation has no list
+        structure -- most recommendations are a single plain sentence.
+
+        ``recommendationKey`` / ``renumberedFrom`` are the LEO-internal
+        stable identity resolved by ``recommendation_key_matcher.py`` --
+        set only ``ON CREATE`` so a re-run of the exact same ingest version
+        (same ``rec_id``) never overwrites the identity already resolved for
+        it. The caller is responsible for resolving these (see
+        ``_async_ingest`` in ``nice_guidance.py``): pass a freshly minted
+        UUID for a genuinely new recommendation, or the previous version's
+        key when continuity was established.
+
         Args:
             guideline_id: Parent guideline node ID.
             rec_id: Version-scoped identifier (e.g. ``NG12:v2:CH000:R003``).
             rec: Recommendation dict from the NICE API chapter Items.
             chapter_id: Optional parent chapter node ID.
             version_id: Version string for provenance (e.g. ``NG12:v2``).
+            recommendation_key: Stable LEO-internal identity, independent of
+                ``rec_id`` and ``number``. Required for correct cross-version
+                continuity; only enforced ``ON CREATE``.
+            renumbered_from: The previous version's recommendation number,
+                set only when ``recommendation_key`` was carried forward via
+                the text-similarity fallback (not an exact number match).
 
         Returns:
             The recommendation node ID.
@@ -461,6 +498,12 @@ class NiceGraphUpserter:
         title = rec.get("Title", "")
         section_title = rec.get("SectionTitle", "")
         is_normative = bool(rec.get("isNormative", False))
+        # ListStructure (nice_list_parser.parse_recommendation_list_structure)
+        # is a static parse artifact, not something requiring its own graph
+        # traversal -- stored as a JSON string, same precedent as
+        # AppropriatenessRule.logicJson, rather than exploded into nodes.
+        list_structure = rec.get("ListStructure")
+        list_structure_json = json.dumps(list_structure) if list_structure else None
         driver = _kg_driver()
         try:
             with driver.session() as session:
@@ -477,9 +520,35 @@ class NiceGraphUpserter:
                     is_normative=is_normative,
                     chapter_id=chapter_id,
                     version_id=version_id,
+                    list_structure_json=list_structure_json,
+                    recommendation_key=recommendation_key or str(uuid.uuid4()),
+                    renumbered_from=renumbered_from,
                 )
                 record = result.single()
                 return record["id"] if record else rec_id
+        finally:
+            driver.close()
+
+    def fetch_recommendations_for_key_matching(
+        self, guideline_id: str, version_id: str
+    ) -> list[dict[str, Any]]:
+        """Return ``{number, text, recommendation_key}`` for every
+        recommendation in one specific previous ingest version.
+
+        Feeds ``recommendation_key_matcher.match_recommendation_keys()`` so
+        a re-ingest can resolve stable identity for the new version's
+        recommendations before any of them are written. Returns an empty
+        list for a first-ever ingest (no previous version to match against).
+        """
+        driver = _kg_driver()
+        try:
+            with driver.session() as session:
+                result = session.run(
+                    _FETCH_RECS_FOR_KEY_MATCHING,
+                    guideline_id=guideline_id,
+                    version_id=version_id,
+                )
+                return [dict(record) for record in result]
         finally:
             driver.close()
 

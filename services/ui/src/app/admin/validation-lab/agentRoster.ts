@@ -1,7 +1,10 @@
 /**
  * Friendly agent names for Validation Lab pipeline workers.
  *
- * Atlas: DI-FE423B8D / DO-158BE606
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-020F98AE, DI-12D40786, DI-2289D095, DI-43E908C6, DI-62175179, DI-9138BAC9, DI-A898556B, DI-FE423B8D
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  *
  * Local start scripts assign PIPELINE_WORKER_NAME from this roster.
  * The UI also maps unknown worker ids onto the same names so older

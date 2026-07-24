@@ -16,7 +16,7 @@
  *   +--- DialogTitle (guideline kicker + chapter caption) ---+
  *   +--- HorizontalStepper (4 jump-able steps, 56px tall) ---+
  *   |                          |                             |
- *   |     CANVAS (~60%)        |   LivePreviewPane (~40%)    |
+ *   |     CANVAS (~60%)        |   right column (~40%)      |
  *   |                          |   always visible, no toggle |
  *   |                          |                             |
  *   +--- Sticky DialogActions (Cancel | Back | Next | Save) -+
@@ -26,6 +26,14 @@
  *     knows what the rule means as they edit. The previous one-line
  *     LivePreviewBanner + slide-in LivePreviewDrawer trade-off was
  *     deleted in Phase 3.
+ *   - While the guided highlight-to-build wizard (step "who") is
+ *     still working through its own steps, the right column shows
+ *     GuidelineQuotePanel (the pinned NICE wording) instead --
+ *     LivePreviewPane has nothing useful to summarise until the tree
+ *     is actually built, and pinning the source sentence removes the
+ *     scroll-up-scroll-down loop reviewers hit checking their picks
+ *     against it. `guidedPanelMode` swaps back to "preview" once the
+ *     wizard reaches Review.
  *   - ChipSearchPopover still anchors to the chip / +Add element the
  *     reviewer just clicked, so concept search appears in context
  *     instead of in a separate column.
@@ -68,11 +76,13 @@ import { useMotion } from "@leo/design-system";
 
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
+import ConceptSynonymDialog from "./ConceptSynonymDialog";
 import ChipSearchPopover from "./ChipSearchPopover";
 import HorizontalStepper, {
   type StepDescriptor,
   type StepState,
 } from "./HorizontalStepper";
+import GuidelineQuotePanel from "./GuidelineQuotePanel";
 import LivePreviewPane from "./LivePreviewPane";
 import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
@@ -93,6 +103,7 @@ import {
   findValidationError,
   hasOrRootWithPrerequisites,
   observationWithCriterion,
+  ensurePathwayKeys,
   promoteOrPrerequisites,
   sanitiseActionsForSave,
   stripNodeIds,
@@ -110,6 +121,10 @@ import type {
   RuleAction,
   RulePriority,
 } from "./types";
+import type {
+  PathwayTextBoundary,
+  RecommendationStructure,
+} from "./SentenceEditor/pathwayTextSplit";
 
 export interface EditableRule {
   rule_id: string;
@@ -120,6 +135,11 @@ export interface EditableRule {
   guideline_id?: string;
   chapter_title?: string;
   recommendation_text?: string;
+  /** NICE HTML list tree for this recommendation, when it is a list
+   *  rather than a plain sentence -- lets the highlight-to-build
+   *  wizard's pathway-split step prefer real structure over the
+   *  ", or"-boundary heuristic. Null/absent for plain sentences. */
+  recommendation_structure?: RecommendationStructure | null;
   logic_tree?: unknown;
   /** One or more recommended procedures, each with its own strength. */
   actions?: RuleAction[];
@@ -139,6 +159,9 @@ interface Props {
   rule: EditableRule | null;
   open: boolean;
   saving?: boolean;
+  /** Shown inside the dialog when the parent save call fails --
+   *  errors rendered behind this modal are invisible to the reviewer. */
+  saveError?: string | null;
   onClose: () => void;
   onSave: (payload: {
     name: string;
@@ -180,6 +203,20 @@ interface SearchTarget {
    * Step 2 still renders the search inline beneath the action chip.
    */
   anchorEl: HTMLElement | null;
+  /**
+   * Only meaningful when ``mode === "add"``. The highlight-to-build
+   * wizard's own "add" triggers (a Step 3 row click, a Step 1
+   * highlighted selection) set this so the popover offers a
+   * multi-select picker with an explicit confirm, letting the
+   * reviewer pick more than one SNOMED code for the same row/phrase
+   * in one go (bundled into a single LogicCriterion's ``seeds``, i.e.
+   * "match any of these" -- never several separate ANDed leaves).
+   * The Advanced/Sentence editor's own "+Add" leaves this false so it
+   * keeps ConceptSearchPanel's single-pick flow, including the
+   * "Compare value..." observation affordance MultiConceptPicker does
+   * not have.
+   */
+  multiPick: boolean;
 }
 
 const IDLE_TARGET: SearchTarget = {
@@ -191,6 +228,7 @@ const IDLE_TARGET: SearchTarget = {
   initialQuery: "",
   focusLabel: null,
   anchorEl: null,
+  multiPick: false,
 };
 
 /**
@@ -287,6 +325,7 @@ export default function EditRuleDialog({
   rule,
   open,
   saving,
+  saveError = null,
   onClose,
   onSave,
 }: Props) {
@@ -319,16 +358,72 @@ export default function EditRuleDialog({
   const [priorityDirty, setPriorityDirty] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
+  /** While the guided wizard (Step1Who) is still building the tree,
+   *  the right column shows the pinned NICE quote instead of a
+   *  half-built live preview -- see GuidelineQuotePanel's doc comment. */
+  const [guidedPanelMode, setGuidedPanelMode] = useState<"quote" | "preview">(
+    "preview",
+  );
+  /** Which situation (Step 3 pathway) the guided wizard is currently
+   *  building, if any -- see GuidelineQuotePanel's `pathwayBoundaries`/
+   *  `activePathwayIndex` props. Null before a pathway split exists. */
+  const [activeSituation, setActiveSituation] = useState<{
+    boundaries: PathwayTextBoundary[] | null;
+    pathwayIndex: number | null;
+  }>({ boundaries: null, pathwayIndex: null });
+  /** The CONCEPT leaf currently open in the add/remove/depth synonym
+   *  editor -- see ConceptSynonymDialog and HighlightWizard's
+   *  `onEditConcept` doc comment. Null when the dialog is closed. */
+  const [synonymEditorNodeId, setSynonymEditorNodeId] = useState<string | null>(
+    null,
+  );
+  const handleEditConcept = useCallback(
+    (nodeId: string) => setSynonymEditorNodeId(nodeId),
+    [],
+  );
+  // Stable across renders (see HighlightWizard's `onActiveSituationChange`
+  // dependency array) -- an inline arrow function here would get a new
+  // identity on every render, re-firing that effect, calling this, and
+  // re-rendering forever.
+  const handleActiveSituationChange = useCallback(
+    (boundaries: PathwayTextBoundary[] | null, pathwayIndex: number | null) => {
+      setActiveSituation((prev) =>
+        prev.boundaries === boundaries && prev.pathwayIndex === pathwayIndex
+          ? prev
+          : { boundaries, pathwayIndex },
+      );
+    },
+    [],
+  );
   const [stepDirection, setStepDirection] = useState<1 | -1>(1);
   const prevStepIndexRef = useRef(0);
   const { reducedMotion } = useMotion();
 
   useEffect(() => {
     if (!rule) return;
-    const initialTree =
-      rule.logic_tree && typeof rule.logic_tree === "object"
-        ? assignNodeIds(rule.logic_tree as EditableLogicNode)
-        : assignNodeIds({ kind: "AND", children: [] });
+    // wrapRootInAnd: some pending-review AI-extracted rules persist a
+    // single criterion as a BARE leaf root (e.g. NG12 1.2.8's
+    // {"kind": "concept", "criterion": {...}}), with no AND wrapper.
+    // GroupSentence / GroupBody both assume the root is a group (they
+    // read node.children, the kind Select, etc.) -- fed a bare leaf
+    // they rendered it as an empty group ("nothing yet"), silently
+    // hiding the one real criterion from the reviewer. A reviewer who
+    // then used "+ add another symptom" to add back the very same
+    // criterion they could not see ended up with it TWICE once the
+    // add flow's own wrapRootInAnd finally surfaced the hidden
+    // original alongside the new pick. Wrapping unconditionally here
+    // guarantees both canvases always receive a real group root.
+    // ensurePathwayKeys: backfills a stable pathway_key onto every
+    // pathway that predates this field (see the "Stable identity"
+    // plan section / pathway-stable-key). Safe to run on every load --
+    // a pathway that already has a key is left untouched.
+    const initialTree = ensurePathwayKeys(
+      wrapRootInAnd(
+        rule.logic_tree && typeof rule.logic_tree === "object"
+          ? assignNodeIds(rule.logic_tree as EditableLogicNode)
+          : assignNodeIds({ kind: "AND", children: [] }),
+      ),
+    );
     setTree(initialTree);
     setOriginalTree(initialTree);
     setName(rule.name ?? "");
@@ -371,13 +466,15 @@ export default function EditRuleDialog({
   const duplicates = useMemo(() => findDuplicateConceptGroups(tree), [tree]);
 
   // The chip-anchored search popover is open whenever there is an
-  // active concept-picking target with an anchor element. The
-  // `replace_action` slot in Step 2 still renders the search inline
-  // (it is not a chip-anchored interaction) so we only treat it as
-  // the chip popover when the anchor is set.
-  const chipPopoverOpen =
-    (searchTarget.mode === "replace" || searchTarget.mode === "add") &&
-    searchTarget.anchorEl !== null;
+  // active concept-picking target. Every trigger -- including the
+  // guided highlight-to-build wizard's own row clicks and Step 1's
+  // "highlight more text" confirm -- supplies a real anchor element
+  // (the row/button/word chunk just clicked) so the popover appears
+  // right next to it, same as every other chip-anchored interaction.
+  // The `replace_action` slot in Step 2 still renders the search
+  // inline (it is not a chip-anchored interaction), so it is excluded
+  // here regardless.
+  const chipPopoverOpen = searchTarget.mode === "replace" || searchTarget.mode === "add";
 
   const validationError = useMemo(() => findValidationError(tree), [tree]);
   const actionsError = useMemo(
@@ -471,6 +568,7 @@ export default function EditRuleDialog({
           ? `Swapping lab value: ${friendly}`
           : "Pick a lab value to compare",
         anchorEl: anchor ?? null,
+        multiPick: false,
       });
       return;
     }
@@ -490,12 +588,15 @@ export default function EditRuleDialog({
         ? `Swapping: ${friendly}`
         : "Pick a symptom, sign, procedure, or situation for the empty pill",
       anchorEl: anchor ?? null,
+      multiPick: false,
     });
   }
 
   function handleRequestAdd(
     parentNodeId: string,
     anchor?: HTMLElement | null,
+    initialQuery?: string,
+    multiPick?: boolean,
   ) {
     if (!tree) return;
     const parent = findNode(tree, parentNodeId);
@@ -505,11 +606,12 @@ export default function EditRuleDialog({
       nodeId: null,
       replaceKind: null,
       actionIndex: null,
-      initialQuery: "",
+      initialQuery: initialQuery ?? "",
       focusLabel: parent
         ? `Adding to: ${groupLabel(parent.kind)}`
         : "Adding a symptom, sign, procedure, or situation",
       anchorEl: anchor ?? null,
+      multiPick: multiPick ?? false,
     });
   }
 
@@ -575,6 +677,7 @@ export default function EditRuleDialog({
       initialQuery: topic,
       focusLabel: `Adding to: ${parent ? groupLabel(parent.kind) : "the rule"}`,
       anchorEl: coach.anchor,
+      multiPick: false,
     });
     setCoach(null);
   }
@@ -592,6 +695,7 @@ export default function EditRuleDialog({
         ? `Swapping procedure ${index + 1}: ${friendly}`
         : `Pick the procedure for row ${index + 1}`,
       anchorEl: null,
+      multiPick: false,
     });
   }
 
@@ -657,12 +761,19 @@ export default function EditRuleDialog({
       return;
     }
     if (searchTarget.mode === "add" && searchTarget.parentNodeId && tree) {
+      // See EditableLogicNode.source_row_text's doc comment: when this
+      // "add" was opened pre-filled from a wizard row/selection (the
+      // only case initialQuery is ever non-empty), tag the new leaf
+      // with that row's own text so it reliably resolves back to that
+      // row even when the picked term shares no wording with it.
+      const sourceRowText = searchTarget.initialQuery.trim() || undefined;
       const parent = findNode(tree, searchTarget.parentNodeId);
       if (parent && canHaveChildren(parent.kind)) {
         handleUpdate({
           kind: "add_concept",
           parentNodeId: searchTarget.parentNodeId,
           criterion,
+          sourceRowText,
         });
       } else if (parent && parent.node_id === tree.node_id) {
         const groupRoot = wrapRootInAnd(tree);
@@ -671,6 +782,7 @@ export default function EditRuleDialog({
             kind: "add_concept",
             parentNodeId: groupRoot.node_id,
             criterion,
+            sourceRowText,
           }),
         );
       }
@@ -920,10 +1032,12 @@ export default function EditRuleDialog({
                 selectedNodeId={searchTarget.nodeId}
                 duplicates={duplicates}
                 recommendationText={rule?.recommendation_text}
+                recommendationStructure={rule?.recommendation_structure}
                 onSelectNode={handleSelectNode}
                 onUpdate={handleUpdate}
                 onRequestAdd={handleRequestAdd}
                 onRequestCoach={handleRequestCoach}
+                onEditConcept={handleEditConcept}
                 onAddFirstSymptom={handleAddFirstSymptom}
                 onAddFirstDemographic={handleAddFirstDemographic}
                 onAddFirstObservation={handleAddFirstObservation}
@@ -933,6 +1047,8 @@ export default function EditRuleDialog({
                   const withIds = assignNodeIds(aiTree);
                   setTree(withIds);
                 }}
+                onGuidedPanelModeChange={setGuidedPanelMode}
+                onActiveSituationChange={handleActiveSituationChange}
               />
             )}
             {currentStepId === "suggest" && (
@@ -1030,17 +1146,26 @@ export default function EditRuleDialog({
                 minHeight: 0,
               }}
             >
-              <LivePreviewPane
-                summary={summary}
-                actions={actions}
-                priority={priority}
-                dueDays={dueDays}
-                showBeforeAfter={currentStepId === "save"}
-                beforeSummary={beforeSummary}
-                beforeActions={originalActions}
-                beforePriority={originalPriority}
-                beforeDueDays={originalDueDays}
-              />
+              {currentStepId === "who" && guidedPanelMode === "quote" ? (
+                <GuidelineQuotePanel
+                  recommendationText={rule?.recommendation_text}
+                  tree={tree}
+                  pathwayBoundaries={activeSituation.boundaries}
+                  activePathwayIndex={activeSituation.pathwayIndex}
+                />
+              ) : (
+                <LivePreviewPane
+                  summary={summary}
+                  actions={actions}
+                  priority={priority}
+                  dueDays={dueDays}
+                  showBeforeAfter={currentStepId === "save"}
+                  beforeSummary={beforeSummary}
+                  beforeActions={originalActions}
+                  beforePriority={originalPriority}
+                  beforeDueDays={originalDueDays}
+                />
+              )}
             </Box>
           </Box>
         </Box>
@@ -1056,10 +1181,20 @@ export default function EditRuleDialog({
         replaceKind={searchTarget.replaceKind}
         focusLabel={searchTarget.focusLabel}
         initialQuery={searchTarget.initialQuery}
+        multiPick={searchTarget.mode === "add" && searchTarget.multiPick}
         onPick={handlePick}
         onPickObservation={handlePickObservation}
         onClose={handleClosePopover}
       />
+      {saveError ? (
+        <Alert
+          severity="error"
+          role="alert"
+          sx={{ mx: 3, mb: 0, mt: 1, flexShrink: 0 }}
+        >
+          {saveError}
+        </Alert>
+      ) : null}
       <DialogActions
         sx={{
           px: 3,
@@ -1125,6 +1260,26 @@ export default function EditRuleDialog({
           />
         );
       })()}
+      <ConceptSynonymDialog
+        open={!!synonymEditorNodeId}
+        node={
+          synonymEditorNodeId && tree ? findNode(tree, synonymEditorNodeId) : null
+        }
+        onUpdate={handleUpdate}
+        onClose={() => setSynonymEditorNodeId(null)}
+        // Wizard (and any other open-by-node-id path): let the reviewer
+        // undo a mistaken Step 3 pick by deleting the CONCEPT leaf so
+        // the row goes back to unresolved. The Advanced chip editor
+        // opens SynonymChipEditor's own dialog without this callback.
+        onClearMatch={
+          synonymEditorNodeId
+            ? () => {
+                handleUpdate({ kind: "remove", nodeId: synonymEditorNodeId });
+                setSynonymEditorNodeId(null);
+              }
+            : undefined
+        }
+      />
     </Dialog>
   );
 }

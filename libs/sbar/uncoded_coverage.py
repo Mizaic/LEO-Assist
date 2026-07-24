@@ -1,4 +1,10 @@
-"""Uncoded-sentence coverage analyser with salvage policy (A3.4)."""
+"""Uncoded-sentence coverage analyser with salvage policy (A3.4).
+
+Atlas trace:
+  DO: DO-FA365C59
+  DI: DI-3AAB5328
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-FA365C59")
+"""
 
 from __future__ import annotations
 

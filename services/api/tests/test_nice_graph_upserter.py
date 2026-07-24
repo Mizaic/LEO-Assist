@@ -14,6 +14,7 @@ Versioning contract:
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -109,6 +110,134 @@ def test_upsert_recommendation_links_to_guideline(upserter):
     assert result == rec_id
     cypher = session.run.call_args[0][0]
     assert "HAS_RECOMMENDATION" in cypher
+
+
+def test_upsert_recommendation_passes_none_list_structure_json_when_absent(upserter):
+    """A plain-sentence recommendation (no ListStructure key) writes None,
+    not a JSON "null" string or an omitted kwarg."""
+    rec = {"Title": "1.1.1", "Text": "Refer if rectal bleeding > 50."}
+    rec_id = "NG151:v1:CH000:R000"
+    session, ctx = _make_session_mock(rec_id)
+
+    with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
+        mock_drv = MagicMock()
+        mock_drv.session.return_value = ctx
+        mock_drv.close = MagicMock()
+        mock_driver.return_value = mock_drv
+        upserter.upsert_recommendation("NG151", rec_id, rec, version_id="NG151:v1")
+
+    kwargs = session.run.call_args[1]
+    assert kwargs.get("list_structure_json") is None
+
+
+def test_upsert_recommendation_serialises_list_structure_to_json(upserter):
+    """A recommendation carrying ListStructure writes it as a JSON string,
+    same storage precedent as AppropriatenessRule.logicJson."""
+    rec = {
+        "Title": "1.2.9",
+        "Text": "Consider referral in people with: haematemesis, or a raised platelet count.",
+        "ListStructure": {
+            "lead_text": "Consider referral in people with:",
+            "items": [
+                {"text": "haematemesis", "start": 35, "end": 47},
+                {"text": "a raised platelet count", "start": 51, "end": 75},
+            ],
+        },
+    }
+    rec_id = "NG12:v1:CH002:R008"
+    session, ctx = _make_session_mock(rec_id)
+
+    with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
+        mock_drv = MagicMock()
+        mock_drv.session.return_value = ctx
+        mock_drv.close = MagicMock()
+        mock_driver.return_value = mock_drv
+        upserter.upsert_recommendation("NG12", rec_id, rec, version_id="NG12:v1")
+
+    kwargs = session.run.call_args[1]
+    stored = json.loads(kwargs["list_structure_json"])
+    assert stored == rec["ListStructure"]
+
+
+def test_upsert_recommendation_mints_uuid_when_no_recommendation_key_given(upserter):
+    """A caller that doesn't resolve identity up front (first-ever ingest,
+    or a call site not yet migrated) still gets a usable, non-empty key --
+    upsert_recommendation never silently writes recommendationKey=None."""
+    rec = {"Title": "1.1.1", "Text": "Refer if rectal bleeding > 50."}
+    rec_id = "NG151:v1:CH000:R000"
+    session, ctx = _make_session_mock(rec_id)
+
+    with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
+        mock_drv = MagicMock()
+        mock_drv.session.return_value = ctx
+        mock_drv.close = MagicMock()
+        mock_driver.return_value = mock_drv
+        upserter.upsert_recommendation("NG151", rec_id, rec, version_id="NG151:v1")
+
+    kwargs = session.run.call_args[1]
+    assert kwargs["recommendation_key"]
+    assert kwargs["renumbered_from"] is None
+
+
+def test_upsert_recommendation_passes_through_resolved_key_and_renumbered_from(
+    upserter,
+):
+    """When the caller has already resolved identity via
+    recommendation_key_matcher.match_recommendation_keys(), both values
+    are passed straight through to the Cypher params, unmodified."""
+    rec = {"Title": "1.2.10", "Text": "Consider non-urgent endoscopy."}
+    rec_id = "NG12:v2:CH000:R009"
+    session, ctx = _make_session_mock(rec_id)
+
+    with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
+        mock_drv = MagicMock()
+        mock_drv.session.return_value = ctx
+        mock_drv.close = MagicMock()
+        mock_driver.return_value = mock_drv
+        upserter.upsert_recommendation(
+            "NG12",
+            rec_id,
+            rec,
+            version_id="NG12:v2",
+            recommendation_key="stable-key-129",
+            renumbered_from="1.2.9",
+        )
+
+    kwargs = session.run.call_args[1]
+    assert kwargs["recommendation_key"] == "stable-key-129"
+    assert kwargs["renumbered_from"] == "1.2.9"
+    cypher = session.run.call_args[0][0]
+    assert "r.recommendationKey" in cypher
+    assert "r.renumberedFrom" in cypher
+
+
+def test_fetch_recommendations_for_key_matching_returns_number_text_key(upserter):
+    """Feeds recommendation_key_matcher.match_recommendation_keys() -- shape
+    must be {number, text, recommendation_key} per row."""
+    session = MagicMock()
+    session.run.return_value = [
+        {"number": "1.2.9", "text": "Consider referral...", "recommendation_key": "k1"},
+        {"number": "1.2.10", "text": "Offer a scan...", "recommendation_key": "k2"},
+    ]
+    ctx = MagicMock()
+    ctx.__enter__ = MagicMock(return_value=session)
+    ctx.__exit__ = MagicMock(return_value=False)
+
+    with patch("app.services.nice_graph_upserter._kg_driver") as mock_driver:
+        mock_drv = MagicMock()
+        mock_drv.session.return_value = ctx
+        mock_drv.close = MagicMock()
+        mock_driver.return_value = mock_drv
+        rows = upserter.fetch_recommendations_for_key_matching("NG12", "NG12:v1")
+
+    assert len(rows) == 2
+    assert rows[0] == {
+        "number": "1.2.9",
+        "text": "Consider referral...",
+        "recommendation_key": "k1",
+    }
+    query_text = session.run.call_args[0][0]
+    assert "recommendationKey" in query_text
 
 
 def test_upsert_recommendation_links_to_chapter_when_chapter_id_given(upserter):

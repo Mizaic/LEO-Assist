@@ -1,4 +1,10 @@
-"""Structured-first Situation source selection (D3.1-D3.2)."""
+"""Structured-first Situation source selection (D3.1-D3.2).
+
+Atlas trace:
+  DO: DO-FE774247
+  DI: DI-ED65569C
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-FE774247")
+"""
 
 from __future__ import annotations
 

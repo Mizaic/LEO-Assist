@@ -15,6 +15,7 @@
  *   DO: DO-F8C56339
  *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
+import { findPathwaySplit } from "./pathwayDetection";
 import type {
   EditableLogicNode,
   EditableObservationPayload,
@@ -37,9 +38,29 @@ export type LogicNodeSeed = Omit<Partial<EditableLogicNode>, "children"> & {
 };
 
 let _idCounter = 0;
-function freshNodeId(): string {
+/**
+ * Exported (not just used internally) so the highlight-to-build
+ * wizard orchestrator can mint node ids when constructing a brand
+ * new pathway skeleton in one atomic `replace_root` -- see
+ * `HighlightWizard/wizardMapping.ts` -- without a second, drifting
+ * copy of this counter.
+ */
+export function freshNodeId(): string {
   _idCounter += 1;
   return `n_${Date.now().toString(36)}_${_idCounter}`;
+}
+
+let _pathwayKeyCounter = 0;
+/**
+ * Mint a fresh, globally-unique pathway identity. Namespaced
+ * separately from ``freshNodeId`` -- the two counters are unrelated,
+ * and a pathway_key must never be confused with (or accidentally
+ * collide against) a node_id since they have different lifetimes
+ * (node_id is ephemeral/client-only; pathway_key is persisted).
+ */
+export function mintPathwayKey(): string {
+  _pathwayKeyCounter += 1;
+  return `pw_${Date.now().toString(36)}_${_pathwayKeyCounter}`;
 }
 
 /**
@@ -121,6 +142,14 @@ const ALLOWED_CRITERION_KEYS = new Set<keyof LogicCriterion>([
   "seeds",
   "excluded_concept_ids",
   "primary_concept_id",
+  // Confidence signal (highlight-to-build wizard, confidence-surfacing).
+  // Previously stripped here, which meant AI confidence survived exactly
+  // one review pass then was gone forever. Now round-trips through save
+  // so the confidence lifecycle in confidenceGate.ts can work at all.
+  "confidence",
+  "needs_human_review",
+  "human_reviewed_at",
+  "human_reviewed_by",
 ]);
 
 function sanitiseSeed(seed: LogicSeed): LogicSeed {
@@ -188,6 +217,10 @@ export function sanitiseActionsForSave(
  */
 export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   const out: Record<string, unknown> = { kind: node.kind };
+  // Unlike node_id (client-only, regenerated every load), pathway_key
+  // is a persisted stable identity -- see the "Stable identity" plan
+  // section. Preserved verbatim, never regenerated here.
+  if (node.pathway_key) out.pathway_key = node.pathway_key;
   if (node.criterion) out.criterion = sanitiseCriterion(node.criterion);
   if (node.field !== undefined) out.field = node.field;
   if (node.operator !== undefined) out.operator = node.operator;
@@ -205,6 +238,13 @@ export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   // Pydantic model never sees an empty ``name`` field.
   if (typeof node.name === "string" && node.name.trim()) {
     out.name = node.name.trim();
+  }
+  // See `EditableLogicNode.source_row_text`'s doc comment -- persisted
+  // (like `name`) so a wizard-added leaf still resolves its own Step 3
+  // row the next time this rule is reopened, not just in the session
+  // it was added in.
+  if (typeof node.source_row_text === "string" && node.source_row_text.trim()) {
+    out.source_row_text = node.source_row_text.trim();
   }
   // Phase 6a: round-trip the OBSERVATION payload verbatim.
   if (node.kind === "OBSERVATION" && node.observation) {
@@ -428,6 +468,32 @@ function mapNode(
   return { ...replaced, children: newChildren };
 }
 
+/**
+ * Walk the tree looking for the first node whose direct ``children``
+ * array is the one ``rewrite`` should act on (``rewrite`` returns
+ * ``null`` when this array is not the target, letting the walk
+ * continue deeper). Unlike ``mapNode`` (one node in, one node or null
+ * out -- fine for replace/remove), split and merge need to turn one
+ * child into two, or two children into one, which changes the shape
+ * of the *array*, not of a single node. Stops at the first match
+ * (a node_id is unique, so there is at most one array that contains
+ * it) rather than searching every remaining branch once found.
+ */
+function mapChildrenArray(
+  node: EditableLogicNode,
+  rewrite: (children: EditableLogicNode[]) => EditableLogicNode[] | null,
+): EditableLogicNode {
+  if (!node.children?.length) return node;
+  const rewritten = rewrite(node.children);
+  if (rewritten !== null) {
+    return { ...node, children: rewritten };
+  }
+  return {
+    ...node,
+    children: node.children.map((c) => mapChildrenArray(c, rewrite)),
+  };
+}
+
 /** Apply an update operation, returning a new tree (or null if root removed). */
 export function applyUpdate(
   root: EditableLogicNode,
@@ -472,17 +538,32 @@ export function applyUpdate(
     case "add_concept":
       return mapNode(root, (n) =>
         n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeConceptNode(update.criterion))
+          ? appendChild(n, makeConceptNode(update.criterion, update.sourceRowText))
           : n,
       );
     case "add_group":
-      return mapNode(root, (n) =>
-        n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeGroupNode(update.groupKind))
-          : n,
-      );
+      return mapNode(root, (n) => {
+        if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) {
+          return n;
+        }
+        // A new direct child of a pathway-split OR is itself a new
+        // pathway (this is exactly what PathwayList.tsx's "Add
+        // pathway" button targets) -- mint its stable pathway_key
+        // now, at first creation, per the "Stable identity" plan
+        // section. Any other add_group target (a nested AT_LEAST
+        // cluster inside a pathway's own AND, for example) is not a
+        // pathway and gets no key.
+        const child = makeGroupNode(update.groupKind);
+        if (n.kind === "OR") {
+          child.pathway_key = mintPathwayKey();
+        }
+        if (update.clusterRole) {
+          child.cluster_role = update.clusterRole;
+        }
+        return appendChild(n, child);
+      });
     case "add_demographic": {
-      const demo = makeDemographicNode();
+      const demo = makeDemographicNode(update.field);
       return mapNode(root, (n) => {
         if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) return n;
         if (isOrGroupSymptomsOnly(n)) {
@@ -584,9 +665,83 @@ export function applyUpdate(
       );
     case "replace_root":
       return update.node;
+    case "split_pathway":
+      return mapChildrenArray(root, (children) =>
+        splitPathwayChildren(children, update.nodeId, update.splitAt),
+      );
+    case "merge_pathways":
+      return mapChildrenArray(root, (children) =>
+        mergePathwayChildren(children, update.firstNodeId, update.secondNodeId),
+      );
     default:
       return root;
   }
+}
+
+/**
+ * Partition one pathway's children at ``splitAt`` into two new sibling
+ * pathways, in place of the original in ``children``. Returns ``null``
+ * (meaning "not this array, keep looking") when ``nodeId`` is absent or
+ * the split would leave one side empty. The children on each side are
+ * the SAME objects as before -- sliced, not rebuilt -- so a confirmed
+ * leaf's node_id / criterion survive untouched.
+ */
+function splitPathwayChildren(
+  children: EditableLogicNode[],
+  nodeId: string,
+  splitAt: number,
+): EditableLogicNode[] | null {
+  const idx = children.findIndex((c) => c.node_id === nodeId);
+  if (idx < 0) return null;
+  const target = children[idx];
+  const targetChildren = target.children ?? [];
+  const clamped = Math.max(1, Math.min(Math.floor(splitAt), targetChildren.length - 1));
+  if (targetChildren.length < 2 || clamped <= 0 || clamped >= targetChildren.length) {
+    return null;
+  }
+  const first: EditableLogicNode = {
+    ...target,
+    node_id: freshNodeId(),
+    pathway_key: mintPathwayKey(),
+    children: targetChildren.slice(0, clamped),
+  };
+  const second: EditableLogicNode = {
+    ...target,
+    node_id: freshNodeId(),
+    pathway_key: mintPathwayKey(),
+    children: targetChildren.slice(clamped),
+  };
+  const next = [...children];
+  next.splice(idx, 1, first, second);
+  return next;
+}
+
+/**
+ * Concatenate two sibling pathways' children into one new pathway,
+ * replacing both originals at the position of the earlier one.
+ * Returns ``null`` ("not this array") when either id is missing, they
+ * are the same node, or they are not actually siblings in this array.
+ */
+function mergePathwayChildren(
+  children: EditableLogicNode[],
+  firstNodeId: string,
+  secondNodeId: string,
+): EditableLogicNode[] | null {
+  const firstIdx = children.findIndex((c) => c.node_id === firstNodeId);
+  const secondIdx = children.findIndex((c) => c.node_id === secondNodeId);
+  if (firstIdx < 0 || secondIdx < 0 || firstIdx === secondIdx) return null;
+  const first = children[firstIdx];
+  const second = children[secondIdx];
+  const merged: EditableLogicNode = {
+    ...first,
+    node_id: freshNodeId(),
+    pathway_key: mintPathwayKey(),
+    children: [...(first.children ?? []), ...(second.children ?? [])],
+  };
+  const insertAt = Math.min(firstIdx, secondIdx);
+  const next = children.filter((_, i) => i !== firstIdx && i !== secondIdx);
+  next.splice(insertAt, 0, merged);
+  return next;
 }
 
 /**
@@ -634,6 +789,34 @@ export function isTreeVisuallyEmpty(node: EditableLogicNode | null): boolean {
 export function wrapRootInAnd(root: EditableLogicNode): EditableLogicNode {
   if (canHaveChildren(root.kind)) return root;
   return assignNodeIds({ kind: "AND", children: [root] });
+}
+
+/**
+ * Backfill an immutable ``pathway_key`` onto every direct child of the
+ * tree's pathway-split OR (see ``pathwayDetection.findPathwaySplit``)
+ * that does not already carry one -- legacy persisted rules predate
+ * this field entirely, and a pathway added before this backfill ran
+ * once still needs a stable identity to reference. Existing keys are
+ * left untouched; children of a non-pathway-split tree are untouched
+ * too (nothing to backfill). Call once when a tree is loaded, same
+ * spot as ``wrapRootInAnd`` / ``assignNodeIds``.
+ */
+export function ensurePathwayKeys(root: EditableLogicNode): EditableLogicNode {
+  const split = findPathwaySplit(root);
+  if (!split) return root;
+
+  const keyedChildren = (split.orNode.children ?? []).map((c) =>
+    c.pathway_key ? c : { ...c, pathway_key: mintPathwayKey() },
+  );
+  const newOrNode = { ...split.orNode, children: keyedChildren };
+
+  if (split.orNode === root) return newOrNode;
+  return {
+    ...root,
+    children: (root.children ?? []).map((c) =>
+      c.node_id === split.orNode.node_id ? newOrNode : c,
+    ),
+  };
 }
 
 /**
@@ -754,8 +937,16 @@ function coerceKind(
   return stripped;
 }
 
-function makeConceptNode(criterion: LogicCriterion): EditableLogicNode {
-  return { node_id: freshNodeId(), kind: "CONCEPT", criterion };
+function makeConceptNode(
+  criterion: LogicCriterion,
+  sourceRowText?: string,
+): EditableLogicNode {
+  return {
+    node_id: freshNodeId(),
+    kind: "CONCEPT",
+    criterion,
+    ...(sourceRowText ? { source_row_text: sourceRowText } : {}),
+  };
 }
 
 function makeGroupNode(kind: LogicNodeKind): EditableLogicNode {
@@ -767,7 +958,17 @@ function makeGroupNode(kind: LogicNodeKind): EditableLogicNode {
   };
 }
 
-function makeDemographicNode(): EditableLogicNode {
+function makeDemographicNode(field: "age" | "sex" = "age"): EditableLogicNode {
+  if (field === "sex") {
+    return {
+      node_id: freshNodeId(),
+      kind: "DEMOGRAPHIC",
+      field: "sex",
+      operator: "=",
+      value: "female",
+      unit: null,
+    };
+  }
   return {
     node_id: freshNodeId(),
     kind: "DEMOGRAPHIC",

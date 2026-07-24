@@ -134,6 +134,7 @@ RETURN rule.id AS rule_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
+       rec.listStructureJson AS list_structure_json,
        criteria,
        action_priority,
        action_due_days,
@@ -207,6 +208,7 @@ RETURN rule.id AS rule_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
+       rec.listStructureJson AS list_structure_json,
        criteria,
        action_priority,
        action_due_days,
@@ -243,6 +245,7 @@ RETURN rule.id AS rule_id,
        g.id AS guideline_id,
        g.title AS guideline_title,
        rec.verbatim AS recommendation_text,
+       rec.listStructureJson AS list_structure_json,
        criteria,
        action_priority,
        action_due_days
@@ -273,6 +276,7 @@ RETURN rule.id AS rule_id,
        rule.logicJson AS logic_json,
        rule.createdAt AS created_at,
        rec.verbatim AS recommendation_text,
+       rec.listStructureJson AS list_structure_json,
        g.id AS guideline_id,
        ch.title AS chapter_title
 """
@@ -903,6 +907,9 @@ def create_blank_rule(
             "guideline_version": None,
             "chapter_title": row.get("chapter_title"),
             "recommendation_text": row.get("recommendation_text"),
+            "recommendation_structure": _parse_list_structure_json(
+                row.get("list_structure_json")
+            ),
             "criteria": [],
             "has_predecessor": False,
             "predecessor_id": None,
@@ -1317,6 +1324,14 @@ def _format_rule(r: dict) -> dict:
         "guideline_version": r.get("guideline_version"),
         "chapter_title": r.get("chapter_title"),
         "recommendation_text": r.get("recommendation_text"),
+        # Structured NICE HTML list tree (lead text + <li> items, offsets
+        # into recommendation_text) when the recommendation is a list
+        # rather than a plain sentence. Lets the highlight-to-build
+        # wizard's StepPathwaySplit prefer the real HTML structure over
+        # the "or"-boundary heuristic. None for plain-sentence recs.
+        "recommendation_structure": _parse_list_structure_json(
+            r.get("list_structure_json")
+        ),
         "plain_english": display_plain_english,
         "present_criteria": present,
         "absent_criteria": absent,
@@ -1363,6 +1378,23 @@ def _parse_verifier_json(raw: object) -> dict:
     except (TypeError, ValueError):
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _parse_list_structure_json(raw: object) -> dict | None:
+    """Parse the recommendation's stored ``listStructureJson``.
+
+    Lets the highlight-to-build wizard prefer the NICE HTML list tree
+    over the "or"-boundary heuristic when it renders a recommendation
+    for pathway splitting (see ``pathwayTextSplit.ts``). Returns
+    ``None`` for plain-sentence recommendations that have no list.
+    """
+    if not raw:
+        return None
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return None
+    return payload if isinstance(payload, dict) else None
 
 
 def _format_action_item(payload: dict) -> dict:
