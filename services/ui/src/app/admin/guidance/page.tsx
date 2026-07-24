@@ -26,9 +26,12 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 
 import { SegmentedTabs, StatHero, useMotion, type StatTile } from "@leo/design-system";
 
@@ -52,10 +55,24 @@ interface StepCardProps {
   accent: string;
   index: number;
   reducedMotion: boolean;
+  /** Controlled open state; defaults closed when omitted. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
 }
 
-function StepCard({ id, step, title, description, accent, index, reducedMotion, children }: StepCardProps) {
+function StepCard({
+  id,
+  step,
+  title,
+  description,
+  accent,
+  index,
+  reducedMotion,
+  open,
+  onOpenChange,
+  children,
+}: StepCardProps) {
   return (
     <fm.section
       id={id}
@@ -65,8 +82,32 @@ function StepCard({ id, step, title, description, accent, index, reducedMotion, 
       transition={popSpring(reducedMotion, staggerDelay(index, 0.08, 6))}
       style={{ position: "relative", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 22, marginBottom: 20 }}
     >
-      <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 18, bottom: 18, width: 3, borderRadius: 2, background: accent, }} />
-      <Stack direction="row" alignItems="flex-start" spacing={1.5} sx={{ mb: 2 }}>
+      <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 18, bottom: 18, width: 3, borderRadius: 2, background: accent }} />
+      <Stack
+        component="button"
+        type="button"
+        direction="row"
+        alignItems="flex-start"
+        spacing={1.5}
+        onClick={() => onOpenChange(!open)}
+        aria-expanded={open}
+        aria-controls={`${id}-body`}
+        sx={{
+          mb: open ? 2 : 0,
+          width: "100%",
+          p: 0,
+          border: "none",
+          bgcolor: "transparent",
+          textAlign: "left",
+          cursor: "pointer",
+          "&:focus-visible": {
+            outline: "2px solid",
+            outlineColor: "primary.main",
+            outlineOffset: 2,
+            borderRadius: 1,
+          },
+        }}
+      >
         {step != null ? (
           <Box aria-hidden="true" sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: accent, color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.78rem", flexShrink: 0, mt: 0.25 }}>
             {step}
@@ -80,12 +121,35 @@ function StepCard({ id, step, title, description, accent, index, reducedMotion, 
             {description}
           </Typography>
         </Box>
+        <IconButton
+          size="small"
+          tabIndex={-1}
+          aria-hidden
+          sx={{
+            mt: 0.25,
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 160ms ease",
+          }}
+        >
+          <ExpandMoreRoundedIcon fontSize="small" />
+        </IconButton>
       </Stack>
-      <Divider sx={{ mb: 2 }} />
-      {children}
+      <Collapse in={open} timeout={reducedMotion ? 0 : "auto"}>
+        <Box id={`${id}-body`}>
+          <Divider sx={{ mb: 2 }} />
+          {children}
+        </Box>
+      </Collapse>
     </fm.section>
   );
 }
+
+const STEP_SECTION_IDS: Record<StepId, string> = {
+  load: "nice-loader",
+  inspect: "loaded-guidelines",
+  review: "rule-review",
+  compile: "bitmap-lifecycle",
+};
 
 const STEP_TABS: ReadonlyArray<{ id: StepId; label: string; href: string }> = [
   { id: "load", label: "1. Load", href: "#nice-loader" },
@@ -130,10 +194,20 @@ export default function GuidancePage() {
   const [ruleRefreshKey, setRuleRefreshKey] = useState(0);
   const [bitmapRefreshKey, setBitmapRefreshKey] = useState(0);
   const [activeStep, setActiveStep] = useState<StepId>("load");
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [stats, setStats] = useState<PageStats>({ guidelinesLoaded: 0, rulesPending: 0, rulesApproved: 0, activeBitmapVersion: "--" });
   const [showSplash, setShowSplash] = useState(false);
   const [showLocalImport, setShowLocalImport] = useState(false);
   const { reducedMotion } = useMotion();
+
+  const isSectionOpen = useCallback(
+    (sectionId: string) => openSections[sectionId] === true,
+    [openSections],
+  );
+
+  const setSectionOpen = useCallback((sectionId: string, open: boolean) => {
+    setOpenSections((prev) => ({ ...prev, [sectionId]: open }));
+  }, []);
 
   useEffect(() => {
     fetchPageStats().then(setStats).catch(() => {});
@@ -166,11 +240,16 @@ export default function GuidancePage() {
   ];
 
   const handleJump = (id: string) => {
-    setActiveStep(id as StepId);
+    const stepId = id as StepId;
+    setActiveStep(stepId);
+    const sectionId = STEP_SECTION_IDS[stepId];
+    if (sectionId) setSectionOpen(sectionId, true);
     const target = STEP_TABS.find((t) => t.id === id);
     if (!target) return;
-    const el = document.querySelector(target.href);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      const el = document.querySelector(target.href);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   return (
@@ -191,7 +270,8 @@ export default function GuidancePage() {
         onClose={() => setShowLocalImport(false)}
         onImported={() => {
           setLoadedRefreshKey((n) => n + 1);
-          setActiveStep("load");
+          setActiveStep("inspect");
+          setSectionOpen("loaded-guidelines", true);
           window.setTimeout(() => {
             document
               .querySelector("#loaded-guidelines")
@@ -214,22 +294,61 @@ export default function GuidancePage() {
       </Box>
 
       {/* -- Step 1: Load ------------------------------------------------- */}
-      <StepCard id="nice-loader" index={0} step={1} title="Find and load a guideline" description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system." accent="#1F3A8A" reducedMotion={reducedMotion}>
+      <StepCard
+        id="nice-loader"
+        index={0}
+        step={1}
+        title="Find and load a guideline"
+        description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system."
+        accent="#1F3A8A"
+        reducedMotion={reducedMotion}
+        open={isSectionOpen("nice-loader")}
+        onOpenChange={(open) => setSectionOpen("nice-loader", open)}
+      >
         <NiceLoaderSection onGuidelineLoaded={() => setLoadedRefreshKey((n) => n + 1)} />
       </StepCard>
 
       {/* -- Inspect: What is in the graph -------------------------------- */}
-      <StepCard id="loaded-guidelines" index={1} title="What is in the knowledge graph" description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation." accent="#64748B" reducedMotion={reducedMotion}>
+      <StepCard
+        id="loaded-guidelines"
+        index={1}
+        title="What is in the knowledge graph"
+        description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation."
+        accent="#64748B"
+        reducedMotion={reducedMotion}
+        open={isSectionOpen("loaded-guidelines")}
+        onOpenChange={(open) => setSectionOpen("loaded-guidelines", open)}
+      >
         <LoadedGuidelinesPanel refreshKey={loadedRefreshKey} onRulesGenerated={() => setRuleRefreshKey((n) => n + 1)} />
       </StepCard>
 
       {/* -- Step 2: Review ----------------------------------------------- */}
-      <StepCard id="rule-review" index={2} step={2} title="Check and approve AI-generated rules" description="The AI has suggested the criteria for each recommendation. Read each one and click 'Looks right', 'Edit', or 'Reject'." accent="#1F3A8A" reducedMotion={reducedMotion}>
+      <StepCard
+        id="rule-review"
+        index={2}
+        step={2}
+        title="Check and approve AI-generated rules"
+        description="The AI has suggested the criteria for each recommendation. Read each one and click 'Looks right', 'Edit', or 'Reject'."
+        accent="#1F3A8A"
+        reducedMotion={reducedMotion}
+        open={isSectionOpen("rule-review")}
+        onOpenChange={(open) => setSectionOpen("rule-review", open)}
+      >
         <RuleReviewSection refreshKey={ruleRefreshKey} />
       </StepCard>
 
       {/* -- Step 3: Compile ---------------------------------------------- */}
-      <StepCard id="bitmap-lifecycle" index={3} step={3} title="Compile and go live" description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included." accent="#14B8A6" reducedMotion={reducedMotion}>
+      <StepCard
+        id="bitmap-lifecycle"
+        index={3}
+        step={3}
+        title="Compile and go live"
+        description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included."
+        accent="#14B8A6"
+        reducedMotion={reducedMotion}
+        open={isSectionOpen("bitmap-lifecycle")}
+        onOpenChange={(open) => setSectionOpen("bitmap-lifecycle", open)}
+      >
         <BitmapLifecycleSection onVersionActivated={() => setBitmapRefreshKey((n) => n + 1)} />
       </StepCard>
     </Box>

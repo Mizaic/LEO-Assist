@@ -87,6 +87,24 @@ describe("GuidancePage", () => {
     });
   });
 
+  it("keeps workflow step sections collapsed by default and opens on header click", async () => {
+    render(<GuidancePage />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: /find and load a guideline/i }),
+      ).toBeInTheDocument();
+    });
+    const loadToggle = screen.getByRole("button", {
+      name: /find and load a guideline/i,
+    });
+    expect(loadToggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(loadToggle);
+    expect(loadToggle).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByRole("button", { name: /load this guideline/i }),
+    ).toBeInTheDocument();
+  });
+
   it("does not render its own h1 (KnowledgePageLayout provides the page heading)", () => {
     // Wave E Phase 5 redesign: GuidancePage is mounted inside
     // KnowledgePageLayout which owns the h1 + intro chrome. Asserting
@@ -189,9 +207,15 @@ describe("RuleReviewSection", () => {
     });
   });
 
+  async function openAwaitingReviewPool() {
+    await waitFor(() => screen.getByRole("heading", { name: /Awaiting review/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Awaiting review/i }));
+  }
+
   it("renders a pending rule row for review", async () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
+    await openAwaitingReviewPool();
     await waitFor(() => {
       expect(
         screen.getAllByText(/Refer patients with unexplained rectal bleeding\./i)
@@ -203,6 +227,7 @@ describe("RuleReviewSection", () => {
   it("shows at least one action button for each rule", async () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
+    await openAwaitingReviewPool();
     await waitFor(() => {
       const buttons = screen.getAllByRole("button");
       expect(buttons.length).toBeGreaterThan(0);
@@ -212,6 +237,7 @@ describe("RuleReviewSection", () => {
   it("opens ConfirmDialog before approve-all fires an API call", async () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
+    await openAwaitingReviewPool();
     await waitFor(() => screen.getByRole("button", { name: /approve all/i }));
 
     fireEvent.click(screen.getByRole("button", { name: /approve all/i }));
@@ -229,6 +255,7 @@ describe("RuleReviewSection", () => {
       "approve-all": { approved_count: 1 },
     });
     render(<RuleReviewSection />);
+    await openAwaitingReviewPool();
     await waitFor(() => screen.getByRole("button", { name: /approve all/i }));
 
     fireEvent.click(screen.getByRole("button", { name: /approve all/i }));
@@ -252,8 +279,8 @@ describe("RuleReviewSection", () => {
       expect(screen.getByTestId("rule-pool-approved")).toBeInTheDocument();
       expect(screen.getByTestId("rule-pool-excluded")).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: /Awaiting review/i })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: /^Approved$/i })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: /^Excluded$/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /^Approved/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /^Excluded/i })).toBeInTheDocument();
     });
   });
 
@@ -293,6 +320,9 @@ describe("RuleReviewSection", () => {
   it("only renders Approve all in the awaiting-review pool", async () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
+    await waitFor(() => screen.getByRole("heading", { name: /Awaiting review/i }));
+    // Pools start collapsed -- open Awaiting review before asserting actions.
+    fireEvent.click(screen.getByRole("button", { name: /Awaiting review/i }));
     await waitFor(() => screen.getByRole("button", { name: /approve all/i }));
     expect(screen.getByTestId("rule-pool-pending")).toContainElement(
       screen.getByRole("button", { name: /approve all/i }),
@@ -316,6 +346,8 @@ describe("RuleReviewSection", () => {
     });
 
     render(<RuleReviewSection />);
+    await waitFor(() => screen.getByRole("heading", { name: /Awaiting review/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Awaiting review/i }));
     await waitFor(() => screen.getByRole("button", { name: /approve all/i }));
     fireEvent.click(screen.getByRole("button", { name: /approve all/i }));
     fireEvent.click(screen.getByRole("button", { name: /yes, approve all/i }));

@@ -12,6 +12,7 @@ Covers:
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -769,6 +770,62 @@ class TestEditedRuleCarriesForwardActionPriority:
         action_call = client.run.call_args_list[4]
         assert action_call.kwargs["priority"] == "urgent"
         assert action_call.kwargs["due_days"] == 7
+
+    def test_priority_override_uses_action_json_when_has_action_edges_missing(
+        self,
+    ) -> None:
+        """Priority-only edit still writes edges from actionJson fallback."""
+        updates = RuleUpdates.model_validate(
+            {
+                "name": "Edited rule",
+                "logic_tree": _and_root(),
+                "priority": "2ww",
+                "due_days": 14,
+            }
+        )
+        client = _mock_kg_client(
+            [
+                [
+                    {
+                        "status": "active",
+                        "name": "Rule: 1.2.10",
+                        "strength": "consider",
+                        "compile_scope_id": "NG12",
+                        "recommendation_id": "rec-1",
+                        "verbatim": "1.2.10 Consider an urgent...",
+                        "actions": [],
+                        "action_json": json.dumps(
+                            {
+                                "snomed_concept_id": "169250003",
+                                "preferred_term": (
+                                    "Ultrasound scan of gallbladder (procedure)"
+                                ),
+                                "term": "ultrasound scan",
+                                "strength": "consider",
+                            }
+                        ),
+                    }
+                ],
+                [{"concept_id": "49727002", "exists": True}],
+                [{"id": "rule:rec-1:old:edit:abcd1234"}],
+                [{"id": "rule:rec-1:old:edit:abcd1234:ACTION"}],
+                [None],
+                [{"rejected_ids": []}],
+            ]
+        )
+
+        apply_rule_edit(
+            client,
+            predecessor_rule_id="rule:rec-1:old",
+            updates=updates,
+            reviewer="qa-lead",
+            reason="Set priority to 2 week wait",
+        )
+
+        action_call = client.run.call_args_list[4]
+        assert action_call.kwargs["concept_id"] == "169250003"
+        assert action_call.kwargs["priority"] == "2ww"
+        assert action_call.kwargs["due_days"] == 14
 
     def test_routine_override_clears_due_days(self) -> None:
         updates = RuleUpdates.model_validate(

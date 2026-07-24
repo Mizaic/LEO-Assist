@@ -15,10 +15,12 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 
 import { useMotion } from "@leo/design-system";
@@ -122,6 +124,8 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
   const [sessionExcluded, setSessionExcluded] = useState<Rule[]>([]);
+  const [sessionApprovedOpen, setSessionApprovedOpen] = useState(false);
+  const [sessionExcludedOpen, setSessionExcludedOpen] = useState(false);
   const [guidelineFilter, setGuidelineFilter] = useState<string | null>(null);
 
   const allGuidelineIds = useMemo(() => {
@@ -244,7 +248,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
               name: payload.name,
               logic_tree: payload.logic_tree,
               ...(payload.actions ? { actions: payload.actions } : {}),
-              ...(payload.priority
+              ...(payload.priority !== undefined
                 ? {
                     priority: payload.priority,
                     due_days:
@@ -350,10 +354,34 @@ export default function RuleReviewSection({ refreshKey }: Props) {
 
       {sessionApproved.length > 0 ? (
         <Box sx={{ mb: 3 }}>
-          <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, display: "block", mb: 1 }}>
-            Approved in this session
-          </Typography>
-          <Stack spacing={1}>
+          <Stack
+            component="button"
+            type="button"
+            direction="row"
+            alignItems="center"
+            spacing={0.5}
+            onClick={() => setSessionApprovedOpen((v) => !v)}
+            aria-expanded={sessionApprovedOpen}
+            aria-controls="session-approved-body"
+            sx={{
+              mb: sessionApprovedOpen ? 1 : 0,
+              p: 0,
+              border: "none",
+              bgcolor: "transparent",
+              cursor: "pointer",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, flex: 1 }}>
+              {`Approved in this session (${sessionApproved.length})`}
+            </Typography>
+            <IconButton size="small" tabIndex={-1} aria-hidden sx={{ transform: sessionApprovedOpen ? "rotate(180deg)" : "none" }}>
+              <ExpandMoreRoundedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+          <Collapse in={sessionApprovedOpen}>
+          <Stack id="session-approved-body" spacing={1}>
             <AnimatePresence initial={false}>
               {sessionApproved.map((rule) => (
                 <fm.div
@@ -417,15 +445,40 @@ export default function RuleReviewSection({ refreshKey }: Props) {
               ))}
             </AnimatePresence>
           </Stack>
+          </Collapse>
         </Box>
       ) : null}
 
       {sessionExcluded.length > 0 ? (
         <Box sx={{ mb: 3 }}>
-          <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, display: "block", mb: 1 }}>
-            Excluded in this session
-          </Typography>
-          <Stack spacing={1}>
+          <Stack
+            component="button"
+            type="button"
+            direction="row"
+            alignItems="center"
+            spacing={0.5}
+            onClick={() => setSessionExcludedOpen((v) => !v)}
+            aria-expanded={sessionExcludedOpen}
+            aria-controls="session-excluded-body"
+            sx={{
+              mb: sessionExcludedOpen ? 1 : 0,
+              p: 0,
+              border: "none",
+              bgcolor: "transparent",
+              cursor: "pointer",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, flex: 1 }}>
+              {`Excluded in this session (${sessionExcluded.length})`}
+            </Typography>
+            <IconButton size="small" tabIndex={-1} aria-hidden sx={{ transform: sessionExcludedOpen ? "rotate(180deg)" : "none" }}>
+              <ExpandMoreRoundedIcon fontSize="small" />
+            </IconButton>
+          </Stack>
+          <Collapse in={sessionExcludedOpen}>
+          <Stack id="session-excluded-body" spacing={1}>
             <AnimatePresence initial={false}>
               {sessionExcluded.map((rule) => (
                 <fm.div
@@ -465,6 +518,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
               ))}
             </AnimatePresence>
           </Stack>
+          </Collapse>
         </Box>
       ) : null}
 

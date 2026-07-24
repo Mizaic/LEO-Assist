@@ -97,7 +97,7 @@ describe("EditRuleDialog clinical priority", () => {
     ).toBeInTheDocument();
   });
 
-  it("omits priority from save when the reviewer never touches it", () => {
+  it("always includes the current priority on save so remounts cannot drop it", () => {
     const onSave = jest.fn();
     render(
       <EditRuleDialog
@@ -111,8 +111,9 @@ describe("EditRuleDialog clinical priority", () => {
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
     expect(onSave).toHaveBeenCalledTimes(1);
     const payload = onSave.mock.calls[0][0];
-    expect(payload.priority).toBeUndefined();
-    expect(payload.due_days).toBeUndefined();
+    // SAMPLE_RULE loads as 2WW / 14 days -- persist what the form shows.
+    expect(payload.priority).toBe("2ww");
+    expect(payload.due_days).toBe(14);
   });
 
   it("includes priority and due_days in save after a change", async () => {
