@@ -83,6 +83,7 @@ describe("StepPrerequisites: automatic fuzzy matching", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[makeAgeLeaf()]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -100,6 +101,7 @@ describe("StepPrerequisites: automatic fuzzy matching", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[makeAgeLeaf()]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -114,6 +116,7 @@ describe("StepPrerequisites: automatic fuzzy matching", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[makeConceptLeaf("History of asbestos exposure", "999")]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -138,6 +141,7 @@ describe("StepPrerequisites: captured row actions", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[ageLeaf]}
         onEdit={onEdit}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -149,6 +153,50 @@ describe("StepPrerequisites: captured row actions", () => {
     expect(onEdit.mock.calls[0][0]).toBe(ageLeaf.node_id);
   });
 
+  it("routes Edit on a CONCEPT prerequisite to onEditConcept, not onEdit -- it already has a code, so it needs add/remove, not a single-pick override", async () => {
+    const user = userEvent.setup();
+    const onEdit = jest.fn();
+    const onEditConcept = jest.fn();
+    const conceptLeaf = makeConceptLeaf("Smoker", "77176002");
+    render(
+      <StepPrerequisites
+        recommendationText="Consider urgent referral for smokers."
+        prerequisites={[conceptLeaf]}
+        onEdit={onEdit}
+        onEditConcept={onEditConcept}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(onEditConcept).toHaveBeenCalledWith(conceptLeaf.node_id);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it("still routes Edit on a DEMOGRAPHIC prerequisite (e.g. age) to onEdit -- it has no synonym set of its own", async () => {
+    const user = userEvent.setup();
+    const onEdit = jest.fn();
+    const onEditConcept = jest.fn();
+    const ageLeaf = makeAgeLeaf();
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[ageLeaf]}
+        onEdit={onEdit}
+        onEditConcept={onEditConcept}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(onEdit).toHaveBeenCalledWith(ageLeaf.node_id, expect.any(HTMLElement));
+    expect(onEditConcept).not.toHaveBeenCalled();
+  });
+
   it("calls onRemove with the node id when Remove is clicked", async () => {
     const user = userEvent.setup();
     const onRemove = jest.fn();
@@ -158,6 +206,7 @@ describe("StepPrerequisites: captured row actions", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[ageLeaf]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={onRemove}
         onAddFromSelection={jest.fn()}
       />,
@@ -178,6 +227,7 @@ describe("StepPrerequisites: the always-true question", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
         onConfirmNoMore={onConfirmNoMore}
@@ -196,6 +246,7 @@ describe("StepPrerequisites: the always-true question", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -226,6 +277,7 @@ describe("StepPrerequisites: the always-true question", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -243,6 +295,7 @@ describe("StepPrerequisites: the always-true question", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[ageLeaf]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -257,6 +310,7 @@ describe("StepPrerequisites: the always-true question", () => {
         recommendationText={NG12_1_2_9_TEXT}
         prerequisites={[]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,
@@ -276,6 +330,7 @@ describe("StepPrerequisites: forwarding a new selection", () => {
         recommendationText="Consider urgent referral for smokers."
         prerequisites={[]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={onAddFromSelection}
       />,
@@ -297,6 +352,7 @@ describe("StepPrerequisites: no recommendation text", () => {
         recommendationText={null}
         prerequisites={[]}
         onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
         onRemove={jest.fn()}
         onAddFromSelection={jest.fn()}
       />,

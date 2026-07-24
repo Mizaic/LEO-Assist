@@ -43,8 +43,11 @@ import type {
   PathwayTextBoundary,
   RecommendationStructureItem,
 } from "../SentenceEditor/pathwayTextSplit";
-import type { LogicCriterion } from "../types";
+import type { EditableLogicNode, LogicCriterion, NodeUpdate } from "../types";
 import { STEP_PATHWAY_CONDITIONS } from "./copy";
+import PathwayDemographicsPanel, {
+  type PathwayDemographicField,
+} from "./PathwayDemographicsPanel";
 import RowMultiCodeHighlight from "./RowMultiCodeHighlight";
 import { buildPathwayRows, countUnresolvedRows } from "./wizardMapping";
 import type { ClusterGrouping } from "./wizardMapping";
@@ -113,6 +116,10 @@ export interface StepPathwayConditionsProps {
   copyAcrossOffer?: { sourceLetter: string; count: number } | null;
   onAcceptCopyAcross?: () => void;
   onDismissCopyAcross?: () => void;
+  /** Direct DEMOGRAPHIC children of this pathway AND. */
+  pathwayDemographics?: EditableLogicNode[];
+  onAddPathwayDemographic?: (field: PathwayDemographicField) => void;
+  onUpdatePathway?: (update: NodeUpdate) => void;
 }
 
 export default function StepPathwayConditions({
@@ -134,11 +141,22 @@ export default function StepPathwayConditions({
   copyAcrossOffer = null,
   onAcceptCopyAcross,
   onDismissCopyAcross,
+  pathwayDemographics = [],
+  onAddPathwayDemographic,
+  onUpdatePathway,
 }: StepPathwayConditionsProps) {
   const { items, hasCluster, leadCluster } = useMemo(
     () => buildPathwayRows(boundary),
     [boundary],
   );
+
+  const trailingClusterTerms = useMemo(() => {
+    if (!hasCluster) return [] as string[];
+    if (leadCluster) {
+      return items.slice(leadCluster.items.length).map((i) => i.text);
+    }
+    return (items[0]?.children ?? []).map((i) => i.text);
+  }, [hasCluster, leadCluster, items]);
 
   const unresolvedCount = useMemo(() => {
     if (!getRowResolution) return 0;
@@ -146,19 +164,22 @@ export default function StepPathwayConditions({
   }, [items, getRowResolution]);
 
   const leadGroupingUndecided = !!leadCluster && !leadClusterGrouping;
-  const groupingUndecided = (hasCluster && !clusterGrouping) || leadGroupingUndecided;
+  const trailingGroupingUndecided = hasCluster && !clusterGrouping;
   const leadClusterPrompt = leadCluster
     ? STEP_PATHWAY_CONDITIONS.leadClusterPrompt(leadCluster.items.map((i) => i.text))
     : null;
+  const trailingClusterPrompt = hasCluster
+    ? STEP_PATHWAY_CONDITIONS.clusterPrompt(trailingClusterTerms)
+    : null;
+  // Do not echo the prompt card's own wording under Confirm -- that
+  // read as a second stacked question. Use a short "choose above" hint.
   const blockedReason =
     confirmBlockedReason ??
-    (leadGroupingUndecided
-      ? leadClusterPrompt
-      : hasCluster && !clusterGrouping
-        ? STEP_PATHWAY_CONDITIONS.clusterPrompt
-        : unresolvedCount > 0
-          ? STEP_PATHWAY_CONDITIONS.unresolvedBlockedReason(unresolvedCount)
-          : null);
+    (leadGroupingUndecided || trailingGroupingUndecided
+      ? STEP_PATHWAY_CONDITIONS.groupingChoiceRequired
+      : unresolvedCount > 0
+        ? STEP_PATHWAY_CONDITIONS.unresolvedBlockedReason(unresolvedCount)
+        : null);
 
   return (
     <Stack spacing={2}>
@@ -187,6 +208,14 @@ export default function StepPathwayConditions({
         <ConfirmedSoFar summaries={confirmedSummaries} />
       )}
 
+      {onAddPathwayDemographic && onUpdatePathway && (
+        <PathwayDemographicsPanel
+          demographics={pathwayDemographics}
+          onAdd={onAddPathwayDemographic}
+          onUpdate={onUpdatePathway}
+        />
+      )}
+
       <ListRecommendationView
         items={items}
         getRowResolution={getRowResolution}
@@ -211,9 +240,9 @@ export default function StepPathwayConditions({
         />
       )}
 
-      {hasCluster && (
+      {hasCluster && trailingClusterPrompt && (
         <ClusterGroupingChoice
-          prompt={STEP_PATHWAY_CONDITIONS.clusterPrompt}
+          prompt={trailingClusterPrompt}
           grouping={clusterGrouping}
           onChoose={onChooseGrouping}
         />

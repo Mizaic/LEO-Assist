@@ -19,6 +19,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 
 import { useMotion } from "@leo/design-system";
 
@@ -100,9 +101,11 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const { reducedMotion } = useMotion();
   const [pendingRules, setPendingRules] = useState<Rule[]>([]);
   const [approvedRules, setApprovedRules] = useState<Rule[]>([]);
+  const [excludedRules, setExcludedRules] = useState<Rule[]>([]);
   const [supersededRules, setSupersededRules] = useState<Rule[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [loadingApproved, setLoadingApproved] = useState(false);
+  const [loadingExcluded, setLoadingExcluded] = useState(false);
   const [loadingSuperseded, setLoadingSuperseded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -118,15 +121,17 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [promoteBusy, setPromoteBusy] = useState<string | null>(null);
   const [promoteError, setPromoteError] = useState<string | null>(null);
   const [sessionApproved, setSessionApproved] = useState<Rule[]>([]);
+  const [sessionExcluded, setSessionExcluded] = useState<Rule[]>([]);
   const [guidelineFilter, setGuidelineFilter] = useState<string | null>(null);
 
   const allGuidelineIds = useMemo(() => {
     const ids = new Set([
       ...pendingRules.map((r) => r.guideline_id),
       ...approvedRules.map((r) => r.guideline_id),
+      ...excludedRules.map((r) => r.guideline_id),
     ].filter(Boolean));
     return [...ids].sort();
-  }, [pendingRules, approvedRules]);
+  }, [pendingRules, approvedRules, excludedRules]);
 
   const filterByGuideline = useCallback(
     (rules: Rule[]) =>
@@ -134,9 +139,14 @@ export default function RuleReviewSection({ refreshKey }: Props) {
     [guidelineFilter],
   );
 
+  const sessionResolved = useMemo(
+    () => [...sessionApproved, ...sessionExcluded],
+    [sessionApproved, sessionExcluded],
+  );
+
   const pendingVisible = useMemo(
-    () => filterRulesForReview(filterByGuideline(pendingRules), sessionApproved, "pending_review"),
-    [pendingRules, sessionApproved, filterByGuideline],
+    () => filterRulesForReview(filterByGuideline(pendingRules), sessionResolved, "pending_review"),
+    [pendingRules, sessionResolved, filterByGuideline],
   );
 
   const editableRule = useMemo(() => (editRule ? ruleToEditable(editRule) : null), [editRule]);
@@ -144,19 +154,23 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const reloadPools = useCallback(async () => {
     setLoadingPending(true);
     setLoadingApproved(true);
+    setLoadingExcluded(true);
     setError(null);
     try {
-      const [pending, approved] = await Promise.all([
+      const [pending, approved, excluded] = await Promise.all([
         fetchRules("pending_review"),
         fetchRules("active"),
+        fetchRules("rejected"),
       ]);
       setPendingRules(pending);
       setApprovedRules(approved);
+      setExcludedRules(excluded);
     } catch {
       setError("Could not load rules to review. Please try again.");
     } finally {
       setLoadingPending(false);
       setLoadingApproved(false);
+      setLoadingExcluded(false);
     }
   }, []);
 
@@ -190,6 +204,10 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         if (!resp.ok) throw new Error(await resp.text());
         if (action === "approve" || action === "edit") {
           setSessionApproved((prev) => upsertApprovedRule(prev, { ...rule, status: "active" }));
+        } else if (action === "reject") {
+          setSessionExcluded((prev) =>
+            upsertApprovedRule(prev, { ...rule, status: "rejected" }),
+          );
         }
         setEditRule((prev) => (prev?.rule_id === rule.rule_id ? null : prev));
         setInternalKey((n) => n + 1);
@@ -311,13 +329,15 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         rule={editableRule}
         open={!!editRule}
         saving={editSaving}
+        saveError={editRule ? actionError : null}
         onClose={() => {
           if (editSaving) return;
           setEditRule(null);
+          setActionError(null);
         }}
         onSave={handleSaveEdit}
       />
-      {actionError ? (
+      {actionError && !editRule ? (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>
           {actionError}
         </Alert>
@@ -400,6 +420,54 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         </Box>
       ) : null}
 
+      {sessionExcluded.length > 0 ? (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, display: "block", mb: 1 }}>
+            Excluded in this session
+          </Typography>
+          <Stack spacing={1}>
+            <AnimatePresence initial={false}>
+              {sessionExcluded.map((rule) => (
+                <fm.div
+                  key={rule.rule_id}
+                  layout
+                  variants={popVariants(reducedMotion)}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <Box
+                    sx={{
+                      p: 1.5,
+                      border: "1px solid",
+                      borderColor: "grey.300",
+                      borderRadius: 1.5,
+                      bgcolor: "grey.50",
+                    }}
+                  >
+                    <Stack direction="row" spacing={0.75} alignItems="center">
+                      <HighlightOffRoundedIcon fontSize="small" color="action" />
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {rule.name || rule.rule_id}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={
+                          rule.generation_outcome === "no_rule_expected"
+                            ? "No rule needed"
+                            : "Excluded"
+                        }
+                        variant="outlined"
+                      />
+                    </Stack>
+                  </Box>
+                </fm.div>
+              ))}
+            </AnimatePresence>
+          </Stack>
+        </Box>
+      ) : null}
+
       <GuidelineChipFilter
         guidelineIds={allGuidelineIds}
         selected={guidelineFilter}
@@ -421,7 +489,15 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           onToggle={toggleExpanded}
           onEdit={setEditRule}
           onApprove={(rule) => decide(rule, "approve")}
-          onReject={(rule) => decide(rule, "reject", "Rejected by reviewer")}
+          onReject={(rule) =>
+            decide(
+              rule,
+              "reject",
+              rule.generation_outcome === "no_rule_expected"
+                ? "No coded rule needed"
+                : "Rejected by reviewer",
+            )
+          }
         />
 
         <RuleReviewPool
@@ -431,6 +507,19 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           statusFilter="active"
           rules={filterByGuideline(approvedRules)}
           loading={loadingApproved}
+          expandedRules={expandedRules}
+          busy={busy}
+          onToggle={toggleExpanded}
+          onEdit={setEditRule}
+        />
+
+        <RuleReviewPool
+          poolId="excluded"
+          title="Excluded"
+          helper="No coded rule needed, or rejected. These are not compiled into the live lookup index."
+          statusFilter="rejected"
+          rules={filterByGuideline(excludedRules)}
+          loading={loadingExcluded}
           expandedRules={expandedRules}
           busy={busy}
           onToggle={toggleExpanded}

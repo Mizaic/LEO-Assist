@@ -66,6 +66,27 @@ describe("leafTextMatch", () => {
     expect(TEXT.slice(match!.start, match!.end).toLowerCase()).toBe("weight loss");
   });
 
+  // Regression: a SNOMED preferred term often shares no words with the
+  // guideline row it was picked for ("Indigestion" for "treatment-
+  // resistant dyspepsia"). Without preferring source_row_text, the
+  // quote-panel highlighter silently skips those words -- exactly the
+  // "missing highlights" reported against NG12 1.2.9 Step 2.
+  it("prefers source_row_text over preferred_term when the SNOMED label does not appear in the guideline", () => {
+    const NG =
+      "Consider endoscopy for treatment-resistant dyspepsia, or upper abdominal pain.";
+    const node = makeNode({
+      kind: "CONCEPT",
+      source_row_text: "treatment-resistant dyspepsia",
+      criterion: {
+        snomed_concept_id: "162031009",
+        preferred_term: "Indigestion",
+      },
+    });
+    const match = leafTextMatch(NG, node);
+    expect(match).not.toBeNull();
+    expect(NG.slice(match!.start, match!.end)).toBe("treatment-resistant dyspepsia");
+  });
+
   it("anchors an OBSERVATION leaf by its observable_term", () => {
     const node = makeNode({
       kind: "OBSERVATION",

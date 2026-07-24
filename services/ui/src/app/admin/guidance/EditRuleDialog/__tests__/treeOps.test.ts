@@ -87,6 +87,43 @@ describe("treeOps", () => {
     );
   });
 
+  // See EditableLogicNode.source_row_text's doc comment: the
+  // highlight-to-build wizard tags a leaf it adds with the row's own
+  // text, so the row can find its way back to that leaf even when the
+  // picked SNOMED term shares no wording with it.
+  it("add_concept tags the new leaf with sourceRowText when provided", () => {
+    const tree = makeTree();
+    const orGroup = tree.children![1];
+    const updated = applyUpdate(tree, {
+      kind: "add_concept",
+      parentNodeId: orGroup.node_id,
+      criterion: {
+        snomed_concept_id: "162031009",
+        preferred_term: "Indigestion",
+        semantic_tag: "finding",
+      },
+      sourceRowText: "treatment-resistant dyspepsia",
+    });
+    expect(updated!.children![1].children![1].source_row_text).toBe(
+      "treatment-resistant dyspepsia",
+    );
+  });
+
+  it("add_concept leaves source_row_text unset when sourceRowText is omitted", () => {
+    const tree = makeTree();
+    const orGroup = tree.children![1];
+    const updated = applyUpdate(tree, {
+      kind: "add_concept",
+      parentNodeId: orGroup.node_id,
+      criterion: {
+        snomed_concept_id: "267036007",
+        preferred_term: "Dyspnea (finding)",
+        semantic_tag: "finding",
+      },
+    });
+    expect(updated!.children![1].children![1].source_row_text).toBeUndefined();
+  });
+
   it("add_group nests a new empty OR sub-group under an AND pathway, enabling AND + a set of OR's", () => {
     const tree = makeTree();
     const updated = applyUpdate(tree, {
@@ -250,6 +287,38 @@ describe("treeOps", () => {
     expect((concept.criterion as Record<string, unknown>).snomed_concept_id).toBe(
       "49727002"
     );
+  });
+
+  it("stripNodeIds persists a non-empty source_row_text, trimmed", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "162031009", preferred_term: "Indigestion" },
+          source_row_text: "  treatment-resistant dyspepsia  ",
+        },
+      ],
+    });
+    const stripped = stripNodeIds(tree);
+    const concept = (stripped.children as Array<Record<string, unknown>>)[0];
+    expect(concept.source_row_text).toBe("treatment-resistant dyspepsia");
+  });
+
+  it("stripNodeIds drops an empty/whitespace-only source_row_text", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "162031009", preferred_term: "Indigestion" },
+          source_row_text: "   ",
+        },
+      ],
+    });
+    const stripped = stripNodeIds(tree);
+    const concept = (stripped.children as Array<Record<string, unknown>>)[0];
+    expect("source_row_text" in concept).toBe(false);
   });
 
   // ---------------------------------------------------------------------
@@ -582,6 +651,97 @@ describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
     expect(updated!.kind).toBe("AND");
     expect(updated!.children).toHaveLength(2);
     expect(updated!.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
+  });
+
+  it("add_demographic with field sex appends under pathway AND without lifting to global", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "DEMOGRAPHIC",
+          field: "age",
+          operator: ">=",
+          value: 55,
+          unit: "years",
+        },
+        {
+          kind: "OR",
+          children: [
+            {
+              kind: "AND",
+              pathway_key: "pw_a",
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "1", preferred_term: "Nausea" },
+                },
+              ],
+            },
+            {
+              kind: "AND",
+              pathway_key: "pw_b",
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "2", preferred_term: "Vomiting" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const pathwayA = tree.children![1].children![0];
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: pathwayA.node_id,
+      field: "sex",
+    });
+    expect(updated!.kind).toBe("AND");
+    const globalKids = updated!.children ?? [];
+    expect(globalKids.filter((c) => c.kind === "DEMOGRAPHIC")).toHaveLength(1);
+    expect(globalKids[0].field).toBe("age");
+    const updatedPwA = globalKids[1].children![0];
+    const sexLeaf = updatedPwA.children!.find((c) => c.kind === "DEMOGRAPHIC");
+    expect(sexLeaf?.field).toBe("sex");
+    expect(sexLeaf?.value).toBe("female");
+    expect(globalKids[1].children![1].children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(
+      false,
+    );
+  });
+
+  it("promoteOrPrerequisites leaves demos nested inside pathway ANDs untouched", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "DEMOGRAPHIC",
+              field: "sex",
+              operator: "=",
+              value: "female",
+              unit: null,
+            },
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "1", preferred_term: "Nausea" },
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "2", preferred_term: "Vomiting" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(promoteOrPrerequisites(tree)).toBe(tree);
   });
 
   it("addPrerequisiteToOrSymptoms preserves all symptom nodes", () => {

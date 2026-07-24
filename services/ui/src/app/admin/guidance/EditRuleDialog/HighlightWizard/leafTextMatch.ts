@@ -58,11 +58,22 @@ export function demographicMatchCandidate(node: EditableLogicNode): string | nul
  *  the text anchors it (the wireframes' "no clean textual anchor"
  *  fallback). Only CONCEPT / DEMOGRAPHIC / OBSERVATION carry wording
  *  a reviewer would have highlighted; every other leaf kind (RULE_FIRED,
- *  MEDICATION, ...) has no verbatim text to anchor to. */
+ *  MEDICATION, ...) has no verbatim text to anchor to.
+ *
+ *  Prefers `source_row_text` (the exact guideline phrasing the wizard
+ *  added this leaf for) over the SNOMED preferred term -- a picked
+ *  code like "Indigestion" often shares no words with the row that
+ *  reads "treatment-resistant dyspepsia", and falling back to the
+ *  preferred term alone is exactly how the quote-panel highlighter
+ *  used to silently skip those words. */
 export function leafTextMatch(
   recommendationText: string | null | undefined,
   node: EditableLogicNode,
 ): TextMatchRange | null {
+  if (node.source_row_text) {
+    const bySource = findBestTextMatch(recommendationText, node.source_row_text);
+    if (bySource) return bySource;
+  }
   if (node.kind === "CONCEPT") {
     return findBestTextMatchForCriterion(recommendationText, node.criterion);
   }

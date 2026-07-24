@@ -1,12 +1,13 @@
 /**
  * EditRuleDialog component tests -- VT-LEO-AI-152.
  *
- * Verify reviewer-facing behaviour:
+ * Verify reviewer-facing behaviour with Guided (highlight wizard):
  *   - Save is gated on a non-empty reason and a valid tree.
  *   - Saving sends action="edit" with an updates payload (name,
  *     logic_tree without node_ids).
- *   - Removing a CONCEPT chip drops it from the persisted tree.
- *   - SNOMED search results swap the focused concept on click.
+ *   - Removing a prerequisite drops it from the persisted tree.
+ *   - Empty rules start from the empty-state CTA.
+ *   - Bare single-criterion trees surface as one prerequisite row.
  */
 
 import React from "react";
@@ -15,7 +16,7 @@ import {
   render,
   screen,
   waitFor,
-  waitForElementToBeRemoved,
+  within,
 } from "@testing-library/react";
 
 import EditRuleDialog from "..";
@@ -63,12 +64,6 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
-/**
- * The widescreen editor splits the form across three steps. Tests
- * that need fields from a later step (action chip on step 2, reason
- * on step 3) navigate via the horizontal stepper across the top of
- * the dialog.
- */
 function goToStep(stepNumber: 1 | 2 | 3) {
   const stepper = screen.getAllByRole("button", {
     name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
@@ -82,16 +77,6 @@ function fillReason(text: string) {
     target: { value: text },
   });
 }
-
-const VIEW_MODE_STORAGE_KEY = "leo.editRuleDialog.viewMode";
-
-beforeEach(() => {
-  // Guided is now the default view, but these tests exercise the
-  // chip-based canvas directly (pill aria-labels, chip-anchored
-  // search popover) -- force Simple so they keep testing that
-  // canvas rather than the highlight-to-build wizard.
-  window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, "simple");
-});
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -108,7 +93,7 @@ describe("EditRuleDialog", () => {
     const saveBtn = screen.getByRole("button", { name: /save your changes/i });
     expect(saveBtn).toBeDisabled();
 
-    fillReason("Removed redundant cough chip");
+    fillReason("Removed redundant cough criterion");
     expect(saveBtn).not.toBeDisabled();
   });
 
@@ -129,22 +114,32 @@ describe("EditRuleDialog", () => {
     expect("node_id" in payload.logic_tree).toBe(false);
   });
 
-  it("removing a CONCEPT chip drops it from the saved tree", async () => {
+  it("shows save API errors inside the dialog above the footer", () => {
+    mockSearch();
+    render(
+      <EditRuleDialog
+        rule={SAMPLE_RULE}
+        open
+        onClose={() => {}}
+        onSave={() => {}}
+        saveError="Tree is not valid for save"
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(/tree is not valid for save/i);
+  });
+
+  it("removing a CONCEPT prerequisite drops it from the saved tree", async () => {
     mockSearch();
     const onSave = jest.fn();
     render(
       <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={onSave} />
     );
 
-    // The chip aria-label is in plain English with the SNOMED suffix stripped.
-    const chip = screen.getByRole("button", {
-      name: /^Cough\. Click to swap, X to remove\.$/i,
-    });
-    const deleteIcon = chip.querySelector(
-      "svg[data-testid='CancelIcon'], .MuiChip-deleteIcon"
-    );
-    expect(deleteIcon).not.toBeNull();
-    fireEvent.click(deleteIcon as Element);
+    expect(screen.getByTestId("highlight-wizard")).toBeInTheDocument();
+    const coughLabel = screen.getByText(/patient has cough/i);
+    const coughRow = coughLabel.closest("[data-testid^='prerequisite-row-']");
+    expect(coughRow).not.toBeNull();
+    fireEvent.click(within(coughRow as HTMLElement).getByRole("button", { name: /^remove$/i }));
 
     fillReason("Cough was redundant with the OR group");
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
@@ -155,78 +150,16 @@ describe("EditRuleDialog", () => {
     expect(kinds).not.toContain("CONCEPT");
   });
 
-  it("clicking a search hit replaces the focused concept", async () => {
-    mockSearch([
-      {
-        snomed_concept_id: "84229001",
-        term: "Fatigue (finding)",
-        semantic_tag: "finding",
-      },
-    ]);
-    const onSave = jest.fn();
-    render(
-      <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={onSave} />
-    );
-
-    const conceptChip = screen.getByRole("button", {
-      name: /^Cough\. Click to swap, X to remove\.$/i,
-    });
-    fireEvent.click(conceptChip);
-
-    // The "Use this" button now carries the friendly term in its aria-label.
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /^Use Fatigue$/i })
-      ).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^Use Fatigue$/i }));
-
-    fillReason("Swapped cough for fatigue per chest team feedback");
-    fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
-
-    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    const tree = onSave.mock.calls[0][0].logic_tree;
-    const concept = (tree.children as Array<{ kind: string; criterion?: { snomed_concept_id: string } }>).find(
-      (c) => c.kind === "CONCEPT"
-    );
-    expect(concept?.criterion?.snomed_concept_id).toBe("84229001");
-  });
-
-  it("does not render a permanent search column; search appears as a chip-anchored popover", () => {
+  it("opens the highlight wizard for a rule that already has a logic tree", () => {
     mockSearch();
     render(
       <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={() => {}} />
     );
+    expect(screen.getByTestId("highlight-wizard")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", {
-        name: /open search to pick a clinical term/i,
-      }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/search clinical terms/i)).not.toBeInTheDocument();
-  });
-
-  it("opens the chip-anchored search popover when a chip is clicked, and closes via the X", async () => {
-    mockSearch();
-    render(
-      <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={() => {}} />
-    );
-    expect(screen.queryByLabelText(/search clinical terms/i)).not.toBeInTheDocument();
-
-    const chip = screen.getByRole("button", {
-      name: /^Cough\. Click to swap, X to remove\.$/i,
-    });
-    fireEvent.click(chip);
-
-    const searchField = await screen.findByLabelText(/search clinical terms/i);
-    expect(searchField).toBeInTheDocument();
-    const closeBtn = screen.getByRole("button", { name: /^close search$/i });
-    fireEvent.click(closeBtn);
-    // The popover plays an exit transition before unmounting, so wait
-    // for the search field to leave the DOM rather than asserting
-    // synchronously.
-    await waitForElementToBeRemoved(() =>
-      screen.queryByLabelText(/search clinical terms/i),
-    );
+      screen.getByRole("heading", { name: /what must always be true/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("logic-tree-editor")).not.toBeInTheDocument();
   });
 
   it("toggles fullscreen mode via the title-bar button", () => {
@@ -254,18 +187,18 @@ describe("EditRuleDialog", () => {
     expect(
       screen.getByRole("button", { name: /save your changes/i })
     ).toBeInTheDocument();
-    // Phase 3: the always-visible LivePreviewPane sits to the right of
-    // the canvas and explains the rule in plain English on every step.
-    // The previous LivePreviewBanner + drawer toggle was deleted.
+    // During Guided build steps the right column shows the NICE quote;
+    // the live preview returns on dialog steps 2/3 and Guided Review.
     expect(
-      screen.getByRole("region", { name: /live preview of this rule/i }),
+      screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
     ).toBeInTheDocument();
-    // The pane shows the friendly strength label even before the
-    // reviewer opens step 2.
-    expect(screen.getByText(/offer this test or referral/i)).toBeInTheDocument();
 
-    // Step 2 owns the short-name and strength fields.
     goToStep(2);
+    const preview = screen.getByRole("region", {
+      name: /live preview of this rule/i,
+    });
+    expect(preview).toBeInTheDocument();
+    expect(within(preview).getByText(/offer this test or referral/i)).toBeInTheDocument();
     expect(
       screen.getAllByLabelText(/short name for this rule/i)[0],
     ).toBeInTheDocument();
@@ -273,14 +206,13 @@ describe("EditRuleDialog", () => {
       screen.getAllByLabelText(/what should the system suggest/i)[0],
     ).toBeInTheDocument();
 
-    // Step 3 owns the reason field.
     goToStep(3);
     expect(
       screen.getByLabelText(/why are you changing this rule/i)
     ).toBeInTheDocument();
   });
 
-  it("adds the first symptom to an empty rule via the chip search popover", async () => {
+  it("adds the first symptom to an empty rule via the empty-state search", async () => {
     mockSearch([
       {
         snomed_concept_id: "399208008",
@@ -313,30 +245,14 @@ describe("EditRuleDialog", () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.queryByText(/this rule has no symptoms yet/i),
-      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("highlight-wizard")).toBeInTheDocument();
     });
-    expect(
-      screen.getByRole("button", {
-        name: /^Plain X-ray of chest\. Click to swap, X to remove\.$/i,
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/patient has plain x-ray of chest/i)).toBeInTheDocument();
   });
 
-  // Regression: NG12 1.2.8 ("...in people with haematemesis") persists
-  // in Neo4j as a BARE leaf root -- {"kind": "concept", "criterion":
-  // {...}} -- with no AND wrapper, because the raw AI-extraction
-  // pipeline never wraps a single-criterion recommendation. Before the
-  // fix, LogicTreeEditor/GroupBody and SentenceEditor/GroupSentence
-  // both unconditionally treated the root as a GROUP (reading
-  // node.children, rendering the kind Select, etc.), so a bare leaf
-  // root rendered as an empty "nothing yet" group -- the one real
-  // criterion was invisible. A reviewer who then used "+ add another
-  // symptom" to add the very symptom the guideline already required
-  // ended up with it TWICE, because the add flow's own wrapRootInAnd
-  // finally surfaced the hidden original alongside the new pick.
-  it("shows a bare single-criterion logic_tree (NG12 1.2.8 shape) as one pill, not an empty group", () => {
+  // Regression: NG12 1.2.8 bare leaf root must surface as one
+  // prerequisite row, not an empty group.
+  it("shows a bare single-criterion logic_tree (NG12 1.2.8 shape) as one prerequisite", () => {
     mockSearch();
     const bareLeafRule = {
       rule_id: "rule:NG12:v1:CH002:SEC001:R007:dee9d93f",
@@ -361,17 +277,9 @@ describe("EditRuleDialog", () => {
       <EditRuleDialog rule={bareLeafRule} open onClose={() => {}} onSave={() => {}} />,
     );
 
-    // The one stored criterion renders as a single removable pill...
-    expect(
-      screen.getByRole("button", {
-        name: /^Hematemesis\. Click to swap, X to remove\.$/i,
-      }),
-    ).toBeInTheDocument();
-    // ...exactly once...
-    expect(
-      screen.getAllByRole("button", { name: /^Hematemesis\./i }),
-    ).toHaveLength(1);
-    // ...and the canvas never claims the (non-empty) group is empty.
+    expect(screen.getByTestId("highlight-wizard")).toBeInTheDocument();
+    expect(screen.getByText(/hematemesis/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/hematemesis/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText(/nothing yet/i)).not.toBeInTheDocument();
   });
 });

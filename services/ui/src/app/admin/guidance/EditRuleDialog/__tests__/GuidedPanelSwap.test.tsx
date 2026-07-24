@@ -1,19 +1,20 @@
 /**
- * The guided wizard's right-column panel should show the pinned NICE
- * guideline quote while the wizard is still building the tree, then
- * swap to the normal live-preview summary once the wizard reaches
- * Review -- see GuidelineQuotePanel's and Step1Who's doc comments.
+ * When a multi-pathway tree is already filled, Guided opens on Review
+ * with the live preview (reopen after save) -- not Step 1 again.
+ *
+ * Quote-while-building swap is covered by EditRuleDialog.coach and
+ * HighlightWizard tests (fresh startMode).
  *
  * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 import EditRuleDialog from "..";
 
 const TEXT = "In people aged 55 or over with weight loss, or nausea and vomiting.";
 
-const SAMPLE_RULE = {
+const FILLED_RULE = {
   rule_id: "rule:NG12:abc",
   name: "Upper GI cancer red flags",
   strength: "offer",
@@ -64,8 +65,6 @@ function mockSearch() {
 }
 
 beforeEach(() => {
-  // Guided is the default view -- this suite is specifically about it.
-  window.localStorage.removeItem("leo.editRuleDialog.viewMode");
   mockSearch();
 });
 
@@ -74,33 +73,14 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe("EditRuleDialog: guided wizard right-column panel swap", () => {
-  it("pins the NICE quote while the wizard builds, then swaps to the live preview at Review", () => {
+describe("EditRuleDialog: guided reopen after a filled multi-pathway save", () => {
+  it("opens on Review with the live preview instead of forcing Step 1", () => {
     render(
-      <EditRuleDialog rule={SAMPLE_RULE} open onClose={() => {}} onSave={() => {}} />,
+      <EditRuleDialog rule={FILLED_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
 
-    // Step 1 of the wizard: the right column shows the guideline
-    // quote, not a half-built live summary.
-    expect(
-      screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("region", { name: /live preview of this rule/i }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /no, nothing else/i }));
-    fireEvent.click(screen.getByRole("button", { name: /looks right, continue/i }));
-    // Still building (Step 3) -- the quote panel stays pinned.
-    expect(
-      screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /confirm situation a/i }));
-    fireEvent.click(screen.getByRole("button", { name: /confirm situation b/i }));
-
-    // Review: the panel swaps back to the normal live preview.
-    expect(screen.getByText(/here's the rule you built/i)).toBeInTheDocument();
+    expect(screen.getByTestId("wizard-review")).toBeInTheDocument();
+    expect(screen.getByText(/check the live preview/i)).toBeInTheDocument();
     expect(
       screen.getByRole("region", { name: /live preview of this rule/i }),
     ).toBeInTheDocument();

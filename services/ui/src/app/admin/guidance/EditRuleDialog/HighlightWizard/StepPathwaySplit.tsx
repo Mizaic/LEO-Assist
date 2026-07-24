@@ -25,7 +25,7 @@
  * See the plan's Step 2 wireframe (highlight-to-build_rule_wizard_
  * wireframes.md) for the exact layout this implements.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -62,6 +62,14 @@ export interface StepPathwaySplitProps {
   /** "No, it applies the same way to everyone" -- skips straight to a
    *  single Step 3 pass with no lettered pathways. */
   onNoSplit: () => void;
+  /**
+   * Fires whenever the proposed situation list changes (initial
+   * detect, merge, split) so the host can paint each situation a
+   * different colour in GuidelineQuotePanel -- Step 2 has no
+   * "active" index yet, so the quote panel needs the live proposal
+   * rather than waiting for Confirm.
+   */
+  onProposedBoundariesChange?: (boundaries: PathwayTextBoundary[] | null) => void;
 }
 
 /** Merge two adjacent boundaries into one; a mixed structure+heuristic
@@ -108,6 +116,7 @@ export default function StepPathwaySplit({
   initialBoundaries,
   onConfirm,
   onNoSplit,
+  onProposedBoundariesChange,
 }: StepPathwaySplitProps) {
   const derivedBoundaries = useMemo(
     () => splitPathways(recommendationText, recommendationStructure),
@@ -118,6 +127,10 @@ export default function StepPathwaySplit({
   );
   const [mode, setMode] = useState<SelectMode>("idle");
   const [selected, setSelected] = useState<number[]>([]);
+
+  useEffect(() => {
+    onProposedBoundariesChange?.(boundaries);
+  }, [boundaries, onProposedBoundariesChange]);
 
   const source = boundaries?.[0]?.source ?? null;
 

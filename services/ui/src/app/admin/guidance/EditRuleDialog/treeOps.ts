@@ -563,7 +563,7 @@ export function applyUpdate(
         return appendChild(n, child);
       });
     case "add_demographic": {
-      const demo = makeDemographicNode();
+      const demo = makeDemographicNode(update.field);
       return mapNode(root, (n) => {
         if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) return n;
         if (isOrGroupSymptomsOnly(n)) {
@@ -958,7 +958,17 @@ function makeGroupNode(kind: LogicNodeKind): EditableLogicNode {
   };
 }
 
-function makeDemographicNode(): EditableLogicNode {
+function makeDemographicNode(field: "age" | "sex" = "age"): EditableLogicNode {
+  if (field === "sex") {
+    return {
+      node_id: freshNodeId(),
+      kind: "DEMOGRAPHIC",
+      field: "sex",
+      operator: "=",
+      value: "female",
+      unit: null,
+    };
+  }
   return {
     node_id: freshNodeId(),
     kind: "DEMOGRAPHIC",

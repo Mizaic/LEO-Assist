@@ -52,10 +52,7 @@ describe("ChipSearchPopover", () => {
         onClose={jest.fn()}
       />,
     );
-    expect(screen.getByLabelText(SEARCH_PANEL.resultsAriaLabel)).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText(MULTI_CONCEPT_PICKER.resultsAriaLabel),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(MULTI_CONCEPT_PICKER.emptyHint)).not.toBeInTheDocument();
   });
 
   it("renders MultiConceptPicker's multi-select results list when multiPick is true", () => {
@@ -71,12 +68,10 @@ describe("ChipSearchPopover", () => {
         onClose={jest.fn()}
       />,
     );
+    expect(screen.getByText(MULTI_CONCEPT_PICKER.emptyHint)).toBeInTheDocument();
     expect(
-      screen.getByLabelText(MULTI_CONCEPT_PICKER.resultsAriaLabel),
+      screen.getByRole("button", { name: /Add \d+ codes?/ }),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText(SEARCH_PANEL.resultsAriaLabel),
-    ).not.toBeInTheDocument();
   });
 
   it("ignores multiPick outside of add mode -- replace always stays single-pick", () => {
@@ -92,10 +87,7 @@ describe("ChipSearchPopover", () => {
         onClose={jest.fn()}
       />,
     );
-    expect(screen.getByLabelText(SEARCH_PANEL.resultsAriaLabel)).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText(MULTI_CONCEPT_PICKER.resultsAriaLabel),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(MULTI_CONCEPT_PICKER.emptyHint)).not.toBeInTheDocument();
   });
 
   it("picking a code in multi-pick mode confirms and closes the popover", async () => {

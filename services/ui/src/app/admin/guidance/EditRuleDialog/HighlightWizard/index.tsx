@@ -18,9 +18,8 @@
  * Step 2 (StepPathwaySplit) -- "Does this split into situations?"
  * Step 3 (PathwayConditionsStage, repeated once per pathway) --
  *   "Within this situation, what must ALL be true?"
- * Review -- the existing SentenceEditor, now anchored to what the
- *   wizard just built, so the hand-off is the same canvas a reviewer
- *   would otherwise land on directly.
+ * Review -- short confirmation that points at the right-column live
+ *   preview (no second Simple editor). Power edits use Advanced.
  *
  * Every step mutates the SAME EditableLogicNode tree and NodeUpdate
  * contract every other surface (LogicTreeEditor, SentenceEditor) uses
@@ -32,13 +31,13 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useState,
   type Dispatch,
 } from "react";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { findPathwaySplit } from "../pathwayDetection";
-import SentenceEditor from "../SentenceEditor";
 import type {
   PathwayTextBoundary,
   RecommendationStructure,
@@ -50,6 +49,7 @@ import StepPrerequisites from "./StepPrerequisites";
 import { WIZARD_CHROME } from "./copy";
 import { materializePathways, readMaterializedPathways } from "./wizardMapping";
 import WizardHeader from "./WizardHeader";
+import { buildInitialWizardState } from "./initialWizardState";
 import {
   INITIAL_WIZARD_STATE,
   wizardReducer,
@@ -72,10 +72,14 @@ export interface HighlightWizardProps {
     multiPick?: boolean,
   ) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
-  /** Falls back to whichever manual canvas the host renders when the
-   *  reviewer opts out of the guided flow (Step1Who wires this to
-   *  flip ViewModeToggle to "advanced"). */
-  onSkipToManual: () => void;
+  /**
+   * Opens the add/remove/depth synonym editor for a CONCEPT leaf that
+   * already has a matched code -- see `PathwayConditionsStage`'s doc
+   * comment on the same prop. Used by both Step 1 (editing an
+   * existing prerequisite) and Step 3 (editing an existing pathway
+   * condition) row clicks.
+   */
+  onEditConcept: (nodeId: string) => void;
   guidelineId?: string;
   currentRuleId?: string;
   /** Reports the wizard's own current step so the host can, for
@@ -83,6 +87,24 @@ export interface HighlightWizardProps {
    *  reviewer reaches Review -- the only step where "what this rule
    *  means" is actually built up enough to be worth previewing. */
   onStepChange?: (step: WizardStepKind) => void;
+  /**
+   * `auto` (default) opens Review when every pathway already has
+   * leaves -- so reopening a saved rule does not force Step 1 again.
+   * `fresh` always starts at prerequisites (tests / rebuild).
+   */
+  startMode?: "auto" | "fresh";
+  /**
+   * Reports the situations the quote panel should colour:
+   *  - Step 2: proposed boundaries + null active index (colour-per-
+   *    situation overview of what the text detector found)
+   *  - Step 3: confirmed boundaries + the active pathway index
+   *    (scoped capture view)
+   *  - otherwise: `(null, null)` -- plain / tree-leaf highlighting
+   */
+  onActiveSituationChange?: (
+    boundaries: PathwayTextBoundary[] | null,
+    activePathwayIndex: number | null,
+  ) => void;
 }
 
 function usePrerequisiteNodes(tree: EditableLogicNode): EditableLogicNode[] {
@@ -117,18 +139,45 @@ export default function HighlightWizard({
   onUpdate,
   onRequestAdd,
   onRequestCoach,
-  onSkipToManual,
+  onEditConcept,
   guidelineId,
   currentRuleId,
   onStepChange,
+  startMode = "auto",
+  onActiveSituationChange,
 }: HighlightWizardProps) {
-  const [state, dispatch] = useReducer(wizardReducer, INITIAL_WIZARD_STATE);
+  const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
+    startMode === "fresh"
+      ? INITIAL_WIZARD_STATE
+      : buildInitialWizardState(tree, recommendationText, recommendationStructure),
+  );
+  const [proposedBoundaries, setProposedBoundaries] = useState<
+    PathwayTextBoundary[] | null
+  >(null);
   const prerequisiteNodes = usePrerequisiteNodes(tree);
   useMaterializationEffect(tree, state, dispatch);
 
   useEffect(() => {
     onStepChange?.(state.step);
   }, [state.step, onStepChange]);
+
+  useEffect(() => {
+    if (state.step === "pathway-conditions" && state.boundaries) {
+      onActiveSituationChange?.(state.boundaries, state.pathwayIndex);
+    } else if (state.step === "pathway-split" && proposedBoundaries) {
+      // Null active index = Step 2 overview: paint every situation
+      // its own colour so the detector's full wording is visible.
+      onActiveSituationChange?.(proposedBoundaries, null);
+    } else {
+      onActiveSituationChange?.(null, null);
+    }
+  }, [
+    state.step,
+    state.boundaries,
+    state.pathwayIndex,
+    proposedBoundaries,
+    onActiveSituationChange,
+  ]);
 
   const handleConfirmSplit = useCallback(
     (boundaries: PathwayTextBoundary[]) => {
@@ -150,13 +199,14 @@ export default function HighlightWizard({
 
   return (
     <Stack spacing={2} data-testid="highlight-wizard">
-      <WizardHeader step={state.step} onBack={handleBack} onSkipToManual={onSkipToManual} />
+      <WizardHeader step={state.step} onBack={handleBack} />
 
       {state.step === "prerequisites" && (
         <StepPrerequisites
           recommendationText={recommendationText}
           prerequisites={prerequisiteNodes}
           onEdit={onSelectNode}
+          onEditConcept={onEditConcept}
           onRemove={(nodeId) => onUpdate({ kind: "remove", nodeId })}
           onAddFromSelection={(selection, anchor) =>
             onRequestAdd(tree.node_id, anchor, selection.text, true)
@@ -176,6 +226,7 @@ export default function HighlightWizard({
             recommendationStructure={recommendationStructure}
             onConfirm={handleConfirmSplit}
             onNoSplit={handleNoSplit}
+            onProposedBoundariesChange={setProposedBoundaries}
           />
         ))}
 
@@ -196,28 +247,19 @@ export default function HighlightWizard({
           onSelectNode={onSelectNode}
           onUpdate={onUpdate}
           onRequestAdd={onRequestAdd}
+          onEditConcept={onEditConcept}
           onConfirmPathway={() => dispatch({ type: "CONFIRM_PATHWAY" })}
         />
       )}
 
       {state.step === "review" && (
-        <Stack spacing={1}>
+        <Stack spacing={1} data-testid="wizard-review">
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             {WIZARD_CHROME.reviewTitle}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {WIZARD_CHROME.reviewHelper}
           </Typography>
-          <SentenceEditor
-            root={tree}
-            selectedNodeId={null}
-            onSelect={onSelectNode}
-            onUpdate={onUpdate}
-            onRequestAdd={onRequestAdd}
-            onRequestCoach={onRequestCoach}
-            guidelineId={guidelineId}
-            currentRuleId={currentRuleId}
-          />
         </Stack>
       )}
     </Stack>

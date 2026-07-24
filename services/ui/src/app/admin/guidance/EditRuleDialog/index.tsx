@@ -76,6 +76,7 @@ import { useMotion } from "@leo/design-system";
 
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
+import ConceptSynonymDialog from "./ConceptSynonymDialog";
 import ChipSearchPopover from "./ChipSearchPopover";
 import HorizontalStepper, {
   type StepDescriptor,
@@ -120,7 +121,10 @@ import type {
   RuleAction,
   RulePriority,
 } from "./types";
-import type { RecommendationStructure } from "./SentenceEditor/pathwayTextSplit";
+import type {
+  PathwayTextBoundary,
+  RecommendationStructure,
+} from "./SentenceEditor/pathwayTextSplit";
 
 export interface EditableRule {
   rule_id: string;
@@ -155,6 +159,9 @@ interface Props {
   rule: EditableRule | null;
   open: boolean;
   saving?: boolean;
+  /** Shown inside the dialog when the parent save call fails --
+   *  errors rendered behind this modal are invisible to the reviewer. */
+  saveError?: string | null;
   onClose: () => void;
   onSave: (payload: {
     name: string;
@@ -318,6 +325,7 @@ export default function EditRuleDialog({
   rule,
   open,
   saving,
+  saveError = null,
   onClose,
   onSave,
 }: Props) {
@@ -355,6 +363,37 @@ export default function EditRuleDialog({
    *  half-built live preview -- see GuidelineQuotePanel's doc comment. */
   const [guidedPanelMode, setGuidedPanelMode] = useState<"quote" | "preview">(
     "preview",
+  );
+  /** Which situation (Step 3 pathway) the guided wizard is currently
+   *  building, if any -- see GuidelineQuotePanel's `pathwayBoundaries`/
+   *  `activePathwayIndex` props. Null before a pathway split exists. */
+  const [activeSituation, setActiveSituation] = useState<{
+    boundaries: PathwayTextBoundary[] | null;
+    pathwayIndex: number | null;
+  }>({ boundaries: null, pathwayIndex: null });
+  /** The CONCEPT leaf currently open in the add/remove/depth synonym
+   *  editor -- see ConceptSynonymDialog and HighlightWizard's
+   *  `onEditConcept` doc comment. Null when the dialog is closed. */
+  const [synonymEditorNodeId, setSynonymEditorNodeId] = useState<string | null>(
+    null,
+  );
+  const handleEditConcept = useCallback(
+    (nodeId: string) => setSynonymEditorNodeId(nodeId),
+    [],
+  );
+  // Stable across renders (see HighlightWizard's `onActiveSituationChange`
+  // dependency array) -- an inline arrow function here would get a new
+  // identity on every render, re-firing that effect, calling this, and
+  // re-rendering forever.
+  const handleActiveSituationChange = useCallback(
+    (boundaries: PathwayTextBoundary[] | null, pathwayIndex: number | null) => {
+      setActiveSituation((prev) =>
+        prev.boundaries === boundaries && prev.pathwayIndex === pathwayIndex
+          ? prev
+          : { boundaries, pathwayIndex },
+      );
+    },
+    [],
   );
   const [stepDirection, setStepDirection] = useState<1 | -1>(1);
   const prevStepIndexRef = useRef(0);
@@ -998,6 +1037,7 @@ export default function EditRuleDialog({
                 onUpdate={handleUpdate}
                 onRequestAdd={handleRequestAdd}
                 onRequestCoach={handleRequestCoach}
+                onEditConcept={handleEditConcept}
                 onAddFirstSymptom={handleAddFirstSymptom}
                 onAddFirstDemographic={handleAddFirstDemographic}
                 onAddFirstObservation={handleAddFirstObservation}
@@ -1008,6 +1048,7 @@ export default function EditRuleDialog({
                   setTree(withIds);
                 }}
                 onGuidedPanelModeChange={setGuidedPanelMode}
+                onActiveSituationChange={handleActiveSituationChange}
               />
             )}
             {currentStepId === "suggest" && (
@@ -1109,6 +1150,8 @@ export default function EditRuleDialog({
                 <GuidelineQuotePanel
                   recommendationText={rule?.recommendation_text}
                   tree={tree}
+                  pathwayBoundaries={activeSituation.boundaries}
+                  activePathwayIndex={activeSituation.pathwayIndex}
                 />
               ) : (
                 <LivePreviewPane
@@ -1143,6 +1186,15 @@ export default function EditRuleDialog({
         onPickObservation={handlePickObservation}
         onClose={handleClosePopover}
       />
+      {saveError ? (
+        <Alert
+          severity="error"
+          role="alert"
+          sx={{ mx: 3, mb: 0, mt: 1, flexShrink: 0 }}
+        >
+          {saveError}
+        </Alert>
+      ) : null}
       <DialogActions
         sx={{
           px: 3,
@@ -1208,6 +1260,26 @@ export default function EditRuleDialog({
           />
         );
       })()}
+      <ConceptSynonymDialog
+        open={!!synonymEditorNodeId}
+        node={
+          synonymEditorNodeId && tree ? findNode(tree, synonymEditorNodeId) : null
+        }
+        onUpdate={handleUpdate}
+        onClose={() => setSynonymEditorNodeId(null)}
+        // Wizard (and any other open-by-node-id path): let the reviewer
+        // undo a mistaken Step 3 pick by deleting the CONCEPT leaf so
+        // the row goes back to unresolved. The Advanced chip editor
+        // opens SynonymChipEditor's own dialog without this callback.
+        onClearMatch={
+          synonymEditorNodeId
+            ? () => {
+                handleUpdate({ kind: "remove", nodeId: synonymEditorNodeId });
+                setSynonymEditorNodeId(null);
+              }
+            : undefined
+        }
+      />
     </Dialog>
   );
 }

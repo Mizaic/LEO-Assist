@@ -45,7 +45,7 @@ function strengthLabel(value: string): string {
 }
 
 export interface RuleReviewPoolProps {
-  poolId: "pending" | "approved" | "superseded";
+  poolId: "pending" | "approved" | "excluded" | "superseded";
   title: string;
   helper: string;
   statusFilter: RuleStatusFilter;
@@ -60,6 +60,31 @@ export interface RuleReviewPoolProps {
   onEdit: (rule: Rule) => void;
   onApprove?: (rule: Rule) => void;
   onReject?: (rule: Rule) => void;
+}
+
+function emptyCopy(poolId: RuleReviewPoolProps["poolId"]): { title: string; body: string } {
+  if (poolId === "pending") {
+    return {
+      title: "No rules awaiting review",
+      body: "No rules match your search. Load a guideline and generate rules first.",
+    };
+  }
+  if (poolId === "excluded") {
+    return {
+      title: "No excluded recommendations yet",
+      body: "Confirm 'no rule needed' or reject a pending rule to fill this list. Excluded items are not compiled live.",
+    };
+  }
+  if (poolId === "superseded") {
+    return {
+      title: "No superseded rules yet",
+      body: "Older versions appear here after you edit and save a rule.",
+    };
+  }
+  return {
+    title: "No approved rules yet",
+    body: "No approved rules match your search. Approve pending rules to fill this pool.",
+  };
 }
 
 export default function RuleReviewPool({
@@ -108,12 +133,7 @@ export default function RuleReviewPool({
     if (page > pagination.totalPages) setPage(pagination.totalPages);
   }, [page, pagination.totalPages]);
 
-  const emptyTitle =
-    poolId === "pending" ? "No rules awaiting review" : "No approved rules yet";
-  const emptyBody =
-    poolId === "pending"
-      ? "No rules match your search. Load a guideline and generate rules first."
-      : "No approved rules match your search. Approve pending rules to fill this pool.";
+  const { title: emptyTitle, body: emptyBody } = emptyCopy(poolId);
 
   return (
     <Box

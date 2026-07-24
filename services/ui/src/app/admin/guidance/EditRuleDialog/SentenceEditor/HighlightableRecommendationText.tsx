@@ -34,6 +34,14 @@ export interface HighlightSpan {
   end: number;
   kind: HighlightKind;
   label?: string;
+  /**
+   * Which situation (0-based pathway index) this span belongs to, when
+   * known. `null` / omitted means a prerequisite that applies to every
+   * situation, or a leaf matched before any pathway split exists.
+   * Used by GuidelineQuotePanel to paint each situation a different
+   * colour so the reviewer can see A vs B vs C at a glance.
+   */
+  pathwayIndex?: number | null;
 }
 
 /** Background/text colour for each highlight kind -- exported so other

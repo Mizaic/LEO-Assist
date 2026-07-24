@@ -21,13 +21,13 @@
  * wizard reaches Review, the host swaps back to `LivePreviewPane`,
  * which is finally showing a tree worth previewing.
  *
- * Pure presentational, same sticky right-column contract as
- * `LivePreviewPane`. When `tree` is supplied, every leaf that already
- * anchors onto `recommendationText` (via `collectTreeHighlights`) is
- * highlighted in place -- the same green used for a "confirmed" match
- * everywhere else in this wizard -- so a reviewer can see at a glance
- * which words they have already turned into rule conditions, without
- * re-reading the whole paragraph on every step.
+ * Highlighting modes:
+ *  - Step 2 (boundaries set, no active index): each situation's full
+ *    wording in a distinct colour -- the text detector's own view,
+ *    so nothing the split found is silently missing on the right.
+ *  - Step 3 (active index set): leaves already captured for the
+ *    active situation (+ prerequisites), coloured by situation.
+ *  - Step 1 / no split: every leaf that anchors onto the text.
  */
 
 import { useMemo } from "react";
@@ -37,10 +37,15 @@ import Typography from "@mui/material/Typography";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 
 import { collectTreeHighlights } from "./HighlightWizard/leafTextMatch";
+import { pathwayTextWindow } from "./HighlightWizard/wizardMapping";
 import {
   HIGHLIGHT_COLORS,
   type HighlightSpan,
 } from "./SentenceEditor/HighlightableRecommendationText";
+import {
+  cleanPathwayText,
+  type PathwayTextBoundary,
+} from "./SentenceEditor/pathwayTextSplit";
 import type { EditableLogicNode } from "./types";
 
 interface Props {
@@ -49,31 +54,130 @@ interface Props {
    *  highlighted in the quote below. Omit (or pass null) to render the
    *  quote plain, e.g. before any tree exists yet. */
   tree?: EditableLogicNode | null;
+  /**
+   * All pathway text boundaries (Step 2's proposed / confirmed split).
+   * Together with `activePathwayIndex`, picks the highlight mode:
+   * boundaries + null index = Step 2 colour-per-situation overview;
+   * boundaries + index = Step 3 scoped-to-active capture view.
+   */
+  pathwayBoundaries?: PathwayTextBoundary[] | null;
+  /** Index into `pathwayBoundaries` for the situation currently being
+   *  built in Step 3. Null/undefined on Step 2 means "show every
+   *  situation in its own colour". */
+  activePathwayIndex?: number | null;
 }
 
-/** Merges overlapping/adjacent highlight spans and sorts them, so the
- * renderer below can do one straight left-to-right pass over `text`
- * instead of re-checking every span against every character. Exported
- * for direct unit testing of the merge logic on its own. */
+/** Distinct, readable colours per situation letter (A, B, C, ...).
+ *  Cycles if a recommendation has more situations than the palette.
+ *  Teal / amber / green / rose / sky / orange -- deliberately not a
+ *  purple-gradient cluster. */
+const SITUATION_COLORS: Array<{ bgcolor: string; color: string }> = [
+  { bgcolor: "#CCFBF1", color: "#115E59" }, // teal - A
+  { bgcolor: "#FEF3C7", color: "#92400E" }, // amber - B
+  { bgcolor: "#DCFCE7", color: "#14532D" }, // green - C
+  { bgcolor: "#FFE4E6", color: "#9F1239" }, // rose - D
+  { bgcolor: "#E0F2FE", color: "#075985" }, // sky - E
+  { bgcolor: "#FFEDD5", color: "#9A3412" }, // orange - F
+];
+
+/** Colour for a situation index, or the shared confirmed green for a
+ *  prerequisite (no pathway). Exported for direct unit testing. */
+export function situationHighlightColor(
+  pathwayIndex: number | null | undefined,
+): { bgcolor: string; color: string } {
+  if (pathwayIndex == null) return HIGHLIGHT_COLORS.confirmed;
+  return SITUATION_COLORS[pathwayIndex % SITUATION_COLORS.length];
+}
+
+/**
+ * One span per situation boundary, tagged with its pathway index so
+ * the renderer can paint each a different colour. Strips a dangling
+ * trailing ", or" connector (see `cleanPathwayText`) so the highlight
+ * ends on the situation's own wording, not the next-pathway glue.
+ */
+export function buildSituationBoundaryHighlights(
+  boundaries: PathwayTextBoundary[],
+): HighlightSpan[] {
+  return boundaries.map((boundary, index) => {
+    const cleaned = cleanPathwayText(boundary.text);
+    const local = cleaned ? boundary.text.indexOf(cleaned) : 0;
+    const start = boundary.start + Math.max(0, local);
+    const end = start + (cleaned ? cleaned.length : Math.max(0, boundary.end - boundary.start));
+    return {
+      start,
+      end,
+      kind: "confirmed" as const,
+      pathwayIndex: index,
+    };
+  });
+}
+
+/**
+ * Restricts `highlights` to wording the reviewer can actually act on
+ * right now: anything outside every pathway's extended text window (a
+ * prerequisite) plus anything inside the ACTIVE window. Uses
+ * `pathwayTextWindow` -- not raw `boundary.end` -- so nested-list
+ * wording that sits past a structural lead `<li>` still belongs to
+ * that situation instead of lighting up as a false prerequisite.
+ * Step 2 (active index null) deliberately drops pathway-owned tree
+ * highlights -- that step uses `buildSituationBoundaryHighlights`
+ * instead so every word the detector found is visible.
+ */
+export function scopeHighlightsToActiveSituation(
+  highlights: HighlightSpan[],
+  pathwayBoundaries: PathwayTextBoundary[] | null | undefined,
+  activePathwayIndex: number | null | undefined,
+  textLength = 0,
+): HighlightSpan[] {
+  if (!pathwayBoundaries || pathwayBoundaries.length === 0) return highlights;
+  const windows = pathwayBoundaries.map((_, i) => {
+    const extended = pathwayTextWindow(pathwayBoundaries, i, textLength);
+    const raw = pathwayBoundaries[i];
+    return extended ?? { start: raw.start, end: raw.end };
+  });
+  const active =
+    activePathwayIndex != null ? windows[activePathwayIndex] : undefined;
+  const fallsWithin = (span: HighlightSpan, range: { start: number; end: number }) =>
+    span.start < range.end && range.start < span.end;
+  return highlights.filter((span) => {
+    if (active && fallsWithin(span, active)) return true;
+    const inOther = windows.some(
+      (w, i) => i !== activePathwayIndex && fallsWithin(span, w),
+    );
+    return !inOther;
+  });
+}
+
+export type MergedHighlightRange = {
+  start: number;
+  end: number;
+  pathwayIndex?: number | null;
+};
+
+/** Merges overlapping/adjacent highlight spans of the SAME situation
+ *  only -- never glues situation A into situation B, which would wipe
+ *  the per-colour distinction. Exported for direct unit testing. */
 export function mergeHighlightRanges(
   highlights: HighlightSpan[],
-): Array<{ start: number; end: number }> {
+): MergedHighlightRange[] {
   const sorted = [...highlights].sort((a, b) => a.start - b.start);
-  const merged: Array<{ start: number; end: number }> = [];
+  const merged: MergedHighlightRange[] = [];
   for (const span of sorted) {
     const last = merged[merged.length - 1];
-    if (last && span.start <= last.end) {
+    const samePathway = last && last.pathwayIndex === span.pathwayIndex;
+    if (last && samePathway && span.start <= last.end) {
       last.end = Math.max(last.end, span.end);
     } else {
-      merged.push({ start: span.start, end: span.end });
+      merged.push({
+        start: span.start,
+        end: span.end,
+        pathwayIndex: span.pathwayIndex,
+      });
     }
   }
   return merged;
 }
 
-/** Renders `text` as plain runs interleaved with `<mark>` runs for
- * each merged highlight range -- read-only, no word tokenisation or
- * interaction handlers, since this quote is reference-only. */
 function renderHighlightedQuote(
   text: string,
   highlights: HighlightSpan[],
@@ -87,13 +191,17 @@ function renderHighlightedQuote(
     if (range.start > cursor) {
       nodes.push(<span key={`plain-${i}`}>{text.slice(cursor, range.start)}</span>);
     }
+    const palette = situationHighlightColor(range.pathwayIndex);
     nodes.push(
       <Box
         key={`mark-${i}`}
         component="mark"
+        data-situation-index={
+          range.pathwayIndex == null ? "prereq" : String(range.pathwayIndex)
+        }
         sx={{
-          bgcolor: HIGHLIGHT_COLORS.confirmed.bgcolor,
-          color: HIGHLIGHT_COLORS.confirmed.color,
+          bgcolor: palette.bgcolor,
+          color: palette.color,
           borderRadius: 0.5,
           px: "1px",
         }}
@@ -109,10 +217,73 @@ function renderHighlightedQuote(
   return nodes;
 }
 
-export default function GuidelineQuotePanel({ recommendationText, tree }: Props) {
-  const highlights = useMemo(
-    () => collectTreeHighlights(recommendationText, tree),
-    [recommendationText, tree],
+function pickHighlights(
+  recommendationText: string | null | undefined,
+  tree: EditableLogicNode | null | undefined,
+  pathwayBoundaries: PathwayTextBoundary[] | null | undefined,
+  activePathwayIndex: number | null | undefined,
+): { highlights: HighlightSpan[]; mode: "overview" | "scoped" | "all" } {
+  const hasSplit = Boolean(pathwayBoundaries && pathwayBoundaries.length > 1);
+  if (hasSplit && activePathwayIndex == null) {
+    return {
+      highlights: buildSituationBoundaryHighlights(pathwayBoundaries!),
+      mode: "overview",
+    };
+  }
+  const all = collectTreeHighlights(recommendationText, tree);
+  if (hasSplit && activePathwayIndex != null) {
+    const textLength = recommendationText?.length ?? 0;
+    const activeWindow =
+      pathwayTextWindow(pathwayBoundaries!, activePathwayIndex, textLength) ??
+      pathwayBoundaries![activePathwayIndex];
+    const scoped = scopeHighlightsToActiveSituation(
+      all,
+      pathwayBoundaries,
+      activePathwayIndex,
+      textLength,
+    ).map((span) => {
+      const inActive =
+        span.start < activeWindow.end && activeWindow.start < span.end;
+      // Active-situation captures paint in that situation's colour;
+      // prerequisites (outside every pathway window) stay the shared green.
+      return { ...span, pathwayIndex: inActive ? activePathwayIndex : null };
+    });
+    return { highlights: scoped, mode: "scoped" };
+  }
+  return { highlights: all, mode: "all" };
+}
+
+function legendFor(
+  mode: "overview" | "scoped" | "all",
+  hasHighlights: boolean,
+): string {
+  if (!hasHighlights) {
+    return "Keep checking this against what you pick on the left. You'll see the full rule summary once you reach Review.";
+  }
+  if (mode === "overview") {
+    return "Each colour is a different situation from the split on the left. Check the colours match the rows before you continue.";
+  }
+  if (mode === "scoped") {
+    return "Highlighted words are already captured for this situation (and anything that applies to every situation). Check the rest against what's still missing.";
+  }
+  return "Highlighted words are already captured on the left. Check the rest against what's still missing.";
+}
+
+export default function GuidelineQuotePanel({
+  recommendationText,
+  tree,
+  pathwayBoundaries,
+  activePathwayIndex,
+}: Props) {
+  const { highlights, mode } = useMemo(
+    () =>
+      pickHighlights(
+        recommendationText,
+        tree,
+        pathwayBoundaries,
+        activePathwayIndex,
+      ),
+    [recommendationText, tree, pathwayBoundaries, activePathwayIndex],
   );
 
   return (
@@ -166,9 +337,7 @@ export default function GuidelineQuotePanel({ recommendationText, tree }: Props)
         </Typography>
       )}
       <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-        {highlights.length > 0
-          ? "Highlighted words are already captured on the left. Check the rest against what's still missing."
-          : "Keep checking this against what you pick on the left. You'll see the full rule summary once you reach Review."}
+        {legendFor(mode, highlights.length > 0)}
       </Typography>
     </Box>
   );

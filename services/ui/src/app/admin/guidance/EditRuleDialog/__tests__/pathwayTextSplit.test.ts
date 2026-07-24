@@ -10,6 +10,7 @@ import {
   detectAtLeastCluster,
   looksLikeLeadOrCluster,
   looksLikePathwaySplit,
+  looksLikeWithAnd,
   resolveAtLeastCluster,
   splitPathways,
   splitPathwaysByOrHeuristic,
@@ -431,5 +432,38 @@ describe("looksLikeLeadOrCluster", () => {
 
   it("returns null for more than 4 alternatives", () => {
     expect(looksLikeLeadOrCluster("a, b, c, d or e")).toBeNull();
+  });
+});
+
+describe("looksLikeWithAnd", () => {
+  it("splits NG12 situation B into two short findings", () => {
+    expect(
+      looksLikeWithAnd("upper abdominal pain with low haemoglobin levels"),
+    ).toEqual(["upper abdominal pain", "low haemoglobin levels"]);
+  });
+
+  it("rejects 'with any of the following' (handled by the AT_LEAST path)", () => {
+    expect(
+      looksLikeWithAnd("raised platelet count with any of the following: nausea"),
+    ).toBeNull();
+  });
+
+  it("rejects a long clausal 'with' phrase", () => {
+    expect(
+      looksLikeWithAnd(
+        "pain with a change in bowel habit that has persisted for six weeks",
+      ),
+    ).toBeNull();
+  });
+
+  it("splits a short 'nausea and vomiting' clause into two findings", () => {
+    expect(looksLikeWithAnd("nausea and vomiting.")).toEqual([
+      "nausea",
+      "vomiting",
+    ]);
+  });
+
+  it("does not split age phrasing that uses 'and'", () => {
+    expect(looksLikeWithAnd("people aged 55 and over with weight loss")).toBeNull();
   });
 });

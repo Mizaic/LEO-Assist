@@ -21,13 +21,21 @@
  * words, active voice, explain before you name.
  */
 
+/** "nausea, vomiting, and weight loss" -- short list for prompts. */
+function formatTermList(terms: string[]): string {
+  if (terms.length === 0) return "";
+  if (terms.length === 1) return terms[0];
+  if (terms.length === 2) return `${terms[0]} and ${terms[1]}`;
+  return `${terms.slice(0, -1).join(", ")}, and ${terms[terms.length - 1]}`;
+}
+
 /** Step 1 -- "What must ALWAYS be true?" (see the wizard plan's Step
  *  1 wireframe). Fuzzy-matches existing DEMOGRAPHIC/OBSERVATION/
  *  CONCEPT prerequisite leaves onto the guideline text. */
 export const STEP_PREREQUISITES = {
   title: "What must always be true?",
   helper:
-    "These are things that apply no matter which symptoms the patient has.",
+    "These are things that apply no matter which situation matches -- for example an age that covers every situation. If one situation has its own age or sex, add that when you build that situation.",
   capturedHeading: "Captured so far",
   question:
     "Does anything else always have to be true, no matter which symptoms the patient has? Most rules don't -- it's fine to say no.",
@@ -39,7 +47,7 @@ export const STEP_PREREQUISITES = {
   placeManuallyLabel: "Tap to place it manually",
   noAnchorHint: "Could not find matching words for this in the sentence.",
   noTextFallback:
-    "This rule has no guideline text to highlight. Skip this step, or use the Advanced view to add anything that should always be true.",
+    "This rule has no guideline text to highlight. Skip this step for now, or go back and add what must always be true once the wording is available.",
 } as const;
 
 /** Step 2 -- "Does this split into different situations?" (see the
@@ -75,17 +83,26 @@ export const STEP_PATHWAY_CONDITIONS = {
     `Situation ${letter} (${index} of ${count})`,
   helper: "Within this situation, what must ALL be true?",
   confirmedHeading: "Already confirmed:",
-  clusterPrompt: "We noticed \"any of the following\" under this row --",
+  /** Trailing "any of the following" cluster prompt -- names the
+   *  findings so the reviewer knows which chips the choice covers. */
+  clusterPrompt: (terms: string[]) =>
+    terms.length > 0
+      ? `We noticed "any of the following" for ${formatTermList(terms)} --`
+      : 'We noticed "any of the following" under this row --',
   /** Prompt for a SECOND, marker-less "A or B" cluster found ahead of
    *  the trailing one (e.g. "nausea or vomiting" ahead of "any of the
    *  following: ..."). Asked independently of `clusterPrompt` -- see
    *  `PathwayRows.leadCluster`'s doc comment in wizardMapping.ts. */
   leadClusterPrompt: (terms: string[]) =>
-    `We noticed "${terms.join(" or ")}" above -- does only one of these need to match, or all of them?`,
+    `We noticed "${terms.join(" or ")}" -- does only one of these need to match, or all of them?`,
   onlyOneLabel: "Only one needs to match (Recommended)",
   allMustMatchLabel: "All must match",
   groupingConfirmedOnlyOne: "Only one of these needs to match.",
   groupingConfirmedAll: "All of these must match.",
+  /** Shown under Confirm when a grouping card is still unanswered --
+   *  deliberately NOT a repeat of the prompt text above the buttons. */
+  groupingChoiceRequired:
+    "Choose only-one or all-must-match above before you continue.",
   changeLabel: "Change",
   confirmLabel: (letter: string, nextLetter: string | null) =>
     nextLetter
@@ -109,11 +126,19 @@ export const STEP_PATHWAY_CONDITIONS = {
   copyAcrossAcceptLabel: "Copy them across",
   copyAcrossDismissLabel: "No, I'll do this one myself",
   copyAcrossAriaLabel: "Copy codes from an earlier matching situation",
+  /** Age/sex that apply to THIS situation only (not Step 1 globals). */
+  demographicsHeading: "Does this situation only apply to some ages or sexes?",
+  demographicsHelper:
+    "Only add these if this situation is different from the others. Things that apply to every situation belong in step 1.",
+  addAgeLabel: "Add age",
+  addSexLabel: "Add sex",
+  addAgeAriaLabel: "Add an age check for this situation only",
+  addSexAriaLabel: "Add a sex check for this situation only",
 } as const;
 
-/** Orchestrator chrome: the "Step X of Y" progress header, Back /
- *  Skip-to-Advanced navigation, and the Review hand-off screen once
- *  every step is confirmed. */
+/** Orchestrator chrome: the "Step X of Y" progress header, Back, and
+ *  the Review hand-off once every step is confirmed. Review itself is
+ *  confirmation-only -- the right-column live preview is the summary. */
 export const WIZARD_CHROME = {
   stepLabel: (index: number, total: number) => `Step ${index} of ${total}`,
   stepNames: {
@@ -123,10 +148,9 @@ export const WIZARD_CHROME = {
     review: "Review",
   } as const,
   backLabel: "Back",
-  skipToAdvancedLabel: "Skip to Advanced view",
   materializingStatus: "Setting up the situations you confirmed...",
-  reviewTitle: "Here's the rule you built",
+  reviewTitle: "Check the live preview",
   reviewHelper:
-    "Check it reads the way you'd expect. You can still edit anything below, or go back to change an earlier answer.",
+    "The right-hand preview shows what this rule means. If something looks wrong, go back to change an earlier answer.",
   reviewBackLabel: "Back to the last situation",
 } as const;

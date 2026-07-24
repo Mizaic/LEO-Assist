@@ -11,15 +11,12 @@
 /**
  * Step 1 -- "Who is this rule about?"
  *
- * Hosts the editable logic tree, the duplicate-set alert, the NICE
- * source toggle, and (when the tree is empty) a friendly empty-state
- * CTA.
- *
- * The LogicTreeEditor is mounted directly -- no Accordion or BlockEditor
- * wrapper. Every rule uses the consumer-grade operator-tree builder.
+ * Hosts the highlight-to-build wizard when the rule already has a
+ * logic tree, or a friendly empty-state CTA when it does not.
+ * There is no separate Advanced tree mode -- Guided is the editor.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -31,11 +28,10 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import AIDraftButton from "../AIDraftButton";
 import HighlightWizard from "../HighlightWizard";
 import type { WizardStepKind } from "../HighlightWizard/wizardState";
-import LogicTreeEditor from "../LogicTreeEditor";
-import SentenceEditor from "../SentenceEditor";
-import EmptySentenceState from "../SentenceEditor/EmptySentenceState";
-import type { RecommendationStructure } from "../SentenceEditor/pathwayTextSplit";
-import ViewModeToggle, { useViewMode } from "../ViewModeToggle";
+import type {
+  PathwayTextBoundary,
+  RecommendationStructure,
+} from "../SentenceEditor/pathwayTextSplit";
 import {
   DUPLICATE_SETS_ALERT,
   STEP_HELPERS,
@@ -76,6 +72,10 @@ interface Props {
     initialQuery?: string,
   ) => void;
   onRequestCoach: (nodeId: string, anchor: HTMLElement) => void;
+  /** Opens the add/remove/depth synonym editor for a CONCEPT leaf
+   *  that already has a matched code -- see `HighlightWizard`'s doc
+   *  comment on the same prop. Only meaningful in guided mode. */
+  onEditConcept: (nodeId: string) => void;
   /** Trigger an empty-state +Add when the tree has no children yet. */
   onAddFirstSymptom: (anchor: HTMLElement) => void;
   onAddFirstDemographic?: () => void;
@@ -93,6 +93,13 @@ interface Props {
    * summary ("preview", everywhere else, including guided Review).
    */
   onGuidedPanelModeChange?: (mode: "quote" | "preview") => void;
+  /** See `HighlightWizard`'s doc comment on the same prop -- forwarded
+   *  so the host can scope `GuidelineQuotePanel`'s highlighting to
+   *  whichever situation the reviewer is currently building. */
+  onActiveSituationChange?: (
+    boundaries: PathwayTextBoundary[] | null,
+    activePathwayIndex: number | null,
+  ) => void;
 }
 
 export default function Step1Who({
@@ -105,6 +112,7 @@ export default function Step1Who({
   onUpdate,
   onRequestAdd,
   onRequestCoach,
+  onEditConcept,
   onAddFirstSymptom,
   onAddFirstDemographic,
   onAddFirstObservation,
@@ -112,25 +120,29 @@ export default function Step1Who({
   onAIDraft,
   guidelineId,
   onGuidedPanelModeChange,
+  onActiveSituationChange,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
-  const [viewMode, setViewMode] = useViewMode();
+  const showWizard = Boolean(tree) && !treeIsEmpty;
 
   const { wrappedOnUpdate, confirmDialogs } = useConfirmEdits({
     tree,
     onUpdate,
   });
 
-  const isGuided = viewMode === "guided" && Boolean(tree);
-  const [wizardStep, setWizardStep] = useState<WizardStepKind>("prerequisites");
-  const showCanvasQuote = !isGuided || wizardStep === "review";
+  // NICE quote on the left only for the empty state -- during the
+  // wizard the right-column GuidelineQuotePanel owns that wording;
+  // at Review the live preview owns the summary.
+  const showCanvasQuote = !showWizard;
 
   useEffect(() => {
-    if (!isGuided) onGuidedPanelModeChange?.("preview");
-  }, [isGuided, onGuidedPanelModeChange]);
+    if (!showWizard) {
+      onGuidedPanelModeChange?.("preview");
+      onActiveSituationChange?.(null, null);
+    }
+  }, [showWizard, onGuidedPanelModeChange, onActiveSituationChange]);
 
   function handleWizardStepChange(step: WizardStepKind) {
-    setWizardStep(step);
     onGuidedPanelModeChange?.(step === "review" ? "preview" : "quote");
   }
 
@@ -242,7 +254,7 @@ export default function Step1Who({
         </Box>
       )}
 
-      {isGuided && tree ? (
+      {showWizard && tree ? (
         <HighlightWizard
           tree={tree}
           recommendationText={recommendationText}
@@ -252,74 +264,20 @@ export default function Step1Who({
           onUpdate={wrappedOnUpdate}
           onRequestAdd={onRequestAdd}
           onRequestCoach={onRequestCoach}
-          onSkipToManual={() => setViewMode("advanced")}
+          onEditConcept={onEditConcept}
           guidelineId={guidelineId}
           currentRuleId={ruleId || undefined}
           onStepChange={handleWizardStepChange}
+          onActiveSituationChange={onActiveSituationChange}
         />
-      ) : treeIsEmpty ? (
-        viewMode === "simple" ? (
-          <EmptySentenceState
-            onAddFirstSymptom={onAddFirstSymptom}
-            onAddFirstDemographic={onAddFirstDemographic}
-            onAddFirstObservation={onAddFirstObservation}
-            ruleId={ruleId}
-            onAIDraft={onAIDraft}
-          />
-        ) : (
-          <EmptyTreeState
-            onAddFirstSymptom={onAddFirstSymptom}
-            onAddFirstDemographic={onAddFirstDemographic}
-            onAddFirstObservation={onAddFirstObservation}
-            ruleId={ruleId}
-            onAIDraft={onAIDraft}
-          />
-        )
       ) : (
-        tree && (
-          <Stack spacing={1.5}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              spacing={1}
-              flexWrap="wrap"
-              sx={{ rowGap: 1 }}
-            >
-              <ViewModeToggle value={viewMode} onChange={setViewMode} />
-              {ruleId && onAIDraft && (
-                <AIDraftButton
-                  ruleId={ruleId}
-                  onDraft={onAIDraft}
-                  variant="secondary"
-                />
-              )}
-            </Stack>
-            {viewMode === "simple" ? (
-              <SentenceEditor
-                root={tree}
-                selectedNodeId={selectedNodeId}
-                onSelect={onSelectNode}
-                onUpdate={wrappedOnUpdate}
-                onRequestAdd={onRequestAdd}
-                onRequestCoach={onRequestCoach}
-                guidelineId={guidelineId}
-                currentRuleId={ruleId || undefined}
-              />
-            ) : (
-              <LogicTreeEditor
-                root={tree}
-                selectedNodeId={selectedNodeId}
-                onSelect={onSelectNode}
-                onUpdate={wrappedOnUpdate}
-                onRequestAdd={onRequestAdd}
-                onRequestCoach={onRequestCoach}
-                guidelineId={guidelineId}
-                currentRuleId={ruleId || undefined}
-              />
-            )}
-          </Stack>
-        )
+        <EmptyTreeState
+          onAddFirstSymptom={onAddFirstSymptom}
+          onAddFirstDemographic={onAddFirstDemographic}
+          onAddFirstObservation={onAddFirstObservation}
+          ruleId={ruleId}
+          onAIDraft={onAIDraft}
+        />
       )}
     </Stack>
   );

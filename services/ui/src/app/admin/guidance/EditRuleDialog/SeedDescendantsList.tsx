@@ -112,7 +112,7 @@ export default function SeedDescendantsList({
 
   /**
    * The depth prop is always a positive integer by the time it reaches this
-   * component (the caller clamps to >=1 -- see SynonymChipEditor.tsx). We
+   * component (the caller clamps to >=1 -- see ConceptSynonymDialog.tsx). We
    * only fall back to the rule default for a genuinely missing value, so a
    * real depth change always produces a different API call. Previously any
    * value <=0 was silently rewritten to 3, which made distinct depths the

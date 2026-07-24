@@ -20,12 +20,22 @@ import userEvent from "@testing-library/user-event";
 import MultiConceptPicker from "../MultiConceptPicker";
 import type { LogicCriterion } from "../types";
 
-function mockSearch(hits: unknown[] = []) {
+function mockSearch(
+  hits: unknown[] = [],
+  descendants: unknown[] = [],
+) {
   jest.spyOn(global, "fetch").mockImplementation((url) => {
-    if (String(url).includes("/api/terminology/search")) {
+    const href = String(url);
+    if (href.includes("/api/terminology/search")) {
       return Promise.resolve({
         ok: true,
         json: async () => hits,
+      } as Response);
+    }
+    if (href.includes("/descendants")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => descendants,
       } as Response);
     }
     return Promise.resolve({ ok: true, json: async () => [] } as Response);
@@ -153,5 +163,44 @@ describe("MultiConceptPicker", () => {
     await user.click(checkbox);
     expect(screen.queryByLabelText(/depth.*nausea.*exact match/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /add.*code/i })).toBeDisabled();
+  });
+
+  it("hovering Depth at 0 explains exact-match only, without fetching descendants", async () => {
+    const user = userEvent.setup();
+    mockSearch([NAUSEA], [{ snomed_concept_id: "x", term: "Should not load" }]);
+    render(<MultiConceptPicker initialQuery="nausea" onConfirm={jest.fn()} />);
+
+    await user.click(await screen.findByRole("checkbox", { name: /select nausea/i }));
+    const depth = screen.getByLabelText(/depth.*nausea.*exact match/i);
+    await user.hover(depth);
+
+    const tip = await screen.findByRole("tooltip");
+    expect(tip).toHaveTextContent(/only "nausea" will match/i);
+    const descendantCalls = (global.fetch as jest.Mock).mock.calls.filter((c) =>
+      String(c[0]).includes("/descendants"),
+    );
+    expect(descendantCalls).toHaveLength(0);
+  });
+
+  it("hovering Depth above 0 lists every more specific code in a scrollable tooltip", async () => {
+    const user = userEvent.setup();
+    const descendants = Array.from({ length: 12 }, (_, i) => ({
+      snomed_concept_id: String(i + 1),
+      term: `Nausea variant ${i + 1}`,
+    }));
+    mockSearch([NAUSEA], descendants);
+    render(<MultiConceptPicker initialQuery="nausea" onConfirm={jest.fn()} />);
+
+    await user.click(await screen.findByRole("checkbox", { name: /select nausea/i }));
+    const depth = screen.getByLabelText(/depth.*nausea.*exact match/i);
+    await user.clear(depth);
+    await user.type(depth, "1");
+    await user.hover(depth);
+
+    const tip = await screen.findByRole("tooltip");
+    expect(tip).toHaveTextContent(/also includes 12 more specific codes/i);
+    expect(tip).toHaveTextContent(/nausea variant 1/i);
+    expect(tip).toHaveTextContent(/nausea variant 12/i);
+    expect(tip).not.toHaveTextContent(/and \d+ more/i);
   });
 });

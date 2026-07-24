@@ -282,10 +282,10 @@ export interface EditableLogicNode {
    * wording (e.g. "Indigestion" for a row that says "treatment-
    * resistant dyspepsia"), so `buildRowResolver`'s fuzzy text match
    * alone cannot re-discover which row this leaf answers. This exact
-   * string gives it a reliable, non-fuzzy way to do that. Purely a
-   * wizard bookkeeping aid -- the compiler and evaluator ignore it
-   * like every other unknown field, and it is absent on leaves
-   * authored any other way (AI draft, Advanced/Sentence editor).
+   * string gives it a reliable, non-fuzzy way to do that. Persisted on
+   * the logic-tree leaf (API ``LogicNode.source_row_text``); the
+   * compiler and evaluator ignore it. Absent on leaves authored any
+   * other way (AI draft, Advanced/Sentence editor).
    */
   source_row_text?: string;
 }
@@ -335,7 +335,12 @@ export type NodeUpdate =
        *  needs a SECOND, independently-graded subgroup. */
       clusterRole?: "lead" | "trailing";
     }
-  | { kind: "add_demographic"; parentNodeId: string }
+  | {
+      kind: "add_demographic";
+      parentNodeId: string;
+      /** Defaults to age when omitted. Sex seeds a sex leaf instead. */
+      field?: "age" | "sex";
+    }
   // -- Phase 2: optional pathway name --
   | { kind: "set_name"; nodeId: string; name: string }
   // -- Phase 6a: OBSERVATION leaf --

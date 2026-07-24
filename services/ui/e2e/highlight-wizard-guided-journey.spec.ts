@@ -220,24 +220,6 @@ async function installEditDialogFixtures(page: Page) {
   });
 }
 
-/** Seeds the reviewer's view-mode preference before the app boots,
- *  since useViewMode() only reads localStorage in a post-mount
- *  effect. Explicit even though "guided" is already the default, so
- *  this spec keeps passing if that default ever changes. */
-async function seedViewMode(page: Page, mode: "guided" | "simple" | "advanced") {
-  await page.addInitScript(
-    ([key, value]) => {
-      try {
-        window.localStorage.setItem(key, value);
-      } catch {
-        // Private browsing / storage quota -- proceeds with the
-        // in-memory default instead of a persisted preference.
-      }
-    },
-    ["leo.editRuleDialog.viewMode", mode],
-  );
-}
-
 async function openEditDialog(page: Page) {
   await installEditDialogFixtures(page);
   await page.goto("/admin/knowledge?tab=clinical-guidelines");
@@ -342,7 +324,6 @@ test.describe("Highlight-to-build wizard guided journey (NG12 1.2.9 fixture, DI-
   test("walks Step 1 through Review across all four situations, zero axe blockers at every step", async ({
     page,
   }) => {
-    await seedViewMode(page, "guided");
     const dialog = await openEditDialog(page);
 
     // -- Step 1: the existing age prerequisite auto-anchors onto
@@ -426,43 +407,19 @@ test.describe("Highlight-to-build wizard guided journey (NG12 1.2.9 fixture, DI-
     // Last situation -- no "next" pathway, so the label drops the arrow.
     await dialog.getByRole("button", { name: /^confirm situation d$/i }).click();
 
-    // -- Review: the wizard hands off to the same SentenceEditor
-    // canvas a reviewer would otherwise land on directly. Assertions
-    // target each concept's own chip (an accessible button, "<term>.
-    // Click to swap, X to remove.") rather than a bare text match --
-    // the guideline quote box above the wizard, and each pathway
-    // card's own "Preview: Applies to patients..." caption, both echo
-    // the same term text, so an unscoped getByText would be ambiguous.
-    // Situation D's own card is used to disambiguate "Nausea"/
-    // "Vomiting" from situation C's identical chip text -- pathway D
-    // now correctly resolves to its OWN nausea/vomiting leaves rather
-    // than one combined "Nausea or vomiting" pseudo-concept.
-    await expect(dialog.getByText("Here's the rule you built")).toBeVisible();
-    const sentenceEditor = dialog.getByTestId("sentence-editor");
-    await expect(sentenceEditor).toBeVisible();
-    await expect(
-      sentenceEditor.getByRole("button", { name: /^Treatment-resistant dyspepsia\./i }),
-    ).toBeVisible();
-    const pathwayDCard = sentenceEditor.getByTestId("pathway-card-D");
-    await expect(pathwayDCard.getByRole("button", { name: /^Nausea\./i })).toBeVisible();
-    await expect(pathwayDCard.getByRole("button", { name: /^Vomiting\./i })).toBeVisible();
-    await expect(pathwayDCard.getByRole("button", { name: /^Weight loss\./i })).toBeVisible();
-    await expect(pathwayDCard.getByRole("button", { name: /^Reflux\./i })).toBeVisible();
+    // -- Review: confirm via the right-column live preview (no embedded
+    // sentence editor). Key concepts from situations A and D must appear
+    // in the plain-English preview summary.
+    await expect(dialog.getByTestId("wizard-review")).toBeVisible();
+    await expect(dialog.getByText(/check the live preview/i)).toBeVisible();
+    const preview = dialog.getByRole("region", { name: /live preview of this rule/i });
+    await expect(preview).toBeVisible();
+    await expect(preview.getByText(/dyspepsia|indigestion/i)).toBeVisible();
+    await expect(preview.getByText(/nausea/i)).toBeVisible();
+    await expect(preview.getByText(/vomiting/i)).toBeVisible();
+    await expect(preview.getByText(/weight loss/i)).toBeVisible();
+    await expect(preview.getByText(/reflux/i)).toBeVisible();
     await runAxeAndAssertClean(page);
   });
-
-  test("Skip to Advanced view is reachable and keyboard-operable from any wizard step", async ({ page }) => {
-    await seedViewMode(page, "guided");
-    const dialog = await openEditDialog(page);
-
-    const skipButton = dialog.getByRole("button", { name: "Skip to Advanced view" });
-    await expect(skipButton).toBeVisible();
-    await skipButton.focus();
-    await page.keyboard.press("Enter");
-
-    await expect(dialog.getByTestId("segmented-tab-advanced")).toHaveAttribute("aria-selected", "true");
-    await expect(dialog.getByTestId("logic-tree-editor")).toBeVisible();
-    // The pre-existing age leaf survives the mode switch untouched.
-    await expect(dialog.getByText(/aged 55/i)).toBeVisible();
-  });
 });
+

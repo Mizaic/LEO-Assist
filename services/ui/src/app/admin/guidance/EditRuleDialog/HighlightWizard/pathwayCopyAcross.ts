@@ -35,6 +35,7 @@ import {
   buildRowResolver,
   isClusterChildRow,
   isLeadClusterChildRow,
+  pathwayTextWindow as pathwayTextWindowByLength,
   type ClusterGrouping,
 } from "./wizardMapping";
 
@@ -42,19 +43,22 @@ function normaliseItemText(text: string): string {
   return text.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-/** This pathway's own boundary, widened to cover any nested cluster
- *  children that sit past its structural [start, end) -- mirrors
- *  PathwayConditionsStage's own textWindow computation so both stay
- *  in sync. Exported so callers do not re-derive it differently. */
+/** Convenience wrapper over the canonical `pathwayTextWindow` in
+ *  wizardMapping -- accepts the recommendation string and derives
+ *  length. Prefer importing from wizardMapping when you already have
+ *  a numeric length. */
 export function pathwayTextWindow(
   boundaries: PathwayTextBoundary[],
   index: number,
   recommendationText: string | null | undefined,
 ): { start: number; end: number } | undefined {
   const boundary = boundaries[index];
-  if (boundaries.length <= 1 || !boundary) return undefined;
-  const nextStart = boundaries[index + 1]?.start;
-  return { start: boundary.start, end: nextStart ?? recommendationText?.length ?? boundary.end };
+  if (!boundary) return undefined;
+  return pathwayTextWindowByLength(
+    boundaries,
+    index,
+    recommendationText?.length ?? boundary.end,
+  );
 }
 
 /** Every row this pathway's cluster(s) ask about, in document order,
@@ -217,8 +221,11 @@ export function buildCopyAcrossPlan(params: {
     groupingToApply: targetHasTrailing
       ? (params.sourceGrouping ?? params.sourceLeadGrouping)
       : undefined,
+    // Target D's lead-or has no counterpart on source C -- still
+    // default the Recommended AT_LEAST so copy-across cannot leave
+    // nausea/vomiting as flat AND siblings under the pathway.
     leadGroupingToApply: targetLeadCluster
-      ? (params.sourceLeadGrouping ?? params.sourceGrouping)
+      ? (params.sourceLeadGrouping ?? params.sourceGrouping ?? "AT_LEAST")
       : undefined,
   };
 }

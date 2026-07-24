@@ -381,7 +381,7 @@ describe("StepPathwayConditions: two clusters in the same pathway (NG12 1.2.9 pa
     ).toBeInTheDocument();
   });
 
-  it("blocks Confirm on the lead-or grouping first, before the trailing one", () => {
+  it("blocks Confirm with a short choose-above hint, not a second copy of the prompt", () => {
     render(
       <StepPathwayConditions
         pathwayIndex={4}
@@ -395,7 +395,11 @@ describe("StepPathwayConditions: two clusters in the same pathway (NG12 1.2.9 pa
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(/nausea or vomiting/i);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /choose only-one or all-must-match above/i,
+    );
+    // Prompt card still names the lead findings once -- not twice under Confirm.
+    expect(screen.getAllByText(/nausea or vomiting/i)).toHaveLength(1);
   });
 
   it("calls onChooseLeadGrouping and onChooseGrouping independently", async () => {

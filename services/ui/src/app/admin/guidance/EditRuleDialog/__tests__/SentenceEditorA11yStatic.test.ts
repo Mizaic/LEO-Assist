@@ -82,10 +82,5 @@ describe("SentenceEditor -- static a11y guard rails", () => {
     expect(treeSrc).toContain(label);
   });
 
-  it("ViewModeToggle carries an aria-label describing what the three tabs switch between", () => {
-    const src = read("ViewModeToggle.tsx");
-    expect(src).toMatch(
-      /aria-label="Switch between the Guided wizard, the Simple sentence view, and the Advanced tree view"/,
-    );
-  });
 });
+

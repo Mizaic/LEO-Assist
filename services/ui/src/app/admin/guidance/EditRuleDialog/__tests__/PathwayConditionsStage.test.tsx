@@ -85,9 +85,15 @@ function buildInitialTree(): EditableLogicNode {
 function Harness({
   onConfirmPathway = jest.fn(),
   onTreeChange,
+  onSelectNode = jest.fn(),
+  onEditConcept = jest.fn(),
+  pathwayIndex = 1,
 }: {
   onConfirmPathway?: () => void;
   onTreeChange?: (tree: EditableLogicNode) => void;
+  onSelectNode?: (nodeId: string, anchor?: HTMLElement | null) => void;
+  onEditConcept?: (nodeId: string) => void;
+  pathwayIndex?: number;
 }) {
   const [tree, setTree] = useState(buildInitialTree());
   const [clusterGroupings, setClusterGroupings] = useState<Record<number, ClusterGrouping>>({
@@ -108,14 +114,15 @@ function Harness({
       tree={tree}
       recommendationText={TEXT}
       boundaries={BOUNDARIES}
-      pathwayIndex={1}
+      pathwayIndex={pathwayIndex}
       clusterGroupings={clusterGroupings}
       onSetClusterGrouping={(i, g) => setClusterGroupings((prev) => ({ ...prev, [i]: g }))}
       leadClusterGroupings={leadClusterGroupings}
       onSetLeadClusterGrouping={(i, g) => setLeadClusterGroupings((prev) => ({ ...prev, [i]: g }))}
-      onSelectNode={jest.fn()}
+      onSelectNode={onSelectNode}
       onUpdate={handleUpdate}
       onRequestAdd={jest.fn()}
+      onEditConcept={onEditConcept}
       onConfirmPathway={onConfirmPathway}
     />
   );
@@ -174,6 +181,26 @@ describe("PathwayConditionsStage: highlight-a-word multi-code picker", () => {
   });
 });
 
+describe("PathwayConditionsStage: editing an already-resolved row", () => {
+  it("routes a click on an already-matched CONCEPT row to onEditConcept, not onSelectNode -- it already has a code, so it needs add/remove, not a single-pick override", async () => {
+    const user = userEvent.setup();
+    const onSelectNode = jest.fn();
+    const onEditConcept = jest.fn();
+    render(<Harness pathwayIndex={0} onSelectNode={onSelectNode} onEditConcept={onEditConcept} />);
+
+    // Situation A's own lead-in row ("raised platelet count", ahead of
+    // its "any of the following" cluster) already resolves to the
+    // "plt" leaf seeded in buildInitialTree. Targeted by testid, not
+    // text, since the row's "matched to: Raised platelet count"
+    // caption also contains the same words.
+    const leadRowTestId = `list-row-0-${"raised platelet count".length}`;
+    await user.click(screen.getByTestId(leadRowTestId));
+
+    expect(onEditConcept).toHaveBeenCalledWith("n-plt");
+    expect(onSelectNode).not.toHaveBeenCalled();
+  });
+});
+
 describe("PathwayConditionsStage: copy-across offer", () => {
   it("offers to copy situation A's codes when situation B asks about the same findings", () => {
     render(<Harness />);
@@ -221,5 +248,47 @@ describe("PathwayConditionsStage: copy-across offer", () => {
     render(<Harness />);
     await user.click(screen.getByRole("button", { name: /copy them across/i }));
     expect(screen.queryByText(/situation a asked about the same/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("PathwayConditionsStage: per-pathway demographics", () => {
+  it("adds sex under the active pathway AND only", async () => {
+    const user = userEvent.setup();
+    let latestTree: EditableLogicNode | undefined;
+    render(
+      <Harness
+        pathwayIndex={0}
+        onTreeChange={(t) => {
+          latestTree = t;
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("pathway-demographics-panel")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: /add a sex check for this situation only/i }),
+    );
+
+    const pwA = latestTree!.children![0].children![0];
+    const pwB = latestTree!.children![0].children![1];
+    expect(pwA.children!.some((c) => c.kind === "DEMOGRAPHIC" && c.field === "sex")).toBe(
+      true,
+    );
+    expect(pwB.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(false);
+    expect(latestTree!.children!.filter((c) => c.kind === "DEMOGRAPHIC")).toHaveLength(0);
+  });
+
+  it("blocks Confirm when a pathway age value is cleared", async () => {
+    const user = userEvent.setup();
+    render(<Harness pathwayIndex={0} />);
+
+    await user.click(
+      screen.getByRole("button", { name: /add an age check for this situation only/i }),
+    );
+    const ageInput = screen.getByLabelText(/^lower bound$/i);
+    await user.clear(ageInput);
+
+    expect(screen.getByRole("button", { name: /confirm situation a/i })).toBeDisabled();
+    expect(screen.getByText(/add a number for this patient detail/i)).toBeInTheDocument();
   });
 });

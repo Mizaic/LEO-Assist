@@ -244,18 +244,20 @@ describe("RuleReviewSection", () => {
     });
   });
 
-  it("renders separate awaiting-review and approved pools", async () => {
+  it("renders separate awaiting-review, approved, and excluded pools", async () => {
     mockFetch({ "/api/guidance/rules/review": [MOCK_RULE] });
     render(<RuleReviewSection />);
     await waitFor(() => {
       expect(screen.getByTestId("rule-pool-pending")).toBeInTheDocument();
       expect(screen.getByTestId("rule-pool-approved")).toBeInTheDocument();
+      expect(screen.getByTestId("rule-pool-excluded")).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: /Awaiting review/i })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: /^Approved$/i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /^Excluded$/i })).toBeInTheDocument();
     });
   });
 
-  it("loads pending and active rules in parallel on mount", async () => {
+  it("loads pending, active, and rejected rules in parallel on mount", async () => {
     jest.spyOn(global, "fetch").mockImplementation((url) => {
       const u = String(url);
       if (u.includes("status=pending_review")) {
@@ -270,6 +272,12 @@ describe("RuleReviewSection", () => {
           json: async () => [{ ...MOCK_RULE, rule_id: "r-active", status: "active" }],
         } as Response);
       }
+      if (u.includes("status=rejected")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ ...MOCK_RULE, rule_id: "r-excluded", status: "rejected" }],
+        } as Response);
+      }
       return Promise.resolve({ ok: true, json: async () => [] } as Response);
     });
 
@@ -278,6 +286,7 @@ describe("RuleReviewSection", () => {
       const calls = (global.fetch as jest.Mock).mock.calls.map(([u]) => String(u));
       expect(calls.some((u) => u.includes("status=pending_review"))).toBe(true);
       expect(calls.some((u) => u.includes("status=active"))).toBe(true);
+      expect(calls.some((u) => u.includes("status=rejected"))).toBe(true);
     });
   });
 

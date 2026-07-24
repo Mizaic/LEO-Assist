@@ -33,7 +33,7 @@
  *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Popover, { type PopoverActions } from "@mui/material/Popover";
@@ -115,17 +115,24 @@ export default function ChipSearchPopover({
   // it anchored correctly -- shifting up, never off-screen -- no
   // matter how tall its content gets.
   const popoverActionRef = useRef<PopoverActions>(null);
-  const paperRef = useRef<HTMLDivElement | null>(null);
+  // A callback ref (backed by state), not a plain useRef: MUI's Modal
+  // portal defers actually mounting the paper into the DOM by one
+  // render past this component's own mount (an SSR-safety pattern),
+  // so a plain ref read inside a `[open]`-only effect can run before
+  // the node exists and never re-check it. Setting state from the ref
+  // callback re-runs the effect below the moment the real node shows
+  // up, however many renders that takes.
+  const [paperNode, setPaperNode] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!open) return undefined;
-    const node = paperRef.current;
-    if (!node || typeof ResizeObserver === "undefined") return undefined;
+    if (!open || !paperNode || typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
     const observer = new ResizeObserver(() => {
       popoverActionRef.current?.updatePosition();
     });
-    observer.observe(node);
+    observer.observe(paperNode);
     return () => observer.disconnect();
-  }, [open]);
+  }, [open, paperNode]);
 
   return (
     <Popover
@@ -138,7 +145,7 @@ export default function ChipSearchPopover({
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       slotProps={{
         paper: {
-          ref: paperRef,
+          ref: setPaperNode,
           "aria-label": heading,
           sx: {
             width: { xs: "calc(100vw - 32px)", sm: 420 },

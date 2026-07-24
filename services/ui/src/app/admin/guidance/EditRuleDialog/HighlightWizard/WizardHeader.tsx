@@ -4,15 +4,13 @@
  * Atlas trace:
  *   DI: DI-42246DA7
  *   DO: DO-F8C56339
- *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
 
 /**
  * Chrome shared by every wizard step: a "Step X of 3" progress
- * indicator plus Back / "Skip to Advanced view" navigation. Kept
- * separate from the orchestrator so `index.tsx` stays focused on
- * phase transitions rather than layout.
+ * indicator plus Back navigation. Kept separate from the orchestrator
+ * so `index.tsx` stays focused on phase transitions rather than layout.
  */
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -32,10 +30,9 @@ const STEP_ORDER: WizardStepKind[] = [
 interface Props {
   step: WizardStepKind;
   onBack: () => void;
-  onSkipToManual: () => void;
 }
 
-export default function WizardHeader({ step, onBack, onSkipToManual }: Props) {
+export default function WizardHeader({ step, onBack }: Props) {
   const isFirstStep = step === "prerequisites";
   const isReview = step === "review";
   const stepIndex = STEP_ORDER.indexOf(step) + 1;
@@ -65,20 +62,15 @@ export default function WizardHeader({ step, onBack, onSkipToManual }: Props) {
           </Stack>
         )}
       </Box>
-      <Stack direction="row" spacing={1}>
-        {!isFirstStep && (
-          <Button
-            size="small"
-            startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-            onClick={onBack}
-          >
-            {WIZARD_CHROME.backLabel}
-          </Button>
-        )}
-        <Button size="small" variant="text" onClick={onSkipToManual}>
-          {WIZARD_CHROME.skipToAdvancedLabel}
+      {!isFirstStep && (
+        <Button
+          size="small"
+          startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+          onClick={onBack}
+        >
+          {WIZARD_CHROME.backLabel}
         </Button>
-      </Stack>
+      )}
     </Stack>
   );
 }

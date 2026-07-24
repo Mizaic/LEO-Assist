@@ -34,12 +34,12 @@ function conceptLeaf(id: string, term: string): EditableLogicNode {
  *  changes what the wizard sees on its next render. */
 function Harness({
   initialTree,
-  onSkipToManual = jest.fn(),
   onSelectNode = jest.fn(),
+  onEditConcept = jest.fn(),
 }: {
   initialTree: EditableLogicNode;
-  onSkipToManual?: () => void;
   onSelectNode?: (nodeId: string, anchor?: HTMLElement | null) => void;
+  onEditConcept?: (nodeId: string) => void;
 }) {
   const [tree, setTree] = useState(initialTree);
   function handleUpdate(update: NodeUpdate) {
@@ -53,7 +53,8 @@ function Harness({
       onSelectNode={onSelectNode}
       onUpdate={handleUpdate}
       onRequestAdd={jest.fn()}
-      onSkipToManual={onSkipToManual}
+      onEditConcept={onEditConcept}
+      startMode="fresh"
     />
   );
 }
@@ -77,15 +78,6 @@ describe("HighlightWizard: Step 1 (prerequisites)", () => {
     expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
   });
 
-  it("calls onSkipToManual from the header at any step", async () => {
-    const user = userEvent.setup();
-    const onSkipToManual = jest.fn();
-    const tree: EditableLogicNode = { node_id: "root", kind: "AND", children: [ageLeaf()] };
-    render(<Harness initialTree={tree} onSkipToManual={onSkipToManual} />);
-    await user.click(screen.getByRole("button", { name: /skip to advanced view/i }));
-    expect(onSkipToManual).toHaveBeenCalledTimes(1);
-  });
-
   it("reports its own step via onStepChange, once on mount and again on every advance", async () => {
     const user = userEvent.setup();
     const onStepChange = jest.fn();
@@ -98,8 +90,9 @@ describe("HighlightWizard: Step 1 (prerequisites)", () => {
         onSelectNode={jest.fn()}
         onUpdate={jest.fn()}
         onRequestAdd={jest.fn()}
-        onSkipToManual={jest.fn()}
+        onEditConcept={jest.fn()}
         onStepChange={onStepChange}
+        startMode="fresh"
       />,
     );
     expect(onStepChange).toHaveBeenCalledWith("prerequisites");
@@ -157,6 +150,25 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
     expect(screen.getByTestId("list-row-0-42")).toHaveAttribute("data-resolved", "true");
   });
 
+  it("routes clicking an already-resolved Step 3 row to onEditConcept, not onSelectNode", async () => {
+    const onSelectNode = jest.fn();
+    const onEditConcept = jest.fn();
+    render(
+      <Harness
+        initialTree={preDraftedTree()}
+        onSelectNode={onSelectNode}
+        onEditConcept={onEditConcept}
+      />,
+    );
+    const user = await advanceToStep2();
+    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+
+    await user.click(screen.getByTestId("list-row-0-42"));
+
+    expect(onEditConcept).toHaveBeenCalledWith("wl");
+    expect(onSelectNode).not.toHaveBeenCalled();
+  });
+
   it("walks both pathways and lands on Review once the last one confirms", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
     const user = await advanceToStep2();
@@ -166,9 +178,11 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
     expect(screen.getByText(/situation b \(2 of 2\)/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /confirm situation b/i }));
-    expect(screen.getByText(/here's the rule you built/i)).toBeInTheDocument();
-    expect(screen.getByTestId("sentence-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("wizard-review")).toBeInTheDocument();
+    expect(screen.getByText(/check the live preview/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("sentence-editor")).not.toBeInTheDocument();
   });
+
 
   it("Back from Step 3's first pathway returns to Step 2", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
@@ -188,8 +202,9 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
         onSelectNode={jest.fn()}
         onUpdate={jest.fn()}
         onRequestAdd={jest.fn()}
-        onSkipToManual={jest.fn()}
+        onEditConcept={jest.fn()}
         onStepChange={onStepChange}
+        startMode="fresh"
       />,
     );
     const user = await advanceToStep2();
@@ -241,7 +256,8 @@ describe("HighlightWizard: the 'no split' escape hatch", () => {
         onSelectNode={jest.fn()}
         onUpdate={(u) => setTree((curr) => applyUpdate(curr, u) ?? curr)}
         onRequestAdd={jest.fn()}
-        onSkipToManual={jest.fn()}
+        onEditConcept={jest.fn()}
+        startMode="fresh"
       />
     );
   }
@@ -258,6 +274,7 @@ describe("HighlightWizard: the 'no split' escape hatch", () => {
     expect(screen.getByText(/weight loss/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /confirm situation a/i }));
-    expect(screen.getByText(/here's the rule you built/i)).toBeInTheDocument();
+    expect(screen.getByTestId("wizard-review")).toBeInTheDocument();
+    expect(screen.getByText(/check the live preview/i)).toBeInTheDocument();
   });
 });

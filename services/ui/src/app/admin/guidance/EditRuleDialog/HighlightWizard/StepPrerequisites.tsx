@@ -114,6 +114,14 @@ export interface StepPrerequisitesProps {
    */
   prerequisites: EditableLogicNode[];
   onEdit: (nodeId: string, anchor?: HTMLElement | null) => void;
+  /**
+   * Opens the add/remove/depth synonym editor for an already-matched
+   * CONCEPT prerequisite -- see `PathwayConditionsStage`'s doc
+   * comment on the same prop. A DEMOGRAPHIC / OBSERVATION
+   * prerequisite has no synonym set of its own, so those still use
+   * `onEdit`'s single-pick swap.
+   */
+  onEditConcept: (nodeId: string) => void;
   onRemove: (nodeId: string) => void;
   /**
    * Fires when the reviewer confirms a NEW highlighted span that
@@ -132,6 +140,7 @@ export default function StepPrerequisites({
   recommendationText,
   prerequisites,
   onEdit,
+  onEditConcept,
   onRemove,
   onAddFromSelection,
   onConfirmNoMore,
@@ -221,6 +230,7 @@ export default function StepPrerequisites({
                 key={row.node.node_id}
                 row={row}
                 onEdit={onEdit}
+                onEditConcept={onEditConcept}
                 onRemove={onRemove}
               />
             ))}
@@ -260,13 +270,22 @@ export default function StepPrerequisites({
 function PrerequisiteRow({
   row,
   onEdit,
+  onEditConcept,
   onRemove,
 }: {
   row: PrerequisiteRowData;
   onEdit: (nodeId: string, anchor?: HTMLElement | null) => void;
+  onEditConcept: (nodeId: string) => void;
   onRemove: (nodeId: string) => void;
 }) {
   const hasAnchor = !!row.match;
+  function handleEdit(anchor: HTMLElement) {
+    if (row.node.kind === "CONCEPT") {
+      onEditConcept(row.node.node_id);
+    } else {
+      onEdit(row.node.node_id, anchor);
+    }
+  }
   return (
     <Stack
       direction="row"
@@ -297,7 +316,7 @@ function PrerequisiteRow({
       </Box>
       <Button
         size="small"
-        onClick={(e) => onEdit(row.node.node_id, e.currentTarget)}
+        onClick={(e) => handleEdit(e.currentTarget)}
       >
         {hasAnchor
           ? STEP_PREREQUISITES.editLabel

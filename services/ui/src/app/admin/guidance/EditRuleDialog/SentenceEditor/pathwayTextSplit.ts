@@ -281,6 +281,40 @@ export function looksLikeLeadOrCluster(text: string): string[] | null {
   return parts;
 }
 
+/**
+ * Recognises a plain clinical AND of short findings joined by "with"
+ * or "and", with no "any of the following" marker -- e.g. NG12 1.2.9
+ * situation B ("upper abdominal pain with low haemoglobin levels") or
+ * a simple "nausea and vomiting" clause. Same conservatism as
+ * `looksLikeLeadOrCluster`: each side must be a short noun phrase;
+ * long clauses (and age phrasing like "55 and over") are left as a
+ * single row. Rejects "with any of the following" (AT_LEAST path).
+ *
+ * Returns null when `text` should stay one unresolved row.
+ */
+export function looksLikeWithAnd(text: string): string[] | null {
+  const trimmed = text.trim().replace(/\.$/, "");
+  if (!trimmed) return null;
+  if (/\bwith\s+any\s+of\s+the\s+following\b/i.test(trimmed)) return null;
+
+  const isShortFinding = (s: string) =>
+    s.length <= 40 &&
+    s.split(/\s+/).length <= 5 &&
+    /^[A-Za-z][A-Za-z\s-]*$/.test(s);
+
+  for (const connector of [/\s+with\s+/i, /\s+and\s+/i]) {
+    if (!connector.test(trimmed)) continue;
+    const parts = trimmed
+      .split(connector)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (parts.length < 2 || parts.length > 4) continue;
+    if (!parts.every(isShortFinding)) continue;
+    return parts;
+  }
+  return null;
+}
+
 /** Drop a trailing citation / sentence terminator like ". [2015]" from
  * the end of a cluster's own text -- shared by every path that produces
  * a lead-in or trailing-item string so a real backfilled `<li>`'s own

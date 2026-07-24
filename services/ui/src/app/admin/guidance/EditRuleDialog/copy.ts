@@ -514,7 +514,24 @@ export const MULTI_CONCEPT_PICKER = {
   depthAriaLabel: (term: string) =>
     `Depth for ${term}: how many levels of more specific terms to include, 0 for exact match only`,
   depthHelp:
-    "0 matches this term exactly. Each level up also matches more specific terms underneath it.",
+    "0 matches this term exactly. Each level up also matches more specific terms underneath it. Hover to see which codes are included.",
+  depthPreviewExact: (term: string) =>
+    `Only "${term}" will match -- this exact code, nothing more specific.`,
+  depthPreviewLoading: "Loading more specific codes...",
+  depthPreviewError: "Could not load the codes for this depth. Try again.",
+  depthPreviewEmpty: (term: string, depth: number) =>
+    `No more specific codes under "${term}" at depth ${depth}.`,
+  depthPreviewHeading: (
+    term: string,
+    depth: number,
+    count: number,
+    capped: boolean,
+  ) =>
+    capped
+      ? `"${term}" at depth ${depth} also includes ${count}+ more specific codes (scroll to see them):`
+      : `"${term}" at depth ${depth} also includes ${count} more specific code${count === 1 ? "" : "s"}:`,
+  depthPreviewApiCap:
+    "Showing the first 200 codes from the terminology service. Raise depth carefully if you need a narrower set.",
   confirmLabel: (n: number) => (n === 1 ? "Add 1 code" : `Add ${n} codes`),
   emptyHint:
     "Tick one or more results below, then confirm. Each one can match exactly, or match more specific terms too.",

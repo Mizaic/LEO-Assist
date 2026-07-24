@@ -75,4 +75,9 @@ export interface RuleReviewIdentity {
   recommendation_text?: string;
 }
 
-export type RuleStatusFilter = "pending_review" | "active" | "superseded";
+export type RuleStatusFilter =
+  | "pending_review"
+  | "active"
+  | "superseded"
+  /** Confirmed "no coded rule" or rejected -- not compiled live. */
+  | "rejected";
