@@ -76,6 +76,12 @@ export const STEP_PATHWAY_CONDITIONS = {
   helper: "Within this situation, what must ALL be true?",
   confirmedHeading: "Already confirmed:",
   clusterPrompt: "We noticed \"any of the following\" under this row --",
+  /** Prompt for a SECOND, marker-less "A or B" cluster found ahead of
+   *  the trailing one (e.g. "nausea or vomiting" ahead of "any of the
+   *  following: ..."). Asked independently of `clusterPrompt` -- see
+   *  `PathwayRows.leadCluster`'s doc comment in wizardMapping.ts. */
+  leadClusterPrompt: (terms: string[]) =>
+    `We noticed "${terms.join(" or ")}" above -- does only one of these need to match, or all of them?`,
   onlyOneLabel: "Only one needs to match (Recommended)",
   allMustMatchLabel: "All must match",
   groupingConfirmedOnlyOne: "Only one of these needs to match.",
@@ -89,6 +95,20 @@ export const STEP_PATHWAY_CONDITIONS = {
     count === 1
       ? "One row still needs a match before you can continue."
       : `${count} rows still need a match before you can continue.`,
+  /**
+   * One-time offer to copy an earlier, already-confirmed pathway's
+   * SNOMED codes onto this pathway's matching rows, shown only when
+   * both pathways ask about the exact same findings (see
+   * `pathwayCopyAcross.ts`). This is a copy, not a live link -- the
+   * two pathways can be edited independently afterwards.
+   */
+  copyAcrossOffer: (sourceLetter: string, count: number) =>
+    `Situation ${sourceLetter} asked about the same ${count} finding${
+      count === 1 ? "" : "s"
+    }. Copy your codes across so you don't have to look them up again?`,
+  copyAcrossAcceptLabel: "Copy them across",
+  copyAcrossDismissLabel: "No, I'll do this one myself",
+  copyAcrossAriaLabel: "Copy codes from an earlier matching situation",
 } as const;
 
 /** Orchestrator chrome: the "Step X of Y" progress header, Back /

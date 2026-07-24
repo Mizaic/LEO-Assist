@@ -20,23 +20,31 @@
  */
 import { useEffect, useMemo, useState } from "react";
 
-import type { NodeUpdate } from "../types";
+import type { LogicCriterion, NodeUpdate } from "../types";
 import type { RecommendationStructureItem, PathwayTextBoundary } from "../SentenceEditor/pathwayTextSplit";
 import StepPathwayConditions, { type ClusterGrouping } from "./StepPathwayConditions";
 import {
   buildConfirmedSummaries,
   buildRowResolver,
   decideRowClickTarget,
-  findClusterSubgroup,
+  findClusterSubgroupByRole,
   findNodeById,
   pathwayLetterAt,
   readMaterializedPathways,
 } from "./wizardMapping";
+import { useCopyAcrossOffer } from "./useCopyAcrossOffer";
 import type { EditableLogicNode } from "../types";
 
 interface PendingClusterAdd {
   pathwayNodeId: string;
   text: string;
+  /** See `EditableLogicNode.cluster_role`'s doc comment. */
+  role: "lead" | "trailing";
+  /** The row click that triggered this deferred add -- replayed once
+   *  the fresh AT_LEAST subgroup lands, so the search popover still
+   *  opens next to what the reviewer actually clicked instead of a
+   *  default position. */
+  anchor: HTMLElement;
 }
 
 interface Props {
@@ -46,9 +54,19 @@ interface Props {
   pathwayIndex: number;
   clusterGroupings: Record<number, ClusterGrouping>;
   onSetClusterGrouping: (pathwayIndex: number, grouping: ClusterGrouping) => void;
+  /** Same as `clusterGroupings`/`onSetClusterGrouping` but for a
+   *  SEPARATE lead-or cluster (see StepPathwayConditions's
+   *  `leadClusterGrouping` prop doc comment). */
+  leadClusterGroupings: Record<number, ClusterGrouping>;
+  onSetLeadClusterGrouping: (pathwayIndex: number, grouping: ClusterGrouping) => void;
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
-  onRequestAdd: (parentNodeId: string, anchor?: HTMLElement | null, initialQuery?: string) => void;
+  onRequestAdd: (
+    parentNodeId: string,
+    anchor?: HTMLElement | null,
+    initialQuery?: string,
+    multiPick?: boolean,
+  ) => void;
   onConfirmPathway: () => void;
 }
 
@@ -71,9 +89,9 @@ function usePendingClusterAdd(
   useEffect(() => {
     if (!pending) return;
     const pathway = findNodeById(tree, pending.pathwayNodeId);
-    const subgroup = pathway ? findClusterSubgroup(pathway) : null;
+    const subgroup = pathway ? findClusterSubgroupByRole(pathway, pending.role) : null;
     if (subgroup) {
-      onRequestAdd(subgroup.node_id, undefined, pending.text);
+      onRequestAdd(subgroup.node_id, pending.anchor, pending.text, true);
       setPending(null);
     }
   }, [tree, pending, onRequestAdd]);
@@ -87,6 +105,8 @@ export default function PathwayConditionsStage({
   pathwayIndex,
   clusterGroupings,
   onSetClusterGrouping,
+  leadClusterGroupings,
+  onSetLeadClusterGrouping,
   onSelectNode,
   onUpdate,
   onRequestAdd,
@@ -100,28 +120,89 @@ export default function PathwayConditionsStage({
   const boundary = boundaries[pathwayIndex];
   const [, setPendingClusterAdd] = usePendingClusterAdd(tree, onRequestAdd);
 
+  // A structural boundary's own [start, end) covers only the pathway's
+  // OWN lead-in sentence -- a nested cluster's child items (e.g.
+  // "nausea"/"vomiting" under pathway C) sit at LATER offsets, past
+  // `boundary.end`, since NICE's flattened text places a `<li>`'s
+  // nested `<ul>` after that `<li>`'s own paragraph. So the row-match
+  // window must extend to wherever the NEXT pathway starts (or the
+  // end of the text, for the last pathway), not just `boundary.end` --
+  // otherwise a cluster child's own leaf would fall outside the
+  // window and never resolve. See `buildRowResolver`'s doc comment for
+  // why a window is needed here at all.
+  const textWindow = useMemo(() => {
+    if (boundaries.length <= 1 || !boundary) return undefined;
+    const nextStart = boundaries[pathwayIndex + 1]?.start;
+    return { start: boundary.start, end: nextStart ?? recommendationText?.length ?? boundary.end };
+  }, [boundary, boundaries, pathwayIndex, recommendationText]);
+
   const getRowResolution = useMemo(
-    () => (pathwayNode ? buildRowResolver(pathwayNode, recommendationText) : () => undefined),
-    [pathwayNode, recommendationText],
+    () =>
+      pathwayNode ? buildRowResolver(pathwayNode, recommendationText, textWindow) : () => undefined,
+    [pathwayNode, recommendationText, textWindow],
   );
+
+  const { offer: copyAcrossOffer, acceptOffer, dismissOffer } = useCopyAcrossOffer({
+    tree,
+    boundaries,
+    pathwayIndex,
+    pathwayNodes,
+    targetPathwayNode: pathwayNode ?? tree,
+    recommendationText,
+    clusterGroupings,
+    leadClusterGroupings,
+    onSetClusterGrouping,
+    onSetLeadClusterGrouping,
+    onUpdate,
+  });
 
   if (!pathwayNode || !boundary) return null;
 
-  function handleRowClick(item: RecommendationStructureItem) {
+  // A highlighted sub-phrase is an explicit "add one more, independent of
+  // whatever this row already resolved to" action -- it always lands as a
+  // new sibling directly under the pathway, never through the AT_LEAST
+  // cluster routing handleRowClick below uses for whole-row picks.
+  function handleAddMultiConcept(
+    item: RecommendationStructureItem,
+    criterion: LogicCriterion,
+  ) {
+    onUpdate({
+      kind: "add_concept",
+      parentNodeId: pathwayNode.node_id,
+      criterion,
+      // See EditableLogicNode.source_row_text's doc comment -- lets
+      // this row resolve reliably even when the picked code(s) share
+      // no wording with `item.text`.
+      sourceRowText: item.text,
+    });
+  }
+
+  function handleRowClick(item: RecommendationStructureItem, anchor: HTMLElement) {
     const decision = decideRowClickTarget(
       pathwayNode,
       boundary,
       item,
       getRowResolution(item),
       clusterGroupings[pathwayIndex],
+      leadClusterGroupings[pathwayIndex],
     );
     if (decision.action === "select") {
-      onSelectNode(decision.nodeId);
+      onSelectNode(decision.nodeId, anchor);
     } else if (decision.action === "add") {
-      onRequestAdd(decision.parentNodeId, undefined, decision.text);
+      onRequestAdd(decision.parentNodeId, anchor, decision.text, true);
     } else {
-      onUpdate({ kind: "add_group", parentNodeId: decision.pathwayNodeId, groupKind: "AT_LEAST" });
-      setPendingClusterAdd({ pathwayNodeId: decision.pathwayNodeId, text: decision.text });
+      onUpdate({
+        kind: "add_group",
+        parentNodeId: decision.pathwayNodeId,
+        groupKind: "AT_LEAST",
+        clusterRole: decision.role,
+      });
+      setPendingClusterAdd({
+        pathwayNodeId: decision.pathwayNodeId,
+        text: decision.text,
+        role: decision.role,
+        anchor,
+      });
     }
   }
 
@@ -136,10 +217,20 @@ export default function PathwayConditionsStage({
       boundary={boundary}
       getRowResolution={getRowResolution}
       onRowClick={handleRowClick}
+      onAddMultiConcept={handleAddMultiConcept}
       clusterGrouping={clusterGroupings[pathwayIndex]}
       onChooseGrouping={(g) => onSetClusterGrouping(pathwayIndex, g)}
+      leadClusterGrouping={leadClusterGroupings[pathwayIndex]}
+      onChooseLeadGrouping={(g) => onSetLeadClusterGrouping(pathwayIndex, g)}
       confirmedSummaries={buildConfirmedSummaries(pathwayNodes, pathwayIndex)}
       onConfirmPathway={onConfirmPathway}
+      copyAcrossOffer={
+        copyAcrossOffer
+          ? { sourceLetter: pathwayLetterAt(copyAcrossOffer.sourceIndex), count: copyAcrossOffer.count }
+          : null
+      }
+      onAcceptCopyAcross={acceptOffer}
+      onDismissCopyAcross={dismissOffer}
     />
   );
 }

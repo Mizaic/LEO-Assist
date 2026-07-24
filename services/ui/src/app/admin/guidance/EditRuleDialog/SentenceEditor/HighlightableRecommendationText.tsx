@@ -8,10 +8,11 @@
  */
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+
+import { useWordSelection, type TextSelectionResult } from "./useWordSelection";
 
 /**
  * Renders a span of guideline text as individually focusable word/phrase
@@ -22,9 +23,8 @@ import Stack from "@mui/material/Stack";
  * list-item's text that still bundles more than one criterion. See the
  * "Fallback" sections of the wizard wireframes for the exact interaction.
  *
- * Free-form mouse drag-selection has no accessible default, so the
- * chunk-and-extend keyboard model here is load-bearing for WCAG 2.1 AA,
- * not a nice-to-have layered on top of a mouse-first design.
+ * The selection state machine itself lives in useWordSelection.ts, shared
+ * with HighlightableRowText.tsx (Step 3's per-row highlight-and-code pick).
  */
 
 export type HighlightKind = "confirmed" | "candidate";
@@ -36,11 +36,16 @@ export interface HighlightSpan {
   label?: string;
 }
 
-export interface TextSelectionResult {
-  start: number;
-  end: number;
-  text: string;
-}
+/** Background/text colour for each highlight kind -- exported so other
+ * read-only renderers (e.g. GuidelineQuotePanel) use the exact same
+ * palette as this interactive one, instead of a second copy that can
+ * drift out of sync. */
+export const HIGHLIGHT_COLORS: Record<HighlightKind, { bgcolor: string; color: string }> = {
+  confirmed: { bgcolor: "#DCFCE7", color: "#14532D" },
+  candidate: { bgcolor: "#FEF9C3", color: "#713F12" },
+};
+
+export type { TextSelectionResult };
 
 interface Props {
   text: string;
@@ -50,33 +55,8 @@ interface Props {
   /** Text outside the current pathway/scope -- rendered greyed out and
    * not selectable (see the wireframes' "dimmed" notation). */
   dimmedRanges?: Array<{ start: number; end: number }>;
-  onConfirmSelection: (selection: TextSelectionResult) => void;
+  onConfirmSelection: (selection: TextSelectionResult, anchor?: HTMLElement) => void;
   onCancelSelection?: () => void;
-}
-
-interface Token {
-  isWord: boolean;
-  start: number;
-  end: number;
-  text: string;
-}
-
-const TOKEN_RE = /\S+|\s+/g;
-
-function tokenize(text: string): Token[] {
-  const tokens: Token[] = [];
-  const re = new RegExp(TOKEN_RE);
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text)) !== null) {
-    const value = match[0];
-    tokens.push({
-      isWord: !/^\s+$/.test(value),
-      start: match.index,
-      end: match.index + value.length,
-      text: value,
-    });
-  }
-  return tokens;
 }
 
 function rangesOverlap(
@@ -84,10 +64,6 @@ function rangesOverlap(
   b: { start: number; end: number }
 ): boolean {
   return a.start < b.end && a.end > b.start;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
 }
 
 /** Background/text colour for one word chunk, in priority order:
@@ -98,8 +74,7 @@ function chunkStyle(
   isDimmed: boolean
 ): { bgcolor: string; color: string; opacity?: number } {
   if (isPending) return { bgcolor: "#DBEAFE", color: "#1E3A8A" };
-  if (highlightKind === "confirmed") return { bgcolor: "#DCFCE7", color: "#14532D" };
-  if (highlightKind === "candidate") return { bgcolor: "#FEF9C3", color: "#713F12" };
+  if (highlightKind) return HIGHLIGHT_COLORS[highlightKind];
   if (isDimmed) return { bgcolor: "transparent", color: "text.secondary", opacity: 0.5 };
   return { bgcolor: "transparent", color: "text.primary" };
 }
@@ -111,97 +86,17 @@ export default function HighlightableRecommendationText({
   onConfirmSelection,
   onCancelSelection,
 }: Props) {
-  const tokens = useMemo(() => tokenize(text), [text]);
-  const wordTokens = useMemo(() => tokens.filter((t) => t.isWord), [tokens]);
-
-  const [anchorIdx, setAnchorIdx] = useState<number | null>(null);
-  const [focusIdx, setFocusIdx] = useState<number | null>(null);
-  const draggingRef = useRef(false);
-
-  const selectionLoHi = useMemo(() => {
-    if (anchorIdx === null || focusIdx === null) return null;
-    return { lo: Math.min(anchorIdx, focusIdx), hi: Math.max(anchorIdx, focusIdx) };
-  }, [anchorIdx, focusIdx]);
-
-  const clearSelection = useCallback(() => {
-    setAnchorIdx(null);
-    setFocusIdx(null);
-  }, []);
-
-  const buildSelectionResult = useCallback(
-    (lo: number, hi: number): TextSelectionResult => {
-      const start = wordTokens[lo].start;
-      const end = wordTokens[hi].end;
-      return { start, end, text: text.slice(start, end) };
-    },
-    [wordTokens, text]
-  );
-
-  const handleConfirm = useCallback(
-    (fallbackWordIdx?: number) => {
-      const range = selectionLoHi ?? (
-        fallbackWordIdx !== undefined
-          ? { lo: fallbackWordIdx, hi: fallbackWordIdx }
-          : null
-      );
-      if (!range) return;
-      onConfirmSelection(buildSelectionResult(range.lo, range.hi));
-      clearSelection();
-    },
-    [selectionLoHi, buildSelectionResult, onConfirmSelection, clearSelection]
-  );
-
-  const handleCancel = useCallback(() => {
-    clearSelection();
-    onCancelSelection?.();
-  }, [clearSelection, onCancelSelection]);
-
-  const handleMouseDown = useCallback((wordIdx: number) => {
-    draggingRef.current = true;
-    setAnchorIdx(wordIdx);
-    setFocusIdx(wordIdx);
-  }, []);
-
-  const handleMouseEnter = useCallback((wordIdx: number) => {
-    if (draggingRef.current) setFocusIdx(wordIdx);
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    draggingRef.current = false;
-  }, []);
-
-  const handleFocus = useCallback((wordIdx: number) => {
-    if (draggingRef.current) return;
-    setAnchorIdx(wordIdx);
-    setFocusIdx(wordIdx);
-  }, []);
-
-  const handleKeyDown = useCallback(
-    (wordIdx: number, e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        handleConfirm(wordIdx);
-        return;
-      }
-      if (e.key === "Escape") {
-        e.preventDefault();
-        handleCancel();
-        return;
-      }
-      if (e.shiftKey && e.key === "ArrowRight") {
-        e.preventDefault();
-        setFocusIdx((f) => clamp((f ?? wordIdx) + 1, 0, wordTokens.length - 1));
-        return;
-      }
-      if (e.shiftKey && e.key === "ArrowLeft") {
-        e.preventDefault();
-        setFocusIdx((f) => clamp((f ?? wordIdx) - 1, 0, wordTokens.length - 1));
-      }
-    },
-    [handleConfirm, handleCancel, wordTokens.length]
-  );
-
-  let wordCounter = -1;
+  const {
+    wordTokens,
+    selectionLoHi,
+    handleMouseDown,
+    handleMouseEnter,
+    handleMouseUp,
+    handleFocus,
+    handleKeyDown,
+    handleConfirm,
+    handleCancel,
+  } = useWordSelection({ text, onConfirmSelection, onCancelSelection });
 
   return (
     <Box>
@@ -210,54 +105,25 @@ export default function HighlightableRecommendationText({
         onMouseUp={handleMouseUp}
         sx={{ lineHeight: 2, wordSpacing: 2 }}
       >
-        {tokens.map((token, tokenIdx) => {
-          if (!token.isWord) {
-            return <span key={tokenIdx}>{token.text}</span>;
-          }
-          wordCounter += 1;
-          const wordIdx = wordCounter;
-          const isDimmed = dimmedRanges.some((d) => rangesOverlap(token, d));
-          const isPending =
-            !isDimmed &&
-            !!selectionLoHi &&
-            wordIdx >= selectionLoHi.lo &&
-            wordIdx <= selectionLoHi.hi;
-          const highlightKind = isDimmed
-            ? null
-            : highlights.find((h) => rangesOverlap(token, h))?.kind ?? null;
-          const style = chunkStyle(isPending, highlightKind, isDimmed);
-          return (
-            <Box
-              key={tokenIdx}
-              component="span"
-              role="button"
-              tabIndex={isDimmed ? -1 : 0}
-              aria-pressed={isPending}
-              data-word-index={wordIdx}
-              data-highlight-kind={highlightKind ?? undefined}
-              data-dimmed={isDimmed || undefined}
-              onMouseDown={() => !isDimmed && handleMouseDown(wordIdx)}
-              onMouseEnter={() => !isDimmed && handleMouseEnter(wordIdx)}
-              onFocus={() => !isDimmed && handleFocus(wordIdx)}
-              onKeyDown={(e) => !isDimmed && handleKeyDown(wordIdx, e)}
-              sx={{
-                bgcolor: style.bgcolor,
-                color: style.color,
-                opacity: style.opacity ?? 1,
-                borderRadius: 0.5,
-                cursor: isDimmed ? "default" : "pointer",
-                outlineOffset: 1,
-                "&:focus-visible": { outline: "2px solid #2563EB" },
-              }}
-            >
-              {token.text}
-            </Box>
-          );
+        {renderTokens({
+          text,
+          wordTokens,
+          highlights,
+          dimmedRanges,
+          selectionLoHi,
+          handleMouseDown,
+          handleMouseEnter,
+          handleFocus,
+          handleKeyDown,
         })}
       </Box>
       {selectionLoHi && (
         <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-          <Button size="small" variant="contained" onClick={() => handleConfirm()}>
+          <Button
+            size="small"
+            variant="contained"
+            onClick={(e) => handleConfirm(undefined, e.currentTarget)}
+          >
             Confirm selection
           </Button>
           <Button size="small" variant="text" onClick={handleCancel}>
@@ -267,4 +133,83 @@ export default function HighlightableRecommendationText({
       )}
     </Box>
   );
+}
+
+/**
+ * Re-walks the ORIGINAL (non-tokenized-word-only) text so inter-word
+ * whitespace is preserved verbatim, interleaving plain whitespace spans
+ * with the interactive word chunks from useWordSelection's wordTokens.
+ */
+function renderTokens(params: {
+  text: string;
+  wordTokens: ReturnType<typeof useWordSelection>["wordTokens"];
+  highlights: HighlightSpan[];
+  dimmedRanges: Array<{ start: number; end: number }>;
+  selectionLoHi: { lo: number; hi: number } | null;
+  handleMouseDown: (wordIdx: number) => void;
+  handleMouseEnter: (wordIdx: number) => void;
+  handleFocus: (wordIdx: number) => void;
+  handleKeyDown: (wordIdx: number, e: React.KeyboardEvent) => void;
+}) {
+  const {
+    text,
+    wordTokens,
+    highlights,
+    dimmedRanges,
+    selectionLoHi,
+    handleMouseDown,
+    handleMouseEnter,
+    handleFocus,
+    handleKeyDown,
+  } = params;
+
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  wordTokens.forEach((token, wordIdx) => {
+    if (token.start > cursor) {
+      nodes.push(<span key={`gap-${cursor}`}>{text.slice(cursor, token.start)}</span>);
+    }
+    const isDimmed = dimmedRanges.some((d) => rangesOverlap(token, d));
+    const isPending =
+      !isDimmed &&
+      !!selectionLoHi &&
+      wordIdx >= selectionLoHi.lo &&
+      wordIdx <= selectionLoHi.hi;
+    const highlightKind = isDimmed
+      ? null
+      : highlights.find((h) => rangesOverlap(token, h))?.kind ?? null;
+    const style = chunkStyle(isPending, highlightKind, isDimmed);
+    nodes.push(
+      <Box
+        key={`word-${wordIdx}`}
+        component="span"
+        role="button"
+        tabIndex={isDimmed ? -1 : 0}
+        aria-pressed={isPending}
+        data-word-index={wordIdx}
+        data-highlight-kind={highlightKind ?? undefined}
+        data-dimmed={isDimmed || undefined}
+        onMouseDown={() => !isDimmed && handleMouseDown(wordIdx)}
+        onMouseEnter={() => !isDimmed && handleMouseEnter(wordIdx)}
+        onFocus={() => !isDimmed && handleFocus(wordIdx)}
+        onKeyDown={(e) => !isDimmed && handleKeyDown(wordIdx, e)}
+        sx={{
+          bgcolor: style.bgcolor,
+          color: style.color,
+          opacity: style.opacity ?? 1,
+          borderRadius: 0.5,
+          cursor: isDimmed ? "default" : "pointer",
+          outlineOffset: 1,
+          "&:focus-visible": { outline: "2px solid #2563EB" },
+        }}
+      >
+        {token.text}
+      </Box>,
+    );
+    cursor = token.end;
+  });
+  if (cursor < text.length) {
+    nodes.push(<span key={`gap-${cursor}`}>{text.slice(cursor)}</span>);
+  }
+  return nodes;
 }

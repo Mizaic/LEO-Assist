@@ -255,7 +255,15 @@ export default function ConceptSearchPanel({
         sx={{
           flex: 1,
           minHeight: embedded ? 0 : 200,
-          maxHeight: embedded ? undefined : 480,
+          // Always a real number, even when embedded in a popover: the
+          // list grows from 0 to ~15 rows as the reviewer types, and
+          // the host Popover only positions itself once, on open -- an
+          // unbounded (`undefined`) height here let a later-arriving
+          // longer results list grow the popover past the bottom of
+          // the screen with nothing to stop it. A fixed cap plus this
+          // box's own scrollbar keeps the popover's total size
+          // predictable regardless of how many results come back.
+          maxHeight: embedded ? 320 : 480,
           overflowY: "auto",
           border: "1px solid",
           borderColor: "divider",

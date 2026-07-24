@@ -28,9 +28,11 @@
  * wireframes.md) for the exact layout this implements.
  */
 import { useMemo } from "react";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -41,7 +43,9 @@ import type {
   PathwayTextBoundary,
   RecommendationStructureItem,
 } from "../SentenceEditor/pathwayTextSplit";
+import type { LogicCriterion } from "../types";
 import { STEP_PATHWAY_CONDITIONS } from "./copy";
+import RowMultiCodeHighlight from "./RowMultiCodeHighlight";
 import { buildPathwayRows, countUnresolvedRows } from "./wizardMapping";
 import type { ClusterGrouping } from "./wizardMapping";
 
@@ -59,11 +63,34 @@ export interface StepPathwayConditionsProps {
   getRowResolution?: (
     item: RecommendationStructureItem,
   ) => ListRowResolution | undefined;
-  onRowClick: (item: RecommendationStructureItem) => void;
+  onRowClick: (item: RecommendationStructureItem, anchor: HTMLElement) => void;
+  /**
+   * When supplied, every row gets a "Highlight text for more codes"
+   * affordance (RowMultiCodeHighlight) alongside the normal whole-row
+   * click -- for the case where a row's text bundles more than one
+   * clinical idea and the reviewer wants to code a specific sub-phrase,
+   * possibly with more than one SNOMED code. Omitted entirely (no
+   * affordance rendered) when this prop is not passed.
+   */
+  onAddMultiConcept?: (
+    item: RecommendationStructureItem,
+    criterion: LogicCriterion,
+  ) => void;
   /** Undefined means "not yet asked" -- only relevant when this
-   *  pathway has a detected "any of the following" cluster. */
+   *  pathway has a detected trailing "any of the following" cluster. */
   clusterGrouping?: ClusterGrouping;
   onChooseGrouping?: (grouping: ClusterGrouping) => void;
+  /**
+   * Same as `clusterGrouping`/`onChooseGrouping` but for a SEPARATE,
+   * marker-less lead-or cluster detected ahead of the trailing one
+   * (see `buildPathwayRows`'s `leadCluster` -- e.g. "nausea or
+   * vomiting" ahead of "any of the following: ..."). Asked
+   * independently: both clusters apply to the same pathway ANDed
+   * together, but the reviewer decides each one's own AT_LEAST-vs-AND
+   * grouping separately, never inferred from which cluster it is.
+   */
+  leadClusterGrouping?: ClusterGrouping;
+  onChooseLeadGrouping?: (grouping: ClusterGrouping) => void;
   confirmedSummaries?: Array<{ letter: string; summary: string }>;
   onConfirmPathway: () => void;
   /**
@@ -75,6 +102,17 @@ export interface StepPathwayConditionsProps {
    * enabling the button, regardless of this prop.
    */
   confirmBlockedReason?: string | null;
+  /**
+   * Set only when an EARLIER pathway asked about the exact same
+   * findings and has already been resolved (see
+   * `useCopyAcrossOffer`/`pathwayCopyAcross.ts`). Offering this is a
+   * one-time copy, never a silent auto-fill -- the reviewer must
+   * click to accept, and can still change any grouping or code
+   * afterwards exactly as if they had picked it themselves.
+   */
+  copyAcrossOffer?: { sourceLetter: string; count: number } | null;
+  onAcceptCopyAcross?: () => void;
+  onDismissCopyAcross?: () => void;
 }
 
 export default function StepPathwayConditions({
@@ -85,27 +123,42 @@ export default function StepPathwayConditions({
   boundary,
   getRowResolution,
   onRowClick,
+  onAddMultiConcept,
   clusterGrouping,
   onChooseGrouping,
+  leadClusterGrouping,
+  onChooseLeadGrouping,
   confirmedSummaries = [],
   onConfirmPathway,
   confirmBlockedReason = null,
+  copyAcrossOffer = null,
+  onAcceptCopyAcross,
+  onDismissCopyAcross,
 }: StepPathwayConditionsProps) {
-  const { items, hasCluster } = useMemo(() => buildPathwayRows(boundary), [boundary]);
+  const { items, hasCluster, leadCluster } = useMemo(
+    () => buildPathwayRows(boundary),
+    [boundary],
+  );
 
   const unresolvedCount = useMemo(() => {
     if (!getRowResolution) return 0;
     return countUnresolvedRows(items, getRowResolution);
   }, [items, getRowResolution]);
 
-  const groupingUndecided = hasCluster && !clusterGrouping;
+  const leadGroupingUndecided = !!leadCluster && !leadClusterGrouping;
+  const groupingUndecided = (hasCluster && !clusterGrouping) || leadGroupingUndecided;
+  const leadClusterPrompt = leadCluster
+    ? STEP_PATHWAY_CONDITIONS.leadClusterPrompt(leadCluster.items.map((i) => i.text))
+    : null;
   const blockedReason =
     confirmBlockedReason ??
-    (groupingUndecided
-      ? STEP_PATHWAY_CONDITIONS.clusterPrompt
-      : unresolvedCount > 0
-        ? STEP_PATHWAY_CONDITIONS.unresolvedBlockedReason(unresolvedCount)
-        : null);
+    (leadGroupingUndecided
+      ? leadClusterPrompt
+      : hasCluster && !clusterGrouping
+        ? STEP_PATHWAY_CONDITIONS.clusterPrompt
+        : unresolvedCount > 0
+          ? STEP_PATHWAY_CONDITIONS.unresolvedBlockedReason(unresolvedCount)
+          : null);
 
   return (
     <Stack spacing={2}>
@@ -122,6 +175,14 @@ export default function StepPathwayConditions({
         </Typography>
       </Box>
 
+      {copyAcrossOffer && (
+        <CopyAcrossBanner
+          offer={copyAcrossOffer}
+          onAccept={onAcceptCopyAcross}
+          onDismiss={onDismissCopyAcross}
+        />
+      )}
+
       {confirmedSummaries.length > 0 && (
         <ConfirmedSoFar summaries={confirmedSummaries} />
       )}
@@ -130,10 +191,29 @@ export default function StepPathwayConditions({
         items={items}
         getRowResolution={getRowResolution}
         onRowClick={onRowClick}
+        renderRowExtra={
+          onAddMultiConcept
+            ? (item) => (
+                <RowMultiCodeHighlight
+                  item={item}
+                  onAddCriterion={(criterion) => onAddMultiConcept(item, criterion)}
+                />
+              )
+            : undefined
+        }
       />
+
+      {leadCluster && leadClusterPrompt && (
+        <ClusterGroupingChoice
+          prompt={leadClusterPrompt}
+          grouping={leadClusterGrouping}
+          onChoose={onChooseLeadGrouping}
+        />
+      )}
 
       {hasCluster && (
         <ClusterGroupingChoice
+          prompt={STEP_PATHWAY_CONDITIONS.clusterPrompt}
           grouping={clusterGrouping}
           onChoose={onChooseGrouping}
         />
@@ -161,6 +241,36 @@ export default function StepPathwayConditions({
         </Button>
       </Box>
     </Stack>
+  );
+}
+
+function CopyAcrossBanner({
+  offer,
+  onAccept,
+  onDismiss,
+}: {
+  offer: { sourceLetter: string; count: number };
+  onAccept?: () => void;
+  onDismiss?: () => void;
+}) {
+  return (
+    <Alert
+      severity="info"
+      icon={<ContentCopyRoundedIcon fontSize="small" />}
+      aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossAriaLabel}
+      action={
+        <Stack direction="row" spacing={1} sx={{ pt: 0.25 }}>
+          <Button size="small" variant="contained" onClick={onAccept}>
+            {STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
+          </Button>
+          <Button size="small" onClick={onDismiss}>
+            {STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
+          </Button>
+        </Stack>
+      }
+    >
+      {STEP_PATHWAY_CONDITIONS.copyAcrossOffer(offer.sourceLetter, offer.count)}
+    </Alert>
   );
 }
 
@@ -196,15 +306,23 @@ function ConfirmedSoFar({
 }
 
 function ClusterGroupingChoice({
+  prompt,
   grouping,
   onChoose,
 }: {
+  prompt: string;
   grouping?: ClusterGrouping;
   onChoose?: (grouping: ClusterGrouping) => void;
 }) {
   if (grouping) {
     return (
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        role="group"
+        aria-label={prompt}
+      >
         <Typography variant="body2" color="text.secondary">
           {grouping === "AT_LEAST"
             ? STEP_PATHWAY_CONDITIONS.groupingConfirmedOnlyOne
@@ -217,9 +335,9 @@ function ClusterGroupingChoice({
     );
   }
   return (
-    <Box role="group" aria-label={STEP_PATHWAY_CONDITIONS.clusterPrompt} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "grey.50" }}>
+    <Box role="group" aria-label={prompt} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "grey.50" }}>
       <Typography variant="body2" sx={{ mb: 1 }}>
-        {STEP_PATHWAY_CONDITIONS.clusterPrompt}
+        {prompt}
       </Typography>
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
         <Button variant="contained" size="small" onClick={() => onChoose?.("AT_LEAST")}>

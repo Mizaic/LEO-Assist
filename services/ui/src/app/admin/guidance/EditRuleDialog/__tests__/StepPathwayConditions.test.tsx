@@ -13,7 +13,7 @@
  * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import StepPathwayConditions from "../HighlightWizard/StepPathwayConditions";
 import { buildPathwayRows } from "../HighlightWizard/wizardMapping";
@@ -52,6 +52,17 @@ const HEURISTIC_CLUSTER_BOUNDARY: PathwayTextBoundary = {
   source: "heuristic",
 };
 
+// NG12 1.2.9 pathway D -- "nausea or vomiting" is a marker-less
+// lead-or cluster ahead of the trailing "any of the following" list.
+const TWO_CLUSTER_BOUNDARY: PathwayTextBoundary = {
+  text:
+    "nausea or vomiting with any of the following: weight loss, " +
+    "reflux, dyspepsia, upper abdominal pain.",
+  start: 0,
+  end: 91,
+  source: "heuristic",
+};
+
 function makeCriterion(overrides: Partial<LogicCriterion> = {}): LogicCriterion {
   return { snomed_concept_id: "1", preferred_term: "Indigestion (finding)", ...overrides };
 }
@@ -60,12 +71,29 @@ function resolveNothing(): ListRowResolution | undefined {
   return undefined;
 }
 
+function mockSearch(hits: unknown[] = []) {
+  jest.spyOn(global, "fetch").mockImplementation((url) => {
+    if (String(url).includes("/api/terminology/search")) {
+      return Promise.resolve({ ok: true, json: async () => hits } as Response);
+    }
+    return Promise.resolve({ ok: true, json: async () => [] } as Response);
+  });
+}
+
+function getWordChunk(word: string) {
+  return screen.getByText(word, { selector: "[data-word-index]" });
+}
+
 describe("StepPathwayConditions: buildPathwayRows", () => {
   it("preserves real structureChildren offsets for a structure-sourced boundary", () => {
     const { items, hasCluster } = buildPathwayRows(STRUCTURE_BOUNDARY);
     expect(hasCluster).toBe(true);
     expect(items).toHaveLength(1);
-    expect(items[0].text).toBe("indigestion with any of the following:");
+    // The marker phrase is stripped from the item's own text -- see
+    // `resolveAtLeastCluster`'s doc comment: `nice_list_parser.py`
+    // keeps "with any of the following:" IN the item's own `<li>`
+    // paragraph, so it must be stripped here, not pre-excluded.
+    expect(items[0].text).toBe("indigestion");
     expect(items[0].children).toEqual(STRUCTURE_BOUNDARY.structureChildren);
   });
 
@@ -126,7 +154,7 @@ describe("StepPathwayConditions: rendering", () => {
       />,
     );
 
-    expect(screen.getByText(/indigestion with any of the following/i)).toBeInTheDocument();
+    expect(screen.getByText("indigestion")).toBeInTheDocument();
     expect(screen.getByText("nausea")).toBeInTheDocument();
     expect(screen.getByText("vomiting")).toBeInTheDocument();
   });
@@ -147,7 +175,10 @@ describe("StepPathwayConditions: rendering", () => {
     );
 
     await user.click(screen.getByTestId("list-row-0-20"));
-    expect(onRowClick).toHaveBeenCalledWith({ text: "upper abdominal pain", start: 0, end: 20 });
+    expect(onRowClick).toHaveBeenCalledWith(
+      { text: "upper abdominal pain", start: 0, end: 20 },
+      expect.any(HTMLElement),
+    );
   });
 
   it("shows the already-confirmed summary for prior pathways", () => {
@@ -325,5 +356,224 @@ describe("StepPathwayConditions: the resolved-row gate", () => {
       screen.getByRole("button", { name: /confirm situation a/i }),
     ).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent(/needs your check/i);
+  });
+});
+
+describe("StepPathwayConditions: two clusters in the same pathway (NG12 1.2.9 pathway D)", () => {
+  it("asks the lead-or grouping question separately from the trailing one", () => {
+    render(
+      <StepPathwayConditions
+        pathwayIndex={4}
+        pathwayCount={4}
+        pathwayLetter="D"
+        boundary={TWO_CLUSTER_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("group", { name: /nausea or vomiting/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: /any of the following/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("blocks Confirm on the lead-or grouping first, before the trailing one", () => {
+    render(
+      <StepPathwayConditions
+        pathwayIndex={4}
+        pathwayCount={4}
+        pathwayLetter="D"
+        boundary={TWO_CLUSTER_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        clusterGrouping="AT_LEAST"
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(/nausea or vomiting/i);
+  });
+
+  it("calls onChooseLeadGrouping and onChooseGrouping independently", async () => {
+    const user = userEvent.setup();
+    const onChooseLeadGrouping = jest.fn();
+    const onChooseGrouping = jest.fn();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={4}
+        pathwayCount={4}
+        pathwayLetter="D"
+        boundary={TWO_CLUSTER_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onChooseLeadGrouping={onChooseLeadGrouping}
+        onChooseGrouping={onChooseGrouping}
+      />,
+    );
+
+    const leadGroup = screen.getByRole("group", { name: /nausea or vomiting/i });
+    await user.click(
+      within(leadGroup).getByRole("button", { name: /only one needs to match/i }),
+    );
+    expect(onChooseLeadGrouping).toHaveBeenCalledWith("AT_LEAST");
+    expect(onChooseGrouping).not.toHaveBeenCalled();
+  });
+
+  it("enables Confirm only once BOTH clusters' groupings are chosen and every row resolves", () => {
+    const resolved: ListRowResolution = {
+      criterion: makeCriterion(),
+      preferredTerm: "Nausea (finding)",
+    };
+    render(
+      <StepPathwayConditions
+        pathwayIndex={4}
+        pathwayCount={4}
+        pathwayLetter="D"
+        boundary={TWO_CLUSTER_BOUNDARY}
+        getRowResolution={() => resolved}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        clusterGrouping="AT_LEAST"
+        leadClusterGrouping="AT_LEAST"
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /confirm situation d/i }),
+    ).toBeEnabled();
+  });
+});
+
+describe("StepPathwayConditions: highlight-a-word multi-code picker", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("does not render the highlight affordance when onAddMultiConcept is not supplied", () => {
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /highlight text for more codes/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders a highlight affordance per row when onAddMultiConcept is supplied", () => {
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onAddMultiConcept={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /highlight text for more codes/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("forwards the highlighted row's item plus the picked multi-seed criterion", async () => {
+    const user = userEvent.setup();
+    mockSearch([
+      { snomed_concept_id: "422587007", term: "Nausea", semantic_tag: "finding" },
+    ]);
+    const onAddMultiConcept = jest.fn();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onAddMultiConcept={onAddMultiConcept}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /highlight text for more codes/i }),
+    );
+    const upper = getWordChunk("upper");
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: upper },
+      { keys: "[/MouseLeft]", target: upper },
+    ]);
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    await user.click(await screen.findByRole("checkbox", { name: /select nausea/i }));
+    await user.click(screen.getByRole("button", { name: "Add 1 code" }));
+
+    expect(onAddMultiConcept).toHaveBeenCalledWith(
+      { text: "upper abdominal pain", start: 0, end: 20 },
+      expect.objectContaining({ snomed_concept_id: "422587007" }),
+    );
+  });
+});
+
+describe("StepPathwayConditions: the copy-across offer", () => {
+  it("does not render a banner when there is nothing to offer", () => {
+    render(
+      <StepPathwayConditions
+        pathwayIndex={2}
+        pathwayCount={2}
+        pathwayLetter="B"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/copy your codes across/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the offer and forwards accept / dismiss clicks", async () => {
+    const user = userEvent.setup();
+    const onAcceptCopyAcross = jest.fn();
+    const onDismissCopyAcross = jest.fn();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={2}
+        pathwayCount={2}
+        pathwayLetter="B"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        copyAcrossOffer={{ sourceLetter: "A", count: 6 }}
+        onAcceptCopyAcross={onAcceptCopyAcross}
+        onDismissCopyAcross={onDismissCopyAcross}
+      />,
+    );
+
+    expect(
+      screen.getByText(/situation a asked about the same 6 findings/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /copy them across/i }));
+    expect(onAcceptCopyAcross).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: /i'll do this one myself/i }));
+    expect(onDismissCopyAcross).toHaveBeenCalledTimes(1);
   });
 });

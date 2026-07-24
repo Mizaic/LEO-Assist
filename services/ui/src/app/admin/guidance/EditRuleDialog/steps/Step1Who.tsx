@@ -19,6 +19,7 @@
  * wrapper. Every rule uses the consumer-grade operator-tree builder.
  */
 
+import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -29,6 +30,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import AIDraftButton from "../AIDraftButton";
 import HighlightWizard from "../HighlightWizard";
+import type { WizardStepKind } from "../HighlightWizard/wizardState";
 import LogicTreeEditor from "../LogicTreeEditor";
 import SentenceEditor from "../SentenceEditor";
 import EmptySentenceState from "../SentenceEditor/EmptySentenceState";
@@ -84,6 +86,13 @@ interface Props {
   onAIDraft?: (tree: EditableLogicNode) => void;
   /** Guideline ID for RULE_FIRED rule picker (DI-6AE25829). */
   guidelineId?: string;
+  /**
+   * Tells the host (EditRuleDialog) whether the right-column panel
+   * should show the pinned NICE guideline quote ("quote", while the
+   * guided wizard is still building the tree) or the normal live
+   * summary ("preview", everywhere else, including guided Review).
+   */
+  onGuidedPanelModeChange?: (mode: "quote" | "preview") => void;
 }
 
 export default function Step1Who({
@@ -102,6 +111,7 @@ export default function Step1Who({
   ruleId = "",
   onAIDraft,
   guidelineId,
+  onGuidedPanelModeChange,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
   const [viewMode, setViewMode] = useViewMode();
@@ -110,6 +120,19 @@ export default function Step1Who({
     tree,
     onUpdate,
   });
+
+  const isGuided = viewMode === "guided" && Boolean(tree);
+  const [wizardStep, setWizardStep] = useState<WizardStepKind>("prerequisites");
+  const showCanvasQuote = !isGuided || wizardStep === "review";
+
+  useEffect(() => {
+    if (!isGuided) onGuidedPanelModeChange?.("preview");
+  }, [isGuided, onGuidedPanelModeChange]);
+
+  function handleWizardStepChange(step: WizardStepKind) {
+    setWizardStep(step);
+    onGuidedPanelModeChange?.(step === "review" ? "preview" : "quote");
+  }
 
   const showStructureWarning = tree && hasOrRootWithPrerequisites(tree);
   const showPrerequisiteHint = tree && hasOrRootSymptomsOnly(tree);
@@ -194,7 +217,7 @@ export default function Step1Who({
         </Alert>
       )}
 
-      {recommendationText && (
+      {recommendationText && showCanvasQuote && (
         <Box
           sx={{
             p: 1.5,
@@ -219,7 +242,7 @@ export default function Step1Who({
         </Box>
       )}
 
-      {viewMode === "guided" && tree ? (
+      {isGuided && tree ? (
         <HighlightWizard
           tree={tree}
           recommendationText={recommendationText}
@@ -232,6 +255,7 @@ export default function Step1Who({
           onSkipToManual={() => setViewMode("advanced")}
           guidelineId={guidelineId}
           currentRuleId={ruleId || undefined}
+          onStepChange={handleWizardStepChange}
         />
       ) : treeIsEmpty ? (
         viewMode === "simple" ? (

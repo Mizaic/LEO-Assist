@@ -23,7 +23,7 @@
  * See the plan's Step 1 wireframe (highlight-to-build_rule_wizard_
  * wireframes.md) for the exact layout this implements.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -122,7 +122,7 @@ export interface StepPrerequisitesProps {
    * concept search) to open, pre-filled with `selection.text` --
    * this component only detects and reports the selection.
    */
-  onAddFromSelection: (selection: TextSelectionResult) => void;
+  onAddFromSelection: (selection: TextSelectionResult, anchor?: HTMLElement) => void;
   /** "No, nothing else always applies" -- lets the wizard move on
    *  without opening any add flow. */
   onConfirmNoMore?: () => void;
@@ -159,6 +159,15 @@ export default function StepPrerequisites({
         })),
     [rows],
   );
+
+  // "Highlight more text" only hides the question WHILE the reviewer is
+  // actively picking a new fact -- it must never strand them. Once the
+  // captured set changes (a new prerequisite lands, or one is removed),
+  // ask again rather than leaving them with no way to proceed.
+  const rowCount = rows.length;
+  useEffect(() => {
+    setQuestionDismissed(false);
+  }, [rowCount]);
 
   return (
     <Stack spacing={2}>

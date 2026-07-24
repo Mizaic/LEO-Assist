@@ -31,7 +31,16 @@ export interface WizardState {
   /** Set once Step 2 (or its "No, applies the same to everyone" exit)
    *  confirms a partition of the text -- null before that. */
   boundaries: PathwayTextBoundary[] | null;
+  /** The TRAILING "any of the following" cluster's own grouping
+   *  choice, per pathway index. */
   clusterGroupings: Record<number, ClusterGrouping>;
+  /** A SEPARATE, marker-less lead-or cluster's own grouping choice
+   *  (e.g. "nausea or vomiting" ahead of a trailing cluster), per
+   *  pathway index -- see `PathwayRows.leadCluster`'s doc comment.
+   *  Kept as its own map rather than widening `clusterGroupings`'
+   *  value type so every existing single-cluster pathway's state
+   *  shape is untouched. */
+  leadClusterGroupings: Record<number, ClusterGrouping>;
   /** True right after Step 2 confirms 2+ boundaries but the tree
    *  mutation that creates the pathway groups has not landed in the
    *  `tree` prop yet -- see `materializePathways` in wizardMapping.ts. */
@@ -43,6 +52,7 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   pathwayIndex: 0,
   boundaries: null,
   clusterGroupings: {},
+  leadClusterGroupings: {},
   materializing: false,
 };
 
@@ -58,6 +68,7 @@ export type WizardAction =
   | { type: "CONFIRM_NO_SPLIT"; boundary: PathwayTextBoundary }
   | { type: "PATHWAYS_READY" }
   | { type: "SET_CLUSTER_GROUPING"; pathwayIndex: number; grouping: ClusterGrouping }
+  | { type: "SET_LEAD_CLUSTER_GROUPING"; pathwayIndex: number; grouping: ClusterGrouping }
   | { type: "CONFIRM_PATHWAY" }
   | { type: "GO_TO_REVIEW" }
   | { type: "BACK" };
@@ -113,6 +124,14 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         ...state,
         clusterGroupings: {
           ...state.clusterGroupings,
+          [action.pathwayIndex]: action.grouping,
+        },
+      };
+    case "SET_LEAD_CLUSTER_GROUPING":
+      return {
+        ...state,
+        leadClusterGroupings: {
+          ...state.leadClusterGroupings,
           [action.pathwayIndex]: action.grouping,
         },
       };

@@ -86,6 +86,16 @@ describe("wizardReducer: forward navigation", () => {
     expect(next.clusterGroupings).toEqual({ 1: "AT_LEAST" });
   });
 
+  it("SET_LEAD_CLUSTER_GROUPING records a choice keyed by pathway index, independently of clusterGroupings", () => {
+    const next = wizardReducer(INITIAL_WIZARD_STATE, {
+      type: "SET_LEAD_CLUSTER_GROUPING",
+      pathwayIndex: 3,
+      grouping: "AT_LEAST",
+    });
+    expect(next.leadClusterGroupings).toEqual({ 3: "AT_LEAST" });
+    expect(next.clusterGroupings).toEqual({});
+  });
+
   it("CONFIRM_PATHWAY advances to the next pathway index", () => {
     const state: WizardState = {
       ...INITIAL_WIZARD_STATE,

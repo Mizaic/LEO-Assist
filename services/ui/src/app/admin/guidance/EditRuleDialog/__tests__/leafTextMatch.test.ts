@@ -6,6 +6,7 @@
  * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import {
+  collectTreeHighlights,
   demographicMatchCandidate,
   leafTextMatch,
 } from "../HighlightWizard/leafTextMatch";
@@ -92,5 +93,64 @@ describe("leafTextMatch", () => {
       criterion: { snomed_concept_id: "1", preferred_term: "Weight loss" },
     });
     expect(leafTextMatch(null, node)).toBeNull();
+  });
+});
+
+describe("collectTreeHighlights", () => {
+  it("finds every anchorable leaf across a nested tree, as confirmed spans", () => {
+    const tree = makeNode({
+      kind: "AND",
+      children: [
+        makeNode({ kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: "55" }),
+        {
+          node_id: "n2",
+          kind: "AT_LEAST",
+          children: [
+            makeNode({
+              node_id: "n3",
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "1", preferred_term: "Weight loss" },
+            }),
+            {
+              node_id: "n4",
+              kind: "OBSERVATION",
+              observation: {
+                observable_id: "obs-1",
+                observable_term: "nausea",
+                operator: ">=",
+                value: 1,
+                unit: "",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const spans = collectTreeHighlights(TEXT, tree);
+    const words = spans.map((s) => TEXT.slice(s.start, s.end).toLowerCase());
+
+    expect(spans.every((s) => s.kind === "confirmed")).toBe(true);
+    expect(words).toEqual(
+      expect.arrayContaining(["aged 55 or over", "weight loss", "nausea"]),
+    );
+  });
+
+  it("skips leaves with no verbatim wording (RULE_FIRED) without throwing", () => {
+    const tree = makeNode({
+      kind: "AND",
+      children: [makeNode({ node_id: "n2", kind: "RULE_FIRED", referenced_rule_id: "r1" })],
+    });
+    expect(collectTreeHighlights(TEXT, tree)).toEqual([]);
+  });
+
+  it("returns an empty array when there is no recommendation text", () => {
+    expect(collectTreeHighlights(null, makeNode({ kind: "DEMOGRAPHIC", field: "age" }))).toEqual(
+      [],
+    );
+  });
+
+  it("returns an empty array when there is no tree", () => {
+    expect(collectTreeHighlights(TEXT, null)).toEqual([]);
   });
 });

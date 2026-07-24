@@ -57,7 +57,22 @@ interface Props {
   getRowResolution?: (
     item: RecommendationStructureItem
   ) => ListRowResolution | undefined;
-  onRowClick: (item: RecommendationStructureItem) => void;
+  /**
+   * `anchor` is the actual DOM element the reviewer clicked -- always
+   * pass it straight through to `onRequestAdd`/`onSelectNode` so the
+   * resulting search popover appears next to what was clicked instead
+   * of falling back to a broken default position (see ChipSearchPopover's
+   * doc comment: "anchored to the chip or +Add button the reviewer
+   * just clicked").
+   */
+  onRowClick: (item: RecommendationStructureItem, anchor: HTMLElement) => void;
+  /**
+   * Optional per-row slot rendered below the row's own click target (e.g.
+   * Step 3's "highlight text to add more codes" affordance). Called for
+   * every row, including nested children; returning null/undefined is a
+   * no-op, so existing callers (Step 2) are unaffected.
+   */
+  renderRowExtra?: (item: RecommendationStructureItem) => React.ReactNode;
 }
 
 function rowKey(item: RecommendationStructureItem): string {
@@ -105,12 +120,14 @@ function ListRow({
   depth,
   getRowResolution,
   onRowClick,
+  renderRowExtra,
 }: {
   item: RecommendationStructureItem;
   label?: string;
   depth: number;
   getRowResolution?: Props["getRowResolution"];
   onRowClick: Props["onRowClick"];
+  renderRowExtra?: Props["renderRowExtra"];
 }) {
   const resolution = getRowResolution?.(item);
   const resolved = !!(resolution?.criterion || resolution?.preferredTerm);
@@ -125,7 +142,7 @@ function ListRow({
       <ListItemButton
         data-testid={`list-row-${rowKey(item)}`}
         data-resolved={resolved}
-        onClick={() => onRowClick(item)}
+        onClick={(e) => onRowClick(item, e.currentTarget)}
         sx={{ pl: 2 + depth * 2, alignItems: "flex-start", py: 0.75 }}
       >
         <RowStatusIcon resolved={resolved} />
@@ -136,6 +153,11 @@ function ListRow({
           </Box>
         )}
       </ListItemButton>
+      {renderRowExtra && (
+        <Box sx={{ pl: 2 + depth * 2 + 4.5 / 2, pr: 1, pb: 0.5 }}>
+          {renderRowExtra(item)}
+        </Box>
+      )}
       {hasChildren && (
         <List disablePadding>
           {item.children!.map((child) => (
@@ -145,6 +167,7 @@ function ListRow({
               depth={depth + 1}
               getRowResolution={getRowResolution}
               onRowClick={onRowClick}
+              renderRowExtra={renderRowExtra}
             />
           ))}
         </List>
@@ -159,6 +182,7 @@ export default function ListRecommendationView({
   pathwayLabels,
   getRowResolution,
   onRowClick,
+  renderRowExtra,
 }: Props) {
   return (
     <Box>
@@ -176,6 +200,7 @@ export default function ListRecommendationView({
             depth={0}
             getRowResolution={getRowResolution}
             onRowClick={onRowClick}
+            renderRowExtra={renderRowExtra}
           />
         ))}
       </List>

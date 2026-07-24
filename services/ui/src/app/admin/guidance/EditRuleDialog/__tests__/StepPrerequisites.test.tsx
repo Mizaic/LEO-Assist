@@ -211,6 +211,60 @@ describe("StepPrerequisites: the always-true question", () => {
       screen.queryByRole("group", { name: /does anything else/i }),
     ).not.toBeInTheDocument();
   });
+
+  it("brings the question back once a new prerequisite is captured, so the reviewer is never stranded without a way to proceed", async () => {
+    // Reproduces the reported bug: highlight-dismiss the question, add a
+    // new prerequisite (the wizard re-renders with one more row once the
+    // add flow completes), then remove it again -- "No, nothing else"
+    // must still be reachable throughout, since it is the ONLY action
+    // that advances the wizard past this step (see index.tsx's
+    // onConfirmNoMore -> CONFIRM_PREREQUISITES).
+    const user = userEvent.setup();
+    const ageLeaf = makeAgeLeaf();
+    const { rerender } = render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[]}
+        onEdit={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /highlight more text/i }));
+    expect(
+      screen.queryByRole("group", { name: /does anything else/i }),
+    ).not.toBeInTheDocument();
+
+    // The reviewer's highlighted selection resolved to a new leaf --
+    // the wizard re-renders this step with one more prerequisite.
+    rerender(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[ageLeaf]}
+        onEdit={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("group", { name: /does anything else/i }),
+    ).toBeInTheDocument();
+
+    // Removing it again must not re-strand the reviewer.
+    rerender(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[]}
+        onEdit={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("group", { name: /does anything else/i }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("StepPrerequisites: forwarding a new selection", () => {

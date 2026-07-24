@@ -33,9 +33,10 @@
  *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
  */
 
+import { useEffect, useRef } from "react";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
-import Popover from "@mui/material/Popover";
+import Popover, { type PopoverActions } from "@mui/material/Popover";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -43,6 +44,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import { SEARCH_PANEL } from "./copy";
 import ConceptSearchPanel, { type ObservationSeed } from "./ConceptSearchPanel";
+import MultiConceptPicker from "./MultiConceptPicker";
 import type { LogicCriterion } from "./types";
 
 interface Props {
@@ -53,13 +55,25 @@ interface Props {
   replaceKind?: "concept" | "observation" | null;
   focusLabel: string | null;
   initialQuery: string;
+  /**
+   * Only meaningful when ``mode === "add"``: swaps the single-pick
+   * ConceptSearchPanel for MultiConceptPicker, so the reviewer can
+   * tick more than one SNOMED code and confirm them together as one
+   * criterion (see MultiConceptPicker's own doc comment for why that
+   * is not the same as adding several separate leaves). The
+   * highlight-to-build wizard's own row-click and highlighted-selection
+   * add flows set this; the Advanced/Sentence editor's "+Add" does not,
+   * since it still needs ConceptSearchPanel's "Compare value..."
+   * observation affordance.
+   */
+  multiPick?: boolean;
   onPick: (criterion: LogicCriterion) => void;
   /**
    * Phase 6b: forwarded to ConceptSearchPanel. When the popover is in
    * "add" mode (i.e. inserting a new leaf under a group) the parent
    * may pass a handler that inserts an OBSERVATION leaf instead of a
    * CONCEPT when the reviewer picks "Compare value..." on an
-   * observable-looking hit.
+   * observable-looking hit. Ignored when ``multiPick`` is true.
    */
   onPickObservation?: (seed: ObservationSeed) => void;
   onClose: () => void;
@@ -72,6 +86,7 @@ export default function ChipSearchPopover({
   replaceKind = null,
   focusLabel,
   initialQuery,
+  multiPick = false,
   onPick,
   onPickObservation,
   onClose,
@@ -84,17 +99,46 @@ export default function ChipSearchPopover({
         : mode === "replace"
           ? SEARCH_PANEL.headings.replace
           : SEARCH_PANEL.headings.add;
+  const showMultiPicker = mode === "add" && multiPick;
+
+  // MUI's Popover computes its position once, when it opens, from the
+  // paper's height at that moment -- it does not reposition itself
+  // just because that paper's own natural (shrink-to-fit) height
+  // grows afterwards. This paper's height is NOT fixed: it starts
+  // small (just the query box) and grows as results arrive, and, in
+  // multi-pick mode, again each time a ticked result adds a "Depth"
+  // stepper row. Without this, a popover that fit comfortably the
+  // moment it opened can grow past the bottom of the screen as the
+  // reviewer interacts with it, with nothing left to reposition it.
+  // Observing the paper itself (not an inner, already-clipped Box)
+  // and re-running the same positioning logic on every resize keeps
+  // it anchored correctly -- shifting up, never off-screen -- no
+  // matter how tall its content gets.
+  const popoverActionRef = useRef<PopoverActions>(null);
+  const paperRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const node = paperRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => {
+      popoverActionRef.current?.updatePosition();
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [open]);
 
   return (
     <Popover
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}
+      action={popoverActionRef}
       disableRestoreFocus
       anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       slotProps={{
         paper: {
+          ref: paperRef,
           "aria-label": heading,
           sx: {
             width: { xs: "calc(100vw - 32px)", sm: 420 },
@@ -162,16 +206,24 @@ export default function ChipSearchPopover({
           flexDirection: "column",
         }}
       >
-        <ConceptSearchPanel
-          mode={mode}
-          focusLabel={null}
-          showHeading={false}
-          embedded
-          initialQuery={initialQuery}
-          onPick={onPick}
-          onPickObservation={mode === "add" ? onPickObservation : undefined}
-          filterToObservable={replaceKind === "observation"}
-        />
+        {showMultiPicker ? (
+          <MultiConceptPicker
+            initialQuery={initialQuery}
+            embedded
+            onConfirm={onPick}
+          />
+        ) : (
+          <ConceptSearchPanel
+            mode={mode}
+            focusLabel={null}
+            showHeading={false}
+            embedded
+            initialQuery={initialQuery}
+            onPick={onPick}
+            onPickObservation={mode === "add" ? onPickObservation : undefined}
+            filterToObservable={replaceKind === "observation"}
+          />
+        )}
       </Box>
     </Popover>
   );

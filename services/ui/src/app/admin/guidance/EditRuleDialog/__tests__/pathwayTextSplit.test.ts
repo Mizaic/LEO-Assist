@@ -8,6 +8,7 @@
  */
 import {
   detectAtLeastCluster,
+  looksLikeLeadOrCluster,
   looksLikePathwaySplit,
   resolveAtLeastCluster,
   splitPathways,
@@ -102,6 +103,43 @@ describe("splitPathwaysByOrHeuristic", () => {
     expect(boundaries).toHaveLength(2);
     expect(boundaries![0].text).toContain("55 or over");
   });
+
+  it("splits on a comma-then-or with NO space -- the real NG12 1.2.9 defect", () => {
+    // Verified against the live Recommendation node for NG12 1.2.9
+    // (NG12:v2:CH002:SEC001:R008): its ingested `verbatim` literally
+    // reads "...low haemoglobin levels,or raised platelet count..."
+    // with zero whitespace between the comma and "or". A `\s+`
+    // requirement here silently drops this boundary and merges two
+    // real pathways into one.
+    const text =
+      "upper abdominal pain with low haemoglobin levels,or raised platelet count " +
+      "with any of the following: nausea vomiting.";
+    const boundaries = splitPathwaysByOrHeuristic(text);
+    expect(boundaries).not.toBeNull();
+    expect(boundaries).toHaveLength(2);
+    expect(boundaries![0].text).toBe("upper abdominal pain with low haemoglobin levels,or ");
+    expect(boundaries![1].text).toBe(
+      "raised platelet count with any of the following: nausea vomiting.",
+    );
+    // Offsets must still reconstruct the original text losslessly.
+    expect(boundaries!.map((b) => b.text).join("")).toBe(text);
+  });
+
+  it("still splits correctly with the conventional single space before 'or'", () => {
+    const text = "chest pain, or shortness of breath.";
+    const boundaries = splitPathwaysByOrHeuristic(text);
+    expect(boundaries).toHaveLength(2);
+    expect(boundaries![0].text).toBe("chest pain, or ");
+    expect(boundaries![1].text).toBe("shortness of breath.");
+  });
+
+  it("still splits correctly with extra whitespace before 'or'", () => {
+    const text = "chest pain,   or shortness of breath.";
+    const boundaries = splitPathwaysByOrHeuristic(text);
+    expect(boundaries).toHaveLength(2);
+    expect(boundaries![0].text).toBe("chest pain,   or ");
+    expect(boundaries![1].text).toBe("shortness of breath.");
+  });
 });
 
 describe("looksLikePathwaySplit", () => {
@@ -154,6 +192,13 @@ describe("detectAtLeastCluster", () => {
  * offsets drifting out of alignment with its own text -- exactly the
  * "positionally aligned with verbatim" guarantee the real parser
  * must provide (see the plan's "Ingestion" section).
+ *
+ * `takeItem`'s own text INCLUDES the "with any of the following:"
+ * marker phrase when the item has children -- matching
+ * `nice_list_parser.py`'s `_own_text`, which only excludes the nested
+ * `<ul>` itself, not the marker sentence sitting in the same `<li>`
+ * paragraph as that marker. A resolver must strip the marker from
+ * this text itself; it is not pre-excluded by the parser.
  */
 function buildNg129StructureFixture(): {
   text: string;
@@ -164,14 +209,16 @@ function buildNg129StructureFixture(): {
     text += s;
   };
   const takeItem = (
-    ownText: string,
+    leadPhrase: string,
     childTexts: string[] = [],
   ): RecommendationStructureItem => {
     const start = text.length;
+    const ownText =
+      childTexts.length === 0 ? leadPhrase : `${leadPhrase} with any of the following:`;
     append(ownText);
     const end = text.length;
     if (childTexts.length === 0) return { text: ownText, start, end };
-    append(" with any of the following: ");
+    append(" ");
     const children = childTexts.map((childText, i) => {
       const cStart = text.length;
       append(childText);
@@ -245,7 +292,7 @@ describe("splitPathways (structure-first)", () => {
     const { text, structure } = buildNg129StructureFixture();
     const boundaries = splitPathways(text, structure)!;
     const pathwayB = boundaries[1];
-    expect(pathwayB.text).toBe("indigestion");
+    expect(pathwayB.text).toBe("indigestion with any of the following:");
     expect(pathwayB.structureChildren?.map((c) => c.text)).toEqual([
       "upper abdominal pain",
       "nausea",
@@ -286,7 +333,7 @@ describe("splitPathways (structure-first)", () => {
 });
 
 describe("resolveAtLeastCluster", () => {
-  it("uses structureChildren directly when source is 'structure', skipping text parsing", () => {
+  it("strips the marker phrase from a structural item's own text, skipping text re-parsing of the list", () => {
     const { text, structure } = buildNg129StructureFixture();
     const pathwayB = splitPathways(text, structure)![1];
     const cluster = resolveAtLeastCluster(pathwayB);
@@ -311,5 +358,78 @@ describe("resolveAtLeastCluster", () => {
     expect(cluster).not.toBeNull();
     expect(cluster!.leadText).toBe("indigestion");
     expect(cluster!.items).toEqual(["nausea", "vomiting", "weight loss"]);
+  });
+
+  it("detects a marker-less lead-or cluster in a structural item's own text (NG12 1.2.9 pathway D)", () => {
+    // Real NG12:v2:CH002:SEC001:R008 backfilled data: the last item's
+    // own text is "nausea or vomiting with any of the following:",
+    // with the trailing list as its structureChildren.
+    const boundary = {
+      text: "nausea or vomiting with any of the following:",
+      source: "structure" as const,
+      structureChildren: [
+        { text: "weight loss", start: 0, end: 0 },
+        { text: "reflux", start: 0, end: 0 },
+        { text: "dyspepsia", start: 0, end: 0 },
+        { text: "upper abdominal pain. [2015]", start: 0, end: 0 },
+      ],
+    };
+    const cluster = resolveAtLeastCluster(boundary);
+    expect(cluster).toEqual({
+      leadText: "",
+      leadCluster: ["nausea", "vomiting"],
+      items: ["weight loss", "reflux", "dyspepsia", "upper abdominal pain"],
+    });
+  });
+
+  it("detects a marker-less lead-or cluster on the heuristic path too", () => {
+    const boundary = {
+      text: "nausea or vomiting with any of the following: weight loss, reflux, dyspepsia, upper abdominal pain. [2015]",
+      source: "heuristic" as const,
+    };
+    const cluster = resolveAtLeastCluster(boundary);
+    expect(cluster).toEqual({
+      leadText: "",
+      leadCluster: ["nausea", "vomiting"],
+      items: ["weight loss", "reflux", "dyspepsia", "upper abdominal pain"],
+    });
+  });
+});
+
+describe("looksLikeLeadOrCluster", () => {
+  it("recognises a bare two-term lead-or cluster", () => {
+    expect(looksLikeLeadOrCluster("nausea or vomiting")).toEqual(["nausea", "vomiting"]);
+  });
+
+  it("recognises a three-term comma + bare-or cluster", () => {
+    expect(looksLikeLeadOrCluster("nausea, vomiting or dizziness")).toEqual([
+      "nausea",
+      "vomiting",
+      "dizziness",
+    ]);
+  });
+
+  it("returns null for ordinary prose containing 'or' inside a long clause", () => {
+    expect(
+      looksLikeLeadOrCluster(
+        "abdominal pain or a change in bowel habit that has persisted for six weeks",
+      ),
+    ).toBeNull();
+  });
+
+  it("returns null for 'X or over' age phrasing (a number, not a term)", () => {
+    expect(looksLikeLeadOrCluster("people aged 55 or over")).toBeNull();
+  });
+
+  it("returns null when there is no 'or' at all", () => {
+    expect(looksLikeLeadOrCluster("indigestion")).toBeNull();
+  });
+
+  it("returns null for empty text", () => {
+    expect(looksLikeLeadOrCluster("")).toBeNull();
+  });
+
+  it("returns null for more than 4 alternatives", () => {
+    expect(looksLikeLeadOrCluster("a, b, c, d or e")).toBeNull();
   });
 });

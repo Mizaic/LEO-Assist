@@ -85,6 +85,29 @@ describe("HighlightWizard: Step 1 (prerequisites)", () => {
     await user.click(screen.getByRole("button", { name: /skip to advanced view/i }));
     expect(onSkipToManual).toHaveBeenCalledTimes(1);
   });
+
+  it("reports its own step via onStepChange, once on mount and again on every advance", async () => {
+    const user = userEvent.setup();
+    const onStepChange = jest.fn();
+    const tree: EditableLogicNode = { node_id: "root", kind: "AND", children: [ageLeaf()] };
+    render(
+      <HighlightWizard
+        tree={tree}
+        recommendationText={TEXT}
+        selectedNodeId={null}
+        onSelectNode={jest.fn()}
+        onUpdate={jest.fn()}
+        onRequestAdd={jest.fn()}
+        onSkipToManual={jest.fn()}
+        onStepChange={onStepChange}
+      />,
+    );
+    expect(onStepChange).toHaveBeenCalledWith("prerequisites");
+    onStepChange.mockClear();
+
+    await user.click(screen.getByRole("button", { name: /no, nothing else/i }));
+    expect(onStepChange).toHaveBeenCalledWith("pathway-split");
+  });
 });
 
 /** A tree whose OR already has the same 2 pathways the ", or "
@@ -153,6 +176,31 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
     await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
     await user.click(screen.getByRole("button", { name: /^back$/i }));
     expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
+  });
+
+  it("reports 'review' via onStepChange only once every pathway is confirmed", async () => {
+    const onStepChange = jest.fn();
+    render(
+      <HighlightWizard
+        tree={preDraftedTree()}
+        recommendationText={TEXT}
+        selectedNodeId={null}
+        onSelectNode={jest.fn()}
+        onUpdate={jest.fn()}
+        onRequestAdd={jest.fn()}
+        onSkipToManual={jest.fn()}
+        onStepChange={onStepChange}
+      />,
+    );
+    const user = await advanceToStep2();
+    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    expect(onStepChange).not.toHaveBeenCalledWith("review");
+
+    await user.click(screen.getByRole("button", { name: /confirm situation a/i }));
+    expect(onStepChange).not.toHaveBeenCalledWith("review");
+
+    await user.click(screen.getByRole("button", { name: /confirm situation b/i }));
+    expect(onStepChange).toHaveBeenCalledWith("review");
   });
 });
 

@@ -261,6 +261,33 @@ export interface EditableLogicNode {
   referenced_rule_id?: string;
   outcome?: "fired" | "not_fired";
   display_name?: string;
+  /**
+   * Marks which of a pathway's (at most two) AT_LEAST subgroups this
+   * one is, when the highlight wizard's Step 3 detected BOTH a
+   * marker-less lead-or cluster (e.g. "nausea or vomiting") AND a
+   * trailing "any of the following" cluster in the same pathway (see
+   * `PathwayRows.leadCluster`'s doc comment in wizardMapping.ts).
+   * Undefined is treated as "trailing" -- the overwhelmingly common
+   * single-cluster case, so existing pathways with one unmarked
+   * AT_LEAST subgroup keep working unchanged. Purely a routing aid
+   * for `findClusterSubgroupByRole`; the compiler and evaluator
+   * ignore it like every other unknown field.
+   */
+  cluster_role?: "lead" | "trailing";
+  /**
+   * The exact text of the Step 3 (or Step 1) row this leaf was added
+   * for, when it was created via the highlight-to-build wizard's
+   * row-click or highlight-a-sub-phrase add flow. A picked SNOMED
+   * term very often does not share any words with the guideline's own
+   * wording (e.g. "Indigestion" for a row that says "treatment-
+   * resistant dyspepsia"), so `buildRowResolver`'s fuzzy text match
+   * alone cannot re-discover which row this leaf answers. This exact
+   * string gives it a reliable, non-fuzzy way to do that. Purely a
+   * wizard bookkeeping aid -- the compiler and evaluator ignore it
+   * like every other unknown field, and it is absent on leaves
+   * authored any other way (AI draft, Advanced/Sentence editor).
+   */
+  source_row_text?: string;
 }
 
 /** Server response shape from /api/terminology/search. */
@@ -292,8 +319,22 @@ export type NodeUpdate =
   | { kind: "set_demographic"; nodeId: string; field: string; operator: string; value: string; value2?: string; unit: string | null }
   | { kind: "change_kind"; nodeId: string; newKind: LogicNodeKind }
   | { kind: "remove"; nodeId: string }
-  | { kind: "add_concept"; parentNodeId: string; criterion: LogicCriterion }
-  | { kind: "add_group"; parentNodeId: string; groupKind: "AND" | "OR" | "NOT" | "AT_LEAST" }
+  | {
+      kind: "add_concept";
+      parentNodeId: string;
+      criterion: LogicCriterion;
+      /** See `EditableLogicNode.source_row_text`'s doc comment. */
+      sourceRowText?: string;
+    }
+  | {
+      kind: "add_group";
+      parentNodeId: string;
+      groupKind: "AND" | "OR" | "NOT" | "AT_LEAST";
+      /** See `EditableLogicNode.cluster_role`'s doc comment -- only
+       *  meaningful when `groupKind === "AT_LEAST"` and the pathway
+       *  needs a SECOND, independently-graded subgroup. */
+      clusterRole?: "lead" | "trailing";
+    }
   | { kind: "add_demographic"; parentNodeId: string }
   // -- Phase 2: optional pathway name --
   | { kind: "set_name"; nodeId: string; name: string }

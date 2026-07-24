@@ -59,8 +59,16 @@ function goToStep(n: 1 | 2 | 3) {
   );
 }
 
+beforeEach(() => {
+  // These tests exercise the chip-based sentence canvas directly, so
+  // force the pre-guided-wizard view mode rather than the "guided"
+  // default -- see ViewModeToggle's DEFAULT_VIEW_MODE.
+  window.localStorage.setItem("leo.editRuleDialog.viewMode", "simple");
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
+  window.localStorage.clear();
 });
 
 describe("LivePreviewPane reactivity -- VT-511-TC-003", () => {

@@ -43,11 +43,10 @@ describe("HighlightableRecommendationText: mouse drag-select", () => {
     });
     await user.click(confirmButton);
 
-    expect(onConfirmSelection).toHaveBeenCalledWith({
-      start: 0,
-      end: 20,
-      text: "upper abdominal pain",
-    });
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      { start: 0, end: 20, text: "upper abdominal pain" },
+      confirmButton,
+    );
   });
 
   it("marks dragged-over chunks as pending (aria-pressed) before confirming", async () => {
@@ -107,11 +106,10 @@ describe("HighlightableRecommendationText: keyboard chunk-and-extend", () => {
 
     await user.keyboard("{Enter}");
 
-    expect(onConfirmSelection).toHaveBeenCalledWith({
-      start: 0,
-      end: 20,
-      text: "upper abdominal pain",
-    });
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      { start: 0, end: 20, text: "upper abdominal pain" },
+      getWordChunk("upper"),
+    );
   });
 
   it("confirms a single chunk with Enter when no extension happened", async () => {
@@ -128,11 +126,10 @@ describe("HighlightableRecommendationText: keyboard chunk-and-extend", () => {
     await user.tab(); // "abdominal"
     await user.keyboard("{Enter}");
 
-    expect(onConfirmSelection).toHaveBeenCalledWith({
-      start: 6,
-      end: 15,
-      text: "abdominal",
-    });
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      { start: 6, end: 15, text: "abdominal" },
+      getWordChunk("abdominal"),
+    );
   });
 
 
@@ -183,11 +180,10 @@ describe("HighlightableRecommendationText: keyboard chunk-and-extend", () => {
     expect(getWordChunk("upper")).toHaveAttribute("aria-pressed", "false");
 
     await user.keyboard("{Enter}");
-    expect(onConfirmSelection).toHaveBeenCalledWith({
-      start: 6,
-      end: 20,
-      text: "abdominal pain",
-    });
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      { start: 6, end: 20, text: "abdominal pain" },
+      getWordChunk("pain"),
+    );
   });
 });
 

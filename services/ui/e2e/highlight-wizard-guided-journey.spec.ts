@@ -18,10 +18,16 @@ import AxeBuilder from "@axe-core/playwright";
  *             heuristic; reviewer confirms "looks right".
  *   Step 3 -- repeated once per situation: two plain single-row
  *             situations (search-and-pick one concept each), then
- *             two situations with a nested cluster -- one confirmed
- *             as "only one needs to match" (AT_LEAST, lazily
- *             materializing a subgroup), one as "all must match"
- *             (plain AND) -- covering both cluster-grouping choices.
+ *             one situation with a single nested cluster confirmed as
+ *             "only one needs to match" (AT_LEAST, lazily
+ *             materializing a subgroup), then one situation with
+ *             TWO clusters in the SAME situation -- a marker-less
+ *             lead-or cluster ("nausea or vomiting") ANDed with a
+ *             trailing "any of the following" cluster (weight loss,
+ *             reflux) -- each graded independently (AT_LEAST for the
+ *             lead cluster, AND for the trailing one), covering the
+ *             exact real-world NG12 1.2.9 shape this feature exists
+ *             for (see wizardMapping.ts's `PathwayRows.leadCluster`).
  *   Review -- the built tree hands off to the existing SentenceEditor
  *             canvas unchanged.
  *
@@ -163,7 +169,7 @@ const SEARCH_HITS: Record<
     term: "Upper abdominal pain with low haemoglobin",
     semantic_tag: "finding",
   },
-  "raised platelet count with any of the following": {
+  "raised platelet count": {
     snomed_concept_id: "concept-c-lead",
     term: "Raised platelet count",
     semantic_tag: "finding",
@@ -176,11 +182,6 @@ const SEARCH_HITS: Record<
   vomiting: {
     snomed_concept_id: "concept-vomiting",
     term: "Vomiting",
-    semantic_tag: "finding",
-  },
-  "nausea or vomiting with any of the following": {
-    snomed_concept_id: "concept-d-lead",
-    term: "Nausea or vomiting",
     semantic_tag: "finding",
   },
   "weight loss": {
@@ -296,6 +297,47 @@ function rowTestId(item: FixtureItem): string {
   return `list-row-${item.start}-${item.end}`;
 }
 
+/**
+ * Mirrors wizardMapping.ts's `locateItemsFrom`: finds each `term` as a
+ * literal substring of `parent.text`, starting the search after the
+ * previous match, so the resulting offsets are the exact ones
+ * `buildPathwayRows` computes for a marker-less lead-or cluster
+ * embedded in a structure-sourced item's own text (e.g. "nausea" and
+ * "vomiting" inside item D's own "nausea or vomiting with any of the
+ * following"). Kept local to this spec rather than importing the
+ * production helper, since e2e specs intentionally exercise the real
+ * rendered DOM rather than reaching into implementation internals.
+ */
+function locateLeadClusterMembers(parent: FixtureItem, terms: string[]): FixtureItem[] {
+  let cursor = 0;
+  return terms.map((term) => {
+    const idx = parent.text.indexOf(term, cursor);
+    const start = parent.start + idx;
+    const end = start + term.length;
+    cursor = idx + term.length;
+    return { text: term, start, end };
+  });
+}
+
+/**
+ * Mirrors pathwayTextSplit.ts's `resolveAtLeastCluster`/`splitAtMarker`
+ * for a single-cluster structural item: a structural item's own `text`
+ * still carries its lead-in sentence PLUS the "any of the following"
+ * marker phrase itself (NICE's markup keeps them in the same `<li>`
+ * paragraph, only the nested list is split out), so the row the wizard
+ * actually renders for the item's own lead-in is the marker-stripped
+ * prefix, not the item's full raw text. Item C ("raised platelet count
+ * with any of the following") is the only fixture item this applies to
+ * -- item D's own lead-in is instead a `leadCluster` (see
+ * `locateLeadClusterMembers`), which never renders as a single row.
+ */
+const AT_LEAST_MARKER_RE = /\b(?:with\s+)?any\s+of\s+the\s+following:?\s*/i;
+function ownClusterLeadRow(item: FixtureItem): FixtureItem {
+  const match = AT_LEAST_MARKER_RE.exec(item.text);
+  const text = (match ? item.text.slice(0, match.index) : item.text).trim();
+  return { text, start: item.start, end: item.start + text.length };
+}
+
 test.describe("Highlight-to-build wizard guided journey (NG12 1.2.9 fixture, DI-42246DA7)", () => {
   test("walks Step 1 through Review across all four situations, zero axe blockers at every step", async ({
     page,
@@ -344,20 +386,40 @@ test.describe("Highlight-to-build wizard guided journey (NG12 1.2.9 fixture, DI-
     ).toBeVisible();
     await dialog.getByRole("button", { name: /only one needs to match/i }).click();
 
-    await pickConceptForRow(page, dialog.getByTestId(rowTestId(itemC)), itemC.text);
+    const itemCRow = ownClusterLeadRow(itemC);
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(itemCRow)), itemCRow.text);
     const [nauseaRow, vomitingRow] = itemC.children!;
     await pickConceptForRow(page, dialog.getByTestId(rowTestId(nauseaRow)), nauseaRow.text);
     await pickConceptForRow(page, dialog.getByTestId(rowTestId(vomitingRow)), vomitingRow.text);
     await runAxeAndAssertClean(page);
     await dialog.getByRole("button", { name: /confirm situation c, next -> d/i }).click();
 
-    // -- Step 3, situation D: a nested cluster too -- this time
-    // confirm "all must match" (plain AND), covering both grouping
-    // choices across the two cluster situations.
+    // -- Step 3, situation D: TWO clusters in the SAME situation --
+    // item D's own text is "nausea or vomiting with any of the
+    // following", a marker-less lead-or cluster ("nausea or vomiting")
+    // ANDed with the trailing "any of the following" list (weight
+    // loss, reflux). Both rows must be individually resolvable and
+    // each cluster's AT_LEAST-vs-AND choice is asked independently --
+    // this is the exact NG12 1.2.9 defect this feature exists to fix
+    // (previously only one combined "nausea or vomiting with any of
+    // the following" pseudo-row was offered).
     await expect(dialog.getByText(/situation d \(4 of 4\)/i)).toBeVisible();
-    await dialog.getByRole("button", { name: "All must match" }).click();
+    const leadGroup = dialog.getByRole("group", { name: /nausea or vomiting/i });
+    const trailingGroup = dialog.getByRole("group", { name: /any of the following/i });
+    await expect(leadGroup).toBeVisible();
+    await expect(trailingGroup).toBeVisible();
+    await runAxeAndAssertClean(page);
 
-    await pickConceptForRow(page, dialog.getByTestId(rowTestId(itemD)), itemD.text);
+    // Lead cluster ("nausea or vomiting"): only one needs to match.
+    await leadGroup.getByRole("button", { name: /only one needs to match/i }).click();
+    // Trailing cluster ("any of the following: weight loss, reflux"):
+    // all must match -- covers the AND path for the trailing cluster
+    // while situation C already covered AT_LEAST for a single cluster.
+    await trailingGroup.getByRole("button", { name: "All must match" }).click();
+
+    const [leadNauseaRow, leadVomitingRow] = locateLeadClusterMembers(itemD, ["nausea", "vomiting"]);
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(leadNauseaRow)), leadNauseaRow.text);
+    await pickConceptForRow(page, dialog.getByTestId(rowTestId(leadVomitingRow)), leadVomitingRow.text);
     const [weightLossRow, refluxRow] = itemD.children!;
     await pickConceptForRow(page, dialog.getByTestId(rowTestId(weightLossRow)), weightLossRow.text);
     await pickConceptForRow(page, dialog.getByTestId(rowTestId(refluxRow)), refluxRow.text);
@@ -371,18 +433,21 @@ test.describe("Highlight-to-build wizard guided journey (NG12 1.2.9 fixture, DI-
     // the guideline quote box above the wizard, and each pathway
     // card's own "Preview: Applies to patients..." caption, both echo
     // the same term text, so an unscoped getByText would be ambiguous.
+    // Situation D's own card is used to disambiguate "Nausea"/
+    // "Vomiting" from situation C's identical chip text -- pathway D
+    // now correctly resolves to its OWN nausea/vomiting leaves rather
+    // than one combined "Nausea or vomiting" pseudo-concept.
     await expect(dialog.getByText("Here's the rule you built")).toBeVisible();
     const sentenceEditor = dialog.getByTestId("sentence-editor");
     await expect(sentenceEditor).toBeVisible();
     await expect(
       sentenceEditor.getByRole("button", { name: /^Treatment-resistant dyspepsia\./i }),
     ).toBeVisible();
-    await expect(
-      sentenceEditor.getByRole("button", { name: /^Nausea\./i }),
-    ).toBeVisible();
-    await expect(
-      sentenceEditor.getByRole("button", { name: /^Weight loss\./i }),
-    ).toBeVisible();
+    const pathwayDCard = sentenceEditor.getByTestId("pathway-card-D");
+    await expect(pathwayDCard.getByRole("button", { name: /^Nausea\./i })).toBeVisible();
+    await expect(pathwayDCard.getByRole("button", { name: /^Vomiting\./i })).toBeVisible();
+    await expect(pathwayDCard.getByRole("button", { name: /^Weight loss\./i })).toBeVisible();
+    await expect(pathwayDCard.getByRole("button", { name: /^Reflux\./i })).toBeVisible();
     await runAxeAndAssertClean(page);
   });
 

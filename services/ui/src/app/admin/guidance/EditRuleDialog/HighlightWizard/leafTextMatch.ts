@@ -17,6 +17,7 @@
  * pathway). Extracted once so both stay in agreement on what counts
  * as a match, instead of drifting apart as two near-identical copies.
  */
+import type { HighlightSpan } from "../SentenceEditor/HighlightableRecommendationText";
 import {
   findBestTextMatch,
   findBestTextMatchForCriterion,
@@ -72,4 +73,30 @@ export function leafTextMatch(
     return findBestTextMatch(recommendationText, node.observation?.observable_term);
   }
   return null;
+}
+
+/**
+ * Every leaf in `tree` (any depth, any pathway) that anchors onto
+ * `recommendationText`, as "confirmed" highlight spans -- lets a
+ * read-only surface like GuidelineQuotePanel show a reviewer which
+ * words they've already turned into rule conditions, without them
+ * having to re-scroll between the canvas and the guideline quote to
+ * check. Walks every child regardless of node kind (group nodes
+ * simply never match in `leafTextMatch`), so it works for a tree at
+ * any stage of the wizard -- a single prerequisite, a fully split set
+ * of pathways, or anything in between.
+ */
+export function collectTreeHighlights(
+  recommendationText: string | null | undefined,
+  tree: EditableLogicNode | null | undefined,
+): HighlightSpan[] {
+  if (!recommendationText || !tree) return [];
+  const spans: HighlightSpan[] = [];
+  const walk = (node: EditableLogicNode): void => {
+    const match = leafTextMatch(recommendationText, node);
+    if (match) spans.push({ start: match.start, end: match.end, kind: "confirmed" });
+    for (const child of node.children ?? []) walk(child);
+  };
+  walk(tree);
+  return spans;
 }

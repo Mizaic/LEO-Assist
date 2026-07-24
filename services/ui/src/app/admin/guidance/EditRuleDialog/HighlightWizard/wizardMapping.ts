@@ -111,32 +111,97 @@ function rangesOverlap(
 }
 
 /**
+ * Re-anchors a whole-text match's offsets into `window`'s own local
+ * coordinate space -- i.e. runs `leafTextMatch` against ONLY the
+ * substring `[window.start, window.end)` of `recommendationText`,
+ * then shifts the result back to whole-text offsets. Confines a
+ * pathway's own leaf lookup to that pathway's own span of text, so
+ * `exactMatch`'s "first occurrence in the whole document" behaviour
+ * (see recommendationTextMatch.ts) can never resolve a leaf onto a
+ * DIFFERENT pathway's identically-worded text -- e.g. NG12 1.2.9's
+ * pathway D repeats "nausea"/"vomiting", already used by pathway C:
+ * without windowing, a search for D's "Nausea" leaf across the whole
+ * text would find C's earlier occurrence first, so D's own row would
+ * never resolve even after the reviewer picked a concept for it.
+ */
+function leafTextMatchInWindow(
+  recommendationText: string | null | undefined,
+  node: EditableLogicNode,
+  window: { start: number; end: number } | undefined,
+): TextMatchRange | null {
+  if (!window || !recommendationText) return leafTextMatch(recommendationText, node);
+  const windowed = leafTextMatch(recommendationText.slice(window.start, window.end), node);
+  if (!windowed) return null;
+  return {
+    ...windowed,
+    start: windowed.start + window.start,
+    end: windowed.end + window.start,
+  };
+}
+
+/**
  * Builds a `getRowResolution` closure for one pathway: does this row
  * (by its own `[start, end)` span in the shared recommendation text)
  * already have a matching leaf anywhere under this pathway node,
  * regardless of how deeply nested (a cluster's own AT_LEAST subgroup,
  * or a plain top-level AND leaf)? Computed once per pathway/text pair
  * rather than per row, since every row resolution needs the same scan.
+ *
+ * `textWindow` (typically the pathway's own boundary `[start, end)`)
+ * confines the text search to this pathway's own span -- see
+ * `leafTextMatchInWindow`'s doc comment for why that matters whenever
+ * two pathways share identical wording (e.g. two "any of the
+ * following" clusters both listing "nausea"/"vomiting"). Omit it only
+ * for the single-pathway case (`boundaries.length === 1`, no OR to
+ * scope within).
  */
+function resolutionFor(node: EditableLogicNode): ListRowResolution {
+  return {
+    nodeId: node.node_id,
+    criterion: node.criterion ?? null,
+    preferredTerm: leafDisplayTerm(node) || null,
+  };
+}
+
 export function buildRowResolver(
   pathwayNode: EditableLogicNode,
   recommendationText: string | null | undefined,
+  textWindow?: { start: number; end: number },
 ): (row: RecommendationStructureItem) => ListRowResolution | undefined {
-  const matches = collectLeaves(pathwayNode)
-    .map((node) => ({ node, match: leafTextMatch(recommendationText, node) }))
+  const leaves = collectLeaves(pathwayNode);
+
+  // Exact-provenance leaves first: a leaf the wizard itself added for
+  // THIS row (see EditableLogicNode.source_row_text's doc comment) is
+  // matched by the exact string it was added for, not by re-guessing
+  // from the picked SNOMED term's own wording -- which very often
+  // shares no words at all with the row (e.g. "Indigestion" picked
+  // for a row that reads "treatment-resistant dyspepsia"). Without
+  // this, the row would never show as resolved even though the leaf
+  // really was added, which reads to the reviewer as "nothing
+  // happened" when they pick a code.
+  const byRowText = new Map<string, EditableLogicNode>();
+  for (const node of leaves) {
+    if (node.source_row_text) byRowText.set(node.source_row_text, node);
+  }
+
+  // Fuzzy text-match fallback covers everything else: AI-drafted
+  // leaves from before this field existed, and leaves authored via
+  // the Advanced/Sentence editor, neither of which carry provenance.
+  const fuzzyMatches = leaves
+    .map((node) => ({
+      node,
+      match: leafTextMatchInWindow(recommendationText, node, textWindow),
+    }))
     .filter(
       (entry): entry is { node: EditableLogicNode; match: TextMatchRange } =>
         !!entry.match,
     );
 
   return (row) => {
-    const hit = matches.find((entry) => rangesOverlap(entry.match, row));
-    if (!hit) return undefined;
-    return {
-      nodeId: hit.node.node_id,
-      criterion: hit.node.criterion ?? null,
-      preferredTerm: leafDisplayTerm(hit.node) || null,
-    };
+    const exact = byRowText.get(row.text);
+    if (exact) return resolutionFor(exact);
+    const hit = fuzzyMatches.find((entry) => rangesOverlap(entry.match, row));
+    return hit ? resolutionFor(hit.node) : undefined;
   };
 }
 
@@ -248,39 +313,96 @@ export function findNodeById(
 /** The single AT_LEAST child of a pathway, if a cluster grouping
  *  choice has already materialized one -- lets the orchestrator know
  *  whether a fresh subgroup still needs creating for "only one needs
- *  to match" before routing new cluster-row adds into it. */
+ *  to match" before routing new cluster-row adds into it. For a
+ *  pathway with TWO clusters (see `PathwayRows.leadCluster`), prefer
+ *  `findClusterSubgroupByRole` so a click routes to the correct one
+ *  instead of always the first AT_LEAST child found. */
 export function findClusterSubgroup(
   pathwayNode: EditableLogicNode,
 ): EditableLogicNode | null {
   return pathwayNode.children?.find((c) => c.kind === "AT_LEAST") ?? null;
 }
 
-/** Scan forward from the end of the previous match so repeated item
- *  text (e.g. two pathways both listing "weight loss") still gets a
- *  distinct, stable local offset instead of colliding on the first
- *  occurrence every time. */
-function locateClusterItems(
+/** The AT_LEAST child tagged for `role` (see
+ *  `EditableLogicNode.cluster_role`'s doc comment) -- an untagged
+ *  AT_LEAST child counts as "trailing", the overwhelmingly common
+ *  single-cluster case, so a legacy pathway with one unmarked
+ *  subgroup keeps resolving correctly with no data migration. Use
+ *  this instead of `findClusterSubgroup` whenever the pathway may
+ *  have both a lead-or and a trailing cluster. */
+export function findClusterSubgroupByRole(
+  pathwayNode: EditableLogicNode,
+  role: "lead" | "trailing",
+): EditableLogicNode | null {
+  return (
+    pathwayNode.children?.find(
+      (c) => c.kind === "AT_LEAST" && (c.cluster_role ?? "trailing") === role,
+    ) ?? null
+  );
+}
+
+/** Scan forward from `startCursor` so repeated item text (e.g. two
+ *  pathways both listing "weight loss", or a lead cluster and a
+ *  trailing cluster searched one after the other) still gets a
+ *  distinct, stable local offset instead of colliding on an earlier
+ *  occurrence. Returns the cursor position after the last match so a
+ *  caller can chain a second search to start looking only from there. */
+function locateItemsFrom(
   text: string,
   baseOffset: number,
   items: string[],
-): RecommendationStructureItem[] {
-  let cursor = 0;
-  return items.map((itemText) => {
+  startCursor: number,
+): { rows: RecommendationStructureItem[]; cursor: number } {
+  let cursor = startCursor;
+  const rows = items.map((itemText) => {
     const idx = text.indexOf(itemText, cursor);
     const localStart = idx >= 0 ? idx : cursor;
     const localEnd = localStart + itemText.length;
     cursor = Math.max(cursor, localEnd);
     return { text: itemText, start: baseOffset + localStart, end: baseOffset + localEnd };
   });
+  return { rows, cursor };
+}
+
+function locateClusterItems(
+  text: string,
+  baseOffset: number,
+  items: string[],
+): RecommendationStructureItem[] {
+  return locateItemsFrom(text, baseOffset, items, 0).rows;
+}
+
+/** One AT_LEAST-vs-AND cluster's own member rows -- everything that
+ *  ONE grouping-choice question in Step 3 applies to. */
+export interface PathwayCluster {
+  items: RecommendationStructureItem[];
 }
 
 export interface PathwayRows {
-  /** Row(s) to render -- either one plain leaf, or one lead row with
-   *  the detected cluster nested as its children. */
+  /** Row(s) to render -- either one plain leaf, one lead row with the
+   *  trailing cluster nested as its children, or (when `leadCluster`
+   *  is also set) both clusters' own member rows flattened at the
+   *  front, each individually clickable in its own right. */
   items: RecommendationStructureItem[];
-  /** True when a "some of these" cluster was detected under this
-   *  pathway, so the AT_LEAST-vs-AND grouping question applies. */
+  /** True when a trailing "any of the following" cluster was detected
+   *  under this pathway, so the AT_LEAST-vs-AND grouping question
+   *  applies to it. */
   hasCluster: boolean;
+  /**
+   * Present only when a second, marker-less "A or B" alternative
+   * cluster was ALSO detected ahead of the trailing cluster (see
+   * `AtLeastClusterSplit.leadCluster`'s doc comment) -- e.g. "nausea
+   * or vomiting" ahead of "any of the following: weight loss, ...".
+   * Both clusters apply to the SAME pathway, ANDed together, but each
+   * gets its OWN AT_LEAST-vs-AND grouping question: the reviewer, not
+   * the wording, decides whether an "or" phrase should really only
+   * require one match. Its member rows are also included, flat, in
+   * `items` -- this field exists purely so a caller (Step 3's UI, the
+   * click-routing helpers below) can tell which rows belong to which
+   * cluster; a caller that does not care can ignore it and still see
+   * every row via `items`.
+   */
+  leadCluster?: PathwayCluster;
 }
 
 /**
@@ -301,13 +423,31 @@ export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
     };
   }
 
+  const leadClusterRows = cluster.leadCluster
+    ? locateClusterItems(boundary.text, boundary.start, cluster.leadCluster)
+    : [];
+  const leadCluster: PathwayCluster | undefined =
+    leadClusterRows.length > 0 ? { items: leadClusterRows } : undefined;
+  // Once a lead cluster has consumed the front of the text, resume
+  // searching for trailing items only from where it left off -- keeps
+  // a trailing item whose text happens to also appear earlier (inside
+  // the lead cluster's own span) from matching the wrong occurrence.
+  const trailingSearchStart =
+    leadClusterRows.length > 0
+      ? leadClusterRows[leadClusterRows.length - 1].end - boundary.start
+      : 0;
+
   const clusterRows =
     boundary.source === "structure" && boundary.structureChildren
       ? boundary.structureChildren
-      : locateClusterItems(boundary.text, boundary.start, cluster.items);
+      : locateItemsFrom(boundary.text, boundary.start, cluster.items, trailingSearchStart).rows;
 
   if (!cluster.leadText) {
-    return { items: clusterRows, hasCluster: clusterRows.length > 0 };
+    return {
+      items: [...leadClusterRows, ...clusterRows],
+      hasCluster: clusterRows.length > 0,
+      leadCluster,
+    };
   }
   const leadRow: RecommendationStructureItem = {
     text: cluster.leadText,
@@ -315,25 +455,42 @@ export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
     end: boundary.start + cluster.leadText.length,
     children: clusterRows.length > 0 ? clusterRows : undefined,
   };
-  return { items: [leadRow], hasCluster: clusterRows.length > 0 };
+  return { items: [leadRow], hasCluster: clusterRows.length > 0, leadCluster };
 }
 
-/** Whether `item` is one of the nested cluster children (as opposed
- *  to the lead row or a plain non-cluster leaf) -- decides whether a
- *  new leaf created from this row should attach under the pathway's
- *  AT_LEAST subgroup (when the reviewer chose "only one needs to
- *  match") rather than directly under the pathway itself. Matches by
- *  offset, not object identity, since the orchestrator and
- *  StepPathwayConditions each derive their own `buildPathwayRows()`
- *  call from the same boundary. */
+/** Whether `item` is one of the TRAILING cluster's nested children (as
+ *  opposed to the lead row, a lead-cluster member, or a plain
+ *  non-cluster leaf) -- decides whether a new leaf created from this
+ *  row should attach under the pathway's AT_LEAST subgroup (when the
+ *  reviewer chose "only one needs to match") rather than directly
+ *  under the pathway itself. Matches by offset, not object identity,
+ *  since the orchestrator and StepPathwayConditions each derive their
+ *  own `buildPathwayRows()` call from the same boundary. */
 export function isClusterChildRow(
   boundary: PathwayTextBoundary,
   item: RecommendationStructureItem,
 ): boolean {
-  const { items, hasCluster } = buildPathwayRows(boundary);
+  const { items, hasCluster, leadCluster } = buildPathwayRows(boundary);
   if (!hasCluster) return false;
   const clusterRows = items[0]?.children ?? items;
+  const isLeadMember = leadCluster?.items.some(
+    (row) => row.start === item.start && row.end === item.end,
+  );
+  if (isLeadMember) return false;
   return clusterRows.some((row) => row.start === item.start && row.end === item.end);
+}
+
+/** Whether `item` is one of the LEAD cluster's own member rows (e.g.
+ *  "nausea" or "vomiting" in "nausea or vomiting with any of the
+ *  following: ..."). Mirrors `isClusterChildRow` for the second
+ *  cluster so click-routing can tell the two apart. */
+export function isLeadClusterChildRow(
+  boundary: PathwayTextBoundary,
+  item: RecommendationStructureItem,
+): boolean {
+  const { leadCluster } = buildPathwayRows(boundary);
+  if (!leadCluster) return false;
+  return leadCluster.items.some((row) => row.start === item.start && row.end === item.end);
 }
 
 /** Where a Step 3 row click should go, decided once and purely so
@@ -342,21 +499,51 @@ export function isClusterChildRow(
 export type RowClickDecision =
   | { action: "select"; nodeId: string }
   | { action: "add"; parentNodeId: string; text: string }
-  | { action: "create_subgroup_then_add"; pathwayNodeId: string; text: string };
+  | {
+      action: "create_subgroup_then_add";
+      pathwayNodeId: string;
+      text: string;
+      /** See `EditableLogicNode.cluster_role`'s doc comment -- which
+       *  of the (up to two) subgroups this fresh AT_LEAST is for. */
+      role: "lead" | "trailing";
+    };
 
+/** Route a cluster-child row to its existing subgroup, or signal that
+ *  a fresh one needs creating first -- shared by both the lead and
+ *  trailing branches of `decideRowClickTarget` below. */
+function routeToClusterSubgroup(
+  pathwayNode: EditableLogicNode,
+  role: "lead" | "trailing",
+  text: string,
+): RowClickDecision {
+  const subgroup = findClusterSubgroupByRole(pathwayNode, role);
+  return subgroup
+    ? { action: "add", parentNodeId: subgroup.node_id, text }
+    : { action: "create_subgroup_then_add", pathwayNodeId: pathwayNode.node_id, text, role };
+}
+
+/**
+ * `leadGrouping` covers a SEPARATE, marker-less "A or B" cluster
+ * ahead of the trailing one when a pathway has both (see
+ * `PathwayRows.leadCluster`) -- checked first since a lead-cluster
+ * member row could otherwise also satisfy a naive "is this a cluster
+ * row" check meant for the trailing cluster. Undefined (the common
+ * single-cluster case) simply skips that branch.
+ */
 export function decideRowClickTarget(
   pathwayNode: EditableLogicNode,
   boundary: PathwayTextBoundary,
   item: RecommendationStructureItem,
   resolution: ListRowResolution | undefined,
   grouping: ClusterGrouping | undefined,
+  leadGrouping?: ClusterGrouping,
 ): RowClickDecision {
   if (resolution?.nodeId) return { action: "select", nodeId: resolution.nodeId };
+  if (leadGrouping === "AT_LEAST" && isLeadClusterChildRow(boundary, item)) {
+    return routeToClusterSubgroup(pathwayNode, "lead", item.text);
+  }
   if (grouping === "AT_LEAST" && isClusterChildRow(boundary, item)) {
-    const subgroup = findClusterSubgroup(pathwayNode);
-    return subgroup
-      ? { action: "add", parentNodeId: subgroup.node_id, text: item.text }
-      : { action: "create_subgroup_then_add", pathwayNodeId: pathwayNode.node_id, text: item.text };
+    return routeToClusterSubgroup(pathwayNode, "trailing", item.text);
   }
   return { action: "add", parentNodeId: pathwayNode.node_id, text: item.text };
 }

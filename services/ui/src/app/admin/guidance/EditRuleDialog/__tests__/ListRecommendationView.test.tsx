@@ -100,7 +100,7 @@ describe("ListRecommendationView: row click opens pre-filled search", () => {
       screen.getByTestId(`list-row-${PATHWAY_A.start}-${PATHWAY_A.end}`)
     );
 
-    expect(onRowClick).toHaveBeenCalledWith(PATHWAY_A);
+    expect(onRowClick).toHaveBeenCalledWith(PATHWAY_A, expect.any(HTMLElement));
   });
 
   it("clicking a nested child row passes that child's own item, not the parent's", async () => {
@@ -110,7 +110,20 @@ describe("ListRecommendationView: row click opens pre-filled search", () => {
 
     await user.click(screen.getByText(/^nausea$/i));
 
-    expect(onRowClick).toHaveBeenCalledWith(PATHWAY_B.children![1]);
+    expect(onRowClick).toHaveBeenCalledWith(PATHWAY_B.children![1], expect.any(HTMLElement));
+  });
+
+  it("passes the actual clicked row element as the anchor, so a search popover opened from it appears in the right place", async () => {
+    const user = userEvent.setup();
+    const onRowClick = jest.fn();
+    render(<ListRecommendationView items={[PATHWAY_A]} onRowClick={onRowClick} />);
+
+    const row = screen.getByTestId(`list-row-${PATHWAY_A.start}-${PATHWAY_A.end}`);
+    await user.click(row);
+
+    const anchor = onRowClick.mock.calls[0][1];
+    expect(anchor).toBeInstanceOf(HTMLElement);
+    expect(row.contains(anchor) || row === anchor).toBe(true);
   });
 });
 
@@ -157,6 +170,30 @@ describe("ListRecommendationView: checkmark state", () => {
     );
     expect(parentRow).toHaveAttribute("data-resolved", "true");
     expect(nauseaRow).toHaveAttribute("data-resolved", "false");
+  });
+});
+
+describe("ListRecommendationView: renderRowExtra slot", () => {
+  it("renders the caller-supplied extra content for every row, keyed by that row's own item", () => {
+    render(
+      <ListRecommendationView
+        items={[PATHWAY_A, PATHWAY_B]}
+        onRowClick={jest.fn()}
+        renderRowExtra={(item) => <span>extra:{item.text}</span>}
+      />
+    );
+
+    expect(screen.getAllByText("extra:upper abdominal pain").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("extra:indigestion with any of the following:")
+    ).toBeInTheDocument();
+    // Nested children get the slot too, not just top-level rows.
+    expect(screen.getByText("extra:nausea")).toBeInTheDocument();
+  });
+
+  it("renders nothing extra when renderRowExtra is not supplied (default, unaffected callers)", () => {
+    render(<ListRecommendationView items={[PATHWAY_A]} onRowClick={jest.fn()} />);
+    expect(screen.queryByText(/^extra:/)).not.toBeInTheDocument();
   });
 });
 

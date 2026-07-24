@@ -27,7 +27,13 @@
  * -- this component only ever adds a thin, reversible layer of
  * "which question to ask next" on top, never a second data model.
  */
-import { useCallback, useEffect, useMemo, useReducer, type Dispatch } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  type Dispatch,
+} from "react";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -49,6 +55,7 @@ import {
   wizardReducer,
   type WizardAction,
   type WizardState,
+  type WizardStepKind,
 } from "./wizardState";
 
 export interface HighlightWizardProps {
@@ -62,6 +69,7 @@ export interface HighlightWizardProps {
     parentNodeId: string,
     anchor?: HTMLElement | null,
     initialQuery?: string,
+    multiPick?: boolean,
   ) => void;
   onRequestCoach?: (nodeId: string, anchor: HTMLElement) => void;
   /** Falls back to whichever manual canvas the host renders when the
@@ -70,6 +78,11 @@ export interface HighlightWizardProps {
   onSkipToManual: () => void;
   guidelineId?: string;
   currentRuleId?: string;
+  /** Reports the wizard's own current step so the host can, for
+   *  example, pin the guideline quote in the side panel until the
+   *  reviewer reaches Review -- the only step where "what this rule
+   *  means" is actually built up enough to be worth previewing. */
+  onStepChange?: (step: WizardStepKind) => void;
 }
 
 function usePrerequisiteNodes(tree: EditableLogicNode): EditableLogicNode[] {
@@ -107,10 +120,15 @@ export default function HighlightWizard({
   onSkipToManual,
   guidelineId,
   currentRuleId,
+  onStepChange,
 }: HighlightWizardProps) {
   const [state, dispatch] = useReducer(wizardReducer, INITIAL_WIZARD_STATE);
   const prerequisiteNodes = usePrerequisiteNodes(tree);
   useMaterializationEffect(tree, state, dispatch);
+
+  useEffect(() => {
+    onStepChange?.(state.step);
+  }, [state.step, onStepChange]);
 
   const handleConfirmSplit = useCallback(
     (boundaries: PathwayTextBoundary[]) => {
@@ -140,8 +158,8 @@ export default function HighlightWizard({
           prerequisites={prerequisiteNodes}
           onEdit={onSelectNode}
           onRemove={(nodeId) => onUpdate({ kind: "remove", nodeId })}
-          onAddFromSelection={(selection) =>
-            onRequestAdd(tree.node_id, undefined, selection.text)
+          onAddFromSelection={(selection, anchor) =>
+            onRequestAdd(tree.node_id, anchor, selection.text, true)
           }
           onConfirmNoMore={() => dispatch({ type: "CONFIRM_PREREQUISITES" })}
         />
@@ -170,6 +188,10 @@ export default function HighlightWizard({
           clusterGroupings={state.clusterGroupings}
           onSetClusterGrouping={(pathwayIndex, grouping) =>
             dispatch({ type: "SET_CLUSTER_GROUPING", pathwayIndex, grouping })
+          }
+          leadClusterGroupings={state.leadClusterGroupings}
+          onSetLeadClusterGrouping={(pathwayIndex, grouping) =>
+            dispatch({ type: "SET_LEAD_CLUSTER_GROUPING", pathwayIndex, grouping })
           }
           onSelectNode={onSelectNode}
           onUpdate={onUpdate}

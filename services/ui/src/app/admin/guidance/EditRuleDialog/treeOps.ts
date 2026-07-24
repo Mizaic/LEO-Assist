@@ -239,6 +239,13 @@ export function stripNodeIds(node: EditableLogicNode): Record<string, unknown> {
   if (typeof node.name === "string" && node.name.trim()) {
     out.name = node.name.trim();
   }
+  // See `EditableLogicNode.source_row_text`'s doc comment -- persisted
+  // (like `name`) so a wizard-added leaf still resolves its own Step 3
+  // row the next time this rule is reopened, not just in the session
+  // it was added in.
+  if (typeof node.source_row_text === "string" && node.source_row_text.trim()) {
+    out.source_row_text = node.source_row_text.trim();
+  }
   // Phase 6a: round-trip the OBSERVATION payload verbatim.
   if (node.kind === "OBSERVATION" && node.observation) {
     out.observation = stripObservation(node.observation);
@@ -531,7 +538,7 @@ export function applyUpdate(
     case "add_concept":
       return mapNode(root, (n) =>
         n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeConceptNode(update.criterion))
+          ? appendChild(n, makeConceptNode(update.criterion, update.sourceRowText))
           : n,
       );
     case "add_group":
@@ -549,6 +556,9 @@ export function applyUpdate(
         const child = makeGroupNode(update.groupKind);
         if (n.kind === "OR") {
           child.pathway_key = mintPathwayKey();
+        }
+        if (update.clusterRole) {
+          child.cluster_role = update.clusterRole;
         }
         return appendChild(n, child);
       });
@@ -927,8 +937,16 @@ function coerceKind(
   return stripped;
 }
 
-function makeConceptNode(criterion: LogicCriterion): EditableLogicNode {
-  return { node_id: freshNodeId(), kind: "CONCEPT", criterion };
+function makeConceptNode(
+  criterion: LogicCriterion,
+  sourceRowText?: string,
+): EditableLogicNode {
+  return {
+    node_id: freshNodeId(),
+    kind: "CONCEPT",
+    criterion,
+    ...(sourceRowText ? { source_row_text: sourceRowText } : {}),
+  };
 }
 
 function makeGroupNode(kind: LogicNodeKind): EditableLogicNode {

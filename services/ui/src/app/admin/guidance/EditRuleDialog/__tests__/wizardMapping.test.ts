@@ -15,7 +15,9 @@ import {
   countUnresolvedRows,
   decideRowClickTarget,
   findClusterSubgroup,
+  findClusterSubgroupByRole,
   isClusterChildRow,
+  isLeadClusterChildRow,
   leafDisplayTerm,
   materializePathways,
   pathwayLetterAt,
@@ -103,6 +105,47 @@ describe("buildRowResolver", () => {
       end: start + "weight loss".length,
     };
     expect(resolver(row)?.nodeId).toBe("wl");
+  });
+
+  // Regression: two pathways sharing identical wording (e.g. NG12
+  // 1.2.9's pathway C and pathway D both list "nausea"). Without a
+  // textWindow, findBestTextMatch's exactMatch always returns the
+  // FIRST occurrence in the whole document -- so a leaf that truly
+  // belongs to the SECOND pathway's own text would incorrectly
+  // resolve to the first pathway's earlier occurrence, leaving the
+  // second pathway's own row permanently unresolved even after the
+  // reviewer picked a concept for it.
+  it("scopes the match to textWindow so a later pathway's leaf does not resolve to an earlier pathway's identical wording", () => {
+    const DUP_TEXT =
+      "raised platelet count with nausea, or vomiting with nausea and reflux.";
+    const firstNausea = DUP_TEXT.indexOf("nausea");
+    const secondNausea = DUP_TEXT.indexOf("nausea", firstNausea + 1);
+    expect(secondNausea).toBeGreaterThan(firstNausea);
+
+    const nauseaLeaf: EditableLogicNode = {
+      node_id: "nausea-d",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "n1", preferred_term: "Nausea" },
+    };
+    const pathwayD = pathwayNode([nauseaLeaf]);
+    // Pathway D's own text window starts right after pathway C ends
+    // (at the ", or " boundary), so it only spans the SECOND
+    // occurrence of "nausea".
+    const pathwayDWindow = { start: secondNausea - "vomiting with ".length, end: DUP_TEXT.length };
+
+    const unscoped = buildRowResolver(pathwayD, DUP_TEXT);
+    const rowAtSecondOccurrence: RecommendationStructureItem = {
+      text: "nausea",
+      start: secondNausea,
+      end: secondNausea + "nausea".length,
+    };
+    // Without windowing, the resolver anchors "Nausea" onto the FIRST
+    // occurrence (pathway C's), so pathway D's own row does not
+    // overlap it and stays unresolved -- this is the bug.
+    expect(unscoped(rowAtSecondOccurrence)).toBeUndefined();
+
+    const windowed = buildRowResolver(pathwayD, DUP_TEXT, pathwayDWindow);
+    expect(windowed(rowAtSecondOccurrence)?.nodeId).toBe("nausea-d");
   });
 });
 
@@ -287,6 +330,76 @@ describe("isClusterChildRow", () => {
   });
 });
 
+// NG12 1.2.9 pathway D -- "nausea or vomiting with any of the
+// following: weight loss, reflux, dyspepsia, upper abdominal pain."
+// Both "nausea" and "vomiting" need the SAME trailing findings; see
+// `looksLikeLeadOrCluster`'s doc comment in pathwayTextSplit.ts.
+const TWO_CLUSTER_BOUNDARY: PathwayTextBoundary = {
+  text:
+    "nausea or vomiting with any of the following: weight loss, reflux, " +
+    "dyspepsia, upper abdominal pain.",
+  start: 0,
+  end: 96,
+  source: "heuristic",
+};
+
+describe("buildPathwayRows: a lead-or cluster plus a trailing cluster", () => {
+  it("flattens both clusters' member rows into items, with leadCluster identifying the front two", () => {
+    const { items, hasCluster, leadCluster } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+    expect(hasCluster).toBe(true);
+    expect(leadCluster?.items.map((r) => r.text)).toEqual(["nausea", "vomiting"]);
+    expect(items.map((r) => r.text)).toEqual([
+      "nausea",
+      "vomiting",
+      "weight loss",
+      "reflux",
+      "dyspepsia",
+      "upper abdominal pain",
+    ]);
+  });
+
+  it("gives every row a distinct, non-colliding offset", () => {
+    const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+    const starts = items.map((r) => r.start);
+    expect(new Set(starts).size).toBe(starts.length);
+  });
+
+  it("omits leadCluster entirely for the ordinary single-cluster case", () => {
+    const { leadCluster } = buildPathwayRows(CLUSTER_BOUNDARY);
+    expect(leadCluster).toBeUndefined();
+  });
+});
+
+describe("isLeadClusterChildRow", () => {
+  it("is true for a lead-or cluster's own member row", () => {
+    const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+    expect(isLeadClusterChildRow(TWO_CLUSTER_BOUNDARY, items[0])).toBe(true);
+    expect(isLeadClusterChildRow(TWO_CLUSTER_BOUNDARY, items[1])).toBe(true);
+  });
+
+  it("is false for the trailing cluster's own member rows", () => {
+    const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+    expect(isLeadClusterChildRow(TWO_CLUSTER_BOUNDARY, items[2])).toBe(false);
+  });
+
+  it("is false when there is no lead-or cluster at all", () => {
+    const { items } = buildPathwayRows(CLUSTER_BOUNDARY);
+    expect(isLeadClusterChildRow(CLUSTER_BOUNDARY, items[0])).toBe(false);
+  });
+});
+
+describe("isClusterChildRow: distinguishes the trailing cluster from a lead-or cluster", () => {
+  it("does not treat a lead-or cluster's own member row as a trailing-cluster child", () => {
+    const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+    expect(isClusterChildRow(TWO_CLUSTER_BOUNDARY, items[0])).toBe(false);
+  });
+
+  it("still treats the trailing cluster's own member rows as trailing-cluster children", () => {
+    const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+    expect(isClusterChildRow(TWO_CLUSTER_BOUNDARY, items[2])).toBe(true);
+  });
+});
+
 describe("pathwayLetterAt / buildConfirmedSummaries", () => {
   it("labels pathways A, B, C...", () => {
     expect(pathwayLetterAt(0)).toBe("A");
@@ -337,6 +450,7 @@ describe("decideRowClickTarget", () => {
       action: "create_subgroup_then_add",
       pathwayNodeId: "pw-a",
       text: child.text,
+      role: "trailing",
     });
   });
 
@@ -346,5 +460,105 @@ describe("decideRowClickTarget", () => {
     const child = items[0].children![0];
     const decision = decideRowClickTarget(pw, CLUSTER_BOUNDARY, child, undefined, "AND");
     expect(decision).toEqual({ action: "add", parentNodeId: "pw-a", text: child.text });
+  });
+
+  describe("with two clusters in the same pathway", () => {
+    it("routes a lead-cluster member row to the 'lead' subgroup when one already exists", () => {
+      const leadSubgroup: EditableLogicNode = {
+        node_id: "cluster-lead",
+        kind: "AT_LEAST",
+        min: 1,
+        cluster_role: "lead",
+        children: [],
+      };
+      const pw = pathwayNode([leadSubgroup]);
+      const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+      const decision = decideRowClickTarget(
+        pw,
+        TWO_CLUSTER_BOUNDARY,
+        items[0],
+        undefined,
+        undefined,
+        "AT_LEAST",
+      );
+      expect(decision).toEqual({ action: "add", parentNodeId: "cluster-lead", text: "nausea" });
+    });
+
+    it("requests a fresh 'lead' subgroup when none exists yet, even if a 'trailing' one does", () => {
+      const trailingSubgroup: EditableLogicNode = {
+        node_id: "cluster-trailing",
+        kind: "AT_LEAST",
+        min: 1,
+        children: [],
+      };
+      const pw = pathwayNode([trailingSubgroup]);
+      const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+      const decision = decideRowClickTarget(
+        pw,
+        TWO_CLUSTER_BOUNDARY,
+        items[0],
+        undefined,
+        undefined,
+        "AT_LEAST",
+      );
+      expect(decision).toEqual({
+        action: "create_subgroup_then_add",
+        pathwayNodeId: "pw-a",
+        text: "nausea",
+        role: "lead",
+      });
+    });
+
+    it("routes a trailing-cluster member row to the untagged (trailing) subgroup, not the lead one", () => {
+      const leadSubgroup: EditableLogicNode = {
+        node_id: "cluster-lead",
+        kind: "AT_LEAST",
+        min: 1,
+        cluster_role: "lead",
+        children: [],
+      };
+      const trailingSubgroup: EditableLogicNode = {
+        node_id: "cluster-trailing",
+        kind: "AT_LEAST",
+        min: 1,
+        children: [],
+      };
+      const pw = pathwayNode([leadSubgroup, trailingSubgroup]);
+      const { items } = buildPathwayRows(TWO_CLUSTER_BOUNDARY);
+      const trailingRow = items[2];
+      const decision = decideRowClickTarget(
+        pw,
+        TWO_CLUSTER_BOUNDARY,
+        trailingRow,
+        undefined,
+        "AT_LEAST",
+        "AT_LEAST",
+      );
+      expect(decision).toEqual({
+        action: "add",
+        parentNodeId: "cluster-trailing",
+        text: "weight loss",
+      });
+    });
+  });
+});
+
+describe("findClusterSubgroupByRole", () => {
+  it("finds the tagged 'lead' subgroup, ignoring an untagged one", () => {
+    const lead: EditableLogicNode = { node_id: "l", kind: "AT_LEAST", min: 1, cluster_role: "lead" };
+    const trailing: EditableLogicNode = { node_id: "t", kind: "AT_LEAST", min: 1 };
+    const pw = pathwayNode([lead, trailing]);
+    expect(findClusterSubgroupByRole(pw, "lead")).toBe(lead);
+  });
+
+  it("treats an untagged AT_LEAST child as 'trailing' (legacy single-cluster data)", () => {
+    const untagged: EditableLogicNode = { node_id: "t", kind: "AT_LEAST", min: 1 };
+    const pw = pathwayNode([untagged]);
+    expect(findClusterSubgroupByRole(pw, "trailing")).toBe(untagged);
+    expect(findClusterSubgroupByRole(pw, "lead")).toBeNull();
+  });
+
+  it("returns null when no AT_LEAST child exists at all", () => {
+    expect(findClusterSubgroupByRole(pathwayNode([ageLeaf()]), "lead")).toBeNull();
   });
 });
