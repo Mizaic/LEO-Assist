@@ -355,7 +355,6 @@ export default function EditRuleDialog({
   const [originalPriority, setOriginalPriority] =
     useState<RulePriority>("routine");
   const [originalDueDays, setOriginalDueDays] = useState<number | null>(null);
-  const [priorityDirty, setPriorityDirty] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
   /** While the guided wizard (Step1Who) is still building the tree,
@@ -453,7 +452,6 @@ export default function EditRuleDialog({
         ? initialDueDays
         : null,
     );
-    setPriorityDirty(false);
     setIsDefault(rule.is_default ?? false);
     setCurrentStepId("who");
   }, [rule]);
@@ -722,12 +720,10 @@ export default function EditRuleDialog({
   function handlePriorityChange(next: RulePriority) {
     setPriority(next);
     if (next === "routine") setDueDays(null);
-    setPriorityDirty(true);
   }
 
   function handleDueDaysChange(next: number | null) {
     setDueDays(priority === "routine" ? null : next);
-    setPriorityDirty(true);
   }
 
   function handlePick(criterion: LogicCriterion) {
@@ -829,17 +825,16 @@ export default function EditRuleDialog({
 
   function handleSave() {
     if (!tree || !canSave) return;
+    // Always send the PriorityPanel values. A dirty-flag omit path
+    // silently dropped 2WW / urgent changes after remounts and the BE
+    // then carried the predecessor's routine forward.
     onSave({
       name: name.trim(),
       logic_tree: stripNodeIds(tree),
       reason: reason.trim(),
       ...(actionsDirty ? { actions: sanitiseActionsForSave(actions) } : {}),
-      ...(priorityDirty
-        ? {
-            priority,
-            due_days: priority === "routine" ? null : dueDays,
-          }
-        : {}),
+      priority,
+      due_days: priority === "routine" ? null : dueDays,
       is_default: isDefault,
     });
   }

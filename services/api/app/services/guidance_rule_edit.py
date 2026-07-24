@@ -563,6 +563,7 @@ RETURN rule.status AS status,
        coalesce(rule.compileScopeId, '') AS compile_scope_id,
        rec.id AS recommendation_id,
        coalesce(rec.verbatim, '') AS verbatim,
+       rule.actionJson AS action_json,
        [a IN raw_actions WHERE a IS NOT NULL] AS actions
 """
 
@@ -649,12 +650,51 @@ SET ha.rawTerm  = $raw_term,
 """
 
 
+def _action_rows_from_action_json(action_json: Any) -> list[dict[str, Any]]:
+    """Build HAS_ACTION write rows from a predecessor's flat actionJson.
+
+    Used when the graph has no HAS_ACTION edges yet (common after
+    approve-without-edit or older generators) so a priority-only edit
+    can still recreate edges instead of silently no-oping.
+    """
+    if not action_json:
+        return []
+    try:
+        payload = (
+            json.loads(action_json) if isinstance(action_json, str) else action_json
+        )
+    except (TypeError, ValueError):
+        return []
+    if isinstance(payload, dict):
+        items = [payload]
+    elif isinstance(payload, list):
+        items = [p for p in payload if isinstance(p, dict)]
+    else:
+        return []
+    rows: list[dict[str, Any]] = []
+    for item in items:
+        concept_id = item.get("snomed_concept_id") or item.get("concept_id")
+        if not concept_id:
+            continue
+        preferred = item.get("preferred_term") or item.get("term") or concept_id
+        rows.append(
+            {
+                "concept_id": str(concept_id),
+                "preferred_term": str(preferred),
+                "raw_term": str(item.get("term") or preferred),
+                "strength": str(item.get("strength") or "unspecified"),
+            }
+        )
+    return rows
+
+
 def _resolve_edited_action_rows(
     predecessor_actions: list[dict[str, Any]],
     new_actions: list["RuleAction"] | None,
     *,
     override_priority: str | None = None,
     override_due_days: Any = None,
+    predecessor_action_json: Any = None,
 ) -> tuple[list[dict[str, Any]], str, Any]:
     """Return ``(action_rows, priority, due_days)`` to persist on an edited rule.
 
@@ -663,6 +703,9 @@ def _resolve_edited_action_rows(
     reviewer supplies new action concepts. When ``override_priority`` is
     supplied (the reviewer edited the Priority control), that value wins
     and ``override_due_days`` is applied with it.
+
+    When there are no HAS_ACTION edges but ``actionJson`` still lists
+    procedures, fall back to those so a priority change is not dropped.
     """
     priority = "routine"
     due_days = None
@@ -688,7 +731,9 @@ def _resolve_edited_action_rows(
             if ra.criterion.snomed_concept_id
         ]
     else:
-        rows = predecessor_actions
+        rows = list(predecessor_actions)
+        if not rows:
+            rows = _action_rows_from_action_json(predecessor_action_json)
 
     return rows, priority, due_days
 
@@ -914,6 +959,7 @@ def apply_rule_edit(
         updates.actions,
         override_priority=updates.priority,
         override_due_days=updates.due_days,
+        predecessor_action_json=pred.get("action_json"),
     )
     _write_edited_rule_actions(
         client,

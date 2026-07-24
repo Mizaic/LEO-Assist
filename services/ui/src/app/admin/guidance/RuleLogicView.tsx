@@ -29,9 +29,9 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
-import { STRENGTH_LABELS, friendlyTerm } from "./EditRuleDialog/copy";
+import { STRENGTH_LABELS, friendlyTerm, priorityLabel } from "./EditRuleDialog/copy";
 import { isPathwaySplit } from "./EditRuleDialog/pathwayDetection";
-import type { LogicSeed, RuleAction } from "./EditRuleDialog/types";
+import type { LogicSeed, RuleAction, RulePriority } from "./EditRuleDialog/types";
 import { normalizeRuleActions } from "./actionShape";
 
 /**
@@ -160,6 +160,10 @@ export interface RuleForLogicView {
   /** Deprecated: legacy single recommended procedure, used as a
    *  fallback for rules not yet migrated to ``actions``. */
   action?: ActionResult | null;
+  /** Rule-level clinical priority from HAS_ACTION (shown on the card). */
+  action_priority?: RulePriority | string | null;
+  /** Due-days paired with action_priority (null for routine). */
+  action_due_days?: number | null;
   logic_tree?: LogicTreeNode | null;
   present_criteria: RuleCriterion[];
   absent_criteria: RuleCriterion[];
@@ -187,6 +191,30 @@ function strengthPlainLabel(strength: string): string {
 
 function actionPlainLabel(action: ActionResult | null | undefined): string {
   return friendlyTerm(action?.preferred_term || action?.term);
+}
+
+/** Compact priority + due-days line for the read-only action block. */
+function PriorityDueLine({
+  priority,
+  dueDays,
+}: {
+  priority?: string | null;
+  dueDays?: number | null;
+}) {
+  const text = priorityLabel(priority, dueDays);
+  return (
+    <Typography
+      variant="body2"
+      color="text.secondary"
+      sx={{ lineHeight: 1.5, mb: 0.75 }}
+      aria-label={`Clinical priority: ${text}`}
+    >
+      Priority:{" "}
+      <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+        {text}
+      </Box>
+    </Typography>
+  );
 }
 
 function SnomedChip({ item }: { item: CriterionResult }) {
@@ -916,7 +944,7 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
         )}
       </Box>
 
-      {hasActionsList ? (
+      {(hasActionsList || strengthText || rule.action_priority) && (
         <Box
           sx={{
             mt: 1.5,
@@ -925,34 +953,33 @@ export function RuleDetailPanel({ rule }: { rule: RuleForLogicView }) {
             borderColor: "divider",
           }}
         >
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ lineHeight: 1.5, mb: 0.75 }}
-          >
-            When this rule matches, the system should:
-          </Typography>
-          <ActionChipList actions={normalizedActions!} />
+          <PriorityDueLine
+            priority={rule.action_priority}
+            dueDays={rule.action_due_days}
+          />
+          {hasActionsList ? (
+            <>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ lineHeight: 1.5, mb: 0.75 }}
+              >
+                When this rule matches, the system should:
+              </Typography>
+              <ActionChipList actions={normalizedActions!} />
+            </>
+          ) : (
+            strengthText && (
+              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                When this rule matches, the system should:{" "}
+                <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  {strengthText}
+                  {actionText ? `: ${actionText}` : ""}
+                </Box>
+              </Typography>
+            )
+          )}
         </Box>
-      ) : (
-        strengthText && (
-          <Box
-            sx={{
-              mt: 1.5,
-              pt: 1.5,
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-              When this rule matches, the system should:{" "}
-              <Box component="span" sx={{ fontWeight: 600, color: "text.primary" }}>
-                {strengthText}
-                {actionText ? `: ${actionText}` : ""}
-              </Box>
-            </Typography>
-          </Box>
-        )
       )}
     </Box>
   );

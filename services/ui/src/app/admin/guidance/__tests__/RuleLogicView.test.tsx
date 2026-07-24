@@ -279,6 +279,58 @@ describe("RuleDetailPanel - recommended action", () => {
       screen.getByText(/Refer urgently: Plain X-ray of chest/i),
     ).toBeInTheDocument();
   });
+
+  it("shows clinical priority and due-within on the card action block", () => {
+    render(
+      <RuleDetailPanel
+        rule={{
+          strength: "consider",
+          action_priority: "urgent",
+          action_due_days: 14,
+          actions: [
+            {
+              criterion: {
+                snomed_concept_id: "53059001",
+                preferred_term: "Esophagogastroduodenoscopy",
+              },
+              strength: "consider",
+            },
+          ],
+          logic_tree: SINGLE_PATHWAY_TREE,
+          present_criteria: [],
+          absent_criteria: [],
+        }}
+      />,
+    );
+    expect(
+      screen.getByLabelText(/clinical priority: urgent, within 14 days/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows Routine without a due-within clause", () => {
+    render(
+      <RuleDetailPanel
+        rule={{
+          strength: "consider",
+          action_priority: "routine",
+          action_due_days: null,
+          actions: [
+            {
+              criterion: {
+                snomed_concept_id: "53059001",
+                preferred_term: "Esophagogastroduodenoscopy",
+              },
+              strength: "consider",
+            },
+          ],
+          logic_tree: SINGLE_PATHWAY_TREE,
+          present_criteria: [],
+          absent_criteria: [],
+        }}
+      />,
+    );
+    expect(screen.getByLabelText(/^clinical priority: routine$/i)).toBeInTheDocument();
+  });
 });
 
 describe("RuleDetailPanel - v1 schema fallback (no logic_tree)", () => {

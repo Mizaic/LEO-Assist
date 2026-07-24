@@ -84,6 +84,14 @@ describe("STRENGTH_LABELS - discuss option", () => {
   });
 });
 
+describe("RuleReviewCard - priority chip on header", () => {
+  test("TC-014: header renders a Priority chip from action_priority", () => {
+    expect(CARD_SRC).toMatch(/priorityChipLabel/);
+    expect(CARD_SRC).toMatch(/rule\.action_priority/);
+    expect(CARD_SRC).toMatch(/action_due_days/);
+  });
+});
+
 describe("Fallback rule - is_default flag", () => {
   test("TC-011: is_default field exists in ruleReviewTypes Rule interface", () => {
     expect(TYPES_SRC).toMatch(/is_default\?\s*:\s*boolean/);
