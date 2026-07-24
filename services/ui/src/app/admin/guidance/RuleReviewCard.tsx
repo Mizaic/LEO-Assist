@@ -108,6 +108,22 @@ function strengthChipLabel(strength: string): string {
   return hit?.label ?? strength.replace(/_/g, " ");
 }
 
+function priorityChipLabel(
+  priority: string,
+  dueDays?: number | null,
+): string {
+  const base =
+    priority === "2ww"
+      ? "2 week wait"
+      : priority === "urgent"
+        ? "Urgent"
+        : priority === "routine"
+          ? "Routine"
+          : priority.replace(/_/g, " ");
+  if (priority === "routine" || dueDays == null) return base;
+  return `${base}, ${dueDays} days`;
+}
+
 function generationOutcomeLabel(outcome: string): string {
   switch (outcome) {
     case "extraction_failed": return "Needs manual authoring";
@@ -237,6 +253,20 @@ function RuleCardHeader({ rule }: { rule: Rule }) {
       <Chip label={rule.guideline_id} size="small" color="primary" />
       {rule.guideline_version && rule.guideline_version > 1 && <Chip label={`v${rule.guideline_version}`} size="small" color="warning" variant="outlined" />}
       {rule.strength && rule.strength !== "unspecified" && <Tooltip title={strengthChipLabel(rule.strength)} arrow><Chip label={rule.strength.replace(/_/g, " ")} size="small" variant="outlined" /></Tooltip>}
+      {rule.action_priority ? (
+        <Tooltip
+          title={priorityChipLabel(rule.action_priority, rule.action_due_days)}
+          arrow
+        >
+          <Chip
+            label={priorityChipLabel(rule.action_priority, rule.action_due_days)}
+            size="small"
+            color="info"
+            variant="outlined"
+            aria-label={`Priority: ${priorityChipLabel(rule.action_priority, rule.action_due_days)}`}
+          />
+        </Tooltip>
+      ) : null}
       {rule.has_predecessor && <Chip icon={<CompareArrowsIcon />} label="Updated" size="small" color="warning" variant="outlined" />}
       {rule.is_default && <Chip label="Fallback rule" size="small" color="secondary" variant="outlined" />}
       {rule.status === "pending_review" && rule.generation_outcome && rule.generation_outcome !== "success" && <Chip label={generationOutcomeLabel(rule.generation_outcome)} size="small" color="warning" variant="filled" />}
