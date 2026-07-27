@@ -77,7 +77,7 @@ function emptyCopy(poolId: RuleReviewPoolProps["poolId"]): { title: string; body
   if (poolId === "excluded") {
     return {
       title: "No excluded recommendations yet",
-      body: "Confirm 'no rule needed' or reject a pending rule to fill this list. Excluded items are not compiled live.",
+      body: "Confirm 'no rule needed', reject a pending rule, or exclude an approved rule to fill this list. Excluded items are not compiled live.",
     };
   }
   if (poolId === "superseded") {

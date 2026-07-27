@@ -9,27 +9,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 
 import { useMotion } from "@leo/design-system";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EditRuleDialog from "./EditRuleDialog";
-import { formatRelativeUpdatedAt } from "./RuleReviewCard";
+import GuidelineChipFilter from "./GuidelineChipFilter";
 import RuleReviewPool from "./RuleReviewPool";
-import { popVariants } from "./motionPresets";
+import RuleReviewSessionPanels from "./RuleReviewSessionPanels";
 import {
   fetchRules,
   filterRulesForReview,
@@ -49,51 +41,13 @@ export {
   upsertApprovedRule,
 } from "./ruleReviewHelpers";
 export type {
-  ActionConcept,
+  ActionBag,
   PromoteResult,
   Rule,
   RuleReviewIdentity,
   RuleStatusFilter,
 } from "./ruleReviewTypes";
 export { formatRelativeUpdatedAt } from "./RuleReviewCard";
-
-interface GuidelineChipFilterProps {
-  guidelineIds: string[];
-  selected: string | null;
-  onSelect: (id: string | null) => void;
-}
-
-function GuidelineChipFilter({ guidelineIds, selected, onSelect }: GuidelineChipFilterProps) {
-  if (guidelineIds.length < 2) return null;
-  return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, display: "block", mb: 0.75 }}>
-        Filter by guideline
-      </Typography>
-      <Stack direction="row" spacing={0.75} flexWrap="wrap">
-        <Chip
-          label="All"
-          size="small"
-          variant={selected === null ? "filled" : "outlined"}
-          color={selected === null ? "primary" : "default"}
-          onClick={() => onSelect(null)}
-          sx={{ cursor: "pointer" }}
-        />
-        {guidelineIds.map((id) => (
-          <Chip
-            key={id}
-            label={id}
-            size="small"
-            variant={selected === id ? "filled" : "outlined"}
-            color={selected === id ? "primary" : "default"}
-            onClick={() => onSelect(id)}
-            sx={{ cursor: "pointer", fontWeight: selected === id ? 700 : 400 }}
-          />
-        ))}
-      </Stack>
-    </Box>
-  );
-}
 
 interface Props {
   refreshKey?: number;
@@ -113,6 +67,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [internalKey, setInternalKey] = useState(0);
   const [approveAllOpen, setApproveAllOpen] = useState(false);
+  const [excludeConfirmRule, setExcludeConfirmRule] = useState<Rule | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [expandedRules, setExpandedRules] = useState<Record<string, boolean>>({});
   const [showSuperseded, setShowSuperseded] = useState(false);
@@ -129,11 +84,13 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [guidelineFilter, setGuidelineFilter] = useState<string | null>(null);
 
   const allGuidelineIds = useMemo(() => {
-    const ids = new Set([
-      ...pendingRules.map((r) => r.guideline_id),
-      ...approvedRules.map((r) => r.guideline_id),
-      ...excludedRules.map((r) => r.guideline_id),
-    ].filter(Boolean));
+    const ids = new Set(
+      [
+        ...pendingRules.map((r) => r.guideline_id),
+        ...approvedRules.map((r) => r.guideline_id),
+        ...excludedRules.map((r) => r.guideline_id),
+      ].filter(Boolean),
+    );
     return [...ids].sort();
   }, [pendingRules, approvedRules, excludedRules]);
 
@@ -153,7 +110,10 @@ export default function RuleReviewSection({ refreshKey }: Props) {
     [pendingRules, sessionResolved, filterByGuideline],
   );
 
-  const editableRule = useMemo(() => (editRule ? ruleToEditable(editRule) : null), [editRule]);
+  const editableRule = useMemo(
+    () => (editRule ? ruleToEditable(editRule) : null),
+    [editRule],
+  );
 
   const reloadPools = useCallback(async () => {
     setLoadingPending(true);
@@ -208,7 +168,13 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         if (!resp.ok) throw new Error(await resp.text());
         if (action === "approve" || action === "edit") {
           setSessionApproved((prev) => upsertApprovedRule(prev, { ...rule, status: "active" }));
+          setSessionExcluded((prev) =>
+            prev.filter((row) => row.rule_id !== rule.rule_id),
+          );
         } else if (action === "reject") {
+          setSessionApproved((prev) =>
+            prev.filter((row) => row.rule_id !== rule.rule_id),
+          );
           setSessionExcluded((prev) =>
             upsertApprovedRule(prev, { ...rule, status: "rejected" }),
           );
@@ -352,175 +318,19 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         </Alert>
       ) : null}
 
-      {sessionApproved.length > 0 ? (
-        <Box sx={{ mb: 3 }}>
-          <Stack
-            component="button"
-            type="button"
-            direction="row"
-            alignItems="center"
-            spacing={0.5}
-            onClick={() => setSessionApprovedOpen((v) => !v)}
-            aria-expanded={sessionApprovedOpen}
-            aria-controls="session-approved-body"
-            sx={{
-              mb: sessionApprovedOpen ? 1 : 0,
-              p: 0,
-              border: "none",
-              bgcolor: "transparent",
-              cursor: "pointer",
-              width: "100%",
-              textAlign: "left",
-            }}
-          >
-            <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, flex: 1 }}>
-              {`Approved in this session (${sessionApproved.length})`}
-            </Typography>
-            <IconButton size="small" tabIndex={-1} aria-hidden sx={{ transform: sessionApprovedOpen ? "rotate(180deg)" : "none" }}>
-              <ExpandMoreRoundedIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-          <Collapse in={sessionApprovedOpen}>
-          <Stack id="session-approved-body" spacing={1}>
-            <AnimatePresence initial={false}>
-              {sessionApproved.map((rule) => (
-                <fm.div
-                  key={rule.rule_id}
-                  layout
-                  variants={popVariants(reducedMotion)}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      border: "1px solid",
-                      borderColor: "success.light",
-                      borderRadius: 1.5,
-                      bgcolor: "#F0FDF4",
-                    }}
-                  >
-                    <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 1 }}>
-                      <fm.div
-                        initial={reducedMotion ? undefined : { scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", stiffness: 420, damping: 18, delay: reducedMotion ? 0 : 0.1 }}
-                        style={{ display: "flex" }}
-                      >
-                        <CheckCircleRoundedIcon fontSize="small" color="success" />
-                      </fm.div>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {rule.name || rule.rule_id}
-                      </Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                        startIcon={<EditOutlinedIcon fontSize="small" />}
-                        onClick={() => setEditRule(rule)}
-                        aria-label={`Edit approved rule ${rule.rule_id}`}
-                      >
-                        Edit
-                      </Button>
-                      {promotedRules[rule.rule_id] ? (
-                        <Alert severity="success" sx={{ py: 0, px: 1, fontSize: "0.75rem", flex: 1 }}>
-                          Added to {promotedRules[rule.rule_id].domain_name}
-                        </Alert>
-                      ) : (
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={promoteBusy === rule.rule_id}
-                          onClick={() => setPromoteConfirmRule(rule)}
-                        >
-                          Add to domain
-                        </Button>
-                      )}
-                    </Stack>
-                  </Box>
-                </fm.div>
-              ))}
-            </AnimatePresence>
-          </Stack>
-          </Collapse>
-        </Box>
-      ) : null}
-
-      {sessionExcluded.length > 0 ? (
-        <Box sx={{ mb: 3 }}>
-          <Stack
-            component="button"
-            type="button"
-            direction="row"
-            alignItems="center"
-            spacing={0.5}
-            onClick={() => setSessionExcludedOpen((v) => !v)}
-            aria-expanded={sessionExcludedOpen}
-            aria-controls="session-excluded-body"
-            sx={{
-              mb: sessionExcludedOpen ? 1 : 0,
-              p: 0,
-              border: "none",
-              bgcolor: "transparent",
-              cursor: "pointer",
-              width: "100%",
-              textAlign: "left",
-            }}
-          >
-            <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, flex: 1 }}>
-              {`Excluded in this session (${sessionExcluded.length})`}
-            </Typography>
-            <IconButton size="small" tabIndex={-1} aria-hidden sx={{ transform: sessionExcludedOpen ? "rotate(180deg)" : "none" }}>
-              <ExpandMoreRoundedIcon fontSize="small" />
-            </IconButton>
-          </Stack>
-          <Collapse in={sessionExcludedOpen}>
-          <Stack id="session-excluded-body" spacing={1}>
-            <AnimatePresence initial={false}>
-              {sessionExcluded.map((rule) => (
-                <fm.div
-                  key={rule.rule_id}
-                  layout
-                  variants={popVariants(reducedMotion)}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      border: "1px solid",
-                      borderColor: "grey.300",
-                      borderRadius: 1.5,
-                      bgcolor: "grey.50",
-                    }}
-                  >
-                    <Stack direction="row" spacing={0.75} alignItems="center">
-                      <HighlightOffRoundedIcon fontSize="small" color="action" />
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {rule.name || rule.rule_id}
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={
-                          rule.generation_outcome === "no_rule_expected"
-                            ? "No rule needed"
-                            : "Excluded"
-                        }
-                        variant="outlined"
-                      />
-                    </Stack>
-                  </Box>
-                </fm.div>
-              ))}
-            </AnimatePresence>
-          </Stack>
-          </Collapse>
-        </Box>
-      ) : null}
+      <RuleReviewSessionPanels
+        reducedMotion={reducedMotion}
+        sessionApproved={sessionApproved}
+        sessionExcluded={sessionExcluded}
+        sessionApprovedOpen={sessionApprovedOpen}
+        sessionExcludedOpen={sessionExcludedOpen}
+        promotedRules={promotedRules}
+        promoteBusy={promoteBusy}
+        onToggleApprovedOpen={() => setSessionApprovedOpen((v) => !v)}
+        onToggleExcludedOpen={() => setSessionExcludedOpen((v) => !v)}
+        onEdit={setEditRule}
+        onPromoteConfirm={setPromoteConfirmRule}
+      />
 
       <GuidelineChipFilter
         guidelineIds={allGuidelineIds}
@@ -557,7 +367,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
         <RuleReviewPool
           poolId="approved"
           title="Approved"
-          helper="Rules already checked and used when you compile the live lookup index."
+          helper="Rules already checked and used when you compile the live lookup index. Expand a row to edit or move it to Excluded."
           statusFilter="active"
           rules={filterByGuideline(approvedRules)}
           loading={loadingApproved}
@@ -565,12 +375,13 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           busy={busy}
           onToggle={toggleExpanded}
           onEdit={setEditRule}
+          onReject={(rule) => setExcludeConfirmRule(rule)}
         />
 
         <RuleReviewPool
           poolId="excluded"
           title="Excluded"
-          helper="No coded rule needed, or rejected. These are not compiled into the live lookup index."
+          helper="No coded rule needed, rejected from review, or moved here from Approved. These are not compiled into the live lookup index."
           statusFilter="rejected"
           rules={filterByGuideline(excludedRules)}
           loading={loadingExcluded}
@@ -618,6 +429,21 @@ export default function RuleReviewSection({ refreshKey }: Props) {
           variant="primary"
           onConfirm={handleApproveAll}
           onCancel={() => setApproveAllOpen(false)}
+        />
+      ) : null}
+      {excludeConfirmRule ? (
+        <ConfirmDialog
+          title="Exclude this approved rule?"
+          body={`This moves "${excludeConfirmRule.name || excludeConfirmRule.recommendation_text || excludeConfirmRule.rule_id}" to Excluded. It will not be included the next time you compile the live lookup index.`}
+          confirmLabel="Yes, exclude"
+          cancelLabel="Cancel"
+          variant="danger"
+          onConfirm={() => {
+            const rule = excludeConfirmRule;
+            setExcludeConfirmRule(null);
+            void decide(rule, "reject", "Excluded from approved list by reviewer");
+          }}
+          onCancel={() => setExcludeConfirmRule(null)}
         />
       ) : null}
       {promoteConfirmRule ? (

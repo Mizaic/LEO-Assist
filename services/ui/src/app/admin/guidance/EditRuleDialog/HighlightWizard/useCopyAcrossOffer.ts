@@ -31,7 +31,12 @@ import {
   findCopyAcrossSource,
   type CopyAcrossMatch,
 } from "./pathwayCopyAcross";
-import { findClusterSubgroupByRole, findNodeById, type ClusterGrouping } from "./wizardMapping";
+import {
+  findClusterSubgroupByRole,
+  findNodeById,
+  pathwayGroupingKey,
+  type ClusterGrouping,
+} from "./wizardMapping";
 
 interface PendingCopyItem {
   criterion: LogicCriterion;
@@ -52,13 +57,20 @@ interface Params {
   tree: EditableLogicNode;
   boundaries: PathwayTextBoundary[];
   pathwayIndex: number;
+  /** The TARGET pathway's own `pathwayGroupingKey` -- see that
+   *  helper's doc comment. The SOURCE pathway's key is resolved
+   *  internally from `pathwayNodes[sourceIndex]` since the source
+   *  varies with `plan`. */
+  pathwayKey: string;
   pathwayNodes: EditableLogicNode[];
   targetPathwayNode: EditableLogicNode;
   recommendationText: string | null | undefined;
-  clusterGroupings: Record<number, ClusterGrouping>;
-  leadClusterGroupings: Record<number, ClusterGrouping>;
-  onSetClusterGrouping: (pathwayIndex: number, grouping: ClusterGrouping) => void;
-  onSetLeadClusterGrouping: (pathwayIndex: number, grouping: ClusterGrouping) => void;
+  clusterGroupings: Record<string, ClusterGrouping>;
+  leadClusterGroupings: Record<string, ClusterGrouping>;
+  onSetClusterGrouping: (pathwayKey: string, grouping: ClusterGrouping) => void;
+  onSetLeadClusterGrouping: (pathwayKey: string, grouping: ClusterGrouping) => void;
+  dismissedCopyAcrossOffers: Set<string>;
+  onDismissCopyAcrossOffer: (pathwayKey: string) => void;
   onUpdate: (update: NodeUpdate) => void;
 }
 
@@ -80,6 +92,7 @@ export function useCopyAcrossOffer({
   tree,
   boundaries,
   pathwayIndex,
+  pathwayKey,
   pathwayNodes,
   targetPathwayNode,
   recommendationText,
@@ -87,26 +100,28 @@ export function useCopyAcrossOffer({
   leadClusterGroupings,
   onSetClusterGrouping,
   onSetLeadClusterGrouping,
+  dismissedCopyAcrossOffers,
+  onDismissCopyAcrossOffer,
   onUpdate,
 }: Params): {
   offer: CopyAcrossOffer | null;
   acceptOffer: () => void;
   dismissOffer: () => void;
 } {
-  const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   const [pending, setPending] = useState<PendingCopy | null>(null);
 
   const plan = useMemo(() => {
     const sourceIndex = findCopyAcrossSource(boundaries, pathwayIndex);
     const sourcePathwayNode = sourceIndex === null ? null : pathwayNodes[sourceIndex];
     if (sourceIndex === null || !sourcePathwayNode) return null;
+    const sourceKey = pathwayGroupingKey(sourcePathwayNode, sourceIndex);
     return buildCopyAcrossPlan({
       boundaries,
       targetIndex: pathwayIndex,
       sourcePathwayNode,
       recommendationText,
-      sourceGrouping: clusterGroupings[sourceIndex],
-      sourceLeadGrouping: leadClusterGroupings[sourceIndex],
+      sourceGrouping: clusterGroupings[sourceKey],
+      sourceLeadGrouping: leadClusterGroupings[sourceKey],
     });
   }, [boundaries, pathwayIndex, pathwayNodes, recommendationText, clusterGroupings, leadClusterGroupings]);
 
@@ -117,11 +132,11 @@ export function useCopyAcrossOffer({
   // choice for what looks like, but is not, the same situation).
   const targetHasProgress =
     (targetPathwayNode.children?.length ?? 0) > 0 ||
-    clusterGroupings[pathwayIndex] !== undefined ||
-    leadClusterGroupings[pathwayIndex] !== undefined;
+    clusterGroupings[pathwayKey] !== undefined ||
+    leadClusterGroupings[pathwayKey] !== undefined;
 
   const offer: CopyAcrossOffer | null =
-    plan && !dismissed.has(pathwayIndex) && !targetHasProgress
+    plan && !dismissedCopyAcrossOffers.has(pathwayKey) && !targetHasProgress
       ? { sourceIndex: plan.sourceIndex, count: plan.matches.length }
       : null;
 
@@ -143,8 +158,8 @@ export function useCopyAcrossOffer({
 
   function acceptOffer() {
     if (!plan) return;
-    if (plan.groupingToApply) onSetClusterGrouping(pathwayIndex, plan.groupingToApply);
-    if (plan.leadGroupingToApply) onSetLeadClusterGrouping(pathwayIndex, plan.leadGroupingToApply);
+    if (plan.groupingToApply) onSetClusterGrouping(pathwayKey, plan.groupingToApply);
+    if (plan.leadGroupingToApply) onSetLeadClusterGrouping(pathwayKey, plan.leadGroupingToApply);
 
     const items: PendingCopyItem[] = plan.matches.map((m) => ({
       criterion: m.criterion,
@@ -157,7 +172,7 @@ export function useCopyAcrossOffer({
   }
 
   function dismissOffer() {
-    setDismissed((prev) => new Set(prev).add(pathwayIndex));
+    onDismissCopyAcrossOffer(pathwayKey);
   }
 
   return { offer, acceptOffer, dismissOffer };

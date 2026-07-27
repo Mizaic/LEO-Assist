@@ -13,8 +13,9 @@
  *      add as siblings in the rule.
  *
  * The deterministic suggestion table covers the most common topics
- * seen in NICE NG12. The Phase 4 LLM-backed expander will replace this
- * lookup with a guideline-aware call once DI-LEO-AI-155 ships.
+ * seen in NICE NG12. Unknown topics still open the coach so the
+ * reviewer can use "Ask LEO for ideas" (LLM term expansion + bulk
+ * SNOMED resolve) instead of dead-ending.
  *
  * Atlas trace:
  *   DI: DI-42246DA7
@@ -145,6 +146,32 @@ const PATTERNS: PatternDef[] = [
     topicGroup: 1,
     reason:
       "This phrase does not say which X-ray findings count. Pick specific findings below or search for more.",
+  },
+  {
+    label: "may_indicate",
+    regex: /\b(?:may|might|could)\s+(?:be\s+)?(?:indicate|indicating|suggest|suggesting)\s+(.+?)\s*$/i,
+    topicGroup: 1,
+    reason:
+      "This phrase does not say which findings would count. Pick specific findings below or ask LEO for ideas.",
+  },
+  {
+    label: "changes_of",
+    regex:
+      /^\s*(?:skin|breast|chest|bowel|voice)\s+changes?\s+(?:suggestive\s+|indicative\s+)?of\s+(.+?)\s*$/i,
+    topicGroup: 1,
+    reason:
+      "This phrase does not say which changes count. Pick specific findings below or ask LEO for ideas.",
+  },
+  {
+    // Catch-all for novel multi-word "X of Y" clinical topics that missed
+    // the stricter patterns above -- opens the coach so Ask LEO can help
+    // when the curated suggestion table has nothing for that topic.
+    label: "topic_of",
+    regex:
+      /^\s*(?:findings?|features?|markers?|evidence|presentation)\s+(?:of|for)\s+(.+?)\s*$/i,
+    topicGroup: 1,
+    reason:
+      "This phrase does not list the specific findings. Ask LEO for ideas or search for each one.",
   },
 ];
 

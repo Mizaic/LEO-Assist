@@ -64,6 +64,14 @@ describe("RuleReviewCard - no_rule_expected action branching", () => {
   test("TC-007: aria-label for confirm button references the rule_id", () => {
     expect(CARD_SRC).toMatch(/Confirm no rule needed for/);
   });
+
+  test("TC-019: active rules label the reject action as Exclude", () => {
+    const fnStart = CARD_SRC.indexOf("function RuleCardActions");
+    const fnEnd = CARD_SRC.indexOf("function RuleCardBody", fnStart);
+    const actionsFn = CARD_SRC.slice(fnStart, fnEnd);
+    expect(actionsFn).toMatch(/rule\.status\s*===\s*["']active["']\s*\?\s*["']Exclude["']\s*:\s*["']Reject["']/);
+    expect(actionsFn).toMatch(/Exclude rule \$\{rule\.rule_id\}/);
+  });
 });
 
 describe("STRENGTH_LABELS - discuss option", () => {
@@ -145,5 +153,37 @@ describe("RuleReviewCard - stale AI-generation warnings hidden once reviewed", (
     expect(guardIdx).toBeGreaterThan(-1);
     expect(existingGuardIdx).toBeGreaterThan(-1);
     expect(guardIdx).toBeLessThan(existingGuardIdx);
+  });
+});
+
+describe("RuleReviewCard - friendly rule id primary chip (Phase C)", () => {
+  test("TC-020: rule.name renders as its own chip, gated on rule.name", () => {
+    const headerStart = CARD_SRC.indexOf("function RuleCardHeader");
+    const headerEnd = CARD_SRC.indexOf("function RuleGenerationAlert");
+    const headerFn = CARD_SRC.slice(headerStart, headerEnd);
+    expect(headerFn).toMatch(/rule\.name\s*&&/);
+    expect(headerFn).toMatch(/data-testid=["']rule-friendly-id-chip["']/);
+  });
+
+  test("TC-021: friendly id chip renders before the guideline_id chip so it is scanned first", () => {
+    const headerStart = CARD_SRC.indexOf("function RuleCardHeader");
+    const headerEnd = CARD_SRC.indexOf("function RuleGenerationAlert");
+    const headerFn = CARD_SRC.slice(headerStart, headerEnd);
+    const friendlyIdIdx = headerFn.indexOf("rule-friendly-id-chip");
+    const guidelineIdIdx = headerFn.indexOf("rule.guideline_id");
+    expect(friendlyIdIdx).toBeGreaterThan(-1);
+    expect(guidelineIdIdx).toBeGreaterThan(-1);
+    expect(friendlyIdIdx).toBeLessThan(guidelineIdIdx);
+  });
+
+  test("TC-022: friendly id chip uses monospace, bold styling to stand out", () => {
+    const headerStart = CARD_SRC.indexOf("function RuleCardHeader");
+    const headerEnd = CARD_SRC.indexOf("function RuleGenerationAlert");
+    const headerFn = CARD_SRC.slice(headerStart, headerEnd);
+    const chipStart = headerFn.indexOf("rule-friendly-id-chip");
+    const chipEnd = headerFn.indexOf("/>", chipStart);
+    const chipMarkup = headerFn.slice(chipStart, chipEnd);
+    expect(chipMarkup).toMatch(/fontFamily:\s*["']monospace["']/);
+    expect(chipMarkup).toMatch(/fontWeight:\s*700/);
   });
 });

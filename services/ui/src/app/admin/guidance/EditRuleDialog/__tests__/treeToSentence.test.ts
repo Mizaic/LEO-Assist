@@ -1,4 +1,4 @@
-import { treeToSentence } from "../treeToSentence";
+import { conceptSeedLabels, treeToSentence } from "../treeToSentence";
 import { assignNodeIds } from "../treeOps";
 import type { LogicNodeSeed } from "../treeOps";
 import type { EditableLogicNode } from "../types";
@@ -6,6 +6,41 @@ import type { EditableLogicNode } from "../types";
 function tree(node: LogicNodeSeed): EditableLogicNode {
   return assignNodeIds(node);
 }
+
+describe("conceptSeedLabels", () => {
+  it("returns the single preferred_term for a legacy single-seed criterion", () => {
+    const node = tree({
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "1", preferred_term: "Weight loss (finding)" },
+    });
+    expect(conceptSeedLabels(node)).toEqual(["Weight loss"]);
+  });
+
+  it("returns one label per seed for a multi-seed synonym set", () => {
+    const node = tree({
+      kind: "CONCEPT",
+      criterion: {
+        snomed_concept_id: "1",
+        preferred_term: "Abnormal blood test",
+        seeds: [
+          { snomed_concept_id: "1", preferred_term: "Abnormal blood test" },
+          { snomed_concept_id: "2", preferred_term: "Hemoglobin below reference range" },
+          { snomed_concept_id: "3", preferred_term: "Raised ESR (finding)" },
+        ],
+      },
+    });
+    expect(conceptSeedLabels(node)).toEqual([
+      "Abnormal blood test",
+      "Hemoglobin below reference range",
+      "Raised ESR",
+    ]);
+  });
+
+  it("returns an empty array when the criterion is missing", () => {
+    const node = tree({ kind: "CONCEPT" });
+    expect(conceptSeedLabels(node)).toEqual([]);
+  });
+});
 
 describe("treeToSentence", () => {
   it("renders an empty tree with a friendly call to action", () => {

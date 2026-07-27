@@ -69,6 +69,11 @@ interface Props {
   multiPick?: boolean;
   onPick: (criterion: LogicCriterion) => void;
   /**
+   * Bulk-add from "Ask LEO for ideas" (several sibling CONCEPT leaves).
+   * Only forwarded in ``add`` mode when the host supports multi-add.
+   */
+  onAddMany?: (criteria: LogicCriterion[]) => void;
+  /**
    * Phase 6b: forwarded to ConceptSearchPanel. When the popover is in
    * "add" mode (i.e. inserting a new leaf under a group) the parent
    * may pass a handler that inserts an OBSERVATION leaf instead of a
@@ -88,6 +93,7 @@ export default function ChipSearchPopover({
   initialQuery,
   multiPick = false,
   onPick,
+  onAddMany,
   onPickObservation,
   onClose,
 }: Props) {
@@ -227,6 +233,7 @@ export default function ChipSearchPopover({
             embedded
             initialQuery={initialQuery}
             onPick={onPick}
+            onAddMany={mode === "add" ? onAddMany : undefined}
             onPickObservation={mode === "add" ? onPickObservation : undefined}
             filterToObservable={replaceKind === "observation"}
           />

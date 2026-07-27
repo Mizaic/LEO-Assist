@@ -24,6 +24,7 @@ from app.services.local_guideline_blank import build_blank_local_draft
 from app.services.local_guideline_diff import diff_local_guidelines
 from app.services.local_guideline_structurer import structure_local_guideline
 from app.services.local_guideline_verifier import verify_local_guideline
+from app.services.natural_sort import natural_sort_key
 from libs.auth.org_scope import CallerScope
 
 router = APIRouter(prefix="/guidance/local", tags=["local-guidance"])
@@ -246,6 +247,19 @@ def _load_stored_draft(guideline_id: str) -> LocalGuidelineDraft:
         client.close()
     if not rows:
         raise HTTPException(status_code=404, detail="Local guideline not found.")
+    return _build_local_draft(rows, guideline_id)
+
+
+def _build_local_draft(rows: list[dict], guideline_id: str) -> LocalGuidelineDraft:
+    """Convert flat Neo4j rows (``_FETCH_STORED_DRAFT``) into a draft.
+
+    Cypher's ``ORDER BY chapter_order, stable_key`` sorts the dotted
+    recommendation number as a plain string, so ``"1.11.1"`` comes back
+    before ``"1.2.1"``. Recommendations within each chapter are
+    re-sorted here on ``natural_sort_key(stable_key)`` instead of
+    trusting that row order -- the coarse chapter grouping from Cypher
+    is still fine to keep.
+    """
     first = rows[0]
     chapters: dict[int, LocalChapterDraft] = {}
     for row in rows:
@@ -267,6 +281,8 @@ def _load_stored_draft(guideline_id: str) -> LocalGuidelineDraft:
                     verification_flag=bool(row.get("likely_incorrect")),
                 )
             )
+    for chapter in chapters.values():
+        chapter.recommendations.sort(key=lambda rec: natural_sort_key(rec.stable_key))
     return LocalGuidelineDraft(
         metadata=LocalGuidelineMetadata(
             short_code=first["short_code"],
@@ -310,6 +326,14 @@ def _build_subgraph(rows: list[dict]) -> dict:
                     "rules": raw_rules,
                 }
             )
+    for chapter in chapters.values():
+        # Same dotted-number sort fix as `_build_local_draft` -- Cypher's
+        # `ORDER BY chapter_order, rec_id` sorts by the recommendation's
+        # internal id, not its dotted number, so this list needs its own
+        # natural-sort pass rather than trusting fetch order.
+        chapter["recommendations"].sort(
+            key=lambda rec: natural_sort_key(rec["stable_key"])
+        )
     chapter_list = sorted(chapters.values(), key=lambda value: value["order"])
     total_recs = sum(len(chapter["recommendations"]) for chapter in chapter_list)
     total_rules = sum(

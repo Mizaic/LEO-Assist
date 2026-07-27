@@ -217,16 +217,61 @@ function PriorityDueLine({
   );
 }
 
+/**
+ * The other findings folded into a multi-seed CONCEPT chip via "Add
+ * another code that means the same" -- every seed except the one
+ * already shown as the chip's own headline label. Reviewers need to
+ * see WHICH additional findings this single chip actually covers
+ * (by their plain-English term, not a bare SNOMED id) rather than
+ * having a chip that silently represents ten codes while only
+ * naming one.
+ */
+function additionalSeedLabels(item: {
+  snomed_concept_id?: string | null;
+  primary_concept_id?: string;
+  seeds?: LogicSeed[];
+}): string[] {
+  const seeds = item.seeds ?? [];
+  if (seeds.length <= 1) return [];
+  const primaryId = item.primary_concept_id ?? item.snomed_concept_id;
+  return seeds
+    .filter((seed) => seed.snomed_concept_id !== primaryId)
+    .map((seed) => friendlyTerm(seed.preferred_term))
+    .filter(Boolean);
+}
+
+function ConceptTooltipTitle({
+  headline,
+  extraTerms,
+}: {
+  headline: string;
+  extraTerms: string[];
+}) {
+  if (extraTerms.length === 0) return <>{headline}</>;
+  return (
+    <Box>
+      <Box>{headline}</Box>
+      <Box sx={{ mt: 0.5 }}>Also matches: {extraTerms.join(", ")}</Box>
+    </Box>
+  );
+}
+
 function SnomedChip({ item }: { item: CriterionResult }) {
   const resolved = !!item.snomed_concept_id;
   const rawLabel = item.preferred_term || item.term || "unknown concept";
   const label = resolved ? friendlyTerm(rawLabel) : `? ${friendlyTerm(rawLabel)}`;
+  const extraTerms = additionalSeedLabels(item);
   return (
     <Tooltip
       title={
-        resolved
-          ? `${rawLabel} (SNOMED ${item.snomed_concept_id})`
-          : "No SNOMED match found"
+        resolved ? (
+          <ConceptTooltipTitle
+            headline={`${rawLabel} (SNOMED ${item.snomed_concept_id})`}
+            extraTerms={extraTerms}
+          />
+        ) : (
+          "No SNOMED match found"
+        )
       }
       arrow
     >
@@ -861,13 +906,19 @@ function ActionChipList({ actions }: { actions: RuleAction[] }) {
       {actions.map((item, i) => {
         const term = friendlyTerm(item.criterion?.preferred_term) || "unknown procedure";
         const label = `${strengthPlainLabel(item.strength)}: ${term}`;
+        const extraTerms = item.criterion ? additionalSeedLabels(item.criterion) : [];
         return (
           <Tooltip
             key={item.criterion?.snomed_concept_id || i}
             title={
-              item.criterion?.snomed_concept_id
-                ? `${term} (SNOMED ${item.criterion.snomed_concept_id})`
-                : "No SNOMED match found"
+              item.criterion?.snomed_concept_id ? (
+                <ConceptTooltipTitle
+                  headline={`${term} (SNOMED ${item.criterion.snomed_concept_id})`}
+                  extraTerms={extraTerms}
+                />
+              ) : (
+                "No SNOMED match found"
+              )
             }
             arrow
           >

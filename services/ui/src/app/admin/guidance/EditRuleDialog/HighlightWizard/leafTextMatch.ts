@@ -19,8 +19,8 @@
  */
 import type { HighlightSpan } from "../SentenceEditor/HighlightableRecommendationText";
 import {
+  findAllTextMatchesForCriterion,
   findBestTextMatch,
-  findBestTextMatchForCriterion,
   type TextMatchRange,
 } from "../SentenceEditor/recommendationTextMatch";
 import type { EditableLogicNode } from "../types";
@@ -70,20 +70,40 @@ export function leafTextMatch(
   recommendationText: string | null | undefined,
   node: EditableLogicNode,
 ): TextMatchRange | null {
+  return leafTextMatches(recommendationText, node)[0] ?? null;
+}
+
+/**
+ * Every anchor for one leaf, not just the best one. A CONCEPT leaf
+ * built from several synonym seeds ("Add another code that means the
+ * same") can legitimately anchor onto several different phrases in
+ * the guideline text at once -- `leafTextMatch` above only ever
+ * surfaces the single best of those, which is right for "does this
+ * leaf have SOME anchor?" checks but wrong for a highlighter that is
+ * meant to show a reviewer everything they've already captured (see
+ * `collectTreeHighlights` and `StepPrerequisites`'s "Captured so
+ * far" panel).
+ */
+export function leafTextMatches(
+  recommendationText: string | null | undefined,
+  node: EditableLogicNode,
+): TextMatchRange[] {
   if (node.source_row_text) {
     const bySource = findBestTextMatch(recommendationText, node.source_row_text);
-    if (bySource) return bySource;
+    if (bySource) return [bySource];
   }
   if (node.kind === "CONCEPT") {
-    return findBestTextMatchForCriterion(recommendationText, node.criterion);
+    return findAllTextMatchesForCriterion(recommendationText, node.criterion);
   }
   if (node.kind === "DEMOGRAPHIC") {
-    return findBestTextMatch(recommendationText, demographicMatchCandidate(node));
+    const match = findBestTextMatch(recommendationText, demographicMatchCandidate(node));
+    return match ? [match] : [];
   }
   if (node.kind === "OBSERVATION") {
-    return findBestTextMatch(recommendationText, node.observation?.observable_term);
+    const match = findBestTextMatch(recommendationText, node.observation?.observable_term);
+    return match ? [match] : [];
   }
-  return null;
+  return [];
 }
 
 /**
@@ -104,8 +124,9 @@ export function collectTreeHighlights(
   if (!recommendationText || !tree) return [];
   const spans: HighlightSpan[] = [];
   const walk = (node: EditableLogicNode): void => {
-    const match = leafTextMatch(recommendationText, node);
-    if (match) spans.push({ start: match.start, end: match.end, kind: "confirmed" });
+    for (const match of leafTextMatches(recommendationText, node)) {
+      spans.push({ start: match.start, end: match.end, kind: "confirmed" });
+    }
     for (const child of node.children ?? []) walk(child);
   };
   walk(tree);

@@ -15,6 +15,7 @@
 
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { RuleDetailPanel, isPathwaySplit, type LogicTreeNode } from "../RuleLogicView";
 
@@ -26,6 +27,22 @@ function concept(term: string, snomed = "100000000"): LogicTreeNode {
       snomed_concept_id: snomed,
       preferred_term: term,
       semantic_tag: "finding",
+    },
+  };
+}
+
+function multiSeedConcept(terms: string[]): LogicTreeNode {
+  return {
+    kind: "CONCEPT",
+    criterion: {
+      term: terms[0],
+      snomed_concept_id: "1",
+      preferred_term: terms[0],
+      primary_concept_id: "1",
+      seeds: terms.map((term, i) => ({
+        snomed_concept_id: String(i + 1),
+        preferred_term: term,
+      })),
     },
   };
 }
@@ -90,6 +107,30 @@ const SINGLE_PATHWAY_TREE: LogicTreeNode = {
   ],
 };
 
+/** NG12 1.1.3 shape: age + flat OR of findings = one situation, not N pathways. */
+const NG113_FLAT_OR_TREE: LogicTreeNode = {
+  kind: "AND",
+  children: [
+    {
+      kind: "DEMOGRAPHIC",
+      field: "age",
+      operator: ">=",
+      value: 40,
+      unit: "years",
+    },
+    {
+      kind: "OR",
+      children: [
+        concept("Lower respiratory tract infection", "50417007"),
+        concept("Finger clubbing", "30760008"),
+        concept("Supraclavicular lymphadenopathy", "127088000"),
+        concept("Cervical lymphadenopathy", "127086001"),
+        concept("Thrombocytosis", "6631009"),
+      ],
+    },
+  ],
+};
+
 function renderTree(
   tree: LogicTreeNode | null,
   action?: {
@@ -113,28 +154,40 @@ function renderTree(
 }
 
 describe("isPathwaySplit", () => {
-  it("returns true for an OR at depth 0 with 2+ children", () => {
+  it("returns true for an OR of grouped branches at depth 0", () => {
     expect(
       isPathwaySplit(
-        { kind: "OR", children: [concept("a"), concept("b")] },
+        {
+          kind: "OR",
+          children: [
+            { kind: "AND", children: [concept("a")] },
+            { kind: "AND", children: [concept("b")] },
+          ],
+        },
         0,
       ),
     ).toBe(true);
   });
 
-  it("returns true for an OR at depth 1 with 2+ children", () => {
+  it("returns false for a flat OR of leaf concepts (one situation)", () => {
     expect(
       isPathwaySplit(
         { kind: "OR", children: [concept("a"), concept("b")] },
-        1,
+        0,
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("returns false for an OR deeper than depth 1", () => {
     expect(
       isPathwaySplit(
-        { kind: "OR", children: [concept("a"), concept("b")] },
+        {
+          kind: "OR",
+          children: [
+            { kind: "AND", children: [concept("a")] },
+            { kind: "AND", children: [concept("b")] },
+          ],
+        },
         2,
       ),
     ).toBe(false);
@@ -265,6 +318,21 @@ describe("RuleDetailPanel - single-pathway tree", () => {
       screen.getByText(/^Any 1 or more of these \(of 1\)$/i),
     ).toBeInTheDocument();
   });
+
+  it("NG12 1.1.3: flat OR of findings under age is one situation, not Pathway A-E", () => {
+    renderTree(NG113_FLAT_OR_TREE);
+    expect(
+      screen.queryByText(
+        /The rule fires if the patient matches any one of these pathways:/i,
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Pathway A$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Pathway E$/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/age is at least 40 years/i)).toBeInTheDocument();
+    expect(screen.getByText(/Finger clubbing/i)).toBeInTheDocument();
+    // Flat OR of leaves renders as the ordinary "ANY of these" group.
+    expect(screen.getByText(/^ANY of these$/i)).toBeInTheDocument();
+  });
 });
 
 describe("RuleDetailPanel - recommended action", () => {
@@ -330,6 +398,55 @@ describe("RuleDetailPanel - recommended action", () => {
       />,
     );
     expect(screen.getByLabelText(/^clinical priority: routine$/i)).toBeInTheDocument();
+  });
+});
+
+describe("RuleDetailPanel - multi-seed CONCEPT chip tooltip", () => {
+  // Regression: a chip built from several synonym seeds ("Add another
+  // code that means the same") only showed its headline term and own
+  // SNOMED code in the tooltip, hiding every other finding the chip
+  // actually covers. The tooltip must list the other seeds' plain
+  // English terms, not bare SNOMED ids.
+  it("lists the other seeds' preferred terms in the tooltip, not their codes", async () => {
+    const user = userEvent.setup();
+    const tree: LogicTreeNode = {
+      kind: "AND",
+      children: [
+        {
+          kind: "AT_LEAST",
+          min: 1,
+          children: [
+            multiSeedConcept([
+              "Abnormal blood test",
+              "Hemoglobin below reference range",
+              "Raised ESR",
+            ]),
+          ],
+        },
+      ],
+    };
+    renderTree(tree);
+
+    await user.hover(screen.getByText("Abnormal blood test"));
+    const tip = await screen.findByRole("tooltip");
+
+    expect(tip).toHaveTextContent(/abnormal blood test \(snomed 1\)/i);
+    expect(tip).toHaveTextContent(/also matches/i);
+    expect(tip).toHaveTextContent(/hemoglobin below reference range/i);
+    expect(tip).toHaveTextContent(/raised esr/i);
+    expect(tip).not.toHaveTextContent(/snomed 2/i);
+    expect(tip).not.toHaveTextContent(/snomed 3/i);
+  });
+
+  it("shows just the headline term and code for a single-seed chip, with no 'Also matches'", async () => {
+    const user = userEvent.setup();
+    renderTree(SINGLE_PATHWAY_TREE);
+
+    await user.hover(screen.getByText("Rectal bleeding"));
+    const tip = await screen.findByRole("tooltip");
+
+    expect(tip).toHaveTextContent(/rectal bleeding \(snomed 443416000\)/i);
+    expect(tip).not.toHaveTextContent(/also matches/i);
   });
 });
 

@@ -328,7 +328,7 @@ test.describe("Highlight-to-build wizard guided journey (NG12 1.2.9 fixture, DI-
 
     // -- Step 1: the existing age prerequisite auto-anchors onto
     // "aged 55 or over" with no reviewer action needed.
-    await expect(dialog.getByText("Step 1 of 3")).toBeVisible();
+    await expect(dialog.getByText("Always true")).toBeVisible();
     await expect(dialog.getByTestId("prerequisite-row-age")).toHaveAttribute("data-has-anchor", "true");
     await runAxeAndAssertClean(page);
 

@@ -18,8 +18,8 @@
  * replace the vague chip altogether.
  *
  * The deterministic suggestions come from the lookup in
- * ``vaguePhrases.ts``. Phase 4 / DI-LEO-AI-155 will extend this
- * popover with an LLM-backed expander for unknown topics.
+ * ``vaguePhrases.ts``. Unknown topics open the same "Ask LEO for
+ * ideas" dialog as ConceptSearchPanel's no-results state.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -33,6 +33,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 
+import ConceptExpandDialog from "./ConceptExpandDialog";
+import { SEARCH_PANEL } from "./copy";
 import type { ConceptSuggestion, VaguePhraseMatch } from "./vaguePhrases";
 import { suggestConceptsForTopic } from "./vaguePhrases";
 import type { LogicCriterion } from "./types";
@@ -70,9 +72,13 @@ export default function ConceptCoachPopover({
     [match.topic],
   );
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [askLeoOpen, setAskLeoOpen] = useState(false);
 
   useEffect(() => {
-    if (open) setPicked(new Set());
+    if (open) {
+      setPicked(new Set());
+      setAskLeoOpen(false);
+    }
   }, [open, match.topic]);
 
   function togglePick(id: string) {
@@ -203,11 +209,25 @@ export default function ConceptCoachPopover({
         </>
       ) : (
         <Box sx={{ p: 1.5 }}>
-          <Typography variant="body2" color="text.secondary">
-            We do not have a suggestion list for &ldquo;{match.topic}&rdquo;
-            yet. Search for the specific symptoms you want to look for and add
-            each one as a separate pill.
-          </Typography>
+          <Stack spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              We do not have a ready-made list for &ldquo;{match.topic}&rdquo;
+              yet. Ask LEO for ideas, or search for the specific symptoms you
+              want.
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {SEARCH_PANEL.askLeoIdeasHint}
+            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setAskLeoOpen(true)}
+              sx={{ alignSelf: "flex-start", textTransform: "none" }}
+              aria-label={SEARCH_PANEL.askLeoIdeasLabel}
+            >
+              {SEARCH_PANEL.askLeoIdeasLabel}
+            </Button>
+          </Stack>
         </Box>
       )}
       <Divider />
@@ -258,6 +278,15 @@ export default function ConceptCoachPopover({
           </>
         )}
       </Stack>
+      <ConceptExpandDialog
+        open={askLeoOpen}
+        phrase={match.topic ?? vagueTerm}
+        onClose={() => setAskLeoOpen(false)}
+        onConfirm={(criteria) => {
+          onAddCriteria(criteria, false);
+          onClose();
+        }}
+      />
     </Popover>
   );
 }

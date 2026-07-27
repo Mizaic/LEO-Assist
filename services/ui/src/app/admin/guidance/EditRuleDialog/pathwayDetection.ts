@@ -10,11 +10,18 @@
 /**
  * Shared "is this an editable pathway split?" heuristic.
  *
- * An OR near the top of the tree with 2+ children is the "patient must
- * match one of these pathways" pattern (NICE recommendations like NG12
- * routinely split into 3-6 independent symptom-set branches). Anything
- * deeper than depth 1 is treated as a regular nested OR so a card never
- * recurses into another card layer.
+ * An OR near the top of the tree with 2+ *branch* children is the
+ * "patient must match one of these pathways" pattern (NICE
+ * recommendations like NG12 routinely split into independent
+ * symptom-set branches). Anything deeper than depth 1 is treated as a
+ * regular nested OR so a card never recurses into another card layer.
+ *
+ * Critical distinction (NG12 1.1.3): a flat OR of leaf concepts under
+ * age -- `AND[DEMOGRAPHIC(age>=40), OR[finding, finding, ...]]` -- is
+ * ONE situation ("any of these findings"), not five pathways. Only
+ * treat the OR as a pathway split when at least one child is itself a
+ * group (AND / AT_LEAST / nested OR / NOT), which is the multi-branch
+ * shape of NG12 1.1.2 / 1.2.9.
  *
  * This single definition is imported by every surface that needs to
  * agree on what counts as a pathway split:
@@ -37,11 +44,27 @@ export interface PathwaySplitNode {
   children?: PathwaySplitNode[];
 }
 
+const LEAF_KINDS = new Set(["CONCEPT", "DEMOGRAPHIC", "OBSERVATION"]);
+
+function isGroupBranch(node: PathwaySplitNode): boolean {
+  const kind = String(node.kind || "").toUpperCase();
+  return kind === "AND" || kind === "OR" || kind === "AT_LEAST" || kind === "NOT";
+}
+
+function isLeafBranch(node: PathwaySplitNode): boolean {
+  return LEAF_KINDS.has(String(node.kind || "").toUpperCase());
+}
+
 export function isPathwaySplit(node: PathwaySplitNode, depth: number): boolean {
   const kind = String(node.kind || "").toUpperCase();
   if (kind !== "OR") return false;
   if (depth > 1) return false;
-  return (node.children?.length ?? 0) >= 2;
+  const children = node.children ?? [];
+  if (children.length < 2) return false;
+  // Flat OR of leaves = alternatives inside one situation (1.1.3).
+  // Pathway split needs at least one grouped branch (1.1.2 / 1.2.9).
+  if (children.every(isLeafBranch)) return false;
+  return children.some(isGroupBranch);
 }
 
 /** Where the pathway-split OR lives within a tree, plus any sibling

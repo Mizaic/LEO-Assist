@@ -10,6 +10,7 @@
  */
 import {
   computeTextSegments,
+  findAllTextMatchesForCriterion,
   findBestTextMatch,
   findBestTextMatchForCriterion,
   MIN_TOKEN_OVERLAP_SCORE,
@@ -137,6 +138,54 @@ describe("findBestTextMatchForCriterion", () => {
   it("returns null for a criterion with neither field set", () => {
     expect(findBestTextMatchForCriterion(NG12_1_2_8, {})).toBeNull();
     expect(findBestTextMatchForCriterion(NG12_1_2_8, null)).toBeNull();
+  });
+});
+
+// Regression: a CONCEPT leaf built from several synonym seeds ("Add
+// another code that means the same") only anchored on its headline
+// preferred_term, so a chip capturing ten findings lit up only one
+// or two words in the guideline quote -- see the "Captured so far"
+// bundling reported against a multi-seed prerequisite.
+describe("findAllTextMatchesForCriterion", () => {
+  it("matches every seed's own preferred_term, not just the headline term", () => {
+    const matches = findAllTextMatchesForCriterion(NG12_1_2_9, {
+      preferred_term: "Upper abdominal pain",
+      seeds: [
+        { preferred_term: "Upper abdominal pain" },
+        { preferred_term: "Nausea" },
+        { preferred_term: "Vomiting" },
+        { preferred_term: "Weight loss" },
+      ],
+    });
+    const matchedWords = matches.map((m) => m.matchedText.toLowerCase());
+    expect(matchedWords).toEqual(
+      expect.arrayContaining(["upper abdominal pain", "nausea", "vomiting", "weight loss"]),
+    );
+  });
+
+  it("does not return duplicate/overlapping ranges for seeds that share wording", () => {
+    const matches = findAllTextMatchesForCriterion(NG12_1_2_8, {
+      preferred_term: "Haematemesis (disorder)",
+      seeds: [
+        { preferred_term: "Haematemesis (disorder)" },
+        { preferred_term: "Haematemesis" },
+      ],
+    });
+    expect(matches.length).toBe(1);
+  });
+
+  it("returns an empty array for a criterion with no matchable wording", () => {
+    expect(findAllTextMatchesForCriterion(NG12_1_2_8, {})).toEqual([]);
+    expect(findAllTextMatchesForCriterion(NG12_1_2_8, null)).toEqual([]);
+    expect(findAllTextMatchesForCriterion(null, { preferred_term: "haematemesis" })).toEqual([]);
+  });
+
+  it("falls back to the legacy single-term shape when there are no seeds", () => {
+    const matches = findAllTextMatchesForCriterion(NG12_1_2_8, {
+      preferred_term: "Haematemesis (disorder)",
+    });
+    expect(matches.length).toBe(1);
+    expect(matches[0].matchedText.toLowerCase()).toBe("haematemesis");
   });
 });
 

@@ -22,6 +22,21 @@
  * On narrow viewports (xs, sm) the stepper compacts to a horizontal
  * scroll strip with shortened labels so the strip never wraps.
  *
+ * While the guided highlight-to-build wizard is working through its
+ * own phases inside "Who", `wizardPhase` renders a small, non-numbered
+ * breadcrumb (Always true > Situations > Conditions > Review) directly
+ * beneath this same row -- deliberately in the SAME persistent header
+ * box as the numbered steps, not buried further down in the scrolling
+ * canvas. That keeps the whole dialog to one navigation surface: the
+ * reviewer only ever has one place to look to answer "where am I and
+ * what happens if I click Back". The wizard's own phase count is
+ * intentionally NOT promoted to its own numbered/jump-able circles
+ * here -- it varies per guideline (one "Conditions" phase per
+ * situation, and the situation count is only known after Step 2 runs),
+ * so giving it equal billing with Who/Suggest/Save would make this bar
+ * resize itself mid-flow and expose steps the reviewer cannot jump to
+ * yet (the pathway hasn't been built). See `WizardPhaseBreadcrumb.tsx`.
+ *
  * Design Controls: UN-LEO-AI-094 (v2), DI-LEO-AI-512 (v2),
  *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
  */
@@ -41,6 +56,8 @@ import {
   STEP_TITLES,
   type StepId,
 } from "./copy";
+import WizardPhaseBreadcrumb from "./HighlightWizard/WizardPhaseBreadcrumb";
+import type { WizardStepKind } from "./HighlightWizard/wizardState";
 
 /**
  * Per-step state machine. The previous (now-deleted) StepRail.tsx
@@ -58,12 +75,19 @@ interface Props {
   steps: StepDescriptor[];
   currentStepId: StepId;
   onJump: (stepId: StepId) => void;
+  /**
+   * The guided wizard's current phase while `currentStepId === "who"`.
+   * Null/undefined whenever there's nothing to show (no tree yet, or
+   * a different outer step is active) -- see the file doc comment.
+   */
+  wizardPhase?: WizardStepKind | null;
 }
 
 export default function HorizontalStepper({
   steps,
   currentStepId,
   onJump,
+  wizardPhase,
 }: Props) {
   return (
     <Box
@@ -122,6 +146,11 @@ export default function HorizontalStepper({
           );
         })}
       </Stack>
+      {currentStepId === "who" && wizardPhase && (
+        <Box sx={{ pl: { xs: 4, md: 4.5 }, pt: 0.5 }}>
+          <WizardPhaseBreadcrumb step={wizardPhase} />
+        </Box>
+      )}
     </Box>
   );
 }

@@ -563,7 +563,7 @@ export function applyUpdate(
         return appendChild(n, child);
       });
     case "add_demographic": {
-      const demo = makeDemographicNode(update.field);
+      const demo = makeDemographicNode(update.field, update.prefill, update.sourceRowText);
       return mapNode(root, (n) => {
         if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) return n;
         if (isOrGroupSymptomsOnly(n)) {
@@ -958,24 +958,41 @@ function makeGroupNode(kind: LogicNodeKind): EditableLogicNode {
   };
 }
 
-function makeDemographicNode(field: "age" | "sex" = "age"): EditableLogicNode {
-  if (field === "sex") {
-    return {
-      node_id: freshNodeId(),
-      kind: "DEMOGRAPHIC",
-      field: "sex",
-      operator: "=",
-      value: "female",
-      unit: null,
-    };
-  }
+function makeDemographicNode(
+  field: "age" | "sex" = "age",
+  prefill?: {
+    operator?: string;
+    value?: string | number;
+    value2?: string | number;
+    unit?: string | null;
+  },
+  sourceRowText?: string,
+): EditableLogicNode {
+  const base: EditableLogicNode =
+    field === "sex"
+      ? {
+          node_id: freshNodeId(),
+          kind: "DEMOGRAPHIC",
+          field: "sex",
+          operator: "=",
+          value: "female",
+          unit: null,
+        }
+      : {
+          node_id: freshNodeId(),
+          kind: "DEMOGRAPHIC",
+          field: "age",
+          operator: ">=",
+          value: 40,
+          unit: "years",
+        };
   return {
-    node_id: freshNodeId(),
-    kind: "DEMOGRAPHIC",
-    field: "age",
-    operator: ">=",
-    value: 40,
-    unit: "years",
+    ...base,
+    ...(prefill?.operator !== undefined ? { operator: prefill.operator } : {}),
+    ...(prefill?.value !== undefined ? { value: prefill.value } : {}),
+    ...(prefill?.value2 !== undefined ? { value2: prefill.value2 } : {}),
+    ...(prefill?.unit !== undefined ? { unit: prefill.unit } : {}),
+    ...(sourceRowText ? { source_row_text: sourceRowText } : {}),
   };
 }
 
@@ -1036,37 +1053,16 @@ function makeObservationNode(
 }
 
 /**
- * Walk the tree and return the first problem we find in plain English, or
- * null when the tree is valid. Mirrors the server-side validator so the user
- * gets immediate feedback before clicking Save. Messages follow the
- * health-literacy rule (reading age 9-11, plain English, active voice).
+ * Checks ONE node's own validity, ignoring its children's own problems
+ * (the caller handles recursion). Shared by ``findValidationError`` (first
+ * problem only) and ``findAllValidationErrors`` (every problem, with the
+ * offending node's id, for "jump to issue" navigation) so the two never
+ * drift apart. Messages follow the health-literacy rule (reading age
+ * 9-11, plain English, active voice).
  */
-export function findValidationError(node: EditableLogicNode | null): string | null {
-  if (!node) {
-    return "This rule needs at least one condition. Click + to add a symptom, procedure, situation, or patient detail.";
-  }
+function checkNodeOwnError(node: EditableLogicNode): string | null {
   if (node.kind === "CONCEPT") {
-    const c = node.criterion;
-    const seeds = c?.seeds ?? [];
-    const hasLegacy = !!c?.snomed_concept_id;
-    if (seeds.length === 0 && !hasLegacy) {
-      return "Pick a symptom, sign, procedure, or situation for the empty pill. Use the search box on the right.";
-    }
-    if (seeds.length > 0) {
-      const seedIds = new Set(seeds.map((s) => s.snomed_concept_id));
-      for (const x of c?.excluded_concept_ids ?? []) {
-        if (seedIds.has(x)) {
-          return "A code is in both the seeds and the exclude list. Remove it from one of the two.";
-        }
-      }
-      if (
-        c?.primary_concept_id &&
-        !seedIds.has(c.primary_concept_id)
-      ) {
-        return "The chip's main code is no longer in the seed list. Pick a new main code.";
-      }
-    }
-    return null;
+    return checkConceptOwnError(node);
   }
   if (node.kind === "DEMOGRAPHIC") {
     if (!node.field) {
@@ -1084,29 +1080,62 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
     return null;
   }
   if (node.kind === "OBSERVATION") {
-    const obs = node.observation;
-    if (!obs) {
-      return "Pick a lab test or reading for the empty lab row.";
+    return checkObservationOwnError(node.observation);
+  }
+  return checkGroupOwnError(node);
+}
+
+function checkConceptOwnError(node: EditableLogicNode): string | null {
+  const c = node.criterion;
+  const seeds = c?.seeds ?? [];
+  const hasLegacy = !!c?.snomed_concept_id;
+  if (seeds.length === 0 && !hasLegacy) {
+    return "Pick a symptom, sign, procedure, or situation for the empty pill. Use the search box on the right.";
+  }
+  if (seeds.length === 0) {
+    return null;
+  }
+  const seedIds = new Set(seeds.map((s) => s.snomed_concept_id));
+  for (const x of c?.excluded_concept_ids ?? []) {
+    if (seedIds.has(x)) {
+      return "A code is in both the seeds and the exclude list. Remove it from one of the two.";
     }
-    if (!obs.observable_id || !obs.observable_id.trim()) {
-      return "Pick a lab test or reading (for example: platelet count).";
-    }
-    if (obs.operator === "between") {
-      const pair = Array.isArray(obs.value) ? obs.value : null;
-      if (!pair || pair.length !== 2) {
-        return "'Is between' needs two numbers: a low and a high.";
-      }
-      if (!Number.isFinite(pair[0]) || !Number.isFinite(pair[1])) {
-        return "'Is between' needs two numbers.";
-      }
-      if (pair[0] > pair[1]) {
-        return "'Is between' needs the low number to be at most the high number.";
-      }
-    } else if (!Number.isFinite(obs.value as number)) {
+  }
+  if (c?.primary_concept_id && !seedIds.has(c.primary_concept_id)) {
+    return "The chip's main code is no longer in the seed list. Pick a new main code.";
+  }
+  return null;
+}
+
+function checkObservationOwnError(
+  obs: EditableObservationPayload | undefined,
+): string | null {
+  if (!obs) {
+    return "Pick a lab test or reading for the empty lab row.";
+  }
+  if (!obs.observable_id || !obs.observable_id.trim()) {
+    return "Pick a lab test or reading (for example: platelet count).";
+  }
+  if (obs.operator !== "between") {
+    if (!Number.isFinite(obs.value as number)) {
       return "Add a number for this lab test (for example: 400).";
     }
     return null;
   }
+  const pair = Array.isArray(obs.value) ? obs.value : null;
+  if (!pair || pair.length !== 2) {
+    return "'Is between' needs two numbers: a low and a high.";
+  }
+  if (!Number.isFinite(pair[0]) || !Number.isFinite(pair[1])) {
+    return "'Is between' needs two numbers.";
+  }
+  if (pair[0] > pair[1]) {
+    return "'Is between' needs the low number to be at most the high number.";
+  }
+  return null;
+}
+
+function checkGroupOwnError(node: EditableLogicNode): string | null {
   const children = node.children ?? [];
   if (children.length === 0) {
     return "One of the groups is empty. Add a symptom, procedure, situation, or patient detail, or remove the group.";
@@ -1123,11 +1152,54 @@ export function findValidationError(node: EditableLogicNode | null): string | nu
       return "You're asking for more symptoms than there are. Lower the number, or add more symptoms.";
     }
   }
-  for (const child of children) {
-    const childError = findValidationError(child);
-    if (childError) return childError;
-  }
   return null;
+}
+
+/** A single tree problem, tagged with the node that caused it so the UI
+ *  can jump straight to it. ``nodeId`` is null only for the "there is no
+ *  tree at all yet" case, where there is nothing on screen to jump to. */
+export interface ValidationIssue {
+  nodeId: string | null;
+  message: string;
+}
+
+/**
+ * Walk the WHOLE tree and return every problem we find, each tagged with
+ * the offending node's id, in plain English (reading age 9-11). Unlike
+ * ``findValidationError`` this does not stop at the first problem -- it
+ * powers "jump to issue" navigation, which needs to know about every
+ * problem up front, not just the first one the reviewer happens to hit.
+ */
+export function findAllValidationErrors(
+  node: EditableLogicNode | null,
+): ValidationIssue[] {
+  if (!node) {
+    return [
+      {
+        nodeId: null,
+        message:
+          "This rule needs at least one condition. Click + to add a symptom, procedure, situation, or patient detail.",
+      },
+    ];
+  }
+  const ownError = checkNodeOwnError(node);
+  const issues: ValidationIssue[] = ownError
+    ? [{ nodeId: node.node_id, message: ownError }]
+    : [];
+  for (const child of node.children ?? []) {
+    issues.push(...findAllValidationErrors(child));
+  }
+  return issues;
+}
+
+/**
+ * Walk the tree and return the first problem we find in plain English, or
+ * null when the tree is valid. Mirrors the server-side validator so the user
+ * gets immediate feedback before clicking Save. Messages follow the
+ * health-literacy rule (reading age 9-11, plain English, active voice).
+ */
+export function findValidationError(node: EditableLogicNode | null): string | null {
+  return findAllValidationErrors(node)[0]?.message ?? null;
 }
 
 /**

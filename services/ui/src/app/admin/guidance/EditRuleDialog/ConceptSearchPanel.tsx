@@ -37,7 +37,9 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
+import ConceptExpandDialog from "./ConceptExpandDialog";
 import { SEARCH_PANEL, friendlyTerm } from "./copy";
+import PriorResolutionNudge from "./PriorResolutionNudge";
 import type {
   ConceptSearchHit,
   EditableObservationPayload,
@@ -65,6 +67,12 @@ interface Props {
   /** Suggested initial query (e.g. the term currently on the focused chip). */
   initialQuery: string;
   onPick: (criterion: LogicCriterion) => void;
+  /**
+   * Bulk-add path for "Ask LEO for ideas" (several sibling CONCEPT leaves).
+   * When omitted, the Ask LEO CTA is hidden -- single-pick hosts that do
+   * not support multi-add keep the plain no-results message.
+   */
+  onAddMany?: (criteria: LogicCriterion[]) => void;
   /**
    * Phase 6b: optional handler for the "Compare value..." action on an
    * observable hit. When omitted, the affordance is hidden and the
@@ -162,6 +170,7 @@ export default function ConceptSearchPanel({
   focusLabel,
   initialQuery,
   onPick,
+  onAddMany,
   onPickObservation,
   filterToObservable = false,
   showHeading = true,
@@ -171,6 +180,7 @@ export default function ConceptSearchPanel({
   const [hits, setHits] = useState<ConceptSearchHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [askLeoOpen, setAskLeoOpen] = useState(false);
   const priorResolutions = usePriorConceptResolutions(initialQuery, mode);
 
   useEffect(() => {
@@ -281,9 +291,27 @@ export default function ConceptSearchPanel({
           </Stack>
         )}
         {!loading && mode !== "idle" && hits.length === 0 && query.trim().length >= 2 && !error && (
-          <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
-            {SEARCH_PANEL.noResults(query.trim())}
-          </Typography>
+          <Stack spacing={1} sx={{ p: 1.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              {SEARCH_PANEL.noResults(query.trim())}
+            </Typography>
+            {onAddMany && (
+              <>
+                <Typography variant="caption" color="text.secondary">
+                  {SEARCH_PANEL.askLeoIdeasHint}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setAskLeoOpen(true)}
+                  sx={{ alignSelf: "flex-start", textTransform: "none" }}
+                  aria-label={SEARCH_PANEL.askLeoIdeasLabel}
+                >
+                  {SEARCH_PANEL.askLeoIdeasLabel}
+                </Button>
+              </>
+            )}
+          </Stack>
         )}
         {!loading && mode === "idle" && (
           <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
@@ -325,79 +353,15 @@ export default function ConceptSearchPanel({
             />
           ))}
       </Box>
+      {onAddMany && (
+        <ConceptExpandDialog
+          open={askLeoOpen}
+          phrase={query.trim() || initialQuery.trim()}
+          onClose={() => setAskLeoOpen(false)}
+          onConfirm={onAddMany}
+        />
+      )}
     </Stack>
-  );
-}
-
-function PriorResolutionNudge({
-  term,
-  resolutions,
-  onPick,
-}: {
-  term: string;
-  resolutions: PriorConceptResolution[];
-  onPick: (criterion: LogicCriterion) => void;
-}) {
-  const heading =
-    resolutions.length === 1
-      ? SEARCH_PANEL.priorResolutionOneHeading(term)
-      : SEARCH_PANEL.priorResolutionManyHeading(term);
-  return (
-    <Box
-      role="group"
-      aria-label={heading}
-      sx={{
-        p: 1,
-        borderRadius: 1.5,
-        bgcolor: "primary.50",
-        border: "1px solid",
-        borderColor: "primary.100",
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
-      >
-        {heading}
-      </Typography>
-      <Stack spacing={0.5}>
-        {resolutions.map((r) => {
-          const friendly = friendlyTerm(r.preferred_term);
-          return (
-            <Stack
-              key={r.snomed_concept_id}
-              direction="row"
-              alignItems="center"
-              spacing={1}
-            >
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {friendly}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {SEARCH_PANEL.priorResolutionCount(r.count)}
-                </Typography>
-              </Box>
-              <Button
-                size="small"
-                variant="outlined"
-                aria-label={`Use ${friendly} (previously used for "${term}")`}
-                onClick={() =>
-                  onPick({
-                    snomed_concept_id: r.snomed_concept_id,
-                    preferred_term: r.preferred_term,
-                    semantic_tag: r.semantic_tag ?? undefined,
-                    term,
-                  })
-                }
-              >
-                Use this
-              </Button>
-            </Stack>
-          );
-        })}
-      </Stack>
-    </Box>
   );
 }
 

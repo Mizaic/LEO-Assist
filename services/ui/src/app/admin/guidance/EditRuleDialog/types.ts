@@ -340,6 +340,22 @@ export type NodeUpdate =
       parentNodeId: string;
       /** Defaults to age when omitted. Sex seeds a sex leaf instead. */
       field?: "age" | "sex";
+      /**
+       * Operator/value/unit parsed from a highlighted guideline phrase
+       * (see `HighlightWizard/demographicPhraseMatch.ts`), so a selection
+       * like "aged 40 and over" lands with the right threshold already
+       * filled in instead of the field's generic blank default. Absent
+       * for the "+ Add age" / "+ Add sex" button flows, which still seed
+       * the same blank defaults as before.
+       */
+      prefill?: {
+        operator?: string;
+        value?: string | number;
+        value2?: string | number;
+        unit?: string | null;
+      };
+      /** See `EditableLogicNode.source_row_text`'s doc comment. */
+      sourceRowText?: string;
     }
   // -- Phase 2: optional pathway name --
   | { kind: "set_name"; nodeId: string; name: string }

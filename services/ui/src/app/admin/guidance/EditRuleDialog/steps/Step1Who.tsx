@@ -26,7 +26,7 @@ import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import AIDraftButton from "../AIDraftButton";
-import HighlightWizard from "../HighlightWizard";
+import HighlightWizard, { type WizardJumpRequest } from "../HighlightWizard";
 import type { WizardStepKind } from "../HighlightWizard/wizardState";
 import type {
   PathwayTextBoundary,
@@ -100,6 +100,17 @@ interface Props {
     boundaries: PathwayTextBoundary[] | null,
     activePathwayIndex: number | null,
   ) => void;
+  /** See `HighlightWizard`'s `WizardJumpRequest` doc comment --
+   *  forwarded from the host's issue banner "Take me there" clicks. */
+  jumpRequest?: WizardJumpRequest | null;
+  /**
+   * Reports the guided wizard's raw current phase (or null when the
+   * wizard isn't showing at all) so the host can render the phase
+   * breadcrumb attached to its own "Who" pill in `HorizontalStepper`
+   * instead of inside this step's own canvas -- see that component's
+   * doc comment for why the breadcrumb lives there now.
+   */
+  onWizardStepChange?: (step: WizardStepKind | null) => void;
 }
 
 export default function Step1Who({
@@ -121,6 +132,8 @@ export default function Step1Who({
   guidelineId,
   onGuidedPanelModeChange,
   onActiveSituationChange,
+  jumpRequest,
+  onWizardStepChange,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
   const showWizard = Boolean(tree) && !treeIsEmpty;
@@ -139,11 +152,13 @@ export default function Step1Who({
     if (!showWizard) {
       onGuidedPanelModeChange?.("preview");
       onActiveSituationChange?.(null, null);
+      onWizardStepChange?.(null);
     }
-  }, [showWizard, onGuidedPanelModeChange, onActiveSituationChange]);
+  }, [showWizard, onGuidedPanelModeChange, onActiveSituationChange, onWizardStepChange]);
 
   function handleWizardStepChange(step: WizardStepKind) {
     onGuidedPanelModeChange?.(step === "review" ? "preview" : "quote");
+    onWizardStepChange?.(step);
   }
 
   const showStructureWarning = tree && hasOrRootWithPrerequisites(tree);
@@ -269,6 +284,7 @@ export default function Step1Who({
           currentRuleId={ruleId || undefined}
           onStepChange={handleWizardStepChange}
           onActiveSituationChange={onActiveSituationChange}
+          jumpRequest={jumpRequest}
         />
       ) : (
         <EmptyTreeState

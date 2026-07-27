@@ -10,7 +10,7 @@
  * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import StepPathwaySplit from "../HighlightWizard/StepPathwaySplit";
 import type { RecommendationStructure } from "../SentenceEditor/pathwayTextSplit";
@@ -128,6 +128,28 @@ describe("StepPathwaySplit: heuristic fallback", () => {
 });
 
 describe("StepPathwaySplit: merge editing", () => {
+  it("shows an instruction banner while merge mode is on", async () => {
+    const user = userEvent.setup();
+    render(
+      <StepPathwaySplit
+        recommendationText={HEURISTIC_TEXT}
+        recommendationStructure={null}
+        onConfirm={jest.fn()}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByText(/tap two rows below to combine them/i),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+
+    expect(
+      screen.getByText(/tap two rows below to combine them/i),
+    ).toBeInTheDocument();
+  });
+
   it("merges two selected rows into one on Confirm merge", async () => {
     const user = userEvent.setup();
     const onConfirm = jest.fn();
@@ -171,6 +193,86 @@ describe("StepPathwaySplit: merge editing", () => {
     expect(screen.getByRole("button", { name: /confirm merge/i })).toBeDisabled();
   });
 
+  it("warns before merging two rows that are not next to each other", async () => {
+    const user = userEvent.setup();
+    const onConfirm = jest.fn();
+    render(
+      <StepPathwaySplit
+        recommendationText={HEURISTIC_TEXT}
+        recommendationStructure={null}
+        onConfirm={onConfirm}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
+    expect(rows).toHaveLength(3);
+    await user.click(rows[0]);
+    await user.click(rows[2]);
+    await user.click(screen.getByRole("button", { name: /confirm merge/i }));
+
+    expect(
+      screen.getByText(/these rows aren't next to each other/i),
+    ).toBeInTheDocument();
+    // The merge has NOT happened yet -- still 3 unmerged rows underneath.
+    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(3);
+
+    await user.click(screen.getByRole("button", { name: /merge anyway/i }));
+
+    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm.mock.calls[0][0]).toHaveLength(2);
+  });
+
+  it("Cancel on the non-adjacent merge warning leaves the rows unmerged", async () => {
+    const user = userEvent.setup();
+    render(
+      <StepPathwaySplit
+        recommendationText={HEURISTIC_TEXT}
+        recommendationStructure={null}
+        onConfirm={jest.fn()}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
+    await user.click(rows[0]);
+    await user.click(rows[2]);
+    await user.click(screen.getByRole("button", { name: /confirm merge/i }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: /^cancel$/i }));
+
+    expect(
+      screen.queryByText(/these rows aren't next to each other/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(3);
+  });
+
+  it("merging two ADJACENT rows needs no warning at all", async () => {
+    const user = userEvent.setup();
+    render(
+      <StepPathwaySplit
+        recommendationText={HEURISTIC_TEXT}
+        recommendationStructure={null}
+        onConfirm={jest.fn()}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
+    await user.click(rows[0]);
+    await user.click(rows[1]);
+    await user.click(screen.getByRole("button", { name: /confirm merge/i }));
+
+    expect(
+      screen.queryByText(/these rows aren't next to each other/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(2);
+  });
+
   it("Cancel returns to idle without changing the rows", async () => {
     const user = userEvent.setup();
     render(
@@ -189,6 +291,90 @@ describe("StepPathwaySplit: merge editing", () => {
     expect(
       screen.getByRole("button", { name: /looks right, continue/i }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("StepPathwaySplit: merging every row down to one", () => {
+  it("explains what happened instead of the contradictory 'couldn't find' copy, and offers Undo", async () => {
+    const user = userEvent.setup();
+    render(
+      <StepPathwaySplit
+        recommendationText={null}
+        recommendationStructure={STRUCTURE}
+        onConfirm={jest.fn()}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
+    expect(rows).toHaveLength(2);
+    await user.click(rows[0]);
+    await user.click(rows[1]);
+    await user.click(screen.getByRole("button", { name: /confirm merge/i }));
+
+    // The old bug: this would show "We think we found 1 possible
+    // situations. Please check them." directly above "We couldn't
+    // find more than one situation in this text." -- flatly
+    // contradictory. Neither string should be on screen now.
+    expect(
+      screen.queryByText(/we think we found 1 possible situations/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/couldn't find more than one situation/i),
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.getByText(/you've combined every situation into one/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /undo -- keep them as separate situations/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("Undo restores the two rows exactly as they were before the merge", async () => {
+    const user = userEvent.setup();
+    render(
+      <StepPathwaySplit
+        recommendationText={null}
+        recommendationStructure={STRUCTURE}
+        onConfirm={jest.fn()}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
+    await user.click(rows[0]);
+    await user.click(rows[1]);
+    await user.click(screen.getByRole("button", { name: /confirm merge/i }));
+
+    await user.click(
+      screen.getByRole("button", { name: /undo -- keep them as separate situations/i }),
+    );
+
+    expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(2);
+    expect(
+      screen.getByText("The guideline lists 2 situations. Here they are."),
+    ).toBeInTheDocument();
+  });
+
+  it("a genuine single-situation guideline (never merged) still shows the original 'couldn't find' copy with no Undo button", () => {
+    render(
+      <StepPathwaySplit
+        recommendationText={NO_SPLIT_TEXT}
+        recommendationStructure={null}
+        onConfirm={jest.fn()}
+        onNoSplit={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(/couldn't find more than one situation/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /undo/i }),
+    ).not.toBeInTheDocument();
   });
 });
 

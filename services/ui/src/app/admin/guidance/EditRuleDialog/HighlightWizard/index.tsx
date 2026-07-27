@@ -31,23 +31,30 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type Dispatch,
 } from "react";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { findPathwaySplit } from "../pathwayDetection";
 import type {
   PathwayTextBoundary,
   RecommendationStructure,
 } from "../SentenceEditor/pathwayTextSplit";
 import type { EditableLogicNode, NodeUpdate } from "../types";
-import PathwayConditionsStage from "./PathwayConditionsStage";
+import PathwayConditionsStage, { resolvePathwayNodes } from "./PathwayConditionsStage";
 import StepPathwaySplit from "./StepPathwaySplit";
 import StepPrerequisites from "./StepPrerequisites";
-import { WIZARD_CHROME } from "./copy";
-import { materializePathways, readMaterializedPathways } from "./wizardMapping";
+import { SPLIT_COUNT_CHANGE_WARNING, WIZARD_CHROME } from "./copy";
+import {
+  findNodeById,
+  materializePathways,
+  readMaterializedPathways,
+  splitWouldDiscardPathwayLeaves,
+} from "./wizardMapping";
 import WizardHeader from "./WizardHeader";
 import { buildInitialWizardState } from "./initialWizardState";
 import {
@@ -57,6 +64,46 @@ import {
   type WizardState,
   type WizardStepKind,
 } from "./wizardState";
+
+/** A one-shot "go show me this node" request from outside the wizard
+ *  (see EditRuleDialog/index.tsx's issue banner). `requestId` only
+ *  needs to change between clicks -- Date.now() is enough -- so
+ *  clicking "Take me there" twice on the SAME node still re-triggers
+ *  the jump (and the scroll+flash that follows it). */
+export interface WizardJumpRequest {
+  nodeId: string;
+  requestId: number;
+}
+
+type JumpTarget =
+  | { step: "prerequisites" }
+  | { step: "pathway-conditions"; pathwayIndex: number };
+
+/** Where does `nodeId` actually live -- Step 1's always-true list, or
+ *  one of Step 3's confirmed pathways? Mirrors exactly the same
+ *  pathway resolution `PathwayConditionsStage` itself uses
+ *  (`resolvePathwayNodes`) so a jump can never land on the wrong
+ *  situation. Returns null when the node isn't found at all (e.g. it
+ *  was removed by an edit that raced the jump). */
+function findJumpTarget(
+  tree: EditableLogicNode,
+  boundaries: PathwayTextBoundary[] | null,
+  recommendationText: string | null | undefined,
+  prerequisiteNodes: EditableLogicNode[],
+  nodeId: string,
+): JumpTarget | null {
+  for (const node of prerequisiteNodes) {
+    if (findNodeById(node, nodeId)) return { step: "prerequisites" };
+  }
+  if (!boundaries) return null;
+  const pathwayNodes = resolvePathwayNodes(tree, boundaries, recommendationText);
+  for (let i = 0; i < pathwayNodes.length; i++) {
+    if (findNodeById(pathwayNodes[i], nodeId)) {
+      return { step: "pathway-conditions", pathwayIndex: i };
+    }
+  }
+  return null;
+}
 
 export interface HighlightWizardProps {
   tree: EditableLogicNode;
@@ -105,6 +152,12 @@ export interface HighlightWizardProps {
     boundaries: PathwayTextBoundary[] | null,
     activePathwayIndex: number | null,
   ) => void;
+  /** See `WizardJumpRequest`'s doc comment -- "jump to issue"
+   *  navigation into whichever phase/pathway actually owns the
+   *  problem node, driven from outside the wizard (the issue banner
+   *  lives at the EditRuleDialog level, above both this component and
+   *  the tree itself). */
+  jumpRequest?: WizardJumpRequest | null;
 }
 
 function usePrerequisiteNodes(tree: EditableLogicNode): EditableLogicNode[] {
@@ -131,6 +184,87 @@ function useMaterializationEffect(
   }, [tree, state.materializing, state.boundaries, dispatch]);
 }
 
+/**
+ * Consumes a `WizardJumpRequest` exactly once per `requestId` and
+ * dispatches whichever JUMP_TO_* action gets the reviewer there.
+ * Reads the latest tree/boundaries/prerequisites off refs rather than
+ * listing them as effect deps -- the jump must fire ONLY when a new
+ * request actually arrives, not on every tree edit the reviewer makes
+ * while an old request object is still the current prop value.
+ */
+function useJumpRequest(
+  jumpRequest: WizardJumpRequest | null | undefined,
+  tree: EditableLogicNode,
+  boundaries: PathwayTextBoundary[] | null,
+  recommendationText: string | null | undefined,
+  prerequisiteNodes: EditableLogicNode[],
+  dispatch: Dispatch<WizardAction>,
+): void {
+  const latest = useRef({ tree, boundaries, recommendationText, prerequisiteNodes });
+  latest.current = { tree, boundaries, recommendationText, prerequisiteNodes };
+
+  useEffect(() => {
+    if (!jumpRequest) return;
+    const { tree: t, boundaries: b, recommendationText: r, prerequisiteNodes: p } = latest.current;
+    const target = findJumpTarget(t, b, r, p, jumpRequest.nodeId);
+    if (!target) return;
+    if (target.step === "prerequisites") {
+      dispatch({ type: "JUMP_TO_PREREQUISITES" });
+    } else {
+      dispatch({ type: "JUMP_TO_PATHWAY", pathwayIndex: target.pathwayIndex });
+    }
+    // Only `requestId` (via the `jumpRequest` object identity) should
+    // re-trigger this -- see the doc comment above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jumpRequest]);
+}
+
+const JUMP_FLASH_MAX_ATTEMPTS = 30;
+
+/**
+ * Once `useJumpRequest` has switched to the right phase/pathway, the
+ * jumped-to row still needs to actually be found and shown -- this
+ * polls with requestAnimationFrame (materialization and the
+ * subsequent re-render both take a frame or two) for the element
+ * carrying `data-wizard-jump-target="true"` + a matching
+ * `data-node-id`, scrolls it into view, and flashes it via the
+ * `wizard-jump-flash` CSS animation (globals.css) so the reviewer's
+ * eye lands on the right row instead of just the right screen.
+ */
+function useJumpScrollAndFlash(
+  jumpRequest: WizardJumpRequest | null | undefined,
+  containerRef: { current: HTMLElement | null },
+  step: WizardStepKind,
+  pathwayIndex: number,
+): void {
+  useEffect(() => {
+    if (!jumpRequest) return;
+    let attempts = 0;
+    let rafId = 0;
+    const tryFlash = () => {
+      const el = containerRef.current?.querySelector<HTMLElement>(
+        `[data-wizard-jump-target="true"][data-node-id="${jumpRequest.nodeId}"]`,
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("wizard-jump-flash");
+        el.addEventListener(
+          "animationend",
+          () => el.classList.remove("wizard-jump-flash"),
+          { once: true },
+        );
+        return;
+      }
+      attempts += 1;
+      if (attempts < JUMP_FLASH_MAX_ATTEMPTS) rafId = requestAnimationFrame(tryFlash);
+    };
+    rafId = requestAnimationFrame(tryFlash);
+    return () => cancelAnimationFrame(rafId);
+    // `step`/`pathwayIndex` are included so a jump that changes phase
+    // re-polls once the new phase has actually mounted its rows.
+  }, [jumpRequest, containerRef, step, pathwayIndex]);
+}
+
 export default function HighlightWizard({
   tree,
   recommendationText,
@@ -145,6 +279,7 @@ export default function HighlightWizard({
   onStepChange,
   startMode = "auto",
   onActiveSituationChange,
+  jumpRequest,
 }: HighlightWizardProps) {
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
     startMode === "fresh"
@@ -155,7 +290,10 @@ export default function HighlightWizard({
     PathwayTextBoundary[] | null
   >(null);
   const prerequisiteNodes = usePrerequisiteNodes(tree);
+  const containerRef = useRef<HTMLDivElement>(null);
   useMaterializationEffect(tree, state, dispatch);
+  useJumpRequest(jumpRequest, tree, state.boundaries, recommendationText, prerequisiteNodes, dispatch);
+  useJumpScrollAndFlash(jumpRequest, containerRef, state.step, state.pathwayIndex);
 
   useEffect(() => {
     onStepChange?.(state.step);
@@ -179,12 +317,27 @@ export default function HighlightWizard({
     onActiveSituationChange,
   ]);
 
-  const handleConfirmSplit = useCallback(
+  const [pendingCountChange, setPendingCountChange] = useState<
+    PathwayTextBoundary[] | null
+  >(null);
+
+  const applySplit = useCallback(
     (boundaries: PathwayTextBoundary[]) => {
       const nodes = materializePathways(tree, boundaries.length, onUpdate);
       dispatch({ type: "CONFIRM_SPLIT", boundaries, readyImmediately: nodes.length > 0 });
     },
     [tree, onUpdate],
+  );
+
+  const handleConfirmSplit = useCallback(
+    (boundaries: PathwayTextBoundary[]) => {
+      if (splitWouldDiscardPathwayLeaves(tree, boundaries.length)) {
+        setPendingCountChange(boundaries);
+        return;
+      }
+      applySplit(boundaries);
+    },
+    [tree, applySplit],
   );
 
   const handleNoSplit = useCallback(() => {
@@ -198,7 +351,7 @@ export default function HighlightWizard({
   const handleBack = useCallback(() => dispatch({ type: "BACK" }), []);
 
   return (
-    <Stack spacing={2} data-testid="highlight-wizard">
+    <Stack ref={containerRef} spacing={2} data-testid="highlight-wizard">
       <WizardHeader step={state.step} onBack={handleBack} />
 
       {state.step === "prerequisites" && (
@@ -207,9 +360,13 @@ export default function HighlightWizard({
           prerequisites={prerequisiteNodes}
           onEdit={onSelectNode}
           onEditConcept={onEditConcept}
+          onUpdate={onUpdate}
           onRemove={(nodeId) => onUpdate({ kind: "remove", nodeId })}
           onAddFromSelection={(selection, anchor) =>
             onRequestAdd(tree.node_id, anchor, selection.text, true)
+          }
+          onAddDemographic={(field) =>
+            onUpdate({ kind: "add_demographic", parentNodeId: tree.node_id, field })
           }
           onConfirmNoMore={() => dispatch({ type: "CONFIRM_PREREQUISITES" })}
         />
@@ -224,11 +381,27 @@ export default function HighlightWizard({
           <StepPathwaySplit
             recommendationText={recommendationText}
             recommendationStructure={recommendationStructure}
+            initialBoundaries={state.boundaries}
             onConfirm={handleConfirmSplit}
             onNoSplit={handleNoSplit}
             onProposedBoundariesChange={setProposedBoundaries}
           />
         ))}
+
+      {pendingCountChange && (
+        <ConfirmDialog
+          title={SPLIT_COUNT_CHANGE_WARNING.title}
+          body={SPLIT_COUNT_CHANGE_WARNING.body}
+          confirmLabel={SPLIT_COUNT_CHANGE_WARNING.confirmLabel}
+          cancelLabel={SPLIT_COUNT_CHANGE_WARNING.cancelLabel}
+          variant="danger"
+          onConfirm={() => {
+            applySplit(pendingCountChange);
+            setPendingCountChange(null);
+          }}
+          onCancel={() => setPendingCountChange(null)}
+        />
+      )}
 
       {state.step === "pathway-conditions" && state.boundaries && (
         <PathwayConditionsStage
@@ -237,12 +410,16 @@ export default function HighlightWizard({
           boundaries={state.boundaries}
           pathwayIndex={state.pathwayIndex}
           clusterGroupings={state.clusterGroupings}
-          onSetClusterGrouping={(pathwayIndex, grouping) =>
-            dispatch({ type: "SET_CLUSTER_GROUPING", pathwayIndex, grouping })
+          onSetClusterGrouping={(pathwayKey, grouping) =>
+            dispatch({ type: "SET_CLUSTER_GROUPING", pathwayKey, grouping })
           }
           leadClusterGroupings={state.leadClusterGroupings}
-          onSetLeadClusterGrouping={(pathwayIndex, grouping) =>
-            dispatch({ type: "SET_LEAD_CLUSTER_GROUPING", pathwayIndex, grouping })
+          onSetLeadClusterGrouping={(pathwayKey, grouping) =>
+            dispatch({ type: "SET_LEAD_CLUSTER_GROUPING", pathwayKey, grouping })
+          }
+          dismissedCopyAcrossOffers={state.dismissedCopyAcrossOffers}
+          onDismissCopyAcrossOffer={(pathwayKey) =>
+            dispatch({ type: "DISMISS_COPY_ACROSS_OFFER", pathwayKey })
           }
           onSelectNode={onSelectNode}
           onUpdate={onUpdate}

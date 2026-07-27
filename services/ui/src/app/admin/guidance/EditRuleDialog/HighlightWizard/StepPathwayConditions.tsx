@@ -36,6 +36,7 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import DemographicRow from "../LogicTreeEditor/DemographicRow";
 import ListRecommendationView, {
   type ListRowResolution,
 } from "../SentenceEditor/ListRecommendationView";
@@ -43,11 +44,13 @@ import type {
   PathwayTextBoundary,
   RecommendationStructureItem,
 } from "../SentenceEditor/pathwayTextSplit";
+import type { ValidationIssue } from "../treeOps";
 import type { EditableLogicNode, LogicCriterion, NodeUpdate } from "../types";
 import { STEP_PATHWAY_CONDITIONS } from "./copy";
 import PathwayDemographicsPanel, {
   type PathwayDemographicField,
 } from "./PathwayDemographicsPanel";
+import ProblemNodeRow from "./ProblemNodeRow";
 import RowMultiCodeHighlight from "./RowMultiCodeHighlight";
 import { buildPathwayRows, countUnresolvedRows } from "./wizardMapping";
 import type { ClusterGrouping } from "./wizardMapping";
@@ -120,6 +123,27 @@ export interface StepPathwayConditionsProps {
   pathwayDemographics?: EditableLogicNode[];
   onAddPathwayDemographic?: (field: PathwayDemographicField) => void;
   onUpdatePathway?: (update: NodeUpdate) => void;
+  /**
+   * The DEMOGRAPHIC leaf (from the main condition list, NOT
+   * `pathwayDemographics` above) whose inline age/sex editor should
+   * currently render, toggled by re-clicking its row (see
+   * `PathwayConditionsStage.handleRowClick`). Passed as the resolved
+   * node itself -- not looked up via `getRowResolution` -- because
+   * editing the value can change its own display text enough that it
+   * stops fuzzy-matching the original guideline wording, which would
+   * otherwise cause the editor to vanish mid-edit. Null/undefined
+   * means none is expanded.
+   */
+  expandedDemographicNode?: EditableLogicNode | null;
+  /**
+   * Tree problems in this pathway with no guideline text of their own
+   * to anchor a normal row to (almost always an empty group) -- see
+   * `PathwayConditionsStage`'s `pathwayProblemIssues` doc comment.
+   * Rendered as its own always-visible row so "jump to issue" always
+   * has somewhere real to land.
+   */
+  problemIssues?: ValidationIssue[];
+  onRemoveProblem?: (nodeId: string) => void;
 }
 
 export default function StepPathwayConditions({
@@ -144,6 +168,9 @@ export default function StepPathwayConditions({
   pathwayDemographics = [],
   onAddPathwayDemographic,
   onUpdatePathway,
+  expandedDemographicNode = null,
+  problemIssues = [],
+  onRemoveProblem,
 }: StepPathwayConditionsProps) {
   const { items, hasCluster, leadCluster } = useMemo(
     () => buildPathwayRows(boundary),
@@ -231,6 +258,20 @@ export default function StepPathwayConditions({
             : undefined
         }
       />
+
+      {onRemoveProblem &&
+        problemIssues.map((issue) => (
+          <ProblemNodeRow key={issue.nodeId} issue={issue} onRemove={onRemoveProblem} />
+        ))}
+
+      {expandedDemographicNode && onUpdatePathway && (
+        <Box sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+            {STEP_PATHWAY_CONDITIONS.editingDemographicHeading}
+          </Typography>
+          <DemographicRow node={expandedDemographicNode} onUpdate={onUpdatePathway} />
+        </Box>
+      )}
 
       {leadCluster && leadClusterPrompt && (
         <ClusterGroupingChoice

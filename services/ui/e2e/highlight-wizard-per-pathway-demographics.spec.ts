@@ -147,7 +147,7 @@ test.describe("Per-pathway demographics (DI-42246DA7)", () => {
   }) => {
     const dialog = await openEditDialog(page);
 
-    await expect(dialog.getByText("Step 1 of 3")).toBeVisible();
+    await expect(dialog.getByText("Always true")).toBeVisible();
     await dialog.getByRole("button", { name: "No, nothing else" }).click();
 
     await expect(dialog.getByText(/the guideline lists 2 situations/i)).toBeVisible();

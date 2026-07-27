@@ -72,6 +72,7 @@ from app.routers.guidance_rules import router as guidance_rules_router
 from app.routers.local_guidance import router as local_guidance_router
 from app.routers.guideline_shadow import router as guideline_shadow_router
 from app.routers.guidance_rule_picker import router as guidance_rule_picker_router
+from app.routers.guidance_concepts import router as guidance_concepts_router
 from app.routers.pricing import router as pricing_router
 from app.routers.lab_result_config import router as lab_result_config_router
 from app.routers.ncda_pathway_config import router as ncda_pathway_config_router
@@ -496,6 +497,7 @@ app.include_router(guidance_rules_router)
 app.include_router(local_guidance_router)
 app.include_router(guideline_shadow_router)
 app.include_router(guidance_rule_picker_router)
+app.include_router(guidance_concepts_router)
 app.include_router(pricing_router)
 app.include_router(lab_result_config_router)
 app.include_router(ncda_pathway_config_router)

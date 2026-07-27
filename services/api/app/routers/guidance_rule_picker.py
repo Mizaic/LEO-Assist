@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.db.neo4j_client import CodingGraphClient
 from app.services._logic_tree import parse_logic_json, trigger_terms_preview
+from app.services.natural_sort import natural_sort_key
 from app.deps import require_admin
 from libs.auth.org_scope import CallerScope
 from libs.cypher.guidance_rule_picker_queries import LIST_RULES_FOR_PICKER
@@ -49,6 +50,25 @@ def list_rules_for_picker(
                 trigger_terms_preview(tree, limit=3) if tree is not None else []
             )
             out.append(row)
-        return out
+        return _sort_picker_rows(out)
     finally:
         client.close()
+
+
+def _sort_picker_rows(rows: list[dict]) -> list[dict]:
+    """Re-sort picker rows on the dotted rule name, not plain string order.
+
+    The Cypher ``ORDER BY g.title, ch.title, rule.name`` sorts
+    ``rule.name`` (e.g. ``"1.11.1"``) as a plain string, so ``"1.11.1"``
+    comes back before ``"1.2.1"``. Keeps the coarse guideline/chapter
+    grouping (still fine as a plain string sort) and only replaces the
+    ``rule.name`` tiebreak with numeric-segment comparison.
+    """
+    return sorted(
+        rows,
+        key=lambda row: (
+            row.get("guideline_title") or "",
+            row.get("chapter_title") or "",
+            natural_sort_key(row.get("name") or row.get("rule_id")),
+        ),
+    )

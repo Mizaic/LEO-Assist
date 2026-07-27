@@ -10,6 +10,7 @@ import {
   applyUpdate,
   assignNodeIds,
   ensurePathwayKeys,
+  findAllValidationErrors,
   findValidationError,
   hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
@@ -246,6 +247,65 @@ describe("treeOps", () => {
 
   it("findValidationError returns null for a well-formed tree", () => {
     expect(findValidationError(makeTree())).toBeNull();
+  });
+
+  it("findAllValidationErrors returns an empty array for a well-formed tree", () => {
+    expect(findAllValidationErrors(makeTree())).toEqual([]);
+  });
+
+  it("findAllValidationErrors returns a nodeId-less issue for a completely empty tree", () => {
+    const issues = findAllValidationErrors(null);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].nodeId).toBeNull();
+    expect(issues[0].message).toMatch(/at least one condition/i);
+  });
+
+  it("findAllValidationErrors tags an empty group with its own node_id", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [{ kind: "OR", children: [] }],
+    });
+    const issues = findAllValidationErrors(tree);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].nodeId).toBe(tree.children![0].node_id);
+    expect(issues[0].message).toMatch(/empty/i);
+  });
+
+  it("findAllValidationErrors collects every problem in the tree, not just the first", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        { kind: "OR", children: [] },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "", preferred_term: "?" } },
+        {
+          kind: "AT_LEAST",
+          min: 5,
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "A" } },
+          ],
+        },
+      ],
+    });
+    const issues = findAllValidationErrors(tree);
+    expect(issues).toHaveLength(3);
+    // Each issue points at a different offending node, in tree order.
+    expect(issues[0].nodeId).toBe(tree.children![0].node_id);
+    expect(issues[1].nodeId).toBe(tree.children![1].node_id);
+    expect(issues[2].nodeId).toBe(tree.children![2].node_id);
+    expect(issues[0].message).toMatch(/empty/i);
+    expect(issues[1].message).toMatch(/pick a symptom/i);
+    expect(issues[2].message).toMatch(/asking for more symptoms/i);
+  });
+
+  it("findAllValidationErrors and findValidationError agree on the first problem", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        { kind: "OR", children: [] },
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "", preferred_term: "?" } },
+      ],
+    });
+    expect(findAllValidationErrors(tree)[0].message).toBe(findValidationError(tree));
   });
 
   it("assignNodeIds normalises lowercase 'concept'/'demographic' kinds", () => {
@@ -708,6 +768,50 @@ describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
     expect(globalKids[1].children![1].children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(
       false,
     );
+  });
+
+  it("add_demographic applies a prefill and source_row_text parsed from a highlighted phrase", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+        },
+      ],
+    });
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: tree.node_id,
+      field: "age",
+      prefill: { operator: ">=", value: "40", unit: "years" },
+      sourceRowText: "aged 40 and over",
+    });
+    const demo = updated!.children!.find((c) => c.kind === "DEMOGRAPHIC");
+    expect(demo?.operator).toBe(">=");
+    expect(demo?.value).toBe("40");
+    expect(demo?.unit).toBe("years");
+    expect(demo?.source_row_text).toBe("aged 40 and over");
+  });
+
+  it("add_demographic with no prefill keeps the existing blank defaults", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+        },
+      ],
+    });
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: tree.node_id,
+    });
+    const demo = updated!.children!.find((c) => c.kind === "DEMOGRAPHIC");
+    expect(demo?.operator).toBe(">=");
+    expect(demo?.value).toBe(40);
+    expect(demo?.source_row_text).toBeUndefined();
   });
 
   it("promoteOrPrerequisites leaves demos nested inside pathway ANDs untouched", () => {

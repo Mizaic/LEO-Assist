@@ -22,7 +22,7 @@ import type {
   PathwayTextBoundary,
   RecommendationStructureItem,
 } from "../SentenceEditor/pathwayTextSplit";
-import type { LogicCriterion } from "../types";
+import type { EditableLogicNode, LogicCriterion } from "../types";
 
 const STRUCTURE_BOUNDARY: PathwayTextBoundary = {
   text: "indigestion with any of the following:",
@@ -69,6 +69,21 @@ function makeCriterion(overrides: Partial<LogicCriterion> = {}): LogicCriterion 
 
 function resolveNothing(): ListRowResolution | undefined {
   return undefined;
+}
+
+function makeAgeLeaf(): EditableLogicNode {
+  return {
+    node_id: "n-age-1",
+    kind: "DEMOGRAPHIC",
+    field: "age",
+    operator: ">=",
+    value: 55,
+    unit: "years",
+  } as EditableLogicNode;
+}
+
+function resolveTo(node: EditableLogicNode): () => ListRowResolution {
+  return () => ({ nodeId: node.node_id, preferredTerm: "is 55 years or older" });
 }
 
 function mockSearch(hits: unknown[] = []) {
@@ -531,6 +546,101 @@ describe("StepPathwayConditions: highlight-a-word multi-code picker", () => {
       { text: "upper abdominal pain", start: 0, end: 20 },
       expect.objectContaining({ snomed_concept_id: "422587007" }),
     );
+  });
+});
+
+describe("StepPathwayConditions: inline age/sex editor for an already-resolved DEMOGRAPHIC row", () => {
+  it("does not render the inline editor when no row is expanded", () => {
+    const ageLeaf = makeAgeLeaf();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveTo(ageLeaf)}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onUpdatePathway={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText(/how to compare age/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the inline age editor for the expandedDemographicNode", () => {
+    const ageLeaf = makeAgeLeaf();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveTo(ageLeaf)}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onUpdatePathway={jest.fn()}
+        expandedDemographicNode={ageLeaf}
+      />,
+    );
+
+    expect(screen.getByLabelText(/how to compare age/i)).toBeInTheDocument();
+  });
+
+  it("dispatches set_demographic through onUpdatePathway when the inline editor's operator changes", async () => {
+    const user = userEvent.setup();
+    const ageLeaf = makeAgeLeaf();
+    const onUpdatePathway = jest.fn();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveTo(ageLeaf)}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onUpdatePathway={onUpdatePathway}
+        expandedDemographicNode={ageLeaf}
+      />,
+    );
+
+    await user.click(screen.getByLabelText(/how to compare age/i));
+    await user.click(await screen.findByRole("option", { name: /is at most/i }));
+
+    expect(onUpdatePathway).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "set_demographic",
+        nodeId: ageLeaf.node_id,
+        operator: "<=",
+      }),
+    );
+  });
+
+  it("clicking the already-resolved row calls onRowClick, leaving expand/collapse to the caller", async () => {
+    // StepPathwayConditions is presentation-only -- it does not decide
+    // whether a click should toggle the inline editor. That decision
+    // (and the resulting expandedDemographicNodeId) belongs to
+    // PathwayConditionsStage, which owns the tree.
+    const user = userEvent.setup();
+    const ageLeaf = makeAgeLeaf();
+    const onRowClick = jest.fn();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={1}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveTo(ageLeaf)}
+        onRowClick={onRowClick}
+        onConfirmPathway={jest.fn()}
+        onUpdatePathway={jest.fn()}
+      />,
+    );
+
+    await user.click(screen.getByText(SINGLE_LEAF_BOUNDARY.text));
+
+    expect(onRowClick).toHaveBeenCalledTimes(1);
   });
 });
 

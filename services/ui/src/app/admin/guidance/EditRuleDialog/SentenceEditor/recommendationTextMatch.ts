@@ -246,6 +246,47 @@ export function findBestTextMatchForCriterion(
 }
 
 /**
+ * Every non-overlapping match for a criterion that may bundle several
+ * alternative findings into one chip ("Add another code that means
+ * the same" -- e.g. one CONCEPT leaf covering "abnormal blood test",
+ * "hemoglobin below reference range", "raised ESR", ...). Reviewers
+ * need to see EVERY one of those words light up in the guideline
+ * quote, not just the chip's headline term -- otherwise a leaf that
+ * has genuinely captured ten findings looks like it only captured
+ * one or two, which is exactly the "why is barely anything
+ * highlighted" confusion this fixes.
+ */
+export function findAllTextMatchesForCriterion(
+  recommendationText: string | null | undefined,
+  criterion:
+    | {
+        preferred_term?: string;
+        term?: string;
+        seeds?: Array<{ preferred_term?: string }>;
+      }
+    | null
+    | undefined,
+): TextMatchRange[] {
+  if (!recommendationText || !criterion) return [];
+  const candidates = [
+    criterion.preferred_term,
+    criterion.term,
+    ...(criterion.seeds ?? []).map((seed) => seed.preferred_term),
+  ].filter((c): c is string => Boolean(c && c.trim()));
+
+  const matches: TextMatchRange[] = [];
+  for (const candidate of candidates) {
+    const match = findBestTextMatch(recommendationText, candidate);
+    if (!match) continue;
+    const overlapsExisting = matches.some(
+      (existing) => match.start < existing.end && match.end > existing.start,
+    );
+    if (!overlapsExisting) matches.push(match);
+  }
+  return matches;
+}
+
+/**
  * Given a set of already-matched ranges (sorted or not), returns the
  * gaps between them as plain (unmatched) spans, plus any leading/
  * trailing gap -- used by ``HighlightableRecommendationText`` to render

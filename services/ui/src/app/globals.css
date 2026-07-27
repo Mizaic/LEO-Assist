@@ -42,6 +42,34 @@ body {
   }
 }
 
+/*
+ * "Jump to issue" flash -- see HighlightWizard/index.tsx's
+ * useJumpScrollAndFlash. Draws the reviewer's eye to the row a
+ * "Take me there" click just scrolled to, without leaving a
+ * permanent visual change once the flash ends.
+ */
+.wizard-jump-flash {
+  animation: wizardJumpFlash 1400ms ease-out;
+  border-radius: 8px;
+}
+
+@keyframes wizardJumpFlash {
+  0%, 100% {
+    box-shadow: none;
+  }
+  15%,
+  55% {
+    box-shadow: 0 0 0 3px var(--leo-color-warning-main, #ed6c02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-jump-flash {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--leo-color-warning-main, #ed6c02);
+  }
+}
+
 /* ── Print: isolate #printable-report as a clean A4 document ───────────── */
 @media print {
   @page {

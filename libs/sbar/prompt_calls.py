@@ -25,7 +25,7 @@ from typing import Any, Awaitable, Callable
 from libs.llm_client.json_helper import invoke_llm_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.prompts.registry import get_prompt
-from libs.sbar.assessment_formatter import STRENGTH_RANK
+from libs.sbar.assessment_formatter import STRENGTH_RANK, _render_matched_via
 from libs.sbar.background_partitioner import (
     Partition,
     partition_background_sources,
@@ -82,6 +82,16 @@ def _serialise_situation_context(
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
 
 
+_PRIORITY_RANK = {"2ww": 0, "urgent": 1, "routine": 2}
+
+
+def _rule_sort_key(rule: dict[str, Any]) -> tuple[int, int]:
+    action = rule.get("action") or {}
+    priority = _PRIORITY_RANK.get((action.get("priority") or "").lower(), 9)
+    strength = STRENGTH_RANK.get((rule.get("strength") or "").lower(), 9)
+    return (priority, strength)
+
+
 def _select_primary_rule_id(rules: list[dict[str, Any]]) -> str | None:
     """Deterministically pick the rule that anchors bullet-1.
 
@@ -91,18 +101,116 @@ def _select_primary_rule_id(rules: list[dict[str, Any]]) -> str | None:
 
     This is evaluated in Python so the LLM never makes this judgement.
     """
-    priority_rank = {"2ww": 0, "urgent": 1, "routine": 2}
-
-    def _sort_key(r: dict[str, Any]) -> tuple[int, int]:
-        action = r.get("action") or {}
-        p = priority_rank.get((action.get("priority") or "").lower(), 9)
-        s = STRENGTH_RANK.get((r.get("strength") or "").lower(), 9)
-        return (p, s)
-
     if not rules:
         return None
-    best = min(rules, key=_sort_key)
+    best = min(rules, key=_rule_sort_key)
     return best.get("rule_id")
+
+
+def _rule_display_name(rule: dict[str, Any]) -> str:
+    name = (rule.get("name") or "").strip()
+    if name:
+        return name
+    return str(rule.get("rule_id") or "unnamed rule")
+
+
+def _join_rule_names(names: list[str]) -> str:
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    if len(names) == 2:
+        return f"{names[0]} and {names[1]}"
+    return ", ".join(names[:-1]) + f", and {names[-1]}"
+
+
+def _combine_matched_conditions(rules: list[dict[str, Any]]) -> str:
+    fragments: list[str] = []
+    seen: set[str] = set()
+    for rule in rules:
+        rendered = _render_matched_via(rule.get("matched_via"))
+        for fragment in rendered.split("; "):
+            cleaned = fragment.strip()
+            if not cleaned:
+                continue
+            key = cleaned.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            fragments.append(cleaned.lower())
+    return "; ".join(fragments)
+
+
+def build_referral_justification_bullet(rules: list[dict[str, Any]]) -> str:
+    """Build bullet 1 listing every fired rule that supports the referral."""
+    if not rules:
+        return ""
+    ordered = sorted(rules, key=_rule_sort_key)
+    names = _join_rule_names([_rule_display_name(rule) for rule in ordered])
+    guideline_title = (ordered[0].get("guideline_title") or "").strip()
+    conditions = _combine_matched_conditions(ordered)
+    if conditions and guideline_title:
+        return (
+            f"Referral is supported by {names} -- {guideline_title} "
+            f"({conditions})."
+        )
+    if guideline_title:
+        return f"Referral is supported by {names} -- {guideline_title}."
+    if conditions:
+        return f"Referral is supported by {names} ({conditions})."
+    return f"Referral is supported by {names}."
+
+
+_BULLET_PREFIX_RE = re.compile(r"^\s*[-*]\s+")
+
+
+def _split_recommendation_bullets(markdown: str) -> tuple[list[str], str]:
+    """Return bullet bodies and any trailing non-bullet text."""
+    bullets: list[str] = []
+    trailing: list[str] = []
+    in_trailing = False
+    for line in markdown.splitlines():
+        if _BULLET_PREFIX_RE.match(line):
+            in_trailing = False
+            bullets.append(_BULLET_PREFIX_RE.sub("", line, count=1).strip())
+            continue
+        if in_trailing or (not bullets and line.strip()):
+            in_trailing = True
+            trailing.append(line)
+    return bullets, "\n".join(trailing).strip()
+
+
+def _render_recommendation_bullets(bullets: list[str], trailing: str = "") -> str:
+    rendered = "\n".join(f"- {bullet}" for bullet in bullets if bullet.strip())
+    if trailing:
+        rendered = f"{rendered}\n{trailing}" if rendered else trailing
+    return rendered.strip()
+
+
+def _apply_referral_justification_bullet(
+    markdown: str,
+    rules: list[dict[str, Any]],
+) -> str:
+    """Force bullet 1 to cite every fired rule and drop redundant bullet 2."""
+    bullet1 = build_referral_justification_bullet(rules)
+    if not bullet1:
+        return markdown.strip()
+    bullets, trailing = _split_recommendation_bullets(markdown)
+    remaining = bullets[1:]
+    if len(rules) > 1 and remaining:
+        guideline_titles = {
+            (rule.get("guideline_title") or "").strip().lower()
+            for rule in rules
+            if (rule.get("guideline_title") or "").strip()
+        }
+        first_remaining = remaining[0].lower()
+        if len(guideline_titles) == 1 and any(
+            title in first_remaining and "signals noted" in first_remaining
+            for title in guideline_titles
+        ):
+            remaining = remaining[1:]
+    merged = [bullet1, *remaining]
+    return _render_recommendation_bullets(merged, trailing)
 
 
 def _serialise_recommendation_context(
@@ -115,12 +223,16 @@ def _serialise_recommendation_context(
     guidelines: list[str],
 ) -> str:
     primary_rule_id = _select_primary_rule_id(assessment_rules)
+    referral_justification_bullet = build_referral_justification_bullet(
+        assessment_rules
+    )
     body = {
         "situation": situation_md,
         "background": background_md,
         "assessment": assessment_md,
         "assessment_rules": assessment_rules,
         "primary_rule_id": primary_rule_id,
+        "referral_justification_bullet": referral_justification_bullet,
         "guideline_titles": guideline_titles,
         "guidelines": guidelines,
     }
@@ -709,6 +821,8 @@ async def call_recommendation(
             "error_code": friendly["code"],
         }
     md = (raw.get("recommendation_markdown") or "").strip()
+    if md and assessment_rules:
+        md = _apply_referral_justification_bullet(md, assessment_rules)
     actions = list(raw.get("actions") or [])
     if md:
         return {
