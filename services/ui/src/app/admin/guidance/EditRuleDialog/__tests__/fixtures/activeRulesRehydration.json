@@ -1,0 +1,2803 @@
+[
+  {
+    "name": "Rule: 1.1.1",
+    "rule_id": "rule:NG12:v1:CH002:SEC000:R000:0955f3b5:edit:67af2fe6",
+    "recommendation_text": "1.1.1 Refer people using a suspected cancer pathway referral for lung cancer if they: have chest X\u2011ray findings that suggest lung cancer, or are aged 40\u00a0and over with unexplained haemoptysis. [2015]",
+    "recommendation_structure": {
+      "lead_text": "Refer people using a suspected cancer pathway referral for lung cancer if they:",
+      "items": [
+        {
+          "text": "have chest X\u2011ray findings that suggest lung cancer",
+          "start": 86,
+          "end": 136
+        },
+        {
+          "text": "are aged 40\u00a0and over with unexplained haemoptysis. [2015]",
+          "start": 141,
+          "end": 198
+        }
+      ]
+    },
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "pathway_key": "pw_ms37bxjo_13",
+          "criterion": {
+            "snomed_concept_id": "309529002",
+            "preferred_term": "Lung mass (finding)",
+            "semantic_tag": "finding",
+            "term": "chest X-ray findings suggestive of lung cancer",
+            "seeds": [
+              {
+                "snomed_concept_id": "309529002",
+                "preferred_term": "Lung mass (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": true,
+                "distance_child": 1
+              },
+              {
+                "snomed_concept_id": "1290960005",
+                "preferred_term": "Plain X-ray of chest abnormal (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "309529002",
+            "confidence": 0.95,
+            "needs_human_review": false
+          }
+        },
+        {
+          "kind": "AND",
+          "pathway_key": "pw_ms37bxjo_14",
+          "children": [
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "66857006",
+                "preferred_term": "Hemoptysis (finding)",
+                "semantic_tag": "finding",
+                "term": "haemoptysis",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "",
+                "confidence": 1.0,
+                "needs_human_review": false
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "66857006",
+                "preferred_term": "Hemoptysis (finding)",
+                "semantic_tag": "finding",
+                "term": "",
+                "seeds": [
+                  {
+                    "snomed_concept_id": "66857006",
+                    "preferred_term": "Hemoptysis (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": false
+                  }
+                ],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "66857006",
+                "needs_human_review": false
+              },
+              "source_row_text": "are aged 40\u00a0and over with unexplained haemoptysis. [2015]"
+            },
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": 40.0,
+              "unit": "years"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.1.2",
+    "rule_id": "rule:NG12:v1:CH002:SEC000:R001:f9b15cc2:edit:9fa7ac0d:edit:0c6d340c",
+    "recommendation_text": "1.1.2 Offer an urgent , direct access chest X\u2011ray to assess for lung cancer in people aged 40\u00a0and over if they have 2\u00a0or more of the following unexplained symptoms, or if they have ever smoked and have 1\u00a0or more of the following unexplained symptoms: cough fatigue shortness of breath chest pain weight loss appetite loss. [2015]",
+    "recommendation_structure": {
+      "lead_text": "Offer an urgent , direct access chest X\u2011ray to assess for lung cancer in people aged 40\u00a0and over if they have 2\u00a0or more of the following unexplained symptoms, or if they have ever smoked and have 1\u00a0or more of the following unexplained symptoms:",
+      "items": [
+        {
+          "text": "cough",
+          "start": 251,
+          "end": 256
+        },
+        {
+          "text": "fatigue",
+          "start": 257,
+          "end": 264
+        },
+        {
+          "text": "shortness of breath",
+          "start": 265,
+          "end": 284
+        },
+        {
+          "text": "chest pain",
+          "start": 285,
+          "end": 295
+        },
+        {
+          "text": "weight loss",
+          "start": 296,
+          "end": 307
+        },
+        {
+          "text": "appetite loss. [2015]",
+          "start": 308,
+          "end": 329
+        }
+      ]
+    },
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": 40.0,
+              "unit": "years"
+            },
+            {
+              "kind": "AT_LEAST",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "49727002",
+                    "preferred_term": "Cough (finding)",
+                    "semantic_tag": "finding",
+                    "term": "cough",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "84229001",
+                    "preferred_term": "Fatigue (finding)",
+                    "semantic_tag": "finding",
+                    "term": "fatigue",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "267036007",
+                    "preferred_term": "Dyspnea (finding)",
+                    "semantic_tag": "finding",
+                    "term": "dyspnoea",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "29857009",
+                    "preferred_term": "Chest pain (finding)",
+                    "semantic_tag": "finding",
+                    "term": "chest pain",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "262285001",
+                    "preferred_term": "Weight decreased (finding)",
+                    "semantic_tag": "finding",
+                    "term": "weight loss",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "79890006",
+                    "preferred_term": "Loss of appetite (finding)",
+                    "semantic_tag": "finding",
+                    "term": "loss of appetite",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                }
+              ],
+              "min": 2
+            }
+          ]
+        },
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "365982000",
+                "preferred_term": "Finding of tobacco smoking consumption (finding)",
+                "semantic_tag": "finding",
+                "term": "ever smoked tobacco",
+                "seeds": [
+                  {
+                    "snomed_concept_id": "365982000",
+                    "preferred_term": "Finding of tobacco smoking consumption (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": true,
+                    "distance_child": 1
+                  },
+                  {
+                    "snomed_concept_id": "8517006",
+                    "preferred_term": "Ex-smoker (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": true,
+                    "distance_child": 1
+                  }
+                ],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "365982000"
+              }
+            },
+            {
+              "kind": "AT_LEAST",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "49727002",
+                    "preferred_term": "Cough (finding)",
+                    "semantic_tag": "finding",
+                    "term": "cough",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "84229001",
+                    "preferred_term": "Fatigue (finding)",
+                    "semantic_tag": "finding",
+                    "term": "fatigue",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "267036007",
+                    "preferred_term": "Dyspnea (finding)",
+                    "semantic_tag": "finding",
+                    "term": "dyspnoea",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "29857009",
+                    "preferred_term": "Chest pain (finding)",
+                    "semantic_tag": "finding",
+                    "term": "chest pain",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "262285001",
+                    "preferred_term": "Weight decreased (finding)",
+                    "semantic_tag": "finding",
+                    "term": "weight loss",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "79890006",
+                    "preferred_term": "Loss of appetite (finding)",
+                    "semantic_tag": "finding",
+                    "term": "loss of appetite",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                }
+              ],
+              "min": 1
+            },
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": 40.0,
+              "unit": "years"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.1.6",
+    "rule_id": "rule:NG12:v1:CH002:SEC000:R005:87b8db54:edit:09b6f681",
+    "recommendation_text": "1.1.6 Consider an urgent , direct access chest X\u2011ray to assess for mesothelioma in people aged 40\u00a0and over with either: finger clubbing or chest signs compatible with pleural disease. [2015]",
+    "recommendation_structure": {
+      "lead_text": "Consider an urgent , direct access chest X\u2011ray to assess for mesothelioma in people aged 40\u00a0and over with either:",
+      "items": [
+        {
+          "text": "finger clubbing",
+          "start": 120,
+          "end": 135
+        },
+        {
+          "text": "chest signs compatible with pleural disease. [2015]",
+          "start": 139,
+          "end": 190
+        }
+      ]
+    },
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "DEMOGRAPHIC",
+          "field": "age",
+          "operator": ">=",
+          "value": 40.0,
+          "unit": "years"
+        },
+        {
+          "kind": "OR",
+          "children": [
+            {
+              "kind": "CONCEPT",
+              "pathway_key": "pw_ms3bcuqo_14",
+              "criterion": {
+                "snomed_concept_id": "30760008",
+                "preferred_term": "Finger clubbing (disorder)",
+                "semantic_tag": "disorder",
+                "term": "finger clubbing",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "",
+                "confidence": 1.0,
+                "needs_human_review": false
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "pathway_key": "pw_ms3bcuqo_15",
+              "criterion": {
+                "snomed_concept_id": "272016000",
+                "preferred_term": "On examination - chest finding (finding)",
+                "semantic_tag": "finding",
+                "term": "chest signs compatible with pleural disease",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "",
+                "confidence": 1.0,
+                "needs_human_review": false
+              }
+            }
+          ]
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "30760008",
+            "preferred_term": "Finger clubbing (disorder)",
+            "semantic_tag": "disorder",
+            "term": "",
+            "seeds": [
+              {
+                "snomed_concept_id": "30760008",
+                "preferred_term": "Finger clubbing (disorder)",
+                "semantic_tag": "disorder",
+                "include_descendants": false
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "30760008",
+            "needs_human_review": false
+          },
+          "source_row_text": "finger"
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "2237002",
+            "preferred_term": "Pleuritic pain (finding)",
+            "semantic_tag": "finding",
+            "term": "",
+            "seeds": [
+              {
+                "snomed_concept_id": "2237002",
+                "preferred_term": "Pleuritic pain (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "267036007",
+                "preferred_term": "Dyspnea (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "49727002",
+                "preferred_term": "Cough (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "29857009",
+                "preferred_term": "Chest pain (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "66857006",
+                "preferred_term": "Hemoptysis (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "84229001",
+                "preferred_term": "Fatigue (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "45326000",
+                "preferred_term": "Pain of shoulder region (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "2237002",
+            "needs_human_review": false
+          },
+          "source_row_text": "pleural disease."
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.10.5",
+    "rule_id": "rule:NG12:v1:CH002:SEC009:R004:0cde7dd0:edit:c938ae8e",
+    "recommendation_text": "1.10.5 Refer people using a suspected cancer pathway referral if the results of the blood tests outlined in recommendation 1.10.4 suggest myeloma. [2015, amended 2025]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "151271000119102",
+            "preferred_term": "Abnormal blood test (finding)",
+            "semantic_tag": "finding",
+            "term": "Abnormal blood test (finding)",
+            "seeds": [
+              {
+                "snomed_concept_id": "151271000119102",
+                "preferred_term": "Abnormal blood test (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "165397008",
+                "preferred_term": "Hemoglobin below reference range (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "165414004",
+                "preferred_term": "Hematocrit below reference range (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "1187258003",
+                "preferred_term": "Serum calcium below reference range (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "165461003",
+                "preferred_term": "Plasma viscosity above reference range (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "165468009",
+                "preferred_term": "Erythrocyte sedimentation rate above reference range (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "414765004",
+                "preferred_term": "Monoclonal free lambda light chain detected (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "414764000",
+                "preferred_term": "Monoclonal free kappa light chain detected (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "414766003",
+                "preferred_term": "Monoclonal free light chain detected (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              },
+              {
+                "snomed_concept_id": "41000112104",
+                "preferred_term": "Free immunoglobulin light chain above reference range (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "151271000119102",
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.11.4",
+    "rule_id": "rule:NG12:v1:CH002:SEC010:R003:3f1ab81e:edit:98473028",
+    "recommendation_text": "1.11.4 Consider an urgent , direct access ultrasound scan to assess for soft tissue sarcoma in adults with an unexplained lump that is increasing in size. [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "424952003",
+            "preferred_term": "Sarcoma of soft tissue (disorder)",
+            "semantic_tag": "disorder",
+            "term": "",
+            "seeds": [
+              {
+                "snomed_concept_id": "424952003",
+                "preferred_term": "Sarcoma of soft tissue (disorder)",
+                "semantic_tag": "disorder",
+                "include_descendants": false
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "424952003",
+            "needs_human_review": false
+          },
+          "source_row_text": "sarcoma"
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "792887000",
+            "preferred_term": "Soft lump of breast (finding)",
+            "semantic_tag": "finding",
+            "term": "",
+            "seeds": [
+              {
+                "snomed_concept_id": "792887000",
+                "preferred_term": "Soft lump of breast (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "792887000",
+            "needs_human_review": false
+          },
+          "source_row_text": "increasing"
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "163483001",
+            "preferred_term": "On examination - breast lump soft (finding)",
+            "semantic_tag": "finding",
+            "term": "",
+            "seeds": [
+              {
+                "snomed_concept_id": "163483001",
+                "preferred_term": "On examination - breast lump soft (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": false
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "163483001",
+            "needs_human_review": false
+          },
+          "source_row_text": "lump"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.1",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R000:7b7e6325:edit:b6b6eaee:edit:83aa2e72:edit:d5b44ce4:edit:e7c982a6:edit:178e9494",
+    "recommendation_text": "1.2.1 Refer people using a suspected cancer pathway referral for oesophageal cancer if they: have dysphagia, or are aged 55\u00a0and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
+    "recommendation_structure": {
+      "lead_text": "Refer people using a suspected cancer pathway referral for oesophageal cancer if they:",
+      "items": [
+        {
+          "text": "have dysphagia",
+          "start": 93,
+          "end": 107
+        },
+        {
+          "text": "are aged 55\u00a0and over, with weight loss, and they have any of the following:",
+          "children": [
+            {
+              "text": "upper abdominal pain",
+              "start": 188,
+              "end": 208
+            },
+            {
+              "text": "reflux",
+              "start": 209,
+              "end": 215
+            },
+            {
+              "text": "dyspepsia. [2015, amended 2025]",
+              "start": 216,
+              "end": 247
+            }
+          ],
+          "start": 112,
+          "end": 187
+        }
+      ]
+    },
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "pathway_key": "pw_mrz1u775_5",
+          "criterion": {
+            "snomed_concept_id": "288939007",
+            "preferred_term": "Difficulty swallowing (finding)",
+            "semantic_tag": "finding",
+            "term": "dysphagia",
+            "seeds": [
+              {
+                "snomed_concept_id": "288939007",
+                "preferred_term": "Difficulty swallowing (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": true
+              },
+              {
+                "snomed_concept_id": "40739000",
+                "preferred_term": "Dysphagia (disorder)",
+                "semantic_tag": "disorder",
+                "include_descendants": true
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "288939007",
+            "needs_human_review": false
+          }
+        },
+        {
+          "kind": "AND",
+          "pathway_key": "pw_mrz1u775_6",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": 55.0,
+              "unit": "years"
+            },
+            {
+              "kind": "OR",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "83132003",
+                    "preferred_term": "Upper abdominal pain (finding)",
+                    "semantic_tag": "finding",
+                    "term": "upper abdominal pain",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "",
+                    "needs_human_review": false
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "698065002",
+                    "preferred_term": "Acid reflux (finding)",
+                    "semantic_tag": "finding",
+                    "term": "reflux",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "",
+                    "needs_human_review": false
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "162031009",
+                    "preferred_term": "Indigestion (finding)",
+                    "semantic_tag": "finding",
+                    "term": "dyspepsia",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "",
+                    "needs_human_review": false
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "262285001",
+                "preferred_term": "Weight decreased (finding)",
+                "semantic_tag": "finding",
+                "term": "Weight decreased (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "",
+                "needs_human_review": false
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.10",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R009:f73dd728:edit:3fe39c03:edit:743abb1d:edit:5e05a138:edit:809facf3",
+    "recommendation_text": "1.2.10 Consider an urgent , direct access ultrasound scan to assess for gall bladder cancer in people with an upper abdominal mass consistent with an enlarged gall bladder. [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "pathway_key": "pw_mrz1tong_3",
+          "criterion": {
+            "snomed_concept_id": "271683004",
+            "preferred_term": "Gallbladder palpable (finding)",
+            "semantic_tag": "finding",
+            "term": "Gallbladder palpable (finding)",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "needs_human_review": false
+          }
+        },
+        {
+          "kind": "CONCEPT",
+          "pathway_key": "pw_mrz1tong_4",
+          "criterion": {
+            "snomed_concept_id": "163272008",
+            "preferred_term": "On examination - gallbladder palpable (finding)",
+            "semantic_tag": "finding",
+            "term": "On examination - gallbladder palpable (finding)",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.11",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R010:80580d94:edit:b748e8d8:edit:deb06c16:edit:2e4f93ce",
+    "recommendation_text": "1.2.11 Consider an urgent , direct access ultrasound scan to assess for liver cancer in people with an upper abdominal mass consistent with an enlarged liver. [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "pathway_key": "pw_mrz1t0nn_1",
+          "criterion": {
+            "snomed_concept_id": "80515008",
+            "preferred_term": "Large liver (disorder)",
+            "semantic_tag": "disorder",
+            "term": "Large liver (disorder)",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "needs_human_review": false
+          }
+        },
+        {
+          "kind": "CONCEPT",
+          "pathway_key": "pw_mrz1t0nn_2",
+          "criterion": {
+            "snomed_concept_id": "300323005",
+            "preferred_term": "Liver palpable (finding)",
+            "semantic_tag": "finding",
+            "term": "Liver palpable (finding)",
+            "seeds": [
+              {
+                "snomed_concept_id": "300323005",
+                "preferred_term": "Liver palpable (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": true,
+                "distance_child": 1
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "300323005",
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.2",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R001:8ae03154:edit:a529b764:edit:4fdd3126",
+    "recommendation_text": "1.2.2 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people with haematemesis. [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "8765009",
+            "preferred_term": "Hematemesis (disorder)",
+            "semantic_tag": "disorder",
+            "term": "haematemesis",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "confidence": 1.0,
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.3",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R002:4870a5d0:edit:8610126e:edit:2998a5ea",
+    "recommendation_text": "1.2.3 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55\u00a0or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels, or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
+    "recommendation_structure": {
+      "lead_text": "Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55\u00a0or over with:",
+      "items": [
+        {
+          "text": "treatment-resistant dyspepsia",
+          "start": 140,
+          "end": 169
+        },
+        {
+          "text": "upper abdominal pain with low haemoglobin levels",
+          "start": 174,
+          "end": 222
+        },
+        {
+          "text": "raised platelet count with any of the following:",
+          "children": [
+            {
+              "text": "nausea",
+              "start": 276,
+              "end": 282
+            },
+            {
+              "text": "vomiting",
+              "start": 283,
+              "end": 291
+            },
+            {
+              "text": "weight loss",
+              "start": 292,
+              "end": 303
+            },
+            {
+              "text": "reflux",
+              "start": 304,
+              "end": 310
+            },
+            {
+              "text": "dyspepsia",
+              "start": 311,
+              "end": 320
+            },
+            {
+              "text": "upper abdominal pain",
+              "start": 321,
+              "end": 341
+            }
+          ],
+          "start": 227,
+          "end": 275
+        },
+        {
+          "text": "nausea or vomiting with any of the following:",
+          "children": [
+            {
+              "text": "weight loss",
+              "start": 392,
+              "end": 403
+            },
+            {
+              "text": "reflux",
+              "start": 404,
+              "end": 410
+            },
+            {
+              "text": "dyspepsia",
+              "start": 411,
+              "end": 420
+            },
+            {
+              "text": "upper abdominal pain. [2015]",
+              "start": 421,
+              "end": 449
+            }
+          ],
+          "start": 346,
+          "end": 391
+        }
+      ]
+    },
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "DEMOGRAPHIC",
+          "field": "age",
+          "operator": ">=",
+          "value": 55.0,
+          "unit": "years"
+        },
+        {
+          "kind": "OR",
+          "children": [
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mrz0588z_4",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "162031009",
+                    "preferred_term": "Indigestion (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "162031009",
+                        "preferred_term": "Indigestion (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "162031009",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "treatment-resistant dyspepsia"
+                }
+              ]
+            },
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mrz0588z_5",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "83132003",
+                    "preferred_term": "Upper abdominal pain (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "83132003",
+                        "preferred_term": "Upper abdominal pain (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "83132003",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "upper abdominal pain"
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "165397008",
+                    "preferred_term": "Hemoglobin below reference range (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "165397008",
+                        "preferred_term": "Hemoglobin below reference range (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "165397008",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "low haemoglobin levels"
+                }
+              ]
+            },
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mrz0588z_6",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "415115007",
+                    "preferred_term": "Platelet count above reference range (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "415115007",
+                        "preferred_term": "Platelet count above reference range (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "415115007",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "raised platelet count"
+                },
+                {
+                  "kind": "AT_LEAST",
+                  "children": [
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422587007",
+                        "preferred_term": "Nausea (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422587007",
+                            "preferred_term": "Nausea (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422587007",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "nausea"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422400008",
+                        "preferred_term": "Vomiting (disorder)",
+                        "semantic_tag": "disorder",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422400008",
+                            "preferred_term": "Vomiting (disorder)",
+                            "semantic_tag": "disorder",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422400008",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "vomiting"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "262285001",
+                        "preferred_term": "Weight decreased (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "262285001",
+                            "preferred_term": "Weight decreased (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "262285001",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "weight loss"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "698065002",
+                        "preferred_term": "Acid reflux (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "698065002",
+                            "preferred_term": "Acid reflux (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "698065002",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "reflux"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "162031009",
+                        "preferred_term": "Indigestion (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "162031009",
+                            "preferred_term": "Indigestion (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "162031009",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "dyspepsia"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "83132003",
+                        "preferred_term": "Upper abdominal pain (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "83132003",
+                            "preferred_term": "Upper abdominal pain (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "83132003",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "upper abdominal pain"
+                    }
+                  ],
+                  "min": 1
+                }
+              ]
+            },
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mrz0588z_7",
+              "children": [
+                {
+                  "kind": "AT_LEAST",
+                  "children": [
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422587007",
+                        "preferred_term": "Nausea (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422587007",
+                            "preferred_term": "Nausea (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422587007",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "nausea"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422400008",
+                        "preferred_term": "Vomiting (disorder)",
+                        "semantic_tag": "disorder",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422400008",
+                            "preferred_term": "Vomiting (disorder)",
+                            "semantic_tag": "disorder",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422400008",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "vomiting"
+                    }
+                  ],
+                  "min": 1
+                },
+                {
+                  "kind": "AT_LEAST",
+                  "children": [
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "262285001",
+                        "preferred_term": "Weight decreased (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "262285001",
+                            "preferred_term": "Weight decreased (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "262285001",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "weight loss"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "698065002",
+                        "preferred_term": "Acid reflux (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "698065002",
+                            "preferred_term": "Acid reflux (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "698065002",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "reflux"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "162031009",
+                        "preferred_term": "Indigestion (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "162031009",
+                            "preferred_term": "Indigestion (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "162031009",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "dyspepsia"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "83132003",
+                        "preferred_term": "Upper abdominal pain (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "83132003",
+                            "preferred_term": "Upper abdominal pain (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "83132003",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "upper abdominal pain. [2015]"
+                    }
+                  ],
+                  "min": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.4",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R003:1da2ce19:edit:2d978edd",
+    "recommendation_text": "1.2.4 Refer people using a suspected cancer pathway referral for pancreatic cancer if they are aged 40\u00a0and over and have jaundice. [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "DEMOGRAPHIC",
+          "field": "age",
+          "operator": ">=",
+          "value": 40.0,
+          "unit": "years"
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "18165001",
+            "preferred_term": "Jaundice (finding)",
+            "semantic_tag": "finding",
+            "term": "jaundice",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "confidence": 1.0,
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.7",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R006:da4bdbcb:edit:e12353e8:edit:f0641b0f:edit:17a8755e",
+    "recommendation_text": "1.2.7 Refer people using a suspected cancer pathway referral for stomach cancer if they: have dysphagia, or are aged 55\u00a0and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
+    "recommendation_structure": {
+      "lead_text": "Refer people using a suspected cancer pathway referral for stomach cancer if they:",
+      "items": [
+        {
+          "text": "have dysphagia",
+          "start": 89,
+          "end": 103
+        },
+        {
+          "text": "are aged 55\u00a0and over, with weight loss, and they have any of the following:",
+          "children": [
+            {
+              "text": "upper abdominal pain",
+              "start": 184,
+              "end": 204
+            },
+            {
+              "text": "reflux",
+              "start": 205,
+              "end": 211
+            },
+            {
+              "text": "dyspepsia. [2015, amended 2025]",
+              "start": 212,
+              "end": 243
+            }
+          ],
+          "start": 108,
+          "end": 183
+        }
+      ]
+    },
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "288939007",
+            "preferred_term": "Difficulty swallowing (finding)",
+            "semantic_tag": "finding",
+            "term": "dysphagia",
+            "seeds": [
+              {
+                "snomed_concept_id": "288939007",
+                "preferred_term": "Difficulty swallowing (finding)",
+                "semantic_tag": "finding",
+                "include_descendants": true
+              },
+              {
+                "snomed_concept_id": "40739000",
+                "preferred_term": "Dysphagia (disorder)",
+                "semantic_tag": "disorder",
+                "include_descendants": true
+              }
+            ],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "288939007"
+          }
+        },
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": 55.0,
+              "unit": "years"
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "262285001",
+                "preferred_term": "Weight decreased (finding)",
+                "semantic_tag": "finding",
+                "term": "weight loss",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "OR",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "83132003",
+                    "preferred_term": "Upper abdominal pain (finding)",
+                    "semantic_tag": "finding",
+                    "term": "upper abdominal pain",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "162031009",
+                    "preferred_term": "Indigestion (finding)",
+                    "semantic_tag": "finding",
+                    "term": "dyspepsia",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "698065002",
+                    "preferred_term": "Acid reflux (finding)",
+                    "semantic_tag": "finding",
+                    "term": "Acid reflux (finding)",
+                    "seeds": [],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": ""
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.8",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R007:8da98050:edit:683c6156:edit:ea53620b:edit:3a2f0c30",
+    "recommendation_text": "1.2.8 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people with haematemesis. [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "8765009",
+            "preferred_term": "Hematemesis (disorder)",
+            "semantic_tag": "disorder",
+            "term": "haematemesis",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "confidence": 1.0,
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.2.9",
+    "rule_id": "rule:NG12:v1:CH002:SEC001:R008:6a4ca62c:edit:284ab96a:edit:68c81da4:edit:903893d2",
+    "recommendation_text": "1.2.9 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55\u00a0or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels,or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
+    "recommendation_structure": {
+      "lead_text": "Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55\u00a0or over with:",
+      "items": [
+        {
+          "text": "treatment-resistant dyspepsia",
+          "start": 136,
+          "end": 165
+        },
+        {
+          "text": "upper abdominal pain with low haemoglobin levels",
+          "start": 170,
+          "end": 218
+        },
+        {
+          "text": "raised platelet count with any of the following:",
+          "children": [
+            {
+              "text": "nausea",
+              "start": 271,
+              "end": 277
+            },
+            {
+              "text": "vomiting",
+              "start": 278,
+              "end": 286
+            },
+            {
+              "text": "weight loss",
+              "start": 287,
+              "end": 298
+            },
+            {
+              "text": "reflux",
+              "start": 299,
+              "end": 305
+            },
+            {
+              "text": "dyspepsia",
+              "start": 306,
+              "end": 315
+            },
+            {
+              "text": "upper abdominal pain",
+              "start": 316,
+              "end": 336
+            }
+          ],
+          "start": 222,
+          "end": 270
+        },
+        {
+          "text": "nausea or vomiting with any of the following:",
+          "children": [
+            {
+              "text": "weight loss",
+              "start": 387,
+              "end": 398
+            },
+            {
+              "text": "reflux",
+              "start": 399,
+              "end": 405
+            },
+            {
+              "text": "dyspepsia",
+              "start": 406,
+              "end": 415
+            },
+            {
+              "text": "upper abdominal pain. [2015]",
+              "start": 416,
+              "end": 444
+            }
+          ],
+          "start": 341,
+          "end": 386
+        }
+      ]
+    },
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "DEMOGRAPHIC",
+          "field": "age",
+          "operator": ">=",
+          "value": "55",
+          "unit": "years"
+        },
+        {
+          "kind": "OR",
+          "children": [
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mryzmqy9_17",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "162031009",
+                    "preferred_term": "Indigestion (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "162031009",
+                        "preferred_term": "Indigestion (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "162031009",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "treatment-resistant dyspepsia"
+                }
+              ]
+            },
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mryzmqy9_18",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "83132003",
+                    "preferred_term": "Upper abdominal pain (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "83132003",
+                        "preferred_term": "Upper abdominal pain (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "83132003",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "upper abdominal pain"
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "165397008",
+                    "preferred_term": "Hemoglobin below reference range (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "165397008",
+                        "preferred_term": "Hemoglobin below reference range (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "165397008",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "low haemoglobin levels"
+                }
+              ]
+            },
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mryzmqy9_19",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "415115007",
+                    "preferred_term": "Platelet count above reference range (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "415115007",
+                        "preferred_term": "Platelet count above reference range (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "415115007",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "raised platelet count"
+                },
+                {
+                  "kind": "AT_LEAST",
+                  "children": [
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422587007",
+                        "preferred_term": "Nausea (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422587007",
+                            "preferred_term": "Nausea (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422587007",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "nausea"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422400008",
+                        "preferred_term": "Vomiting (disorder)",
+                        "semantic_tag": "disorder",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422400008",
+                            "preferred_term": "Vomiting (disorder)",
+                            "semantic_tag": "disorder",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422400008",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "vomiting"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "262285001",
+                        "preferred_term": "Weight decreased (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "262285001",
+                            "preferred_term": "Weight decreased (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": true,
+                            "distance_child": 1
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "262285001",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "weight loss"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "698065002",
+                        "preferred_term": "Acid reflux (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "698065002",
+                            "preferred_term": "Acid reflux (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "698065002",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "reflux"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "162031009",
+                        "preferred_term": "Indigestion (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "162031009",
+                            "preferred_term": "Indigestion (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "162031009",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "dyspepsia"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "83132003",
+                        "preferred_term": "Upper abdominal pain (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "83132003",
+                            "preferred_term": "Upper abdominal pain (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "83132003",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "upper abdominal pain"
+                    }
+                  ],
+                  "min": 1
+                }
+              ]
+            },
+            {
+              "kind": "AND",
+              "pathway_key": "pw_mryzmqy9_20",
+              "children": [
+                {
+                  "kind": "AT_LEAST",
+                  "children": [
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422587007",
+                        "preferred_term": "Nausea (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422587007",
+                            "preferred_term": "Nausea (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422587007",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "nausea"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "422400008",
+                        "preferred_term": "Vomiting (disorder)",
+                        "semantic_tag": "disorder",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "422400008",
+                            "preferred_term": "Vomiting (disorder)",
+                            "semantic_tag": "disorder",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "422400008",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "vomiting"
+                    }
+                  ],
+                  "min": 1
+                },
+                {
+                  "kind": "AT_LEAST",
+                  "children": [
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "262285001",
+                        "preferred_term": "Weight decreased (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "262285001",
+                            "preferred_term": "Weight decreased (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "262285001",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "weight loss"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "698065002",
+                        "preferred_term": "Acid reflux (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "698065002",
+                            "preferred_term": "Acid reflux (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "698065002",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "reflux"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "162031009",
+                        "preferred_term": "Indigestion (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "162031009",
+                            "preferred_term": "Indigestion (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "162031009",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "dyspepsia"
+                    },
+                    {
+                      "kind": "CONCEPT",
+                      "criterion": {
+                        "snomed_concept_id": "83132003",
+                        "preferred_term": "Upper abdominal pain (finding)",
+                        "semantic_tag": "finding",
+                        "term": "",
+                        "seeds": [
+                          {
+                            "snomed_concept_id": "83132003",
+                            "preferred_term": "Upper abdominal pain (finding)",
+                            "semantic_tag": "finding",
+                            "include_descendants": false
+                          }
+                        ],
+                        "excluded_concept_ids": [],
+                        "primary_concept_id": "83132003",
+                        "needs_human_review": false
+                      },
+                      "source_row_text": "upper abdominal pain. [2015]"
+                    }
+                  ],
+                  "min": 1
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.4.1",
+    "rule_id": "rule:NG12:v1:CH002:SEC003:R000:12c9def5:edit:1e9509ee",
+    "recommendation_text": "1.4.1 Refer people using a suspected cancer pathway referral for breast cancer if they are: aged 30\u00a0and over and have an unexplained breast lump with or without pain, or aged 50\u00a0and over with any of the following symptoms in 1 nipple only: discharge retraction other changes of concern. [2015]",
+    "recommendation_structure": {
+      "lead_text": "Refer people using a suspected cancer pathway referral for breast cancer if they are:",
+      "items": [
+        {
+          "text": "aged 30\u00a0and over and have an unexplained breast lump with or without pain",
+          "start": 92,
+          "end": 165
+        },
+        {
+          "text": "aged 50\u00a0and over with any of the following symptoms in 1 nipple only:",
+          "children": [
+            {
+              "text": "discharge",
+              "start": 240,
+              "end": 249
+            },
+            {
+              "text": "retraction",
+              "start": 250,
+              "end": 260
+            },
+            {
+              "text": "other changes of concern. [2015]",
+              "start": 261,
+              "end": 293
+            }
+          ],
+          "start": 170,
+          "end": 239
+        }
+      ]
+    },
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "AND",
+          "pathway_key": "pw_ms35y5ig_8",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": 30.0,
+              "unit": "years"
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "89164003",
+                "preferred_term": "Breast lump (finding)",
+                "semantic_tag": "finding",
+                "term": "breast lump",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "",
+                "confidence": 1.0,
+                "needs_human_review": false
+              }
+            }
+          ]
+        },
+        {
+          "kind": "AND",
+          "pathway_key": "pw_ms35y5ig_9",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": 50.0,
+              "unit": "years"
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "12265581000119109",
+                "preferred_term": "Retraction of bilateral nipples (finding)",
+                "semantic_tag": "finding",
+                "term": "unilateral nipple symptoms",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "",
+                "confidence": 0.9975,
+                "needs_human_review": false
+              }
+            },
+            {
+              "kind": "AT_LEAST",
+              "children": [
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "162164007",
+                    "preferred_term": "Nipple discharge symptom (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "162164007",
+                        "preferred_term": "Nipple discharge symptom (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "162164007",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "discharge"
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "15953221000119100",
+                    "preferred_term": "Retraction of left nipple (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "15953221000119100",
+                        "preferred_term": "Retraction of left nipple (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      },
+                      {
+                        "snomed_concept_id": "15953181000119108",
+                        "preferred_term": "Retraction of right nipple (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "15953221000119100",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "retraction"
+                },
+                {
+                  "kind": "CONCEPT",
+                  "criterion": {
+                    "snomed_concept_id": "275258002",
+                    "preferred_term": "Breast changes (finding)",
+                    "semantic_tag": "finding",
+                    "term": "",
+                    "seeds": [
+                      {
+                        "snomed_concept_id": "275258002",
+                        "preferred_term": "Breast changes (finding)",
+                        "semantic_tag": "finding",
+                        "include_descendants": false
+                      }
+                    ],
+                    "excluded_concept_ids": [],
+                    "primary_concept_id": "275258002",
+                    "needs_human_review": false
+                  },
+                  "source_row_text": "other changes of concern. [2015]"
+                }
+              ],
+              "min": 1
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.4.2",
+    "rule_id": "rule:NG12:v1:CH002:SEC003:R001:47551c6e:edit:a1be2871:edit:e6433b22",
+    "recommendation_text": "1.4.2 Consider a suspected cancer pathway referral for breast cancer in people: with skin changes that suggest breast cancer, or aged 30\u00a0and over with an unexplained lump in the axilla. [2015]",
+    "recommendation_structure": {
+      "lead_text": "Consider a suspected cancer pathway referral for breast cancer in people:",
+      "items": [
+        {
+          "text": "with skin changes that suggest breast cancer",
+          "start": 80,
+          "end": 124
+        },
+        {
+          "text": "aged 30\u00a0and over with an unexplained lump in the axilla. [2015]",
+          "start": 129,
+          "end": 192
+        }
+      ]
+    },
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "AND",
+          "pathway_key": "pw_ms36so7a_11",
+          "children": [
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "87386002",
+                "preferred_term": "Peau d'orange surface of breast (disorder)",
+                "semantic_tag": "disorder",
+                "term": "",
+                "seeds": [
+                  {
+                    "snomed_concept_id": "87386002",
+                    "preferred_term": "Peau d'orange surface of breast (disorder)",
+                    "semantic_tag": "disorder",
+                    "include_descendants": false
+                  },
+                  {
+                    "snomed_concept_id": "247441003",
+                    "preferred_term": "Erythema (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": false
+                  },
+                  {
+                    "snomed_concept_id": "203941000000104",
+                    "preferred_term": "Skin thickening of breast (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": false
+                  },
+                  {
+                    "snomed_concept_id": "248816004",
+                    "preferred_term": "Dimpling of surface of breast (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": false
+                  },
+                  {
+                    "snomed_concept_id": "163491005",
+                    "preferred_term": "On examination - breast lump tethering (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": false
+                  },
+                  {
+                    "snomed_concept_id": "248818003",
+                    "preferred_term": "Ulceration of breast (disorder)",
+                    "semantic_tag": "disorder",
+                    "include_descendants": false
+                  }
+                ],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "87386002",
+                "needs_human_review": false
+              },
+              "source_row_text": "with skin changes that suggest breast cancer"
+            }
+          ]
+        },
+        {
+          "kind": "AND",
+          "pathway_key": "pw_ms36so7a_12",
+          "children": [
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "300863000",
+                "preferred_term": "Mass of axilla (finding)",
+                "semantic_tag": "finding",
+                "term": "",
+                "seeds": [
+                  {
+                    "snomed_concept_id": "300863000",
+                    "preferred_term": "Mass of axilla (finding)",
+                    "semantic_tag": "finding",
+                    "include_descendants": false
+                  }
+                ],
+                "excluded_concept_ids": [],
+                "primary_concept_id": "300863000",
+                "needs_human_review": false
+              },
+              "source_row_text": "aged 30\u00a0and over with an unexplained lump in the axilla. [2015]"
+            },
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": "30",
+              "unit": "years"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.4.3",
+    "rule_id": "rule:NG12:v1:CH002:SEC003:R002:f54de271:edit:f3e30ff1:edit:31ccd51b",
+    "recommendation_text": "1.4.3 Consider non-urgent referral in people aged under 30 with an unexplained breast lump with or without pain. For information about seeking specialist advice, see also recommendations 1.16.2 and 1.16.3 in the section on the diagnostic process . [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "DEMOGRAPHIC",
+          "field": "age",
+          "operator": "<",
+          "value": 30.0,
+          "unit": "years"
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "89164003",
+            "preferred_term": "Breast lump (finding)",
+            "semantic_tag": "finding",
+            "term": "breast lump",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "confidence": 1.0,
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.5.1",
+    "rule_id": "rule:NG12:v1:CH002:SEC004:R000:b96eddba:edit:bdd32616",
+    "recommendation_text": "1.5.1 Make a referral to a gynaecological cancer service using a suspected cancer pathway referral if physical examination identifies ascites and/or a pelvic or abdominal mass (which is not obviously uterine fibroids). [2011, amended 2020]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "389026000",
+            "preferred_term": "Ascites (disorder)",
+            "semantic_tag": "disorder",
+            "term": "ascites",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": ""
+          }
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "74285003",
+            "preferred_term": "Mass of pelvic structure (finding)",
+            "semantic_tag": "finding",
+            "term": "pelvic mass",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": ""
+          }
+        },
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "271860004",
+            "preferred_term": "Abdominal mass (finding)",
+            "semantic_tag": "finding",
+            "term": "abdominal mass",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": ""
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.5.2",
+    "rule_id": "rule:NG12:v1:CH002:SEC004:R001:a9d9eeb1:edit:23ffa200:edit:07e1ada7:edit:3c0d1d00",
+    "recommendation_text": "1.5.2 Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50\u00a0or over) reports having any of the following symptoms on a persistent or frequent basis \u2013 particularly more than 12\u00a0times per month: persistent abdominal distension (often referred to as 'bloating') feeling full (early satiety) and/or loss of appetite pelvic or abdominal pain increased urinary urgency and/or frequency. [2011]",
+    "recommendation_structure": {
+      "lead_text": "Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50\u00a0or over) reports having any of the following symptoms on a persistent or frequent basis \u2013 particularly more than 12\u00a0times per month:",
+      "items": [
+        {
+          "text": "persistent abdominal distension (often referred to as 'bloating')",
+          "start": 320,
+          "end": 385
+        },
+        {
+          "text": "feeling full (early satiety) and/or loss of appetite",
+          "start": 386,
+          "end": 438
+        },
+        {
+          "text": "pelvic or abdominal pain",
+          "start": 439,
+          "end": 463
+        },
+        {
+          "text": "increased urinary urgency and/or frequency. [2011]",
+          "start": 464,
+          "end": 514
+        }
+      ]
+    },
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "DEMOGRAPHIC",
+          "field": "sex",
+          "operator": "=",
+          "value": "female"
+        },
+        {
+          "kind": "OR",
+          "children": [
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "41931001",
+                "preferred_term": "Distension of abdomen (finding)",
+                "semantic_tag": "finding",
+                "term": "Distension of abdomen (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "162068007",
+                "preferred_term": "Abdominal distension symptom (finding)",
+                "semantic_tag": "finding",
+                "term": "Abdominal distension symptom (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "116289008",
+                "preferred_term": "Abdominal bloating (finding)",
+                "semantic_tag": "finding",
+                "term": "Abdominal bloating (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "442076002",
+                "preferred_term": "Early satiety (finding)",
+                "semantic_tag": "finding",
+                "term": "Early satiety (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "79890006",
+                "preferred_term": "Loss of appetite (finding)",
+                "semantic_tag": "finding",
+                "term": "Loss of appetite (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "30473006",
+                "preferred_term": "Pain in pelvis (finding)",
+                "semantic_tag": "finding",
+                "term": "Pain in pelvis (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "21522001",
+                "preferred_term": "Abdominal pain (finding)",
+                "semantic_tag": "finding",
+                "term": "Abdominal pain (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "75088002",
+                "preferred_term": "Urgent desire to urinate (finding)",
+                "semantic_tag": "finding",
+                "term": "Urgent desire to urinate (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "162116003",
+                "preferred_term": "Increased frequency of urination (finding)",
+                "semantic_tag": "finding",
+                "term": "Increased frequency of urination (finding)",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.5.3",
+    "rule_id": "rule:NG12:v1:CH002:SEC004:R002:4fa35c0f:edit:ae53cca4",
+    "recommendation_text": "1.5.3 Consider carrying out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs reports unexplained weight loss, fatigue or changes in bowel habit. [2011]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "DEMOGRAPHIC",
+          "field": "sex",
+          "operator": "=",
+          "value": "female"
+        },
+        {
+          "kind": "OR",
+          "children": [
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "262285001",
+                "preferred_term": "Weight decreased (finding)",
+                "semantic_tag": "finding",
+                "term": "weight loss",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "84229001",
+                "preferred_term": "Fatigue (finding)",
+                "semantic_tag": "finding",
+                "term": "fatigue",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            },
+            {
+              "kind": "CONCEPT",
+              "criterion": {
+                "snomed_concept_id": "88111009",
+                "preferred_term": "Altered bowel function (finding)",
+                "semantic_tag": "finding",
+                "term": "changes in bowel habit",
+                "seeds": [],
+                "excluded_concept_ids": [],
+                "primary_concept_id": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.5.9",
+    "rule_id": "rule:NG12:v1:CH002:SEC004:R008:88f75b4f:edit:1b2ff62b:edit:5c2d5f84",
+    "recommendation_text": "1.5.9 Arrange an urgent , direct access ultrasound scan of the abdomen and pelvis depending on age and serum CA125 according to the thresholds in table\u00a01. [2026]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "OR",
+      "children": [
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": "between",
+              "value": [
+                40.0,
+                49.0
+              ],
+              "unit": "years"
+            },
+            {
+              "kind": "OBSERVATION",
+              "observation": {
+                "kind": "OBSERVATION",
+                "observable_id": "1027511000000100",
+                "observable_term": "Cancer antigen 125 level (observable entity)",
+                "operator": ">=",
+                "value": 35.0,
+                "unit": "IU/ml",
+                "within_days": 365
+              }
+            }
+          ]
+        },
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": "between",
+              "value": [
+                50.0,
+                59.0
+              ],
+              "unit": "years"
+            },
+            {
+              "kind": "OBSERVATION",
+              "observation": {
+                "kind": "OBSERVATION",
+                "observable_id": "1027511000000100",
+                "observable_term": "Cancer antigen 125 level (observable entity)",
+                "operator": ">=",
+                "value": 31.0,
+                "unit": "IU/ml",
+                "within_days": 365
+              }
+            }
+          ]
+        },
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": "between",
+              "value": [
+                60.0,
+                69.0
+              ],
+              "unit": "years"
+            },
+            {
+              "kind": "OBSERVATION",
+              "observation": {
+                "kind": "OBSERVATION",
+                "observable_id": "1027511000000100",
+                "observable_term": "Cancer antigen 125 level (observable entity)",
+                "operator": ">=",
+                "value": 24.0,
+                "unit": "IU/ml",
+                "within_days": 365
+              }
+            }
+          ]
+        },
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": "between",
+              "value": [
+                70.0,
+                79.0
+              ],
+              "unit": "years"
+            },
+            {
+              "kind": "OBSERVATION",
+              "observation": {
+                "kind": "OBSERVATION",
+                "observable_id": "1027511000000100",
+                "observable_term": "Cancer antigen 125 level (observable entity)",
+                "operator": ">=",
+                "value": 25.0,
+                "unit": "IU/ml",
+                "within_days": 365
+              }
+            }
+          ]
+        },
+        {
+          "kind": "AND",
+          "children": [
+            {
+              "kind": "DEMOGRAPHIC",
+              "field": "age",
+              "operator": ">=",
+              "value": "80",
+              "unit": "years"
+            },
+            {
+              "kind": "OBSERVATION",
+              "observation": {
+                "kind": "OBSERVATION",
+                "observable_id": "1027511000000100",
+                "observable_term": "Cancer antigen 125 level (observable entity)",
+                "operator": ">=",
+                "value": 31.0,
+                "unit": "IU/ml",
+                "within_days": 365
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "Rule: 1.8.5",
+    "rule_id": "rule:NG12:v1:CH002:SEC007:R004:2c567d72:edit:e403bea3",
+    "recommendation_text": "1.8.5 Consider a suspected cancer pathway referral for thyroid cancer in people with an unexplained thyroid lump. [2015]",
+    "recommendation_structure": null,
+    "logic": {
+      "kind": "AND",
+      "children": [
+        {
+          "kind": "CONCEPT",
+          "criterion": {
+            "snomed_concept_id": "237557003",
+            "preferred_term": "Mass of thyroid gland (finding)",
+            "semantic_tag": "finding",
+            "term": "Mass of thyroid gland (finding)",
+            "seeds": [],
+            "excluded_concept_ids": [],
+            "primary_concept_id": "",
+            "needs_human_review": false
+          }
+        }
+      ]
+    }
+  }
+]

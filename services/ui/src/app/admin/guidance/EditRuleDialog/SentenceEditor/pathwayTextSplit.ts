@@ -68,12 +68,15 @@ export interface RecommendationStructure {
 
 /**
  * Whether a pathway boundary was read directly off the guideline's own
- * markup (unambiguous) or inferred from the ", or " text heuristic (a
- * suggestion). Surfaced so the wizard can show "detected from the
- * guideline's own formatting" vs "suggested from the text" per the
- * plan -- never let the two look identically confident.
+ * markup (unambiguous), inferred from the ", or " text heuristic (a
+ * suggestion), or reconstructed from an already-saved logic tree when
+ * the guideline sentence has no listable situations (e.g. "according
+ * to the thresholds in table 1"). Surfaced so the wizard can show
+ * "detected from the guideline's own formatting" vs "suggested from
+ * the text" vs "from the saved rule" -- never let the three look
+ * identically confident.
  */
-export type PathwayBoundarySource = "structure" | "heuristic";
+export type PathwayBoundarySource = "structure" | "heuristic" | "tree";
 
 export interface PathwayTextBoundary {
   start: number;

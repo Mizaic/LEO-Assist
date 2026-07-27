@@ -105,6 +105,10 @@ export default function StepPathwaySplit({
   }, [boundaries, onProposedBoundariesChange]);
 
   const source = boundaries?.[0]?.source ?? null;
+  const isTreeSourced =
+    !!boundaries &&
+    boundaries.length > 0 &&
+    boundaries.every((b) => b.source === "tree");
 
   function resetSelection() {
     setMode("idle");
@@ -202,10 +206,10 @@ export default function StepPathwaySplit({
         )}
         {boundaries.map((boundary, index) => (
           <PathwayBoundaryRow
-            key={`${boundary.start}-${boundary.end}`}
+            key={`${pathwayLetter(index)}-${boundary.source}-${boundary.text}`}
             boundary={boundary}
             letter={pathwayLetter(index)}
-            selectable={mode !== "idle"}
+            selectable={mode !== "idle" && !isTreeSourced}
             selected={selected.includes(index)}
             isSplitTarget={mode === "splitting" && selected[0] === index}
             onClick={() => handleRowClick(index)}
@@ -217,6 +221,7 @@ export default function StepPathwaySplit({
       <StepActions
         mode={mode}
         canConfirmMerge={canConfirmMerge}
+        hideTextEdits={isTreeSourced}
         onLooksRight={() => onConfirm(boundaries)}
         onStartMerge={() => setMode("merging")}
         onStartSplit={() => setMode("splitting")}
@@ -246,18 +251,25 @@ function StepHeader({
   source: PathwayTextBoundary["source"] | null;
   count: number;
 }) {
-  const isStructure = source === "structure";
+  const title =
+    source === "structure"
+      ? STEP_PATHWAY_SPLIT.structureTitle(count)
+      : source === "tree"
+        ? STEP_PATHWAY_SPLIT.treeTitle(count)
+        : STEP_PATHWAY_SPLIT.heuristicTitle;
+  const tag =
+    source === "structure"
+      ? STEP_PATHWAY_SPLIT.structureTag
+      : source === "tree"
+        ? STEP_PATHWAY_SPLIT.treeTag
+        : STEP_PATHWAY_SPLIT.heuristicTag(count);
   return (
     <Box>
       <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-        {isStructure
-          ? STEP_PATHWAY_SPLIT.structureTitle(count)
-          : STEP_PATHWAY_SPLIT.heuristicTitle}
+        {title}
       </Typography>
       <Typography variant="body2" color="text.secondary">
-        {isStructure
-          ? STEP_PATHWAY_SPLIT.structureTag
-          : STEP_PATHWAY_SPLIT.heuristicTag(count)}
+        {tag}
       </Typography>
     </Box>
   );
@@ -266,6 +278,7 @@ function StepHeader({
 function StepActions({
   mode,
   canConfirmMerge,
+  hideTextEdits,
   onLooksRight,
   onStartMerge,
   onStartSplit,
@@ -274,6 +287,8 @@ function StepActions({
 }: {
   mode: SelectMode;
   canConfirmMerge: boolean;
+  /** Tree-rehydrated rows have no quote spans to merge/split. */
+  hideTextEdits?: boolean;
   onLooksRight: () => void;
   onStartMerge: () => void;
   onStartSplit: () => void;
@@ -311,12 +326,16 @@ function StepActions({
       <Button variant="contained" size="small" onClick={onLooksRight}>
         {STEP_PATHWAY_SPLIT.looksRightLabel}
       </Button>
-      <Button variant="outlined" size="small" onClick={onStartMerge}>
-        {STEP_PATHWAY_SPLIT.mergeLabel}
-      </Button>
-      <Button variant="outlined" size="small" onClick={onStartSplit}>
-        {STEP_PATHWAY_SPLIT.splitLabel}
-      </Button>
+      {!hideTextEdits && (
+        <>
+          <Button variant="outlined" size="small" onClick={onStartMerge}>
+            {STEP_PATHWAY_SPLIT.mergeLabel}
+          </Button>
+          <Button variant="outlined" size="small" onClick={onStartSplit}>
+            {STEP_PATHWAY_SPLIT.splitLabel}
+          </Button>
+        </>
+      )}
     </Stack>
   );
 }

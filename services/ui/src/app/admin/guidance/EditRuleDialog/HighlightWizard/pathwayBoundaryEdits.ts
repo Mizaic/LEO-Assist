@@ -21,9 +21,10 @@ export function pathwayLetter(index: number): string {
   return LETTERS[index % LETTERS.length];
 }
 
-/** Merge two adjacent boundaries into one; a mixed structure+heuristic
- *  pair degrades to "heuristic" -- the merged text no longer reads as
- *  a single clean `<li>` the guideline's own markup vouched for. */
+/** Merge two adjacent boundaries into one; a mixed source pair
+ *  (structure/heuristic/tree) degrades to "heuristic" -- the merged
+ *  text is no longer a single clean guideline `<li>` or a pure
+ *  tree-rehydrated label. */
 export function mergeBoundaries(
   first: PathwayTextBoundary,
   second: PathwayTextBoundary,

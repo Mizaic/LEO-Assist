@@ -89,6 +89,13 @@ export function pathwayTextWindow(
     return undefined;
   }
   const boundary = boundaries[index];
+  // Table-driven / tree-rehydrated situations share one sentence (or
+  // point at an external table) -- there is no per-pathway quote span.
+  // Search and highlight against the whole recommendation instead of
+  // collapsing to an empty {0,0} window between stacked start:0 rows.
+  if (boundary.source === "tree") {
+    return textLength > 0 ? { start: 0, end: textLength } : undefined;
+  }
   const nextStart = boundaries[index + 1]?.start;
   // Fall back to the structural end when textLength is unknown/0 so a
   // last-pathway window never collapses to an empty or inverted range.
@@ -383,6 +390,13 @@ export function orderPathwayNodesByBoundary(
     return containers;
   }
 
+  // Tree-rehydrated table pathways share start:0 with no quote spans.
+  // The last-boundary-wins offset test below would then assign every
+  // leaf hit to Situation E and scramble A-E. Keep saved OR order.
+  if (boundaries.every((b) => b.source === "tree")) {
+    return containers;
+  }
+
   const boundaryIndexFor = (offset: number): number => {
     for (let i = boundaries.length - 1; i >= 0; i -= 1) {
       if (offset >= boundaries[i].start) return i;
@@ -635,6 +649,16 @@ export interface PathwayRows {
  * (deciding which parent a clicked row's leaf should attach under).
  */
 export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
+  // Tree-rehydrated situations already hold their leaves on the pathway
+  // node (age bands, CA125 thresholds, etc.). There is no guideline
+  // phrase to match per row -- inventing one from the summary label
+  // blocked Confirm with "needs a match" even when demographics were
+  // already captured. Leave text rows empty; Step 3 shows the leaves
+  // via PathwayDemographicsPanel / confirmed chips instead.
+  if (boundary.source === "tree") {
+    return { items: [], hasCluster: false };
+  }
+
   const cluster = resolveAtLeastCluster(boundary);
   if (!cluster) {
     const text = cleanPathwayText(boundary.text);
