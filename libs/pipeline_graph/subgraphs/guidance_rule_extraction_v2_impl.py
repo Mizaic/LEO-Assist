@@ -491,6 +491,7 @@ class CodedCriteria(TypedDict, total=False):
 class GuidanceRuleExtractionState(TypedDict, total=False):
     recommendation: dict[str, Any]
     guideline_id: str
+    triage_bucket: str
     prompt_config: dict[str, Any] | None
     system_prompt: str
     few_shot_examples: list[dict[str, Any]]
@@ -1170,9 +1171,15 @@ def _normalise_logic_node(node: dict[str, Any]) -> dict[str, Any] | None:
                 norm = _normalise_logic_node(child)
                 if norm:
                     children.append(norm)
-        if not children:
+        pathway_key = node.get("pathway_key")
+        # Empty pathway AND shells are valid SituationDraft stubs -- keep them
+        # so the wizard reopens with the correct situation count.
+        if not children and not (kind == "AND" and pathway_key):
             return None
-        return {"kind": kind, "children": children}
+        out: dict[str, Any] = {"kind": kind, "children": children}
+        if kind == "AND" and pathway_key:
+            out["pathway_key"] = str(pathway_key)
+        return out
     if kind == "AT_LEAST":
         children = []
         for child in node.get("children") or []:
@@ -1273,6 +1280,65 @@ def _normalise_observation_node(node: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _normalise_to_logic_tree(data: dict[str, Any]) -> dict[str, Any] | None:
+    # Situation-aligned draft (Always true / Situations / Conditions).
+    if "situations" in data or ("prerequisites" in data and "logic_tree" not in data):
+        try:
+            from libs.guidance.situation_draft import (
+                SituationDraft,
+                compile_situation_draft,
+                draft_from_llm_payload,
+            )
+
+            draft = draft_from_llm_payload(data)
+            if draft is None and "situations" in data:
+                draft = SituationDraft.model_validate(data)
+            if draft is not None:
+                # Optional skeleton alignment when the caller stamped shells.
+                skeleton_shells = data.get("_situation_skeleton")
+                if skeleton_shells:
+                    from libs.guidance.situation_draft import align_draft_to_skeleton
+
+                    draft = align_draft_to_skeleton(draft, skeleton_shells)
+                compiled = compile_situation_draft(draft)
+                logic_tree = _normalise_logic_node(compiled)
+                logic_tree = _assign_node_ids(logic_tree)
+                windows = [
+                    {
+                        "pathway_key": s.pathway_key,
+                        "text": s.text,
+                        "start": s.start,
+                        "end": s.end,
+                        "source": s.source,
+                        "index": i,
+                    }
+                    for i, s in enumerate(draft.situations)
+                ]
+                # Attach pathway_keys from compiled OR children back onto windows.
+                or_children: list[dict[str, Any]] = []
+                if isinstance(logic_tree, dict) and logic_tree.get("kind") == "OR":
+                    or_children = list(logic_tree.get("children") or [])
+                elif isinstance(logic_tree, dict) and logic_tree.get("kind") == "AND":
+                    for child in logic_tree.get("children") or []:
+                        if isinstance(child, dict) and child.get("kind") == "OR":
+                            or_children = list(child.get("children") or [])
+                            break
+                for i, child in enumerate(or_children):
+                    if i < len(windows) and isinstance(child, dict):
+                        windows[i]["pathway_key"] = child.get("pathway_key")
+                return {
+                    "schema_version": 2,
+                    "logic_tree": logic_tree,
+                    "actions": _normalise_actions(
+                        {"actions": draft.actions or data.get("actions")}
+                    ),
+                    "situation_windows": windows,
+                    "situation_draft": draft.model_dump(),
+                }
+        except Exception:
+            logger.exception(
+                "Failed to compile SituationDraft; falling back to legacy shapes"
+            )
+
     if "logic_tree" in data:
         logic_tree_raw = data.get("logic_tree")
         logic_tree = None
@@ -1347,6 +1413,36 @@ def _parse_llm_output(raw: str) -> dict[str, Any] | None:
     if data is None:
         return None
     return _normalise_to_logic_tree(data)
+
+
+def _realign_verdict_to_skeleton(
+    verdict: dict[str, Any], shells: list[Any]
+) -> dict[str, Any]:
+    """Recompile a SituationDraft verdict so OR arity matches skeleton shells."""
+    if not shells or len(shells) < 2:
+        return verdict
+    draft_payload = verdict.get("situation_draft")
+    if not isinstance(draft_payload, dict):
+        return verdict
+    try:
+        from libs.guidance.situation_draft import (
+            SituationDraft,
+            align_draft_to_skeleton,
+        )
+
+        draft = align_draft_to_skeleton(
+            SituationDraft.model_validate(draft_payload), shells
+        )
+        rebuilt = _normalise_to_logic_tree(
+            {
+                **draft.model_dump(),
+                "actions": verdict.get("actions") or draft.actions,
+            }
+        )
+        return rebuilt if rebuilt is not None else verdict
+    except Exception:
+        logger.exception("Failed to realign verdict to situation skeleton")
+        return verdict
 
 
 def _parse_verifier_output(raw: str) -> dict[str, Any] | None:
@@ -1666,6 +1762,34 @@ def _expand_leaves_in_logic_tree(
             _expand_leaves_in_logic_tree(child, recommendation_text)
 
 
+def _expand_leaves_with_situation_windows(
+    node: dict[str, Any] | None,
+    full_text: str,
+    windows_by_key: dict[str, str],
+) -> None:
+    """Expand leaves; pathway AND shells use their situation text window."""
+    if not isinstance(node, dict):
+        return
+    kind = str(node.get("kind") or "").upper()
+    if kind == "AND" and node.get("pathway_key"):
+        window_text = windows_by_key.get(str(node.get("pathway_key"))) or full_text
+        _expand_leaves_in_logic_tree(node, window_text)
+        return
+    if kind in {
+        "CONCEPT",
+        "DEMOGRAPHIC",
+        "OBSERVATION",
+        "MEDICATION",
+        "ALLERGY",
+        "TREATMENT_HISTORY",
+    }:
+        _expand_leaves_in_logic_tree(node, full_text)
+        return
+    for child in node.get("children") or []:
+        if isinstance(child, dict):
+            _expand_leaves_with_situation_windows(child, full_text, windows_by_key)
+
+
 def expand_leaves(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     errors: list[str] = list(state.get("errors") or [])
     raw = copy.deepcopy(state.get("raw_criteria"))
@@ -1675,12 +1799,46 @@ def expand_leaves(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         return {"expanded_criteria": raw, "errors": errors}
 
     recommendation_text = str((state.get("recommendation") or {}).get("verbatim") or "")
-    _expand_leaves_in_logic_tree(raw.get("logic_tree"), recommendation_text)
-    raw["actions"] = [
-        _expand_single_action(dict(action), recommendation_text)
-        for action in (raw.get("actions") or [])
-        if action
-    ]
+    windows_by_key: dict[str, str] = {}
+    for window in raw.get("situation_windows") or []:
+        if not isinstance(window, dict):
+            continue
+        key = window.get("pathway_key")
+        text = window.get("text") or ""
+        if key and text:
+            windows_by_key[str(key)] = str(text)
+        elif window.get("source") in {"tree", "single"} and recommendation_text:
+            # Table / single-situation shells share the full recommendation.
+            if key:
+                windows_by_key[str(key)] = recommendation_text
+
+    if windows_by_key:
+        _expand_leaves_with_situation_windows(
+            raw.get("logic_tree"), recommendation_text, windows_by_key
+        )
+    else:
+        _expand_leaves_in_logic_tree(raw.get("logic_tree"), recommendation_text)
+
+    # trigger_plus_narrative: skip procedure-term expansion for actions.
+    triage = str(state.get("triage_bucket") or "")
+    if triage == "trigger_plus_narrative":
+        raw["actions"] = [
+            {
+                "text": str(a.get("text") or a.get("action_text") or ""),
+                "action_kind": "narrative",
+                "action_text": str(a.get("text") or a.get("action_text") or ""),
+                "strength": a.get("strength") or "discuss",
+                "search_terms": [],
+            }
+            for a in (raw.get("actions") or [])
+            if isinstance(a, dict)
+        ]
+    else:
+        raw["actions"] = [
+            _expand_single_action(dict(action), recommendation_text)
+            for action in (raw.get("actions") or [])
+            if action
+        ]
     return {"expanded_criteria": raw, "errors": errors}
 
 
@@ -1848,13 +2006,45 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     context_parts.append(f"Recommendation {rec.get('title', '')}: {safe_verbatim}")
     context_parts.append(f"Urgency: {rec.get('urgency', 'unspecified')}")
     context_parts.append(f"Strength: {rec.get('strength', 'unspecified')}")
+
+    # Situation shells from NICE list structure / prose split -- the model
+    # fills conditions into these shells instead of inventing OR arity.
+    situation_shells: list[Any] = []
+    try:
+        from libs.guidance.situation_skeleton import (
+            build_situation_skeleton,
+            parse_list_structure,
+            skeleton_for_prompt,
+        )
+
+        structure = rec.get("list_structure") or parse_list_structure(
+            rec.get("list_structure_json")
+        )
+        situation_shells = build_situation_skeleton(
+            verbatim,
+            structure,
+            threshold_rows=rec.get("threshold_rows"),
+        )
+        skeleton_json = json.dumps(
+            skeleton_for_prompt(situation_shells), ensure_ascii=True
+        )
+        context_parts.append(
+            "SITUATION_SHELLS (do not invent a different number of situations; "
+            "fill conditions into each shell; put shared age/sex in prerequisites):\n"
+            + skeleton_json
+        )
+    except Exception:
+        logger.exception("Failed to build situation skeleton for %s", rec.get("id"))
+
     examples_block = _few_shot_block(few_shot_examples)
     if examples_block:
         context_parts.append("\nExamples:\n" + examples_block)
     context_parts.append(
-        "Extract the exact patient-level logic as JSON. "
-        "Preserve OR branches, AND branches, threshold logic such as '2 or more', "
-        "and demographic constraints exactly. Do not approximate."
+        "Extract patient-level logic as JSON. Prefer the SituationDraft shape: "
+        "prerequisites (always true), situations[{text,start,end,source,conditions}], "
+        "actions. Do not change the number of situations from SITUATION_SHELLS. "
+        "You may still return logic_tree for simple single-situation rules. "
+        "Preserve AND/OR/AT_LEAST/NOT and demographics exactly. Do not approximate."
     )
     if _looks_like_vague_symptom_clause(safe_verbatim):
         context_parts.append(
@@ -1923,6 +2113,8 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                             safe_verbatim,
                         )
                 verdict["actions"] = actions
+                if situation_shells and verdict.get("situation_draft"):
+                    verdict = _realign_verdict_to_skeleton(verdict, situation_shells)
                 return {"raw_criteria": verdict, "errors": errors, "llm_tokens": merged}
             if attempt == 0:
                 logger.warning(
@@ -1954,17 +2146,41 @@ _CONCEPT_LIKE_KINDS = frozenset({"concept", "observation"})
 
 
 def _collect_concept_targets(
-    node: dict[str, Any] | None, out: dict[str, dict[str, Any]]
+    node: dict[str, Any] | None,
+    out: dict[str, dict[str, Any]],
+    *,
+    pathway_key: str | None = None,
+    context_by_node: dict[str, str] | None = None,
+    windows_by_key: dict[str, str] | None = None,
+    full_text: str = "",
 ) -> None:
     if not node:
         return
     kind = node.get("kind")
+    active_key = pathway_key
+    if kind == "AND" and node.get("pathway_key"):
+        active_key = str(node.get("pathway_key"))
     if kind in _CONCEPT_LIKE_KINDS:
-        out[node["node_id"]] = dict(node.get("term") or {})
+        node_id = node.get("node_id")
+        if not node_id:
+            return
+        out[node_id] = dict(node.get("term") or {})
+        if context_by_node is not None:
+            window = ""
+            if active_key and windows_by_key:
+                window = windows_by_key.get(active_key) or ""
+            context_by_node[node_id] = window or full_text
         return
     for child in node.get("children") or []:
         if isinstance(child, dict):
-            _collect_concept_targets(child, out)
+            _collect_concept_targets(
+                child,
+                out,
+                pathway_key=active_key,
+                context_by_node=context_by_node,
+                windows_by_key=windows_by_key,
+                full_text=full_text,
+            )
 
 
 def _merge_candidates(
@@ -2120,22 +2336,32 @@ def _resolve_candidate_lists(
     logic_tree: dict[str, Any] | None,
     actions: list[dict[str, Any]],
     recommendation_text: str,
+    *,
+    windows_by_key: dict[str, str] | None = None,
 ) -> tuple[
     dict[str, list[ResolutionCandidate]],
     dict[str, dict[str, Any]],
     list[tuple[list[ResolutionCandidate], dict[str, Any]]],
 ]:
     targets: dict[str, dict[str, Any]] = {}
-    _collect_concept_targets(logic_tree, targets)
+    context_by_node: dict[str, str] = {}
+    _collect_concept_targets(
+        logic_tree,
+        targets,
+        context_by_node=context_by_node,
+        windows_by_key=windows_by_key or {},
+        full_text=recommendation_text,
+    )
 
     merged: dict[str, list[ResolutionCandidate]] = {}
     leaf_meta: dict[str, dict[str, Any]] = {}
     for node_id, term in targets.items():
         expected_tag = _infer_expected_tag_for_term_obj(term, is_action=False)
+        leaf_context = context_by_node.get(node_id) or recommendation_text
         result = _resolve_term_with_controller(
             term_obj=term,
             expected_tag=expected_tag,
-            recommendation_text=recommendation_text,
+            recommendation_text=leaf_context,
             is_action=False,
         )
         merged[node_id] = list(result.get("candidates") or [])
@@ -2144,13 +2370,30 @@ def _resolve_candidate_lists(
             "search_history": list(result.get("search_history") or []),
             "needs_human_review": bool(result.get("needs_human_review")),
             "expected_tag": expected_tag,
+            "resolve_window": leaf_context,
         }
 
-    action_results = [
-        _resolve_one_action_candidates(action, recommendation_text)
-        for action in actions
-        if action
-    ]
+    # Narrative-only actions (trigger_plus_narrative) skip procedure resolve.
+    action_results: list[tuple[list[ResolutionCandidate], dict[str, Any]]] = []
+    for action in actions:
+        if not action:
+            continue
+        if str(action.get("action_kind") or "") == "narrative":
+            action_results.append(
+                (
+                    [],
+                    {
+                        "resolver_turns": 0,
+                        "search_history": [],
+                        "needs_human_review": False,
+                        "expected_tag": "narrative",
+                    },
+                )
+            )
+        else:
+            action_results.append(
+                _resolve_one_action_candidates(action, recommendation_text)
+            )
     return merged, leaf_meta, action_results
 
 
@@ -2241,10 +2484,21 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         recommendation_text = str(
             (state.get("recommendation") or {}).get("verbatim") or ""
         )
+        windows_by_key: dict[str, str] = {}
+        for window in raw.get("situation_windows") or []:
+            if not isinstance(window, dict):
+                continue
+            key = window.get("pathway_key")
+            text = str(window.get("text") or "")
+            if key and text:
+                windows_by_key[str(key)] = text
+            elif key and window.get("source") in {"tree", "single"}:
+                windows_by_key[str(key)] = recommendation_text
         candidate_map, leaf_meta, action_results = _resolve_candidate_lists(
             logic_tree,
             actions,
             recommendation_text,
+            windows_by_key=windows_by_key,
         )
         candidate_tree = _annotate_candidate_tree(
             copy.deepcopy(logic_tree), candidate_map
@@ -2309,6 +2563,8 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 "logic_tree": candidate_tree,
                 "actions": action_payloads,
                 "hitl_terms": hitl_terms,
+                "situation_windows": list(raw.get("situation_windows") or []),
+                "situation_draft": raw.get("situation_draft"),
             },
             "errors": errors,
         }
@@ -3743,10 +3999,15 @@ def _flag_missing_age_or_organ_constraint(
 def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     verified = verify_codes(state)
     rec = state.get("recommendation") or {}
+    raw = state.get("raw_criteria") or {}
     if verified.get("coded_criteria") is not None:
         coded = dict(verified["coded_criteria"] or {})
         coded.setdefault("needs_human_review", bool(state.get("agentic_terms")))
         coded.setdefault("hitl_terms", list(state.get("agentic_terms") or []))
+        if raw.get("situation_windows") and not coded.get("situation_windows"):
+            coded["situation_windows"] = list(raw.get("situation_windows") or [])
+        if raw.get("situation_draft") and not coded.get("situation_draft"):
+            coded["situation_draft"] = raw.get("situation_draft")
         try:
             coded = _apply_authoring_gate(rec, coded)
         except Exception:

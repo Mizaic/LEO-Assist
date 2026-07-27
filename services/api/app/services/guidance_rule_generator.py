@@ -1,38 +1,31 @@
 """LLM-based AppropriatenessRule generator with HITL gate.
 
 Atlas trace:
-  DO: DO-5B320DDC
-  DI: DI-69C29EEF
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-5B320DDC")
+  DO: DO-BEFC4C67
+  DI: DI-85AB13D7
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-BEFC4C67")
 
 Pipeline
 --------
 For each normative Recommendation linked to the Guideline:
 
 1. **guidance_rule_extraction** LangGraph subgraph (libs/pipeline_graph):
+   - Builds situation shells from ``listStructureJson`` / prose split
    - Loads the PromptConfig from Neo4j (per-guideline lookup, editable via
      /admin/prompts)
-   - Calls the dual-model consensus pipeline (Haiku + GPT-5-mini, Sonnet
-     arbitration)
-   - Calls ``GET /terminology/search`` (Terminology API) with semantic_tag
-     filtering to resolve each plain-text criterion and the recommended action
-     to a SNOMED concept ID
+   - Calls the dual-model consensus pipeline to fill SituationDraft shells
+   - Compiles to schema_version 2 ``logic_tree`` and resolves SNOMED concepts
 
 2. **_write_rule** (this module) persists to Neo4j:
-   - ``AppropriatenessRule`` (status = pending_review)
-   - One ``CriteriaGroup`` node per ``criteria_groups`` entry with
-     ``type = ANY | ALL | NOT`` and HAS_CRITERIA edges to SNOMED concept nodes
+   - ``AppropriatenessRule`` (status = pending_review) with schema_version 2
+     ``logicJson`` / ``actionJson``
    - ``ActionGroup`` with HAS_ACTION edge to the recommended SNOMED procedure
+     (or narrative action text for trigger_plus_narrative triage)
    - ``GuidanceReviewTask`` (HITL gate)
    - ``SUPERSEDES`` link to any prior rule for the same verbatim text
 
-CriteriaGroup semantics
------------------------
-- ``type="ALL"``  — ALL criteria must be present in the patient record
-- ``type="ANY"``  — AT LEAST ONE criterion must be present
-- ``type="NOT"``  — NO criterion may be present (exclusion / contraindication)
-
-The bitmap compiler reads these type values to determine evaluation semantics.
+Schema v1 ``criteria_groups`` / ``applies_to`` writes are retired. Live
+generation always persists schema_version 2 logic trees.
 
 All LLM call sites comply with llm-security.mdc:
   - INJECTION_GUARD prepended (in the subgraph)
@@ -77,6 +70,7 @@ RETURN r.id          AS id,
        r.urgency     AS urgency,
        r.strength    AS strength,
        r.sectionTitle AS section_title,
+       r.listStructureJson AS list_structure_json,
        ch.title      AS chapter_title,
        ch.order      AS chapter_order,
        rule_count > 0 AS has_rule
@@ -402,16 +396,29 @@ class GuidanceRuleGenerator:
 
         t0 = _time.monotonic()
 
+        # Ensure list structure is available to the extract subgraph even
+        # when callers pass a partial recommendation dict.
+        from libs.guidance.situation_skeleton import parse_list_structure
+
+        rec_payload = dict(rec)
+        if "list_structure" not in rec_payload:
+            rec_payload["list_structure"] = parse_list_structure(
+                rec.get("list_structure_json")
+            )
+
         result = self._subgraph.invoke(
             {
-                "recommendation": rec,
+                "recommendation": rec_payload,
                 "guideline_id": guideline_id,
+                "triage_bucket": triage,
             }
         )
         duration_ms = int((_time.monotonic() - t0) * 1000)
         raw = result.get("raw_criteria")
         coded = result.get("coded_criteria")
         llm_tokens: dict[str, int] = result.get("llm_tokens") or {}
+        if triage == "trigger_plus_narrative" and isinstance(coded, dict):
+            coded = self._force_narrative_actions(coded)
 
         _CRITICAL_KEYWORDS = (
             "prompt_missing",
@@ -537,10 +544,58 @@ class GuidanceRuleGenerator:
         legacy = coded.get("action")
         return [legacy] if legacy else []
 
+    @staticmethod
+    def _force_narrative_actions(coded: dict[str, Any]) -> dict[str, Any]:
+        """For trigger_plus_narrative triage: keep IF side, drop procedure coding.
+
+        Actions become narrative ``action_text`` only so advice-style
+        recommendations do not invent SNOMED procedures.
+        """
+        out = dict(coded)
+        narrative_actions: list[dict[str, Any]] = []
+        for action in GuidanceRuleGenerator._resolve_actions(coded):
+            if not isinstance(action, dict):
+                continue
+            text = (
+                action.get("action_text")
+                or action.get("text")
+                or action.get("preferred_term")
+                or ""
+            )
+            narrative_actions.append(
+                {
+                    "action_kind": "narrative",
+                    "action_text": str(text),
+                    "strength": action.get("strength") or "discuss",
+                    "criterion": None,
+                }
+            )
+        out["actions"] = narrative_actions
+        out.pop("action", None)
+        out["triage"] = "trigger_plus_narrative"
+        return out
+
     def _empty_logic_tree(
         self, rec: dict[str, Any], coded: dict[str, Any] | None = None
     ) -> dict:
-        """Minimal v2 tree so failed extractions still open in the rule editor."""
+        """Minimal v2 tree so failed extractions still open in the rule editor.
+
+        When the recommendation has a known situation skeleton (list
+        structure or heuristic split), persist empty pathway AND shells
+        so the Highlight Wizard opens with the correct situation count.
+        """
+        from libs.guidance.situation_draft import empty_situation_shells
+        from libs.guidance.situation_skeleton import (
+            build_situation_skeleton,
+            parse_list_structure,
+        )
+
+        verbatim = rec.get("verbatim") or rec.get("title") or ""
+        structure = parse_list_structure(rec.get("list_structure_json"))
+        shells = build_situation_skeleton(verbatim, structure)
+        if len(shells) >= 2:
+            return empty_situation_shells(shells)
+
         label = str(
             (coded or {}).get("name")
             or rec.get("name")
@@ -661,12 +716,10 @@ class GuidanceRuleGenerator:
         *,
         errors: list[str] | None = None,
     ) -> str:
-        """Write AppropriatenessRule, CriteriaGroups, ActionGroup, ReviewTask.
+        """Write AppropriatenessRule (schema 2 logicJson), ActionGroup, ReviewTask.
 
-        One CriteriaGroup node is written per entry in ``coded["criteria_groups"]``,
-        with ``type`` set to the group mode (ANY / ALL / NOT).  Only criteria with
-        a resolved ``snomed_concept_id`` are written to bitmap-eligible HAS_CRITERIA
-        edges; unresolved terms are skipped with a debug log.
+        Live generation persists ``logicJson`` / ``actionJson`` only. Schema v1
+        CriteriaGroup / applies_to graph writes are retired.
         """
         rule_id = f"rule:{rec['id']}:{str(uuid.uuid4())[:8]}"
         task_id = str(uuid.uuid4())
@@ -685,7 +738,7 @@ class GuidanceRuleGenerator:
                 name=f"Rule: {(rec.get('title') or '')[:80]}",
                 strength=rec.get("strength", "unspecified"),
                 compile_scope_id=guideline_id,
-                schema_version=int(coded.get("schema_version") or 1),
+                schema_version=int(coded.get("schema_version") or 2),
                 logic_json=(
                     json.dumps(coded.get("logic_tree"))
                     if coded.get("logic_tree") is not None
@@ -704,24 +757,17 @@ class GuidanceRuleGenerator:
                 action_json=(json.dumps(actions) if actions else None),
             )
 
+            # Schema v1 criteria_groups / applies_to writes are retired.
+            # Live generation is schema_version 2 logicJson only.
             if int(coded.get("schema_version") or 1) != 2:
-                for idx, group in enumerate(coded.get("criteria_groups") or []):
-                    mode = str(group.get("mode", "ALL")).upper()
-                    predicate = "ABSENT" if mode == "NOT" else "PRESENT"
-                    self._write_criteria_group(
-                        session,
-                        rule_id,
-                        group.get("coded_terms") or [],
-                        group_type=mode,
-                        predicate=predicate,
-                        group_suffix=str(idx),
-                    )
+                logger.warning(
+                    "Rejecting non-schema-2 write for rule %s "
+                    "(schema_version=%s); logicJson already stored.",
+                    rule_id,
+                    coded.get("schema_version"),
+                )
 
             self._write_action_groups(session, rule_id, actions, priority_meta)
-
-            if int(coded.get("schema_version") or 1) != 2:
-                for constraint in coded.get("applies_to") or []:
-                    self._write_applies_to(session, rule_id, constraint)
 
             session.run(
                 _CREATE_REVIEW_TASK,
@@ -749,18 +795,18 @@ class GuidanceRuleGenerator:
         distance_child: int = _DEFAULT_DISTANCE_CHILD,
         distance_parent: int = _DEFAULT_DISTANCE_PARENT,
     ) -> None:
-        """Write CriteriaGroup and link resolved SNOMED concepts.
+        """Legacy schema-v1 CriteriaGroup writer (not called by live generation).
+
+        Live ``_write_rule`` persists schema_version 2 ``logicJson`` only.
+        This helper remains for unit tests of the retired graph shape.
 
         Args:
-            group_type: CriteriaGroup.type — "ALL", "ANY", or "NOT".
-            predicate:  HAS_CRITERIA edge predicate — "PRESENT" or "ABSENT".
+            group_type: CriteriaGroup.type - "ALL", "ANY", or "NOT".
+            predicate:  HAS_CRITERIA edge predicate - "PRESENT" or "ABSENT".
             group_suffix: Appended to the group_id to make each group unique
                 when a rule has multiple groups of the same type.
             distance_child: SNOMED IS_A hops downward for bitmap closure.
-                A value of 3 means the bitmap compiler will match any descendant
-                within 3 IS_A hops (e.g. "haematuria" → subtypes).
-            distance_parent: SNOMED IS_A hops upward (default 0 — exact match
-                toward parents would be too broad for clinical rules).
+            distance_parent: SNOMED IS_A hops upward (default 0).
         """
         resolved = [c for c in criteria if c.get("snomed_concept_id")]
         if not resolved:

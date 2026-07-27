@@ -462,22 +462,29 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
             "guidance_rule_extraction",
             build_guidance_rule_extraction_subgraph,
             description=(
-                "NICE → AppropriatenessRule: extracts patient criteria (criteria_groups "
-                "with ANY/ALL/NOT modes) and the recommended action (SNOMED procedure) "
-                "from a single NICE recommendation using the dual-model consensus pipeline."
+                "NICE -> AppropriatenessRule: builds a SituationDraft "
+                "(prerequisites / situations / conditions / actions) from list "
+                "structure or prose split, compiles to schema_version 2 logic_tree, "
+                "and resolves SNOMED concepts for HITL review."
             ),
             input_schema=json.dumps(
                 {
-                    "recommendation": "Recommendation dict (id, verbatim, title, urgency, strength, section_title, chapter_title)",
+                    "recommendation": (
+                        "Recommendation dict (id, verbatim, title, urgency, strength, "
+                        "section_title, chapter_title, list_structure / list_structure_json)"
+                    ),
                     "guideline_id": "NICE guideline code e.g. NG12",
-                    "prompt_config": "Optional PromptConfig dict (systemPrompt key) — loaded from /admin/prompts if omitted",
+                    "triage_bucket": "Optional triage bucket (full_rule / trigger_plus_narrative / no_rule)",
+                    "prompt_config": "Optional PromptConfig dict (systemPrompt key) -- loaded from /admin/prompts if omitted",
                 }
             ),
             output_schema=json.dumps(
                 {
                     "coded_criteria": {
-                        "criteria_groups": "list of {mode: ANY|ALL|NOT, coded_terms: [...], applies_to: [...]}",
-                        "action": "{term, snomed_concept_id, preferred_term, semantic_tag} or null",
+                        "schema_version": 2,
+                        "logic_tree": "schema_version 2 logic tree (AND/OR/AT_LEAST/NOT + leaves)",
+                        "actions": "list of action payloads (procedure or narrative)",
+                        "situation_windows": "optional per-situation text windows",
                     },
                     "errors": "list of error strings",
                 }
