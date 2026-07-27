@@ -41,7 +41,7 @@ export {
   upsertApprovedRule,
 } from "./ruleReviewHelpers";
 export type {
-  ActionBag,
+  ActionConcept,
   PromoteResult,
   Rule,
   RuleReviewIdentity,
