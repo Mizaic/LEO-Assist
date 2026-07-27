@@ -9,6 +9,7 @@ import {
   collectTreeHighlights,
   demographicMatchCandidate,
   leafTextMatch,
+  leafTextMatches,
 } from "../HighlightWizard/leafTextMatch";
 import type { EditableLogicNode } from "../types";
 
@@ -117,6 +118,44 @@ describe("leafTextMatch", () => {
   });
 });
 
+// Regression: a multi-seed CONCEPT leaf ("Add another code that means
+// the same") must anchor onto EVERY seed's wording, not just the
+// headline term -- otherwise a leaf capturing several findings looks
+// like it barely captured any of them.
+describe("leafTextMatches", () => {
+  it("returns one match per single-seed CONCEPT leaf, same as leafTextMatch", () => {
+    const node = makeNode({
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "1", preferred_term: "Weight loss" },
+    });
+    const matches = leafTextMatches(TEXT, node);
+    expect(matches.length).toBe(1);
+    expect(TEXT.slice(matches[0].start, matches[0].end).toLowerCase()).toBe("weight loss");
+  });
+
+  it("returns a match for every seed of a multi-seed CONCEPT leaf", () => {
+    const node = makeNode({
+      kind: "CONCEPT",
+      criterion: {
+        snomed_concept_id: "1",
+        preferred_term: "Weight loss",
+        seeds: [
+          { snomed_concept_id: "1", preferred_term: "Weight loss" },
+          { snomed_concept_id: "2", preferred_term: "Nausea" },
+        ],
+      },
+    });
+    const matches = leafTextMatches(TEXT, node);
+    const words = matches.map((m) => TEXT.slice(m.start, m.end).toLowerCase());
+    expect(words).toEqual(expect.arrayContaining(["weight loss", "nausea"]));
+  });
+
+  it("returns an empty array for a leaf kind with no verbatim wording", () => {
+    const node = makeNode({ kind: "RULE_FIRED", referenced_rule_id: "r1" });
+    expect(leafTextMatches(TEXT, node)).toEqual([]);
+  });
+});
+
 describe("collectTreeHighlights", () => {
   it("finds every anchorable leaf across a nested tree, as confirmed spans", () => {
     const tree = makeNode({
@@ -155,6 +194,23 @@ describe("collectTreeHighlights", () => {
     expect(words).toEqual(
       expect.arrayContaining(["aged 55 or over", "weight loss", "nausea"]),
     );
+  });
+
+  it("emits a highlight span for every seed of a multi-seed CONCEPT leaf, not just one", () => {
+    const tree = makeNode({
+      kind: "CONCEPT",
+      criterion: {
+        snomed_concept_id: "1",
+        preferred_term: "Weight loss",
+        seeds: [
+          { snomed_concept_id: "1", preferred_term: "Weight loss" },
+          { snomed_concept_id: "2", preferred_term: "Nausea" },
+        ],
+      },
+    });
+    const spans = collectTreeHighlights(TEXT, tree);
+    const words = spans.map((s) => TEXT.slice(s.start, s.end).toLowerCase());
+    expect(words).toEqual(expect.arrayContaining(["weight loss", "nausea"]));
   });
 
   it("skips leaves with no verbatim wording (RULE_FIRED) without throwing", () => {

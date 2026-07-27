@@ -27,6 +27,16 @@
  * wizard always shows the result as an adjustable suggestion, never a
  * silent auto-decision (per the plan).
  */
+import { hasAtLeastQuantifierMarker } from "./atLeastClusterSplit";
+
+export {
+  cleanPathwayText,
+  detectAtLeastCluster,
+  looksLikeLeadOrCluster,
+  looksLikeWithAnd,
+  resolveAtLeastCluster,
+  type AtLeastClusterSplit,
+} from "./atLeastClusterSplit";
 
 /**
  * Mirrors the JSON tree produced by the (upstream, ingestion-side)
@@ -143,18 +153,114 @@ export function splitPathwaysByOrHeuristic(
 }
 
 /**
+ * True when the raw text connecting two adjacent top-level structure
+ * items reads as an alternative ("upper abdominal pain, OR
+ * indigestion...") rather than a conjunctive list of things to do
+ * together ("a full blood count, AND blood tests for: ..."). A
+ * guideline's own `<ul>` markup is not, by itself, evidence that the
+ * list items are different clinical situations -- NICE also renders a
+ * single situation's multi-part action list (e.g. NG12 1.10.4's "a
+ * full blood count, and blood tests for: ...") as a `<ul>`, and
+ * treating that as 2 situations would wrongly turn one recommendation
+ * into two independent rules. Only an "or" connector between items
+ * counts as a genuine situation split; an "and" connector (or any
+ * connector without the word "or") means the items belong to the same
+ * situation and structure-derived splitting must not fire.
+ */
+function connectorReadsAsOr(text: string, prevEnd: number, nextStart: number): boolean {
+  const gap = text.slice(prevEnd, nextStart);
+  if (/\bor\b/i.test(gap)) return true;
+  if (/\band\b/i.test(gap)) return false;
+  // No connector word present in the gap at all (e.g. genuine bullet
+  // points with no inline prose joining them) -- nothing tells us
+  // this ISN'T a situation split, so keep the historical "trust the
+  // guideline's own structure" default.
+  return true;
+}
+
+/**
+ * Sentinel returned by `splitPathwaysFromStructure` when the
+ * guideline's own structure gives POSITIVE evidence that a 2+ item
+ * list is a single situation's AND'd action list, not a situation
+ * split. Distinct from returning `null` for "no structure opinion
+ * either way" (too few items, or no structure at all) -- that case
+ * SHOULD fall through to the flat-text ", or " heuristic below, but
+ * an explicit "and"-joined structure must not, because the heuristic
+ * scans the WHOLE recommendation text and can misfire on an unrelated
+ * ", or" elsewhere in the sentence (e.g. a qualifying-symptom clause
+ * like "...persistent bone pain, particularly back pain, or
+ * unexplained fracture..." ahead of the actual action list).
+ */
+const NOT_A_SITUATION_SPLIT = Symbol("not-a-situation-split");
+
+/**
+ * True when 2+ of `structure.items` fall inside the SAME ", or "
+ * heuristic segment of `text` -- decisive, wording-independent evidence
+ * that those items are members of one shared list sitting inside a
+ * single real situation, not one-item-per-situation. This is the same
+ * signal `AT_LEAST_MARKER_RE` looks for (a quantifier lead-in like "2 or
+ * more of the following unexplained symptoms:"), but derived directly
+ * from where the guideline's own prose actually splits rather than from
+ * guessing every phrasing NICE might use to introduce that list --
+ * belt-and-braces for ingested `lead_text` that does not literally
+ * contain "of the following" in a form the marker regex recognises.
+ * Returns false (no verdict, not "definitely fine") whenever the
+ * heuristic itself finds nothing usable, so the caller's other checks
+ * still apply.
+ */
+function structureItemsShareAHeuristicSegment(
+  text: string,
+  items: RecommendationStructureItem[],
+): boolean {
+  const heuristicBoundaries = splitPathwaysByOrHeuristic(text);
+  if (!heuristicBoundaries || heuristicBoundaries.length === items.length) return false;
+  const touchedSegments = new Set(
+    items.map((item) =>
+      heuristicBoundaries.findIndex((b) => item.start >= b.start && item.start < b.end),
+    ),
+  );
+  return touchedSegments.size < items.length;
+}
+
+/**
  * Structure-derived boundaries: when the guideline's own markup lists
- * 2+ top-level `<li>` items, those items ARE the pathways -- no
- * ambiguity, no heuristic needed. Returns null (not "fall back") on
- * anything less than 2 items, so `splitPathways` below falls through
- * to the text heuristic for a recommendation whose structure exists
- * but happens to be a flat single-item list.
+ * 2+ top-level `<li>` items AND they are joined by "or" (not "and"),
+ * those items ARE the pathways -- no ambiguity, no heuristic needed.
+ * Returns null (not "fall back") on anything less than 2 items, so
+ * `splitPathways` below falls through to the text heuristic for a
+ * recommendation whose structure exists but happens to be a flat
+ * single-item list. Returns `NOT_A_SITUATION_SPLIT` (a stronger, no
+ * fall-through signal) when 2+ items exist but are "and"-joined -- a
+ * single situation's action list, not separate situations.
  */
 function splitPathwaysFromStructure(
+  text: string | null | undefined,
   structure: RecommendationStructure | null | undefined,
-): PathwayTextBoundary[] | null {
+): PathwayTextBoundary[] | null | typeof NOT_A_SITUATION_SPLIT {
   if (!structure || !Array.isArray(structure.items)) return null;
   if (structure.items.length < 2) return null;
+  // A quantifier lead-in ("2 or more of the following unexplained
+  // symptoms:", "any of the following:") right before the list is
+  // decisive evidence the list is ONE shared AT_LEAST(N) collection of
+  // findings, not several independent situations -- regardless of how
+  // the bare commas between items would otherwise read. Unlike the
+  // "and"-joined case below, this does not mean there is only one
+  // situation overall: NG12 1.1.2's real 2-way split ("2 or more of...,
+  // or ... 1 or more of...") lives in the PROSE before this list, so
+  // returning plain `null` (not `NOT_A_SITUATION_SPLIT`) lets
+  // `splitPathways` fall through to the flat-text ", or " heuristic,
+  // which scans that lead-in prose instead of the list itself.
+  if (hasAtLeastQuantifierMarker(structure.lead_text)) return null;
+  if (text) {
+    for (let i = 0; i < structure.items.length - 1; i++) {
+      const { end } = structure.items[i];
+      const { start } = structure.items[i + 1];
+      if (!connectorReadsAsOr(text, end, start)) return NOT_A_SITUATION_SPLIT;
+    }
+    // Second, wording-independent safety net for the same "shared list"
+    // shape -- see `structureItemsShareAHeuristicSegment`'s doc comment.
+    if (structureItemsShareAHeuristicSegment(text, structure.items)) return null;
+  }
   return structure.items.map((item) => ({
     start: item.start,
     end: item.end,
@@ -169,13 +275,20 @@ function splitPathwaysFromStructure(
  * own list structure when present (see the plan's "Ingestion" and
  * "How structure changes the UI" sections), falling back to the
  * ", or "-splitting text heuristic only when no structure exists yet
- * (a local guideline, or a NICE guideline not yet backfilled).
+ * (a local guideline, or a NICE guideline not yet backfilled) or the
+ * structure has fewer than 2 items. When the structure explicitly
+ * says a 2+ item list is "and"-joined (one situation, not several),
+ * that verdict is final -- no fall-through to the text heuristic,
+ * which could otherwise misfire on an unrelated ", or" elsewhere in
+ * the sentence.
  */
 export function splitPathways(
   text: string | null | undefined,
   structure?: RecommendationStructure | null,
 ): PathwayTextBoundary[] | null {
-  return splitPathwaysFromStructure(structure) ?? splitPathwaysByOrHeuristic(text);
+  const structural = splitPathwaysFromStructure(text, structure);
+  if (structural === NOT_A_SITUATION_SPLIT) return null;
+  return structural ?? splitPathwaysByOrHeuristic(text);
 }
 
 /**
@@ -188,229 +301,4 @@ export function looksLikePathwaySplit(
   structure?: RecommendationStructure | null,
 ): boolean {
   return splitPathways(text, structure) !== null;
-}
-
-// ---------------------------------------------------------------------------
-// "Any of the following" AT_LEAST cluster detection (Step 3)
-// ---------------------------------------------------------------------------
-
-/** Marks the start of a nested "any of the following" / "with any of" list. */
-const AT_LEAST_MARKER_RE = /\b(?:with\s+)?any\s+of\s+the\s+following:?\s*/i;
-
-/**
- * `splitPathwaysByOrHeuristic` keeps its own boundary slicing lossless
- * (every character of the original text belongs to exactly one
- * segment) by attaching the trailing ", or " connector to the END of
- * the preceding segment rather than dropping it. That is the right
- * choice for offset fidelity (segments must reconstruct the original
- * text so highlight offsets stay valid), but it means a segment
- * fed into ``detectAtLeastCluster`` or shown as a pathway's own
- * display text can carry a dangling ", or" it does not semantically
- * own. Strip it before any content-level parsing.
- */
-const TRAILING_CONNECTOR_RE = /,?\s*\bor\b\s*$/i;
-
-/**
- * Strip a dangling trailing ", or" / " or" pathway-boundary connector
- * (see `splitPathwaysByOrHeuristic`'s slicing note above) so a
- * pathway's own text reads as a complete phrase rather than one that
- * trails off with a connector belonging to the next pathway.
- */
-export function cleanPathwayText(text: string): string {
-  return text.replace(TRAILING_CONNECTOR_RE, "").trim();
-}
-
-export interface AtLeastClusterSplit {
-  /** Text before the "any of the following" marker (the AND leaf, if any). */
-  leadText: string;
-  /** Individual list items after the marker, comma/or-separated. */
-  items: string[];
-  /**
-   * A second, marker-less alternative cluster found in `leadText` before
-   * it was consumed -- e.g. "nausea or vomiting" in "nausea or vomiting
-   * with any of the following: weight loss, reflux, dyspepsia, upper
-   * abdominal pain". Both this cluster and `items` apply to the SAME
-   * pathway, ANDed together: every `leadCluster` alternative additionally
-   * needs one of `items` to be present, not just any single alternative
-   * overall. Undefined when `leadText` reads as ordinary prose instead
-   * (see `looksLikeLeadOrCluster`'s guard-rails) -- the ordinary AND-leaf
-   * behaviour applies and `leadText` is left populated as normal.
-   */
-  leadCluster?: string[];
-}
-
-/** Same comma/bare-"or" convention used for both trailing AT_LEAST list
- * items and (below) a candidate lead-or cluster's own terms. */
-const CLUSTER_ITEM_SPLIT_RE = /,\s*|\s+\bor\b\s+/i;
-
-/**
- * Recognises a short, marker-less "A or B [or C]" alternative sitting in
- * front of an AT_LEAST cluster's marker -- e.g. "nausea or vomiting" in
- * "nausea or vomiting with any of the following: ...". Deliberately
- * conservative: every term must be a short, punctuation-free noun phrase
- * (<=3 words, <=24 chars) and the WHOLE input must be nothing but those
- * terms joined by ", " / " or " connectors, so ordinary prose like
- * "abdominal pain or a change in bowel habit that has persisted for six
- * weeks" (too long/clausal to safely treat as a clean alternative list
- * without a human confirming it) or "people aged 55 or over" (a number,
- * not a term) is rejected rather than mis-split.
- *
- * Returns null when `text` does not look like this pattern -- the
- * caller should keep treating it as an ordinary AND-leaf.
- */
-export function looksLikeLeadOrCluster(text: string): string[] | null {
-  const trimmed = text.trim();
-  if (!trimmed || !/\bor\b/i.test(trimmed)) return null;
-
-  const parts = trimmed
-    .split(CLUSTER_ITEM_SPLIT_RE)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  if (parts.length < 2 || parts.length > 4) return null;
-
-  const isShortTerm = (s: string) =>
-    s.length <= 24 && s.split(/\s+/).length <= 3 && /^[A-Za-z][A-Za-z\s-]*$/.test(s);
-  if (!parts.every(isShortTerm)) return null;
-
-  // Guard against silently dropping or picking up stray words: every
-  // character of `trimmed` other than whitespace, commas, and the word
-  // "or" must belong to one of `parts`.
-  const strip = (s: string) => s.replace(/,|\bor\b/gi, "").replace(/\s+/g, "").toLowerCase();
-  if (strip(trimmed) !== strip(parts.join(""))) return null;
-
-  return parts;
-}
-
-/**
- * Recognises a plain clinical AND of short findings joined by "with"
- * or "and", with no "any of the following" marker -- e.g. NG12 1.2.9
- * situation B ("upper abdominal pain with low haemoglobin levels") or
- * a simple "nausea and vomiting" clause. Same conservatism as
- * `looksLikeLeadOrCluster`: each side must be a short noun phrase;
- * long clauses (and age phrasing like "55 and over") are left as a
- * single row. Rejects "with any of the following" (AT_LEAST path).
- *
- * Returns null when `text` should stay one unresolved row.
- */
-export function looksLikeWithAnd(text: string): string[] | null {
-  const trimmed = text.trim().replace(/\.$/, "");
-  if (!trimmed) return null;
-  if (/\bwith\s+any\s+of\s+the\s+following\b/i.test(trimmed)) return null;
-
-  const isShortFinding = (s: string) =>
-    s.length <= 40 &&
-    s.split(/\s+/).length <= 5 &&
-    /^[A-Za-z][A-Za-z\s-]*$/.test(s);
-
-  for (const connector of [/\s+with\s+/i, /\s+and\s+/i]) {
-    if (!connector.test(trimmed)) continue;
-    const parts = trimmed
-      .split(connector)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    if (parts.length < 2 || parts.length > 4) continue;
-    if (!parts.every(isShortFinding)) continue;
-    return parts;
-  }
-  return null;
-}
-
-/** Drop a trailing citation / sentence terminator like ". [2015]" from
- * the end of a cluster's own text -- shared by every path that produces
- * a lead-in or trailing-item string so a real backfilled `<li>`'s own
- * end-of-recommendation punctuation reads the same as the heuristic
- * path's already-cleaned text. */
-function stripTrailingCitation(text: string): string {
-  return text
-    .trim()
-    .replace(/\.?\s*\[\d{4}\]\s*\.?$/i, "")
-    .replace(/\.$/, "")
-    .trim();
-}
-
-/**
- * Split raw text at the "any of the following" marker into a lead-in
- * (everything before it, with a dangling comma/semicolon trimmed) and
- * the list text after it (trailing citation stripped). Returns null
- * when the marker is not present. Shared by both `detectAtLeastCluster`
- * (heuristic path) and `resolveAtLeastCluster` (structure path) so the
- * two branches agree on exactly where the marker sits and what counts
- * as "before" vs "after" it.
- */
-function splitAtMarker(cleaned: string): { leadText: string; listText: string } | null {
-  const match = AT_LEAST_MARKER_RE.exec(cleaned);
-  if (!match) return null;
-  const leadText = cleaned.slice(0, match.index).trim().replace(/[,;]+$/, "").trim();
-  const listText = stripTrailingCitation(cleaned.slice(match.index + match[0].length));
-  return { leadText, listText };
-}
-
-/**
- * Builds the final `AtLeastClusterSplit`, detecting a lead-or cluster in
- * `leadText` (if any) and clearing `leadText` when one is found, since
- * `looksLikeLeadOrCluster` only matches when the whole lead-in is
- * nothing but that cluster's own terms.
- */
-function buildClusterSplit(leadText: string, items: string[]): AtLeastClusterSplit | null {
-  if (items.length === 0) return null;
-  const leadCluster = looksLikeLeadOrCluster(leadText);
-  return {
-    leadText: leadCluster ? "" : leadText,
-    items,
-    ...(leadCluster ? { leadCluster } : {}),
-  };
-}
-
-/**
- * Detects the literal phrase "any of the following" / "with any of" in a
- * single pathway's text and splits it into a lead AND-condition (may be
- * empty, or itself a lead-or cluster -- see `looksLikeLeadOrCluster`)
- * plus the list of AT_LEAST(1) candidate items. Item splitting uses the
- * same comma/bare-"or" convention as the top-level heuristic: items are
- * comma-separated, with the final item joined by a bare "or" (no
- * preceding comma).
- *
- * Returns null when the marker phrase is not present -- the caller
- * should treat the whole segment as a single AND condition with no
- * AT_LEAST suggestion.
- */
-export function detectAtLeastCluster(
-  text: string | null | undefined,
-): AtLeastClusterSplit | null {
-  if (!text) return null;
-  const split = splitAtMarker(cleanPathwayText(text));
-  if (!split) return null;
-
-  const items = split.listText
-    .split(CLUSTER_ITEM_SPLIT_RE)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-
-  return buildClusterSplit(split.leadText, items);
-}
-
-/**
- * Resolve a pathway's AT_LEAST cluster, preferring the guideline's own
- * nested `<ul>` (via `boundary.structureChildren`) over the "any of the
- * following" text heuristic. A structural item's own `text` still
- * carries its lead-in sentence AND the marker phrase itself (NICE's
- * markup keeps them in the same `<li>` paragraph, only the nested list
- * is split out -- see `nice_list_parser.py`'s `_own_text`), so the
- * marker still needs stripping here exactly as on the heuristic path.
- */
-export function resolveAtLeastCluster(
-  boundary: Pick<PathwayTextBoundary, "text" | "source" | "structureChildren">,
-): AtLeastClusterSplit | null {
-  if (boundary.source === "structure") {
-    const children = boundary.structureChildren ?? [];
-    const items = children
-      .map((c, i) => (i === children.length - 1 ? stripTrailingCitation(c.text) : c.text.trim()))
-      .filter((t) => t.length > 0);
-    if (items.length === 0) return null;
-
-    const split = splitAtMarker(boundary.text.trim());
-    const leadText = split ? split.leadText : boundary.text.trim();
-    return buildClusterSplit(leadText, items);
-  }
-  return detectAtLeastCluster(boundary.text);
 }

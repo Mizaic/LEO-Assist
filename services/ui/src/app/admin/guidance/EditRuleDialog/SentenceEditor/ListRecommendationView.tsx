@@ -142,6 +142,8 @@ function ListRow({
       <ListItemButton
         data-testid={`list-row-${rowKey(item)}`}
         data-resolved={resolved}
+        data-node-id={resolution?.nodeId ?? undefined}
+        data-wizard-jump-target="true"
         onClick={(e) => onRowClick(item, e.currentTarget)}
         sx={{ pl: 2 + depth * 2, alignItems: "flex-start", py: 0.75 }}
       >

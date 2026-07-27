@@ -288,7 +288,7 @@ export const STEP_SHORT_TITLES: Record<StepId, string> = {
 
 /** Helper text shown under each step's heading. One short sentence each. */
 export const STEP_HELPERS: Record<StepId, string> = {
-  who: "Pick which patients this rule is about. Click a green pill to swap or change it. Use + Add to add another.",
+  who: "Highlight words in the guideline on the right to turn them into conditions, or edit and remove what's already captured on the left.",
   suggest: "Pick what the system should tell the clinician when this rule matches.",
   save: "Tell us why. Save your change, then compile it from Bitmap Lifecycle to make it live.",
 };
@@ -494,6 +494,36 @@ export const SEARCH_PANEL = {
     `Other rules use these codes for "${term}"`,
   priorResolutionCount: (count: number) =>
     count === 1 ? "Used once" : `Used ${count} times`,
+  askLeoIdeasLabel: "Ask LEO for ideas",
+  askLeoIdeasHint:
+    "LEO can suggest specific symptoms or findings you can tick and look up.",
+} as const;
+
+/**
+ * Full-size "Ask LEO for ideas" dialog: tick candidate terms, then
+ * review the SNOMED match for each before adding them to the rule.
+ */
+export const CONCEPT_EXPAND = {
+  title: "Ask LEO for ideas",
+  tickStageLead: (phrase: string) =>
+    `LEO suggested these terms for "${phrase}". Tick the ones that apply.`,
+  tickAllLabel: "Tick all",
+  continueLabel: "Look up ticked terms",
+  cancelLabel: "Cancel",
+  backLabel: "Back",
+  loadingIdeas: "Asking LEO for ideas...",
+  loadingResolve: "Looking up clinical terms...",
+  emptyIdeas:
+    "LEO did not suggest any terms for this phrase. Try a shorter phrase or search yourself.",
+  loadError: "Could not ask LEO for ideas right now. Please try again.",
+  resolveStageLead:
+    "Check each match. Change a pick if it looks wrong. Terms with no match stay out.",
+  unmatchedLabel: "No match found",
+  needsPickLabel: "Pick the best match",
+  matchedLabel: "Matched",
+  addLabel: "Add matched terms",
+  addAriaLabel: "Add the matched clinical terms to the rule",
+  noMatchedYet: "None of the ticked terms have a clinical-term match yet.",
 } as const;
 
 /**

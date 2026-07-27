@@ -250,6 +250,20 @@ function DiffPanel({ ruleId }: { ruleId: string }) {
 function RuleCardHeader({ rule }: { rule: Rule }) {
   return (
     <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap" sx={{ mb: 0.3 }}>
+      {rule.name && (
+        <Chip
+          label={rule.name}
+          size="small"
+          data-testid="rule-friendly-id-chip"
+          sx={{
+            height: 20,
+            fontSize: "0.72rem",
+            fontFamily: "monospace",
+            fontWeight: 700,
+            bgcolor: "grey.200",
+          }}
+        />
+      )}
       <Chip label={rule.guideline_id} size="small" color="primary" />
       {rule.guideline_version && rule.guideline_version > 1 && <Chip label={`v${rule.guideline_version}`} size="small" color="warning" variant="outlined" />}
       {rule.strength && rule.strength !== "unspecified" && <Tooltip title={strengthChipLabel(rule.strength)} arrow><Chip label={rule.strength.replace(/_/g, " ")} size="small" variant="outlined" /></Tooltip>}
@@ -333,11 +347,16 @@ function RuleCardActions({ rule, callbacks, isBusy }: { rule: Rule; callbacks: R
       </Stack>
     );
   }
+  const rejectLabel = rule.status === "active" ? "Exclude" : "Reject";
+  const rejectAria =
+    rule.status === "active"
+      ? `Exclude rule ${rule.rule_id}`
+      : `Reject rule ${rule.rule_id}`;
   return (
     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
       {callbacks.onApprove && <Button variant="contained" color="success" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onApprove!(); }} aria-label={`Approve rule ${rule.rule_id}`}>Looks right</Button>}
       <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
-      {callbacks.onReject && <Button variant="outlined" color="error" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onReject!(); }} aria-label={`Reject rule ${rule.rule_id}`}>Reject</Button>}
+      {callbacks.onReject && <Button variant="outlined" color="error" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onReject!(); }} aria-label={rejectAria}>{rejectLabel}</Button>}
       {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
     </Stack>
   );

@@ -116,6 +116,26 @@ export function pathwayLetterAt(index: number): string {
   return PATHWAY_LETTERS[index % PATHWAY_LETTERS.length];
 }
 
+/**
+ * The key `clusterGroupings`/`leadClusterGroupings` (and the
+ * copy-across "dismissed" set) are stored under -- the pathway's own
+ * `pathway_key` when it has one, which is every real materialized
+ * pathway. Falls back to a positional key only for a pathway node
+ * that genuinely has none: the `boundaries.length === 1` "doesn't
+ * split" case (the whole tree, not an OR child) and hand-built test
+ * fixtures that never went through `ensurePathwayKeys`. Keying by
+ * `pathway_key` instead of the raw array index means a grouping
+ * choice recorded for "Situation C" stays attached to Situation C
+ * even after a merge/split in Step 2 changes which index it lives at
+ * -- see the wizard state-machine stability plan section.
+ */
+export function pathwayGroupingKey(
+  pathwayNode: EditableLogicNode | null | undefined,
+  index: number,
+): string {
+  return pathwayNode?.pathway_key ?? `pathway-index-${index}`;
+}
+
 function collectLeaves(node: EditableLogicNode): EditableLogicNode[] {
   const leaves: EditableLogicNode[] = [];
   const walk = (n: EditableLogicNode): void => {
@@ -271,13 +291,13 @@ export function buildRowResolver(
   };
 }
 
-/** True once every top-level row (and every nested cluster child) in
- *  `items` resolves to a real leaf -- the gate Step 3's "Confirm
- *  situation X" button checks before letting the reviewer move on. */
-export function countUnresolvedRows(
+/** Every top-level row plus every nested cluster child, in one flat
+ *  list -- shared by `countUnresolvedRows` and callers that need to
+ *  know which tree nodes a pathway's rows already cover (e.g. "jump to
+ *  issue" filtering out problems that already have a visible row). */
+export function flattenPathwayItems(
   items: RecommendationStructureItem[],
-  getRowResolution: (item: RecommendationStructureItem) => ListRowResolution | undefined,
-): number {
+): RecommendationStructureItem[] {
   const flat: RecommendationStructureItem[] = [];
   const walk = (list: RecommendationStructureItem[]): void => {
     for (const item of list) {
@@ -286,7 +306,17 @@ export function countUnresolvedRows(
     }
   };
   walk(items);
-  return flat.filter((item) => {
+  return flat;
+}
+
+/** True once every top-level row (and every nested cluster child) in
+ *  `items` resolves to a real leaf -- the gate Step 3's "Confirm
+ *  situation X" button checks before letting the reviewer move on. */
+export function countUnresolvedRows(
+  items: RecommendationStructureItem[],
+  getRowResolution: (item: RecommendationStructureItem) => ListRowResolution | undefined,
+): number {
+  return flattenPathwayItems(items).filter((item) => {
     const resolution = getRowResolution(item);
     return !(resolution?.criterion || resolution?.preferredTerm);
   }).length;
@@ -461,6 +491,28 @@ export function materializePathways(
 
   onUpdate({ kind: "replace_root", node: buildRootWithFreshPathways(tree, boundaryCount) });
   return [];
+}
+
+/**
+ * True when confirming `newBoundaryCount` in Step 2 would force the
+ * `materializePathways` call above down the `rebuildPathwayOr` path,
+ * which replaces every pathway container with an EMPTY shell --
+ * discarding leaf conditions the reviewer already resolved in Step 3
+ * under the previous count. Lets the orchestrator warn first instead
+ * of silently wiping already-confirmed work (e.g. Back to Step 2,
+ * merge two rows together, re-confirm -- see the wizard confusion
+ * audit's merge/split section). A brand-new split with no existing
+ * pathway containers at all has nothing to lose, so this is false.
+ */
+export function splitWouldDiscardPathwayLeaves(
+  tree: EditableLogicNode,
+  newBoundaryCount: number,
+): boolean {
+  const split = findPathwaySplit(tree);
+  if (!split) return false;
+  const existing = split.orNode.children ?? [];
+  if (existing.length === newBoundaryCount) return false;
+  return existing.some((container) => (container.children?.length ?? 0) > 0);
 }
 
 /** Re-finds a node by id in the CURRENT tree -- needed whenever a

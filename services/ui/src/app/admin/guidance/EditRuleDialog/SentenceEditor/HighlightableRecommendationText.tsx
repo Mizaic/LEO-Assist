@@ -154,7 +154,7 @@ function renderTokens(params: {
   highlights: HighlightSpan[];
   dimmedRanges: Array<{ start: number; end: number }>;
   selectionLoHi: { lo: number; hi: number } | null;
-  handleMouseDown: (wordIdx: number) => void;
+  handleMouseDown: (wordIdx: number, extend?: boolean) => void;
   handleMouseEnter: (wordIdx: number) => void;
   handleFocus: (wordIdx: number) => void;
   handleKeyDown: (wordIdx: number, e: React.KeyboardEvent) => void;
@@ -197,7 +197,7 @@ function renderTokens(params: {
         data-word-index={wordIdx}
         data-highlight-kind={highlightKind ?? undefined}
         data-dimmed={isDimmed || undefined}
-        onMouseDown={() => !isDimmed && handleMouseDown(wordIdx)}
+        onMouseDown={(e) => !isDimmed && handleMouseDown(wordIdx, e.shiftKey)}
         onMouseEnter={() => !isDimmed && handleMouseEnter(wordIdx)}
         onFocus={() => !isDimmed && handleFocus(wordIdx)}
         onKeyDown={(e) => !isDimmed && handleKeyDown(wordIdx, e)}
@@ -208,6 +208,7 @@ function renderTokens(params: {
           borderRadius: 0.5,
           cursor: isDimmed ? "default" : "pointer",
           outlineOffset: 1,
+          userSelect: "none",
           "&:focus-visible": { outline: "2px solid #2563EB" },
         }}
       >

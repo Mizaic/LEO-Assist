@@ -21,11 +21,13 @@ import {
   leafDisplayTerm,
   materializePathways,
   orderPathwayNodesByBoundary,
+  pathwayGroupingKey,
   pathwayLetterAt,
   pathwaySummaryText,
   pathwayTextWindow,
   readMaterializedPathways,
   rebuildPathwayOr,
+  splitWouldDiscardPathwayLeaves,
   withReifiedPathwayClusters,
 } from "../HighlightWizard/wizardMapping";
 import type { EditableLogicNode, NodeUpdate } from "../types";
@@ -522,6 +524,35 @@ describe("materializePathways", () => {
   });
 });
 
+describe("splitWouldDiscardPathwayLeaves", () => {
+  it("is false when there is no pathway split yet -- nothing to lose", () => {
+    const tree: EditableLogicNode = { node_id: "root", kind: "AND", children: [ageLeaf()] };
+    expect(splitWouldDiscardPathwayLeaves(tree, 2)).toBe(false);
+  });
+
+  it("is false when the new count matches what's already materialized", () => {
+    const pwA = pathwayNode([weightLossLeaf()]);
+    const pwB = { ...pathwayNode([ageLeaf()]), node_id: "pw-b" };
+    const tree: EditableLogicNode = { node_id: "root", kind: "OR", children: [pwA, pwB] };
+    expect(splitWouldDiscardPathwayLeaves(tree, 2)).toBe(false);
+  });
+
+  it("is false when the count differs but every existing pathway is still empty (nothing to lose)", () => {
+    const pwA = pathwayNode([]);
+    const pwB = { ...pathwayNode([]), node_id: "pw-b" };
+    const tree: EditableLogicNode = { node_id: "root", kind: "OR", children: [pwA, pwB] };
+    expect(splitWouldDiscardPathwayLeaves(tree, 3)).toBe(false);
+  });
+
+  it("is true when the count differs AND at least one existing pathway already has leaves", () => {
+    const pwA = pathwayNode([weightLossLeaf()]);
+    const pwB = { ...pathwayNode([]), node_id: "pw-b" };
+    const tree: EditableLogicNode = { node_id: "root", kind: "OR", children: [pwA, pwB] };
+    expect(splitWouldDiscardPathwayLeaves(tree, 3)).toBe(true);
+    expect(splitWouldDiscardPathwayLeaves(tree, 1)).toBe(true);
+  });
+});
+
 describe("rebuildPathwayOr", () => {
   it("preserves prerequisites and mints a fresh 4-child OR", () => {
     const age = ageLeaf();
@@ -713,6 +744,25 @@ describe("pathwayLetterAt / buildConfirmedSummaries", () => {
     expect(summaries).toHaveLength(1);
     expect(summaries[0].letter).toBe("A");
     expect(summaries[0].summary.toLowerCase()).toContain("weight loss");
+  });
+});
+
+describe("pathwayGroupingKey", () => {
+  it("uses the pathway's own stable pathway_key when it has one", () => {
+    const node = { ...pathwayNode([weightLossLeaf()]), pathway_key: "pw_c" };
+    expect(pathwayGroupingKey(node, 0)).toBe("pw_c");
+    // The same pathway keeps the same grouping key even if a
+    // merge/split in Step 2 moves it to a different array index --
+    // that is the entire point of keying by pathway_key.
+    expect(pathwayGroupingKey(node, 5)).toBe("pw_c");
+  });
+
+  it("falls back to a positional key only when there is no pathway_key at all", () => {
+    const node = pathwayNode([weightLossLeaf()]);
+    delete (node as { pathway_key?: string }).pathway_key;
+    expect(pathwayGroupingKey(node, 2)).toBe("pathway-index-2");
+    expect(pathwayGroupingKey(null, 3)).toBe("pathway-index-3");
+    expect(pathwayGroupingKey(undefined, 4)).toBe("pathway-index-4");
   });
 });
 

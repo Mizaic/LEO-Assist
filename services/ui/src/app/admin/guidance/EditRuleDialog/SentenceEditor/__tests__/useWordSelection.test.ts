@@ -63,6 +63,70 @@ describe("useWordSelection", () => {
     expect(result.current.selectionLoHi).toEqual({ lo: 0, hi: 2 });
   });
 
+  // Regression: clicking word 1, releasing, then clicking word 2 without
+  // Shift held must NOT extend the selection -- each plain click starts a
+  // fresh one-word selection, matching the drag/keyboard behaviour below.
+  it("a second plain mousedown (no Shift) resets to a fresh one-word selection instead of extending", () => {
+    const { result } = renderHook(() =>
+      useWordSelection({ text: TEXT, onConfirmSelection: jest.fn() }),
+    );
+    act(() => result.current.handleMouseDown(0));
+    act(() => result.current.handleMouseUp());
+    act(() => result.current.handleMouseDown(2));
+    expect(result.current.selectionLoHi).toEqual({ lo: 2, hi: 2 });
+  });
+
+  // Click-drag across small inline word chunks is fragile in a real
+  // browser -- Shift+click extending the current selection to a new
+  // word (without requiring the mouse to stay held down the whole
+  // time) is the same forgiving gesture already supported via the
+  // keyboard's Shift+Arrow, and is the fix for "can't select more
+  // than one word" when a continuous drag doesn't land cleanly.
+  it("Shift+click extends the existing selection to the newly clicked word", () => {
+    const { result } = renderHook(() =>
+      useWordSelection({ text: TEXT, onConfirmSelection: jest.fn() }),
+    );
+    act(() => result.current.handleMouseDown(0));
+    act(() => result.current.handleMouseUp());
+    act(() => result.current.handleMouseDown(2, true));
+    expect(result.current.selectionLoHi).toEqual({ lo: 0, hi: 2 });
+  });
+
+  it("Shift+click with no prior anchor starts a fresh one-word selection instead of throwing", () => {
+    const { result } = renderHook(() =>
+      useWordSelection({ text: TEXT, onConfirmSelection: jest.fn() }),
+    );
+    act(() => result.current.handleMouseDown(1, true));
+    expect(result.current.selectionLoHi).toEqual({ lo: 1, hi: 1 });
+  });
+
+  it("confirming a Shift+click-extended selection emits the exact multi-word substring", () => {
+    const onConfirmSelection = jest.fn();
+    const { result } = renderHook(() =>
+      useWordSelection({ text: TEXT, onConfirmSelection }),
+    );
+    act(() => result.current.handleMouseDown(0));
+    act(() => result.current.handleMouseUp());
+    act(() => result.current.handleMouseDown(2, true));
+    act(() => result.current.handleConfirm());
+
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      { start: 0, end: 20, text: "upper abdominal pain" },
+      undefined,
+    );
+  });
+
+  it("Shift+click does not re-arm dragging -- a later mouse-enter without a fresh mousedown does not extend further", () => {
+    const { result } = renderHook(() =>
+      useWordSelection({ text: TEXT, onConfirmSelection: jest.fn() }),
+    );
+    act(() => result.current.handleMouseDown(0));
+    act(() => result.current.handleMouseUp());
+    act(() => result.current.handleMouseDown(2, true));
+    act(() => result.current.handleMouseEnter(5));
+    expect(result.current.selectionLoHi).toEqual({ lo: 0, hi: 2 });
+  });
+
   it("ignores mouse-enter when no drag was started (mouse not down)", () => {
     const { result } = renderHook(() =>
       useWordSelection({ text: TEXT, onConfirmSelection: jest.fn() }),

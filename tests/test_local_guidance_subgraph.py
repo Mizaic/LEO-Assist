@@ -46,6 +46,51 @@ def test_build_subgraph_includes_rules_and_totals() -> None:
     assert result["totals"]["rules"] == 1
 
 
+def test_build_subgraph_sorts_recommendations_naturally_within_a_chapter() -> None:
+    """Cypher's ORDER BY chapter_order, rec_id does not guarantee dotted-
+    number order (rec_id is an internal id, not the visible number) --
+    rows are deliberately fed in the "wrong" 1.11.1-before-1.2.1 order
+    here to prove the natural-sort pass fixes it regardless of fetch
+    order."""
+    rows = [
+        {
+            "guideline_id": "SEL-MSK-01",
+            "guideline_title": "Local MSK",
+            "ingest_version": 1,
+            "chapter_id": "ch-1",
+            "chapter_title": "Triage",
+            "chapter_order": 0,
+            "rec_id": "rec-b",
+            "stable_key": "1.11.1",
+            "rec_title": "Later",
+            "verbatim": "Later recommendation.",
+            "likely_incorrect": False,
+            "rules": [],
+        },
+        {
+            "guideline_id": "SEL-MSK-01",
+            "guideline_title": "Local MSK",
+            "ingest_version": 1,
+            "chapter_id": "ch-1",
+            "chapter_title": "Triage",
+            "chapter_order": 0,
+            "rec_id": "rec-a",
+            "stable_key": "1.2.1",
+            "rec_title": "Earlier",
+            "verbatim": "Earlier recommendation.",
+            "likely_incorrect": False,
+            "rules": [],
+        },
+    ]
+
+    result = _build_subgraph(rows)
+
+    stable_keys = [
+        rec["stable_key"] for rec in result["chapters"][0]["recommendations"]
+    ]
+    assert stable_keys == ["1.2.1", "1.11.1"]
+
+
 def test_build_subgraph_surfaces_likely_incorrect() -> None:
     """likely_incorrect must be returned for picker messaging."""
     rows = [

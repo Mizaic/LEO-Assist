@@ -71,6 +71,14 @@ export function useWordSelection({ text, onConfirmSelection, onCancelSelection }
   const [anchorIdx, setAnchorIdx] = useState<number | null>(null);
   const [focusIdx, setFocusIdx] = useState<number | null>(null);
   const draggingRef = useRef(false);
+  /**
+   * Clicking a focusable word chunk fires `onFocus` right after
+   * `onMouseDown` (browsers focus a clicked tabIndex=0 element before
+   * mouseup), which would otherwise immediately overwrite a Shift+click
+   * extend with a plain "select just this word" -- `handleMouseDown`
+   * arms this for exactly the one focus event it causes.
+   */
+  const suppressNextFocusRef = useRef(false);
 
   const selectionLoHi = useMemo(() => {
     if (anchorIdx === null || focusIdx === null) return null;
@@ -110,11 +118,32 @@ export function useWordSelection({ text, onConfirmSelection, onCancelSelection }
     onCancelSelection?.();
   }, [clearSelection, onCancelSelection]);
 
-  const handleMouseDown = useCallback((wordIdx: number) => {
-    draggingRef.current = true;
-    setAnchorIdx(wordIdx);
-    setFocusIdx(wordIdx);
-  }, []);
+  /**
+   * `extend` (Shift+click) grows the CURRENT selection out to `wordIdx`
+   * instead of starting a fresh one-word selection there. Continuous
+   * click-drag across every word in between works today, but it is
+   * fragile for a multi-word SNOMED phrase: word chunks are small
+   * inline targets, and the mouse button must stay held down for the
+   * whole gesture or the drag silently restarts from wherever the next
+   * mousedown lands. Click-first-word-then-Shift-click-last-word is
+   * the same forgiving "extend a range" gesture already supported for
+   * the keyboard (Shift+ArrowRight/Left below), so both input methods
+   * now agree on how to pick a phrase like "light chains".
+   */
+  const handleMouseDown = useCallback(
+    (wordIdx: number, extend = false) => {
+      suppressNextFocusRef.current = true;
+      if (extend && anchorIdx !== null) {
+        draggingRef.current = false;
+        setFocusIdx(wordIdx);
+        return;
+      }
+      draggingRef.current = true;
+      setAnchorIdx(wordIdx);
+      setFocusIdx(wordIdx);
+    },
+    [anchorIdx],
+  );
 
   const handleMouseEnter = useCallback((wordIdx: number) => {
     if (draggingRef.current) setFocusIdx(wordIdx);
@@ -122,10 +151,18 @@ export function useWordSelection({ text, onConfirmSelection, onCancelSelection }
 
   const handleMouseUp = useCallback(() => {
     draggingRef.current = false;
+    // Belt-and-suspenders: mouseup always follows the mousedown that
+    // armed this flag, so if the expected focus event never fired
+    // (e.g. focus landed elsewhere), don't leave it armed to wrongly
+    // suppress some unrelated future Tab-focus.
+    suppressNextFocusRef.current = false;
   }, []);
 
   const handleFocus = useCallback((wordIdx: number) => {
-    if (draggingRef.current) return;
+    if (suppressNextFocusRef.current) {
+      suppressNextFocusRef.current = false;
+      return;
+    }
     setAnchorIdx(wordIdx);
     setFocusIdx(wordIdx);
   }, []);

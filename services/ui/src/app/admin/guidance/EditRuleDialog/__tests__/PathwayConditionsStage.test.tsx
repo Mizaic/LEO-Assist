@@ -96,10 +96,15 @@ function Harness({
   pathwayIndex?: number;
 }) {
   const [tree, setTree] = useState(buildInitialTree());
-  const [clusterGroupings, setClusterGroupings] = useState<Record<number, ClusterGrouping>>({
-    0: "AT_LEAST",
+  // "pw_a" -- pathway A's own stable pathway_key (see buildInitialTree)
+  // -- not the array index, per pathwayGroupingKey's re-keying.
+  const [clusterGroupings, setClusterGroupings] = useState<Record<string, ClusterGrouping>>({
+    pw_a: "AT_LEAST",
   });
-  const [leadClusterGroupings, setLeadClusterGroupings] = useState<Record<number, ClusterGrouping>>({});
+  const [leadClusterGroupings, setLeadClusterGroupings] = useState<Record<string, ClusterGrouping>>({});
+  const [dismissedCopyAcrossOffers, setDismissedCopyAcrossOffers] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     onTreeChange?.(tree);
@@ -116,9 +121,13 @@ function Harness({
       boundaries={BOUNDARIES}
       pathwayIndex={pathwayIndex}
       clusterGroupings={clusterGroupings}
-      onSetClusterGrouping={(i, g) => setClusterGroupings((prev) => ({ ...prev, [i]: g }))}
+      onSetClusterGrouping={(k, g) => setClusterGroupings((prev) => ({ ...prev, [k]: g }))}
       leadClusterGroupings={leadClusterGroupings}
-      onSetLeadClusterGrouping={(i, g) => setLeadClusterGroupings((prev) => ({ ...prev, [i]: g }))}
+      onSetLeadClusterGrouping={(k, g) => setLeadClusterGroupings((prev) => ({ ...prev, [k]: g }))}
+      dismissedCopyAcrossOffers={dismissedCopyAcrossOffers}
+      onDismissCopyAcrossOffer={(k) =>
+        setDismissedCopyAcrossOffers((prev) => new Set(prev).add(k))
+      }
       onSelectNode={onSelectNode}
       onUpdate={handleUpdate}
       onRequestAdd={jest.fn()}
@@ -201,6 +210,84 @@ describe("PathwayConditionsStage: editing an already-resolved row", () => {
   });
 });
 
+describe("PathwayConditionsStage: editing an already-resolved DEMOGRAPHIC row", () => {
+  const AGE_TEXT = "aged 55 or over";
+  const AGE_BOUNDARY: PathwayTextBoundary[] = [
+    { text: AGE_TEXT, start: 0, end: AGE_TEXT.length, source: "heuristic" },
+  ];
+
+  function ageLeaf(): EditableLogicNode {
+    return { node_id: "age-1", kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: 55, unit: "years" };
+  }
+
+  function AgeHarness({ onSelectNode = jest.fn() }: { onSelectNode?: (nodeId: string, anchor?: HTMLElement | null) => void }) {
+    // The age leaf sits one level below the pathway AND (inside a
+    // wrapping group), not as a direct pathway child, so it resolves
+    // through the regular condition-row list (what this test targets)
+    // rather than through PathwayDemographicsPanel's separate "direct
+    // child" affordance -- the two are deliberately different surfaces.
+    const [tree, setTree] = useState<EditableLogicNode>({
+      node_id: "root",
+      kind: "AND",
+      children: [{ node_id: "wrap", kind: "AND", children: [ageLeaf()] }],
+    });
+    return (
+      <PathwayConditionsStage
+        tree={tree}
+        recommendationText={AGE_TEXT}
+        boundaries={AGE_BOUNDARY}
+        pathwayIndex={0}
+        clusterGroupings={{}}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={{}}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={onSelectNode}
+        onUpdate={(update) => setTree((curr) => applyUpdate(curr, update) ?? curr)}
+        onRequestAdd={jest.fn()}
+        onEditConcept={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />
+    );
+  }
+
+  it("toggles the inline age editor instead of calling onSelectNode", async () => {
+    const user = userEvent.setup();
+    const onSelectNode = jest.fn();
+    render(<AgeHarness onSelectNode={onSelectNode} />);
+
+    expect(screen.queryByLabelText(/how to compare age/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByText(AGE_TEXT));
+    expect(onSelectNode).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/how to compare age/i)).toBeInTheDocument();
+
+    // Re-clicking the same row collapses the editor again.
+    await user.click(screen.getByText(AGE_TEXT));
+    expect(screen.queryByLabelText(/how to compare age/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the editor open and reflects operator changes even once the row's own wording no longer matches the guideline text verbatim", async () => {
+    // Regression guard: the editor's node comes from a direct tree
+    // lookup by node_id (see PathwayConditionsStage's
+    // `expandedDemographicNode`), not from re-running the fuzzy
+    // row<->text matcher on every render -- so it must not vanish just
+    // because editing the value changes its own display text.
+    const user = userEvent.setup();
+    render(<AgeHarness />);
+
+    await user.click(screen.getByText(AGE_TEXT));
+    const operatorSelect = screen.getByLabelText(/how to compare age/i);
+    expect(operatorSelect).toHaveTextContent(/is at least/i);
+
+    await user.click(operatorSelect);
+    await user.click(await screen.findByRole("option", { name: /is at most/i }));
+
+    expect(screen.getByLabelText(/how to compare age/i)).toHaveTextContent(/is at most/i);
+  });
+});
+
 describe("PathwayConditionsStage: copy-across offer", () => {
   it("offers to copy situation A's codes when situation B asks about the same findings", () => {
     render(<Harness />);
@@ -248,6 +335,169 @@ describe("PathwayConditionsStage: copy-across offer", () => {
     render(<Harness />);
     await user.click(screen.getByRole("button", { name: /copy them across/i }));
     expect(screen.queryByText(/situation a asked about the same/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps a dismissal even if this stage unmounts and remounts, since the dismissal now lives one level up (wizard state)", async () => {
+    // Mirrors HighlightWizard unmounting PathwayConditionsStage every
+    // time `state.step` leaves "pathway-conditions" (e.g. Back to
+    // Step 2, or forward to Review, then back again) -- before the
+    // dismissal moved out of a local useState inside this component,
+    // remounting it here would have silently resurfaced the offer.
+    const user = userEvent.setup();
+    function RemountableHarness() {
+      const [mounted, setMounted] = useState(true);
+      const [dismissedCopyAcrossOffers, setDismissedCopyAcrossOffers] = useState<Set<string>>(
+        () => new Set(),
+      );
+      const [tree, setTree] = useState(buildInitialTree());
+      return (
+        <div>
+          <button onClick={() => setMounted((m) => !m)}>Toggle mount</button>
+          {mounted && (
+            <PathwayConditionsStage
+              tree={tree}
+              recommendationText={TEXT}
+              boundaries={BOUNDARIES}
+              pathwayIndex={1}
+              clusterGroupings={{ pw_a: "AT_LEAST" }}
+              onSetClusterGrouping={jest.fn()}
+              leadClusterGroupings={{}}
+              onSetLeadClusterGrouping={jest.fn()}
+              dismissedCopyAcrossOffers={dismissedCopyAcrossOffers}
+              onDismissCopyAcrossOffer={(k) =>
+                setDismissedCopyAcrossOffers((prev) => new Set(prev).add(k))
+              }
+              onSelectNode={jest.fn()}
+              onUpdate={(update) => setTree((curr) => applyUpdate(curr, update) ?? curr)}
+              onRequestAdd={jest.fn()}
+              onEditConcept={jest.fn()}
+              onConfirmPathway={jest.fn()}
+            />
+          )}
+        </div>
+      );
+    }
+    render(<RemountableHarness />);
+    expect(screen.getByText(/situation a asked about the same 6 findings/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /i'll do this one myself/i }));
+    expect(screen.queryByText(/situation a asked about the same/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /toggle mount/i }));
+    await user.click(screen.getByRole("button", { name: /toggle mount/i }));
+
+    expect(screen.queryByText(/situation a asked about the same/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("PathwayConditionsStage: invisible empty-group problems", () => {
+  const SINGLE_TEXT = "raised platelet count with any of the following: nausea, vomiting.";
+  const SINGLE_BOUNDARY: PathwayTextBoundary[] = [
+    { text: SINGLE_TEXT, start: 0, end: SINGLE_TEXT.length, source: "heuristic" },
+  ];
+
+  /** A pathway with one resolved leaf plus a SECOND, abandoned
+   *  AT_LEAST subgroup (e.g. the reviewer chose "only one needs to
+   *  match" for a lead cluster, then never added anything to it and
+   *  moved on) -- `buildPathwayRows(SINGLE_BOUNDARY)` has no row that
+   *  would ever resolve to it, so without the fix it is permanently
+   *  invisible even though it blocks Save. */
+  function treeWithAbandonedCluster(): EditableLogicNode {
+    return {
+      node_id: "root",
+      kind: "AND",
+      children: [
+        {
+          node_id: "pw",
+          kind: "AND",
+          pathway_key: "pw",
+          children: [
+            concept("plt", "Raised platelet count"),
+            {
+              node_id: "abandoned-cluster",
+              kind: "AT_LEAST",
+              min: 1,
+              cluster_role: "lead",
+              children: [],
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  function AbandonedClusterHarness() {
+    const [tree, setTree] = useState(treeWithAbandonedCluster());
+    return (
+      <PathwayConditionsStage
+        tree={tree}
+        recommendationText={SINGLE_TEXT}
+        boundaries={SINGLE_BOUNDARY}
+        pathwayIndex={0}
+        clusterGroupings={{}}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={{}}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={jest.fn()}
+        onUpdate={(update) => setTree((curr) => applyUpdate(curr, update) ?? curr)}
+        onRequestAdd={jest.fn()}
+        onEditConcept={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />
+    );
+  }
+
+  it("surfaces the abandoned empty subgroup as its own problem row", () => {
+    render(<AbandonedClusterHarness />);
+    expect(screen.getByTestId("wizard-problem-row-abandoned-cluster")).toBeInTheDocument();
+    expect(screen.getByText(/one of the groups is empty/i)).toBeInTheDocument();
+  });
+
+  it("does not report the pathway's own in-progress emptiness as a separate problem", () => {
+    // pw-b in the main fixture has zero children (situation B hasn't
+    // been started) -- that must NOT also produce a
+    // wizard-problem-row, since "N rows still need a code" already
+    // covers it.
+    render(<Harness pathwayIndex={1} />);
+    expect(screen.queryByTestId("wizard-problem-row-pw-b")).not.toBeInTheDocument();
+  });
+
+  it("removes the abandoned subgroup via its Remove it action", async () => {
+    const user = userEvent.setup();
+    let latestTree: EditableLogicNode | undefined;
+    function Harness2() {
+      const [tree, setTree] = useState(treeWithAbandonedCluster());
+      useEffect(() => {
+        latestTree = tree;
+      }, [tree]);
+      return (
+        <PathwayConditionsStage
+          tree={tree}
+          recommendationText={SINGLE_TEXT}
+          boundaries={SINGLE_BOUNDARY}
+          pathwayIndex={0}
+          clusterGroupings={{}}
+          onSetClusterGrouping={jest.fn()}
+          leadClusterGroupings={{}}
+          onSetLeadClusterGrouping={jest.fn()}
+          dismissedCopyAcrossOffers={new Set()}
+          onDismissCopyAcrossOffer={jest.fn()}
+          onSelectNode={jest.fn()}
+          onUpdate={(update) => setTree((curr) => applyUpdate(curr, update) ?? curr)}
+          onRequestAdd={jest.fn()}
+          onEditConcept={jest.fn()}
+          onConfirmPathway={jest.fn()}
+        />
+      );
+    }
+    render(<Harness2 />);
+
+    await user.click(screen.getByRole("button", { name: /remove this problem/i }));
+
+    expect(latestTree?.children?.[0]?.children).toHaveLength(1);
+    expect(screen.queryByTestId("wizard-problem-row-abandoned-cluster")).not.toBeInTheDocument();
   });
 });
 

@@ -83,10 +83,13 @@ import HorizontalStepper, {
   type StepState,
 } from "./HorizontalStepper";
 import GuidelineQuotePanel from "./GuidelineQuotePanel";
+import type { WizardJumpRequest } from "./HighlightWizard";
+import type { WizardStepKind } from "./HighlightWizard/wizardState";
 import LivePreviewPane from "./LivePreviewPane";
 import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
 import Step4Save from "./steps/Step4Save";
+import ValidationIssueBanner from "./ValidationIssueBanner";
 import {
   DIALOG_CHROME,
   GROUP_KIND_SHORT,
@@ -99,6 +102,7 @@ import {
   assignNodeIds,
   canHaveChildren,
   findActionsValidationError,
+  findAllValidationErrors,
   findPriorityValidationError,
   findValidationError,
   hasOrRootWithPrerequisites,
@@ -109,6 +113,7 @@ import {
   stripNodeIds,
   wrapRootInAnd,
 } from "./treeOps";
+import { detectDemographicPhrase } from "./HighlightWizard/demographicPhraseMatch";
 import { findDuplicateConceptGroups } from "./namedSets";
 import { treeToSentence } from "./treeToSentence";
 import { detectVaguePhrase } from "./vaguePhrases";
@@ -363,6 +368,11 @@ export default function EditRuleDialog({
   const [guidedPanelMode, setGuidedPanelMode] = useState<"quote" | "preview">(
     "preview",
   );
+  /** The guided wizard's raw current phase, reported by Step1Who --
+   *  rendered as a breadcrumb attached to HorizontalStepper's "Who"
+   *  pill (see that component's doc comment). Null when the wizard
+   *  isn't showing (no tree yet, or a different outer step is active). */
+  const [wizardPhase, setWizardPhase] = useState<WizardStepKind | null>(null);
   /** Which situation (Step 3 pathway) the guided wizard is currently
    *  building, if any -- see GuidelineQuotePanel's `pathwayBoundaries`/
    *  `activePathwayIndex` props. Null before a pathway split exists. */
@@ -380,6 +390,17 @@ export default function EditRuleDialog({
     (nodeId: string) => setSynonymEditorNodeId(nodeId),
     [],
   );
+  /** "Take me there" state for the issue banner -- see
+   *  `ValidationIssueBanner` and `HighlightWizard`'s `WizardJumpRequest`
+   *  doc comment. Lives here (above the "who" step) because the issue
+   *  banner itself is visible from Step 4 (Save), where the tree is
+   *  not even mounted yet -- jumping has to switch the outer step
+   *  first, then hand the wizard a fresh request. */
+  const [jumpRequest, setJumpRequest] = useState<WizardJumpRequest | null>(null);
+  const handleJumpToIssue = useCallback((nodeId: string) => {
+    setCurrentStepId("who");
+    setJumpRequest({ nodeId, requestId: Date.now() });
+  }, []);
   // Stable across renders (see HighlightWizard's `onActiveSituationChange`
   // dependency array) -- an inline arrow function here would get a new
   // identity on every render, re-firing that effect, calling this, and
@@ -475,6 +496,7 @@ export default function EditRuleDialog({
   const chipPopoverOpen = searchTarget.mode === "replace" || searchTarget.mode === "add";
 
   const validationError = useMemo(() => findValidationError(tree), [tree]);
+  const validationIssues = useMemo(() => findAllValidationErrors(tree), [tree]);
   const actionsError = useMemo(
     () => findActionsValidationError(actions),
     [actions],
@@ -597,6 +619,28 @@ export default function EditRuleDialog({
     multiPick?: boolean,
   ) {
     if (!tree) return;
+    // Age and sex are never SNOMED-coded -- a highlighted phrase like
+    // "aged 40 and over" must open the same inline age/sex editor the
+    // "+ Add age" button does, pre-filled with the parsed threshold,
+    // instead of falling through to concept search (which can only ever
+    // surface a bare "current age" observable that has no threshold of
+    // its own to add). See `demographicPhraseMatch.ts`'s doc comment.
+    const demographic = initialQuery ? detectDemographicPhrase(initialQuery) : null;
+    if (demographic) {
+      handleUpdate({
+        kind: "add_demographic",
+        parentNodeId,
+        field: demographic.field,
+        prefill: {
+          operator: demographic.operator,
+          value: demographic.value,
+          value2: demographic.value2,
+          unit: demographic.unit,
+        },
+        sourceRowText: initialQuery,
+      });
+      return;
+    }
     const parent = findNode(tree, parentNodeId);
     setSearchTarget({
       mode: "add",
@@ -793,6 +837,39 @@ export default function EditRuleDialog({
    * term; the reviewer fills in the operator / threshold / unit in
    * the canvas inline.
    */
+  /**
+   * Bulk-add from "Ask LEO for ideas": several sibling CONCEPT leaves
+   * under the current add-target parent. Same tree mutation path as
+   * ConceptCoachPopover's onAddCriteria, without replacing a vague chip.
+   */
+  function handleAddMany(criteria: LogicCriterion[]) {
+    if (!tree || searchTarget.mode !== "add" || !searchTarget.parentNodeId) {
+      return;
+    }
+    if (criteria.length === 0) return;
+    const sourceRowText = searchTarget.initialQuery.trim() || undefined;
+    let nextTree: EditableLogicNode | null = tree;
+    const parent = findNode(tree, searchTarget.parentNodeId);
+    let parentId = searchTarget.parentNodeId;
+    if (parent && !canHaveChildren(parent.kind) && parent.node_id === tree.node_id) {
+      nextTree = wrapRootInAnd(tree);
+      parentId = nextTree.node_id;
+    } else if (!parent || !canHaveChildren(parent.kind)) {
+      return;
+    }
+    for (const criterion of criteria) {
+      if (!nextTree) break;
+      nextTree = applyUpdate(nextTree, {
+        kind: "add_concept",
+        parentNodeId: parentId,
+        criterion,
+        sourceRowText,
+      });
+    }
+    setTree(nextTree);
+    setSearchTarget(IDLE_TARGET);
+  }
+
   function handlePickObservation(seed: {
     observable_id: string;
     observable_term?: string;
@@ -978,6 +1055,7 @@ export default function EditRuleDialog({
             steps={stepDescriptors}
             currentStepId={currentStepId}
             onJump={handleJumpStep}
+            wizardPhase={wizardPhase}
           />
           <Box
             sx={{
@@ -1012,14 +1090,11 @@ export default function EditRuleDialog({
                   : { type: "spring", stiffness: 320, damping: 30 }
               }
             >
-            {validationError && currentStepId === "who" && (
-              <Alert
-                severity="warning"
-                sx={{ py: 0.5, mb: 2 }}
-                role="status"
-              >
-                {validationError}
-              </Alert>
+            {currentStepId === "who" && (
+              <ValidationIssueBanner
+                issues={validationIssues}
+                onJumpToIssue={handleJumpToIssue}
+              />
             )}
             {currentStepId === "who" && (
               <Step1Who
@@ -1044,6 +1119,8 @@ export default function EditRuleDialog({
                 }}
                 onGuidedPanelModeChange={setGuidedPanelMode}
                 onActiveSituationChange={handleActiveSituationChange}
+                jumpRequest={jumpRequest}
+                onWizardStepChange={setWizardPhase}
               />
             )}
             {currentStepId === "suggest" && (
@@ -1117,14 +1194,14 @@ export default function EditRuleDialog({
                 onReasonChange={setReason}
                 saving={saving}
                 reasonError={
-                  validationError
-                    ? `Fix the rule first: ${validationError}`
-                    : actionsError
-                      ? `Fix the rule first: ${actionsError}`
-                      : priorityError
-                        ? `Fix the rule first: ${priorityError}`
-                        : undefined
+                  actionsError
+                    ? `Fix the rule first: ${actionsError}`
+                    : priorityError
+                      ? `Fix the rule first: ${priorityError}`
+                      : undefined
                 }
+                treeIssues={validationIssues}
+                onJumpToIssue={handleJumpToIssue}
               />
             )}
             </fm.div>
@@ -1159,6 +1236,7 @@ export default function EditRuleDialog({
                   beforeActions={originalActions}
                   beforePriority={originalPriority}
                   beforeDueDays={originalDueDays}
+                  recommendationText={rule?.recommendation_text}
                 />
               )}
             </Box>
@@ -1178,6 +1256,7 @@ export default function EditRuleDialog({
         initialQuery={searchTarget.initialQuery}
         multiPick={searchTarget.mode === "add" && searchTarget.multiPick}
         onPick={handlePick}
+        onAddMany={handleAddMany}
         onPickObservation={handlePickObservation}
         onClose={handleClosePopover}
       />
@@ -1235,7 +1314,7 @@ export default function EditRuleDialog({
           disabled={!canSave}
           aria-label="Save your changes"
         >
-          Save changes
+          {currentStepId === "save" ? "Approve and save" : "Save changes"}
         </Button>
       </DialogActions>
       {coach && tree && (() => {

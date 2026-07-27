@@ -31,12 +31,22 @@ import Typography from "@mui/material/Typography";
 
 import NotLiveYetBanner from "../NotLiveYetBanner";
 import { STEP_HELPERS, STEP_TITLES } from "../copy";
+import type { ValidationIssue } from "../treeOps";
+import ValidationIssueBanner from "../ValidationIssueBanner";
 
 interface Props {
   reason: string;
   onReasonChange: (next: string) => void;
   saving?: boolean;
   reasonError?: string;
+  /** Tree ("who" step) problems -- rendered as a jump-able banner
+   *  here rather than folded into `reasonError`'s plain text, since a
+   *  reviewer who reached Save with a bad tree needs a way back to
+   *  the exact row, not just a description of the problem. */
+  treeIssues?: ValidationIssue[];
+  /** Switches the outer stepper back to "who" and hands the wizard a
+   *  fresh jump request -- see `EditRuleDialog`'s `handleJumpToIssue`. */
+  onJumpToIssue?: (nodeId: string) => void;
 }
 
 export default function Step4Save({
@@ -44,6 +54,8 @@ export default function Step4Save({
   onReasonChange,
   saving,
   reasonError,
+  treeIssues = [],
+  onJumpToIssue,
 }: Props) {
   const reasonTooShort = reason.trim().length > 0 && reason.trim().length < 3;
   const helperText =
@@ -70,6 +82,8 @@ export default function Step4Save({
           {STEP_HELPERS.save}
         </Typography>
       </Box>
+
+      <ValidationIssueBanner issues={treeIssues} onJumpToIssue={onJumpToIssue} />
 
       <TextField
         size="small"

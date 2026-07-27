@@ -316,9 +316,14 @@ const RULE_REVIEW_SOURCE = fs.readFileSync(
   "utf-8",
 );
 
+const SESSION_PANELS_SOURCE = fs.readFileSync(
+  path.resolve(__dirname, "../RuleReviewSessionPanels.tsx"),
+  "utf-8",
+);
+
 describe("RuleReviewSection -- Edit affordance on the approved card", () => {
   it("imports an Edit icon for the approved-card affordance", () => {
-    expect(RULE_REVIEW_SOURCE).toMatch(
+    expect(SESSION_PANELS_SOURCE).toMatch(
       /import EditOutlinedIcon from "@mui\/icons-material\/EditOutlined";/,
     );
   });
@@ -326,19 +331,18 @@ describe("RuleReviewSection -- Edit affordance on the approved card", () => {
   it("wires an Edit button inside the Approved-in-this-session card", () => {
     // The button MUST appear after the "Approved in this session"
     // heading so it is part of the approved card, not the pending list.
-    const approvedSectionStart = RULE_REVIEW_SOURCE.indexOf(
+    const approvedSectionStart = SESSION_PANELS_SOURCE.indexOf(
       "Approved in this session",
     );
     expect(approvedSectionStart).toBeGreaterThan(-1);
-    const approvedSection = RULE_REVIEW_SOURCE.slice(approvedSectionStart);
+    const approvedSection = SESSION_PANELS_SOURCE.slice(approvedSectionStart);
 
-    expect(approvedSection).toMatch(
-      /onClick=\{\(\) => setEditRule\(rule\)\}/,
-    );
+    expect(approvedSection).toMatch(/onClick=\{\(\) => onEdit\(rule\)\}/);
     expect(approvedSection).toMatch(
       /aria-label=\{`Edit approved rule \$\{rule\.rule_id\}`\}/,
     );
     expect(approvedSection).toMatch(/<EditOutlinedIcon/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/onEdit=\{setEditRule\}/);
   });
 
   it("keeps the Edit button visible regardless of promotion state", () => {
@@ -347,10 +351,10 @@ describe("RuleReviewSection -- Edit affordance on the approved card", () => {
     // that an author can still tighten a rule after it has been added
     // to a domain (e.g. the domain promotion was correct but the
     // criteria need narrowing).
-    const approvedSectionStart = RULE_REVIEW_SOURCE.indexOf(
+    const approvedSectionStart = SESSION_PANELS_SOURCE.indexOf(
       "Approved in this session",
     );
-    const approvedSection = RULE_REVIEW_SOURCE.slice(approvedSectionStart);
+    const approvedSection = SESSION_PANELS_SOURCE.slice(approvedSectionStart);
     const editButtonIdx = approvedSection.indexOf(
       "aria-label={`Edit approved rule",
     );
@@ -410,10 +414,14 @@ describe("RuleReviewSection -- dual pools (Tier 1)", () => {
     expect(RULE_REVIEW_SOURCE).not.toMatch(/ToggleButtonGroup/);
   });
 
-  it("passes approve and reject handlers only to the pending pool", () => {
+  it("passes approve to pending and exclude (reject) to both pending and approved pools", () => {
     expect(RULE_REVIEW_SOURCE).toMatch(/onApprove=\{\(rule\) => decide\(rule, "approve"\)\}/);
     expect(RULE_REVIEW_SOURCE).toMatch(/No coded rule needed/);
     expect(RULE_REVIEW_SOURCE).toMatch(/Rejected by reviewer/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/poolId="approved"[\s\S]*?onReject=\{\(rule\) => setExcludeConfirmRule\(rule\)\}/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/Exclude this approved rule\?/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/Yes, exclude/);
+    expect(RULE_REVIEW_SOURCE).toMatch(/Excluded from approved list by reviewer/);
   });
 
   it("loads rejected rules into the Excluded pool", () => {
@@ -565,6 +573,20 @@ describe("RuleReviewSection -- sortRulesForStatus", () => {
     expect(sortRulesForStatus(mixed, "active").map((r) => r.rule_id)).toEqual([
       "r-legacy",
       "r-modern",
+    ]);
+  });
+
+  it("breaks ties on the friendly dotted rule name using numeric-segment order, not localeCompare", () => {
+    // Plain string comparison would put "1.11.1" before "1.2.1" -- this
+    // is the exact reviewer-facing sort bug the friendly-id column fix
+    // (Phase C) closes.
+    const tied = [
+      { rule_id: "r-b", name: "1.11.1", updated_at: "2026-01-01T00:00:00Z" },
+      { rule_id: "r-a", name: "1.2.1", updated_at: "2026-01-01T00:00:00Z" },
+    ];
+    expect(sortRulesForStatus(tied, "active").map((r) => r.name)).toEqual([
+      "1.2.1",
+      "1.11.1",
     ]);
   });
 });

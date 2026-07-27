@@ -20,9 +20,12 @@
  *      procedure, each built from that action's strength label and
  *      SNOMED preferred term.
  *
- * On step 4 the pane swaps to a "Before / After" variant: two
- * side-by-side summary cards computed from the original tree (`before`)
- * and the edited tree (`after`).
+ * On the Save step the pane swaps to a 3-column "NICE original /
+ * Before / After" review variant: the source guideline wording
+ * (read-only, for reference) alongside two summary cards computed
+ * from the original tree (`before`) and the edited tree (`after`) --
+ * so the reviewer approves against the actual NICE text, not just
+ * their own edit history.
  *
  * Pure presentational; all rendering work is done outside this file
  * (treeToSentence, STRENGTH_LABELS).
@@ -34,6 +37,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 
 import SummaryCard from "./SummaryCard";
@@ -55,14 +59,23 @@ interface Props {
   priority?: RulePriority | null;
   dueDays?: number | null;
   /**
-   * When true (step 4), render a Before / After diff using `summary`
-   * as the after, and `beforeSummary` as the before.
+   * When true (Save step), render the 3-column NICE original / Before
+   * / After review using `summary` as the after, and `beforeSummary`
+   * as the before.
    */
   showBeforeAfter?: boolean;
   beforeSummary?: RuleSummary;
   beforeActions?: RuleAction[];
   beforePriority?: RulePriority | null;
   beforeDueDays?: number | null;
+  /**
+   * The source NICE guideline wording this rule was built from. Shown
+   * read-only as the first column so the reviewer approves against
+   * the actual guideline text, not just their own recollection of it.
+   * Omitted (no column rendered) for hand-authored local rules with
+   * no NICE source.
+   */
+  recommendationText?: string | null;
 }
 
 export default function LivePreviewPane({
@@ -75,12 +88,13 @@ export default function LivePreviewPane({
   beforeActions,
   beforePriority,
   beforeDueDays,
+  recommendationText,
 }: Props) {
   if (showBeforeAfter && beforeSummary) {
     return (
       <Box
         role="region"
-        aria-label="Before and after preview of this rule"
+        aria-label="Review this rule against the NICE guideline before approving"
         sx={{
           position: "sticky",
           top: 0,
@@ -112,6 +126,44 @@ export default function LivePreviewPane({
           spacing={1.5}
           alignItems="stretch"
         >
+          {recommendationText ? (
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontWeight: 700,
+                  color: "text.secondary",
+                  mb: 0.5,
+                }}
+              >
+                NICE original
+              </Typography>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderLeft: "4px solid",
+                  borderColor: "primary.main",
+                  bgcolor: "background.paper",
+                  borderRadius: "0 8px 8px 0",
+                  height: "100%",
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mb: 0.5 }}>
+                  <MenuBookRoundedIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                  <Typography variant="caption" color="text.secondary">
+                    What NICE says
+                  </Typography>
+                </Stack>
+                <Typography
+                  variant="body2"
+                  sx={{ fontStyle: "italic", lineHeight: 1.6, color: "text.primary" }}
+                >
+                  {recommendationText}
+                </Typography>
+              </Box>
+            </Box>
+          ) : null}
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="caption"

@@ -31,21 +31,17 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import HighlightableRecommendationText, {
-  type TextSelectionResult,
-} from "../SentenceEditor/HighlightableRecommendationText";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import type { TextSelectionResult } from "../SentenceEditor/HighlightableRecommendationText";
 import {
   splitPathways,
   type PathwayTextBoundary,
   type RecommendationStructure,
 } from "../SentenceEditor/pathwayTextSplit";
 import { STEP_PATHWAY_SPLIT } from "./copy";
-
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-function pathwayLetter(index: number): string {
-  return LETTERS[index % LETTERS.length];
-}
+import PathwayBoundaryRow from "./PathwayBoundaryRow";
+import { MergedToOneState, NoSplitState } from "./PathwaySplitEmptyStates";
+import { mergeBoundaries, pathwayLetter, splitBoundaryAt } from "./pathwayBoundaryEdits";
 
 type SelectMode = "idle" | "merging" | "splitting";
 
@@ -72,44 +68,6 @@ export interface StepPathwaySplitProps {
   onProposedBoundariesChange?: (boundaries: PathwayTextBoundary[] | null) => void;
 }
 
-/** Merge two adjacent boundaries into one; a mixed structure+heuristic
- *  pair degrades to "heuristic" -- the merged text no longer reads as
- *  a single clean `<li>` the guideline's own markup vouched for. */
-function mergeBoundaries(
-  first: PathwayTextBoundary,
-  second: PathwayTextBoundary,
-): PathwayTextBoundary {
-  return {
-    start: Math.min(first.start, second.start),
-    end: Math.max(first.end, second.end),
-    text: `${first.text} ${second.text}`.trim(),
-    source: first.source === second.source ? first.source : "heuristic",
-  };
-}
-
-/** Split one boundary into two at a LOCAL offset (relative to the
- *  boundary's own text, as returned by a scoped selection). */
-function splitBoundaryAt(
-  boundary: PathwayTextBoundary,
-  localSplitPoint: number,
-): [PathwayTextBoundary, PathwayTextBoundary] {
-  const splitAt = boundary.start + localSplitPoint;
-  return [
-    {
-      start: boundary.start,
-      end: splitAt,
-      text: boundary.text.slice(0, localSplitPoint).trim(),
-      source: boundary.source,
-    },
-    {
-      start: splitAt,
-      end: boundary.end,
-      text: boundary.text.slice(localSplitPoint).trim(),
-      source: boundary.source,
-    },
-  ];
-}
-
 export default function StepPathwaySplit({
   recommendationText,
   recommendationStructure,
@@ -127,6 +85,20 @@ export default function StepPathwaySplit({
   );
   const [mode, setMode] = useState<SelectMode>("idle");
   const [selected, setSelected] = useState<number[]>([]);
+  /**
+   * Set only when the REVIEWER's own merge collapsed exactly two rows
+   * down to one -- lets the empty-state branch tell "you merged
+   * everything together" (undoable) apart from "the tool never found
+   * more than one situation here" (nothing to undo). See
+   * `mergedToOneTitle` in copy.ts.
+   */
+  const [preMergeSnapshot, setPreMergeSnapshot] = useState<
+    PathwayTextBoundary[] | null
+  >(null);
+  /** Gates a merge of two NON-adjacent rows behind an extra confirm
+   *  -- see `nonAdjacentMergeBody` in copy.ts for why that combination
+   *  is destructive to the row in between, not just a reordering. */
+  const [confirmNonAdjacentMerge, setConfirmNonAdjacentMerge] = useState(false);
 
   useEffect(() => {
     onProposedBoundariesChange?.(boundaries);
@@ -153,14 +125,40 @@ export default function StepPathwaySplit({
     }
   }
 
-  function handleConfirmMerge() {
-    if (!boundaries || selected.length !== 2) return;
-    const [a, b] = [...selected].sort((x, y) => x - y);
+  function performMerge(a: number, b: number) {
+    if (!boundaries) return;
     const merged = mergeBoundaries(boundaries[a], boundaries[b]);
     const next = boundaries.filter((_, i) => i !== a && i !== b);
     next.splice(a, 0, merged);
+    setPreMergeSnapshot(next.length === 1 ? boundaries : null);
     setBoundaries(next);
     resetSelection();
+  }
+
+  function handleConfirmMerge() {
+    if (!boundaries || selected.length !== 2) return;
+    const [a, b] = [...selected].sort((x, y) => x - y);
+    if (b - a > 1) {
+      // Not next-door rows -- merging them would also swallow
+      // whichever row sits at index a+1..b-1, silently dropping its
+      // wording. Make the reviewer say yes to that explicitly.
+      setConfirmNonAdjacentMerge(true);
+      return;
+    }
+    performMerge(a, b);
+  }
+
+  function handleConfirmNonAdjacentMerge() {
+    setConfirmNonAdjacentMerge(false);
+    if (selected.length !== 2) return;
+    const [a, b] = [...selected].sort((x, y) => x - y);
+    performMerge(a, b);
+  }
+
+  function handleUndoMerge() {
+    if (!preMergeSnapshot) return;
+    setBoundaries(preMergeSnapshot);
+    setPreMergeSnapshot(null);
   }
 
   function handleConfirmSplit(selection: TextSelectionResult) {
@@ -177,39 +175,65 @@ export default function StepPathwaySplit({
 
   const canConfirmMerge = mode === "merging" && selected.length === 2;
 
+  if (!boundaries || boundaries.length < 2) {
+    // Deliberately does NOT render StepHeader here -- its "we found
+    // N situations" wording would flatly contradict whichever of
+    // these two single-row explanations follows it.
+    return (
+      <Stack spacing={2}>
+        {preMergeSnapshot ? (
+          <MergedToOneState onUndo={handleUndoMerge} onNoSplit={onNoSplit} />
+        ) : (
+          <NoSplitState onNoSplit={onNoSplit} />
+        )}
+      </Stack>
+    );
+  }
+
   return (
     <Stack spacing={2}>
-      <StepHeader source={source} count={boundaries?.length ?? 0} />
+      <StepHeader source={source} count={boundaries.length} />
 
-      {!boundaries || boundaries.length < 2 ? (
-        <NoSplitState onNoSplit={onNoSplit} />
-      ) : (
-        <>
-          <Stack spacing={1}>
-            {boundaries.map((boundary, index) => (
-              <PathwayBoundaryRow
-                key={`${boundary.start}-${boundary.end}`}
-                boundary={boundary}
-                letter={pathwayLetter(index)}
-                selectable={mode !== "idle"}
-                selected={selected.includes(index)}
-                isSplitTarget={mode === "splitting" && selected[0] === index}
-                onClick={() => handleRowClick(index)}
-                onConfirmSplitSelection={handleConfirmSplit}
-              />
-            ))}
-          </Stack>
-
-          <StepActions
-            mode={mode}
-            canConfirmMerge={canConfirmMerge}
-            onLooksRight={() => onConfirm(boundaries)}
-            onStartMerge={() => setMode("merging")}
-            onStartSplit={() => setMode("splitting")}
-            onConfirmMerge={handleConfirmMerge}
-            onCancel={resetSelection}
+      <Stack spacing={1}>
+        {mode === "merging" && (
+          <Typography variant="caption" color="text.secondary">
+            {STEP_PATHWAY_SPLIT.mergeInstruction}
+          </Typography>
+        )}
+        {boundaries.map((boundary, index) => (
+          <PathwayBoundaryRow
+            key={`${boundary.start}-${boundary.end}`}
+            boundary={boundary}
+            letter={pathwayLetter(index)}
+            selectable={mode !== "idle"}
+            selected={selected.includes(index)}
+            isSplitTarget={mode === "splitting" && selected[0] === index}
+            onClick={() => handleRowClick(index)}
+            onConfirmSplitSelection={handleConfirmSplit}
           />
-        </>
+        ))}
+      </Stack>
+
+      <StepActions
+        mode={mode}
+        canConfirmMerge={canConfirmMerge}
+        onLooksRight={() => onConfirm(boundaries)}
+        onStartMerge={() => setMode("merging")}
+        onStartSplit={() => setMode("splitting")}
+        onConfirmMerge={handleConfirmMerge}
+        onCancel={resetSelection}
+      />
+
+      {confirmNonAdjacentMerge && (
+        <ConfirmDialog
+          title={STEP_PATHWAY_SPLIT.nonAdjacentMergeTitle}
+          body={STEP_PATHWAY_SPLIT.nonAdjacentMergeBody}
+          confirmLabel={STEP_PATHWAY_SPLIT.nonAdjacentMergeConfirmLabel}
+          cancelLabel={STEP_PATHWAY_SPLIT.cancelLabel}
+          variant="danger"
+          onConfirm={handleConfirmNonAdjacentMerge}
+          onCancel={() => setConfirmNonAdjacentMerge(false)}
+        />
       )}
     </Stack>
   );
@@ -297,105 +321,3 @@ function StepActions({
   );
 }
 
-function PathwayBoundaryRow({
-  boundary,
-  letter,
-  selectable,
-  selected,
-  isSplitTarget,
-  onClick,
-  onConfirmSplitSelection,
-}: {
-  boundary: PathwayTextBoundary;
-  letter: string;
-  selectable: boolean;
-  selected: boolean;
-  isSplitTarget: boolean;
-  onClick: () => void;
-  onConfirmSplitSelection: (selection: TextSelectionResult) => void;
-}) {
-  const nestedItems = boundary.structureChildren ?? [];
-  // Once this row IS the active split target it hosts genuinely
-  // interactive descendants of its own (word chunks, Confirm/Cancel)
-  // -- nesting those inside a role="button" wrapper is both an ARIA
-  // violation and, concretely, makes this row's own accessible name
-  // swallow "Confirm selection" as a text-content substring, which
-  // breaks any query for that button. Only wrap non-target rows.
-  const isSelectableButton = selectable && !isSplitTarget;
-  return (
-    <Box
-      data-testid={`pathway-boundary-row-${boundary.start}-${boundary.end}`}
-      data-selected={selected || undefined}
-      data-source={boundary.source}
-      role={isSelectableButton ? "button" : undefined}
-      tabIndex={isSelectableButton ? 0 : undefined}
-      onClick={isSelectableButton ? onClick : undefined}
-      onKeyDown={
-        isSelectableButton
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      sx={{
-        p: 1.25,
-        borderRadius: 1.5,
-        border: boundary.source === "structure" ? "1px solid" : "1px dashed",
-        borderColor: selected ? "primary.main" : "divider",
-        bgcolor: selected ? "primary.50" : "background.paper",
-        cursor: isSelectableButton ? "pointer" : "default",
-      }}
-    >
-      {isSplitTarget ? (
-        <Box>
-          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
-            {STEP_PATHWAY_SPLIT.splitInstruction}
-          </Typography>
-          <HighlightableRecommendationText
-            text={boundary.text}
-            onConfirmSelection={onConfirmSplitSelection}
-          />
-        </Box>
-      ) : (
-        <Typography variant="body2">
-          <strong>({letter})</strong> {boundary.text}
-        </Typography>
-      )}
-      {!isSplitTarget && nestedItems.length > 0 && (
-        <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
-          {nestedItems.map((child) => (
-            <Box component="li" key={`${child.start}-${child.end}`}>
-              <Typography variant="caption" color="text.secondary">
-                {child.text}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      )}
-    </Box>
-  );
-}
-
-function NoSplitState({ onNoSplit }: { onNoSplit: () => void }) {
-  return (
-    <Box
-      sx={{
-        p: 2,
-        borderRadius: 1.5,
-        border: "1px dashed",
-        borderColor: "divider",
-        textAlign: "center",
-      }}
-    >
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        {STEP_PATHWAY_SPLIT.noSplitBody}
-      </Typography>
-      <Button variant="outlined" size="small" onClick={onNoSplit}>
-        {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
-      </Button>
-    </Box>
-  );
-}

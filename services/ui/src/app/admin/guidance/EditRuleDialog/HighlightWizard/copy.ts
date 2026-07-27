@@ -29,6 +29,15 @@ function formatTermList(terms: string[]): string {
   return `${terms.slice(0, -1).join(", ")}, and ${terms[terms.length - 1]}`;
 }
 
+/** Shared by every step's `ProblemNodeRow` -- surfaces a tree problem
+ *  that has no guideline text of its own to highlight (almost always
+ *  an empty group), so "jump to issue" always has a real row to land
+ *  on. See treeOps.ts's `findAllValidationErrors`. */
+export const PROBLEM_ROW = {
+  removeLabel: "Remove it",
+  removeAriaLabel: (message: string) => `Remove this problem: ${message}`,
+} as const;
+
 /** Step 1 -- "What must ALWAYS be true?" (see the wizard plan's Step
  *  1 wireframe). Fuzzy-matches existing DEMOGRAPHIC/OBSERVATION/
  *  CONCEPT prerequisite leaves onto the guideline text. */
@@ -37,17 +46,35 @@ export const STEP_PREREQUISITES = {
   helper:
     "These are things that apply no matter which situation matches -- for example an age that covers every situation. If one situation has its own age or sex, add that when you build that situation.",
   capturedHeading: "Captured so far",
+  selectionHint:
+    "To select a phrase like 'light chains', click the first word, then hold Shift and click the last word. Or click and drag across the words.",
   question:
     "Does anything else always have to be true, no matter which symptoms the patient has? Most rules don't -- it's fine to say no.",
   questionAriaLabel: "Does anything else always have to be true?",
   noMoreLabel: "No, nothing else",
   highlightMoreLabel: "Highlight more text",
   editLabel: "Edit",
+  doneEditingLabel: "Done",
   removeLabel: "Remove",
   placeManuallyLabel: "Tap to place it manually",
   noAnchorHint: "Could not find matching words for this in the sentence.",
+  /** Adds a global age/sex check that applies no matter which
+   *  situation matches -- distinct from Step 3's per-situation
+   *  buttons of the same name, which only ever apply within one
+   *  pathway. */
+  addAgeLabel: "Add age",
+  addSexLabel: "Add sex",
+  addAgeAriaLabel: "Add an age check that always applies",
+  addSexAriaLabel: "Add a sex check that always applies",
   noTextFallback:
     "This rule has no guideline text to highlight. Skip this step for now, or go back and add what must always be true once the wording is available.",
+  /** "Captured so far" row for a CONCEPT leaf built from several
+   *  synonym seeds -- shows each finding as its own chip instead of
+   *  one packed "one of: a, b, c, ..." sentence, per the wireframe
+   *  update after the multi-code review feedback. */
+  oneOfPrefix: "Patient has one of:",
+  showMoreLabel: (hiddenCount: number) => `+${hiddenCount} more`,
+  showLessLabel: "Show fewer",
 } as const;
 
 /** Step 2 -- "Does this split into different situations?" (see the
@@ -69,8 +96,42 @@ export const STEP_PATHWAY_SPLIT = {
   cancelLabel: "Cancel",
   splitInstruction:
     "Select the words that belong to the first new situation, then confirm.",
+  /** Shown once merge mode is on, above the row list -- merge has no
+   *  per-row instruction the way split does (split's prompt lives
+   *  inside the one row being split), so it needs its own banner or
+   *  the reviewer just sees rows go clickable with no explanation. */
+  mergeInstruction: "Tap two rows below to combine them, then confirm.",
   noSplitBody: "We couldn't find more than one situation in this text.",
   noSplitConfirmLabel: "Doesn't split -- one set of rules for everyone",
+  /** Distinct from `noSplitBody` -- that copy describes what the tool
+   *  found on its own and would be a flat contradiction if shown
+   *  after the reviewer's OWN merge action collapsed everything down
+   *  to one row (see the wizard-in-a-wizard confusion audit). This
+   *  pair explains what just happened and offers a way back. */
+  mergedToOneTitle: "You've combined every situation into one.",
+  mergedToOneBody:
+    "It will now apply the same way to everyone. You can undo this if that's not what you meant.",
+  undoMergeLabel: "Undo -- keep them as separate situations",
+  /** Shown only when the two rows selected for merging are not next
+   *  to each other -- merging them would silently swallow whichever
+   *  row sits in between. */
+  nonAdjacentMergeTitle: "These rows aren't next to each other",
+  nonAdjacentMergeBody:
+    "Merging them will also pull in the row between them, and its own wording will be lost. Merge anyway?",
+  nonAdjacentMergeConfirmLabel: "Merge anyway",
+} as const;
+
+/** Warning shown when re-confirming Step 2 with a DIFFERENT number of
+ *  situations than before, after the reviewer has already added
+ *  conditions to those situations in Step 3 -- changing the count
+ *  rebuilds every situation from empty, so anything already added
+ *  would otherwise vanish with no explanation. */
+export const SPLIT_COUNT_CHANGE_WARNING = {
+  title: "This will remove what you've already added",
+  body:
+    "You already added conditions to the old situations. Changing the number of situations replaces all of them with empty ones -- what you added will be lost.",
+  confirmLabel: "Yes, replace them",
+  cancelLabel: "Cancel",
 } as const;
 
 /** Step 3 -- one pathway at a time, repeated with a "Situation B (2 of
@@ -83,6 +144,11 @@ export const STEP_PATHWAY_CONDITIONS = {
     `Situation ${letter} (${index} of ${count})`,
   helper: "Within this situation, what must ALL be true?",
   confirmedHeading: "Already confirmed:",
+  /** Heading above the inline editor that opens when the reviewer
+   *  re-clicks an already-resolved age/sex row in this list (as
+   *  opposed to `PathwayDemographicsPanel`'s own always-visible
+   *  "Add age"/"Add sex" affordance for this situation). */
+  editingDemographicHeading: "Editing this condition",
   /** Trailing "any of the following" cluster prompt -- names the
    *  findings so the reviewer knows which chips the choice covers. */
   clusterPrompt: (terms: string[]) =>
@@ -136,15 +202,18 @@ export const STEP_PATHWAY_CONDITIONS = {
   addSexAriaLabel: "Add a sex check for this situation only",
 } as const;
 
-/** Orchestrator chrome: the "Step X of Y" progress header, Back, and
- *  the Review hand-off once every step is confirmed. Review itself is
- *  confirmation-only -- the right-column live preview is the summary. */
+/** Orchestrator chrome: a plain, non-numbered breadcrumb of short phase
+ *  names, Back, and the Review hand-off once every step is confirmed.
+ *  Review itself is confirmation-only -- the right-column live preview
+ *  is the summary. The breadcrumb labels are deliberately short and
+ *  distinct from each step's own full heading (e.g. StepPrerequisites'
+ *  "What must always be true?" title) so the same idea is never stated
+ *  twice on screen. */
 export const WIZARD_CHROME = {
-  stepLabel: (index: number, total: number) => `Step ${index} of ${total}`,
-  stepNames: {
-    prerequisites: "What must always be true",
-    "pathway-split": "Does this split into situations",
-    "pathway-conditions": "Build each situation",
+  breadcrumbLabels: {
+    prerequisites: "Always true",
+    "pathway-split": "Situations",
+    "pathway-conditions": "Conditions",
     review: "Review",
   } as const,
   backLabel: "Back",

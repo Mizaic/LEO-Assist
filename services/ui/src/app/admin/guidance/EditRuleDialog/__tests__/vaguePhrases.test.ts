@@ -44,6 +44,21 @@ describe("detectVaguePhrase", () => {
       pattern: "red_flags",
       topic: "cancer",
     },
+    {
+      input: "May indicate ovarian cancer",
+      pattern: "may_indicate",
+      topic: "ovarian cancer",
+    },
+    {
+      input: "Skin changes of breast cancer",
+      pattern: "changes_of",
+      topic: "breast cancer",
+    },
+    {
+      input: "Markers of dehydration",
+      pattern: "topic_of",
+      topic: "dehydration",
+    },
   ];
   it.each(cases)(
     "flags '$input' as vague (pattern: $pattern, topic: $topic)",
@@ -52,7 +67,7 @@ describe("detectVaguePhrase", () => {
       expect(m.isVague).toBe(true);
       expect(m.patternLabel).toBe(pattern);
       expect(m.topic).toBe(topic);
-      expect(m.reason).toMatch(/specific|symptoms|signs|findings|red flags/i);
+      expect(m.reason).toMatch(/specific|symptoms|signs|findings|red flags|ask leo/i);
     },
   );
 

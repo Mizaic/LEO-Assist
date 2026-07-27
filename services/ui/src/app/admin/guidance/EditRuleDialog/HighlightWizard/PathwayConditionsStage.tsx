@@ -20,7 +20,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 
-import { findValidationError } from "../treeOps";
+import { findAllValidationErrors, findValidationError } from "../treeOps";
 import type { LogicCriterion, NodeUpdate } from "../types";
 import type { RecommendationStructureItem, PathwayTextBoundary } from "../SentenceEditor/pathwayTextSplit";
 import {
@@ -30,11 +30,14 @@ import {
 import StepPathwayConditions, { type ClusterGrouping } from "./StepPathwayConditions";
 import {
   buildConfirmedSummaries,
+  buildPathwayRows,
   buildRowResolver,
   decideRowClickTarget,
   findClusterSubgroupByRole,
   findNodeById,
+  flattenPathwayItems,
   orderPathwayNodesByBoundary,
+  pathwayGroupingKey,
   pathwayLetterAt,
   pathwayTextWindow,
   readMaterializedPathways,
@@ -51,6 +54,45 @@ function pathwayDemographicBlockReason(
     if (err) return err;
   }
   return null;
+}
+
+/**
+ * Problems in this pathway's own subtree that have no visible row of
+ * their own -- almost always an empty AT_LEAST subgroup a reviewer
+ * created (e.g. via "only one needs to match") and then backed out of
+ * before adding anything to it. `buildPathwayRows` only produces rows
+ * from guideline TEXT, so a leaf-less group like this never gets one;
+ * without this, the problem is invisible even though Save is blocked
+ * on it. Filters out:
+ *   - anything a row already resolves to (a normal unresolved row is
+ *     never double-reported -- `ListRecommendationView` already shows
+ *     its own "+ add" affordance for it);
+ *   - anything covered by `PathwayDemographicsPanel`'s own rows/caption;
+ *   - the pathway container's OWN emptiness -- a freshly materialized,
+ *     not-yet-filled-in pathway is always "empty" in tree terms, but
+ *     `boundary`'s guideline text always has its own row(s), so
+ *     `unresolvedBlockedReason` already tells the reviewer exactly
+ *     that ("N rows still need a code"). Reporting it again here would
+ *     fire on every ordinary in-progress pathway, not just genuine
+ *     leftovers.
+ */
+function pathwayProblemIssues(
+  pathwayNode: EditableLogicNode,
+  boundary: PathwayTextBoundary,
+  getRowResolution: (item: RecommendationStructureItem) => { nodeId?: string | null } | undefined,
+  pathwayDemographics: EditableLogicNode[],
+) {
+  const { items } = buildPathwayRows(boundary);
+  const alreadyVisibleIds = new Set([
+    pathwayNode.node_id,
+    ...flattenPathwayItems(items)
+      .map((item) => getRowResolution(item)?.nodeId)
+      .filter((id): id is string => !!id),
+    ...pathwayDemographics.map((d) => d.node_id),
+  ]);
+  return findAllValidationErrors(pathwayNode).filter(
+    (issue) => issue.nodeId && !alreadyVisibleIds.has(issue.nodeId),
+  );
 }
 
 interface PendingClusterAdd {
@@ -70,13 +112,21 @@ interface Props {
   recommendationText?: string | null;
   boundaries: PathwayTextBoundary[];
   pathwayIndex: number;
-  clusterGroupings: Record<number, ClusterGrouping>;
-  onSetClusterGrouping: (pathwayIndex: number, grouping: ClusterGrouping) => void;
+  /** Keyed by `pathwayGroupingKey` (the pathway's own stable
+   *  `pathway_key`, not the raw array index) -- see that helper's
+   *  doc comment. */
+  clusterGroupings: Record<string, ClusterGrouping>;
+  onSetClusterGrouping: (pathwayKey: string, grouping: ClusterGrouping) => void;
   /** Same as `clusterGroupings`/`onSetClusterGrouping` but for a
    *  SEPARATE lead-or cluster (see StepPathwayConditions's
    *  `leadClusterGrouping` prop doc comment). */
-  leadClusterGroupings: Record<number, ClusterGrouping>;
-  onSetLeadClusterGrouping: (pathwayIndex: number, grouping: ClusterGrouping) => void;
+  leadClusterGroupings: Record<string, ClusterGrouping>;
+  onSetLeadClusterGrouping: (pathwayKey: string, grouping: ClusterGrouping) => void;
+  /** See `WizardState.dismissedCopyAcrossOffers`'s doc comment --
+   *  lifted out of a local hook useState so it survives remounts of
+   *  this component within the same wizard session. */
+  dismissedCopyAcrossOffers: Set<string>;
+  onDismissCopyAcrossOffer: (pathwayKey: string) => void;
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (
@@ -105,7 +155,7 @@ interface Props {
  *  boundaries, re-anchor the OR's children to those boundaries by
  *  content (see `orderPathwayNodesByBoundary`) so a mis-ordered
  *  AI-drafted tree cannot put situation C's leaves under letter A. */
-function resolvePathwayNodes(
+export function resolvePathwayNodes(
   tree: EditableLogicNode,
   boundaries: PathwayTextBoundary[],
   recommendationText: string | null | undefined,
@@ -141,6 +191,8 @@ export default function PathwayConditionsStage({
   onSetClusterGrouping,
   leadClusterGroupings,
   onSetLeadClusterGrouping,
+  dismissedCopyAcrossOffers,
+  onDismissCopyAcrossOffer,
   onSelectNode,
   onUpdate,
   onRequestAdd,
@@ -153,7 +205,16 @@ export default function PathwayConditionsStage({
   );
   const pathwayNode = pathwayNodes[pathwayIndex];
   const boundary = boundaries[pathwayIndex];
+  const pathwayKey = pathwayGroupingKey(pathwayNode, pathwayIndex);
   const [, setPendingClusterAdd] = usePendingClusterAdd(tree, onRequestAdd);
+  // Which DEMOGRAPHIC leaf's inline age/sex editor (see
+  // `StepPathwayConditions`'s `expandedDemographicNodeId` prop) is
+  // currently open -- a DEMOGRAPHIC row has no synonym set or search
+  // swap to hand off to, so re-clicking it toggles this instead of
+  // calling `onSelectNode` (which has nothing to open for it).
+  const [expandedDemographicNodeId, setExpandedDemographicNodeId] = useState<string | null>(
+    null,
+  );
 
   // See `pathwayTextWindow` -- nested cluster items sit past a
   // structural lead `<li>`'s own end, so row resolution must use the
@@ -178,6 +239,7 @@ export default function PathwayConditionsStage({
     tree,
     boundaries,
     pathwayIndex,
+    pathwayKey,
     pathwayNodes,
     targetPathwayNode: pathwayNode ?? tree,
     recommendationText,
@@ -185,6 +247,8 @@ export default function PathwayConditionsStage({
     leadClusterGroupings,
     onSetClusterGrouping,
     onSetLeadClusterGrouping,
+    dismissedCopyAcrossOffers,
+    onDismissCopyAcrossOffer,
     onUpdate,
   });
 
@@ -192,6 +256,12 @@ export default function PathwayConditionsStage({
 
   const pathwayDemographics = pathwayDemographicChildren(pathwayNode);
   const demographicBlockedReason = pathwayDemographicBlockReason(pathwayDemographics);
+  const problemIssues = pathwayProblemIssues(
+    pathwayNode,
+    boundary,
+    getRowResolution,
+    pathwayDemographics,
+  );
 
   function handleAddPathwayDemographic(field: PathwayDemographicField) {
     onUpdate({
@@ -201,14 +271,18 @@ export default function PathwayConditionsStage({
     });
   }
 
+  function handleRemoveProblem(nodeId: string) {
+    onUpdate({ kind: "remove", nodeId });
+  }
+
   function parentForClusterAdd(item: RecommendationStructureItem): string {
     const decision = decideRowClickTarget(
       pathwayNode,
       boundary,
       item,
       undefined,
-      clusterGroupings[pathwayIndex],
-      leadClusterGroupings[pathwayIndex],
+      clusterGroupings[pathwayKey],
+      leadClusterGroupings[pathwayKey],
     );
     if (decision.action === "add") return decision.parentNodeId;
     if (decision.action === "create_subgroup_then_add") {
@@ -249,17 +323,21 @@ export default function PathwayConditionsStage({
       boundary,
       item,
       getRowResolution(item),
-      clusterGroupings[pathwayIndex],
-      leadClusterGroupings[pathwayIndex],
+      clusterGroupings[pathwayKey],
+      leadClusterGroupings[pathwayKey],
     );
     if (decision.action === "select") {
       // A CONCEPT leaf gets the full add/remove/depth editor -- see
-      // `onEditConcept`'s doc comment. Any other already-resolved
-      // leaf kind (DEMOGRAPHIC, OBSERVATION) has no synonym set of
-      // its own, so it keeps the existing single-pick swap.
+      // `onEditConcept`'s doc comment. A DEMOGRAPHIC leaf has neither
+      // a synonym set nor a search-swap flow to hand off to -- it
+      // toggles the same inline age/sex editor Step 1's prerequisite
+      // rows use (see `StepPathwayConditions`'s `renderRowExtra`).
+      // OBSERVATION is the only kind left with the single-pick swap.
       const existing = findNodeById(tree, decision.nodeId);
       if (existing?.kind === "CONCEPT") {
         onEditConcept(decision.nodeId);
+      } else if (existing?.kind === "DEMOGRAPHIC") {
+        setExpandedDemographicNodeId((prev) => (prev === decision.nodeId ? null : decision.nodeId));
       } else {
         onSelectNode(decision.nodeId, anchor);
       }
@@ -292,7 +370,7 @@ export default function PathwayConditionsStage({
   }
 
   function handleChooseGrouping(grouping: ClusterGrouping) {
-    onSetClusterGrouping(pathwayIndex, grouping);
+    onSetClusterGrouping(pathwayKey, grouping);
     // Create the trailing shell as soon as Recommended is chosen so
     // Situation C's symptom picks attach under AT_LEAST(1), not the
     // pathway AND, without waiting for the first row click.
@@ -300,7 +378,7 @@ export default function PathwayConditionsStage({
   }
 
   function handleChooseLeadGrouping(grouping: ClusterGrouping) {
-    onSetLeadClusterGrouping(pathwayIndex, grouping);
+    onSetLeadClusterGrouping(pathwayKey, grouping);
     if (grouping === "AT_LEAST") ensureClusterSubgroup("lead");
   }
 
@@ -314,8 +392,8 @@ export default function PathwayConditionsStage({
         tree,
         pathwayNode.node_id,
         boundary,
-        clusterGroupings[pathwayIndex],
-        leadClusterGroupings[pathwayIndex],
+        clusterGroupings[pathwayKey],
+        leadClusterGroupings[pathwayKey],
         recommendationText,
       ),
     });
@@ -334,9 +412,9 @@ export default function PathwayConditionsStage({
       getRowResolution={getRowResolution}
       onRowClick={handleRowClick}
       onAddMultiConcept={handleAddMultiConcept}
-      clusterGrouping={clusterGroupings[pathwayIndex]}
+      clusterGrouping={clusterGroupings[pathwayKey]}
       onChooseGrouping={handleChooseGrouping}
-      leadClusterGrouping={leadClusterGroupings[pathwayIndex]}
+      leadClusterGrouping={leadClusterGroupings[pathwayKey]}
       onChooseLeadGrouping={handleChooseLeadGrouping}
       confirmedSummaries={buildConfirmedSummaries(pathwayNodes, pathwayIndex)}
       onConfirmPathway={handleConfirmPathway}
@@ -351,6 +429,11 @@ export default function PathwayConditionsStage({
       pathwayDemographics={pathwayDemographics}
       onAddPathwayDemographic={handleAddPathwayDemographic}
       onUpdatePathway={onUpdate}
+      problemIssues={problemIssues}
+      onRemoveProblem={handleRemoveProblem}
+      expandedDemographicNode={
+        expandedDemographicNodeId ? findNodeById(tree, expandedDemographicNodeId) : null
+      }
     />
   );
 }

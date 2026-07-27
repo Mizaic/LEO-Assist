@@ -20,6 +20,8 @@ import {
 } from "../SentenceEditor/pathwayTextSplit";
 import type { EditableLogicNode } from "../types";
 import { INITIAL_WIZARD_STATE, type WizardState } from "./wizardState";
+import type { ClusterGrouping } from "./StepPathwayConditions";
+import { findClusterSubgroupByRole, pathwayGroupingKey } from "./wizardMapping";
 
 function groupHasLeaves(node: EditableLogicNode): boolean {
   if (
@@ -30,6 +32,36 @@ function groupHasLeaves(node: EditableLogicNode): boolean {
     return true;
   }
   return (node.children ?? []).some(groupHasLeaves);
+}
+
+/**
+ * Reconstructs `clusterGroupings`/`leadClusterGroupings` from the tree
+ * itself so reopening a rule (or going Back from Review) does not
+ * re-show "choose grouping" for a pathway that already has a real
+ * AT_LEAST subgroup -- the map otherwise starts empty every session,
+ * which risked the reviewer picking "AND" a second time for what
+ * looked like a fresh decision and silently orphaning the existing
+ * subgroup's leaves from row-matching (see wizard state-machine
+ * stability plan section). Deliberately does NOT try to infer "AND"
+ * for a subgroup-less pathway -- a genuinely undecided pathway (no
+ * subgroup, no cluster leaves yet) must still prompt the reviewer,
+ * and guessing wrong there is a worse outcome than asking once more.
+ */
+function inferGroupingsFromTree(
+  pathways: EditableLogicNode[],
+): Pick<WizardState, "clusterGroupings" | "leadClusterGroupings"> {
+  const clusterGroupings: Record<string, ClusterGrouping> = {};
+  const leadClusterGroupings: Record<string, ClusterGrouping> = {};
+  pathways.forEach((pathwayNode, index) => {
+    const key = pathwayGroupingKey(pathwayNode, index);
+    if (findClusterSubgroupByRole(pathwayNode, "trailing")) {
+      clusterGroupings[key] = "AT_LEAST";
+    }
+    if (findClusterSubgroupByRole(pathwayNode, "lead")) {
+      leadClusterGroupings[key] = "AT_LEAST";
+    }
+  });
+  return { clusterGroupings, leadClusterGroupings };
 }
 
 function synthesiseBoundaries(count: number): PathwayTextBoundary[] {
@@ -67,6 +99,7 @@ export function buildInitialWizardState(
 
   return {
     ...INITIAL_WIZARD_STATE,
+    ...inferGroupingsFromTree(pathways),
     step: "review",
     pathwayIndex: Math.max(0, boundaries.length - 1),
     boundaries,

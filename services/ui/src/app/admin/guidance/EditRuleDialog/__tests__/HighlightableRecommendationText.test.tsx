@@ -71,6 +71,55 @@ describe("HighlightableRecommendationText: mouse drag-select", () => {
     expect(getWordChunk("pain")).toHaveAttribute("aria-pressed", "false");
   });
 
+  // Regression: a continuous mouse-held drag across small inline word
+  // chunks is easy to break in a real browser (the button can be
+  // released mid-gesture without the user noticing). Click-then-
+  // Shift-click is the forgiving alternative -- two separate clicks,
+  // no held-down drag required -- and must extend the same way a
+  // drag does.
+  it("selects a range via click on the first word, then Shift+click on the last word", async () => {
+    const user = userEvent.setup();
+    const onConfirmSelection = jest.fn();
+    render(
+      <HighlightableRecommendationText
+        text={TEXT}
+        onConfirmSelection={onConfirmSelection}
+      />
+    );
+
+    await user.click(getWordChunk("upper"));
+    await user.keyboard("{Shift>}");
+    await user.click(getWordChunk("pain"));
+    await user.keyboard("{/Shift}");
+
+    expect(getWordChunk("upper")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("abdominal")).toHaveAttribute("aria-pressed", "true");
+    expect(getWordChunk("pain")).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: /confirm selection/i }));
+
+    expect(onConfirmSelection).toHaveBeenCalledWith(
+      { start: 0, end: 20, text: "upper abdominal pain" },
+      expect.any(HTMLElement),
+    );
+  });
+
+  it("a plain click on a second word (no Shift) starts a fresh one-word selection instead of extending", async () => {
+    const user = userEvent.setup();
+    render(
+      <HighlightableRecommendationText
+        text={TEXT}
+        onConfirmSelection={jest.fn()}
+      />
+    );
+
+    await user.click(getWordChunk("upper"));
+    await user.click(getWordChunk("pain"));
+
+    expect(getWordChunk("upper")).toHaveAttribute("aria-pressed", "false");
+    expect(getWordChunk("pain")).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("does not select the dimmed word 'and' when dragging is not initiated on it", () => {
     render(
       <HighlightableRecommendationText

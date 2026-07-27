@@ -26,24 +26,33 @@
 import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
+import DemographicRow from "../LogicTreeEditor/DemographicRow";
 import HighlightableRecommendationText, {
   type HighlightSpan,
   type TextSelectionResult,
 } from "../SentenceEditor/HighlightableRecommendationText";
+import type { TextMatchRange } from "../SentenceEditor/recommendationTextMatch";
+import { findAllValidationErrors } from "../treeOps";
 import {
+  conceptSeedLabels,
   conceptText,
   demographicToText,
   observationToText,
 } from "../treeToSentence";
-import type { EditableLogicNode } from "../types";
+import type { EditableLogicNode, NodeUpdate } from "../types";
+import CapturedConceptChips from "./CapturedConceptChips";
 import { STEP_PREREQUISITES } from "./copy";
-import { leafTextMatch } from "./leafTextMatch";
+import { leafTextMatches } from "./leafTextMatch";
+import type { PathwayDemographicField } from "./PathwayDemographicsPanel";
+import ProblemNodeRow from "./ProblemNodeRow";
 
 const PREREQUISITE_LEAF_KINDS = new Set([
   "CONCEPT",
@@ -102,7 +111,7 @@ export function prerequisiteLabel(node: EditableLogicNode): string {
 interface PrerequisiteRowData {
   node: EditableLogicNode;
   label: string;
-  match: ReturnType<typeof leafTextMatch>;
+  matches: TextMatchRange[];
 }
 
 export interface StepPrerequisitesProps {
@@ -117,11 +126,16 @@ export interface StepPrerequisitesProps {
   /**
    * Opens the add/remove/depth synonym editor for an already-matched
    * CONCEPT prerequisite -- see `PathwayConditionsStage`'s doc
-   * comment on the same prop. A DEMOGRAPHIC / OBSERVATION
-   * prerequisite has no synonym set of its own, so those still use
-   * `onEdit`'s single-pick swap.
+   * comment on the same prop. An OBSERVATION prerequisite has no
+   * synonym set of its own, so it still uses `onEdit`'s single-pick
+   * swap. A DEMOGRAPHIC prerequisite (age/sex) is neither a search
+   * swap nor a synonym set -- it expands the same inline
+   * `DemographicRow` editor Step 3 uses, driven by `onUpdate` below.
    */
   onEditConcept: (nodeId: string) => void;
+  /** Applies a `set_demographic` (or any other) update to the tree --
+   *  used by the inline age/sex editor a DEMOGRAPHIC row expands to. */
+  onUpdate: (update: NodeUpdate) => void;
   onRemove: (nodeId: string) => void;
   /**
    * Fires when the reviewer confirms a NEW highlighted span that
@@ -131,6 +145,14 @@ export interface StepPrerequisitesProps {
    * this component only detects and reports the selection.
    */
   onAddFromSelection: (selection: TextSelectionResult, anchor?: HTMLElement) => void;
+  /**
+   * Adds a blank, global (every-pathway) age or sex prerequisite --
+   * the reviewer then fills in the operator/value/unit via the same
+   * inline editor an existing DEMOGRAPHIC row expands to. Undefined
+   * hides the "Add age" / "Add sex" buttons entirely (e.g. in tests
+   * that don't care about this affordance).
+   */
+  onAddDemographic?: (field: PathwayDemographicField) => void;
   /** "No, nothing else always applies" -- lets the wizard move on
    *  without opening any add flow. */
   onConfirmNoMore?: () => void;
@@ -141,8 +163,10 @@ export default function StepPrerequisites({
   prerequisites,
   onEdit,
   onEditConcept,
+  onUpdate,
   onRemove,
   onAddFromSelection,
+  onAddDemographic,
   onConfirmNoMore,
 }: StepPrerequisitesProps) {
   const [questionDismissed, setQuestionDismissed] = useState(false);
@@ -152,20 +176,38 @@ export default function StepPrerequisites({
     return leaves.map((node) => ({
       node,
       label: prerequisiteLabel(node),
-      match: leafTextMatch(recommendationText, node),
+      matches: leafTextMatches(recommendationText, node),
     }));
   }, [prerequisites, recommendationText]);
 
+  // Empty/invalid GROUP nodes (e.g. an "any of" group the reviewer
+  // started but never filled in) have no leaf of their own, so
+  // `collectPrerequisiteLeaves` never surfaces them -- they would
+  // otherwise be invisible even though `findValidationError` blocks
+  // Save on them. Filtering out nodeIds already covered by a leaf row
+  // avoids double-reporting the same problem twice.
+  const rowNodeIds = useMemo(() => new Set(rows.map((r) => r.node.node_id)), [rows]);
+  const problemIssues = useMemo(
+    () =>
+      prerequisites
+        .flatMap((node) => findAllValidationErrors(node))
+        .filter((issue) => issue.nodeId && !rowNodeIds.has(issue.nodeId)),
+    [prerequisites, rowNodeIds],
+  );
+
+  const hasAge = rows.some((r) => r.node.kind === "DEMOGRAPHIC" && r.node.field === "age");
+  const hasSex = rows.some((r) => r.node.kind === "DEMOGRAPHIC" && r.node.field === "sex");
+
   const highlights: HighlightSpan[] = useMemo(
     () =>
-      rows
-        .filter((r) => r.match)
-        .map((r) => ({
-          start: r.match!.start,
-          end: r.match!.end,
+      rows.flatMap((r) =>
+        r.matches.map((m) => ({
+          start: m.start,
+          end: m.end,
           kind: "confirmed" as const,
           label: r.label,
         })),
+      ),
     [rows],
   );
 
@@ -204,6 +246,9 @@ export default function StepPrerequisites({
             highlights={highlights}
             onConfirmSelection={onAddFromSelection}
           />
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+            {STEP_PREREQUISITES.selectionHint}
+          </Typography>
         </Box>
       ) : (
         <Typography variant="body2" color="text.secondary" role="status">
@@ -211,7 +256,7 @@ export default function StepPrerequisites({
         </Typography>
       )}
 
-      {rows.length > 0 && (
+      {(rows.length > 0 || problemIssues.length > 0) && (
         <Box>
           <Typography
             variant="caption"
@@ -231,8 +276,12 @@ export default function StepPrerequisites({
                 row={row}
                 onEdit={onEdit}
                 onEditConcept={onEditConcept}
+                onUpdate={onUpdate}
                 onRemove={onRemove}
               />
+            ))}
+            {problemIssues.map((issue) => (
+              <ProblemNodeRow key={issue.nodeId} issue={issue} onRemove={onRemove} />
             ))}
           </Stack>
         </Box>
@@ -251,6 +300,28 @@ export default function StepPrerequisites({
             <Button variant="outlined" size="small" onClick={onConfirmNoMore}>
               {STEP_PREREQUISITES.noMoreLabel}
             </Button>
+            {onAddDemographic && !hasAge && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddRoundedIcon fontSize="small" />}
+                onClick={() => onAddDemographic("age")}
+                aria-label={STEP_PREREQUISITES.addAgeAriaLabel}
+              >
+                {STEP_PREREQUISITES.addAgeLabel}
+              </Button>
+            )}
+            {onAddDemographic && !hasSex && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddRoundedIcon fontSize="small" />}
+                onClick={() => onAddDemographic("sex")}
+                aria-label={STEP_PREREQUISITES.addSexAriaLabel}
+              >
+                {STEP_PREREQUISITES.addSexLabel}
+              </Button>
+            )}
             {recommendationText && (
               <Button
                 variant="text"
@@ -271,28 +342,50 @@ function PrerequisiteRow({
   row,
   onEdit,
   onEditConcept,
+  onUpdate,
   onRemove,
 }: {
   row: PrerequisiteRowData;
   onEdit: (nodeId: string, anchor?: HTMLElement | null) => void;
   onEditConcept: (nodeId: string) => void;
+  onUpdate: (update: NodeUpdate) => void;
   onRemove: (nodeId: string) => void;
 }) {
-  const hasAnchor = !!row.match;
+  const isDemographic = row.node.kind === "DEMOGRAPHIC";
+  // A DEMOGRAPHIC row has no search-swap or synonym flow to hand off
+  // to -- "Edit" expands the same inline age/sex controls Step 3
+  // uses, in place, rather than opening a popover elsewhere on the
+  // page (see the `onEditConcept`/`onUpdate` doc comments above).
+  const [expanded, setExpanded] = useState(false);
+  const hasAnchor = row.matches.length > 0;
+  const seedLabels = row.node.kind === "CONCEPT" ? conceptSeedLabels(row.node) : [];
+
   function handleEdit(anchor: HTMLElement) {
     if (row.node.kind === "CONCEPT") {
       onEditConcept(row.node.node_id);
-    } else {
-      onEdit(row.node.node_id, anchor);
+      return;
     }
+    if (isDemographic) {
+      setExpanded((prev) => !prev);
+      return;
+    }
+    onEdit(row.node.node_id, anchor);
   }
+
+  const editLabel = isDemographic
+    ? expanded
+      ? STEP_PREREQUISITES.doneEditingLabel
+      : STEP_PREREQUISITES.editLabel
+    : hasAnchor
+      ? STEP_PREREQUISITES.editLabel
+      : STEP_PREREQUISITES.placeManuallyLabel;
+
   return (
-    <Stack
-      direction="row"
-      alignItems="center"
-      spacing={1}
+    <Box
       data-testid={`prerequisite-row-${row.node.node_id}`}
       data-has-anchor={hasAnchor}
+      data-node-id={row.node.node_id}
+      data-wizard-jump-target="true"
       sx={{
         p: 1,
         borderRadius: 1,
@@ -301,35 +394,43 @@ function PrerequisiteRow({
         borderColor: "divider",
       }}
     >
-      {hasAnchor ? (
-        <CheckCircleIcon fontSize="small" color="success" />
-      ) : (
-        <WarningAmberRoundedIcon fontSize="small" color="warning" />
-      )}
-      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Typography variant="body2">{row.label}</Typography>
-        {!hasAnchor && (
-          <Typography variant="caption" color="text.secondary" display="block">
-            {STEP_PREREQUISITES.noAnchorHint}
-          </Typography>
+      <Stack direction="row" alignItems="center" spacing={1}>
+        {hasAnchor ? (
+          <CheckCircleIcon fontSize="small" color="success" />
+        ) : (
+          <WarningAmberRoundedIcon fontSize="small" color="warning" />
         )}
-      </Box>
-      <Button
-        size="small"
-        onClick={(e) => handleEdit(e.currentTarget)}
-      >
-        {hasAnchor
-          ? STEP_PREREQUISITES.editLabel
-          : STEP_PREREQUISITES.placeManuallyLabel}
-      </Button>
-      <Button
-        size="small"
-        color="error"
-        startIcon={<DeleteOutlineIcon fontSize="small" />}
-        onClick={() => onRemove(row.node.node_id)}
-      >
-        {STEP_PREREQUISITES.removeLabel}
-      </Button>
-    </Stack>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          {seedLabels.length > 1 ? (
+            <CapturedConceptChips terms={seedLabels} />
+          ) : (
+            <Typography variant="body2">{row.label}</Typography>
+          )}
+          {!hasAnchor && (
+            <Typography variant="caption" color="text.secondary" display="block">
+              {STEP_PREREQUISITES.noAnchorHint}
+            </Typography>
+          )}
+        </Box>
+        <Button size="small" onClick={(e) => handleEdit(e.currentTarget)}>
+          {editLabel}
+        </Button>
+        <Button
+          size="small"
+          color="error"
+          startIcon={<DeleteOutlineIcon fontSize="small" />}
+          onClick={() => onRemove(row.node.node_id)}
+        >
+          {STEP_PREREQUISITES.removeLabel}
+        </Button>
+      </Stack>
+      {isDemographic && (
+        <Collapse in={expanded} unmountOnExit>
+          <Box sx={{ mt: 1, pl: 4 }}>
+            <DemographicRow node={row.node} onUpdate={onUpdate} />
+          </Box>
+        </Collapse>
+      )}
+    </Box>
   );
 }

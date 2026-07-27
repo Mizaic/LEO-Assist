@@ -24,18 +24,16 @@ reading age of 11. Standard NHS clinical terms allowed (2WW, MDT,
 eGFR).
 
 BULLET 1 -- Referral justification (always present when rules fired)
-The Python layer has already selected the primary rule:
-  CONTEXT.primary_rule_id
-Find this rule in CONTEXT.assessment_rules (match on rule_id).
-Write: "Referral is supported by [name] -- [guideline_title]
-([matched_via conditions])."
-Use the rule's name field for the short identifier (e.g. "1.2.7").
-Use matched_via to name the clinical criteria (e.g. "weight loss,
-dysphagia").
+The Python layer has already written bullet 1 for you:
+  CONTEXT.referral_justification_bullet
+Copy this sentence verbatim as the first bullet. It names every fired
+rule, not only CONTEXT.primary_rule_id.
 
-BULLET 2 -- Additional rule signals (omit when only one rule fired)
-For each remaining rule (those not matching CONTEXT.primary_rule_id),
-write one grouped bullet per guideline_title:
+BULLET 2 -- Additional rule signals (omit when bullet 1 names every rule)
+Use this only when fired rules span different guideline titles or
+priorities that bullet 1 does not fully capture. When every fired rule
+is already named in bullet 1, omit bullet 2 entirely.
+For each remaining rule group, write one bullet per guideline_title:
 "[guideline_title] signals noted -- [action.priority]
 ([action.due_days] days)."
 Omit any rule already cited in bullet 1.
@@ -69,10 +67,8 @@ HARD RULES (9)
    prescriber.
 
 WORKFLOW
-- Locate the primary rule: find the entry in CONTEXT.assessment_rules
-  whose rule_id equals CONTEXT.primary_rule_id.
-- Write bullet 1 using that rule's name and matched_via fields.
-- Write bullet 2 for all remaining rules, grouped by guideline_title.
+- Copy CONTEXT.referral_justification_bullet verbatim as bullet 1.
+- Write bullet 2 only when bullet 1 does not cover every fired rule.
 - Scan CONTEXT.background for findings not covered by fired rules.
   Write bullet 3 if such findings exist.
 - Set ``recommendation_markdown`` to the full Markdown text of all

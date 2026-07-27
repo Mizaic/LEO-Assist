@@ -9,6 +9,7 @@ import type { LogicTreeNode } from "./RuleLogicView";
 import type { EditableRule } from "./EditRuleDialog";
 import type { LogicCriterion, RuleAction } from "./EditRuleDialog/types";
 import { normalizeRuleActions } from "./actionShape";
+import { naturalSortCompare } from "./naturalSort";
 import type {
   ActionConcept,
   Rule,
@@ -130,10 +131,9 @@ export function filterRulesForReview<T extends RuleReviewIdentity>(
   return out;
 }
 
-export function sortRulesForStatus<R extends { rule_id: string; updated_at?: string }>(
-  rules: R[],
-  statusFilter: RuleStatusFilter,
-): R[] {
+export function sortRulesForStatus<
+  R extends { rule_id: string; name?: string; updated_at?: string },
+>(rules: R[], statusFilter: RuleStatusFilter): R[] {
   if (statusFilter !== "active") return rules;
   const epoch = (iso: string | undefined): number => {
     if (!iso) return 0;
@@ -144,7 +144,12 @@ export function sortRulesForStatus<R extends { rule_id: string; updated_at?: str
     const da = epoch(a.updated_at);
     const db = epoch(b.updated_at);
     if (da !== db) return da - db;
-    return a.rule_id.localeCompare(b.rule_id);
+    // Reviewers scan by the friendly dotted rule id ("1.2.1"), not the
+    // opaque rule_id -- and that id needs numeric-segment comparison
+    // (see naturalSortCompare) or "1.11.1" sorts before "1.2.1".
+    const nameA = a.name || a.rule_id;
+    const nameB = b.name || b.rule_id;
+    return naturalSortCompare(nameA, nameB);
   });
 }
 

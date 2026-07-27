@@ -133,6 +133,23 @@ export function conceptText(node: EditableLogicNode, resolve?: TermResolver): st
   return `${body}, except ${tail}`;
 }
 
+/**
+ * Every seed's own friendly term, for surfaces that need to render a
+ * multi-seed CONCEPT leaf as a scannable list of individual findings
+ * instead of one packed "one of: a, b, c, ..." sentence -- see
+ * StepPrerequisites's "Captured so far" panel. Falls back to the
+ * single legacy preferred_term when there are no seeds.
+ */
+export function conceptSeedLabels(node: EditableLogicNode): string[] {
+  const c = node.criterion;
+  const seeds = c?.seeds ?? [];
+  if (seeds.length === 0) {
+    const term = friendlyTerm(c?.preferred_term);
+    return term ? [term] : [];
+  }
+  return seeds.map((s) => friendlyTerm(s.preferred_term));
+}
+
 function listOfConcepts(
   nodes: EditableLogicNode[],
   resolve?: TermResolver,
