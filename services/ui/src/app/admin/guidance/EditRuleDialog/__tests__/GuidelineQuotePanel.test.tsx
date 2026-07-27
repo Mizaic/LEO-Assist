@@ -115,6 +115,15 @@ describe("buildSituationBoundaryHighlights", () => {
     expect(spans[0].end - spans[0].start).toBe("dyspepsia".length);
     expect(spans[0].pathwayIndex).toBe(0);
   });
+
+  it("skips tree-rehydrated and zero-width boundaries so table rules do not paint stacked prefixes", () => {
+    const boundaries: PathwayTextBoundary[] = [
+      { start: 0, end: 0, text: "is between 40 and 49 years, CA125", source: "tree" },
+      { start: 0, end: 0, text: "is between 50 and 59 years, CA125", source: "tree" },
+      { start: 0, end: 0, text: "Situation C", source: "heuristic" },
+    ];
+    expect(buildSituationBoundaryHighlights(boundaries)).toEqual([]);
+  });
 });
 
 function boundary(start: number, end: number, text: string): PathwayTextBoundary {

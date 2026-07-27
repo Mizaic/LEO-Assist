@@ -98,17 +98,29 @@ export function situationHighlightColor(
 export function buildSituationBoundaryHighlights(
   boundaries: PathwayTextBoundary[],
 ): HighlightSpan[] {
-  return boundaries.map((boundary, index) => {
+  // Tree-rehydrated situations (table-driven rules) have no quote spans
+  // -- painting cleaned label length at start:0 stacked five colours on
+  // the same prefix (e.g. "1.5.9 Arran"). Skip those, and any other
+  // zero-width placeholder, so Step 2 does not invent fake highlights.
+  return boundaries.flatMap((boundary, index) => {
+    if (boundary.source === "tree" || boundary.end <= boundary.start) {
+      return [];
+    }
     const cleaned = cleanPathwayText(boundary.text);
     const local = cleaned ? boundary.text.indexOf(cleaned) : 0;
     const start = boundary.start + Math.max(0, local);
-    const end = start + (cleaned ? cleaned.length : Math.max(0, boundary.end - boundary.start));
-    return {
-      start,
-      end,
-      kind: "confirmed" as const,
-      pathwayIndex: index,
-    };
+    const end =
+      start +
+      (cleaned ? cleaned.length : Math.max(0, boundary.end - boundary.start));
+    if (end <= start) return [];
+    return [
+      {
+        start,
+        end,
+        kind: "confirmed" as const,
+        pathwayIndex: index,
+      },
+    ];
   });
 }
 

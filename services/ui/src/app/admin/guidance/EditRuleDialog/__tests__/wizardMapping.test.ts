@@ -408,6 +408,23 @@ describe("orderPathwayNodesByBoundary", () => {
 
     expect(ordered).toEqual([bothMatchA1, bothMatchA2]);
   });
+
+  it("keeps saved OR order for tree-rehydrated table pathways (all start at 0)", () => {
+    const first = { ...pathwayNode([ageLeaf()]), node_id: "pw-40" };
+    const second = { ...pathwayNode([weightLossLeaf()]), node_id: "pw-50" };
+    const treeBoundaries: PathwayTextBoundary[] = [
+      { start: 0, end: 0, text: "age 40-49", source: "tree" },
+      { start: 0, end: 0, text: "age 50-59", source: "tree" },
+    ];
+
+    const ordered = orderPathwayNodesByBoundary(
+      [first, second],
+      treeBoundaries,
+      "Arrange ultrasound depending on age and serum CA125 according to table 1.",
+    );
+
+    expect(ordered).toEqual([first, second]);
+  });
 });
 
 describe("buildRootWithFreshPathways", () => {
@@ -459,6 +476,15 @@ describe("pathwayTextWindow", () => {
       { start: 0, end: 20, text: "only", source: "heuristic" },
     ];
     expect(pathwayTextWindow(boundaries, 0, 20)).toBeUndefined();
+  });
+
+  it("uses the whole recommendation for tree-rehydrated table pathways", () => {
+    const boundaries: PathwayTextBoundary[] = [
+      { start: 0, end: 0, text: "age 40-49", source: "tree" },
+      { start: 0, end: 0, text: "age 50-59", source: "tree" },
+    ];
+    expect(pathwayTextWindow(boundaries, 0, 120)).toEqual({ start: 0, end: 120 });
+    expect(pathwayTextWindow(boundaries, 1, 120)).toEqual({ start: 0, end: 120 });
   });
 });
 
@@ -606,6 +632,16 @@ const PLAIN_BOUNDARY: PathwayTextBoundary = {
 };
 
 describe("buildPathwayRows", () => {
+  it("returns no text rows for tree-rehydrated boundaries (leaves already on the pathway)", () => {
+    const boundary: PathwayTextBoundary = {
+      text: "is between 40 and 49 years, has cancer antigen 125 at least 35 IU/ml",
+      start: 0,
+      end: 0,
+      source: "tree",
+    };
+    expect(buildPathwayRows(boundary)).toEqual({ items: [], hasCluster: false });
+  });
+
   it("returns a single leaf row with no cluster for a plain boundary", () => {
     const { items, hasCluster } = buildPathwayRows(PLAIN_BOUNDARY);
     expect(hasCluster).toBe(false);

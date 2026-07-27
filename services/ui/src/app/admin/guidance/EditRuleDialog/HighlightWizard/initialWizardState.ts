@@ -21,7 +21,11 @@ import {
 import type { EditableLogicNode } from "../types";
 import { INITIAL_WIZARD_STATE, type WizardState } from "./wizardState";
 import type { ClusterGrouping } from "./StepPathwayConditions";
-import { findClusterSubgroupByRole, pathwayGroupingKey } from "./wizardMapping";
+import {
+  findClusterSubgroupByRole,
+  pathwayGroupingKey,
+  pathwaySummaryText,
+} from "./wizardMapping";
 
 function groupHasLeaves(node: EditableLogicNode): boolean {
   if (
@@ -64,12 +68,24 @@ function inferGroupingsFromTree(
   return { clusterGroupings, leadClusterGroupings };
 }
 
-function synthesiseBoundaries(count: number): PathwayTextBoundary[] {
-  return Array.from({ length: count }, (_, i) => ({
-    text: `Situation ${String.fromCharCode(65 + i)}`,
+/**
+ * When the guideline sentence cannot be split into N situations (common
+ * for table-driven rules like NG12 1.5.9 -- "thresholds in table 1"),
+ * rebuild Step 2 rows from the saved pathway leaves instead of fake
+ * "Situation A" placeholders. Those placeholders painted overlapping
+ * multi-colour prefixes on the quote and blocked Step 3 on an
+ * unmatchable text row even when age/observations were already on the
+ * tree. `source: "tree"` tells highlight/row logic there is no quote
+ * span for this situation.
+ */
+export function boundariesFromPathways(
+  pathways: EditableLogicNode[],
+): PathwayTextBoundary[] {
+  return pathways.map((pathway) => ({
+    text: pathwaySummaryText(pathway),
     start: 0,
     end: 0,
-    source: "heuristic" as const,
+    source: "tree" as const,
   }));
 }
 
@@ -95,7 +111,7 @@ export function buildInitialWizardState(
   const boundaries =
     detected && detected.length === pathways.length
       ? detected
-      : synthesiseBoundaries(pathways.length);
+      : boundariesFromPathways(pathways);
 
   return {
     ...INITIAL_WIZARD_STATE,

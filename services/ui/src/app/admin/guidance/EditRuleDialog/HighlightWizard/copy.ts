@@ -89,6 +89,12 @@ export const STEP_PATHWAY_SPLIT = {
     "Does this apply the same way to everyone, or does it depend which symptoms the patient has?",
   heuristicTag: (count: number) =>
     `We think we found ${count} possible situations. Please check them.`,
+  /** Reopened table-driven / tree-only multi-pathway rules -- the
+   *  guideline sentence does not list situations as separate phrases. */
+  treeTitle: (count: number) =>
+    `This saved rule already has ${count} situations.`,
+  treeTag:
+    "They come from the rule's saved logic (for example age bands and lab thresholds in a table), not from separate phrases in the guideline sentence. Check each row still looks right, then continue.",
   looksRightLabel: "Looks right, continue",
   mergeLabel: "Merge two rows",
   splitLabel: "Split a row",
