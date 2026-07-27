@@ -1,0 +1,178 @@
+{
+  "cases": [
+    {
+      "id": "ng12_1_2_9_structure",
+      "description": "NG12 1.2.9 six structural situations from listStructureJson",
+      "text": "1.2.9 Consider non-urgent, direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55 or over with: upper abdominal pain, or indigestion with any of the following: upper abdominal pain, nausea, vomiting or weight loss, or upper abdominal pain and a low haemoglobin level with any of the following: weight loss, heartburn or indigestion, or a raised platelet count with any of the following: nausea, vomiting, weight loss, heartburn, indigestion or upper abdominal pain, or vomiting with any of the following: weight loss, heartburn or indigestion, or nausea with any of the following: weight loss, heartburn or indigestion. [2015]",
+      "structure": {
+        "lead_text": "1.2.9 Consider non-urgent, direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55 or over with: ",
+        "items": [
+          {
+            "text": "upper abdominal pain",
+            "start": 135,
+            "end": 155
+          },
+          {
+            "text": "indigestion with any of the following:",
+            "start": 160,
+            "end": 198,
+            "children": [
+              {
+                "text": "upper abdominal pain",
+                "start": 199,
+                "end": 219
+              },
+              {
+                "text": "nausea",
+                "start": 221,
+                "end": 227
+              },
+              {
+                "text": "vomiting",
+                "start": 229,
+                "end": 237
+              },
+              {
+                "text": "weight loss",
+                "start": 241,
+                "end": 252
+              }
+            ]
+          },
+          {
+            "text": "upper abdominal pain and a low haemoglobin level with any of the following:",
+            "start": 257,
+            "end": 332,
+            "children": [
+              {
+                "text": "weight loss",
+                "start": 333,
+                "end": 344
+              },
+              {
+                "text": "heartburn",
+                "start": 346,
+                "end": 355
+              },
+              {
+                "text": "indigestion",
+                "start": 359,
+                "end": 370
+              }
+            ]
+          },
+          {
+            "text": "a raised platelet count with any of the following:",
+            "start": 375,
+            "end": 425,
+            "children": [
+              {
+                "text": "nausea",
+                "start": 426,
+                "end": 432
+              },
+              {
+                "text": "vomiting",
+                "start": 434,
+                "end": 442
+              },
+              {
+                "text": "weight loss",
+                "start": 444,
+                "end": 455
+              },
+              {
+                "text": "heartburn",
+                "start": 457,
+                "end": 466
+              },
+              {
+                "text": "indigestion",
+                "start": 468,
+                "end": 479
+              },
+              {
+                "text": "upper abdominal pain",
+                "start": 483,
+                "end": 503
+              }
+            ]
+          },
+          {
+            "text": "vomiting with any of the following:",
+            "start": 508,
+            "end": 543,
+            "children": [
+              {
+                "text": "weight loss",
+                "start": 544,
+                "end": 555
+              },
+              {
+                "text": "heartburn",
+                "start": 557,
+                "end": 566
+              },
+              {
+                "text": "indigestion",
+                "start": 570,
+                "end": 581
+              }
+            ]
+          },
+          {
+            "text": "nausea with any of the following:",
+            "start": 586,
+            "end": 619,
+            "children": [
+              {
+                "text": "weight loss",
+                "start": 620,
+                "end": 631
+              },
+              {
+                "text": "heartburn",
+                "start": 633,
+                "end": 642
+              },
+              {
+                "text": "indigestion",
+                "start": 646,
+                "end": 657
+              }
+            ]
+          }
+        ],
+        "trailing_text": ". [2015]"
+      },
+      "expected_count": 6,
+      "expected_source": "structure"
+    },
+    {
+      "id": "ng12_1_2_9_heuristic",
+      "description": "NG12 1.2.9 without structure falls back to comma-or heuristic",
+      "text": "1.2.9 Consider non-urgent, direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55 or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels, or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
+      "structure": null,
+      "expected_count": 4,
+      "expected_source": "heuristic"
+    },
+    {
+      "id": "plain_single_sentence",
+      "description": "Single-sentence recommendation has no multi-situation split",
+      "text": "Refer people using a suspected cancer pathway referral for lung cancer if they have unexplained haemoptysis.",
+      "structure": null,
+      "expected_count": 1,
+      "expected_source": "single",
+      "fe_null_ok": true
+    },
+    {
+      "id": "table_threshold_marker",
+      "description": "Table-threshold prose must not invent multiple prose situations",
+      "text": "Refer according to the thresholds in table 1 for people with a raised PSA.",
+      "structure": null,
+      "expected_count": 1,
+      "expected_source": "tree",
+      "fe_null_ok": true
+    }
+  ]
+}

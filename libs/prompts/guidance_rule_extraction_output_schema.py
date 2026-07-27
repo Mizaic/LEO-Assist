@@ -130,12 +130,43 @@ _ACTION_ITEM_SCHEMA = {
     },
 }
 
-GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
-    "description": "Return ONLY valid JSON — no explanation, no markdown, no preamble.",
+_SITUATION_SHELL_SCHEMA = {
     "type": "object",
-    "required": ["schema_version", "logic_tree", "actions"],
+    "required": ["text", "conditions"],
+    "properties": {
+        "text": {"type": "string"},
+        "start": {"type": "integer"},
+        "end": {"type": "integer"},
+        "source": {
+            "type": "string",
+            "enum": ["structure", "heuristic", "tree", "single"],
+        },
+        "conditions": {
+            "type": "array",
+            "items": _LOGIC_NODE_SCHEMA,
+        },
+        "pathway_key": {"type": ["string", "null"]},
+    },
+}
+
+GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
+    "description": (
+        "Return ONLY valid JSON — no explanation, no markdown, no preamble. "
+        "Prefer SituationDraft (prerequisites + situations + actions). "
+        "logic_tree alone is allowed for simple single-situation rules."
+    ),
+    "type": "object",
+    "required": ["schema_version", "actions"],
     "properties": {
         "schema_version": {"type": "integer", "enum": [2]},
+        "prerequisites": {
+            "type": "array",
+            "items": _LOGIC_NODE_SCHEMA,
+        },
+        "situations": {
+            "type": "array",
+            "items": _SITUATION_SHELL_SCHEMA,
+        },
         "logic_tree": {
             "anyOf": [
                 _LOGIC_NODE_SCHEMA,
@@ -150,6 +181,42 @@ GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA: dict = {
 }
 
 GUIDANCE_RULE_EXTRACTION_EXAMPLES: list[dict] = [
+    {
+        "id": "gre-ex-010",
+        "description": (
+            "Upper GI: SituationDraft with shared age prerequisite and two "
+            "structure-backed situations"
+        ),
+        "input": (
+            "Section: Stomach cancer\n"
+            "Recommendation 1.2.x: Consider endoscopy in people aged 55 or over with: "
+            "treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin.\n"
+            "SITUATION_SHELLS: "
+            '[{"index":0,"text":"treatment-resistant dyspepsia","source":"structure"},'
+            '{"index":1,"text":"upper abdominal pain with low haemoglobin","source":"structure"}]\n'
+            "Urgency: routine  Strength: consider"
+        ),
+        "output": (
+            '{"schema_version":2,'
+            '"prerequisites":[{"kind":"demographic","field":"age","operator":">=",'
+            '"value":55,"unit":"years","raw_term":"aged 55 or over"}],'
+            '"situations":['
+            '{"text":"treatment-resistant dyspepsia","source":"structure","conditions":['
+            '{"kind":"concept","term":{"text":"dyspepsia","search_terms":["dyspepsia","treatment resistant dyspepsia"]}}]},'
+            '{"text":"upper abdominal pain with low haemoglobin","source":"structure","conditions":['
+            '{"kind":"AND","children":['
+            '{"kind":"concept","term":{"text":"upper abdominal pain","search_terms":["upper abdominal pain"]}},'
+            '{"kind":"observation","term":{"text":"Haemoglobin","search_terms":["haemoglobin"]},"operator":"<","value":110,"unit":"g/L","within_days":365}'
+            "]}]}"
+            '],"actions":[{"text":"direct access upper gastrointestinal endoscopy",'
+            '"search_terms":["direct access upper gastrointestinal endoscopy","OGD"],'
+            '"strength":"consider"}]}'
+        ),
+        "category": "guidance_rule_extraction",
+        "model_scope": "any",
+        "core": True,
+        "deidentified": True,
+    },
     {
         "id": "gre-ex-004",
         "description": "CG184 Dyspepsia: PPI trial failed -- management pathway rule using treatment_history and allergy leaves",

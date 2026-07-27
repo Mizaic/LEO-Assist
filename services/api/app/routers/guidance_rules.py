@@ -600,6 +600,7 @@ RETURN rec.id        AS rec_id,
        rec.urgency   AS urgency,
        rec.strength  AS strength,
        rec.sectionTitle AS section_title,
+       rec.listStructureJson AS list_structure_json,
        ch.title      AS chapter_title,
        coalesce(g.id, rule.guidelineId, '') AS guideline_id
 """
@@ -645,16 +646,24 @@ async def ai_redraft_rule(
         )
 
     row = rows[0]
+    from libs.guidance.recommendation_triage import triage_recommendation
+    from libs.guidance.situation_skeleton import parse_list_structure
+
+    list_structure = parse_list_structure(row.get("list_structure_json"))
+    verbatim = row.get("verbatim", "") or ""
     rec = {
         "id": row.get("rec_id", ""),
-        "verbatim": row.get("verbatim", ""),
+        "verbatim": verbatim,
         "title": row.get("title", ""),
         "urgency": row.get("urgency", ""),
         "strength": row.get("strength", ""),
         "section_title": row.get("section_title", ""),
         "chapter_title": row.get("chapter_title", ""),
+        "list_structure_json": row.get("list_structure_json"),
+        "list_structure": list_structure,
     }
     guideline_id = row.get("guideline_id", "")
+    triage_bucket = triage_recommendation(verbatim)
 
     try:
         subgraph = get_registry().build("guidance_rule_extraction")
@@ -662,7 +671,11 @@ async def ai_redraft_rule(
             loop.run_in_executor(
                 None,
                 lambda: subgraph.invoke(
-                    {"recommendation": rec, "guideline_id": guideline_id}
+                    {
+                        "recommendation": rec,
+                        "guideline_id": guideline_id,
+                        "triage_bucket": triage_bucket,
+                    }
                 ),
             ),
             timeout=float(_EXTRACTION_TIMEOUT_S),
@@ -686,6 +699,10 @@ async def ai_redraft_rule(
 
     errors = result.get("errors") or []
     coded = result.get("coded_criteria") or {}
+    if triage_bucket == "trigger_plus_narrative" and isinstance(coded, dict):
+        from app.services.guidance_rule_generator import GuidanceRuleGenerator
+
+        coded = GuidanceRuleGenerator._force_narrative_actions(coded)
     logic_tree = coded.get("logic_tree")
 
     if logic_tree is None:
@@ -697,7 +714,12 @@ async def ai_redraft_rule(
             },
         )
 
-    return {"logic_tree": logic_tree, "errors": errors}
+    return {
+        "logic_tree": logic_tree,
+        "actions": coded.get("actions") or [],
+        "situation_windows": coded.get("situation_windows") or [],
+        "errors": errors,
+    }
 
 
 # DI-LEO-AI-518: persist a PipelineRun :AuditEvent for guidance dry-run
