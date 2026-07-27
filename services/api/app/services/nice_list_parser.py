@@ -1,5 +1,10 @@
 """Recursive HTML list-tree parser for NICE recommendation content.
 
+Atlas trace:
+  DI: DI-42246DA7
+  DO: DO-F8C56339
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
+
 The NICE Syndication API returns real nested ``<ul>``/``<li>`` XHTML per
 recommendation (e.g. NG12 1.2.9's six pathway alternatives, one of which
 has its own nested "any of the following" list). Ingestion today
