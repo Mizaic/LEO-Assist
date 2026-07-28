@@ -117,6 +117,65 @@ describe("NG12 1.9.1 -- MRI brain, or CT if MRI contraindicated", () => {
   });
 });
 
+describe("NG12 1.13.2 / 1.13.3 / 1.13.4 -- NSS three-way either/or actions", () => {
+  function nssTrio(
+    groupId: string,
+    strength: string,
+  ): RuleAction[] {
+    return [
+      action("183654001", "Urgent investigation", strength, {
+        group_id: groupId,
+        group_mode: "any",
+        group_rank: 0,
+      }),
+      action(
+        "276581000000102",
+        "Fast track referral for suspected cancer",
+        strength,
+        {
+          group_id: groupId,
+          group_mode: "any",
+          group_rank: 1,
+        },
+      ),
+      action(
+        "183519002",
+        "Referral for non-specific symptoms assessment",
+        strength,
+        {
+          group_id: groupId,
+          group_mode: "any",
+          group_rank: 2,
+        },
+      ),
+    ];
+  }
+
+  it.each([
+    ["1.13.2", "offer", "ng12-1-13-2"],
+    ["1.13.3", "offer", "ng12-1-13-3"],
+    ["1.13.4", "consider", "ng12-1-13-4"],
+  ] as const)(
+    "%s groups urgent investigation / 2WW / NSS as either/or (%s)",
+    (_rec, strength, groupId) => {
+      const actions = nssTrio(groupId, strength);
+      const groups = groupActionsForDisplay(actions);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].mode).toBe("any");
+      expect(groups[0].indices).toEqual([0, 1, 2]);
+      const line = formatActionGroupRecapLines(actions)[0];
+      expect(line).toMatch(/If this rule matches:/i);
+      expect(line).toMatch(/Urgent investigation/i);
+      expect(line).toMatch(/, or /);
+      expect(line).toMatch(/Fast track referral for suspected cancer/i);
+      expect(line).toMatch(/non-specific symptoms/i);
+      const saved = sanitiseActionsForSave(actions);
+      expect(saved.every((a) => a.group_mode === "any")).toBe(true);
+      expect(normalizeRuleActions(saved)).toEqual(actions);
+    },
+  );
+});
+
 describe("NG12 1.10.4 -- myeloma bloods with OR and FLC fallback", () => {
   const actions: RuleAction[] = [
     action("26604007", "Full blood count", "offer"),
