@@ -113,14 +113,17 @@ function priorityChipLabel(
   dueDays?: number | null,
 ): string {
   const base =
-    priority === "2ww"
-      ? "2 week wait"
-      : priority === "urgent"
-        ? "Urgent"
-        : priority === "routine"
-          ? "Routine"
-          : priority.replace(/_/g, " ");
+    priority === "immediate"
+      ? "Immediate"
+      : priority === "2ww"
+        ? "2 week wait"
+        : priority === "urgent"
+          ? "Urgent"
+          : priority === "routine"
+            ? "Routine"
+            : priority.replace(/_/g, " ");
   if (priority === "routine" || dueDays == null) return base;
+  if (priority === "immediate" && dueDays === 0) return base;
   return `${base}, ${dueDays} days`;
 }
 

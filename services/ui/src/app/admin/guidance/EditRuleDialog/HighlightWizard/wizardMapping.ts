@@ -32,7 +32,11 @@ import type { EditableLogicNode, LogicNodeKind, NodeUpdate } from "../types";
 import {
   cleanPathwayText,
   looksLikeWithAnd,
+  peelReferralClinicalClauses,
   resolveAtLeastCluster,
+  stripGuidelineCaveatTail,
+  stripLeadingAgePreamble,
+  stripPatientLeadScaffold,
   type PathwayTextBoundary,
   type RecommendationStructureItem,
 } from "../SentenceEditor/pathwayTextSplit";
@@ -394,6 +398,29 @@ export function readMaterializedPathways(
  * reach that boundary keeps it, the second falls back to an
  * unclaimed slot rather than silently overwriting the first claim.
  */
+/**
+ * True when `offset` sits inside a structureChild span that two or
+ * more situations share (NG12 1.1.2's trailing symptom list). Those
+ * offsets must not drive pathway re-ordering -- every situation owns
+ * the same list, so last-boundary-wins would shove every coded
+ * symptom onto the final situation and scramble OR order / wipe
+ * clusterGroupings keyed by pathway_key.
+ */
+function offsetInSharedStructureChildren(
+  offset: number,
+  boundaries: PathwayTextBoundary[],
+): boolean {
+  let owners = 0;
+  for (const boundary of boundaries) {
+    const hit = (boundary.structureChildren ?? []).some(
+      (child) => offset >= child.start && offset < child.end,
+    );
+    if (hit) owners += 1;
+    if (owners >= 2) return true;
+  }
+  return false;
+}
+
 export function orderPathwayNodesByBoundary(
   containers: EditableLogicNode[],
   boundaries: PathwayTextBoundary[],
@@ -423,7 +450,10 @@ export function orderPathwayNodesByBoundary(
   for (const container of containers) {
     const claim = collectLeaves(container)
       .map((leaf) => leafTextMatch(recommendationText, leaf))
-      .find((match): match is TextMatchRange => !!match);
+      .find(
+        (match): match is TextMatchRange =>
+          !!match && !offsetInSharedStructureChildren(match.start, boundaries),
+      );
     const boundaryIndex = claim ? boundaryIndexFor(claim.start) : null;
     if (boundaryIndex !== null && !claimedBoundaries.has(boundaryIndex)) {
       claimedBoundaries.set(boundaryIndex, container);
@@ -651,6 +681,12 @@ export interface PathwayRows {
    * every row via `items`.
    */
   leadCluster?: PathwayCluster;
+  /**
+   * Suggested AT_LEAST.min from the guideline quantifier for the
+   * trailing cluster (1 for "any"/"1 or more", 2 for "2 or more").
+   * Defaults to 1 when there is no trailing cluster.
+   */
+  suggestedMin?: number;
 }
 
 /**
@@ -661,6 +697,44 @@ export interface PathwayRows {
  * by StepPathwayConditions (rendering) and the wizard orchestrator
  * (deciding which parent a clicked row's leaf should attach under).
  */
+function weightedChecklistRows(boundary: PathwayTextBoundary): PathwayRows | null {
+  const checklist = boundary.weightedChecklist;
+  if (!checklist) return null;
+  const items: RecommendationStructureItem[] = [];
+  if (checklist.lesionPhrase) {
+    const idx = boundary.text.toLowerCase().indexOf(checklist.lesionPhrase.toLowerCase());
+    if (idx >= 0) {
+      items.push({
+        text: checklist.lesionPhrase,
+        start: boundary.start + idx,
+        end: boundary.start + idx + checklist.lesionPhrase.length,
+      });
+    }
+  }
+  if (!checklist.expanded) {
+    if (checklist.scorePhrase) {
+      const idx = boundary.text
+        .toLowerCase()
+        .indexOf(checklist.scorePhrase.toLowerCase());
+      if (idx >= 0) {
+        items.push({
+          text: checklist.scorePhrase,
+          start: boundary.start + idx,
+          end: boundary.start + idx + checklist.scorePhrase.length,
+        });
+      }
+    }
+    return items.length > 0 ? { items, hasCluster: false } : null;
+  }
+  // Expanded: lesion + every major/minor feature as codeable rows.
+  let cursor = boundary.end + 1;
+  for (const text of [...checklist.majors, ...checklist.minors]) {
+    items.push({ text, start: cursor, end: cursor + text.length });
+    cursor += text.length + 1;
+  }
+  return { items, hasCluster: false };
+}
+
 export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
   // Tree-rehydrated situations already hold their leaves on the pathway
   // node (age bands, CA125 thresholds, etc.). There is no guideline
@@ -672,19 +746,45 @@ export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
     return { items: [], hasCluster: false };
   }
 
+  const weighted = weightedChecklistRows(boundary);
+  if (weighted) return weighted;
+
   const cluster = resolveAtLeastCluster(boundary);
   if (!cluster) {
-    const text = cleanPathwayText(boundary.text);
+    const cleaned = stripGuidelineCaveatTail(cleanPathwayText(boundary.text));
+    // NG12 1.7.6: "Only consider ... referral for people with X if Y"
+    // -> two AND rows (lesion suspicion + delay concern).
+    const referralClauses = peelReferralClinicalClauses(cleaned);
+    if (referralClauses && referralClauses.length >= 2) {
+      return {
+        items: locateClusterItems(
+          boundary.text,
+          boundary.start,
+          referralClauses,
+        ),
+        hasCluster: false,
+      };
+    }
+    // Strip age bands / leading "with" so NG12 1.3.1 rows are codeable
+    // findings ("aged 40 and over with unexplained weight loss and
+    // abdominal pain" -> two findings; "with an abdominal mass" ->
+    // "abdominal mass"). Also strip "For people who have" (NG12 1.3.3).
+    // Offsets still locate inside the raw boundary.
+    const clinical =
+      stripPatientLeadScaffold(stripLeadingAgePreamble(cleaned) || cleaned) ||
+      cleaned;
     // Situation B ("upper abdominal pain with low haemoglobin levels"):
     // no AT_LEAST marker, but a clinical " with " joining two short
     // findings that each need their own SNOMED / observation pick.
-    const withParts = looksLikeWithAnd(text);
+    const withParts = looksLikeWithAnd(clinical);
     if (withParts) {
-      const located = locateClusterItems(text, boundary.start, withParts);
+      const located = locateClusterItems(boundary.text, boundary.start, withParts);
       return { items: located, hasCluster: false };
     }
+    const idx = boundary.text.toLowerCase().indexOf(clinical.toLowerCase());
+    const start = idx >= 0 ? boundary.start + idx : boundary.start;
     return {
-      items: [{ text, start: boundary.start, end: boundary.start + text.length }],
+      items: [{ text: clinical, start, end: start + clinical.length }],
       hasCluster: false,
     };
   }
@@ -718,15 +818,27 @@ export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
       items: [...leadClusterRows, ...clusterRows],
       hasCluster: clusterRows.length > 0,
       leadCluster,
+      suggestedMin: cluster.suggestedMin,
     };
   }
+  // Locate the lead phrase inside this pathway's own text so an
+  // embedded finding ("ever smoked") keeps real quote offsets instead
+  // of pretending it starts at boundary.start.
+  const leadIdx = boundary.text.toLowerCase().indexOf(cluster.leadText.toLowerCase());
+  const leadStart =
+    leadIdx >= 0 ? boundary.start + leadIdx : boundary.start;
   const leadRow: RecommendationStructureItem = {
     text: cluster.leadText,
-    start: boundary.start,
-    end: boundary.start + cluster.leadText.length,
+    start: leadStart,
+    end: leadStart + cluster.leadText.length,
     children: clusterRows.length > 0 ? clusterRows : undefined,
   };
-  return { items: [leadRow], hasCluster: clusterRows.length > 0, leadCluster };
+  return {
+    items: [leadRow],
+    hasCluster: clusterRows.length > 0,
+    leadCluster,
+    suggestedMin: cluster.suggestedMin,
+  };
 }
 
 /** Whether `item` is one of the TRAILING cluster's nested children (as
@@ -919,11 +1031,12 @@ function takeMatchingLeaves(
 function makeAtLeastGroup(
   role: "lead" | "trailing",
   children: EditableLogicNode[],
+  min = 1,
 ): EditableLogicNode {
   return {
     node_id: freshNodeId(),
     kind: "AT_LEAST",
-    min: 1,
+    min: Math.max(1, Math.min(Math.floor(min || 1), Math.max(children.length, 1))),
     cluster_role: role,
     children,
   };
@@ -949,7 +1062,7 @@ export function withReifiedPathwayClusters(
   leadGrouping: ClusterGrouping | undefined,
   recommendationText?: string | null,
 ): EditableLogicNode {
-  const { items, hasCluster, leadCluster } = buildPathwayRows(boundary);
+  const { items, hasCluster, leadCluster, suggestedMin } = buildPathwayRows(boundary);
   if (!hasCluster && !leadCluster) return tree;
 
   const pathway = findNodeById(tree, pathwayNodeId);
@@ -972,13 +1085,22 @@ export function withReifiedPathwayClusters(
   const leadRows = leadCluster?.items ?? [];
   const trailingRows = leadCluster
     ? items.slice(leadRows.length)
-    : (items[0]?.children ?? []);
+    : (items[0]?.children ?? items);
   // Situation C's own lead finding ("raised platelet count") sits on
   // the parent row -- keep it as a direct AND sibling of the cluster.
+  // Flat shared lists (NG12 1.1.2) have no lead wrapper -- do not
+  // treat items[0] as a direct lead when children are absent.
+  // "Ever smoked" lead + nested symptom children uses the same path.
   const directLeadRow =
     !leadCluster && items[0] && items[0].children?.length
       ? items[0]
       : undefined;
+
+  // Prefer a min the reviewer already set on an existing subgroup.
+  const existingTrailMin =
+    findClusterSubgroupByRole(pathway, "trailing")?.min ?? suggestedMin ?? 1;
+  const existingLeadMin =
+    findClusterSubgroupByRole(pathway, "lead")?.min ?? 1;
 
   const newChildren: EditableLogicNode[] = [];
   if (directLeadRow) {
@@ -991,7 +1113,7 @@ export function withReifiedPathwayClusters(
     if (effectiveLead === "AND") {
       newChildren.push(...leadLeaves);
     } else if (leadLeaves.length > 0) {
-      newChildren.push(makeAtLeastGroup("lead", leadLeaves));
+      newChildren.push(makeAtLeastGroup("lead", leadLeaves, existingLeadMin));
     }
   }
 
@@ -1001,7 +1123,9 @@ export function withReifiedPathwayClusters(
     if (effectiveTrail === "AND") {
       newChildren.push(...trailLeaves);
     } else if (trailLeaves.length > 0) {
-      newChildren.push(makeAtLeastGroup("trailing", trailLeaves));
+      newChildren.push(
+        makeAtLeastGroup("trailing", trailLeaves, existingTrailMin),
+      );
     }
   }
 

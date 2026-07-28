@@ -252,7 +252,7 @@ describe("StepPathwayConditions: the cluster grouping question", () => {
     await user.click(
       screen.getByRole("button", { name: /only one needs to match/i }),
     );
-    expect(onChooseGrouping).toHaveBeenCalledWith("AT_LEAST");
+    expect(onChooseGrouping).toHaveBeenCalledWith("AT_LEAST", 1);
   });
 
   it("shows the confirmed choice with a Change action once grouping is set", async () => {
@@ -411,7 +411,7 @@ describe("StepPathwayConditions: two clusters in the same pathway (NG12 1.2.9 pa
     );
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      /choose only-one or all-must-match above/i,
+      /choose how many need to match above/i,
     );
     // Prompt card still names the lead findings once -- not twice under Confirm.
     expect(screen.getAllByText(/nausea or vomiting/i)).toHaveLength(1);
@@ -439,8 +439,42 @@ describe("StepPathwayConditions: two clusters in the same pathway (NG12 1.2.9 pa
     await user.click(
       within(leadGroup).getByRole("button", { name: /only one needs to match/i }),
     );
-    expect(onChooseLeadGrouping).toHaveBeenCalledWith("AT_LEAST");
+    expect(onChooseLeadGrouping).toHaveBeenCalledWith("AT_LEAST", 1);
     expect(onChooseGrouping).not.toHaveBeenCalled();
+  });
+
+  it("recommends at-least-N when the guideline says N or more", async () => {
+    const user = userEvent.setup();
+    const onChooseGrouping = jest.fn();
+    const ng112A: PathwayTextBoundary = {
+      text:
+        "if they have 2 or more of the following unexplained symptoms",
+      start: 0,
+      end: 60,
+      source: "heuristic",
+      structureChildren: [
+        { text: "cough", start: 70, end: 75 },
+        { text: "fatigue", start: 77, end: 84 },
+        { text: "chest pain", start: 86, end: 96 },
+      ],
+    };
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={2}
+        pathwayLetter="A"
+        boundary={ng112A}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onChooseGrouping={onChooseGrouping}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /at least 2 need to match/i }),
+    );
+    expect(onChooseGrouping).toHaveBeenCalledWith("AT_LEAST", 2);
   });
 
   it("enables Confirm only once BOTH clusters' groupings are chosen and every row resolves", () => {

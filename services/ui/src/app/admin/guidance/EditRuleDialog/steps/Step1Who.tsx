@@ -12,8 +12,10 @@
  * Step 1 -- "Who is this rule about?"
  *
  * Hosts the highlight-to-build wizard when the rule already has a
- * logic tree, or a friendly empty-state CTA when it does not.
- * There is no separate Advanced tree mode -- Guided is the editor.
+ * logic tree, or when NICE recommendation text is present (so
+ * extraction-failed empties like NG12 1.7.2 still open the guided
+ * flow). Brand-new rules with no guideline text keep the empty-state
+ * CTAs. There is no separate Advanced tree mode -- Guided is the editor.
  */
 
 import { useEffect } from "react";
@@ -63,6 +65,7 @@ interface Props {
    *  wizard's pathway-split step prefer real structure over the
    *  ", or"-boundary heuristic. Null/absent for plain sentences. */
   recommendationStructure?: RecommendationStructure | null;
+  companionPanels?: import("../HighlightWizard/weightedChecklist").CompanionPanel[] | null;
 
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
@@ -121,6 +124,7 @@ export default function Step1Who({
   duplicates,
   recommendationText,
   recommendationStructure,
+  companionPanels,
   onSelectNode,
   onUpdate,
   onRequestAdd,
@@ -139,7 +143,10 @@ export default function Step1Who({
   tourGotoRequest,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
-  const showWizard = Boolean(tree) && !treeIsEmpty;
+  const hasGuidelineText = Boolean(recommendationText?.trim());
+  // Empty AND shells from failed AI extraction still need the wizard
+  // so the reviewer can peel/code from the NICE quote (Ask LEO, etc.).
+  const showWizard = Boolean(tree) && (!treeIsEmpty || hasGuidelineText);
 
   const { wrappedOnUpdate, confirmDialogs } = useConfirmEdits({
     tree,
@@ -277,6 +284,7 @@ export default function Step1Who({
           tree={tree}
           recommendationText={recommendationText}
           recommendationStructure={recommendationStructure}
+          companionPanels={companionPanels}
           selectedNodeId={selectedNodeId}
           onSelectNode={onSelectNode}
           onUpdate={wrappedOnUpdate}

@@ -57,6 +57,22 @@ describe("leafTextMatch", () => {
     expect(TEXT.slice(match!.start, match!.end)).toBe("aged 55 or over");
   });
 
+  it("anchors age <= 24 onto NICE 'children and young people' (NG12 1.10.2)", () => {
+    const ng =
+      "1.10.2 Refer children and young people for immediate specialist " +
+      "assessment for leukaemia if they have unexplained petechiae or " +
+      "hepatosplenomegaly. [2015]";
+    const node = makeNode({
+      kind: "DEMOGRAPHIC",
+      field: "age",
+      operator: "<=",
+      value: "24",
+    });
+    const match = leafTextMatch(ng, node);
+    expect(match).not.toBeNull();
+    expect(ng.slice(match!.start, match!.end)).toBe("children and young people");
+  });
+
   it("anchors a CONCEPT leaf by its preferred_term", () => {
     const node = makeNode({
       kind: "CONCEPT",

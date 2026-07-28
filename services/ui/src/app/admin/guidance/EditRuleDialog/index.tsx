@@ -118,6 +118,7 @@ import {
   findAllValidationErrors,
   findPriorityValidationError,
   findValidationError,
+  findWizardValidationErrors,
   hasOrRootWithPrerequisites,
   observationWithCriterion,
   ensurePathwayKeys,
@@ -133,6 +134,11 @@ import { treeToSentence } from "./treeToSentence";
 import { detectVaguePhrase } from "./vaguePhrases";
 import { slidePanelVariants } from "../motionPresets";
 import { normalizeRuleActions } from "../actionShape";
+import {
+  addFallbackAfter,
+  addOrAlternativeAfter,
+  removeActionKeepingGroups,
+} from "./actionGroups";
 import type {
   EditableLogicNode,
   LogicCriterion,
@@ -159,6 +165,7 @@ export interface EditableRule {
    *  wizard's pathway-split step prefer real structure over the
    *  ", or"-boundary heuristic. Null/absent for plain sentences. */
   recommendation_structure?: RecommendationStructure | null;
+  companion_panels?: import("./HighlightWizard/weightedChecklist").CompanionPanel[] | null;
   logic_tree?: unknown;
   /** One or more recommended procedures, each with its own strength. */
   actions?: RuleAction[];
@@ -199,7 +206,14 @@ interface Props {
 
 function deriveInitialPriority(rule: EditableRule): RulePriority {
   const raw = (rule.action_priority || "").toLowerCase();
-  if (raw === "2ww" || raw === "urgent" || raw === "routine") return raw;
+  if (
+    raw === "immediate" ||
+    raw === "2ww" ||
+    raw === "urgent" ||
+    raw === "routine"
+  ) {
+    return raw;
+  }
   return "routine";
 }
 
@@ -521,7 +535,13 @@ export default function EditRuleDialog({
   const chipPopoverOpen = searchTarget.mode === "replace" || searchTarget.mode === "add";
 
   const validationError = useMemo(() => findValidationError(tree), [tree]);
+  // Full tree issues for Save (unfinished situations must block approve).
   const validationIssues = useMemo(() => findAllValidationErrors(tree), [tree]);
+  // Mid-wizard banner: hide empty situation shells still waiting to be coded.
+  const wizardValidationIssues = useMemo(
+    () => findWizardValidationErrors(tree),
+    [tree],
+  );
   const actionsError = useMemo(
     () => findActionsValidationError(actions),
     [actions],
@@ -806,8 +826,25 @@ export default function EditRuleDialog({
     setActionsDirty(true);
   }
 
+  function handleAddFallback(afterIndex: number) {
+    const { actions: next, newIndex } = addFallbackAfter(actions, afterIndex);
+    setActions(next);
+    setActionsDirty(true);
+    handleSelectAction(newIndex);
+  }
+
+  function handleAddOrAlternative(afterIndex: number) {
+    const { actions: next, newIndex } = addOrAlternativeAfter(
+      actions,
+      afterIndex,
+    );
+    setActions(next);
+    setActionsDirty(true);
+    handleSelectAction(newIndex);
+  }
+
   function handleRemoveAction(index: number) {
-    setActions((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+    setActions((prev) => removeActionKeepingGroups(prev, index));
     setActionsDirty(true);
     if (searchTarget.mode === "replace_action" && searchTarget.actionIndex === index) {
       setSearchTarget(IDLE_TARGET);
@@ -817,6 +854,8 @@ export default function EditRuleDialog({
   function handlePriorityChange(next: RulePriority) {
     setPriority(next);
     if (next === "routine") setDueDays(null);
+    // NICE "immediate specialist assessment" -- same-day by default.
+    else if (next === "immediate") setDueDays(0);
   }
 
   function handleDueDaysChange(next: number | null) {
@@ -1144,6 +1183,7 @@ export default function EditRuleDialog({
             <Box
               role="region"
               aria-label={`Step ${currentIndex + 1} of ${STEP_IDS.length}`}
+              tabIndex={0}
               sx={{
                 p: { xs: 2, md: 3 },
                 minWidth: 0,
@@ -1166,7 +1206,7 @@ export default function EditRuleDialog({
             >
             {currentStepId === "who" && (
               <ValidationIssueBanner
-                issues={validationIssues}
+                issues={wizardValidationIssues}
                 onJumpToIssue={handleJumpToIssue}
               />
             )}
@@ -1177,6 +1217,7 @@ export default function EditRuleDialog({
                 duplicates={duplicates}
                 recommendationText={rule?.recommendation_text}
                 recommendationStructure={rule?.recommendation_structure}
+                companionPanels={rule?.companion_panels}
                 onSelectNode={handleSelectNode}
                 onUpdate={handleUpdate}
                 onRequestAdd={handleRequestAdd}
@@ -1222,6 +1263,8 @@ export default function EditRuleDialog({
                   onActionStrengthChange={handleActionStrengthChange}
                   onRemoveAction={handleRemoveAction}
                   onAddAction={handleAddAction}
+                  onAddFallback={handleAddFallback}
+                  onAddOrAlternative={handleAddOrAlternative}
                   isDefault={isDefault}
                   onIsDefaultChange={setIsDefault}
                 />
@@ -1282,6 +1325,9 @@ export default function EditRuleDialog({
             </fm.div>
             </Box>
             <Box
+              role="region"
+              aria-label="Side panel for guideline wording or live preview"
+              tabIndex={0}
               sx={{
                 flex: { xs: "1 1 auto", md: "0 0 40%" },
                 width: { xs: "100%", md: "40%" },

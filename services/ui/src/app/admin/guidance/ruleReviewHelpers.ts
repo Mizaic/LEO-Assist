@@ -70,7 +70,7 @@ export function mergeEditedRuleIntoCache(
      *  but are typed loosely here because they are about to be POSTed
      *  as plain JSON, not consumed as editor state. */
     actions?: Array<Record<string, unknown>>;
-    priority?: "2ww" | "urgent" | "routine";
+    priority?: "immediate" | "2ww" | "urgent" | "routine";
     due_days?: number | null;
   },
 ): Rule {
@@ -171,6 +171,7 @@ export function ruleToEditable(rule: Rule): EditableRule {
     chapter_title: rule.chapter_title,
     recommendation_text: rule.recommendation_text,
     recommendation_structure: rule.recommendation_structure ?? null,
+    companion_panels: rule.companion_panels ?? null,
     logic_tree: rule.logic_tree,
     actions: normalizeRuleActions(rule.actions as unknown[] | undefined),
     action,

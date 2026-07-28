@@ -51,6 +51,8 @@ interface Props {
   onActionStrengthChange: (index: number, strength: string) => void;
   onRemoveAction: (index: number) => void;
   onAddAction: () => void;
+  onAddFallback: (afterIndex: number) => void;
+  onAddOrAlternative: (afterIndex: number) => void;
   isDefault: boolean;
   onIsDefaultChange: (next: boolean) => void;
 }
@@ -68,6 +70,8 @@ export default function Step2Suggest({
   onActionStrengthChange,
   onRemoveAction,
   onAddAction,
+  onAddFallback,
+  onAddOrAlternative,
   isDefault,
   onIsDefaultChange,
 }: Props) {
@@ -104,6 +108,8 @@ export default function Step2Suggest({
         onStrengthChange={onActionStrengthChange}
         onRemoveAction={onRemoveAction}
         onAddAction={onAddAction}
+        onAddFallback={onAddFallback}
+        onAddOrAlternative={onAddOrAlternative}
       />
 
       <TextField

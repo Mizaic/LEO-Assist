@@ -21,7 +21,7 @@ The roaring-bitmap evaluator returns ``matched_rules`` shaped like::
       "recommendation_verbatim": "Refer for chest X-ray within 2 weeks",
       "actions": [
         {
-          "priority": "2ww",          # "2ww" | "urgent" | "routine" -- same
+          "priority": "2ww",          # "immediate" | "2ww" | "urgent" | "routine"
                                        # across every action on a rule
           "due_days": 14,
           "concept_id": "...",
@@ -55,8 +55,14 @@ TERMINOLOGY_API_URL = os.getenv("TERMINOLOGY_API_URL", "http://localhost:8003").
 EVAL_TIMEOUT_S = float(os.getenv("SBAR_EVAL_TIMEOUT_S", "30"))
 
 
-_PRIORITY_ORDER: dict[str, int] = {"2ww": 0, "urgent": 1, "routine": 2}
+_PRIORITY_ORDER: dict[str, int] = {
+    "immediate": 0,
+    "2ww": 1,
+    "urgent": 2,
+    "routine": 3,
+}
 _PRIORITY_LABEL: dict[str, str] = {
+    "immediate": "Immediate specialist assessment",
     "2ww": "Two week wait (urgent suspected cancer)",
     "urgent": "Urgent",
     "routine": "Routine",
@@ -216,6 +222,7 @@ def format_assessment(
     )
 
     by_priority: dict[str, list[dict[str, Any]]] = {
+        "immediate": [],
         "2ww": [],
         "urgent": [],
         "routine": [],
@@ -232,7 +239,7 @@ def format_assessment(
         f"**{len(rules_sorted)} guideline rule(s) fired** (scope: {scope})."
     )
 
-    for prio in ("2ww", "urgent", "routine"):
+    for prio in ("immediate", "2ww", "urgent", "routine"):
         bucket = by_priority.get(prio) or []
         if not bucket:
             continue

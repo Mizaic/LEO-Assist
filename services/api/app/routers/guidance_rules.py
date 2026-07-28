@@ -135,6 +135,7 @@ RETURN rule.id AS rule_id,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
        rec.listStructureJson AS list_structure_json,
+       rec.companionPanelsJson AS companion_panels_json,
        criteria,
        action_priority,
        action_due_days,
@@ -209,6 +210,7 @@ RETURN rule.id AS rule_id,
        ch.title AS chapter_title,
        rec.verbatim AS recommendation_text,
        rec.listStructureJson AS list_structure_json,
+       rec.companionPanelsJson AS companion_panels_json,
        criteria,
        action_priority,
        action_due_days,
@@ -246,6 +248,7 @@ RETURN rule.id AS rule_id,
        g.title AS guideline_title,
        rec.verbatim AS recommendation_text,
        rec.listStructureJson AS list_structure_json,
+       rec.companionPanelsJson AS companion_panels_json,
        criteria,
        action_priority,
        action_due_days
@@ -277,6 +280,7 @@ RETURN rule.id AS rule_id,
        rule.createdAt AS created_at,
        rec.verbatim AS recommendation_text,
        rec.listStructureJson AS list_structure_json,
+       rec.companionPanelsJson AS companion_panels_json,
        g.id AS guideline_id,
        ch.title AS chapter_title
 """
@@ -601,6 +605,7 @@ RETURN rec.id        AS rec_id,
        rec.strength  AS strength,
        rec.sectionTitle AS section_title,
        rec.listStructureJson AS list_structure_json,
+       rec.companionPanelsJson AS companion_panels_json,
        ch.title      AS chapter_title,
        coalesce(g.id, rule.guidelineId, '') AS guideline_id
 """
@@ -931,6 +936,9 @@ def create_blank_rule(
             "recommendation_text": row.get("recommendation_text"),
             "recommendation_structure": _parse_list_structure_json(
                 row.get("list_structure_json")
+            ),
+            "companion_panels": _parse_companion_panels_json(
+                row.get("companion_panels_json")
             ),
             "criteria": [],
             "has_predecessor": False,
@@ -1354,6 +1362,10 @@ def _format_rule(r: dict) -> dict:
         "recommendation_structure": _parse_list_structure_json(
             r.get("list_structure_json")
         ),
+        # Sibling NICE panel boxes (e.g. weighted 7-point checklist).
+        "companion_panels": _parse_companion_panels_json(
+            r.get("companion_panels_json")
+        ),
         "plain_english": display_plain_english,
         "present_criteria": present,
         "absent_criteria": absent,
@@ -1417,6 +1429,17 @@ def _parse_list_structure_json(raw: object) -> dict | None:
     except (TypeError, ValueError):
         return None
     return payload if isinstance(payload, dict) else None
+
+
+def _parse_companion_panels_json(raw: object) -> list | None:
+    """Parse stored ``companionPanelsJson`` (sibling NICE panel boxes)."""
+    if not raw:
+        return None
+    try:
+        payload = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return None
+    return payload if isinstance(payload, list) else None
 
 
 def _format_action_item(payload: dict) -> dict:

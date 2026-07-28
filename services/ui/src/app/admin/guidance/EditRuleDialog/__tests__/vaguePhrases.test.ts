@@ -21,6 +21,28 @@ describe("detectVaguePhrase", () => {
       topic: "malignancy",
     },
     {
+      input: "dermoscopy suggests melanoma of the skin",
+      pattern: "suggests",
+      topic: "melanoma of the skin",
+    },
+    {
+      input:
+        "skin lesion that raises the suspicion of a basal cell carcinoma",
+      pattern: "raises_suspicion_of",
+      topic: "basal cell carcinoma",
+    },
+    {
+      input:
+        "particular concern that a delay may have a significant impact",
+      pattern: "concern_that",
+      topic: "a delay may have a significant impact",
+    },
+    {
+      input: "chest X-ray findings that suggest mesothelioma",
+      pattern: "suggests",
+      topic: "mesothelioma",
+    },
+    {
       input: "Findings consistent with TIA",
       pattern: "consistent_with",
       topic: "tia",

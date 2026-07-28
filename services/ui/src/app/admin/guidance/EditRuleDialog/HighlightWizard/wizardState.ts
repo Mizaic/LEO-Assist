@@ -77,6 +77,7 @@ export type WizardAction =
       readyImmediately: boolean;
     }
   | { type: "CONFIRM_NO_SPLIT"; boundary: PathwayTextBoundary }
+  | { type: "EXPAND_WEIGHTED_CHECKLIST"; pathwayIndex: number }
   | { type: "PATHWAYS_READY" }
   | { type: "SET_CLUSTER_GROUPING"; pathwayKey: string; grouping: ClusterGrouping }
   | { type: "SET_LEAD_CLUSTER_GROUPING"; pathwayKey: string; grouping: ClusterGrouping }
@@ -153,6 +154,20 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         boundaries: [action.boundary],
         materializing: false,
       };
+    case "EXPAND_WEIGHTED_CHECKLIST": {
+      const boundaries = state.boundaries;
+      if (!boundaries || !boundaries[action.pathwayIndex]?.weightedChecklist) {
+        return state;
+      }
+      const next = boundaries.map((b, i) => {
+        if (i !== action.pathwayIndex || !b.weightedChecklist) return b;
+        return {
+          ...b,
+          weightedChecklist: { ...b.weightedChecklist, expanded: true },
+        };
+      });
+      return { ...state, boundaries: next };
+    }
     case "PATHWAYS_READY":
       return state.materializing
         ? { ...state, step: "pathway-conditions", pathwayIndex: 0, materializing: false }

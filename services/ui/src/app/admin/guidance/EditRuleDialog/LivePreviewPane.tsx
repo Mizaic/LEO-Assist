@@ -40,8 +40,9 @@ import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 
+import { formatActionGroupRecapLines } from "./actionGroups";
 import SummaryCard from "./SummaryCard";
-import { STRENGTH_LABELS, friendlyTerm, priorityLabel } from "./copy";
+import { priorityLabel } from "./copy";
 import type { RuleSummary } from "./treeToSentence";
 import type { RuleAction, RulePriority } from "./types";
 
@@ -249,59 +250,12 @@ export default function LivePreviewPane({
   );
 }
 
-function strengthLabelFor(strength: string): string {
-  return (
-    STRENGTH_LABELS.find((o) => o.value === strength)?.label ??
-    "Not specified yet"
-  );
-}
-
-/** One "If this rule matches: <strength> - <procedure>." line per action. */
-function SystemRecapLine({ action }: { action: RuleAction }) {
-  const procedure = friendlyTerm(action.criterion?.preferred_term);
-  return (
-    <Typography
-      variant="body2"
-      sx={{ lineHeight: 1.6, mt: 0.75, fontWeight: 500 }}
-    >
-      If this rule matches:{" "}
-      <Box
-        component="span"
-        sx={{
-          fontWeight: 700,
-          color: procedure ? "success.dark" : "warning.dark",
-        }}
-      >
-        {strengthLabelFor(action.strength)}
-      </Box>
-      {procedure ? (
-        <>
-          {" "}-{" "}
-          <Box component="span" sx={{ fontWeight: 700, color: "text.primary" }}>
-            {procedure}
-          </Box>
-        </>
-      ) : (
-        <>
-          {" "}-{" "}
-          <Box
-            component="span"
-            sx={{ fontStyle: "italic", color: "text.secondary" }}
-          >
-            no procedure picked yet
-          </Box>
-        </>
-      )}
-      .
-    </Typography>
-  );
-}
-
 function SystemRecap({ actions, priority, dueDays }: SystemRecapProps) {
   const ready =
     actions.length > 0 &&
     actions.every((a) => Boolean(a.criterion?.snomed_concept_id));
   const priorityText = priorityLabel(priority, dueDays);
+  const recapLines = formatActionGroupRecapLines(actions);
   return (
     <Box
       role="region"
@@ -363,7 +317,20 @@ function SystemRecap({ actions, priority, dueDays }: SystemRecapProps) {
             No procedure picked yet.
           </Typography>
         ) : (
-          actions.map((action, i) => <SystemRecapLine key={i} action={action} />)
+          recapLines.map((line, i) => (
+            <Typography
+              key={i}
+              variant="body2"
+              sx={{
+                lineHeight: 1.6,
+                mt: 0.75,
+                fontWeight: 500,
+                color: ready ? "text.primary" : "warning.dark",
+              }}
+            >
+              {line}
+            </Typography>
+          ))
         )}
       </Box>
     </Box>

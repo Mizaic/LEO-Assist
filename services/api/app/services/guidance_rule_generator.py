@@ -156,7 +156,7 @@ RETURN grp.id AS id
 """
 
 # Action: SNOMED procedure concept linked through an ActionGroup
-# ha.priority maps to "2ww" | "urgent" | "routine" — matches HCCP-Agents convention.
+# ha.priority maps to "immediate" | "2ww" | "urgent" | "routine".
 # ha.dueDays gives the maximum calendar days to complete the action (14 for 2WW, etc.)
 _UPSERT_ACTION_GROUP = """
 MATCH (rule:AppropriatenessRule {id: $rule_id})
@@ -245,7 +245,7 @@ RETURN new_rule.id AS id
 _URGENCY_TO_PRIORITY: dict[str, dict] = {
     "urgent_2w": {"priority": "2ww", "due_days": 14},
     "very_urgent_48h": {"priority": "urgent", "due_days": 2},
-    "immediate": {"priority": "urgent", "due_days": 1},
+    "immediate": {"priority": "immediate", "due_days": 0},
     "urgent_1w": {"priority": "urgent", "due_days": 7},
     "routine": {"priority": "routine", "due_days": None},
 }
@@ -926,8 +926,8 @@ class GuidanceRuleGenerator:
         """Write ActionGroup linked to the recommended SNOMED procedure concept.
 
         Args:
-            priority_meta: Dict with ``priority`` (``"2ww"`` | ``"urgent"`` |
-                ``"routine"``) and ``due_days`` (int or None) derived from the
+            priority_meta: Dict with ``priority`` (``"immediate"`` | ``"2ww"`` |
+                ``"urgent"`` | ``"routine"``) and ``due_days`` (int or None) derived from the
                 Recommendation's urgency field.  Stored on the HAS_ACTION edge so
                 the bitmap evaluator can surface it without re-querying Neo4j.
         """

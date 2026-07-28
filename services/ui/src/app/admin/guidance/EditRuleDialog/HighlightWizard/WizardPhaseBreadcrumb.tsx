@@ -82,7 +82,11 @@ function BreadcrumbPhase({
   return (
     <Stack direction="row" spacing={0.5} alignItems="center">
       {showSeparator && (
-        <Typography variant="caption" color="text.disabled" sx={{ px: 0.25 }}>
+        // text.disabled (#9e9e9e) fails WCAG AA on white -- use grey.600.
+        <Typography
+          variant="caption"
+          sx={{ px: 0.25, color: "grey.600" }}
+        >
           &gt;
         </Typography>
       )}
@@ -96,12 +100,14 @@ function BreadcrumbPhase({
         variant="caption"
         sx={{
           fontWeight: state === "current" ? 700 : 400,
+          // Upcoming used text.disabled and failed axe (2.67:1). grey.600
+          // keeps inactive phases quieter than current without losing AA.
           color:
             state === "current"
               ? "text.primary"
               : state === "done"
                 ? "text.secondary"
-                : "text.disabled",
+                : "grey.600",
         }}
       >
         {label}

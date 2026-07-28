@@ -52,7 +52,12 @@ export default function RowMultiCodeHighlight({ item, onAddCriterion }: Props) {
   if (stage === "collapsed") {
     return (
       <Tooltip title={WIZARD_TOOLTIPS.multiCodeHighlight}>
-        <Button size="small" variant="text" onClick={() => setStage("highlighting")}>
+        <Button
+          size="small"
+          variant="text"
+          aria-label="Highlight text for more codes"
+          onClick={() => setStage("highlighting")}
+        >
           Highlight text for more codes
         </Button>
       </Tooltip>

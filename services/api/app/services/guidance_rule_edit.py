@@ -66,7 +66,7 @@ _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
 _VALID_RULE_FIRED_OUTCOMES = {"fired", "not_fired"}
 # Rule-level clinical priority written onto HAS_ACTION edges. Matches the
 # bitmap compiler / SBAR Assessment bucket vocabulary.
-_VALID_PRIORITIES = {"2ww", "urgent", "routine"}
+_VALID_PRIORITIES = {"immediate", "2ww", "urgent", "routine"}
 
 
 # -- Pydantic models -----------------------------------------------------------
@@ -174,12 +174,21 @@ class LogicCriterion(BaseModel):
         return self
 
 
+_VALID_ACTION_GROUP_MODES = frozenset({"all", "any", "preferred_fallback"})
+
+
 class RuleAction(BaseModel):
     """One recommended clinical action attached to a rule.
 
     A rule may recommend more than one procedure (e.g. "offer an X-ray
     and refer for a blood test"), each carrying its own strength. See
     DI-42246DA7 acceptance criteria (multi-action support).
+
+    When ``group_id`` is set, sibling actions share that id and
+    ``group_mode`` describes whether they are AND / OR /
+    preferred-then-fallback. ``group_rank`` orders preferred_fallback
+    arms (0 = first choice). CDS surfaces the chain; it does not
+    auto-select from local availability.
 
     ``action_kind='narrative'`` means free-text guidance (action_text),
     not a SNOMED procedure for compliance checks.
@@ -191,6 +200,21 @@ class RuleAction(BaseModel):
     strength: str = Field(default="unspecified", max_length=64)
     action_kind: str = Field(default="snomed_procedure", max_length=32)
     action_text: str | None = Field(default=None, max_length=4000)
+    group_id: str | None = Field(default=None, max_length=64)
+    group_mode: str | None = Field(default=None, max_length=32)
+    group_rank: int | None = Field(default=None, ge=0, le=99)
+
+    @field_validator("group_mode")
+    @classmethod
+    def _check_group_mode(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        if v not in _VALID_ACTION_GROUP_MODES:
+            raise ValueError(
+                f"group_mode must be one of {sorted(_VALID_ACTION_GROUP_MODES)}; "
+                f"got {v!r}."
+            )
+        return v
 
 
 class LogicNode(BaseModel):
@@ -643,10 +667,13 @@ ON CREATE SET
 ON MATCH SET
     proc.preferred_term = coalesce($preferred_term, proc.preferred_term)
 MERGE (ag)-[ha:HAS_ACTION]->(proc)
-SET ha.rawTerm  = $raw_term,
-    ha.priority = $priority,
-    ha.dueDays  = $due_days,
-    ha.strength = $strength
+SET ha.rawTerm    = $raw_term,
+    ha.priority   = $priority,
+    ha.dueDays    = $due_days,
+    ha.strength   = $strength,
+    ha.actionGroupId   = $action_group_id,
+    ha.actionGroupMode = $action_group_mode,
+    ha.actionGroupRank = $action_group_rank
 """
 
 
@@ -677,14 +704,22 @@ def _action_rows_from_action_json(action_json: Any) -> list[dict[str, Any]]:
         if not concept_id:
             continue
         preferred = item.get("preferred_term") or item.get("term") or concept_id
-        rows.append(
-            {
-                "concept_id": str(concept_id),
-                "preferred_term": str(preferred),
-                "raw_term": str(item.get("term") or preferred),
-                "strength": str(item.get("strength") or "unspecified"),
-            }
-        )
+        row: dict[str, Any] = {
+            "concept_id": str(concept_id),
+            "preferred_term": str(preferred),
+            "raw_term": str(item.get("term") or preferred),
+            "strength": str(item.get("strength") or "unspecified"),
+        }
+        if item.get("group_id"):
+            row["action_group_id"] = str(item["group_id"])
+            if item.get("group_mode"):
+                row["action_group_mode"] = str(item["group_mode"])
+            if item.get("group_rank") is not None:
+                try:
+                    row["action_group_rank"] = int(item["group_rank"])
+                except (TypeError, ValueError):
+                    pass
+        rows.append(row)
     return rows
 
 
@@ -726,6 +761,9 @@ def _resolve_edited_action_rows(
                 ),
                 "raw_term": ra.criterion.term or ra.criterion.preferred_term or "",
                 "strength": ra.strength or "unspecified",
+                "action_group_id": ra.group_id,
+                "action_group_mode": ra.group_mode,
+                "action_group_rank": ra.group_rank,
             }
             for ra in new_actions
             if ra.criterion.snomed_concept_id
@@ -769,6 +807,9 @@ def _write_edited_rule_actions(
             priority=priority,
             due_days=due_days,
             strength=row.get("strength") or "unspecified",
+            action_group_id=row.get("action_group_id"),
+            action_group_mode=row.get("action_group_mode"),
+            action_group_rank=row.get("action_group_rank"),
         )
 
 
@@ -814,8 +855,9 @@ def _actions_payload(actions: list["RuleAction"]) -> list[dict[str, Any]]:
     compiler, inference engine, UI display) can read either the legacy
     single-object shape or this new array shape without a migration.
     """
-    return [
-        {
+    payload: list[dict[str, Any]] = []
+    for ra in actions:
+        item: dict[str, Any] = {
             "term": ra.criterion.term or ra.criterion.preferred_term,
             "snomed_concept_id": ra.criterion.snomed_concept_id,
             "preferred_term": ra.criterion.preferred_term,
@@ -825,8 +867,14 @@ def _actions_payload(actions: list["RuleAction"]) -> list[dict[str, Any]]:
             "action_text": ra.action_text,
             "verification_status": "human_edited",
         }
-        for ra in actions
-    ]
+        if ra.group_id:
+            item["group_id"] = ra.group_id
+            if ra.group_mode:
+                item["group_mode"] = ra.group_mode
+            if ra.group_rank is not None:
+                item["group_rank"] = ra.group_rank
+        payload.append(item)
+    return payload
 
 
 def _action_concept_ids(actions: list["RuleAction"]) -> set[str]:

@@ -196,10 +196,28 @@ export function sanitiseCriterion(
  * (``extra: "forbid"``).
  */
 export function sanitiseAction(action: RuleAction): Record<string, unknown> {
-  return {
+  const out: Record<string, unknown> = {
     criterion: sanitiseCriterion(action.criterion),
     strength: action.strength,
   };
+  const groupId = action.group_id?.trim();
+  if (groupId) {
+    out.group_id = groupId;
+    if (
+      action.group_mode === "all" ||
+      action.group_mode === "any" ||
+      action.group_mode === "preferred_fallback"
+    ) {
+      out.group_mode = action.group_mode;
+    }
+    if (
+      typeof action.group_rank === "number" &&
+      Number.isFinite(action.group_rank)
+    ) {
+      out.group_rank = Math.floor(action.group_rank);
+    }
+  }
+  return out;
 }
 
 /** Sanitise every action in an array (see ``sanitiseAction``). */
@@ -469,6 +487,33 @@ function mapNode(
 }
 
 /**
+ * Drop empty AT_LEAST shells that only existed to hold cluster leaves
+ * (lead/trailing). Leaving them after the last child is removed blocked
+ * Save with "One of the groups is empty" even though the reviewer had
+ * already cleared the list on purpose.
+ */
+export function pruneEmptyClusterShells(node: EditableLogicNode): EditableLogicNode {
+  if (!node.children?.length) return node;
+  const children = node.children
+    .map(pruneEmptyClusterShells)
+    .filter(
+      (c) =>
+        !(
+          c.kind === "AT_LEAST" &&
+          c.cluster_role &&
+          (c.children ?? []).length === 0
+        ),
+    );
+  if (
+    children.length === node.children.length &&
+    children.every((c, i) => c === node.children![i])
+  ) {
+    return node;
+  }
+  return { ...node, children };
+}
+
+/**
  * Walk the tree looking for the first node whose direct ``children``
  * array is the one ``rewrite`` should act on (``rewrite`` returns
  * ``null`` when this array is not the target, letting the walk
@@ -532,9 +577,11 @@ export function applyUpdate(
       return mapNode(root, (n) =>
         n.node_id === update.nodeId ? coerceKind(n, update.newKind) : n,
       );
-    case "remove":
+    case "remove": {
       if (root.node_id === update.nodeId) return null;
-      return mapNode(root, (n) => (n.node_id === update.nodeId ? null : n));
+      const removed = mapNode(root, (n) => (n.node_id === update.nodeId ? null : n));
+      return removed ? pruneEmptyClusterShells(removed) : null;
+    }
     case "add_concept":
       return mapNode(root, (n) =>
         n.node_id === update.parentNodeId && canHaveChildren(n.kind)
@@ -553,7 +600,7 @@ export function applyUpdate(
         // section. Any other add_group target (a nested AT_LEAST
         // cluster inside a pathway's own AND, for example) is not a
         // pathway and gets no key.
-        const child = makeGroupNode(update.groupKind);
+        const child = makeGroupNode(update.groupKind, update.min);
         if (n.kind === "OR") {
           child.pathway_key = mintPathwayKey();
         }
@@ -949,12 +996,14 @@ function makeConceptNode(
   };
 }
 
-function makeGroupNode(kind: LogicNodeKind): EditableLogicNode {
+function makeGroupNode(kind: LogicNodeKind, min?: number): EditableLogicNode {
   return {
     node_id: freshNodeId(),
     kind,
     children: [],
-    ...(kind === "AT_LEAST" ? { min: 1 } : {}),
+    ...(kind === "AT_LEAST"
+      ? { min: Math.max(1, Math.floor(min ?? 1)) }
+      : {}),
   };
 }
 
@@ -1138,6 +1187,18 @@ function checkObservationOwnError(
 function checkGroupOwnError(node: EditableLogicNode): string | null {
   const children = node.children ?? [];
   if (children.length === 0) {
+    if (node.pathway_key) {
+      return (
+        "This situation has no conditions yet. Open Who, add what must " +
+        "be true for it, or remove the situation."
+      );
+    }
+    if (node.kind === "AT_LEAST" && node.cluster_role) {
+      return (
+        "A 'match some of these' list is empty. Add symptoms to it, " +
+        "or remove the empty list."
+      );
+    }
     return "One of the groups is empty. Add a symptom, procedure, situation, or patient detail, or remove the group.";
   }
   if (node.kind === "NOT" && children.length !== 1) {
@@ -1170,6 +1231,35 @@ export interface ValidationIssue {
  * powers "jump to issue" navigation, which needs to know about every
  * problem up front, not just the first one the reviewer happens to hit.
  */
+function findNodeByIdLocal(
+  node: EditableLogicNode,
+  nodeId: string,
+): EditableLogicNode | null {
+  if (node.node_id === nodeId) return node;
+  for (const child of node.children ?? []) {
+    const found = findNodeByIdLocal(child, nodeId);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * Issues for the in-wizard banner. Skips empty situation (pathway)
+ * shells that the reviewer has not filled yet -- those are expected
+ * while coding Situation A of N. Save still uses ``findAllValidationErrors``
+ * so unfinished situations cannot be approved.
+ */
+export function findWizardValidationErrors(
+  node: EditableLogicNode | null,
+): ValidationIssue[] {
+  return findAllValidationErrors(node).filter((issue) => {
+    if (!issue.nodeId || !node) return true;
+    const target = findNodeByIdLocal(node, issue.nodeId);
+    if (!target?.pathway_key) return true;
+    return (target.children ?? []).length > 0;
+  });
+}
+
 export function findAllValidationErrors(
   node: EditableLogicNode | null,
 ): ValidationIssue[] {
@@ -1223,8 +1313,13 @@ export function findPriorityValidationError(
   priority: string,
   dueDays: number | null,
 ): string | null {
-  if (priority !== "2ww" && priority !== "urgent" && priority !== "routine") {
-    return "Pick a clinical priority: 2 week wait, urgent, or routine.";
+  if (
+    priority !== "immediate" &&
+    priority !== "2ww" &&
+    priority !== "urgent" &&
+    priority !== "routine"
+  ) {
+    return "Pick a clinical priority: immediate, 2 week wait, urgent, or routine.";
   }
   if (priority === "routine") return null;
   if (dueDays == null) return null;

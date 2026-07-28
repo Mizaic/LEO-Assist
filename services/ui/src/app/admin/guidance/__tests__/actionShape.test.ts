@@ -40,6 +40,24 @@ describe("normalizeRuleAction", () => {
     expect(normalizeRuleAction(nested)).toEqual(nested);
   });
 
+  it("keeps preferred_fallback group fields from a flat API item", () => {
+    const flat = {
+      snomed_concept_id: "113091000",
+      preferred_term: "Magnetic resonance imaging",
+      strength: "offer",
+      group_id: "ag_mri_ct",
+      group_mode: "preferred_fallback",
+      group_rank: 0,
+    };
+    expect(normalizeRuleAction(flat)).toMatchObject({
+      criterion: { snomed_concept_id: "113091000" },
+      strength: "offer",
+      group_id: "ag_mri_ct",
+      group_mode: "preferred_fallback",
+      group_rank: 0,
+    });
+  });
+
   it("returns a blank row for null or non-object input", () => {
     expect(normalizeRuleAction(null)).toEqual({
       criterion: { snomed_concept_id: "", preferred_term: "" },

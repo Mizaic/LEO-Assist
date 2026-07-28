@@ -340,29 +340,9 @@ docs/marketing/assets/leo-coo-brochure-ops.png
 docs/marketing/build_coo_service_catalogue.py
 docs/marketing/LEO-CDS-COO-Service-Catalogue.pptx
 docs/marketing/~$LEO-CDS-COO-Service-Catalogue.pptx
-compliance/policy/assets/leo-um-cg-001/cg-01-jump.png
-compliance/policy/assets/leo-um-cg-001/cg-02-load.png
-compliance/policy/assets/leo-um-cg-001/cg-03-inspect.png
-compliance/policy/assets/leo-um-cg-001/cg-04-review-pool.png
-compliance/policy/assets/leo-um-cg-001/cg-05-card.png
-compliance/policy/assets/leo-um-cg-001/cg-06-compile.png
-compliance/policy/assets/leo-um-cg-001/er-01-stepper.png
-compliance/policy/assets/leo-um-cg-001/er-02-quote.png
-compliance/policy/assets/leo-um-cg-001/er-03-always.png
-compliance/policy/assets/leo-um-cg-001/er-04-situations.png
-compliance/policy/assets/leo-um-cg-001/er-05-conditions.png
-compliance/policy/assets/leo-um-cg-001/er-06-review.png
-compliance/policy/assets/leo-um-cg-001/er-07-save.png
-services/ui/e2e/screenshots/cg-01-jump.png
-services/ui/e2e/screenshots/cg-02-load.png
-services/ui/e2e/screenshots/cg-03-inspect.png
-services/ui/e2e/screenshots/cg-04-review-pool.png
-services/ui/e2e/screenshots/cg-05-card.png
-services/ui/e2e/screenshots/cg-06-compile.png
-services/ui/e2e/screenshots/er-01-stepper.png
-services/ui/e2e/screenshots/er-02-quote.png
-services/ui/e2e/screenshots/er-03-always.png
-services/ui/e2e/screenshots/er-04-situations.png
-services/ui/e2e/screenshots/er-05-conditions.png
-services/ui/e2e/screenshots/er-06-review.png
-services/ui/e2e/screenshots/er-07-save.png
+
+# Playwright working pack (regenerate; do not treat as signed UM art)
+services/ui/e2e/screenshots/*.png
+
+# Signed LEO-UM-CG-001 Guide me assets are tracked under
+# compliance/policy/assets/leo-um-cg-001/

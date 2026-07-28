@@ -41,10 +41,16 @@ import Typography from "@mui/material/Typography";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { findPathwaySplit } from "../pathwayDetection";
 import {
+  buildNoSplitBoundary,
   splitPathways,
   type PathwayTextBoundary,
   type RecommendationStructure,
 } from "../SentenceEditor/pathwayTextSplit";
+import {
+  buildWeightedChecklistState,
+  resolveCompanionPanels,
+  type CompanionPanel,
+} from "./weightedChecklist";
 import type { EditableLogicNode, NodeUpdate } from "../types";
 import PathwayConditionsStage, { resolvePathwayNodes } from "./PathwayConditionsStage";
 import StepPathwaySplit from "./StepPathwaySplit";
@@ -110,6 +116,8 @@ export interface HighlightWizardProps {
   tree: EditableLogicNode;
   recommendationText?: string | null;
   recommendationStructure?: RecommendationStructure | null;
+  /** Sibling NICE panel boxes (e.g. weighted 7-point checklist). */
+  companionPanels?: CompanionPanel[] | null;
   selectedNodeId: string | null;
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
@@ -275,6 +283,7 @@ export default function HighlightWizard({
   tree,
   recommendationText,
   recommendationStructure,
+  companionPanels,
   onSelectNode,
   onUpdate,
   onRequestAdd,
@@ -391,11 +400,13 @@ export default function HighlightWizard({
 
   const handleNoSplit = useCallback(() => {
     const text = recommendationText ?? "";
+    const panels = resolveCompanionPanels(guidelineId, text, companionPanels);
+    const weighted = buildWeightedChecklistState(text, panels, false);
     dispatch({
       type: "CONFIRM_NO_SPLIT",
-      boundary: { text, start: 0, end: text.length, source: "heuristic" },
+      boundary: buildNoSplitBoundary(text, recommendationStructure, weighted),
     });
-  }, [recommendationText]);
+  }, [recommendationText, recommendationStructure, companionPanels, guidelineId]);
 
   const handleBack = useCallback(() => dispatch({ type: "BACK" }), []);
 
@@ -458,6 +469,12 @@ export default function HighlightWizard({
           recommendationText={recommendationText}
           boundaries={state.boundaries}
           pathwayIndex={state.pathwayIndex}
+          onExpandWeightedChecklist={() =>
+            dispatch({
+              type: "EXPAND_WEIGHTED_CHECKLIST",
+              pathwayIndex: state.pathwayIndex,
+            })
+          }
           clusterGroupings={state.clusterGroupings}
           onSetClusterGrouping={(pathwayKey, grouping) =>
             dispatch({ type: "SET_CLUSTER_GROUPING", pathwayKey, grouping })

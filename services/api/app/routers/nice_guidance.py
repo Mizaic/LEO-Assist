@@ -747,6 +747,9 @@ def _extract_recommendations_from_section(
     """
     from bs4 import BeautifulSoup  # imported here to keep module-level imports light
 
+    from app.services.companion_panel_parser import (
+        parse_companion_panels_after_article,
+    )
     from app.services.nice_list_parser import parse_recommendation_list_structure
 
     html = (section_json or {}).get("Content") or ""
@@ -766,6 +769,9 @@ def _extract_recommendations_from_section(
         inner_text = article.get_text(" ", strip=True)
         if not inner_text:
             continue
+        companion_panels = parse_companion_panels_after_article(
+            article, inner_text
+        )
         recs.append(
             {
                 "Title": rec_title,
@@ -781,6 +787,9 @@ def _extract_recommendations_from_section(
                 "ListStructure": parse_recommendation_list_structure(
                     article, inner_text
                 ),
+                # Sibling panel--primary boxes (e.g. NG12 1.7.1 weighted
+                # 7-point checklist) that sit outside the <article>.
+                "CompanionPanels": companion_panels or None,
             }
         )
 

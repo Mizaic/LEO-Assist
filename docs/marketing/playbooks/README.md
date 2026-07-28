@@ -78,6 +78,14 @@ timeline, or customer pressure changes this. See
 
 - Not a substitute for `IFU-LEO-CDS-001`, the DCB0160 deployer pack, or any
   other missing QMS artefact -- see
+  [GAPS-AND-BLOCKERS.md](GAPS-AND-BLOCKERS.md). As of 2026-07-28,
+  `IFU-LEO-CDS-001` (referral assessment / SPoA) has been drafted at
+  `compliance/policy/IFU-LEO-CDS-001-referral-assessment-spoa.md`
+  (Draft, pending CSO sign-off), and `IFU-LEO-CDS-002` (cancer case
+  finding, day-forward tool) has been drafted at
+  `compliance/policy/IFU-LEO-CDS-002-cancer-case-finding.md` as a
+  **target-state document only** -- it is explicitly not authorised
+  for clinical use. See the updated rows in
   [GAPS-AND-BLOCKERS.md](GAPS-AND-BLOCKERS.md).
 - Not an Atlas design-control artefact. These are internal delivery
   documents with no product code or clinical-behaviour change, so the

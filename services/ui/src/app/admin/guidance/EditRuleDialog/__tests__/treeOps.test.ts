@@ -12,12 +12,14 @@ import {
   ensurePathwayKeys,
   findAllValidationErrors,
   findValidationError,
+  findWizardValidationErrors,
   hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
   isOrGroupSymptomsOnly,
   isTreeVisuallyEmpty,
   mintPathwayKey,
   promoteOrPrerequisites,
+  pruneEmptyClusterShells,
   stripNodeIds,
   wrapRootInAnd,
 } from "../treeOps";
@@ -270,6 +272,69 @@ describe("treeOps", () => {
     expect(issues).toHaveLength(1);
     expect(issues[0].nodeId).toBe(tree.children![0].node_id);
     expect(issues[0].message).toMatch(/empty/i);
+  });
+
+  it("findAllValidationErrors names empty pathway shells clearly", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [{ kind: "AND", pathway_key: "pw_a", children: [] }],
+    });
+    const issues = findAllValidationErrors(tree);
+    expect(issues[0].message).toMatch(/situation has no conditions/i);
+  });
+
+  it("findWizardValidationErrors hides empty pathway shells mid-coding", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          pathway_key: "pw_a",
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "A" } },
+          ],
+        },
+        { kind: "AND", pathway_key: "pw_b", children: [] },
+      ],
+    });
+    expect(findAllValidationErrors(tree).some((i) => /situation has no conditions/i.test(i.message))).toBe(
+      true,
+    );
+    expect(findWizardValidationErrors(tree)).toEqual([]);
+  });
+
+  it("pruneEmptyClusterShells drops empty lead/trailing AT_LEAST groups", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      pathway_key: "pw",
+      children: [
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "A" } },
+        { kind: "AT_LEAST", min: 1, cluster_role: "trailing", children: [] },
+      ],
+    });
+    const pruned = pruneEmptyClusterShells(tree);
+    expect(pruned.children).toHaveLength(1);
+    expect(pruned.children![0].kind).toBe("CONCEPT");
+  });
+
+  it("removing the last cluster child also removes the empty AT_LEAST shell", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      pathway_key: "pw",
+      children: [
+        {
+          kind: "AT_LEAST",
+          min: 1,
+          cluster_role: "trailing",
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "Cough" } },
+          ],
+        },
+      ],
+    });
+    const leafId = tree.children![0].children![0].node_id!;
+    const updated = applyUpdate(tree, { kind: "remove", nodeId: leafId });
+    expect(updated!.children).toEqual([]);
   });
 
   it("findAllValidationErrors collects every problem in the tree, not just the first", () => {
