@@ -95,6 +95,7 @@ export default function LivePreviewPane({
       <Box
         role="region"
         aria-label="Review this rule against the NICE guideline before approving"
+        data-tour="er-06-preview"
         sx={{
           position: "sticky",
           top: 0,
@@ -215,6 +216,7 @@ export default function LivePreviewPane({
     <Box
       role="region"
       aria-label="Live preview of this rule"
+      data-tour="er-06-preview"
       sx={{
         position: "sticky",
         top: 0,

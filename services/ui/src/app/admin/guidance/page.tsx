@@ -47,8 +47,18 @@ import GuidelineBuilderSplash, {
   GUIDANCE_SPLASH_SESSION_KEY,
 } from "./GuidelineBuilderSplash";
 import LocalGuidelineImportDialog from "./LocalGuidelineImportDialog";
-import { PAGE_TOUR_STEPS } from "./guidanceTourSteps";
+import {
+  PAGE_TOUR_STEPS,
+  pageTourJumpForStep,
+  type TourStep,
+} from "./guidanceTourSteps";
 import { popSpring, staggerDelay } from "./motionPresets";
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 type StepId = "load" | "inspect" | "review" | "compile";
 
@@ -130,18 +140,18 @@ function StepCard({
             {description}
           </Typography>
         </Box>
-        <IconButton
-          size="small"
-          tabIndex={-1}
+        <Box
           aria-hidden
           sx={{
             mt: 0.25,
+            display: "inline-flex",
+            color: "text.secondary",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 160ms ease",
           }}
         >
           <ExpandMoreRoundedIcon fontSize="small" />
-        </IconButton>
+        </Box>
       </Stack>
       <Collapse in={open} timeout={reducedMotion ? 0 : "auto"}>
         <Box id={`${id}-body`}>
@@ -249,7 +259,7 @@ export default function GuidancePage() {
     { id: "bitmap", label: "Active bitmap version", value: stats.activeBitmapVersion },
   ];
 
-  const handleJump = (id: string) => {
+  const handleJump = useCallback((id: string) => {
     const stepId = id as StepId;
     setActiveStep(stepId);
     const sectionId = STEP_SECTION_IDS[stepId];
@@ -260,7 +270,30 @@ export default function GuidancePage() {
       const el = document.querySelector(target.href);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
-  };
+  }, [setSectionOpen]);
+
+  const preparePageTourStep = useCallback(
+    async (step: TourStep) => {
+      const jump = pageTourJumpForStep(step.id);
+      if (jump) handleJump(jump);
+      await delay(120);
+      if (jump === "review") {
+        const closed = document.querySelector(
+          '[data-testid="rule-pool-pending"] button[aria-expanded="false"]',
+        );
+        if (closed instanceof HTMLElement) closed.click();
+        await delay(80);
+      }
+      if (step.id === "cg-05-card") {
+        const card = document.querySelector('[data-tour="cg-05-card"]');
+        if (!card) return false;
+      }
+      return true;
+    },
+    [handleJump],
+  );
+
+  const finishPageTour = useCallback(() => setTourActive(false), []);
 
   return (
     <Box>
@@ -304,7 +337,8 @@ export default function GuidancePage() {
         tourId="guidance-page"
         steps={PAGE_TOUR_STEPS}
         active={tourActive}
-        onFinish={() => setTourActive(false)}
+        onFinish={finishPageTour}
+        prepareStep={preparePageTourStep}
       />
       <LocalGuidelineImportDialog
         open={showLocalImport}
@@ -377,7 +411,6 @@ export default function GuidancePage() {
         reducedMotion={reducedMotion}
         open={isSectionOpen("rule-review")}
         onOpenChange={(open) => setSectionOpen("rule-review", open)}
-        dataTour="cg-04-review-pool"
       >
         <RuleReviewSection refreshKey={ruleRefreshKey} />
       </StepCard>

@@ -1,7 +1,7 @@
 /**
  * Unit tests for the multi-step CoachTour sequencer.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { MotionProvider } from "@leo/design-system";
@@ -29,8 +29,12 @@ function renderTour(
   const onFinish = jest.fn();
   const view = render(
     <MotionProvider>
-      <div data-tour="step-a">Anchor A</div>
-      <div data-tour="step-b">Anchor B</div>
+      <div data-tour="step-a" style={{ width: 80, height: 24 }}>
+        Anchor A
+      </div>
+      <div data-tour="step-b" style={{ width: 80, height: 24 }}>
+        Anchor B
+      </div>
       <CoachTour
         tourId="test-tour"
         steps={STEPS}
@@ -46,27 +50,56 @@ function renderTour(
 describe("CoachTour", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // jsdom getBoundingClientRect is often 0x0 -- stub so spotlight can mount.
+    jest.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      x: 10,
+      y: 10,
+      top: 10,
+      left: 10,
+      bottom: 40,
+      right: 90,
+      width: 80,
+      height: 30,
+      toJSON: () => ({}),
+    });
   });
 
-  it("renders step 0 title and body when active", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("renders step 0 title and body when active", async () => {
     renderTour();
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    });
     expect(screen.getByText("First tip")).toBeInTheDocument();
     expect(screen.getByText("This is the first tip body.")).toBeInTheDocument();
     expect(screen.getByText("Step 1 of 2")).toBeInTheDocument();
   });
 
+  it("renders a spotlight cut-out when active", async () => {
+    renderTour();
+    await waitFor(() => {
+      expect(screen.getByTestId("coach-tour-spotlight")).toBeInTheDocument();
+    });
+  });
+
   it("does not render when inactive", () => {
     renderTour({ active: false });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("coach-tour-spotlight")).not.toBeInTheDocument();
   });
 
   it("disables Back on step 0 and advances with Next", async () => {
     const user = userEvent.setup();
     renderTour();
+    await waitFor(() => expect(screen.getByTestId("coach-tour-next")).toBeInTheDocument());
     expect(screen.getByTestId("coach-tour-back")).toBeDisabled();
     await user.click(screen.getByTestId("coach-tour-next"));
-    expect(screen.getByText("Second tip")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Second tip")).toBeInTheDocument();
+    });
     expect(screen.getByTestId("coach-tour-back")).not.toBeDisabled();
     expect(screen.getByTestId("coach-tour-next")).toHaveTextContent("Done");
   });
@@ -74,6 +107,7 @@ describe("CoachTour", () => {
   it("Skip calls onFinish and sets localStorage", async () => {
     const user = userEvent.setup();
     const { onFinish } = renderTour();
+    await waitFor(() => expect(screen.getByTestId("coach-tour-skip")).toBeInTheDocument());
     await user.click(screen.getByTestId("coach-tour-skip"));
     expect(onFinish).toHaveBeenCalledTimes(1);
     expect(window.localStorage.getItem("leo-tour-test-tour-done")).toBe(
@@ -84,8 +118,21 @@ describe("CoachTour", () => {
   it("Done on last step finishes the tour", async () => {
     const user = userEvent.setup();
     const { onFinish } = renderTour();
+    await waitFor(() => expect(screen.getByTestId("coach-tour-next")).toBeInTheDocument());
     await user.click(screen.getByTestId("coach-tour-next"));
+    await waitFor(() => {
+      expect(screen.getByTestId("coach-tour-next")).toHaveTextContent("Done");
+    });
     await user.click(screen.getByTestId("coach-tour-next"));
     expect(onFinish).toHaveBeenCalledTimes(1);
+  });
+
+  it("omits a step when prepareStep returns false", async () => {
+    const prepareStep = jest.fn(async (step: TourStep) => step.id !== "step-a");
+    renderTour({ prepareStep });
+    await waitFor(() => {
+      expect(screen.getByText("Second tip")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("First tip")).not.toBeInTheDocument();
   });
 });

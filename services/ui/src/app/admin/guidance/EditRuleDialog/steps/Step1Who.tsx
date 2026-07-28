@@ -111,6 +111,8 @@ interface Props {
    * doc comment for why the breadcrumb lives there now.
    */
   onWizardStepChange?: (step: WizardStepKind | null) => void;
+  /** IFU CoachTour phase request -- forwarded to HighlightWizard. */
+  tourGotoRequest?: { requestId: number; phase: WizardStepKind } | null;
 }
 
 export default function Step1Who({
@@ -134,6 +136,7 @@ export default function Step1Who({
   onActiveSituationChange,
   jumpRequest,
   onWizardStepChange,
+  tourGotoRequest,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
   const showWizard = Boolean(tree) && !treeIsEmpty;
@@ -285,6 +288,7 @@ export default function Step1Who({
           onStepChange={handleWizardStepChange}
           onActiveSituationChange={onActiveSituationChange}
           jumpRequest={jumpRequest}
+          tourGotoRequest={tourGotoRequest}
         />
       ) : (
         <EmptyTreeState

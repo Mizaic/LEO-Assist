@@ -75,8 +75,12 @@ import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { useMotion } from "@leo/design-system";
 
 import CoachTour from "@/components/ui/CoachTour";
-import { EDIT_RULE_TOUR_STEPS } from "../guidanceTourSteps";
 
+import {
+  EDIT_RULE_TOUR_STEPS,
+  editTourPhaseForStep,
+  type TourStep,
+} from "../guidanceTourSteps";
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import ConceptSynonymDialog from "./ConceptSynonymDialog";
@@ -89,6 +93,12 @@ import GuidelineQuotePanel from "./GuidelineQuotePanel";
 import type { WizardJumpRequest } from "./HighlightWizard";
 import type { WizardStepKind } from "./HighlightWizard/wizardState";
 import LivePreviewPane from "./LivePreviewPane";
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 import Step1Who from "./steps/Step1Who";
 import Step2Suggest from "./steps/Step2Suggest";
 import Step4Save from "./steps/Step4Save";
@@ -347,6 +357,11 @@ export default function EditRuleDialog({
   const [searchTarget, setSearchTarget] = useState<SearchTarget>(IDLE_TARGET);
   const [fullscreen, setFullscreen] = useState(false);
   const [editTourActive, setEditTourActive] = useState(false);
+  const [tourGotoRequest, setTourGotoRequest] = useState<{
+    requestId: number;
+    phase: WizardStepKind;
+  } | null>(null);
+  const tourGotoSeq = useRef(0);
   const [coach, setCoach] = useState<{
     nodeId: string;
     anchor: HTMLElement;
@@ -548,6 +563,34 @@ export default function EditRuleDialog({
       { id: "save", state: saveState },
     ];
   }, [tree, validationError, actions, reasonReady]);
+
+  const prepareEditTourStep = useCallback(async (step: TourStep) => {
+    const phase = editTourPhaseForStep(step.id);
+    if (!phase) return true;
+    if (phase === "save") {
+      setGuidedPanelMode("preview");
+      setCurrentStepId((prev) => (prev === "save" ? prev : "save"));
+      setTourGotoRequest(null);
+      await delay(120);
+      return true;
+    }
+    if (phase === "review") {
+      setGuidedPanelMode("preview");
+    }
+    setCurrentStepId((prev) => (prev === "who" ? prev : "who"));
+    tourGotoSeq.current += 1;
+    setTourGotoRequest({
+      requestId: tourGotoSeq.current,
+      phase,
+    });
+    await delay(phase === "review" ? 280 : 160);
+    return true;
+  }, []);
+
+  const finishEditTour = useCallback(() => {
+    setEditTourActive(false);
+    setTourGotoRequest(null);
+  }, []);
 
   const handleJumpStep = useCallback((next: StepId) => {
     const nextIndex = STEP_IDS.indexOf(next);
@@ -1014,18 +1057,16 @@ export default function EditRuleDialog({
               </Typography>
             )}
           </Box>
-          {currentStepId === "who" && (
-            <Button
-              size="small"
-              variant="text"
-              onClick={() => setEditTourActive(true)}
-              aria-label="Take the edit-rule tour"
-              data-testid="edit-rule-tour-trigger"
-              sx={{ textTransform: "none", mr: 0.5 }}
-            >
-              Guide me
-            </Button>
-          )}
+          <Button
+            size="small"
+            variant="text"
+            onClick={() => setEditTourActive(true)}
+            aria-label="Take the edit-rule tour"
+            data-testid="edit-rule-tour-trigger"
+            sx={{ textTransform: "none", mr: 0.5 }}
+          >
+            Guide me
+          </Button>
           <Tooltip
             title={fullscreen ? "Shrink to a window" : "Use the full screen"}
           >
@@ -1062,8 +1103,9 @@ export default function EditRuleDialog({
       <CoachTour
         tourId="guidance-edit-rule"
         steps={EDIT_RULE_TOUR_STEPS}
-        active={editTourActive && currentStepId === "who"}
-        onFinish={() => setEditTourActive(false)}
+        active={editTourActive}
+        onFinish={finishEditTour}
+        prepareStep={prepareEditTourStep}
       />
       <DialogContent
         dividers
@@ -1153,6 +1195,7 @@ export default function EditRuleDialog({
                 onActiveSituationChange={handleActiveSituationChange}
                 jumpRequest={jumpRequest}
                 onWizardStepChange={setWizardPhase}
+                tourGotoRequest={tourGotoRequest}
               />
             )}
             {currentStepId === "suggest" && (

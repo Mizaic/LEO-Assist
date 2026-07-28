@@ -16,14 +16,14 @@ export type { TourStep };
 export const PAGE_TOUR_STEPS: TourStep[] = [
   {
     id: "cg-01-jump",
-    title: "Four stages",
-    body: "Find, then check, then approve, then go live. Jump here anytime.",
+    title: "Four steps on this page",
+    body: "Use this bar anytime to jump to Load, Inspect, Review, or Compile.",
     anchorSelector: '[data-tour="cg-01-jump"]',
   },
   {
     id: "cg-02-load",
-    title: "Load a guideline",
-    body: "Search NICE or enter a code. Wait for it to finish loading.",
+    title: "Bring a guideline in",
+    body: "Search by condition or guideline code, then wait until loading finishes.",
     anchorSelector: '[data-tour="cg-02-load"]',
   },
   {
@@ -34,14 +34,14 @@ export const PAGE_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "cg-04-review-pool",
-    title: "Your review queue",
-    body: "New drafts wait here. You decide on each one.",
+    title: "Rules waiting for you",
+    body: "Open Review to accept, edit, or reject each draft before it can go live.",
     anchorSelector: '[data-tour="cg-04-review-pool"]',
   },
   {
     id: "cg-05-card",
-    title: "Read before you decide",
-    body: "Open a rule to see the plain-English logic and the NICE text side by side.",
+    title: "Check the wording",
+    body: "Open one draft to read the plain English next to the guideline text, then decide.",
     anchorSelector: '[data-tour="cg-05-card"]',
   },
   {
@@ -63,13 +63,13 @@ export const EDIT_RULE_TOUR_STEPS: TourStep[] = [
   {
     id: "er-02-quote",
     title: "Keep the guideline in view",
-    body: "The right side shows the exact words you are turning into a rule.",
+    body: "Look at the NICE text on the right -- those are the words you are turning into a rule.",
     anchorSelector: '[data-tour="er-02-quote"]',
   },
   {
     id: "er-03-always",
-    title: "Global checks only",
-    body: "Add something here only if it applies no matter which symptoms match.",
+    title: "Always-true checks",
+    body: "Add something here only if it applies no matter which situation matches.",
     anchorSelector: '[data-tour="er-03-always"]',
   },
   {
@@ -87,13 +87,59 @@ export const EDIT_RULE_TOUR_STEPS: TourStep[] = [
   {
     id: "er-06-review",
     title: "Check the meaning",
-    body: "This is what the rule will actually do. Read it like a clinician would.",
-    anchorSelector: '[data-tour="er-06-review"]',
+    body: "Read the live preview on the right -- that is what the rule will do.",
+    anchorSelector: '[data-tour="er-06-preview"]',
   },
   {
     id: "er-07-save",
     title: "Say why, then approve",
-    body: "Write a short reason. Approve and save.",
+    body: "Write a short reason, then approve and save. Patients still will not see it until you compile.",
     anchorSelector: '[data-tour="er-07-save"]',
   },
 ];
+
+/** Page jump targets for Act A prepareStep. */
+export type PageTourJumpId = "load" | "inspect" | "review" | "compile";
+
+export function pageTourJumpForStep(stepId: string): PageTourJumpId | null {
+  switch (stepId) {
+    case "cg-02-load":
+      return "load";
+    case "cg-03-inspect":
+      return "inspect";
+    case "cg-04-review-pool":
+    case "cg-05-card":
+      return "review";
+    case "cg-06-compile":
+      return "compile";
+    default:
+      return null;
+  }
+}
+
+/** Wizard / editor phase the Act B tour needs before measuring. */
+export type EditTourPhase =
+  | "prerequisites"
+  | "pathway-split"
+  | "pathway-conditions"
+  | "review"
+  | "save";
+
+export function editTourPhaseForStep(stepId: string): EditTourPhase | null {
+  switch (stepId) {
+    case "er-01-stepper":
+    case "er-02-quote":
+    case "er-03-always":
+      return "prerequisites";
+    case "er-04-situations":
+      return "pathway-split";
+    case "er-05-conditions":
+      return "pathway-conditions";
+    case "er-06-review":
+      return "review";
+    case "er-07-save":
+      return "save";
+    default:
+      return null;
+  }
+}

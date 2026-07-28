@@ -89,7 +89,14 @@ export type WizardAction =
    *  lives in prerequisites/this pathway; unlike every other action
    *  these do not follow the normal linear Confirm/Back sequence. */
   | { type: "JUMP_TO_PREREQUISITES" }
-  | { type: "JUMP_TO_PATHWAY"; pathwayIndex: number };
+  | { type: "JUMP_TO_PATHWAY"; pathwayIndex: number }
+  /** IFU CoachTour: force a phase when anchors must exist before the bubble. */
+  | {
+      type: "TOUR_GOTO";
+      step: WizardStepKind;
+      pathwayIndex?: number;
+      boundaries?: PathwayTextBoundary[] | null;
+    };
 
 function backOneStep(state: WizardState): WizardState {
   if (state.step === "pathway-split") {
@@ -198,6 +205,39 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
             materializing: false,
           }
         : state;
+    case "TOUR_GOTO": {
+      const boundaries = action.boundaries ?? state.boundaries;
+      if (action.step === "prerequisites") {
+        return { ...state, step: "prerequisites", materializing: false };
+      }
+      if (action.step === "pathway-split") {
+        return {
+          ...state,
+          step: "pathway-split",
+          boundaries,
+          materializing: false,
+        };
+      }
+      if (action.step === "pathway-conditions") {
+        if (!boundaries?.length) return state;
+        return {
+          ...state,
+          step: "pathway-conditions",
+          pathwayIndex: action.pathwayIndex ?? 0,
+          boundaries,
+          materializing: false,
+        };
+      }
+      if (action.step === "review") {
+        return {
+          ...state,
+          step: "review",
+          boundaries: boundaries ?? state.boundaries,
+          materializing: false,
+        };
+      }
+      return state;
+    }
     default:
       return state;
   }
