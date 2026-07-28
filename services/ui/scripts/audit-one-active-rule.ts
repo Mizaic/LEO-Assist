@@ -2,6 +2,11 @@
  * Focused audit for ONE approved AppropriatenessRule through the wizard
  * rehydration path (with shared-list + age-lift fixes).
  *
+ * Atlas trace:
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
+ *
  * Usage:
  *   npx tsx scripts/audit-one-active-rule.ts scripts/active-rule-shards/1_1_2.json
  *

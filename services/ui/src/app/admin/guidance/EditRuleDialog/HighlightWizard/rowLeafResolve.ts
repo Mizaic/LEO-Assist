@@ -2,6 +2,11 @@
  * Resolve a Step 3 structure row to an existing pathway leaf without
  * relying only on recommendation-text span geometry.
  *
+ * Atlas trace:
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
+ *
  * AI-drafted CONCEPT leaves often carry a SNOMED preferred term
  * ("Dyspnea (finding)") or a UK surface form ("dyspnoea") that does
  * not sit at the same offsets as the guideline list row ("shortness
