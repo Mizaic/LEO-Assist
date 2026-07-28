@@ -253,7 +253,16 @@ export default function NiceLoaderSection({ onGuidelineLoaded }: Props) {
         <fm.div style={{ display: "inline-block" }} {...bounceInteraction(reducedMotion || !canLoad)}>
           <ToolbarActions
             actions={[
-              { id: "load", label: "Load this guideline", variant: "primary", onClick: handleIngest, disabled: !canLoad, loading },
+              {
+                id: "load",
+                label: "Load this guideline",
+                variant: "primary",
+                onClick: handleIngest,
+                disabled: !canLoad,
+                loading,
+                title:
+                  "Bring this guideline into the system so you can review recommendations and rules.",
+              },
             ]}
           />
         </fm.div>

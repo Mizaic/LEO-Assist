@@ -1,0 +1,49 @@
+{
+  "name": "Rule: 1.5.1",
+  "rule_id": "rule:NG12:v1:CH002:SEC004:R000:b96eddba:edit:bdd32616",
+  "title": "1.5.1",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.5.1 Make a referral to a gynaecological cancer service using a suspected cancer pathway referral if physical examination identifies ascites and/or a pelvic or abdominal mass (which is not obviously uterine fibroids). [2011, amended 2020]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "389026000",
+          "preferred_term": "Ascites (disorder)",
+          "semantic_tag": "disorder",
+          "term": "ascites",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": ""
+        }
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "74285003",
+          "preferred_term": "Mass of pelvic structure (finding)",
+          "semantic_tag": "finding",
+          "term": "pelvic mass",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": ""
+        }
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "271860004",
+          "preferred_term": "Abdominal mass (finding)",
+          "semantic_tag": "finding",
+          "term": "abdominal mass",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": ""
+        }
+      }
+    ]
+  }
+}

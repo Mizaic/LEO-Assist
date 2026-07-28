@@ -1,0 +1,147 @@
+{
+  "name": "Rule: 1.1.6",
+  "rule_id": "rule:NG12:v1:CH002:SEC000:R005:87b8db54:edit:09b6f681",
+  "title": "1.1.6",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.1.6 Consider an urgent , direct access chest X‑ray to assess for mesothelioma in people aged 40 and over with either: finger clubbing or chest signs compatible with pleural disease. [2015]",
+  "recommendation_structure": {
+    "lead_text": "Consider an urgent , direct access chest X‑ray to assess for mesothelioma in people aged 40 and over with either:",
+    "items": [
+      {
+        "text": "finger clubbing",
+        "start": 120,
+        "end": 135
+      },
+      {
+        "text": "chest signs compatible with pleural disease. [2015]",
+        "start": 139,
+        "end": 190
+      }
+    ]
+  },
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "DEMOGRAPHIC",
+        "field": "age",
+        "operator": ">=",
+        "value": 40.0,
+        "unit": "years"
+      },
+      {
+        "kind": "OR",
+        "children": [
+          {
+            "kind": "CONCEPT",
+            "pathway_key": "pw_ms3bcuqo_14",
+            "criterion": {
+              "snomed_concept_id": "30760008",
+              "preferred_term": "Finger clubbing (disorder)",
+              "semantic_tag": "disorder",
+              "term": "finger clubbing",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "",
+              "confidence": 1.0,
+              "needs_human_review": false
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "pathway_key": "pw_ms3bcuqo_15",
+            "criterion": {
+              "snomed_concept_id": "272016000",
+              "preferred_term": "On examination - chest finding (finding)",
+              "semantic_tag": "finding",
+              "term": "chest signs compatible with pleural disease",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "",
+              "confidence": 1.0,
+              "needs_human_review": false
+            }
+          }
+        ]
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "30760008",
+          "preferred_term": "Finger clubbing (disorder)",
+          "semantic_tag": "disorder",
+          "term": "",
+          "seeds": [
+            {
+              "snomed_concept_id": "30760008",
+              "preferred_term": "Finger clubbing (disorder)",
+              "semantic_tag": "disorder",
+              "include_descendants": false
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "30760008",
+          "needs_human_review": false
+        },
+        "source_row_text": "finger"
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "2237002",
+          "preferred_term": "Pleuritic pain (finding)",
+          "semantic_tag": "finding",
+          "term": "",
+          "seeds": [
+            {
+              "snomed_concept_id": "2237002",
+              "preferred_term": "Pleuritic pain (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "267036007",
+              "preferred_term": "Dyspnea (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "49727002",
+              "preferred_term": "Cough (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "29857009",
+              "preferred_term": "Chest pain (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "66857006",
+              "preferred_term": "Hemoptysis (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "84229001",
+              "preferred_term": "Fatigue (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "45326000",
+              "preferred_term": "Pain of shoulder region (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "2237002",
+          "needs_human_review": false
+        },
+        "source_row_text": "pleural disease."
+      }
+    ]
+  }
+}

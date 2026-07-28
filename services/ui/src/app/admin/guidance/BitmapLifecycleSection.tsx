@@ -188,6 +188,7 @@ export default function BitmapLifecycleSection({
               onClick: life.handleCompile,
               disabled: life.compiling,
               loading: life.compiling,
+              title: "Build a new candidate ruleset from approved rules. It is not live yet.",
             },
             {
               id: "test-lab-patients",
@@ -199,6 +200,7 @@ export default function BitmapLifecycleSection({
               disabled:
                 !life.candidateVersion || life.testingLabPatients || life.compiling,
               loading: life.testingLabPatients,
+              title: "Run the candidate ruleset against Lab patients before going live.",
             },
             {
               id: "historic-shadow",
@@ -207,6 +209,7 @@ export default function BitmapLifecycleSection({
               onClick: life.handleHistoricShadow,
               disabled: !life.candidateVersion || life.shadowing || life.compiling,
               loading: life.shadowing,
+              title: "Compare the candidate against historic cases without changing live care.",
             },
             {
               id: "rollback",
@@ -215,6 +218,7 @@ export default function BitmapLifecycleSection({
               onClick: life.handleRollback,
               disabled: life.rollingBack || life.versions.length < 2,
               loading: life.rollingBack,
+              title: "Undo the last live change for this scope.",
             },
           ]}
         />

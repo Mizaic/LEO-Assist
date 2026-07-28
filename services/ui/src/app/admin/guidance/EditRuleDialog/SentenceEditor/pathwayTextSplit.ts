@@ -274,6 +274,28 @@ function splitPathwaysFromStructure(
 }
 
 /**
+ * True when the guideline's top-level `<ul>` is a shared AT_LEAST list
+ * that sits AFTER the real situation split in the lead-in prose (NG12
+ * 1.1.2: "2 or more of..., or ... 1 or more of...: cough, fatigue, ...").
+ * In that shape, `splitPathwaysFromStructure` falls through to the
+ * heuristic, and both heuristic situations must still receive the
+ * shared list as `structureChildren` so Step 3 can attach the same
+ * symptoms under each AT_LEAST cluster -- the colon / symptom items
+ * only appear once at the end of the sentence, so pathway A's own
+ * text alone cannot recover them.
+ */
+function isSharedQuantifierStructureList(
+  text: string | null | undefined,
+  structure: RecommendationStructure | null | undefined,
+): boolean {
+  if (!structure || !Array.isArray(structure.items) || structure.items.length < 2) {
+    return false;
+  }
+  if (hasAtLeastQuantifierMarker(structure.lead_text)) return true;
+  return Boolean(text && structureItemsShareAHeuristicSegment(text, structure.items));
+}
+
+/**
  * The single entry point Step 2 should call: prefers the guideline's
  * own list structure when present (see the plan's "Ingestion" and
  * "How structure changes the UI" sections), falling back to the
@@ -291,7 +313,19 @@ export function splitPathways(
 ): PathwayTextBoundary[] | null {
   const structural = splitPathwaysFromStructure(text, structure);
   if (structural === NOT_A_SITUATION_SPLIT) return null;
-  return structural ?? splitPathwaysByOrHeuristic(text);
+  if (structural) return structural;
+
+  const heuristic = splitPathwaysByOrHeuristic(text);
+  if (!heuristic) return null;
+  if (!isSharedQuantifierStructureList(text, structure)) return heuristic;
+
+  // Attach the shared symptom/finding list onto every situation so
+  // both "2 or more" and "ever smoked + 1 or more" can resolve it.
+  const sharedItems = structure!.items;
+  return heuristic.map((boundary) => ({
+    ...boundary,
+    structureChildren: sharedItems,
+  }));
 }
 
 /**

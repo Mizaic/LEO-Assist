@@ -1,0 +1,141 @@
+{
+  "name": "Rule: 1.2.1",
+  "rule_id": "rule:NG12:v1:CH002:SEC001:R000:7b7e6325:edit:b6b6eaee:edit:83aa2e72:edit:d5b44ce4:edit:e7c982a6:edit:178e9494",
+  "title": "1.2.1",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.2.1 Refer people using a suspected cancer pathway referral for oesophageal cancer if they: have dysphagia, or are aged 55 and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
+  "recommendation_structure": {
+    "lead_text": "Refer people using a suspected cancer pathway referral for oesophageal cancer if they:",
+    "items": [
+      {
+        "text": "have dysphagia",
+        "start": 93,
+        "end": 107
+      },
+      {
+        "text": "are aged 55 and over, with weight loss, and they have any of the following:",
+        "children": [
+          {
+            "text": "upper abdominal pain",
+            "start": 188,
+            "end": 208
+          },
+          {
+            "text": "reflux",
+            "start": 209,
+            "end": 215
+          },
+          {
+            "text": "dyspepsia. [2015, amended 2025]",
+            "start": 216,
+            "end": 247
+          }
+        ],
+        "start": 112,
+        "end": 187
+      }
+    ]
+  },
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "pathway_key": "pw_mrz1u775_5",
+        "criterion": {
+          "snomed_concept_id": "288939007",
+          "preferred_term": "Difficulty swallowing (finding)",
+          "semantic_tag": "finding",
+          "term": "dysphagia",
+          "seeds": [
+            {
+              "snomed_concept_id": "288939007",
+              "preferred_term": "Difficulty swallowing (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": true
+            },
+            {
+              "snomed_concept_id": "40739000",
+              "preferred_term": "Dysphagia (disorder)",
+              "semantic_tag": "disorder",
+              "include_descendants": true
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "288939007",
+          "needs_human_review": false
+        }
+      },
+      {
+        "kind": "AND",
+        "pathway_key": "pw_mrz1u775_6",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 55.0,
+            "unit": "years"
+          },
+          {
+            "kind": "OR",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "83132003",
+                  "preferred_term": "Upper abdominal pain (finding)",
+                  "semantic_tag": "finding",
+                  "term": "upper abdominal pain",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "",
+                  "needs_human_review": false
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "698065002",
+                  "preferred_term": "Acid reflux (finding)",
+                  "semantic_tag": "finding",
+                  "term": "reflux",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "",
+                  "needs_human_review": false
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "162031009",
+                  "preferred_term": "Indigestion (finding)",
+                  "semantic_tag": "finding",
+                  "term": "dyspepsia",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "",
+                  "needs_human_review": false
+                }
+              }
+            ]
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "262285001",
+              "preferred_term": "Weight decreased (finding)",
+              "semantic_tag": "finding",
+              "term": "Weight decreased (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "",
+              "needs_human_review": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

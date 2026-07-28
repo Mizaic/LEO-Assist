@@ -29,6 +29,7 @@
 import { useState } from "react";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 
 import HighlightableRecommendationText, {
   type TextSelectionResult,
@@ -36,6 +37,7 @@ import HighlightableRecommendationText, {
 import type { RecommendationStructureItem } from "../SentenceEditor/pathwayTextSplit";
 import MultiConceptPicker from "../MultiConceptPicker";
 import type { LogicCriterion } from "../types";
+import { WIZARD_TOOLTIPS } from "./copy";
 
 type Stage = "collapsed" | "highlighting" | { picking: TextSelectionResult };
 
@@ -49,9 +51,11 @@ export default function RowMultiCodeHighlight({ item, onAddCriterion }: Props) {
 
   if (stage === "collapsed") {
     return (
-      <Button size="small" variant="text" onClick={() => setStage("highlighting")}>
-        Highlight text for more codes
-      </Button>
+      <Tooltip title={WIZARD_TOOLTIPS.multiCodeHighlight}>
+        <Button size="small" variant="text" onClick={() => setStage("highlighting")}>
+          Highlight text for more codes
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -63,9 +67,11 @@ export default function RowMultiCodeHighlight({ item, onAddCriterion }: Props) {
           onConfirmSelection={(selection) => setStage({ picking: selection })}
           onCancelSelection={() => setStage("collapsed")}
         />
-        <Button size="small" variant="text" onClick={() => setStage("collapsed")}>
-          Close
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.multiCodeClose}>
+          <Button size="small" variant="text" onClick={() => setStage("collapsed")}>
+            Close
+          </Button>
+        </Tooltip>
       </Stack>
     );
   }
@@ -80,9 +86,11 @@ export default function RowMultiCodeHighlight({ item, onAddCriterion }: Props) {
           setStage("collapsed");
         }}
       />
-      <Button size="small" variant="text" onClick={() => setStage("collapsed")}>
-        Cancel
-      </Button>
+      <Tooltip title={WIZARD_TOOLTIPS.multiCodeClose}>
+        <Button size="small" variant="text" onClick={() => setStage("collapsed")}>
+          Cancel
+        </Button>
+      </Tooltip>
     </Stack>
   );
 }

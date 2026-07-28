@@ -518,6 +518,35 @@ describe("splitPathways (shared quantifier list is not six situations)", () => {
     ]);
   });
 
+  it("attaches the shared symptom list to BOTH heuristic situations (not only B)", () => {
+    const { text, structure } = buildNg112StructureFixture();
+    const [pathwayA, pathwayB] = splitPathways(text, structure)!;
+    expect(pathwayA.structureChildren?.map((c) => c.text)).toEqual([
+      "cough",
+      "fatigue",
+      "shortness of breath",
+      "chest pain",
+      "weight loss",
+      "appetite loss",
+    ]);
+    expect(pathwayB.structureChildren?.map((c) => c.text)).toEqual(
+      pathwayA.structureChildren?.map((c) => c.text),
+    );
+    const clusterA = resolveAtLeastCluster(pathwayA);
+    expect(clusterA).not.toBeNull();
+    expect(clusterA!.items).toEqual([
+      "cough",
+      "fatigue",
+      "shortness of breath",
+      "chest pain",
+      "weight loss",
+      "appetite loss",
+    ]);
+    // Situation A's lead is recommendation prose before "2 or more..." --
+    // must not become a fake unresolved lead row.
+    expect(clusterA!.leadText).toBe("");
+  });
+
   it("still returns the structure's own items when the list has no quantifier lead-in (no regression)", () => {
     const { text, structure } = buildNg129StructureFixture();
     const boundaries = splitPathways(text, structure);

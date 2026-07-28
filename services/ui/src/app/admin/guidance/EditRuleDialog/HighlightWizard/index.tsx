@@ -430,7 +430,7 @@ export default function HighlightWizard({
       )}
 
       {state.step === "review" && (
-        <Stack spacing={1} data-testid="wizard-review">
+        <Stack spacing={1} data-testid="wizard-review" data-tour="er-06-review">
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             {WIZARD_CHROME.reviewTitle}
           </Typography>

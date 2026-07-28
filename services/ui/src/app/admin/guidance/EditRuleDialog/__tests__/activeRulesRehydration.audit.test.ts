@@ -15,8 +15,10 @@ import {
   buildRowResolver,
   countUnresolvedRows,
   orderPathwayNodesByBoundary,
+  pathwayTextWindow,
   readMaterializedPathways,
 } from "../HighlightWizard/wizardMapping";
+import { liftSharedPathwayDemographics } from "../liftSharedPathwayDemographics";
 import { findPathwaySplit } from "../pathwayDetection";
 import { splitPathways } from "../SentenceEditor/pathwayTextSplit";
 import { assignNodeIds } from "../treeOps";
@@ -53,7 +55,9 @@ type AuditRow = {
 };
 
 function auditRule(rule: ActiveRuleFixture): AuditRow {
-  const tree = assignNodeIds(rule.logic) as EditableLogicNode;
+  const tree = liftSharedPathwayDemographics(
+    assignNodeIds(rule.logic) as EditableLogicNode,
+  );
   const state = buildInitialWizardState(
     tree,
     rule.recommendation_text,
@@ -145,10 +149,11 @@ function auditRule(rule: ActiveRuleFixture): AuditRow {
     const boundary = boundaries[index];
     if (!boundary) return;
     const { items } = buildPathwayRows(boundary);
-    const window =
-      boundary.source === "tree"
-        ? { start: 0, end: rule.recommendation_text.length }
-        : undefined;
+    const window = pathwayTextWindow(
+      boundaries,
+      index,
+      rule.recommendation_text.length,
+    );
     const resolver = buildRowResolver(
       pathwayNode,
       rule.recommendation_text,
@@ -156,8 +161,10 @@ function auditRule(rule: ActiveRuleFixture): AuditRow {
     );
     const unresolved = countUnresolvedRows(items, resolver);
     unresolvedTotal += unresolved;
-    if (boundary.source === "tree" && unresolved > 0) {
-      issues.push(`pathway ${index}: tree boundary still has unresolved rows`);
+    if (unresolved > 0) {
+      issues.push(
+        `pathway ${index}: ${unresolved} unresolved row(s) after rehydration`,
+      );
     }
   });
 

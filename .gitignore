@@ -333,3 +333,10 @@ tests/test_patient_*_patterns.py
 
 # Local pipeline run logs
 tmp/
+docs/marketing/assets/leo-coo-brochure-hero.png
+docs/marketing/assets/leo-coo-brochure-icons.png
+docs/marketing/assets/leo-coo-brochure-section.png
+docs/marketing/assets/leo-coo-brochure-ops.png
+docs/marketing/build_coo_service_catalogue.py
+docs/marketing/LEO-CDS-COO-Service-Catalogue.pptx
+docs/marketing/~$LEO-CDS-COO-Service-Catalogue.pptx

@@ -1,0 +1,481 @@
+{
+  "name": "Rule: 1.2.3",
+  "rule_id": "rule:NG12:v1:CH002:SEC001:R002:4870a5d0:edit:8610126e:edit:2998a5ea",
+  "title": "1.2.3",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.2.3 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55 or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels, or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
+  "recommendation_structure": {
+    "lead_text": "Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55 or over with:",
+    "items": [
+      {
+        "text": "treatment-resistant dyspepsia",
+        "start": 140,
+        "end": 169
+      },
+      {
+        "text": "upper abdominal pain with low haemoglobin levels",
+        "start": 174,
+        "end": 222
+      },
+      {
+        "text": "raised platelet count with any of the following:",
+        "children": [
+          {
+            "text": "nausea",
+            "start": 276,
+            "end": 282
+          },
+          {
+            "text": "vomiting",
+            "start": 283,
+            "end": 291
+          },
+          {
+            "text": "weight loss",
+            "start": 292,
+            "end": 303
+          },
+          {
+            "text": "reflux",
+            "start": 304,
+            "end": 310
+          },
+          {
+            "text": "dyspepsia",
+            "start": 311,
+            "end": 320
+          },
+          {
+            "text": "upper abdominal pain",
+            "start": 321,
+            "end": 341
+          }
+        ],
+        "start": 227,
+        "end": 275
+      },
+      {
+        "text": "nausea or vomiting with any of the following:",
+        "children": [
+          {
+            "text": "weight loss",
+            "start": 392,
+            "end": 403
+          },
+          {
+            "text": "reflux",
+            "start": 404,
+            "end": 410
+          },
+          {
+            "text": "dyspepsia",
+            "start": 411,
+            "end": 420
+          },
+          {
+            "text": "upper abdominal pain. [2015]",
+            "start": 421,
+            "end": 449
+          }
+        ],
+        "start": 346,
+        "end": 391
+      }
+    ]
+  },
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "DEMOGRAPHIC",
+        "field": "age",
+        "operator": ">=",
+        "value": 55.0,
+        "unit": "years"
+      },
+      {
+        "kind": "OR",
+        "children": [
+          {
+            "kind": "AND",
+            "pathway_key": "pw_mrz0588z_4",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "162031009",
+                  "preferred_term": "Indigestion (finding)",
+                  "semantic_tag": "finding",
+                  "term": "",
+                  "seeds": [
+                    {
+                      "snomed_concept_id": "162031009",
+                      "preferred_term": "Indigestion (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    }
+                  ],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "162031009",
+                  "needs_human_review": false
+                },
+                "source_row_text": "treatment-resistant dyspepsia"
+              }
+            ]
+          },
+          {
+            "kind": "AND",
+            "pathway_key": "pw_mrz0588z_5",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "83132003",
+                  "preferred_term": "Upper abdominal pain (finding)",
+                  "semantic_tag": "finding",
+                  "term": "",
+                  "seeds": [
+                    {
+                      "snomed_concept_id": "83132003",
+                      "preferred_term": "Upper abdominal pain (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    }
+                  ],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "83132003",
+                  "needs_human_review": false
+                },
+                "source_row_text": "upper abdominal pain"
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "165397008",
+                  "preferred_term": "Hemoglobin below reference range (finding)",
+                  "semantic_tag": "finding",
+                  "term": "",
+                  "seeds": [
+                    {
+                      "snomed_concept_id": "165397008",
+                      "preferred_term": "Hemoglobin below reference range (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    }
+                  ],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "165397008",
+                  "needs_human_review": false
+                },
+                "source_row_text": "low haemoglobin levels"
+              }
+            ]
+          },
+          {
+            "kind": "AND",
+            "pathway_key": "pw_mrz0588z_6",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "415115007",
+                  "preferred_term": "Platelet count above reference range (finding)",
+                  "semantic_tag": "finding",
+                  "term": "",
+                  "seeds": [
+                    {
+                      "snomed_concept_id": "415115007",
+                      "preferred_term": "Platelet count above reference range (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    }
+                  ],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "415115007",
+                  "needs_human_review": false
+                },
+                "source_row_text": "raised platelet count"
+              },
+              {
+                "kind": "AT_LEAST",
+                "children": [
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "422587007",
+                      "preferred_term": "Nausea (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "422587007",
+                          "preferred_term": "Nausea (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "422587007",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "nausea"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "422400008",
+                      "preferred_term": "Vomiting (disorder)",
+                      "semantic_tag": "disorder",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "422400008",
+                          "preferred_term": "Vomiting (disorder)",
+                          "semantic_tag": "disorder",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "422400008",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "vomiting"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "262285001",
+                      "preferred_term": "Weight decreased (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "262285001",
+                          "preferred_term": "Weight decreased (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "262285001",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "weight loss"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "698065002",
+                      "preferred_term": "Acid reflux (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "698065002",
+                          "preferred_term": "Acid reflux (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "698065002",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "reflux"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "162031009",
+                      "preferred_term": "Indigestion (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "162031009",
+                          "preferred_term": "Indigestion (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "162031009",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "dyspepsia"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "83132003",
+                      "preferred_term": "Upper abdominal pain (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "83132003",
+                          "preferred_term": "Upper abdominal pain (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "83132003",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "upper abdominal pain"
+                  }
+                ],
+                "min": 1
+              }
+            ]
+          },
+          {
+            "kind": "AND",
+            "pathway_key": "pw_mrz0588z_7",
+            "children": [
+              {
+                "kind": "AT_LEAST",
+                "children": [
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "422587007",
+                      "preferred_term": "Nausea (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "422587007",
+                          "preferred_term": "Nausea (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "422587007",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "nausea"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "422400008",
+                      "preferred_term": "Vomiting (disorder)",
+                      "semantic_tag": "disorder",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "422400008",
+                          "preferred_term": "Vomiting (disorder)",
+                          "semantic_tag": "disorder",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "422400008",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "vomiting"
+                  }
+                ],
+                "min": 1
+              },
+              {
+                "kind": "AT_LEAST",
+                "children": [
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "262285001",
+                      "preferred_term": "Weight decreased (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "262285001",
+                          "preferred_term": "Weight decreased (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "262285001",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "weight loss"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "698065002",
+                      "preferred_term": "Acid reflux (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "698065002",
+                          "preferred_term": "Acid reflux (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "698065002",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "reflux"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "162031009",
+                      "preferred_term": "Indigestion (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "162031009",
+                          "preferred_term": "Indigestion (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "162031009",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "dyspepsia"
+                  },
+                  {
+                    "kind": "CONCEPT",
+                    "criterion": {
+                      "snomed_concept_id": "83132003",
+                      "preferred_term": "Upper abdominal pain (finding)",
+                      "semantic_tag": "finding",
+                      "term": "",
+                      "seeds": [
+                        {
+                          "snomed_concept_id": "83132003",
+                          "preferred_term": "Upper abdominal pain (finding)",
+                          "semantic_tag": "finding",
+                          "include_descendants": false
+                        }
+                      ],
+                      "excluded_concept_ids": [],
+                      "primary_concept_id": "83132003",
+                      "needs_human_review": false
+                    },
+                    "source_row_text": "upper abdominal pain. [2015]"
+                  }
+                ],
+                "min": 1
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -20,10 +20,11 @@
 import { useState } from "react";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 
-import { STEP_PREREQUISITES } from "./copy";
+import { STEP_PREREQUISITES, WIZARD_TOOLTIPS } from "./copy";
 
 const DEFAULT_VISIBLE_COUNT = 4;
 
@@ -52,22 +53,26 @@ export default function CapturedConceptChips({
           <Chip key={`${term}-${index}`} label={term} size="small" variant="outlined" />
         ))}
         {hiddenCount > 0 && (
-          <Chip
-            label={STEP_PREREQUISITES.showMoreLabel(hiddenCount)}
-            size="small"
-            onClick={() => setExpanded(true)}
-            clickable
-          />
+          <Tooltip title={WIZARD_TOOLTIPS.showMoreChips}>
+            <Chip
+              label={STEP_PREREQUISITES.showMoreLabel(hiddenCount)}
+              size="small"
+              onClick={() => setExpanded(true)}
+              clickable
+            />
+          </Tooltip>
         )}
       </Stack>
       {expanded && terms.length > visibleCount && (
-        <Button
-          size="small"
-          onClick={() => setExpanded(false)}
-          sx={{ alignSelf: "flex-start", minWidth: 0, px: 0.5 }}
-        >
-          {STEP_PREREQUISITES.showLessLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.showFewerChips}>
+          <Button
+            size="small"
+            onClick={() => setExpanded(false)}
+            sx={{ alignSelf: "flex-start", minWidth: 0, px: 0.5 }}
+          >
+            {STEP_PREREQUISITES.showLessLabel}
+          </Button>
+        </Tooltip>
       )}
     </Stack>
   );

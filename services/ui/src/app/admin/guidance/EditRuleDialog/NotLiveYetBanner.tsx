@@ -31,6 +31,7 @@
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 
 import { NOT_LIVE_YET_BANNER } from "./copy";
@@ -53,15 +54,17 @@ export default function NotLiveYetBanner({ bitmapLifecycleHref }: Props) {
       role="status"
       aria-label={NOT_LIVE_YET_BANNER.title}
       action={
-        <Button
-          color="inherit"
-          size="small"
-          href={href}
-          endIcon={<OpenInNewRoundedIcon fontSize="small" />}
-          aria-label={NOT_LIVE_YET_BANNER.actionLabel}
-        >
-          {NOT_LIVE_YET_BANNER.actionLabel}
-        </Button>
+        <Tooltip title="Open the page where you compile rules and make them live for patients.">
+          <Button
+            color="inherit"
+            size="small"
+            href={href}
+            endIcon={<OpenInNewRoundedIcon fontSize="small" />}
+            aria-label={NOT_LIVE_YET_BANNER.actionLabel}
+          >
+            {NOT_LIVE_YET_BANNER.actionLabel}
+          </Button>
+        </Tooltip>
       }
     >
       <AlertTitle sx={{ fontWeight: 700 }}>

@@ -551,8 +551,18 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
               onClick: checkUpdates,
               loading: Object.values(updateStatuses).some((s) => s.checking),
               disabled: guidelines.length === 0,
+              title:
+                "Check whether NICE has published a newer version of any loaded guideline.",
             },
-            { id: "refresh", label: "Refresh", variant: "ghost", onClick: fetchLoaded, icon: <RefreshIcon fontSize="small" />, loading },
+            {
+              id: "refresh",
+              label: "Refresh",
+              variant: "ghost",
+              onClick: fetchLoaded,
+              icon: <RefreshIcon fontSize="small" />,
+              loading,
+              title: "Reload the list of guidelines from the knowledge graph.",
+            },
           ]}
         />
       </Stack>

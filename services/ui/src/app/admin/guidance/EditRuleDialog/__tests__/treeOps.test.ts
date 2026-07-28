@@ -21,6 +21,7 @@ import {
   stripNodeIds,
   wrapRootInAnd,
 } from "../treeOps";
+import { liftSharedPathwayDemographics } from "../liftSharedPathwayDemographics";
 import type { EditableLogicNode } from "../types";
 
 function makeTree(): EditableLogicNode {
@@ -846,6 +847,112 @@ describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
       ],
     });
     expect(promoteOrPrerequisites(tree)).toBe(tree);
+  });
+
+  it("liftSharedPathwayDemographics lifts age shared by every pathway (NG12 1.1.2)", () => {
+    const age = {
+      kind: "DEMOGRAPHIC" as const,
+      field: "age",
+      operator: ">=",
+      value: 40,
+      unit: "years",
+    };
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            age,
+            {
+              kind: "AT_LEAST",
+              min: 2,
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: {
+                snomed_concept_id: "2",
+                preferred_term: "Ever smoked",
+              },
+            },
+            {
+              kind: "AT_LEAST",
+              min: 1,
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+                },
+              ],
+            },
+            { ...age },
+          ],
+        },
+      ],
+    });
+
+    const lifted = liftSharedPathwayDemographics(tree);
+    expect(lifted.kind).toBe("AND");
+    expect(lifted.children![0].kind).toBe("DEMOGRAPHIC");
+    expect(lifted.children![0].field).toBe("age");
+    expect(lifted.children![0].value).toBe(40);
+    expect(lifted.children![1].kind).toBe("OR");
+    const pathways = lifted.children![1].children!;
+    expect(pathways).toHaveLength(2);
+    for (const pathway of pathways) {
+      expect(pathway.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(false);
+    }
+    expect(pathways[0].children!.some((c) => c.kind === "AT_LEAST" && c.min === 2)).toBe(
+      true,
+    );
+    expect(pathways[1].children!.some((c) => c.kind === "AT_LEAST" && c.min === 1)).toBe(
+      true,
+    );
+  });
+
+  it("liftSharedPathwayDemographics leaves pathway-local demos alone", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "DEMOGRAPHIC",
+              field: "sex",
+              operator: "=",
+              value: "female",
+              unit: null,
+            },
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "1", preferred_term: "Nausea" },
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "2", preferred_term: "Vomiting" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(liftSharedPathwayDemographics(tree)).toBe(tree);
   });
 
   it("addPrerequisiteToOrSymptoms preserves all symptom nodes", () => {

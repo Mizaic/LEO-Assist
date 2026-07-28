@@ -100,4 +100,12 @@ describe("VT-LEO-AI-150 - Clinical Guidelines chrome", () => {
     expect(stepProps).not.toBeNull();
     expect(stepProps!.sort()).toEqual(["step={1}", "step={2}", "step={3}"]);
   });
+
+  test("TC-010: Guide me trigger and CoachTour are wired for IFU", () => {
+    const src = readFile();
+    expect(src).toMatch(/from "@\/components\/ui\/CoachTour"/);
+    expect(src).toMatch(/data-testid="guidance-tour-trigger"/);
+    expect(src).toMatch(/data-testid="coach-tour-replay"/);
+    expect(src).toMatch(/PAGE_TOUR_STEPS/);
+  });
 });

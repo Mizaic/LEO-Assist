@@ -328,21 +328,29 @@ function RuleCardActions({ rule, callbacks, isBusy }: { rule: Rule; callbacks: R
     return (
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
         {callbacks.onReject && (
-          <Button
-            variant="contained"
-            color="inherit"
-            size="small"
-            disabled={isBusy}
-            onClick={(e) => {
-              e.stopPropagation();
-              callbacks.onReject!();
-            }}
-            aria-label={`Confirm no rule needed for ${rule.rule_id}`}
-          >
-            Confirm no rule needed
-          </Button>
+          <Tooltip title="Confirm AI was right that this recommendation does not need a coded rule.">
+            <span>
+              <Button
+                variant="contained"
+                color="inherit"
+                size="small"
+                disabled={isBusy}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  callbacks.onReject!();
+                }}
+                aria-label={`Confirm no rule needed for ${rule.rule_id}`}
+              >
+                Confirm no rule needed
+              </Button>
+            </span>
+          </Tooltip>
         )}
-        <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
+        <Tooltip title="Open the editor to change this rule before you approve it.">
+          <span>
+            <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
+          </span>
+        </Tooltip>
         {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
       </Stack>
     );
@@ -352,11 +360,31 @@ function RuleCardActions({ rule, callbacks, isBusy }: { rule: Rule; callbacks: R
     rule.status === "active"
       ? `Exclude rule ${rule.rule_id}`
       : `Reject rule ${rule.rule_id}`;
+  const rejectTip =
+    rule.status === "active"
+      ? "Stop this approved rule from being used in the live set."
+      : "Reject this draft so it will not be used.";
   return (
     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
-      {callbacks.onApprove && <Button variant="contained" color="success" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onApprove!(); }} aria-label={`Approve rule ${rule.rule_id}`}>Looks right</Button>}
-      <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
-      {callbacks.onReject && <Button variant="outlined" color="error" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onReject!(); }} aria-label={rejectAria}>{rejectLabel}</Button>}
+      {callbacks.onApprove && (
+        <Tooltip title="Mark this rule as correct and move it to approved.">
+          <span>
+            <Button variant="contained" color="success" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onApprove!(); }} aria-label={`Approve rule ${rule.rule_id}`}>Looks right</Button>
+          </span>
+        </Tooltip>
+      )}
+      <Tooltip title="Open the editor to change this rule before you approve it.">
+        <span>
+          <Button variant="outlined" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onEdit(); }} aria-label={`Edit rule ${rule.rule_id}`}>Edit</Button>
+        </span>
+      </Tooltip>
+      {callbacks.onReject && (
+        <Tooltip title={rejectTip}>
+          <span>
+            <Button variant="outlined" color="error" size="small" disabled={isBusy} onClick={(e) => { e.stopPropagation(); callbacks.onReject!(); }} aria-label={rejectAria}>{rejectLabel}</Button>
+          </span>
+        </Tooltip>
+      )}
       {isBusy && <CircularProgress size={16} aria-label="Saving decision" />}
     </Stack>
   );
@@ -416,15 +444,21 @@ export function SessionApprovedRow({ rule, promotedResult, promoteBusy, onEdit, 
         {rule.recommendation_text || rule.name || rule.rule_id}
       </Typography>
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-        <Button size="small" variant="outlined" color="primary" onClick={onEdit} aria-label={`Edit approved rule ${rule.rule_id}`}>Edit</Button>
+        <Tooltip title="Open the editor to change this rule before you approve it.">
+          <Button size="small" variant="outlined" color="primary" onClick={onEdit} aria-label={`Edit approved rule ${rule.rule_id}`}>Edit</Button>
+        </Tooltip>
         {promotedResult ? (
           <Typography variant="caption" color="success.main">
             Added {promotedResult.concepts_added} code{promotedResult.concepts_added !== 1 ? "s" : ""} to {promotedResult.domain_name}.
           </Typography>
         ) : (
-          <Button size="small" variant="outlined" color="info" disabled={promoteBusy} onClick={onPromote} aria-label={`Add rule ${rule.rule_id} medical codes to domain`}>
-            {promoteBusy ? "Adding..." : "Add to domain"}
-          </Button>
+          <Tooltip title="Copy this rule's medical codes into the linked audit domain.">
+            <span>
+              <Button size="small" variant="outlined" color="info" disabled={promoteBusy} onClick={onPromote} aria-label={`Add rule ${rule.rule_id} medical codes to domain`}>
+                {promoteBusy ? "Adding..." : "Add to domain"}
+              </Button>
+            </span>
+          </Tooltip>
         )}
       </Stack>
     </Box>
@@ -443,19 +477,36 @@ export function RuleAccordionCard({ rule, expanded, busy, index, statusFilter, c
   };
   const isBusy = busy === rule.rule_id;
   const accent = STATUS_ACCENT[statusFilter] ?? STATUS_ACCENT.pending_review;
+  const needsManualAuthoring =
+    rule.status === "pending_review" &&
+    (rule.generation_outcome === "extraction_failed" ||
+      rule.generation_outcome === "subgraph_unavailable");
 
   return (
     <fm.div
+      data-tour={index === 0 ? "cg-05-card" : undefined}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut", delay: Math.min(index, 20) * 0.04 }}
-      style={{ position: "relative", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, marginBottom: 8 }}
+      transition={{ duration: 0.15, ease: "easeOut", delay: Math.min(index, 6) * 0.04 }}
+      style={{
+        position: "relative",
+        background: "#FFFFFF",
+        border: needsManualAuthoring ? "1px dashed #F59E0B" : "1px solid #E2E8F0",
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 8,
+      }}
     >
       <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 14, bottom: 14, width: 3, borderRadius: 2, background: accent }} />
       <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ cursor: "pointer" }} onClick={cb.onToggle} role="button" aria-expanded={expanded} aria-label={`Toggle rule from ${rule.guideline_id}`}>
         {expanded ? <ExpandMoreIcon sx={{ color: "primary.main", mt: 0.3, flexShrink: 0, fontSize: 18 }} /> : <ChevronRightIcon sx={{ color: "text.disabled", mt: 0.3, flexShrink: 0, fontSize: 18 }} />}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <RuleCardHeader rule={rule} />
+          {needsManualAuthoring && (
+            <Typography variant="caption" sx={{ fontWeight: 700, color: "warning.dark", display: "block", mb: 0.5 }}>
+              Needs you to write this
+            </Typography>
+          )}
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem", fontStyle: "italic", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: expanded ? undefined : 2, WebkitBoxOrient: "vertical" }}>
             {rule.recommendation_text || rule.plain_english}
           </Typography>

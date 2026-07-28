@@ -71,7 +71,7 @@ function emptyCopy(poolId: RuleReviewPoolProps["poolId"]): { title: string; body
   if (poolId === "pending") {
     return {
       title: "No rules awaiting review",
-      body: "No rules match your search. Load a guideline and generate rules first.",
+      body: "Load a guideline above, then generate rules to start reviewing.",
     };
   }
   if (poolId === "excluded") {
@@ -289,7 +289,9 @@ export default function RuleReviewPool({
           {loading ? (
             <SkeletonList rows={3} itemHeight={72} data-testid={`${poolId}-pool-skeleton`} />
           ) : filteredRules.length === 0 ? (
-            <EmptyState icon={<HistoryOutlinedIcon fontSize="large" />} title={emptyTitle} body={emptyBody} />
+            <Box data-tour={poolId === "pending" ? "cg-05-card" : undefined}>
+              <EmptyState icon={<HistoryOutlinedIcon fontSize="large" />} title={emptyTitle} body={emptyBody} />
+            </Box>
           ) : (
             <>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>

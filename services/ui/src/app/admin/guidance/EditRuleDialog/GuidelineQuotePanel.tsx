@@ -302,6 +302,7 @@ export default function GuidelineQuotePanel({
     <Box
       role="region"
       aria-label="NICE guideline wording for this rule"
+      data-tour="er-02-quote"
       sx={{
         position: "sticky",
         top: 0,

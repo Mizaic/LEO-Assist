@@ -52,7 +52,7 @@
  */
 
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion as fm } from "framer-motion";
+import { AnimatePresence, motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -73,6 +73,9 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 
 import { useMotion } from "@leo/design-system";
+
+import CoachTour from "@/components/ui/CoachTour";
+import { EDIT_RULE_TOUR_STEPS } from "../guidanceTourSteps";
 
 import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
@@ -113,6 +116,7 @@ import {
   stripNodeIds,
   wrapRootInAnd,
 } from "./treeOps";
+import { liftSharedPathwayDemographics } from "./liftSharedPathwayDemographics";
 import { detectDemographicPhrase } from "./HighlightWizard/demographicPhraseMatch";
 import { findDuplicateConceptGroups } from "./namedSets";
 import { treeToSentence } from "./treeToSentence";
@@ -342,6 +346,7 @@ export default function EditRuleDialog({
   const [reason, setReason] = useState("");
   const [searchTarget, setSearchTarget] = useState<SearchTarget>(IDLE_TARGET);
   const [fullscreen, setFullscreen] = useState(false);
+  const [editTourActive, setEditTourActive] = useState(false);
   const [coach, setCoach] = useState<{
     nodeId: string;
     anchor: HTMLElement;
@@ -437,11 +442,16 @@ export default function EditRuleDialog({
     // pathway that predates this field (see the "Stable identity"
     // plan section / pathway-stable-key). Safe to run on every load --
     // a pathway that already has a key is left untouched.
+    // liftSharedPathwayDemographics: NG12 1.1.2 (and similar) store
+    // age inside every pathway AND; lift identical demographics to
+    // Always true so the wizard / Scenario model show one shared filter.
     const initialTree = ensurePathwayKeys(
-      wrapRootInAnd(
-        rule.logic_tree && typeof rule.logic_tree === "object"
-          ? assignNodeIds(rule.logic_tree as EditableLogicNode)
-          : assignNodeIds({ kind: "AND", children: [] }),
+      liftSharedPathwayDemographics(
+        wrapRootInAnd(
+          rule.logic_tree && typeof rule.logic_tree === "object"
+            ? assignNodeIds(rule.logic_tree as EditableLogicNode)
+            : assignNodeIds({ kind: "AND", children: [] }),
+        ),
       ),
     );
     setTree(initialTree);
@@ -1004,6 +1014,18 @@ export default function EditRuleDialog({
               </Typography>
             )}
           </Box>
+          {currentStepId === "who" && (
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => setEditTourActive(true)}
+              aria-label="Take the edit-rule tour"
+              data-testid="edit-rule-tour-trigger"
+              sx={{ textTransform: "none", mr: 0.5 }}
+            >
+              Guide me
+            </Button>
+          )}
           <Tooltip
             title={fullscreen ? "Shrink to a window" : "Use the full screen"}
           >
@@ -1022,17 +1044,27 @@ export default function EditRuleDialog({
               )}
             </IconButton>
           </Tooltip>
-          <IconButton
-            onClick={onClose}
-            size="small"
-            aria-label="Close without saving"
-            disabled={saving}
-            sx={{ color: "text.secondary" }}
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
+          <Tooltip title="Close and discard unsaved changes.">
+            <span>
+              <IconButton
+                onClick={onClose}
+                size="small"
+                aria-label="Close without saving"
+                disabled={saving}
+                sx={{ color: "text.secondary" }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
         </Stack>
       </DialogTitle>
+      <CoachTour
+        tourId="guidance-edit-rule"
+        steps={EDIT_RULE_TOUR_STEPS}
+        active={editTourActive && currentStepId === "who"}
+        onFinish={() => setEditTourActive(false)}
+      />
       <DialogContent
         dividers
         sx={{
@@ -1218,27 +1250,53 @@ export default function EditRuleDialog({
                 minHeight: 0,
               }}
             >
-              {currentStepId === "who" && guidedPanelMode === "quote" ? (
-                <GuidelineQuotePanel
-                  recommendationText={rule?.recommendation_text}
-                  tree={tree}
-                  pathwayBoundaries={activeSituation.boundaries}
-                  activePathwayIndex={activeSituation.pathwayIndex}
-                />
-              ) : (
-                <LivePreviewPane
-                  summary={summary}
-                  actions={actions}
-                  priority={priority}
-                  dueDays={dueDays}
-                  showBeforeAfter={currentStepId === "save"}
-                  beforeSummary={beforeSummary}
-                  beforeActions={originalActions}
-                  beforePriority={originalPriority}
-                  beforeDueDays={originalDueDays}
-                  recommendationText={rule?.recommendation_text}
-                />
-              )}
+              <AnimatePresence mode="wait">
+                {currentStepId === "who" && guidedPanelMode === "quote" ? (
+                  <fm.div
+                    key="quote"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={
+                      reducedMotion
+                        ? { duration: 0 }
+                        : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
+                    }
+                  >
+                    <GuidelineQuotePanel
+                      recommendationText={rule?.recommendation_text}
+                      tree={tree}
+                      pathwayBoundaries={activeSituation.boundaries}
+                      activePathwayIndex={activeSituation.pathwayIndex}
+                    />
+                  </fm.div>
+                ) : (
+                  <fm.div
+                    key="preview"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={
+                      reducedMotion
+                        ? { duration: 0 }
+                        : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
+                    }
+                  >
+                    <LivePreviewPane
+                      summary={summary}
+                      actions={actions}
+                      priority={priority}
+                      dueDays={dueDays}
+                      showBeforeAfter={currentStepId === "save"}
+                      beforeSummary={beforeSummary}
+                      beforeActions={originalActions}
+                      beforePriority={originalPriority}
+                      beforeDueDays={originalDueDays}
+                      recommendationText={rule?.recommendation_text}
+                    />
+                  </fm.div>
+                )}
+              </AnimatePresence>
             </Box>
           </Box>
         </Box>
@@ -1282,40 +1340,56 @@ export default function EditRuleDialog({
           gap: 1,
         }}
       >
-        <Button onClick={onClose} disabled={saving}>
-          Cancel
-        </Button>
+        <Tooltip title="Close without saving.">
+          <span>
+            <Button onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+          </span>
+        </Tooltip>
         <Box sx={{ flex: 1 }} />
         {saving && (
           <CircularProgress size={18} aria-label="Saving your changes" />
         )}
-        <Button
-          onClick={handleBack}
-          disabled={isFirstStep || saving}
-          startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-          aria-label="Go back to the previous step"
-        >
-          Back
-        </Button>
+        <Tooltip title="Go back to the previous editor step.">
+          <span>
+            <Button
+              onClick={handleBack}
+              disabled={isFirstStep || saving}
+              startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+              aria-label="Go back to the previous step"
+            >
+              Back
+            </Button>
+          </span>
+        </Tooltip>
         {!isLastStep && (
-          <Button
-            variant="outlined"
-            onClick={handleNext}
-            disabled={saving}
-            endIcon={<ArrowForwardRoundedIcon fontSize="small" />}
-            aria-label="Go to the next step"
-          >
-            Next
-          </Button>
+          <Tooltip title="Go to the next editor step.">
+            <span>
+              <Button
+                variant="outlined"
+                onClick={handleNext}
+                disabled={saving}
+                endIcon={<ArrowForwardRoundedIcon fontSize="small" />}
+                aria-label="Go to the next step"
+              >
+                Next
+              </Button>
+            </span>
+          </Tooltip>
         )}
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={!canSave}
-          aria-label="Save your changes"
-        >
-          {currentStepId === "save" ? "Approve and save" : "Save changes"}
-        </Button>
+        <Tooltip title="Save your change. Patients will not see it until you compile and make it live.">
+          <span>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={!canSave}
+              aria-label="Save your changes"
+            >
+              {currentStepId === "save" ? "Approve and save" : "Save changes"}
+            </Button>
+          </span>
+        </Tooltip>
       </DialogActions>
       {coach && tree && (() => {
         const node = findNode(tree, coach.nodeId);

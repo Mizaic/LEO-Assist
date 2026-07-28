@@ -38,34 +38,16 @@ import {
 } from "../SentenceEditor/pathwayTextSplit";
 import type { ListRowResolution } from "../SentenceEditor/ListRecommendationView";
 import type { TextMatchRange } from "../SentenceEditor/recommendationTextMatch";
-import { leafTextMatch } from "./leafTextMatch";
+import { leafTextMatch, leafTextMatches } from "./leafTextMatch";
+import {
+  leafResolvesRowText,
+  matchCoversClinicalRow,
+} from "./rowLeafResolve";
 
 /** Minimum token-overlap score before an AI/Advanced-editor leaf may
  *  auto-resolve a Step 3 row. Exact / source_row_text matches always
  *  win; weak fuzzy preferred-term hits must stay unresolved. */
 const MIN_ROW_AUTO_RESOLVE_SCORE = 0.85;
-
-/** Fraction of the ROW's own span a fuzzy match must cover before that
- *  leaf may auto-resolve it. Stops a short preferred-term hit (e.g.
- *  exact "weight" inside "weight loss", or "platelet count" inside a
- *  longer lead phrase) from silently marking the whole row matched. */
-const MIN_ROW_COVERAGE = 0.7;
-
-function matchCoversRowWell(
-  match: TextMatchRange,
-  row: RecommendationStructureItem,
-): boolean {
-  const rowLen = Math.max(1, row.end - row.start);
-  const overlap =
-    Math.min(match.end, row.end) - Math.max(match.start, row.start);
-  if (overlap / rowLen >= MIN_ROW_COVERAGE) return true;
-  // A full multi-word preferred-term hit nested inside a longer lead
-  // clause (e.g. "weight loss" inside "aged 55 or over with weight
-  // loss") is strong enough -- reject only single-token fragments
-  // that leave most of the row unmatched (e.g. "weight" vs "weight loss").
-  const tokens = (match.matchedText ?? "").trim().split(/\s+/).filter(Boolean);
-  return tokens.length >= 2 && overlap >= 10;
-}
 
 const LEAF_KINDS = new Set<LogicNodeKind>(["CONCEPT", "DEMOGRAPHIC", "OBSERVATION"]);
 
@@ -99,9 +81,17 @@ export function pathwayTextWindow(
   const nextStart = boundaries[index + 1]?.start;
   // Fall back to the structural end when textLength is unknown/0 so a
   // last-pathway window never collapses to an empty or inverted range.
+  let end = nextStart ?? Math.max(textLength, boundary.end);
+  // Shared quantifier lists (NG12 1.1.2) attach the same structure
+  // children to every heuristic situation, but the verbatim list only
+  // appears once after both leads. Extend this pathway's window so
+  // those child offsets stay resolvable for situation A as well as B.
+  for (const child of boundary.structureChildren ?? []) {
+    if (child.end > end) end = child.end;
+  }
   return {
     start: boundary.start,
-    end: nextStart ?? Math.max(textLength, boundary.end),
+    end,
   };
 }
 
@@ -210,19 +200,29 @@ function rangesOverlap(
  * text would find C's earlier occurrence first, so D's own row would
  * never resolve even after the reviewer picked a concept for it.
  */
+function leafTextMatchesInWindow(
+  recommendationText: string | null | undefined,
+  node: EditableLogicNode,
+  window: { start: number; end: number } | undefined,
+): TextMatchRange[] {
+  if (!recommendationText) return [];
+  if (!window) return leafTextMatches(recommendationText, node);
+  return leafTextMatches(
+    recommendationText.slice(window.start, window.end),
+    node,
+  ).map((match) => ({
+    ...match,
+    start: match.start + window.start,
+    end: match.end + window.start,
+  }));
+}
+
 function leafTextMatchInWindow(
   recommendationText: string | null | undefined,
   node: EditableLogicNode,
   window: { start: number; end: number } | undefined,
 ): TextMatchRange | null {
-  if (!window || !recommendationText) return leafTextMatch(recommendationText, node);
-  const windowed = leafTextMatch(recommendationText.slice(window.start, window.end), node);
-  if (!windowed) return null;
-  return {
-    ...windowed,
-    start: windowed.start + window.start,
-    end: windowed.end + window.start,
-  };
+  return leafTextMatchesInWindow(recommendationText, node, window)[0] ?? null;
 }
 
 /**
@@ -274,25 +274,38 @@ export function buildRowResolver(
   // leaves from before this field existed, and leaves authored via
   // the Advanced/Sentence editor, neither of which carry provenance.
   // Reject weak overlaps so a preferred term that only covers half a
-  // row cannot silently mark that row "matched".
-  const fuzzyMatches = leaves
-    .map((node) => ({
-      node,
-      match: leafTextMatchInWindow(recommendationText, node, textWindow),
-    }))
-    .filter(
-      (entry): entry is { node: EditableLogicNode; match: TextMatchRange } =>
-        !!entry.match &&
-        (entry.match.strategy === "exact" ||
-          entry.match.score >= MIN_ROW_AUTO_RESOLVE_SCORE),
-    );
+  // row cannot silently mark that row "matched". Consider every
+  // criterion candidate match (not only the first) so a strong
+  // surface-form hit is not hidden behind a weaker preferred_term.
+  const fuzzyMatches = leaves.flatMap((node) =>
+    leafTextMatchesInWindow(recommendationText, node, textWindow)
+      .filter(
+        (match) =>
+          match.strategy === "exact" ||
+          match.score >= MIN_ROW_AUTO_RESOLVE_SCORE,
+      )
+      .map((match) => ({ node, match })),
+  );
 
   return (row) => {
     const exact = byRowText.get(row.text);
     if (exact) return resolutionFor(exact);
+    // Direct row wording is safe even across duplicate phrases because
+    // each pathway's resolver only sees that pathway's own leaves.
+    // Still require the row to sit in this pathway's text window when
+    // one is supplied, so situation A's resolver cannot claim situation
+    // B's later list rows when those offsets were not shared.
+    const rowInWindow =
+      !textWindow || rangesOverlap(row, textWindow);
+    const byRowWording =
+      rowInWindow
+        ? leaves.find((node) => leafResolvesRowText(node, row))
+        : undefined;
+    if (byRowWording) return resolutionFor(byRowWording);
     const hit = fuzzyMatches.find(
       (entry) =>
-        rangesOverlap(entry.match, row) && matchCoversRowWell(entry.match, row),
+        rangesOverlap(entry.match, row) &&
+        matchCoversClinicalRow(entry.match, row),
     );
     return hit ? resolutionFor(hit.node) : undefined;
   };
@@ -690,10 +703,15 @@ export function buildPathwayRows(boundary: PathwayTextBoundary): PathwayRows {
       ? leadClusterRows[leadClusterRows.length - 1].end - boundary.start
       : 0;
 
+  // Prefer structureChildren whenever present -- including heuristic
+  // pathways that received a shared quantifier list from
+  // `splitPathways` (NG12 1.1.2). Live NICE verbatim often omits commas
+  // between symptoms, so locating items in flat text alone fails.
   const clusterRows =
-    boundary.source === "structure" && boundary.structureChildren
+    boundary.structureChildren && boundary.structureChildren.length > 0
       ? boundary.structureChildren
-      : locateItemsFrom(boundary.text, boundary.start, cluster.items, trailingSearchStart).rows;
+      : locateItemsFrom(boundary.text, boundary.start, cluster.items, trailingSearchStart)
+          .rows;
 
   if (!cluster.leadText) {
     return {

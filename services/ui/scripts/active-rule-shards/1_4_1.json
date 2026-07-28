@@ -1,0 +1,173 @@
+{
+  "name": "Rule: 1.4.1",
+  "rule_id": "rule:NG12:v1:CH002:SEC003:R000:12c9def5:edit:1e9509ee",
+  "title": "1.4.1",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.4.1 Refer people using a suspected cancer pathway referral for breast cancer if they are: aged 30 and over and have an unexplained breast lump with or without pain, or aged 50 and over with any of the following symptoms in 1 nipple only: discharge retraction other changes of concern. [2015]",
+  "recommendation_structure": {
+    "lead_text": "Refer people using a suspected cancer pathway referral for breast cancer if they are:",
+    "items": [
+      {
+        "text": "aged 30 and over and have an unexplained breast lump with or without pain",
+        "start": 92,
+        "end": 165
+      },
+      {
+        "text": "aged 50 and over with any of the following symptoms in 1 nipple only:",
+        "children": [
+          {
+            "text": "discharge",
+            "start": 240,
+            "end": 249
+          },
+          {
+            "text": "retraction",
+            "start": 250,
+            "end": 260
+          },
+          {
+            "text": "other changes of concern. [2015]",
+            "start": 261,
+            "end": 293
+          }
+        ],
+        "start": 170,
+        "end": 239
+      }
+    ]
+  },
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "AND",
+        "pathway_key": "pw_ms35y5ig_8",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 30.0,
+            "unit": "years"
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "89164003",
+              "preferred_term": "Breast lump (finding)",
+              "semantic_tag": "finding",
+              "term": "breast lump",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "",
+              "confidence": 1.0,
+              "needs_human_review": false
+            }
+          }
+        ]
+      },
+      {
+        "kind": "AND",
+        "pathway_key": "pw_ms35y5ig_9",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 50.0,
+            "unit": "years"
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "12265581000119109",
+              "preferred_term": "Retraction of bilateral nipples (finding)",
+              "semantic_tag": "finding",
+              "term": "unilateral nipple symptoms",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "",
+              "confidence": 0.9975,
+              "needs_human_review": false
+            }
+          },
+          {
+            "kind": "AT_LEAST",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "162164007",
+                  "preferred_term": "Nipple discharge symptom (finding)",
+                  "semantic_tag": "finding",
+                  "term": "",
+                  "seeds": [
+                    {
+                      "snomed_concept_id": "162164007",
+                      "preferred_term": "Nipple discharge symptom (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    }
+                  ],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "162164007",
+                  "needs_human_review": false
+                },
+                "source_row_text": "discharge"
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "15953221000119100",
+                  "preferred_term": "Retraction of left nipple (finding)",
+                  "semantic_tag": "finding",
+                  "term": "",
+                  "seeds": [
+                    {
+                      "snomed_concept_id": "15953221000119100",
+                      "preferred_term": "Retraction of left nipple (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    },
+                    {
+                      "snomed_concept_id": "15953181000119108",
+                      "preferred_term": "Retraction of right nipple (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    }
+                  ],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "15953221000119100",
+                  "needs_human_review": false
+                },
+                "source_row_text": "retraction"
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "275258002",
+                  "preferred_term": "Breast changes (finding)",
+                  "semantic_tag": "finding",
+                  "term": "",
+                  "seeds": [
+                    {
+                      "snomed_concept_id": "275258002",
+                      "preferred_term": "Breast changes (finding)",
+                      "semantic_tag": "finding",
+                      "include_descendants": false
+                    }
+                  ],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": "275258002",
+                  "needs_human_review": false
+                },
+                "source_row_text": "other changes of concern. [2015]"
+              }
+            ],
+            "min": 1
+          }
+        ]
+      }
+    ]
+  }
+}

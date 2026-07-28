@@ -23,6 +23,8 @@ export interface ToolbarAction {
   variant?: "primary" | "secondary" | "ghost";
   disabled?: boolean;
   loading?: boolean;
+  /** Native hover help (no MUI dependency in the design system). */
+  title?: string;
 }
 
 export interface ToolbarActionsProps {
@@ -88,6 +90,7 @@ export function ToolbarActions({
             type="button"
             onClick={a.onClick}
             disabled={isDisabled}
+            title={a.title}
             data-testid={"toolbar-action-" + a.id}
             style={{
               appearance: "none",

@@ -198,6 +198,47 @@ function splitAtMarker(cleaned: string): { leadText: string; listText: string } 
 }
 
 /**
+ * Same as `AT_LEAST_MARKER_RE` but the trailing colon is optional.
+ * Used when a shared structure list supplies the items (NG12 1.1.2
+ * situation A ends at "...2 or more of the following unexplained
+ * symptoms," with the colon / list living only on situation B).
+ */
+const AT_LEAST_MARKER_RELAXED_RE =
+  /\b(?:with\s+)?(?:any|(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+or\s+more)?)\s+of\s+the\s+following\b(?:\s+\w+){0,4}/i;
+
+function splitAtMarkerRelaxed(
+  cleaned: string,
+): { leadText: string; listText: string } | null {
+  const match = AT_LEAST_MARKER_RELAXED_RE.exec(cleaned);
+  if (!match) return null;
+  const leadText = cleaned.slice(0, match.index).trim().replace(/[,;]+$/, "").trim();
+  const after = cleaned.slice(match.index + match[0].length).replace(/^:\s*/, "");
+  const listText = stripTrailingCitation(after);
+  return { leadText, listText };
+}
+
+/**
+ * Keep only a short clinical lead (e.g. "indigestion") ahead of an
+ * AT_LEAST list. Drop long recommendation prose ("Offer an urgent...
+ * if they have") so NG12 1.1.2 situation A does not invent a fake
+ * unresolved lead row when the shared symptom list was attached from
+ * structureChildren.
+ */
+function keepAsClusterLead(leadText: string): string {
+  const trimmed = leadText.trim();
+  if (!trimmed) return "";
+  if (looksLikeLeadOrCluster(trimmed)) return trimmed;
+  if (
+    trimmed.length <= 48 &&
+    trimmed.split(/\s+/).length <= 5 &&
+    !/\b(people|aged?|offer|consider|refer|assess)\b/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+  return "";
+}
+
+/**
  * Builds the final `AtLeastClusterSplit`, detecting a lead-or cluster in
  * `leadText` (if any) and clearing `leadText` when one is found, since
  * `looksLikeLeadOrCluster` only matches when the whole lead-in is
@@ -205,9 +246,10 @@ function splitAtMarker(cleaned: string): { leadText: string; listText: string } 
  */
 function buildClusterSplit(leadText: string, items: string[]): AtLeastClusterSplit | null {
   if (items.length === 0) return null;
-  const leadCluster = looksLikeLeadOrCluster(leadText);
+  const usableLead = keepAsClusterLead(leadText);
+  const leadCluster = looksLikeLeadOrCluster(usableLead);
   return {
-    leadText: leadCluster ? "" : leadText,
+    leadText: leadCluster ? "" : usableLead,
     items,
     ...(leadCluster ? { leadCluster } : {}),
   };
@@ -253,15 +295,22 @@ export function detectAtLeastCluster(
 export function resolveAtLeastCluster(
   boundary: Pick<PathwayTextBoundary, "text" | "source" | "structureChildren">,
 ): AtLeastClusterSplit | null {
-  if (boundary.source === "structure") {
-    const children = boundary.structureChildren ?? [];
+  const children = boundary.structureChildren ?? [];
+  if (children.length > 0) {
+    // Prefer nested / shared structure items over re-parsing the flat
+    // text. Heuristic pathways for NG12 1.1.2 also carry the shared
+    // symptom `<ul>` here (see `splitPathways`), even though
+    // `source === "heuristic"`.
     const items = children
-      .map((c, i) => (i === children.length - 1 ? stripTrailingCitation(c.text) : c.text.trim()))
+      .map((c, i) =>
+        i === children.length - 1 ? stripTrailingCitation(c.text) : c.text.trim(),
+      )
       .filter((t) => t.length > 0);
     if (items.length === 0) return null;
 
-    const split = splitAtMarker(boundary.text.trim());
-    const leadText = split ? split.leadText : boundary.text.trim();
+    const cleaned = cleanPathwayText(boundary.text);
+    const split = splitAtMarker(cleaned) ?? splitAtMarkerRelaxed(cleaned);
+    const leadText = split ? split.leadText : cleaned;
     return buildClusterSplit(leadText, items);
   }
   return detectAtLeastCluster(boundary.text);

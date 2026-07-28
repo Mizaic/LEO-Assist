@@ -114,14 +114,12 @@ describe("buildRowResolver", () => {
   });
 
   // Regression: two pathways sharing identical wording (e.g. NG12
-  // 1.2.9's pathway C and pathway D both list "nausea"). Without a
-  // textWindow, findBestTextMatch's exactMatch always returns the
-  // FIRST occurrence in the whole document -- so a leaf that truly
-  // belongs to the SECOND pathway's own text would incorrectly
-  // resolve to the first pathway's earlier occurrence, leaving the
-  // second pathway's own row permanently unresolved even after the
-  // reviewer picked a concept for it.
-  it("scopes the match to textWindow so a later pathway's leaf does not resolve to an earlier pathway's identical wording", () => {
+  // 1.2.9's pathway C and pathway D both list "nausea"). Direct
+  // row-wording resolution claims the row from the leaf's own term
+  // without needing quote-panel offsets. Fuzzy span matching still
+  // stays window-scoped so a leaf that only shares weak tokens with
+  // the row cannot latch onto an earlier pathway's identical word.
+  it("resolves a later pathway's identical wording via the leaf term, and scopes weak fuzzy matches to textWindow", () => {
     const DUP_TEXT =
       "raised platelet count with nausea, or vomiting with nausea and reflux.";
     const firstNausea = DUP_TEXT.indexOf("nausea");
@@ -134,24 +132,23 @@ describe("buildRowResolver", () => {
       criterion: { snomed_concept_id: "n1", preferred_term: "Nausea" },
     };
     const pathwayD = pathwayNode([nauseaLeaf]);
-    // Pathway D's own text window starts right after pathway C ends
-    // (at the ", or " boundary), so it only spans the SECOND
-    // occurrence of "nausea".
-    const pathwayDWindow = { start: secondNausea - "vomiting with ".length, end: DUP_TEXT.length };
+    const pathwayDWindow = {
+      start: secondNausea - "vomiting with ".length,
+      end: DUP_TEXT.length,
+    };
 
-    const unscoped = buildRowResolver(pathwayD, DUP_TEXT);
     const rowAtSecondOccurrence: RecommendationStructureItem = {
       text: "nausea",
       start: secondNausea,
       end: secondNausea + "nausea".length,
     };
-    // Without windowing, the resolver anchors "Nausea" onto the FIRST
-    // occurrence (pathway C's), so pathway D's own row does not
-    // overlap it and stays unresolved -- this is the bug.
-    expect(unscoped(rowAtSecondOccurrence)).toBeUndefined();
-
-    const windowed = buildRowResolver(pathwayD, DUP_TEXT, pathwayDWindow);
-    expect(windowed(rowAtSecondOccurrence)?.nodeId).toBe("nausea-d");
+    expect(buildRowResolver(pathwayD, DUP_TEXT)(rowAtSecondOccurrence)?.nodeId).toBe(
+      "nausea-d",
+    );
+    expect(
+      buildRowResolver(pathwayD, DUP_TEXT, pathwayDWindow)(rowAtSecondOccurrence)
+        ?.nodeId,
+    ).toBe("nausea-d");
   });
 
   // Regression: "I select a code and nothing happens." A reviewer
@@ -485,6 +482,23 @@ describe("pathwayTextWindow", () => {
     ];
     expect(pathwayTextWindow(boundaries, 0, 120)).toEqual({ start: 0, end: 120 });
     expect(pathwayTextWindow(boundaries, 1, 120)).toEqual({ start: 0, end: 120 });
+  });
+
+  it("extends a heuristic window to cover shared structureChildren past the next lead", () => {
+    const boundaries: PathwayTextBoundary[] = [
+      {
+        start: 0,
+        end: 40,
+        text: "2 or more symptoms",
+        source: "heuristic",
+        structureChildren: [
+          { text: "cough", start: 80, end: 85 },
+          { text: "fatigue", start: 86, end: 93 },
+        ],
+      },
+      { start: 40, end: 70, text: "ever smoked", source: "heuristic" },
+    ];
+    expect(pathwayTextWindow(boundaries, 0, 100)).toEqual({ start: 0, end: 93 });
   });
 });
 

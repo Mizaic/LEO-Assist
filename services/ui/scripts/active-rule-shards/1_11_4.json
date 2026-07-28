@@ -1,0 +1,76 @@
+{
+  "name": "Rule: 1.11.4",
+  "rule_id": "rule:NG12:v1:CH002:SEC010:R003:3f1ab81e:edit:98473028",
+  "title": "1.11.4",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.11.4 Consider an urgent , direct access ultrasound scan to assess for soft tissue sarcoma in adults with an unexplained lump that is increasing in size. [2015]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "424952003",
+          "preferred_term": "Sarcoma of soft tissue (disorder)",
+          "semantic_tag": "disorder",
+          "term": "",
+          "seeds": [
+            {
+              "snomed_concept_id": "424952003",
+              "preferred_term": "Sarcoma of soft tissue (disorder)",
+              "semantic_tag": "disorder",
+              "include_descendants": false
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "424952003",
+          "needs_human_review": false
+        },
+        "source_row_text": "sarcoma"
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "792887000",
+          "preferred_term": "Soft lump of breast (finding)",
+          "semantic_tag": "finding",
+          "term": "",
+          "seeds": [
+            {
+              "snomed_concept_id": "792887000",
+              "preferred_term": "Soft lump of breast (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "792887000",
+          "needs_human_review": false
+        },
+        "source_row_text": "increasing"
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "163483001",
+          "preferred_term": "On examination - breast lump soft (finding)",
+          "semantic_tag": "finding",
+          "term": "",
+          "seeds": [
+            {
+              "snomed_concept_id": "163483001",
+              "preferred_term": "On examination - breast lump soft (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "163483001",
+          "needs_human_review": false
+        },
+        "source_row_text": "lump"
+      }
+    ]
+  }
+}

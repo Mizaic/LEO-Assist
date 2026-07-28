@@ -1,0 +1,104 @@
+{
+  "name": "Rule: 1.1.1",
+  "rule_id": "rule:NG12:v1:CH002:SEC000:R000:0955f3b5:edit:67af2fe6",
+  "title": "1.1.1",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.1.1 Refer people using a suspected cancer pathway referral for lung cancer if they: have chest X‑ray findings that suggest lung cancer, or are aged 40 and over with unexplained haemoptysis. [2015]",
+  "recommendation_structure": {
+    "lead_text": "Refer people using a suspected cancer pathway referral for lung cancer if they:",
+    "items": [
+      {
+        "text": "have chest X‑ray findings that suggest lung cancer",
+        "start": 86,
+        "end": 136
+      },
+      {
+        "text": "are aged 40 and over with unexplained haemoptysis. [2015]",
+        "start": 141,
+        "end": 198
+      }
+    ]
+  },
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "pathway_key": "pw_ms37bxjo_13",
+        "criterion": {
+          "snomed_concept_id": "309529002",
+          "preferred_term": "Lung mass (finding)",
+          "semantic_tag": "finding",
+          "term": "chest X-ray findings suggestive of lung cancer",
+          "seeds": [
+            {
+              "snomed_concept_id": "309529002",
+              "preferred_term": "Lung mass (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": true,
+              "distance_child": 1
+            },
+            {
+              "snomed_concept_id": "1290960005",
+              "preferred_term": "Plain X-ray of chest abnormal (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "309529002",
+          "confidence": 0.95,
+          "needs_human_review": false
+        }
+      },
+      {
+        "kind": "AND",
+        "pathway_key": "pw_ms37bxjo_14",
+        "children": [
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "66857006",
+              "preferred_term": "Hemoptysis (finding)",
+              "semantic_tag": "finding",
+              "term": "haemoptysis",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "",
+              "confidence": 1.0,
+              "needs_human_review": false
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "66857006",
+              "preferred_term": "Hemoptysis (finding)",
+              "semantic_tag": "finding",
+              "term": "",
+              "seeds": [
+                {
+                  "snomed_concept_id": "66857006",
+                  "preferred_term": "Hemoptysis (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": false
+                }
+              ],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "66857006",
+              "needs_human_review": false
+            },
+            "source_row_text": "are aged 40 and over with unexplained haemoptysis. [2015]"
+          },
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 40.0,
+            "unit": "years"
+          }
+        ]
+      }
+    ]
+  }
+}

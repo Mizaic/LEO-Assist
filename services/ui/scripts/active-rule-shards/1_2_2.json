@@ -1,0 +1,27 @@
+{
+  "name": "Rule: 1.2.2",
+  "rule_id": "rule:NG12:v1:CH002:SEC001:R001:8ae03154:edit:a529b764:edit:4fdd3126",
+  "title": "1.2.2",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.2.2 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people with haematemesis. [2015]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "8765009",
+          "preferred_term": "Hematemesis (disorder)",
+          "semantic_tag": "disorder",
+          "term": "haematemesis",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "",
+          "confidence": 1.0,
+          "needs_human_review": false
+        }
+      }
+    ]
+  }
+}

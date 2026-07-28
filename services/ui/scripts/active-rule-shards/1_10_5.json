@@ -1,0 +1,87 @@
+{
+  "name": "Rule: 1.10.5",
+  "rule_id": "rule:NG12:v1:CH002:SEC009:R004:0cde7dd0:edit:c938ae8e",
+  "title": "1.10.5",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.10.5 Refer people using a suspected cancer pathway referral if the results of the blood tests outlined in recommendation 1.10.4 suggest myeloma. [2015, amended 2025]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "151271000119102",
+          "preferred_term": "Abnormal blood test (finding)",
+          "semantic_tag": "finding",
+          "term": "Abnormal blood test (finding)",
+          "seeds": [
+            {
+              "snomed_concept_id": "151271000119102",
+              "preferred_term": "Abnormal blood test (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "165397008",
+              "preferred_term": "Hemoglobin below reference range (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "165414004",
+              "preferred_term": "Hematocrit below reference range (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "1187258003",
+              "preferred_term": "Serum calcium below reference range (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "165461003",
+              "preferred_term": "Plasma viscosity above reference range (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "165468009",
+              "preferred_term": "Erythrocyte sedimentation rate above reference range (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "414765004",
+              "preferred_term": "Monoclonal free lambda light chain detected (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "414764000",
+              "preferred_term": "Monoclonal free kappa light chain detected (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "414766003",
+              "preferred_term": "Monoclonal free light chain detected (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            },
+            {
+              "snomed_concept_id": "41000112104",
+              "preferred_term": "Free immunoglobulin light chain above reference range (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": false
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "151271000119102",
+          "needs_human_review": false
+        }
+      }
+    ]
+  }
+}

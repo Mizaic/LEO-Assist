@@ -29,6 +29,7 @@
  * No heavy NLP dependency -- both passes are plain string/array ops, safe
  * to run on every keystroke or render.
  */
+import { friendlyTerm } from "../copy";
 
 export type TextMatchStrategy = "exact" | "token-overlap";
 
@@ -94,7 +95,13 @@ function tokenize(text: string): Token[] {
 }
 
 function normaliseForCompare(s: string): string {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
+  // NICE HTML often uses non-breaking hyphens (U+2011) in "X-ray";
+  // collapse common dash codepoints so exact match still works.
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/\s+/g, " ");
 }
 
 /**
@@ -114,7 +121,8 @@ function exactMatch(text: string, candidate: string): TextMatchRange | null {
   const offsets: number[] = [];
   let lastWasSpace = true; // treat leading whitespace as already-collapsed
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
+    const raw = text[i];
+    const ch = /[\u2010-\u2015\u2212]/.test(raw) ? "-" : raw;
     const isSpace = /\s/.test(ch);
     if (isSpace) {
       if (lastWasSpace) continue;
@@ -237,12 +245,8 @@ export function findBestTextMatchForCriterion(
   criterion: { preferred_term?: string; term?: string } | null | undefined,
 ): TextMatchRange | null {
   if (!criterion) return null;
-  const byPreferred = findBestTextMatch(
-    recommendationText,
-    criterion.preferred_term,
-  );
-  if (byPreferred) return byPreferred;
-  return findBestTextMatch(recommendationText, criterion.term);
+  const matches = findAllTextMatchesForCriterion(recommendationText, criterion);
+  return matches[0] ?? null;
 }
 
 /**
@@ -268,22 +272,40 @@ export function findAllTextMatchesForCriterion(
     | undefined,
 ): TextMatchRange[] {
   if (!recommendationText || !criterion) return [];
-  const candidates = [
-    criterion.preferred_term,
+  // Prefer the AI surface `term` (often the guideline's own words) and
+  // a tag-stripped preferred_term ("Cough (finding)" -> "Cough") before
+  // the raw SNOMED label, so weak "(finding)" token noise cannot beat
+  // an exact surface-form hit on the same span.
+  const rawCandidates = [
     criterion.term,
+    criterion.preferred_term,
     ...(criterion.seeds ?? []).map((seed) => seed.preferred_term),
   ].filter((c): c is string => Boolean(c && c.trim()));
+  const candidates: string[] = [];
+  for (const raw of rawCandidates) {
+    const friendly = friendlyTerm(raw);
+    if (friendly) candidates.push(friendly);
+    if (raw.trim() && raw.trim() !== friendly) candidates.push(raw.trim());
+  }
 
   const matches: TextMatchRange[] = [];
   for (const candidate of candidates) {
     const match = findBestTextMatch(recommendationText, candidate);
     if (!match) continue;
-    const overlapsExisting = matches.some(
+    const overlapIdx = matches.findIndex(
       (existing) => match.start < existing.end && match.end > existing.start,
     );
-    if (!overlapsExisting) matches.push(match);
+    if (overlapIdx < 0) {
+      matches.push(match);
+      continue;
+    }
+    // Same span from a weaker preferred_term must not block a stronger
+    // exact `term` hit (e.g. "Cough (finding)" score 0.75 vs "cough" 1.0).
+    if (match.score > matches[overlapIdx].score) {
+      matches[overlapIdx] = match;
+    }
   }
-  return matches;
+  return matches.sort((a, b) => b.score - a.score || a.start - b.start);
 }
 
 /**

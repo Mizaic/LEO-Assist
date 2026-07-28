@@ -1,0 +1,118 @@
+{
+  "name": "Rule: 1.4.2",
+  "rule_id": "rule:NG12:v1:CH002:SEC003:R001:47551c6e:edit:a1be2871:edit:e6433b22",
+  "title": "1.4.2",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.4.2 Consider a suspected cancer pathway referral for breast cancer in people: with skin changes that suggest breast cancer, or aged 30 and over with an unexplained lump in the axilla. [2015]",
+  "recommendation_structure": {
+    "lead_text": "Consider a suspected cancer pathway referral for breast cancer in people:",
+    "items": [
+      {
+        "text": "with skin changes that suggest breast cancer",
+        "start": 80,
+        "end": 124
+      },
+      {
+        "text": "aged 30 and over with an unexplained lump in the axilla. [2015]",
+        "start": 129,
+        "end": 192
+      }
+    ]
+  },
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "AND",
+        "pathway_key": "pw_ms36so7a_11",
+        "children": [
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "87386002",
+              "preferred_term": "Peau d'orange surface of breast (disorder)",
+              "semantic_tag": "disorder",
+              "term": "",
+              "seeds": [
+                {
+                  "snomed_concept_id": "87386002",
+                  "preferred_term": "Peau d'orange surface of breast (disorder)",
+                  "semantic_tag": "disorder",
+                  "include_descendants": false
+                },
+                {
+                  "snomed_concept_id": "247441003",
+                  "preferred_term": "Erythema (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": false
+                },
+                {
+                  "snomed_concept_id": "203941000000104",
+                  "preferred_term": "Skin thickening of breast (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": false
+                },
+                {
+                  "snomed_concept_id": "248816004",
+                  "preferred_term": "Dimpling of surface of breast (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": false
+                },
+                {
+                  "snomed_concept_id": "163491005",
+                  "preferred_term": "On examination - breast lump tethering (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": false
+                },
+                {
+                  "snomed_concept_id": "248818003",
+                  "preferred_term": "Ulceration of breast (disorder)",
+                  "semantic_tag": "disorder",
+                  "include_descendants": false
+                }
+              ],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "87386002",
+              "needs_human_review": false
+            },
+            "source_row_text": "with skin changes that suggest breast cancer"
+          }
+        ]
+      },
+      {
+        "kind": "AND",
+        "pathway_key": "pw_ms36so7a_12",
+        "children": [
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "300863000",
+              "preferred_term": "Mass of axilla (finding)",
+              "semantic_tag": "finding",
+              "term": "",
+              "seeds": [
+                {
+                  "snomed_concept_id": "300863000",
+                  "preferred_term": "Mass of axilla (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": false
+                }
+              ],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "300863000",
+              "needs_human_review": false
+            },
+            "source_row_text": "aged 30 and over with an unexplained lump in the axilla. [2015]"
+          },
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": "30",
+            "unit": "years"
+          }
+        ]
+      }
+    ]
+  }
+}

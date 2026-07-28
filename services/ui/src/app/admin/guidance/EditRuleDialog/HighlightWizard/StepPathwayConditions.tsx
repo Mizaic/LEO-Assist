@@ -34,6 +34,7 @@ import Button from "@mui/material/Button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import DemographicRow from "../LogicTreeEditor/DemographicRow";
@@ -46,7 +47,7 @@ import type {
 } from "../SentenceEditor/pathwayTextSplit";
 import type { ValidationIssue } from "../treeOps";
 import type { EditableLogicNode, LogicCriterion, NodeUpdate } from "../types";
-import { STEP_PATHWAY_CONDITIONS } from "./copy";
+import { STEP_PATHWAY_CONDITIONS, WIZARD_TOOLTIPS } from "./copy";
 import PathwayDemographicsPanel, {
   type PathwayDemographicField,
 } from "./PathwayDemographicsPanel";
@@ -209,7 +210,7 @@ export default function StepPathwayConditions({
         : null);
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} data-tour="er-05-conditions">
       <Box>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           {STEP_PATHWAY_CONDITIONS.situationProgress(
@@ -301,14 +302,18 @@ export default function StepPathwayConditions({
             {blockedReason}
           </Typography>
         )}
-        <Button
-          variant="contained"
-          size="small"
-          disabled={!!blockedReason}
-          onClick={onConfirmPathway}
-        >
-          {STEP_PATHWAY_CONDITIONS.confirmLabel(pathwayLetter, nextPathwayLetter)}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.confirmSituation}>
+          <span>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={!!blockedReason}
+              onClick={onConfirmPathway}
+            >
+              {STEP_PATHWAY_CONDITIONS.confirmLabel(pathwayLetter, nextPathwayLetter)}
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
     </Stack>
   );
@@ -330,12 +335,16 @@ function CopyAcrossBanner({
       aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossAriaLabel}
       action={
         <Stack direction="row" spacing={1} sx={{ pt: 0.25 }}>
-          <Button size="small" variant="contained" onClick={onAccept}>
-            {STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
-          </Button>
-          <Button size="small" onClick={onDismiss}>
-            {STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
-          </Button>
+          <Tooltip title={WIZARD_TOOLTIPS.copyAcross}>
+            <Button size="small" variant="contained" onClick={onAccept}>
+              {STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
+            </Button>
+          </Tooltip>
+          <Tooltip title={WIZARD_TOOLTIPS.dismissCopy}>
+            <Button size="small" onClick={onDismiss}>
+              {STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
+            </Button>
+          </Tooltip>
         </Stack>
       }
     >
@@ -398,9 +407,11 @@ function ClusterGroupingChoice({
             ? STEP_PATHWAY_CONDITIONS.groupingConfirmedOnlyOne
             : STEP_PATHWAY_CONDITIONS.groupingConfirmedAll}
         </Typography>
-        <Button size="small" onClick={() => onChoose?.(grouping === "AT_LEAST" ? "AND" : "AT_LEAST")}>
-          {STEP_PATHWAY_CONDITIONS.changeLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.changeGrouping}>
+          <Button size="small" onClick={() => onChoose?.(grouping === "AT_LEAST" ? "AND" : "AT_LEAST")}>
+            {STEP_PATHWAY_CONDITIONS.changeLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     );
   }
@@ -410,12 +421,16 @@ function ClusterGroupingChoice({
         {prompt}
       </Typography>
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-        <Button variant="contained" size="small" onClick={() => onChoose?.("AT_LEAST")}>
-          {STEP_PATHWAY_CONDITIONS.onlyOneLabel}
-        </Button>
-        <Button variant="outlined" size="small" onClick={() => onChoose?.("AND")}>
-          {STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.onlyOne}>
+          <Button variant="contained" size="small" onClick={() => onChoose?.("AT_LEAST")}>
+            {STEP_PATHWAY_CONDITIONS.onlyOneLabel}
+          </Button>
+        </Tooltip>
+        <Tooltip title={WIZARD_TOOLTIPS.allMustMatch}>
+          <Button variant="outlined" size="small" onClick={() => onChoose?.("AND")}>
+            {STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     </Box>
   );

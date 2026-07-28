@@ -1,0 +1,34 @@
+{
+  "name": "Rule: 1.2.4",
+  "rule_id": "rule:NG12:v1:CH002:SEC001:R003:1da2ce19:edit:2d978edd",
+  "title": "1.2.4",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.2.4 Refer people using a suspected cancer pathway referral for pancreatic cancer if they are aged 40 and over and have jaundice. [2015]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "DEMOGRAPHIC",
+        "field": "age",
+        "operator": ">=",
+        "value": 40.0,
+        "unit": "years"
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "18165001",
+          "preferred_term": "Jaundice (finding)",
+          "semantic_tag": "finding",
+          "term": "jaundice",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "",
+          "confidence": 1.0,
+          "needs_human_review": false
+        }
+      }
+    ]
+  }
+}
