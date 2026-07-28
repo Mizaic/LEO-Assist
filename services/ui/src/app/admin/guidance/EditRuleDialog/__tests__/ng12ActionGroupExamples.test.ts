@@ -122,25 +122,27 @@ describe("NG12 1.13.2 / 1.13.3 / 1.13.4 -- NSS three-way either/or actions", () 
     groupId: string,
     strength: string,
   ): RuleAction[] {
+    // Referral arms use real FTR concepts (term starts with
+    // "Fast track referral"). Urgent investigation uses CT abdomen/pelvis.
     return [
-      action("183654001", "Urgent investigation", strength, {
-        group_id: groupId,
-        group_mode: "any",
-        group_rank: 0,
-      }),
       action(
-        "276581000000102",
-        "Fast track referral for suspected cancer",
+        "419394006",
+        "Computed tomography of abdomen and pelvis",
         strength,
         {
           group_id: groupId,
           group_mode: "any",
-          group_rank: 1,
+          group_rank: 0,
         },
       ),
+      action("38661000000100", "Fast track referral", strength, {
+        group_id: groupId,
+        group_mode: "any",
+        group_rank: 1,
+      }),
       action(
-        "183519002",
-        "Referral for non-specific symptoms assessment",
+        "1556551000000104",
+        "Fast track referral for suspected cancer due to non-site-specific symptoms",
         strength,
         {
           group_id: groupId,
@@ -165,10 +167,10 @@ describe("NG12 1.13.2 / 1.13.3 / 1.13.4 -- NSS three-way either/or actions", () 
       expect(groups[0].indices).toEqual([0, 1, 2]);
       const line = formatActionGroupRecapLines(actions)[0];
       expect(line).toMatch(/If this rule matches:/i);
-      expect(line).toMatch(/Urgent investigation/i);
+      expect(line).toMatch(/Computed tomography of abdomen and pelvis/i);
       expect(line).toMatch(/, or /);
-      expect(line).toMatch(/Fast track referral for suspected cancer/i);
-      expect(line).toMatch(/non-specific symptoms/i);
+      expect(line).toMatch(/Fast track referral/);
+      expect(line).toMatch(/non-site-specific symptoms/i);
       const saved = sanitiseActionsForSave(actions);
       expect(saved.every((a) => a.group_mode === "any")).toBe(true);
       expect(normalizeRuleActions(saved)).toEqual(actions);

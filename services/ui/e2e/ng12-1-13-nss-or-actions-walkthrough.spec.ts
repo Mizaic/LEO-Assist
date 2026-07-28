@@ -27,45 +27,47 @@ const SEARCH_HITS: Record<
   string,
   Array<{ snomed_concept_id: string; term: string; semantic_tag: string }>
 > = {
-  "urgent investigation": [
+  // Urgent investigation stand-in (not an FTR).
+  "ct abdomen": [
     {
-      snomed_concept_id: "183654001",
-      term: "Urgent investigation",
+      snomed_concept_id: "419394006",
+      term: "Computed tomography of abdomen and pelvis",
       semantic_tag: "procedure",
     },
   ],
-  urgent: [
+  "urgent investigation": [
     {
-      snomed_concept_id: "183654001",
-      term: "Urgent investigation",
+      snomed_concept_id: "419394006",
+      term: "Computed tomography of abdomen and pelvis",
+      semantic_tag: "procedure",
+    },
+  ],
+  // FTR terms must start with "Fast track referral".
+  "fast track referral": [
+    {
+      snomed_concept_id: "38661000000100",
+      term: "Fast track referral",
       semantic_tag: "procedure",
     },
   ],
   "suspected cancer": [
     {
-      snomed_concept_id: "276581000000102",
-      term: "Fast track referral for suspected cancer",
-      semantic_tag: "procedure",
-    },
-  ],
-  "fast track": [
-    {
-      snomed_concept_id: "276581000000102",
-      term: "Fast track referral for suspected cancer",
+      snomed_concept_id: "38661000000100",
+      term: "Fast track referral",
       semantic_tag: "procedure",
     },
   ],
   "non-specific": [
     {
-      snomed_concept_id: "183519002",
-      term: "Referral for non-specific symptoms assessment",
+      snomed_concept_id: "1556551000000104",
+      term: "Fast track referral for suspected cancer due to non-site-specific symptoms",
       semantic_tag: "procedure",
     },
   ],
   nss: [
     {
-      snomed_concept_id: "183519002",
-      term: "Referral for non-specific symptoms assessment",
+      snomed_concept_id: "1556551000000104",
+      term: "Fast track referral for suspected cancer due to non-site-specific symptoms",
       semantic_tag: "procedure",
     },
   ],
@@ -428,11 +430,13 @@ async function buildNssEitherOr(
   await pickProcedure(
     page,
     dialog,
-    "urgent investigation",
-    /Use Urgent investigation/i,
+    "ct abdomen",
+    /Use Computed tomography of abdomen and pelvis/i,
   );
   await expect(
-    dialog.getByRole("button", { name: /urgent investigation/i }),
+    dialog.getByRole("button", {
+      name: /computed tomography of abdomen and pelvis/i,
+    }),
   ).toBeVisible({ timeout: 10000 });
   await shot(dir, page, "03-urgent-investigation");
 
@@ -447,12 +451,12 @@ async function buildNssEitherOr(
   await pickProcedure(
     page,
     dialog,
-    "suspected cancer",
-    /Use Fast track referral for suspected cancer/i,
+    "fast track referral",
+    /^Use Fast track referral$/i,
   );
   await expect(
     dialog.getByRole("button", {
-      name: /fast track referral for suspected cancer/i,
+      name: /^Fast track referral\. Click to pick/i,
     }),
   ).toBeVisible({ timeout: 10000 });
   await shot(dir, page, "04-two-alternatives");
@@ -466,11 +470,11 @@ async function buildNssEitherOr(
     page,
     dialog,
     "non-specific",
-    /Use Referral for non-specific symptoms assessment/i,
+    /Use Fast track referral for suspected cancer due to non-site-specific symptoms/i,
   );
   await expect(
     dialog.getByRole("button", {
-      name: /referral for non-specific symptoms assessment/i,
+      name: /fast track referral for suspected cancer due to non-site-specific symptoms/i,
     }),
   ).toBeVisible({ timeout: 10000 });
   await shot(dir, page, "05-three-alternatives");
@@ -516,9 +520,9 @@ test.describe("NG12 1.13 NSS either/or action walkthroughs (DI-42246DA7)", () =>
       const actions = captured.decision?.updates?.actions ?? [];
       expect(actions).toHaveLength(3);
       expect(actions.map((a) => a.criterion?.snomed_concept_id)).toEqual([
-        "183654001",
-        "276581000000102",
-        "183519002",
+        "419394006",
+        "38661000000100",
+        "1556551000000104",
       ]);
       expect(actions.every((a) => a.group_mode === "any")).toBe(true);
       expect(actions[0].group_id).toBeTruthy();
