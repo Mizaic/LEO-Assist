@@ -1,6 +1,11 @@
 /**
  * One-shot audit: pending NG12 rules vs highlight-wizard rehydration.
  * Run: npx tsx scripts/audit-pending-ng12-rehydration.ts
+ *
+ * Atlas trace:
+ *   DI: DI-42246DA7
+ *   DO: DO-F8C56339
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 import fs from "fs";
 import path from "path";
