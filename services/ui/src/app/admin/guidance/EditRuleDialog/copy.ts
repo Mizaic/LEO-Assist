@@ -127,14 +127,17 @@ export function priorityLabel(
 ): string {
   if (!priority) return "Not set yet";
   const base =
-    priority === "2ww"
-      ? "2 week wait (urgent suspected cancer)"
-      : priority === "urgent"
-        ? "Urgent"
-        : priority === "routine"
-          ? "Routine"
-          : priority;
+    priority === "immediate"
+      ? "Immediate specialist assessment"
+      : priority === "2ww"
+        ? "2 week wait (urgent suspected cancer)"
+        : priority === "urgent"
+          ? "Urgent"
+          : priority === "routine"
+            ? "Routine"
+            : priority;
   if (priority === "routine" || dueDays == null) return base;
+  if (priority === "immediate" && dueDays === 0) return base;
   return `${base}, within ${dueDays} days`;
 }
 

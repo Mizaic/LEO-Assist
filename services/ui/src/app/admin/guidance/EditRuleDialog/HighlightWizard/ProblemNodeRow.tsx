@@ -23,12 +23,13 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 
 import type { ValidationIssue } from "../treeOps";
-import { PROBLEM_ROW } from "./copy";
+import { PROBLEM_ROW, WIZARD_TOOLTIPS } from "./copy";
 
 export interface ProblemNodeRowProps {
   issue: ValidationIssue;
@@ -56,15 +57,17 @@ export default function ProblemNodeRow({ issue, onRemove }: ProblemNodeRowProps)
         <Typography variant="body2" sx={{ flexGrow: 1 }}>
           {message}
         </Typography>
-        <Button
-          size="small"
-          color="error"
-          startIcon={<DeleteOutlineIcon fontSize="small" />}
-          onClick={() => onRemove(nodeId)}
-          aria-label={PROBLEM_ROW.removeAriaLabel(message)}
-        >
-          {PROBLEM_ROW.removeLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.removeProblem}>
+          <Button
+            size="small"
+            color="error"
+            startIcon={<DeleteOutlineIcon fontSize="small" />}
+            onClick={() => onRemove(nodeId)}
+            aria-label={PROBLEM_ROW.removeAriaLabel(message)}
+          >
+            {PROBLEM_ROW.removeLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     </Box>
   );

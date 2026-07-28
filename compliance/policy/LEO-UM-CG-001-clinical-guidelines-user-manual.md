@@ -5,13 +5,14 @@
 | Field | Value |
 |---|---|
 | Document Reference | LEO-UM-CG-001 |
-| Version | 2.0 |
-| Date | June 2026 |
+| Version | 2.1 |
+| Date | July 2026 |
 | Status | Draft |
 | Classification | Internal |
 | Atlas VAL | VAL-1963DA04 |
 | Atlas UN | UN-49C83395 |
-| Replaces | LEO-UM-CG-001 v1.0 (May 2026) |
+| Atlas coach chrome | DI-LEO-AI-121 (CoachMark / Guide me) |
+| Replaces | LEO-UM-CG-001 v2.0 (June 2026) |
 
 ---
 
@@ -83,6 +84,108 @@ Four tiles show the current state at a glance:
 A sticky strip below the header shows four jump links: "1. Load", "Inspect",
 "2. Review", and "3. Compile". Click any link to scroll directly to that step card.
 The strip stays in view as you scroll down the page.
+
+### 2.1 Guided tour (Guide me)
+
+Use **Guide me** when you are new to this page, or when you want a short
+refresher before you train someone else.
+
+**When to use**
+
+- First time on Clinical Guidelines after a release.
+- Before you show a Knowledge Base Author how the page works.
+- After you open **Edit** on a draft rule (a second tour walks the editor).
+
+**How to run and replay**
+
+1. On the Clinical Guidelines page, click **Guide me** (near Import local
+   guideline).
+2. Read each tip. The dimmed screen leaves a clear cut-out on the control
+   the tip is about.
+3. Click **Next** to move on, **Back** to go back, or **Skip tour** to stop.
+4. When the tour ends, you can click **Guide me** again anytime to replay it.
+5. Inside **Change this rule**, click **Guide me** in the dialog header for
+   the editor tour (Who, situations, conditions, preview, save).
+
+**Important: Save is not live**
+
+Saving or approving a rule records the change. Patients do not see it until
+someone compiles and makes a bitmap version live (Step 3). The page tour and
+the editor tour both remind you of this.
+
+**Screenshot pack (training)**
+
+Step titles and bodies match the in-product tour
+(`services/ui/src/app/admin/guidance/guidanceTourSteps.ts`). Approved
+viewport screenshots live under
+`compliance/policy/assets/leo-um-cg-001/`.
+
+**Act A -- page tour**
+
+| Step id | Title | Asset |
+|---|---|---|
+| cg-01-jump | Four steps on this page | [cg-01-jump.png](assets/leo-um-cg-001/cg-01-jump.png) |
+| cg-02-load | Bring a guideline in | [cg-02-load.png](assets/leo-um-cg-001/cg-02-load.png) |
+| cg-03-inspect | Check what loaded | [cg-03-inspect.png](assets/leo-um-cg-001/cg-03-inspect.png) |
+| cg-04-review-pool | Rules waiting for you | [cg-04-review-pool.png](assets/leo-um-cg-001/cg-04-review-pool.png) |
+| cg-05-card | Check the wording | [cg-05-card.png](assets/leo-um-cg-001/cg-05-card.png) |
+| cg-06-compile | Save is not live yet | [cg-06-compile.png](assets/leo-um-cg-001/cg-06-compile.png) |
+
+**Act B -- edit rule tour**
+
+| Step id | Title | Asset |
+|---|---|---|
+| er-01-stepper | Who, Suggest, Save | [er-01-stepper.png](assets/leo-um-cg-001/er-01-stepper.png) |
+| er-02-quote | Keep the guideline in view | [er-02-quote.png](assets/leo-um-cg-001/er-02-quote.png) |
+| er-03-always | Always-true checks | [er-03-always.png](assets/leo-um-cg-001/er-03-always.png) |
+| er-04-situations | Confirm the split | [er-04-situations.png](assets/leo-um-cg-001/er-04-situations.png) |
+| er-05-conditions | Match every line | [er-05-conditions.png](assets/leo-um-cg-001/er-05-conditions.png) |
+| er-06-review | Check the meaning | [er-06-review.png](assets/leo-um-cg-001/er-06-review.png) |
+| er-07-save | Say why, then approve | [er-07-save.png](assets/leo-um-cg-001/er-07-save.png) |
+
+**Engineering photo review (chromium pack, 2026-07-28)**
+
+Pass means: target visible in the cut-out; copy matches the visible UI; tip
+does not cover the target title; Act B step matches the wizard phase.
+
+| Asset | Result |
+|---|---|
+| cg-01-jump through cg-06-compile | Pass |
+| er-01-stepper through er-07-save | Pass |
+
+Regenerate the working pack with:
+
+```bash
+cd services/ui && npx playwright test guideline-tab-ifu-screenshots --project=chromium
+```
+
+Copy approved PNGs into `compliance/policy/assets/leo-um-cg-001/` only after
+a fresh photo review. Do not let CI overwrite signed assets silently.
+
+**Trainer sign-off (required before Status = Approved)**
+
+A Knowledge Base Author or Clinical Lead must run Guide me once on staging
+with a real loaded guideline, then complete the form below. Customer-facing
+IFU-LEO-CDS-001 training communication stays with CSM after this UM is
+Approved (see SVP-LEO-CDS-001).
+
+| Check | Pass / Fail | Notes |
+|---|---|---|
+| Every page-tour step spotlighted the correct control | | |
+| Every editor-tour step matched the wizard phase on screen | | |
+| No step described UI that was not on screen | | |
+| Save is not live message was clear | | |
+| Replay worked after completion (Guide me again) | | |
+
+| Field | Value |
+|---|---|
+| Signer name | |
+| Role | Knowledge Base Author / Clinical Lead |
+| Staging environment / build | |
+| Date | |
+| Signature / approval | |
+
+Until this form is complete, keep Status = Draft.
 
 ---
 

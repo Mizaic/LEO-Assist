@@ -32,6 +32,7 @@ import {
   type CopyAcrossMatch,
 } from "./pathwayCopyAcross";
 import {
+  buildPathwayRows,
   findClusterSubgroupByRole,
   findNodeById,
   pathwayGroupingKey,
@@ -78,13 +79,21 @@ function ensureSubgroup(
   targetPathwayNode: EditableLogicNode,
   role: "lead" | "trailing",
   onUpdate: (update: NodeUpdate) => void,
+  min = 1,
 ): void {
-  if (findClusterSubgroupByRole(targetPathwayNode, role)) return;
+  const existing = findClusterSubgroupByRole(targetPathwayNode, role);
+  if (existing) {
+    if ((existing.min ?? 1) !== min) {
+      onUpdate({ kind: "set_min", nodeId: existing.node_id, min });
+    }
+    return;
+  }
   onUpdate({
     kind: "add_group",
     parentNodeId: targetPathwayNode.node_id,
     groupKind: "AT_LEAST",
     clusterRole: role,
+    min,
   });
 }
 
@@ -166,8 +175,16 @@ export function useCopyAcrossOffer({
       role: m.role,
     }));
     const neededRoles = new Set(items.map((i) => i.role));
-    if (neededRoles.has("trailing")) ensureSubgroup(targetPathwayNode, "trailing", onUpdate);
-    if (neededRoles.has("lead")) ensureSubgroup(targetPathwayNode, "lead", onUpdate);
+    // Use THIS situation's guideline quantifier for min (B is "1 or
+    // more" even when copying codes from A's "2 or more" list).
+    const targetMin =
+      buildPathwayRows(boundaries[pathwayIndex]).suggestedMin ?? 1;
+    if (neededRoles.has("trailing")) {
+      ensureSubgroup(targetPathwayNode, "trailing", onUpdate, targetMin);
+    }
+    if (neededRoles.has("lead")) {
+      ensureSubgroup(targetPathwayNode, "lead", onUpdate, 1);
+    }
     setPending({ pathwayNodeId: targetPathwayNode.node_id, items });
   }
 

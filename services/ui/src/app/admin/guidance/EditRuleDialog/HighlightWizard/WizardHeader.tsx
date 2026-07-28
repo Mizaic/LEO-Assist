@@ -20,9 +20,10 @@
  */
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
-import { WIZARD_CHROME } from "./copy";
+import { WIZARD_CHROME, WIZARD_TOOLTIPS } from "./copy";
 import type { WizardStepKind } from "./wizardState";
 
 interface Props {
@@ -36,13 +37,15 @@ export default function WizardHeader({ step, onBack }: Props) {
 
   return (
     <Stack direction="row" justifyContent="flex-end">
-      <Button
-        size="small"
-        startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-        onClick={onBack}
-      >
-        {WIZARD_CHROME.backLabel}
-      </Button>
+      <Tooltip title={WIZARD_TOOLTIPS.wizardBack}>
+        <Button
+          size="small"
+          startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+          onClick={onBack}
+        >
+          {WIZARD_CHROME.backLabel}
+        </Button>
+      </Tooltip>
     </Stack>
   );
 }

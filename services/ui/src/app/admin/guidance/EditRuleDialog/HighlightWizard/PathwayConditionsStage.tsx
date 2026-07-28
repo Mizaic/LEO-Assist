@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from "react";
 import { findAllValidationErrors, findValidationError } from "../treeOps";
 import type { LogicCriterion, NodeUpdate } from "../types";
 import type { RecommendationStructureItem, PathwayTextBoundary } from "../SentenceEditor/pathwayTextSplit";
+import { detectVaguePhrase } from "../vaguePhrases";
 import {
   pathwayDemographicChildren,
   type PathwayDemographicField,
@@ -43,8 +44,16 @@ import {
   readMaterializedPathways,
   withReifiedPathwayClusters,
 } from "./wizardMapping";
+import { withReifiedWeightedChecklist } from "./weightedChecklist";
 import { useCopyAcrossOffer } from "./useCopyAcrossOffer";
 import type { EditableLogicNode } from "../types";
+import { STEP_PATHWAY_CONDITIONS } from "./copy";
+
+/** Concrete findings keep multi-pick; vague phrases open ConceptSearchPanel
+ *  so "Ask LEO for ideas" is available (NG12 1.7.2 dermoscopy). */
+function useMultiPickForRowText(text: string): boolean {
+  return !detectVaguePhrase(text).isVague;
+}
 
 function pathwayDemographicBlockReason(
   demographics: EditableLogicNode[],
@@ -127,6 +136,8 @@ interface Props {
    *  this component within the same wizard session. */
   dismissedCopyAcrossOffers: Set<string>;
   onDismissCopyAcrossOffer: (pathwayKey: string) => void;
+  /** Expand a weighted companion checklist into major/minor feature rows. */
+  onExpandWeightedChecklist?: () => void;
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
   onRequestAdd: (
@@ -175,7 +186,12 @@ function usePendingClusterAdd(
     const pathway = findNodeById(tree, pending.pathwayNodeId);
     const subgroup = pathway ? findClusterSubgroupByRole(pathway, pending.role) : null;
     if (subgroup) {
-      onRequestAdd(subgroup.node_id, pending.anchor, pending.text, true);
+      onRequestAdd(
+        subgroup.node_id,
+        pending.anchor,
+        pending.text,
+        useMultiPickForRowText(pending.text),
+      );
       setPending(null);
     }
   }, [tree, pending, onRequestAdd]);
@@ -193,6 +209,7 @@ export default function PathwayConditionsStage({
   onSetLeadClusterGrouping,
   dismissedCopyAcrossOffers,
   onDismissCopyAcrossOffer,
+  onExpandWeightedChecklist,
   onSelectNode,
   onUpdate,
   onRequestAdd,
@@ -207,12 +224,17 @@ export default function PathwayConditionsStage({
   const boundary = boundaries[pathwayIndex];
   const pathwayKey = pathwayGroupingKey(pathwayNode, pathwayIndex);
   const [, setPendingClusterAdd] = usePendingClusterAdd(tree, onRequestAdd);
-  // Which DEMOGRAPHIC leaf's inline age/sex editor (see
-  // `StepPathwayConditions`'s `expandedDemographicNodeId` prop) is
-  // currently open -- a DEMOGRAPHIC row has no synonym set or search
-  // swap to hand off to, so re-clicking it toggles this instead of
-  // calling `onSelectNode` (which has nothing to open for it).
+  // Which DEMOGRAPHIC / OBSERVATION leaf's inline editor (see
+  // `StepPathwayConditions`'s `expandedDemographicNode` /
+  // `expandedObservationNode` props) is currently open -- those
+  // kinds have no synonym set (and for DEMOGRAPHIC, no search swap)
+  // to hand off to, so re-clicking toggles the inline editor instead
+  // of calling `onSelectNode`. OBSERVATION still uses onSelectNode
+  // from the chip inside ObservationRow to swap the observable.
   const [expandedDemographicNodeId, setExpandedDemographicNodeId] = useState<string | null>(
+    null,
+  );
+  const [expandedObservationNodeId, setExpandedObservationNodeId] = useState<string | null>(
     null,
   );
 
@@ -254,6 +276,14 @@ export default function PathwayConditionsStage({
 
   if (!pathwayNode || !boundary) return null;
 
+  const pathwayRows = buildPathwayRows(boundary);
+  const trailingTermCount = pathwayRows.leadCluster
+    ? pathwayRows.items.length - pathwayRows.leadCluster.items.length
+    : (pathwayRows.items[0]?.children ?? pathwayRows.items).length;
+  const trailingSubgroup = findClusterSubgroupByRole(pathwayNode, "trailing");
+  const effectiveClusterMin =
+    trailingSubgroup?.min ?? pathwayRows.suggestedMin ?? 1;
+
   const pathwayDemographics = pathwayDemographicChildren(pathwayNode);
   const demographicBlockedReason = pathwayDemographicBlockReason(pathwayDemographics);
   const problemIssues = pathwayProblemIssues(
@@ -291,6 +321,7 @@ export default function PathwayConditionsStage({
         parentNodeId: decision.pathwayNodeId,
         groupKind: "AT_LEAST",
         clusterRole: decision.role,
+        min: decision.role === "trailing" ? effectiveClusterMin : 1,
       });
       // Subgroup id is not known until the next tree render -- fall
       // back to the pathway; Confirm's reify step will reparent.
@@ -329,26 +360,36 @@ export default function PathwayConditionsStage({
     if (decision.action === "select") {
       // A CONCEPT leaf gets the full add/remove/depth editor -- see
       // `onEditConcept`'s doc comment. A DEMOGRAPHIC leaf has neither
-      // a synonym set nor a search-swap flow to hand off to -- it
-      // toggles the same inline age/sex editor Step 1's prerequisite
-      // rows use (see `StepPathwayConditions`'s `renderRowExtra`).
-      // OBSERVATION is the only kind left with the single-pick swap.
+      // a synonym set nor a search-swap flow -- it toggles the inline
+      // age/sex editor. An OBSERVATION leaf toggles the inline
+      // operator/value/unit editor (chip inside still swaps via
+      // onSelectNode); other kinds keep the single-pick swap.
       const existing = findNodeById(tree, decision.nodeId);
       if (existing?.kind === "CONCEPT") {
         onEditConcept(decision.nodeId);
       } else if (existing?.kind === "DEMOGRAPHIC") {
+        setExpandedObservationNodeId(null);
         setExpandedDemographicNodeId((prev) => (prev === decision.nodeId ? null : decision.nodeId));
+      } else if (existing?.kind === "OBSERVATION") {
+        setExpandedDemographicNodeId(null);
+        setExpandedObservationNodeId((prev) => (prev === decision.nodeId ? null : decision.nodeId));
       } else {
         onSelectNode(decision.nodeId, anchor);
       }
     } else if (decision.action === "add") {
-      onRequestAdd(decision.parentNodeId, anchor, decision.text, true);
+      onRequestAdd(
+        decision.parentNodeId,
+        anchor,
+        decision.text,
+        useMultiPickForRowText(decision.text),
+      );
     } else {
       onUpdate({
         kind: "add_group",
         parentNodeId: decision.pathwayNodeId,
         groupKind: "AT_LEAST",
         clusterRole: decision.role,
+        min: decision.role === "trailing" ? effectiveClusterMin : 1,
       });
       setPendingClusterAdd({
         pathwayNodeId: decision.pathwayNodeId,
@@ -359,30 +400,48 @@ export default function PathwayConditionsStage({
     }
   }
 
-  function ensureClusterSubgroup(role: "lead" | "trailing") {
-    if (findClusterSubgroupByRole(pathwayNode, role)) return;
-    onUpdate({
-      kind: "add_group",
-      parentNodeId: pathwayNode.node_id,
-      groupKind: "AT_LEAST",
-      clusterRole: role,
-    });
+  function syncExistingClusterMin(role: "lead" | "trailing", min: number) {
+    const existing = findClusterSubgroupByRole(pathwayNode, role);
+    if (!existing || existing.min === min) return;
+    onUpdate({ kind: "set_min", nodeId: existing.node_id, min });
   }
 
-  function handleChooseGrouping(grouping: ClusterGrouping) {
+  function handleChooseGrouping(grouping: ClusterGrouping, min?: number) {
     onSetClusterGrouping(pathwayKey, grouping);
-    // Create the trailing shell as soon as Recommended is chosen so
-    // Situation C's symptom picks attach under AT_LEAST(1), not the
-    // pathway AND, without waiting for the first row click.
-    if (grouping === "AT_LEAST") ensureClusterSubgroup("trailing");
+    // Do NOT mint an empty AT_LEAST shell here. An empty shell trips
+    // "One of the groups is empty" on Save / the issue banner while
+    // the reviewer is still coding rows. The first cluster-row pick
+    // creates the subgroup via create_subgroup_then_add; Confirm's
+    // reify also builds AT_LEAST only when leaves exist. If a shell
+    // already exists (copy-across / prior coding), keep its min in sync.
+    if (grouping === "AT_LEAST") {
+      syncExistingClusterMin(
+        "trailing",
+        min ?? pathwayRows.suggestedMin ?? 1,
+      );
+    }
   }
 
   function handleChooseLeadGrouping(grouping: ClusterGrouping) {
     onSetLeadClusterGrouping(pathwayKey, grouping);
-    if (grouping === "AT_LEAST") ensureClusterSubgroup("lead");
+    if (grouping === "AT_LEAST") syncExistingClusterMin("lead", 1);
+  }
+
+  function handleSetClusterMin(min: number) {
+    if (!trailingSubgroup) return;
+    onUpdate({ kind: "set_min", nodeId: trailingSubgroup.node_id, min });
   }
 
   function handleConfirmPathway() {
+    const checklist = boundary.weightedChecklist;
+    if (checklist?.expanded) {
+      onUpdate({
+        kind: "replace_root",
+        node: withReifiedWeightedChecklist(tree, checklist),
+      });
+      onConfirmPathway();
+      return;
+    }
     // One atomic replace_root so lead/trailing leaves coded under the
     // pathway AND (before grouping was chosen, or via multi-code add)
     // are moved into the right AT_LEAST shells for Situations C and D.
@@ -400,6 +459,12 @@ export default function PathwayConditionsStage({
     onConfirmPathway();
   }
 
+  const checklist = boundary.weightedChecklist;
+  const instrumentBlocked =
+    checklist && !checklist.expanded
+      ? STEP_PATHWAY_CONDITIONS.weightedChecklistInstrumentBlocked
+      : null;
+
   return (
     <StepPathwayConditions
       pathwayIndex={pathwayIndex + 1}
@@ -414,11 +479,17 @@ export default function PathwayConditionsStage({
       onAddMultiConcept={handleAddMultiConcept}
       clusterGrouping={clusterGroupings[pathwayKey]}
       onChooseGrouping={handleChooseGrouping}
+      clusterMin={trailingSubgroup?.min ?? pathwayRows.suggestedMin ?? 1}
+      suggestedClusterMin={pathwayRows.suggestedMin ?? 1}
+      clusterTermCount={trailingTermCount}
+      onSetClusterMin={handleSetClusterMin}
       leadClusterGrouping={leadClusterGroupings[pathwayKey]}
       onChooseLeadGrouping={handleChooseLeadGrouping}
       confirmedSummaries={buildConfirmedSummaries(pathwayNodes, pathwayIndex)}
       onConfirmPathway={handleConfirmPathway}
-      confirmBlockedReason={demographicBlockedReason}
+      confirmBlockedReason={instrumentBlocked ?? demographicBlockedReason}
+      onExpandWeightedChecklist={onExpandWeightedChecklist}
+      weightedChecklist={checklist ?? null}
       copyAcrossOffer={
         copyAcrossOffer
           ? { sourceLetter: pathwayLetterAt(copyAcrossOffer.sourceIndex), count: copyAcrossOffer.count }
@@ -434,6 +505,10 @@ export default function PathwayConditionsStage({
       expandedDemographicNode={
         expandedDemographicNodeId ? findNodeById(tree, expandedDemographicNodeId) : null
       }
+      expandedObservationNode={
+        expandedObservationNodeId ? findNodeById(tree, expandedObservationNodeId) : null
+      }
+      onSelectObservation={onSelectNode}
     />
   );
 }

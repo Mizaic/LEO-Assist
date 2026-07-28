@@ -7,6 +7,7 @@
  * fallback path with no nested "any of the following" lists.
  */
 import {
+  buildNoSplitBoundary,
   detectAtLeastCluster,
   looksLikeLeadOrCluster,
   looksLikePathwaySplit,
@@ -14,8 +15,11 @@ import {
   resolveAtLeastCluster,
   splitPathways,
   splitPathwaysByOrHeuristic,
+  splitPathwaysFromLeadPatientOr,
 } from "../SentenceEditor/pathwayTextSplit";
 import type { RecommendationStructure, RecommendationStructureItem } from "../SentenceEditor/pathwayTextSplit";
+import { buildPathwayRows } from "../HighlightWizard/wizardMapping";
+import { hasAtLeastQuantifierMarker } from "../SentenceEditor/atLeastClusterSplit";
 
 const NG12_1_2_9 =
   "1.2.9 Consider non-urgent, direct access upper gastrointestinal endoscopy " +
@@ -141,6 +145,41 @@ describe("splitPathwaysByOrHeuristic", () => {
     expect(boundaries![0].text).toBe("chest pain,   or ");
     expect(boundaries![1].text).toBe("shortness of breath.");
   });
+
+  it("NG12 1.5.5: does not split on 'woman, or trans man' inclusive sex phrasing", () => {
+    const text =
+      "1.5.5 Carry out appropriate tests for ovarian cancer (see recommendations " +
+      "1.5.6 to 1.5.9) in any woman, or trans man or non-binary person with " +
+      "female reproductive organs who is aged 50 or over and who has " +
+      "experienced symptoms within the last 12 months that suggest irritable " +
+      "bowel syndrome (IBS), because IBS rarely presents for the first time " +
+      "at this age. (See NICE's guideline on irritable bowel syndrome in " +
+      "adults .) [2011]";
+    expect(splitPathwaysByOrHeuristic(text)).toBeNull();
+    expect(splitPathways(text, null)).toBeNull();
+    expect(looksLikePathwaySplit(text)).toBe(false);
+    // Single-situation Step 3 should offer the IBS symptoms clause, not
+    // the whole action + inclusive-sex lead.
+    const rows = buildPathwayRows({
+      text,
+      start: 0,
+      end: text.length,
+      source: "heuristic",
+    });
+    expect(rows.items).toHaveLength(1);
+    expect(rows.items[0]!.text).toMatch(
+      /^symptoms within the last 12 months that suggest irritable bowel syndrome \(IBS\)$/i,
+    );
+  });
+
+  it("still splits real symptom alternatives after an inclusive sex phrase", () => {
+    const text =
+      "in any woman, or trans man with cough, or shortness of breath.";
+    const boundaries = splitPathwaysByOrHeuristic(text);
+    expect(boundaries).toHaveLength(2);
+    expect(boundaries![0].text).toMatch(/cough,\s*or\s*$/i);
+    expect(boundaries![1].text).toMatch(/shortness of breath/i);
+  });
 });
 
 describe("looksLikePathwaySplit", () => {
@@ -189,8 +228,20 @@ describe("detectAtLeastCluster", () => {
       "if they have 2 or more of the following unexplained symptoms: cough, fatigue, chest pain",
     );
     expect(cluster).not.toBeNull();
-    expect(cluster!.leadText).toBe("if they have");
+    // "if they have" is scaffolding, not a clinical lead row.
+    expect(cluster!.leadText).toBe("");
+    expect(cluster!.suggestedMin).toBe(2);
     expect(cluster!.items).toEqual(["cough", "fatigue", "chest pain"]);
+  });
+
+  it("keeps 'ever smoked' as a codeable lead ahead of 1 or more of the following", () => {
+    const cluster = detectAtLeastCluster(
+      "if they have ever smoked and have 1 or more of the following unexplained symptoms: cough, fatigue",
+    );
+    expect(cluster).not.toBeNull();
+    expect(cluster!.leadText).toBe("ever smoked");
+    expect(cluster!.suggestedMin).toBe(1);
+    expect(cluster!.items).toEqual(["cough", "fatigue"]);
   });
 
   it("recognises a spelled-out quantifier ('one of the following')", () => {
@@ -199,6 +250,17 @@ describe("detectAtLeastCluster", () => {
     );
     expect(cluster).not.toBeNull();
     expect(cluster!.items).toEqual(["raised platelet count", "thrombocytosis"]);
+  });
+
+  it("treats 'either of the following' as AT_LEAST(1) and keeps rectal bleeding lead", () => {
+    const cluster = detectAtLeastCluster(
+      "aged under 50 with rectal bleeding and either of the following " +
+        "unexplained symptoms: abdominal pain, weight loss",
+    );
+    expect(cluster).not.toBeNull();
+    expect(cluster!.suggestedMin).toBe(1);
+    expect(cluster!.leadText).toBe("rectal bleeding");
+    expect(cluster!.items).toEqual(["abdominal pain", "weight loss"]);
   });
 });
 
@@ -508,6 +570,8 @@ describe("splitPathways (shared quantifier list is not six situations)", () => {
     const pathwayB = splitPathways(text, structure)![1];
     const cluster = resolveAtLeastCluster(pathwayB);
     expect(cluster).not.toBeNull();
+    expect(cluster!.suggestedMin).toBe(1);
+    expect(cluster!.leadText).toBe("ever smoked");
     expect(cluster!.items).toEqual([
       "cough",
       "fatigue",
@@ -518,11 +582,161 @@ describe("splitPathways (shared quantifier list is not six situations)", () => {
     ]);
   });
 
+  it("attaches the shared symptom list to BOTH heuristic situations (not only B)", () => {
+    const { text, structure } = buildNg112StructureFixture();
+    const [pathwayA, pathwayB] = splitPathways(text, structure)!;
+    expect(pathwayA.structureChildren?.map((c) => c.text)).toEqual([
+      "cough",
+      "fatigue",
+      "shortness of breath",
+      "chest pain",
+      "weight loss",
+      "appetite loss",
+    ]);
+    expect(pathwayB.structureChildren?.map((c) => c.text)).toEqual(
+      pathwayA.structureChildren?.map((c) => c.text),
+    );
+    const clusterA = resolveAtLeastCluster(pathwayA);
+    expect(clusterA).not.toBeNull();
+    expect(clusterA!.suggestedMin).toBe(2);
+    expect(clusterA!.items).toEqual([
+      "cough",
+      "fatigue",
+      "shortness of breath",
+      "chest pain",
+      "weight loss",
+      "appetite loss",
+    ]);
+    // Situation A's lead is recommendation prose before "2 or more..." --
+    // must not become a fake unresolved lead row.
+    expect(clusterA!.leadText).toBe("");
+  });
+
   it("still returns the structure's own items when the list has no quantifier lead-in (no regression)", () => {
     const { text, structure } = buildNg129StructureFixture();
     const boundaries = splitPathways(text, structure);
     expect(boundaries).toHaveLength(6);
     expect(boundaries!.every((b) => b.source === "structure")).toBe(true);
+  });
+
+  it("NG12 1.3.3: lead 'or who have' splits two situations when structure is an action list", () => {
+    const lead_text =
+      "For people who have not returned a faecal sample or who have a FIT " +
+      "result below 10 micrograms of haemoglobin per gram of faeces:";
+    const actionA = "safety netting processes should be in place";
+    const actionB =
+      "referral to an appropriate secondary care pathway should not be delayed " +
+      "if there is strong clinical concern of cancer because of ongoing " +
+      "unexplained symptoms (for example, abdominal mass). [2023]";
+    const text = `1.3.3 ${lead_text} ${actionA} ${actionB}`;
+    const leadStart = text.indexOf(lead_text.replace(/:\s*$/, ""));
+    const structure: RecommendationStructure = {
+      lead_text,
+      items: [
+        {
+          text: actionA,
+          start: text.indexOf(actionA),
+          end: text.indexOf(actionA) + actionA.length,
+        },
+        {
+          text: actionB,
+          start: text.indexOf(actionB),
+          end: text.indexOf(actionB) + actionB.length,
+        },
+      ],
+    };
+    // Action list is and-joined (space) -- must NOT treat actions as situations.
+    expect(splitPathwaysFromLeadPatientOr(text, structure)).toHaveLength(2);
+    const boundaries = splitPathways(text, structure)!;
+    expect(boundaries).toHaveLength(2);
+    expect(boundaries[0]!.text).toMatch(/not returned a faecal sample/i);
+    expect(boundaries[1]!.text).toMatch(/FIT result below 10/i);
+    expect(boundaries.every((b) => b.source === "heuristic")).toBe(true);
+    // Step 3 rows are codeable clinical cores, not "For people who have...".
+    expect(buildPathwayRows(boundaries[0]!).items.map((i) => i.text)).toEqual([
+      "not returned a faecal sample",
+    ]);
+    expect(buildPathwayRows(boundaries[1]!).items.map((i) => i.text)).toEqual([
+      "FIT result below 10 micrograms of haemoglobin per gram of faeces",
+    ]);
+    void leadStart;
+  });
+
+  it("NG12 1.3.1: seven structure situations; either-of keeps rectal bleeding lead", () => {
+    const lead_text =
+      "Offer quantitative faecal immunochemical testing (FIT) using HM-JACKarc " +
+      "or OC-Sensor to guide referral for suspected colorectal cancer in adults:";
+    let text = `1.3.1 ${lead_text} `;
+    const take = (label: string, children?: RecommendationStructureItem[]) => {
+      const start = text.length;
+      text += label;
+      const end = text.length;
+      return children
+        ? { text: label, start, end, children }
+        : { text: label, start, end };
+    };
+    const items: RecommendationStructureItem[] = [];
+    items.push(take("with an abdominal mass"));
+    text += ", or ";
+    items.push(take("with a change in bowel habit"));
+    text += ", or ";
+    items.push(take("with iron-deficiency anaemia"));
+    text += ", or ";
+    items.push(take("aged 40 and over with unexplained weight loss and abdominal pain"));
+    text += ", or ";
+    const eLead =
+      "aged under 50 with rectal bleeding and either of the following unexplained symptoms:";
+    const eStart = text.length;
+    text += eLead;
+    const eChildren: RecommendationStructureItem[] = [];
+    for (const [i, s] of ["abdominal pain", "weight loss"].entries()) {
+      if (i > 0) text += " ";
+      const s0 = text.length;
+      text += s;
+      eChildren.push({ text: s, start: s0, end: text.length });
+    }
+    items.push({
+      text: eLead,
+      start: eStart,
+      end: eStart + eLead.length,
+      children: eChildren,
+    });
+    text += ", or ";
+    const fLead = "aged 50 and over with any of the following unexplained symptoms:";
+    const fStart = text.length;
+    text += fLead;
+    const fChildren: RecommendationStructureItem[] = [];
+    for (const [i, s] of ["rectal bleeding", "abdominal pain", "weight loss"].entries()) {
+      if (i > 0) text += " ";
+      const s0 = text.length;
+      text += s;
+      fChildren.push({ text: s, start: s0, end: text.length });
+    }
+    items.push({
+      text: fLead,
+      start: fStart,
+      end: fStart + fLead.length,
+      children: fChildren,
+    });
+    text += ", or ";
+    items.push(
+      take(
+        "aged 60 and over with anaemia even in the absence of iron deficiency. " +
+          "FIT should be offered even if the person has previously had a negative FIT. [2023]",
+      ),
+    );
+    const structure: RecommendationStructure = { lead_text, items };
+    const boundaries = splitPathways(text, structure)!;
+    expect(boundaries).toHaveLength(7);
+    expect(boundaries.every((b) => b.source === "structure")).toBe(true);
+    const clusterE = resolveAtLeastCluster(boundaries[4]!);
+    expect(clusterE!.leadText).toBe("rectal bleeding");
+    expect(clusterE!.suggestedMin).toBe(1);
+    expect(clusterE!.items).toEqual(["abdominal pain", "weight loss"]);
+    const clusterF = resolveAtLeastCluster(boundaries[5]!);
+    expect(clusterF!.leadText).toBe("");
+    expect(clusterF!.suggestedMin).toBe(1);
+    expect(clusterF!.items).toHaveLength(3);
   });
 
   it("NG12 1.1.3: 'any of the following' list is one situation, not five pathways", () => {
@@ -544,6 +758,43 @@ describe("splitPathways (shared quantifier list is not six situations)", () => {
     }
     const structure: RecommendationStructure = { lead_text, items };
     expect(splitPathways(text, structure)).toBeNull();
+  });
+
+  it("NG12 1.5.2: verbose 'any of the following' lead is one AT_LEAST situation, not four", () => {
+    const lead_text =
+      "Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, " +
+      "or a trans man or non-binary person with female reproductive organs " +
+      "(especially if they are aged 50 or over) reports having any of the following " +
+      "symptoms on a persistent or frequent basis - particularly more than 12 times " +
+      "per month:";
+    expect(hasAtLeastQuantifierMarker(lead_text)).toBe(true);
+
+    let text = `1.5.2 ${lead_text} `;
+    const findings = [
+      "persistent abdominal distension (often referred to as 'bloating')",
+      "feeling full (early satiety) and/or loss of appetite",
+      "pelvic or abdominal pain",
+      "increased urinary urgency and/or frequency",
+    ];
+    const items: RecommendationStructureItem[] = [];
+    for (const [i, finding] of findings.entries()) {
+      if (i > 0) text += " ";
+      const start = text.length;
+      text += finding;
+      items.push({ text: finding, start, end: text.length });
+    }
+    text += ". [2011]";
+    const structure: RecommendationStructure = { lead_text, items };
+
+    expect(splitPathways(text, structure)).toBeNull();
+    expect(looksLikePathwaySplit(text, structure)).toBe(false);
+
+    const boundary = buildNoSplitBoundary(text, structure);
+    expect(boundary.structureChildren).toHaveLength(4);
+    const rows = buildPathwayRows(boundary);
+    expect(rows.hasCluster).toBe(true);
+    expect(rows.suggestedMin).toBe(1);
+    expect(rows.items.map((i) => i.text)).toEqual(findings);
   });
 
   /**
@@ -598,6 +849,7 @@ describe("resolveAtLeastCluster", () => {
     expect(cluster).toEqual({
       leadText: "indigestion",
       items: ["upper abdominal pain", "nausea", "vomiting", "weight loss"],
+      suggestedMin: 1,
     });
   });
 
@@ -637,6 +889,7 @@ describe("resolveAtLeastCluster", () => {
       leadText: "",
       leadCluster: ["nausea", "vomiting"],
       items: ["weight loss", "reflux", "dyspepsia", "upper abdominal pain"],
+      suggestedMin: 1,
     });
   });
 
@@ -650,6 +903,7 @@ describe("resolveAtLeastCluster", () => {
       leadText: "",
       leadCluster: ["nausea", "vomiting"],
       items: ["weight loss", "reflux", "dyspepsia", "upper abdominal pain"],
+      suggestedMin: 1,
     });
   });
 });

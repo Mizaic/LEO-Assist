@@ -33,25 +33,58 @@ import type { EditableLogicNode } from "../types";
  * the bare number.
  */
 export function demographicMatchCandidate(node: EditableLogicNode): string | null {
+  return demographicMatchCandidates(node)[0] ?? null;
+}
+
+/**
+ * Candidate guideline phrases for a DEMOGRAPHIC leaf, preferred first.
+ * Numeric "aged N or under" is tried alongside NICE glossary labels
+ * ("children and young people" for age <= 24) so a manually added age
+ * band still anchors onto the quote (NG12 1.10.2).
+ */
+export function demographicMatchCandidates(node: EditableLogicNode): string[] {
   const value = node.value != null ? String(node.value) : "";
-  if (!value) return null;
+  if (!value) return [];
   if (node.field === "sex") {
     const sex = value.toLowerCase();
-    if (sex === "m" || sex === "male") return "male";
-    if (sex === "f" || sex === "female") return "female";
-    return value;
+    if (sex === "m" || sex === "male") return ["male", "men", "man"];
+    if (sex === "f" || sex === "female") return ["female", "women", "woman"];
+    return [value];
   }
+  if (node.field !== "age") return [];
+
+  const out: string[] = [];
   if (node.operator === "between" && node.value2 != null) {
-    return `${value} to ${node.value2}`;
+    out.push(`${value} to ${node.value2}`);
+    out.push(`aged ${value} to ${node.value2}`);
+  } else {
+    const suffix: Record<string, string> = {
+      ">=": "or over",
+      "<=": "or under",
+      ">": "or more",
+      "<": "or less",
+      "=": "",
+    };
+    out.push(`aged ${value} ${suffix[node.operator ?? ">="] ?? ""}`.trim());
   }
-  const suffix: Record<string, string> = {
-    ">=": "or over",
-    "<=": "or under",
-    ">": "or more",
-    "<": "or less",
-    "=": "",
-  };
-  return `aged ${value} ${suffix[node.operator ?? ">="] ?? ""}`.trim();
+
+  const n = Number(value);
+  const n2 = node.value2 != null ? Number(node.value2) : NaN;
+  const op = node.operator ?? "";
+  // NICE NG12 glossary bands -- keep in sync with demographicPhraseMatch.
+  if ((op === "<=" || op === "<") && (n === 24 || n === 25)) {
+    out.push("children and young people");
+  }
+  if ((op === "<=" || op === "<") && (n === 15 || n === 16)) {
+    out.push("children");
+  }
+  if (op === "between" && n === 16 && n2 === 24) {
+    out.push("young people");
+  }
+  if ((op === ">=" || op === ">") && (n === 18 || n === 25)) {
+    out.push("adults");
+  }
+  return out;
 }
 
 /** Best-guess highlight range for one leaf, or null when nothing in
@@ -96,8 +129,11 @@ export function leafTextMatches(
     return findAllTextMatchesForCriterion(recommendationText, node.criterion);
   }
   if (node.kind === "DEMOGRAPHIC") {
-    const match = findBestTextMatch(recommendationText, demographicMatchCandidate(node));
-    return match ? [match] : [];
+    for (const candidate of demographicMatchCandidates(node)) {
+      const match = findBestTextMatch(recommendationText, candidate);
+      if (match) return [match];
+    }
+    return [];
   }
   if (node.kind === "OBSERVATION") {
     const match = findBestTextMatch(recommendationText, node.observation?.observable_term);

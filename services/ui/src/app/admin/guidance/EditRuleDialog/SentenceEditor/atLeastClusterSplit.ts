@@ -28,15 +28,152 @@ import type { PathwayTextBoundary } from "./pathwayTextSplit";
  * "any" missed NG12 1.1.2's "2 or more of the following unexplained
  * symptoms" entirely.
  *
- * A few descriptive words are allowed between "following" and the colon
- * ("following unexplained symptoms:") since NICE frequently names what
- * kind of list it is; the colon itself stays required whenever those
- * extra words are present, so this cannot fire on ordinary prose that
- * happens to contain "of the following" without actually introducing a
- * list.
+ * Descriptive wording is allowed between "following" and the colon
+ * ("following unexplained symptoms:", and NG12 1.5.2's longer
+ * "following symptoms on a persistent or frequent basis -- particularly
+ * more than 12 times per month:"). The colon itself stays required so
+ * ordinary prose that happens to contain "of the following" without
+ * introducing a list does not match. Cap the gap so a later unrelated
+ * colon cannot pull the marker across the whole recommendation.
  */
-const AT_LEAST_MARKER_RE =
-  /\b(?:with\s+)?(?:any|(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+or\s+more)?)\s+of\s+the\s+following\b(?:\s+\w+){0,4}:\s*/i;
+const AT_LEAST_MARKER_GAP = String.raw`[^:]{0,120}`;
+const AT_LEAST_MARKER_RE = new RegExp(
+  String.raw`\b(?:with\s+)?(?:any|either|(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+or\s+more)?)\s+of\s+the\s+following\b(?:${AT_LEAST_MARKER_GAP})?:\s*`,
+  "i",
+);
+
+/** Captures the quantifier token ("any", "either", "2", "two", "1 or more", ...). */
+const AT_LEAST_QUANTIFIER_RE =
+  /\b(?:with\s+)?(any|either|(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+or\s+more)?)\s+of\s+the\s+following\b/i;
+
+const WORD_MIN: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+
+/**
+ * Parse the AT_LEAST threshold from guideline quantifier wording.
+ * "any" / "either" / "1 or more" -> 1; "2 or more" / "two" -> 2.
+ */
+export function parseAtLeastSuggestedMin(text: string | null | undefined): number {
+  if (!text) return 1;
+  const match = AT_LEAST_QUANTIFIER_RE.exec(text);
+  if (!match) return 1;
+  const token = match[1].trim().toLowerCase();
+  if (token === "any" || token === "either") return 1;
+  const head = token.split(/\s+/)[0] ?? token;
+  if (/^\d+$/.test(head)) return Math.max(1, parseInt(head, 10));
+  return WORD_MIN[head] ?? 1;
+}
+
+/**
+ * Drop post-recommendation caveats glued onto the last NICE list item
+ * (NG12 1.3.1: FIT screening / rectal-mass prose after the anaemia clause).
+ */
+export function stripGuidelineCaveatTail(text: string): string {
+  return text
+    .replace(/\.\s+FIT should be offered[\s\S]*$/i, "")
+    .replace(/\.\s+People with a rectal mass[\s\S]*$/i, "")
+    // Rationale / "See NICE..." cross-ref tails (NG12 1.5.5). Do not
+    // match "(see recommendations 1.5.6...)" mid-sentence.
+    .replace(/,\s*because\b[\s\S]*$/i, "")
+    .replace(/\s*\(See\s+NICE[\s\S]*$/i, "")
+    .replace(/\.?\s*\[\d{4}\]\s*\.?$/i, "")
+    .replace(/\.$/, "")
+    .trim();
+}
+
+/**
+ * Strip a leading age band and scaffolding "with"/"have" so Step 3 rows
+ * are codeable clinical findings (NG12 1.3.1 "aged under 50 with rectal
+ * bleeding and..." -> "rectal bleeding").
+ */
+export function stripLeadingAgePreamble(text: string): string {
+  let t = text
+    .trim()
+    .replace(/^aged\s+(?:under\s+\d+|\d+\s+and\s+over)\s+(?:with\s+)?/i, "");
+  t = t.replace(/^(?:with|have)\s+(?:an?\s+)?/i, "");
+  t = t.replace(/\s+and\s*$/i, "").trim();
+  return t;
+}
+
+/**
+ * Peel "Only consider / Consider / Refer ... for people with X if Y"
+ * into two clinical AND clauses (NG12 1.7.6 BCC + delay concern).
+ * Returns null when the pattern is absent so callers keep a single row.
+ */
+export function peelReferralClinicalClauses(text: string): string[] | null {
+  const trimmed = text.trim().replace(/^\d+(?:\.\d+)+\s+/, "");
+  const withIf = trimmed.match(
+    /^(?:only\s+)?(?:consider|refer)\b[\s\S]*?\bfor\s+people\s+with\s+(.+?)\s+if\s+(.+)$/i,
+  );
+  if (!withIf?.[1] || !withIf?.[2]) return null;
+  const lesion = withIf[1].replace(/^(?:a|an)\s+/i, "").trim();
+  const concern = withIf[2]
+    .replace(/^(?:there\s+is\s+)/i, "")
+    .replace(/^(?:a|an)\s+/i, "")
+    .trim();
+  if (!lesion || !concern) return null;
+  return [lesion, concern];
+}
+
+/**
+ * Strip "For people who have" / "who have" patient scaffolding from
+ * lead-split situation rows (NG12 1.3.3). Also peels long action +
+ * inclusive-sex + age leads down to the clinical clause after
+ * "who has experienced" (NG12 1.5.5), and peels "Refer people using
+ * a suspected cancer pathway referral if ..." down to the clinical
+ * condition (NG12 1.7.2 dermoscopy / 1.1.4 CXR findings).
+ */
+export function stripPatientLeadScaffold(text: string): string {
+  const trimmed = text.trim();
+  const experienced = trimmed.match(/\bwho\s+has\s+experienced\s+(.+)$/i);
+  if (experienced?.[1]) {
+    return experienced[1].replace(/^(?:a|an)\s+/i, "").trim();
+  }
+  // Referral / offer action leads: keep only the clause after "if"
+  // (not "Carry out..." IBS-style leads -- those use who-has-experienced).
+  const referralIf = trimmed.match(
+    /^(?:\d+(?:\.\d+)+\s+)?refer\s+(?:people|the\s+person)\b[\s\S]*?\bif\s+(.+)$/i,
+  );
+  if (referralIf?.[1]) {
+    return referralIf[1]
+      .replace(/^(?:they\s+(?:have|has|are)\s+)/i, "")
+      .replace(/^(?:a|an)\s+/i, "")
+      .trim();
+  }
+  return trimmed
+    .replace(/^\d+(?:\.\d+)+\s+/, "")
+    .replace(/^for\s+people\s+who\s+(?:have|has|are)\s+/i, "")
+    .replace(/^people\s+who\s+(?:have|has|are)\s+/i, "")
+    .replace(/^who\s+(?:have|has|are)\s+/i, "")
+    .replace(/^(?:a|an)\s+/i, "")
+    .trim();
+}
+
+/**
+ * Short clinical findings that often sit in longer "if they have X and
+ * have N or more..." prose ahead of a shared symptom list (NG12 1.1.2
+ * "ever smoked", 1.1.5 asbestos exposure). Kept as an allow-list so
+ * recommendation prose never invents a fake unresolved lead row.
+ */
+const EMBEDDED_LEAD_FINDINGS_RE =
+  /\b(?:ever smoked|been exposed to asbestos|exposed to asbestos)\b/i;
+
+function normaliseEmbeddedLead(raw: string): string {
+  const lower = raw.trim().toLowerCase();
+  if (lower.includes("asbestos")) return "exposed to asbestos";
+  if (lower.includes("ever smoked")) return "ever smoked";
+  return raw.trim();
+}
 
 /**
  * Whether `text` opens with (or contains) an "any of the following" /
@@ -89,6 +226,12 @@ export interface AtLeastClusterSplit {
    * behaviour applies and `leadText` is left populated as normal.
    */
   leadCluster?: string[];
+  /**
+   * Suggested `AT_LEAST.min` from the guideline quantifier -- 1 for
+   * "any" / "1 or more", 2 for "2 or more", etc. Clamped by the
+   * caller to the live item count when the subgroup is created.
+   */
+  suggestedMin: number;
 }
 
 /** Same comma/bare-"or" convention used for both trailing AT_LEAST list
@@ -198,17 +341,93 @@ function splitAtMarker(cleaned: string): { leadText: string; listText: string } 
 }
 
 /**
+ * Same as `AT_LEAST_MARKER_RE` but the trailing colon is optional.
+ * Used when a shared structure list supplies the items (NG12 1.1.2
+ * situation A ends at "...2 or more of the following unexplained
+ * symptoms," with the colon / list living only on situation B).
+ */
+const AT_LEAST_MARKER_RELAXED_RE = new RegExp(
+  String.raw`\b(?:with\s+)?(?:any|either|(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s+or\s+more)?)\s+of\s+the\s+following\b(?:${AT_LEAST_MARKER_GAP})?`,
+  "i",
+);
+
+function splitAtMarkerRelaxed(
+  cleaned: string,
+): { leadText: string; listText: string } | null {
+  const match = AT_LEAST_MARKER_RELAXED_RE.exec(cleaned);
+  if (!match) return null;
+  const leadText = cleaned.slice(0, match.index).trim().replace(/[,;]+$/, "").trim();
+  const after = cleaned.slice(match.index + match[0].length).replace(/^:\s*/, "");
+  const listText = stripTrailingCitation(after);
+  return { leadText, listText };
+}
+
+/**
+ * Keep only a short clinical lead (e.g. "indigestion") ahead of an
+ * AT_LEAST list. Drop long recommendation prose ("Offer an urgent...
+ * if they have") so NG12 1.1.2 situation A does not invent a fake
+ * unresolved lead row when the shared symptom list was attached from
+ * structureChildren. Strips age bands (NG12 1.3.1 "aged under 50 with
+ * rectal bleeding") and falls through to an allow-listed embedded
+ * finding ("ever smoked") so situation B still gets a codeable smoking
+ * row.
+ */
+function keepAsClusterLead(leadText: string): string {
+  const trimmed = stripGuidelineCaveatTail(leadText);
+  if (!trimmed) return "";
+
+  // Age-stripped core first -- "aged under 50 with rectal bleeding and"
+  // must keep "rectal bleeding", not disappear because of the age ban.
+  const clinical = stripLeadingAgePreamble(trimmed);
+  if (clinical && clinical !== trimmed) {
+    if (looksLikeLeadOrCluster(clinical)) return clinical;
+    if (
+      clinical.length <= 48 &&
+      clinical.split(/\s+/).length <= 6 &&
+      !/\b(people|aged?|offer|consider|refer|assess)\b/i.test(clinical)
+    ) {
+      return clinical;
+    }
+  }
+
+  if (looksLikeLeadOrCluster(trimmed)) return trimmed;
+  // "if they have" / "they have" is guideline scaffolding, not a
+  // finding -- fall through to the embedded-finding allow-list.
+  const isScaffoldOnly = /^(if\s+)?they\s+have\b/i.test(trimmed);
+  if (
+    !isScaffoldOnly &&
+    trimmed.length <= 48 &&
+    trimmed.split(/\s+/).length <= 5 &&
+    !/\b(people|aged?|offer|consider|refer|assess)\b/i.test(trimmed)
+  ) {
+    return trimmed;
+  }
+  const embedded = EMBEDDED_LEAD_FINDINGS_RE.exec(trimmed);
+  return embedded ? normaliseEmbeddedLead(embedded[0]) : "";
+}
+
+/**
  * Builds the final `AtLeastClusterSplit`, detecting a lead-or cluster in
  * `leadText` (if any) and clearing `leadText` when one is found, since
  * `looksLikeLeadOrCluster` only matches when the whole lead-in is
  * nothing but that cluster's own terms.
  */
-function buildClusterSplit(leadText: string, items: string[]): AtLeastClusterSplit | null {
+function buildClusterSplit(
+  leadText: string,
+  items: string[],
+  markerSource: string,
+): AtLeastClusterSplit | null {
   if (items.length === 0) return null;
-  const leadCluster = looksLikeLeadOrCluster(leadText);
+  const usableLead = keepAsClusterLead(leadText);
+  const leadCluster = looksLikeLeadOrCluster(usableLead);
+  const suggestedMin = Math.min(
+    parseAtLeastSuggestedMin(markerSource),
+    Math.max(1, items.length),
+  );
   return {
-    leadText: leadCluster ? "" : leadText,
+    leadText: leadCluster ? "" : usableLead,
     items,
+    suggestedMin,
     ...(leadCluster ? { leadCluster } : {}),
   };
 }
@@ -230,7 +449,8 @@ export function detectAtLeastCluster(
   text: string | null | undefined,
 ): AtLeastClusterSplit | null {
   if (!text) return null;
-  const split = splitAtMarker(cleanPathwayText(text));
+  const cleaned = cleanPathwayText(text);
+  const split = splitAtMarker(cleaned);
   if (!split) return null;
 
   const items = split.listText
@@ -238,7 +458,7 @@ export function detectAtLeastCluster(
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
-  return buildClusterSplit(split.leadText, items);
+  return buildClusterSplit(split.leadText, items, cleaned);
 }
 
 /**
@@ -253,16 +473,30 @@ export function detectAtLeastCluster(
 export function resolveAtLeastCluster(
   boundary: Pick<PathwayTextBoundary, "text" | "source" | "structureChildren">,
 ): AtLeastClusterSplit | null {
-  if (boundary.source === "structure") {
-    const children = boundary.structureChildren ?? [];
+  const children = boundary.structureChildren ?? [];
+  if (children.length > 0) {
+    // Prefer nested / shared structure items over re-parsing the flat
+    // text. Heuristic pathways for NG12 1.1.2 also carry the shared
+    // symptom `<ul>` here (see `splitPathways`), even though
+    // `source === "heuristic"`.
     const items = children
-      .map((c, i) => (i === children.length - 1 ? stripTrailingCitation(c.text) : c.text.trim()))
+      .map((c, i) =>
+        i === children.length - 1 ? stripTrailingCitation(c.text) : c.text.trim(),
+      )
       .filter((t) => t.length > 0);
     if (items.length === 0) return null;
 
-    const split = splitAtMarker(boundary.text.trim());
-    const leadText = split ? split.leadText : boundary.text.trim();
-    return buildClusterSplit(leadText, items);
+    const cleaned = cleanPathwayText(boundary.text);
+    const split = splitAtMarker(cleaned) ?? splitAtMarkerRelaxed(cleaned);
+    const leadText = split ? split.leadText : cleaned;
+    // Prefer the pathway's own marker wording for suggestedMin; when
+    // the marker lives only on the sibling situation (shared list on
+    // A with colon on B), fall back to scanning cleaned + a joined
+    // structure lead if present.
+    const markerSource = split
+      ? cleaned.slice(split.leadText.length)
+      : cleaned;
+    return buildClusterSplit(leadText, items, markerSource || cleaned);
   }
   return detectAtLeastCluster(boundary.text);
 }

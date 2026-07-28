@@ -77,6 +77,7 @@ export type WizardAction =
       readyImmediately: boolean;
     }
   | { type: "CONFIRM_NO_SPLIT"; boundary: PathwayTextBoundary }
+  | { type: "EXPAND_WEIGHTED_CHECKLIST"; pathwayIndex: number }
   | { type: "PATHWAYS_READY" }
   | { type: "SET_CLUSTER_GROUPING"; pathwayKey: string; grouping: ClusterGrouping }
   | { type: "SET_LEAD_CLUSTER_GROUPING"; pathwayKey: string; grouping: ClusterGrouping }
@@ -89,7 +90,14 @@ export type WizardAction =
    *  lives in prerequisites/this pathway; unlike every other action
    *  these do not follow the normal linear Confirm/Back sequence. */
   | { type: "JUMP_TO_PREREQUISITES" }
-  | { type: "JUMP_TO_PATHWAY"; pathwayIndex: number };
+  | { type: "JUMP_TO_PATHWAY"; pathwayIndex: number }
+  /** IFU CoachTour: force a phase when anchors must exist before the bubble. */
+  | {
+      type: "TOUR_GOTO";
+      step: WizardStepKind;
+      pathwayIndex?: number;
+      boundaries?: PathwayTextBoundary[] | null;
+    };
 
 function backOneStep(state: WizardState): WizardState {
   if (state.step === "pathway-split") {
@@ -146,6 +154,20 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
         boundaries: [action.boundary],
         materializing: false,
       };
+    case "EXPAND_WEIGHTED_CHECKLIST": {
+      const boundaries = state.boundaries;
+      if (!boundaries || !boundaries[action.pathwayIndex]?.weightedChecklist) {
+        return state;
+      }
+      const next = boundaries.map((b, i) => {
+        if (i !== action.pathwayIndex || !b.weightedChecklist) return b;
+        return {
+          ...b,
+          weightedChecklist: { ...b.weightedChecklist, expanded: true },
+        };
+      });
+      return { ...state, boundaries: next };
+    }
     case "PATHWAYS_READY":
       return state.materializing
         ? { ...state, step: "pathway-conditions", pathwayIndex: 0, materializing: false }
@@ -198,6 +220,39 @@ export function wizardReducer(state: WizardState, action: WizardAction): WizardS
             materializing: false,
           }
         : state;
+    case "TOUR_GOTO": {
+      const boundaries = action.boundaries ?? state.boundaries;
+      if (action.step === "prerequisites") {
+        return { ...state, step: "prerequisites", materializing: false };
+      }
+      if (action.step === "pathway-split") {
+        return {
+          ...state,
+          step: "pathway-split",
+          boundaries,
+          materializing: false,
+        };
+      }
+      if (action.step === "pathway-conditions") {
+        if (!boundaries?.length) return state;
+        return {
+          ...state,
+          step: "pathway-conditions",
+          pathwayIndex: action.pathwayIndex ?? 0,
+          boundaries,
+          materializing: false,
+        };
+      }
+      if (action.step === "review") {
+        return {
+          ...state,
+          step: "review",
+          boundaries: boundaries ?? state.boundaries,
+          materializing: false,
+        };
+      }
+      return state;
+    }
     default:
       return state;
   }

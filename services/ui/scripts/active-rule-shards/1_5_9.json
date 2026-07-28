@@ -1,0 +1,145 @@
+{
+  "name": "Rule: 1.5.9",
+  "rule_id": "rule:NG12:v1:CH002:SEC004:R008:88f75b4f:edit:1b2ff62b:edit:5c2d5f84",
+  "title": "1.5.9",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.5.9 Arrange an urgent , direct access ultrasound scan of the abdomen and pelvis depending on age and serum CA125 according to the thresholds in table 1. [2026]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": "between",
+            "value": [
+              40.0,
+              49.0
+            ],
+            "unit": "years"
+          },
+          {
+            "kind": "OBSERVATION",
+            "observation": {
+              "kind": "OBSERVATION",
+              "observable_id": "1027511000000100",
+              "observable_term": "Cancer antigen 125 level (observable entity)",
+              "operator": ">=",
+              "value": 35.0,
+              "unit": "IU/ml",
+              "within_days": 365
+            }
+          }
+        ]
+      },
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": "between",
+            "value": [
+              50.0,
+              59.0
+            ],
+            "unit": "years"
+          },
+          {
+            "kind": "OBSERVATION",
+            "observation": {
+              "kind": "OBSERVATION",
+              "observable_id": "1027511000000100",
+              "observable_term": "Cancer antigen 125 level (observable entity)",
+              "operator": ">=",
+              "value": 31.0,
+              "unit": "IU/ml",
+              "within_days": 365
+            }
+          }
+        ]
+      },
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": "between",
+            "value": [
+              60.0,
+              69.0
+            ],
+            "unit": "years"
+          },
+          {
+            "kind": "OBSERVATION",
+            "observation": {
+              "kind": "OBSERVATION",
+              "observable_id": "1027511000000100",
+              "observable_term": "Cancer antigen 125 level (observable entity)",
+              "operator": ">=",
+              "value": 24.0,
+              "unit": "IU/ml",
+              "within_days": 365
+            }
+          }
+        ]
+      },
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": "between",
+            "value": [
+              70.0,
+              79.0
+            ],
+            "unit": "years"
+          },
+          {
+            "kind": "OBSERVATION",
+            "observation": {
+              "kind": "OBSERVATION",
+              "observable_id": "1027511000000100",
+              "observable_term": "Cancer antigen 125 level (observable entity)",
+              "operator": ">=",
+              "value": 25.0,
+              "unit": "IU/ml",
+              "within_days": 365
+            }
+          }
+        ]
+      },
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": "80",
+            "unit": "years"
+          },
+          {
+            "kind": "OBSERVATION",
+            "observation": {
+              "kind": "OBSERVATION",
+              "observable_id": "1027511000000100",
+              "observable_term": "Cancer antigen 125 level (observable entity)",
+              "operator": ">=",
+              "value": 31.0,
+              "unit": "IU/ml",
+              "within_days": 365
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

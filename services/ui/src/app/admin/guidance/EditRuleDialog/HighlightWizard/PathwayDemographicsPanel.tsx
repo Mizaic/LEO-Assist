@@ -14,12 +14,13 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import DemographicRow from "../LogicTreeEditor/DemographicRow";
 import type { EditableLogicNode, NodeUpdate } from "../types";
-import { STEP_PATHWAY_CONDITIONS } from "./copy";
+import { STEP_PATHWAY_CONDITIONS, WIZARD_TOOLTIPS } from "./copy";
 
 export type PathwayDemographicField = "age" | "sex";
 
@@ -71,26 +72,34 @@ export default function PathwayDemographicsPanel({
       )}
 
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<AddRoundedIcon fontSize="small" />}
-          disabled={hasAge}
-          onClick={() => onAdd("age")}
-          aria-label={STEP_PATHWAY_CONDITIONS.addAgeAriaLabel}
-        >
-          {STEP_PATHWAY_CONDITIONS.addAgeLabel}
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<AddRoundedIcon fontSize="small" />}
-          disabled={hasSex}
-          onClick={() => onAdd("sex")}
-          aria-label={STEP_PATHWAY_CONDITIONS.addSexAriaLabel}
-        >
-          {STEP_PATHWAY_CONDITIONS.addSexLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.addAgeSituation}>
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddRoundedIcon fontSize="small" />}
+              disabled={hasAge}
+              onClick={() => onAdd("age")}
+              aria-label={STEP_PATHWAY_CONDITIONS.addAgeAriaLabel}
+            >
+              {STEP_PATHWAY_CONDITIONS.addAgeLabel}
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title={WIZARD_TOOLTIPS.addSexSituation}>
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddRoundedIcon fontSize="small" />}
+              disabled={hasSex}
+              onClick={() => onAdd("sex")}
+              aria-label={STEP_PATHWAY_CONDITIONS.addSexAriaLabel}
+            >
+              {STEP_PATHWAY_CONDITIONS.addSexLabel}
+            </Button>
+          </span>
+        </Tooltip>
       </Stack>
     </Box>
   );

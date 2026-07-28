@@ -34,9 +34,12 @@ import Button from "@mui/material/Button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import DemographicRow from "../LogicTreeEditor/DemographicRow";
+import ObservationRow from "../LogicTreeEditor/ObservationRow";
 import ListRecommendationView, {
   type ListRowResolution,
 } from "../SentenceEditor/ListRecommendationView";
@@ -46,7 +49,7 @@ import type {
 } from "../SentenceEditor/pathwayTextSplit";
 import type { ValidationIssue } from "../treeOps";
 import type { EditableLogicNode, LogicCriterion, NodeUpdate } from "../types";
-import { STEP_PATHWAY_CONDITIONS } from "./copy";
+import { STEP_PATHWAY_CONDITIONS, WIZARD_TOOLTIPS } from "./copy";
 import PathwayDemographicsPanel, {
   type PathwayDemographicField,
 } from "./PathwayDemographicsPanel";
@@ -85,7 +88,16 @@ export interface StepPathwayConditionsProps {
   /** Undefined means "not yet asked" -- only relevant when this
    *  pathway has a detected trailing "any of the following" cluster. */
   clusterGrouping?: ClusterGrouping;
-  onChooseGrouping?: (grouping: ClusterGrouping) => void;
+  /** Second arg is the AT_LEAST.min to apply (1 for only-one, N for
+   *  "at least N"). Ignored when grouping is AND. */
+  onChooseGrouping?: (grouping: ClusterGrouping, min?: number) => void;
+  /** Live AT_LEAST.min on the trailing subgroup (after a choice). */
+  clusterMin?: number;
+  /** Guideline-suggested min ("2 or more" -> 2). Drives Recommended. */
+  suggestedClusterMin?: number;
+  /** Term count for the trailing cluster -- clamps the min stepper. */
+  clusterTermCount?: number;
+  onSetClusterMin?: (min: number) => void;
   /**
    * Same as `clusterGrouping`/`onChooseGrouping` but for a SEPARATE,
    * marker-less lead-or cluster detected ahead of the trailing one
@@ -136,6 +148,17 @@ export interface StepPathwayConditionsProps {
    */
   expandedDemographicNode?: EditableLogicNode | null;
   /**
+   * The OBSERVATION leaf whose inline operator/value/unit editor
+   * should currently render, toggled by re-clicking its row (see
+   * `PathwayConditionsStage.handleRowClick`). Passed as the resolved
+   * node itself for the same mid-edit stability reason as
+   * `expandedDemographicNode`. Null/undefined means none is expanded.
+   */
+  expandedObservationNode?: EditableLogicNode | null;
+  /** Chip click inside the expanded ObservationRow -- swaps the
+   *  observable via the existing concept-search popover. */
+  onSelectObservation?: (nodeId: string, anchor?: HTMLElement | null) => void;
+  /**
    * Tree problems in this pathway with no guideline text of their own
    * to anchor a normal row to (almost always an empty group) -- see
    * `PathwayConditionsStage`'s `pathwayProblemIssues` doc comment.
@@ -144,6 +167,16 @@ export interface StepPathwayConditionsProps {
    */
   problemIssues?: ValidationIssue[];
   onRemoveProblem?: (nodeId: string) => void;
+  /** NG12 1.7.1 weighted companion checklist on this boundary. */
+  weightedChecklist?: {
+    title: string;
+    threshold: number;
+    expanded: boolean;
+    scorePhrase: string | null;
+    majors: string[];
+    minors: string[];
+  } | null;
+  onExpandWeightedChecklist?: () => void;
 }
 
 export default function StepPathwayConditions({
@@ -157,6 +190,10 @@ export default function StepPathwayConditions({
   onAddMultiConcept,
   clusterGrouping,
   onChooseGrouping,
+  clusterMin,
+  suggestedClusterMin,
+  clusterTermCount = 0,
+  onSetClusterMin,
   leadClusterGrouping,
   onChooseLeadGrouping,
   confirmedSummaries = [],
@@ -169,20 +206,39 @@ export default function StepPathwayConditions({
   onAddPathwayDemographic,
   onUpdatePathway,
   expandedDemographicNode = null,
+  expandedObservationNode = null,
+  onSelectObservation,
   problemIssues = [],
   onRemoveProblem,
+  weightedChecklist = null,
+  onExpandWeightedChecklist,
 }: StepPathwayConditionsProps) {
-  const { items, hasCluster, leadCluster } = useMemo(
+  const { items: rawItems, hasCluster, leadCluster, suggestedMin } = useMemo(
     () => buildPathwayRows(boundary),
     [boundary],
   );
+  // Hide the score-instrument phrase while Expand is still available --
+  // coding that phrase as a bare CONCEPT is the escape hatch, not the
+  // happy path for a weighted companion checklist.
+  const items = useMemo(() => {
+    if (!weightedChecklist || weightedChecklist.expanded) return rawItems;
+    const score = (weightedChecklist.scorePhrase || "").toLowerCase();
+    if (!score) return rawItems;
+    return rawItems.filter((i) => i.text.toLowerCase() !== score);
+  }, [rawItems, weightedChecklist]);
+  const effectiveSuggestedMin = suggestedClusterMin ?? suggestedMin ?? 1;
+  const effectiveClusterMin = clusterMin ?? effectiveSuggestedMin;
 
   const trailingClusterTerms = useMemo(() => {
     if (!hasCluster) return [] as string[];
     if (leadCluster) {
       return items.slice(leadCluster.items.length).map((i) => i.text);
     }
-    return (items[0]?.children ?? []).map((i) => i.text);
+    // Flat shared quantifier lists (NG12 1.1.2) put cluster rows on
+    // `items` itself with no lead wrapper -- fall back like
+    // `isClusterChildRow` does, so the prompt names the symptoms.
+    // Nested lead + children ("ever smoked" + symptoms) uses children.
+    return (items[0]?.children ?? items).map((i) => i.text);
   }, [hasCluster, leadCluster, items]);
 
   const unresolvedCount = useMemo(() => {
@@ -196,8 +252,12 @@ export default function StepPathwayConditions({
     ? STEP_PATHWAY_CONDITIONS.leadClusterPrompt(leadCluster.items.map((i) => i.text))
     : null;
   const trailingClusterPrompt = hasCluster
-    ? STEP_PATHWAY_CONDITIONS.clusterPrompt(trailingClusterTerms)
+    ? STEP_PATHWAY_CONDITIONS.clusterPrompt(
+        trailingClusterTerms,
+        effectiveSuggestedMin,
+      )
     : null;
+  const termCount = clusterTermCount || trailingClusterTerms.length;
   // Do not echo the prompt card's own wording under Confirm -- that
   // read as a second stacked question. Use a short "choose above" hint.
   const blockedReason =
@@ -209,7 +269,7 @@ export default function StepPathwayConditions({
         : null);
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} data-tour="er-05-conditions">
       <Box>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           {STEP_PATHWAY_CONDITIONS.situationProgress(
@@ -243,6 +303,47 @@ export default function StepPathwayConditions({
         />
       )}
 
+      {weightedChecklist && !weightedChecklist.expanded && onExpandWeightedChecklist && (
+        <Box
+          sx={{
+            p: 1.5,
+            borderRadius: 1.5,
+            border: "1px dashed",
+            borderColor: "primary.main",
+          }}
+          data-testid="weighted-checklist-expand"
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+            {weightedChecklist.title}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {STEP_PATHWAY_CONDITIONS.weightedChecklistExpandHint}
+          </Typography>
+          <Tooltip title={STEP_PATHWAY_CONDITIONS.weightedChecklistExpandHint}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={onExpandWeightedChecklist}
+              aria-label={STEP_PATHWAY_CONDITIONS.weightedChecklistExpand(
+                weightedChecklist.threshold,
+              )}
+            >
+              {STEP_PATHWAY_CONDITIONS.weightedChecklistExpand(
+                weightedChecklist.threshold,
+              )}
+            </Button>
+          </Tooltip>
+        </Box>
+      )}
+
+      {weightedChecklist?.expanded && (
+        <Typography variant="body2" color="text.secondary">
+          Major features ({weightedChecklist.majors.length}) and minor features (
+          {weightedChecklist.minors.length}). Score at least {weightedChecklist.threshold}{" "}
+          means any two majors, or one major plus one minor, or three minors.
+        </Typography>
+      )}
+
       <ListRecommendationView
         items={items}
         getRowResolution={getRowResolution}
@@ -273,6 +374,19 @@ export default function StepPathwayConditions({
         </Box>
       )}
 
+      {expandedObservationNode && onUpdatePathway && onSelectObservation && (
+        <Box sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.75 }}>
+            {STEP_PATHWAY_CONDITIONS.editingObservationHeading}
+          </Typography>
+          <ObservationRow
+            node={expandedObservationNode}
+            onUpdate={onUpdatePathway}
+            onSelect={onSelectObservation}
+          />
+        </Box>
+      )}
+
       {leadCluster && leadClusterPrompt && (
         <ClusterGroupingChoice
           prompt={leadClusterPrompt}
@@ -286,6 +400,10 @@ export default function StepPathwayConditions({
           prompt={trailingClusterPrompt}
           grouping={clusterGrouping}
           onChoose={onChooseGrouping}
+          suggestedMin={effectiveSuggestedMin}
+          clusterMin={effectiveClusterMin}
+          termCount={termCount}
+          onSetClusterMin={onSetClusterMin}
         />
       )}
 
@@ -301,14 +419,18 @@ export default function StepPathwayConditions({
             {blockedReason}
           </Typography>
         )}
-        <Button
-          variant="contained"
-          size="small"
-          disabled={!!blockedReason}
-          onClick={onConfirmPathway}
-        >
-          {STEP_PATHWAY_CONDITIONS.confirmLabel(pathwayLetter, nextPathwayLetter)}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.confirmSituation}>
+          <span>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={!!blockedReason}
+              onClick={onConfirmPathway}
+            >
+              {STEP_PATHWAY_CONDITIONS.confirmLabel(pathwayLetter, nextPathwayLetter)}
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
     </Stack>
   );
@@ -330,12 +452,25 @@ function CopyAcrossBanner({
       aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossAriaLabel}
       action={
         <Stack direction="row" spacing={1} sx={{ pt: 0.25 }}>
-          <Button size="small" variant="contained" onClick={onAccept}>
-            {STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
-          </Button>
-          <Button size="small" onClick={onDismiss}>
-            {STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
-          </Button>
+          <Tooltip title={WIZARD_TOOLTIPS.copyAcross}>
+            <Button
+              size="small"
+              variant="contained"
+              aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
+              onClick={onAccept}
+            >
+              {STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
+            </Button>
+          </Tooltip>
+          <Tooltip title={WIZARD_TOOLTIPS.dismissCopy}>
+            <Button
+              size="small"
+              aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
+              onClick={onDismiss}
+            >
+              {STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
+            </Button>
+          </Tooltip>
         </Stack>
       }
     >
@@ -379,43 +514,115 @@ function ClusterGroupingChoice({
   prompt,
   grouping,
   onChoose,
+  suggestedMin = 1,
+  clusterMin = 1,
+  termCount = 0,
+  onSetClusterMin,
 }: {
   prompt: string;
   grouping?: ClusterGrouping;
-  onChoose?: (grouping: ClusterGrouping) => void;
+  onChoose?: (grouping: ClusterGrouping, min?: number) => void;
+  suggestedMin?: number;
+  clusterMin?: number;
+  termCount?: number;
+  onSetClusterMin?: (min: number) => void;
 }) {
+  const recommendN = suggestedMin > 1;
+  const maxMin = Math.max(termCount, suggestedMin, 1);
+
   if (grouping) {
     return (
       <Stack
         direction="row"
         spacing={1}
         alignItems="center"
+        flexWrap="wrap"
         role="group"
         aria-label={prompt}
+        sx={{ rowGap: 1 }}
       >
         <Typography variant="body2" color="text.secondary">
           {grouping === "AT_LEAST"
-            ? STEP_PATHWAY_CONDITIONS.groupingConfirmedOnlyOne
+            ? STEP_PATHWAY_CONDITIONS.groupingConfirmedAtLeastN(clusterMin)
             : STEP_PATHWAY_CONDITIONS.groupingConfirmedAll}
         </Typography>
-        <Button size="small" onClick={() => onChoose?.(grouping === "AT_LEAST" ? "AND" : "AT_LEAST")}>
-          {STEP_PATHWAY_CONDITIONS.changeLabel}
-        </Button>
+        {grouping === "AT_LEAST" && onSetClusterMin && maxMin > 1 && (
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <TextField
+              size="small"
+              type="number"
+              value={clusterMin}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (!Number.isFinite(n)) return;
+                onSetClusterMin(Math.max(1, Math.min(Math.floor(n), maxMin)));
+              }}
+              inputProps={{
+                min: 1,
+                max: maxMin,
+                "aria-label": STEP_PATHWAY_CONDITIONS.clusterMinLabel,
+              }}
+              sx={{ width: 64 }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {STEP_PATHWAY_CONDITIONS.clusterMinOf(maxMin)}
+            </Typography>
+          </Stack>
+        )}
+        <Tooltip title={WIZARD_TOOLTIPS.changeGrouping}>
+          <Button
+            size="small"
+            onClick={() => {
+              if (grouping === "AT_LEAST") onChoose?.("AND");
+              else onChoose?.("AT_LEAST", suggestedMin);
+            }}
+          >
+            {STEP_PATHWAY_CONDITIONS.changeLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     );
   }
+  const onlyOneText = STEP_PATHWAY_CONDITIONS.onlyOneLabel(!recommendN);
+  const atLeastText = STEP_PATHWAY_CONDITIONS.atLeastNLabel(suggestedMin, true);
   return (
     <Box role="group" aria-label={prompt} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "grey.50" }}>
       <Typography variant="body2" sx={{ mb: 1 }}>
         {prompt}
       </Typography>
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-        <Button variant="contained" size="small" onClick={() => onChoose?.("AT_LEAST")}>
-          {STEP_PATHWAY_CONDITIONS.onlyOneLabel}
-        </Button>
-        <Button variant="outlined" size="small" onClick={() => onChoose?.("AND")}>
-          {STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
-        </Button>
+        {recommendN && (
+          <Tooltip title={WIZARD_TOOLTIPS.atLeastN}>
+            <Button
+              variant="contained"
+              size="small"
+              aria-label={atLeastText}
+              onClick={() => onChoose?.("AT_LEAST", suggestedMin)}
+            >
+              {atLeastText}
+            </Button>
+          </Tooltip>
+        )}
+        <Tooltip title={WIZARD_TOOLTIPS.onlyOne}>
+          <Button
+            variant={recommendN ? "outlined" : "contained"}
+            size="small"
+            aria-label={onlyOneText}
+            onClick={() => onChoose?.("AT_LEAST", 1)}
+          >
+            {onlyOneText}
+          </Button>
+        </Tooltip>
+        <Tooltip title={WIZARD_TOOLTIPS.allMustMatch}>
+          <Button
+            variant="outlined"
+            size="small"
+            aria-label={STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
+            onClick={() => onChoose?.("AND")}
+          >
+            {STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     </Box>
   );

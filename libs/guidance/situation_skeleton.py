@@ -192,6 +192,15 @@ def build_situation_skeleton(
 
     heuristic = split_by_or_heuristic(text)
     if heuristic:
+        # NG12 1.1.2: structure fell through as a shared quantifier list
+        # -- attach those items onto every heuristic situation so both
+        # "2 or more" and "1 or more" shells carry the same symptoms.
+        shared_items = _shared_quantifier_structure_items(text, parsed)
+        if shared_items:
+            return [
+                shell.model_copy(update={"structure_children": shared_items})
+                for shell in heuristic
+            ]
         return heuristic
     body = (text or "").strip()
     return [
@@ -202,6 +211,23 @@ def build_situation_skeleton(
             source="single",
         )
     ]
+
+
+def _shared_quantifier_structure_items(
+    text: str | None, structure: dict[str, Any] | None
+) -> list[dict[str, Any]] | None:
+    """Return structure items when they are a shared AT_LEAST list, else None."""
+    if not structure or not isinstance(structure.get("items"), list):
+        return None
+    items = structure["items"]
+    if len(items) < 2:
+        return None
+    lead = str(structure.get("lead_text") or "")
+    if _AT_LEAST_MARKER_RE.search(lead):
+        return [dict(i) for i in items if isinstance(i, dict)]
+    if text and _structure_items_share_heuristic_segment(text, items):
+        return [dict(i) for i in items if isinstance(i, dict)]
+    return None
 
 
 def skeleton_for_prompt(shells: list[SituationShell]) -> list[dict[str, Any]]:

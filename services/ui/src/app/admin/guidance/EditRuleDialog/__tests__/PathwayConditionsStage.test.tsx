@@ -288,6 +288,90 @@ describe("PathwayConditionsStage: editing an already-resolved DEMOGRAPHIC row", 
   });
 });
 
+describe("PathwayConditionsStage: editing an already-resolved OBSERVATION row", () => {
+  const OBS_TEXT = "raised platelet count";
+  const OBS_BOUNDARY: PathwayTextBoundary[] = [
+    { text: OBS_TEXT, start: 0, end: OBS_TEXT.length, source: "heuristic" },
+  ];
+
+  function observationLeaf(): EditableLogicNode {
+    return {
+      node_id: "obs-1",
+      kind: "OBSERVATION",
+      // Pin the leaf to this row's guideline wording so resolution does
+      // not depend on fuzzy overlap between "Platelet count" and
+      // "raised platelet count".
+      source_row_text: OBS_TEXT,
+      observation: {
+        observable_id: "365632008",
+        observable_term: "Platelet count",
+        operator: ">=",
+        value: 400,
+        unit: "10*9/L",
+      },
+    };
+  }
+
+  function ObsHarness({
+    onSelectNode = jest.fn(),
+  }: {
+    onSelectNode?: (nodeId: string, anchor?: HTMLElement | null) => void;
+  }) {
+    const [tree, setTree] = useState<EditableLogicNode>({
+      node_id: "root",
+      kind: "AND",
+      children: [{ node_id: "wrap", kind: "AND", children: [observationLeaf()] }],
+    });
+    return (
+      <PathwayConditionsStage
+        tree={tree}
+        recommendationText={OBS_TEXT}
+        boundaries={OBS_BOUNDARY}
+        pathwayIndex={0}
+        clusterGroupings={{}}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={{}}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={onSelectNode}
+        onUpdate={(update) => setTree((curr) => applyUpdate(curr, update) ?? curr)}
+        onRequestAdd={jest.fn()}
+        onEditConcept={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />
+    );
+  }
+
+  it("toggles the inline lab-value editor instead of calling onSelectNode", async () => {
+    const user = userEvent.setup();
+    const onSelectNode = jest.fn();
+    render(<ObsHarness onSelectNode={onSelectNode} />);
+
+    expect(screen.queryByLabelText(/how to compare the lab value/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByText(OBS_TEXT));
+    expect(onSelectNode).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/how to compare the lab value/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^value$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^unit$/i)).toBeInTheDocument();
+
+    await user.click(screen.getByText(OBS_TEXT));
+    expect(screen.queryByLabelText(/how to compare the lab value/i)).not.toBeInTheDocument();
+  });
+
+  it("routes the ObservationRow chip click to onSelectNode so the reviewer can still swap the observable", async () => {
+    const user = userEvent.setup();
+    const onSelectNode = jest.fn();
+    render(<ObsHarness onSelectNode={onSelectNode} />);
+
+    await user.click(screen.getByText(OBS_TEXT));
+    await user.click(screen.getByRole("button", { name: /platelet count\. click to swap/i }));
+
+    expect(onSelectNode).toHaveBeenCalledWith("obs-1", expect.anything());
+  });
+});
+
 describe("PathwayConditionsStage: copy-across offer", () => {
   it("offers to copy situation A's codes when situation B asks about the same findings", () => {
     render(<Harness />);
@@ -452,7 +536,7 @@ describe("PathwayConditionsStage: invisible empty-group problems", () => {
   it("surfaces the abandoned empty subgroup as its own problem row", () => {
     render(<AbandonedClusterHarness />);
     expect(screen.getByTestId("wizard-problem-row-abandoned-cluster")).toBeInTheDocument();
-    expect(screen.getByText(/one of the groups is empty/i)).toBeInTheDocument();
+    expect(screen.getByText(/match some of these.*empty/i)).toBeInTheDocument();
   });
 
   it("does not report the pathway's own in-progress emptiness as a separate problem", () => {

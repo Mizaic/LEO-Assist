@@ -11,7 +11,6 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -75,14 +74,16 @@ export default function RuleReviewSessionPanels({
             <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, flex: 1 }}>
               {`Approved in this session (${sessionApproved.length})`}
             </Typography>
-            <IconButton
-              size="small"
-              tabIndex={-1}
+            {/* Icon only -- nested <button> inside this header is invalid HTML. */}
+            <ExpandMoreRoundedIcon
+              fontSize="small"
               aria-hidden
-              sx={{ transform: sessionApprovedOpen ? "rotate(180deg)" : "none" }}
-            >
-              <ExpandMoreRoundedIcon fontSize="small" />
-            </IconButton>
+              sx={{
+                color: "action.active",
+                transform: sessionApprovedOpen ? "rotate(180deg)" : "none",
+                transition: "transform 0.15s ease",
+              }}
+            />
           </Stack>
           <Collapse in={sessionApprovedOpen}>
             <Stack id="session-approved-body" spacing={1}>
@@ -185,14 +186,15 @@ export default function RuleReviewSessionPanels({
             <Typography variant="overline" sx={{ fontWeight: 700, letterSpacing: 0.6, flex: 1 }}>
               {`Excluded in this session (${sessionExcluded.length})`}
             </Typography>
-            <IconButton
-              size="small"
-              tabIndex={-1}
+            <ExpandMoreRoundedIcon
+              fontSize="small"
               aria-hidden
-              sx={{ transform: sessionExcludedOpen ? "rotate(180deg)" : "none" }}
-            >
-              <ExpandMoreRoundedIcon fontSize="small" />
-            </IconButton>
+              sx={{
+                color: "action.active",
+                transform: sessionExcludedOpen ? "rotate(180deg)" : "none",
+                transition: "transform 0.15s ease",
+              }}
+            />
           </Stack>
           <Collapse in={sessionExcludedOpen}>
             <Stack id="session-excluded-body" spacing={1}>

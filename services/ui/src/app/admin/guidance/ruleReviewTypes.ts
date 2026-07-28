@@ -12,6 +12,7 @@ import type {
 } from "./RuleLogicView";
 import type { RuleAction } from "./EditRuleDialog/types";
 import type { RecommendationStructure } from "./EditRuleDialog/SentenceEditor/pathwayTextSplit";
+import type { CompanionPanel } from "./EditRuleDialog/HighlightWizard/weightedChecklist";
 
 export interface ActionConcept {
   snomed_concept_id: string | null;
@@ -34,6 +35,8 @@ export interface Rule {
    *  recommendation is a list rather than a plain sentence. Null for
    *  plain-sentence recommendations -- see nice_list_parser.py. */
   recommendation_structure?: RecommendationStructure | null;
+  /** Sibling NICE panel boxes (e.g. weighted 7-point checklist). */
+  companion_panels?: CompanionPanel[] | null;
   plain_english: string;
   present_criteria: Criterion[];
   absent_criteria: Criterion[];
@@ -45,7 +48,7 @@ export interface Rule {
    *  and callers not yet migrated to ``actions``. */
   action?: ActionConcept | null;
   /** Rule-level clinical priority from HAS_ACTION edges. */
-  action_priority?: "2ww" | "urgent" | "routine" | null;
+  action_priority?: "immediate" | "2ww" | "urgent" | "routine" | null;
   /** Due-days paired with action_priority (null for routine). */
   action_due_days?: number | null;
   has_predecessor: boolean;

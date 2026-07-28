@@ -196,7 +196,7 @@ export default function RuleReviewSection({ refreshKey }: Props) {
       logic_tree: Record<string, unknown>;
       reason: string;
       actions?: Array<Record<string, unknown>>;
-      priority?: "2ww" | "urgent" | "routine";
+      priority?: "immediate" | "2ww" | "urgent" | "routine";
       due_days?: number | null;
     }) => {
       if (!editRule) return;

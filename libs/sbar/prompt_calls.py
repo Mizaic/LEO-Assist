@@ -82,7 +82,7 @@ def _serialise_situation_context(
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
 
 
-_PRIORITY_RANK = {"2ww": 0, "urgent": 1, "routine": 2}
+_PRIORITY_RANK = {"immediate": 0, "2ww": 1, "urgent": 2, "routine": 3}
 
 
 def _rule_sort_key(rule: dict[str, Any]) -> tuple[int, int]:
@@ -96,7 +96,7 @@ def _select_primary_rule_id(rules: list[dict[str, Any]]) -> str | None:
     """Deterministically pick the rule that anchors bullet-1.
 
     Sort order (lower = preferred):
-      1. action.priority: 2ww (0) > urgent (1) > routine (2) > other (9)
+      1. action.priority: immediate (0) > 2ww (1) > urgent (2) > routine (3) > other (9)
       2. strength: refer (0) > offer (1) > consider (2) > other (9)
 
     This is evaluated in Python so the LLM never makes this judgement.

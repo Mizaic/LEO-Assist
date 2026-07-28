@@ -94,6 +94,7 @@ export default function HorizontalStepper({
       component="nav"
       role="navigation"
       aria-label="Steps to change this rule"
+      data-tour="er-01-stepper"
       sx={{
         px: { xs: 1.5, md: 2.5 },
         py: 1,

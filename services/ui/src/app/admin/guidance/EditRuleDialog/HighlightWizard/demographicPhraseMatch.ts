@@ -23,6 +23,12 @@
  * age/sex editor the "+ Add age" / "+ Add sex" buttons already open --
  * see `handleRequestAdd`'s call site for the routing decision.
  *
+ * Also covers NICE NG12 age-band labels from the guideline glossary:
+ *   - children: birth to 15 years
+ *   - young people: aged 16 to 24 years
+ *   - children and young people: birth to 24 years
+ *   - adults: 18 years and over (adult pathway wording)
+ *
  * Deliberately conservative, matching this file family's established
  * style (`looksLikeLeadOrCluster`, `looksLikeWithAnd` in
  * `SentenceEditor/pathwayTextSplit.ts`): a match is only returned when the
@@ -45,6 +51,47 @@ const AGE_AND_OVER_RE =
 const AGE_OVER_RE = /\b(?:aged?\s+over|over\s+the\s+age\s+of)\s+(\d{1,3})\b/i;
 const AGE_UNDER_RE = /\b(?:aged?\s+under|under\s+the\s+age\s+of)\s+(\d{1,3})\b/i;
 const AGE_BARE_RE = /\baged?\s+(\d{1,3})\b/i;
+
+/** NICE glossary age-band labels -- longest first so CYP beats "children". */
+const AGE_BAND_PHRASES: Array<{ re: RegExp; match: DemographicPhraseMatch }> = [
+  {
+    re: /^children\s+and\s+young\s+people$/i,
+    match: {
+      field: "age",
+      operator: "<=",
+      value: "24",
+      unit: "years",
+    },
+  },
+  {
+    re: /^young\s+people$/i,
+    match: {
+      field: "age",
+      operator: "between",
+      value: "16",
+      value2: "24",
+      unit: "years",
+    },
+  },
+  {
+    re: /^(?:children|a\s+child)$/i,
+    match: {
+      field: "age",
+      operator: "<=",
+      value: "15",
+      unit: "years",
+    },
+  },
+  {
+    re: /^(?:adults|an?\s+adult)$/i,
+    match: {
+      field: "age",
+      operator: ">=",
+      value: "18",
+      unit: "years",
+    },
+  },
+];
 
 const SEX_WORDS: Record<string, "male" | "female"> = {
   men: "male",
@@ -69,7 +116,17 @@ function matchIsWholeSelection(trimmed: string, match: string): boolean {
   return remainder.length <= 3;
 }
 
+function detectAgeBandPhrase(trimmed: string): DemographicPhraseMatch | null {
+  for (const band of AGE_BAND_PHRASES) {
+    if (band.re.test(trimmed)) return { ...band.match };
+  }
+  return null;
+}
+
 function detectAgePhrase(trimmed: string): DemographicPhraseMatch | null {
+  const band = detectAgeBandPhrase(trimmed);
+  if (band) return band;
+
   const range = AGE_RANGE_RE.exec(trimmed);
   if (range && matchIsWholeSelection(trimmed, range[0])) {
     return { field: "age", operator: "between", value: range[1], value2: range[2], unit: "years" };

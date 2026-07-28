@@ -2,17 +2,19 @@
   {
     "name": "Rule: 1.1.1",
     "rule_id": "rule:NG12:v1:CH002:SEC000:R000:0955f3b5:edit:67af2fe6",
-    "recommendation_text": "1.1.1 Refer people using a suspected cancer pathway referral for lung cancer if they: have chest X\u2011ray findings that suggest lung cancer, or are aged 40\u00a0and over with unexplained haemoptysis. [2015]",
+    "title": "1.1.1",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.1.1 Refer people using a suspected cancer pathway referral for lung cancer if they: have chest X‑ray findings that suggest lung cancer, or are aged 40 and over with unexplained haemoptysis. [2015]",
     "recommendation_structure": {
       "lead_text": "Refer people using a suspected cancer pathway referral for lung cancer if they:",
       "items": [
         {
-          "text": "have chest X\u2011ray findings that suggest lung cancer",
+          "text": "have chest X‑ray findings that suggest lung cancer",
           "start": 86,
           "end": 136
         },
         {
-          "text": "are aged 40\u00a0and over with unexplained haemoptysis. [2015]",
+          "text": "are aged 40 and over with unexplained haemoptysis. [2015]",
           "start": 141,
           "end": 198
         }
@@ -87,7 +89,7 @@
                 "primary_concept_id": "66857006",
                 "needs_human_review": false
               },
-              "source_row_text": "are aged 40\u00a0and over with unexplained haemoptysis. [2015]"
+              "source_row_text": "are aged 40 and over with unexplained haemoptysis. [2015]"
             },
             {
               "kind": "DEMOGRAPHIC",
@@ -104,9 +106,11 @@
   {
     "name": "Rule: 1.1.2",
     "rule_id": "rule:NG12:v1:CH002:SEC000:R001:f9b15cc2:edit:9fa7ac0d:edit:0c6d340c",
-    "recommendation_text": "1.1.2 Offer an urgent , direct access chest X\u2011ray to assess for lung cancer in people aged 40\u00a0and over if they have 2\u00a0or more of the following unexplained symptoms, or if they have ever smoked and have 1\u00a0or more of the following unexplained symptoms: cough fatigue shortness of breath chest pain weight loss appetite loss. [2015]",
+    "title": "1.1.2",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.1.2 Offer an urgent , direct access chest X‑ray to assess for lung cancer in people aged 40 and over if they have 2 or more of the following unexplained symptoms, or if they have ever smoked and have 1 or more of the following unexplained symptoms: cough fatigue shortness of breath chest pain weight loss appetite loss. [2015]",
     "recommendation_structure": {
-      "lead_text": "Offer an urgent , direct access chest X\u2011ray to assess for lung cancer in people aged 40\u00a0and over if they have 2\u00a0or more of the following unexplained symptoms, or if they have ever smoked and have 1\u00a0or more of the following unexplained symptoms:",
+      "lead_text": "Offer an urgent , direct access chest X‑ray to assess for lung cancer in people aged 40 and over if they have 2 or more of the following unexplained symptoms, or if they have ever smoked and have 1 or more of the following unexplained symptoms:",
       "items": [
         {
           "text": "cough",
@@ -356,9 +360,11 @@
   {
     "name": "Rule: 1.1.6",
     "rule_id": "rule:NG12:v1:CH002:SEC000:R005:87b8db54:edit:09b6f681",
-    "recommendation_text": "1.1.6 Consider an urgent , direct access chest X\u2011ray to assess for mesothelioma in people aged 40\u00a0and over with either: finger clubbing or chest signs compatible with pleural disease. [2015]",
+    "title": "1.1.6",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.1.6 Consider an urgent , direct access chest X‑ray to assess for mesothelioma in people aged 40 and over with either: finger clubbing or chest signs compatible with pleural disease. [2015]",
     "recommendation_structure": {
-      "lead_text": "Consider an urgent , direct access chest X\u2011ray to assess for mesothelioma in people aged 40\u00a0and over with either:",
+      "lead_text": "Consider an urgent , direct access chest X‑ray to assess for mesothelioma in people aged 40 and over with either:",
       "items": [
         {
           "text": "finger clubbing",
@@ -501,6 +507,8 @@
   {
     "name": "Rule: 1.10.5",
     "rule_id": "rule:NG12:v1:CH002:SEC009:R004:0cde7dd0:edit:c938ae8e",
+    "title": "1.10.5",
+    "guideline_id": "NG12",
     "recommendation_text": "1.10.5 Refer people using a suspected cancer pathway referral if the results of the blood tests outlined in recommendation 1.10.4 suggest myeloma. [2015, amended 2025]",
     "recommendation_structure": null,
     "logic": {
@@ -586,6 +594,8 @@
   {
     "name": "Rule: 1.11.4",
     "rule_id": "rule:NG12:v1:CH002:SEC010:R003:3f1ab81e:edit:98473028",
+    "title": "1.11.4",
+    "guideline_id": "NG12",
     "recommendation_text": "1.11.4 Consider an urgent , direct access ultrasound scan to assess for soft tissue sarcoma in adults with an unexplained lump that is increasing in size. [2015]",
     "recommendation_structure": null,
     "logic": {
@@ -660,7 +670,9 @@
   {
     "name": "Rule: 1.2.1",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R000:7b7e6325:edit:b6b6eaee:edit:83aa2e72:edit:d5b44ce4:edit:e7c982a6:edit:178e9494",
-    "recommendation_text": "1.2.1 Refer people using a suspected cancer pathway referral for oesophageal cancer if they: have dysphagia, or are aged 55\u00a0and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
+    "title": "1.2.1",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.2.1 Refer people using a suspected cancer pathway referral for oesophageal cancer if they: have dysphagia, or are aged 55 and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
     "recommendation_structure": {
       "lead_text": "Refer people using a suspected cancer pathway referral for oesophageal cancer if they:",
       "items": [
@@ -670,7 +682,7 @@
           "end": 107
         },
         {
-          "text": "are aged 55\u00a0and over, with weight loss, and they have any of the following:",
+          "text": "are aged 55 and over, with weight loss, and they have any of the following:",
           "children": [
             {
               "text": "upper abdominal pain",
@@ -799,6 +811,8 @@
   {
     "name": "Rule: 1.2.10",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R009:f73dd728:edit:3fe39c03:edit:743abb1d:edit:5e05a138:edit:809facf3",
+    "title": "1.2.10",
+    "guideline_id": "NG12",
     "recommendation_text": "1.2.10 Consider an urgent , direct access ultrasound scan to assess for gall bladder cancer in people with an upper abdominal mass consistent with an enlarged gall bladder. [2015]",
     "recommendation_structure": null,
     "logic": {
@@ -838,6 +852,8 @@
   {
     "name": "Rule: 1.2.11",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R010:80580d94:edit:b748e8d8:edit:deb06c16:edit:2e4f93ce",
+    "title": "1.2.11",
+    "guideline_id": "NG12",
     "recommendation_text": "1.2.11 Consider an urgent , direct access ultrasound scan to assess for liver cancer in people with an upper abdominal mass consistent with an enlarged liver. [2015]",
     "recommendation_structure": null,
     "logic": {
@@ -885,6 +901,8 @@
   {
     "name": "Rule: 1.2.2",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R001:8ae03154:edit:a529b764:edit:4fdd3126",
+    "title": "1.2.2",
+    "guideline_id": "NG12",
     "recommendation_text": "1.2.2 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people with haematemesis. [2015]",
     "recommendation_structure": null,
     "logic": {
@@ -910,9 +928,11 @@
   {
     "name": "Rule: 1.2.3",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R002:4870a5d0:edit:8610126e:edit:2998a5ea",
-    "recommendation_text": "1.2.3 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55\u00a0or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels, or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
+    "title": "1.2.3",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.2.3 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55 or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels, or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
     "recommendation_structure": {
-      "lead_text": "Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55\u00a0or over with:",
+      "lead_text": "Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for oesophageal cancer in people aged 55 or over with:",
       "items": [
         {
           "text": "treatment-resistant dyspepsia",
@@ -1389,7 +1409,9 @@
   {
     "name": "Rule: 1.2.4",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R003:1da2ce19:edit:2d978edd",
-    "recommendation_text": "1.2.4 Refer people using a suspected cancer pathway referral for pancreatic cancer if they are aged 40\u00a0and over and have jaundice. [2015]",
+    "title": "1.2.4",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.2.4 Refer people using a suspected cancer pathway referral for pancreatic cancer if they are aged 40 and over and have jaundice. [2015]",
     "recommendation_structure": null,
     "logic": {
       "kind": "AND",
@@ -1421,7 +1443,9 @@
   {
     "name": "Rule: 1.2.7",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R006:da4bdbcb:edit:e12353e8:edit:f0641b0f:edit:17a8755e",
-    "recommendation_text": "1.2.7 Refer people using a suspected cancer pathway referral for stomach cancer if they: have dysphagia, or are aged 55\u00a0and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
+    "title": "1.2.7",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.2.7 Refer people using a suspected cancer pathway referral for stomach cancer if they: have dysphagia, or are aged 55 and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
     "recommendation_structure": {
       "lead_text": "Refer people using a suspected cancer pathway referral for stomach cancer if they:",
       "items": [
@@ -1431,7 +1455,7 @@
           "end": 103
         },
         {
-          "text": "are aged 55\u00a0and over, with weight loss, and they have any of the following:",
+          "text": "are aged 55 and over, with weight loss, and they have any of the following:",
           "children": [
             {
               "text": "upper abdominal pain",
@@ -1553,6 +1577,8 @@
   {
     "name": "Rule: 1.2.8",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R007:8da98050:edit:683c6156:edit:ea53620b:edit:3a2f0c30",
+    "title": "1.2.8",
+    "guideline_id": "NG12",
     "recommendation_text": "1.2.8 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people with haematemesis. [2015]",
     "recommendation_structure": null,
     "logic": {
@@ -1578,9 +1604,11 @@
   {
     "name": "Rule: 1.2.9",
     "rule_id": "rule:NG12:v1:CH002:SEC001:R008:6a4ca62c:edit:284ab96a:edit:68c81da4:edit:903893d2",
-    "recommendation_text": "1.2.9 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55\u00a0or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels,or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
+    "title": "1.2.9",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.2.9 Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55 or over with: treatment-resistant dyspepsia, or upper abdominal pain with low haemoglobin levels,or raised platelet count with any of the following: nausea vomiting weight loss reflux dyspepsia upper abdominal pain, or nausea or vomiting with any of the following: weight loss reflux dyspepsia upper abdominal pain. [2015]",
     "recommendation_structure": {
-      "lead_text": "Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55\u00a0or over with:",
+      "lead_text": "Consider non-urgent , direct access upper gastrointestinal endoscopy to assess for stomach cancer in people aged 55 or over with:",
       "items": [
         {
           "text": "treatment-resistant dyspepsia",
@@ -2058,17 +2086,19 @@
   {
     "name": "Rule: 1.4.1",
     "rule_id": "rule:NG12:v1:CH002:SEC003:R000:12c9def5:edit:1e9509ee",
-    "recommendation_text": "1.4.1 Refer people using a suspected cancer pathway referral for breast cancer if they are: aged 30\u00a0and over and have an unexplained breast lump with or without pain, or aged 50\u00a0and over with any of the following symptoms in 1 nipple only: discharge retraction other changes of concern. [2015]",
+    "title": "1.4.1",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.4.1 Refer people using a suspected cancer pathway referral for breast cancer if they are: aged 30 and over and have an unexplained breast lump with or without pain, or aged 50 and over with any of the following symptoms in 1 nipple only: discharge retraction other changes of concern. [2015]",
     "recommendation_structure": {
       "lead_text": "Refer people using a suspected cancer pathway referral for breast cancer if they are:",
       "items": [
         {
-          "text": "aged 30\u00a0and over and have an unexplained breast lump with or without pain",
+          "text": "aged 30 and over and have an unexplained breast lump with or without pain",
           "start": 92,
           "end": 165
         },
         {
-          "text": "aged 50\u00a0and over with any of the following symptoms in 1 nipple only:",
+          "text": "aged 50 and over with any of the following symptoms in 1 nipple only:",
           "children": [
             {
               "text": "discharge",
@@ -2229,7 +2259,9 @@
   {
     "name": "Rule: 1.4.2",
     "rule_id": "rule:NG12:v1:CH002:SEC003:R001:47551c6e:edit:a1be2871:edit:e6433b22",
-    "recommendation_text": "1.4.2 Consider a suspected cancer pathway referral for breast cancer in people: with skin changes that suggest breast cancer, or aged 30\u00a0and over with an unexplained lump in the axilla. [2015]",
+    "title": "1.4.2",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.4.2 Consider a suspected cancer pathway referral for breast cancer in people: with skin changes that suggest breast cancer, or aged 30 and over with an unexplained lump in the axilla. [2015]",
     "recommendation_structure": {
       "lead_text": "Consider a suspected cancer pathway referral for breast cancer in people:",
       "items": [
@@ -2239,7 +2271,7 @@
           "end": 124
         },
         {
-          "text": "aged 30\u00a0and over with an unexplained lump in the axilla. [2015]",
+          "text": "aged 30 and over with an unexplained lump in the axilla. [2015]",
           "start": 129,
           "end": 192
         }
@@ -2328,7 +2360,7 @@
                 "primary_concept_id": "300863000",
                 "needs_human_review": false
               },
-              "source_row_text": "aged 30\u00a0and over with an unexplained lump in the axilla. [2015]"
+              "source_row_text": "aged 30 and over with an unexplained lump in the axilla. [2015]"
             },
             {
               "kind": "DEMOGRAPHIC",
@@ -2345,6 +2377,8 @@
   {
     "name": "Rule: 1.4.3",
     "rule_id": "rule:NG12:v1:CH002:SEC003:R002:f54de271:edit:f3e30ff1:edit:31ccd51b",
+    "title": "1.4.3",
+    "guideline_id": "NG12",
     "recommendation_text": "1.4.3 Consider non-urgent referral in people aged under 30 with an unexplained breast lump with or without pain. For information about seeking specialist advice, see also recommendations 1.16.2 and 1.16.3 in the section on the diagnostic process . [2015]",
     "recommendation_structure": null,
     "logic": {
@@ -2377,6 +2411,8 @@
   {
     "name": "Rule: 1.5.1",
     "rule_id": "rule:NG12:v1:CH002:SEC004:R000:b96eddba:edit:bdd32616",
+    "title": "1.5.1",
+    "guideline_id": "NG12",
     "recommendation_text": "1.5.1 Make a referral to a gynaecological cancer service using a suspected cancer pathway referral if physical examination identifies ascites and/or a pelvic or abdominal mass (which is not obviously uterine fibroids). [2011, amended 2020]",
     "recommendation_structure": null,
     "logic": {
@@ -2424,9 +2460,11 @@
   {
     "name": "Rule: 1.5.2",
     "rule_id": "rule:NG12:v1:CH002:SEC004:R001:a9d9eeb1:edit:23ffa200:edit:07e1ada7:edit:3c0d1d00",
-    "recommendation_text": "1.5.2 Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50\u00a0or over) reports having any of the following symptoms on a persistent or frequent basis \u2013 particularly more than 12\u00a0times per month: persistent abdominal distension (often referred to as 'bloating') feeling full (early satiety) and/or loss of appetite pelvic or abdominal pain increased urinary urgency and/or frequency. [2011]",
+    "title": "1.5.2",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.5.2 Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50 or over) reports having any of the following symptoms on a persistent or frequent basis – particularly more than 12 times per month: persistent abdominal distension (often referred to as 'bloating') feeling full (early satiety) and/or loss of appetite pelvic or abdominal pain increased urinary urgency and/or frequency. [2011]",
     "recommendation_structure": {
-      "lead_text": "Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50\u00a0or over) reports having any of the following symptoms on a persistent or frequent basis \u2013 particularly more than 12\u00a0times per month:",
+      "lead_text": "Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50 or over) reports having any of the following symptoms on a persistent or frequent basis – particularly more than 12 times per month:",
       "items": [
         {
           "text": "persistent abdominal distension (often referred to as 'bloating')",
@@ -2578,6 +2616,8 @@
   {
     "name": "Rule: 1.5.3",
     "rule_id": "rule:NG12:v1:CH002:SEC004:R002:4fa35c0f:edit:ae53cca4",
+    "title": "1.5.3",
+    "guideline_id": "NG12",
     "recommendation_text": "1.5.3 Consider carrying out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs reports unexplained weight loss, fatigue or changes in bowel habit. [2011]",
     "recommendation_structure": null,
     "logic": {
@@ -2636,7 +2676,9 @@
   {
     "name": "Rule: 1.5.9",
     "rule_id": "rule:NG12:v1:CH002:SEC004:R008:88f75b4f:edit:1b2ff62b:edit:5c2d5f84",
-    "recommendation_text": "1.5.9 Arrange an urgent , direct access ultrasound scan of the abdomen and pelvis depending on age and serum CA125 according to the thresholds in table\u00a01. [2026]",
+    "title": "1.5.9",
+    "guideline_id": "NG12",
+    "recommendation_text": "1.5.9 Arrange an urgent , direct access ultrasound scan of the abdomen and pelvis depending on age and serum CA125 according to the thresholds in table 1. [2026]",
     "recommendation_structure": null,
     "logic": {
       "kind": "OR",
@@ -2779,6 +2821,8 @@
   {
     "name": "Rule: 1.8.5",
     "rule_id": "rule:NG12:v1:CH002:SEC007:R004:2c567d72:edit:e403bea3",
+    "title": "1.8.5",
+    "guideline_id": "NG12",
     "recommendation_text": "1.8.5 Consider a suspected cancer pathway referral for thyroid cancer in people with an unexplained thyroid lump. [2015]",
     "recommendation_structure": null,
     "logic": {

@@ -1,0 +1,134 @@
+{
+  "name": "Rule: 1.2.7",
+  "rule_id": "rule:NG12:v1:CH002:SEC001:R006:da4bdbcb:edit:e12353e8:edit:f0641b0f:edit:17a8755e",
+  "title": "1.2.7",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.2.7 Refer people using a suspected cancer pathway referral for stomach cancer if they: have dysphagia, or are aged 55 and over, with weight loss, and they have any of the following: upper abdominal pain reflux dyspepsia. [2015, amended 2025]",
+  "recommendation_structure": {
+    "lead_text": "Refer people using a suspected cancer pathway referral for stomach cancer if they:",
+    "items": [
+      {
+        "text": "have dysphagia",
+        "start": 89,
+        "end": 103
+      },
+      {
+        "text": "are aged 55 and over, with weight loss, and they have any of the following:",
+        "children": [
+          {
+            "text": "upper abdominal pain",
+            "start": 184,
+            "end": 204
+          },
+          {
+            "text": "reflux",
+            "start": 205,
+            "end": 211
+          },
+          {
+            "text": "dyspepsia. [2015, amended 2025]",
+            "start": 212,
+            "end": 243
+          }
+        ],
+        "start": 108,
+        "end": 183
+      }
+    ]
+  },
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "288939007",
+          "preferred_term": "Difficulty swallowing (finding)",
+          "semantic_tag": "finding",
+          "term": "dysphagia",
+          "seeds": [
+            {
+              "snomed_concept_id": "288939007",
+              "preferred_term": "Difficulty swallowing (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": true
+            },
+            {
+              "snomed_concept_id": "40739000",
+              "preferred_term": "Dysphagia (disorder)",
+              "semantic_tag": "disorder",
+              "include_descendants": true
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "288939007"
+        }
+      },
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 55.0,
+            "unit": "years"
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "262285001",
+              "preferred_term": "Weight decreased (finding)",
+              "semantic_tag": "finding",
+              "term": "weight loss",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "OR",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "83132003",
+                  "preferred_term": "Upper abdominal pain (finding)",
+                  "semantic_tag": "finding",
+                  "term": "upper abdominal pain",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "162031009",
+                  "preferred_term": "Indigestion (finding)",
+                  "semantic_tag": "finding",
+                  "term": "dyspepsia",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "698065002",
+                  "preferred_term": "Acid reflux (finding)",
+                  "semantic_tag": "finding",
+                  "term": "Acid reflux (finding)",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -34,7 +34,11 @@ export {
   detectAtLeastCluster,
   looksLikeLeadOrCluster,
   looksLikeWithAnd,
+  peelReferralClinicalClauses,
   resolveAtLeastCluster,
+  stripGuidelineCaveatTail,
+  stripLeadingAgePreamble,
+  stripPatientLeadScaffold,
   type AtLeastClusterSplit,
 } from "./atLeastClusterSplit";
 
@@ -78,6 +82,23 @@ export interface RecommendationStructure {
  */
 export type PathwayBoundarySource = "structure" | "heuristic" | "tree";
 
+/**
+ * Weighted companion checklist attached to a no-split boundary
+ * (NG12 1.7.1). Full helpers live in weightedChecklist.ts; this shape
+ * is duplicated here to avoid a circular import with that module.
+ */
+export interface PathwayWeightedChecklist {
+  title: string;
+  threshold: number;
+  majorPoints: number;
+  minorPoints: number;
+  majors: string[];
+  minors: string[];
+  expanded: boolean;
+  lesionPhrase: string | null;
+  scorePhrase: string | null;
+}
+
 export interface PathwayTextBoundary {
   start: number;
   end: number;
@@ -90,6 +111,12 @@ export interface PathwayTextBoundary {
    * `resolveAtLeastCluster` below.
    */
   structureChildren?: RecommendationStructureItem[];
+  /**
+   * Weighted companion checklist (NG12 1.7.1). Carried on the no-split
+   * boundary so Step 3 can peel lesion/score phrases and expand the
+   * score into major/minor feature rows.
+   */
+  weightedChecklist?: PathwayWeightedChecklist | null;
 }
 
 /**
@@ -108,6 +135,28 @@ export interface PathwayTextBoundary {
 const TOP_LEVEL_OR_RE = /,\s*or\b\s*/gi;
 
 /**
+ * NICE inclusive sex/gender lists use ", or " inside ONE patient group
+ * ("any woman, or trans man or non-binary person with female reproductive
+ * organs"). That is not a situation split -- skipping it keeps NG12
+ * 1.5.5 as a single rule instead of fake Situation A/B.
+ */
+const INCLUSIVE_SEX_BEFORE_RE =
+  /\b(?:wom[ae]n|m[ae]n|girls?|boys?|persons?|people)\s*$/i;
+const INCLUSIVE_SEX_AFTER_RE =
+  /^(?:a\s+|an\s+)?(?:trans\b|non[\s-]?binary\b)/i;
+
+/** True when ", or " joins inclusive sex/gender wording, not situations. */
+export function isInclusiveSexOrConnector(
+  text: string,
+  matchIndex: number,
+  matchLength: number,
+): boolean {
+  const before = text.slice(0, matchIndex);
+  const after = text.slice(matchIndex + matchLength);
+  return INCLUSIVE_SEX_BEFORE_RE.test(before) && INCLUSIVE_SEX_AFTER_RE.test(after);
+}
+
+/**
  * Attempt to split `text` into top-level pathway segments using the
  * comma-before-"or" heuristic. Returns null when fewer than two
  * boundaries are found (fewer than 2 segments), signalling "this text
@@ -123,6 +172,9 @@ export function splitPathwaysByOrHeuristic(
   const re = new RegExp(TOP_LEVEL_OR_RE);
   let match: RegExpExecArray | null;
   while ((match = re.exec(text)) !== null) {
+    if (isInclusiveSexOrConnector(text, match.index, match[0].length)) {
+      continue;
+    }
     // The boundary is the start of the next segment, i.e. right after
     // the matched ", or " run (comma + whitespace + "or" + whitespace).
     splitPoints.push(match.index + match[0].length);
@@ -274,24 +326,167 @@ function splitPathwaysFromStructure(
 }
 
 /**
+ * True when the guideline's top-level `<ul>` is a shared AT_LEAST list
+ * that sits AFTER the real situation split in the lead-in prose (NG12
+ * 1.1.2: "2 or more of..., or ... 1 or more of...: cough, fatigue, ...").
+ * In that shape, `splitPathwaysFromStructure` falls through to the
+ * heuristic, and both heuristic situations must still receive the
+ * shared list as `structureChildren` so Step 3 can attach the same
+ * symptoms under each AT_LEAST cluster -- the colon / symptom items
+ * only appear once at the end of the sentence, so pathway A's own
+ * text alone cannot recover them.
+ */
+/**
+ * True when the guideline's top-level `<ul>` is one shared AT_LEAST
+ * symptom/finding list (not separate situations). Exported so Step 2's
+ * no-split path can attach those items as `structureChildren` for Step 3
+ * (NG12 1.5.2: verbose "any of the following..." lead + 4 bullets).
+ */
+export function isSharedQuantifierStructureList(
+  text: string | null | undefined,
+  structure: RecommendationStructure | null | undefined,
+): boolean {
+  if (!structure || !Array.isArray(structure.items) || structure.items.length < 2) {
+    return false;
+  }
+  if (hasAtLeastQuantifierMarker(structure.lead_text)) return true;
+  return Boolean(text && structureItemsShareAHeuristicSegment(text, structure.items));
+}
+
+/**
+ * Single-situation boundary for "Doesn't split" -- carries any shared
+ * quantifier `<ul>` so Step 3 can still offer AT_LEAST rows, and any
+ * weighted companion checklist for score-instrument recommendations.
+ */
+export function buildNoSplitBoundary(
+  text: string,
+  structure?: RecommendationStructure | null,
+  weightedChecklist?: PathwayWeightedChecklist | null,
+): PathwayTextBoundary {
+  const shared =
+    isSharedQuantifierStructureList(text, structure) && structure?.items
+      ? structure.items
+      : undefined;
+  return {
+    text,
+    start: 0,
+    end: text.length,
+    source: "heuristic",
+    structureChildren: shared,
+    weightedChecklist: weightedChecklist ?? undefined,
+  };
+}
+
+/**
+ * NG12 1.3.3-style lead: two patient groups joined by "or who have"
+ * before a colon, with AND-joined actions in the structure list after
+ * ("For people who have not returned a faecal sample or who have a
+ * FIT result below 10...: safety netting ... referral ...").
+ *
+ * The comma-or heuristic misses this (no comma before "or"), and
+ * `NOT_A_SITUATION_SPLIT` would otherwise hide the real split because
+ * the structure items are actions, not situations.
+ */
+const LEAD_PATIENT_OR_RE = /\bor\s+who\s+(?:have|has|are)\b/i;
+
+/**
+ * Split `structure.lead_text` on "or who have/has/are" into two
+ * situation boundaries with offsets into the full recommendation
+ * `text`. Returns null when the lead does not carry that pattern.
+ */
+export function splitPathwaysFromLeadPatientOr(
+  text: string | null | undefined,
+  structure?: RecommendationStructure | null,
+): PathwayTextBoundary[] | null {
+  if (!text) return null;
+  const leadRaw = structure?.lead_text?.trim();
+  if (!leadRaw) return null;
+  const lead = leadRaw.replace(/:\s*$/, "").trim();
+  const match = LEAD_PATIENT_OR_RE.exec(lead);
+  if (!match) return null;
+
+  const left = lead.slice(0, match.index).trim();
+  const right = lead.slice(match.index + match[0].length).trim();
+  if (!left || !right) return null;
+
+  const leftIdx = text.indexOf(left);
+  const rightIdx = text.indexOf(right);
+  if (leftIdx < 0 || rightIdx < 0) return null;
+
+  return [
+    {
+      start: leftIdx,
+      end: leftIdx + left.length,
+      text: left,
+      source: "heuristic",
+    },
+    {
+      start: rightIdx,
+      end: rightIdx + right.length,
+      text: right,
+      source: "heuristic",
+    },
+  ];
+}
+
+/** True when every structure-item gap is only whitespace (no "or"/"and").
+ *  NG12 1.3.3 glues two ACTION sentences with a single space -- that must
+ *  not beat a real "or who have" patient split in the lead. */
+function structureItemsJoinedByWhitespaceOnly(
+  text: string,
+  structure: RecommendationStructure,
+): boolean {
+  const items = structure.items;
+  if (items.length < 2) return false;
+  for (let i = 0; i < items.length - 1; i++) {
+    const gap = text.slice(items[i].end, items[i + 1].start);
+    if (gap.trim().length > 0) return false;
+  }
+  return true;
+}
+
+/**
  * The single entry point Step 2 should call: prefers the guideline's
  * own list structure when present (see the plan's "Ingestion" and
  * "How structure changes the UI" sections), falling back to the
  * ", or "-splitting text heuristic only when no structure exists yet
  * (a local guideline, or a NICE guideline not yet backfilled) or the
- * structure has fewer than 2 items. When the structure explicitly
- * says a 2+ item list is "and"-joined (one situation, not several),
- * that verdict is final -- no fall-through to the text heuristic,
- * which could otherwise misfire on an unrelated ", or" elsewhere in
- * the sentence.
+ * structure has fewer than 2 items. When the structure is an
+ * and-joined ACTION list (`NOT_A_SITUATION_SPLIT`), or only whitespace
+ * joins action sentences, still allow a lead-prose patient split
+ * (NG12 1.3.3) -- those actions are not situations.
  */
 export function splitPathways(
   text: string | null | undefined,
   structure?: RecommendationStructure | null,
 ): PathwayTextBoundary[] | null {
+  const leadSplit = splitPathwaysFromLeadPatientOr(text, structure);
   const structural = splitPathwaysFromStructure(text, structure);
-  if (structural === NOT_A_SITUATION_SPLIT) return null;
-  return structural ?? splitPathwaysByOrHeuristic(text);
+  if (structural === NOT_A_SITUATION_SPLIT) {
+    return leadSplit;
+  }
+  if (
+    structural &&
+    leadSplit &&
+    text &&
+    structure &&
+    structureItemsJoinedByWhitespaceOnly(text, structure)
+  ) {
+    return leadSplit;
+  }
+  if (structural) return structural;
+
+  const heuristic = splitPathwaysByOrHeuristic(text);
+  if (!heuristic) return leadSplit;
+  if (!isSharedQuantifierStructureList(text, structure)) return heuristic;
+
+  // Attach the shared symptom/finding list onto every situation so
+  // both "2 or more" and "ever smoked + 1 or more" can resolve it.
+  const sharedItems = structure!.items;
+  return heuristic.map((boundary) => ({
+    ...boundary,
+    structureChildren: sharedItems,
+  }));
 }
 
 /**

@@ -40,10 +40,17 @@ import Typography from "@mui/material/Typography";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { findPathwaySplit } from "../pathwayDetection";
-import type {
-  PathwayTextBoundary,
-  RecommendationStructure,
+import {
+  buildNoSplitBoundary,
+  splitPathways,
+  type PathwayTextBoundary,
+  type RecommendationStructure,
 } from "../SentenceEditor/pathwayTextSplit";
+import {
+  buildWeightedChecklistState,
+  resolveCompanionPanels,
+  type CompanionPanel,
+} from "./weightedChecklist";
 import type { EditableLogicNode, NodeUpdate } from "../types";
 import PathwayConditionsStage, { resolvePathwayNodes } from "./PathwayConditionsStage";
 import StepPathwaySplit from "./StepPathwaySplit";
@@ -109,6 +116,8 @@ export interface HighlightWizardProps {
   tree: EditableLogicNode;
   recommendationText?: string | null;
   recommendationStructure?: RecommendationStructure | null;
+  /** Sibling NICE panel boxes (e.g. weighted 7-point checklist). */
+  companionPanels?: CompanionPanel[] | null;
   selectedNodeId: string | null;
   onSelectNode: (nodeId: string, anchor?: HTMLElement | null) => void;
   onUpdate: (update: NodeUpdate) => void;
@@ -158,6 +167,11 @@ export interface HighlightWizardProps {
    *  lives at the EditRuleDialog level, above both this component and
    *  the tree itself). */
   jumpRequest?: WizardJumpRequest | null;
+  /**
+   * IFU CoachTour: one-shot request to show a wizard phase so the
+   * matching `data-tour` anchor exists before the bubble measures.
+   */
+  tourGotoRequest?: { requestId: number; phase: WizardStepKind } | null;
 }
 
 function usePrerequisiteNodes(tree: EditableLogicNode): EditableLogicNode[] {
@@ -269,6 +283,7 @@ export default function HighlightWizard({
   tree,
   recommendationText,
   recommendationStructure,
+  companionPanels,
   onSelectNode,
   onUpdate,
   onRequestAdd,
@@ -280,6 +295,7 @@ export default function HighlightWizard({
   startMode = "auto",
   onActiveSituationChange,
   jumpRequest,
+  tourGotoRequest,
 }: HighlightWizardProps) {
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
     startMode === "fresh"
@@ -294,6 +310,48 @@ export default function HighlightWizard({
   useMaterializationEffect(tree, state, dispatch);
   useJumpRequest(jumpRequest, tree, state.boundaries, recommendationText, prerequisiteNodes, dispatch);
   useJumpScrollAndFlash(jumpRequest, containerRef, state.step, state.pathwayIndex);
+
+  useEffect(() => {
+    if (!tourGotoRequest) return;
+    const phase = tourGotoRequest.phase;
+    const derived =
+      state.boundaries?.length
+        ? state.boundaries
+        : proposedBoundaries?.length
+          ? proposedBoundaries
+          : splitPathways(recommendationText, recommendationStructure);
+    if (phase === "prerequisites") {
+      dispatch({ type: "TOUR_GOTO", step: "prerequisites" });
+      return;
+    }
+    if (phase === "pathway-split") {
+      dispatch({
+        type: "TOUR_GOTO",
+        step: "pathway-split",
+        boundaries: derived,
+      });
+      return;
+    }
+    if (phase === "pathway-conditions") {
+      if (!derived?.length) return;
+      const nodes = materializePathways(tree, derived.length, onUpdate);
+      dispatch({
+        type: "CONFIRM_SPLIT",
+        boundaries: derived,
+        readyImmediately: nodes.length > 0,
+      });
+      return;
+    }
+    if (phase === "review") {
+      dispatch({
+        type: "TOUR_GOTO",
+        step: "review",
+        boundaries: derived,
+      });
+    }
+    // Only fire when the tour asks for a new phase.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourGotoRequest]);
 
   useEffect(() => {
     onStepChange?.(state.step);
@@ -342,11 +400,13 @@ export default function HighlightWizard({
 
   const handleNoSplit = useCallback(() => {
     const text = recommendationText ?? "";
+    const panels = resolveCompanionPanels(guidelineId, text, companionPanels);
+    const weighted = buildWeightedChecklistState(text, panels, false);
     dispatch({
       type: "CONFIRM_NO_SPLIT",
-      boundary: { text, start: 0, end: text.length, source: "heuristic" },
+      boundary: buildNoSplitBoundary(text, recommendationStructure, weighted),
     });
-  }, [recommendationText]);
+  }, [recommendationText, recommendationStructure, companionPanels, guidelineId]);
 
   const handleBack = useCallback(() => dispatch({ type: "BACK" }), []);
 
@@ -409,6 +469,12 @@ export default function HighlightWizard({
           recommendationText={recommendationText}
           boundaries={state.boundaries}
           pathwayIndex={state.pathwayIndex}
+          onExpandWeightedChecklist={() =>
+            dispatch({
+              type: "EXPAND_WEIGHTED_CHECKLIST",
+              pathwayIndex: state.pathwayIndex,
+            })
+          }
           clusterGroupings={state.clusterGroupings}
           onSetClusterGrouping={(pathwayKey, grouping) =>
             dispatch({ type: "SET_CLUSTER_GROUPING", pathwayKey, grouping })

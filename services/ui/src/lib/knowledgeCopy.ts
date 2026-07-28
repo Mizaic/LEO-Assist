@@ -179,13 +179,13 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       title: "Guidance rules queue",
       lede: "Rules drafted from NICE and local guides, waiting for sign-off.",
       how: "Read the rule. Check the code link. Approve or amend.",
-      what: "Approved rules flag gaps in the next audit sweep.",
+      what: "Approved rules flag gaps in the next audit sweep. Approve, then compile on this page so patients see it.",
     },
     auditor: {
       title: "Clinical guideline gate",
       lede: "Rule authoring, NICE mapping, and sign-off for safety-netting prompts.",
       how: "Verify citation. Confirm severity. Record approval.",
-      what: "Sign-off is logged for ISO 13485 design-change evidence.",
+      what: "Sign-off is logged for ISO 13485 design-change evidence. Approve, then compile on this page so patients see it.",
     },
     platform_admin: {
       title: "Guideline scope per tenant",

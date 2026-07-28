@@ -99,11 +99,23 @@ export interface LogicCriterion {
 }
 
 /**
+ * How a set of recommended procedures relate to each other.
+ * - ``all`` -- suggest each one (legacy multi-action AND).
+ * - ``any`` -- either/or; any one is fine.
+ * - ``preferred_fallback`` -- try the first; if not available, the next.
+ */
+export type ActionGroupMode = "all" | "any" | "preferred_fallback";
+
+/**
  * One recommended procedure a rule suggests when it fires, paired with
  * its own strength (offer / consider / refer / ...). A rule may recommend
  * more than one procedure (e.g. "Offer an X-ray and refer urgently for a
  * biopsy"), so the editor and the API both carry an ``actions`` array
  * rather than a single action.
+ *
+ * When ``group_id`` is set, sibling actions share that id and
+ * ``group_mode`` describes whether they are AND / OR / preferred+fallback.
+ * ``group_rank`` orders preferred_fallback arms (0 = first choice).
  *
  * Mirrors ``RuleAction`` in
  * ``services/api/app/services/guidance_rule_edit.py``.
@@ -111,20 +123,25 @@ export interface LogicCriterion {
 export interface RuleAction {
   criterion: LogicCriterion;
   strength: string;
+  group_id?: string;
+  group_mode?: ActionGroupMode;
+  group_rank?: number;
 }
 
 /**
  * Rule-level clinical priority written onto HAS_ACTION edges. Matches
  * the bitmap compiler / SBAR Assessment bucket vocabulary
- * (``"2ww"`` | ``"urgent"`` | ``"routine"``).
+ * (``"immediate"`` | ``"2ww"`` | ``"urgent"`` | ``"routine"``).
+ * ``immediate`` covers NICE "immediate specialist assessment" (e.g. NG12 1.10.2).
  */
-export type RulePriority = "2ww" | "urgent" | "routine";
+export type RulePriority = "immediate" | "2ww" | "urgent" | "routine";
 
 /** Dropdown options for the PriorityPanel (value + plain-English label). */
 export const RULE_PRIORITIES: ReadonlyArray<{
   value: RulePriority;
   label: string;
 }> = [
+  { value: "immediate", label: "Immediate specialist assessment" },
   { value: "2ww", label: "2 week wait (urgent suspected cancer)" },
   { value: "urgent", label: "Urgent" },
   { value: "routine", label: "Routine" },
@@ -334,6 +351,9 @@ export type NodeUpdate =
        *  meaningful when `groupKind === "AT_LEAST"` and the pathway
        *  needs a SECOND, independently-graded subgroup. */
       clusterRole?: "lead" | "trailing";
+      /** Initial AT_LEAST.min from the guideline quantifier (e.g. 2
+       *  for "2 or more of the following"). Ignored for other kinds. */
+      min?: number;
     }
   | {
       kind: "add_demographic";

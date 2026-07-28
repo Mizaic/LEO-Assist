@@ -6,8 +6,8 @@
 "use client";
 
 /**
- * Editable clinical priority for a guidance rule -- 2 week wait /
- * urgent / routine, plus optional due-days.
+ * Editable clinical priority for a guidance rule -- immediate /
+ * 2 week wait / urgent / routine, plus optional due-days.
  *
  * Priority is rule-level (shared across every recommended procedure
  * on the rule). Due-days is cleared and disabled when priority is
@@ -54,7 +54,8 @@ export default function PriorityPanel({
         sx={{ lineHeight: 1.4, mb: 1 }}
       >
         This sets the clinical priority used in Assessment and SBAR.
-        Pick 2 week wait for urgent suspected cancer pathways.
+        Pick Immediate for same-day specialist assessment, or 2 week wait
+        for urgent suspected cancer pathways.
       </Typography>
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -114,6 +115,12 @@ export default function PriorityPanel({
             helperText={
               isRoutine ? "Not used for routine priority" : "Optional"
             }
+            // MUI's default disabled helper (#9e9e9e on white) fails
+            // WCAG 2.1 AA contrast; grey.600 keeps the "disabled" cue
+            // while staying above 4.5:1.
+            FormHelperTextProps={{
+              sx: { "&.Mui-disabled": { color: "grey.600" } },
+            }}
           />
         </Box>
       </Stack>

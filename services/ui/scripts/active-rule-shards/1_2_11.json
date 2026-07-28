@@ -1,0 +1,49 @@
+{
+  "name": "Rule: 1.2.11",
+  "rule_id": "rule:NG12:v1:CH002:SEC001:R010:80580d94:edit:b748e8d8:edit:deb06c16:edit:2e4f93ce",
+  "title": "1.2.11",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.2.11 Consider an urgent , direct access ultrasound scan to assess for liver cancer in people with an upper abdominal mass consistent with an enlarged liver. [2015]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "pathway_key": "pw_mrz1t0nn_1",
+        "criterion": {
+          "snomed_concept_id": "80515008",
+          "preferred_term": "Large liver (disorder)",
+          "semantic_tag": "disorder",
+          "term": "Large liver (disorder)",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "",
+          "needs_human_review": false
+        }
+      },
+      {
+        "kind": "CONCEPT",
+        "pathway_key": "pw_mrz1t0nn_2",
+        "criterion": {
+          "snomed_concept_id": "300323005",
+          "preferred_term": "Liver palpable (finding)",
+          "semantic_tag": "finding",
+          "term": "Liver palpable (finding)",
+          "seeds": [
+            {
+              "snomed_concept_id": "300323005",
+              "preferred_term": "Liver palpable (finding)",
+              "semantic_tag": "finding",
+              "include_descendants": true,
+              "distance_child": 1
+            }
+          ],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "300323005",
+          "needs_human_review": false
+        }
+      }
+    ]
+  }
+}

@@ -18,6 +18,7 @@ import { motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
@@ -27,16 +28,23 @@ import { AI_DRAFT } from "./copy";
 import type { EditableLogicNode } from "./types";
 import { bounceInteraction } from "../motionPresets";
 
-/** Sparkle icon that twinkles on idle hover-bait, and spins gently while generating. */
-function SparkleIcon({ loading, reducedMotion, small }: {
+/** Sparkle icon: idle twinkle only on empty-state CTA; secondary stays static until loading. */
+function SparkleIcon({
+  loading,
+  reducedMotion,
+  small,
+  idleTwinkle,
+}: {
   loading: boolean;
   reducedMotion: boolean;
   small: boolean;
+  idleTwinkle: boolean;
 }) {
   const icon = small
     ? <AutoAwesomeIcon sx={{ fontSize: 14 }} />
     : <AutoAwesomeIcon fontSize="small" />;
   if (reducedMotion) return icon;
+  if (!loading && !idleTwinkle) return icon;
   return (
     <fm.div
       style={{ display: "flex" }}
@@ -112,26 +120,37 @@ export default function AIDraftButton({ ruleId, onDraft, variant }: Props) {
   if (variant === "primary-cta") {
     return (
       <Box sx={{ mt: 2, textAlign: "center" }}>
-        <fm.div style={{ display: "inline-block", borderRadius: 999 }} {...spring} {...generatingGlow}>
-          <Button
-            variant="outlined"
-            startIcon={<SparkleIcon loading={loading} reducedMotion={reducedMotion} small={false} />}
-            disabled={loading || !ruleId}
-            onClick={handleClick}
-            aria-label={AI_DRAFT.emptyCtaLabel}
-            sx={{
-              borderRadius: 999,
-              textTransform: "none",
-              fontWeight: 600,
-              px: 2.5,
-              color: "primary.main",
-              borderColor: "primary.main",
-              "&:hover": { bgcolor: "primary.50" },
-            }}
-          >
-            {loading ? AI_DRAFT.loadingLabel : AI_DRAFT.emptyCtaLabel}
-          </Button>
-        </fm.div>
+        <Tooltip title="Ask AI to propose the rule structure from the guideline text. You still review it.">
+          <span>
+            <fm.div style={{ display: "inline-block", borderRadius: 999 }} {...spring} {...generatingGlow}>
+              <Button
+                variant="outlined"
+                startIcon={
+                  <SparkleIcon
+                    loading={loading}
+                    reducedMotion={reducedMotion}
+                    small={false}
+                    idleTwinkle
+                  />
+                }
+                disabled={loading || !ruleId}
+                onClick={handleClick}
+                aria-label={AI_DRAFT.emptyCtaLabel}
+                sx={{
+                  borderRadius: 999,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: 2.5,
+                  color: "primary.main",
+                  borderColor: "primary.main",
+                  "&:hover": { bgcolor: "primary.50" },
+                }}
+              >
+                {loading ? AI_DRAFT.loadingLabel : AI_DRAFT.emptyCtaLabel}
+              </Button>
+            </fm.div>
+          </span>
+        </Tooltip>
         <Typography
           variant="caption"
           color="text.secondary"
@@ -150,26 +169,41 @@ export default function AIDraftButton({ ruleId, onDraft, variant }: Props) {
 
   return (
     <Box>
-      <fm.div style={{ display: "inline-block", borderRadius: 6 }} {...spring} {...generatingGlow}>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<SparkleIcon loading={loading} reducedMotion={reducedMotion} small />}
-          disabled={loading || !ruleId}
-          onClick={handleClick}
-          aria-label={AI_DRAFT.regenerateAria}
-          sx={{
-            textTransform: "none",
-            fontSize: "0.78rem",
-            borderRadius: 1.5,
-            color: "text.secondary",
-            borderColor: "divider",
-            "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: "primary.50" },
-          }}
-        >
-          {loading ? AI_DRAFT.loadingLabel : AI_DRAFT.regenerateLabel}
-        </Button>
-      </fm.div>
+      <Tooltip title="Ask AI again for a new draft. Your current unsaved edits may be replaced when you accept it.">
+        <span>
+          <fm.div style={{ display: "inline-block", borderRadius: 6 }} {...spring} {...generatingGlow}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={
+                <SparkleIcon
+                  loading={loading}
+                  reducedMotion={reducedMotion}
+                  small
+                  idleTwinkle={false}
+                />
+              }
+              disabled={loading || !ruleId}
+              onClick={handleClick}
+              aria-label={AI_DRAFT.regenerateAria}
+              sx={{
+                textTransform: "none",
+                fontSize: "0.78rem",
+                borderRadius: 1.5,
+                color: "text.secondary",
+                borderColor: "divider",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  color: "primary.main",
+                  bgcolor: "primary.50",
+                },
+              }}
+            >
+              {loading ? AI_DRAFT.loadingLabel : AI_DRAFT.regenerateLabel}
+            </Button>
+          </fm.div>
+        </span>
+      </Tooltip>
       {error && (
         <Alert severity="error" sx={{ mt: 0.5, py: 0.25, fontSize: "0.78rem" }}>
           {error}

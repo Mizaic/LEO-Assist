@@ -29,6 +29,7 @@ import { useEffect, useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -38,7 +39,7 @@ import {
   type PathwayTextBoundary,
   type RecommendationStructure,
 } from "../SentenceEditor/pathwayTextSplit";
-import { STEP_PATHWAY_SPLIT } from "./copy";
+import { STEP_PATHWAY_SPLIT, WIZARD_TOOLTIPS } from "./copy";
 import PathwayBoundaryRow from "./PathwayBoundaryRow";
 import { MergedToOneState, NoSplitState } from "./PathwaySplitEmptyStates";
 import { mergeBoundaries, pathwayLetter, splitBoundaryAt } from "./pathwayBoundaryEdits";
@@ -195,7 +196,7 @@ export default function StepPathwaySplit({
   }
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} data-tour="er-04-situations">
       <StepHeader source={source} count={boundaries.length} />
 
       <Stack spacing={1}>
@@ -298,42 +299,56 @@ function StepActions({
   if (mode === "merging") {
     return (
       <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-        <Button
-          variant="contained"
-          size="small"
-          disabled={!canConfirmMerge}
-          onClick={onConfirmMerge}
-        >
-          {STEP_PATHWAY_SPLIT.confirmMergeLabel}
-        </Button>
-        <Button variant="text" size="small" onClick={onCancel}>
-          {STEP_PATHWAY_SPLIT.cancelLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.confirmMerge}>
+          <span>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={!canConfirmMerge}
+              onClick={onConfirmMerge}
+            >
+              {STEP_PATHWAY_SPLIT.confirmMergeLabel}
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title={WIZARD_TOOLTIPS.cancelMergeSplit}>
+          <Button variant="text" size="small" onClick={onCancel}>
+            {STEP_PATHWAY_SPLIT.cancelLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     );
   }
   if (mode === "splitting") {
     return (
       <Stack direction="row" spacing={1}>
-        <Button variant="text" size="small" onClick={onCancel}>
-          {STEP_PATHWAY_SPLIT.cancelLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.cancelMergeSplit}>
+          <Button variant="text" size="small" onClick={onCancel}>
+            {STEP_PATHWAY_SPLIT.cancelLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     );
   }
   return (
     <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-      <Button variant="contained" size="small" onClick={onLooksRight}>
-        {STEP_PATHWAY_SPLIT.looksRightLabel}
-      </Button>
+      <Tooltip title={WIZARD_TOOLTIPS.looksRight}>
+        <Button variant="contained" size="small" onClick={onLooksRight}>
+          {STEP_PATHWAY_SPLIT.looksRightLabel}
+        </Button>
+      </Tooltip>
       {!hideTextEdits && (
         <>
-          <Button variant="outlined" size="small" onClick={onStartMerge}>
-            {STEP_PATHWAY_SPLIT.mergeLabel}
-          </Button>
-          <Button variant="outlined" size="small" onClick={onStartSplit}>
-            {STEP_PATHWAY_SPLIT.splitLabel}
-          </Button>
+          <Tooltip title={WIZARD_TOOLTIPS.merge}>
+            <Button variant="outlined" size="small" onClick={onStartMerge}>
+              {STEP_PATHWAY_SPLIT.mergeLabel}
+            </Button>
+          </Tooltip>
+          <Tooltip title={WIZARD_TOOLTIPS.split}>
+            <Button variant="outlined" size="small" onClick={onStartSplit}>
+              {STEP_PATHWAY_SPLIT.splitLabel}
+            </Button>
+          </Tooltip>
         </>
       )}
     </Stack>

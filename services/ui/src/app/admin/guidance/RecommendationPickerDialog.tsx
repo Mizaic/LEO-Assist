@@ -410,24 +410,32 @@ function DialogFooter({
             </Button>
           ) : null}
           {!attachMode && handCount > 0 && (
-            <Button
-              variant="outlined" size="small" color="primary"
-              startIcon={creatingStub ? <CircularProgress size={13} color="inherit" /> : <BuildIcon sx={{ fontSize: 14 }} />}
-              onClick={onBuildHand}
-              disabled={creatingStub || generating}
-            >
-              Build by hand ({handCount})
-            </Button>
+            <Tooltip title="Open the rule editor for each selected recommendation so you can write the logic yourself.">
+              <span>
+                <Button
+                  variant="outlined" size="small" color="primary"
+                  startIcon={creatingStub ? <CircularProgress size={13} color="inherit" /> : <BuildIcon sx={{ fontSize: 14 }} />}
+                  onClick={onBuildHand}
+                  disabled={creatingStub || generating}
+                >
+                  Build by hand ({handCount})
+                </Button>
+              </span>
+            </Tooltip>
           )}
           {!attachMode && aiCount > 0 && (
-            <Button
-              variant="contained" size="small" color="primary"
-              startIcon={generating ? <CircularProgress size={13} color="inherit" /> : <AutoAwesomeIcon sx={{ fontSize: 14 }} />}
-              onClick={onGenerate}
-              disabled={generating || creatingStub}
-            >
-              {generating ? "Generating..." : `Generate AI drafts (${aiCount})`}
-            </Button>
+            <Tooltip title="Ask AI to draft rules for the selected recommendations. You will still check each one.">
+              <span>
+                <Button
+                  variant="contained" size="small" color="primary"
+                  startIcon={generating ? <CircularProgress size={13} color="inherit" /> : <AutoAwesomeIcon sx={{ fontSize: 14 }} />}
+                  onClick={onGenerate}
+                  disabled={generating || creatingStub}
+                >
+                  {generating ? "Generating..." : `Generate AI drafts (${aiCount})`}
+                </Button>
+              </span>
+            </Tooltip>
           )}
         </Stack>
       </Stack>
@@ -562,7 +570,7 @@ export default function RecommendationPickerDialog({
     logic_tree: Record<string, unknown>;
     reason: string;
     actions?: Array<Record<string, unknown>>;
-    priority?: "2ww" | "urgent" | "routine";
+    priority?: "immediate" | "2ww" | "urgent" | "routine";
     due_days?: number | null;
     is_default?: boolean;
   }) {

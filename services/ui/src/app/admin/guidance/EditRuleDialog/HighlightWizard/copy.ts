@@ -155,26 +155,45 @@ export const STEP_PATHWAY_CONDITIONS = {
    *  opposed to `PathwayDemographicsPanel`'s own always-visible
    *  "Add age"/"Add sex" affordance for this situation). */
   editingDemographicHeading: "Editing this condition",
+  /** Heading above the inline lab-value editor that opens when the
+   *  reviewer re-clicks an already-resolved OBSERVATION row. */
+  editingObservationHeading: "Editing this lab value",
   /** Trailing "any of the following" cluster prompt -- names the
    *  findings so the reviewer knows which chips the choice covers. */
-  clusterPrompt: (terms: string[]) =>
-    terms.length > 0
-      ? `We noticed "any of the following" for ${formatTermList(terms)} --`
-      : 'We noticed "any of the following" under this row --',
+  clusterPrompt: (terms: string[], suggestedMin = 1) => {
+    const quantifier =
+      suggestedMin > 1 ? `${suggestedMin} or more of the following` : "any of the following";
+    return terms.length > 0
+      ? `We noticed "${quantifier}" for ${formatTermList(terms)} --`
+      : `We noticed "${quantifier}" under this row --`;
+  },
   /** Prompt for a SECOND, marker-less "A or B" cluster found ahead of
    *  the trailing one (e.g. "nausea or vomiting" ahead of "any of the
    *  following: ..."). Asked independently of `clusterPrompt` -- see
    *  `PathwayRows.leadCluster`'s doc comment in wizardMapping.ts. */
   leadClusterPrompt: (terms: string[]) =>
     `We noticed "${terms.join(" or ")}" -- does only one of these need to match, or all of them?`,
-  onlyOneLabel: "Only one needs to match (Recommended)",
+  onlyOneLabel: (recommended: boolean) =>
+    recommended
+      ? "Only one needs to match (Recommended)"
+      : "Only one needs to match",
+  atLeastNLabel: (n: number, recommended: boolean) =>
+    recommended
+      ? `At least ${n} need to match (Recommended)`
+      : `At least ${n} need to match`,
   allMustMatchLabel: "All must match",
   groupingConfirmedOnlyOne: "Only one of these needs to match.",
+  groupingConfirmedAtLeastN: (n: number) =>
+    n <= 1
+      ? "Only one of these needs to match."
+      : `At least ${n} of these need to match.`,
   groupingConfirmedAll: "All of these must match.",
+  clusterMinLabel: "How many must match",
+  clusterMinOf: (total: number) => `of ${total}`,
   /** Shown under Confirm when a grouping card is still unanswered --
    *  deliberately NOT a repeat of the prompt text above the buttons. */
   groupingChoiceRequired:
-    "Choose only-one or all-must-match above before you continue.",
+    "Choose how many need to match above before you continue.",
   changeLabel: "Change",
   confirmLabel: (letter: string, nextLetter: string | null) =>
     nextLetter
@@ -184,6 +203,13 @@ export const STEP_PATHWAY_CONDITIONS = {
     count === 1
       ? "One row still needs a match before you can continue."
       : `${count} rows still need a match before you can continue.`,
+  /** NG12 1.7.1 weighted checklist companion -- expand score into features. */
+  weightedChecklistExpand: (threshold: number) =>
+    `Expand weighted checklist (score at least ${threshold})`,
+  weightedChecklistExpandHint:
+    "Opens the major and minor features from the guideline checklist so you can code them. The rule will treat a score of the threshold or more as true.",
+  weightedChecklistInstrumentBlocked:
+    "Expand the weighted checklist above before you continue, or code each feature another way.",
   /**
    * One-time offer to copy an earlier, already-confirmed pathway's
    * SNOMED codes onto this pathway's matching rows, shown only when
@@ -228,4 +254,39 @@ export const WIZARD_CHROME = {
   reviewHelper:
     "The right-hand preview shows what this rule means. If something looks wrong, go back to change an earlier answer.",
   reviewBackLabel: "Back to the last situation",
+} as const;
+
+/** Hover help for Highlight Wizard controls (T12a). Keep aria-labels. */
+export const WIZARD_TOOLTIPS = {
+  noMore: "Confirm nothing else always applies, and continue.",
+  addAgeAlways: "Add an age check that applies to every situation.",
+  addSexAlways: "Add a sex check that applies to every situation.",
+  highlightMore: "Select more words from the guideline that must always be true.",
+  editCaptured: "Change this captured item.",
+  doneEditing: "Finish editing this captured item.",
+  placeManually: "Place this item on the sentence by hand.",
+  removePrerequisite: "Remove this always-true condition from the rule.",
+  looksRight: "Accept these situations and continue to build conditions.",
+  merge: "Combine two neighbouring situations into one.",
+  split: "Split one situation into two separate ones.",
+  confirmMerge: "Finish combining the selected situations.",
+  cancelMergeSplit: "Stop merging or splitting and keep the current rows.",
+  noSplit: "Continue with one situation that applies to everyone.",
+  undoMerge: "Undo your merge and restore the separate situations.",
+  confirmSituation: "Save this situation's conditions and move on.",
+  onlyOne: "Any one of these findings is enough for this group.",
+  atLeastN:
+    "This many findings from the list must be true -- taken from the guideline wording (for example, 2 or more).",
+  allMustMatch: "Every finding in this group must be true.",
+  changeGrouping: "Change how many findings in this group must match.",
+  copyAcross: "Copy medical codes from the earlier matching situation onto this one.",
+  dismissCopy: "Skip copying; look up codes for this situation yourself.",
+  addAgeSituation: "Add an age check for this situation only.",
+  addSexSituation: "Add a sex check for this situation only.",
+  wizardBack: "Go back to the previous wizard question.",
+  removeProblem: "Remove this broken empty group so the rule can be saved.",
+  multiCodeHighlight: "Select part of this row's text and attach extra medical codes to it.",
+  multiCodeClose: "Close the highlight-and-code tool without adding codes.",
+  showMoreChips: "Show the rest of the matched codes.",
+  showFewerChips: "Hide the extra matched codes.",
 } as const;

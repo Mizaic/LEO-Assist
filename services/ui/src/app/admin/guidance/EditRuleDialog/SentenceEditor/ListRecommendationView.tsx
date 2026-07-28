@@ -99,7 +99,13 @@ function RowLabel({
   return (
     <Box sx={{ minWidth: 0 }}>
       <Typography variant="body2" component="span">
-        {label && <strong>({label})</strong>} {item.text}
+        {label ? (
+          <>
+            <strong>({label})</strong> {item.text}
+          </>
+        ) : (
+          item.text
+        )}
       </Typography>
       {resolution?.preferredTerm && (
         <Typography

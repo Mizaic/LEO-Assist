@@ -169,6 +169,7 @@ ON CREATE SET
     r.guidelineId       = $guideline_id,
     r.versionId         = $version_id,
     r.listStructureJson = $list_structure_json,
+    r.companionPanelsJson = $companion_panels_json,
     r.recommendationKey = $recommendation_key,
     r.renumberedFrom    = $renumbered_from,
     r.source            = 'nice_syndication_api',
@@ -181,6 +182,7 @@ ON MATCH SET
     r.sectionTitle      = $section_title,
     r.isNormative       = $is_normative,
     r.listStructureJson = $list_structure_json,
+    r.companionPanelsJson = $companion_panels_json,
     r.updatedAt         = datetime()
 MERGE (g)-[:HAS_RECOMMENDATION]->(r)
 WITH r
@@ -504,6 +506,10 @@ class NiceGraphUpserter:
         # AppropriatenessRule.logicJson, rather than exploded into nodes.
         list_structure = rec.get("ListStructure")
         list_structure_json = json.dumps(list_structure) if list_structure else None
+        companion_panels = rec.get("CompanionPanels")
+        companion_panels_json = (
+            json.dumps(companion_panels) if companion_panels else None
+        )
         driver = _kg_driver()
         try:
             with driver.session() as session:
@@ -521,6 +527,7 @@ class NiceGraphUpserter:
                     chapter_id=chapter_id,
                     version_id=version_id,
                     list_structure_json=list_structure_json,
+                    companion_panels_json=companion_panels_json,
                     recommendation_key=recommendation_key or str(uuid.uuid4()),
                     renumbered_from=renumbered_from,
                 )

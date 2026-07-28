@@ -11,7 +11,7 @@
  * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import StepPrerequisites, {
   collectPrerequisiteLeaves,
@@ -19,6 +19,19 @@ import StepPrerequisites, {
 } from "../HighlightWizard/StepPrerequisites";
 import { assignNodeIds, type LogicNodeSeed } from "../treeOps";
 import type { EditableLogicNode } from "../types";
+
+/** MUI Tooltip promotes its title to aria-label on the child, so the
+ *  accessible name is the tip ("Change this captured item.") rather
+ *  than the visible "Edit" / "Done" label. Click via visible text
+ *  inside the row instead. */
+async function clickCapturedEdit(
+  user: { click: (el: Element) => Promise<void> },
+  nodeId: string,
+) {
+  const row = screen.getByTestId(`prerequisite-row-${nodeId}`);
+  const label = within(row).queryByText("Done") ? "Done" : /^(Edit|Tap to place it manually)$/;
+  await user.click(within(row).getByText(label));
+}
 
 const NG12_1_2_9_TEXT =
   "Consider non-urgent, direct access upper gastrointestinal endoscopy... " +
@@ -140,10 +153,11 @@ describe("StepPrerequisites: automatic fuzzy matching", () => {
   });
 
   it("shows a warning and 'place manually' action when nothing anchors a leaf", () => {
+    const leaf = makeConceptLeaf("History of asbestos exposure", "999");
     render(
       <StepPrerequisites
         recommendationText={NG12_1_2_9_TEXT}
-        prerequisites={[makeConceptLeaf("History of asbestos exposure", "999")]}
+        prerequisites={[leaf]}
         onEdit={jest.fn()}
         onEditConcept={jest.fn()}
         onUpdate={jest.fn()}
@@ -156,7 +170,9 @@ describe("StepPrerequisites: automatic fuzzy matching", () => {
       screen.getByText(/could not find matching words/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /tap to place it manually/i }),
+      within(screen.getByTestId(`prerequisite-row-${leaf.node_id}`)).getByText(
+        /tap to place it manually/i,
+      ),
     ).toBeInTheDocument();
   });
 });
@@ -218,7 +234,7 @@ describe("StepPrerequisites: multi-seed CONCEPT rows render as chips", () => {
     expect(
       screen.getByText("Erythrocyte sedimentation rate above reference range"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /show fewer/i })).toBeInTheDocument();
+    expect(screen.getByText(/show fewer/i)).toBeInTheDocument();
   });
 
   it("still renders a plain sentence for a single-seed CONCEPT row", () => {
@@ -239,7 +255,7 @@ describe("StepPrerequisites: multi-seed CONCEPT rows render as chips", () => {
 });
 
 describe("StepPrerequisites: captured row actions", () => {
-  it("calls onEdit with the node id and anchor when Edit is clicked on an OBSERVATION row", async () => {
+  it("expands an inline lab-value editor on an OBSERVATION row instead of calling onEdit -- operator/value/unit live inline; the chip still swaps via onEdit", async () => {
     const user = userEvent.setup();
     const onEdit = jest.fn();
     const observationLeaf = makeObservationLeaf();
@@ -255,10 +271,54 @@ describe("StepPrerequisites: captured row actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /^(edit|tap to place it manually)$/i }));
+    expect(screen.queryByLabelText(/how to compare the lab value/i)).not.toBeInTheDocument();
 
-    expect(onEdit).toHaveBeenCalledTimes(1);
-    expect(onEdit.mock.calls[0][0]).toBe(observationLeaf.node_id);
+    await clickCapturedEdit(user, observationLeaf.node_id);
+
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/how to compare the lab value/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^value$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^unit$/i)).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId(`prerequisite-row-${observationLeaf.node_id}`)).getByText("Done"),
+    ).toBeInTheDocument();
+
+    // Chip swap still routes through onEdit.
+    await user.click(screen.getByRole("button", { name: /platelet count\. click to swap/i }));
+    expect(onEdit).toHaveBeenCalledWith(observationLeaf.node_id, expect.anything());
+  });
+
+  it("dispatches set_observation through onUpdate when the inline lab-value editor's operator changes", async () => {
+    const user = userEvent.setup();
+    const onUpdate = jest.fn();
+    const observationLeaf = makeObservationLeaf();
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[observationLeaf]}
+        onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
+        onUpdate={onUpdate}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+
+    await clickCapturedEdit(user, observationLeaf.node_id);
+    await user.click(screen.getByLabelText(/how to compare the lab value/i));
+    await user.click(await screen.findByRole("option", { name: /is at most/i }));
+
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "set_observation",
+        nodeId: observationLeaf.node_id,
+        observation: expect.objectContaining({
+          operator: "<=",
+          value: 400,
+          unit: "10*9/L",
+        }),
+      }),
+    );
   });
 
   it("routes Edit on a CONCEPT prerequisite to onEditConcept, not onEdit -- it already has a code, so it needs add/remove, not a single-pick override", async () => {
@@ -278,7 +338,7 @@ describe("StepPrerequisites: captured row actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await clickCapturedEdit(user, conceptLeaf.node_id);
 
     expect(onEditConcept).toHaveBeenCalledWith(conceptLeaf.node_id);
     expect(onEdit).not.toHaveBeenCalled();
@@ -303,12 +363,14 @@ describe("StepPrerequisites: captured row actions", () => {
 
     expect(screen.queryByLabelText(/how to compare age/i)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await clickCapturedEdit(user, ageLeaf.node_id);
 
     expect(onEdit).not.toHaveBeenCalled();
     expect(onEditConcept).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/how to compare age/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId(`prerequisite-row-${ageLeaf.node_id}`)).getByText("Done"),
+    ).toBeInTheDocument();
   });
 
   it("dispatches set_demographic through onUpdate when the inline age editor's operator changes", async () => {
@@ -327,7 +389,7 @@ describe("StepPrerequisites: captured row actions", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await clickCapturedEdit(user, ageLeaf.node_id);
     await user.click(screen.getByLabelText(/how to compare age/i));
     await user.click(await screen.findByRole("option", { name: /is at most/i }));
 
@@ -513,7 +575,8 @@ describe("StepPrerequisites: the always-true question", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /no, nothing else/i }));
+    // Tooltip title becomes aria-label; match the visible label text.
+    await user.click(screen.getByText(/no, nothing else/i));
 
     expect(onConfirmNoMore).toHaveBeenCalledTimes(1);
   });
@@ -536,7 +599,7 @@ describe("StepPrerequisites: the always-true question", () => {
       screen.getByRole("group", { name: /does anything else/i }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /highlight more text/i }));
+    await user.click(screen.getByText(/highlight more text/i));
 
     expect(
       screen.queryByRole("group", { name: /does anything else/i }),
@@ -564,7 +627,7 @@ describe("StepPrerequisites: the always-true question", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /highlight more text/i }));
+    await user.click(screen.getByText(/highlight more text/i));
     expect(
       screen.queryByRole("group", { name: /does anything else/i }),
     ).not.toBeInTheDocument();

@@ -159,4 +159,25 @@ describe("EditRuleDialog clinical priority", () => {
     expect(payload.priority).toBe("routine");
     expect(payload.due_days).toBeNull();
   });
+
+  it("offers Immediate specialist assessment and defaults due days to 0", async () => {
+    const onSave = jest.fn();
+    render(
+      <EditRuleDialog
+        rule={SAMPLE_RULE}
+        open
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+    goToStep(2);
+    await selectPriority("Immediate specialist assessment");
+    expect(screen.getByDisplayValue("0")).toBeInTheDocument();
+    fillReason("NG12 immediate specialist assessment for leukaemia");
+    fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.priority).toBe("immediate");
+    expect(payload.due_days).toBe(0);
+  });
 });

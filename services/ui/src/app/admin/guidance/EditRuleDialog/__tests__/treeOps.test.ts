@@ -12,15 +12,18 @@ import {
   ensurePathwayKeys,
   findAllValidationErrors,
   findValidationError,
+  findWizardValidationErrors,
   hasOrRootSymptomsOnly,
   hasOrRootWithPrerequisites,
   isOrGroupSymptomsOnly,
   isTreeVisuallyEmpty,
   mintPathwayKey,
   promoteOrPrerequisites,
+  pruneEmptyClusterShells,
   stripNodeIds,
   wrapRootInAnd,
 } from "../treeOps";
+import { liftSharedPathwayDemographics } from "../liftSharedPathwayDemographics";
 import type { EditableLogicNode } from "../types";
 
 function makeTree(): EditableLogicNode {
@@ -269,6 +272,69 @@ describe("treeOps", () => {
     expect(issues).toHaveLength(1);
     expect(issues[0].nodeId).toBe(tree.children![0].node_id);
     expect(issues[0].message).toMatch(/empty/i);
+  });
+
+  it("findAllValidationErrors names empty pathway shells clearly", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [{ kind: "AND", pathway_key: "pw_a", children: [] }],
+    });
+    const issues = findAllValidationErrors(tree);
+    expect(issues[0].message).toMatch(/situation has no conditions/i);
+  });
+
+  it("findWizardValidationErrors hides empty pathway shells mid-coding", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          pathway_key: "pw_a",
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "A" } },
+          ],
+        },
+        { kind: "AND", pathway_key: "pw_b", children: [] },
+      ],
+    });
+    expect(findAllValidationErrors(tree).some((i) => /situation has no conditions/i.test(i.message))).toBe(
+      true,
+    );
+    expect(findWizardValidationErrors(tree)).toEqual([]);
+  });
+
+  it("pruneEmptyClusterShells drops empty lead/trailing AT_LEAST groups", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      pathway_key: "pw",
+      children: [
+        { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "A" } },
+        { kind: "AT_LEAST", min: 1, cluster_role: "trailing", children: [] },
+      ],
+    });
+    const pruned = pruneEmptyClusterShells(tree);
+    expect(pruned.children).toHaveLength(1);
+    expect(pruned.children![0].kind).toBe("CONCEPT");
+  });
+
+  it("removing the last cluster child also removes the empty AT_LEAST shell", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      pathway_key: "pw",
+      children: [
+        {
+          kind: "AT_LEAST",
+          min: 1,
+          cluster_role: "trailing",
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "1", preferred_term: "Cough" } },
+          ],
+        },
+      ],
+    });
+    const leafId = tree.children![0].children![0].node_id!;
+    const updated = applyUpdate(tree, { kind: "remove", nodeId: leafId });
+    expect(updated!.children).toEqual([]);
   });
 
   it("findAllValidationErrors collects every problem in the tree, not just the first", () => {
@@ -846,6 +912,112 @@ describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
       ],
     });
     expect(promoteOrPrerequisites(tree)).toBe(tree);
+  });
+
+  it("liftSharedPathwayDemographics lifts age shared by every pathway (NG12 1.1.2)", () => {
+    const age = {
+      kind: "DEMOGRAPHIC" as const,
+      field: "age",
+      operator: ">=",
+      value: 40,
+      unit: "years",
+    };
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            age,
+            {
+              kind: "AT_LEAST",
+              min: 2,
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: {
+                snomed_concept_id: "2",
+                preferred_term: "Ever smoked",
+              },
+            },
+            {
+              kind: "AT_LEAST",
+              min: 1,
+              children: [
+                {
+                  kind: "CONCEPT",
+                  criterion: { snomed_concept_id: "1", preferred_term: "Cough" },
+                },
+              ],
+            },
+            { ...age },
+          ],
+        },
+      ],
+    });
+
+    const lifted = liftSharedPathwayDemographics(tree);
+    expect(lifted.kind).toBe("AND");
+    expect(lifted.children![0].kind).toBe("DEMOGRAPHIC");
+    expect(lifted.children![0].field).toBe("age");
+    expect(lifted.children![0].value).toBe(40);
+    expect(lifted.children![1].kind).toBe("OR");
+    const pathways = lifted.children![1].children!;
+    expect(pathways).toHaveLength(2);
+    for (const pathway of pathways) {
+      expect(pathway.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(false);
+    }
+    expect(pathways[0].children!.some((c) => c.kind === "AT_LEAST" && c.min === 2)).toBe(
+      true,
+    );
+    expect(pathways[1].children!.some((c) => c.kind === "AT_LEAST" && c.min === 1)).toBe(
+      true,
+    );
+  });
+
+  it("liftSharedPathwayDemographics leaves pathway-local demos alone", () => {
+    const tree = assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "DEMOGRAPHIC",
+              field: "sex",
+              operator: "=",
+              value: "female",
+              unit: null,
+            },
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "1", preferred_term: "Nausea" },
+            },
+          ],
+        },
+        {
+          kind: "AND",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "2", preferred_term: "Vomiting" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(liftSharedPathwayDemographics(tree)).toBe(tree);
   });
 
   it("addPrerequisiteToOrSymptoms preserves all symptom nodes", () => {

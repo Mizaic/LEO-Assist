@@ -30,10 +30,14 @@ import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 
 import { SegmentedTabs, StatHero, useMotion, type StatTile } from "@leo/design-system";
+
+import CoachTour from "@/components/ui/CoachTour";
 
 import NiceLoaderSection from "./NiceLoaderSection";
 import LoadedGuidelinesPanel from "./LoadedGuidelinesPanel";
@@ -43,7 +47,18 @@ import GuidelineBuilderSplash, {
   GUIDANCE_SPLASH_SESSION_KEY,
 } from "./GuidelineBuilderSplash";
 import LocalGuidelineImportDialog from "./LocalGuidelineImportDialog";
+import {
+  PAGE_TOUR_STEPS,
+  pageTourJumpForStep,
+  type TourStep,
+} from "./guidanceTourSteps";
 import { popSpring, staggerDelay } from "./motionPresets";
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 type StepId = "load" | "inspect" | "review" | "compile";
 
@@ -58,6 +73,8 @@ interface StepCardProps {
   /** Controlled open state; defaults closed when omitted. */
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** IFU CoachTour / Playwright screenshot anchor id. */
+  dataTour?: string;
   children: React.ReactNode;
 }
 
@@ -71,18 +88,20 @@ function StepCard({
   reducedMotion,
   open,
   onOpenChange,
+  dataTour,
   children,
 }: StepCardProps) {
   return (
     <fm.section
       id={id}
       aria-labelledby={`${id}-title`}
+      data-tour={dataTour}
       initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 26, scale: 0.96 }}
       animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
       transition={popSpring(reducedMotion, staggerDelay(index, 0.08, 6))}
       style={{ position: "relative", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 22, marginBottom: 20 }}
     >
-      <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 18, bottom: 18, width: 3, borderRadius: 2, background: accent }} />
+          <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 18, bottom: 18, width: 3, borderRadius: 2, background: accent, }} />
       <Stack
         component="button"
         type="button"
@@ -121,18 +140,18 @@ function StepCard({
             {description}
           </Typography>
         </Box>
-        <IconButton
-          size="small"
-          tabIndex={-1}
+        <Box
           aria-hidden
           sx={{
             mt: 0.25,
+            display: "inline-flex",
+            color: "text.secondary",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 160ms ease",
           }}
         >
           <ExpandMoreRoundedIcon fontSize="small" />
-        </IconButton>
+        </Box>
       </Stack>
       <Collapse in={open} timeout={reducedMotion ? 0 : "auto"}>
         <Box id={`${id}-body`}>
@@ -198,6 +217,7 @@ export default function GuidancePage() {
   const [stats, setStats] = useState<PageStats>({ guidelinesLoaded: 0, rulesPending: 0, rulesApproved: 0, activeBitmapVersion: "--" });
   const [showSplash, setShowSplash] = useState(false);
   const [showLocalImport, setShowLocalImport] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
   const { reducedMotion } = useMotion();
 
   const isSectionOpen = useCallback(
@@ -239,7 +259,7 @@ export default function GuidancePage() {
     { id: "bitmap", label: "Active bitmap version", value: stats.activeBitmapVersion },
   ];
 
-  const handleJump = (id: string) => {
+  const handleJump = useCallback((id: string) => {
     const stepId = id as StepId;
     setActiveStep(stepId);
     const sectionId = STEP_SECTION_IDS[stepId];
@@ -250,7 +270,30 @@ export default function GuidancePage() {
       const el = document.querySelector(target.href);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
-  };
+  }, [setSectionOpen]);
+
+  const preparePageTourStep = useCallback(
+    async (step: TourStep) => {
+      const jump = pageTourJumpForStep(step.id);
+      if (jump) handleJump(jump);
+      await delay(120);
+      if (jump === "review") {
+        const closed = document.querySelector(
+          '[data-testid="rule-pool-pending"] button[aria-expanded="false"]',
+        );
+        if (closed instanceof HTMLElement) closed.click();
+        await delay(80);
+      }
+      if (step.id === "cg-05-card") {
+        const card = document.querySelector('[data-tour="cg-05-card"]');
+        if (!card) return false;
+      }
+      return true;
+    },
+    [handleJump],
+  );
+
+  const finishPageTour = useCallback(() => setTourActive(false), []);
 
   return (
     <Box>
@@ -261,10 +304,42 @@ export default function GuidancePage() {
       {/* -- Summary hero ------------------------------------------------- */}
       <Box sx={{ mb: 2 }}>
         <StatHero stats={statTiles} />
-        <Button sx={{ mt: 1 }} variant="contained" onClick={() => setShowLocalImport(true)}>
-          Import local guideline
-        </Button>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }} flexWrap="wrap">
+          <Tooltip title="Paste a local guideline into the knowledge graph so you can make rules from it.">
+            <span>
+              <Button variant="contained" onClick={() => setShowLocalImport(true)}>
+                Import local guideline
+              </Button>
+            </span>
+          </Tooltip>
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => setTourActive(true)}
+            aria-label="Take the guideline tab tour"
+            data-testid="guidance-tour-trigger"
+          >
+            Guide me
+          </Button>
+          <Tooltip title="Replay the guideline tab tour from the start.">
+            <IconButton
+              size="small"
+              onClick={() => setTourActive(true)}
+              aria-label="Replay the guideline tab tour"
+              data-testid="coach-tour-replay"
+            >
+              <ReplayRoundedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Box>
+      <CoachTour
+        tourId="guidance-page"
+        steps={PAGE_TOUR_STEPS}
+        active={tourActive}
+        onFinish={finishPageTour}
+        prepareStep={preparePageTourStep}
+      />
       <LocalGuidelineImportDialog
         open={showLocalImport}
         onClose={() => setShowLocalImport(false)}
@@ -283,6 +358,7 @@ export default function GuidancePage() {
       {/* -- Jump strip --------------------------------------------------- */}
       <Box
         data-testid="guidance-jump-strip"
+        data-tour="cg-01-jump"
         sx={{ position: "sticky", top: 0, zIndex: 5, mb: 2, py: 1, bgcolor: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid", borderColor: "divider" }}
       >
         <SegmentedTabs
@@ -304,6 +380,7 @@ export default function GuidancePage() {
         reducedMotion={reducedMotion}
         open={isSectionOpen("nice-loader")}
         onOpenChange={(open) => setSectionOpen("nice-loader", open)}
+        dataTour="cg-02-load"
       >
         <NiceLoaderSection onGuidelineLoaded={() => setLoadedRefreshKey((n) => n + 1)} />
       </StepCard>
@@ -318,6 +395,7 @@ export default function GuidancePage() {
         reducedMotion={reducedMotion}
         open={isSectionOpen("loaded-guidelines")}
         onOpenChange={(open) => setSectionOpen("loaded-guidelines", open)}
+        dataTour="cg-03-inspect"
       >
         <LoadedGuidelinesPanel refreshKey={loadedRefreshKey} onRulesGenerated={() => setRuleRefreshKey((n) => n + 1)} />
       </StepCard>
@@ -348,6 +426,7 @@ export default function GuidancePage() {
         reducedMotion={reducedMotion}
         open={isSectionOpen("bitmap-lifecycle")}
         onOpenChange={(open) => setSectionOpen("bitmap-lifecycle", open)}
+        dataTour="cg-06-compile"
       >
         <BitmapLifecycleSection onVersionActivated={() => setBitmapRefreshKey((n) => n + 1)} />
       </StepCard>

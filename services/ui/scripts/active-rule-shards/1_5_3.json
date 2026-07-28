@@ -1,0 +1,60 @@
+{
+  "name": "Rule: 1.5.3",
+  "rule_id": "rule:NG12:v1:CH002:SEC004:R002:4fa35c0f:edit:ae53cca4",
+  "title": "1.5.3",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.5.3 Consider carrying out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs reports unexplained weight loss, fatigue or changes in bowel habit. [2011]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "DEMOGRAPHIC",
+        "field": "sex",
+        "operator": "=",
+        "value": "female"
+      },
+      {
+        "kind": "OR",
+        "children": [
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "262285001",
+              "preferred_term": "Weight decreased (finding)",
+              "semantic_tag": "finding",
+              "term": "weight loss",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "84229001",
+              "preferred_term": "Fatigue (finding)",
+              "semantic_tag": "finding",
+              "term": "fatigue",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "88111009",
+              "preferred_term": "Altered bowel function (finding)",
+              "semantic_tag": "finding",
+              "term": "changes in bowel habit",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

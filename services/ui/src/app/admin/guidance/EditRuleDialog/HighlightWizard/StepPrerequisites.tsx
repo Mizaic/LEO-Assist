@@ -28,6 +28,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -35,6 +36,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import DemographicRow from "../LogicTreeEditor/DemographicRow";
+import ObservationRow from "../LogicTreeEditor/ObservationRow";
 import HighlightableRecommendationText, {
   type HighlightSpan,
   type TextSelectionResult,
@@ -49,7 +51,7 @@ import {
 } from "../treeToSentence";
 import type { EditableLogicNode, NodeUpdate } from "../types";
 import CapturedConceptChips from "./CapturedConceptChips";
-import { STEP_PREREQUISITES } from "./copy";
+import { STEP_PREREQUISITES, WIZARD_TOOLTIPS } from "./copy";
 import { leafTextMatches } from "./leafTextMatch";
 import type { PathwayDemographicField } from "./PathwayDemographicsPanel";
 import ProblemNodeRow from "./ProblemNodeRow";
@@ -126,15 +128,16 @@ export interface StepPrerequisitesProps {
   /**
    * Opens the add/remove/depth synonym editor for an already-matched
    * CONCEPT prerequisite -- see `PathwayConditionsStage`'s doc
-   * comment on the same prop. An OBSERVATION prerequisite has no
-   * synonym set of its own, so it still uses `onEdit`'s single-pick
-   * swap. A DEMOGRAPHIC prerequisite (age/sex) is neither a search
-   * swap nor a synonym set -- it expands the same inline
+   * comment on the same prop. An OBSERVATION prerequisite expands
+   * the inline `ObservationRow` (operator / value / unit); the chip
+   * inside that row still calls `onEdit` to swap the observable. A
+   * DEMOGRAPHIC prerequisite (age/sex) expands the same inline
    * `DemographicRow` editor Step 3 uses, driven by `onUpdate` below.
    */
   onEditConcept: (nodeId: string) => void;
-  /** Applies a `set_demographic` (or any other) update to the tree --
-   *  used by the inline age/sex editor a DEMOGRAPHIC row expands to. */
+  /** Applies a `set_demographic` / `set_observation` (or any other)
+   *  update to the tree -- used by the inline age/sex or lab-value
+   *  editor a DEMOGRAPHIC / OBSERVATION row expands to. */
   onUpdate: (update: NodeUpdate) => void;
   onRemove: (nodeId: string) => void;
   /**
@@ -221,7 +224,7 @@ export default function StepPrerequisites({
   }, [rowCount]);
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} data-tour="er-03-always">
       <Box>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           {STEP_PREREQUISITES.title}
@@ -297,39 +300,47 @@ export default function StepPrerequisites({
             {STEP_PREREQUISITES.question}
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-            <Button variant="outlined" size="small" onClick={onConfirmNoMore}>
-              {STEP_PREREQUISITES.noMoreLabel}
-            </Button>
-            {onAddDemographic && !hasAge && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<AddRoundedIcon fontSize="small" />}
-                onClick={() => onAddDemographic("age")}
-                aria-label={STEP_PREREQUISITES.addAgeAriaLabel}
-              >
-                {STEP_PREREQUISITES.addAgeLabel}
+            <Tooltip title={WIZARD_TOOLTIPS.noMore}>
+              <Button variant="outlined" size="small" onClick={onConfirmNoMore}>
+                {STEP_PREREQUISITES.noMoreLabel}
               </Button>
+            </Tooltip>
+            {onAddDemographic && !hasAge && (
+              <Tooltip title={WIZARD_TOOLTIPS.addAgeAlways}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddRoundedIcon fontSize="small" />}
+                  onClick={() => onAddDemographic("age")}
+                  aria-label={STEP_PREREQUISITES.addAgeAriaLabel}
+                >
+                  {STEP_PREREQUISITES.addAgeLabel}
+                </Button>
+              </Tooltip>
             )}
             {onAddDemographic && !hasSex && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<AddRoundedIcon fontSize="small" />}
-                onClick={() => onAddDemographic("sex")}
-                aria-label={STEP_PREREQUISITES.addSexAriaLabel}
-              >
-                {STEP_PREREQUISITES.addSexLabel}
-              </Button>
+              <Tooltip title={WIZARD_TOOLTIPS.addSexAlways}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddRoundedIcon fontSize="small" />}
+                  onClick={() => onAddDemographic("sex")}
+                  aria-label={STEP_PREREQUISITES.addSexAriaLabel}
+                >
+                  {STEP_PREREQUISITES.addSexLabel}
+                </Button>
+              </Tooltip>
             )}
             {recommendationText && (
-              <Button
-                variant="text"
-                size="small"
-                onClick={() => setQuestionDismissed(true)}
-              >
-                {STEP_PREREQUISITES.highlightMoreLabel}
-              </Button>
+              <Tooltip title={WIZARD_TOOLTIPS.highlightMore}>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setQuestionDismissed(true)}
+                >
+                  {STEP_PREREQUISITES.highlightMoreLabel}
+                </Button>
+              </Tooltip>
             )}
           </Stack>
         </Box>
@@ -352,10 +363,12 @@ function PrerequisiteRow({
   onRemove: (nodeId: string) => void;
 }) {
   const isDemographic = row.node.kind === "DEMOGRAPHIC";
-  // A DEMOGRAPHIC row has no search-swap or synonym flow to hand off
-  // to -- "Edit" expands the same inline age/sex controls Step 3
-  // uses, in place, rather than opening a popover elsewhere on the
-  // page (see the `onEditConcept`/`onUpdate` doc comments above).
+  const isObservation = row.node.kind === "OBSERVATION";
+  // DEMOGRAPHIC / OBSERVATION rows expand inline editors (age/sex or
+  // operator/value/unit) rather than opening a popover elsewhere --
+  // see the `onEditConcept`/`onUpdate` doc comments above. The
+  // ObservationRow chip still calls `onEdit` to swap the observable.
+  const isInlineEditable = isDemographic || isObservation;
   const [expanded, setExpanded] = useState(false);
   const hasAnchor = row.matches.length > 0;
   const seedLabels = row.node.kind === "CONCEPT" ? conceptSeedLabels(row.node) : [];
@@ -365,20 +378,27 @@ function PrerequisiteRow({
       onEditConcept(row.node.node_id);
       return;
     }
-    if (isDemographic) {
+    if (isInlineEditable) {
       setExpanded((prev) => !prev);
       return;
     }
     onEdit(row.node.node_id, anchor);
   }
 
-  const editLabel = isDemographic
+  const editLabel = isInlineEditable
     ? expanded
       ? STEP_PREREQUISITES.doneEditingLabel
       : STEP_PREREQUISITES.editLabel
     : hasAnchor
       ? STEP_PREREQUISITES.editLabel
       : STEP_PREREQUISITES.placeManuallyLabel;
+  const editTip = isInlineEditable
+    ? expanded
+      ? WIZARD_TOOLTIPS.doneEditing
+      : WIZARD_TOOLTIPS.editCaptured
+    : hasAnchor
+      ? WIZARD_TOOLTIPS.editCaptured
+      : WIZARD_TOOLTIPS.placeManually;
 
   return (
     <Box
@@ -412,22 +432,37 @@ function PrerequisiteRow({
             </Typography>
           )}
         </Box>
-        <Button size="small" onClick={(e) => handleEdit(e.currentTarget)}>
-          {editLabel}
-        </Button>
-        <Button
-          size="small"
-          color="error"
-          startIcon={<DeleteOutlineIcon fontSize="small" />}
-          onClick={() => onRemove(row.node.node_id)}
-        >
-          {STEP_PREREQUISITES.removeLabel}
-        </Button>
+        <Tooltip title={editTip}>
+          <Button size="small" onClick={(e) => handleEdit(e.currentTarget)}>
+            {editLabel}
+          </Button>
+        </Tooltip>
+        <Tooltip title={WIZARD_TOOLTIPS.removePrerequisite}>
+          <Button
+            size="small"
+            color="error"
+            startIcon={<DeleteOutlineIcon fontSize="small" />}
+            onClick={() => onRemove(row.node.node_id)}
+          >
+            {STEP_PREREQUISITES.removeLabel}
+          </Button>
+        </Tooltip>
       </Stack>
       {isDemographic && (
         <Collapse in={expanded} unmountOnExit>
           <Box sx={{ mt: 1, pl: 4 }}>
             <DemographicRow node={row.node} onUpdate={onUpdate} />
+          </Box>
+        </Collapse>
+      )}
+      {isObservation && (
+        <Collapse in={expanded} unmountOnExit>
+          <Box sx={{ mt: 1, pl: 4 }}>
+            <ObservationRow
+              node={row.node}
+              onUpdate={onUpdate}
+              onSelect={(nodeId, anchor) => onEdit(nodeId, anchor)}
+            />
           </Box>
         </Collapse>
       )}

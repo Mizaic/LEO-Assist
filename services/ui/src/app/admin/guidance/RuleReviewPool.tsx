@@ -13,7 +13,6 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Collapse from "@mui/material/Collapse";
 import FormControl from "@mui/material/FormControl";
-import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Pagination from "@mui/material/Pagination";
@@ -71,7 +70,7 @@ function emptyCopy(poolId: RuleReviewPoolProps["poolId"]): { title: string; body
   if (poolId === "pending") {
     return {
       title: "No rules awaiting review",
-      body: "No rules match your search. Load a guideline and generate rules first.",
+      body: "Load a guideline above, then generate rules to start reviewing.",
     };
   }
   if (poolId === "excluded") {
@@ -147,6 +146,7 @@ export default function RuleReviewPool({
       component="section"
       aria-labelledby={`${poolId}-pool-title`}
       data-testid={`rule-pool-${poolId}`}
+      data-tour={poolId === "pending" ? "cg-04-review-pool" : undefined}
       sx={{
         border: "1px solid",
         borderColor: "divider",
@@ -200,18 +200,18 @@ export default function RuleReviewPool({
               {helper}
             </Typography>
           </Box>
-          <IconButton
-            size="small"
-            tabIndex={-1}
+          <Box
             aria-hidden
             sx={{
               mt: 0.25,
+              display: "inline-flex",
+              color: "text.secondary",
               transform: open ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 160ms ease",
             }}
           >
             <ExpandMoreRoundedIcon fontSize="small" />
-          </IconButton>
+          </Box>
         </Box>
         {open && showApproveAll && filteredRules.length > 0 && onApproveAll ? (
           <Tooltip title="Approve every rule in this pool after you have read them.">
@@ -289,7 +289,9 @@ export default function RuleReviewPool({
           {loading ? (
             <SkeletonList rows={3} itemHeight={72} data-testid={`${poolId}-pool-skeleton`} />
           ) : filteredRules.length === 0 ? (
-            <EmptyState icon={<HistoryOutlinedIcon fontSize="large" />} title={emptyTitle} body={emptyBody} />
+            <Box data-tour={poolId === "pending" ? "cg-05-card" : undefined}>
+              <EmptyState icon={<HistoryOutlinedIcon fontSize="large" />} title={emptyTitle} body={emptyBody} />
+            </Box>
           ) : (
             <>
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>

@@ -85,6 +85,16 @@ const PATTERNS: PatternDef[] = [
       "This phrase does not say which findings count as suggestive. Pick specific findings below or search for more.",
   },
   {
+    // NG12 1.7.2 "dermoscopy suggests melanoma"; 1.1.4 "findings that
+    // suggest mesothelioma". Distinct from "suggestive of" above and
+    // from "may/might/could suggest" (may_indicate).
+    label: "suggests",
+    regex: /\bsuggests?\s+(.+?)\s*$/i,
+    topicGroup: 1,
+    reason:
+      "This phrase does not say which findings count. Pick specific findings below or ask LEO for ideas.",
+  },
+  {
     label: "consistent_with",
     regex: /\bconsistent\s+with\s+(.+?)\s*$/i,
     topicGroup: 1,
@@ -99,11 +109,29 @@ const PATTERNS: PatternDef[] = [
       "This phrase does not say which features count. Pick specific features below or search for more.",
   },
   {
+    // NG12 1.7.4 / 1.7.5 / 1.7.6: "skin lesion that raises the suspicion
+    // of a basal cell carcinoma" -- Ask LEO for concrete lesion features.
+    label: "raises_suspicion_of",
+    regex:
+      /\braises?\s+(?:the\s+)?suspicion\s+of\s+(?:a\s+|an\s+)?(.+?)\s*$/i,
+    topicGroup: 1,
+    reason:
+      "This phrase does not say which findings raise the suspicion. Pick specific findings below or ask LEO for ideas.",
+  },
+  {
     label: "suspected",
     regex: /^\s*suspected\s+(.+?)\s*$/i,
     topicGroup: 1,
     reason:
       "This phrase does not say what would make the suspicion concrete. Pick specific findings below or search for more.",
+  },
+  {
+    // NG12 1.7.6 delay gate: "particular concern that a delay may..."
+    label: "concern_that",
+    regex: /\b(?:particular\s+)?concern\s+that\s+(.+?)\s*$/i,
+    topicGroup: 1,
+    reason:
+      "This phrase is a clinical judgement, not a single code. Ask LEO for ideas or search for the findings that make delay unsafe.",
   },
   {
     label: "possible",

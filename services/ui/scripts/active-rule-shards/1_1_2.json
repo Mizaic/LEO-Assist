@@ -1,0 +1,254 @@
+{
+  "name": "Rule: 1.1.2",
+  "rule_id": "rule:NG12:v1:CH002:SEC000:R001:f9b15cc2:edit:9fa7ac0d:edit:0c6d340c",
+  "title": "1.1.2",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.1.2 Offer an urgent , direct access chest X‑ray to assess for lung cancer in people aged 40 and over if they have 2 or more of the following unexplained symptoms, or if they have ever smoked and have 1 or more of the following unexplained symptoms: cough fatigue shortness of breath chest pain weight loss appetite loss. [2015]",
+  "recommendation_structure": {
+    "lead_text": "Offer an urgent , direct access chest X‑ray to assess for lung cancer in people aged 40 and over if they have 2 or more of the following unexplained symptoms, or if they have ever smoked and have 1 or more of the following unexplained symptoms:",
+    "items": [
+      {
+        "text": "cough",
+        "start": 251,
+        "end": 256
+      },
+      {
+        "text": "fatigue",
+        "start": 257,
+        "end": 264
+      },
+      {
+        "text": "shortness of breath",
+        "start": 265,
+        "end": 284
+      },
+      {
+        "text": "chest pain",
+        "start": 285,
+        "end": 295
+      },
+      {
+        "text": "weight loss",
+        "start": 296,
+        "end": 307
+      },
+      {
+        "text": "appetite loss. [2015]",
+        "start": 308,
+        "end": 329
+      }
+    ]
+  },
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 40.0,
+            "unit": "years"
+          },
+          {
+            "kind": "AT_LEAST",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "49727002",
+                  "preferred_term": "Cough (finding)",
+                  "semantic_tag": "finding",
+                  "term": "cough",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "84229001",
+                  "preferred_term": "Fatigue (finding)",
+                  "semantic_tag": "finding",
+                  "term": "fatigue",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "267036007",
+                  "preferred_term": "Dyspnea (finding)",
+                  "semantic_tag": "finding",
+                  "term": "dyspnoea",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "29857009",
+                  "preferred_term": "Chest pain (finding)",
+                  "semantic_tag": "finding",
+                  "term": "chest pain",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "262285001",
+                  "preferred_term": "Weight decreased (finding)",
+                  "semantic_tag": "finding",
+                  "term": "weight loss",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "79890006",
+                  "preferred_term": "Loss of appetite (finding)",
+                  "semantic_tag": "finding",
+                  "term": "loss of appetite",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              }
+            ],
+            "min": 2
+          }
+        ]
+      },
+      {
+        "kind": "AND",
+        "children": [
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "365982000",
+              "preferred_term": "Finding of tobacco smoking consumption (finding)",
+              "semantic_tag": "finding",
+              "term": "ever smoked tobacco",
+              "seeds": [
+                {
+                  "snomed_concept_id": "365982000",
+                  "preferred_term": "Finding of tobacco smoking consumption (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": true,
+                  "distance_child": 1
+                },
+                {
+                  "snomed_concept_id": "8517006",
+                  "preferred_term": "Ex-smoker (finding)",
+                  "semantic_tag": "finding",
+                  "include_descendants": true,
+                  "distance_child": 1
+                }
+              ],
+              "excluded_concept_ids": [],
+              "primary_concept_id": "365982000"
+            }
+          },
+          {
+            "kind": "AT_LEAST",
+            "children": [
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "49727002",
+                  "preferred_term": "Cough (finding)",
+                  "semantic_tag": "finding",
+                  "term": "cough",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "84229001",
+                  "preferred_term": "Fatigue (finding)",
+                  "semantic_tag": "finding",
+                  "term": "fatigue",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "267036007",
+                  "preferred_term": "Dyspnea (finding)",
+                  "semantic_tag": "finding",
+                  "term": "dyspnoea",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "29857009",
+                  "preferred_term": "Chest pain (finding)",
+                  "semantic_tag": "finding",
+                  "term": "chest pain",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "262285001",
+                  "preferred_term": "Weight decreased (finding)",
+                  "semantic_tag": "finding",
+                  "term": "weight loss",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              },
+              {
+                "kind": "CONCEPT",
+                "criterion": {
+                  "snomed_concept_id": "79890006",
+                  "preferred_term": "Loss of appetite (finding)",
+                  "semantic_tag": "finding",
+                  "term": "loss of appetite",
+                  "seeds": [],
+                  "excluded_concept_ids": [],
+                  "primary_concept_id": ""
+                }
+              }
+            ],
+            "min": 1
+          },
+          {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 40.0,
+            "unit": "years"
+          }
+        ]
+      }
+    ]
+  }
+}

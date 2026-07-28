@@ -1,0 +1,156 @@
+{
+  "name": "Rule: 1.5.2",
+  "rule_id": "rule:NG12:v1:CH002:SEC004:R001:a9d9eeb1:edit:23ffa200:edit:07e1ada7:edit:3c0d1d00",
+  "title": "1.5.2",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.5.2 Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50 or over) reports having any of the following symptoms on a persistent or frequent basis – particularly more than 12 times per month: persistent abdominal distension (often referred to as 'bloating') feeling full (early satiety) and/or loss of appetite pelvic or abdominal pain increased urinary urgency and/or frequency. [2011]",
+  "recommendation_structure": {
+    "lead_text": "Carry out tests in primary care (see recommendations 1.5.6 to 1.5.9) if a woman, or a trans man or non-binary person with female reproductive organs (especially if they are aged 50 or over) reports having any of the following symptoms on a persistent or frequent basis – particularly more than 12 times per month:",
+    "items": [
+      {
+        "text": "persistent abdominal distension (often referred to as 'bloating')",
+        "start": 320,
+        "end": 385
+      },
+      {
+        "text": "feeling full (early satiety) and/or loss of appetite",
+        "start": 386,
+        "end": 438
+      },
+      {
+        "text": "pelvic or abdominal pain",
+        "start": 439,
+        "end": 463
+      },
+      {
+        "text": "increased urinary urgency and/or frequency. [2011]",
+        "start": 464,
+        "end": 514
+      }
+    ]
+  },
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "DEMOGRAPHIC",
+        "field": "sex",
+        "operator": "=",
+        "value": "female"
+      },
+      {
+        "kind": "OR",
+        "children": [
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "41931001",
+              "preferred_term": "Distension of abdomen (finding)",
+              "semantic_tag": "finding",
+              "term": "Distension of abdomen (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "162068007",
+              "preferred_term": "Abdominal distension symptom (finding)",
+              "semantic_tag": "finding",
+              "term": "Abdominal distension symptom (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "116289008",
+              "preferred_term": "Abdominal bloating (finding)",
+              "semantic_tag": "finding",
+              "term": "Abdominal bloating (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "442076002",
+              "preferred_term": "Early satiety (finding)",
+              "semantic_tag": "finding",
+              "term": "Early satiety (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "79890006",
+              "preferred_term": "Loss of appetite (finding)",
+              "semantic_tag": "finding",
+              "term": "Loss of appetite (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "30473006",
+              "preferred_term": "Pain in pelvis (finding)",
+              "semantic_tag": "finding",
+              "term": "Pain in pelvis (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "21522001",
+              "preferred_term": "Abdominal pain (finding)",
+              "semantic_tag": "finding",
+              "term": "Abdominal pain (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "75088002",
+              "preferred_term": "Urgent desire to urinate (finding)",
+              "semantic_tag": "finding",
+              "term": "Urgent desire to urinate (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          },
+          {
+            "kind": "CONCEPT",
+            "criterion": {
+              "snomed_concept_id": "162116003",
+              "preferred_term": "Increased frequency of urination (finding)",
+              "semantic_tag": "finding",
+              "term": "Increased frequency of urination (finding)",
+              "seeds": [],
+              "excluded_concept_ids": [],
+              "primary_concept_id": ""
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

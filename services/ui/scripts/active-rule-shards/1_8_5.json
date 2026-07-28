@@ -1,0 +1,26 @@
+{
+  "name": "Rule: 1.8.5",
+  "rule_id": "rule:NG12:v1:CH002:SEC007:R004:2c567d72:edit:e403bea3",
+  "title": "1.8.5",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.8.5 Consider a suspected cancer pathway referral for thyroid cancer in people with an unexplained thyroid lump. [2015]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "237557003",
+          "preferred_term": "Mass of thyroid gland (finding)",
+          "semantic_tag": "finding",
+          "term": "Mass of thyroid gland (finding)",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "",
+          "needs_human_review": false
+        }
+      }
+    ]
+  }
+}

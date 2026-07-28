@@ -1,0 +1,34 @@
+{
+  "name": "Rule: 1.4.3",
+  "rule_id": "rule:NG12:v1:CH002:SEC003:R002:f54de271:edit:f3e30ff1:edit:31ccd51b",
+  "title": "1.4.3",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.4.3 Consider non-urgent referral in people aged under 30 with an unexplained breast lump with or without pain. For information about seeking specialist advice, see also recommendations 1.16.2 and 1.16.3 in the section on the diagnostic process . [2015]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "AND",
+    "children": [
+      {
+        "kind": "DEMOGRAPHIC",
+        "field": "age",
+        "operator": "<",
+        "value": 30.0,
+        "unit": "years"
+      },
+      {
+        "kind": "CONCEPT",
+        "criterion": {
+          "snomed_concept_id": "89164003",
+          "preferred_term": "Breast lump (finding)",
+          "semantic_tag": "finding",
+          "term": "breast lump",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "",
+          "confidence": 1.0,
+          "needs_human_review": false
+        }
+      }
+    ]
+  }
+}

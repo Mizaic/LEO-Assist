@@ -1,0 +1,41 @@
+{
+  "name": "Rule: 1.2.10",
+  "rule_id": "rule:NG12:v1:CH002:SEC001:R009:f73dd728:edit:3fe39c03:edit:743abb1d:edit:5e05a138:edit:809facf3",
+  "title": "1.2.10",
+  "guideline_id": "NG12",
+  "recommendation_text": "1.2.10 Consider an urgent , direct access ultrasound scan to assess for gall bladder cancer in people with an upper abdominal mass consistent with an enlarged gall bladder. [2015]",
+  "recommendation_structure": null,
+  "logic": {
+    "kind": "OR",
+    "children": [
+      {
+        "kind": "CONCEPT",
+        "pathway_key": "pw_mrz1tong_3",
+        "criterion": {
+          "snomed_concept_id": "271683004",
+          "preferred_term": "Gallbladder palpable (finding)",
+          "semantic_tag": "finding",
+          "term": "Gallbladder palpable (finding)",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "",
+          "needs_human_review": false
+        }
+      },
+      {
+        "kind": "CONCEPT",
+        "pathway_key": "pw_mrz1tong_4",
+        "criterion": {
+          "snomed_concept_id": "163272008",
+          "preferred_term": "On examination - gallbladder palpable (finding)",
+          "semantic_tag": "finding",
+          "term": "On examination - gallbladder palpable (finding)",
+          "seeds": [],
+          "excluded_concept_ids": [],
+          "primary_concept_id": "",
+          "needs_human_review": false
+        }
+      }
+    ]
+  }
+}

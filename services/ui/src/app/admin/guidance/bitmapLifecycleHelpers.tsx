@@ -13,6 +13,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import type { ReviewListItem } from "@leo/design-system";
 import { celebrationPulse } from "./motionPresets";
 
@@ -98,15 +99,19 @@ export function buildVersionItem(
     title: <span style={{ fontFamily: "monospace", fontSize: 13 }}>{v.version}</span>,
     chips,
     actions: v.active ? undefined : (
-      <Button
-        size="small"
-        variant="outlined"
-        disabled={activating === v.version}
-        onClick={() => onActivate(v.version)}
-        aria-label={`Make version ${v.version} live`}
-      >
-        {activating === v.version ? <CircularProgress size={14} /> : "Make this live"}
-      </Button>
+      <Tooltip title="Make this compiled version the one used for real patients.">
+        <span>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={activating === v.version}
+            onClick={() => onActivate(v.version)}
+            aria-label={`Make version ${v.version} live`}
+          >
+            {activating === v.version ? <CircularProgress size={14} /> : "Make this live"}
+          </Button>
+        </span>
+      </Tooltip>
     ),
   };
 }

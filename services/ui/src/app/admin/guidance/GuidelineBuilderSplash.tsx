@@ -40,7 +40,7 @@ export default function GuidelineBuilderSplash({ onDismiss }: Props) {
   const { reducedMotion } = useMotion();
 
   useEffect(() => {
-    const duration = reducedMotion ? 350 : 1800;
+    const duration = reducedMotion ? 200 : 900;
     const timer = setTimeout(onDismiss, duration);
     return () => clearTimeout(timer);
   }, [reducedMotion, onDismiss]);
@@ -93,7 +93,7 @@ export default function GuidelineBuilderSplash({ onDismiss }: Props) {
           CHIPS.map((chip, i) => (
             <fm.div
               key={chip.color}
-              initial={{ x: chip.from.x, y: chip.from.y, opacity: 0, scale: 0.4 }}
+              initial={{ x: chip.from.x, y: chip.from.y, opacity: 0, scale: 0.85 }}
               animate={{
                 x: chip.to.x,
                 y: chip.to.y,

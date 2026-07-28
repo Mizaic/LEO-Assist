@@ -65,7 +65,7 @@ export default function Step4Save({
       : "At least 3 characters. Saved with the change so others can see why.");
 
   return (
-    <Stack spacing={2} sx={{ minWidth: 0 }}>
+    <Stack spacing={2} sx={{ minWidth: 0 }} data-tour="er-07-save">
       <Box>
         <Typography
           variant="h6"

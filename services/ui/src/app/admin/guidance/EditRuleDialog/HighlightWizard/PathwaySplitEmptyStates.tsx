@@ -21,9 +21,10 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
-import { STEP_PATHWAY_SPLIT } from "./copy";
+import { STEP_PATHWAY_SPLIT, WIZARD_TOOLTIPS } from "./copy";
 
 const EMPTY_STATE_BOX_SX = {
   p: 2,
@@ -39,9 +40,11 @@ export function NoSplitState({ onNoSplit }: { onNoSplit: () => void }) {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         {STEP_PATHWAY_SPLIT.noSplitBody}
       </Typography>
-      <Button variant="outlined" size="small" onClick={onNoSplit}>
-        {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
-      </Button>
+      <Tooltip title={WIZARD_TOOLTIPS.noSplit}>
+        <Button variant="outlined" size="small" onClick={onNoSplit}>
+          {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
+        </Button>
+      </Tooltip>
     </Box>
   );
 }
@@ -66,12 +69,16 @@ export function MergedToOneState({
         {STEP_PATHWAY_SPLIT.mergedToOneBody}
       </Typography>
       <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" sx={{ rowGap: 1 }}>
-        <Button variant="outlined" size="small" onClick={onUndo}>
-          {STEP_PATHWAY_SPLIT.undoMergeLabel}
-        </Button>
-        <Button variant="contained" size="small" onClick={onNoSplit}>
-          {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
-        </Button>
+        <Tooltip title={WIZARD_TOOLTIPS.undoMerge}>
+          <Button variant="outlined" size="small" onClick={onUndo}>
+            {STEP_PATHWAY_SPLIT.undoMergeLabel}
+          </Button>
+        </Tooltip>
+        <Tooltip title={WIZARD_TOOLTIPS.noSplit}>
+          <Button variant="contained" size="small" onClick={onNoSplit}>
+            {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     </Box>
   );

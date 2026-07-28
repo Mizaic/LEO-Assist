@@ -114,14 +114,12 @@ describe("buildRowResolver", () => {
   });
 
   // Regression: two pathways sharing identical wording (e.g. NG12
-  // 1.2.9's pathway C and pathway D both list "nausea"). Without a
-  // textWindow, findBestTextMatch's exactMatch always returns the
-  // FIRST occurrence in the whole document -- so a leaf that truly
-  // belongs to the SECOND pathway's own text would incorrectly
-  // resolve to the first pathway's earlier occurrence, leaving the
-  // second pathway's own row permanently unresolved even after the
-  // reviewer picked a concept for it.
-  it("scopes the match to textWindow so a later pathway's leaf does not resolve to an earlier pathway's identical wording", () => {
+  // 1.2.9's pathway C and pathway D both list "nausea"). Direct
+  // row-wording resolution claims the row from the leaf's own term
+  // without needing quote-panel offsets. Fuzzy span matching still
+  // stays window-scoped so a leaf that only shares weak tokens with
+  // the row cannot latch onto an earlier pathway's identical word.
+  it("resolves a later pathway's identical wording via the leaf term, and scopes weak fuzzy matches to textWindow", () => {
     const DUP_TEXT =
       "raised platelet count with nausea, or vomiting with nausea and reflux.";
     const firstNausea = DUP_TEXT.indexOf("nausea");
@@ -134,24 +132,23 @@ describe("buildRowResolver", () => {
       criterion: { snomed_concept_id: "n1", preferred_term: "Nausea" },
     };
     const pathwayD = pathwayNode([nauseaLeaf]);
-    // Pathway D's own text window starts right after pathway C ends
-    // (at the ", or " boundary), so it only spans the SECOND
-    // occurrence of "nausea".
-    const pathwayDWindow = { start: secondNausea - "vomiting with ".length, end: DUP_TEXT.length };
+    const pathwayDWindow = {
+      start: secondNausea - "vomiting with ".length,
+      end: DUP_TEXT.length,
+    };
 
-    const unscoped = buildRowResolver(pathwayD, DUP_TEXT);
     const rowAtSecondOccurrence: RecommendationStructureItem = {
       text: "nausea",
       start: secondNausea,
       end: secondNausea + "nausea".length,
     };
-    // Without windowing, the resolver anchors "Nausea" onto the FIRST
-    // occurrence (pathway C's), so pathway D's own row does not
-    // overlap it and stays unresolved -- this is the bug.
-    expect(unscoped(rowAtSecondOccurrence)).toBeUndefined();
-
-    const windowed = buildRowResolver(pathwayD, DUP_TEXT, pathwayDWindow);
-    expect(windowed(rowAtSecondOccurrence)?.nodeId).toBe("nausea-d");
+    expect(buildRowResolver(pathwayD, DUP_TEXT)(rowAtSecondOccurrence)?.nodeId).toBe(
+      "nausea-d",
+    );
+    expect(
+      buildRowResolver(pathwayD, DUP_TEXT, pathwayDWindow)(rowAtSecondOccurrence)
+        ?.nodeId,
+    ).toBe("nausea-d");
   });
 
   // Regression: "I select a code and nothing happens." A reviewer
@@ -425,6 +422,56 @@ describe("orderPathwayNodesByBoundary", () => {
 
     expect(ordered).toEqual([first, second]);
   });
+
+  it("does not scramble NG12 1.1.2 pathways when leaves only match the shared symptom list", () => {
+    // Situation A prose ends before the colon; the six symptoms sit
+    // once at the end and are attached as structureChildren on BOTH
+    // boundaries. Coding cough under A must not re-claim that
+    // container as situation B (last-boundary-wins on the shared span).
+    const leadA =
+      "if they have 2 or more of the following unexplained symptoms, or ";
+    const leadB =
+      "if they have ever smoked and have 1 or more of the following " +
+      "unexplained symptoms: ";
+    const cough = "cough";
+    const full = leadA + leadB + cough;
+    const coughStart = leadA.length + leadB.length;
+    const shared = [
+      { text: cough, start: coughStart, end: coughStart + cough.length },
+    ];
+    const ngBoundaries: PathwayTextBoundary[] = [
+      {
+        text: leadA,
+        start: 0,
+        end: leadA.length,
+        source: "heuristic",
+        structureChildren: shared,
+      },
+      {
+        text: leadB,
+        start: leadA.length,
+        end: leadA.length + leadB.length,
+        source: "heuristic",
+        structureChildren: shared,
+      },
+    ];
+    const coughLeaf: EditableLogicNode = {
+      node_id: "cough",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "49727002", preferred_term: "Cough" },
+      source_row_text: "cough",
+    };
+    const situationA = { ...pathwayNode([coughLeaf]), node_id: "pw-a", pathway_key: "pw_a" };
+    const situationB = { ...pathwayNode([]), node_id: "pw-b", pathway_key: "pw_b" };
+
+    const ordered = orderPathwayNodesByBoundary(
+      [situationA, situationB],
+      ngBoundaries,
+      full,
+    );
+
+    expect(ordered.map((n) => n.node_id)).toEqual(["pw-a", "pw-b"]);
+  });
 });
 
 describe("buildRootWithFreshPathways", () => {
@@ -485,6 +532,23 @@ describe("pathwayTextWindow", () => {
     ];
     expect(pathwayTextWindow(boundaries, 0, 120)).toEqual({ start: 0, end: 120 });
     expect(pathwayTextWindow(boundaries, 1, 120)).toEqual({ start: 0, end: 120 });
+  });
+
+  it("extends a heuristic window to cover shared structureChildren past the next lead", () => {
+    const boundaries: PathwayTextBoundary[] = [
+      {
+        start: 0,
+        end: 40,
+        text: "2 or more symptoms",
+        source: "heuristic",
+        structureChildren: [
+          { text: "cough", start: 80, end: 85 },
+          { text: "fatigue", start: 86, end: 93 },
+        ],
+      },
+      { start: 40, end: 70, text: "ever smoked", source: "heuristic" },
+    ];
+    expect(pathwayTextWindow(boundaries, 0, 100)).toEqual({ start: 0, end: 93 });
   });
 });
 
@@ -648,6 +712,42 @@ describe("buildPathwayRows", () => {
     expect(items).toHaveLength(1);
   });
 
+  it("peels NG12 1.7.2 referral lead down to the dermoscopy clinical clause", () => {
+    const text =
+      "1.7.2 Refer people using a suspected cancer pathway referral if " +
+      "dermoscopy suggests melanoma of the skin. [2015]";
+    const boundary: PathwayTextBoundary = {
+      text,
+      start: 0,
+      end: text.length,
+      source: "heuristic",
+    };
+    const { items, hasCluster } = buildPathwayRows(boundary);
+    expect(hasCluster).toBe(false);
+    expect(items).toHaveLength(1);
+    expect(items[0].text).toBe("dermoscopy suggests melanoma of the skin");
+  });
+
+  it("peels NG12 1.7.6 into BCC suspicion + delay-concern AND rows", () => {
+    const text =
+      "1.7.6 Only consider a suspected cancer pathway referral for people " +
+      "with a skin lesion that raises the suspicion of a basal cell " +
+      "carcinoma if there is particular concern that a delay may have a " +
+      "significant impact, because of factors such as lesion site or size. [2015]";
+    const boundary: PathwayTextBoundary = {
+      text,
+      start: 0,
+      end: text.length,
+      source: "heuristic",
+    };
+    const { items, hasCluster } = buildPathwayRows(boundary);
+    expect(hasCluster).toBe(false);
+    expect(items.map((i) => i.text)).toEqual([
+      "skin lesion that raises the suspicion of a basal cell carcinoma",
+      "particular concern that a delay may have a significant impact",
+    ]);
+  });
+
   it("splits a plain clinical 'X with Y' into two AND rows (NG12 situation B)", () => {
     const boundary: PathwayTextBoundary = {
       text: "upper abdominal pain with low haemoglobin levels",
@@ -675,6 +775,58 @@ describe("buildPathwayRows", () => {
     const { items, hasCluster } = buildPathwayRows(CLUSTER_BOUNDARY);
     expect(hasCluster).toBe(true);
     expect(items[0].children?.length).toBeGreaterThan(0);
+  });
+
+  it("NG12 1.3.1 D: strips age and splits weight loss + abdominal pain", () => {
+    const boundary: PathwayTextBoundary = {
+      text: "aged 40 and over with unexplained weight loss and abdominal pain",
+      start: 245,
+      end: 309,
+      source: "structure",
+    };
+    const { items, hasCluster } = buildPathwayRows(boundary);
+    expect(hasCluster).toBe(false);
+    expect(items.map((i) => i.text)).toEqual([
+      "unexplained weight loss",
+      "abdominal pain",
+    ]);
+  });
+
+  it("NG12 1.3.1 E: either-of keeps rectal bleeding lead over AT_LEAST children", () => {
+    const boundary: PathwayTextBoundary = {
+      text:
+        "aged under 50 with rectal bleeding and either of the following unexplained symptoms:",
+      start: 314,
+      end: 398,
+      source: "structure",
+      structureChildren: [
+        { text: "abdominal pain", start: 399, end: 413 },
+        { text: "weight loss", start: 414, end: 425 },
+      ],
+    };
+    const { items, hasCluster, suggestedMin } = buildPathwayRows(boundary);
+    expect(hasCluster).toBe(true);
+    expect(suggestedMin).toBe(1);
+    expect(items[0]?.text).toBe("rectal bleeding");
+    expect(items[0]?.children?.map((c) => c.text)).toEqual([
+      "abdominal pain",
+      "weight loss",
+    ]);
+  });
+
+  it("NG12 1.3.1 G: strips FIT caveat tail to anaemia finding", () => {
+    const boundary: PathwayTextBoundary = {
+      text:
+        "aged 60 and over with anaemia even in the absence of iron deficiency. " +
+        "FIT should be offered even if the person has previously had a negative FIT. [2023]",
+      start: 542,
+      end: 700,
+      source: "structure",
+    };
+    const { items, hasCluster } = buildPathwayRows(boundary);
+    expect(hasCluster).toBe(false);
+    expect(items).toHaveLength(1);
+    expect(items[0]?.text).toBe("anaemia even in the absence of iron deficiency");
   });
 });
 

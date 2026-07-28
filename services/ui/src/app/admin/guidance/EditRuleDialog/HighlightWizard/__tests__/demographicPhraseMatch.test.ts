@@ -67,6 +67,43 @@ describe("detectDemographicPhrase: age", () => {
       unit: "years",
     });
   });
+
+  it("parses NICE 'children and young people' as age <= 24 (NG12 glossary)", () => {
+    expect(detectDemographicPhrase("children and young people")).toEqual({
+      field: "age",
+      operator: "<=",
+      value: "24",
+      unit: "years",
+    });
+  });
+
+  it("parses NICE 'young people' as age 16 to 24", () => {
+    expect(detectDemographicPhrase("young people")).toEqual({
+      field: "age",
+      operator: "between",
+      value: "16",
+      value2: "24",
+      unit: "years",
+    });
+  });
+
+  it("parses NICE 'children' as age <= 15", () => {
+    expect(detectDemographicPhrase("children")).toEqual({
+      field: "age",
+      operator: "<=",
+      value: "15",
+      unit: "years",
+    });
+  });
+
+  it("parses NICE 'adults' as age >= 18", () => {
+    expect(detectDemographicPhrase("adults")).toEqual({
+      field: "age",
+      operator: ">=",
+      value: "18",
+      unit: "years",
+    });
+  });
 });
 
 describe("detectDemographicPhrase: sex", () => {
@@ -102,6 +139,14 @@ describe("detectDemographicPhrase: conservative guard rails", () => {
     expect(
       detectDemographicPhrase(
         "unexplained symptoms in people aged 40 and over with a persistent cough",
+      ),
+    ).toBeNull();
+  });
+
+  it("does not treat a longer CYP-containing selection as an age band alone", () => {
+    expect(
+      detectDemographicPhrase(
+        "Refer children and young people for immediate specialist assessment",
       ),
     ).toBeNull();
   });

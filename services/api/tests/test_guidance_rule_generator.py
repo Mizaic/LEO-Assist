@@ -754,12 +754,12 @@ class TestActionPriorityOnEdge:
         assert result["priority"] == "2ww"
         assert result["due_days"] == 14
 
-    def test_urgency_immediate_maps_to_urgent(self):
+    def test_urgency_immediate_maps_to_immediate(self):
         from app.services.guidance_rule_generator import _urgency_to_priority
 
         result = _urgency_to_priority("immediate")
-        assert result["priority"] == "urgent"
-        assert result["due_days"] == 1
+        assert result["priority"] == "immediate"
+        assert result["due_days"] == 0
 
     def test_urgency_very_urgent_48h(self):
         from app.services.guidance_rule_generator import _urgency_to_priority
