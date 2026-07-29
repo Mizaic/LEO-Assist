@@ -20,6 +20,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 import EditRuleDialog from "..";
+import { goToEditorStep } from "./goToEditorStep";
 
 /** MUI Select is not a native <select>; open its listbox and click an option. */
 async function selectStrength(labelPattern: RegExp, optionText: string) {
@@ -87,15 +88,8 @@ function mockSearch(hits: unknown[] = []) {
  * system suggest?") and the reason field lives on step 3 ("Save your
  * change").
  */
-function goToStep(stepNumber: 1 | 2 | 3) {
-  const rail = screen.getAllByRole("button", {
-    name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
-  });
-  fireEvent.click(rail[0]);
-}
-
 function fillReason(text: string) {
-  goToStep(3);
+  goToEditorStep(3);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
     target: { value: text },
   });
@@ -117,7 +111,7 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
       />,
     );
 
-    goToStep(2);
+    goToEditorStep(2);
     const region = screen.getByRole("region", {
       name: /recommended procedures for this rule/i,
     });
@@ -148,7 +142,7 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
         onSave={() => {}}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     expect(
       screen.getByRole("button", {
         name: /no procedure picked yet\. click to pick a different procedure\./i,
@@ -166,7 +160,7 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
         onSave={() => {}}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
 
     fireEvent.click(
       screen.getByRole("button", { name: /add another recommended procedure/i }),
@@ -199,7 +193,7 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
         onSave={() => {}}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
 
     fireEvent.click(
       screen.getByRole("button", { name: /add another recommended procedure/i }),
@@ -232,7 +226,7 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
       />,
     );
 
-    goToStep(2);
+    goToEditorStep(2);
     fireEvent.click(
       screen.getByRole("button", {
         name: /plain chest x-ray\. click to pick a different procedure\./i,
@@ -292,7 +286,7 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
         onSave={onSave}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
 
     fireEvent.click(
       screen.getByRole("button", { name: /add another recommended procedure/i }),
@@ -376,7 +370,7 @@ describe("EditRuleDialog -- recommended procedures (VT-LEO-AI-168)", () => {
       />,
     );
 
-    goToStep(2);
+    goToEditorStep(2);
     expect(
       screen.getByRole("button", {
         name: /plain chest x-ray\. click to pick a different procedure\./i,

@@ -29,6 +29,7 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import AIDraftButton from "../AIDraftButton";
 import HighlightWizard, { type WizardJumpRequest } from "../HighlightWizard";
+import type { WizardNavTarget } from "../navSlots";
 import type { WizardStepKind } from "../HighlightWizard/wizardState";
 import type {
   PathwayTextBoundary,
@@ -108,14 +109,14 @@ interface Props {
   jumpRequest?: WizardJumpRequest | null;
   /**
    * Reports the guided wizard's raw current phase (or null when the
-   * wizard isn't showing at all) so the host can render the phase
-   * breadcrumb attached to its own "Who" pill in `HorizontalStepper`
-   * instead of inside this step's own canvas -- see that component's
-   * doc comment for why the breadcrumb lives there now.
+   * wizard isn't showing) so the host can build the flat stepper
+   * slots in `navSlots.ts` / `HorizontalStepper`.
    */
   onWizardStepChange?: (step: WizardStepKind | null) => void;
   /** IFU CoachTour phase request -- forwarded to HighlightWizard. */
   tourGotoRequest?: { requestId: number; phase: WizardStepKind } | null;
+  /** Flat stepper jump -- forwarded to HighlightWizard. */
+  navGotoRequest?: { requestId: number; target: WizardNavTarget } | null;
 }
 
 export default function Step1Who({
@@ -141,6 +142,7 @@ export default function Step1Who({
   jumpRequest,
   onWizardStepChange,
   tourGotoRequest,
+  navGotoRequest,
 }: Props) {
   const treeIsEmpty = isTreeVisuallyEmpty(tree);
   const hasGuidelineText = Boolean(recommendationText?.trim());
@@ -297,6 +299,7 @@ export default function Step1Who({
           onActiveSituationChange={onActiveSituationChange}
           jumpRequest={jumpRequest}
           tourGotoRequest={tourGotoRequest}
+          navGotoRequest={navGotoRequest}
         />
       ) : (
         <EmptyTreeState

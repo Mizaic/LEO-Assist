@@ -13,6 +13,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import EditRuleDialog from "..";
+import { goToEditorStep } from "./goToEditorStep";
 
 // jsdom does not implement scrollIntoView -- see
 // HighlightWizard/index.tsx's useJumpScrollAndFlash doc comment.
@@ -53,12 +54,7 @@ function mockSearch() {
   );
 }
 
-function goToStep(stepNumber: 1 | 2 | 3) {
-  const stepper = screen.getAllByRole("button", {
-    name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
-  });
-  fireEvent.click(stepper[0]);
-}
+
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -105,7 +101,7 @@ describe("EditRuleDialog: jump-to-issue banner", () => {
       <EditRuleDialog rule={RULE_WITH_EMPTY_GROUP} open onClose={() => {}} onSave={jest.fn()} />,
     );
 
-    goToStep(3);
+    goToEditorStep(3);
     expect(screen.getByLabelText(/why are you changing this rule/i)).toBeInTheDocument();
     // Step 4's own banner (rendered via Step4Save's treeIssues prop),
     // independent of Step 1's copy of the same banner.

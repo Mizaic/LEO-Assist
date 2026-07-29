@@ -19,7 +19,7 @@
  *   |     CANVAS (~60%)        |   right column (~40%)      |
  *   |                          |   always visible, no toggle |
  *   |                          |                             |
- *   +--- Sticky DialogActions (Cancel | Back | Next | Save) -+
+ *   +--- Sticky DialogActions (Cancel | Previous/Next step | Save) -+
  *
  *   - The plain-English LivePreviewPane is the source of truth for
  *     reviewers; it sits permanently on the right so the user always
@@ -38,7 +38,7 @@
  *     reviewer just clicked, so concept search appears in context
  *     instead of in a separate column.
  *
- * Footer: sticky DialogActions with Back / Next / Save. Save is the
+ * Footer: sticky DialogActions with Previous/Next step / Save. Save is the
  * single primary action; it is gated on a >=3-character reason and a
  * valid tree, exactly as in the previous design.
  *
@@ -52,7 +52,7 @@
  */
 
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion as fm } from "framer-motion";
+import { motion as fm } from "framer-motion";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -85,14 +85,17 @@ import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import ConceptSynonymDialog from "./ConceptSynonymDialog";
 import ChipSearchPopover from "./ChipSearchPopover";
-import HorizontalStepper, {
-  type StepDescriptor,
-  type StepState,
-} from "./HorizontalStepper";
+import HorizontalStepper from "./HorizontalStepper";
 import GuidelineQuotePanel from "./GuidelineQuotePanel";
 import type { WizardJumpRequest } from "./HighlightWizard";
 import type { WizardStepKind } from "./HighlightWizard/wizardState";
 import LivePreviewPane from "./LivePreviewPane";
+import {
+  buildNavSlots,
+  slotToWizardTarget,
+  type NavSlot,
+  type WizardNavTarget,
+} from "./navSlots";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -106,7 +109,6 @@ import ValidationIssueBanner from "./ValidationIssueBanner";
 import {
   DIALOG_CHROME,
   GROUP_KIND_SHORT,
-  STEP_IDS,
   friendlyTerm,
   type StepId,
 } from "./copy";
@@ -397,17 +399,25 @@ export default function EditRuleDialog({
   const [originalDueDays, setOriginalDueDays] = useState<number | null>(null);
   const [isDefault, setIsDefault] = useState(false);
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
-  /** While the guided wizard (Step1Who) is still building the tree,
-   *  the right column shows the pinned NICE quote instead of a
-   *  half-built live preview -- see GuidelineQuotePanel's doc comment. */
-  const [guidedPanelMode, setGuidedPanelMode] = useState<"quote" | "preview">(
-    "preview",
-  );
-  /** The guided wizard's raw current phase, reported by Step1Who --
-   *  rendered as a breadcrumb attached to HorizontalStepper's "Who"
-   *  pill (see that component's doc comment). Null when the wizard
-   *  isn't showing (no tree yet, or a different outer step is active). */
+  /** Guided wizard phase for the flat stepper (null when not mounted). */
   const [wizardPhase, setWizardPhase] = useState<WizardStepKind | null>(null);
+  /** Pin the NICE quote while building; live preview at Check / Suggest / Save. */
+  const guidedPanelMode: "quote" | "preview" =
+    currentStepId === "who" &&
+    wizardPhase != null &&
+    wizardPhase !== "review"
+      ? "quote"
+      : "preview";
+  /** Confirmed situation count -- survives Review clearing active index. */
+  const [situationCount, setSituationCount] = useState(0);
+  /** True once the reviewer has reached Check so that slot stays jumpable. */
+  const [reachedCheck, setReachedCheck] = useState(false);
+  /** Flat-stepper jump into a guided phase. */
+  const [navGotoRequest, setNavGotoRequest] = useState<{
+    requestId: number;
+    target: WizardNavTarget;
+  } | null>(null);
+  const navGotoSeq = useRef(0);
   /** Which situation (Step 3 pathway) the guided wizard is currently
    *  building, if any -- see GuidelineQuotePanel's `pathwayBoundaries`/
    *  `activePathwayIndex` props. Null before a pathway split exists. */
@@ -442,6 +452,9 @@ export default function EditRuleDialog({
   // re-rendering forever.
   const handleActiveSituationChange = useCallback(
     (boundaries: PathwayTextBoundary[] | null, pathwayIndex: number | null) => {
+      if (boundaries?.length) {
+        setSituationCount(boundaries.length);
+      }
       setActiveSituation((prev) =>
         prev.boundaries === boundaries && prev.pathwayIndex === pathwayIndex
           ? prev
@@ -450,6 +463,11 @@ export default function EditRuleDialog({
     },
     [],
   );
+
+  const handleWizardPhaseChange = useCallback((phase: WizardStepKind | null) => {
+    setWizardPhase(phase);
+    if (phase === "review") setReachedCheck(true);
+  }, []);
   const [stepDirection, setStepDirection] = useState<1 | -1>(1);
   const prevStepIndexRef = useRef(0);
   const { reducedMotion } = useMotion();
@@ -515,6 +533,11 @@ export default function EditRuleDialog({
     );
     setIsDefault(rule.is_default ?? false);
     setCurrentStepId("who");
+    setWizardPhase(null);
+    setSituationCount(0);
+    setReachedCheck(false);
+    setNavGotoRequest(null);
+    setActiveSituation({ boundaries: null, pathwayIndex: null });
   }, [rule]);
 
   const summary = useMemo(() => treeToSentence(tree), [tree]);
@@ -560,43 +583,33 @@ export default function EditRuleDialog({
     reasonReady &&
     !saving;
 
-  const stepDescriptors: StepDescriptor[] = useMemo(() => {
-    const whoState: StepState = !tree
-      ? "not_started"
-      : validationError
-        ? "in_progress"
-        : "ready";
-    const allCoded =
-      actions.length > 0 &&
-      actions.every((a) => Boolean(a.criterion?.snomed_concept_id));
-    const allBlank = actions.every(
-      (a) => !a.criterion?.snomed_concept_id && a.strength === "unspecified",
+  const { slots: navSlots, currentId: currentSlotId, currentIndex: navIndex } =
+    useMemo(
+      () =>
+        buildNavSlots({
+          outerStep: currentStepId,
+          wizardPhase,
+          situationCount,
+          situationIndex: activeSituation.pathwayIndex ?? 0,
+          reachedCheck,
+        }),
+      [
+        currentStepId,
+        wizardPhase,
+        situationCount,
+        activeSituation.pathwayIndex,
+        reachedCheck,
+      ],
     );
-    const suggestState: StepState = allCoded
-      ? "ready"
-      : allBlank
-        ? "not_started"
-        : "in_progress";
-    const saveState: StepState = reasonReady ? "ready" : "not_started";
-    return [
-      { id: "who", state: whoState },
-      { id: "suggest", state: suggestState },
-      { id: "save", state: saveState },
-    ];
-  }, [tree, validationError, actions, reasonReady]);
 
   const prepareEditTourStep = useCallback(async (step: TourStep) => {
     const phase = editTourPhaseForStep(step.id);
     if (!phase) return true;
     if (phase === "save") {
-      setGuidedPanelMode("preview");
       setCurrentStepId((prev) => (prev === "save" ? prev : "save"));
       setTourGotoRequest(null);
       await delay(120);
       return true;
-    }
-    if (phase === "review") {
-      setGuidedPanelMode("preview");
     }
     setCurrentStepId((prev) => (prev === "who" ? prev : "who"));
     tourGotoSeq.current += 1;
@@ -613,27 +626,44 @@ export default function EditRuleDialog({
     setTourGotoRequest(null);
   }, []);
 
-  const handleJumpStep = useCallback((next: StepId) => {
-    const nextIndex = STEP_IDS.indexOf(next);
-    setStepDirection(nextIndex >= prevStepIndexRef.current ? 1 : -1);
-    prevStepIndexRef.current = nextIndex;
-    setCurrentStepId(next);
-    setSearchTarget(IDLE_TARGET);
-  }, []);
+  const handleJumpSlot = useCallback(
+    (slot: NavSlot) => {
+      const nextIndex = navSlots.findIndex((s) => s.id === slot.id);
+      setStepDirection(nextIndex >= prevStepIndexRef.current ? 1 : -1);
+      prevStepIndexRef.current = Math.max(0, nextIndex);
+      setSearchTarget(IDLE_TARGET);
+      if (slot.surface !== "who") {
+        setCurrentStepId(slot.surface);
+        return;
+      }
+      setCurrentStepId("who");
+      const target = slotToWizardTarget(slot);
+      if (!target) return;
+      navGotoSeq.current += 1;
+      setNavGotoRequest({
+        requestId: navGotoSeq.current,
+        target,
+      });
+    },
+    [navSlots],
+  );
 
-  const currentIndex = STEP_IDS.indexOf(currentStepId);
-  const isFirstStep = currentIndex === 0;
-  const isLastStep = currentIndex === STEP_IDS.length - 1;
+  const isFirstStep = navIndex <= 0;
+  const isLastStep = navIndex >= navSlots.length - 1;
+  const nextSlot = !isLastStep ? navSlots[navIndex + 1] : null;
+  const prevSlot = !isFirstStep ? navSlots[navIndex - 1] : null;
+  const canGoNext = Boolean(nextSlot?.jumpable);
+  const currentIndex = navIndex;
 
   const handleNext = useCallback(() => {
-    if (isLastStep) return;
-    handleJumpStep(STEP_IDS[currentIndex + 1]);
-  }, [currentIndex, isLastStep, handleJumpStep]);
+    if (!nextSlot?.jumpable) return;
+    handleJumpSlot(nextSlot);
+  }, [nextSlot, handleJumpSlot]);
 
   const handleBack = useCallback(() => {
-    if (isFirstStep) return;
-    handleJumpStep(STEP_IDS[currentIndex - 1]);
-  }, [currentIndex, isFirstStep, handleJumpStep]);
+    if (!prevSlot) return;
+    handleJumpSlot(prevSlot);
+  }, [prevSlot, handleJumpSlot]);
 
   function handleUpdate(update: NodeUpdate) {
     setTree((curr) => (curr ? applyUpdate(curr, update) : curr));
@@ -1168,10 +1198,9 @@ export default function EditRuleDialog({
           }}
         >
           <HorizontalStepper
-            steps={stepDescriptors}
-            currentStepId={currentStepId}
-            onJump={handleJumpStep}
-            wizardPhase={wizardPhase}
+            slots={navSlots}
+            currentSlotId={currentSlotId}
+            onJump={handleJumpSlot}
           />
           <Box
             sx={{
@@ -1185,7 +1214,7 @@ export default function EditRuleDialog({
           >
             <Box
               role="region"
-              aria-label={`Step ${currentIndex + 1} of ${STEP_IDS.length}`}
+              aria-label={`Step ${currentIndex + 1} of ${navSlots.length}`}
               tabIndex={0}
               sx={{
                 p: { xs: 2, md: 3 },
@@ -1235,11 +1264,11 @@ export default function EditRuleDialog({
                   const withIds = assignNodeIds(aiTree);
                   setTree(withIds);
                 }}
-                onGuidedPanelModeChange={setGuidedPanelMode}
                 onActiveSituationChange={handleActiveSituationChange}
                 jumpRequest={jumpRequest}
-                onWizardStepChange={setWizardPhase}
+                onWizardStepChange={handleWizardPhaseChange}
                 tourGotoRequest={tourGotoRequest}
+                navGotoRequest={navGotoRequest}
               />
             )}
             {currentStepId === "suggest" && (
@@ -1342,53 +1371,30 @@ export default function EditRuleDialog({
                 minHeight: 0,
               }}
             >
-              <AnimatePresence mode="wait">
-                {currentStepId === "who" && guidedPanelMode === "quote" ? (
-                  <fm.div
-                    key="quote"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={
-                      reducedMotion
-                        ? { duration: 0 }
-                        : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
-                    }
-                  >
-                    <GuidelineQuotePanel
-                      recommendationText={rule?.recommendation_text}
-                      tree={tree}
-                      pathwayBoundaries={activeSituation.boundaries}
-                      activePathwayIndex={activeSituation.pathwayIndex}
-                    />
-                  </fm.div>
-                ) : (
-                  <fm.div
-                    key="preview"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={
-                      reducedMotion
-                        ? { duration: 0 }
-                        : { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
-                    }
-                  >
-                    <LivePreviewPane
-                      summary={summary}
-                      actions={actions}
-                      priority={priority}
-                      dueDays={dueDays}
-                      showBeforeAfter={currentStepId === "save"}
-                      beforeSummary={beforeSummary}
-                      beforeActions={originalActions}
-                      beforePriority={originalPriority}
-                      beforeDueDays={originalDueDays}
-                      recommendationText={rule?.recommendation_text}
-                    />
-                  </fm.div>
-                )}
-              </AnimatePresence>
+              {/* No AnimatePresence wait here: quote vs preview must
+                  swap on the same paint as wizardPhase, or reviewers
+                  (and tests) briefly see the wrong side panel. */}
+              {guidedPanelMode === "quote" ? (
+                <GuidelineQuotePanel
+                  recommendationText={rule?.recommendation_text}
+                  tree={tree}
+                  pathwayBoundaries={activeSituation.boundaries}
+                  activePathwayIndex={activeSituation.pathwayIndex}
+                />
+              ) : (
+                <LivePreviewPane
+                  summary={summary}
+                  actions={actions}
+                  priority={priority}
+                  dueDays={dueDays}
+                  showBeforeAfter={currentStepId === "save"}
+                  beforeSummary={beforeSummary}
+                  beforeActions={originalActions}
+                  beforePriority={originalPriority}
+                  beforeDueDays={originalDueDays}
+                  recommendationText={rule?.recommendation_text}
+                />
+              )}
             </Box>
           </Box>
         </Box>
@@ -1443,29 +1449,37 @@ export default function EditRuleDialog({
         {saving && (
           <CircularProgress size={18} aria-label="Saving your changes" />
         )}
-        <Tooltip title="Go back to the previous editor step.">
-          <span>
-            <Button
-              onClick={handleBack}
-              disabled={isFirstStep || saving}
-              startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-              aria-label="Go back to the previous step"
-            >
-              Back
-            </Button>
-          </span>
-        </Tooltip>
+        {!isFirstStep && (
+          <Tooltip title={DIALOG_CHROME.previousStepTooltip}>
+            <span>
+              <Button
+                onClick={handleBack}
+                disabled={saving}
+                startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+                aria-label={DIALOG_CHROME.previousStepAria}
+              >
+                {DIALOG_CHROME.previousStepLabel}
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         {!isLastStep && (
-          <Tooltip title="Go to the next editor step.">
+          <Tooltip
+            title={
+              canGoNext
+                ? DIALOG_CHROME.nextStepTooltip
+                : "Confirm this step below before moving on."
+            }
+          >
             <span>
               <Button
                 variant="outlined"
                 onClick={handleNext}
-                disabled={saving}
+                disabled={saving || !canGoNext}
                 endIcon={<ArrowForwardRoundedIcon fontSize="small" />}
-                aria-label="Go to the next step"
+                aria-label={DIALOG_CHROME.nextStepAria}
               >
-                Next
+                {DIALOG_CHROME.nextStepLabel}
               </Button>
             </span>
           </Tooltip>

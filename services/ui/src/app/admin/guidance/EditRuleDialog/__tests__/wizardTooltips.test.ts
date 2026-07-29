@@ -14,7 +14,6 @@ const FILES_EXPECTING_TOOLTIP = [
   "StepPathwayConditions.tsx",
   "PathwayDemographicsPanel.tsx",
   "PathwaySplitEmptyStates.tsx",
-  "WizardHeader.tsx",
   "ProblemNodeRow.tsx",
   "RowMultiCodeHighlight.tsx",
 ] as const;

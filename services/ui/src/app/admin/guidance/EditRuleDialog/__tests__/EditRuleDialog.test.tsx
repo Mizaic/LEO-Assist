@@ -20,6 +20,7 @@ import {
 } from "@testing-library/react";
 
 import EditRuleDialog from "..";
+import { goToEditorStep } from "./goToEditorStep";
 
 const SAMPLE_RULE = {
   rule_id: "rule:NG12:abc",
@@ -64,15 +65,10 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
-function goToStep(stepNumber: 1 | 2 | 3) {
-  const stepper = screen.getAllByRole("button", {
-    name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
-  });
-  fireEvent.click(stepper[0]);
-}
+
 
 function fillReason(text: string) {
-  goToStep(3);
+  goToEditorStep(3);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
     target: { value: text },
   });
@@ -139,7 +135,9 @@ describe("EditRuleDialog", () => {
     const coughLabel = screen.getByText(/patient has cough/i);
     const coughRow = coughLabel.closest("[data-testid^='prerequisite-row-']");
     expect(coughRow).not.toBeNull();
-    fireEvent.click(within(coughRow as HTMLElement).getByRole("button", { name: /^remove$/i }));
+    fireEvent.click(
+      within(coughRow as HTMLElement).getByRole("button", { name: /remove/i }),
+    );
 
     fillReason("Cough was redundant with the OR group");
     fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
@@ -193,7 +191,7 @@ describe("EditRuleDialog", () => {
       screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
     ).toBeInTheDocument();
 
-    goToStep(2);
+    goToEditorStep(2);
     const preview = screen.getByRole("region", {
       name: /live preview of this rule/i,
     });
@@ -206,7 +204,7 @@ describe("EditRuleDialog", () => {
       screen.getAllByLabelText(/what should the system suggest/i)[0],
     ).toBeInTheDocument();
 
-    goToStep(3);
+    goToEditorStep(3);
     expect(
       screen.getByLabelText(/why are you changing this rule/i)
     ).toBeInTheDocument();
@@ -222,6 +220,8 @@ describe("EditRuleDialog", () => {
     ]);
     const emptyRule = {
       ...SAMPLE_RULE,
+      // No guideline text -- empty-state CTA (wizard needs quote text).
+      recommendation_text: "",
       logic_tree: { kind: "AND", children: [] },
     };
     render(

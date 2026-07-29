@@ -1,59 +1,92 @@
 /**
- * Live-render tests for HorizontalStepper -- specifically the
- * `wizardPhase` breadcrumb it renders attached to the "Who" pill so
- * the outer numbered stepper and the guided wizard's own phases read
- * as one navigation surface instead of two separate ones.
+ * Live-render tests for the flat HorizontalStepper.
  *
  * Atlas trace: DI-42246DA7 / DO-F8C56339
  */
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
-import HorizontalStepper, { type StepDescriptor } from "../HorizontalStepper";
+import HorizontalStepper from "../HorizontalStepper";
+import { buildNavSlots } from "../navSlots";
 
-const STEPS: StepDescriptor[] = [
-  { id: "who", state: "in_progress" },
-  { id: "suggest", state: "not_started" },
-  { id: "save", state: "not_started" },
-];
-
-describe("HorizontalStepper: wizardPhase breadcrumb", () => {
-  it("shows no breadcrumb when wizardPhase is null", () => {
+describe("HorizontalStepper: flat guided slots", () => {
+  it("renders Always true and Situations without a nested breadcrumb", () => {
+    const { slots, currentId } = buildNavSlots({
+      outerStep: "who",
+      wizardPhase: "pathway-split",
+      situationCount: 0,
+      situationIndex: 0,
+      reachedCheck: false,
+    });
     render(
       <HorizontalStepper
-        steps={STEPS}
-        currentStepId="who"
+        slots={slots}
+        currentSlotId={currentId}
         onJump={jest.fn()}
-        wizardPhase={null}
       />,
     );
-    expect(screen.queryByText("Always true")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Always true/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Situations/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Conditions/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it("shows the breadcrumb attached under the Who pill when wizardPhase is set and Who is current", () => {
+  it("renders a letter pill per confirmed situation", () => {
+    const { slots, currentId } = buildNavSlots({
+      outerStep: "who",
+      wizardPhase: "pathway-conditions",
+      situationCount: 2,
+      situationIndex: 0,
+      reachedCheck: false,
+    });
     render(
       <HorizontalStepper
-        steps={STEPS}
-        currentStepId="who"
+        slots={slots}
+        currentSlotId={currentId}
         onJump={jest.fn()}
-        wizardPhase="pathway-split"
       />,
     );
-    expect(screen.getByText("Always true")).toBeInTheDocument();
-    expect(screen.getByText("Situations")).toBeInTheDocument();
-    expect(screen.getByText("Conditions")).toBeInTheDocument();
-    expect(screen.getByText("Review")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Situation A \(1 of 2\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Situation B \(2 of 2\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Check the rule/i }),
+    ).toBeInTheDocument();
   });
 
-  it("hides the breadcrumb when a different outer step is current, even if wizardPhase is stale", () => {
+  it("calls onJump for an open slot and ignores a locked future slot", async () => {
+    const user = userEvent.setup();
+    const onJump = jest.fn();
+    const { slots, currentId } = buildNavSlots({
+      outerStep: "who",
+      wizardPhase: "pathway-conditions",
+      situationCount: 2,
+      situationIndex: 0,
+      reachedCheck: false,
+    });
     render(
       <HorizontalStepper
-        steps={STEPS}
-        currentStepId="suggest"
-        onJump={jest.fn()}
-        wizardPhase="review"
+        slots={slots}
+        currentSlotId={currentId}
+        onJump={onJump}
       />,
     );
-    expect(screen.queryByText("Always true")).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: /Always true/i }),
+    );
+    expect(onJump).toHaveBeenCalledTimes(1);
+    await user.click(
+      screen.getByRole("button", { name: /Situation B \(2 of 2\)/i }),
+    );
+    expect(onJump).toHaveBeenCalledTimes(1);
   });
 });

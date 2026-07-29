@@ -8,6 +8,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import EditRuleDialog from "../app/admin/guidance/EditRuleDialog";
+import { goToEditorStep } from "../app/admin/guidance/EditRuleDialog/__tests__/goToEditorStep";
 
 const SAMPLE_RULE = {
   rule_id: "rule:NG12:abc",
@@ -58,14 +59,10 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
-function goToStep(n: 1 | 2 | 3) {
-  fireEvent.click(
-    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 3`, "i") })[0],
-  );
-}
+
 
 function fillReason(text: string) {
-  goToStep(3);
+  goToEditorStep(3);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
     target: { value: text },
   });
@@ -126,7 +123,7 @@ describe("EditRuleDialog save payload -- VT-511-TC-006/007/008", () => {
       />,
     );
 
-    goToStep(2);
+    goToEditorStep(2);
     fireEvent.click(
       screen.getByRole("button", {
         name: /plain chest x-ray\. click to pick a different procedure\./i,

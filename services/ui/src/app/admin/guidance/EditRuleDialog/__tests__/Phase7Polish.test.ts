@@ -89,6 +89,12 @@ describe("Phase 7c -- centralised copy", () => {
     expect(DIALOG_CHROME.closeAria).toMatch(/close/i);
   });
 
+  it("footer step labels stay distinct from in-wizard back", () => {
+    expect(DIALOG_CHROME.previousStepLabel).toBe("Previous step");
+    expect(DIALOG_CHROME.nextStepLabel).toBe("Next step");
+    expect(DIALOG_CHROME.nextStepTooltip).toMatch(/does not move between situations/i);
+  });
+
   it("exposes the duplicate-symptom-set alert pieces", () => {
     expect(DUPLICATE_SETS_ALERT.ariaLabel).toMatch(/repeated/i);
     expect(DUPLICATE_SETS_ALERT.oneSetStrong).toMatch(/symptom set/i);

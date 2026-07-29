@@ -11,6 +11,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 import EditRuleDialog from "../app/admin/guidance/EditRuleDialog";
+import { goToEditorStep } from "../app/admin/guidance/EditRuleDialog/__tests__/goToEditorStep";
 
 const SAMPLE_RULE = {
   rule_id: "rule:NG12:abc",
@@ -55,17 +56,17 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
-function goToStep(n: 1 | 2 | 3) {
-  fireEvent.click(
-    screen.getAllByRole("button", { name: new RegExp(`^Step ${n} of 3`, "i") })[0],
-  );
-}
+
 
 function removeCoughPrerequisite() {
   const coughLabel = screen.getByText(/patient has cough/i);
   const coughRow = coughLabel.closest("[data-testid^='prerequisite-row-']");
   expect(coughRow).not.toBeNull();
-  fireEvent.click(within(coughRow as HTMLElement).getByRole("button", { name: /^remove$/i }));
+  fireEvent.click(
+    within(coughRow as HTMLElement).getByRole("button", {
+      name: /remove/i,
+    }),
+  );
 }
 
 afterEach(() => {
@@ -87,7 +88,7 @@ describe("LivePreviewPane reactivity -- VT-511-TC-003", () => {
 
     removeCoughPrerequisite();
 
-    goToStep(2);
+    goToEditorStep(2);
     const preview = screen.getByRole("region", {
       name: /live preview of this rule/i,
     });
@@ -112,9 +113,9 @@ describe("LivePreviewPane Before/After on step 4 -- VT-511-TC-004", () => {
 
     removeCoughPrerequisite();
 
-    goToStep(3);
+    goToEditorStep(3);
     const beforeAfter = screen.getByRole("region", {
-      name: /before and after preview of this rule/i,
+      name: /review this rule against the nice guideline before approving/i,
     });
     expect(beforeAfter).toBeInTheDocument();
     expect(within(beforeAfter).getByText(/before your change/i)).toBeInTheDocument();

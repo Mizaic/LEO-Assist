@@ -16,6 +16,7 @@ import {
 } from "@testing-library/react";
 
 import EditRuleDialog from "..";
+import { goToEditorStep } from "./goToEditorStep";
 
 const VAGUE_RULE = {
   rule_id: "rule:NG12:lung-vague",
@@ -63,13 +64,6 @@ function mockSearch(hits: unknown[] = []) {
   });
 }
 
-function goToStep(stepNumber: 1 | 2 | 3) {
-  const rail = screen.getAllByRole("button", {
-    name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
-  });
-  fireEvent.click(rail[0]);
-}
-
 afterEach(() => {
   jest.restoreAllMocks();
   window.localStorage.clear();
@@ -92,7 +86,7 @@ describe("EditRuleDialog phase 3 (right-column preview)", () => {
     render(
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     const pane = screen.getByRole("region", {
       name: /live preview of this rule/i,
     });
@@ -106,7 +100,7 @@ describe("EditRuleDialog phase 3 (right-column preview)", () => {
     render(
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     const pane = screen.getByRole("region", {
       name: /live preview of this rule/i,
     });
