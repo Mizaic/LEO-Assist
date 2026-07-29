@@ -46,6 +46,8 @@ export interface SingleRunSheet {
   phases: PhaseOutput[];
   stages?: StageProgress[];
   llmUsage?: LabRunLlmUsage | null;
+  /** Compiled guideline bitmap version this run evaluated against. */
+  rulesetVersion?: string | null;
   error?: string;
   terminal: boolean;
 }
@@ -130,6 +132,16 @@ function SingleBody({ sheet }: { sheet: SingleRunSheet }) {
         Status: <strong>{sheet.status}</strong>
         {sheet.runId ? ` · ${sheet.runId.slice(0, 8)}` : ""}
       </Typography>
+      {sheet.rulesetVersion ? (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          data-testid="validation-lab-run-sheet-bitmap"
+          sx={{ fontFamily: "monospace" }}
+        >
+          Bitmap version: {sheet.rulesetVersion}
+        </Typography>
+      ) : null}
       <ProgressStrip
         label="Pipeline stages"
         value={

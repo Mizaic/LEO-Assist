@@ -15,11 +15,15 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from datetime import datetime, timezone
+
 from libs.cypher.pipeline_stage_queries import (
     ADMIT_PIPELINE_RUN,
     CLAIM_FIRST_STEP_ENQUEUE,
     CLAIM_PIPELINE_STAGE_RUN,
+    CLEAR_FIRST_STEP_ENQUEUE,
     COMPLETE_PIPELINE_STAGE_RUN,
+    COUNT_OUTBOX_FOR_STAGE,
     ENSURE_OUTBOX_EVENT_CONSTRAINT,
     ENSURE_PIPELINE_RUN_ADMISSION_KEY_CONSTRAINT,
     ENSURE_PIPELINE_RUN_CONSTRAINT,
@@ -27,7 +31,10 @@ from libs.cypher.pipeline_stage_queries import (
     ENSURE_PIPELINE_STAGE_OUTBOX,
     GET_PENDING_OUTBOX_FOR_STAGE,
     GET_PIPELINE_STAGE_OUTPUTS,
+    GET_SENT_OUTBOX_FOR_STAGE,
+    GET_STUCK_COMPLETED_STAGE_FOR_RUN,
     GET_SUCCESSOR_STAGE_STATUSES,
+    GET_ZERO_STAGE_RUNNING_RUN,
     HAS_ANY_OUTBOX_FOR_STAGE,
     HAS_PENDING_OUTBOX_FOR_STAGE,
     MARK_OUTBOX_EVENT_SENT,
@@ -49,6 +56,24 @@ _STAGE_LEASE_SECONDS = max(60, int(os.getenv("PIPELINE_STAGE_LEASE_SECONDS", "36
 
 def _stage_max_attempts() -> int:
     return max(1, int(os.getenv("PIPELINE_STAGE_MAX_ATTEMPTS", "5")))
+
+
+def _outbox_repair_cooldown_seconds() -> int:
+    return max(15, int(os.getenv("PIPELINE_OUTBOX_REPAIR_COOLDOWN_SECONDS", "45")))
+
+
+def _parse_sent_at(raw: Any) -> datetime | None:
+    if raw is None:
+        return None
+    if isinstance(raw, datetime):
+        return raw if raw.tzinfo else raw.replace(tzinfo=timezone.utc)
+    text = str(raw).strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 @dataclass(frozen=True)
@@ -378,6 +403,56 @@ class PipelineStageStore:
             return True
         return not self.has_stage_outbox(request)
 
+    def load_sent_outbox(self, request: StepRequest) -> list[dict[str, Any]]:
+        rows = self._client.run(
+            GET_SENT_OUTBOX_FOR_STAGE,
+            stage_run_id=stage_run_id(request.run_id, request.step_id),
+        )
+        return [dict(row) for row in rows or [] if isinstance(row, dict)]
+
+    def outbox_count(self, request: StepRequest) -> int:
+        rows = self._client.run(
+            COUNT_OUTBOX_FOR_STAGE,
+            stage_run_id=stage_run_id(request.run_id, request.step_id),
+        )
+        row = (rows or [{}])[0] if rows else {}
+        return int(row.get("outbox_count") or 0)
+
+    def should_requeue_sent_orphan_outbox(
+        self,
+        request: StepRequest,
+        next_action_ids: list[str],
+        *,
+        next_published: bool,
+        now: datetime | None = None,
+    ) -> bool:
+        """Return True when sent outbox exists but successor stage never ran.
+
+        Cooldown prevents message storms on already_completed replay.
+        """
+        if not next_published or not next_action_ids:
+            return False
+        if not self.successors_need_enqueue(request.run_id, next_action_ids):
+            return False
+        if self.load_pending_outbox(request):
+            return False
+        sent = self.load_sent_outbox(request)
+        if not sent:
+            return False
+        clock = now or datetime.now(timezone.utc)
+        cooldown = _outbox_repair_cooldown_seconds()
+        newest: datetime | None = None
+        for row in sent:
+            stamped = _parse_sent_at(row.get("sent_at"))
+            if stamped is None:
+                continue
+            if newest is None or stamped > newest:
+                newest = stamped
+        if newest is None:
+            return True
+        age = (clock - newest).total_seconds()
+        return age >= cooldown
+
     def ensure_successor_outbox(
         self,
         request: StepRequest,
@@ -386,6 +461,7 @@ class PipelineStageStore:
         successor_edges: list[dict[str, Any]] | None = None,
         queue_name: str = "pipeline-jobs",
         body_template: dict[str, Any] | None = None,
+        repair_generation: int = 0,
     ) -> int:
         """Recreate missing outbox rows for a completed stage."""
         stage_id = stage_run_id(request.run_id, request.step_id)
@@ -397,6 +473,7 @@ class PipelineStageStore:
             successor_edges=successor_edges or [],
             queue_name=queue_name,
             body_template=template,
+            repair_generation=repair_generation,
         )
         rows = self._client.run(
             ENSURE_PIPELINE_STAGE_OUTBOX,
@@ -406,6 +483,41 @@ class PipelineStageStore:
         )
         row = (rows or [{}])[0] if rows else {}
         return int(row.get("outbox_ensured") or 0)
+
+    def ensure_repair_successor_outbox(
+        self,
+        request: StepRequest,
+        *,
+        next_action_ids: list[str],
+        successor_edges: list[dict[str, Any]] | None = None,
+        queue_name: str = "pipeline-jobs",
+        body_template: dict[str, Any] | None = None,
+    ) -> int:
+        """Mint new pending outbox rows for a sent-orphan successor gap."""
+        generation = self.outbox_count(request) + 1
+        return self.ensure_successor_outbox(
+            request,
+            next_action_ids=next_action_ids,
+            successor_edges=successor_edges,
+            queue_name=queue_name,
+            body_template=body_template,
+            repair_generation=generation,
+        )
+
+    def clear_first_step_enqueue(self, run_id: str) -> bool:
+        """Clear first-step claim when zero stages exist after a failed publish."""
+        rows = self._client.run(CLEAR_FIRST_STEP_ENQUEUE, run_id=run_id)
+        return bool(rows)
+
+    def load_stuck_completed_stage(self, run_id: str) -> dict[str, Any] | None:
+        rows = self._client.run(GET_STUCK_COMPLETED_STAGE_FOR_RUN, run_id=run_id)
+        row = (rows or [None])[0]
+        return dict(row) if isinstance(row, dict) else None
+
+    def load_zero_stage_running_run(self, run_id: str) -> dict[str, Any] | None:
+        rows = self._client.run(GET_ZERO_STAGE_RUNNING_RUN, run_id=run_id)
+        row = (rows or [None])[0]
+        return dict(row) if isinstance(row, dict) else None
 
     def load_accumulated_state(self, run_id: str) -> dict[str, Any]:
         rows = self._client.run(GET_PIPELINE_STAGE_OUTPUTS, run_id=run_id)

@@ -104,6 +104,7 @@ export default function LabCasesPanel() {
       phases: run.outputs?.phase_outputs || [],
       stages: run.stage_progress || [],
       llmUsage: run.outputs?.llm_usage,
+      rulesetVersion: run.ruleset_version,
       error: run.error_message || undefined,
       terminal,
     });
@@ -342,8 +343,21 @@ export default function LabCasesPanel() {
             >
               Latest run: {latestRun.id} ({latestRun.status}) ·{" "}
               {formatUsd(latestCost)}
+              {latestRun.ruleset_version
+                ? ` · bitmap ${latestRun.ruleset_version}`
+                : ""}
             </Typography>
           )}
+          {latestRun?.ruleset_version ? (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", fontFamily: "monospace" }}
+              data-testid="validation-lab-latest-bitmap"
+            >
+              Bitmap version: {latestRun.ruleset_version}
+            </Typography>
+          ) : null}
           {score && (
             <Alert
               severity={score.pass ? "success" : "warning"}

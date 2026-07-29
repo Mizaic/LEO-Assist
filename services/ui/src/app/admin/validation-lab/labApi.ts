@@ -163,6 +163,8 @@ export interface LabRun {
   outputs?: RunOutputs;
   stage_progress?: StageProgress[];
   error_message?: string;
+  /** Compiled guideline bitmap version this run evaluated against. */
+  ruleset_version?: string | null;
   llm_cost_usd?: number;
   llm_total_tokens?: number;
   llm_calls?: number;
@@ -195,6 +197,7 @@ export interface LabCase {
   has_gold?: boolean;
   latest_run_id?: string | null;
   latest_run_status?: string | null;
+  latest_run_ruleset_version?: string | null;
   latest_llm_cost_usd?: number | null;
   latest_llm_total_tokens?: number | null;
   latest_llm_calls?: number | null;

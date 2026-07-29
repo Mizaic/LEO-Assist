@@ -3,7 +3,7 @@
  *
  * Atlas trace:
  *   DO: DO-158BE606
- *   DI: DI-2289D095
+ *   DI: DI-58CE9939, DI-2289D095
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
 "use client";
@@ -156,6 +156,15 @@ export default function TestPatientCard({
                     ? ` · ${formatUsd(Number(c.latest_llm_cost_usd))}`
                     : ""}
                 </Typography>
+                {c.latest_run_ruleset_version ? (
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    label={`bitmap ${c.latest_run_ruleset_version}`}
+                    data-testid={`validation-lab-bitmap-${c.id}`}
+                    sx={{ mt: 0.5, fontFamily: "monospace", fontSize: 11 }}
+                  />
+                ) : null}
               </Box>
             </Button>
             <Stack direction="row" spacing={0.5} alignItems="center">

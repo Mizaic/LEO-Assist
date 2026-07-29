@@ -17,6 +17,7 @@ export interface SupportContextInput {
   runId?: string;
   status: string;
   error?: string;
+  rulesetVersion?: string | null;
   stages?: StageProgress[];
   phases: PhaseOutput[];
   terminal: boolean;
@@ -44,6 +45,7 @@ export function buildSupportContext(input: SupportContextInput): string {
     `title: ${input.title || "(none)"}`,
     `run_id: ${input.runId || "(none)"}`,
     `status: ${input.status}`,
+    `bitmap_version: ${input.rulesetVersion || "(none)"}`,
     `error: ${input.error || "(none)"}`,
     "stages:",
     ...stageLines,

@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DO: DO-15565AF5
+ *   DI: DI-3DDA3519
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-15565AF5")
  */
 "use client";
 
@@ -25,6 +25,22 @@ export interface CandidateTestSummary {
   passed: number;
   failed: number;
   errored: number;
+  /** Bitmap version the Lab runs were pinned to. */
+  rulesetVersion?: string;
+}
+
+/** Prefer session candidate, else live, else newest compiled version. */
+export function defaultLabTestVersion(
+  versions: VersionEntry[],
+  preferred: string | null | undefined,
+): string {
+  if (!versions.length) return "";
+  if (preferred && versions.some((v) => v.version === preferred)) {
+    return preferred;
+  }
+  const live = versions.find((v) => v.active);
+  if (live) return live.version;
+  return versions[versions.length - 1]?.version || versions[0].version;
 }
 
 export interface BitmapStatus {
@@ -43,6 +59,51 @@ export interface VersionEntry {
   active: boolean;
   scope_type?: string;
   scope_id?: string;
+  rule_count?: number;
+  compile_timestamp?: string | null;
+  policy_mode?: string | null;
+  compile_stats?: Record<string, number>;
+}
+
+/** Short local stamp for compile_timestamp ISO strings. */
+export function formatCompileTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** One-line meta under a compiled version id. */
+export function formatVersionMeta(v: VersionEntry): string {
+  const parts: string[] = [];
+  const when = formatCompileTime(v.compile_timestamp);
+  if (when) parts.push(when);
+  if (typeof v.rule_count === "number") {
+    parts.push(`${v.rule_count} rule${v.rule_count === 1 ? "" : "s"}`);
+  }
+  if (v.policy_mode) parts.push(v.policy_mode);
+  const stats = v.compile_stats || {};
+  const kept = stats.rules_included;
+  const dropped = stats.rules_excluded;
+  const violations = stats.policy_violations;
+  if (
+    typeof kept === "number" ||
+    typeof dropped === "number" ||
+    typeof violations === "number"
+  ) {
+    // "Dropped at compile" is not the Guideline-tab Excluded review pool.
+    parts.push(
+      `in bitmap ${kept ?? 0} · dropped at compile ${dropped ?? 0}` +
+        ` · policy issues ${violations ?? 0}`,
+    );
+  }
+  return parts.join(" · ");
 }
 
 export type ScopeType = "global" | "guideline" | "domain" | "subdomain" | "custom";
@@ -93,10 +154,14 @@ export function buildVersionItem(
       {candChip}
     </Stack>
   );
+  const metaText = formatVersionMeta(v);
   return {
     id: v.version,
     tone: v.active ? "positive" : "neutral",
     title: <span style={{ fontFamily: "monospace", fontSize: 13 }}>{v.version}</span>,
+    meta: metaText ? (
+      <span data-testid={`bitmap-version-meta-${v.version}`}>{metaText}</span>
+    ) : undefined,
     chips,
     actions: v.active ? undefined : (
       <Tooltip title="Make this compiled version the one used for real patients.">

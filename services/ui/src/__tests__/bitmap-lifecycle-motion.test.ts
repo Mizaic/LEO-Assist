@@ -55,8 +55,15 @@ describe("BitmapLifecycleSection motion pass", () => {
     expect(src).toMatch(/Rules approved.*Compile candidate.*Test and go live/s);
     expect(src).toMatch(/activate:\s*false/);
     expect(src).toMatch(/Compile candidate/);
-    expect(src).toMatch(/Test candidate on Lab patients/);
+    expect(src).toMatch(/Test with Lab patients/);
     expect(src).toMatch(/Historic shadow/);
     expect(src).toMatch(/aria-label=\{`Make version \$\{v\.version\} live`\}/);
+  });
+
+  test("go-live confirm dialog shows busy feedback while activating", () => {
+    const src = read(SECTION, HOOK);
+    expect(src).toMatch(/busy=\{life\.activatingVersion === life\.confirmVersion\}/);
+    expect(src).toMatch(/busyLabel="Going live\.\.\."/);
+    expect(src).toMatch(/setActivatingVersion\(version\)/);
   });
 });

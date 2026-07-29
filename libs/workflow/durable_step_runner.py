@@ -408,6 +408,19 @@ def _busy_defer(action_id: str, run_id: str) -> None:
     )
 
 
+def _successor_edges_for(
+    action: _Action,
+    next_action_ids: list[str],
+    all_actions: list[_Action],
+) -> list[dict[str, Any]]:
+    outgoing = _build_outgoing_edges(all_actions)
+    return [
+        edge
+        for edge in outgoing.get(action.action_id, [])
+        if edge.get("target") in next_action_ids
+    ]
+
+
 async def _repair_successor_outbox(
     ctx: "_ClaimedStepContext",
     request: StepRequest,
@@ -424,16 +437,46 @@ async def _repair_successor_outbox(
         next_published=claim.next_published,
     ):
         return 0
-    outgoing = _build_outgoing_edges(all_actions)
-    successor_edges = [
-        edge
-        for edge in outgoing.get(action.action_id, [])
-        if edge.get("target") in claim.next_action_ids
-    ]
     ctx.store.ensure_successor_outbox(
         request,
         next_action_ids=claim.next_action_ids,
-        successor_edges=successor_edges,
+        successor_edges=_successor_edges_for(
+            action, claim.next_action_ids, all_actions
+        ),
+        queue_name=ctx.queue_name,
+        body_template=request.to_message(DURABLE_STEP_EVENT, request.step_id),
+    )
+    return await dispatch_stage_outbox(ctx.store, ctx.bus, request)
+
+
+async def _requeue_sent_orphan_outbox(
+    ctx: "_ClaimedStepContext",
+    request: StepRequest,
+    action: _Action,
+    claim: StageClaimResult,
+    all_actions: list[_Action],
+) -> int:
+    """Re-queue successors when outbox was marked sent but no stage exists."""
+    if not claim.next_action_ids:
+        return 0
+    if not ctx.store.should_requeue_sent_orphan_outbox(
+        request,
+        claim.next_action_ids,
+        next_published=claim.next_published,
+    ):
+        return 0
+    logger.warning(
+        "Re-queuing sent-orphan successors: action_id=%s run_id=%s next=%s",
+        ctx.action_id,
+        request.run_id,
+        claim.next_action_ids,
+    )
+    ctx.store.ensure_repair_successor_outbox(
+        request,
+        next_action_ids=claim.next_action_ids,
+        successor_edges=_successor_edges_for(
+            action, claim.next_action_ids, all_actions
+        ),
         queue_name=ctx.queue_name,
         body_template=request.to_message(DURABLE_STEP_EVENT, request.step_id),
     )
@@ -470,6 +513,12 @@ async def _already_completed_result(
             next_published=claim.next_published,
         ):
             await _repair_successor_outbox(ctx, request, action, claim, all_actions)
+        elif ctx.store.should_requeue_sent_orphan_outbox(
+            request,
+            claim.next_action_ids,
+            next_published=claim.next_published,
+        ):
+            await _requeue_sent_orphan_outbox(ctx, request, action, claim, all_actions)
     _emit_progress(
         ctx.publish_progress,
         request,
@@ -601,19 +650,26 @@ class DurableStepRunner:
                     request.plan_definition_id,
                     len(all_actions),
                 )
+                store.clear_first_step_enqueue(admission.run_id)
                 return
-            if trigger_action.node_type == "trigger":
-                # No-op trigger: enqueue the first real downstream action.
-                for edge in outgoing.get(trigger_action.action_id, []):
+            try:
+                if trigger_action.node_type == "trigger":
+                    for edge in outgoing.get(trigger_action.action_id, []):
+                        await _publish_durable_step(
+                            bus, queue_name, request, edge["target"]
+                        )
+                else:
                     await _publish_durable_step(
-                        bus, queue_name, request, edge["target"]
+                        bus, queue_name, request, trigger_action.action_id
                     )
-            else:
-                # Real action that also carries the trigger annotation;
-                # publish it directly as the first step.
-                await _publish_durable_step(
-                    bus, queue_name, request, trigger_action.action_id
+            except Exception:
+                store.clear_first_step_enqueue(admission.run_id)
+                logger.exception(
+                    "DurableStepRunner.start: first-step publish failed; "
+                    "cleared enqueue claim run_id=%s",
+                    admission.run_id,
                 )
+                raise
         finally:
             client.close()
 

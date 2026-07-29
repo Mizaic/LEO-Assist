@@ -350,6 +350,79 @@ RETURN count(o) > 0 AS has_outbox
 LIMIT 1
 """
 
+GET_SENT_OUTBOX_FOR_STAGE = """
+MATCH (s:PipelineStageRun {id: $stage_run_id})-[:HAS_OUTBOX_EVENT]->(o:OutboxEvent)
+WHERE o.status = 'sent'
+RETURN o.id AS id,
+       o.target_action_id AS target_action_id,
+       o.edge_version AS edge_version,
+       toString(o.sent_at) AS sent_at
+ORDER BY o.sent_at DESC
+"""
+
+COUNT_OUTBOX_FOR_STAGE = """
+MATCH (s:PipelineStageRun {id: $stage_run_id})-[:HAS_OUTBOX_EVENT]->(o:OutboxEvent)
+RETURN count(o) AS outbox_count
+"""
+
+GET_STUCK_COMPLETED_STAGE_FOR_RUN = """
+MATCH (pr:PipelineRun {id: $run_id})
+WHERE pr.status = 'running'
+OPTIONAL MATCH (pr)-[:HAS_STAGE]->(active:PipelineStageRun)
+WHERE active.status = 'running'
+   OR (
+     coalesce(active.lease_owner, '') <> ''
+     AND active.lease_until IS NOT NULL
+     AND active.lease_until > datetime()
+   )
+WITH pr, count(active) AS active_n
+WHERE active_n = 0
+OPTIONAL MATCH (pr)-[:HAS_STAGE]->(s:PipelineStageRun)
+WHERE s.status = 'completed'
+WITH pr, s
+ORDER BY coalesce(s.completed_at, s.updated_at, s.created_at) DESC
+WITH pr, collect(s)[0] AS last
+WHERE last IS NOT NULL
+  AND coalesce(last.next_action_ids_json, '') <> ''
+  AND coalesce(last.next_action_ids_json, '') <> '[]'
+RETURN last.id AS stage_run_id,
+       last.step_id AS step_id,
+       last.next_action_ids_json AS next_action_ids_json,
+       coalesce(last.next_published, false) AS next_published,
+       pr.patient_id AS patient_id,
+       pr.plan_definition_id AS plan_definition_id,
+       pr.encounter_id AS encounter_id,
+       pr.case_id AS case_id,
+       coalesce(pr.first_step_enqueued, false) AS first_step_enqueued
+LIMIT 1
+"""
+
+GET_ZERO_STAGE_RUNNING_RUN = """
+MATCH (pr:PipelineRun {id: $run_id})
+WHERE pr.status = 'running'
+OPTIONAL MATCH (pr)-[:HAS_STAGE]->(s:PipelineStageRun)
+WITH pr, count(s) AS stage_n
+WHERE stage_n = 0
+RETURN pr.id AS run_id,
+       pr.patient_id AS patient_id,
+       pr.plan_definition_id AS plan_definition_id,
+       pr.encounter_id AS encounter_id,
+       pr.case_id AS case_id,
+       coalesce(pr.first_step_enqueued, false) AS first_step_enqueued
+LIMIT 1
+"""
+
+CLEAR_FIRST_STEP_ENQUEUE = """
+MATCH (r:PipelineRun {id: $run_id})
+WHERE coalesce(r.first_step_enqueued, false) = true
+  AND NOT coalesce(r.status, 'running') IN
+    ['completed', 'failed', 'cancelled', 'poisoned']
+  AND NOT EXISTS { (r)-[:HAS_STAGE]->(:PipelineStageRun) }
+SET r.first_step_enqueued = false,
+    r.updated_at = datetime()
+RETURN r.id AS id
+"""
+
 ENSURE_PIPELINE_STAGE_OUTBOX = """
 MATCH (s:PipelineStageRun {id: $stage_run_id})
 WHERE s.status = 'completed'

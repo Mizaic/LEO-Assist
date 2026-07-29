@@ -1,19 +1,15 @@
 """Validation Lab application service (Neo4j-backed).
 
-Atlas trace:
-  DO: DO-3A70C3DD
-  DI: DI-724CD8A5
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A70C3DD")
-
-Atlas: DO-3A70C3DD
+Atlas: DO-3A70C3DD / DI-724CD8A5 / DI-58CE9939
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 
 from libs.cypher.validation_lab_queries import (
     DELETE_VALIDATION_CASE,
@@ -45,9 +41,10 @@ from libs.validation_lab.ag_pipeline import (
     build_ag_pipeline_message,
     resolve_communication_request,
 )
+from libs.validation_lab.ruleset_version import resolve_ruleset_version
 from libs.validation_lab.scaffold import materialise_case
 
-JsonLoads = Callable[[str], Any]
+logger = logging.getLogger(__name__)
 
 
 def _llm_upsert_fields(outputs: RunOutputs | dict[str, Any] | None) -> dict[str, Any]:
@@ -309,6 +306,7 @@ def start_run(
         status = "completed"
     else:
         status = "queued"
+    stamped_version = resolve_ruleset_version(ruleset_version)
     client.run(
         UPSERT_LAB_RUN,
         case_id=case_id,
@@ -319,6 +317,7 @@ def start_run(
         status=status,
         outputs_json=_dumps(resolved.to_dict()),
         error_message=enqueue_error[:500],
+        ruleset_version=stamped_version,
         **_llm_upsert_fields(resolved),
     )
     return get_run(client, case_id, run_id)
@@ -450,6 +449,7 @@ def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
             status=real_status,
             outputs_json=_dumps(outputs.to_dict()),
             error_message="",
+            ruleset_version=run.get("ruleset_version"),
             **_llm_upsert_fields(outputs),
         )
         return attach_stage_progress(client, get_run(client, case_id, run_id), run_id)
@@ -465,9 +465,22 @@ def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
             status="running",
             outputs_json=_dumps(run.get("outputs") or {}),
             error_message="",
+            ruleset_version=run.get("ruleset_version"),
             **_llm_upsert_fields(run.get("outputs")),
         )
         packed = get_run(client, case_id, run_id)
+
+    if real_status == "running":
+        try:
+            from libs.workflow.pipeline_stuck_recovery import (
+                recover_stuck_pipeline_run_sync,
+            )
+
+            recover_stuck_pipeline_run_sync(client, run_id)
+        except Exception:
+            logger.debug(
+                "Lab stuck-run recovery skipped for run_id=%s", run_id, exc_info=True
+            )
     return attach_stage_progress(client, packed, run_id)
 
 

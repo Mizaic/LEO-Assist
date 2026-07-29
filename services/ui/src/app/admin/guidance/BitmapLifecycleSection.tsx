@@ -41,6 +41,7 @@ import {
   buildVersionItem,
   computeActiveStep,
 } from "./bitmapLifecycleHelpers";
+import CandidateLabTestDialog from "./CandidateLabTestDialog";
 import { useBitmapLifecycle } from "./useBitmapLifecycle";
 
 interface BitmapLifecycleSectionProps {
@@ -66,11 +67,19 @@ export default function BitmapLifecycleSection({
   const compileStats = life.status?.compile_stats;
   const statTiles: StatTile[] = compileStats
     ? [
-        { id: "included", label: "Included", value: compileStats.rules_included ?? 0 },
-        { id: "excluded", label: "Excluded", value: compileStats.rules_excluded ?? 0 },
+        {
+          id: "included",
+          label: "In bitmap",
+          value: compileStats.rules_included ?? 0,
+        },
+        {
+          id: "excluded",
+          label: "Dropped at compile",
+          value: compileStats.rules_excluded ?? 0,
+        },
         {
           id: "violations",
-          label: "Policy violations",
+          label: "Policy issues",
           value: compileStats.policy_violations ?? 0,
         },
       ]
@@ -192,15 +201,14 @@ export default function BitmapLifecycleSection({
             },
             {
               id: "test-lab-patients",
-              label: life.testingLabPatients
-                ? "Testing..."
-                : "Test candidate on Lab patients",
+              label: life.labTestOpen ? "Testing..." : "Test with Lab patients",
               variant: "secondary",
               onClick: life.handleTestOnLabPatients,
               disabled:
-                !life.candidateVersion || life.testingLabPatients || life.compiling,
-              loading: life.testingLabPatients,
-              title: "Run the candidate ruleset against Lab patients before going live.",
+                !life.versions.length || life.labTestOpen || life.compiling,
+              loading: life.labTestOpen,
+              title:
+                "Pick a compiled bitmap and run real Lab patients against it. Live care stays on the current version.",
             },
             {
               id: "historic-shadow",
@@ -276,8 +284,13 @@ export default function BitmapLifecycleSection({
         >
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Typography variant="body2">
-              Candidate test on Lab patients (ruleset{" "}
-              {life.candidateVersion || "n/a"}):
+              Lab patient test (bitmap{" "}
+              <span style={{ fontFamily: "monospace" }}>
+                {life.candidateTestSummary.rulesetVersion ||
+                  life.candidateVersion ||
+                  "n/a"}
+              </span>
+              ):
             </Typography>
             <Chip
               size="small"
@@ -349,10 +362,22 @@ export default function BitmapLifecycleSection({
           confirmLabel="Yes, go live"
           cancelLabel="Cancel"
           variant="danger"
+          busy={life.activatingVersion === life.confirmVersion}
+          busyLabel="Going live..."
           onConfirm={() => life.handleActivate(life.confirmVersion!)}
-          onCancel={() => life.setConfirmVersion(null)}
+          onCancel={() => {
+            if (life.activatingVersion) return;
+            life.setConfirmVersion(null);
+          }}
         />
       )}
+      <CandidateLabTestDialog
+        open={life.labTestOpen}
+        versions={life.versions}
+        preferredVersion={life.candidateVersion}
+        onClose={life.handleLabTestClose}
+        onComplete={life.handleLabTestComplete}
+      />
     </Box>
   );
 }

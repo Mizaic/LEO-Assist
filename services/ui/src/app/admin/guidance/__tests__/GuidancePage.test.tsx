@@ -402,9 +402,9 @@ describe("BitmapLifecycleSection", () => {
   it("opens ConfirmDialog before activate fires an API call", async () => {
     mockFetch({
       "/api/terminology/guidelines/bitmap/status": { active_version: null, rule_count: 0 },
-      "/api/terminology/guidelines/bitmap/versions": [
-        { version: "v20260308-120000", active: false },
-      ],
+      "/api/terminology/guidelines/compiled": {
+        versions: [{ version: "v20260308-120000", active: false }],
+      },
     });
     render(<BitmapLifecycleSection />);
     await waitFor(() => screen.getByText("Make this live"));
@@ -420,10 +420,10 @@ describe("BitmapLifecycleSection", () => {
   it("calls activate API after ConfirmDialog confirmation", async () => {
     mockFetch({
       "/api/terminology/guidelines/bitmap/status": { active_version: null, rule_count: 0 },
-      "/api/terminology/guidelines/bitmap/versions": [
-        { version: "v20260308-120000", active: false },
-      ],
-      "activate": { activated: true },
+      "/api/terminology/guidelines/compiled": {
+        versions: [{ version: "v20260308-120000", active: false }],
+      },
+      activate: { activated: true },
     });
     render(<BitmapLifecycleSection />);
     await waitFor(() => screen.getByText("Make this live"));
@@ -434,6 +434,60 @@ describe("BitmapLifecycleSection", () => {
     await waitFor(() => {
       const calls = (global.fetch as jest.Mock).mock.calls.map(([u]) => String(u));
       expect(calls.some((u) => u.includes("activate"))).toBe(true);
+    });
+  });
+
+  it("shows Going live feedback while activate request is in flight", async () => {
+    let resolveActivate: ((value: Response) => void) | undefined;
+    const activatePromise = new Promise<Response>((resolve) => {
+      resolveActivate = resolve;
+    });
+    jest.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url);
+      if (urlStr.includes("activate")) {
+        return activatePromise;
+      }
+      if (urlStr.includes("/api/terminology/guidelines/compiled")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            versions: [{ version: "v20260308-120000", active: false }],
+          }),
+          text: async () => "",
+        } as Response);
+      }
+      if (urlStr.includes("/api/terminology/guidelines/bitmap/status")) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ active_version: null, rule_count: 0 }),
+          text: async () => "",
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+        text: async () => "{}",
+      } as Response);
+    });
+
+    render(<BitmapLifecycleSection />);
+    await waitFor(() => screen.getByText("Make this live"));
+    fireEvent.click(screen.getByText("Make this live"));
+    fireEvent.click(screen.getByRole("button", { name: /yes, go live/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Going live/i })).toBeDisabled();
+      expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    });
+
+    resolveActivate?.({
+      ok: true,
+      json: async () => ({ activated: true }),
+      text: async () => '{"activated":true}',
+    } as Response);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Make this version live/i)).not.toBeInTheDocument();
     });
   });
 

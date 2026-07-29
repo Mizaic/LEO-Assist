@@ -59,8 +59,14 @@ def build_successor_outbox_events(
     successor_edges: list[dict[str, Any]],
     queue_name: str,
     body_template: dict[str, Any],
+    repair_generation: int = 0,
 ) -> list[dict[str, str]]:
-    """Build pending outbox rows for each successor edge."""
+    """Build pending outbox rows for each successor edge.
+
+    ``repair_generation`` > 0 mints new event/message ids so a sent-orphan
+    successor can be re-queued after Service Bus drop/dedupe without
+    colliding with the original deterministic ids.
+    """
     edge_by_target: dict[str, dict[str, Any]] = {}
     for edge in successor_edges:
         target = str(edge.get("target") or "")
@@ -72,6 +78,8 @@ def build_successor_outbox_events(
             target, {"target": target, "actionId": request.step_id}
         )
         edge_version = build_edge_version(edge)
+        if repair_generation > 0:
+            edge_version = f"{edge_version}:r{repair_generation}"
         event_id = build_outbox_event_id(
             request.run_id, stage_run_id, target, edge_version
         )

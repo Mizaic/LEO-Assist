@@ -3,7 +3,7 @@
  * recommendation (follow another NICE skin-tumour guideline). Reviewers
  * confirm "no coded rule needed" and move it to Excluded.
  *
- * Atlas trace: DI-42246DA7 / DO-F8C56339
+ * Atlas trace: UN-49C83395 / DI-42246DA7 / DO-F8C56339 / VAL-8AB4C593
  *
  * Run from services/ui:
  *   npx playwright test ng12-1-7-7-process-exclude-walkthrough --project=chromium

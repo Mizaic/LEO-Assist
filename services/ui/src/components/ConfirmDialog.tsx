@@ -10,6 +10,7 @@
 
 import { useId } from "react";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -22,6 +23,9 @@ interface Props {
   confirmLabel: string;
   cancelLabel?: string;
   variant?: "danger" | "primary";
+  /** When true, disable dismiss/actions and show in-progress feedback. */
+  busy?: boolean;
+  busyLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -39,6 +43,8 @@ export default function ConfirmDialog({
   confirmLabel,
   cancelLabel = "Cancel",
   variant = "primary",
+  busy = false,
+  busyLabel = "Working...",
   onConfirm,
   onCancel,
 }: Props) {
@@ -47,7 +53,8 @@ export default function ConfirmDialog({
   return (
     <Dialog
       open
-      onClose={onCancel}
+      onClose={busy ? undefined : onCancel}
+      disableEscapeKeyDown={busy}
       maxWidth="xs"
       fullWidth
       aria-labelledby={titleId}
@@ -60,16 +67,22 @@ export default function ConfirmDialog({
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button variant="text" color="inherit" onClick={onCancel}>
+        <Button variant="text" color="inherit" onClick={onCancel} disabled={busy}>
           {cancelLabel}
         </Button>
         <Button
           variant="contained"
           color={variant === "danger" ? "error" : "primary"}
           onClick={onConfirm}
-          autoFocus
+          disabled={busy}
+          autoFocus={!busy}
+          startIcon={
+            busy ? (
+              <CircularProgress size={14} color="inherit" aria-label="Loading" role="status" />
+            ) : undefined
+          }
         >
-          {confirmLabel}
+          {busy ? busyLabel : confirmLabel}
         </Button>
       </DialogActions>
     </Dialog>

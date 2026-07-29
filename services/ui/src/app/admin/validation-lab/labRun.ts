@@ -28,6 +28,7 @@ export const DEFAULT_LAB_PHASES = [
 export interface QueueCasePlan {
   caseId: string;
   planId?: string | null;
+  rulesetVersion?: string | null;
 }
 
 export interface QueueCaseResult {
@@ -36,11 +37,15 @@ export interface QueueCaseResult {
   error?: string;
 }
 
-function productionStartPayload(planId?: string | null) {
+function productionStartPayload(
+  planId?: string | null,
+  rulesetVersion?: string | null,
+) {
   return {
     plan_id: planId || DEFAULT_LAB_PLAN_ID,
     phase_ids: DEFAULT_LAB_PHASES,
     persist_mode: "production" as const,
+    ...(rulesetVersion ? { ruleset_version: rulesetVersion } : {}),
   };
 }
 
@@ -48,8 +53,12 @@ function productionStartPayload(planId?: string | null) {
 export async function runCasePipeline(
   caseId: string,
   planId?: string | null,
+  rulesetVersion?: string | null,
 ): Promise<LabRun> {
-  const started = await startRun(caseId, productionStartPayload(planId));
+  const started = await startRun(
+    caseId,
+    productionStartPayload(planId, rulesetVersion),
+  );
   return pollRunUntilTerminal(caseId, started.run.id);
 }
 
@@ -57,8 +66,12 @@ export async function runCasePipeline(
 export async function queueCasePipeline(
   caseId: string,
   planId?: string | null,
+  rulesetVersion?: string | null,
 ): Promise<LabRun> {
-  const started = await startRun(caseId, productionStartPayload(planId));
+  const started = await startRun(
+    caseId,
+    productionStartPayload(planId, rulesetVersion),
+  );
   return started.run;
 }
 
@@ -95,9 +108,15 @@ export async function queueCasePipelines(
   onProgress?: (result: QueueCaseResult) => void,
 ): Promise<QueueCaseResult[]> {
   const results: QueueCaseResult[] = [];
+  // Stagger starts so workers are not flooded with 30+ first steps at once.
+  const staggerMs = cases.length > 4 ? 200 : 0;
   for (const item of cases) {
     try {
-      const run = await queueCasePipeline(item.caseId, item.planId);
+      const run = await queueCasePipeline(
+        item.caseId,
+        item.planId,
+        item.rulesetVersion,
+      );
       const row = { caseId: item.caseId, runId: run.id };
       results.push(row);
       onProgress?.(row);
@@ -108,6 +127,9 @@ export async function queueCasePipelines(
       };
       results.push(row);
       onProgress?.(row);
+    }
+    if (staggerMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, staggerMs));
     }
   }
   return results;
@@ -149,6 +171,14 @@ function isTerminalStatus(status: string): boolean {
   return status === "completed" || status === "failed";
 }
 
+/** Scale multi-case poll window with batch size (min 10m, max 45m). */
+export function batchPollTimeoutMs(caseCount: number): number {
+  const perCaseMs = 90_000;
+  const floorMs = 600_000;
+  const ceilingMs = 2_700_000;
+  return Math.min(ceilingMs, Math.max(floorMs, caseCount * perCaseMs));
+}
+
 /**
  * Poll many already-queued Lab runs in parallel rounds for live progress.
  * Stops when all are terminal, timeout elapses, or shouldContinue returns false.
@@ -163,7 +193,7 @@ export async function pollManyCasePipelines(
   },
 ): Promise<ManyRunTick[]> {
   const intervalMs = opts?.intervalMs ?? 2000;
-  const timeoutMs = opts?.timeoutMs ?? 300000;
+  const timeoutMs = opts?.timeoutMs ?? batchPollTimeoutMs(active.length);
   const deadline = Date.now() + timeoutMs;
   const pending = new Map(
     active.map((item) => [item.caseId, item] as const),

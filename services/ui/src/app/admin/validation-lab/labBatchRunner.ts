@@ -9,6 +9,7 @@
 import type { LabCase } from "./labApi";
 import type { MultiRunSheet, MultiRunSheetItem } from "./RunSheetDialog";
 import {
+  batchPollTimeoutMs,
   pollManyCasePipelines,
   queueCasePipelines,
   summarizeLiveResults,
@@ -94,14 +95,16 @@ export async function runBatchWithLiveProgress(opts: {
   cases: LabCase[];
   isOpen: () => boolean;
   onSheet: (updater: (prev: MultiRunSheet) => MultiRunSheet) => void;
+  rulesetVersion?: string | null;
 }): Promise<BatchRunFeedback> {
-  const { caseIds, cases, isOpen, onSheet } = opts;
+  const { caseIds, cases, isOpen, onSheet, rulesetVersion } = opts;
   const byId = new Map(cases.map((c) => [c.id, c]));
 
   const results = await queueCasePipelines(
     caseIds.map((caseId) => ({
       caseId,
       planId: byId.get(caseId)?.plan_id,
+      rulesetVersion,
     })),
     (result) => {
       if (!isOpen()) return;
@@ -125,7 +128,7 @@ export async function runBatchWithLiveProgress(opts: {
       if (!isOpen()) return;
       onSheet((prev) => applyLiveTick(prev, tick));
     },
-    { shouldContinue: isOpen },
+    { shouldContinue: isOpen, timeoutMs: batchPollTimeoutMs(active.length) },
   );
 
   if (!isOpen()) return summary;

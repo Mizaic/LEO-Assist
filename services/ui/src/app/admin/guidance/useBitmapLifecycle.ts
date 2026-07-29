@@ -2,14 +2,13 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-2C03CA0E
- *   DI: DI-3F771AFB
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
+ *   DO: DO-15565AF5, DO-599B9828
+ *   DI: DI-3DDA3519, DI-8DD23CE2
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-15565AF5")
  */
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listCases, pollRunUntilTerminal, scoreRun, startRun } from "../validation-lab/labApi";
 import type {
   BitmapStatus,
   CandidateTestSummary,
@@ -17,9 +16,6 @@ import type {
   ScopeType,
   VersionEntry,
 } from "./bitmapLifecycleHelpers";
-
-const DEFAULT_PLAN_ID = "pd-referral-assessment";
-const MAX_LAB_PATIENTS_TESTED = 5;
 
 interface UseBitmapLifecycleArgs {
   onVersionActivated?: () => void;
@@ -43,7 +39,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
   const [justActivatedVersion, setJustActivatedVersion] = useState<string | null>(null);
   const [justCompiled, setJustCompiled] = useState(false);
   const [candidateVersion, setCandidateVersion] = useState<string | null>(null);
-  const [testingLabPatients, setTestingLabPatients] = useState(false);
+  const [labTestOpen, setLabTestOpen] = useState(false);
   const [candidateTestSummary, setCandidateTestSummary] =
     useState<CandidateTestSummary | null>(null);
   const [shadowing, setShadowing] = useState(false);
@@ -59,14 +55,17 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
       scope_id: scopeId || "default",
     }).toString();
     try {
-      const [statusResp, versionsResp] = await Promise.all([
+      const [statusResp, compiledResp] = await Promise.all([
         fetch(`/api/terminology/guidelines/bitmap/status?${qs}`),
-        fetch(`/api/terminology/guidelines/bitmap/versions?${qs}`),
+        fetch(`/api/terminology/guidelines/compiled?${qs}`),
       ]);
-      if (!statusResp.ok || !versionsResp.ok) throw new Error("fetch failed");
+      if (!statusResp.ok || !compiledResp.ok) throw new Error("fetch failed");
       const statusData: BitmapStatus = await statusResp.json();
+      const compiled = (await compiledResp.json()) as {
+        versions?: VersionEntry[];
+      };
       setStatus(statusData);
-      setVersions(await versionsResp.json());
+      setVersions(Array.isArray(compiled.versions) ? compiled.versions : []);
       setError(null);
       return statusData;
     } catch {
@@ -132,44 +131,20 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     }
   }, [distanceChild, distanceParent, policyMode, scopeId, scopeType]);
 
-  const handleTestOnLabPatients = useCallback(async () => {
-    if (!candidateVersion) return;
-    setTestingLabPatients(true);
+  const handleTestOnLabPatients = useCallback(() => {
+    if (!versions.length) return;
     setError(null);
     setCandidateTestSummary(null);
-    try {
-      const cases = await listCases();
-      const sample = cases.slice(0, MAX_LAB_PATIENTS_TESTED);
-      let passed = 0;
-      let failed = 0;
-      let errored = 0;
-      for (const labCase of sample) {
-        try {
-          const started = await startRun(labCase.id, {
-            plan_id: labCase.plan_id || DEFAULT_PLAN_ID,
-            phase_ids: [],
-            persist_mode: "production",
-            ruleset_version: candidateVersion,
-          });
-          const finalRun = await pollRunUntilTerminal(labCase.id, started.run.id);
-          if (finalRun.status !== "completed") {
-            errored += 1;
-            continue;
-          }
-          const score = (await scoreRun(labCase.id, finalRun.id)) as { pass?: boolean };
-          if (score.pass) passed += 1;
-          else failed += 1;
-        } catch {
-          errored += 1;
-        }
-      }
-      setCandidateTestSummary({ tested: sample.length, passed, failed, errored });
-    } catch {
-      setError("Could not test the candidate against Validation Lab patients.");
-    } finally {
-      setTestingLabPatients(false);
-    }
-  }, [candidateVersion]);
+    setLabTestOpen(true);
+  }, [versions.length]);
+
+  const handleLabTestComplete = useCallback((summary: CandidateTestSummary) => {
+    setCandidateTestSummary(summary);
+  }, []);
+
+  const handleLabTestClose = useCallback(() => {
+    setLabTestOpen(false);
+  }, []);
 
   const handleHistoricShadow = useCallback(async () => {
     if (!candidateVersion) return;
@@ -286,12 +261,14 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     justActivatedVersion,
     justCompiled,
     candidateVersion,
-    testingLabPatients,
+    labTestOpen,
     candidateTestSummary,
     shadowing,
     shadowSummary,
     handleCompile,
     handleTestOnLabPatients,
+    handleLabTestComplete,
+    handleLabTestClose,
     handleHistoricShadow,
     handleActivate,
     handleRollback,
