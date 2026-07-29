@@ -65,6 +65,7 @@ RETURN c {
 collect(r {
   .id, .persist_mode, .plan_id, .phase_ids, .status,
   .outputs_json, .created_at, .error_message,
+  .ruleset_version,
   .llm_cost_usd, .llm_total_tokens, .llm_calls
 })[0..20] AS runs
 """
@@ -96,6 +97,7 @@ RETURN {
   END,
   latest_run_id: latest.id,
   latest_run_status: latest.status,
+  latest_run_ruleset_version: latest.ruleset_version,
   latest_llm_cost_usd: latest.llm_cost_usd,
   latest_llm_total_tokens: latest.llm_total_tokens,
   latest_llm_calls: latest.llm_calls
@@ -122,6 +124,7 @@ SET r.persist_mode = $persist_mode,
     r.status = $status,
     r.outputs_json = $outputs_json,
     r.error_message = $error_message,
+    r.ruleset_version = coalesce($ruleset_version, r.ruleset_version),
     r.llm_cost_usd = $llm_cost_usd,
     r.llm_total_tokens = $llm_total_tokens,
     r.llm_calls = $llm_calls,
@@ -137,6 +140,7 @@ MATCH (c:ValidationCase {id: $case_id})
 RETURN r {
   .id, .persist_mode, .plan_id, .phase_ids, .status,
   .outputs_json, .created_at, .error_message,
+  .ruleset_version,
   .llm_cost_usd, .llm_total_tokens, .llm_calls
 } AS run,
 c {
@@ -178,7 +182,9 @@ RETURN p.id AS patient_id,
        dr.id AS document_reference_id,
        collect(DISTINCT ch {.id, .text}) AS chunks,
        collect(DISTINCT pmh {.id, .term, .snomed_concept_id}) AS pmh_items,
-       collect(DISTINCT bg {.id, .label, .text, .encounter_kind}) AS background_encounters
+       collect(DISTINCT bg {
+         .id, .label, .text, .encounter_kind
+       }) AS background_encounters
 """
 
 PROBE_AG_SHAPE = """

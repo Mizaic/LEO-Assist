@@ -95,6 +95,7 @@ test.describe("VAL-8AB4C593 NG12 guided rule authoring @val", () => {
           evidence_source: "ng12-1-1-2-rule-build-walkthrough.spec.ts",
           sister_walkthroughs: [
             "ng12-1-3-1",
+            "ng12-1-3-2",
             "ng12-1-3-3",
             "ng12-1-5-2",
             "ng12-1-5-5",

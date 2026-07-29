@@ -41,6 +41,7 @@ import {
   buildVersionItem,
   computeActiveStep,
 } from "./bitmapLifecycleHelpers";
+import CandidateLabTestDialog from "./CandidateLabTestDialog";
 import { useBitmapLifecycle } from "./useBitmapLifecycle";
 
 interface BitmapLifecycleSectionProps {
@@ -192,14 +193,14 @@ export default function BitmapLifecycleSection({
             },
             {
               id: "test-lab-patients",
-              label: life.testingLabPatients
+              label: life.labTestOpen
                 ? "Testing..."
                 : "Test candidate on Lab patients",
               variant: "secondary",
               onClick: life.handleTestOnLabPatients,
               disabled:
-                !life.candidateVersion || life.testingLabPatients || life.compiling,
-              loading: life.testingLabPatients,
+                !life.candidateVersion || life.labTestOpen || life.compiling,
+              loading: life.labTestOpen,
               title: "Run the candidate ruleset against Lab patients before going live.",
             },
             {
@@ -351,6 +352,14 @@ export default function BitmapLifecycleSection({
           variant="danger"
           onConfirm={() => life.handleActivate(life.confirmVersion!)}
           onCancel={() => life.setConfirmVersion(null)}
+        />
+      )}
+      {life.candidateVersion && (
+        <CandidateLabTestDialog
+          open={life.labTestOpen}
+          candidateVersion={life.candidateVersion}
+          onClose={life.handleLabTestClose}
+          onComplete={life.handleLabTestComplete}
         />
       )}
     </Box>

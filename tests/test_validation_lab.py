@@ -25,6 +25,7 @@ from libs.validation_lab.models import (
     ValidationCaseSpec,
 )
 from libs.validation_lab import service as lab_service
+from libs.validation_lab.ruleset_version import resolve_ruleset_version
 
 
 class FakeClient:
@@ -92,6 +93,10 @@ class FakeClient:
 
     def _upsert_run(self, params: dict[str, Any]) -> list[dict[str, Any]]:
         rid = params["run_id"]
+        prior = self.runs.get(rid) or {}
+        version = params.get("ruleset_version")
+        if version is None:
+            version = prior.get("ruleset_version")
         self.runs[rid] = {
             "id": rid,
             "_case_id": params["case_id"],
@@ -101,6 +106,7 @@ class FakeClient:
             "status": params["status"],
             "outputs_json": params["outputs_json"],
             "error_message": params["error_message"],
+            "ruleset_version": version,
             "llm_cost_usd": params.get("llm_cost_usd") or 0.0,
             "llm_total_tokens": params.get("llm_total_tokens") or 0,
             "llm_calls": params.get("llm_calls") or 0,
@@ -277,6 +283,9 @@ def test_start_run_production_only_enqueues_never_fabricates(
 ):
     client = FakeClient()
     monkeypatch.setattr(lab_service, "materialise_case", _fake_materialise("p2"))
+    monkeypatch.setattr(
+        lab_service, "resolve_ruleset_version", lambda explicit=None: None
+    )
     lab_service.create_case(
         client,
         ValidationCaseSpec(
@@ -296,6 +305,60 @@ def test_start_run_production_only_enqueues_never_fabricates(
     assert packed["run"]["outputs"]["sbar_assessment_id"] == ""
     assert packed["run"]["outputs"]["snomed_codes"] == []
     assert published and published[0]["dry_run"] is False
+
+
+def test_start_run_persists_explicit_ruleset_version(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    client = FakeClient()
+    monkeypatch.setattr(lab_service, "materialise_case", _fake_materialise("p-ver"))
+    lab_service.create_case(
+        client,
+        ValidationCaseSpec(
+            case_id="case-ver", title="t", referral_text="Referral body text."
+        ),
+    )
+    packed = lab_service.start_run(
+        client,
+        case_id="case-ver",
+        plan_id="pd-referral-assessment",
+        phase_ids=["extraction"],
+        persist_mode=PersistMode.production,
+        publish=lambda body, run_id: None,
+        ruleset_version="v20260729-081307",
+    )
+    assert packed["run"]["ruleset_version"] == "v20260729-081307"
+
+
+def test_start_run_resolves_live_ruleset_version_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    client = FakeClient()
+    monkeypatch.setattr(lab_service, "materialise_case", _fake_materialise("p-live"))
+    monkeypatch.setattr(
+        lab_service,
+        "resolve_ruleset_version",
+        lambda explicit=None: "v20260527-122320",
+    )
+    lab_service.create_case(
+        client,
+        ValidationCaseSpec(
+            case_id="case-live", title="t", referral_text="Referral body text."
+        ),
+    )
+    packed = lab_service.start_run(
+        client,
+        case_id="case-live",
+        plan_id="pd-referral-assessment",
+        phase_ids=["extraction"],
+        persist_mode=PersistMode.production,
+        publish=lambda body, run_id: None,
+    )
+    assert packed["run"]["ruleset_version"] == "v20260527-122320"
+
+
+def test_resolve_ruleset_version_prefers_explicit():
+    assert resolve_ruleset_version("vCandidate") == "vCandidate"
 
 
 def test_start_run_dry_run_never_enqueues(monkeypatch: pytest.MonkeyPatch):
