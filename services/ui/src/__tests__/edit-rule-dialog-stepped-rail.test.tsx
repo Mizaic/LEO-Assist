@@ -1,14 +1,16 @@
 /**
  * VT-LEO-AI-511 -- TC-002 rail navigation.
  *
- * Verifies that the StepRail renders three numbered jump-able steps
- * and that clicking a rail item swaps the visible step canvas.
+ * Verifies the flat stepper is jump-able and that clicking Suggest /
+ * Save swaps the visible step canvas. Slot count grows with
+ * situations, so tests assert by slot title rather than "of 3".
  */
 
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import EditRuleDialog from "../app/admin/guidance/EditRuleDialog";
+import { goToEditorStep } from "../app/admin/guidance/EditRuleDialog/__tests__/goToEditorStep";
 
 const SAMPLE_RULE = {
   rule_id: "rule:NG12:abc",
@@ -54,7 +56,7 @@ afterEach(() => {
 });
 
 describe("EditRuleDialog stepped rail -- VT-511-TC-002", () => {
-  it("renders three numbered jump-able steps with state chips and navigates on click", () => {
+  it("renders jump-able Suggest and Save slots and navigates on click", () => {
     mockSearch();
     render(
       <EditRuleDialog
@@ -65,43 +67,30 @@ describe("EditRuleDialog stepped rail -- VT-511-TC-002", () => {
       />,
     );
 
-    // The rail nav region carries the canonical aria-label.
     expect(
       screen.getByRole("navigation", { name: /steps to change this rule/i }),
     ).toBeInTheDocument();
 
-    // Three numbered step buttons are present.
-    for (const n of [1, 2, 3]) {
-      const btn = screen.getByRole("button", {
-        name: new RegExp(`^Step ${n} of 3`, "i"),
-      });
-      expect(btn).toBeInTheDocument();
-    }
-
-    // Step 1 starts current; the canvas region is "Step 1 of 3".
     expect(
-      screen.getByRole("region", { name: /^Step 1 of 3$/i }),
+      screen.getByRole("button", {
+        name: /Step \d+ of \d+: What should the system suggest/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /Step \d+ of \d+: Save your change/i,
+      }),
     ).toBeInTheDocument();
 
-    // Click step 3: the Save reason field appears (only on step 3).
-    fireEvent.click(
-      screen.getByRole("button", { name: /^Step 3 of 3/i }),
-    );
+    goToEditorStep(3);
     expect(
       screen.getByLabelText(/why are you changing this rule/i),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("region", { name: /^Step 3 of 3$/i }),
-    ).toBeInTheDocument();
 
-    // Jump back to step 2: action chip and strength dropdown appear.
-    fireEvent.click(
-      screen.getByRole("button", { name: /^Step 2 of 3/i }),
-    );
+    goToEditorStep(2);
     expect(
       screen.getAllByLabelText(/short name for this rule/i)[0],
     ).toBeInTheDocument();
-    // The reason field is no longer in the DOM (single-step canvas).
     expect(
       screen.queryByLabelText(/why are you changing this rule/i),
     ).not.toBeInTheDocument();

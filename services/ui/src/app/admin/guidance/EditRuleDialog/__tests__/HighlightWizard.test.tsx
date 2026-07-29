@@ -198,7 +198,7 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
     render(<Harness initialTree={preDraftedTree()} />);
     const user = await advanceToStep2();
     await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
-    await user.click(screen.getByRole("button", { name: /^back$/i }));
+    await user.click(screen.getByTestId("wizard-back"));
     expect(
       screen.getByRole("button", { name: /merge two rows/i }),
     ).toBeInTheDocument();
@@ -432,7 +432,7 @@ describe("HighlightWizard: Back to Step 2 keeps the reviewer's own merge/split e
     await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
     expect(await screen.findByText(/situation a \(1 of 2\)/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /^back$/i }));
+    await user.click(screen.getByTestId("wizard-back"));
 
     expect(
       screen.getByRole("button", { name: /merge two rows/i }),
@@ -448,7 +448,7 @@ describe("HighlightWizard: warns before a Step 2 count change would wipe Step 3 
     render(<Harness initialTree={preDraftedTree()} />);
     const advanceUser = await advanceToStep2();
     await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
-    await advanceUser.click(screen.getByRole("button", { name: /^back$/i }));
+    await advanceUser.click(screen.getByTestId("wizard-back"));
 
     // Split situation A's row into two -- boundaries.length goes from
     // 2 to 3, but the tree still only has 2 pathways, one of which
@@ -483,7 +483,7 @@ describe("HighlightWizard: warns before a Step 2 count change would wipe Step 3 
     render(<Harness initialTree={preDraftedTree()} />);
     const advanceUser = await advanceToStep2();
     await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
-    await advanceUser.click(screen.getByRole("button", { name: /^back$/i }));
+    await advanceUser.click(screen.getByTestId("wizard-back"));
 
     await advanceUser.click(screen.getByRole("button", { name: /split a row/i }));
     const rowsToSplit = screen.getAllByTestId(/^pathway-boundary-row-/);
@@ -511,7 +511,7 @@ describe("HighlightWizard: warns before a Step 2 count change would wipe Step 3 
     render(<Harness initialTree={preDraftedTree()} />);
     const advanceUser = await advanceToStep2();
     await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
-    await advanceUser.click(screen.getByRole("button", { name: /^back$/i }));
+    await advanceUser.click(screen.getByTestId("wizard-back"));
 
     await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
 

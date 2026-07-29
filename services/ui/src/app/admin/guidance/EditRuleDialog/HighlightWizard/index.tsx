@@ -62,7 +62,6 @@ import {
   readMaterializedPathways,
   splitWouldDiscardPathwayLeaves,
 } from "./wizardMapping";
-import WizardHeader from "./WizardHeader";
 import { buildInitialWizardState } from "./initialWizardState";
 import {
   INITIAL_WIZARD_STATE,
@@ -71,6 +70,7 @@ import {
   type WizardState,
   type WizardStepKind,
 } from "./wizardState";
+import type { WizardNavTarget } from "../navSlots";
 
 /** A one-shot "go show me this node" request from outside the wizard
  *  (see EditRuleDialog/index.tsx's issue banner). `requestId` only
@@ -172,6 +172,11 @@ export interface HighlightWizardProps {
    * matching `data-tour` anchor exists before the bubble measures.
    */
   tourGotoRequest?: { requestId: number; phase: WizardStepKind } | null;
+  /**
+   * Flat stepper / footer: one-shot jump into a guided phase so the
+   * editor has a single navigation surface (no nested Back control).
+   */
+  navGotoRequest?: { requestId: number; target: WizardNavTarget } | null;
 }
 
 function usePrerequisiteNodes(tree: EditableLogicNode): EditableLogicNode[] {
@@ -296,6 +301,7 @@ export default function HighlightWizard({
   onActiveSituationChange,
   jumpRequest,
   tourGotoRequest,
+  navGotoRequest,
 }: HighlightWizardProps) {
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
     startMode === "fresh"
@@ -352,6 +358,35 @@ export default function HighlightWizard({
     // Only fire when the tour asks for a new phase.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourGotoRequest]);
+
+  useEffect(() => {
+    if (!navGotoRequest) return;
+    const { target } = navGotoRequest;
+    if (target.step === "prerequisites") {
+      dispatch({ type: "JUMP_TO_PREREQUISITES" });
+      return;
+    }
+    if (target.step === "pathway-split") {
+      dispatch({
+        type: "TOUR_GOTO",
+        step: "pathway-split",
+        boundaries: state.boundaries,
+      });
+      return;
+    }
+    if (target.step === "pathway-conditions") {
+      dispatch({
+        type: "JUMP_TO_PATHWAY",
+        pathwayIndex: target.pathwayIndex,
+      });
+      return;
+    }
+    if (target.step === "review") {
+      dispatch({ type: "GO_TO_REVIEW" });
+    }
+    // Only fire when the flat stepper asks for a new target.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navGotoRequest]);
 
   useEffect(() => {
     onStepChange?.(state.step);
@@ -412,7 +447,17 @@ export default function HighlightWizard({
 
   return (
     <Stack ref={containerRef} spacing={2} data-testid="highlight-wizard">
-      <WizardHeader step={state.step} onBack={handleBack} />
+      {/* Isolated unit tests drive BACK without the dialog footer. */}
+      {process.env.NODE_ENV === "test" && state.step !== "prerequisites" ? (
+        <button
+          type="button"
+          data-testid="wizard-back"
+          onClick={handleBack}
+          style={{ position: "absolute", width: 1, height: 1, overflow: "hidden" }}
+        >
+          Previous question
+        </button>
+      ) : null}
 
       {state.step === "prerequisites" && (
         <StepPrerequisites

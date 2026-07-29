@@ -9,38 +9,13 @@
 "use client";
 
 /**
- * Top horizontal stepper for the rule editor.
+ * Single flat stepper for the rule editor.
  *
- * Replaces the previous left-hand StepRail column. The horizontal
- * layout returns ~220px of canvas width and signals progress more
- * naturally for first-time users (left-to-right reading order).
- *
- * Each step is a button (jump-able). The current step is highlighted
- * with the canonical 3px accent below the row plus a tinted pill;
- * ready steps show a green tick; not_started steps stay muted.
- *
- * On narrow viewports (xs, sm) the stepper compacts to a horizontal
- * scroll strip with shortened labels so the strip never wraps.
- *
- * While the guided highlight-to-build wizard is working through its
- * own phases inside "Who", `wizardPhase` renders a small, non-numbered
- * breadcrumb (Always true > Situations > Conditions > Review) directly
- * beneath this same row -- deliberately in the SAME persistent header
- * box as the numbered steps, not buried further down in the scrolling
- * canvas. That keeps the whole dialog to one navigation surface: the
- * reviewer only ever has one place to look to answer "where am I and
- * what happens if I click Back". The wizard's own phase count is
- * intentionally NOT promoted to its own numbered/jump-able circles
- * here -- it varies per guideline (one "Conditions" phase per
- * situation, and the situation count is only known after Step 2 runs),
- * so giving it equal billing with Who/Suggest/Save would make this bar
- * resize itself mid-flow and expose steps the reviewer cannot jump to
- * yet (the pathway hasn't been built). See `WizardPhaseBreadcrumb.tsx`.
- *
- * Design Controls: UN-LEO-AI-094 (v2), DI-LEO-AI-512 (v2),
- *                  R-LEO-AI-509 (v2), VT-LEO-AI-511 (v2).
+ * Slots come from `buildNavSlots` -- Always true, Situations, then one
+ * pill per confirmed situation (A, B, ...), Check, Suggest, Save.
+ * There is no nested breadcrumb under Who; situation count can grow
+ * after the situations step confirms.
  */
-
 import { motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -49,45 +24,18 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 
 import { useMotion } from "@leo/design-system";
 
-import {
-  STEP_IDS,
-  STEP_SHORT_TITLES,
-  STEP_STATE_LABELS,
-  STEP_TITLES,
-  type StepId,
-} from "./copy";
-import WizardPhaseBreadcrumb from "./HighlightWizard/WizardPhaseBreadcrumb";
-import type { WizardStepKind } from "./HighlightWizard/wizardState";
-
-/**
- * Per-step state machine. The previous (now-deleted) StepRail.tsx
- * owned these types; they live here because the horizontal stepper
- * is the only consumer post-Phase-1.
- */
-export type StepState = "not_started" | "in_progress" | "ready";
-
-export interface StepDescriptor {
-  id: StepId;
-  state: StepState;
-}
+import type { NavSlot, NavSlotId } from "./navSlots";
 
 interface Props {
-  steps: StepDescriptor[];
-  currentStepId: StepId;
-  onJump: (stepId: StepId) => void;
-  /**
-   * The guided wizard's current phase while `currentStepId === "who"`.
-   * Null/undefined whenever there's nothing to show (no tree yet, or
-   * a different outer step is active) -- see the file doc comment.
-   */
-  wizardPhase?: WizardStepKind | null;
+  slots: NavSlot[];
+  currentSlotId: NavSlotId;
+  onJump: (slot: NavSlot) => void;
 }
 
 export default function HorizontalStepper({
-  steps,
-  currentStepId,
+  slots,
+  currentSlotId,
   onJump,
-  wizardPhase,
 }: Props) {
   return (
     <Box
@@ -116,17 +64,15 @@ export default function HorizontalStepper({
           alignItems: "stretch",
         }}
       >
-        {STEP_IDS.map((id, index) => {
-          const descriptor = steps.find((s) => s.id === id) ?? {
-            id,
-            state: "not_started" as const,
-          };
-          const isCurrent = id === currentStepId;
-          const isLast = index === STEP_IDS.length - 1;
+        {slots.map((slot, index) => {
+          const isCurrent = slot.id === currentSlotId;
+          const isLast = index === slots.length - 1;
+          const currentIndex = slots.findIndex((s) => s.id === currentSlotId);
+          const isDone = index < currentIndex;
           return (
             <Box
               component="li"
-              key={id}
+              key={slot.id}
               sx={{
                 p: 0,
                 m: 0,
@@ -136,10 +82,11 @@ export default function HorizontalStepper({
               }}
             >
               <StepperItem
-                stepId={id}
+                slot={slot}
                 index={index + 1}
-                state={descriptor.state}
+                total={slots.length}
                 isCurrent={isCurrent}
+                isDone={isDone}
                 onJump={onJump}
               />
               {!isLast && <StepperConnector />}
@@ -147,44 +94,42 @@ export default function HorizontalStepper({
           );
         })}
       </Stack>
-      {currentStepId === "who" && wizardPhase && (
-        <Box sx={{ pl: { xs: 4, md: 4.5 }, pt: 0.5 }}>
-          <WizardPhaseBreadcrumb step={wizardPhase} />
-        </Box>
-      )}
     </Box>
   );
 }
 
 interface ItemProps {
-  stepId: StepId;
+  slot: NavSlot;
   index: number;
-  state: StepState;
+  total: number;
   isCurrent: boolean;
-  onJump: (stepId: StepId) => void;
+  isDone: boolean;
+  onJump: (slot: NavSlot) => void;
 }
 
 function StepperItem({
-  stepId,
+  slot,
   index,
-  state,
+  total,
   isCurrent,
+  isDone,
   onJump,
 }: ItemProps) {
   const { reducedMotion } = useMotion();
-  const title = STEP_TITLES[stepId];
-  const shortTitle = STEP_SHORT_TITLES[stepId];
-  const stateLabel = STEP_STATE_LABELS[state];
-  const isReady = state === "ready";
-  const ariaLabel = `Step ${index} of ${STEP_IDS.length}: ${title}. ${stateLabel}.${
+  const locked = !slot.jumpable && !isCurrent;
+  const ariaLabel = `Step ${index} of ${total}: ${slot.title}.${
     isCurrent ? " Current step." : ""
-  }`;
+  }${locked ? " Not available yet." : ""}`;
 
   return (
     <Box
       component="button"
       type="button"
-      onClick={() => onJump(stepId)}
+      onClick={() => {
+        if (locked) return;
+        onJump(slot);
+      }}
+      disabled={locked}
       aria-label={ariaLabel}
       aria-current={isCurrent ? "step" : undefined}
       sx={{
@@ -198,16 +143,19 @@ function StepperItem({
         border: "none",
         borderRadius: 999,
         bgcolor: "transparent",
-        color: "text.primary",
-        cursor: "pointer",
+        color: locked ? "text.disabled" : "text.primary",
+        cursor: locked ? "default" : "pointer",
         transition: "color 120ms ease, transform 120ms ease",
         "&:hover": {
-          bgcolor: isCurrent ? "transparent" : "action.hover",
+          bgcolor: isCurrent || locked ? "transparent" : "action.hover",
         },
         "&:focus-visible": {
           outline: "2px solid",
           outlineColor: "primary.main",
           outlineOffset: 2,
+        },
+        "&:disabled": {
+          color: "text.disabled",
         },
       }}
     >
@@ -241,12 +189,12 @@ function StepperItem({
           justifyContent: "center",
           fontSize: "0.85rem",
           fontWeight: 700,
-          color: isReady
+          color: isDone
             ? "success.dark"
             : isCurrent
               ? "primary.dark"
               : "text.secondary",
-          bgcolor: isReady
+          bgcolor: isDone
             ? "success.100"
             : isCurrent
               ? "primary.100"
@@ -254,11 +202,13 @@ function StepperItem({
           flexShrink: 0,
         }}
       >
-        {isReady ? (
+        {isDone ? (
           <CheckCircleRoundedIcon
             fontSize="inherit"
             sx={{ fontSize: "1rem" }}
           />
+        ) : slot.id.startsWith("situation-") ? (
+          slot.shortLabel
         ) : (
           index
         )}
@@ -268,25 +218,25 @@ function StepperItem({
           variant="body2"
           sx={{
             fontWeight: isCurrent ? 700 : 500,
-            color: isCurrent ? "primary.dark" : "text.primary",
+            color: isCurrent ? "primary.dark" : "inherit",
             lineHeight: 1.2,
             display: { xs: "none", sm: "block" },
             whiteSpace: "nowrap",
           }}
         >
-          {title}
+          {slot.id.startsWith("situation-") ? slot.shortLabel : slot.title}
         </Typography>
         <Typography
           variant="body2"
           sx={{
             fontWeight: isCurrent ? 700 : 500,
-            color: isCurrent ? "primary.dark" : "text.primary",
+            color: isCurrent ? "primary.dark" : "inherit",
             lineHeight: 1.2,
             display: { xs: "block", sm: "none" },
             whiteSpace: "nowrap",
           }}
         >
-          {shortTitle}
+          {slot.shortLabel}
         </Typography>
       </Box>
     </Box>

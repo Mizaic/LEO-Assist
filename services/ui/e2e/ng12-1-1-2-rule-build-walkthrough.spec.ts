@@ -169,11 +169,11 @@ test.describe("NG12 1.1.2 rule-build walkthrough (DI-42246DA7)", () => {
     await ev.shot("wizard-review-live-preview");
 
     // -- Back-and-forth: re-open B, swap cough via synonym editor ------
-    const wizardBack = dialog
-      .getByTestId("highlight-wizard")
-      .getByRole("button", { name: /^(Back|Go back to the previous wizard)/i });
+    const previousStep = dialog.getByRole("button", {
+      name: /Go to the previous editor step/i,
+    });
     await ev.shot("wizard-back-before");
-    await wizardBack.click();
+    await previousStep.click();
     await expect(dialog.getByText(/situation b \(2 of 2\)/i)).toBeVisible({
       timeout: 10000,
     });

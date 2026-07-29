@@ -430,6 +430,15 @@ export function isDestructiveRootKindChange(
 export const DIALOG_CHROME = {
   title: "Change this rule",
   closeAria: "Close the rule editor",
+  /** Footer only -- jumps Who / Suggest / Save, not wizard situations. */
+  previousStepLabel: "Previous step",
+  nextStepLabel: "Next step",
+  previousStepTooltip:
+    "Go to the previous editor step (Who, Suggest, or Save).",
+  nextStepTooltip:
+    "Go to the next editor step (Who, Suggest, or Save). This does not move between situations.",
+  previousStepAria: "Go to the previous editor step",
+  nextStepAria: "Go to the next editor step",
 } as const;
 
 /**

@@ -12,6 +12,7 @@ import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import EditRuleDialog from "..";
+import { goToEditorStep } from "./goToEditorStep";
 
 async function selectPriority(optionText: string) {
   const input = screen.getByLabelText(/clinical priority for this rule/i);
@@ -57,15 +58,8 @@ const SAMPLE_RULE = {
   action_due_days: 14,
 };
 
-function goToStep(stepNumber: 1 | 2 | 3) {
-  const rail = screen.getAllByRole("button", {
-    name: new RegExp(`^Step ${stepNumber} of 3`, "i"),
-  });
-  fireEvent.click(rail[0]);
-}
-
 function fillReason(text: string) {
-  goToStep(3);
+  goToEditorStep(3);
   fireEvent.change(screen.getByLabelText(/why are you changing this rule/i), {
     target: { value: text },
   });
@@ -85,7 +79,7 @@ describe("EditRuleDialog clinical priority", () => {
         onSave={jest.fn()}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     expect(
       screen.getByLabelText(/clinical priority for this rule/i),
     ).toBeInTheDocument();
@@ -126,7 +120,7 @@ describe("EditRuleDialog clinical priority", () => {
         onSave={onSave}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     await selectPriority("Urgent");
     fireEvent.change(screen.getByLabelText(/due within how many days/i), {
       target: { value: "7" },
@@ -149,7 +143,7 @@ describe("EditRuleDialog clinical priority", () => {
         onSave={onSave}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     await selectPriority("Routine");
     expect(screen.getByLabelText(/due within how many days/i)).toBeDisabled();
     fillReason("Downgraded to routine after review");
@@ -170,7 +164,7 @@ describe("EditRuleDialog clinical priority", () => {
         onSave={onSave}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     await selectPriority("Immediate specialist assessment");
     expect(screen.getByDisplayValue("0")).toBeInTheDocument();
     fillReason("NG12 immediate specialist assessment for leukaemia");
@@ -191,7 +185,7 @@ describe("EditRuleDialog clinical priority", () => {
         onSave={onSave}
       />,
     );
-    goToStep(2);
+    goToEditorStep(2);
     await selectPriority("Very urgent (within 48 hours)");
     expect(screen.getByDisplayValue("2")).toBeInTheDocument();
     fillReason("NG12 very urgent Hodgkin lymphoma referral");

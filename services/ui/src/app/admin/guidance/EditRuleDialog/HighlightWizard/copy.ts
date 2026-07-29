@@ -279,7 +279,11 @@ export const WIZARD_CHROME = {
     "pathway-conditions": "Conditions",
     review: "Review",
   } as const,
-  backLabel: "Back",
+  /** Fallback when step is unknown -- prefer wizardBackLabel(). */
+  backLabel: "Previous question",
+  backToAlwaysTrue: "Back to always true",
+  backToSituations: "Back to situations",
+  previousSituation: "Previous situation",
   materializingStatus: "Setting up the situations you confirmed...",
   reviewTitle: "Check the live preview",
   reviewHelper:
@@ -315,7 +319,8 @@ export const WIZARD_TOOLTIPS = {
   dismissCopy: "Skip copying; look up codes for this situation yourself.",
   addAgeSituation: "Add an age check for this situation only.",
   addSexSituation: "Add a sex check for this situation only.",
-  wizardBack: "Go back to the previous wizard question.",
+  wizardBack:
+    "Go back to the previous wizard question (not Who / Suggest / Save).",
   removeProblem: "Remove this broken empty group so the rule can be saved.",
   multiCodeHighlight: "Select part of this row's text and attach extra medical codes to it.",
   multiCodeClose: "Close the highlight-and-code tool without adding codes.",
