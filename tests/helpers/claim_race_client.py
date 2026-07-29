@@ -15,15 +15,21 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from libs.cypher.pipeline_stage_queries import (
+    CLAIM_FIRST_STEP_ENQUEUE,
     CLAIM_PIPELINE_STAGE_RUN,
+    CLEAR_FIRST_STEP_ENQUEUE,
     COMPLETE_PIPELINE_STAGE_RUN,
+    COUNT_OUTBOX_FOR_STAGE,
     ENSURE_OUTBOX_EVENT_CONSTRAINT,
     ENSURE_PIPELINE_RUN_ADMISSION_KEY_CONSTRAINT,
     ENSURE_PIPELINE_RUN_CONSTRAINT,
     ENSURE_PIPELINE_STAGE_CONSTRAINT,
     ENSURE_PIPELINE_STAGE_OUTBOX,
     GET_PENDING_OUTBOX_FOR_STAGE,
+    GET_SENT_OUTBOX_FOR_STAGE,
+    GET_STUCK_COMPLETED_STAGE_FOR_RUN,
     GET_SUCCESSOR_STAGE_STATUSES,
+    GET_ZERO_STAGE_RUNNING_RUN,
     HAS_ANY_OUTBOX_FOR_STAGE,
     HAS_PENDING_OUTBOX_FOR_STAGE,
     MARK_OUTBOX_EVENT_SENT,
@@ -82,6 +88,19 @@ class InMemoryClaimClient:
             if query == HAS_ANY_OUTBOX_FOR_STAGE:
                 links = self.stage_outbox.get(params["stage_run_id"], [])
                 return [{"has_outbox": bool(links)}]
+            if query == GET_SENT_OUTBOX_FOR_STAGE:
+                return self._sent_outbox(params["stage_run_id"])
+            if query == COUNT_OUTBOX_FOR_STAGE:
+                links = self.stage_outbox.get(params["stage_run_id"], [])
+                return [{"outbox_count": len(links)}]
+            if query == CLAIM_FIRST_STEP_ENQUEUE:
+                return self._claim_first_step(params["run_id"])
+            if query == CLEAR_FIRST_STEP_ENQUEUE:
+                return self._clear_first_step(params["run_id"])
+            if query == GET_STUCK_COMPLETED_STAGE_FOR_RUN:
+                return self._stuck_completed(params["run_id"])
+            if query == GET_ZERO_STAGE_RUNNING_RUN:
+                return self._zero_stage(params["run_id"])
             if query == ENSURE_PIPELINE_STAGE_OUTBOX:
                 return [self._ensure_outbox(params)]
             raise ValueError(f"Unsupported query in InMemoryClaimClient: {query[:60]}")
@@ -272,7 +291,84 @@ class InMemoryClaimClient:
         row = self.outbox.get(outbox_id)
         if row is not None:
             row["status"] = "sent"
+            row["sent_at"] = datetime.now(timezone.utc).isoformat()
         return {"id": outbox_id}
+
+    def _sent_outbox(self, stage_run_id: str) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for event_id in self.stage_outbox.get(stage_run_id, []):
+            row = self.outbox.get(event_id)
+            if row and row.get("status") == "sent":
+                rows.append(
+                    {
+                        "id": event_id,
+                        "target_action_id": row.get("target_action_id"),
+                        "edge_version": row.get("edge_version"),
+                        "sent_at": row.get("sent_at"),
+                    }
+                )
+        return rows
+
+    def _claim_first_step(self, run_id: str) -> list[dict[str, Any]]:
+        run = self.runs.get(run_id)
+        if run is None:
+            return [{"enqueued": False}]
+        if run.get("first_step_enqueued"):
+            return [{"enqueued": False}]
+        run["first_step_enqueued"] = True
+        return [{"enqueued": True}]
+
+    def _clear_first_step(self, run_id: str) -> list[dict[str, Any]]:
+        run = self.runs.get(run_id)
+        if run is None:
+            return []
+        has_stage = any(s.get("run_id") == run_id for s in self.stages.values())
+        if has_stage or not run.get("first_step_enqueued"):
+            return []
+        run["first_step_enqueued"] = False
+        return [{"id": run_id}]
+
+    def _stuck_completed(self, run_id: str) -> list[dict[str, Any]]:
+        run = self.runs.get(run_id)
+        if not run or run.get("status") != "running":
+            return []
+        stages = [s for s in self.stages.values() if s.get("run_id") == run_id]
+        if any(s.get("status") == "running" for s in stages):
+            return []
+        completed = [s for s in stages if s.get("status") == "completed"]
+        if not completed:
+            return []
+        last = completed[-1]
+        return [
+            {
+                "stage_run_id": f"{run_id}:{last.get('step_id')}",
+                "step_id": last.get("step_id"),
+                "next_action_ids_json": last.get("next_action_ids_json"),
+                "next_published": last.get("next_published"),
+                "patient_id": run.get("patient_id"),
+                "plan_definition_id": run.get("plan_definition_id"),
+                "encounter_id": run.get("encounter_id"),
+                "case_id": run.get("case_id"),
+                "first_step_enqueued": run.get("first_step_enqueued"),
+            }
+        ]
+
+    def _zero_stage(self, run_id: str) -> list[dict[str, Any]]:
+        run = self.runs.get(run_id)
+        if not run or run.get("status") != "running":
+            return []
+        if any(s.get("run_id") == run_id for s in self.stages.values()):
+            return []
+        return [
+            {
+                "run_id": run_id,
+                "patient_id": run.get("patient_id"),
+                "plan_definition_id": run.get("plan_definition_id"),
+                "encounter_id": run.get("encounter_id"),
+                "case_id": run.get("case_id"),
+                "first_step_enqueued": run.get("first_step_enqueued"),
+            }
+        ]
 
     def _successor_statuses(
         self, run_id: str, step_ids: list[str]

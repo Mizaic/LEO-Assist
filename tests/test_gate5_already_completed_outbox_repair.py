@@ -190,9 +190,63 @@ def test_should_not_repair_when_outbox_already_sent() -> None:
     )
 
 
+def test_should_requeue_sent_orphan_when_successor_missing() -> None:
+    client = InMemoryClaimClient()
+    store = PipelineStageStore(client)
+    request = StepRequest(
+        event_type="post_processing",
+        run_id="run-orphan-check",
+        workflow_id="pd-referral-assessment",
+        step_id="act-ref-post-process",
+        patient_id="p-1",
+    )
+    store.upsert_run(request, status="running")
+    stage_id = stage_run_id(request.run_id, request.step_id)
+    client.stage_outbox[stage_id] = ["evt-sent-1"]
+    client.outbox["evt-sent-1"] = {
+        "id": "evt-sent-1",
+        "status": "sent",
+        "sent_at": "2020-01-01T00:00:00+00:00",
+    }
+    assert store.should_requeue_sent_orphan_outbox(
+        request,
+        ["act-ref-relation-link"],
+        next_published=True,
+    )
+
+
+def test_should_not_requeue_sent_orphan_inside_cooldown() -> None:
+    from datetime import datetime, timezone
+
+    client = InMemoryClaimClient()
+    store = PipelineStageStore(client)
+    request = StepRequest(
+        event_type="post_processing",
+        run_id="run-cooldown-check",
+        workflow_id="pd-referral-assessment",
+        step_id="act-ref-post-process",
+        patient_id="p-1",
+    )
+    store.upsert_run(request, status="running")
+    stage_id = stage_run_id(request.run_id, request.step_id)
+    now = datetime(2026, 7, 29, 10, 0, tzinfo=timezone.utc)
+    client.stage_outbox[stage_id] = ["evt-sent-1"]
+    client.outbox["evt-sent-1"] = {
+        "id": "evt-sent-1",
+        "status": "sent",
+        "sent_at": now.isoformat(),
+    }
+    assert not store.should_requeue_sent_orphan_outbox(
+        request,
+        ["act-ref-relation-link"],
+        next_published=True,
+        now=now,
+    )
+
+
 @pytest.mark.asyncio
-async def test_already_completed_post_process_no_message_storm() -> None:
-    """Repeated replay must not re-enqueue post-process or spam successors."""
+async def test_already_completed_requeues_sent_orphan_once() -> None:
+    """Sent-orphan successors are re-queued once; cooldown blocks storms."""
     post_process = _Action(
         action_id="act-ref-post-process",
         subgraph_id="post_processing",
@@ -251,6 +305,7 @@ async def test_already_completed_post_process_no_message_storm() -> None:
         "queue_name": "pipeline-jobs",
         "body_json": body,
         "status": "sent",
+        "sent_at": "2020-01-01T00:00:00+00:00",
     }
     client.stage_outbox[stage_id] = [event_id]
 
@@ -284,5 +339,5 @@ async def test_already_completed_post_process_no_message_storm() -> None:
             assert result.status == "completed"
             assert "already_completed" in result.warnings
 
-    assert sent_targets == []
-    assert mock_bus.send.await_count == 0
+    assert sent_targets == ["act-ref-relation-link"]
+    assert mock_bus.send.await_count == 1

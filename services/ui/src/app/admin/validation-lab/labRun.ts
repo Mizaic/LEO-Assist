@@ -108,6 +108,8 @@ export async function queueCasePipelines(
   onProgress?: (result: QueueCaseResult) => void,
 ): Promise<QueueCaseResult[]> {
   const results: QueueCaseResult[] = [];
+  // Stagger starts so workers are not flooded with 30+ first steps at once.
+  const staggerMs = cases.length > 4 ? 200 : 0;
   for (const item of cases) {
     try {
       const run = await queueCasePipeline(
@@ -125,6 +127,9 @@ export async function queueCasePipelines(
       };
       results.push(row);
       onProgress?.(row);
+    }
+    if (staggerMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, staggerMs));
     }
   }
   return results;
@@ -166,6 +171,14 @@ function isTerminalStatus(status: string): boolean {
   return status === "completed" || status === "failed";
 }
 
+/** Scale multi-case poll window with batch size (min 10m, max 45m). */
+export function batchPollTimeoutMs(caseCount: number): number {
+  const perCaseMs = 90_000;
+  const floorMs = 600_000;
+  const ceilingMs = 2_700_000;
+  return Math.min(ceilingMs, Math.max(floorMs, caseCount * perCaseMs));
+}
+
 /**
  * Poll many already-queued Lab runs in parallel rounds for live progress.
  * Stops when all are terminal, timeout elapses, or shouldContinue returns false.
@@ -180,7 +193,7 @@ export async function pollManyCasePipelines(
   },
 ): Promise<ManyRunTick[]> {
   const intervalMs = opts?.intervalMs ?? 2000;
-  const timeoutMs = opts?.timeoutMs ?? 300000;
+  const timeoutMs = opts?.timeoutMs ?? batchPollTimeoutMs(active.length);
   const deadline = Date.now() + timeoutMs;
   const pending = new Map(
     active.map((item) => [item.caseId, item] as const),

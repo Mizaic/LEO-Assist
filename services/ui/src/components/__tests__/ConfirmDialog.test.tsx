@@ -44,4 +44,23 @@ describe("ConfirmDialog", () => {
     const btn = screen.getByRole("button", { name: "Delete" });
     expect(btn.className.toLowerCase()).toContain("error");
   });
+
+  it("shows busy feedback and disables actions while in progress", () => {
+    const onConfirm = jest.fn();
+    const onCancel = jest.fn();
+    render(
+      <ConfirmDialog
+        {...defaults}
+        busy
+        busyLabel="Going live..."
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Going live/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

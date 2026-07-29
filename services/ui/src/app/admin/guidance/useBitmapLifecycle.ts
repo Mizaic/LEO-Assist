@@ -132,11 +132,11 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
   }, [distanceChild, distanceParent, policyMode, scopeId, scopeType]);
 
   const handleTestOnLabPatients = useCallback(() => {
-    if (!candidateVersion) return;
+    if (!versions.length) return;
     setError(null);
     setCandidateTestSummary(null);
     setLabTestOpen(true);
-  }, [candidateVersion]);
+  }, [versions.length]);
 
   const handleLabTestComplete = useCallback((summary: CandidateTestSummary) => {
     setCandidateTestSummary(summary);

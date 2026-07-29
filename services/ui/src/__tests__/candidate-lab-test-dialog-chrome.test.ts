@@ -16,18 +16,24 @@ function read(name: string): string {
 }
 
 describe("VT - CandidateLabTestDialog chrome", () => {
-  test("TC-001: dialog opens from bitmap lifecycle Test candidate action", () => {
+  test("TC-001: dialog opens from bitmap lifecycle Test with Lab patients", () => {
     const section = read("BitmapLifecycleSection.tsx");
     const hook = read("useBitmapLifecycle.ts");
     expect(section).toMatch(/CandidateLabTestDialog/);
+    expect(section).toMatch(/Test with Lab patients/);
     expect(section).toMatch(/labTestOpen/);
+    expect(section).toMatch(/!life\.versions\.length/);
     expect(hook).toMatch(/setLabTestOpen\(true\)/);
     expect(hook).toMatch(/handleTestOnLabPatients/);
     expect(hook).not.toMatch(/MAX_LAB_PATIENTS_TESTED/);
   });
 
-  test("TC-002: pick stage supports all or multi-select before run", () => {
+  test("TC-002: first stage chooses bitmap, then pick cases", () => {
     const dialog = read("CandidateLabTestDialog.tsx");
+    expect(dialog).toMatch(/candidate-lab-test-version/);
+    expect(dialog).toMatch(/candidate-lab-test-version-select/);
+    expect(dialog).toMatch(/defaultLabTestVersion/);
+    expect(dialog).toMatch(/candidate-lab-test-choose-version/);
     expect(dialog).toMatch(/candidate-lab-test-pick/);
     expect(dialog).toMatch(/toggleId/);
     expect(dialog).toMatch(/>\s*All\s*</);
@@ -49,8 +55,9 @@ describe("VT - CandidateLabTestDialog chrome", () => {
       "utf8",
     );
     expect(dialog).toMatch(/runBatchWithLiveProgress/);
-    expect(dialog).toMatch(/rulesetVersion:\s*candidateVersion/);
+    expect(dialog).toMatch(/rulesetVersion,/);
     expect(dialog).toMatch(/ProgressStrip/);
+    expect(dialog).toMatch(/live Redis pointer|Live care stays|live pointer/i);
     expect(batch).toMatch(/rulesetVersion\?:/);
     expect(labRun).toMatch(/ruleset_version:\s*rulesetVersion/);
   });
@@ -73,5 +80,25 @@ describe("VT - CandidateLabTestDialog chrome", () => {
     expect(dialog).toMatch(/onComplete\(summary\)/);
     expect(hook).toMatch(/handleLabTestComplete/);
     expect(hook).toMatch(/setCandidateTestSummary/);
+  });
+
+  test("TC-006: unfinished cases score as pending, not error; poll window scales", () => {
+    const helpers = read("candidateLabTestHelpers.ts");
+    const batch = fs.readFileSync(
+      path.resolve(ROOT, "../validation-lab/labBatchRunner.ts"),
+      "utf8",
+    );
+    const labRun = fs.readFileSync(
+      path.resolve(ROOT, "../validation-lab/labRun.ts"),
+      "utf8",
+    );
+    expect(helpers).toMatch(
+      /item\.status !== "completed"[\s\S]{0,120}byCase\[item\.caseId\] = "pending"/,
+    );
+    expect(helpers).not.toMatch(
+      /item\.status !== "completed"[\s\S]{0,120}byCase\[item\.caseId\] = "error"/,
+    );
+    expect(labRun).toMatch(/export function batchPollTimeoutMs/);
+    expect(batch).toMatch(/batchPollTimeoutMs/);
   });
 });

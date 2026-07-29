@@ -9,6 +9,7 @@
 import type { LabCase } from "./labApi";
 import type { MultiRunSheet, MultiRunSheetItem } from "./RunSheetDialog";
 import {
+  batchPollTimeoutMs,
   pollManyCasePipelines,
   queueCasePipelines,
   summarizeLiveResults,
@@ -127,7 +128,7 @@ export async function runBatchWithLiveProgress(opts: {
       if (!isOpen()) return;
       onSheet((prev) => applyLiveTick(prev, tick));
     },
-    { shouldContinue: isOpen },
+    { shouldContinue: isOpen, timeoutMs: batchPollTimeoutMs(active.length) },
   );
 
   if (!isOpen()) return summary;

@@ -1,10 +1,6 @@
 /**
- * Candidate Lab test dialog -- pick cases, live poll progress, SBAR drawer.
- *
- * Atlas trace:
- *   DO: DO-599B9828
- *   DI: DI-8DD23CE2
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-599B9828")
+ * Lab bitmap test dialog -- choose compiled version, pick cases, live progress.
+ * Atlas: DO-599B9828 / DI-8DD23CE2. Pins ruleset_version per run; live pointer unchanged.
  */
 "use client";
 
@@ -18,15 +14,26 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Drawer from "@mui/material/Drawer";
+import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import IconButton from "@mui/material/IconButton";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 import { ProgressStrip } from "@leo/design-system";
 
 import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
-import type { CandidateTestSummary } from "./bitmapLifecycleHelpers";
+import type {
+  CandidateTestSummary,
+  VersionEntry,
+} from "./bitmapLifecycleHelpers";
+import {
+  defaultLabTestVersion,
+  formatVersionMeta,
+} from "./bitmapLifecycleHelpers";
 import {
   SOFT_CASE_WARN,
   goldScoreColor,
@@ -47,22 +54,25 @@ import {
   toggleId,
 } from "../validation-lab/testPatientSelection";
 
-type Stage = "pick" | "running" | "done";
+type Stage = "version" | "pick" | "running" | "done";
 
 interface Props {
   open: boolean;
-  candidateVersion: string;
+  versions: VersionEntry[];
+  preferredVersion?: string | null;
   onClose: () => void;
   onComplete: (summary: CandidateTestSummary) => void;
 }
 
 export default function CandidateLabTestDialog({
   open,
-  candidateVersion,
+  versions,
+  preferredVersion,
   onClose,
   onComplete,
 }: Props) {
-  const [stage, setStage] = useState<Stage>("pick");
+  const [stage, setStage] = useState<Stage>("version");
+  const [rulesetVersion, setRulesetVersion] = useState("");
   const [cases, setCases] = useState<LabCase[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sheet, setSheet] = useState<MultiRunSheet | null>(null);
@@ -75,14 +85,15 @@ export default function CandidateLabTestDialog({
   const openRef = useRef(true);
 
   const reset = useCallback(() => {
-    setStage("pick");
+    setStage("version");
+    setRulesetVersion(defaultLabTestVersion(versions, preferredVersion));
     setSelected(new Set());
     setSheet(null);
     setScores({});
     setError(null);
     setSbarId(null);
     setSbarTitle("");
-  }, []);
+  }, [preferredVersion, versions]);
 
   useEffect(() => {
     if (!open) return;
@@ -102,7 +113,7 @@ export default function CandidateLabTestDialog({
   const selectedCount = selected.size;
 
   async function handleRun() {
-    if (!selectedCount) return;
+    if (!selectedCount || !rulesetVersion) return;
     const ids = caseIds.filter((id) => selected.has(id));
     setError(null);
     setStage("running");
@@ -113,7 +124,7 @@ export default function CandidateLabTestDialog({
       await runBatchWithLiveProgress({
         caseIds: ids,
         cases,
-        rulesetVersion: candidateVersion,
+        rulesetVersion,
         isOpen: () => openRef.current,
         onSheet: (updater) => {
           latest = updater(latest);
@@ -123,27 +134,32 @@ export default function CandidateLabTestDialog({
       if (!openRef.current) return;
       const finished = { ...latest, done: true };
       setSheet(finished);
-      const { summary, byCase } = await scoreSheetItems(finished.items);
+      const { summary, byCase } = await scoreSheetItems(
+        finished.items,
+        rulesetVersion,
+      );
       if (!openRef.current) return;
       setScores(byCase);
       setStage("done");
       onComplete(summary);
     } catch {
       if (openRef.current) {
-        setError("Could not finish the candidate Lab test. Please try again.");
+        setError("Could not finish the Lab bitmap test. Please try again.");
         setStage("pick");
       }
     }
   }
 
   function handleClose() {
-    if (stage === "running") {
-      openRef.current = false;
-    }
+    if (stage === "running") openRef.current = false;
     onClose();
   }
 
-  async function openSbar(caseId: string, runId: string | undefined, title: string) {
+  async function openSbar(
+    caseId: string,
+    runId: string | undefined,
+    title: string,
+  ) {
     if (!runId) return;
     setSbarBusy(true);
     setSbarTitle(title);
@@ -166,7 +182,11 @@ export default function CandidateLabTestDialog({
 
   const counts = sheet ? progressCounts(sheet.items) : null;
   const dismissLabel =
-    stage === "running" ? "Work in background" : stage === "done" ? "Done" : "Cancel";
+    stage === "running"
+      ? "Work in background"
+      : stage === "done"
+        ? "Done"
+        : "Cancel";
 
   return (
     <>
@@ -178,11 +198,10 @@ export default function CandidateLabTestDialog({
         data-testid="candidate-lab-test-dialog"
       >
         <DialogTitle>
-          Test candidate on Lab patients
+          Test with Lab patients
           <Typography variant="body2" color="text.secondary" component="div">
-            Ruleset{" "}
-            <span style={{ fontFamily: "monospace" }}>{candidateVersion}</span>
-            {" -- "}not live.
+            Runs the real pipeline against a chosen compiled bitmap. Live care
+            stays on the current version.
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -191,8 +210,16 @@ export default function CandidateLabTestDialog({
               {error}
             </Alert>
           )}
+          {stage === "version" && (
+            <VersionBody
+              versions={versions}
+              value={rulesetVersion}
+              onChange={setRulesetVersion}
+            />
+          )}
           {stage === "pick" && (
             <PickBody
+              rulesetVersion={rulesetVersion}
               loading={loadingCases}
               cases={cases}
               selected={selected}
@@ -204,6 +231,7 @@ export default function CandidateLabTestDialog({
           )}
           {(stage === "running" || stage === "done") && sheet && counts && (
             <RunBody
+              rulesetVersion={rulesetVersion}
               sheet={sheet}
               counts={counts}
               scores={scores}
@@ -214,11 +242,24 @@ export default function CandidateLabTestDialog({
           )}
         </DialogContent>
         <DialogActions>
+          {stage === "pick" && (
+            <Button onClick={() => setStage("version")}>Back</Button>
+          )}
           <Button onClick={handleClose}>{dismissLabel}</Button>
+          {stage === "version" && (
+            <Button
+              variant="contained"
+              disabled={!rulesetVersion || !versions.length}
+              onClick={() => setStage("pick")}
+              data-testid="candidate-lab-test-choose-version"
+            >
+              Continue
+            </Button>
+          )}
           {stage === "pick" && (
             <Button
               variant="contained"
-              disabled={!selectedCount || loadingCases}
+              disabled={!selectedCount || loadingCases || !rulesetVersion}
               onClick={() => void handleRun()}
               data-testid="candidate-lab-test-run"
             >
@@ -255,7 +296,64 @@ export default function CandidateLabTestDialog({
   );
 }
 
+function VersionBody(props: {
+  versions: VersionEntry[];
+  value: string;
+  onChange: (version: string) => void;
+}) {
+  const { versions, value, onChange } = props;
+  if (!versions.length) {
+    return (
+      <Alert severity="info" data-testid="candidate-lab-test-version">
+        No compiled versions yet. Compile a candidate first.
+      </Alert>
+    );
+  }
+  return (
+    <Stack spacing={1.5} data-testid="candidate-lab-test-version">
+      <Typography variant="body2" color="text.secondary">
+        Choose which compiled bitmap to test. Each Lab run pins that version
+        for the pipeline only. The live version is not changed.
+      </Typography>
+      <FormControl fullWidth size="small">
+        <InputLabel id="lab-test-bitmap-label">Bitmap version</InputLabel>
+        <Select
+          labelId="lab-test-bitmap-label"
+          label="Bitmap version"
+          value={value}
+          onChange={(e) => onChange(String(e.target.value))}
+          data-testid="candidate-lab-test-version-select"
+        >
+          {versions.map((v) => (
+            <MenuItem key={v.version} value={v.version}>
+              <Box>
+                <Typography
+                  component="span"
+                  sx={{ fontFamily: "monospace", fontSize: 13 }}
+                >
+                  {v.version}
+                </Typography>
+                {v.active ? " (live)" : ""}
+                {formatVersionMeta(v) ? (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                  >
+                    {formatVersionMeta(v)}
+                  </Typography>
+                ) : null}
+              </Box>
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    </Stack>
+  );
+}
+
 function PickBody(props: {
+  rulesetVersion: string;
   loading: boolean;
   cases: LabCase[];
   selected: Set<string>;
@@ -264,8 +362,16 @@ function PickBody(props: {
   onSelectAll: () => void;
   onClear: () => void;
 }) {
-  const { loading, cases, selected, caseIds, onToggle, onSelectAll, onClear } =
-    props;
+  const {
+    rulesetVersion,
+    loading,
+    cases,
+    selected,
+    caseIds,
+    onToggle,
+    onSelectAll,
+    onClear,
+  } = props;
   if (loading) {
     return (
       <Typography variant="body2" color="text.secondary">
@@ -283,8 +389,9 @@ function PickBody(props: {
   return (
     <Stack spacing={1.5} data-testid="candidate-lab-test-pick">
       <Typography variant="body2" color="text.secondary">
-        Choose which Lab patients to run against this candidate. Each run uses
-        the real pipeline with the candidate ruleset pinned.
+        Testing bitmap{" "}
+        <span style={{ fontFamily: "monospace" }}>{rulesetVersion}</span>.
+        Choose which Lab patients to run.
       </Typography>
       <Stack direction="row" spacing={1}>
         <Button size="small" onClick={onSelectAll}>
@@ -293,7 +400,11 @@ function PickBody(props: {
         <Button size="small" onClick={onClear}>
           Clear
         </Button>
-        <Typography variant="body2" color="text.secondary" sx={{ alignSelf: "center" }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ alignSelf: "center" }}
+        >
           {selected.size} of {cases.length} selected
           {allSelected(caseIds, selected) ? " (all)" : ""}
         </Typography>
@@ -325,6 +436,7 @@ function PickBody(props: {
 }
 
 function RunBody(props: {
+  rulesetVersion: string;
   sheet: MultiRunSheet;
   counts: ReturnType<typeof progressCounts>;
   scores: Record<string, CaseGoldScore>;
@@ -332,83 +444,65 @@ function RunBody(props: {
   sbarBusy: boolean;
   onViewSbar: (caseId: string, runId: string | undefined, title: string) => void;
 }) {
-  const { sheet, counts, scores, stage, sbarBusy, onViewSbar } = props;
-  const label =
-    sheet.phase === "queueing" ? "Queueing runs" : "Live pipeline progress";
-  const subtitle =
-    sheet.phase === "queueing"
-      ? `${counts.queued + counts.terminal} started`
-      : `${counts.terminal} done · ${counts.running} running · ${counts.queued} queued`;
-
+  const { rulesetVersion, sheet, counts, scores, stage, sbarBusy, onViewSbar } =
+    props;
   return (
-    <Stack spacing={2} data-testid="candidate-lab-test-run-body">
+    <Stack spacing={1.5} data-testid="candidate-lab-test-run-body">
+      <Typography variant="body2" color="text.secondary">
+        Bitmap{" "}
+        <span style={{ fontFamily: "monospace" }}>{rulesetVersion}</span>
+      </Typography>
       <ProgressStrip
-        label={label}
-        value={
-          sheet.phase === "queueing"
-            ? counts.queued + counts.terminal
-            : counts.terminal
+        label={
+          stage === "done"
+            ? counts.running + counts.queued > 0
+              ? "Stopped waiting -- some still in flight"
+              : "Finished"
+            : "Running Lab patients"
         }
+        value={counts.terminal}
         total={Math.max(sheet.items.length, 1)}
-        subtitle={subtitle}
+        subtitle={`${counts.terminal} done · ${counts.running} running · ${counts.queued} queued · ${counts.failed} failed`}
         tone={
-          counts.failed > 0 ? "warning" : sheet.done ? "positive" : "neutral"
+          counts.failed > 0
+            ? "warning"
+            : stage === "done" && counts.running + counts.queued === 0
+              ? "positive"
+              : "neutral"
         }
       />
-      <Stack spacing={0.75} sx={{ maxHeight: 280, overflow: "auto" }}>
-        {sheet.items.map((item) => {
-          const gold = scores[item.caseId];
-          const canView =
-            stage === "done" && item.status === "completed" && Boolean(item.runId);
-          return (
-            <Box
-              key={item.caseId}
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 1,
-                alignItems: "center",
-                py: 0.5,
-                borderBottom: "1px solid",
-                borderColor: "divider",
-              }}
-              data-testid={`candidate-lab-test-item-${item.caseId}`}
+      <Stack spacing={1}>
+        {sheet.items.map((item) => (
+          <Stack
+            key={item.caseId}
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            data-testid={`candidate-lab-test-case-${item.caseId}`}
+          >
+            <Typography variant="body2" sx={{ flex: 1 }}>
+              {item.title || item.caseId}
+            </Typography>
+            <Typography
+              variant="caption"
+              color={goldScoreColor(scores[item.caseId] || "pending")}
             >
-              <Typography variant="body2" noWrap sx={{ flex: 1 }}>
-                {item.title || item.caseId}
-              </Typography>
-              <Stack direction="row" spacing={1} alignItems="center">
-                {gold && gold !== "pending" && (
-                  <Typography variant="caption" color={goldScoreColor(gold)}>
-                    gold {gold}
-                  </Typography>
-                )}
-                <Typography variant="caption" color="text.secondary">
-                  {item.status}
-                </Typography>
-                {canView && (
-                  <Button
-                    size="small"
-                    disabled={sbarBusy}
-                    onClick={() =>
-                      onViewSbar(item.caseId, item.runId, item.title || item.caseId)
-                    }
-                    data-testid={`candidate-lab-test-view-sbar-${item.caseId}`}
-                  >
-                    View SBAR
-                  </Button>
-                )}
-              </Stack>
-            </Box>
-          );
-        })}
+              {scores[item.caseId] || item.status}
+            </Typography>
+            {stage === "done" && item.status === "completed" ? (
+              <Button
+                size="small"
+                disabled={sbarBusy}
+                onClick={() =>
+                  void onViewSbar(item.caseId, item.runId, item.title || item.caseId)
+                }
+              >
+                View SBAR
+              </Button>
+            ) : null}
+          </Stack>
+        ))}
       </Stack>
-      {stage === "running" && (
-        <Typography variant="body2" color="text.secondary">
-          Polling workers every few seconds. You can work in the background;
-          runs continue on the server.
-        </Typography>
-      )}
     </Stack>
   );
 }

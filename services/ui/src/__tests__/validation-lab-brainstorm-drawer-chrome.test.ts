@@ -36,11 +36,18 @@ describe("VT-C6B93AF0 - Validation Lab brainstorm drawer chrome", () => {
     expect(picker).toMatch(/Existing rule can score whether the test case should fire/);
     expect(picker).toMatch(/sel\.checked && !attachMode/);
     expect(picker).toMatch(/Has existing rule - will add another/);
+    expect(picker).toMatch(/pickLatestRule/);
+    expect(picker).toMatch(/attachMode && latestRule/);
+    expect(picker).toMatch(/ATTACH_STATUS_LABEL/);
+    expect(picker).toMatch(/active:\s*"approved"/);
+    expect(picker).toMatch(/not the same as being in the live bitmap/);
     const selection = readFile(
       "services/ui/src/app/admin/guidance/recommendationPickerSelection.ts",
     );
     expect(selection).toMatch(/attachMode/);
     expect(selection).toMatch(/checked: false/);
+    expect(selection).toMatch(/export function pickLatestRule/);
+    expect(selection).toMatch(/export function pickAttachRule/);
     expect(src).toMatch(/allowMultiple|allow_multiple|maxSelections/);
     expect(src).toMatch(/createCasesFromVariants/);
     expect(src).not.toMatch(/createCase\(/);

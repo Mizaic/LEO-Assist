@@ -58,7 +58,7 @@ describe("VT-7C66F522 - compiled bitmap version metadata list", () => {
     expect(meta.length).toBeGreaterThan(10);
   });
 
-  test("TC-003: compile_stats included/excluded/violations appear in meta", () => {
+  test("TC-003: compile_stats use in-bitmap / dropped-at-compile labels", () => {
     const entry: VersionEntry = {
       version: "v1",
       active: true,
@@ -72,8 +72,20 @@ describe("VT-7C66F522 - compiled bitmap version metadata list", () => {
       },
     };
     const meta = formatVersionMeta(entry);
-    expect(meta).toMatch(/included 4/);
-    expect(meta).toMatch(/excluded 2/);
-    expect(meta).toMatch(/violations 1/);
+    expect(meta).toMatch(/in bitmap 4/);
+    expect(meta).toMatch(/dropped at compile 2/);
+    expect(meta).toMatch(/policy issues 1/);
+    expect(meta).not.toMatch(/\bincluded\b/);
+    expect(meta).not.toMatch(/\bexcluded\b/);
+    const section = read(
+      "services/ui/src/app/admin/guidance/BitmapLifecycleSection.tsx",
+    );
+    expect(section).toMatch(/label:\s*"In bitmap"/);
+    expect(section).toMatch(/label:\s*"Dropped at compile"/);
+    expect(section).toMatch(/label:\s*"Policy issues"/);
+    expect(section).not.toMatch(/label:\s*"Included"/);
+    expect(section).not.toMatch(/label:\s*"Excluded"/);
   });
 });
+
+

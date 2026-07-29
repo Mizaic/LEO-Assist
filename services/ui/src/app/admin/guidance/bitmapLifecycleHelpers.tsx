@@ -25,6 +25,22 @@ export interface CandidateTestSummary {
   passed: number;
   failed: number;
   errored: number;
+  /** Bitmap version the Lab runs were pinned to. */
+  rulesetVersion?: string;
+}
+
+/** Prefer session candidate, else live, else newest compiled version. */
+export function defaultLabTestVersion(
+  versions: VersionEntry[],
+  preferred: string | null | undefined,
+): string {
+  if (!versions.length) return "";
+  if (preferred && versions.some((v) => v.version === preferred)) {
+    return preferred;
+  }
+  const live = versions.find((v) => v.active);
+  if (live) return live.version;
+  return versions[versions.length - 1]?.version || versions[0].version;
 }
 
 export interface BitmapStatus {
@@ -73,16 +89,18 @@ export function formatVersionMeta(v: VersionEntry): string {
   }
   if (v.policy_mode) parts.push(v.policy_mode);
   const stats = v.compile_stats || {};
-  const included = stats.rules_included;
-  const excluded = stats.rules_excluded;
+  const kept = stats.rules_included;
+  const dropped = stats.rules_excluded;
   const violations = stats.policy_violations;
   if (
-    typeof included === "number" ||
-    typeof excluded === "number" ||
+    typeof kept === "number" ||
+    typeof dropped === "number" ||
     typeof violations === "number"
   ) {
+    // "Dropped at compile" is not the Guideline-tab Excluded review pool.
     parts.push(
-      `included ${included ?? 0} · excluded ${excluded ?? 0} · violations ${violations ?? 0}`,
+      `in bitmap ${kept ?? 0} · dropped at compile ${dropped ?? 0}` +
+        ` · policy issues ${violations ?? 0}`,
     );
   }
   return parts.join(" · ");

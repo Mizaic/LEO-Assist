@@ -48,6 +48,8 @@ import GavelIcon from "@mui/icons-material/Gavel";
 import {
   allNormativeRecs,
   buildInitialSelection,
+  pickAttachRule,
+  pickLatestRule,
   type RecMode,
   type RecSelection,
   type SelectionMap,
@@ -63,6 +65,7 @@ interface RuleEntry {
   rule_id: string;
   status: string;
   name: string;
+  created_at?: string | null;
 }
 
 interface RecEntry {
@@ -121,18 +124,47 @@ const STATUS_COLOR: Record<string, "success" | "warning" | "error" | "default"> 
   rejected: "error",
 };
 
-function RuleStatusChip({ rule }: { rule: RuleEntry }) {
+/** Plain labels for attach mode: "active" means approved, not live bitmap. */
+const ATTACH_STATUS_LABEL: Record<string, string> = {
+  active: "approved",
+  pending_review: "pending review",
+  rejected: "rejected",
+  superseded: "superseded",
+};
+
+const ATTACH_STATUS_TIP: Record<string, string> = {
+  active:
+    "Approved rule. Ready to compile into a bitmap - not the same as being in the live bitmap.",
+  pending_review: "Waiting for review. Not approved yet.",
+  rejected: "Rejected or excluded. Will not compile into a bitmap.",
+  superseded: "Replaced by a newer rule version.",
+};
+
+function ruleStatusLabel(status: string, attachMode: boolean): string {
+  if (attachMode) return ATTACH_STATUS_LABEL[status] ?? status.replace(/_/g, " ");
+  return status.replace(/_/g, " ");
+}
+
+function RuleStatusChip({
+  rule,
+  attachMode = false,
+}: {
+  rule: RuleEntry;
+  attachMode?: boolean;
+}) {
   const color = STATUS_COLOR[rule.status] ?? "default";
-  return (
+  const chip = (
     <Chip
       icon={STATUS_ICON[rule.status] as React.ReactElement}
-      label={rule.status.replace("_", " ")}
+      label={ruleStatusLabel(rule.status, attachMode)}
       size="small"
       color={color}
       variant="outlined"
       sx={{ height: 20, fontSize: "0.68rem", mr: 0.5 }}
     />
   );
+  const tip = attachMode ? ATTACH_STATUS_TIP[rule.status] : undefined;
+  return tip ? <Tooltip title={tip}>{chip}</Tooltip> : chip;
 }
 
 // -- Single recommendation row ----------------------------------------------
@@ -148,6 +180,7 @@ function RecRow({ rec, sel, onChange, attachMode = false }: RecRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasRule = rec.rules.length > 0;
   const preview = rec.verbatim ? rec.verbatim.slice(0, 120) : "(no text stored)";
+  const latestRule = attachMode ? pickLatestRule(rec.rules) : null;
 
   return (
     <Box sx={{ py: 0.75, borderBottom: "1px solid", borderColor: "grey.100" }}>
@@ -169,7 +202,12 @@ function RecRow({ rec, sel, onChange, attachMode = false }: RecRowProps) {
                 sx={{ height: 18, fontSize: "0.68rem", fontFamily: "monospace", bgcolor: "grey.100" }}
               />
             )}
-            {rec.rules.map((r) => <RuleStatusChip key={r.rule_id} rule={r} />)}
+            {attachMode && latestRule ? (
+              <RuleStatusChip rule={latestRule} attachMode />
+            ) : null}
+            {!attachMode
+              ? rec.rules.map((r) => <RuleStatusChip key={r.rule_id} rule={r} />)
+              : null}
             {!rec.is_normative && (
               <Chip label="cross-ref" size="small" color="warning" sx={{ height: 16, fontSize: "0.62rem" }} />
             )}
@@ -724,15 +762,14 @@ export default function RecommendationPickerDialog({
               const attached: AttachedRecommendation[] = allRecs
                 .filter((r) => selection[r.rec_id]?.checked)
                 .map((r) => {
-                  const active = r.rules.find((rule) => rule.status === "active");
-                  const first = r.rules[0];
+                  const chosen = pickAttachRule(r.rules);
                   return {
                     recId: r.rec_id,
                     guidelineCode: code,
                     verbatim: r.verbatim || "",
                     recTitle: r.rec_title || "",
-                    ruleId: (active || first)?.rule_id || "",
-                    ruleStatus: (active || first)?.status || "",
+                    ruleId: chosen?.rule_id || "",
+                    ruleStatus: chosen?.status || "",
                   };
                 });
               onAttach(attached);

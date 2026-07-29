@@ -16,6 +16,7 @@ export type CaseGoldScore = "pass" | "fail" | "error" | "pending";
 
 export async function scoreSheetItems(
   items: MultiRunSheetItem[],
+  rulesetVersion?: string,
 ): Promise<{
   summary: CandidateTestSummary;
   byCase: Record<string, CaseGoldScore>;
@@ -26,9 +27,14 @@ export async function scoreSheetItems(
   let errored = 0;
 
   for (const item of items) {
-    if (item.status !== "completed" || !item.runId) {
+    if (item.status === "failed") {
       byCase[item.caseId] = "error";
       errored += 1;
+      continue;
+    }
+    if (item.status !== "completed" || !item.runId) {
+      // Still queued/running when the watcher stops -- not a gold fail.
+      byCase[item.caseId] = "pending";
       continue;
     }
     try {
@@ -49,7 +55,13 @@ export async function scoreSheetItems(
   }
 
   return {
-    summary: { tested: items.length, passed, failed, errored },
+    summary: {
+      tested: items.length,
+      passed,
+      failed,
+      errored,
+      rulesetVersion,
+    },
     byCase,
   };
 }
@@ -80,8 +92,9 @@ export function progressCounts(items: MultiRunSheetItem[]): {
 
 export function goldScoreColor(
   gold: CaseGoldScore,
-): "success.main" | "error.main" | "warning.main" {
+): "success.main" | "error.main" | "warning.main" | "text.secondary" {
   if (gold === "pass") return "success.main";
   if (gold === "fail") return "error.main";
+  if (gold === "pending") return "text.secondary";
   return "warning.main";
 }
