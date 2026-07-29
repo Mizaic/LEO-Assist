@@ -9,7 +9,7 @@
  *
  * Exercises "Or instead, add..." on Suggest (Who trees are pre-seeded).
  *
- * Atlas trace: DI-42246DA7 / DO-F8C56339
+ * Atlas trace: UN-49C83395 / DI-42246DA7 / DO-F8C56339 / VAL-8672AC7E
  *
  * Run from services/ui:
  *   PLAYWRIGHT_BASE_URL=http://localhost:3017 PLAYWRIGHT_REUSE_SERVER=false \

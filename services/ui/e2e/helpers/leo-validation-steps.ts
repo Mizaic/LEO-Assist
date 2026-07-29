@@ -13,20 +13,24 @@ type RecordProtocolStepOptions = {
   screenshotTarget?: Locator;
   notes?: string;
   evidenceCaption?: string;
+  /** When set, upload this file instead of capturing a fresh screenshot. */
+  evidencePath?: string;
 };
 
 export async function recordProtocolStep(
   options: RecordProtocolStepOptions,
 ): Promise<void> {
   const stepText = options.protocol[options.stepIndex];
-  const screenshotPath = await attachStepScreenshot({
-    valId: options.valId,
-    stepIndex: options.stepIndex,
-    stepName: stepText,
-    page: options.page,
-    testInfo: options.testInfo,
-    screenshotTarget: options.screenshotTarget,
-  });
+  const screenshotPath =
+    options.evidencePath ??
+    (await attachStepScreenshot({
+      valId: options.valId,
+      stepIndex: options.stepIndex,
+      stepName: stepText,
+      page: options.page,
+      testInfo: options.testInfo,
+      screenshotTarget: options.screenshotTarget,
+    }));
 
   await recordStep(
     options.request,
