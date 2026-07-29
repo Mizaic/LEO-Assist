@@ -41,16 +41,39 @@ const PROTOCOL = [
   "Confirm the walkthrough screenshot pack for the protocol steps is attached to the Atlas execution run.",
 ] as const;
 
-/** One representative screenshot per protocol step from the 1.1.2 pack. */
-const STEP_EVIDENCE = [
-  "01-review-pool-card.png",
-  "02-who-always-true-age.png",
-  "03-situations-split-confirm.png",
-  "05-situation-a-all-symptoms-coded.png",
-  "13-suggest-action-coded.png",
-  "20-save-reason-filled.png",
-  "22-review-pool-after-save.png",
+/**
+ * One representative frame per protocol step. Resolve by slug substring
+ * against the numbered 1.1.2 pack (NNN-slug.png) so renumbering does not
+ * break the VAL when the walkthrough adds intermediate click frames.
+ */
+const STEP_EVIDENCE_SLUGS = [
+  /review-pool-card-before-edit/,
+  /who-always-true/,
+  /situations-split-confirm/,
+  /situation-a-all-symptoms-coded/,
+  /suggest-action-coded/,
+  /save-reason-filled/,
+  /review-pool-after-save/,
 ] as const;
+
+function resolveEvidenceFile(slugPattern: RegExp): string {
+  if (!fs.existsSync(SHOT_DIR)) {
+    throw new Error(
+      `Missing walkthrough pack dir ${SHOT_DIR}. Run ng12-1-1-2-rule-build-walkthrough.spec.ts first.`,
+    );
+  }
+  const matches = fs
+    .readdirSync(SHOT_DIR)
+    .filter((name) => name.endsWith(".png") && slugPattern.test(name))
+    .sort();
+  if (matches.length === 0) {
+    throw new Error(
+      `No screenshot in ${SHOT_DIR} matching ${slugPattern}. ` +
+        "Run ng12-1-1-2-rule-build-walkthrough.spec.ts first.",
+    );
+  }
+  return matches[0]!;
+}
 
 function evidencePath(fileName: string): string {
   const full = path.join(SHOT_DIR, fileName);
@@ -68,8 +91,8 @@ test.describe("VAL-8AB4C593 NG12 guided rule authoring @val", () => {
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());
     assertValidationRunConfig();
-    for (const fileName of STEP_EVIDENCE) {
-      expect(fs.existsSync(path.join(SHOT_DIR, fileName))).toBe(true);
+    for (const slug of STEP_EVIDENCE_SLUGS) {
+      expect(fs.existsSync(evidencePath(resolveEvidenceFile(slug)))).toBe(true);
     }
   });
 
@@ -112,7 +135,7 @@ test.describe("VAL-8AB4C593 NG12 guided rule authoring @val", () => {
           await ctx.page.waitForLoadState("load");
 
           for (let stepIndex = 0; stepIndex < PROTOCOL.length; stepIndex++) {
-            const fileName = STEP_EVIDENCE[stepIndex];
+            const fileName = resolveEvidenceFile(STEP_EVIDENCE_SLUGS[stepIndex]!);
             await recordProtocolStep({
               request: ctx.request,
               runId: ctx.runId,

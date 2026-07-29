@@ -403,6 +403,32 @@ describe("treeOps", () => {
     expect(findValidationError(tree)).toBeNull();
   });
 
+  it("assignNodeIds promotes AI raw_term / source_text onto source_row_text", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "demographic" as unknown as "DEMOGRAPHIC",
+          field: "age",
+          operator: "<=",
+          value: 24,
+          unit: "years",
+          raw_term: "children and young people",
+        } as unknown as EditableLogicNode,
+        {
+          kind: "concept" as unknown as "CONCEPT",
+          criterion: {
+            snomed_concept_id: "30746006",
+            preferred_term: "Lymphadenopathy (disorder)",
+            source_text: "unexplained lymphadenopathy",
+          } as unknown as EditableLogicNode["criterion"],
+        },
+      ],
+    });
+    expect(tree.children![0].source_row_text).toBe("children and young people");
+    expect(tree.children![1].source_row_text).toBe("unexplained lymphadenopathy");
+  });
+
   it("stripNodeIds removes node_id while preserving structure", () => {
     const tree = makeTree();
     const stripped = stripNodeIds(tree);

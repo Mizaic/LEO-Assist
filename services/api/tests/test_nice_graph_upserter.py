@@ -465,6 +465,30 @@ def test_extract_code(guidance_json, expected):
         ({"Title": "2-week referral for suspected bowel cancer"}, "urgent_2w"),
         ({"Title": "Immediate referral for bowel obstruction"}, "immediate"),
         ({"Title": "Consider routine investigation"}, "routine"),
+        (
+            {
+                "Title": "1.10.9",
+                "Text": (
+                    "Consider a very urgent referral (for an appointment "
+                    "within 48 hours) for specialist assessment for "
+                    "Hodgkin lymphoma"
+                ),
+            },
+            "very_urgent_48h",
+        ),
+        (
+            {"Title": "Consider a non-urgent direct access endoscopy"},
+            "routine",
+        ),
+        (
+            {
+                "Text": (
+                    "Refer people using a suspected cancer pathway "
+                    "referral for lung cancer"
+                ),
+            },
+            "urgent_2w",
+        ),
     ],
 )
 def test_extract_urgency(rec, expected):

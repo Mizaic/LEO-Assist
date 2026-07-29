@@ -54,24 +54,12 @@ export function demographicMatchCandidates(node: EditableLogicNode): string[] {
   if (node.field !== "age") return [];
 
   const out: string[] = [];
-  if (node.operator === "between" && node.value2 != null) {
-    out.push(`${value} to ${node.value2}`);
-    out.push(`aged ${value} to ${node.value2}`);
-  } else {
-    const suffix: Record<string, string> = {
-      ">=": "or over",
-      "<=": "or under",
-      ">": "or more",
-      "<": "or less",
-      "=": "",
-    };
-    out.push(`aged ${value} ${suffix[node.operator ?? ">="] ?? ""}`.trim());
-  }
-
+  const op = node.operator ?? ">=";
   const n = Number(value);
   const n2 = node.value2 != null ? Number(node.value2) : NaN;
-  const op = node.operator ?? "";
-  // NICE NG12 glossary bands -- keep in sync with demographicPhraseMatch.
+  // NICE glossary bands first -- recommendations usually say the label
+  // ("children and young people"), not the numeric threshold from the
+  // definition. Keep in sync with demographicPhraseMatch.
   if ((op === "<=" || op === "<") && (n === 24 || n === 25)) {
     out.push("children and young people");
   }
@@ -83,6 +71,30 @@ export function demographicMatchCandidates(node: EditableLogicNode): string[] {
   }
   if ((op === ">=" || op === ">") && (n === 18 || n === 25)) {
     out.push("adults");
+  }
+
+  if (op === "between" && node.value2 != null) {
+    out.push(`${value} to ${node.value2}`);
+    out.push(`aged ${value} to ${node.value2}`);
+  } else if (op === "<") {
+    // NICE NG12 1.3.1 E: "aged under 50" -- prefer that over "or less".
+    out.push(`aged under ${value}`);
+    out.push(`under the age of ${value}`);
+    out.push(`aged ${value} or less`);
+  } else if (op === "<=") {
+    out.push(`aged ${value} or under`);
+    out.push(`aged ${value} and under`);
+    out.push(`aged under ${value}`);
+  } else {
+    const suffix: Record<string, string> = {
+      ">=": "or over",
+      ">": "or more",
+      "=": "",
+    };
+    out.push(`aged ${value} ${suffix[op] ?? ""}`.trim());
+    if (op === ">=") {
+      out.push(`aged ${value} and over`);
+    }
   }
   return out;
 }

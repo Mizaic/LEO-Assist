@@ -50,7 +50,7 @@ def test_2ww_rule_fires_pathway_hints_and_heading() -> None:
     out = format_assessment(matched_rules=rules, patient_codes=["123"])
 
     assert "Two week wait" in out.markdown
-    assert "R-2WW" in out.markdown
+    assert "2WW lung" in out.markdown
     assert "Within 14 days (two-week wait)" == out.pathway_hints["stt"]
     assert "R-2WW" in (out.pathway_hints["stt_evidence"] or "")
     assert out.pathway_hints["rtr"] == "yes"
@@ -75,7 +75,29 @@ def test_rules_are_priority_sorted() -> None:
     ]
     out = format_assessment(matched_rules=rules, patient_codes=["1"])
     md = out.markdown
-    assert md.find("R-2WW") < md.find("R-URGENT") < md.find("R-ROUTINE")
+    # Markdown bullets cite the rule name, not rule_id.
+    assert md.find("**2WW**") < md.find("**Urgent**") < md.find("**Routine**")
+
+
+def test_very_urgent_outranks_2ww_and_urgent() -> None:
+    """NICE very-urgent (48h) must bucket above 2WW and plain urgent."""
+    rules = [
+        _rule("R-URGENT", priority="urgent", due_days=7, name="Urgent arm"),
+        _rule("R-2WW", priority="2ww", due_days=14, name="2WW arm"),
+        _rule(
+            "R-VU",
+            priority="very_urgent",
+            due_days=2,
+            name="Very urgent arm",
+        ),
+    ]
+    out = format_assessment(matched_rules=rules, patient_codes=["1"])
+    md = out.markdown
+    assert "### Very urgent (within 48 hours)" in md
+    assert md.find("Very urgent arm") < md.find("2WW arm") < md.find("Urgent arm")
+    assert out.pathway_hints["stt"] == "Within 2 days (very urgent)"
+    assert out.pathway_hints["rtr"] == "yes"
+    assert "R-VU" in (out.pathway_hints["rtr_evidence"] or "")
 
 
 def test_rule_snapshot_is_trimmed_and_serialisable() -> None:
@@ -84,7 +106,9 @@ def test_rule_snapshot_is_trimmed_and_serialisable() -> None:
     assert len(out.rules) == 1
     snap = out.rules[0]
     assert snap["rule_id"] == "R-1"
-    assert "recommendation_verbatim" in snap
+    # Verbatim recommendation text is intentionally excluded from the
+    # trimmed snapshot (keeps the recommendation LLM from anchoring).
+    assert "recommendation_verbatim" not in snap
     assert snap["action"]["priority"] == "urgent"
 
 

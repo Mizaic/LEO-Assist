@@ -4,6 +4,8 @@
  *
  * Exercises OBSERVATION (lab value) criteria -- operator "is at least",
  * threshold 10 -- plus adult age and a colorectal 2WW referral action.
+ * Every user click and typed value is captured as a numbered screenshot
+ * under e2e/screenshots/ng12-1-3-2/.
  *
  * Atlas trace: UN-49C83395 / DI-42246DA7 / DO-F8C56339 / VAL-8AB4C593
  *
@@ -12,8 +14,18 @@
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import fs from "fs";
 import path from "path";
+import {
+  btnByLabel,
+  confirmSituation,
+  fillSaveReason,
+  openEditDialog,
+  pickSuggestAction,
+} from "./helpers/ng12-walkthrough-actions";
+import {
+  createWalkthroughEvidence,
+  type Evidence,
+} from "./helpers/walkthrough-evidence";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
 const SCREENSHOT_DIR = path.join(__dirname, "screenshots", "ng12-1-3-2");
@@ -155,20 +167,24 @@ async function installFixtures(
   page: Page,
   captured: { decision: DecisionBody | null },
 ) {
-  await page.route("**/api/guidance/rules/review*status=pending_review*", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify([RULE]),
-    }),
-  );
-  for (const status of ["active", "superseded", "rejected"]) {
-    await page.route(`**/api/guidance/rules/review*status=${status}*`, (route) =>
+  await page.route(
+    "**/api/guidance/rules/review*status=pending_review*",
+    (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify([]),
+        body: JSON.stringify([RULE]),
       }),
+  );
+  for (const status of ["active", "superseded", "rejected"]) {
+    await page.route(
+      `**/api/guidance/rules/review*status=${status}*`,
+      (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify([]),
+        }),
     );
   }
   await page.route("**/api/guidance/rules/review/*/decision", async (route) => {
@@ -199,7 +215,9 @@ async function installFixtures(
     const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
     const hits =
       SEARCH_HITS[q] ??
-      Object.entries(SEARCH_HITS).find(([k]) => q.includes(k) || k.includes(q))?.[1] ??
+      Object.entries(SEARCH_HITS).find(
+        ([k]) => q.includes(k) || k.includes(q),
+      )?.[1] ??
       [];
     route.fulfill({
       status: 200,
@@ -214,20 +232,6 @@ async function installFixtures(
       body: JSON.stringify([]),
     }),
   );
-}
-
-async function dismissSplash(page: Page) {
-  await page
-    .getByRole("button", { name: /skip the guideline builder intro animation/i })
-    .click({ timeout: 3000 })
-    .catch(() => {});
-}
-
-async function shot(page: Page, name: string) {
-  await page.screenshot({
-    path: path.join(SCREENSHOT_DIR, `${name}.png`),
-    fullPage: false,
-  });
 }
 
 async function runAxeDialog(page: Page) {
@@ -248,47 +252,12 @@ async function runAxeDialog(page: Page) {
   ).toEqual([]);
 }
 
-function btnByLabel(root: Locator, label: string | RegExp): Locator {
-  return root.getByRole("button").filter({ hasText: label });
-}
-
-async function openEditDialog(page: Page): Promise<Locator> {
-  await page.goto("/admin/knowledge?tab=clinical-guidelines");
-  await page.waitForLoadState("load");
-  await dismissSplash(page);
-
-  const reviewTab = page.getByTestId("segmented-tab-review");
-  if (await reviewTab.isVisible().catch(() => false)) {
-    await reviewTab.click();
-  }
-  await expect(page.locator("#rule-review-body")).toBeVisible({
-    timeout: 15000,
-  });
-
-  const pendingPool = page.getByTestId("rule-pool-pending");
-  const pendingToggle = pendingPool.locator("button[aria-expanded]").first();
-  if ((await pendingToggle.getAttribute("aria-expanded")) !== "true") {
-    await pendingToggle.click();
-  }
-
-  await page
-    .getByRole("button", { name: `Toggle rule from ${RULE.guideline_id}` })
-    .click();
-  await shot(page, "01-review-pool-card");
-  await page.getByRole("button", { name: `Edit rule ${RULE.rule_id}` }).click();
-
-  const dialog = page.getByRole("dialog", { name: /Change this rule/i });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId("highlight-wizard")).toBeVisible();
-  return dialog;
-}
-
-async function setFitThresholdToTen(dialog: Locator) {
+async function setFitThresholdToTen(dialog: Locator, ev: Evidence) {
   const obsRow = dialog.getByTestId("prerequisite-row-fit-obs");
   await expect(obsRow).toBeVisible({ timeout: 10000 });
-  // Tooltip may own the accessible name; click visible Edit/Done text.
   const editOrDone = obsRow.getByText(/^(Edit|Done|Tap to place it manually)$/);
   if ((await obsRow.getByText("Done").count()) === 0) {
+    await ev.shot("who-fit-edit-before");
     await editOrDone.first().click();
   }
   await expect(
@@ -297,62 +266,67 @@ async function setFitThresholdToTen(dialog: Locator) {
   await expect(dialog.getByLabel(/how to compare the lab value/i)).toHaveText(
     /is at least/i,
   );
+  await ev.shot("who-fit-editor-open");
 
   const valueField = dialog.getByLabel(/^value$/i);
   await valueField.fill("10");
   await expect(valueField).toHaveValue("10");
+  await ev.shot("who-fit-value-10");
 
   const unitField = dialog.getByLabel(/^unit$/i);
   await unitField.fill("ug/g");
   await expect(unitField).toHaveValue("ug/g");
+  await ev.shot("who-fit-unit-ug-g");
 
   await obsRow.getByText("Done").click();
+  await ev.shot("who-fit-threshold-10");
 }
 
 test.describe("NG12 1.3.2 rule-build walkthrough (DI-42246DA7)", () => {
-  test.beforeAll(() => {
-    fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  });
-
   test("builds 1.3.2 with FIT observation threshold and colorectal referral", async ({
     page,
   }) => {
     test.setTimeout(240_000);
+    const ev = createWalkthroughEvidence(page, SCREENSHOT_DIR);
     const captured: { decision: DecisionBody | null } = { decision: null };
     await installFixtures(page, captured);
 
-    const dialog = await openEditDialog(page);
+    const dialog = await openEditDialog(page, RULE, ev);
 
     // -- Who: age + edit FIT lab value --------------------------------
     await expect(dialog.getByText("Always true")).toBeVisible();
     await expect(dialog.getByTestId("prerequisite-row-age")).toBeVisible();
     await expect(dialog.getByTestId("prerequisite-row-fit-obs")).toBeVisible();
     await runAxeDialog(page);
-    await shot(page, "02-who-age-and-fit-obs");
+    await ev.shot("who-always-true");
 
-    await setFitThresholdToTen(dialog);
+    await setFitThresholdToTen(dialog, ev);
     await runAxeDialog(page);
-    await shot(page, "03-who-fit-threshold-10");
 
     await btnByLabel(dialog, /No, nothing else/i).click();
+    await ev.shot("who-after-nothing-else");
 
     // -- Situations: single-sentence rec does not split ---------------
     await expect(
       dialog.getByText(/couldn't find more than one situation/i),
     ).toBeVisible({ timeout: 15000 });
     await runAxeDialog(page);
-    await shot(page, "04-situations-no-split");
-    await btnByLabel(dialog, /Doesn't split -- one set of rules for everyone/i).click();
+    await ev.shot("situations-no-split");
+    await btnByLabel(
+      dialog,
+      /Doesn't split -- one set of rules for everyone/i,
+    ).click();
 
     // -- One situation: confirm FIT wording is covered ----------------
     await expect(dialog.getByText(/situation a/i).first()).toBeVisible({
       timeout: 15000,
     });
-    await shot(page, "05-situation-a-fit-phrase");
+    await ev.shot("situation-a-open");
     const confirmA = btnByLabel(dialog, /^confirm situation a$/i);
     if (await confirmA.isVisible().catch(() => false)) {
-      await confirmA.click();
+      await confirmSituation(dialog, "a", ev);
     } else {
+      await ev.shot("situation-a-ready-to-confirm");
       await btnByLabel(dialog, /confirm situation/i).first().click();
     }
 
@@ -362,9 +336,11 @@ test.describe("NG12 1.3.2 rule-build walkthrough (DI-42246DA7)", () => {
     });
     const preview = dialog.locator('[data-tour="er-06-preview"]');
     await expect(preview).toBeVisible();
-    await expect(preview.getByText(/faecal immunochemical|FIT|10/i).first()).toBeVisible();
+    await expect(
+      preview.getByText(/faecal immunochemical|FIT|10/i).first(),
+    ).toBeVisible();
     await runAxeDialog(page);
-    await shot(page, "06-wizard-review-live-preview");
+    await ev.shot("wizard-review-live-preview");
 
     // -- Suggest: colorectal 2WW referral -----------------------------
     await btnByLabel(dialog, /^Next/i).click();
@@ -373,21 +349,16 @@ test.describe("NG12 1.3.2 rule-build walkthrough (DI-42246DA7)", () => {
         name: /what should the system suggest/i,
       }),
     ).toBeVisible({ timeout: 15000 });
-    await shot(page, "07-suggest-uncoded-action");
+    await ev.shot("suggest-uncoded-action");
 
-    await dialog
-      .getByRole("button", {
-        name: /no procedure picked yet\. click to pick/i,
-      })
-      .click();
-    const search = dialog.getByLabel(/search clinical terms/i);
-    await expect(search).toBeVisible({ timeout: 10000 });
-    await search.fill("colorectal");
-    await page
-      .getByRole("button", {
-        name: /Use Fast track referral for suspected colorectal cancer/i,
-      })
-      .click({ timeout: 15000 });
+    await pickSuggestAction(
+      page,
+      dialog,
+      "colorectal",
+      /Use Fast track referral for suspected colorectal cancer/i,
+      ev,
+      "suggest",
+    );
     await expect(
       dialog.getByRole("button", {
         name: /fast track referral for suspected colorectal cancer/i,
@@ -397,27 +368,30 @@ test.describe("NG12 1.3.2 rule-build walkthrough (DI-42246DA7)", () => {
     const prioritySelect = dialog.locator("#edit-rule-priority");
     await prioritySelect.scrollIntoViewIfNeeded();
     await prioritySelect.click();
-    await page.getByRole("option", { name: /^Urgent\b|2.?week/i }).first().click();
+    await ev.shot("suggest-priority-menu");
+    await page
+      .getByRole("option", { name: /^Urgent\b|2.?week/i })
+      .first()
+      .click();
+    await ev.shot("suggest-priority-set");
 
     const strengthSelect = dialog.locator("#edit-rule-action-strength-0");
     await strengthSelect.scrollIntoViewIfNeeded();
     await strengthSelect.click();
-    await page.getByRole("option", { name: /Offer this test or referral/i }).click();
-    await shot(page, "08-suggest-referral-coded");
+    await ev.shot("suggest-strength-menu");
+    await page
+      .getByRole("option", { name: /Offer this test or referral/i })
+      .click();
+    await ev.shot("suggest-referral-coded");
 
     await btnByLabel(dialog, /^Next/i).click();
 
     // -- Save ---------------------------------------------------------
-    await expect(
-      dialog.getByRole("heading", { name: /save your change/i }),
-    ).toBeVisible({ timeout: 10000 });
-    await shot(page, "09-save-before-after-preview");
-    await dialog
-      .getByLabel(/why are you changing this rule/i)
-      .fill(
-        "Walkthrough: NG12 1.3.2 FIT observation >= 10 ug/g and colorectal referral.",
-      );
-    await shot(page, "10-save-reason-filled");
+    await fillSaveReason(
+      dialog,
+      "Walkthrough: NG12 1.3.2 FIT observation >= 10 ug/g and colorectal referral.",
+      ev,
+    );
     await btnByLabel(dialog, /approve and save/i).click();
     await expect(dialog).toBeHidden({ timeout: 15000 });
 
@@ -434,6 +408,7 @@ test.describe("NG12 1.3.2 rule-build walkthrough (DI-42246DA7)", () => {
     expect(actions[0]?.criterion?.snomed_concept_id).toBe(REFERRAL_ID);
     expect(actions[0]?.strength).toBe("offer");
 
-    await shot(page, "11-review-pool-after-save");
+    await ev.shot("review-pool-after-save");
+    expect(ev.count()).toBeGreaterThan(15);
   });
 });

@@ -90,7 +90,13 @@ SBAR_RECOMMENDATION_OUTPUT_SCHEMA = {
                     "action": {"type": "string", "minLength": 1},
                     "priority": {
                         "type": "string",
-                        "enum": ["immediate", "2ww", "urgent", "routine"],
+                        "enum": [
+                            "immediate",
+                            "very_urgent",
+                            "2ww",
+                            "urgent",
+                            "routine",
+                        ],
                     },
                     "due_days": {"type": ["integer", "null"], "minimum": 0},
                     "rationale": {"type": "string"},

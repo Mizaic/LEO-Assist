@@ -7,16 +7,25 @@
  * Jumps to Suggest (Who tree is pre-seeded) and builds the CT -> US
  * chain with "If not available, add...".
  *
+ * Evidence at each Suggest click/type. Numbered screenshots under
+ * e2e/screenshots/ng12-1-2-5/.
+ *
  * Atlas trace: UN-49C83395 / DI-42246DA7 / DO-F8C56339 / VAL-8672AC7E
  *
  * Run from services/ui:
- *   PLAYWRIGHT_BASE_URL=http://localhost:3017 PLAYWRIGHT_REUSE_SERVER=false \
- *     npx playwright test ng12-1-2-5-preferred-fallback-walkthrough --project=chromium
+ *   npx playwright test ng12-1-2-5-preferred-fallback-walkthrough --project=chromium
  */
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import fs from "fs";
 import path from "path";
+import {
+  btnByLabel,
+  fillSaveReason,
+  openEditDialog,
+  pickSuggestAction,
+  typeSuggestProcedure,
+} from "./helpers/ng12-walkthrough-actions";
+import { createWalkthroughEvidence } from "./helpers/walkthrough-evidence";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
 const SCREENSHOT_DIR = path.join(__dirname, "screenshots", "ng12-1-2-5");
@@ -190,20 +199,6 @@ async function installFixtures(
   );
 }
 
-async function dismissSplash(page: Page) {
-  await page
-    .getByRole("button", { name: /skip the guideline builder intro animation/i })
-    .click({ timeout: 3000 })
-    .catch(() => {});
-}
-
-async function shot(page: Page, name: string) {
-  await page.screenshot({
-    path: path.join(SCREENSHOT_DIR, `${name}.png`),
-    fullPage: false,
-  });
-}
-
 async function runAxeDialog(page: Page) {
   const results = await new AxeBuilder({ page })
     .include('[role="dialog"]')
@@ -222,67 +217,15 @@ async function runAxeDialog(page: Page) {
   ).toEqual([]);
 }
 
-function btnByLabel(root: Locator, label: string | RegExp): Locator {
-  return root.getByRole("button").filter({ hasText: label });
-}
-
-async function pickProcedure(
-  page: Page,
-  dialog: Locator,
-  query: string,
-  useLabel: RegExp,
-) {
-  const search = dialog.getByLabel(/search clinical terms/i);
-  await expect(search).toBeVisible({ timeout: 10000 });
-  await search.fill(query);
-  await page.getByRole("button", { name: useLabel }).click({ timeout: 15000 });
-}
-
-async function openEditDialog(page: Page): Promise<Locator> {
-  await page.goto("/admin/knowledge?tab=clinical-guidelines");
-  await page.waitForLoadState("load");
-  await dismissSplash(page);
-
-  const reviewTab = page.getByTestId("segmented-tab-review");
-  if (await reviewTab.isVisible().catch(() => false)) {
-    await reviewTab.click();
-  }
-  await expect(page.locator("#rule-review-body")).toBeVisible({
-    timeout: 15000,
-  });
-
-  const pendingPool = page.getByTestId("rule-pool-pending");
-  const pendingToggle = pendingPool.locator("button[aria-expanded]").first();
-  if ((await pendingToggle.getAttribute("aria-expanded")) !== "true") {
-    await pendingToggle.click();
-  }
-
-  await page
-    .getByRole("button", { name: `Toggle rule from ${RULE.guideline_id}` })
-    .click();
-  await expect(
-    page.getByRole("button", { name: `Edit rule ${RULE.rule_id}` }),
-  ).toBeVisible();
-  await shot(page, "01-review-pool-card");
-  await page.getByRole("button", { name: `Edit rule ${RULE.rule_id}` }).click();
-
-  const dialog = page.getByRole("dialog", { name: /Change this rule/i });
-  await expect(dialog).toBeVisible();
-  return dialog;
-}
-
 test.describe("NG12 1.2.5 preferred-fallback walkthrough (DI-42246DA7)", () => {
-  test.beforeAll(() => {
-    fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  });
-
   test("builds CT then ultrasound if CT not available", async ({ page }) => {
     test.setTimeout(240_000);
+    const ev = createWalkthroughEvidence(page, SCREENSHOT_DIR);
     const captured: { decision: DecisionBody | null } = { decision: null };
     await installFixtures(page, captured);
 
-    const dialog = await openEditDialog(page);
-    await shot(page, "02-who-seeded");
+    const dialog = await openEditDialog(page, RULE, ev);
+    await ev.shot("who-seeded");
 
     await dialog
       .getByRole("button", {
@@ -295,23 +238,20 @@ test.describe("NG12 1.2.5 preferred-fallback walkthrough (DI-42246DA7)", () => {
       }),
     ).toBeVisible({ timeout: 15000 });
     await runAxeDialog(page);
-    await shot(page, "03-suggest-uncoded");
+    await ev.shot("suggest-uncoded");
 
-    await dialog
-      .getByRole("button", {
-        name: /no procedure picked yet\. click to pick/i,
-      })
-      .click();
-    await pickProcedure(
+    await pickSuggestAction(
       page,
       dialog,
       "ct abdomen",
       /Use CT of abdomen and pelvis/i,
+      ev,
+      "suggest-ct",
     );
     await expect(
       dialog.getByRole("button", { name: /ct of abdomen and pelvis/i }),
     ).toBeVisible({ timeout: 10000 });
-    await shot(page, "04-ct-coded");
+    await ev.shot("ct-coded-confirmed");
 
     await dialog
       .getByRole("button", {
@@ -321,22 +261,25 @@ test.describe("NG12 1.2.5 preferred-fallback walkthrough (DI-42246DA7)", () => {
     await expect(
       dialog.getByText(/Prefer the first\. If it is not available/i),
     ).toBeVisible({ timeout: 10000 });
-    await shot(page, "05-fallback-row-added");
+    await ev.shot("fallback-row-added");
 
-    await pickProcedure(
+    await typeSuggestProcedure(
       page,
       dialog,
       "ultrasound",
       /Use Ultrasound scan of abdomen/i,
+      ev,
+      "suggest-ultrasound",
     );
     await expect(
       dialog.getByRole("button", { name: /ultrasound scan of abdomen/i }),
     ).toBeVisible({ timeout: 10000 });
-    await shot(page, "06-both-coded");
+    await ev.shot("both-coded");
 
     const strength0 = dialog.locator("#edit-rule-action-strength-0");
     await strength0.scrollIntoViewIfNeeded();
     await strength0.click();
+    await ev.shot("strength-0-open");
     await page
       .getByRole("option", { name: /Think about this test or referral/i })
       .click();
@@ -346,30 +289,29 @@ test.describe("NG12 1.2.5 preferred-fallback walkthrough (DI-42246DA7)", () => {
     await page
       .getByRole("option", { name: /Think about this test or referral/i })
       .click();
+    await ev.shot("strengths-set");
 
     const prioritySelect = dialog.locator("#edit-rule-priority");
     await prioritySelect.scrollIntoViewIfNeeded();
     await prioritySelect.click();
     await page.getByRole("option", { name: /^Urgent\b/i }).click();
+    await ev.shot("priority-urgent");
 
     await expect(
       dialog.getByText(/If that is not available:/i),
     ).toBeVisible({ timeout: 10000 });
-    await shot(page, "07-live-preview-fallback");
+    await ev.shot("live-preview-fallback");
 
     await btnByLabel(dialog, /^Next/i).click();
-    await expect(
-      dialog.getByRole("heading", { name: /save your change/i }),
-    ).toBeVisible({ timeout: 10000 });
-    await dialog
-      .getByLabel(/why are you changing this rule/i)
-      .fill(
-        "Walkthrough: NG12 1.2.5 CT preferred, ultrasound if CT not available.",
-      );
-    await shot(page, "08-save-reason");
+    await fillSaveReason(
+      dialog,
+      "Walkthrough: NG12 1.2.5 CT preferred, ultrasound if CT not available.",
+      ev,
+    );
 
     await btnByLabel(dialog, /approve and save/i).click();
     await expect(dialog).toBeHidden({ timeout: 15000 });
+    await ev.shot("saved-dialog-closed");
 
     expect(captured.decision?.action).toBe("edit");
     const actions = captured.decision?.updates?.actions ?? [];

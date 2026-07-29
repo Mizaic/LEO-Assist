@@ -272,7 +272,14 @@ describe("StepPathwayConditions: the cluster grouping question", () => {
       />,
     );
 
-    expect(screen.getByText(/only one of these needs to match/i)).toBeInTheDocument();
+    expect(screen.getByTestId("lead-either-of-layout")).toBeInTheDocument();
+    expect(screen.getByText(/required in this situation/i)).toBeInTheDocument();
+    expect(screen.getByText(/plus either of these/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /only one of upper abdominal pain, nausea, and vomiting needs to match/i,
+      ),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /change/i }));
     expect(onChooseGrouping).toHaveBeenCalledWith("AND");
   });

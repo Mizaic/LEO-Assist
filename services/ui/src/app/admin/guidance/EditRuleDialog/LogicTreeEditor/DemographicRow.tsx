@@ -80,6 +80,7 @@ export default function DemographicRow({ node, onUpdate }: Props) {
         value={field}
         onChange={(e) => handleFieldChange(String(e.target.value))}
         inputProps={{ "aria-label": "What patient detail to check" }}
+        SelectDisplayProps={{ "aria-label": "What patient detail to check" }}
         sx={{ minWidth: 150, fontSize: "0.8rem" }}
       >
         {DEMOGRAPHIC_FIELDS.map((f) => (
@@ -100,6 +101,7 @@ export default function DemographicRow({ node, onUpdate }: Props) {
             value={String(node.value ?? "male")}
             onChange={(e) => set({ value: e.target.value })}
             inputProps={{ "aria-label": "Which sex" }}
+            SelectDisplayProps={{ "aria-label": "Which sex" }}
             sx={{ minWidth: 110, fontSize: "0.8rem" }}
           >
             {SEX_VALUES.map(({ value, label }) => (
@@ -115,6 +117,7 @@ export default function DemographicRow({ node, onUpdate }: Props) {
             value={node.operator ?? ">="}
             onChange={(e) => set({ operator: String(e.target.value) })}
             inputProps={{ "aria-label": "How to compare age" }}
+            SelectDisplayProps={{ "aria-label": "How to compare age" }}
             sx={{ minWidth: 130, fontSize: "0.8rem" }}
           >
             {AGE_OPERATORS.map((o) => (

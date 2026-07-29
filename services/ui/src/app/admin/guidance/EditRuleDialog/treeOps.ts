@@ -92,7 +92,32 @@ export function assignNodeIds(node: LogicNodeSeed): EditableLogicNode {
     }
   }
 
+  // AI drafts store the guideline phrase as ``raw_term`` (demographics)
+  // or ``criterion.source_text`` (concepts). The wizard anchors via
+  // ``source_row_text`` -- promote on load so glossary labels like
+  // "children and young people" highlight when those words are present.
+  promoteSourceRowText(base, node);
+
   return base;
+}
+
+function promoteSourceRowText(
+  base: EditableLogicNode,
+  seed: LogicNodeSeed,
+): void {
+  if (base.source_row_text?.trim()) return;
+  const raw = (seed as { raw_term?: unknown }).raw_term;
+  if (typeof raw === "string" && raw.trim()) {
+    base.source_row_text = raw.trim();
+    return;
+  }
+  if (base.kind !== "CONCEPT") return;
+  const sourceText = (
+    seed as { criterion?: { source_text?: unknown } }
+  ).criterion?.source_text;
+  if (typeof sourceText === "string" && sourceText.trim()) {
+    base.source_row_text = sourceText.trim();
+  }
 }
 
 const KIND_MAP: Record<string, LogicNodeKind> = {
@@ -1315,11 +1340,15 @@ export function findPriorityValidationError(
 ): string | null {
   if (
     priority !== "immediate" &&
+    priority !== "very_urgent" &&
     priority !== "2ww" &&
     priority !== "urgent" &&
     priority !== "routine"
   ) {
-    return "Pick a clinical priority: immediate, 2 week wait, urgent, or routine.";
+    return (
+      "Pick a clinical priority: immediate, very urgent (48 hours), " +
+      "2 week wait, urgent, or routine."
+    );
   }
   if (priority === "routine") return null;
   if (dueDays == null) return null;

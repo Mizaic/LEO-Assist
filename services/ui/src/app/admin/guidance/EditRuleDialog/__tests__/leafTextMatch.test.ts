@@ -57,6 +57,20 @@ describe("leafTextMatch", () => {
     expect(TEXT.slice(match!.start, match!.end)).toBe("aged 55 or over");
   });
 
+  it("anchors age < 50 onto NICE 'aged under 50' (NG12 1.3.1 E)", () => {
+    const ng =
+      "aged under 50 with rectal bleeding and either of the following unexplained symptoms:";
+    const node = makeNode({
+      kind: "DEMOGRAPHIC",
+      field: "age",
+      operator: "<",
+      value: "50",
+    });
+    const match = leafTextMatch(ng, node);
+    expect(match).not.toBeNull();
+    expect(ng.slice(match!.start, match!.end)).toBe("aged under 50");
+  });
+
   it("anchors age <= 24 onto NICE 'children and young people' (NG12 1.10.2)", () => {
     const ng =
       "1.10.2 Refer children and young people for immediate specialist " +

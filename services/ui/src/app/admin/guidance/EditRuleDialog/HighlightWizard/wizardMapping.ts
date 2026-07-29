@@ -383,15 +383,18 @@ export function readMaterializedPathways(
  * NG12 1.2.9 in production: situation B's "Already confirmed"
  * summary showed situation C's whole 6-item cluster mislabelled "A".
  *
- * A container with at least one already-resolved leaf carries real
- * evidence of which boundary it belongs to: `leafTextMatch` that leaf
- * against the WHOLE `recommendationText` (unwindowed -- the boundary
- * a leaf belongs to is exactly what this function is solving for, so
- * it cannot window by boundary first) and see which boundary's own
- * `[start, end)` span contains the match. A container with no leaves
- * yet (freshly materialized, still empty) carries no evidence either
- * way and keeps its relative position among the remaining, unclaimed
- * slots -- there is nothing to re-anchor it by.
+ * A container with at least one already-resolved CONCEPT or
+ * OBSERVATION leaf carries real evidence of which boundary it belongs
+ * to: `leafTextMatch` that leaf against the WHOLE `recommendationText`
+ * (unwindowed -- the boundary a leaf belongs to is exactly what this
+ * function is solving for, so it cannot window by boundary first) and
+ * see which boundary's own `[start, end)` span contains the match.
+ * DEMOGRAPHIC leaves are ignored for claiming -- age bands repeat
+ * across situations and the blank "Add age" default (>=40) would
+ * otherwise yank a container onto the wrong letter mid-edit.
+ * A container with no claiming leaves yet (freshly materialized, still
+ * empty, or age-only) keeps its relative position among the remaining,
+ * unclaimed slots.
  *
  * Two containers double-claiming the same boundary (bad underlying
  * data) resolves in original-order-wins: the first container to
@@ -448,7 +451,12 @@ export function orderPathwayNodesByBoundary(
   const unclaimedContainers: EditableLogicNode[] = [];
 
   for (const container of containers) {
+    // Age/sex alone must not re-anchor pathways. "Add age" defaults to
+    // >=40, which text-matches situation D ("aged 40 and over") and
+    // would yank the container off situation E mid-edit (NG12 1.3.1).
+    // CONCEPT / OBSERVATION leaves are the reliable situation signal.
     const claim = collectLeaves(container)
+      .filter((leaf) => leaf.kind === "CONCEPT" || leaf.kind === "OBSERVATION")
       .map((leaf) => leafTextMatch(recommendationText, leaf))
       .find(
         (match): match is TextMatchRange =>

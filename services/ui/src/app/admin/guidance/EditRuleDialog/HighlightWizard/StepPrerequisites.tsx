@@ -33,7 +33,7 @@ import Typography from "@mui/material/Typography";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import DemographicRow from "../LogicTreeEditor/DemographicRow";
 import ObservationRow from "../LogicTreeEditor/ObservationRow";
@@ -418,7 +418,7 @@ function PrerequisiteRow({
         {hasAnchor ? (
           <CheckCircleIcon fontSize="small" color="success" />
         ) : (
-          <WarningAmberRoundedIcon fontSize="small" color="warning" />
+          <InfoOutlinedIcon fontSize="small" color="action" />
         )}
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           {seedLabels.length > 1 ? (

@@ -152,7 +152,7 @@ describe("StepPrerequisites: automatic fuzzy matching", () => {
     expect(screen.getByText("Patient is 55 years or older")).toBeInTheDocument();
   });
 
-  it("shows a warning and 'place manually' action when nothing anchors a leaf", () => {
+  it("shows a neutral note and optional link action when nothing anchors a leaf", () => {
     const leaf = makeConceptLeaf("History of asbestos exposure", "999");
     render(
       <StepPrerequisites
@@ -167,11 +167,11 @@ describe("StepPrerequisites: automatic fuzzy matching", () => {
     );
 
     expect(
-      screen.getByText(/could not find matching words/i),
+      screen.getByText(/not highlighted in the guideline text/i),
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId(`prerequisite-row-${leaf.node_id}`)).getByText(
-        /tap to place it manually/i,
+        /link to wording/i,
       ),
     ).toBeInTheDocument();
   });

@@ -115,15 +115,18 @@ function priorityChipLabel(
   const base =
     priority === "immediate"
       ? "Immediate"
-      : priority === "2ww"
-        ? "2 week wait"
-        : priority === "urgent"
-          ? "Urgent"
-          : priority === "routine"
-            ? "Routine"
-            : priority.replace(/_/g, " ");
+      : priority === "very_urgent"
+        ? "Very urgent"
+        : priority === "2ww"
+          ? "2 week wait"
+          : priority === "urgent"
+            ? "Urgent"
+            : priority === "routine"
+              ? "Routine"
+              : priority.replace(/_/g, " ");
   if (priority === "routine" || dueDays == null) return base;
   if (priority === "immediate" && dueDays === 0) return base;
+  if (priority === "very_urgent" && dueDays === 2) return base + ", 48 hours";
   return `${base}, ${dueDays} days`;
 }
 
@@ -308,7 +311,14 @@ function RuleGenerationAlert({ rule }: { rule: Rule }) {
         Confirming moves it to the Excluded list so it is not compiled for live patients.
         <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
           {rule.generation_errors.slice(0, 5).map((err) => (
-            <Typography key={err} component="li" variant="caption" sx={{ display: "list-item" }}>{err}</Typography>
+            <Typography
+              key={err}
+              component="li"
+              variant="body2"
+              sx={{ display: "list-item", color: "inherit" }}
+            >
+              {err}
+            </Typography>
           ))}
         </Box>
       </Alert>
@@ -319,7 +329,14 @@ function RuleGenerationAlert({ rule }: { rule: Rule }) {
       AI generation did not finish for this recommendation. Open Edit rule to author criteria manually.
       <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2.5 }}>
         {rule.generation_errors.slice(0, 5).map((err) => (
-          <Typography key={err} component="li" variant="caption" sx={{ display: "list-item" }}>{err}</Typography>
+          <Typography
+            key={err}
+            component="li"
+            variant="body2"
+            sx={{ display: "list-item", color: "inherit" }}
+          >
+            {err}
+          </Typography>
         ))}
       </Box>
     </Alert>

@@ -147,6 +147,8 @@ def _site_from_form(form: dict | None) -> str:
 
 def _intent_from_urgency(urgency: str | None) -> tuple[str, float]:
     norm = (urgency or "").strip().lower()
+    if norm in {"immediate", "very_urgent", "very_urgent_48h"}:
+        return "suspected", 0.9
     if norm in {"2ww", "two_week_wait", "urgent_suspected_cancer", "fast_track"}:
         return "suspected", 0.85
     if norm in {"urgent"}:

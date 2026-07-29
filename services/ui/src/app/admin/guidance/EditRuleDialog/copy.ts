@@ -129,15 +129,18 @@ export function priorityLabel(
   const base =
     priority === "immediate"
       ? "Immediate specialist assessment"
-      : priority === "2ww"
-        ? "2 week wait (urgent suspected cancer)"
-        : priority === "urgent"
-          ? "Urgent"
-          : priority === "routine"
-            ? "Routine"
-            : priority;
+      : priority === "very_urgent"
+        ? "Very urgent (within 48 hours)"
+        : priority === "2ww"
+          ? "2 week wait (urgent suspected cancer)"
+          : priority === "urgent"
+            ? "Urgent"
+            : priority === "routine"
+              ? "Routine"
+              : priority;
   if (priority === "routine" || dueDays == null) return base;
   if (priority === "immediate" && dueDays === 0) return base;
+  if (priority === "very_urgent" && dueDays === 2) return base;
   return `${base}, within ${dueDays} days`;
 }
 
