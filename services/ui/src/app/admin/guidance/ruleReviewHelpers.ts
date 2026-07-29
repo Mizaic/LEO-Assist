@@ -70,7 +70,7 @@ export function mergeEditedRuleIntoCache(
      *  but are typed loosely here because they are about to be POSTed
      *  as plain JSON, not consumed as editor state. */
     actions?: Array<Record<string, unknown>>;
-    priority?: "immediate" | "2ww" | "urgent" | "routine";
+    priority?: "immediate" | "very_urgent" | "2ww" | "urgent" | "routine";
     due_days?: number | null;
   },
 ): Rule {

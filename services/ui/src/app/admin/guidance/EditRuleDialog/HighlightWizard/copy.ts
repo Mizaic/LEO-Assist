@@ -56,8 +56,20 @@ export const STEP_PREREQUISITES = {
   editLabel: "Edit",
   doneEditingLabel: "Done",
   removeLabel: "Remove",
-  placeManuallyLabel: "Tap to place it manually",
-  noAnchorHint: "Could not find matching words for this in the sentence.",
+  /**
+   * Optional: link this leaf to words in the quote. Not required --
+   * many always-true facts come from a glossary definition or a
+   * coded meaning that is not spelled out in the sentence (e.g. NICE
+   * "children and young people" -> age 24 or under).
+   */
+  placeManuallyLabel: "Link to wording",
+  /**
+   * Neutral note when the leaf has no quote highlight. Deliberately
+   * not an error -- missing words in the narrative is common and OK.
+   */
+  noAnchorHint:
+    "Not highlighted in the guideline text. That is fine when this " +
+    "comes from a definition or a coded meaning, not from the wording itself.",
   /** Adds a global age/sex check that applies no matter which
    *  situation matches -- distinct from Step 3's per-situation
    *  buttons of the same name, which only ever apply within one
@@ -182,12 +194,31 @@ export const STEP_PATHWAY_CONDITIONS = {
       ? `At least ${n} need to match (Recommended)`
       : `At least ${n} need to match`,
   allMustMatchLabel: "All must match",
+  /** Shown above a required lead finding that sits outside an either/or
+   *  group (NG12 1.3.1 E: rectal bleeding before the either-of symptoms). */
+  leadRequiredCaption: "Required in this situation.",
+  /** Heading above the either/or symptom rows after the lead. */
+  eitherOfHeading: "Plus either of these:",
   groupingConfirmedOnlyOne: "Only one of these needs to match.",
-  groupingConfirmedAtLeastN: (n: number) =>
-    n <= 1
-      ? "Only one of these needs to match."
-      : `At least ${n} of these need to match.`,
+  groupingConfirmedOnlyOneWithTerms: (terms: string[]) =>
+    terms.length > 0
+      ? `Only one of ${formatTermList(terms)} needs to match.`
+      : "Only one of these needs to match.",
+  groupingConfirmedAtLeastN: (n: number, terms: string[] = []) => {
+    if (n <= 1) {
+      return terms.length > 0
+        ? `Only one of ${formatTermList(terms)} needs to match.`
+        : "Only one of these needs to match.";
+    }
+    return terms.length > 0
+      ? `At least ${n} of ${formatTermList(terms)} need to match.`
+      : `At least ${n} of these need to match.`;
+  },
   groupingConfirmedAll: "All of these must match.",
+  groupingConfirmedAllWithTerms: (terms: string[]) =>
+    terms.length > 0
+      ? `All of ${formatTermList(terms)} must match.`
+      : "All of these must match.",
   clusterMinLabel: "How many must match",
   clusterMinOf: (total: number) => `of ${total}`,
   /** Shown under Confirm when a grouping card is still unanswered --
@@ -264,7 +295,8 @@ export const WIZARD_TOOLTIPS = {
   highlightMore: "Select more words from the guideline that must always be true.",
   editCaptured: "Change this captured item.",
   doneEditing: "Finish editing this captured item.",
-  placeManually: "Place this item on the sentence by hand.",
+  placeManually:
+    "Optional: highlight the guideline words this item relates to, if any.",
   removePrerequisite: "Remove this always-true condition from the rule.",
   looksRight: "Accept these situations and continue to build conditions.",
   merge: "Combine two neighbouring situations into one.",

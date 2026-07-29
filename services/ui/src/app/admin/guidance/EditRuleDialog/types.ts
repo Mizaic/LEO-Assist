@@ -130,11 +130,18 @@ export interface RuleAction {
 
 /**
  * Rule-level clinical priority written onto HAS_ACTION edges. Matches
- * the bitmap compiler / SBAR Assessment bucket vocabulary
- * (``"immediate"`` | ``"2ww"`` | ``"urgent"`` | ``"routine"``).
- * ``immediate`` covers NICE "immediate specialist assessment" (e.g. NG12 1.10.2).
+ * the bitmap compiler / SBAR Assessment bucket vocabulary.
+ * Rank (most urgent first): immediate > very_urgent > 2ww > urgent >
+ * routine.
+ * ``immediate`` = NICE same-day specialist assessment (e.g. NG12 1.10.2).
+ * ``very_urgent`` = NICE "very urgent" within 48 hours (e.g. NG12 1.10.9).
  */
-export type RulePriority = "immediate" | "2ww" | "urgent" | "routine";
+export type RulePriority =
+  | "immediate"
+  | "very_urgent"
+  | "2ww"
+  | "urgent"
+  | "routine";
 
 /** Dropdown options for the PriorityPanel (value + plain-English label). */
 export const RULE_PRIORITIES: ReadonlyArray<{
@@ -142,6 +149,7 @@ export const RULE_PRIORITIES: ReadonlyArray<{
   label: string;
 }> = [
   { value: "immediate", label: "Immediate specialist assessment" },
+  { value: "very_urgent", label: "Very urgent (within 48 hours)" },
   { value: "2ww", label: "2 week wait (urgent suspected cancer)" },
   { value: "urgent", label: "Urgent" },
   { value: "routine", label: "Routine" },

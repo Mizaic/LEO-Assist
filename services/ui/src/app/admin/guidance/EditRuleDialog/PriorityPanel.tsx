@@ -7,7 +7,7 @@
 
 /**
  * Editable clinical priority for a guidance rule -- immediate /
- * 2 week wait / urgent / routine, plus optional due-days.
+ * very urgent / 2 week wait / urgent / routine, plus optional due-days.
  *
  * Priority is rule-level (shared across every recommended procedure
  * on the rule). Due-days is cleared and disabled when priority is
@@ -54,8 +54,9 @@ export default function PriorityPanel({
         sx={{ lineHeight: 1.4, mb: 1 }}
       >
         This sets the clinical priority used in Assessment and SBAR.
-        Pick Immediate for same-day specialist assessment, or 2 week wait
-        for urgent suspected cancer pathways.
+        Pick Immediate for same-day specialist assessment, Very urgent
+        for an appointment within 48 hours, or 2 week wait for urgent
+        suspected cancer pathways.
       </Typography>
       <Stack
         direction={{ xs: "column", sm: "row" }}

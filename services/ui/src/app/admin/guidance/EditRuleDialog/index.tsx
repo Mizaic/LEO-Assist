@@ -208,6 +208,7 @@ function deriveInitialPriority(rule: EditableRule): RulePriority {
   const raw = (rule.action_priority || "").toLowerCase();
   if (
     raw === "immediate" ||
+    raw === "very_urgent" ||
     raw === "2ww" ||
     raw === "urgent" ||
     raw === "routine"
@@ -856,6 +857,8 @@ export default function EditRuleDialog({
     if (next === "routine") setDueDays(null);
     // NICE "immediate specialist assessment" -- same-day by default.
     else if (next === "immediate") setDueDays(0);
+    // NICE "very urgent" -- appointment within 48 hours.
+    else if (next === "very_urgent") setDueDays(2);
   }
 
   function handleDueDaysChange(next: number | null) {

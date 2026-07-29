@@ -48,7 +48,13 @@ export interface Rule {
    *  and callers not yet migrated to ``actions``. */
   action?: ActionConcept | null;
   /** Rule-level clinical priority from HAS_ACTION edges. */
-  action_priority?: "immediate" | "2ww" | "urgent" | "routine" | null;
+  action_priority?:
+    | "immediate"
+    | "very_urgent"
+    | "2ww"
+    | "urgent"
+    | "routine"
+    | null;
   /** Due-days paired with action_priority (null for routine). */
   action_due_days?: number | null;
   has_predecessor: boolean;

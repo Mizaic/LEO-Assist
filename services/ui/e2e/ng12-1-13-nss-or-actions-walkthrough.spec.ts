@@ -8,17 +8,27 @@
  *   a non-specific symptoms pathway referral.
  *
  * Exercises "Or instead, add..." on Suggest (Who trees are pre-seeded).
+ * Evidence at each Suggest click/type under e2e/screenshots/ng12-1-13-*.
  *
  * Atlas trace: UN-49C83395 / DI-42246DA7 / DO-F8C56339 / VAL-8672AC7E
  *
  * Run from services/ui:
- *   PLAYWRIGHT_BASE_URL=http://localhost:3017 PLAYWRIGHT_REUSE_SERVER=false \
- *     npx playwright test ng12-1-13-nss-or-actions-walkthrough --project=chromium
+ *   npx playwright test ng12-1-13-nss-or-actions-walkthrough --project=chromium
  */
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import fs from "fs";
 import path from "path";
+import {
+  btnByLabel,
+  fillSaveReason,
+  openEditDialog,
+  pickSuggestAction,
+  typeSuggestProcedure,
+} from "./helpers/ng12-walkthrough-actions";
+import {
+  createWalkthroughEvidence,
+  type Evidence,
+} from "./helpers/walkthrough-evidence";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
 const SCREENSHOT_ROOT = path.join(__dirname, "screenshots");
@@ -27,7 +37,6 @@ const SEARCH_HITS: Record<
   string,
   Array<{ snomed_concept_id: string; term: string; semantic_tag: string }>
 > = {
-  // Urgent investigation stand-in (not an FTR).
   "ct abdomen": [
     {
       snomed_concept_id: "419394006",
@@ -42,7 +51,6 @@ const SEARCH_HITS: Record<
       semantic_tag: "procedure",
     },
   ],
-  // FTR terms must start with "Fast track referral".
   "fast track referral": [
     {
       snomed_concept_id: "38661000000100",
@@ -309,20 +317,6 @@ async function installFixtures(
   );
 }
 
-async function dismissSplash(page: Page) {
-  await page
-    .getByRole("button", { name: /skip the guideline builder intro animation/i })
-    .click({ timeout: 3000 })
-    .catch(() => {});
-}
-
-async function shot(dir: string, page: Page, name: string) {
-  await page.screenshot({
-    path: path.join(dir, `${name}.png`),
-    fullPage: false,
-  });
-}
-
 async function runAxeDialog(page: Page) {
   const results = await new AxeBuilder({ page })
     .include('[role="dialog"]')
@@ -341,72 +335,26 @@ async function runAxeDialog(page: Page) {
   ).toEqual([]);
 }
 
-function btnByLabel(root: Locator, label: string | RegExp): Locator {
-  return root.getByRole("button").filter({ hasText: label });
-}
-
-async function pickProcedure(
-  page: Page,
-  dialog: Locator,
-  query: string,
-  useLabel: RegExp,
-) {
-  const search = dialog.getByLabel(/search clinical terms/i);
-  await expect(search).toBeVisible({ timeout: 10000 });
-  await search.fill(query);
-  await page.getByRole("button", { name: useLabel }).click({ timeout: 15000 });
-}
-
-async function openEditDialog(
-  page: Page,
-  rule: ReturnType<typeof buildRule>,
-  dir: string,
-): Promise<Locator> {
-  await page.goto("/admin/knowledge?tab=clinical-guidelines");
-  await page.waitForLoadState("load");
-  await dismissSplash(page);
-
-  const reviewTab = page.getByTestId("segmented-tab-review");
-  if (await reviewTab.isVisible().catch(() => false)) {
-    await reviewTab.click();
-  }
-  await expect(page.locator("#rule-review-body")).toBeVisible({
-    timeout: 15000,
-  });
-
-  const pendingPool = page.getByTestId("rule-pool-pending");
-  const pendingToggle = pendingPool.locator("button[aria-expanded]").first();
-  if ((await pendingToggle.getAttribute("aria-expanded")) !== "true") {
-    await pendingToggle.click();
-  }
-
-  await page
-    .getByRole("button", { name: `Toggle rule from ${rule.guideline_id}` })
-    .click();
-  await shot(dir, page, "01-review-pool-card");
-  await page.getByRole("button", { name: `Edit rule ${rule.rule_id}` }).click();
-
-  const dialog = page.getByRole("dialog", { name: /Change this rule/i });
-  await expect(dialog).toBeVisible();
-  return dialog;
-}
-
 async function setStrength(
   page: Page,
   dialog: Locator,
   index: number,
   label: RegExp,
+  ev: Evidence,
+  slug: string,
 ) {
   const select = dialog.locator(`#edit-rule-action-strength-${index}`);
   await select.scrollIntoViewIfNeeded();
   await select.click();
+  await ev.shot(`${slug}-open`);
   await page.getByRole("option", { name: label }).click();
+  await ev.shot(`${slug}-set`);
 }
 
 async function buildNssEitherOr(
   page: Page,
   dialog: Locator,
-  dir: string,
+  ev: Evidence,
   scenario: Scenario,
 ) {
   await dialog
@@ -420,25 +368,22 @@ async function buildNssEitherOr(
     }),
   ).toBeVisible({ timeout: 15000 });
   await runAxeDialog(page);
-  await shot(dir, page, "02-suggest-uncoded");
+  await ev.shot("suggest-uncoded");
 
-  await dialog
-    .getByRole("button", {
-      name: /no procedure picked yet\. click to pick/i,
-    })
-    .click();
-  await pickProcedure(
+  await pickSuggestAction(
     page,
     dialog,
     "ct abdomen",
     /Use Computed tomography of abdomen and pelvis/i,
+    ev,
+    "suggest-urgent-investigation",
   );
   await expect(
     dialog.getByRole("button", {
       name: /computed tomography of abdomen and pelvis/i,
     }),
   ).toBeVisible({ timeout: 10000 });
-  await shot(dir, page, "03-urgent-investigation");
+  await ev.shot("urgent-investigation-coded");
 
   await dialog
     .getByRole("button", {
@@ -448,56 +393,57 @@ async function buildNssEitherOr(
   await expect(
     dialog.getByText(/Suggest either of these/i),
   ).toBeVisible({ timeout: 10000 });
-  await pickProcedure(
+  await ev.shot("or-instead-row-2");
+  await typeSuggestProcedure(
     page,
     dialog,
     "fast track referral",
     /^Use Fast track referral$/i,
+    ev,
+    "suggest-2ww",
   );
   await expect(
     dialog.getByRole("button", {
       name: /^Fast track referral\. Click to pick/i,
     }),
   ).toBeVisible({ timeout: 10000 });
-  await shot(dir, page, "04-two-alternatives");
+  await ev.shot("two-alternatives");
 
   await dialog
     .getByRole("button", {
       name: /Or instead, add another procedure after row 2/i,
     })
     .click();
-  await pickProcedure(
+  await ev.shot("or-instead-row-3");
+  await typeSuggestProcedure(
     page,
     dialog,
     "non-specific",
     /Use Fast track referral for suspected cancer due to non-site-specific symptoms/i,
+    ev,
+    "suggest-nss",
   );
   await expect(
     dialog.getByRole("button", {
       name: /fast track referral for suspected cancer due to non-site-specific symptoms/i,
     }),
   ).toBeVisible({ timeout: 10000 });
-  await shot(dir, page, "05-three-alternatives");
+  await ev.shot("three-alternatives");
 
   for (let i = 0; i < 3; i++) {
-    await setStrength(page, dialog, i, scenario.strengthLabel);
+    await setStrength(page, dialog, i, scenario.strengthLabel, ev, `strength-${i}`);
   }
 
   await expect(dialog.getByText(/, or /i).first()).toBeVisible({
     timeout: 10000,
   });
-  await shot(dir, page, "06-live-preview-either-or");
+  await ev.shot("live-preview-either-or");
 
   await btnByLabel(dialog, /^Next/i).click();
-  await expect(
-    dialog.getByRole("heading", { name: /save your change/i }),
-  ).toBeVisible({ timeout: 10000 });
-  await dialog
-    .getByLabel(/why are you changing this rule/i)
-    .fill(scenario.reason);
-  await shot(dir, page, "07-save-reason");
+  await fillSaveReason(dialog, scenario.reason, ev);
   await btnByLabel(dialog, /approve and save/i).click();
   await expect(dialog).toBeHidden({ timeout: 15000 });
+  await ev.shot("saved-dialog-closed");
 }
 
 test.describe("NG12 1.13 NSS either/or action walkthroughs (DI-42246DA7)", () => {
@@ -507,14 +453,14 @@ test.describe("NG12 1.13 NSS either/or action walkthroughs (DI-42246DA7)", () =>
     }) => {
       test.setTimeout(240_000);
       const dir = path.join(SCREENSHOT_ROOT, scenario.shotDir);
-      fs.mkdirSync(dir, { recursive: true });
+      const ev = createWalkthroughEvidence(page, dir);
       const rule = buildRule(scenario);
       const captured: { decision: DecisionBody | null } = { decision: null };
       await installFixtures(page, rule, captured);
 
-      const dialog = await openEditDialog(page, rule, dir);
-      await shot(dir, page, "01b-who-seeded");
-      await buildNssEitherOr(page, dialog, dir, scenario);
+      const dialog = await openEditDialog(page, rule, ev);
+      await ev.shot("who-seeded");
+      await buildNssEitherOr(page, dialog, ev, scenario);
 
       expect(captured.decision?.action).toBe("edit");
       const actions = captured.decision?.updates?.actions ?? [];

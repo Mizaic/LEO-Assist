@@ -643,11 +643,34 @@ def _extract_code(guidance_json: dict[str, Any]) -> str:
 
 
 def _extract_urgency(rec: dict[str, Any]) -> str:
+    """Map free-text NICE wording to Recommendation.urgency.
+
+    Order matters: ``very urgent`` / ``48 hours`` must win over a bare
+    ``urgent`` substring (NG12 1.10.9), and ``non-urgent`` must not be
+    treated as a 2WW. ``immediate`` covers same-day specialist
+    assessment (e.g. NG12 1.10.2).
+    """
     combined = (rec.get("Title", "") + " " + rec.get("Text", "")).lower()
-    if "2-week" in combined or "2ww" in combined or "urgent" in combined:
-        return "urgent_2w"
     if "immediate" in combined:
         return "immediate"
+    if (
+        "very urgent" in combined
+        or "48 hour" in combined
+        or "48-hour" in combined
+        or "within 48" in combined
+    ):
+        return "very_urgent_48h"
+    if "non-urgent" in combined or "non urgent" in combined:
+        return "routine"
+    if (
+        "2-week" in combined
+        or "2 week" in combined
+        or "2ww" in combined
+        or "suspected cancer pathway" in combined
+    ):
+        return "urgent_2w"
+    if "urgent" in combined:
+        return "urgent_2w"
     return "routine"
 
 

@@ -65,8 +65,9 @@ _LEAF_KINDS = {
 _ALL_KINDS = _GROUP_KINDS | _LEAF_KINDS
 _VALID_RULE_FIRED_OUTCOMES = {"fired", "not_fired"}
 # Rule-level clinical priority written onto HAS_ACTION edges. Matches the
-# bitmap compiler / SBAR Assessment bucket vocabulary.
-_VALID_PRIORITIES = {"immediate", "2ww", "urgent", "routine"}
+# bitmap compiler / SBAR Assessment bucket vocabulary. Rank (most urgent
+# first): immediate > very_urgent > 2ww > urgent > routine.
+_VALID_PRIORITIES = {"immediate", "very_urgent", "2ww", "urgent", "routine"}
 
 
 # -- Pydantic models -----------------------------------------------------------

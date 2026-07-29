@@ -3,6 +3,8 @@
  * recommendation (follow another NICE skin-tumour guideline). Reviewers
  * confirm "no coded rule needed" and move it to Excluded.
  *
+ * Every click is captured under e2e/screenshots/ng12-1-7-7/.
+ *
  * Atlas trace: UN-49C83395 / DI-42246DA7 / DO-F8C56339 / VAL-8AB4C593
  *
  * Run from services/ui:
@@ -10,8 +12,9 @@
  */
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import fs from "fs";
 import path from "path";
+import { dismissSplash } from "./helpers/ng12-walkthrough-actions";
+import { createWalkthroughEvidence } from "./helpers/walkthrough-evidence";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
 const SCREENSHOT_DIR = path.join(__dirname, "screenshots", "ng12-1-7-7");
@@ -98,29 +101,12 @@ async function installFixtures(
   );
 }
 
-async function dismissSplash(page: Page) {
-  await page
-    .getByRole("button", { name: /skip the guideline builder intro animation/i })
-    .click({ timeout: 3000 })
-    .catch(() => {});
-}
-
-async function shot(page: Page, name: string) {
-  await page.screenshot({
-    path: path.join(SCREENSHOT_DIR, `${name}.png`),
-    fullPage: false,
-  });
-}
-
 test.describe("NG12 1.7.7 process exclude walkthrough (DI-42246DA7)", () => {
-  test.beforeAll(() => {
-    fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
-  });
-
   test("confirms no coded rule needed for process cross-reference", async ({
     page,
   }) => {
     test.setTimeout(120_000);
+    const ev = createWalkthroughEvidence(page, SCREENSHOT_DIR);
     const captured: { decision: DecisionBody | null } = { decision: null };
     await installFixtures(page, captured);
 
@@ -148,16 +134,16 @@ test.describe("NG12 1.7.7 process exclude walkthrough (DI-42246DA7)", () => {
     await page
       .getByRole("button", { name: `Toggle rule from ${RULE.guideline_id}` })
       .click();
+    await ev.shot("process-rec-card-expanded");
 
-    await expect(
-      page.getByText(/no coded rule is needed/i),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByRole("button", {
-        name: `Confirm no rule needed for ${RULE.rule_id}`,
-      }),
-    ).toBeVisible();
-    await shot(page, "01-process-rec-card");
+    await expect(page.getByText(/no coded rule is needed/i)).toBeVisible({
+      timeout: 10000,
+    });
+    const confirmBtn = page.getByRole("button", {
+      name: `Confirm no rule needed for ${RULE.rule_id}`,
+    });
+    await expect(confirmBtn).toBeVisible();
+    await ev.shot("process-rec-confirm-visible");
 
     const axe = await new AxeBuilder({ page })
       .include("#rule-review-body")
@@ -175,16 +161,11 @@ test.describe("NG12 1.7.7 process exclude walkthrough (DI-42246DA7)", () => {
       ),
     ).toEqual([]);
 
-    await page
-      .getByRole("button", {
-        name: `Confirm no rule needed for ${RULE.rule_id}`,
-      })
-      .click();
-
+    await confirmBtn.click();
     await expect
       .poll(() => captured.decision?.action, { timeout: 10000 })
       .toBe("reject");
     expect(captured.decision?.reason).toBe("No coded rule needed");
-    await shot(page, "02-confirmed-excluded");
+    await ev.shot("process-rec-confirmed-excluded");
   });
 });

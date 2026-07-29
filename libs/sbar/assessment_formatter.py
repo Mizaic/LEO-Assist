@@ -21,7 +21,7 @@ The roaring-bitmap evaluator returns ``matched_rules`` shaped like::
       "recommendation_verbatim": "Refer for chest X-ray within 2 weeks",
       "actions": [
         {
-          "priority": "2ww",          # "immediate" | "2ww" | "urgent" | "routine"
+          "priority": "2ww",  # immediate | very_urgent | 2ww | urgent | routine
                                        # across every action on a rule
           "due_days": 14,
           "concept_id": "...",
@@ -57,12 +57,14 @@ EVAL_TIMEOUT_S = float(os.getenv("SBAR_EVAL_TIMEOUT_S", "30"))
 
 _PRIORITY_ORDER: dict[str, int] = {
     "immediate": 0,
-    "2ww": 1,
-    "urgent": 2,
-    "routine": 3,
+    "very_urgent": 1,
+    "2ww": 2,
+    "urgent": 3,
+    "routine": 4,
 }
 _PRIORITY_LABEL: dict[str, str] = {
     "immediate": "Immediate specialist assessment",
+    "very_urgent": "Very urgent (within 48 hours)",
     "2ww": "Two week wait (urgent suspected cancer)",
     "urgent": "Urgent",
     "routine": "Routine",
@@ -223,6 +225,7 @@ def format_assessment(
 
     by_priority: dict[str, list[dict[str, Any]]] = {
         "immediate": [],
+        "very_urgent": [],
         "2ww": [],
         "urgent": [],
         "routine": [],
@@ -239,12 +242,12 @@ def format_assessment(
         f"**{len(rules_sorted)} guideline rule(s) fired** (scope: {scope})."
     )
 
-    for prio in ("immediate", "2ww", "urgent", "routine"):
+    for prio in ("immediate", "very_urgent", "2ww", "urgent", "routine"):
         bucket = by_priority.get(prio) or []
         if not bucket:
             continue
         lines.append("")
-        lines.append(f"### {_PRIORITY_LABEL[prio]}")
+        lines.append(f"### {_PRIORITY_LABEL.get(prio, prio)}")
         for rule in bucket:
             lines.append(_render_rule_bullet(rule))
 
@@ -455,16 +458,34 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
     summaries of the rule output so reviewers can audit them. See
     DI-LEO-AI-189 for the mapping rules.
     """
+    immediate = [r for r in rules if _rule_raw_priority(r) == "immediate"]
+    very_urgent = [r for r in rules if _rule_raw_priority(r) == "very_urgent"]
     twoww = [r for r in rules if _rule_raw_priority(r) == "2ww"]
     urgent = [r for r in rules if _rule_raw_priority(r) == "urgent"]
     routine = [r for r in rules if _rule_raw_priority(r) == "routine"]
     conditional = [
         r for r in rules if (r.get("strength") or "").lower() == "conditional"
     ]
+    time_critical = immediate + very_urgent + twoww + urgent
 
     stt: str | None = None
     stt_evidence: str | None = None
-    if twoww:
+    if immediate:
+        stt = "Immediate specialist assessment"
+        stt_evidence = "; ".join(r.get("rule_id", "?") for r in immediate[:3])
+    elif very_urgent:
+        due_days = [
+            _rule_due_days(r)
+            for r in very_urgent
+            if _rule_due_days(r) is not None
+        ]
+        stt = (
+            f"Within {min(due_days)} days (very urgent)"
+            if due_days
+            else "Very urgent (within 48 hours)"
+        )
+        stt_evidence = "; ".join(r.get("rule_id", "?") for r in very_urgent[:3])
+    elif twoww:
         due_days = [
             _rule_due_days(r) for r in twoww if _rule_due_days(r) is not None
         ]
@@ -476,14 +497,14 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
 
     rtr: str
     rtr_evidence: str
-    if twoww or urgent:
+    if time_critical:
         rtr = "yes"
-        ids = [r.get("rule_id", "?") for r in (twoww + urgent)[:3]]
+        ids = [r.get("rule_id", "?") for r in time_critical[:3]]
         rtr_evidence = f"Triggered by rule(s): {', '.join(ids)}"
     else:
         rtr = "no"
         rtr_evidence = (
-            "No 2WW or urgent rule fired; routine review applies"
+            "No time-critical rule fired; routine review applies"
             if routine
             else "No matching rules fired"
         )

@@ -180,4 +180,25 @@ describe("EditRuleDialog clinical priority", () => {
     expect(payload.priority).toBe("immediate");
     expect(payload.due_days).toBe(0);
   });
+
+  it("offers Very urgent and defaults due days to 2", async () => {
+    const onSave = jest.fn();
+    render(
+      <EditRuleDialog
+        rule={SAMPLE_RULE}
+        open
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+    goToStep(2);
+    await selectPriority("Very urgent (within 48 hours)");
+    expect(screen.getByDisplayValue("2")).toBeInTheDocument();
+    fillReason("NG12 very urgent Hodgkin lymphoma referral");
+    fireEvent.click(screen.getByRole("button", { name: /save your changes/i }));
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const payload = onSave.mock.calls[0][0];
+    expect(payload.priority).toBe("very_urgent");
+    expect(payload.due_days).toBe(2);
+  });
 });

@@ -423,6 +423,57 @@ describe("orderPathwayNodesByBoundary", () => {
     expect(ordered).toEqual([first, second]);
   });
 
+  it("does not re-anchor a pathway when it only has an age demographic (NG12 1.3.1 E)", () => {
+    // Situation E: reviewer clicks Add age (defaults to >=40). That
+    // phrase also appears in situation D. DEMOGRAPHIC-only evidence
+    // must not move E's container onto D's letter.
+    const leadD = "aged 40 and over with unexplained weight loss and abdominal pain, or ";
+    const leadE =
+      "aged under 50 with rectal bleeding and either of the following unexplained symptoms:";
+    const full = leadD + leadE;
+    const ngBoundaries: PathwayTextBoundary[] = [
+      {
+        text: leadD,
+        start: 0,
+        end: leadD.length,
+        source: "structure",
+      },
+      {
+        text: leadE,
+        start: leadD.length,
+        end: full.length,
+        source: "structure",
+      },
+    ];
+    const ageDefault = {
+      ...pathwayNode([
+        {
+          node_id: "age-e",
+          kind: "DEMOGRAPHIC" as const,
+          field: "age",
+          operator: ">=",
+          value: "40",
+          unit: "years",
+        },
+      ]),
+      node_id: "pw-e",
+      pathway_key: "pw_e",
+    };
+    const emptyD = {
+      ...pathwayNode([]),
+      node_id: "pw-d",
+      pathway_key: "pw_d",
+    };
+
+    const ordered = orderPathwayNodesByBoundary(
+      [emptyD, ageDefault],
+      ngBoundaries,
+      full,
+    );
+
+    expect(ordered.map((n) => n.node_id)).toEqual(["pw-d", "pw-e"]);
+  });
+
   it("does not scramble NG12 1.1.2 pathways when leaves only match the shared symptom list", () => {
     // Situation A prose ends before the colon; the six symptoms sit
     // once at the end and are attached as structureChildren on BOTH
@@ -812,6 +863,40 @@ describe("buildPathwayRows", () => {
       "abdominal pain",
       "weight loss",
     ]);
+  });
+
+  it("NG12 1.3.1 E: lead click stays on pathway; children go to trailing AT_LEAST", () => {
+    const boundary: PathwayTextBoundary = {
+      text:
+        "aged under 50 with rectal bleeding and either of the following unexplained symptoms:",
+      start: 314,
+      end: 398,
+      source: "structure",
+      structureChildren: [
+        { text: "abdominal pain", start: 399, end: 413 },
+        { text: "weight loss", start: 414, end: 425 },
+      ],
+    };
+    const { items } = buildPathwayRows(boundary);
+    const lead = items[0];
+    const pain = items[0].children![0];
+    const pw = pathwayNode([]);
+
+    expect(isClusterChildRow(boundary, lead)).toBe(false);
+    expect(isClusterChildRow(boundary, pain)).toBe(true);
+
+    expect(
+      decideRowClickTarget(pw, boundary, lead, undefined, "AT_LEAST"),
+    ).toEqual({ action: "add", parentNodeId: "pw-a", text: "rectal bleeding" });
+
+    expect(
+      decideRowClickTarget(pw, boundary, pain, undefined, "AT_LEAST"),
+    ).toEqual({
+      action: "create_subgroup_then_add",
+      pathwayNodeId: "pw-a",
+      text: "abdominal pain",
+      role: "trailing",
+    });
   });
 
   it("NG12 1.3.1 G: strips FIT caveat tail to anaemia finding", () => {

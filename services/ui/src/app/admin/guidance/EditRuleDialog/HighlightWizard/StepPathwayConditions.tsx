@@ -28,13 +28,9 @@
  * wireframes.md) for the exact layout this implements.
  */
 import { useMemo } from "react";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
@@ -48,6 +44,11 @@ import type {
   RecommendationStructureItem,
 } from "../SentenceEditor/pathwayTextSplit";
 import type { ValidationIssue } from "../treeOps";
+import {
+  ClusterGroupingChoice,
+  ConfirmedSoFar,
+  CopyAcrossBanner,
+} from "./PathwayConditionsChrome";
 import type { EditableLogicNode, LogicCriterion, NodeUpdate } from "../types";
 import { STEP_PATHWAY_CONDITIONS, WIZARD_TOOLTIPS } from "./copy";
 import PathwayDemographicsPanel, {
@@ -268,6 +269,25 @@ export default function StepPathwayConditions({
         ? STEP_PATHWAY_CONDITIONS.unresolvedBlockedReason(unresolvedCount)
         : null);
 
+  // Nested lead + either/or children (NG12 1.3.1 E). Split so the
+  // required lead stays above the grouping card and cannot be misread
+  // as part of "only one needs to match".
+  const leadItem = items[0];
+  const nestedLeadEitherOf =
+    hasCluster && !leadCluster && !!leadItem?.children?.length;
+  const leadRowAlone: RecommendationStructureItem | null = leadItem
+    ? { ...leadItem, children: undefined }
+    : null;
+  const eitherOfChildren = leadItem?.children ?? [];
+  const rowExtra = onAddMultiConcept
+    ? (item: RecommendationStructureItem) => (
+        <RowMultiCodeHighlight
+          item={item}
+          onAddCriterion={(criterion) => onAddMultiConcept(item, criterion)}
+        />
+      )
+    : undefined;
+
   return (
     <Stack spacing={2} data-tour="er-05-conditions">
       <Box>
@@ -344,21 +364,50 @@ export default function StepPathwayConditions({
         </Typography>
       )}
 
-      <ListRecommendationView
-        items={items}
-        getRowResolution={getRowResolution}
-        onRowClick={onRowClick}
-        renderRowExtra={
-          onAddMultiConcept
-            ? (item) => (
-                <RowMultiCodeHighlight
-                  item={item}
-                  onAddCriterion={(criterion) => onAddMultiConcept(item, criterion)}
-                />
-              )
-            : undefined
-        }
-      />
+      {/* Lead finding outside an either/or group (e.g. NG12 1.3.1 E
+          rectal bleeding) renders above the grouping card so it cannot
+          scroll away under "Only one of these needs to match". */}
+      {nestedLeadEitherOf ? (
+        <Stack spacing={1} data-testid="lead-either-of-layout">
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+            {STEP_PATHWAY_CONDITIONS.leadRequiredCaption}
+          </Typography>
+          <ListRecommendationView
+            items={[leadRowAlone!]}
+            getRowResolution={getRowResolution}
+            onRowClick={onRowClick}
+            renderRowExtra={rowExtra}
+          />
+          {trailingClusterPrompt && (
+            <ClusterGroupingChoice
+              prompt={trailingClusterPrompt}
+              grouping={clusterGrouping}
+              onChoose={onChooseGrouping}
+              suggestedMin={effectiveSuggestedMin}
+              clusterMin={effectiveClusterMin}
+              termCount={termCount}
+              confirmedTerms={trailingClusterTerms}
+              onSetClusterMin={onSetClusterMin}
+            />
+          )}
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+            {STEP_PATHWAY_CONDITIONS.eitherOfHeading}
+          </Typography>
+          <ListRecommendationView
+            items={eitherOfChildren}
+            getRowResolution={getRowResolution}
+            onRowClick={onRowClick}
+            renderRowExtra={rowExtra}
+          />
+        </Stack>
+      ) : (
+        <ListRecommendationView
+          items={items}
+          getRowResolution={getRowResolution}
+          onRowClick={onRowClick}
+          renderRowExtra={rowExtra}
+        />
+      )}
 
       {onRemoveProblem &&
         problemIssues.map((issue) => (
@@ -395,7 +444,7 @@ export default function StepPathwayConditions({
         />
       )}
 
-      {hasCluster && trailingClusterPrompt && (
+      {!nestedLeadEitherOf && hasCluster && trailingClusterPrompt && (
         <ClusterGroupingChoice
           prompt={trailingClusterPrompt}
           grouping={clusterGrouping}
@@ -403,6 +452,7 @@ export default function StepPathwayConditions({
           suggestedMin={effectiveSuggestedMin}
           clusterMin={effectiveClusterMin}
           termCount={termCount}
+          confirmedTerms={trailingClusterTerms}
           onSetClusterMin={onSetClusterMin}
         />
       )}
@@ -433,197 +483,5 @@ export default function StepPathwayConditions({
         </Tooltip>
       </Box>
     </Stack>
-  );
-}
-
-function CopyAcrossBanner({
-  offer,
-  onAccept,
-  onDismiss,
-}: {
-  offer: { sourceLetter: string; count: number };
-  onAccept?: () => void;
-  onDismiss?: () => void;
-}) {
-  return (
-    <Alert
-      severity="info"
-      icon={<ContentCopyRoundedIcon fontSize="small" />}
-      aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossAriaLabel}
-      action={
-        <Stack direction="row" spacing={1} sx={{ pt: 0.25 }}>
-          <Tooltip title={WIZARD_TOOLTIPS.copyAcross}>
-            <Button
-              size="small"
-              variant="contained"
-              aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
-              onClick={onAccept}
-            >
-              {STEP_PATHWAY_CONDITIONS.copyAcrossAcceptLabel}
-            </Button>
-          </Tooltip>
-          <Tooltip title={WIZARD_TOOLTIPS.dismissCopy}>
-            <Button
-              size="small"
-              aria-label={STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
-              onClick={onDismiss}
-            >
-              {STEP_PATHWAY_CONDITIONS.copyAcrossDismissLabel}
-            </Button>
-          </Tooltip>
-        </Stack>
-      }
-    >
-      {STEP_PATHWAY_CONDITIONS.copyAcrossOffer(offer.sourceLetter, offer.count)}
-    </Alert>
-  );
-}
-
-function ConfirmedSoFar({
-  summaries,
-}: {
-  summaries: Array<{ letter: string; summary: string }>;
-}) {
-  return (
-    <Stack spacing={0.5}>
-      <Typography
-        variant="caption"
-        sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "text.secondary" }}
-      >
-        {STEP_PATHWAY_CONDITIONS.confirmedHeading}
-      </Typography>
-      {summaries.map((s) => (
-        <Stack
-          key={s.letter}
-          direction="row"
-          spacing={0.75}
-          alignItems="center"
-          data-testid={`confirmed-pathway-${s.letter}`}
-        >
-          <CheckCircleIcon fontSize="small" sx={{ color: "#16A34A" }} />
-          <Typography variant="body2">
-            {s.letter}: {s.summary}
-          </Typography>
-        </Stack>
-      ))}
-    </Stack>
-  );
-}
-
-function ClusterGroupingChoice({
-  prompt,
-  grouping,
-  onChoose,
-  suggestedMin = 1,
-  clusterMin = 1,
-  termCount = 0,
-  onSetClusterMin,
-}: {
-  prompt: string;
-  grouping?: ClusterGrouping;
-  onChoose?: (grouping: ClusterGrouping, min?: number) => void;
-  suggestedMin?: number;
-  clusterMin?: number;
-  termCount?: number;
-  onSetClusterMin?: (min: number) => void;
-}) {
-  const recommendN = suggestedMin > 1;
-  const maxMin = Math.max(termCount, suggestedMin, 1);
-
-  if (grouping) {
-    return (
-      <Stack
-        direction="row"
-        spacing={1}
-        alignItems="center"
-        flexWrap="wrap"
-        role="group"
-        aria-label={prompt}
-        sx={{ rowGap: 1 }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          {grouping === "AT_LEAST"
-            ? STEP_PATHWAY_CONDITIONS.groupingConfirmedAtLeastN(clusterMin)
-            : STEP_PATHWAY_CONDITIONS.groupingConfirmedAll}
-        </Typography>
-        {grouping === "AT_LEAST" && onSetClusterMin && maxMin > 1 && (
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <TextField
-              size="small"
-              type="number"
-              value={clusterMin}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                if (!Number.isFinite(n)) return;
-                onSetClusterMin(Math.max(1, Math.min(Math.floor(n), maxMin)));
-              }}
-              inputProps={{
-                min: 1,
-                max: maxMin,
-                "aria-label": STEP_PATHWAY_CONDITIONS.clusterMinLabel,
-              }}
-              sx={{ width: 64 }}
-            />
-            <Typography variant="caption" color="text.secondary">
-              {STEP_PATHWAY_CONDITIONS.clusterMinOf(maxMin)}
-            </Typography>
-          </Stack>
-        )}
-        <Tooltip title={WIZARD_TOOLTIPS.changeGrouping}>
-          <Button
-            size="small"
-            onClick={() => {
-              if (grouping === "AT_LEAST") onChoose?.("AND");
-              else onChoose?.("AT_LEAST", suggestedMin);
-            }}
-          >
-            {STEP_PATHWAY_CONDITIONS.changeLabel}
-          </Button>
-        </Tooltip>
-      </Stack>
-    );
-  }
-  const onlyOneText = STEP_PATHWAY_CONDITIONS.onlyOneLabel(!recommendN);
-  const atLeastText = STEP_PATHWAY_CONDITIONS.atLeastNLabel(suggestedMin, true);
-  return (
-    <Box role="group" aria-label={prompt} sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "grey.50" }}>
-      <Typography variant="body2" sx={{ mb: 1 }}>
-        {prompt}
-      </Typography>
-      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ rowGap: 1 }}>
-        {recommendN && (
-          <Tooltip title={WIZARD_TOOLTIPS.atLeastN}>
-            <Button
-              variant="contained"
-              size="small"
-              aria-label={atLeastText}
-              onClick={() => onChoose?.("AT_LEAST", suggestedMin)}
-            >
-              {atLeastText}
-            </Button>
-          </Tooltip>
-        )}
-        <Tooltip title={WIZARD_TOOLTIPS.onlyOne}>
-          <Button
-            variant={recommendN ? "outlined" : "contained"}
-            size="small"
-            aria-label={onlyOneText}
-            onClick={() => onChoose?.("AT_LEAST", 1)}
-          >
-            {onlyOneText}
-          </Button>
-        </Tooltip>
-        <Tooltip title={WIZARD_TOOLTIPS.allMustMatch}>
-          <Button
-            variant="outlined"
-            size="small"
-            aria-label={STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
-            onClick={() => onChoose?.("AND")}
-          >
-            {STEP_PATHWAY_CONDITIONS.allMustMatchLabel}
-          </Button>
-        </Tooltip>
-      </Stack>
-    </Box>
   );
 }
