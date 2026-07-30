@@ -15,9 +15,14 @@ Version-scoped IDs ensure old nodes are never overwritten:
 
 When a guideline is re-ingested:
 
-  1. Active/pending AppropriatenessRule nodes are marked ``superseded`` and
-     a copy of their parent recommendation text is stored on the rule so that
-     diffs can be computed without traversing the old recommendation node.
+  1. Pending (not yet approved) AppropriatenessRule nodes are marked
+     ``superseded`` and a copy of their parent recommendation text is
+     stored on the rule so that diffs can be computed without traversing
+     the old recommendation node. Approved (``active``) rules are NEVER
+     superseded by ingest -- they stay active and are only flagged
+     (``guidelineTextChanged=true``) with the same previous-text copy, so
+     a human explicitly decides whether to re-approve, edit, or retire
+     them. See ``clear_guideline_content()``.
   2. The ``Guideline→HAS_CHAPTER`` and ``Guideline→HAS_RECOMMENDATION``
      shortcut edges are *detached* (not deleted) so old Chapter and
      Recommendation nodes remain reachable for audit queries.
@@ -88,10 +93,18 @@ RETURN g.id AS id, g.ingestVersion AS version
 
 # ── Versioning: supersede old rules, detach old content links ─────────────
 
+# Only PENDING (not-yet-approved) rules are ever superseded by an ingest.
+# An APPROVED (status='active') rule represents a human clinical sign-off;
+# a guideline re-ingest must never retire it silently. See
+# _FLAG_ACTIVE_RULES_FOR_REVIEW / _SELECTIVE_FLAG_ACTIVE_RULES below --
+# active rules whose recommendation changed stay active (still enforced,
+# no coverage gap) and are only *flagged* so a human can choose to
+# re-approve, edit, or explicitly retire them.
+# Atlas: DI-C2DE7FDF / DO-F8CDEBBA / R-02B6E3E3 / VT-34F3B9C2
 _SUPERSEDE_EXISTING_RULES = """
 MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(r:Recommendation)
       -[:HAS_RULE]->(rule:AppropriatenessRule)
-WHERE rule.status IN ['active', 'pending_review']
+WHERE rule.status = 'pending_review'
 SET rule.status                        = 'superseded',
     rule.supersededAt                   = datetime(),
     rule.supersededByGuidelineId        = $guideline_id,
@@ -105,13 +118,42 @@ _SELECTIVE_SUPERSEDE_RULES = """
 MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(r:Recommendation)
       -[:HAS_RULE]->(rule:AppropriatenessRule)
 WHERE r.number IN $changed_numbers
-  AND rule.status IN ['active', 'pending_review']
+  AND rule.status = 'pending_review'
 SET rule.status                      = 'superseded',
     rule.supersededAt                 = datetime(),
     rule.supersededByGuidelineId      = $guideline_id,
     rule.previousRecommendationText   = r.verbatim,
     rule.previousRecommendationNumber = r.number
 RETURN count(rule) AS superseded_count
+"""
+
+# An already-approved rule is never superseded by ingest. Instead it is
+# flagged (status stays 'active', so it keeps being compiled/enforced)
+# so a reviewer can see the guideline text moved underneath it and
+# decide whether to re-approve, edit, or explicitly retire it.
+_FLAG_ACTIVE_RULES_FOR_REVIEW = """
+MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(r:Recommendation)
+      -[:HAS_RULE]->(rule:AppropriatenessRule)
+WHERE rule.status = 'active'
+SET rule.guidelineTextChanged          = true,
+    rule.guidelineChangeDetectedAt     = datetime(),
+    rule.guidelineChangeGuidelineId    = $guideline_id,
+    rule.previousRecommendationText    = r.verbatim,
+    rule.previousRecommendationNumber  = r.number
+RETURN count(rule) AS flagged_count
+"""
+
+_SELECTIVE_FLAG_ACTIVE_RULES = """
+MATCH (g:Guideline {id: $guideline_id})-[:HAS_RECOMMENDATION]->(r:Recommendation)
+      -[:HAS_RULE]->(rule:AppropriatenessRule)
+WHERE r.number IN $changed_numbers
+  AND rule.status = 'active'
+SET rule.guidelineTextChanged          = true,
+    rule.guidelineChangeDetectedAt     = datetime(),
+    rule.guidelineChangeGuidelineId    = $guideline_id,
+    rule.previousRecommendationText    = r.verbatim,
+    rule.previousRecommendationNumber  = r.number
+RETURN count(rule) AS flagged_count
 """
 
 # Re-attach rules from old recommendation nodes to new ones for unchanged recs.
@@ -322,50 +364,82 @@ class NiceGraphUpserter:
         self,
         guideline_id: str,
         changed_numbers: list[str] | None = None,
-    ) -> int:
-        """Archive existing content so old audit decisions are preserved.
+    ) -> dict[str, int]:
+        """Archive stale content while never silently retiring an approval.
+
+        Only ``pending_review`` rules (not yet approved by a human) are
+        marked ``superseded``. An ``active`` (approved) rule is never
+        touched by ingest -- it stays ``active`` (so it keeps firing, no
+        coverage gap) and is instead *flagged* via
+        ``guidelineTextChanged=true`` so a reviewer can see their approval
+        may be stale and choose to re-approve, edit, or explicitly retire
+        it themselves.
 
         When *changed_numbers* is supplied (smart ingest mode) only rules
-        attached to those specific recommendations are superseded.  Rules for
-        unchanged recommendations are left active so the reviewer does not
-        have to re-approve work that is still valid.
+        attached to those specific recommendations are affected. Rules for
+        unchanged recommendations are left untouched entirely.
 
-        When *changed_numbers* is ``None`` (full ingest / default) all
-        active/pending rules are superseded (existing behaviour).
+        When *changed_numbers* is ``None`` (full ingest / default) every
+        pending rule is superseded and every active rule is flagged.
 
         Args:
             guideline_id: Guideline node ID (e.g. ``NG12``).
             changed_numbers: Rec numbers whose text changed, or ``None`` for
-                a full supersession.
+                a full sweep.
 
         Returns:
-            Number of AppropriatenessRule nodes marked superseded.
+            ``{"superseded": N, "flagged_active": M}`` -- N is the count of
+            not-yet-approved rules archived; M is the count of approved
+            rules left active but flagged for re-review.
         """
         driver = _kg_driver()
         try:
             with driver.session() as session:
                 if changed_numbers is not None:
-                    result = session.run(
+                    superseded = self._run_count(
+                        session,
                         _SELECTIVE_SUPERSEDE_RULES,
+                        "superseded_count",
+                        guideline_id=guideline_id,
+                        changed_numbers=changed_numbers,
+                    )
+                    flagged = self._run_count(
+                        session,
+                        _SELECTIVE_FLAG_ACTIVE_RULES,
+                        "flagged_count",
                         guideline_id=guideline_id,
                         changed_numbers=changed_numbers,
                     )
                 else:
-                    result = session.run(
-                        _SUPERSEDE_EXISTING_RULES, guideline_id=guideline_id
+                    superseded = self._run_count(
+                        session,
+                        _SUPERSEDE_EXISTING_RULES,
+                        "superseded_count",
+                        guideline_id=guideline_id,
                     )
-                record = result.single()
-                superseded = int(record["superseded_count"]) if record else 0
+                    flagged = self._run_count(
+                        session,
+                        _FLAG_ACTIVE_RULES_FOR_REVIEW,
+                        "flagged_count",
+                        guideline_id=guideline_id,
+                    )
                 session.run(_DETACH_GUIDELINE_CONTENT_LINKS, guideline_id=guideline_id)
         finally:
             driver.close()
         logger.info(
-            "Guideline %s: archived content (%d rule(s) superseded, mode=%s)",
+            "Guideline %s: archived content (%d pending rule(s) superseded, "
+            "%d approved rule(s) flagged for re-review, mode=%s)",
             guideline_id,
             superseded,
+            flagged,
             "selective" if changed_numbers is not None else "full",
         )
-        return superseded
+        return {"superseded": superseded, "flagged_active": flagged}
+
+    @staticmethod
+    def _run_count(session: Any, query: str, count_key: str, **params: Any) -> int:
+        record = session.run(query, **params).single()
+        return int(record[count_key]) if record else 0
 
     def reattach_unchanged_rules(
         self,

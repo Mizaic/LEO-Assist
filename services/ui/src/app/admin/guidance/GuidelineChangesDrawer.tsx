@@ -277,10 +277,21 @@ function PossibleMovesSection({
 // Summary banner
 // ---------------------------------------------------------------------------
 
+// Atlas: DI-C2DE7FDF / DO-F8CDEBBA -- a guideline update must never claim
+// an approved rule "moves to awaiting review" when it actually stays
+// active and is only flagged for a re-review.
+function countRulesByStatus(diff: DiffResult, status: string): number {
+  const affected = [...diff.modified, ...diff.removed];
+  return affected.reduce(
+    (n, r) => n + r.rules.filter((rule) => rule.status === status).length,
+    0
+  );
+}
+
 function DiffSummary({ diff }: { diff: DiffResult }) {
-  const rulesAffected =
-    diff.modified.reduce((n, r) => n + r.rules.length, 0) +
-    diff.removed.reduce((n, r) => n + r.rules.length, 0);
+  const approvedAffected = countRulesByStatus(diff, "active");
+  const pendingAffected = countRulesByStatus(diff, "pending_review");
+  const rulesAffected = approvedAffected + pendingAffected;
 
   return (
     <Box
@@ -324,10 +335,20 @@ function DiffSummary({ diff }: { diff: DiffResult }) {
           sx={{ bgcolor: "#F1F5F9", color: "#475569", border: "1px solid #CBD5E1" }}
         />
       </Stack>
-      {rulesAffected > 0 && (
+      {approvedAffected > 0 && (
         <Typography variant="body2" sx={{ mt: 1, color: "#92400E" }}>
-          {rulesAffected} existing rule{rulesAffected !== 1 ? "s" : ""} are linked to changed recommendations and will move to awaiting review.
-          Rules for unchanged recommendations will be preserved.
+          {approvedAffected} already-approved rule{approvedAffected !== 1 ? "s" : ""} will
+          stay active and keep being enforced -- confirming this update never retires an
+          approval automatically. {approvedAffected !== 1 ? "They" : "It"} will be flagged
+          for a quick re-review, since the guideline wording changed underneath{" "}
+          {approvedAffected !== 1 ? "them" : "it"}.
+        </Typography>
+      )}
+      {pendingAffected > 0 && (
+        <Typography variant="body2" sx={{ mt: 1, color: "#92400E" }}>
+          {pendingAffected} rule{pendingAffected !== 1 ? "s" : ""} awaiting review will be
+          archived (history is kept). You will need to generate new rules for those
+          recommendations afterwards.
         </Typography>
       )}
       {rulesAffected === 0 && (diff.modified.length > 0 || diff.removed.length > 0) && (
@@ -335,6 +356,9 @@ function DiffSummary({ diff }: { diff: DiffResult }) {
           No existing rules are linked to the changed recommendations.
         </Typography>
       )}
+      <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
+        Rules for unchanged recommendations will be preserved as-is.
+      </Typography>
     </Box>
   );
 }

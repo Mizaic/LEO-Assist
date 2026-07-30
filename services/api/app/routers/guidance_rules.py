@@ -130,6 +130,7 @@ RETURN rule.id AS rule_id,
        rule.reviewedBy AS reviewed_by,
        rule.previousRecommendationText AS previous_recommendation_text,
        rule.previousRecommendationNumber AS previous_recommendation_number,
+       coalesce(rule.guidelineTextChanged, false) AS guideline_text_changed,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
@@ -205,6 +206,7 @@ RETURN rule.id AS rule_id,
        rule.reviewedBy AS reviewed_by,
        rule.previousRecommendationText AS previous_recommendation_text,
        rule.previousRecommendationNumber AS previous_recommendation_number,
+       coalesce(rule.guidelineTextChanged, false) AS guideline_text_changed,
        g.id AS guideline_id,
        g.ingestVersion AS guideline_version,
        ch.title AS chapter_title,
@@ -1400,6 +1402,11 @@ def _format_rule(r: dict) -> dict:
         "previous_recommendation_text": r.get("previous_recommendation_text") or None,
         "previous_recommendation_number": r.get("previous_recommendation_number")
         or None,
+        # True when this APPROVED rule's guideline text changed under it
+        # during a re-ingest. The rule stays active (still enforced) --
+        # this only asks a reviewer to double-check it. See
+        # NiceGraphUpserter.clear_guideline_content().
+        "guideline_text_changed": bool(r.get("guideline_text_changed")),
     }
 
 

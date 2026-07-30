@@ -288,6 +288,13 @@ function RuleCardHeader({ rule }: { rule: Rule }) {
         </Tooltip>
       ) : null}
       {rule.has_predecessor && <Chip icon={<CompareArrowsIcon />} label="Updated" size="small" color="warning" variant="outlined" />}
+      {/* Atlas: DI-C2DE7FDF / DO-F8CDEBBA -- flag, never silently retire, an
+          approved rule whose guideline text changed under a re-ingest. */}
+      {rule.status === "active" && rule.guideline_text_changed && (
+        <Tooltip title="The guideline wording behind this approved rule has changed. It is still active and enforced -- please double check it still matches current guidance." arrow>
+          <Chip label="Guideline updated: review recommended" size="small" color="warning" variant="filled" />
+        </Tooltip>
+      )}
       {rule.is_default && <Chip label="Fallback rule" size="small" color="secondary" variant="outlined" />}
       {rule.status === "pending_review" && rule.generation_outcome && rule.generation_outcome !== "success" && <Chip label={generationOutcomeLabel(rule.generation_outcome)} size="small" color="warning" variant="filled" />}
       {rule.status === "pending_review" && rule.needs_human_review && !rule.generation_outcome && <Chip label="Needs review" size="small" color="warning" variant="outlined" />}
