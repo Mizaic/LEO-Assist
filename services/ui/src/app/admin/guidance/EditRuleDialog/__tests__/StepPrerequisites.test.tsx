@@ -558,6 +558,68 @@ describe("StepPrerequisites: adding a global age/sex prerequisite", () => {
   });
 });
 
+describe("StepPrerequisites: adding a global lab-value prerequisite", () => {
+  it("hides the Add lab value button when onAddObservation is not provided", () => {
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[]}
+        onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /add a lab value or reading that always applies/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("calls onAddObservation when Add lab value is clicked", async () => {
+    const user = userEvent.setup();
+    const onAddObservation = jest.fn();
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[]}
+        onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+        onAddObservation={onAddObservation}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /add a lab value or reading that always applies/i }),
+    );
+
+    expect(onAddObservation).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps offering Add lab value once a lab-value prerequisite already exists", () => {
+    render(
+      <StepPrerequisites
+        recommendationText={NG12_1_2_9_TEXT}
+        prerequisites={[makeObservationLeaf()]}
+        onEdit={jest.fn()}
+        onEditConcept={jest.fn()}
+        onUpdate={jest.fn()}
+        onRemove={jest.fn()}
+        onAddFromSelection={jest.fn()}
+        onAddObservation={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /add a lab value or reading that always applies/i }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("StepPrerequisites: the always-true question", () => {
   it("calls onConfirmNoMore when 'No, nothing else' is clicked", async () => {
     const user = userEvent.setup();

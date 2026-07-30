@@ -559,9 +559,9 @@ def bitmap_status(
 ) -> dict:
     """Return a summary of the currently active bitmap ruleset.
 
-    Includes the active version name, number of compiled rules, and
-    compile timestamp. The admin UI uses this to show whether the bitmap
-    is up to date.
+    Includes the active version name, number of compiled rules, their
+    rule_ids, and compile timestamp. The admin UI uses this to show
+    whether the bitmap is up to date and which rules are compiled.
     """
     store = BitmapStore()
     ruleset = store.get_current_ruleset(scope_type=scope_type, scope_id=scope_id)
@@ -569,14 +569,24 @@ def bitmap_status(
         return {
             "active_version": None,
             "rule_count": 0,
+            "rule_ids": [],
             "compile_timestamp": None,
             "message": "No active ruleset. Compile one from the admin panel.",
             "scope_type": scope_type,
             "scope_id": scope_id,
         }
+    rules = ruleset.get("rules") or []
+    rule_ids = [
+        rid
+        for rule in rules
+        if isinstance(rule, dict)
+        for rid in [str(rule.get("rule_id") or rule.get("id") or "").strip()]
+        if rid
+    ]
     return {
         "active_version": ruleset.get("version"),
-        "rule_count": len(ruleset.get("rules", [])),
+        "rule_count": len(rules),
+        "rule_ids": rule_ids,
         "compile_timestamp": ruleset.get("compile_timestamp"),
         "scope_type": ruleset.get("scope_type") or scope_type,
         "scope_id": ruleset.get("scope_id") or scope_id,

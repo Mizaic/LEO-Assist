@@ -68,7 +68,8 @@ export default function PathwayBoundaryRow({
           : undefined
       }
       sx={{
-        p: 1.25,
+        px: 1.25,
+        py: nestedItems.length > 0 || isSplitTarget ? 1 : 0.75,
         borderRadius: 1.5,
         border: boundary.source === "structure" ? "1px solid" : "1px dashed",
         borderColor: selected ? "primary.main" : "divider",
@@ -87,15 +88,15 @@ export default function PathwayBoundaryRow({
           />
         </Box>
       ) : (
-        <Typography variant="body2">
+        <Typography variant="body2" sx={{ lineHeight: 1.35 }}>
           <strong>({letter})</strong> {boundary.text}
         </Typography>
       )}
       {!isSplitTarget && nestedItems.length > 0 && (
-        <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 3 }}>
+        <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 2.5 }}>
           {nestedItems.map((child) => (
-            <Box component="li" key={`${child.start}-${child.end}`}>
-              <Typography variant="caption" color="text.secondary">
+            <Box component="li" key={`${child.start}-${child.end}`} sx={{ py: 0.125 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.35 }}>
                 {child.text}
               </Typography>
             </Box>

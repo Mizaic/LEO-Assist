@@ -114,20 +114,29 @@ def evaluate_variant_against_rule(
     if not cleaned_rule:
         return None, "no recommendation attached"
 
-    evaluator = _make_evaluator()
-    if not _ruleset_contains_rule(evaluator, cleaned_rule):
+    try:
+        evaluator = _make_evaluator()
+        if not _ruleset_contains_rule(evaluator, cleaned_rule):
+            return None, "rule not currently compiled"
+
+        age = _age_from_variant(variant)
+        sex = str(variant.get("patientSex") or "").strip() or None
+        codes = _codes_from_variant(variant)
+        observations = _observations_from_variant(variant)
+        result = evaluator.evaluate_patient(
+            codes,
+            patient_age=age,
+            patient_sex=sex,
+            patient_observations=observations or None,
+        )
+    except Exception:
+        logger.warning(
+            "evaluate_variant_against_rule failed for %s",
+            cleaned_rule,
+            exc_info=True,
+        )
         return None, "rule not currently compiled"
 
-    age = _age_from_variant(variant)
-    sex = str(variant.get("patientSex") or "").strip() or None
-    codes = _codes_from_variant(variant)
-    observations = _observations_from_variant(variant)
-    result = evaluator.evaluate_patient(
-        codes,
-        patient_age=age,
-        patient_sex=sex,
-        patient_observations=observations or None,
-    )
     matched = result.get("matched_rules") or []
     matched_ids = {
         str(m.get("rule_id") or m.get("id") or "").strip()

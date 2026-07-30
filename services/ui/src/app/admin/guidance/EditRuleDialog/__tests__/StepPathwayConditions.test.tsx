@@ -732,3 +732,46 @@ describe("StepPathwayConditions: the copy-across offer", () => {
     expect(onDismissCopyAcross).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("StepPathwayConditions: adding a per-situation lab-value condition", () => {
+  it("hides the Add lab value button when onAddPathwayObservation is not provided", () => {
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={2}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /add a lab value or reading for this situation only/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("calls onAddPathwayObservation when Add lab value is clicked", async () => {
+    const user = userEvent.setup();
+    const onAddPathwayObservation = jest.fn();
+    render(
+      <StepPathwayConditions
+        pathwayIndex={1}
+        pathwayCount={2}
+        pathwayLetter="A"
+        boundary={SINGLE_LEAF_BOUNDARY}
+        getRowResolution={resolveNothing}
+        onRowClick={jest.fn()}
+        onConfirmPathway={jest.fn()}
+        onAddPathwayObservation={onAddPathwayObservation}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /add a lab value or reading for this situation only/i }),
+    );
+
+    expect(onAddPathwayObservation).toHaveBeenCalledTimes(1);
+  });
+});

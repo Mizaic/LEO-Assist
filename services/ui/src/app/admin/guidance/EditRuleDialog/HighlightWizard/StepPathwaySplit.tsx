@@ -196,10 +196,10 @@ export default function StepPathwaySplit({
   }
 
   return (
-    <Stack spacing={2} data-tour="er-04-situations">
+    <Stack spacing={1.5} data-tour="er-04-situations">
       <StepHeader source={source} count={boundaries.length} />
 
-      <Stack spacing={1}>
+      <Stack spacing={0.75}>
         {mode === "merging" && (
           <Typography variant="caption" color="text.secondary">
             {STEP_PATHWAY_SPLIT.mergeInstruction}
@@ -266,10 +266,10 @@ function StepHeader({
         : STEP_PATHWAY_SPLIT.heuristicTag(count);
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
         {title}
       </Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, lineHeight: 1.4 }}>
         {tag}
       </Typography>
     </Box>

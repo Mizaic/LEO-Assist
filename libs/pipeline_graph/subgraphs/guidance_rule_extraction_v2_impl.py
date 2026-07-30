@@ -3996,6 +3996,98 @@ def _flag_missing_age_or_organ_constraint(
     return coded
 
 
+def _tree_top_level_or_children(
+    tree: dict[str, Any] | None,
+) -> list[dict[str, Any]] | None:
+    """Return the top-level OR node's children, or ``None`` if the tree has
+    no single top-level OR to check (bare AND, single leaf, or an AND with
+    more than one OR child -- an ambiguous shape this safety net skips
+    rather than guessing about).
+    """
+    if not isinstance(tree, dict):
+        return None
+    kind = str(tree.get("kind") or "").upper()
+    if kind == "OR":
+        children = tree.get("children")
+        return children if isinstance(children, list) else None
+    if kind == "AND":
+        or_children = [
+            c
+            for c in (tree.get("children") or [])
+            if isinstance(c, dict) and str(c.get("kind") or "").upper() == "OR"
+        ]
+        if len(or_children) == 1:
+            inner = or_children[0].get("children")
+            return inner if isinstance(inner, list) else None
+    return None
+
+
+def _flag_situation_arity_drift(
+    rec: dict[str, Any], coded: dict[str, Any]
+) -> dict[str, Any]:
+    """Force human review when the tree has MORE top-level OR alternatives
+    than the recommendation's own list structure / prose split supports.
+
+    Confirmed empirically on NG12 1.3.1: SITUATION_SHELLS built from the
+    recommendation's own ``listStructureJson`` has 7 top-level items, but
+    an extraction that returns the legacy ``logic_tree`` shape directly
+    (bypassing ``_realign_verdict_to_skeleton``, which only runs for the
+    newer ``situation_draft`` shape) produced a 10-branch top-level OR.
+    The last bullet's own item text carried 3 further findings ("rectal
+    mass, an unexplained anal mass or unexplained anal ulceration") --
+    a NICE markup quirk glues trailing whole-recommendation sentences onto
+    the final ``<li>`` -- and the model treated them as 3 additional
+    top-level alternatives instead of leaving them inside that one
+    bullet's own branch. Those findings already have their own dedicated,
+    correctly-actioned rules elsewhere in NG12 (1.3.5, 1.3.6) carrying a
+    DIFFERENT action ("consider referral", no FIT) from this rule's single
+    rule-level action ("offer FIT") -- since this data model has exactly
+    one ActionGroup per rule, arity drift like this cannot be corrected by
+    merging the extra branches alone, so it MUST reach a human reviewer
+    rather than compile silently (R-4E4F22EF).
+
+    This is a deterministic safety net that only detects the count
+    mismatch and escalates it; it does not attempt to repair the tree.
+    """
+    from libs.guidance.situation_skeleton import (
+        build_situation_skeleton,
+        parse_list_structure,
+    )
+
+    structure = rec.get("list_structure") or parse_list_structure(
+        rec.get("list_structure_json")
+    )
+    verbatim = str(rec.get("verbatim") or "")
+    try:
+        shells = build_situation_skeleton(verbatim, structure)
+    except Exception:
+        return coded
+    if len(shells) < 2:
+        return coded
+    actual_children = _tree_top_level_or_children(coded.get("logic_tree"))
+    if actual_children is None or len(actual_children) <= len(shells):
+        return coded
+    coded["needs_human_review"] = True
+    hitl_terms = list(coded.get("hitl_terms") or [])
+    hitl_terms.append(
+        {
+            "kind": "safety_check",
+            "reason": "situation_count_exceeds_source_structure",
+            "detail": (
+                f"The recommendation's own list structure implies "
+                f"{len(shells)} situation(s), but the extracted logic tree "
+                f"has {len(actual_children)} top-level OR branches -- check "
+                "whether extra branches were invented from text inside one "
+                "bullet's own item (e.g. a trailing sentence naming further "
+                "findings) and whether they duplicate a different, "
+                "already-modelled rule with a different action."
+            ),
+        }
+    )
+    coded["hitl_terms"] = hitl_terms
+    return coded
+
+
 def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     verified = verify_codes(state)
     rec = state.get("recommendation") or {}
@@ -4034,6 +4126,7 @@ def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 )
         coded = _flag_missing_sex_constraint(rec, coded)
         coded = _flag_missing_age_or_organ_constraint(rec, coded)
+        coded = _flag_situation_arity_drift(rec, coded)
         verified["coded_criteria"] = coded
         return verified
 
@@ -4051,6 +4144,7 @@ def assemble_result(state: GuidanceRuleExtractionState) -> dict[str, Any]:
             logger.exception("Authoring gate failed on partial output.")
         partial = _flag_missing_sex_constraint(rec, partial)
         partial = _flag_missing_age_or_organ_constraint(rec, partial)
+        partial = _flag_situation_arity_drift(rec, partial)
         return {
             "coded_criteria": partial,
             "errors": errors,

@@ -33,6 +33,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
 
 import DemographicRow from "../LogicTreeEditor/DemographicRow";
 import ObservationRow from "../LogicTreeEditor/ObservationRow";
@@ -148,6 +149,15 @@ export interface StepPathwayConditionsProps {
   onEditConfirmedLeaf?: (node: EditableLogicNode) => void;
   onRemoveConfirmedLeaf?: (node: EditableLogicNode) => void;
   /**
+   * Adds a blank lab-value condition attached to THIS pathway only --
+   * mirrors `onAddPathwayDemographic` above, and the global version of
+   * this same button in `StepPrerequisites`. The reviewer then fills
+   * in the observable, operator, value, and unit via the same inline
+   * `ObservationRow` editor `expandedObservationNode` below expands
+   * to. Undefined hides the "Add lab value" button entirely.
+   */
+  onAddPathwayObservation?: () => void;
+  /**
    * The DEMOGRAPHIC leaf (from the main condition list, NOT
    * `pathwayDemographics` above) whose inline age/sex editor should
    * currently render, toggled by re-clicking its row (see
@@ -220,6 +230,7 @@ export default function StepPathwayConditions({
   confirmedLeaves = [],
   onEditConfirmedLeaf,
   onRemoveConfirmedLeaf,
+  onAddPathwayObservation,
   expandedDemographicNode = null,
   expandedObservationNode = null,
   onSelectObservation,
@@ -335,6 +346,22 @@ export default function StepPathwayConditions({
           onEditLeaf={onEditConfirmedLeaf}
           onRemoveLeaf={onRemoveConfirmedLeaf}
         />
+      )}
+
+      {onAddPathwayObservation && (
+        <Box>
+          <Tooltip title={WIZARD_TOOLTIPS.addLabValueSituation}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddRoundedIcon fontSize="small" />}
+              onClick={onAddPathwayObservation}
+              aria-label={STEP_PATHWAY_CONDITIONS.addLabValueAriaLabel}
+            >
+              {STEP_PATHWAY_CONDITIONS.addLabValueLabel}
+            </Button>
+          </Tooltip>
+        </Box>
       )}
 
       {onAddPathwayDemographic && onUpdatePathway && (

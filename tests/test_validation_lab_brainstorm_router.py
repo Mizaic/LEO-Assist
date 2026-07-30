@@ -226,6 +226,87 @@ def test_propose_empty_sets_guidance(monkeypatch) -> None:
     assert "No variants were generated" in (out["guidance_message"] or "")
 
 
+def test_propose_rejects_too_many_recommendations() -> None:
+    from libs.validation_lab.brainstorm import run_propose_variants
+    from libs.validation_lab.scenario_patch import MAX_BRAINSTORM_RECOMMENDATIONS
+
+    recs = [
+        {
+            "recId": f"rec-{i}",
+            "verbatim": "Refer people using a suspected cancer pathway referral",
+            "ruleId": f"R{i}",
+            "ruleStatus": "active",
+        }
+        for i in range(MAX_BRAINSTORM_RECOMMENDATIONS + 1)
+    ]
+    with pytest.raises(ValueError, match="Too many recommendations"):
+        run_propose_variants(scenario_text="NG12", recommendations=recs)
+
+
+def test_propose_continues_when_one_recommendation_fails(monkeypatch) -> None:
+    from libs.validation_lab import brainstorm as mod
+    from libs.validation_lab import brainstorm_propose as propose_mod
+
+    calls = {"n": 0}
+
+    def fake_once(**kwargs: Any) -> dict[str, Any]:
+        calls["n"] += 1
+        payload = kwargs["user_payload"]
+        rec = (payload.get("recommendations") or [{}])[0]
+        rec_id = str(rec.get("recId") or "")
+        if rec_id == "rec-a":
+            raise RuntimeError("llm down")
+        return {
+            "assistant_message": "ok",
+            "questions": [],
+            "proposed": [
+                {
+                    "variantId": f"{rec_id}-1",
+                    "targetRecId": rec_id,
+                    "label": "ok",
+                    "rationale": "r",
+                    "recommended": True,
+                    "isControl": False,
+                    "triggerConceptIds": [],
+                    "pmh": [],
+                }
+            ],
+            "tool_traces": [],
+            "seen_concepts": {},
+            "seen_observables": set(),
+        }
+
+    monkeypatch.setattr(propose_mod, "_propose_once", fake_once)
+    monkeypatch.setattr(
+        mod,
+        "evaluate_variant_against_rule",
+        lambda rule_id, variant: (None, "rule not currently compiled"),
+    )
+    out = mod.run_propose_variants(
+        scenario_text="upper GI",
+        recommendations=[
+            {
+                "recId": "rec-a",
+                "verbatim": "Refer for oesophageal cancer if dysphagia",
+                "ruleId": "R1",
+                "ruleStatus": "active",
+            },
+            {
+                "recId": "rec-b",
+                "verbatim": "Refer for pancreatic cancer if jaundice",
+                "ruleId": "R2",
+                "ruleStatus": "active",
+            },
+        ],
+    )
+    assert calls["n"] == 2
+    assert len(out["variants"]) == 1
+    assert out["variants"][0]["targetRecId"] == "rec-b"
+    assert "rec-a" in (out["guidance_message"] or "") or "Could not generate" in (
+        out["guidance_message"] or ""
+    )
+
+
 def test_propose_with_compiled_rule_stamps_evaluator_value(monkeypatch) -> None:
     from libs.validation_lab import brainstorm as mod
 

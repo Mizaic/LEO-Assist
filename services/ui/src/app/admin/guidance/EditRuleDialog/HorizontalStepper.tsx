@@ -45,23 +45,32 @@ export default function HorizontalStepper({
       data-tour="er-01-stepper"
       sx={{
         px: { xs: 1.5, md: 2.5 },
-        py: 1,
+        py: 0.75,
         bgcolor: "background.paper",
         borderBottom: "1px solid",
         borderColor: "divider",
         overflowX: "auto",
+        // Keep the overflow scroll usable without a thick bar sitting
+        // on top of the step canvas (many situation pills overflow).
+        scrollbarWidth: "thin",
+        "&::-webkit-scrollbar": { height: 6 },
+        "&::-webkit-scrollbar-thumb": {
+          bgcolor: "action.disabled",
+          borderRadius: 999,
+        },
+        "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
       }}
     >
       <Stack
         component="ol"
         direction="row"
-        spacing={{ xs: 0.5, md: 1 }}
+        spacing={{ xs: 0.25, md: 0.5 }}
         sx={{
           m: 0,
           p: 0,
           listStyle: "none",
           minWidth: "fit-content",
-          alignItems: "stretch",
+          alignItems: "center",
         }}
       >
         {slots.map((slot, index) => {
@@ -137,9 +146,9 @@ function StepperItem({
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        gap: 1,
-        px: { xs: 1, md: 1.5 },
-        py: 0.75,
+        gap: 0.75,
+        px: { xs: 0.75, md: 1.25 },
+        py: 0.5,
         border: "none",
         borderRadius: 999,
         bgcolor: "transparent",
@@ -248,10 +257,10 @@ function StepperConnector() {
     <Box
       aria-hidden="true"
       sx={{
-        width: { xs: 16, md: 28 },
+        width: { xs: 10, md: 16 },
         height: "1px",
         bgcolor: "divider",
-        mx: { xs: 0.25, md: 0.5 },
+        mx: { xs: 0.125, md: 0.25 },
         flexShrink: 0,
       }}
     />

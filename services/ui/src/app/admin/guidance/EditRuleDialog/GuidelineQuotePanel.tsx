@@ -307,10 +307,10 @@ export default function GuidelineQuotePanel({
         position: "sticky",
         top: 0,
         alignSelf: "flex-start",
-        p: 2,
+        p: { xs: 1.5, md: 2 },
         display: "flex",
         flexDirection: "column",
-        gap: 1.5,
+        gap: 1.25,
       }}
     >
       <Stack direction="row" alignItems="center" spacing={0.75}>
@@ -330,7 +330,8 @@ export default function GuidelineQuotePanel({
       {recommendationText ? (
         <Box
           sx={{
-            p: 1.5,
+            px: 2,
+            py: 1.5,
             borderLeft: "4px solid",
             borderColor: "primary.main",
             bgcolor: "background.paper",
@@ -339,7 +340,7 @@ export default function GuidelineQuotePanel({
         >
           <Typography
             variant="body2"
-            sx={{ fontStyle: "italic", lineHeight: 1.6, color: "text.primary" }}
+            sx={{ fontStyle: "italic", lineHeight: 1.55, color: "text.primary" }}
           >
             {renderHighlightedQuote(recommendationText, highlights)}
           </Typography>
@@ -349,7 +350,7 @@ export default function GuidelineQuotePanel({
           This rule has no guideline text to show.
         </Typography>
       )}
-      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.45 }}>
         {legendFor(mode, highlights.length > 0)}
       </Typography>
     </Box>

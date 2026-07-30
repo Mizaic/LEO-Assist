@@ -156,6 +156,16 @@ export interface StepPrerequisitesProps {
    * that don't care about this affordance).
    */
   onAddDemographic?: (field: PathwayDemographicField) => void;
+  /**
+   * Adds a blank, global (every-pathway) lab-value prerequisite --
+   * the reviewer then fills in the observable, operator, value, and
+   * unit via the same inline `ObservationRow` editor an existing
+   * OBSERVATION row expands to. Mirrors `onAddDemographic` above so
+   * this step offers the same add affordances as the Advanced and
+   * Simple canvases (`AddBar` / `AddInlineLinks`) do for every other
+   * group in the tree -- undefined hides the "Add lab value" button.
+   */
+  onAddObservation?: () => void;
   /** "No, nothing else always applies" -- lets the wizard move on
    *  without opening any add flow. */
   onConfirmNoMore?: () => void;
@@ -170,6 +180,7 @@ export default function StepPrerequisites({
   onRemove,
   onAddFromSelection,
   onAddDemographic,
+  onAddObservation,
   onConfirmNoMore,
 }: StepPrerequisitesProps) {
   const [questionDismissed, setQuestionDismissed] = useState(false);
@@ -328,6 +339,19 @@ export default function StepPrerequisites({
                   aria-label={STEP_PREREQUISITES.addSexAriaLabel}
                 >
                   {STEP_PREREQUISITES.addSexLabel}
+                </Button>
+              </Tooltip>
+            )}
+            {onAddObservation && (
+              <Tooltip title={WIZARD_TOOLTIPS.addLabValueAlways}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddRoundedIcon fontSize="small" />}
+                  onClick={onAddObservation}
+                  aria-label={STEP_PREREQUISITES.addLabValueAriaLabel}
+                >
+                  {STEP_PREREQUISITES.addLabValueLabel}
                 </Button>
               </Tooltip>
             )}

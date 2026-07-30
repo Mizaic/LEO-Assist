@@ -110,3 +110,69 @@ export function allNormativeRecs<T extends RecEntryLike>(
     ch.recommendations.filter((r) => r.is_normative),
   );
 }
+
+/** True when the attach rule for this recommendation is approved (active). */
+export function recHasApprovedRule(rec: RecEntryLike): boolean {
+  return pickAttachRule(rec.rules)?.status === "active";
+}
+
+/**
+ * True when the attach rule is in the live compiled bitmap.
+ * Compiled implies the rule was approved at last compile.
+ */
+export function recHasCompiledRule(
+  rec: RecEntryLike,
+  compiledRuleIds: ReadonlySet<string>,
+): boolean {
+  const chosen = pickAttachRule(rec.rules);
+  if (!chosen?.rule_id) return false;
+  return compiledRuleIds.has(chosen.rule_id);
+}
+
+/** Apply checked=true for every rec that matches predicate; leave others alone. */
+export function selectMatchingRecs(
+  prev: SelectionMap,
+  recs: RecEntryLike[],
+  predicate: (rec: RecEntryLike) => boolean,
+): SelectionMap {
+  const next = { ...prev };
+  for (const r of recs) {
+    if (!predicate(r)) continue;
+    next[r.rec_id] = { ...next[r.rec_id], checked: true };
+  }
+  return next;
+}
+
+/**
+ * Attach-mode badge for the latest / attach rule.
+ * "approved + compiled" when the rule is in the live bitmap.
+ */
+export function attachBadgeLabel(
+  status: string,
+  inCompiledBitmap: boolean,
+): string {
+  if (status === "active" && inCompiledBitmap) return "approved + compiled";
+  if (status === "active") return "approved";
+  if (status === "pending_review") return "pending review";
+  if (status === "rejected") return "rejected";
+  if (status === "superseded") return "superseded";
+  return status.replace(/_/g, " ");
+}
+
+export function attachBadgeTip(
+  status: string,
+  inCompiledBitmap: boolean,
+): string | undefined {
+  if (status === "active" && inCompiledBitmap) {
+    return "Approved and present in the live bitmap. Lab scoring can check if the case fires.";
+  }
+  if (status === "active") {
+    return "Approved rule. Ready to compile into a bitmap - not yet in the live bitmap.";
+  }
+  if (status === "pending_review") return "Waiting for review. Not approved yet.";
+  if (status === "rejected") {
+    return "Rejected or excluded. Will not compile into a bitmap.";
+  }
+  if (status === "superseded") return "Replaced by a newer rule version.";
+  return undefined;
+}

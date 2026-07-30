@@ -317,6 +317,10 @@ export default function PathwayConditionsStage({
     });
   }
 
+  function handleAddPathwayObservation() {
+    onUpdate({ kind: "add_observation", parentNodeId: pathwayNode.node_id });
+  }
+
   function handleEditConfirmedLeaf(node: EditableLogicNode) {
     if (node.kind === "CONCEPT") {
       onEditConcept(node.node_id);
@@ -543,6 +547,7 @@ export default function PathwayConditionsStage({
       confirmedLeaves={confirmedLeaves}
       onEditConfirmedLeaf={confirmedLeaves.length > 0 ? handleEditConfirmedLeaf : undefined}
       onRemoveConfirmedLeaf={canRemoveConfirmedLeaves ? handleRemoveConfirmedLeaf : undefined}
+      onAddPathwayObservation={handleAddPathwayObservation}
       problemIssues={problemIssues}
       onRemoveProblem={handleRemoveProblem}
       expandedDemographicNode={

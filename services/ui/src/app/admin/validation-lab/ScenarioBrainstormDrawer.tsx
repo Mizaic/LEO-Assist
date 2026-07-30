@@ -50,6 +50,8 @@ import {
 import ScenarioBrainstormVariantsStep from "./ScenarioBrainstormVariantsStep";
 
 const STEPS = ["Attach", "Clarify", "Variants", "Review"];
+/** Keep in sync with libs/validation_lab/scenario_patch.MAX_BRAINSTORM_RECOMMENDATIONS */
+const MAX_BRAINSTORM_RECOMMENDATIONS = 5;
 
 interface LoadedGuidelineOption {
   code: string;
@@ -371,7 +373,15 @@ export default function ScenarioBrainstormDrawer({
             <Typography variant="body2">
               Attached: {recommendations.length} recommendation
               {recommendations.length === 1 ? "" : "s"}
+              {` (max ${MAX_BRAINSTORM_RECOMMENDATIONS})`}
             </Typography>
+          ) : null}
+          {recommendations.length > MAX_BRAINSTORM_RECOMMENDATIONS ? (
+            <Alert severity="warning">
+              Brainstorm can use at most {MAX_BRAINSTORM_RECOMMENDATIONS}{" "}
+              recommendations at a time (about 3 test cases each). Remove some
+              before continuing -- Select all on a whole guideline is too many.
+            </Alert>
           ) : null}
           <FormControlLabel
             control={
@@ -384,7 +394,11 @@ export default function ScenarioBrainstormDrawer({
           />
           <Button
             variant="contained"
-            disabled={busy || (!scenarioText.trim() && !recommendations.length)}
+            disabled={
+              busy ||
+              (!scenarioText.trim() && !recommendations.length) ||
+              recommendations.length > MAX_BRAINSTORM_RECOMMENDATIONS
+            }
             onClick={() => void runUnderstand()}
           >
             {busy ? <CircularProgress size={18} /> : "Continue"}
@@ -428,14 +442,33 @@ export default function ScenarioBrainstormDrawer({
               </Box>
             );
           })}
+          {recommendations.length > MAX_BRAINSTORM_RECOMMENDATIONS ? (
+            <Alert severity="warning">
+              Too many recommendations attached (
+              {recommendations.length}). Go back and keep at most{" "}
+              {MAX_BRAINSTORM_RECOMMENDATIONS} before generating variants.
+            </Alert>
+          ) : null}
           <Stack direction="row" spacing={1}>
+            <Button
+              onClick={() => {
+                setError("");
+                setStep(0);
+              }}
+              disabled={busy}
+            >
+              Back
+            </Button>
             <Button onClick={() => void runClarify(true)} disabled={busy}>
               Skip
             </Button>
             <Button
               variant="contained"
               onClick={() => void runClarify(false)}
-              disabled={busy}
+              disabled={
+                busy ||
+                recommendations.length > MAX_BRAINSTORM_RECOMMENDATIONS
+              }
             >
               {busy ? <CircularProgress size={18} /> : "Next"}
             </Button>
@@ -485,11 +518,26 @@ export default function ScenarioBrainstormDrawer({
           onClose={() => setPickerOpen(false)}
           onRulesGenerated={() => undefined}
           onAttach={(recs: AttachedRecommendation[]) => {
-            setRecommendations((prev) => {
-              const byId = new Map(prev.map((r) => [r.recId, r]));
-              for (const r of recs) byId.set(r.recId, r);
-              return Array.from(byId.values());
+            // Prefer compiled, then approved, so Select all still yields
+            // the most useful subset when over the cap.
+            const ranked = [...recs].sort((a, b) => {
+              const score = (r: AttachedRecommendation) => {
+                const status = String(r.ruleStatus || "");
+                if (status === "active") return 2;
+                if (status) return 1;
+                return 0;
+              };
+              return score(b) - score(a);
             });
+            const next = ranked.slice(0, MAX_BRAINSTORM_RECOMMENDATIONS);
+            setRecommendations(next);
+            if (recs.length > MAX_BRAINSTORM_RECOMMENDATIONS) {
+              setError(
+                `Kept ${MAX_BRAINSTORM_RECOMMENDATIONS} of ${recs.length} selected (approved rules preferred). Brainstorm allows at most ${MAX_BRAINSTORM_RECOMMENDATIONS} at a time.`,
+              );
+            } else {
+              setError("");
+            }
             setPickerOpen(false);
           }}
         />

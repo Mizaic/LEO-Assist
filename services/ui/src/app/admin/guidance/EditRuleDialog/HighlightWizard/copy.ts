@@ -78,6 +78,12 @@ export const STEP_PREREQUISITES = {
   addSexLabel: "Add sex",
   addAgeAriaLabel: "Add an age check that always applies",
   addSexAriaLabel: "Add a sex check that always applies",
+  /** Adds a global lab-value check (e.g. a blood test result) that
+   *  applies no matter which situation matches, matching the same
+   *  add-age/add-sex pattern above. Unlike age/sex, more than one
+   *  can be added, so this button stays visible after the first. */
+  addLabValueLabel: "Add lab value",
+  addLabValueAriaLabel: "Add a lab value or reading that always applies",
   noTextFallback:
     "This rule has no guideline text to highlight. Skip this step for now, or go back and add what must always be true once the wording is available.",
   /** "Captured so far" row for a CONCEPT leaf built from several
@@ -267,6 +273,12 @@ export const STEP_PATHWAY_CONDITIONS = {
    *  no guideline quote to derive rows from (`boundary.source ===
    *  "tree"`), so already-captured conditions are not silently hidden. */
   confirmedConditionsHeading: "Already captured for this situation:",
+  /** Adds a blank lab-value check that applies only to THIS situation
+   *  -- distinct from Step 1's global button of the same underlying
+   *  action. Unlike age/sex, more than one can apply, so this stays
+   *  visible after the first is added (mirrors Step 1's own button). */
+  addLabValueLabel: "Add lab value",
+  addLabValueAriaLabel: "Add a lab value or reading for this situation only",
   removeConditionAriaLabel: (text: string) => `Remove "${text}" from this situation`,
 } as const;
 
@@ -301,6 +313,7 @@ export const WIZARD_TOOLTIPS = {
   noMore: "Confirm nothing else always applies, and continue.",
   addAgeAlways: "Add an age check that applies to every situation.",
   addSexAlways: "Add a sex check that applies to every situation.",
+  addLabValueAlways: "Add a lab value or reading that applies to every situation.",
   highlightMore: "Select more words from the guideline that must always be true.",
   editCaptured: "Change this captured item.",
   doneEditing: "Finish editing this captured item.",
@@ -324,6 +337,7 @@ export const WIZARD_TOOLTIPS = {
   dismissCopy: "Skip copying; look up codes for this situation yourself.",
   addAgeSituation: "Add an age check for this situation only.",
   addSexSituation: "Add a sex check for this situation only.",
+  addLabValueSituation: "Add a lab value or reading for this situation only.",
   wizardBack:
     "Go back to the previous wizard question (not Who / Suggest / Save).",
   removeProblem: "Remove this broken empty group so the rule can be saved.",

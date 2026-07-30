@@ -616,6 +616,28 @@ describe("PathwayConditionsStage: per-pathway demographics", () => {
     expect(latestTree!.children!.filter((c) => c.kind === "DEMOGRAPHIC")).toHaveLength(0);
   });
 
+  it("adds a lab value under the active pathway AND only", async () => {
+    const user = userEvent.setup();
+    let latestTree: EditableLogicNode | undefined;
+    render(
+      <Harness
+        pathwayIndex={0}
+        onTreeChange={(t) => {
+          latestTree = t;
+        }}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: /add a lab value or reading for this situation only/i }),
+    );
+
+    const pwA = latestTree!.children![0].children![0];
+    const pwB = latestTree!.children![0].children![1];
+    expect(pwA.children!.some((c) => c.kind === "OBSERVATION")).toBe(true);
+    expect(pwB.children!.some((c) => c.kind === "OBSERVATION")).toBe(false);
+  });
+
   it("blocks Confirm when a pathway age value is cleared", async () => {
     const user = userEvent.setup();
     render(<Harness pathwayIndex={0} />);

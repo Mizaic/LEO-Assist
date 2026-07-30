@@ -483,6 +483,9 @@ export default function HighlightWizard({
           onAddDemographic={(field) =>
             onUpdate({ kind: "add_demographic", parentNodeId: tree.node_id, field })
           }
+          onAddObservation={() =>
+            onUpdate({ kind: "add_observation", parentNodeId: tree.node_id })
+          }
           onConfirmNoMore={() => dispatch({ type: "CONFIRM_PREREQUISITES" })}
         />
       )}

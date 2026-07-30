@@ -54,26 +54,49 @@ RETURN r.id AS id, r.status AS status
 """
 
 ADMIT_PIPELINE_RUN = """
-MERGE (r:PipelineRun {admission_key: $admission_key})
-ON CREATE SET
-  r.id = $run_id,
-  r.created_at = datetime(),
-  r.workflow_id = $workflow_id,
-  r.plan_definition_id = $plan_definition_id,
-  r.patient_id = $patient_id,
-  r.encounter_id = $encounter_id,
-  r.source = $source,
-  r.case_id = $case_id,
-  r.parent_run_id = $parent_run_id,
-  r.policy_version = $policy_version,
-  r.plan_version_id = $plan_version_id,
-  r.version_selection_reason = $version_selection_reason,
-  r.execution_manifest_json = $execution_manifest_json,
-  r.status = 'running',
-  r.first_step_enqueued = false,
-  r.updated_at = datetime()
-ON MATCH SET
-  r.updated_at = datetime()
+OPTIONAL MATCH (byKey:PipelineRun {admission_key: $admission_key})
+OPTIONAL MATCH (byId:PipelineRun {id: $run_id})
+WITH byKey, byId
+CALL {
+  WITH byKey, byId
+  WITH byKey WHERE byKey IS NOT NULL
+  SET byKey.updated_at = datetime()
+  RETURN byKey AS r
+
+  UNION
+
+  WITH byKey, byId
+  WITH byKey, byId WHERE byKey IS NULL AND byId IS NOT NULL
+  SET byId.admission_key = coalesce(byId.admission_key, $admission_key),
+      byId.updated_at = datetime()
+  RETURN byId AS r
+
+  UNION
+
+  WITH byKey, byId
+  WITH byKey, byId WHERE byKey IS NULL AND byId IS NULL
+  MERGE (r:PipelineRun {admission_key: $admission_key})
+  ON CREATE SET
+    r.id = $run_id,
+    r.created_at = datetime(),
+    r.workflow_id = $workflow_id,
+    r.plan_definition_id = $plan_definition_id,
+    r.patient_id = $patient_id,
+    r.encounter_id = $encounter_id,
+    r.source = $source,
+    r.case_id = $case_id,
+    r.parent_run_id = $parent_run_id,
+    r.policy_version = $policy_version,
+    r.plan_version_id = $plan_version_id,
+    r.version_selection_reason = $version_selection_reason,
+    r.execution_manifest_json = $execution_manifest_json,
+    r.status = 'running',
+    r.first_step_enqueued = false,
+    r.updated_at = datetime()
+  ON MATCH SET
+    r.updated_at = datetime()
+  RETURN r
+}
 WITH r
 OPTIONAL MATCH (p:Patient {id: $patient_id})
 FOREACH (_ IN CASE WHEN p IS NULL THEN [] ELSE [1] END |

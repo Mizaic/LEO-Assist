@@ -1217,12 +1217,17 @@ export default function EditRuleDialog({
               aria-label={`Step ${currentIndex + 1} of ${navSlots.length}`}
               tabIndex={0}
               sx={{
-                p: { xs: 2, md: 3 },
+                px: { xs: 2, md: 2.5 },
+                py: { xs: 1.5, md: 2 },
                 minWidth: 0,
                 minHeight: 0,
                 flex: { xs: "1 1 auto", md: "0 0 60%" },
                 width: { xs: "100%", md: "60%" },
                 overflowY: { xs: "visible", md: "auto" },
+                // overflowY:auto forces overflowX to auto in CSS; clip
+                // stray width so a second horizontal bar does not appear
+                // under the stepper.
+                overflowX: "hidden",
               }}
             >
             <fm.div

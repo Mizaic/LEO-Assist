@@ -35,6 +35,9 @@ from libs.validation_lab.scenario_catalog import (
 VARIANTS_PER_RECOMMENDATION = 3
 FREEFORM_POSITIVE_CAP = 5
 MAX_CONTROL_VARIANTS = 1
+# Propose runs one LLM pass per attached recommendation. Keep this small
+# so Select-all in the attach picker cannot time out the brainstorm.
+MAX_BRAINSTORM_RECOMMENDATIONS = 5
 
 PlusGroup = Literal[
     "ethnic_minority_community",

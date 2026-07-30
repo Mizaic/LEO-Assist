@@ -33,14 +33,26 @@ describe("VT-C6B93AF0 - Validation Lab brainstorm drawer chrome", () => {
       "services/ui/src/app/admin/guidance/RecommendationPickerDialog.tsx",
     );
     expect(picker).toMatch(/Select recommendations to attach to this test scenario/);
-    expect(picker).toMatch(/Existing rule can score whether the test case should fire/);
-    expect(picker).toMatch(/sel\.checked && !attachMode/);
-    expect(picker).toMatch(/Has existing rule - will add another/);
-    expect(picker).toMatch(/pickLatestRule/);
-    expect(picker).toMatch(/attachMode && latestRule/);
-    expect(picker).toMatch(/ATTACH_STATUS_LABEL/);
-    expect(picker).toMatch(/active:\s*"approved"/);
-    expect(picker).toMatch(/not the same as being in the live bitmap/);
+    expect(picker).toMatch(/selectAllApproved/);
+    expect(picker).toMatch(/selectAllCompiled/);
+    const pickerApi = readFile(
+      "services/ui/src/app/admin/guidance/recommendationPickerApi.ts",
+    );
+    expect(pickerApi).toMatch(/fetchCompiledRuleIds/);
+    expect(pickerApi).toMatch(/bitmap\/status/);
+    expect(pickerApi).toMatch(/rule_ids/);
+    const toolbar = readFile(
+      "services/ui/src/app/admin/guidance/RecommendationPickerToolbar.tsx",
+    );
+    expect(toolbar).toMatch(/Select all approved/);
+    expect(toolbar).toMatch(/Select all compiled/);
+    const rows = readFile(
+      "services/ui/src/app/admin/guidance/RecommendationPickerRows.tsx",
+    );
+    expect(rows).toMatch(/Existing rule can score whether the test case should fire/);
+    expect(rows).toMatch(/sel\.checked && !attachMode/);
+    expect(rows).toMatch(/Has existing rule - will add another/);
+    expect(rows).toMatch(/pickAttachRule/);
     const selection = readFile(
       "services/ui/src/app/admin/guidance/recommendationPickerSelection.ts",
     );
@@ -48,6 +60,15 @@ describe("VT-C6B93AF0 - Validation Lab brainstorm drawer chrome", () => {
     expect(selection).toMatch(/checked: false/);
     expect(selection).toMatch(/export function pickLatestRule/);
     expect(selection).toMatch(/export function pickAttachRule/);
+    expect(selection).toMatch(/approved \+ compiled/);
+    expect(selection).toMatch(/not yet in the live bitmap/);
+    expect(selection).toMatch(/export function recHasApprovedRule/);
+    expect(selection).toMatch(/export function recHasCompiledRule/);
+    expect(src).toMatch(/MAX_BRAINSTORM_RECOMMENDATIONS\s*=\s*5/);
+    expect(src).toMatch(/Brainstorm can use at most/);
+    expect(src).toMatch(/Kept \$\{MAX_BRAINSTORM_RECOMMENDATIONS\} of/);
+    expect(src).toMatch(/approved rules preferred/);
+    expect(src).toMatch(/>\s*Back\s*</);
     expect(src).toMatch(/allowMultiple|allow_multiple|maxSelections/);
     expect(src).toMatch(/createCasesFromVariants/);
     expect(src).not.toMatch(/createCase\(/);

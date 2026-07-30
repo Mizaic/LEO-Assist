@@ -29,28 +29,29 @@ class _MonotonicRunClient:
             return [{"id": run_id, "status": new_status}]
         if query == ADMIT_PIPELINE_RUN:
             key = params["admission_key"]
-            existing = self.runs_by_key.get(key)
-            if existing is None:
-                row = {
-                    "id": params["run_id"],
+            run_id = params["run_id"]
+            by_key = self.runs_by_key.get(key)
+            by_id = self.runs.get(run_id)
+            if by_key is not None:
+                existing = by_key
+            elif by_id is not None:
+                if by_id.get("admission_key") is None:
+                    by_id["admission_key"] = key
+                    self.runs_by_key[key] = by_id
+                existing = by_id
+            else:
+                existing = {
+                    "id": run_id,
                     "admission_key": key,
                     "status": "running",
                     "first_step_enqueued": False,
                 }
-                self.runs_by_key[key] = row
-                self.runs[row["id"]] = row
-                return [
-                    {
-                        "run_id": row["id"],
-                        "created": True,
-                        "first_step_enqueued": False,
-                        "status": "running",
-                    }
-                ]
+                self.runs_by_key[key] = existing
+                self.runs[run_id] = existing
             return [
                 {
                     "run_id": existing["id"],
-                    "created": False,
+                    "created": existing["id"] == run_id,
                     "first_step_enqueued": existing["first_step_enqueued"],
                     "status": existing["status"],
                 }

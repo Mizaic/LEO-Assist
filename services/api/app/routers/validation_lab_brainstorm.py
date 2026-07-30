@@ -82,4 +82,35 @@ def brainstorm(
         ) from exc
     except Exception as exc:
         logger.exception("validation_lab.brainstorm failed")
-        raise HTTPException(status_code=500, detail="Unable to run brainstorm") from exc
+        raise HTTPException(
+            status_code=500,
+            detail=_public_brainstorm_error(exc),
+        ) from exc
+
+
+def _public_brainstorm_error(exc: Exception) -> str:
+    """Map infra failures to plain-English admin messages."""
+    name = type(exc).__name__
+    text = str(exc) or name
+    lowered = f"{name} {text}".lower()
+    if "nocredentials" in lowered or "unable to locate credentials" in lowered:
+        return (
+            "Unable to run brainstorm: language model credentials are "
+            "not configured on this server."
+        )
+    if "throttl" in lowered or ("rate" in lowered and "exceed" in lowered):
+        return (
+            "Unable to run brainstorm: the language model is busy. "
+            "Wait a moment, attach fewer recommendations, then try again."
+        )
+    if "timeout" in lowered or "timed out" in lowered:
+        return (
+            "Unable to run brainstorm: the request timed out. "
+            "Attach fewer recommendations and try again."
+        )
+    if "connection" in lowered and "redis" in lowered:
+        return (
+            "Unable to run brainstorm: could not reach the rules bitmap "
+            "store. Check Redis, then try again."
+        )
+    return "Unable to run brainstorm"

@@ -33,23 +33,31 @@ describe("local guideline import chrome", () => {
   });
 
   test("selects the local subgraph endpoint", () => {
-    const file = source(
+    const dialog = source(
       "services/ui/src/app/admin/guidance/RecommendationPickerDialog.tsx",
     );
+    const api = source(
+      "services/ui/src/app/admin/guidance/recommendationPickerApi.ts",
+    );
 
-    expect(file).toContain('"/api/guidance/local"');
-    expect(file).toContain('source === "local_guideline"');
+    expect(api).toContain('"/api/guidance/local"');
+    expect(api).toContain('source === "local_guideline"');
+    expect(dialog).toContain("fetchSubgraph");
   });
 
   test("Build by hand posts create-blank and surfaces detail errors", () => {
-    const file = source(
+    const dialog = source(
       "services/ui/src/app/admin/guidance/RecommendationPickerDialog.tsx",
     );
+    const api = source(
+      "services/ui/src/app/admin/guidance/recommendationPickerApi.ts",
+    );
 
-    expect(file).toContain("/api/guidance/rules/create-blank");
-    expect(file).toContain("rec_id");
-    expect(file).toContain("detail");
-    expect(file).toContain("setEditError");
+    expect(api).toContain("/api/guidance/rules/create-blank");
+    expect(api).toContain("rec_id");
+    expect(api).toContain("detail");
+    expect(dialog).toContain("setEditError");
+    expect(dialog).toContain("createBlankRule");
   });
 
   test("skips NICE check-update for local guidelines", () => {

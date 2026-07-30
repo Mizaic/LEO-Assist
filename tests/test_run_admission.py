@@ -90,28 +90,29 @@ class _AdmissionClient:
             return []
         if query == ADMIT_PIPELINE_RUN:
             key = params["admission_key"]
-            existing = self.runs_by_key.get(key)
-            if existing is None:
-                row = {
-                    "id": params["run_id"],
+            run_id = params["run_id"]
+            by_key = self.runs_by_key.get(key)
+            by_id = self.runs_by_id.get(run_id)
+            if by_key is not None:
+                existing = by_key
+            elif by_id is not None:
+                if by_id.get("admission_key") is None:
+                    by_id["admission_key"] = key
+                    self.runs_by_key[key] = by_id
+                existing = by_id
+            else:
+                existing = {
+                    "id": run_id,
                     "admission_key": key,
                     "first_step_enqueued": False,
                     "status": "running",
                 }
-                self.runs_by_key[key] = row
-                self.runs_by_id[row["id"]] = row
-                return [
-                    {
-                        "run_id": row["id"],
-                        "created": True,
-                        "first_step_enqueued": False,
-                        "status": "running",
-                    }
-                ]
+                self.runs_by_key[key] = existing
+                self.runs_by_id[run_id] = existing
             return [
                 {
                     "run_id": existing["id"],
-                    "created": False,
+                    "created": existing["id"] == run_id,
                     "first_step_enqueued": existing["first_step_enqueued"],
                     "status": existing["status"],
                 }
@@ -155,3 +156,24 @@ def test_first_step_enqueue_is_single_flight() -> None:
     admission = store.admit_run(_request("run-enq"), admission_key=key)
     assert store.claim_first_step_enqueue(admission.run_id) is True
     assert store.claim_first_step_enqueue(admission.run_id) is False
+
+
+def test_admit_reuses_existing_run_id_with_null_admission_key() -> None:
+    """Null-key upsert runs must be reused, not re-created, on redelivery."""
+    client = _AdmissionClient()
+    store = PipelineStageStore(client)
+    run_id = "run-null-key"
+    client.runs_by_id[run_id] = {
+        "id": run_id,
+        "admission_key": None,
+        "first_step_enqueued": True,
+        "status": "completed",
+    }
+    key = build_admission_key(_body(run_id))
+    result = store.admit_run(_request(run_id), admission_key=key)
+    assert result.run_id == run_id
+    assert result.created is True
+    assert result.status == "completed"
+    assert result.first_step_enqueued is True
+    assert client.runs_by_id[run_id]["admission_key"] == key
+    assert client.runs_by_key[key]["id"] == run_id
