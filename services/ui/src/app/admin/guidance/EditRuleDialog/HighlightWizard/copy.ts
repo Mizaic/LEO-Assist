@@ -263,6 +263,11 @@ export const STEP_PATHWAY_CONDITIONS = {
   addSexLabel: "Add sex",
   addAgeAriaLabel: "Add an age check for this situation only",
   addSexAriaLabel: "Add a sex check for this situation only",
+  /** Heading above `pathwayConfirmedLeaves` -- shown only when there is
+   *  no guideline quote to derive rows from (`boundary.source ===
+   *  "tree"`), so already-captured conditions are not silently hidden. */
+  confirmedConditionsHeading: "Already captured for this situation:",
+  removeConditionAriaLabel: (text: string) => `Remove "${text}" from this situation`,
 } as const;
 
 /** Orchestrator chrome: a plain, non-numbered breadcrumb of short phase
@@ -322,6 +327,8 @@ export const WIZARD_TOOLTIPS = {
   wizardBack:
     "Go back to the previous wizard question (not Who / Suggest / Save).",
   removeProblem: "Remove this broken empty group so the rule can be saved.",
+  editConfirmedCondition: "Change this condition.",
+  removeConfirmedCondition: "Remove this condition from the situation.",
   multiCodeHighlight: "Select part of this row's text and attach extra medical codes to it.",
   multiCodeClose: "Close the highlight-and-code tool without adding codes.",
   showMoreChips: "Show the rest of the matched codes.",

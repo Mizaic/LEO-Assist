@@ -46,6 +46,7 @@ import type {
 import type { ValidationIssue } from "../treeOps";
 import {
   ClusterGroupingChoice,
+  ConfirmedPathwayConditions,
   ConfirmedSoFar,
   CopyAcrossBanner,
 } from "./PathwayConditionsChrome";
@@ -137,6 +138,16 @@ export interface StepPathwayConditionsProps {
   onAddPathwayDemographic?: (field: PathwayDemographicField) => void;
   onUpdatePathway?: (update: NodeUpdate) => void;
   /**
+   * Non-DEMOGRAPHIC leaves already captured on this pathway with no
+   * guideline quote to derive a `ListRecommendationView` row from (see
+   * `pathwayConfirmedLeaves`'s doc comment) -- rendered as its own
+   * reviewable/removable list so a tree-rehydrated situation's existing
+   * CONCEPT/OBSERVATION conditions are never silently invisible.
+   */
+  confirmedLeaves?: EditableLogicNode[];
+  onEditConfirmedLeaf?: (node: EditableLogicNode) => void;
+  onRemoveConfirmedLeaf?: (node: EditableLogicNode) => void;
+  /**
    * The DEMOGRAPHIC leaf (from the main condition list, NOT
    * `pathwayDemographics` above) whose inline age/sex editor should
    * currently render, toggled by re-clicking its row (see
@@ -206,6 +217,9 @@ export default function StepPathwayConditions({
   pathwayDemographics = [],
   onAddPathwayDemographic,
   onUpdatePathway,
+  confirmedLeaves = [],
+  onEditConfirmedLeaf,
+  onRemoveConfirmedLeaf,
   expandedDemographicNode = null,
   expandedObservationNode = null,
   onSelectObservation,
@@ -313,6 +327,14 @@ export default function StepPathwayConditions({
 
       {confirmedSummaries.length > 0 && (
         <ConfirmedSoFar summaries={confirmedSummaries} />
+      )}
+
+      {onEditConfirmedLeaf && (
+        <ConfirmedPathwayConditions
+          leaves={confirmedLeaves}
+          onEditLeaf={onEditConfirmedLeaf}
+          onRemoveLeaf={onRemoveConfirmedLeaf}
+        />
       )}
 
       {onAddPathwayDemographic && onUpdatePathway && (

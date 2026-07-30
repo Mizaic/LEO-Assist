@@ -16,13 +16,16 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
+import type { EditableLogicNode } from "../types";
 import { STEP_PATHWAY_CONDITIONS, WIZARD_TOOLTIPS } from "./copy";
-import type { ClusterGrouping } from "./wizardMapping";
+import { leafDisplayTerm, type ClusterGrouping } from "./wizardMapping";
 
 export function CopyAcrossBanner({
   offer,
@@ -99,6 +102,93 @@ export function ConfirmedSoFar({
           </Typography>
         </Stack>
       ))}
+    </Stack>
+  );
+}
+
+/**
+ * THIS pathway's own already-captured non-demographic leaves, shown as
+ * plain reviewable/removable rows -- see `pathwayConfirmedLeaves`'s doc
+ * comment for why this exists (tree-rehydrated situations have no
+ * guideline quote to derive `ListRecommendationView` rows from, so
+ * without this a saved CONCEPT/OBSERVATION leaf is invisible in Step 3
+ * even though the Review step's plain-English summary shows it fine).
+ * Deliberately its own component rather than reusing `ListRecommendationView`
+ * -- there is no guideline text offset to key rows by here, only node
+ * identity, and no "unresolved" state is possible (every leaf here is
+ * already a real tree node with a code).
+ */
+export function ConfirmedPathwayConditions({
+  leaves,
+  onEditLeaf,
+  onRemoveLeaf,
+}: {
+  leaves: EditableLogicNode[];
+  onEditLeaf: (node: EditableLogicNode) => void;
+  onRemoveLeaf?: (node: EditableLogicNode) => void;
+}) {
+  if (leaves.length === 0) return null;
+  return (
+    <Stack spacing={0.75} data-testid="pathway-confirmed-conditions">
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.04em",
+          color: "text.secondary",
+        }}
+      >
+        {STEP_PATHWAY_CONDITIONS.confirmedConditionsHeading}
+      </Typography>
+      {leaves.map((node) => {
+        const text = leafDisplayTerm(node);
+        return (
+          <Stack
+            key={node.node_id}
+            direction="row"
+            alignItems="center"
+            spacing={0.75}
+            data-testid={`pathway-confirmed-condition-${node.node_id}`}
+            sx={{
+              p: 1,
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <CheckCircleIcon fontSize="small" sx={{ color: "#16A34A" }} />
+            <Box
+              component="button"
+              type="button"
+              onClick={() => onEditLeaf(node)}
+              sx={{
+                flexGrow: 1,
+                textAlign: "left",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                p: 0,
+                font: "inherit",
+                color: "inherit",
+              }}
+            >
+              <Typography variant="body2">{text}</Typography>
+            </Box>
+            {onRemoveLeaf && (
+              <Tooltip title={WIZARD_TOOLTIPS.removeConfirmedCondition}>
+                <IconButton
+                  size="small"
+                  onClick={() => onRemoveLeaf(node)}
+                  aria-label={STEP_PATHWAY_CONDITIONS.removeConditionAriaLabel(text)}
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        );
+      })}
     </Stack>
   );
 }

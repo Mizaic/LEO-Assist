@@ -171,6 +171,26 @@ export function pathwaySummaryText(pathwayNode: EditableLogicNode): string {
   return terms.length > 0 ? terms.join(", ") : "(no conditions yet)";
 }
 
+/**
+ * Non-DEMOGRAPHIC leaves already captured on this pathway -- the
+ * CONCEPT / OBSERVATION conditions Review's plain-English summary
+ * (`pathwaySummaryText`) already renders correctly. Needed as its own
+ * list (not just a joined string) so Step 3 can show each one as its
+ * own reviewable/removable row when there is no guideline quote to
+ * derive text rows from (`buildPathwayRows` returns no items for
+ * `boundary.source === "tree"` -- a bare CONCEPT leaf like NG12
+ * 1.3.1's "abdominal mass" pathway, or a table-driven AND like its
+ * "aged 40+, weight loss, abdominal pain" pathway, would otherwise be
+ * completely invisible while editing even though it is already on
+ * the tree). DEMOGRAPHIC leaves are excluded -- `PathwayDemographicsPanel`
+ * already shows those via `pathwayDemographicChildren`.
+ */
+export function pathwayConfirmedLeaves(
+  pathwayNode: EditableLogicNode,
+): EditableLogicNode[] {
+  return collectLeaves(pathwayNode).filter((n) => n.kind !== "DEMOGRAPHIC");
+}
+
 /** The "Already confirmed" list for Step 3: every pathway strictly
  *  before `uptoIndex`, lettered in order. */
 export function buildConfirmedSummaries(

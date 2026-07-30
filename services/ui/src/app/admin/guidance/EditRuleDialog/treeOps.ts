@@ -611,6 +611,7 @@ export function applyUpdate(
       return mapNode(root, (n) =>
         n.node_id === update.parentNodeId
           ? appendChildPromotingLeaf(
+              root,
               n,
               makeConceptNode(update.criterion, update.sourceRowText),
             )
@@ -635,7 +636,7 @@ export function applyUpdate(
         if (update.clusterRole) {
           child.cluster_role = update.clusterRole;
         }
-        return appendChildPromotingLeaf(n, child);
+        return appendChildPromotingLeaf(root, n, child);
       });
     case "add_demographic": {
       const demo = makeDemographicNode(update.field, update.prefill, update.sourceRowText);
@@ -644,7 +645,7 @@ export function applyUpdate(
         if (isOrGroupSymptomsOnly(n)) {
           return addPrerequisiteToOrSymptoms(n, demo);
         }
-        return appendChildPromotingLeaf(n, demo);
+        return appendChildPromotingLeaf(root, n, demo);
       });
     }
     case "add_observation": {
@@ -654,7 +655,7 @@ export function applyUpdate(
         if (isOrGroupSymptomsOnly(n)) {
           return addPrerequisiteToOrSymptoms(n, observation);
         }
-        return appendChildPromotingLeaf(n, observation);
+        return appendChildPromotingLeaf(root, n, observation);
       });
     }
     case "set_observation":
@@ -724,7 +725,7 @@ export function applyUpdate(
     case "add_rule_fired":
       return mapNode(root, (n) =>
         n.node_id === update.parentNodeId
-          ? appendChildPromotingLeaf(n, makeRuleFiredNode())
+          ? appendChildPromotingLeaf(root, n, makeRuleFiredNode())
           : n,
       );
     case "set_rule_fired":
@@ -996,27 +997,54 @@ function wrapLeafInAnd(child: EditableLogicNode): EditableLogicNode {
 }
 
 /**
- * Append `child` to `n` -- or, when `n` is a bare leaf pathway (a
- * single-symptom situation stored as a direct CONCEPT / DEMOGRAPHIC /
- * OBSERVATION child of the situations OR, e.g. NG12 1.3.1's
- * "abdominal mass" situation), promote it into a 2-child AND first.
+ * True when `nodeId` is a direct child of the tree's pathway-split OR
+ * (see `pathwayDetection.findPathwaySplit`) -- i.e. it IS a situation
+ * container, whatever shape it happens to be stored in.
+ */
+function isPathwayContainerId(
+  root: EditableLogicNode,
+  nodeId: string,
+): boolean {
+  const split = findPathwaySplit(root);
+  return split?.orNode.children?.some((c) => c.node_id === nodeId) ?? false;
+}
+
+/**
+ * Append `child` under the node matching `n` -- or, when `n` is a
+ * bare leaf SITUATION (a single-symptom pathway stored as a direct
+ * CONCEPT / DEMOGRAPHIC / OBSERVATION child of the situations OR,
+ * e.g. NG12 1.3.1's "abdominal mass" situation), promote it into a
+ * 2-child AND first so it can take the new child.
  *
  * Every "add_concept" / "add_group" / "add_demographic" /
  * "add_observation" / "add_rule_fired" case used to guard on
  * `canHaveChildren(n.kind)` and silently no-op otherwise. That guard
- * is correct for arbitrary leaves elsewhere in the tree, but a
+ * is still correct for an ordinary leaf elsewhere in the tree, but a
  * pathway container has no such restriction -- `readMaterializedPathways`
  * hands Step 3 whatever the OR's direct children are, leaf or group,
  * with no re-wrap on load (only `coerceKind`'s "make into OR" path
  * wraps leaves). So a single-symptom situation could never gain an
  * age/sex/extra condition: "Add age" looked like it did nothing.
+ * Scoping the promotion to `isPathwayContainerId` (rather than
+ * promoting ANY targeted leaf) keeps the pre-existing no-op guarantee
+ * for every other leaf in the tree.
  */
 function appendChildPromotingLeaf(
+  root: EditableLogicNode,
   n: EditableLogicNode,
   child: EditableLogicNode,
 ): EditableLogicNode {
   if (canHaveChildren(n.kind)) return appendChild(n, child);
-  return { node_id: freshNodeId(), kind: "AND", children: [n, child] };
+  if (!isPathwayContainerId(root, n.node_id)) return n;
+  // `mapNode` recurses into whatever `fn` returns, so the wrapped
+  // leaf MUST get a fresh node_id here -- otherwise it still equals
+  // `update.parentNodeId` on the very next pass, `fn` matches again,
+  // and the leaf gets re-wrapped forever (stack overflow).
+  return {
+    node_id: freshNodeId(),
+    kind: "AND",
+    children: [{ ...n, node_id: freshNodeId() }, child],
+  };
 }
 
 function coerceKind(

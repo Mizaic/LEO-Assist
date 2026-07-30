@@ -862,6 +862,69 @@ describe("addPrerequisiteToOrSymptoms / smart add_demographic", () => {
     );
   });
 
+  // NG12 1.3.1 regression: a persisted rule can split into situations
+  // where some pathways are a single bare leaf directly under the OR
+  // (e.g. "abdominal mass" on its own) rather than an AND wrapping one
+  // concept. Before this fix, "Add age"/"Add sex" on such a situation
+  // silently no-opped because the leaf has no `children` to append to.
+  function makeMixedLeafAndGroupPathwaySplit(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "271860004", preferred_term: "Abdominal mass" },
+        },
+        {
+          kind: "AND",
+          pathway_key: "pw_b",
+          children: [
+            {
+              kind: "CONCEPT",
+              criterion: { snomed_concept_id: "2", preferred_term: "Change in bowel habit" },
+            },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("add_demographic promotes a bare-leaf situation into AND[leaf, demographic]", () => {
+    const tree = makeMixedLeafAndGroupPathwaySplit();
+    const leafPathway = tree.children![0];
+    expect(leafPathway.kind).toBe("CONCEPT");
+    const updated = applyUpdate(tree, {
+      kind: "add_demographic",
+      parentNodeId: leafPathway.node_id,
+      field: "age",
+    });
+    const promoted = updated!.children![0];
+    expect(promoted.kind).toBe("AND");
+    expect(promoted.children).toHaveLength(2);
+    expect(promoted.children!.some((c) => c.kind === "CONCEPT")).toBe(true);
+    const demo = promoted.children!.find((c) => c.kind === "DEMOGRAPHIC");
+    expect(demo?.field).toBe("age");
+    // The untouched sibling pathway is unaffected.
+    expect(updated!.children![1].kind).toBe("AND");
+    expect(updated!.children![1].pathway_key).toBe("pw_b");
+  });
+
+  it("add_concept promotes a bare-leaf situation into AND[leaf, newConcept]", () => {
+    const tree = makeMixedLeafAndGroupPathwaySplit();
+    const leafPathway = tree.children![0];
+    const updated = applyUpdate(tree, {
+      kind: "add_concept",
+      parentNodeId: leafPathway.node_id,
+      criterion: { snomed_concept_id: "84229001", preferred_term: "Fatigue" },
+    });
+    const promoted = updated!.children![0];
+    expect(promoted.kind).toBe("AND");
+    expect(promoted.children!.map((c) => c.criterion?.preferred_term)).toEqual([
+      "Abdominal mass",
+      "Fatigue",
+    ]);
+  });
+
   it("add_demographic applies a prefill and source_row_text parsed from a highlighted phrase", () => {
     const tree = assignNodeIds({
       kind: "AND",

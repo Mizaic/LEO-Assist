@@ -20,7 +20,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 
-import { findAllValidationErrors, findValidationError } from "../treeOps";
+import { canHaveChildren, findAllValidationErrors, findValidationError } from "../treeOps";
 import type { LogicCriterion, NodeUpdate } from "../types";
 import type { RecommendationStructureItem, PathwayTextBoundary } from "../SentenceEditor/pathwayTextSplit";
 import { detectVaguePhrase } from "../vaguePhrases";
@@ -38,6 +38,7 @@ import {
   findNodeById,
   flattenPathwayItems,
   orderPathwayNodesByBoundary,
+  pathwayConfirmedLeaves,
   pathwayGroupingKey,
   pathwayLetterAt,
   pathwayTextWindow,
@@ -292,6 +293,11 @@ export default function PathwayConditionsStage({
     getRowResolution,
     pathwayDemographics,
   );
+  // Only tree-rehydrated situations need this fallback list -- a normal
+  // guideline-text pathway already shows every leaf via the row list
+  // above; showing both here would just duplicate the same conditions.
+  const confirmedLeaves =
+    boundary.source === "tree" ? pathwayConfirmedLeaves(pathwayNode) : [];
 
   function handleAddPathwayDemographic(field: PathwayDemographicField) {
     onUpdate({
@@ -300,6 +306,30 @@ export default function PathwayConditionsStage({
       field,
     });
   }
+
+  function handleEditConfirmedLeaf(node: EditableLogicNode) {
+    if (node.kind === "CONCEPT") {
+      onEditConcept(node.node_id);
+    } else if (node.kind === "OBSERVATION") {
+      setExpandedDemographicNodeId(null);
+      setExpandedObservationNodeId((prev) => (prev === node.node_id ? null : node.node_id));
+    } else {
+      onSelectNode(node.node_id);
+    }
+  }
+
+  function handleRemoveConfirmedLeaf(node: EditableLogicNode) {
+    onUpdate({ kind: "remove", nodeId: node.node_id });
+  }
+  // Removing the pathway's own sole leaf (a bare-leaf situation like
+  // NG12 1.3.1's "abdominal mass" pathway, before any child was ever
+  // added) would delete the whole situation out from under the
+  // reviewer with no confirmation -- there is no wrapping AND left
+  // behind to show "this situation now has 0 conditions". Only offer
+  // removal once the pathway is a real group with siblings left over
+  // afterwards; `appendChildPromotingLeaf` already handles promoting a
+  // bare leaf into one the first time something else gets added to it.
+  const canRemoveConfirmedLeaves = canHaveChildren(pathwayNode.kind);
 
   function handleRemoveProblem(nodeId: string) {
     onUpdate({ kind: "remove", nodeId });
@@ -500,6 +530,9 @@ export default function PathwayConditionsStage({
       pathwayDemographics={pathwayDemographics}
       onAddPathwayDemographic={handleAddPathwayDemographic}
       onUpdatePathway={onUpdate}
+      confirmedLeaves={confirmedLeaves}
+      onEditConfirmedLeaf={confirmedLeaves.length > 0 ? handleEditConfirmedLeaf : undefined}
+      onRemoveConfirmedLeaf={canRemoveConfirmedLeaves ? handleRemoveConfirmedLeaf : undefined}
       problemIssues={problemIssues}
       onRemoveProblem={handleRemoveProblem}
       expandedDemographicNode={

@@ -626,3 +626,122 @@ describe("PathwayConditionsStage: per-pathway demographics", () => {
     expect(screen.getByText(/add a number for this patient detail/i)).toBeInTheDocument();
   });
 });
+
+// NG12 1.3.1 regression: when the guideline sentence cannot be split
+// into exactly as many text boundaries as saved pathways, the wizard
+// falls back to `boundary.source === "tree"` for every situation
+// (see `boundariesFromPathways`) -- which means `buildPathwayRows`
+// returns no text rows at all. Before this fix, a bare-leaf pathway
+// (situation A, "abdominal mass" with no AND wrapper) or a
+// multi-concept AND pathway (situation D, age + two findings) had
+// nothing rendering their own already-captured CONCEPT leaves: only
+// PathwayDemographicsPanel's age/sex band showed up, so the actual
+// clinical finding(s) silently vanished from Step 3 even though
+// Review's plain-English summary rendered them correctly.
+describe("PathwayConditionsStage: tree-rehydrated confirmed conditions", () => {
+  const TREE_BOUNDARIES: PathwayTextBoundary[] = [
+    { text: "has abdominal mass", start: 0, end: 0, source: "tree" },
+    { text: "is 40 years or older, weight loss, abdominal pain", start: 0, end: 0, source: "tree" },
+  ];
+
+  function buildTreeSourcedTree(): EditableLogicNode {
+    return {
+      node_id: "root",
+      kind: "OR",
+      children: [
+        // Situation A: a bare CONCEPT leaf with no AND wrapper.
+        concept("mass", "Abdominal mass"),
+        // Situation B: an AND group with an age check plus two findings.
+        {
+          node_id: "pw-b",
+          kind: "AND",
+          pathway_key: "pw_b",
+          children: [
+            { node_id: "age", kind: "DEMOGRAPHIC", field: "age", operator: ">=", value: "40" },
+            concept("wl", "Weight loss"),
+            concept("ap", "Abdominal pain"),
+          ],
+        },
+      ],
+    };
+  }
+
+  function TreeHarness({
+    pathwayIndex,
+    onEditConcept = jest.fn(),
+    onTreeChange,
+  }: {
+    pathwayIndex: number;
+    onEditConcept?: (nodeId: string) => void;
+    onTreeChange?: (tree: EditableLogicNode) => void;
+  }) {
+    const [tree, setTree] = useState(buildTreeSourcedTree());
+    useEffect(() => {
+      onTreeChange?.(tree);
+    }, [tree, onTreeChange]);
+    return (
+      <PathwayConditionsStage
+        tree={tree}
+        recommendationText="1.3.1 has abdominal mass, or is 40 years or older, weight loss, abdominal pain."
+        boundaries={TREE_BOUNDARIES}
+        pathwayIndex={pathwayIndex}
+        clusterGroupings={{}}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={{}}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={jest.fn()}
+        onUpdate={(update) => setTree((curr) => applyUpdate(curr, update) ?? curr)}
+        onRequestAdd={jest.fn()}
+        onEditConcept={onEditConcept}
+        onConfirmPathway={jest.fn()}
+      />
+    );
+  }
+
+  it("shows a bare-leaf pathway's own concept as a confirmed condition", async () => {
+    const user = userEvent.setup();
+    const onEditConcept = jest.fn();
+    render(<TreeHarness pathwayIndex={0} onEditConcept={onEditConcept} />);
+
+    const row = screen.getByTestId("pathway-confirmed-condition-n-mass");
+    expect(within(row).getByText(/abdominal mass/i)).toBeInTheDocument();
+
+    // A bare leaf has no AND wrapper to leave siblings behind in, so
+    // removal is not offered -- deleting it would silently delete the
+    // whole situation.
+    expect(within(row).queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
+
+    await user.click(within(row).getByText(/abdominal mass/i));
+    expect(onEditConcept).toHaveBeenCalledWith("n-mass");
+  });
+
+  it("lists every non-demographic leaf of a multi-concept AND pathway and allows removing one", async () => {
+    const user = userEvent.setup();
+    let latestTree: EditableLogicNode | undefined;
+    render(
+      <TreeHarness
+        pathwayIndex={1}
+        onTreeChange={(t) => {
+          latestTree = t;
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("pathway-confirmed-condition-n-wl")).toBeInTheDocument();
+    expect(screen.getByTestId("pathway-confirmed-condition-n-ap")).toBeInTheDocument();
+    // The age DEMOGRAPHIC leaf is excluded here -- it already renders
+    // via PathwayDemographicsPanel instead.
+    expect(screen.queryByTestId("pathway-confirmed-condition-age")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pathway-demographics-panel")).toBeInTheDocument();
+
+    const weightLossRow = screen.getByTestId("pathway-confirmed-condition-n-wl");
+    await user.click(within(weightLossRow).getByRole("button", { name: /remove/i }));
+
+    const pwB = latestTree!.children![1];
+    expect(pwB.children!.some((c) => c.node_id === "n-wl")).toBe(false);
+    expect(pwB.children!.some((c) => c.node_id === "n-ap")).toBe(true);
+    expect(pwB.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
+  });
+});

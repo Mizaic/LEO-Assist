@@ -21,6 +21,7 @@ import {
   leafDisplayTerm,
   materializePathways,
   orderPathwayNodesByBoundary,
+  pathwayConfirmedLeaves,
   pathwayGroupingKey,
   pathwayLetterAt,
   pathwaySummaryText,
@@ -70,6 +71,39 @@ describe("leafDisplayTerm / pathwaySummaryText", () => {
 
   it("falls back to a placeholder for an empty pathway", () => {
     expect(pathwaySummaryText(pathwayNode([]))).toBe("(no conditions yet)");
+  });
+});
+
+describe("pathwayConfirmedLeaves", () => {
+  // NG12 1.3.1 regression: a tree-rehydrated situation with no
+  // guideline quote to derive Step 3's text rows from (boundary.source
+  // === "tree") must still surface its own already-captured
+  // CONCEPT/OBSERVATION leaves somewhere, or a saved condition like
+  // "abdominal mass" silently disappears from the editor.
+  it("returns the leaf itself for a bare-leaf pathway (no AND wrapper)", () => {
+    const bareLeaf = weightLossLeaf();
+    expect(pathwayConfirmedLeaves(bareLeaf)).toEqual([bareLeaf]);
+  });
+
+  it("excludes DEMOGRAPHIC leaves -- those render via PathwayDemographicsPanel", () => {
+    const pw = pathwayNode([ageLeaf(), weightLossLeaf()]);
+    const leaves = pathwayConfirmedLeaves(pw);
+    expect(leaves).toHaveLength(1);
+    expect(leaves[0].kind).toBe("CONCEPT");
+  });
+
+  it("returns every non-demographic leaf for a multi-concept AND pathway", () => {
+    const abdominalPain: EditableLogicNode = {
+      node_id: "ap",
+      kind: "CONCEPT",
+      criterion: { snomed_concept_id: "2", preferred_term: "Abdominal pain" },
+    };
+    const pw = pathwayNode([ageLeaf(), weightLossLeaf(), abdominalPain]);
+    expect(pathwayConfirmedLeaves(pw).map((n) => n.node_id)).toEqual(["wl", "ap"]);
+  });
+
+  it("returns an empty list for a pathway with no leaves yet", () => {
+    expect(pathwayConfirmedLeaves(pathwayNode([]))).toEqual([]);
   });
 });
 
