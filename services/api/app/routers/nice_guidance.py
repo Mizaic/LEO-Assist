@@ -992,9 +992,17 @@ async def _async_ingest(
     """Async ingest: NICE Syndication API -> Neo4j hierarchical graph.
 
     When *diff_result* is supplied (smart ingest) only rules for changed or
-    removed recommendations are superseded; rules for unchanged recommendations
+    removed recommendations are affected; rules for unchanged recommendations
     are re-attached to the new recommendation nodes so reviewers keep their
     approved work.
+
+    Rules not yet approved (``pending_review``) for a changed/removed
+    recommendation are archived (``superseded``) so they drop out of the
+    review queue. Already-**approved** rules (``active``) are never
+    superseded by ingest -- they stay active (still enforced) and are only
+    flagged (``guidelineTextChanged=true``) so a human decides whether to
+    re-approve, edit, or explicitly retire them. See
+    NiceGraphUpserter.clear_guideline_content().
 
     Pipeline (3 levels, matching the NICE API structure)
     -----------------------------------------------------
@@ -1057,14 +1065,22 @@ async def _async_ingest(
         ]
         unchanged_numbers = diff_result.get("_unchanged_numbers", [])
 
-    superseded = upserter.clear_guideline_content(guideline_id, changed_numbers)
-    if superseded:
+    archive_result = upserter.clear_guideline_content(guideline_id, changed_numbers)
+    superseded = archive_result["superseded"]
+    flagged_active = archive_result["flagged_active"]
+    if superseded or flagged_active:
+        step_parts = []
+        if superseded:
+            step_parts.append(f"archived {superseded} awaiting-review rule(s)")
+        if flagged_active:
+            step_parts.append(
+                f"flagged {flagged_active} approved rule(s) for re-review "
+                "(still active, not retired)"
+            )
         _emit(
             job_id,
             "progress",
-            {
-                "step": f"Archived {superseded} rule(s) — previous decisions preserved.",
-            },
+            {"step": f"{'; '.join(step_parts).capitalize()} — previous decisions preserved."},
         )
 
     _emit(job_id, "progress", {"step": "Fetching chapters..."})

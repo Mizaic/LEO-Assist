@@ -239,3 +239,79 @@ describe("GuidelineChangesDrawer: possible-move confirmation gate", () => {
     );
   });
 });
+
+describe("GuidelineChangesDrawer: DiffSummary never claims approved rules are retired", () => {
+  it("tells the reviewer approved rules stay active, and never says 'awaiting review'", async () => {
+    global.fetch = makeFetch({
+      ...BASE_DIFF,
+      removed: [
+        {
+          number: "1.5.9",
+          text: "Old rec.",
+          section_title: "",
+          rules: [
+            { rule_id: "r-active-1", description: "Active rule", status: "active" },
+            {
+              rule_id: "r-pending-1",
+              description: "Pending rule",
+              status: "pending_review",
+            },
+          ],
+        },
+      ],
+      possible_moves: [],
+    });
+
+    render(
+      <GuidelineChangesDrawer
+        code="NG12"
+        onClose={jest.fn()}
+        onConfirmIngest={jest.fn()}
+      />
+    );
+
+    await screen.findByText(/already-approved rule/i, undefined, { timeout: 3000 });
+
+    expect(
+      screen.getByText(/1 already-approved rule will stay active/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/1 rule awaiting review will be archived/i)).toBeInTheDocument();
+
+    // The old, misleading copy must never appear again.
+    expect(screen.queryByText(/will move to awaiting review/i)).not.toBeInTheDocument();
+  });
+
+  it("says nothing about approved rules when only pending rules are affected", async () => {
+    global.fetch = makeFetch({
+      ...BASE_DIFF,
+      removed: [
+        {
+          number: "1.5.9",
+          text: "Old rec.",
+          section_title: "",
+          rules: [
+            {
+              rule_id: "r-pending-1",
+              description: "Pending rule",
+              status: "pending_review",
+            },
+          ],
+        },
+      ],
+      possible_moves: [],
+    });
+
+    render(
+      <GuidelineChangesDrawer
+        code="NG12"
+        onClose={jest.fn()}
+        onConfirmIngest={jest.fn()}
+      />
+    );
+
+    await screen.findByText(/1 rule awaiting review will be archived/i, undefined, {
+      timeout: 3000,
+    });
+    expect(screen.queryByText(/already-approved rule/i)).not.toBeInTheDocument();
+  });
+});

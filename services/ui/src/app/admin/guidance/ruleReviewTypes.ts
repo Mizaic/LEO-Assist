@@ -61,6 +61,11 @@ export interface Rule {
   predecessor_id?: string;
   previous_recommendation_text?: string | null;
   previous_recommendation_number?: string | null;
+  /** True when this APPROVED rule's guideline text changed underneath it
+   *  during a re-ingest. The rule stays active (still enforced) -- a
+   *  guideline update never silently retires an approval -- but a
+   *  reviewer should double check it still reflects current guidance. */
+  guideline_text_changed?: boolean;
   created_at?: string;
   updated_at?: string;
   reviewed_at?: string;
