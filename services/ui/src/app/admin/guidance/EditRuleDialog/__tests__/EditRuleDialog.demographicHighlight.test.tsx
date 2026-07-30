@@ -82,8 +82,13 @@ describe("EditRuleDialog: highlighting an age phrase", () => {
     ).not.toBeInTheDocument();
 
     // The row expands into the same inline age editor the "+ Add age"
-    // button opens, pre-filled with the parsed threshold.
-    fireEvent.click(within(ageRow as HTMLElement).getByRole("button", { name: /^edit$/i }));
+    // button opens, pre-filled with the parsed threshold. The "Edit"
+    // button's accessible name is its MUI Tooltip title ("Change this
+    // captured item." -- WIZARD_TOOLTIPS.editCaptured), not its visible
+    // text (MUI v7 Tooltip default: describeChild=false).
+    fireEvent.click(
+      within(ageRow as HTMLElement).getByRole("button", { name: /change this captured item/i }),
+    );
     expect(
       within(ageRow as HTMLElement).getByLabelText(/how to compare age/i),
     ).toHaveTextContent(/is at least/i);

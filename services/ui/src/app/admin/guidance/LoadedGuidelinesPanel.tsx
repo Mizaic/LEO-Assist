@@ -39,6 +39,8 @@ import {
   useMotion,
   type ReviewListItem,
 } from "@leo/design-system";
+import ConfirmDialog from "@/components/ConfirmDialog";
+
 import GuidelineChangesDrawer from "./GuidelineChangesDrawer";
 import LocalGuidelineChangesDrawer from "./LocalGuidelineChangesDrawer";
 import LocalGuidelineLinkDomainDialog from "./LocalGuidelineLinkDomainDialog";
@@ -360,6 +362,7 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
   const [localChangesCode, setLocalChangesCode] = useState<string | null>(null);
   const [linkDomainCode, setLinkDomainCode] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteConfirmCode, setDeleteConfirmCode] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(1);
@@ -393,10 +396,6 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
   }, []);
 
   const handleDeleteLocal = useCallback(async (code: string) => {
-    const confirmed = window.confirm(
-      `Delete local guideline ${code}?\n\nThis permanently removes its chapters, recommendations, and rules from the knowledge graph. Shared audit domains are kept.`,
-    );
-    if (!confirmed) return;
     setDeleting(code);
     setError(null);
     try {
@@ -424,8 +423,16 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
       );
     } finally {
       setDeleting(null);
+      setDeleteConfirmCode(null);
     }
   }, [fetchLoaded, onRulesGenerated]);
+
+  // Opens the ConfirmDialog rather than deleting straight away -- a
+  // native browser confirm dialog cannot be styled, localised, or tested
+  // the same way as the rest of the app's dialogs (VT-036-TC-016).
+  const requestDeleteLocal = useCallback((code: string) => {
+    setDeleteConfirmCode(code);
+  }, []);
 
   const checkUpdates = useCallback(async () => {
     const niceGuidelines = guidelines.filter(
@@ -607,7 +614,7 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
                 setChangesDrawerCode,
                 setLocalChangesCode,
                 setLinkDomainCode,
-                handleDeleteLocal,
+                requestDeleteLocal,
               )
             )}
           />
@@ -657,6 +664,19 @@ export default function LoadedGuidelinesPanel({ refreshKey, onRulesGenerated }: 
         onClose={() => setPickerCode(null)}
         onRulesGenerated={() => { fetchLoaded(); onRulesGenerated?.(); }}
       />
+
+      {deleteConfirmCode && (
+        <ConfirmDialog
+          title={`Delete local guideline ${deleteConfirmCode}?`}
+          body="This permanently removes its chapters, recommendations, and rules from the knowledge graph. Shared audit domains are kept."
+          confirmLabel="Delete"
+          variant="danger"
+          busy={deleting === deleteConfirmCode}
+          busyLabel="Deleting..."
+          onConfirm={() => handleDeleteLocal(deleteConfirmCode)}
+          onCancel={() => setDeleteConfirmCode(null)}
+        />
+      )}
     </Box>
   );
 }

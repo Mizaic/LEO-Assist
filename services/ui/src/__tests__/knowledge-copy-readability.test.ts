@@ -11,10 +11,17 @@ import {
 } from "@/lib/knowledgeCopy";
 import { TABS } from "@/app/admin/knowledge/page";
 
+// The 4 roles every KNOWLEDGE_TAB_COPY entry customises copy for
+// (alongside "default") -- a curated subset of the design system's
+// full 14-role CANONICAL_ROLES list, not all of them (IntroRoleCopy is
+// a Partial<Record<Role, ...>>, so unlisted roles just fall back to
+// "default"). Renamed from the legacy clinician/staff/qa_ra_lead
+// 4-role model: clinician -> triage_clinician, staff ->
+// clinical_administrator, qa_ra_lead -> auditor.
 const CANONICAL_ROLES = [
-  "clinician",
-  "staff",
-  "qa_ra_lead",
+  "triage_clinician",
+  "clinical_administrator",
+  "auditor",
   "platform_admin",
 ] as const;
 

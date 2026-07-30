@@ -25,7 +25,9 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import { GROUP_KIND_LABELS, PATHWAY_NAME } from "../copy";
 import { GROUP_KINDS, type EditableLogicNode, type LogicNodeKind, type NodeUpdate } from "../types";
+import AddBar from "./AddBar";
 import GroupBody from "./GroupBody";
+import NodeDispatcher from "./NodeDispatcher";
 import PathwayPreview from "./PathwayPreview";
 import { KIND_COLORS } from "./shared";
 
@@ -59,13 +61,18 @@ export default function PathwayCard({
   const positional = `Pathway ${letter}`;
   const accent = CARD_ACCENTS[index % CARD_ACCENTS.length];
   const borderColor = KIND_COLORS[node.kind] ?? accent;
-
-  // Guard: PathwayCard only handles group nodes. Leaf kinds (CONCEPT etc.)
-  // should never reach here; if they do, render nothing so MUI Select
-  // does not warn about an out-of-range value.
-  if (!GROUP_KINDS.includes(node.kind as typeof GROUP_KINDS[number])) {
-    return null;
-  }
+  // A pathway with a single condition can be stored as a bare CONCEPT /
+  // DEMOGRAPHIC / OBSERVATION child of the situations OR instead of a
+  // 1-child AND wrapper (e.g. NG12 1.2.1's "abdominal mass" situation --
+  // several currently-active rules have this shape). Returning null for
+  // that shape used to make the whole situation, its SNOMED code
+  // included, vanish from the Advanced editor with no way to see or
+  // remove it. Render it directly via NodeDispatcher instead; the
+  // operator Select is skipped (a leaf has no GROUP_KINDS value to
+  // show) and "+ Add" targets the leaf's own node_id, which
+  // `appendChildPromotingLeaf` (treeOps.ts) already promotes into a
+  // real AND the moment a second condition is added.
+  const isGroup = GROUP_KINDS.includes(node.kind as typeof GROUP_KINDS[number]);
 
   const [aiSuggested, setAiSuggested] = useState(
     (node as EditableLogicNode & { _aiSuggested?: boolean })._aiSuggested === true,
@@ -134,50 +141,81 @@ export default function PathwayCard({
           </Stack>
         </Stack>
 
-        {/* Inline operator selector (replaces static section label) */}
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-          <Select
-            size="small"
-            value={node.kind}
-            onChange={(e) =>
-              wrappedOnUpdate({
-                kind: "change_kind",
-                nodeId: node.node_id,
-                newKind: e.target.value as LogicNodeKind,
-              })
-            }
-            inputProps={{ "aria-label": `Match mode for ${positional}` }}
-            sx={{
-              fontSize: "0.72rem", fontWeight: 700,
-              "& .MuiSelect-select": { py: 0.3, pr: "26px !important", color: "text.secondary", fontWeight: 700, letterSpacing: 0.4 },
-              "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
-              "& .MuiSvgIcon-root": { fontSize: "1rem" },
-            }}
-          >
-            {GROUP_KINDS.map((k) => (
-              <MenuItem key={k} value={k} sx={{ fontSize: "0.78rem" }}>{GROUP_KIND_LABELS[k]}</MenuItem>
-            ))}
-          </Select>
-        </Stack>
-        <Divider
-          sx={{ mb: 1, borderColor: borderColor, opacity: 0.4 }}
-        />
+        {isGroup ? (
+          <>
+            {/* Inline operator selector (replaces static section label) */}
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+              <Select
+                size="small"
+                value={node.kind}
+                onChange={(e) =>
+                  wrappedOnUpdate({
+                    kind: "change_kind",
+                    nodeId: node.node_id,
+                    newKind: e.target.value as LogicNodeKind,
+                  })
+                }
+                inputProps={{ "aria-label": `Match mode for ${positional}` }}
+                sx={{
+                  fontSize: "0.72rem", fontWeight: 700,
+                  "& .MuiSelect-select": { py: 0.3, pr: "26px !important", color: "text.secondary", fontWeight: 700, letterSpacing: 0.4 },
+                  "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
+                  "& .MuiSvgIcon-root": { fontSize: "1rem" },
+                }}
+              >
+                {GROUP_KINDS.map((k) => (
+                  <MenuItem key={k} value={k} sx={{ fontSize: "0.78rem" }}>{GROUP_KIND_LABELS[k]}</MenuItem>
+                ))}
+              </Select>
+            </Stack>
+            <Divider
+              sx={{ mb: 1, borderColor: borderColor, opacity: 0.4 }}
+            />
 
-        {/* Conditions */}
-        <GroupBody
-          node={node}
-          root={root}
-          depth={1}
-          isTopLevel
-          showKindSelect={false}
-          selectedNodeId={selectedNodeId}
-          onSelect={onSelect}
-          onUpdate={wrappedOnUpdate}
-          onRequestAdd={onRequestAdd}
-          onRequestCoach={onRequestCoach}
-          guidelineId={guidelineId}
-          currentRuleId={currentRuleId}
-        />
+            {/* Conditions */}
+            <GroupBody
+              node={node}
+              root={root}
+              depth={1}
+              isTopLevel
+              showKindSelect={false}
+              selectedNodeId={selectedNodeId}
+              onSelect={onSelect}
+              onUpdate={wrappedOnUpdate}
+              onRequestAdd={onRequestAdd}
+              onRequestCoach={onRequestCoach}
+              guidelineId={guidelineId}
+              currentRuleId={currentRuleId}
+            />
+          </>
+        ) : (
+          <Box sx={{ mb: 0.5 }}>
+            <NodeDispatcher
+              node={node}
+              root={root}
+              depth={1}
+              selectedNodeId={selectedNodeId}
+              onSelect={onSelect}
+              onUpdate={wrappedOnUpdate}
+              onRequestAdd={onRequestAdd}
+              onRequestCoach={onRequestCoach}
+              guidelineId={guidelineId}
+              currentRuleId={currentRuleId}
+            />
+            <AddBar
+              onAddConcept={(anchor) => {
+                onSelect(node.node_id);
+                onRequestAdd(node.node_id, anchor);
+              }}
+              onAddDemographic={() =>
+                wrappedOnUpdate({ kind: "add_demographic", parentNodeId: node.node_id })
+              }
+              onAddObservation={() =>
+                wrappedOnUpdate({ kind: "add_observation", parentNodeId: node.node_id })
+              }
+            />
+          </Box>
+        )}
 
         {/* Inline sentence preview */}
         <PathwayPreview node={node} />

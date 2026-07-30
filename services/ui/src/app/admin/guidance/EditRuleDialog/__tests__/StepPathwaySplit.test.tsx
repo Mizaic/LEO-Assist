@@ -12,8 +12,24 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { WIZARD_TOOLTIPS } from "../HighlightWizard/copy";
 import StepPathwaySplit from "../HighlightWizard/StepPathwaySplit";
 import type { RecommendationStructure } from "../SentenceEditor/pathwayTextSplit";
+
+// Most action buttons here are wrapped directly in a MUI `Tooltip`
+// whose `title` becomes the button's accessible name (MUI v7 default:
+// `describeChild` is false, so Tooltip sets `aria-label` from `title`
+// rather than `aria-describedby`) -- see WIZARD_TOOLTIPS's "Keep
+// aria-labels" doc comment in copy.ts. Query by that tooltip text, not
+// the button's visible label, so these tests see what a screen reader
+// (and axe) actually sees.
+//
+// Exception: "Confirm merge" wraps its Button in an extra <span> (a
+// disabled MUI Button drops pointer events, so the Tooltip needs a
+// span ancestor to keep detecting hover/focus). aria-label lands on
+// that span, which is not itself the accessible name of the nested
+// <button> -- ARIA does not propagate aria-label down to descendants
+// -- so that one button keeps its own visible text as its name.
 
 const HEURISTIC_TEXT =
   "In people aged 55 or over with: upper abdominal pain, or " +
@@ -84,7 +100,7 @@ describe("StepPathwaySplit: structure-preferred rendering", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     const passed = onConfirm.mock.calls[0][0];
@@ -143,7 +159,7 @@ describe("StepPathwaySplit: merge editing", () => {
       screen.queryByText(/tap two rows below to combine them/i),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
 
     expect(
       screen.getByText(/tap two rows below to combine them/i),
@@ -162,14 +178,14 @@ describe("StepPathwaySplit: merge editing", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     expect(rows).toHaveLength(3);
     await user.click(rows[0]);
     await user.click(rows[1]);
     await user.click(screen.getByRole("button", { name: /confirm merge/i }));
 
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm.mock.calls[0][0]).toHaveLength(2);
   });
@@ -185,7 +201,7 @@ describe("StepPathwaySplit: merge editing", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     expect(screen.getByRole("button", { name: /confirm merge/i })).toBeDisabled();
 
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
@@ -205,7 +221,7 @@ describe("StepPathwaySplit: merge editing", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     expect(rows).toHaveLength(3);
     await user.click(rows[0]);
@@ -220,7 +236,7 @@ describe("StepPathwaySplit: merge editing", () => {
 
     await user.click(screen.getByRole("button", { name: /merge anyway/i }));
 
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm.mock.calls[0][0]).toHaveLength(2);
   });
@@ -236,7 +252,7 @@ describe("StepPathwaySplit: merge editing", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     await user.click(rows[0]);
     await user.click(rows[2]);
@@ -261,7 +277,7 @@ describe("StepPathwaySplit: merge editing", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     await user.click(rows[0]);
     await user.click(rows[1]);
@@ -284,12 +300,14 @@ describe("StepPathwaySplit: merge editing", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
-    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
+    await user.click(
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.cancelMergeSplit, "i") }),
+    );
 
     expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(3);
     expect(
-      screen.getByRole("button", { name: /looks right, continue/i }),
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }),
     ).toBeInTheDocument();
   });
 });
@@ -306,7 +324,7 @@ describe("StepPathwaySplit: merging every row down to one", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     expect(rows).toHaveLength(2);
     await user.click(rows[0]);
@@ -328,7 +346,7 @@ describe("StepPathwaySplit: merging every row down to one", () => {
       screen.getByText(/you've combined every situation into one/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /undo -- keep them as separate situations/i }),
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.undoMerge, "i") }),
     ).toBeInTheDocument();
   });
 
@@ -343,14 +361,14 @@ describe("StepPathwaySplit: merging every row down to one", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     await user.click(rows[0]);
     await user.click(rows[1]);
     await user.click(screen.getByRole("button", { name: /confirm merge/i }));
 
     await user.click(
-      screen.getByRole("button", { name: /undo -- keep them as separate situations/i }),
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.undoMerge, "i") }),
     );
 
     expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(2);
@@ -391,7 +409,7 @@ describe("StepPathwaySplit: split editing", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /split a row/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.split, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     await user.click(rows[0]);
 
@@ -401,7 +419,7 @@ describe("StepPathwaySplit: split editing", () => {
     await user.click(firstWord);
     await user.click(screen.getByRole("button", { name: /confirm selection/i }));
 
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm.mock.calls[0][0]).toHaveLength(4);
   });
@@ -425,7 +443,7 @@ describe("StepPathwaySplit: no split found", () => {
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: /doesn't split/i }),
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noSplit, "i") }),
     );
     expect(onNoSplit).toHaveBeenCalledTimes(1);
   });

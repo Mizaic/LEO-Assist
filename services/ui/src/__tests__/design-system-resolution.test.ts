@@ -3,7 +3,7 @@
  * Covers TC-001 (tokens barrel) and TC-002 (role navMap barrel).
  */
 
-import { tokens, roleNavMap } from "@leo/design-system";
+import { tokens, roleNavMap, CANONICAL_ROLES } from "@leo/design-system";
 
 describe("VT-126 - @leo/design-system resolution", () => {
   test("TC-001 tokens barrel", () => {
@@ -17,12 +17,10 @@ describe("VT-126 - @leo/design-system resolution", () => {
 
   test("TC-002 roleNavMap barrel", () => {
     const keys = Object.keys(roleNavMap).sort();
-    expect(keys).toEqual([
-      "clinician",
-      "platform_admin",
-      "qa_ra_lead",
-      "staff",
-    ]);
+    // Every canonical role (see CANONICAL_ROLES in
+    // services/design-system/src/roles/types.ts) must have a nav
+    // entry, and vice versa -- neither list drifts from the other.
+    expect(keys).toEqual([...CANONICAL_ROLES].sort());
     for (const role of keys) {
       const config = (roleNavMap as Record<string, unknown>)[role] as {
         landing: string;

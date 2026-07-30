@@ -67,6 +67,15 @@ describe("leafResolvesRowText", () => {
     ).toBe(false);
   });
 
+  it("matches NG12 1.1.2's 'ever smoked' row to the leaf's more specific 'ever smoked tobacco' term", () => {
+    expect(
+      leafResolvesRowText(
+        concept("ever smoked tobacco", "Finding of tobacco smoking consumption (finding)"),
+        row("ever smoked"),
+      ),
+    ).toBe(true);
+  });
+
   it("does not let a short preferred term claim a longer clinical row", () => {
     const weightOnly: EditableLogicNode = {
       node_id: "w",

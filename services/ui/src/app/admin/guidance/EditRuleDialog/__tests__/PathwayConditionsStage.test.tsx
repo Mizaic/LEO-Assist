@@ -390,10 +390,14 @@ describe("PathwayConditionsStage: copy-across offer", () => {
     // one) inherit situation A's AT_LEAST default, shown via the
     // same "Change" affordance any manually-chosen grouping gets --
     // never a silent, unchangeable decision.
+    // The trailing cluster's confirmed-grouping copy names the actual
+    // findings ("Only one of weight loss, reflux, ... needs to match.")
+    // rather than the generic "these" once terms are available -- see
+    // `groupingConfirmedAtLeastN` in copy.ts -- so match either form.
     const leadGroup = screen.getByRole("group", { name: /nausea or vomiting/i });
-    expect(within(leadGroup).getByText(/only one of these needs to match/i)).toBeInTheDocument();
+    expect(within(leadGroup).getByText(/only one of .+ needs to match/i)).toBeInTheDocument();
     const trailingGroup = screen.getByRole("group", { name: /any of the following/i });
-    expect(within(trailingGroup).getByText(/only one of these needs to match/i)).toBeInTheDocument();
+    expect(within(trailingGroup).getByText(/only one of .+ needs to match/i)).toBeInTheDocument();
 
     // Every row now resolves to a copied leaf, so Confirm is enabled.
     expect(
@@ -743,5 +747,80 @@ describe("PathwayConditionsStage: tree-rehydrated confirmed conditions", () => {
     expect(pwB.children!.some((c) => c.node_id === "n-wl")).toBe(false);
     expect(pwB.children!.some((c) => c.node_id === "n-ap")).toBe(true);
     expect(pwB.children!.some((c) => c.kind === "DEMOGRAPHIC")).toBe(true);
+  });
+});
+
+// Sibling of the tree-rehydrated suite above: when boundaries ARE
+// heuristic/structure (so text rows exist) but a CONCEPT leaf on the
+// pathway never matched any row -- e.g. authored via Advanced/Sentence
+// with a preferred term that shares no wording with the guideline --
+// Step 3 must still surface that leaf as a confirmed condition rather
+// than silently hiding it behind the "only show confirmedLeaves when
+// source === tree" gate.
+describe("PathwayConditionsStage: orphan tree leaves on text-derived boundaries", () => {
+  const HEURISTIC_TEXT = "weight loss or abdominal pain.";
+  const HEURISTIC_BOUNDARIES: PathwayTextBoundary[] = [
+    {
+      text: HEURISTIC_TEXT,
+      start: 0,
+      end: HEURISTIC_TEXT.length,
+      source: "heuristic",
+    },
+  ];
+
+  function buildOrphanLeafTree(): EditableLogicNode {
+    return {
+      node_id: "root",
+      kind: "AND",
+      children: [
+        {
+          node_id: "pw-a",
+          kind: "AND",
+          pathway_key: "pw_a",
+          children: [
+            // Matches a guideline row via preferred-term wording.
+            concept("wl", "Weight loss"),
+            // Shares no words with the guideline text and has no
+            // source_row_text -- would never resolve onto a row.
+            {
+              node_id: "n-orphan",
+              kind: "CONCEPT",
+              criterion: {
+                snomed_concept_id: "999",
+                preferred_term: "Raised platelet count",
+              },
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  it("shows an unmatched CONCEPT leaf as a confirmed condition alongside the text rows", () => {
+    render(
+      <PathwayConditionsStage
+        tree={buildOrphanLeafTree()}
+        recommendationText={HEURISTIC_TEXT}
+        boundaries={HEURISTIC_BOUNDARIES}
+        pathwayIndex={0}
+        clusterGroupings={{}}
+        onSetClusterGrouping={jest.fn()}
+        leadClusterGroupings={{}}
+        onSetLeadClusterGrouping={jest.fn()}
+        dismissedCopyAcrossOffers={new Set()}
+        onDismissCopyAcrossOffer={jest.fn()}
+        onSelectNode={jest.fn()}
+        onUpdate={jest.fn()}
+        onRequestAdd={jest.fn()}
+        onEditConcept={jest.fn()}
+        onConfirmPathway={jest.fn()}
+      />,
+    );
+
+    const orphan = screen.getByTestId("pathway-confirmed-condition-n-orphan");
+    expect(within(orphan).getByText(/raised platelet count/i)).toBeInTheDocument();
+    // The matched leaf must NOT also appear in the confirmed list --
+    // that would duplicate the text row it already resolves onto.
+    expect(screen.queryByTestId("pathway-confirmed-condition-n-wl")).not.toBeInTheDocument();
   });
 });

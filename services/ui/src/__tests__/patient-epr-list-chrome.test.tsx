@@ -51,11 +51,16 @@ describe("VT-1D399981 domain-agnostic patient list - static-source", () => {
     expect(src).not.toMatch(/cancer_stage/);
   });
 
-  // DO-EBF0B124 AC2 - domain-neutral fields only
+  // DO-EBF0B124 AC2 - domain-neutral fields only. The "filing cabinet"
+  // redesign replaced the single generic episode_count chip with a
+  // more granular activity-counts row (encounter/referral/document/
+  // coded-concept counts) -- still domain-neutral, no cancer-specific
+  // field is shown by default, just no longer named "episode_count".
   test("AC2 - PatientListPage renders domain-neutral patient card fields", () => {
     const src = read(PATIENT_LIST);
-    expect(src).toMatch(/episode_count|episodeCount/);
+    expect(src).toMatch(/encounter_count|encounterCount/);
     expect(src).toMatch(/active_alert_count|activeAlertCount/);
+    expect(src).not.toMatch(/cancer_type|cancer_stage/);
   });
 
   // DI-0ADA35BF AC3 - no cancer-specific default column

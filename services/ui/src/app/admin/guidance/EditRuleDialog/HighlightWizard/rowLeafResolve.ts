@@ -136,6 +136,21 @@ function candidateCoversCore(candidate: string, core: string): boolean {
   if (coreTokens.length === 0 || candTokens.length === 0) return false;
   if (tokenSetKey(coreTokens) === tokenSetKey(candTokens)) return true;
 
+  // A candidate that contains every one of the row's own tokens, plus
+  // extra clinical qualifiers, is a safe match -- e.g. NG12 1.1.2's
+  // "ever smoked" row against the leaf's "ever smoked tobacco" term
+  // (score 0.833 on the fuzzy path below, just under the 0.85 cutoff,
+  // even though nothing in the row is left unaccounted for). This is
+  // deliberately one-directional: it must NOT fire in reverse, or a
+  // short candidate like "weight" would wrongly claim the longer,
+  // clinically distinct "weight loss" row (see the test guarding that
+  // case). Two-token minimum keeps a single generic word ("pain") from
+  // claiming an unrelated longer candidate that happens to contain it.
+  if (coreTokens.length >= 2) {
+    const candTokenSet = new Set(candTokens);
+    if (coreTokens.every((t) => candTokenSet.has(t))) return true;
+  }
+
   const coreSyn = synonymKey(core);
   const candSyn = synonymKey(candNorm);
   if (coreSyn && candSyn && coreSyn === candSyn) return true;

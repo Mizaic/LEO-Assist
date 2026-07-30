@@ -73,7 +73,12 @@ describe("RowMultiCodeHighlight", () => {
     render(<RowMultiCodeHighlight item={ROW} onAddCriterion={jest.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /highlight text for more codes/i }));
-    await user.click(screen.getByRole("button", { name: /^close$/i }));
+    // MUI Tooltip sets the button's accessible name from its `title`
+    // (v7 default `describeChild=false`), replacing the visible "Close"
+    // text -- see WIZARD_TOOLTIPS.multiCodeClose in copy.ts.
+    await user.click(
+      screen.getByRole("button", { name: /close the highlight-and-code tool without adding codes/i }),
+    );
 
     expect(
       screen.getByRole("button", { name: /highlight text for more codes/i }),

@@ -28,7 +28,9 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { GROUP_KINDS, type EditableLogicNode, type NodeUpdate } from "../types";
 import { CARD_ACCENTS, PathwayNameInput } from "../LogicTreeEditor/PathwayCard";
 import PathwayPreview from "../LogicTreeEditor/PathwayPreview";
+import AddInlineLinks from "./AddInlineLinks";
 import GroupSentence from "./GroupSentence";
+import SentenceNodeDispatcher from "./SentenceNodeDispatcher";
 
 interface Props {
   node: EditableLogicNode;
@@ -55,12 +57,11 @@ export default function PathwaySentenceCard({
   const [aiSuggested, setAiSuggested] = useState(
     (node as EditableLogicNode & { _aiSuggested?: boolean })._aiSuggested === true,
   );
-
-  // Guard: only handles group nodes, matching PathwayCard's own guard.
-  // Leaf kinds (CONCEPT etc.) should never reach here.
-  if (!GROUP_KINDS.includes(node.kind as typeof GROUP_KINDS[number])) {
-    return null;
-  }
+  // See PathwayCard.tsx's matching `isGroup` doc comment: a single-
+  // condition pathway can be a bare CONCEPT/DEMOGRAPHIC/OBSERVATION
+  // child of the situations OR, not a 1-child AND wrapper. Render it
+  // via SentenceNodeDispatcher instead of hiding the whole card.
+  const isGroup = GROUP_KINDS.includes(node.kind as typeof GROUP_KINDS[number]);
 
   function wrappedOnUpdate(u: NodeUpdate) {
     setAiSuggested(false);
@@ -123,19 +124,48 @@ export default function PathwaySentenceCard({
           </Stack>
         </Stack>
 
-        <GroupSentence
-          node={node}
-          root={root}
-          depth={1}
-          isTopLevel
-          selectedNodeId={selectedNodeId}
-          onSelect={onSelect}
-          onUpdate={wrappedOnUpdate}
-          onRequestAdd={onRequestAdd}
-          onRequestCoach={onRequestCoach}
-          guidelineId={guidelineId}
-          currentRuleId={currentRuleId}
-        />
+        {isGroup ? (
+          <GroupSentence
+            node={node}
+            root={root}
+            depth={1}
+            isTopLevel
+            selectedNodeId={selectedNodeId}
+            onSelect={onSelect}
+            onUpdate={wrappedOnUpdate}
+            onRequestAdd={onRequestAdd}
+            onRequestCoach={onRequestCoach}
+            guidelineId={guidelineId}
+            currentRuleId={currentRuleId}
+          />
+        ) : (
+          <Stack direction="row" flexWrap="wrap" alignItems="center" sx={{ rowGap: 0.75, columnGap: 0.75 }}>
+            <SentenceNodeDispatcher
+              node={node}
+              root={root}
+              depth={1}
+              selectedNodeId={selectedNodeId}
+              onSelect={onSelect}
+              onUpdate={wrappedOnUpdate}
+              onRequestAdd={onRequestAdd}
+              onRequestCoach={onRequestCoach}
+              guidelineId={guidelineId}
+              currentRuleId={currentRuleId}
+            />
+            <AddInlineLinks
+              onAddConcept={(anchor) => {
+                onSelect(node.node_id);
+                onRequestAdd(node.node_id, anchor);
+              }}
+              onAddDemographic={() =>
+                wrappedOnUpdate({ kind: "add_demographic", parentNodeId: node.node_id })
+              }
+              onAddObservation={() =>
+                wrappedOnUpdate({ kind: "add_observation", parentNodeId: node.node_id })
+              }
+            />
+          </Stack>
+        )}
 
         <PathwayPreview node={node} />
       </Box>

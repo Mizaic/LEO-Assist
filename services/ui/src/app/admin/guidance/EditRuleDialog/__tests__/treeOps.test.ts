@@ -403,6 +403,26 @@ describe("treeOps", () => {
     expect(findValidationError(tree)).toBeNull();
   });
 
+  // NG12 1.5.5 regression: an older extraction run persisted a DEMOGRAPHIC
+  // sex check as `"operator": "=="` (a programmer's equality operator)
+  // instead of the backend's "=". The wizard loaded and displayed the rule
+  // fine, but "Approve and save" failed server-side with "DEMOGRAPHIC node
+  // has unsupported operator '=='" -- confirmed live against the
+  // pending_review logicJson. Normalise on load so legacy data is silently
+  // repaired instead of blocking every future edit to that rule.
+  it("assignNodeIds normalises a legacy '==' demographic operator to '='", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        { kind: "demographic" as unknown as "DEMOGRAPHIC", field: "sex", operator: "==", value: "female" },
+        { kind: "demographic" as unknown as "DEMOGRAPHIC", field: "age", operator: ">=", value: 50 },
+      ],
+    });
+    expect(tree.children![0].operator).toBe("=");
+    expect(tree.children![1].operator).toBe(">=");
+    expect(findValidationError(tree)).toBeNull();
+  });
+
   it("assignNodeIds promotes AI raw_term / source_text onto source_row_text", () => {
     const tree = assignNodeIds({
       kind: "AND",

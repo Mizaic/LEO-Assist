@@ -452,6 +452,81 @@ describe("SentenceEditor -- pathway split rendering (task 9, NG12 1.2.9)", () =>
   });
 });
 
+describe("SentenceEditor -- bare-leaf pathway (NG12 1.2.1-shaped OR child with no AND wrapper)", () => {
+  // Mirrors the LogicTreeEditor regression above: PathwaySentenceCard
+  // used to guard on GROUP_KINDS.includes(node.kind) and return null
+  // for a bare CONCEPT/DEMOGRAPHIC child of the situations OR, so the
+  // whole pathway silently vanished from the Simple canvas too.
+  function makeBareLeafOrRoot(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "123456", preferred_term: "Abdominal mass" },
+        },
+        {
+          kind: "AND",
+          name: "Symptom watch",
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "2", preferred_term: "Weight loss" } },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("renders the bare-leaf pathway card instead of vanishing", () => {
+    render(
+      <SentenceEditor
+        root={makeBareLeafOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    expect(screen.getByTestId("pathway-card-A")).toBeInTheDocument();
+    expect(screen.getByTestId("pathway-card-B")).toBeInTheDocument();
+    expect(within(screen.getByTestId("pathway-card-A")).getByText("Abdominal mass")).toBeInTheDocument();
+  });
+
+  it("offers a Remove control for the bare-leaf pathway", () => {
+    render(
+      <SentenceEditor
+        root={makeBareLeafOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    const cardA = screen.getByTestId("pathway-card-A");
+    expect(within(cardA).getByRole("button", { name: /remove pathway a/i })).toBeInTheDocument();
+  });
+
+  it("lets a second condition be added to the bare-leaf pathway, promoting it into an AND group", () => {
+    const tree = makeBareLeafOrRoot();
+    const leaf = tree.children?.[0];
+    const onUpdate = jest.fn();
+    render(
+      <SentenceEditor
+        root={tree}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={onUpdate}
+        onRequestAdd={noop}
+      />,
+    );
+    const cardA = screen.getByTestId("pathway-card-A");
+    fireEvent.click(within(cardA).getByText("+ add a patient detail"));
+    expect(onUpdate).toHaveBeenCalledWith({
+      kind: "add_demographic",
+      parentNodeId: leaf?.node_id,
+    });
+  });
+});
+
 describe("EmptySentenceState (task 10)", () => {
   it("reads as a prose sentence with an inline 'add the first symptom' link", () => {
     const onAddFirstSymptom = jest.fn();

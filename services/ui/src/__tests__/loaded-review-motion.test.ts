@@ -52,7 +52,12 @@ describe("RuleReviewPool.tsx motion pass", () => {
 });
 
 describe("RuleReviewSection.tsx motion pass", () => {
-  const src = read("RuleReviewSection.tsx");
+  // The "approved in this session" / "excluded in this session" panels
+  // -- and their framer-motion animation -- were split out into their
+  // own file to keep RuleReviewSection.tsx under the repo's 500-LOC
+  // file-length limit (code-quality.mdc). RuleReviewSection.tsx now
+  // just renders <RuleReviewSessionPanels />.
+  const src = read("RuleReviewSessionPanels.tsx");
 
   test("imports framer-motion and the shared popVariants preset", () => {
     expect(src).toMatch(/from\s+["']framer-motion["']/);

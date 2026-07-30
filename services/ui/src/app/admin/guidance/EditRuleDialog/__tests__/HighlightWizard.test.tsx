@@ -15,8 +15,18 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import HighlightWizard, { type WizardJumpRequest } from "../HighlightWizard";
+import { WIZARD_TOOLTIPS } from "../HighlightWizard/copy";
 import { applyUpdate } from "../treeOps";
 import type { EditableLogicNode, NodeUpdate } from "../types";
+
+// Buttons wrapped directly in a MUI Tooltip get their accessible name
+// from the tooltip's `title`, not their visible label (MUI v7 default:
+// `describeChild=false` -- see WIZARD_TOOLTIPS's "Keep aria-labels" doc
+// comment in copy.ts). "Confirm situation X" and "Confirm merge" are
+// the exceptions: their Tooltip wraps an extra <span> (needed because a
+// conditionally-disabled Button drops pointer events), and aria-label
+// on that span does not propagate to the nested <button>, so those two
+// keep their own visible text as the accessible name.
 
 // jsdom does not implement scrollIntoView -- see useJumpScrollAndFlash's
 // doc comment for why the "jump to issue" flow calls it.
@@ -82,7 +92,7 @@ describe("HighlightWizard: Step 1 (prerequisites)", () => {
     const user = userEvent.setup();
     const tree: EditableLogicNode = { node_id: "root", kind: "AND", children: [ageLeaf()] };
     render(<Harness initialTree={tree} />);
-    await user.click(screen.getByRole("button", { name: /no, nothing else/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noMore, "i") }));
     expect(
       screen.getByText(/does this apply the same way to everyone/i),
     ).toBeInTheDocument();
@@ -108,7 +118,7 @@ describe("HighlightWizard: Step 1 (prerequisites)", () => {
     expect(onStepChange).toHaveBeenCalledWith("prerequisites");
     onStepChange.mockClear();
 
-    await user.click(screen.getByRole("button", { name: /no, nothing else/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noMore, "i") }));
     expect(onStepChange).toHaveBeenCalledWith("pathway-split");
   });
 });
@@ -142,7 +152,7 @@ function preDraftedTree(): EditableLogicNode {
 
 async function advanceToStep2() {
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: /no, nothing else/i }));
+  await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noMore, "i") }));
   return user;
 }
 
@@ -150,7 +160,7 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
   it("jumps straight to Step 3 with no tree mutation when the pathways already exist", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
     const user = await advanceToStep2();
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     expect(screen.getByText(/situation a \(1 of 2\)/i)).toBeInTheDocument();
     // Pathway A's own row spans the whole first clause ("In people
@@ -171,7 +181,7 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
       />,
     );
     const user = await advanceToStep2();
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     await user.click(screen.getByTestId("list-row-0-42"));
 
@@ -182,7 +192,7 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
   it("walks both pathways and lands on Review once the last one confirms", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
     const user = await advanceToStep2();
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     await user.click(screen.getByRole("button", { name: /confirm situation a/i }));
     expect(screen.getByText(/situation b \(2 of 2\)/i)).toBeInTheDocument();
@@ -197,10 +207,10 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
   it("Back from Step 3's first pathway returns to Step 2", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
     const user = await advanceToStep2();
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     await user.click(screen.getByTestId("wizard-back"));
     expect(
-      screen.getByRole("button", { name: /merge two rows/i }),
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }),
     ).toBeInTheDocument();
   });
 
@@ -220,7 +230,7 @@ describe("HighlightWizard: Step 2 -> Step 3 with an already-drafted tree", () =>
       />,
     );
     const user = await advanceToStep2();
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     expect(onStepChange).not.toHaveBeenCalledWith("review");
 
     await user.click(screen.getByRole("button", { name: /confirm situation a/i }));
@@ -240,7 +250,7 @@ describe("HighlightWizard: Step 2 -> Step 3 building fresh pathways from scratch
     const tree: EditableLogicNode = { node_id: "root", kind: "AND", children: [ageLeaf()] };
     render(<Harness initialTree={tree} />);
     const user = await advanceToStep2();
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     expect(await screen.findByText(/situation a \(1 of 2\)/i)).toBeInTheDocument();
     // Freshly created pathways start with nothing resolved yet.
@@ -277,13 +287,22 @@ describe("HighlightWizard: the 'no split' escape hatch", () => {
   it("treats the whole tree as one situation with no tree mutation needed", async () => {
     const user = userEvent.setup();
     render(<SingleSituationHarness />);
-    await user.click(screen.getByRole("button", { name: /no, nothing else/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noMore, "i") }));
 
-    const noSplitBtn = await screen.findByRole("button", { name: /doesn't split/i });
+    const noSplitBtn = await screen.findByRole("button", {
+      name: RegExp(WIZARD_TOOLTIPS.noSplit, "i"),
+    });
     await user.click(noSplitBtn);
 
     expect(screen.getByText(/situation a \(1 of 1\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/weight loss/i)).toBeInTheDocument();
+    // The sole text row for this sentence is currently auto-resolved by
+    // the age DEMOGRAPHIC ("is 55 years or older"), so the Weight loss
+    // CONCEPT would not appear as a matched row. Step 3 must still
+    // surface it via the confirmed-conditions fallback (same class as
+    // the tree-rehydration orphan fix) rather than letting it vanish.
+    expect(
+      within(screen.getByTestId("pathway-confirmed-condition-wl")).getByText(/weight loss/i),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /confirm situation a/i }));
     expect(screen.getByTestId("wizard-review")).toBeInTheDocument();
@@ -332,7 +351,7 @@ describe("HighlightWizard: jump-to-issue navigation (WizardJumpRequest)", () => 
     const user = userEvent.setup();
     render(<JumpHarness initialTree={preDraftedTree()} />);
     const advanceUser = await advanceToStep2();
-    await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     await advanceUser.click(screen.getByRole("button", { name: /confirm situation a/i }));
     await advanceUser.click(screen.getByRole("button", { name: /confirm situation b/i }));
     expect(screen.getByTestId("wizard-review")).toBeInTheDocument();
@@ -419,23 +438,23 @@ describe("HighlightWizard: Back to Step 2 keeps the reviewer's own merge/split e
     const tree: EditableLogicNode = { node_id: "root", kind: "AND", children: [ageLeaf()] };
     render(<Harness initialTree={tree} recommendationText={THREE_SITUATION_TEXT} />);
 
-    await user.click(screen.getByRole("button", { name: /no, nothing else/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noMore, "i") }));
     expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(3);
 
-    await user.click(screen.getByRole("button", { name: /merge two rows/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }));
     const rows = screen.getAllByTestId(/^pathway-boundary-row-/);
     await user.click(rows[0]);
     await user.click(rows[1]);
     await user.click(screen.getByRole("button", { name: /confirm merge/i }));
     expect(screen.getAllByTestId(/^pathway-boundary-row-/)).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await user.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     expect(await screen.findByText(/situation a \(1 of 2\)/i)).toBeInTheDocument();
 
     await user.click(screen.getByTestId("wizard-back"));
 
     expect(
-      screen.getByRole("button", { name: /merge two rows/i }),
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }),
     ).toBeInTheDocument();
     // The old bug: this would show 3 rows again (freshly re-derived
     // from THREE_SITUATION_TEXT), silently discarding the merge.
@@ -447,20 +466,20 @@ describe("HighlightWizard: warns before a Step 2 count change would wipe Step 3 
   it("shows a confirm dialog, and Cancel leaves the tree and boundaries untouched", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
     const advanceUser = await advanceToStep2();
-    await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     await advanceUser.click(screen.getByTestId("wizard-back"));
 
     // Split situation A's row into two -- boundaries.length goes from
     // 2 to 3, but the tree still only has 2 pathways, one of which
     // (pw-a) already has a resolved "weight loss" leaf.
-    await advanceUser.click(screen.getByRole("button", { name: /split a row/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.split, "i") }));
     const rowsToSplit = screen.getAllByTestId(/^pathway-boundary-row-/);
     await advanceUser.click(rowsToSplit[0]);
     const firstWord = screen.getByText(/^In$/);
     await advanceUser.click(firstWord);
     await advanceUser.click(screen.getByRole("button", { name: /confirm selection/i }));
 
-    await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     const dialog = await screen.findByRole("dialog");
     expect(
@@ -475,23 +494,23 @@ describe("HighlightWizard: warns before a Step 2 count change would wipe Step 3 
     await advanceUser.click(within(dialog).getByRole("button", { name: /cancel/i }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /merge two rows/i }),
+      screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.merge, "i") }),
     ).toBeInTheDocument();
   });
 
   it("Confirm on the warning proceeds and rebuilds Step 3 with fresh, empty pathways", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
     const advanceUser = await advanceToStep2();
-    await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     await advanceUser.click(screen.getByTestId("wizard-back"));
 
-    await advanceUser.click(screen.getByRole("button", { name: /split a row/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.split, "i") }));
     const rowsToSplit = screen.getAllByTestId(/^pathway-boundary-row-/);
     await advanceUser.click(rowsToSplit[0]);
     const firstWord = screen.getByText(/^In$/);
     await advanceUser.click(firstWord);
     await advanceUser.click(screen.getByRole("button", { name: /confirm selection/i }));
-    await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     const dialog = await screen.findByRole("dialog");
     await advanceUser.click(
@@ -510,10 +529,10 @@ describe("HighlightWizard: warns before a Step 2 count change would wipe Step 3 
   it("does not warn when re-confirming the SAME count, even with resolved leaves already in place", async () => {
     render(<Harness initialTree={preDraftedTree()} />);
     const advanceUser = await advanceToStep2();
-    await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
     await advanceUser.click(screen.getByTestId("wizard-back"));
 
-    await advanceUser.click(screen.getByRole("button", { name: /looks right, continue/i }));
+    await advanceUser.click(screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.looksRight, "i") }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(await screen.findByText(/situation a \(1 of 2\)/i)).toBeInTheDocument();

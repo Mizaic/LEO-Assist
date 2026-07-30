@@ -408,6 +408,84 @@ describe("LogicTreeEditor -- pathway split nested inside a demographic AND (NG12
   });
 });
 
+describe("LogicTreeEditor -- bare-leaf pathway (NG12 1.2.1-shaped OR child with no AND wrapper)", () => {
+  // Regression test: a saved rule can have a single-condition pathway
+  // stored as a bare CONCEPT (or DEMOGRAPHIC) child of the situations
+  // OR instead of a 1-child AND wrapper. PathwayCard used to guard on
+  // GROUP_KINDS.includes(node.kind) and return null for this shape,
+  // so the whole pathway -- SNOMED code included -- silently vanished
+  // from the Advanced editor with no way to see or remove it.
+  function makeBareLeafOrRoot(): EditableLogicNode {
+    return assignNodeIds({
+      kind: "OR",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: { snomed_concept_id: "123456", preferred_term: "Abdominal mass" },
+        },
+        {
+          kind: "AND",
+          name: "Symptom watch",
+          children: [
+            { kind: "CONCEPT", criterion: { snomed_concept_id: "2", preferred_term: "Weight loss" } },
+          ],
+        },
+      ],
+    });
+  }
+
+  it("renders the bare-leaf pathway card instead of vanishing", () => {
+    render(
+      <LogicTreeEditor
+        root={makeBareLeafOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    expect(screen.getByTestId("pathway-card-A")).toBeInTheDocument();
+    expect(screen.getByTestId("pathway-card-B")).toBeInTheDocument();
+    expect(within(screen.getByTestId("pathway-card-A")).getByText("Abdominal mass")).toBeInTheDocument();
+  });
+
+  it("offers a Remove control for the bare-leaf pathway", () => {
+    render(
+      <LogicTreeEditor
+        root={makeBareLeafOrRoot()}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={noop}
+        onRequestAdd={noop}
+      />,
+    );
+    const cardA = screen.getByTestId("pathway-card-A");
+    expect(within(cardA).getByRole("button", { name: /remove pathway a/i })).toBeInTheDocument();
+  });
+
+  it("lets a second condition be added to the bare-leaf pathway, promoting it into an AND group", () => {
+    const tree = makeBareLeafOrRoot();
+    const leaf = tree.children?.[0];
+    const onUpdate = jest.fn();
+    render(
+      <LogicTreeEditor
+        root={tree}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={onUpdate}
+        onRequestAdd={noop}
+      />,
+    );
+    const cardA = screen.getByTestId("pathway-card-A");
+    const addDemographicBtn = within(cardA).getByRole("button", { name: /add.*patient detail/i });
+    fireEvent.click(addDemographicBtn);
+    expect(onUpdate).toHaveBeenCalledWith({
+      kind: "add_demographic",
+      parentNodeId: leaf?.node_id,
+    });
+  });
+});
+
 describe("AIDraftButton integration", () => {
   beforeEach(() => {
     jest.resetAllMocks();

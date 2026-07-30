@@ -51,7 +51,10 @@ describe("VT-A6893653 - WCAG 2.1 AA baseline (AppShell, ConfirmDialog, StatusDot
 
   test("AC-4: OrgSelect input has aria-label='Select organisation'", () => {
     const src = readFile("services/ui/src/components/AppShell.tsx");
-    expect(src).toMatch(/aria-label["']?:\s*["']Select organisation["']/);
+    // JSX attribute syntax uses `=`, not the object-literal `:` this
+    // regex previously looked for -- see AC-3's `aria-label="..."`
+    // pattern just above for the same convention.
+    expect(src).toMatch(/aria-label=["']Select organisation["']/);
   });
 
   test("AC-5: ConfirmDialog wires aria-labelledby and aria-describedby", () => {

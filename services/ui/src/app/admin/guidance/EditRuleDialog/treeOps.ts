@@ -80,6 +80,7 @@ export function assignNodeIds(node: LogicNodeSeed): EditableLogicNode {
     ...node,
     node_id: node.node_id ?? freshNodeId(),
     kind: normaliseKind(node.kind),
+    ...(node.operator !== undefined ? { operator: normaliseOperator(node.operator) } : {}),
     ...(children.length ? { children } : {}),
   } as EditableLogicNode;
 
@@ -139,6 +140,22 @@ function normaliseKind(raw: string | undefined): LogicNodeKind {
   if (!raw) return "AND";
   const upper = raw.toUpperCase();
   return KIND_MAP[upper] ?? "AND";
+}
+
+// Older extraction runs (pre-dating the "=" convention now baked into
+// libs/prompts/guidance_rule_extraction_v1.py) sometimes wrote a
+// programmer's equality operator for a DEMOGRAPHIC sex check instead
+// of the backend's "=". Left uncorrected, those legacy trees load into
+// the wizard fine but fail server-side validation with "DEMOGRAPHIC
+// node has unsupported operator '=='" the moment a reviewer tries to
+// save -- confirmed live against NG12 1.5.5's pending_review logicJson.
+const OPERATOR_ALIASES: Record<string, string> = {
+  "==": "=",
+};
+
+function normaliseOperator(raw: string | undefined): string | undefined {
+  if (!raw) return raw;
+  return OPERATOR_ALIASES[raw] ?? raw;
 }
 
 // ---------------------------------------------------------------------------

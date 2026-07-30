@@ -293,11 +293,21 @@ export default function PathwayConditionsStage({
     getRowResolution,
     pathwayDemographics,
   );
-  // Only tree-rehydrated situations need this fallback list -- a normal
-  // guideline-text pathway already shows every leaf via the row list
-  // above; showing both here would just duplicate the same conditions.
-  const confirmedLeaves =
-    boundary.source === "tree" ? pathwayConfirmedLeaves(pathwayNode) : [];
+  // Leaves already represented by a guideline-text row stay out of this
+  // list (they would just duplicate the row above). Everything else --
+  // tree-rehydrated situations with no text rows at all, OR a CONCEPT /
+  // OBSERVATION authored via Advanced/Sentence that never matched a
+  // text row (no source_row_text, preferred term shares little wording
+  // with the guideline) -- must still be reviewable here, otherwise it
+  // silently vanishes from Step 3 even though Review's summary shows it.
+  const coveredByRowIds = new Set(
+    flattenPathwayItems(pathwayRows.items)
+      .map((item) => getRowResolution(item)?.nodeId)
+      .filter((id): id is string => !!id),
+  );
+  const confirmedLeaves = pathwayConfirmedLeaves(pathwayNode).filter(
+    (leaf) => !coveredByRowIds.has(leaf.node_id),
+  );
 
   function handleAddPathwayDemographic(field: PathwayDemographicField) {
     onUpdate({
