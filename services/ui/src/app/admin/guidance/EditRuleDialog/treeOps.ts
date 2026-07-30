@@ -609,13 +609,16 @@ export function applyUpdate(
     }
     case "add_concept":
       return mapNode(root, (n) =>
-        n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeConceptNode(update.criterion, update.sourceRowText))
+        n.node_id === update.parentNodeId
+          ? appendChildPromotingLeaf(
+              n,
+              makeConceptNode(update.criterion, update.sourceRowText),
+            )
           : n,
       );
     case "add_group":
       return mapNode(root, (n) => {
-        if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) {
+        if (n.node_id !== update.parentNodeId) {
           return n;
         }
         // A new direct child of a pathway-split OR is itself a new
@@ -632,26 +635,26 @@ export function applyUpdate(
         if (update.clusterRole) {
           child.cluster_role = update.clusterRole;
         }
-        return appendChild(n, child);
+        return appendChildPromotingLeaf(n, child);
       });
     case "add_demographic": {
       const demo = makeDemographicNode(update.field, update.prefill, update.sourceRowText);
       return mapNode(root, (n) => {
-        if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) return n;
+        if (n.node_id !== update.parentNodeId) return n;
         if (isOrGroupSymptomsOnly(n)) {
           return addPrerequisiteToOrSymptoms(n, demo);
         }
-        return appendChild(n, demo);
+        return appendChildPromotingLeaf(n, demo);
       });
     }
     case "add_observation": {
       const observation = makeObservationNode(update.seed);
       return mapNode(root, (n) => {
-        if (n.node_id !== update.parentNodeId || !canHaveChildren(n.kind)) return n;
+        if (n.node_id !== update.parentNodeId) return n;
         if (isOrGroupSymptomsOnly(n)) {
           return addPrerequisiteToOrSymptoms(n, observation);
         }
-        return appendChild(n, observation);
+        return appendChildPromotingLeaf(n, observation);
       });
     }
     case "set_observation":
@@ -720,8 +723,8 @@ export function applyUpdate(
       );
     case "add_rule_fired":
       return mapNode(root, (n) =>
-        n.node_id === update.parentNodeId && canHaveChildren(n.kind)
-          ? appendChild(n, makeRuleFiredNode())
+        n.node_id === update.parentNodeId
+          ? appendChildPromotingLeaf(n, makeRuleFiredNode())
           : n,
       );
     case "set_rule_fired":
@@ -990,6 +993,30 @@ function appendChild(
 function wrapLeafInAnd(child: EditableLogicNode): EditableLogicNode {
   if (canHaveChildren(child.kind)) return child;
   return { node_id: freshNodeId(), kind: "AND", children: [child] };
+}
+
+/**
+ * Append `child` to `n` -- or, when `n` is a bare leaf pathway (a
+ * single-symptom situation stored as a direct CONCEPT / DEMOGRAPHIC /
+ * OBSERVATION child of the situations OR, e.g. NG12 1.3.1's
+ * "abdominal mass" situation), promote it into a 2-child AND first.
+ *
+ * Every "add_concept" / "add_group" / "add_demographic" /
+ * "add_observation" / "add_rule_fired" case used to guard on
+ * `canHaveChildren(n.kind)` and silently no-op otherwise. That guard
+ * is correct for arbitrary leaves elsewhere in the tree, but a
+ * pathway container has no such restriction -- `readMaterializedPathways`
+ * hands Step 3 whatever the OR's direct children are, leaf or group,
+ * with no re-wrap on load (only `coerceKind`'s "make into OR" path
+ * wraps leaves). So a single-symptom situation could never gain an
+ * age/sex/extra condition: "Add age" looked like it did nothing.
+ */
+function appendChildPromotingLeaf(
+  n: EditableLogicNode,
+  child: EditableLogicNode,
+): EditableLogicNode {
+  if (canHaveChildren(n.kind)) return appendChild(n, child);
+  return { node_id: freshNodeId(), kind: "AND", children: [n, child] };
 }
 
 function coerceKind(

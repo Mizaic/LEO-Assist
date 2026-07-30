@@ -399,6 +399,16 @@ export default function HighlightWizard({
       // Null active index = Step 2 overview: paint every situation
       // its own colour so the detector's full wording is visible.
       onActiveSituationChange?.(proposedBoundaries, null);
+    } else if (state.step === "review" && state.boundaries) {
+      // Rehydrating straight into Review (reopening an already-built
+      // rule -- see buildInitialWizardState) never passes through
+      // "pathway-conditions", so this is the ONLY chance to report
+      // the confirmed boundaries. Without it the host's
+      // `situationCount` stays 0 forever, `navSlots.showSituations`
+      // never turns on, and the flat stepper permanently mis-renders
+      // "Always true" as current with Situations/Next locked even
+      // though the wizard itself is already on Review.
+      onActiveSituationChange?.(state.boundaries, null);
     } else {
       onActiveSituationChange?.(null, null);
     }
