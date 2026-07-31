@@ -190,7 +190,7 @@ var sharedEnv = [
   { name: 'AWS_DEFAULT_REGION', value: awsDefaultRegion }
 
   // Pipeline and coding extractor
-  { name: 'PIPELINE_MODEL_PROVIDER', value: 'aws' }
+  { name: 'PIPELINE_MODEL_PROVIDER', value: 'azure' }
   { name: 'PIPELINE_MODEL_TIER', value: 'small' }
   { name: 'CODING_EXTRACTOR_BACKEND', value: codingExtractorBackend }
   { name: 'CODING_EXTRACTOR_STRICT', value: codingExtractorStrict }
@@ -306,6 +306,10 @@ var sharedEnv = [
   { name: 'TERMINOLOGY_API_APP_ID', secretRef: 'terminology-api-app-id' }
   { name: 'AUTH_SECRET', secretRef: 'auth-secret' }
   { name: 'SERVICE_AUTH_SECRET', secretRef: 'service-auth-secret' }
+  // Widget / Validation Lab SBAR token exchange (UI host + core-api).
+  // UI also accepts SCENARIO_SDK_HOST_SECRET; SDK_HOST_SHARED_SECRET is enough.
+  { name: 'SDK_HOST_SHARED_SECRET', secretRef: 'sdk-host-shared-secret' }
+  { name: 'SDK_WIDGET_TOKEN_SECRET', secretRef: 'sdk-widget-token-secret' }
 ]
 
 var sharedSecrets = [
@@ -338,6 +342,8 @@ var sharedSecrets = [
   { name: 'terminology-api-app-id', keyVaultUrl: '${kvUri}secrets/terminology-api-app-id', identity: managedIdentityId }
   { name: 'auth-secret', keyVaultUrl: '${kvUri}secrets/auth-secret', identity: managedIdentityId }
   { name: 'service-auth-secret', keyVaultUrl: '${kvUri}secrets/service-auth-secret', identity: managedIdentityId }
+  { name: 'sdk-host-shared-secret', keyVaultUrl: '${kvUri}secrets/sdk-host-shared-secret', identity: managedIdentityId }
+  { name: 'sdk-widget-token-secret', keyVaultUrl: '${kvUri}secrets/sdk-widget-token-secret', identity: managedIdentityId }
 ]
 
 var identityConfig = {
@@ -397,6 +403,9 @@ resource coreApi 'Microsoft.App/containerApps@2024-03-01' = {
           // has no shell so we set UVICORN_WORKERS instead of using
           // shell-expanded WEB_CONCURRENCY.
           { name: 'UVICORN_WORKERS', value: '2' }
+          // Seed the Validation Lab / scenario-runner SDK host at startup.
+          { name: 'SCENARIO_SDK_HOST_ENABLED', value: '1' }
+          { name: 'SCENARIO_SDK_HOST_ID', value: 'leo-scenario-runner' }
         ])
         probes: [
           {

@@ -42,8 +42,8 @@ _MODEL_ID_DEFAULTS: dict[str, dict[str, str]] = {
         "max": "eu.anthropic.claude-opus-4-6-v1",
     },
     "azure": {
-        "small": "gpt-5-mini",
-        "big": "gpt-5.2-chat",
+        "small": "gpt-5.4-nano",
+        "big": "gpt-5.4",
     },
 }
 
@@ -54,8 +54,8 @@ _DISPLAY_NAMES: dict[str, dict[str, str]] = {
         "max": "Claude Opus (AWS Bedrock)",
     },
     "azure": {
-        "small": "GPT-5 mini (Azure OpenAI)",
-        "big": "GPT-5 (Azure OpenAI)",
+        "small": "GPT-5.4 nano (Azure OpenAI)",
+        "big": "GPT-5.4 (Azure OpenAI)",
     },
 }
 
@@ -81,9 +81,9 @@ _COST_ENV_PREFIXES: dict[str, dict[str, str]] = {
 #   Opus 4.6: 5.50 / 0.550 / 6.875 write / 27.50
 # Cache write = 5-minute TTL at 1.25x input (Bedrock / Anthropic default).
 #
-# Azure OpenAI Data Zone (EU) from azure.com pricing page:
-#   GPT-5-mini: 0.28 / 0.03 / 2.20
-#   GPT-5: 1.38 / 0.14 / 11.00
+# Azure OpenAI list rates (USD / 1M tokens):
+#   GPT-5.4-nano: 0.20 / 0.02 cached / 1.25
+#   GPT-5 (big tier placeholder): 1.38 / 0.14 / 11.00
 # Azure has no separate cache-write rate; write defaults to input rate.
 # ---------------------------------------------------------------------------
 
@@ -110,10 +110,10 @@ _COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
     },
     "azure": {
         "small": {
-            "input": 0.28,
-            "cached": 0.03,
-            "cache_write": 0.28,
-            "output": 2.20,
+            "input": 0.20,
+            "cached": 0.02,
+            "cache_write": 0.20,
+            "output": 1.25,
         },
         "big": {
             "input": 1.38,

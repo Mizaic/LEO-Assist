@@ -81,12 +81,12 @@ def _age_from_variant(variant: dict[str, Any]) -> float | None:
 
 
 def _ruleset_contains_rule(evaluator: Any, rule_id: str) -> bool:
-    """Return True when rule_id is in the evaluator's loaded active ruleset."""
-    try:
-        ruleset = evaluator._load_ruleset(None, None, None)
-    except Exception:
-        logger.warning("Could not load ruleset for rule %s", rule_id, exc_info=True)
-        return False
+    """Return True when rule_id is in the evaluator's loaded active ruleset.
+
+    Redis / store failures raise so callers can report
+    ``rule check unavailable`` instead of a false ``not compiled``.
+    """
+    ruleset = evaluator._load_ruleset(None, None, None)
     if not ruleset:
         return False
     target = str(rule_id).strip()
@@ -108,6 +108,7 @@ def evaluate_variant_against_rule(
     reason is one of:
       - "no recommendation attached"
       - "rule not currently compiled"
+      - "rule check unavailable"
       - "verified"
     """
     cleaned_rule = str(rule_id or "").strip()
@@ -116,6 +117,15 @@ def evaluate_variant_against_rule(
 
     try:
         evaluator = _make_evaluator()
+    except Exception:
+        logger.warning(
+            "evaluate_variant_against_rule: evaluator unavailable for %s",
+            cleaned_rule,
+            exc_info=True,
+        )
+        return None, "rule check unavailable"
+
+    try:
         if not _ruleset_contains_rule(evaluator, cleaned_rule):
             return None, "rule not currently compiled"
 
@@ -135,7 +145,7 @@ def evaluate_variant_against_rule(
             cleaned_rule,
             exc_info=True,
         )
-        return None, "rule not currently compiled"
+        return None, "rule check unavailable"
 
     matched = result.get("matched_rules") or []
     matched_ids = {

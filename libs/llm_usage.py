@@ -110,7 +110,7 @@ class LLMCostConfig:
     @classmethod
     def for_tier(cls, tier: str) -> LLMCostConfig:
         """Resolve cost rates for an explicit tier (small/big/max)."""
-        provider = os.getenv("PIPELINE_MODEL_PROVIDER", "aws").strip().lower()
+        provider = os.getenv("PIPELINE_MODEL_PROVIDER", "azure").strip().lower()
         tier_lc = (tier or "small").strip().lower()
         tier_up = tier_lc.upper()
         if provider == "azure":

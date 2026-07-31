@@ -87,7 +87,7 @@ def _try_haiku_rewrite(normalized_query: str) -> tuple[str, float | None, str | 
     if not _llm_rewrite_enabled():
         return normalized_query, None, None
     try:
-        client = create_llm(provider="aws", tier="small")
+        client = create_llm(tier="small")
         system = (
             "You rewrite clinical search queries for encounter retrieval. "
             "Return strict JSON with keys: rewritten_query, confidence, reasoning. "
@@ -250,7 +250,7 @@ def _expand_clinical_synonyms(normalized_query: str) -> tuple[list[str], str]:
     if not _clinical_synonyms_enabled():
         return [], "disabled"
     try:
-        client = create_llm(provider="aws", tier="small")
+        client = create_llm(tier="small")
         system = (
             "You generate clinical synonyms for a UK general-practice "
             "encounter search. You MUST call the "

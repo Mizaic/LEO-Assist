@@ -106,7 +106,7 @@ def get_pipeline_config(
         if not row:
             # Return env-var defaults if no config node exists yet
             return {
-                "provider": os.getenv("PIPELINE_MODEL_PROVIDER", "aws"),
+                "provider": os.getenv("PIPELINE_MODEL_PROVIDER", "azure"),
                 "tier": os.getenv("PIPELINE_MODEL_TIER", "small"),
                 "extractor_backend": os.getenv("CODING_EXTRACTOR_BACKEND", "llm"),
                 "strict": os.getenv("CODING_EXTRACTOR_STRICT", "false").lower()

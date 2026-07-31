@@ -95,7 +95,7 @@ def resolve_prompt_hashes(policy: dict[str, Any]) -> dict[str, str]:
 def resolve_model_config(policy: dict[str, Any]) -> dict[str, Any]:
     """Resolve immutable ModelConfig fields from the pinned provider/tier."""
     models = policy.get("models") or {}
-    provider = str(models.get("provider") or "aws").strip().lower()
+    provider = str(models.get("provider") or "azure").strip().lower()
     tier = str(models.get("tier") or "big").strip().lower()
     key = f"{provider}:{tier}"
     row: dict[str, Any] = {

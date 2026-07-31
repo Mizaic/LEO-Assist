@@ -364,11 +364,11 @@ def _classify_encounter_llm(
         f"Classify this encounter's relationship to the cancer referral pathway."
     )
 
-    model_a = create_llm(provider="aws", tier="small")
-    model_b = create_llm(provider="azure", tier="small")
+    model_a = create_llm(provider="azure", tier="small")
+    model_b = create_llm(provider="azure", tier="big")
 
-    result_a = _call_model(model_a, system_prompt, user_msg, "aws_small")
-    result_b = _call_model(model_b, system_prompt, user_msg, "azure_small")
+    result_a = _call_model(model_a, system_prompt, user_msg, "azure_small")
+    result_b = _call_model(model_b, system_prompt, user_msg, "azure_big")
 
     return result_a, result_b
 

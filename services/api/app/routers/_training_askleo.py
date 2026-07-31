@@ -197,7 +197,7 @@ def register_askleo_routes(router) -> None:
         )
         tier = body.tier if body.tier in ("small", "big", "max") else "small"
         try:
-            client = create_llm(provider="aws", tier=tier)
+            client = create_llm(tier=tier)
             response = client.converse(
                 system=system,
                 messages=[{"role": "user", "content": user_msg}],

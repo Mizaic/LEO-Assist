@@ -1029,7 +1029,7 @@ def _default_haiku_caller(
     from libs.llm_client.factory import create_llm
     from libs.llm_client.json_helper import _extract_json  # type: ignore[attr-defined]
 
-    client = create_llm(provider="aws", tier="small")
+    client = create_llm(tier="small")
     response = client.converse(
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],

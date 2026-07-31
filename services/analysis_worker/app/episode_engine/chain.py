@@ -619,7 +619,7 @@ def _node_writer(state: EngineState) -> dict[str, Any]:
 
 
 def _llm(tier: str) -> LLMClient:
-    return create_llm(provider="aws", tier=tier)
+    return create_llm(tier=tier)
 
 
 def _append_trace(state: EngineState, trace: StageTrace | None) -> list[dict]:

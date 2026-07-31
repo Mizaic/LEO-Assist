@@ -343,7 +343,7 @@ class LLMExtractor:
             from libs.llm_client.factory import create_llm
 
             return create_llm(
-                provider=None,  # reads PIPELINE_MODEL_PROVIDER env, defaults "aws"
+                provider=None,  # reads PIPELINE_MODEL_PROVIDER env, defaults "azure"
                 tier="small",  # Haiku for extraction — fast, low cost, structured task
             )
         except Exception as exc:

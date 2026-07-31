@@ -40,6 +40,9 @@ function triggerChip(variant: ScenarioVariant): {
   if (reason.includes("not currently compiled")) {
     return { label: "Rule not compiled yet", color: "default" };
   }
+  if (reason.includes("unavailable") || reason.includes("could not check")) {
+    return { label: "Could not check rule", color: "default" };
+  }
   if (reason.includes("no recommendation")) {
     return { label: "Freeform (no rule check)", color: "default" };
   }

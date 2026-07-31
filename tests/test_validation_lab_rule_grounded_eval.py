@@ -143,6 +143,35 @@ def test_non_matching_rule_returns_false() -> None:
     assert reason == "verified"
 
 
+def test_evaluator_import_failure_is_unavailable_not_uncompiled() -> None:
+    """Missing pyroaring (or other import errors) must not look like
+    'rule not compiled' -- the picker already showed the rule as compiled.
+    """
+    from libs.validation_lab.rule_grounded_eval import evaluate_variant_against_rule
+
+    with patch(
+        "libs.validation_lab.rule_grounded_eval._make_evaluator",
+        side_effect=ModuleNotFoundError("No module named 'pyroaring'"),
+    ):
+        trigger, reason = evaluate_variant_against_rule("R1", _variant())
+    assert trigger is None
+    assert reason == "rule check unavailable"
+
+
+def test_ruleset_load_failure_is_unavailable_not_uncompiled() -> None:
+    from libs.validation_lab.rule_grounded_eval import evaluate_variant_against_rule
+
+    evaluator = MagicMock()
+    evaluator._load_ruleset.side_effect = ConnectionError("redis down")
+    with patch(
+        "libs.validation_lab.rule_grounded_eval._make_evaluator",
+        return_value=evaluator,
+    ):
+        trigger, reason = evaluate_variant_against_rule("R1", _variant())
+    assert trigger is None
+    assert reason == "rule check unavailable"
+
+
 def test_observations_mapped_to_patient_observations() -> None:
     from libs.validation_lab.rule_grounded_eval import evaluate_variant_against_rule
 

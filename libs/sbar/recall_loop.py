@@ -134,7 +134,7 @@ async def run_recall_loop(
     run_id: str,
     system_prompt: str | None = None,
     patient_id: str = "",
-    provider: str = "aws",
+    provider: str = "azure",
     tier: str = "big",
     converse_fn: ConverseFn | None = None,
 ) -> RecallLoopResult:

@@ -127,7 +127,7 @@ def escalate_label(
 
     for tier in _TIERS[start_idx:]:
         try:
-            client = create_llm(provider="aws", tier=tier)
+            client = create_llm(tier=tier)
             response: LLMResponse = client.converse(
                 agent_task="escalate_label",
                 system=system_prompt,
@@ -287,7 +287,7 @@ def escalate_coding(
 
     for tier in _TIERS[start_idx:]:
         try:
-            client = create_llm(provider="aws", tier=tier)
+            client = create_llm(tier=tier)
             response: LLMResponse = client.converse(
                 agent_task="escalate_coding",
                 system=system_prompt,
@@ -484,7 +484,7 @@ def escalate_coding_from_candidates(
 
     resolved_tier = tier if tier in _TIERS else "small"
     try:
-        client = create_llm(provider="aws", tier=resolved_tier)
+        client = create_llm(tier=resolved_tier)
         response = client.converse(
             system=_CANDIDATES_SYSTEM,
             messages=[{"role": "user", "content": user_msg}],

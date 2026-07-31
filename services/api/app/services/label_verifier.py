@@ -1544,7 +1544,7 @@ def _re_extract_entities(text: str) -> list[dict[str, Any]] | None:
         f"Sentences:\n{json.dumps([{'sentence_id': s['sentence_id'], 'text': s['text']} for s in sentences], ensure_ascii=False)}"
     )
 
-    client = create_llm(provider="aws", tier="small")
+    client = create_llm(tier="small")
     for attempt in range(_LLM_RETRIES + 1):
         if _stop_requested():
             return None

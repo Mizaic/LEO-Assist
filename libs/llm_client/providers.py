@@ -79,7 +79,7 @@ def get_azure_model():
     """
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
-    deployment = os.getenv("AZURE_OPENAI_BIG_MODEL", "gpt-4o")
+    deployment = os.getenv("AZURE_OPENAI_BIG_MODEL", "gpt-5.4")
     api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
 
     if not endpoint or not api_key:
@@ -179,7 +179,7 @@ async def invoke_with_fallback(
     surfaces. Failures fire one tracking event per attempted provider
     with ``success=False`` and zero token counts.
     """
-    azure_model_name = f"azure-{os.getenv('AZURE_OPENAI_BIG_MODEL', 'gpt-4o')}"
+    azure_model_name = f"azure-{os.getenv('AZURE_OPENAI_BIG_MODEL', 'gpt-5.4')}"
     bedrock_model_name = _bedrock_model_id().split("/")[-1] or "bedrock"
 
     if _USE_AZURE_PRIMARY:

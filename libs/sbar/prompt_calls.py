@@ -742,7 +742,7 @@ async def call_recall(
         from libs.prompts.sbar_recall_v1 import SBAR_RECALL_SYSTEM_V1
 
         system = SBAR_RECALL_SYSTEM_V1
-    provider = "aws"
+    provider = "azure"
     tier = "big"
     if policy_runtime is not None:
         provider = str(getattr(policy_runtime, "model_provider", None) or provider)

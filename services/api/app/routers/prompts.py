@@ -75,7 +75,7 @@ class ImproveRequest(BaseModel):
 class SimulateRequest(BaseModel):
     encounterText: str
     presetId: str | None = None  # preferred — derives provider/tier from preset
-    provider: str = "aws"  # fallback if no presetId
+    provider: str = "azure"  # fallback if no presetId
     tier: str = "small"  # fallback if no presetId
     dryRun: bool = True  # False = actually call the LLM
 
@@ -115,9 +115,9 @@ _MODEL_ID_DEFAULTS: dict[str, dict[str, str]] = {
         "max": "eu.anthropic.claude-opus-4-6-v1",
     },
     "azure": {
-        "small": "gpt-5-mini",
-        "big": "gpt-5",
-        "max": "gpt-5",
+        "small": "gpt-5.4-nano",
+        "big": "gpt-5.4",
+        "max": "gpt-5.4",
     },
 }
 
@@ -128,9 +128,9 @@ _DISPLAY_NAMES: dict[str, dict[str, str]] = {
         "max": "Claude Opus (AWS Bedrock)",
     },
     "azure": {
-        "small": "GPT-5 mini (Azure OpenAI)",
-        "big": "GPT-5 (Azure OpenAI)",
-        "max": "GPT-5 (Azure OpenAI)",
+        "small": "GPT-5.4 nano (Azure OpenAI)",
+        "big": "GPT-5.4 (Azure OpenAI)",
+        "max": "GPT-5.4 (Azure OpenAI)",
     },
 }
 
@@ -476,7 +476,7 @@ def simulate_prompt(
     # ── Resolve models from preset or fallback ────────────────────────────
     preset_name: str = ""
     consensus_mode: bool = False
-    primary_key = f"{body.provider or 'aws'}:{body.tier or 'small'}"
+    primary_key = f"{body.provider or 'azure'}:{body.tier or 'small'}"
     secondary_key: str | None = None
 
     if body.presetId:
@@ -656,7 +656,7 @@ async def improve_prompt(
     try:
         from libs.llm_client.factory import create_llm
 
-        llm = create_llm(provider="aws", tier="max")
+        llm = create_llm(tier="max")
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",

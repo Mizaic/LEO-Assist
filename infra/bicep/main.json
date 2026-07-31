@@ -807,7 +807,7 @@
               },
               {
                 "name": "PIPELINE_MODEL_PROVIDER",
-                "value": "aws"
+                "value": "azure"
               },
               {
                 "name": "PIPELINE_MODEL_TIER",

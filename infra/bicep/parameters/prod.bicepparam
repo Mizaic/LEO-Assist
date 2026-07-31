@@ -15,9 +15,9 @@ param awsDefaultRegion = 'eu-west-2'
 
 // Azure OpenAI - shared account via deploy-openai.ps1; endpoint synced to bicepparam
 param azureOpenAiEndpoint = 'https://mizaic-cds-oai.openai.azure.com/'
-param azureOpenAiBigModel = 'gpt-5.2-chat'
-param azureOpenAiSmallModel = 'gpt-5-mini'
-param azureOpenAiApiVersion = '2024-12-01-preview'
+param azureOpenAiBigModel = 'gpt-5.4'
+param azureOpenAiSmallModel = 'gpt-5.4-nano'
+param azureOpenAiApiVersion = '2025-04-01-preview'
 
 // Coding extractor
 param codingExtractorBackend = 'auto'

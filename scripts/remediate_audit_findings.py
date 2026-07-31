@@ -1175,7 +1175,7 @@ def main() -> None:
 
     pg_client = PatientGraphClient()
     term_client = TerminologyClient(base_url=TERMINOLOGY_URL)
-    llm = None if args.skip_verification else create_llm(provider="aws", tier="big")
+    llm = None if args.skip_verification else create_llm(tier="big")
     if args.skip_verification:
         logger.warning(
             "skip-verification: second LLM pass disabled; audit proposals apply as-is"

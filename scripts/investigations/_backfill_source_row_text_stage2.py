@@ -134,7 +134,7 @@ def ask_llm_for_candidate(label: str, text: str) -> tuple[str | None, str, str]:
         }
     )
     try:
-        client = create_llm(provider="aws", tier="small")
+        client = create_llm(tier="small")
         response = client.converse(
             system=_SYSTEM,
             messages=[{"role": "user", "content": user_msg}],

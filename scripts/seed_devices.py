@@ -139,25 +139,25 @@ DEVICES: list[dict] = [
     # ----------------------------------------------------------------
     {
         "device_id": "device-azure-small",
-        "name": "GPT-5-mini (small)",
+        "name": "GPT-5.4-nano (small)",
         "provider": "Azure OpenAI",
         "device_type": "llm",
         "role": "small",
         "status": "active",
         "env_var": "AZURE_OPENAI_SMALL_MODEL",
-        "default_model_id": "gpt-5-mini",
+        "default_model_id": "gpt-5.4-nano",
         "endpoint_env_var": "AZURE_OPENAI_ENDPOINT",
         "notes": "Azure alternative for small-tier extraction.",
     },
     {
         "device_id": "device-azure-big",
-        "name": "GPT-5 (big)",
+        "name": "GPT-5.4 (big)",
         "provider": "Azure OpenAI",
         "device_type": "llm",
         "role": "big",
         "status": "active",
         "env_var": "AZURE_OPENAI_BIG_MODEL",
-        "default_model_id": "gpt-5",
+        "default_model_id": "gpt-5.4",
         "endpoint_env_var": "AZURE_OPENAI_ENDPOINT",
         "notes": "Azure alternative for big-tier and max-tier extraction.",
     },
@@ -183,7 +183,7 @@ DEVICES: list[dict] = [
 # These mirror the env vars PIPELINE_MODEL_PROVIDER / PIPELINE_MODEL_TIER /
 # CODING_EXTRACTOR_BACKEND so the UX can change them without a redeploy.
 PIPELINE_CONFIG = {
-    "provider": os.getenv("PIPELINE_MODEL_PROVIDER", "aws"),
+    "provider": os.getenv("PIPELINE_MODEL_PROVIDER", "azure"),
     "tier": os.getenv("PIPELINE_MODEL_TIER", "small"),
     "extractor_backend": os.getenv("CODING_EXTRACTOR_BACKEND", "llm"),
     "strict": os.getenv("CODING_EXTRACTOR_STRICT", "false").lower() == "true",

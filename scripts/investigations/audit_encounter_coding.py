@@ -366,7 +366,7 @@ def run_preflight(
         else ""
     )
     _print_volumes(client, since_date, until_date)
-    llm = create_llm(provider="aws", tier=tier)
+    llm = create_llm(tier=tier)
     _run_sample(
         client,
         llm,
@@ -666,7 +666,7 @@ def _audit_one(
         if _CODING_AGENT_ENABLED:
             result = _invoke_agent(tier, pid, eid, text, coded)
         else:
-            llm = create_llm(provider="aws", tier=tier)
+            llm = create_llm(tier=tier)
             result = call_llm_with_retry(llm, text, coded)
 
         if _check_cost_cap(result, cost_acc, eid, db):

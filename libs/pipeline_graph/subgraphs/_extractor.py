@@ -71,7 +71,7 @@ def _active_provider() -> str:
     """Return the active LLM provider name (``"aws"`` or ``"azure"``)."""
     import os
 
-    return os.getenv("PIPELINE_MODEL_PROVIDER", "aws")
+    return os.getenv("PIPELINE_MODEL_PROVIDER", "azure")
 
 
 def _guard_example_text(value: Any) -> str:
@@ -80,7 +80,7 @@ def _guard_example_text(value: Any) -> str:
     return guard_user_clinical_text(str(value or ""), max_chars=4_000)
 
 
-def _build_few_shot_block(examples: list[dict], provider: str = "aws") -> str:
+def _build_few_shot_block(examples: list[dict], provider: str = "azure") -> str:
     """Render a subset of the example library as a prompt section.
 
     Selects examples whose ``model_scope`` is ``"any"`` or matches *provider*.

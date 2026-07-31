@@ -129,7 +129,7 @@ def _call_haiku(
     """
     from libs.llm_client.factory import create_llm
 
-    client = create_llm(provider="aws", tier=tier)
+    client = create_llm(tier=tier)
     response = client.converse(
         system=system,
         messages=[{"role": "user", "content": user_msg}],

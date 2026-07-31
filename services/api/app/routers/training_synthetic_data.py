@@ -701,7 +701,7 @@ def generate_synthetic_candidates(
     ]
 
     validator = DeIdValidator()
-    llm = create_llm(provider="aws", tier="big")
+    llm = create_llm(tier="big")
     terminology = TerminologyClient()
 
     counts = {

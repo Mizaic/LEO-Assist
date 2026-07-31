@@ -84,6 +84,8 @@ describe("VT-C6B93AF0 - Validation Lab brainstorm drawer chrome", () => {
     expect(variantsStep).toMatch(/v\.tags/);
     expect(variantsStep).toMatch(/isControl/);
     expect(variantsStep).toMatch(/expectedTrigger/);
+    expect(variantsStep).toMatch(/Rule not compiled yet/);
+    expect(variantsStep).toMatch(/Could not check rule/);
     expect(variantsStep).toMatch(/Create \d+|Create N|Create \$\{/);
   });
 

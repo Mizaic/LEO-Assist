@@ -18,7 +18,7 @@ Usage::
 
     from libs.llm_client.factory import create_llm
 
-    client = create_llm(provider="aws", tier="small")
+    client = create_llm(tier="small")  # uses PIPELINE_MODEL_PROVIDER (default azure)
     response = client.converse(
         system="You are a clinical coder.",
         messages=[{"role": "user", "content": "Extract entities from: ..."}],
@@ -40,6 +40,22 @@ from typing import Any, Generator, TypedDict
 logger = logging.getLogger(__name__)
 _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS: set[str] = set()
 
+# Default provider when PIPELINE_MODEL_PROVIDER is unset.
+_DEFAULT_PIPELINE_PROVIDER = "azure"
+
+
+def default_llm_provider() -> str:
+    """Resolve the pipeline LLM provider (azure or aws).
+
+    Reads ``PIPELINE_MODEL_PROVIDER``; defaults to ``azure`` (GPT).
+    """
+    raw = (os.getenv("PIPELINE_MODEL_PROVIDER") or _DEFAULT_PIPELINE_PROVIDER).strip()
+    provider = raw.lower()
+    if provider in {"aws", "azure"}:
+        return provider
+    return _DEFAULT_PIPELINE_PROVIDER
+
+
 _TIER_ENV = {
     "aws": {
         "small": "AWS_SMALL_MODEL",
@@ -60,9 +76,9 @@ _AWS_DEFAULTS = {
 }
 
 _AZURE_DEFAULTS = {
-    "small": "gpt-5-mini",
-    "big": "gpt-5",
-    "max": "gpt-5",
+    "small": "gpt-5.4-nano",
+    "big": "gpt-5.4",
+    "max": "gpt-5.4",
 }
 
 
@@ -881,7 +897,8 @@ def create_llm(
     """Create an LLM client for the given provider and tier.
 
     Args:
-        provider: ``"aws"`` or ``"azure"``. Defaults to ``PIPELINE_MODEL_PROVIDER`` env var.
+        provider: ``"aws"`` or ``"azure"``. Defaults to ``PIPELINE_MODEL_PROVIDER``
+            (``azure`` / GPT when unset).
         tier: ``"small"``, ``"big"``, or ``"max"``.
         model_id: Explicit model ID (overrides tier lookup).
         region: AWS region (only for Bedrock).
@@ -902,7 +919,7 @@ def create_llm(
             Defaults to ``AZURE_REASONING_EFFORT`` env var (``"high"``).
     """
     if provider is None:
-        provider = os.getenv("PIPELINE_MODEL_PROVIDER", "aws")
+        provider = default_llm_provider()
 
     if model_id is None:
         env_key = _TIER_ENV.get(provider, {}).get(tier)

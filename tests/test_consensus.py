@@ -1,8 +1,8 @@
 """Tests for libs/llm_client/consensus.py.
 
-run_consensus defaults to a single Bedrock call (with parse-retry). When
-CONSENSUS_DUAL_MODEL=true it runs AWS + Azure small-tier in parallel and
-arbitrates disagreements with a big-tier AWS model.
+run_consensus defaults to a single Azure/GPT call (with parse-retry). When
+CONSENSUS_DUAL_MODEL=true it runs Azure small + Azure big in parallel and
+arbitrates disagreements with an Azure model at CONSENSUS_AWS_TIER.
 """
 
 from __future__ import annotations
@@ -30,9 +30,14 @@ def _simple_parse(text: str) -> str:
 
 
 class TestRunConsensusSuccess:
+    @patch.dict(
+        "os.environ",
+        {"PIPELINE_MODEL_PROVIDER": "azure", "CONSENSUS_DUAL_MODEL": "false"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
     def test_returns_parsed_verdict(self, mock_call):
-        mock_call.return_value = _make_response("YES", "haiku-v1")
+        mock_call.return_value = _make_response("YES", "gpt-5.4-nano")
         result = run_consensus(
             system_prompt="s",
             user_msg="m",
@@ -44,7 +49,7 @@ class TestRunConsensusSuccess:
         assert result.agreed is True
         assert result.azure_verdict == ""
         assert result.arbitrator_verdict == ""
-        assert "haiku-v1" in result.model_ids
+        assert "gpt-5.4-nano" in result.model_ids
         assert mock_call.call_count == 1
 
     @patch("libs.llm_client.consensus._call_provider")
@@ -61,6 +66,11 @@ class TestRunConsensusSuccess:
 
 
 class TestParseRetry:
+    @patch.dict(
+        "os.environ",
+        {"PIPELINE_MODEL_PROVIDER": "azure", "CONSENSUS_DUAL_MODEL": "false"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
     def test_empty_parse_triggers_second_call(self, mock_call):
         mock_call.side_effect = [
@@ -80,6 +90,11 @@ class TestParseRetry:
         assert result.verdict == "correct"
         assert mock_call.call_count == 2
 
+    @patch.dict(
+        "os.environ",
+        {"PIPELINE_MODEL_PROVIDER": "azure", "CONSENSUS_DUAL_MODEL": "false"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
     def test_parse_retry_logs_warning(self, mock_call, caplog):
         mock_call.side_effect = [
@@ -101,9 +116,14 @@ class TestParseRetry:
 
 
 class TestRunConsensusFailure:
+    @patch.dict(
+        "os.environ",
+        {"PIPELINE_MODEL_PROVIDER": "azure", "CONSENSUS_DUAL_MODEL": "false"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
     def test_provider_exception_returns_fail_verdict(self, mock_call):
-        mock_call.side_effect = RuntimeError("bedrock down")
+        mock_call.side_effect = RuntimeError("azure down")
         result = run_consensus(
             system_prompt="s",
             user_msg="m",
@@ -114,6 +134,11 @@ class TestRunConsensusFailure:
         assert result.agreed is False
         assert "call/parse failed" in result.reason
 
+    @patch.dict(
+        "os.environ",
+        {"PIPELINE_MODEL_PROVIDER": "azure", "CONSENSUS_DUAL_MODEL": "false"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
     def test_unparseable_after_retry_returns_fail_verdict(self, mock_call):
         mock_call.side_effect = [
@@ -142,7 +167,7 @@ class TestConsensusResultDefaults:
 
 
 class TestDualModelConsensus:
-    """CONSENSUS_DUAL_MODEL=true runs AWS+Azure small, arbitrates with big."""
+    """CONSENSUS_DUAL_MODEL=true runs Azure small+big, arbitrates on Azure."""
 
     @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "true"}, clear=False)
     @patch("libs.llm_client.consensus._call_provider")
@@ -166,17 +191,19 @@ class TestDualModelConsensus:
 
     @patch.dict(
         "os.environ",
-        {"CONSENSUS_DUAL_MODEL": "true", "CONSENSUS_AWS_TIER": "big"},
+        {"CONSENSUS_DUAL_MODEL": "true", "CONSENSUS_AWS_TIER": "max"},
         clear=False,
     )
     @patch("libs.llm_client.consensus._call_provider")
     def test_disagreement_triggers_arbitrator(self, mock_call):
         def route(provider, tier, *_args, **_kwargs):
-            if tier == "small" and provider == "aws":
-                return _make_response("yes", "aws-small")
-            if tier == "small" and provider == "azure":
-                return _make_response("no", "az-small")
-            return _make_response("yes", "aws-big")
+            if provider == "azure" and tier == "small":
+                return _make_response("yes", "azure-small")
+            if provider == "azure" and tier == "big":
+                return _make_response("no", "azure-big")
+            if provider == "azure" and tier == "max":
+                return _make_response("yes", "azure-arb")
+            return _make_response("yes", f"{provider}-{tier}")
 
         mock_call.side_effect = route
         result = run_consensus(
@@ -188,18 +215,24 @@ class TestDualModelConsensus:
         assert result.verdict == "yes"
         assert result.agreed is False
         assert result.arbitrator_verdict == "yes"
-        assert result.arbitrator_model_id == "aws-big"
+        assert result.arbitrator_model_id == "azure-arb"
         assert mock_call.call_count == 3
 
-    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "true"}, clear=False)
+    @patch.dict(
+        "os.environ",
+        {"CONSENSUS_DUAL_MODEL": "true", "CONSENSUS_AWS_TIER": "max"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
     def test_single_provider_failure_promotes_arbitrator(self, mock_call):
         def route(provider, tier, *_args, **_kwargs):
-            if tier == "small" and provider == "azure":
-                raise RuntimeError("azure down")
-            if tier == "small" and provider == "aws":
-                return _make_response("yes", "aws-small")
-            return _make_response("yes", "aws-big")
+            if provider == "azure" and tier == "big":
+                raise RuntimeError("azure big down")
+            if provider == "azure" and tier == "small":
+                return _make_response("yes", "azure-small")
+            if provider == "azure" and tier == "max":
+                return _make_response("yes", "azure-arb")
+            return _make_response("yes", f"{provider}-{tier}")
 
         mock_call.side_effect = route
         result = run_consensus(
@@ -227,10 +260,14 @@ class TestDualModelConsensus:
 
 
 class TestSingleModelIsDefault:
-    @patch.dict("os.environ", {"CONSENSUS_DUAL_MODEL": "false"}, clear=False)
+    @patch.dict(
+        "os.environ",
+        {"CONSENSUS_DUAL_MODEL": "false", "PIPELINE_MODEL_PROVIDER": "azure"},
+        clear=False,
+    )
     @patch("libs.llm_client.consensus._call_provider")
-    def test_no_azure_call_in_default_mode(self, mock_call):
-        mock_call.return_value = _make_response("yes", "aws-big")
+    def test_default_provider_is_azure(self, mock_call):
+        mock_call.return_value = _make_response("yes", "gpt-5.4-nano")
         run_consensus(
             system_prompt="s",
             user_msg="m",
@@ -238,7 +275,7 @@ class TestSingleModelIsDefault:
             fail_verdict="fail",
         )
         assert mock_call.call_count == 1
-        assert mock_call.call_args[0][0] == "aws"
+        assert mock_call.call_args[0][0] == "azure"
 
     @patch.dict(
         "os.environ",
@@ -247,12 +284,13 @@ class TestSingleModelIsDefault:
             "PIPELINE_CONSENSUS_MODE": "false",
             "CONSENSUS_AWS_TIER": "",
             "PIPELINE_MODEL_TIER": "small",
+            "PIPELINE_MODEL_PROVIDER": "azure",
         },
         clear=False,
     )
     @patch("libs.llm_client.consensus._call_provider")
-    def test_default_tier_is_small_haiku(self, mock_call):
-        mock_call.return_value = _make_response("yes", "haiku")
+    def test_default_tier_is_small(self, mock_call):
+        mock_call.return_value = _make_response("yes", "nano")
         run_consensus(
             system_prompt="s",
             user_msg="m",

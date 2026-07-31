@@ -120,7 +120,7 @@ def expand_topic_terms(
     user_msg = json.dumps({"phrase": cleaned})
     resolved_tier = tier if tier in ("small", "big", "max") else "small"
     try:
-        client = create_llm(provider="aws", tier=resolved_tier)
+        client = create_llm(tier=resolved_tier)
         response = client.converse(
             system=_SYSTEM,
             messages=[{"role": "user", "content": user_msg}],
