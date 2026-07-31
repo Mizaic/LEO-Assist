@@ -227,7 +227,7 @@ export default function AuthConfig() {
               Warn before logging out (idle timeout)
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-              If someone does not move their mouse or type for this long, show them a warning. Set to 0 to turn this off.
+              If someone does not use the app for this long, warn them and end the server session. Set to 0 to turn idle expiry off.
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <TextField

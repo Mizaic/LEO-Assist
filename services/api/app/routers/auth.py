@@ -547,8 +547,10 @@ def callback(
             "is_platform_admin": is_admin,
             "organizations": organizations,
             "idle_timeout_minutes": idle_mins,
+            "session_ttl_seconds": session_ttl_secs,
             "roles": resolved_roles,
             "entra_tenant_id": tid,
+            "last_activity": time.time(),
         },
         ttl_seconds=session_ttl_secs,
     )

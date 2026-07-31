@@ -442,6 +442,29 @@ export const DIALOG_CHROME = {
 } as const;
 
 /**
+ * Mid-edit Neo4j draft progress (DI-D52E923B / DO-BED08F09).
+ * Save progress keeps unfinished work without publishing a new rule.
+ */
+export const DRAFT_PROGRESS_COPY = {
+  saveProgressLabel: "Save progress",
+  saveProgressTooltip:
+    "Save your work so far. This does not update the live rule. Use Save on the last step when you are finished.",
+  saveProgressAria: "Save progress without publishing the rule",
+  savingLabel: "Saving progress...",
+  savedLabel: "Progress saved",
+  resumeAria: "Saved draft available",
+  resumeLead: "You have saved progress on this rule.",
+  resumeWhenPrefix: "Last saved",
+  resumeLabel: "Resume",
+  discardLabel: "Discard draft",
+  closeConfirmTitle: "Leave without saving progress?",
+  closeConfirmBody:
+    "Your changes are not saved yet. Save progress to keep them, or leave and lose this work.",
+  closeConfirmLeave: "Leave",
+  closeConfirmStay: "Stay",
+} as const;
+
+/**
  * Centralised duplicate-symptom-set alert copy (Phase 7c).
  *
  * Phase 1 wrote this inline in ``Step1Who``. Lifting it here keeps

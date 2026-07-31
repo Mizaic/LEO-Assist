@@ -24,6 +24,7 @@ import {
 } from "react";
 
 import { setAuthReauthPolicy } from "@/lib/authReauthPolicy";
+import { useSessionKeepalive } from "@/lib/useSessionKeepalive";
 
 function resolveApiBase(): string {
   if (typeof window !== "undefined") return window.location.origin;
@@ -159,6 +160,12 @@ export function AuthProvider({
   useEffect(() => {
     fetchSession();
   }, [fetchSession]);
+
+  // Slide server idle while the tab is visible (DI-8A96990F).
+  useSessionKeepalive(
+    status === "authenticated",
+    session?.idleTimeoutMinutes ?? 0,
+  )
 
   const signIn = useCallback(() => {
     const currentPath = typeof window !== "undefined" ? window.location.pathname : "";

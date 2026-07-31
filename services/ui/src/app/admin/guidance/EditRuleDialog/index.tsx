@@ -4,6 +4,7 @@
  * Atlas trace:
  *   DI: DI-42246DA7
  *   DO: DO-F8C56339
+ *   Also: DI-D52E923B / DO-BED08F09 (rule edit draft progress)
  *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 "use client";
@@ -75,6 +76,7 @@ import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { useMotion } from "@leo/design-system";
 
 import CoachTour from "@/components/ui/CoachTour";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 import {
   EDIT_RULE_TOUR_STEPS,
@@ -85,6 +87,7 @@ import ConceptCoachPopover from "./ConceptCoachPopover";
 import ConceptSearchPanel from "./ConceptSearchPanel";
 import ConceptSynonymDialog from "./ConceptSynonymDialog";
 import ChipSearchPopover from "./ChipSearchPopover";
+import DraftResumeBanner from "./DraftResumeBanner";
 import HorizontalStepper from "./HorizontalStepper";
 import GuidelineQuotePanel from "./GuidelineQuotePanel";
 import type { WizardJumpRequest } from "./HighlightWizard";
@@ -96,6 +99,8 @@ import {
   type NavSlot,
   type WizardNavTarget,
 } from "./navSlots";
+import type { RuleEditDraft } from "./ruleEditDraftApi";
+import { useRuleEditDraft } from "./useRuleEditDraft";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -108,6 +113,7 @@ import Step4Save from "./steps/Step4Save";
 import ValidationIssueBanner from "./ValidationIssueBanner";
 import {
   DIALOG_CHROME,
+  DRAFT_PROGRESS_COPY,
   GROUP_KIND_SHORT,
   friendlyTerm,
   type StepId,
@@ -471,6 +477,180 @@ export default function EditRuleDialog({
   const [stepDirection, setStepDirection] = useState<1 | -1>(1);
   const prevStepIndexRef = useRef(0);
   const { reducedMotion } = useMotion();
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+
+  const isDirty = useMemo(() => {
+    if (!rule || !tree || !originalTree) return false;
+    if (actionsDirty) return true;
+    if (name.trim() !== (rule.name ?? "").trim()) return true;
+    if (reason.trim().length > 0) return true;
+    if (priority !== originalPriority) return true;
+    if (dueDays !== originalDueDays) return true;
+    if (isDefault !== (rule.is_default ?? false)) return true;
+    try {
+      return (
+        JSON.stringify(stripNodeIds(tree)) !==
+        JSON.stringify(stripNodeIds(originalTree))
+      );
+    } catch {
+      return true;
+    }
+  }, [
+    rule,
+    tree,
+    originalTree,
+    actionsDirty,
+    name,
+    reason,
+    priority,
+    originalPriority,
+    dueDays,
+    originalDueDays,
+    isDefault,
+  ]);
+
+  const buildDraftSnapshot = useCallback(() => {
+    if (!tree) return null;
+    return {
+      name: name.trim(),
+      reason: reason.trim(),
+      logic_tree: stripNodeIds(tree),
+      actions: actionsDirty ? sanitiseActionsForSave(actions) : null,
+      priority,
+      due_days: priority === "routine" ? null : dueDays,
+      is_default: isDefault,
+      wizard_state: {
+        currentStepId,
+        wizardPhase,
+        situationCount,
+        reachedCheck,
+        actionsDirty,
+      },
+    };
+  }, [
+    tree,
+    name,
+    reason,
+    actionsDirty,
+    actions,
+    priority,
+    dueDays,
+    isDefault,
+    currentStepId,
+    wizardPhase,
+    situationCount,
+    reachedCheck,
+  ]);
+
+  const {
+    pendingDraft,
+    draftStatus,
+    draftError,
+    lastSavedAt,
+    saveProgress,
+    discardPending,
+    clearPendingBanner,
+  } = useRuleEditDraft({
+    ruleId: rule?.rule_id ?? null,
+    open,
+    dirty: isDirty,
+    buildSnapshot: buildDraftSnapshot,
+  });
+
+  const applyDraft = useCallback(
+    (draft: RuleEditDraft) => {
+      const initialTree = ensurePathwayKeys(
+        liftSharedPathwayDemographics(
+          wrapRootInAnd(
+            draft.logic_tree && typeof draft.logic_tree === "object"
+              ? assignNodeIds(draft.logic_tree as EditableLogicNode)
+              : assignNodeIds({ kind: "AND", children: [] }),
+          ),
+        ),
+      );
+      setTree(initialTree);
+      setName(draft.name ?? "");
+      setReason(draft.reason ?? "");
+      if (draft.actions && Array.isArray(draft.actions)) {
+        const nextActions = normalizeRuleActions(draft.actions as unknown[]);
+        if (nextActions && nextActions.length > 0) {
+          setActions(nextActions);
+          setActionsDirty(Boolean(draft.wizard_state?.actionsDirty));
+        }
+      }
+      const rawPriority = (draft.priority || "").toLowerCase();
+      if (
+        rawPriority === "immediate" ||
+        rawPriority === "very_urgent" ||
+        rawPriority === "2ww" ||
+        rawPriority === "urgent" ||
+        rawPriority === "routine"
+      ) {
+        setPriority(rawPriority);
+        setDueDays(
+          rawPriority === "routine"
+            ? null
+            : draft.due_days == null
+              ? null
+              : Number(draft.due_days),
+        );
+      }
+      if (typeof draft.is_default === "boolean") {
+        setIsDefault(draft.is_default);
+      }
+      const ws = draft.wizard_state || {};
+      const step = ws.currentStepId;
+      if (step === "who" || step === "suggest" || step === "save") {
+        setCurrentStepId(step);
+      }
+      const phase = ws.wizardPhase;
+      if (
+        phase === "prerequisites" ||
+        phase === "pathway-split" ||
+        phase === "pathway-conditions" ||
+        phase === "review"
+      ) {
+        setWizardPhase(phase);
+        if (phase === "review") setReachedCheck(true);
+        if (step === "who" || !step) {
+          navGotoSeq.current += 1;
+          const target: WizardNavTarget =
+            phase === "pathway-conditions"
+              ? { step: "pathway-conditions", pathwayIndex: 0 }
+              : { step: phase };
+          setNavGotoRequest({
+            requestId: navGotoSeq.current,
+            target,
+          });
+        }
+      }
+      if (typeof ws.situationCount === "number" && ws.situationCount > 0) {
+        setSituationCount(ws.situationCount);
+      }
+      if (ws.reachedCheck) setReachedCheck(true);
+      clearPendingBanner();
+    },
+    [clearPendingBanner],
+  );
+
+  const requestClose = useCallback(() => {
+    if (saving) return;
+    if (isDirty) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    onClose();
+  }, [saving, isDirty, onClose]);
+
+  useEffect(() => {
+    if (!open || !isDirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [open, isDirty]);
 
   useEffect(() => {
     if (!rule) return;
@@ -1044,7 +1224,7 @@ export default function EditRuleDialog({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={requestClose}
       fullWidth
       fullScreen={fullscreen}
       maxWidth="xl"
@@ -1157,12 +1337,12 @@ export default function EditRuleDialog({
               )}
             </IconButton>
           </Tooltip>
-          <Tooltip title="Close and discard unsaved changes.">
+          <Tooltip title="Close the rule editor.">
             <span>
               <IconButton
-                onClick={onClose}
+                onClick={requestClose}
                 size="small"
-                aria-label="Close without saving"
+                aria-label={DIALOG_CHROME.closeAria}
                 disabled={saving}
                 sx={{ color: "text.secondary" }}
               >
@@ -1189,6 +1369,23 @@ export default function EditRuleDialog({
           overflow: "hidden",
         }}
       >
+        {pendingDraft ? (
+          <Box sx={{ px: 3, pt: 2, flexShrink: 0 }}>
+            <DraftResumeBanner
+              updatedAt={pendingDraft.updated_at}
+              saving={draftStatus === "saving"}
+              onResume={() => applyDraft(pendingDraft)}
+              onDiscard={() => {
+                void discardPending();
+              }}
+            />
+          </Box>
+        ) : null}
+        {draftError ? (
+          <Alert severity="warning" role="status" sx={{ mx: 3, mt: 1, flexShrink: 0 }}>
+            {draftError}
+          </Alert>
+        ) : null}
         <Box
           sx={{
             display: "flex",
@@ -1445,8 +1642,25 @@ export default function EditRuleDialog({
       >
         <Tooltip title="Close without saving.">
           <span>
-            <Button onClick={onClose} disabled={saving}>
+            <Button onClick={requestClose} disabled={saving}>
               Cancel
+            </Button>
+          </span>
+        </Tooltip>
+        <Tooltip title={DRAFT_PROGRESS_COPY.saveProgressTooltip}>
+          <span>
+            <Button
+              onClick={() => {
+                void saveProgress();
+              }}
+              disabled={saving || !tree || draftStatus === "saving" || !isDirty}
+              aria-label={DRAFT_PROGRESS_COPY.saveProgressAria}
+            >
+              {draftStatus === "saving"
+                ? DRAFT_PROGRESS_COPY.savingLabel
+                : draftStatus === "saved" && lastSavedAt
+                  ? DRAFT_PROGRESS_COPY.savedLabel
+                  : DRAFT_PROGRESS_COPY.saveProgressLabel}
             </Button>
           </span>
         </Tooltip>
@@ -1539,6 +1753,20 @@ export default function EditRuleDialog({
             : undefined
         }
       />
+      {confirmCloseOpen ? (
+        <ConfirmDialog
+          title={DRAFT_PROGRESS_COPY.closeConfirmTitle}
+          body={DRAFT_PROGRESS_COPY.closeConfirmBody}
+          confirmLabel={DRAFT_PROGRESS_COPY.closeConfirmLeave}
+          cancelLabel={DRAFT_PROGRESS_COPY.closeConfirmStay}
+          variant="danger"
+          onConfirm={() => {
+            setConfirmCloseOpen(false);
+            onClose();
+          }}
+          onCancel={() => setConfirmCloseOpen(false)}
+        />
+      ) : null}
     </Dialog>
   );
 }

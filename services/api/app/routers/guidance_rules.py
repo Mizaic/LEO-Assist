@@ -12,6 +12,7 @@ Provides:
   GET  /guidance/rules/review                             -- list pending rules
   GET  /guidance/rules/review/{rule_id}                   -- rule detail
   POST /guidance/rules/review/{rule_id}/decision          -- approve / edit / reject
+  GET/PUT/DELETE /guidance/rules/review/{rule_id}/draft   -- mid-edit RuleEditDraft (DI-D52E923B)
   POST /guidance/rules/review/{rule_id}/promote-to-domain -- add SNOMED to NICE domain
   POST /guidance/rules/review/approve-all                 -- bulk approve
 
@@ -34,6 +35,13 @@ from pydantic import BaseModel, Field
 
 from app.db.neo4j_client import CodingGraphClient
 from app.deps import require_admin
+from app.services.guidance_rule_draft import (
+    RuleEditDraftPayload,
+    clear_rule_edit_drafts,
+    delete_rule_edit_draft,
+    get_rule_edit_draft,
+    upsert_rule_edit_draft,
+)
 from app.services.guidance_rule_edit import (
     EditNotApplicable,
     LogicTreeValidationError,
@@ -396,8 +404,25 @@ class RuleDecisionRequest(BaseModel):
     updates: RuleUpdates | None = None
 
 
+class RuleEditDraftRequest(RuleEditDraftPayload):
+    """PUT body for mid-wizard progress save (DI-D52E923B)."""
+
+    reviewer: str = Field(min_length=2)
+
+
 def _kg_client() -> CodingGraphClient:
     return CodingGraphClient()
+
+
+def _resolve_draft_reviewer(scope: CallerScope, reviewer: str | None) -> str:
+    """Prefer explicit reviewer; fall back to the authenticated session email."""
+    candidate = (reviewer or "").strip() or (scope.email or "").strip()
+    if len(candidate) < 2:
+        raise HTTPException(
+            status_code=422,
+            detail="Reviewer identity is required to save or load a draft.",
+        )
+    return candidate[:200]
 
 
 _FETCH_SINGLE_RECOMMENDATION = """
@@ -1166,11 +1191,81 @@ def _decide_rule_with_edits(rule_id: str, body: RuleDecisionRequest) -> dict:
             raise HTTPException(status_code=422, detail=str(exc))
         except EditNotApplicable as exc:
             raise HTTPException(status_code=409, detail=str(exc))
+        # Final Save published a new version -- drop any mid-edit drafts
+        # for the predecessor so reopen does not restore stale work.
+        try:
+            clear_rule_edit_drafts(client, rule_id=rule_id)
+        except Exception:
+            logger.warning(
+                "Failed to clear RuleEditDraft after edit of %s",
+                rule_id,
+                exc_info=True,
+            )
         return {
             "rule_id": result["rule_id"],
             "predecessor_id": result["predecessor_id"],
             "status": "active",
         }
+    finally:
+        client.close()
+
+
+@router.get("/rules/review/{rule_id}/draft")
+def get_edit_draft(
+    rule_id: str,
+    reviewer: str | None = Query(None, min_length=2),
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Return the caller's in-progress RuleEditDraft, if any (DI-D52E923B)."""
+    resolved = _resolve_draft_reviewer(scope, reviewer)
+    client = _kg_client()
+    try:
+        draft = get_rule_edit_draft(client, rule_id=rule_id, reviewer=resolved)
+        if draft is None:
+            return {"draft": None}
+        return {"draft": draft}
+    finally:
+        client.close()
+
+
+@router.put("/rules/review/{rule_id}/draft")
+def put_edit_draft(
+    rule_id: str,
+    body: RuleEditDraftRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Upsert mid-wizard progress without activating the live rule."""
+    resolved = _resolve_draft_reviewer(scope, body.reviewer)
+    client = _kg_client()
+    try:
+        try:
+            result = upsert_rule_edit_draft(
+                client,
+                rule_id=rule_id,
+                reviewer=resolved,
+                payload=body,
+            )
+        except LookupError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        return result
+    finally:
+        client.close()
+
+
+@router.delete("/rules/review/{rule_id}/draft")
+def discard_edit_draft(
+    rule_id: str,
+    reviewer: str | None = Query(None, min_length=2),
+    scope: CallerScope = Depends(require_admin),
+) -> dict:
+    """Discard the caller's RuleEditDraft for this rule."""
+    resolved = _resolve_draft_reviewer(scope, reviewer)
+    client = _kg_client()
+    try:
+        deleted = delete_rule_edit_draft(client, rule_id=rule_id, reviewer=resolved)
+        return {"deleted": deleted}
     finally:
         client.close()
 

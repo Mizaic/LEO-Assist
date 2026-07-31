@@ -36,7 +36,15 @@ sys.modules.setdefault(
 )
 sys.modules.setdefault(
     "app.services.session_store",
-    MagicMock(COOKIE_NAME="leo_session", load_session=MagicMock()),
+    MagicMock(
+        COOKIE_NAME="leo_session",
+        load_session=MagicMock(
+            return_value={"email": "user@example.com", "idle_timeout_minutes": 30}
+        ),
+        touch_session=MagicMock(
+            return_value={"email": "user@example.com", "idle_timeout_minutes": 30}
+        ),
+    ),
 )
 
 

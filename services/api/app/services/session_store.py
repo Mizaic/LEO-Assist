@@ -198,29 +198,38 @@ def delete_session(session_id: str) -> None:
             _redis_op(r.delete, _legacy_session_key(session_id))
 
 
-def touch_session(session_id: str, idle_timeout_minutes: int = 30) -> bool:
+def touch_session(
+    session_id: str, idle_timeout_minutes: int = 30
+) -> dict[str, Any] | None:
     """Enforce idle timeout and refresh the last-activity timestamp.
 
     Loads the session, checks whether it has been idle longer than
-    *idle_timeout_minutes*, deletes it if so (returning False), otherwise
-    updates ``last_activity`` and re-saves with the original TTL (returning
-    True).
+    *idle_timeout_minutes*, deletes it if so (returning None), otherwise
+    updates ``last_activity`` and re-saves with the session TTL (returning
+    the updated payload).
 
-    Returns False if the session does not exist or has exceeded the idle limit.
+    ``idle_timeout_minutes <= 0`` disables idle expiry (tenant Auth Config
+    "Off"). Absolute Redis TTL still applies.
+
+    Returns None if the session does not exist or has exceeded the idle limit.
     """
     data = load_session(session_id)
     if not data:
-        return False
-    last_activity = data.get("last_activity")
+        return None
     now = time.time()
-    if last_activity is not None:
-        idle_seconds = now - float(last_activity)
-        if idle_seconds > idle_timeout_minutes * 60:
-            delete_session(session_id)
-            return False
+    if idle_timeout_minutes > 0:
+        last_activity = data.get("last_activity")
+        if last_activity is not None:
+            idle_seconds = now - float(last_activity)
+            if idle_seconds > idle_timeout_minutes * 60:
+                delete_session(session_id)
+                return None
     data["last_activity"] = now
-    save_session(session_id, data, ttl_seconds=SESSION_TTL)
-    return True
+    ttl_seconds = int(data.get("session_ttl_seconds") or SESSION_TTL)
+    if ttl_seconds <= 0:
+        ttl_seconds = SESSION_TTL
+    save_session(session_id, data, ttl_seconds=ttl_seconds)
+    return data
 
 
 def list_all_sessions() -> list[dict[str, Any]]:

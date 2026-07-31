@@ -17,7 +17,7 @@ from fastapi import Cookie, Depends, HTTPException, Request
 from libs.audit.security_log import emit_authz_denied
 from libs.auth.org_scope import CallerScope, ScopeType, resolve_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
-from app.services.session_store import COOKIE_NAME, load_session
+from app.services.session_store import COOKIE_NAME, load_session, touch_session
 
 SERVICE_ACCOUNT_EMAIL = "service-account@leo.local"
 
@@ -29,7 +29,13 @@ _PERMITTED_CHILD_TYPES: dict[str | None, list[str]] = {
     "pcn": ["gp"],
     "gp": [],
     "service_provider": [],
-    None: ["alliance", "icb", "pcn", "gp", "service_provider"],  # platform admin: unrestricted
+    None: [
+        "alliance",
+        "icb",
+        "pcn",
+        "gp",
+        "service_provider",
+    ],  # platform admin: unrestricted
 }
 
 
@@ -41,13 +47,21 @@ def permitted_child_types(scope_type: ScopeType | None) -> list[str]:
 def get_session_data(
     leo_session: Annotated[str | None, Cookie(alias=COOKIE_NAME)] = None,
 ) -> dict:
-    """Dependency that returns session data or raises 401."""
+    """Dependency that returns session data or raises 401.
+
+    Slides the idle timer on every authenticated API call so long editor
+    sessions that hit feature APIs stay alive (DI-8A96990F).
+    """
     if not leo_session:
         raise HTTPException(status_code=401, detail="Not authenticated")
     data = load_session(leo_session)
     if not data:
         raise HTTPException(status_code=401, detail="Session expired")
-    return data
+    idle = int(data.get("idle_timeout_minutes") or 0)
+    refreshed = touch_session(leo_session, idle_timeout_minutes=idle)
+    if not refreshed:
+        raise HTTPException(status_code=401, detail="Session expired")
+    return refreshed
 
 
 def get_access_token(session_data: dict = Depends(get_session_data)) -> str:
@@ -174,6 +188,10 @@ def require_admin_or_service(
     if not leo_session:
         raise HTTPException(status_code=401, detail="Not authenticated")
     data = load_session(leo_session)
+    if not data:
+        raise HTTPException(status_code=401, detail="Session expired")
+    idle = int(data.get("idle_timeout_minutes") or 0)
+    data = touch_session(leo_session, idle_timeout_minutes=idle)
     if not data:
         raise HTTPException(status_code=401, detail="Session expired")
     caller_email = (data.get("email") or "").strip().lower()

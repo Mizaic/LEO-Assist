@@ -27,6 +27,9 @@ sys.modules.setdefault(
         delete_session=MagicMock(),
         load_session=MagicMock(return_value=None),
         save_session=MagicMock(),
+        touch_session=MagicMock(
+            return_value={"email": "user@example.com", "idle_timeout_minutes": 30}
+        ),
     ),
 )
 

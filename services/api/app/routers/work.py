@@ -18,7 +18,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.db.neo4j_client import PatientGraphClient
-from app.services.session_store import COOKIE_NAME, load_session
+from app.services.session_store import COOKIE_NAME, load_session, touch_session
 from libs.work.queue import (
     VALID_SOURCES,
     WorkTaskFilters,
@@ -38,7 +38,11 @@ def _require_authed_session(request: Request) -> dict[str, Any]:
     data = load_session(session_id)
     if not data:
         raise HTTPException(status_code=401, detail="session_expired")
-    return data
+    idle = int(data.get("idle_timeout_minutes") or 0)
+    refreshed = touch_session(session_id, idle_timeout_minutes=idle)
+    if not refreshed:
+        raise HTTPException(status_code=401, detail="session_expired")
+    return refreshed
 
 
 def _get_client() -> PatientGraphClient:

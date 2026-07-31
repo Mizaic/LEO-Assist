@@ -43,9 +43,7 @@ def test_service_auth_bearer_with_correct_secret_returns_service_account(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("SERVICE_AUTH_SECRET", "correct-secret")
-    resp = client.get(
-        "/protected", headers={"Authorization": "Bearer correct-secret"}
-    )
+    resp = client.get("/protected", headers={"Authorization": "Bearer correct-secret"})
     assert resp.status_code == 200
     body = resp.json()
     assert body["email"] == SERVICE_ACCOUNT_EMAIL
@@ -56,9 +54,7 @@ def test_service_auth_bearer_with_wrong_secret_returns_401(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("SERVICE_AUTH_SECRET", "correct-secret")
-    resp = client.get(
-        "/protected", headers={"Authorization": "Bearer wrong-secret"}
-    )
+    resp = client.get("/protected", headers={"Authorization": "Bearer wrong-secret"})
     assert resp.status_code == 401
     assert "Invalid service auth token" in resp.json()["detail"]
 
@@ -70,9 +66,7 @@ def test_bearer_header_ignored_when_secret_unset_falls_back_to_session(
     and the request must still produce a session cookie. Without one it is
     rejected -- the dev bypass is not used by this dependency."""
     monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
-    resp = client.get(
-        "/protected", headers={"Authorization": "Bearer anything"}
-    )
+    resp = client.get("/protected", headers={"Authorization": "Bearer anything"})
     assert resp.status_code == 401
     assert resp.json()["detail"] == "Not authenticated"
 
@@ -88,7 +82,10 @@ def test_session_cookie_admin_returns_admin_scope(
         "email": "admin@nhs.example",
         "is_platform_admin": True,
     }
-    with patch("app.deps.load_session", return_value=fake_session):
+    with (
+        patch("app.deps.load_session", return_value=fake_session),
+        patch("app.deps.touch_session", return_value=fake_session),
+    ):
         resp = client.get("/protected", cookies={"leo_session": "sess123"})
     assert resp.status_code == 200
     body = resp.json()
@@ -120,10 +117,11 @@ def test_session_cookie_non_admin_returns_403(
         scope_type="gp",
         primary_org_id="gp-1",
     )
-    with patch("app.deps.load_session", return_value=fake_session), patch(
-        "app.deps.PatientGraphClient"
-    ), patch(
-        "app.deps.resolve_caller_scope", return_value=non_admin_scope
+    with (
+        patch("app.deps.load_session", return_value=fake_session),
+        patch("app.deps.touch_session", return_value=fake_session),
+        patch("app.deps.PatientGraphClient"),
+        patch("app.deps.resolve_caller_scope", return_value=non_admin_scope),
     ):
         resp = client.get("/protected", cookies={"leo_session": "sess123"})
     assert resp.status_code == 403
