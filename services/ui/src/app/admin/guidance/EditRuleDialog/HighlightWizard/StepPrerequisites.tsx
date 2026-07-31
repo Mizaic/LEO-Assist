@@ -44,8 +44,8 @@ import HighlightableRecommendationText, {
 import type { TextMatchRange } from "../SentenceEditor/recommendationTextMatch";
 import { findAllValidationErrors } from "../treeOps";
 import {
+  conceptConditionClause,
   conceptSeedLabels,
-  conceptText,
   demographicToText,
   observationToText,
 } from "../treeToSentence";
@@ -105,7 +105,10 @@ export function prerequisiteLabel(node: EditableLogicNode): string {
     return capitalize(`Patient ${observationToText(node.observation)}`);
   }
   if (node.kind === "CONCEPT") {
-    return capitalize(`Patient has ${conceptText(node)}`);
+    // Uses conceptConditionClause so third-party findings (e.g.
+    // parental concern about the patient) are not misread as the
+    // patient themselves having that concern.
+    return capitalize(`Patient ${conceptConditionClause(node)}`);
   }
   return "An unfilled patient detail";
 }

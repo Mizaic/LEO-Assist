@@ -114,6 +114,14 @@ describe("StepPrerequisites: pure helpers", () => {
       "Patient has smoker",
     );
   });
+
+  it("prerequisiteLabel rewords parental concern so it is about this patient", () => {
+    expect(
+      prerequisiteLabel(
+        makeConceptLeaf("Parental concern about child (finding)", "401141001"),
+      ),
+    ).toBe("Patient has a parent who is concerned about them");
+  });
 });
 
 describe("StepPrerequisites: automatic fuzzy matching", () => {

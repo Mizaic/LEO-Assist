@@ -59,6 +59,19 @@ describe("treeToSentence", () => {
     expect(result.lead).toBe("Applies to patients who has cough.");
   });
 
+  it("rewrites parental concern about child as parent concern about the patient", () => {
+    const root = tree({
+      kind: "CONCEPT",
+      criterion: {
+        snomed_concept_id: "401141001",
+        preferred_term: "Parental concern about child (finding)",
+      },
+    });
+    expect(treeToSentence(root).lead).toBe(
+      "Applies to patients who has a parent who is concerned about them.",
+    );
+  });
+
   it("renders an age >= demographic with plain English", () => {
     const root = tree({
       kind: "DEMOGRAPHIC",

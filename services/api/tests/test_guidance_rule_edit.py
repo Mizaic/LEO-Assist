@@ -891,6 +891,46 @@ class TestEditedRuleCarriesForwardActionPriority:
                 }
             )
 
+    @pytest.mark.parametrize(
+        "priority,due_days",
+        [
+            ("immediate", 0),
+            ("very_urgent", 2),
+            ("2ww", 14),
+            ("urgent", 7),
+            ("routine", None),
+        ],
+    )
+    def test_accepts_all_clinical_priority_values(
+        self, priority: str, due_days: int | None
+    ) -> None:
+        """NICE very-urgent (48h) and immediate must not 422 on edit save."""
+        updates = RuleUpdates.model_validate(
+            {
+                "name": "Edited rule",
+                "logic_tree": _and_root(),
+                "priority": priority,
+                "due_days": due_days,
+                "actions": [
+                    {
+                        "criterion": {
+                            "snomed_concept_id": "169250003",
+                            "preferred_term": "Referral to oncology service",
+                        },
+                        "strength": "consider",
+                        "group_id": "g1",
+                        "group_mode": "preferred_fallback",
+                        "group_rank": 0,
+                    }
+                ],
+            }
+        )
+        assert updates.priority == priority
+        if priority == "routine":
+            assert updates.due_days is None
+        else:
+            assert updates.due_days == due_days
+
 
 class TestRejectSiblingPendingRules:
     def test_returns_rejected_rule_ids(self) -> None:

@@ -150,6 +150,49 @@ export function conceptSeedLabels(node: EditableLogicNode): string[] {
   return seeds.map((s) => friendlyTerm(s.preferred_term));
 }
 
+/** Strip descendant-expansion / exclusion tails so subject rewrites
+ *  match the clinical finding itself. */
+function conceptCoreTerm(body: string): string {
+  return body
+    .toLowerCase()
+    .replace(/\s*\(or any kind of[^)]*\)\s*$/i, "")
+    .replace(/, except .+$/i, "")
+    .trim();
+}
+
+/**
+ * SNOMED terms like "Parental concern about child" already name a
+ * third party. Wrapping them as "has parental concern about child"
+ * makes the patient sound like the concerned parent. Reword so the
+ * record meaning stays clear: a parent is concerned about this patient.
+ */
+function rewriteThirdPartyConceptClause(body: string): string | null {
+  const core = conceptCoreTerm(body);
+  if (
+    core === "parental concern" ||
+    /\bparental concern about (?:the )?child\b/.test(core)
+  ) {
+    return "has a parent who is concerned about them";
+  }
+  if (/\bparental anxiety\b/.test(core)) {
+    return "has a parent who is anxious about their symptoms";
+  }
+  return null;
+}
+
+/**
+ * CONCEPT leaf as a patient-condition clause ("has cough", or a
+ * rewritten third-party finding). Shared by the live preview and the
+ * highlight wizard's "Captured so far" labels.
+ */
+export function conceptConditionClause(
+  node: EditableLogicNode,
+  resolve?: TermResolver,
+): string {
+  const body = conceptText(node, resolve);
+  return rewriteThirdPartyConceptClause(body) ?? `has ${body}`;
+}
+
 function listOfConcepts(
   nodes: EditableLogicNode[],
   resolve?: TermResolver,
@@ -220,7 +263,7 @@ function leafToCondition(
   resolve?: TermResolver,
 ): string {
   if (node.kind === "DEMOGRAPHIC") return demographicToText(node);
-  if (node.kind === "CONCEPT") return `has ${conceptText(node, resolve)}`;
+  if (node.kind === "CONCEPT") return conceptConditionClause(node, resolve);
   if (node.kind === "OBSERVATION") {
     return node.observation
       ? observationToText(node.observation)
