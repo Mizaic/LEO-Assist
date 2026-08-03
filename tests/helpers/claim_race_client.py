@@ -32,6 +32,7 @@ from libs.cypher.pipeline_stage_queries import (
     GET_ZERO_STAGE_RUNNING_RUN,
     HAS_ANY_OUTBOX_FOR_STAGE,
     HAS_PENDING_OUTBOX_FOR_STAGE,
+    CLAIM_OUTBOX_EVENT_FOR_SEND,
     MARK_OUTBOX_EVENT_SENT,
     MARK_STAGE_NEXT_PUBLISHED,
     RENEW_PIPELINE_STAGE_LEASE,
@@ -80,6 +81,11 @@ class InMemoryClaimClient:
                 return self._pending_outbox(params["stage_run_id"])
             if query == MARK_OUTBOX_EVENT_SENT:
                 return [self._mark_outbox_sent(params["outbox_id"])]
+            if query == CLAIM_OUTBOX_EVENT_FOR_SEND:
+                claimed = self._claim_outbox_for_send(
+                    params["stage_run_id"], params["outbox_id"]
+                )
+                return [claimed] if claimed else []
             if query == HAS_PENDING_OUTBOX_FOR_STAGE:
                 pending = self._pending_outbox(params["stage_run_id"])
                 return [{"has_pending": bool(pending)}]
@@ -293,6 +299,19 @@ class InMemoryClaimClient:
             row["status"] = "sent"
             row["sent_at"] = datetime.now(timezone.utc).isoformat()
         return {"id": outbox_id}
+
+    def _claim_outbox_for_send(
+        self, stage_run_id: str, outbox_id: str
+    ) -> dict[str, Any] | None:
+        links = self.stage_outbox.get(stage_run_id, [])
+        if outbox_id not in links:
+            return None
+        row = self.outbox.get(outbox_id)
+        if row is None or row.get("status") != "pending":
+            return None
+        row["status"] = "sent"
+        row["sent_at"] = datetime.now(timezone.utc).isoformat()
+        return dict(row)
 
     def _sent_outbox(self, stage_run_id: str) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []

@@ -347,6 +347,19 @@ SET o.status = 'sent',
 RETURN o.id AS id
 """
 
+# Atomic single-flight send: only one dispatcher can move pending -> sent.
+CLAIM_OUTBOX_EVENT_FOR_SEND = """
+MATCH (s:PipelineStageRun {id: $stage_run_id})-[:HAS_OUTBOX_EVENT]->(o:OutboxEvent {id: $outbox_id})
+WHERE o.status = 'pending'
+SET o.status = 'sent',
+    o.sent_at = datetime(),
+    o.updated_at = datetime()
+RETURN o.id AS id,
+       o.message_id AS message_id,
+       o.queue_name AS queue_name,
+       o.body_json AS body_json
+"""
+
 HAS_PENDING_OUTBOX_FOR_STAGE = """
 MATCH (s:PipelineStageRun {id: $stage_run_id})-[:HAS_OUTBOX_EVENT]->(o:OutboxEvent)
 WHERE o.status = 'pending'

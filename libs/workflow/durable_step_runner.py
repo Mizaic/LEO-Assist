@@ -39,6 +39,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from libs.message_bus.base import Message, MessageBusAdapter
+from libs.message_bus.settlement import MessageDeferError
 from libs.neo4j_client.client import PatientGraphClient
 from libs.workflow.durable_steps import StepRequest
 from libs.workflow.durable_steps import StepResult as DurableStepResult
@@ -49,7 +50,10 @@ from libs.workflow.plan_manifest import (
     resolve_plan_workflow_mode,
     resolve_policy_version,
 )
-from libs.workflow.pipeline_outbox import dispatch_stage_outbox
+from libs.workflow.pipeline_outbox import (
+    build_first_step_message_id,
+    dispatch_stage_outbox,
+)
 from libs.workflow.pipeline_stage_store import PipelineStageStore, StageClaimResult
 from libs.workflow.run_admission import build_admission_key
 from libs.workflow.stage_lease import (
@@ -226,6 +230,7 @@ async def _publish_durable_step(
         queue_name,
         Message(
             body=body,
+            message_id=build_first_step_message_id(request.run_id, next_action_id),
             correlation_id=request.run_id,
             subject=DURABLE_STEP_EVENT,
         ),
@@ -707,6 +712,10 @@ class DurableStepRunner:
         )
         try:
             return await DurableStepRunner._run_claimed_step(ctx)
+        except MessageDeferError:
+            # Expected when another delivery holds the stage lease or completion
+            # must be retried; the pipeline worker abandons the Service Bus msg.
+            raise
         except Exception as exc:
             logger.exception(
                 "DurableStepRunner step failed: action_id=%s run_id=%s",

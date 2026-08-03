@@ -51,6 +51,12 @@ def build_durable_step_message_id(
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def build_first_step_message_id(run_id: str, action_id: str) -> str:
+    """Deterministic Service Bus message_id for the first durable step."""
+    raw = f"msg:first:{run_id}:{action_id}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def build_successor_outbox_events(
     request: StepRequest,
     *,
@@ -109,29 +115,40 @@ async def dispatch_stage_outbox(
     bus: MessageBusAdapter,
     request: StepRequest,
 ) -> int:
-    """Send pending outbox events for a stage; mark each sent."""
+    """Send pending outbox events for a stage; claim each row before send."""
     pending = store.load_pending_outbox(request)
     sent = 0
     for row in pending:
-        body_raw = row.get("body_json") or "{}"
+        outbox_id = str(row.get("id") or "")
+        claimed = store.try_claim_outbox_for_send(outbox_id, request)
+        if not claimed:
+            logger.info(
+                "Outbox row already claimed: outbox_id=%s run_id=%s step_id=%s",
+                outbox_id,
+                request.run_id,
+                request.step_id,
+            )
+            continue
+        body_raw = claimed.get("body_json") or "{}"
         try:
             body = json.loads(body_raw)
         except json.JSONDecodeError:
-            logger.warning("Skipping outbox %s -- invalid body_json", row.get("id"))
+            logger.warning(
+                "Skipping outbox %s -- invalid body_json", claimed.get("id")
+            )
             continue
         if not isinstance(body, dict):
             continue
         await bus.send(
-            str(row.get("queue_name") or "pipeline-jobs"),
+            str(claimed.get("queue_name") or "pipeline-jobs"),
             Message(
                 body=body,
-                message_id=str(row.get("message_id") or row.get("id") or ""),
+                message_id=str(claimed.get("message_id") or claimed.get("id") or ""),
                 correlation_id=request.run_id,
                 subject=str(body.get("event_type") or "durable_step"),
             ),
         )
-        store.mark_outbox_sent(str(row["id"]), request)
         sent += 1
-    if sent and not store.has_pending_outbox(request):
+    if not store.has_pending_outbox(request):
         store.mark_next_published(request)
     return sent

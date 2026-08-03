@@ -46,6 +46,8 @@ resource pipelineJobsQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-pr
     lockDuration: 'PT5M'
     maxDeliveryCount: 10
     defaultMessageTimeToLive: 'P1D'
+    requiresDuplicateDetection: true
+    duplicateDetectionHistoryTimeWindow: 'PT1H'
   }
 }
 

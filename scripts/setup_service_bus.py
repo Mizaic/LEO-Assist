@@ -56,6 +56,12 @@ QUEUE_SETTINGS = dict(
     enable_batched_operations=True,
 )
 
+PIPELINE_QUEUE_SETTINGS = dict(
+    **QUEUE_SETTINGS,
+    requires_duplicate_detection=True,
+    duplicate_detection_history_time_window=timedelta(hours=1),
+)
+
 
 def _apply_settings(props: QueueProperties, settings: dict) -> bool:
     """Update props in place. Returns True if any field changed."""
@@ -75,11 +81,12 @@ def main():
     print(f"Existing queues: {set(existing) or '(none)'}\n")
 
     for queue_name in QUEUES:
-        settings = (
-            REFERRAL_QUEUE_SETTINGS
-            if queue_name == "referral-assessments-output"
-            else QUEUE_SETTINGS
-        )
+        if queue_name == "referral-assessments-output":
+            settings = REFERRAL_QUEUE_SETTINGS
+        elif queue_name == "pipeline-jobs":
+            settings = PIPELINE_QUEUE_SETTINGS
+        else:
+            settings = QUEUE_SETTINGS
         if queue_name in existing:
             props = admin.get_queue(queue_name)
             changed = _apply_settings(props, settings)

@@ -92,7 +92,9 @@ class _LazySentenceEmbedder:
                         decision.resolved,
                         decision.fallback_reason,
                     )
-                offline = os.getenv("HF_HUB_OFFLINE", "0") == "1"
+                offline = os.getenv("HF_HUB_OFFLINE", "1") == "1"
+                if os.getenv("HF_HUB_ONLINE", "0") == "1":
+                    offline = False
                 self._model = _SentenceTransformer(
                     self.model_name,
                     device=device,

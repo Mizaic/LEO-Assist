@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from libs.cypher.pipeline_stage_queries import (
     ADMIT_PIPELINE_RUN,
     CLAIM_FIRST_STEP_ENQUEUE,
+    CLAIM_OUTBOX_EVENT_FOR_SEND,
     CLAIM_PIPELINE_STAGE_RUN,
     CLEAR_FIRST_STEP_ENQUEUE,
     COMPLETE_PIPELINE_STAGE_RUN,
@@ -334,6 +335,20 @@ class PipelineStageStore:
 
     def mark_outbox_sent(self, outbox_id: str, request: StepRequest) -> None:
         self._client.run(MARK_OUTBOX_EVENT_SENT, outbox_id=outbox_id)
+
+    def try_claim_outbox_for_send(
+        self, outbox_id: str, request: StepRequest
+    ) -> dict[str, Any] | None:
+        """Atomically move one pending outbox row to sent; return row or None."""
+        rows = self._client.run(
+            CLAIM_OUTBOX_EVENT_FOR_SEND,
+            stage_run_id=stage_run_id(request.run_id, request.step_id),
+            outbox_id=outbox_id,
+        )
+        row = (rows or [{}])[0] if rows else {}
+        if not row or not row.get("id"):
+            return None
+        return dict(row)
 
     def has_pending_outbox(self, request: StepRequest) -> bool:
         rows = self._client.run(

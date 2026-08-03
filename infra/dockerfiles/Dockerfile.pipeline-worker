@@ -18,12 +18,25 @@ RUN /venv/bin/pip install --disable-pip-version-check --no-cache-dir \
     /venv/bin/pip install --disable-pip-version-check --no-cache-dir "sentence-transformers>=3.0,<4"
 RUN /venv/bin/python3 -c "import aiohttp, spacy, sentence_transformers"
 
+# Bake Bio_ClinicalBERT at build time (same pattern as Dockerfile.terminology-api).
+# ACA sets HF_HUB_OFFLINE=1 so runtime cannot reach huggingface.co.
+FROM build-venv AS build-model
+ARG HF_MODEL=emilyalsentzer/Bio_ClinicalBERT
+ARG HF_TOKEN=""
+ENV HF_HOME=/var/model_cache/hf_cache \
+    HUGGING_FACE_HUB_TOKEN=${HF_TOKEN} \
+    HF_TOKEN=${HF_TOKEN}
+RUN mkdir -p /var/model_cache/hf_cache && \
+    /venv/bin/python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('$HF_MODEL')" && \
+    chmod -R a+rX /var/model_cache
+
 ARG BASE_IMAGE_RUNTIME
 FROM ${BASE_IMAGE_RUNTIME}
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
     rm -rf /var/lib/apt/lists/* && \
     useradd --no-create-home --shell /sbin/nologin appuser
 COPY --from=build-venv /venv /venv
+COPY --from=build-model /var/model_cache /var/model_cache
 COPY libs/ /app/libs/
 COPY services/coding_worker/ /app/services/coding_worker/
 COPY services/pipeline_worker/ /app/services/pipeline_worker/
@@ -31,7 +44,10 @@ COPY services/analysis_worker/ /app/services/analysis_worker/
 # compliance subgraph imports GuidelineEvaluator in-process (see compliance.py).
 COPY services/terminology_api/ /app/services/terminology_api/
 WORKDIR /app
-ENV PYTHONPATH=/app:/app/services/pipeline_worker
+ENV PYTHONPATH=/app:/app/services/pipeline_worker \
+    HF_HOME=/var/model_cache/hf_cache \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
 USER appuser
 EXPOSE 8006
 ENTRYPOINT ["/venv/bin/python3", "-m", "services.pipeline_worker.app.main"]
