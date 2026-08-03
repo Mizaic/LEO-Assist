@@ -23,6 +23,7 @@ from libs.workflow.pipeline_stage_store import (
     StageClaimResult,
     StageCompleteResult,
 )
+from libs.workflow.pipeline_outbox import build_first_step_message_id
 
 
 def _manifest(*actions: _Action) -> PlanManifest:
@@ -296,9 +297,13 @@ async def test_start_publishes_first_action():
         await DurableStepRunner.start(body, bus=mock_bus)
 
     mock_bus.send.assert_called_once()
-    sent_body = mock_bus.send.call_args[0][1].body
+    sent_message = mock_bus.send.call_args[0][1]
+    sent_body = sent_message.body
     assert sent_body["action_id"] == "act-ref-extract"
     assert sent_body["event_type"] == DURABLE_STEP_EVENT
+    assert sent_message.message_id == build_first_step_message_id(
+        "run-001", "act-ref-extract"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -463,13 +468,7 @@ async def test_run_step_defers_when_stage_busy():
         ),
         patch(
             "libs.workflow.durable_step_runner.PipelineStageStore",
-            return_value=MagicMock(
-                ensure_schema=MagicMock(),
-                upsert_run=MagicMock(),
-                claim_stage=MagicMock(return_value=StageClaimResult(outcome="busy")),
-                complete_stage=MagicMock(),
-            ),
-        ),
+        ) as store_cls,
         patch(
             "libs.workflow.durable_step_runner.load_step_state",
             return_value={"patient_id": "p-busy"},
@@ -477,9 +476,18 @@ async def test_run_step_defers_when_stage_busy():
     ):
         from libs.workflow.stage_lease import StageLeaseBusyError
 
+        mock_store = MagicMock(
+            ensure_schema=MagicMock(),
+            upsert_run=MagicMock(),
+            claim_stage=MagicMock(return_value=StageClaimResult(outcome="busy")),
+            complete_stage=MagicMock(),
+        )
+        store_cls.return_value = mock_store
+
         with pytest.raises(StageLeaseBusyError):
             await DurableStepRunner.run_step(body, bus=mock_bus)
 
+    mock_store.complete_stage.assert_not_called()
     mock_bus.send.assert_not_called()
 
 
