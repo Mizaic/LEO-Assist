@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 
 test.describe("Patient Workflow", () => {
   test("patient list page loads and shows heading", async ({ page }) => {
@@ -43,7 +43,7 @@ test.describe("Patient Workflow", () => {
     );
     const firstCard = page.locator("[class*='MuiCardActionArea-root']").first();
     await firstCard.click();
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.locator("body")).toContainText(/encounter/i);
   });
 });

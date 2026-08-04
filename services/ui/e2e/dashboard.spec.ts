@@ -1,27 +1,28 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 
 test.describe("Dashboard", () => {
   test("dashboard page loads with heading", async ({ page }) => {
     await page.goto("/care/dashboard");
-    await expect(page.getByRole("heading", { name: /Overview/i })).toBeVisible();
+    await waitForPageSettled(page);
+    await expect(page.getByRole("heading", { name: "Care Overview", exact: true })).toBeVisible();
   });
 
   test("KPI cards section is visible", async ({ page }) => {
     await page.goto("/care/dashboard");
-    await page.waitForLoadState("networkidle");
-    const kpiSection = page.getByText(/Referral|Diagnosis|Treatment|Consultations/i);
+    await waitForPageSettled(page);
+    const kpiSection = page.getByText(/Cancer pathways|Referrals by cancer type/i);
     await expect(kpiSection.first()).toBeVisible();
   });
 
   test("referral pathways chart section renders", async ({ page }) => {
     await page.goto("/care/dashboard");
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).toContainText(/referral pathway/i);
+    await waitForPageSettled(page);
+    await expect(page.locator("body")).toContainText(/Referrals by cancer type/i);
   });
 
   test("safety netting alerts section is visible", async ({ page }) => {
     await page.goto("/care/dashboard");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.locator("body")).toContainText(/safety netting/i);
   });
 });

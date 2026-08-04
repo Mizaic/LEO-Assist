@@ -18,7 +18,7 @@
  * to be running locally.
  */
 
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route, waitForPageSettled } from "./fixtures";
 
 // ---- shared synthetic fixtures ---------------------------------------
 
@@ -106,7 +106,7 @@ test.describe(
       // Direct deep link to the gold editor for this label - this is the
       // legacy path the dialog still supports.
       await page.goto(`/gold-dataset?labelId=${SYNTHETIC_LABEL_ID}`);
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
 
       // Dialog title is fixed by GoldDatasetPanel/DialogTitleStrip.
       await expect(
@@ -141,7 +141,7 @@ test.describe(
         );
 
         await page.goto("/admin/console");
-        await page.waitForLoadState("networkidle");
+        await waitForPageSettled(page);
 
         // We do not run a real dry-run here; we only verify that no
         // navigation occurs when the editor is opened from a row, by
@@ -175,7 +175,7 @@ test.describe(
         );
 
         await page.goto("/care/patients");
-        await page.waitForLoadState("networkidle");
+        await waitForPageSettled(page);
 
         await expect(
           page.getByRole("heading", { name: "Patients" }),
@@ -233,7 +233,7 @@ test.describe(
         );
 
         await page.goto("/care/encounters");
-        await page.waitForLoadState("networkidle");
+        await waitForPageSettled(page);
 
         await expect(page).toHaveURL(/\/care\/encounters/);
       },

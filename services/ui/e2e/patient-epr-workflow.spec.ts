@@ -9,13 +9,13 @@
  *   DO: DO-EBF0B124, DO-5D3EA371
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 
 test.describe("Domain-agnostic patient list (VT-1D399981)", () => {
   // AC1+AC2 - patient list loads and shows patients of any type
   test("AC1+AC2 - patient list page loads without error", async ({ page }) => {
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.locator("body")).not.toContainText(/error.*500/i);
     await expect(page.locator("body")).not.toContainText(/TypeError/i);
   });
@@ -34,7 +34,7 @@ test.describe("Domain-agnostic patient list (VT-1D399981)", () => {
     page,
   }) => {
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.getByText(/cancer type/i)).not.toBeVisible();
     await expect(page.getByText(/tumour type/i)).not.toBeVisible();
   });
@@ -51,11 +51,11 @@ test.describe("Domain-agnostic patient list (VT-1D399981)", () => {
     page,
   }) => {
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     const firstCard = page.locator("[class*='MuiCard']").first();
     if (await firstCard.isVisible()) {
       await firstCard.click();
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
       await expect(page).toHaveURL(/\/care\/patients\/.+/);
     }
   });
@@ -68,7 +68,7 @@ test.describe("Patient EPR detail page (VT-04B722C3)", () => {
   }) => {
     // Use a synthetic patient ID; page should render gracefully even if API returns 404
     await page.goto("/care/patients/test-patient-001");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     // No unhandled JS crash
     await expect(page.locator("body")).not.toContainText(/TypeError/i);
     await expect(page.locator("body")).not.toContainText(/Cannot read properties/i);
@@ -81,7 +81,7 @@ test.describe("Patient EPR detail page (VT-04B722C3)", () => {
       { timeout: 10000 },
     ).catch(() => null);
     await page.goto("/care/patients/test-patient-001");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     // The component should attempt to fetch timeline (may 404 with synthetic ID)
     const req = await timelineReq;
     // If timeline request fired, the component is wired correctly

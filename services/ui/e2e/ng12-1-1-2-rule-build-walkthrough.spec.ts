@@ -13,7 +13,7 @@
  * Run from services/ui:
  *   npx playwright test ng12-1-1-2-rule-build-walkthrough --project=chromium
  */
-import { test, expect, type Page, type Locator } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import path from "path";
 import {

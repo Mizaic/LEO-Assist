@@ -14,7 +14,7 @@
  * Each protocol step uploads a screenshot to the Atlas validation-runs REST API.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { assertValidationRunConfig } from "./helpers/atlas-validation-runs";
 import {
   clickFirstAvailableMetricAdd,

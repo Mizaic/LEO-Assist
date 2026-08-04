@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 
 /**
@@ -11,7 +11,7 @@ test.describe("pathway editor (VT-LEO-AI-163)", () => {
     page,
   }) => {
     await page.goto("/admin/pathways");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveTitle(/pathway/i);
   });
 
@@ -19,7 +19,7 @@ test.describe("pathway editor (VT-LEO-AI-163)", () => {
     page,
   }) => {
     await page.goto("/admin/pathways");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

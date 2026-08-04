@@ -5,7 +5,7 @@
  * Atlas VAL evidence is recorded separately in val-surface-forms-d681ea88.spec.ts.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   buildGroupedSurfaceFormsPayload,
   fulfillJson,

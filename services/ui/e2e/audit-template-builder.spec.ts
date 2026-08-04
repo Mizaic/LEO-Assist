@@ -9,7 +9,7 @@
  *   DO: DO-A9863AB6, DO-3775670C
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 import {
   createAuditFixtureState,
   installAuditTemplateFixtures,
@@ -192,7 +192,7 @@ test.describe("Audit page template renderer (VT-FCCB0FFE)", () => {
     page,
   }) => {
     await page.goto("/care/audit");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     // Should not show an error page; either NCDA content or template content loads
     await expect(page.locator("body")).not.toContainText(/error.*500/i);
     await expect(page.locator("body")).not.toContainText(/TypeError/i);

@@ -13,7 +13,7 @@
  *   ng12-1-13-nss-or-actions-walkthrough.spec.ts
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   atlasValidationSkipReason,
   isAtlasValidationConfigured,

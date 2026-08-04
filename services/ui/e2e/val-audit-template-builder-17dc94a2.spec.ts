@@ -4,7 +4,7 @@
  * Updated for multi-phase AI assistant flow.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { assertValidationRunConfig } from "./helpers/atlas-validation-runs";
 import {
   clickFirstAvailableMetricAdd,

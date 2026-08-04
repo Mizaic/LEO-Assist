@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test.describe("Encounter batch recode", () => {
   test("encounters page renders search and batch controls", async ({ page }) => {

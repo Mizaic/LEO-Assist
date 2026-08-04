@@ -5,7 +5,7 @@
  * the automated admin UI protocol steps defined in Atlas.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { assertValidationRunConfig } from "./helpers/atlas-validation-runs";
 import { recordProtocolStep } from "./helpers/leo-validation-steps";
 import {

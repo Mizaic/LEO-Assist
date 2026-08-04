@@ -9,7 +9,7 @@
  * plus PLAYWRIGHT_LIVE_BACKEND=1 and a running API + pipeline worker.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { assertValidationRunConfig } from "./helpers/atlas-validation-runs";
 import { recordProtocolStep } from "./helpers/leo-validation-steps";
 import { blockRun } from "./helpers/validation-blocked";
