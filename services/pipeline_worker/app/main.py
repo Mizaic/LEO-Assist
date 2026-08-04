@@ -250,6 +250,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     for lease_warning in validate_pipeline_lease_config():
         logger.warning("pipeline lease config: %s", lease_warning)
 
+    import threading
+
+    def _seed_plan_definitions() -> None:
+        try:
+            from libs.neo4j_client.client import KnowledgeGraphClient
+            from scripts.seed_plan_definitions import seed_with_client
+
+            client = KnowledgeGraphClient()
+            seed_with_client(client, startup_refresh=True)
+            client.close()
+        except Exception as exc:
+            logger.warning("PlanDefinition seed failed (non-fatal): %s", exc)
+
+    seed_thread = threading.Thread(
+        target=_seed_plan_definitions, daemon=True, name="seed-plan-definitions"
+    )
+    seed_thread.start()
+    seed_thread.join(timeout=120)
+    if seed_thread.is_alive():
+        logger.warning(
+            "PlanDefinition startup seed still running after 120s; continuing startup"
+        )
+
     bus = create_message_bus()
 
     neo4j_driver = None

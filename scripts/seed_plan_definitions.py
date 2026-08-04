@@ -7,6 +7,13 @@ Idempotent -- creates missing draft templates only. Published
 PlanDefinitionVersion snapshots are immutable; force-seed never mutates
 active plans or versions referenced by a PipelineRun.
 
+On service startup (fhir-api and pipeline-worker), ``startup_refresh=True``
+compares each built-in plan's repo ``PLAN_SEED_REVISION`` to the stored
+``seedRevision`` on seed-sourced PlanDefinition nodes. When the repo
+revision is newer, the live plan and action graph are refreshed and a new
+immutable version snapshot is published for active plans whose content hash
+differs from the latest pinned version.
+
 PlanDefinitions:
   1. gp-encounter-coding   -- Primary care encounter NER extraction pipeline
   2. referral-assessment    -- Referral document SBAR generation pipeline
@@ -43,13 +50,18 @@ from dotenv import load_dotenv
 load_dotenv(_ROOT / "secrets" / ".env.config", override=True)
 load_dotenv(_ROOT / "secrets" / ".env", override=False)
 from libs.workflow.plan_seed import (
+    GET_PLAN_REFRESH_STATE,
     GET_PLAN_SEED_STATE,
-    GET_VERSION_CONTENT_HASHES,
     bootstrap_initial_version,
     plan_content_hash,
+    publish_plan_version_snapshot,
+    resolve_plan_seed_revision,
     seed_plan_status,
+    should_publish_version_snapshot,
+    should_refresh_seeded_plan_on_startup,
     should_seed_plan,
     should_touch_activity,
+    touch_seed_revision,
 )
 from libs.workflow.validation_workflows import all_validation_plan_definitions
 
@@ -1395,6 +1407,7 @@ SET pd.rawJson = $raw,
     pd.name = $name,
     pd.status = $status,
     pd.workflowMode = $workflow_mode,
+    pd.seedRevision = $seed_revision,
     pd.isGlobal = true,
     pd.source = 'seed'
 """
@@ -1469,11 +1482,124 @@ def _wire_extraction_prompt_config(client) -> None:
     logger.info("[Seed] Wired ad-extraction-llm prompt_config_id=%s", prompt_config_id)
 
 
-def seed_with_client(client, *, force: bool = False) -> None:
+def _plan_seed_meta(repo_revision: str) -> dict[str, str | bool]:
+    return {
+        "seeded": True,
+        "seededBy": "scripts/seed_plan_definitions.py",
+        "seedRevision": repo_revision,
+    }
+
+
+def _resolve_plan_status(
+    pd: dict,
+    *,
+    existing_count: int,
+    startup_refresh: bool,
+    stored_status: str,
+) -> str:
+    if existing_count <= 0:
+        return seed_plan_status(pd)
+    if startup_refresh:
+        return str(pd.get("status") or stored_status or "draft")
+    return seed_plan_status(pd)
+
+
+def _write_plan_actions(client, pd: dict) -> None:
+    client.run(CLEAR_ACTIONS, id=pd["id"])
+    for action in pd.get("action", []):
+        trigger = (action.get("trigger") or [{}])[0]
+        definition_ref = action.get("definitionCanonical", "")
+        related_ids = [
+            r.get("actionId", "") for r in (action.get("relatedAction") or [])
+        ]
+        related_edges = action.get("relatedActionEdges") or []
+        client.run(
+            CREATE_ACTION,
+            plan_id=pd["id"],
+            action_id=action["id"],
+            node_type=action.get("_nodeType", "action"),
+            trigger_type=trigger.get("type", ""),
+            trigger_name=trigger.get("name", ""),
+            condition=None,
+            sequence=action.get("_sequence", 0),
+            subgraph_id=action.get("_subgraphId", ""),
+            durable_event_type=action.get("_durableEventType", ""),
+            related_actions=related_ids,
+            related_action_edges=json.dumps(related_edges),
+            completion_queue=action.get("_completionQueue", ""),
+            completion_event_type=action.get("_completionEventType", ""),
+        )
+        if definition_ref:
+            activity_id = definition_ref.split("/")[-1]
+            client.run(LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id)
+
+
+def _apply_plan_write(
+    client,
+    pd: dict,
+    *,
+    repo_revision: str,
+    startup_refresh: bool,
+    refresh_state: dict,
+) -> None:
+    ui_pd = _to_ui_format(pd)
+    existing_count = 1 if refresh_state else 0
+    ui_pd["status"] = _resolve_plan_status(
+        pd,
+        existing_count=existing_count,
+        startup_refresh=startup_refresh,
+        stored_status=str(refresh_state.get("status") or ""),
+    )
+    ui_pd["meta"] = _plan_seed_meta(repo_revision)
+    raw_json = json.dumps(ui_pd)
+    content_hash = plan_content_hash(ui_pd)
+    client.run(
+        UPSERT_PLAN,
+        id=pd["id"],
+        raw=raw_json,
+        name=pd["name"],
+        status=ui_pd["status"],
+        workflow_mode=pd.get("_workflowMode", "legacy_in_process"),
+        seed_revision=repo_revision,
+    )
+    _write_plan_actions(client, pd)
+    version_count = int(refresh_state.get("version_count") or 0)
+    latest_hash = str(refresh_state.get("latest_version_hash") or "")
+    if should_publish_version_snapshot(
+        plan_status=ui_pd["status"],
+        version_count=version_count,
+        repo_content_hash=content_hash,
+        latest_version_hash=latest_hash,
+    ):
+        publish_plan_version_snapshot(
+            client,
+            plan_id=pd["id"],
+            raw_json=raw_json,
+            content_hash=content_hash,
+            version_notes=f"Repo seed revision {repo_revision}",
+        )
+    elif version_count <= 0:
+        bootstrap_initial_version(
+            client,
+            plan_id=pd["id"],
+            raw_json=raw_json,
+            content_hash=content_hash,
+            version_node_id=str(uuid.uuid4()),
+        )
+    elif startup_refresh and content_hash == latest_hash:
+        touch_seed_revision(client, plan_id=pd["id"], seed_revision=repo_revision)
+
+
+def seed_with_client(
+    client, *, force: bool = False, startup_refresh: bool = False
+) -> None:
     """Seed PlanDefinitions using an existing KnowledgeGraphClient (for startup hooks).
 
     Creates missing draft templates only. Existing active plans and any
     PlanDefinitionVersion referenced by a PipelineRun are never mutated.
+
+    When ``startup_refresh`` is True, seed-sourced plans whose repo revision
+    is newer than the stored ``seedRevision`` are refreshed and republished.
     """
     try:
         client.run(
@@ -1511,9 +1637,35 @@ def seed_with_client(client, *, force: bool = False) -> None:
                 dynamic_values=dv_json,
             )
 
+        refreshed = 0
         for pd in PLAN_DEFINITIONS:
+            repo_revision = resolve_plan_seed_revision(pd)
             existing_row = client.run(COUNT_PLAN_BY_ID, id=pd["id"])
             existing_count = int(existing_row[0]["cnt"]) if existing_row else 0
+            refresh_rows = client.run(GET_PLAN_REFRESH_STATE, id=pd["id"])
+            refresh_state = refresh_rows[0] if refresh_rows else {}
+            if startup_refresh and should_refresh_seeded_plan_on_startup(
+                existing_count=existing_count,
+                plan_source=str(refresh_state.get("source") or ""),
+                stored_revision=str(refresh_state.get("seed_revision") or ""),
+                repo_revision=repo_revision,
+            ):
+                logger.info(
+                    "[Seed] Startup refresh for %s (repo=%s stored=%s)",
+                    pd["id"],
+                    repo_revision,
+                    refresh_state.get("seed_revision") or "",
+                )
+                _apply_plan_write(
+                    client,
+                    pd,
+                    repo_revision=repo_revision,
+                    startup_refresh=True,
+                    refresh_state=refresh_state,
+                )
+                refreshed += 1
+                continue
+
             seed_state = client.run(GET_PLAN_SEED_STATE, id=pd["id"])
             state = seed_state[0] if seed_state else {}
             if not should_seed_plan(
@@ -1527,64 +1679,22 @@ def seed_with_client(client, *, force: bool = False) -> None:
                 logger.info("[Seed] Skipped immutable PlanDefinition id=%s", pd["id"])
                 continue
 
-            ui_pd = _to_ui_format(pd)
-            ui_pd["status"] = seed_plan_status(ui_pd)
-            ui_pd["meta"] = {
-                "seeded": True,
-                "seededBy": "scripts/seed_plan_definitions.py",
-            }
-            raw_json = json.dumps(ui_pd)
-            content_hash = plan_content_hash(ui_pd)
-            client.run(
-                UPSERT_PLAN,
-                id=pd["id"],
-                raw=raw_json,
-                name=pd["name"],
-                status=ui_pd["status"],
-                workflow_mode=pd.get("_workflowMode", "legacy_in_process"),
-            )
-            client.run(CLEAR_ACTIONS, id=pd["id"])
-            for action in pd.get("action", []):
-                trigger = (action.get("trigger") or [{}])[0]
-                definition_ref = action.get("definitionCanonical", "")
-                related_ids = [
-                    r.get("actionId", "") for r in (action.get("relatedAction") or [])
-                ]
-                related_edges = action.get("relatedActionEdges") or []
-                client.run(
-                    CREATE_ACTION,
-                    plan_id=pd["id"],
-                    action_id=action["id"],
-                    node_type=action.get("_nodeType", "action"),
-                    trigger_type=trigger.get("type", ""),
-                    trigger_name=trigger.get("name", ""),
-                    condition=None,
-                    sequence=action.get("_sequence", 0),
-                    subgraph_id=action.get("_subgraphId", ""),
-                    durable_event_type=action.get("_durableEventType", ""),
-                    related_actions=related_ids,
-                    related_action_edges=json.dumps(related_edges),
-                    completion_queue=action.get("_completionQueue", ""),
-                    completion_event_type=action.get("_completionEventType", ""),
-                )
-                if definition_ref:
-                    activity_id = definition_ref.split("/")[-1]
-                    client.run(
-                        LINK_ACTIVITY, action_id=action["id"], activity_id=activity_id
-                    )
-            bootstrap_initial_version(
+            _apply_plan_write(
                 client,
-                plan_id=pd["id"],
-                raw_json=raw_json,
-                content_hash=content_hash,
-                version_node_id=str(uuid.uuid4()),
+                pd,
+                repo_revision=repo_revision,
+                startup_refresh=False,
+                refresh_state={} if existing_count <= 0 else refresh_state,
             )
 
         logger.info(
-            "[Seed] %d ActivityDefinitions processed, %d PlanDefinitions processed (force=%s).",
+            "[Seed] %d ActivityDefinitions processed, %d PlanDefinitions processed "
+            "(force=%s startup_refresh=%s refreshed=%s).",
             len(ACTIVITY_DEFINITIONS),
             len(PLAN_DEFINITIONS),
             force,
+            startup_refresh,
+            refreshed,
         )
     except Exception as exc:
         logger.warning("[Seed] PlanDefinition seed failed (non-fatal): %s", exc)
@@ -1600,6 +1710,11 @@ def main() -> None:
         "--force",
         action="store_true",
         help="Update draft plan templates only; never mutate active/run-pinned versions",
+    )
+    parser.add_argument(
+        "--startup-refresh",
+        action="store_true",
+        help="Refresh seed-sourced plans when repo seed revision is newer than Neo4j",
     )
     args = parser.parse_args()
 
@@ -1618,7 +1733,11 @@ def main() -> None:
             with driver.session() as session:
                 return [dict(record) for record in session.run(query, **params)]
 
-    seed_with_client(_DriverClient(), force=args.force)
+    seed_with_client(
+        _DriverClient(),
+        force=args.force,
+        startup_refresh=args.startup_refresh,
+    )
     driver.close()
     logger.info(
         "Done. %d ActivityDefinitions processed, %d PlanDefinitions processed (force=%s).",

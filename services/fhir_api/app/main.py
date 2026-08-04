@@ -74,7 +74,7 @@ async def lifespan(_app: FastAPI):
             from scripts.seed_plan_definitions import seed_with_client
 
             client = KnowledgeGraphClient()
-            seed_with_client(client)
+            seed_with_client(client, startup_refresh=True)
             client.close()
         except Exception as exc:
             logger.warning("PlanDefinition seed failed (non-fatal): %s", exc)
