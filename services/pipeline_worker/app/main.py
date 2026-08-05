@@ -263,15 +263,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as exc:
             logger.warning("PlanDefinition seed failed (non-fatal): %s", exc)
 
-    seed_thread = threading.Thread(
-        target=_seed_plan_definitions, daemon=True, name="seed-plan-definitions"
-    )
-    seed_thread.start()
-    seed_thread.join(timeout=120)
-    if seed_thread.is_alive():
-        logger.warning(
-            "PlanDefinition startup seed still running after 120s; continuing startup"
-        )
+    # Non-blocking seed: blocking join caused ACA CrashLoopBackOff on val.
+    threading.Thread(
+        target=_seed_plan_definitions,
+        daemon=True,
+        name="seed-plan-definitions",
+    ).start()
 
     bus = create_message_bus()
 
