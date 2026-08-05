@@ -102,6 +102,14 @@ export function assignNodeIds(node: LogicNodeSeed): EditableLogicNode {
   return base;
 }
 
+/** Load a persisted logic_tree blob (API/Neo4j JSON) into editor nodes. */
+export function assignNodeIdsFromPersisted(raw: unknown): EditableLogicNode {
+  if (raw && typeof raw === "object") {
+    return assignNodeIds(raw as LogicNodeSeed);
+  }
+  return assignNodeIds({ kind: "AND", children: [] });
+}
+
 function promoteSourceRowText(
   base: EditableLogicNode,
   seed: LogicNodeSeed,

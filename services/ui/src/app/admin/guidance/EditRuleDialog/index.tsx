@@ -121,6 +121,7 @@ import {
 import {
   applyUpdate,
   assignNodeIds,
+  assignNodeIdsFromPersisted,
   canHaveChildren,
   findActionsValidationError,
   findAllValidationErrors,
@@ -561,11 +562,7 @@ export default function EditRuleDialog({
     (draft: RuleEditDraft) => {
       const initialTree = ensurePathwayKeys(
         liftSharedPathwayDemographics(
-          wrapRootInAnd(
-            draft.logic_tree && typeof draft.logic_tree === "object"
-              ? assignNodeIds(draft.logic_tree as EditableLogicNode)
-              : assignNodeIds({ kind: "AND", children: [] }),
-          ),
+          wrapRootInAnd(assignNodeIdsFromPersisted(draft.logic_tree)),
         ),
       );
       setTree(initialTree);
@@ -675,11 +672,7 @@ export default function EditRuleDialog({
     // Always true so the wizard / Scenario model show one shared filter.
     const initialTree = ensurePathwayKeys(
       liftSharedPathwayDemographics(
-        wrapRootInAnd(
-          rule.logic_tree && typeof rule.logic_tree === "object"
-            ? assignNodeIds(rule.logic_tree as EditableLogicNode)
-            : assignNodeIds({ kind: "AND", children: [] }),
-        ),
+        wrapRootInAnd(assignNodeIdsFromPersisted(rule.logic_tree)),
       ),
     );
     setTree(initialTree);
