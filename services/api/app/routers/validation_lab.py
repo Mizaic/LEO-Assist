@@ -404,6 +404,7 @@ def start_ag_run(
             guideline_id=body.guideline_id,
             completeness_domain=body.completeness_domain,
             completeness_subdomain=body.completeness_subdomain,
+            eager_durable_bootstrap=persist is PersistMode.production,
         )
     except AgPipelineError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -446,6 +447,7 @@ def start_run(
             outputs=outputs,
             publish=publish,
             ruleset_version=body.ruleset_version,
+            eager_durable_bootstrap=persist is PersistMode.production,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
