@@ -3,10 +3,10 @@
  *
  * Atlas: DI-EB716E68 / DO-A0ADDB38 / VT-C6B93AF0
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { fulfillJson, stubKnowledgeAdminAuth } from "./helpers/surface-forms-fixtures";
 
-async function stubLabChrome(page: import("@playwright/test").Page) {
+async function stubLabChrome(page: import("./fixtures").Page) {
   await stubKnowledgeAdminAuth(page);
   await page.route("**/api/nice/loaded", (route) =>
     fulfillJson(route, [

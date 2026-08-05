@@ -14,7 +14,7 @@
  * and attached via recordProtocolStep.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test, waitForPageSettled } from "./fixtures";
 import {
   atlasValidationSkipReason,
   isAtlasValidationConfigured,
@@ -363,7 +363,7 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
 
           // -- Step 0: Page loads correctly
           await ctx.page.goto("/admin/knowledge?tab=clinical-guidelines");
-          await ctx.page.waitForLoadState("networkidle");
+          await waitForPageSettled(ctx.page);
 
           // StatHero must be present
           await expect(ctx.page.getByTestId("metric-tile-loaded")).toBeVisible({
@@ -425,7 +425,7 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           // -- Step 3: Generate rules
           fixtureState.guidelineInGraph = true;
           await ctx.page.goto("/admin/knowledge?tab=clinical-guidelines");
-          await ctx.page.waitForLoadState("networkidle");
+          await waitForPageSettled(ctx.page);
 
           // The Inspect card should now show NG12 (stub returns it after reload)
           // Scroll to inspect card

@@ -1,4 +1,4 @@
-import { test as setup } from "@playwright/test";
+import { expect, test as setup } from "@playwright/test";
 import path from "path";
 
 const authFile = path.join(__dirname, ".auth", "user.json");
@@ -60,12 +60,16 @@ setup("authenticate", async ({ page, baseURL }) => {
     return;
   }
 
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
-  const session = await page.request.get("/auth/session");
-  const body = await session.json();
-  if (!body?.user) {
-    throw new Error("E2E auth mode did not return an authenticated session.");
-  }
+  // E2E mode serves a mock session from app/auth/session/route.ts. Do not open
+  // "/" here: the dashboard polls /api/proxy/analytics/* via core-api on :8000,
+  // which is not started in CI and prevents networkidle from ever settling.
+  await expect
+    .poll(async () => {
+      const session = await page.request.get("/auth/session");
+      const body = await session.json();
+      return body?.user?.email ?? null;
+    })
+    .toBe("e2e.clinician@example.com");
+
   await page.context().storageState({ path: authFile });
 });

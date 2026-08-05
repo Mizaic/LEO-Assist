@@ -4,7 +4,7 @@
  * Atlas: DI-D01C6EC8 / DI-D6E5F94E
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("Validation Lab A&G wizard chrome", () => {
   test.beforeEach(async ({ page }) => {

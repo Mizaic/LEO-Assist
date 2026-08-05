@@ -6,12 +6,21 @@ import json
 import uuid
 
 from libs.workflow.plan_seed import (
+    GET_MAX_VERSION_ID,
+    GET_PLAN_REFRESH_STATE,
     GET_PLAN_SEED_STATE,
-    GET_VERSION_CONTENT_HASHES,
+    PLAN_SEED_REVISION,
+    PUBLISH_VERSION_SNAPSHOT,
+    UPDATE_SEED_REVISION,
     bootstrap_initial_version,
     plan_content_hash,
+    publish_plan_version_snapshot,
+    resolve_plan_seed_revision,
+    should_publish_version_snapshot,
+    should_refresh_seeded_plan_on_startup,
     should_seed_plan,
     should_touch_activity,
+    touch_seed_revision,
 )
 from scripts.seed_plan_definitions import (
     CLEAR_ACTIONS,
@@ -65,6 +74,72 @@ def test_force_seed_allows_draft_without_run_pins() -> None:
     )
 
 
+def test_should_refresh_when_repo_revision_is_newer() -> None:
+    assert (
+        should_refresh_seeded_plan_on_startup(
+            existing_count=1,
+            plan_source="seed",
+            stored_revision="2026-01-01T00:00:00Z",
+            repo_revision=PLAN_SEED_REVISION,
+        )
+        is True
+    )
+
+
+def test_should_not_refresh_user_owned_plans() -> None:
+    assert (
+        should_refresh_seeded_plan_on_startup(
+            existing_count=1,
+            plan_source="user",
+            stored_revision="",
+            repo_revision=PLAN_SEED_REVISION,
+        )
+        is False
+    )
+
+
+def test_should_not_refresh_when_revision_matches() -> None:
+    assert (
+        should_refresh_seeded_plan_on_startup(
+            existing_count=1,
+            plan_source="seed",
+            stored_revision=PLAN_SEED_REVISION,
+            repo_revision=PLAN_SEED_REVISION,
+        )
+        is False
+    )
+
+
+def test_should_publish_when_active_content_changed() -> None:
+    assert (
+        should_publish_version_snapshot(
+            plan_status="active",
+            version_count=2,
+            repo_content_hash="abc",
+            latest_version_hash="def",
+        )
+        is True
+    )
+
+
+def test_should_not_publish_when_hash_matches() -> None:
+    assert (
+        should_publish_version_snapshot(
+            plan_status="active",
+            version_count=2,
+            repo_content_hash="same",
+            latest_version_hash="same",
+        )
+        is False
+    )
+
+
+def test_resolve_plan_seed_revision_uses_override() -> None:
+    assert resolve_plan_seed_revision({"_seedRevision": "2026-07-01T00:00:00Z"}) == (
+        "2026-07-01T00:00:00Z"
+    )
+
+
 def test_activity_definitions_are_create_only() -> None:
     assert should_touch_activity(0) is True
     assert should_touch_activity(1) is False
@@ -75,6 +150,7 @@ class _SeedClient:
         self.plans: dict[str, dict] = {}
         self.activities: set[str] = set()
         self.version_hashes: dict[str, str] = {}
+        self.version_numbers: dict[str, int] = {}
         self.queries: list[str] = []
 
     def run(self, query: str, **params):  # noqa: ANN001
@@ -88,33 +164,37 @@ class _SeedClient:
             return [{"cnt": 1 if plan_id in self.plans else 0}]
         if query == COUNT_ACTIVITY_BY_ID:
             return [{"cnt": 1 if params["id"] in self.activities else 0}]
-        if query == GET_PLAN_SEED_STATE:
+        if query in (GET_PLAN_SEED_STATE, GET_PLAN_REFRESH_STATE):
             plan_id = params["id"]
             plan = self.plans.get(plan_id, {})
-            versions = [
-                vid for vid, _ in self.version_hashes.items() if vid.startswith(plan_id)
-            ]
+            versions = [vid for vid in self.version_hashes if vid.startswith(plan_id)]
+            latest_hash = ""
+            if versions:
+                latest_hash = self.version_hashes[versions[-1]]
             return [
                 {
                     "status": plan.get("status", "draft"),
                     "version_count": len(versions),
                     "referenced_version_count": plan.get("referenced_versions", 0),
+                    "source": plan.get("source", "seed"),
+                    "seed_revision": plan.get("seed_revision", ""),
+                    "latest_version_hash": latest_hash,
                 }
             ]
-        if query == GET_VERSION_CONTENT_HASHES:
-            return [
-                {
-                    "version_id": vid,
-                    "content_hash": h,
-                    "version_id_num": idx,
-                }
-                for idx, (vid, h) in enumerate(self.version_hashes.items(), start=1)
-            ]
+        if query == GET_MAX_VERSION_ID:
+            plan_id = params["pid"]
+            return [{"max_ver": self.version_numbers.get(plan_id, 0)}]
         if query == UPSERT_PLAN:
             self.plans[params["id"]] = {
                 "status": params["status"],
                 "raw": params["raw"],
+                "source": "seed",
+                "seed_revision": params["seed_revision"],
             }
+            return []
+        if query == UPDATE_SEED_REVISION:
+            plan = self.plans.setdefault(params["id"], {})
+            plan["seed_revision"] = params["seed_revision"]
             return []
         if query == CLEAR_ACTIONS:
             return []
@@ -122,6 +202,12 @@ class _SeedClient:
             if query == UPSERT_ACTIVITY:
                 self.activities.add(params["id"])
             return []
+        if query == PUBLISH_VERSION_SNAPSHOT:
+            plan_id = params["pid"]
+            ver = int(params["ver"])
+            self.version_numbers[plan_id] = ver
+            self.version_hashes[f"{plan_id}-ver-{ver}"] = params["content_hash"]
+            return [{"version_id": params["vid"]}]
         if "PlanDefinitionVersion" in query and "CREATE" in query:
             self.version_hashes[params["vid"]] = params["content_hash"]
             return [{"version_id": params["vid"]}]
@@ -145,6 +231,39 @@ def test_seed_rerun_leaves_version_hashes_unchanged() -> None:
     )
 
 
+def test_startup_refresh_publishes_new_version_for_active_seed_plan() -> None:
+    client = _SeedClient()
+    plan_id = "pd-referral-assessment"
+    client.plans[plan_id] = {
+        "status": "active",
+        "source": "seed",
+        "seed_revision": "2026-01-01T00:00:00Z",
+    }
+    client.version_numbers[plan_id] = 2
+    client.version_hashes[f"{plan_id}-ver-2"] = "stale-hash"
+
+    seed_with_client(client, startup_refresh=True)
+
+    assert client.version_numbers[plan_id] == 3
+    assert client.plans[plan_id]["seed_revision"] == PLAN_SEED_REVISION
+
+
+def test_startup_refresh_skips_user_owned_plan() -> None:
+    client = _SeedClient()
+    plan_id = "pd-referral-assessment"
+    before_raw = '{"status":"active"}'
+    client.plans[plan_id] = {
+        "status": "active",
+        "source": "user",
+        "seed_revision": "",
+        "raw": before_raw,
+    }
+
+    seed_with_client(client, startup_refresh=True)
+
+    assert client.plans[plan_id]["raw"] == before_raw
+
+
 def test_seed_creates_initial_version_for_missing_plan() -> None:
     client = _SeedClient()
     pd = next(p for p in PLAN_DEFINITIONS if p["id"] == "pd-gold-training-audit")
@@ -160,6 +279,28 @@ def test_seed_creates_initial_version_for_missing_plan() -> None:
     )
     assert version_id
     assert client.version_hashes
+
+
+def test_touch_seed_revision_updates_plan_node() -> None:
+    client = _SeedClient()
+    client.plans["pd-test"] = {"seed_revision": ""}
+    touch_seed_revision(client, plan_id="pd-test", seed_revision="2026-08-04T00:00:00Z")
+    assert client.plans["pd-test"]["seed_revision"] == "2026-08-04T00:00:00Z"
+
+
+def test_publish_plan_version_snapshot_increments_version() -> None:
+    client = _SeedClient()
+    client.plans["pd-test"] = {}
+    client.version_numbers["pd-test"] = 1
+    version_id = publish_plan_version_snapshot(
+        client,
+        plan_id="pd-test",
+        raw_json='{"id":"pd-test","status":"active","action":[]}',
+        content_hash="hash-2",
+        validate=False,
+    )
+    assert version_id
+    assert client.version_numbers["pd-test"] == 2
 
 
 def test_canonical_hash_ignores_key_order() -> None:

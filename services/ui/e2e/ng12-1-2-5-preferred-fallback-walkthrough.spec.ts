@@ -15,7 +15,7 @@
  * Run from services/ui:
  *   npx playwright test ng12-1-2-5-preferred-fallback-walkthrough --project=chromium
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import path from "path";
 import {

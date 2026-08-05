@@ -3,6 +3,7 @@
  */
 
 import { type Page } from "@playwright/test";
+import { waitForPageSettled } from "./page-settle";
 import {
   buildGroupedSurfaceFormsPayload,
   fulfillJson,
@@ -225,5 +226,5 @@ export async function stubOnboardingRoutes(page: Page) {
 
 export async function gotoKnowledgeTab(page: Page, tab: string) {
   await page.goto(`/admin/knowledge?tab=${tab}`);
-  await page.waitForLoadState("networkidle");
+  await waitForPageSettled(page);
 }

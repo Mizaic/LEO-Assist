@@ -1,9 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 
 test.describe("Review Workflow", () => {
   test("review queue loads with task list", async ({ page }) => {
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.getByRole("heading", { name: "Patients" })).toBeVisible();
   });
 
@@ -15,7 +15,7 @@ test.describe("Review Workflow", () => {
     const firstCard = page.locator("[class*='MuiCardActionArea-root']").first();
     if (await firstCard.isVisible()) {
       await firstCard.click();
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
       await expect(page).toHaveURL(/\/care\/patients\//);
     }
   });
@@ -28,30 +28,30 @@ test.describe("Review Workflow", () => {
     const firstCard = page.locator("[class*='MuiCardActionArea-root']").first();
     if (await firstCard.isVisible()) {
       await firstCard.click();
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
       const encounterLink = page.locator("[class*='MuiCard-root']").first();
       if (await encounterLink.isVisible()) {
         await encounterLink.click();
-        await page.waitForLoadState("networkidle");
+        await waitForPageSettled(page);
       }
     }
   });
 
   test("approve button is present in review view", async ({ page }) => {
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.locator("body")).toBeVisible();
   });
 
   test("reject flow is accessible", async ({ page }) => {
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.locator("body")).toBeVisible();
   });
 
   test("entity editing popover opens on entity click", async ({ page }) => {
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page.locator("body")).toBeVisible();
   });
 });

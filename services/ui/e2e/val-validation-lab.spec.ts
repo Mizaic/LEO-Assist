@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 import { finishValPass, runValTest } from "./helpers/validation-spec-runner";
 import { recordProtocolStep } from "./helpers/leo-validation-steps";
 import {
@@ -51,7 +51,7 @@ test.describe("VAL Validation Lab chrome @val", () => {
     protocol: PROTOCOL,
     body: async (ctx) => {
       await ctx.page.goto("/admin/knowledge?tab=validation-lab");
-      await ctx.page.waitForLoadState("networkidle");
+      await waitForPageSettled(ctx.page);
       await expect(ctx.page.getByTestId("validation-lab-page")).toBeVisible();
       await expect(ctx.page.getByTestId("create-patient-wizard")).toBeVisible();
       await expect(ctx.page.getByTestId("wizard-title")).toBeVisible();

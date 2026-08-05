@@ -8,7 +8,7 @@
  * Implements: DC-GOV-001 / DI-44D0E115
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test, waitForPageSettled } from "./fixtures";
 import { assertValidationRunConfig } from "./helpers/atlas-validation-runs";
 import { recordProtocolStep } from "./helpers/leo-validation-steps";
 import {
@@ -145,7 +145,7 @@ test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
 
           // Step 5: Phase 3b subdomain split panel
           await ctx.page.goto(`/settings/domains/${DOMAIN_ID}`);
-          await ctx.page.waitForLoadState("networkidle");
+          await waitForPageSettled(ctx.page);
           await expect(ctx.page.getByTestId("domain-hero")).toBeVisible({ timeout: 10_000 });
           await ctx.page.getByRole("button", { name: `Configure ${SUBDOMAIN}` }).click();
           await expect(ctx.page.getByRole("tab", { name: "Overview" })).toBeVisible({

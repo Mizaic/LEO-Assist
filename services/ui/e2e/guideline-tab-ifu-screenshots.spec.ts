@@ -9,7 +9,7 @@
  *
  * Atlas trace: DI-LEO-AI-121 / DI-42246DA7 (cosmetic coach / editor chrome).
  */
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import path from "path";
 import fs from "fs";

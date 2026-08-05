@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 
 /**
  * Reconcile Pathway end-to-end journey.
@@ -32,7 +32,7 @@ test.describe("Reconcile Pathway (DI-9DCC9F84)", () => {
     page,
   }) => {
     await page.goto("/care/patients?lifecycle_bucket=in_review");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(
       page.getByRole("heading", { name: /Patients/i }),
     ).toBeVisible();
@@ -42,7 +42,7 @@ test.describe("Reconcile Pathway (DI-9DCC9F84)", () => {
     page,
   }, testInfo) => {
     await page.goto("/care/patients?lifecycle_bucket=in_review");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
 
     const firstCard = page.locator("[class*='MuiCardActionArea-root']").first();
     if (!(await firstCard.isVisible().catch(() => false))) {
@@ -51,7 +51,7 @@ test.describe("Reconcile Pathway (DI-9DCC9F84)", () => {
     }
 
     await firstCard.click();
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
 
     const reconcileBtn = page.getByRole("button", {
       name: /Reconcile pathway/i,
@@ -70,7 +70,7 @@ test.describe("Reconcile Pathway (DI-9DCC9F84)", () => {
     "drawer Confirm and lock action stays disabled until reviewer notes are present",
     async ({ page }, testInfo) => {
       await page.goto("/care/patients?lifecycle_bucket=in_review");
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
 
       const firstCard = page
         .locator("[class*='MuiCardActionArea-root']")
@@ -81,7 +81,7 @@ test.describe("Reconcile Pathway (DI-9DCC9F84)", () => {
       }
 
       await firstCard.click();
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
 
       const reconcileBtn = page.getByRole("button", {
         name: /Reconcile pathway/i,
@@ -122,7 +122,7 @@ test.describe("Reconcile Pathway (DI-9DCC9F84)", () => {
     }
 
     await page.goto("/care/patients?lifecycle_bucket=in_review");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
 
     const firstCard = page.locator("[class*='MuiCardActionArea-root']").first();
     if (!(await firstCard.isVisible().catch(() => false))) {
@@ -130,7 +130,7 @@ test.describe("Reconcile Pathway (DI-9DCC9F84)", () => {
       return;
     }
     await firstCard.click();
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
 
     const reconcileBtn = page.getByRole("button", {
       name: /Reconcile pathway/i,

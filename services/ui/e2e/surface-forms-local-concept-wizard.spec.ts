@@ -3,7 +3,7 @@
  * Happy: open wizard with package selected.
  * Non-happy: blocked without package selection (+ screenshots).
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { fulfillJson, stubKnowledgeAdminAuth } from "./helpers/surface-forms-fixtures";
 
 test.describe("Surface Forms local concept wizard entry", () => {

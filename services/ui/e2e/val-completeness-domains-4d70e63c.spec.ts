@@ -5,7 +5,7 @@
  * Backend calls are stubbed so the spec is deterministic.
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { assertValidationRunConfig } from "./helpers/atlas-validation-runs";
 import {
   DOMAIN_ID,

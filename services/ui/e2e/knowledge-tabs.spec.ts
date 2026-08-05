@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 
 /**
@@ -29,7 +29,7 @@ test.describe("knowledge tabs (VT-LEO-AI-171)", () => {
   for (const tab of KNOWLEDGE_TABS) {
     test(`tab ${tab} loads`, async ({ page }) => {
       await page.goto(`/admin/knowledge?tab=${tab}`);
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
       await expect(page).toHaveURL(new RegExp(`tab=${tab}`));
     });
 
@@ -37,7 +37,7 @@ test.describe("knowledge tabs (VT-LEO-AI-171)", () => {
       page,
     }) => {
       await page.goto(`/admin/knowledge?tab=${tab}`);
-      await page.waitForLoadState("networkidle");
+      await waitForPageSettled(page);
 
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

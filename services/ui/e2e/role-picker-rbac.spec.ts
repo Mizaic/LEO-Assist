@@ -16,7 +16,7 @@
  * 5. Scope type filtering -- TC-S01 to TC-S02  (icb/alliance hides Patients)
  */
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, gotoAndSettle, test, type Page } from "./fixtures";
 
 // -- Session factory --------------------------------------------------------
 
@@ -62,11 +62,6 @@ async function withRole(page: Page, role: string, opts: SessionOpts = {}) {
 }
 
 // -- Helpers ----------------------------------------------------------------
-
-async function gotoAndSettle(page: Page, path = "/") {
-  await page.goto(path);
-  await page.waitForLoadState("networkidle");
-}
 
 async function expectNavVisible(page: Page, label: RegExp | string) {
   await expect(page.getByRole("navigation").getByText(label)).toBeVisible();
@@ -140,7 +135,7 @@ test.describe("TC-L: Role landing pages", () => {
   test("TC-L01 triage_clinician lands on /care/patients", async ({ page }) => {
     await withRole(page, "triage_clinician");
     await page.goto("/care/patients");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/care\/patients/);
     await expect(page.locator("body")).toBeVisible();
   });
@@ -148,7 +143,7 @@ test.describe("TC-L: Role landing pages", () => {
   test("TC-L02 clinical_coder lands on /work", async ({ page }) => {
     await withRole(page, "clinical_coder");
     await page.goto("/work");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/work/);
     await expect(page.locator("body")).toBeVisible();
   });
@@ -156,7 +151,7 @@ test.describe("TC-L: Role landing pages", () => {
   test("TC-L03 auditor lands on /care/audit", async ({ page }) => {
     await withRole(page, "auditor");
     await page.goto("/care/audit");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/care\/audit/);
     await expect(page.locator("body")).toBeVisible();
   });
@@ -164,7 +159,7 @@ test.describe("TC-L: Role landing pages", () => {
   test("TC-L04 platform_admin lands on /admin/platform", async ({ page }) => {
     await withRole(page, "platform_admin", { isPlatformAdmin: true });
     await page.goto("/admin/platform");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/admin\/platform/);
     await expect(page.locator("body")).toBeVisible();
   });
@@ -172,7 +167,7 @@ test.describe("TC-L: Role landing pages", () => {
   test("TC-L05 org_admin lands on /admin/portal", async ({ page }) => {
     await withRole(page, "org_admin");
     await page.goto("/admin/portal");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/admin\/portal/);
     await expect(page.locator("body")).toBeVisible();
   });
@@ -180,7 +175,7 @@ test.describe("TC-L: Role landing pages", () => {
   test("TC-L06 pathway_supervisor lands on /care/dashboard", async ({ page }) => {
     await withRole(page, "pathway_supervisor");
     await page.goto("/care/dashboard");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/care\/dashboard/);
     await expect(page.locator("body")).toBeVisible();
   });

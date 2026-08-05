@@ -5,7 +5,7 @@
  * Atlas: DI-D6E5F94E / DO-E981C7B1 / VT-BE867D10
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("Validation Lab SPoA RAS referral wizard chrome", () => {
   test.beforeEach(async ({ page }) => {

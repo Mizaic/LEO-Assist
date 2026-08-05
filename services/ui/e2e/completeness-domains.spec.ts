@@ -10,7 +10,7 @@
  *   VT-6ADE2398  -- Rules tab CRUD invariants
  */
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   DOMAIN_ID,
   SUBDOMAIN,

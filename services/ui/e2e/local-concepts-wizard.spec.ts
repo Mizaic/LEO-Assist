@@ -2,7 +2,7 @@
  * Local concepts wizard -- happy path with screenshots.
  * Stubs terminology APIs so the journey is deterministic.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { fulfillJson, stubKnowledgeAdminAuth } from "./helpers/surface-forms-fixtures";
 
 test.describe("Local concepts wizard", () => {

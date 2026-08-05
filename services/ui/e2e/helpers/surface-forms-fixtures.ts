@@ -62,9 +62,10 @@ export async function stubKnowledgeAdminAuth(page: Page) {
 
 export async function gotoSurfaceFormsTab(page: Page) {
   await page.goto("/admin/knowledge?tab=surface-forms");
-  await expect(page.getByText("NLP & AI")).toBeVisible({ timeout: 15_000 });
+  const main = page.locator("#main-content");
+  await expect(main.getByText("NLP & AI")).toBeVisible({ timeout: 15_000 });
   await expect(page).toHaveURL(/tab=surface-forms/);
-  await expect(page.getByText("Diabetes mellitus type 2 (disorder)")).toBeVisible({
+  await expect(main.getByText("Diabetes mellitus type 2 (disorder)")).toBeVisible({
     timeout: 15_000,
   });
 }

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("Processing", () => {
   test("pipeline tab renders no-code controls", async ({ page }) => {

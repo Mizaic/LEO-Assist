@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, waitForPageSettled } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 
 /**
@@ -11,7 +11,7 @@ test.describe("Validation Lab (retired SBAR playground)", () => {
     page,
   }) => {
     await page.goto("/admin/knowledge?tab=validation-lab");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
 
     await expect(page.getByTestId("validation-lab-page")).toBeVisible();
     await expect(page.getByTestId("validation-lab-cases-panel")).toBeVisible();
@@ -24,13 +24,13 @@ test.describe("Validation Lab (retired SBAR playground)", () => {
     page,
   }) => {
     await page.goto("/admin/ai-summarisation");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
     await expect(page).toHaveURL(/validation-lab/);
   });
 
   test("zero critical or serious axe violations", async ({ page }) => {
     await page.goto("/admin/knowledge?tab=validation-lab");
-    await page.waitForLoadState("networkidle");
+    await waitForPageSettled(page);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

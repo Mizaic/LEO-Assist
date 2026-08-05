@@ -13,7 +13,7 @@
  * episode is selectable, and it never fails the suite when the
  * environment has no episodes to show.
  */
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("EpisodeDetailPanel (Mission Control)", () => {
   test("mission control page loads", async ({ page }) => {
