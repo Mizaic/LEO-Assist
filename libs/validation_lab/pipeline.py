@@ -44,6 +44,12 @@ MATCH (r:PipelineRun {id: $run_id})
 RETURN r.status AS status, r.assessment_id AS assessment_id
 """
 
+_GET_PIPELINE_RUN_BY_ADMISSION_KEY = """
+MATCH (r:PipelineRun {admission_key: $admission_key})
+RETURN r.id AS id
+LIMIT 1
+"""
+
 # Legacy fallback for pre-cutover WorkflowEngine runs that only wrote
 # :AuditEvent nodes. Durable plans use :PipelineRun via DurableStepRunner.
 _GET_AUDIT_FALLBACK = """
@@ -199,6 +205,51 @@ def execute_lab_run(
     return RunOutputs(phase_outputs=phase_outputs)
 
 
+def resolve_pipeline_run_id(
+    client: Any,
+    *,
+    case: dict[str, Any],
+    run: dict[str, Any],
+    run_id: str,
+) -> str:
+    """Map a ValidationLabRun id to the live :PipelineRun id when they differ."""
+    rows = client.run(_GET_PIPELINE_RUN, run_id=run_id)
+    if rows:
+        return run_id
+    try:
+        body = build_pipeline_message(
+            case,
+            run_id=run_id,
+            plan_id=str(
+                run.get("plan_id") or case.get("plan_id") or "pd-referral-assessment"
+            ),
+            dry_run=False,
+            ruleset_version=run.get("ruleset_version"),
+        )
+        from libs.workflow.run_admission import build_admission_key
+
+        admission_key = build_admission_key(body)
+    except Exception:
+        logger.debug(
+            "resolve_pipeline_run_id failed for run_id=%s", run_id, exc_info=True
+        )
+        return run_id
+    keyed = client.run(
+        _GET_PIPELINE_RUN_BY_ADMISSION_KEY,
+        admission_key=admission_key,
+    )
+    if keyed:
+        resolved = str(keyed[0].get("id") or run_id)
+        if resolved != run_id:
+            logger.warning(
+                "Validation Lab run_id=%s mapped to PipelineRun id=%s via admission_key",
+                run_id,
+                resolved,
+            )
+        return resolved
+    return run_id
+
+
 def poll_run_status(client: Any, run_id: str) -> dict[str, str]:
     """Read the real pipeline's status + assessment_id for a Lab run.
 
@@ -250,10 +301,15 @@ def list_stage_progress(client: Any, run_id: str) -> list[dict[str, str]]:
 
 
 def attach_stage_progress(
-    client: Any, packed: dict[str, Any], run_id: str
+    client: Any,
+    packed: dict[str, Any],
+    run_id: str,
+    *,
+    pipeline_run_id: str | None = None,
 ) -> dict[str, Any]:
     """Attach live durable stage rows onto a get_run / refresh payload."""
-    packed["run"]["stage_progress"] = list_stage_progress(client, run_id)
+    progress_id = pipeline_run_id or run_id
+    packed["run"]["stage_progress"] = list_stage_progress(client, progress_id)
     return packed
 
 

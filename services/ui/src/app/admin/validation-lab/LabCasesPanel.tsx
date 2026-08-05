@@ -134,11 +134,17 @@ export default function LabCasesPanel() {
         applySingleTick(caseId, title, run),
       );
       applySingleTick(caseId, title, finalRun);
-      setNotice(`Pipeline run ${finalRun.id}: ${finalRun.status}`);
-      if (finalRun.status === "failed") {
+      if (finalRun.status === "completed") {
+        setNotice(`Pipeline run ${finalRun.id}: completed`);
+      } else if (finalRun.status === "failed") {
         setError(
           finalRun.error_message ||
-            "Pipeline test failed to start. Check Service Bus and the pipeline worker.",
+            "Pipeline test failed. Check Service Bus and the pipeline worker.",
+        );
+      } else {
+        setError(
+          finalRun.error_message ||
+            `Pipeline run stopped updating while status was "${finalRun.status}". Refresh the case or re-test.`,
         );
       }
       await loadCase(caseId);

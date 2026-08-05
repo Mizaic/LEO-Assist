@@ -88,7 +88,30 @@ class _AdmissionClient:
             ENSURE_PIPELINE_STAGE_CONSTRAINT,
         ):
             return []
-        if query == ADMIT_PIPELINE_RUN:
+        from libs.cypher.pipeline_stage_queries import ADMIT_VALIDATION_LAB_PIPELINE_RUN
+
+        if query in (ADMIT_PIPELINE_RUN, ADMIT_VALIDATION_LAB_PIPELINE_RUN):
+            if query == ADMIT_VALIDATION_LAB_PIPELINE_RUN:
+                run_id = params["run_id"]
+                key = params["admission_key"]
+                existing = self.runs_by_id.get(run_id)
+                if existing is None:
+                    existing = {
+                        "id": run_id,
+                        "admission_key": key,
+                        "first_step_enqueued": False,
+                        "status": "running",
+                    }
+                    self.runs_by_id[run_id] = existing
+                    self.runs_by_key[key] = existing
+                return [
+                    {
+                        "run_id": existing["id"],
+                        "created": False,
+                        "first_step_enqueued": existing["first_step_enqueued"],
+                        "status": existing["status"],
+                    }
+                ]
             key = params["admission_key"]
             run_id = params["run_id"]
             by_key = self.runs_by_key.get(key)
@@ -177,3 +200,27 @@ def test_admit_reuses_existing_run_id_with_null_admission_key() -> None:
     assert result.first_step_enqueued is True
     assert client.runs_by_id[run_id]["admission_key"] == key
     assert client.runs_by_key[key]["id"] == run_id
+
+
+def test_validation_lab_admit_creates_run_by_lab_run_id() -> None:
+    """Lab runs must not reuse an older PipelineRun via admission_key."""
+    client = _AdmissionClient()
+    store = PipelineStageStore(client)
+    shared_key = build_admission_key(_body("old-run"))
+    client.runs_by_key[shared_key] = {
+        "id": "old-run",
+        "admission_key": shared_key,
+        "first_step_enqueued": True,
+        "status": "completed",
+    }
+    client.runs_by_id["old-run"] = client.runs_by_key[shared_key]
+    lab_body = {
+        **_body("lab-run-new"),
+        "context": {"source": "validation-lab", "case_id": "case-1"},
+    }
+    result = store.admit_run(
+        StepRequest.from_message(lab_body),
+        admission_key=build_admission_key(lab_body),
+    )
+    assert result.run_id == "lab-run-new"
+    assert client.runs_by_id["lab-run-new"]["id"] == "lab-run-new"

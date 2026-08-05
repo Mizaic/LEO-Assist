@@ -110,6 +110,7 @@ class FakeClient:
             "llm_cost_usd": params.get("llm_cost_usd") or 0.0,
             "llm_total_tokens": params.get("llm_total_tokens") or 0,
             "llm_calls": params.get("llm_calls") or 0,
+            "created_at": prior.get("created_at") or "2026-08-05T08:00:00+00:00",
         }
         return [{"r": self.runs[rid]}]
 
@@ -583,6 +584,35 @@ def test_refresh_run_returns_live_stage_progress_while_running():
     assert stages[0]["worker_id"] == "replica-a:msg-1"
     assert stages[1]["status"] == "running"
     assert stages[1]["worker_id"] == "replica-b:msg-2"
+
+
+def test_refresh_run_marks_orphan_queued_run_failed(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(lab_service, "LAB_ORPHAN_QUEUED_SECONDS", 0)
+    client = FakeClient()
+    client.cases["c-orphan"] = {
+        "id": "c-orphan",
+        "patient_id": "p-orphan",
+        "plan_id": "pd-referral-assessment",
+        "encounter_id": "enc-1",
+        "referral_id": "ref-1",
+        "document_reference_id": "doc-1",
+        "chunk_ids": ["chunk-1"],
+        "gold_json": "{}",
+    }
+    client.runs["run-orphan"] = {
+        "id": "run-orphan",
+        "_case_id": "c-orphan",
+        "persist_mode": "production",
+        "plan_id": "pd-referral-assessment",
+        "phase_ids": ["extraction"],
+        "status": "queued",
+        "outputs_json": '{"phase_outputs":[{"phase_id":"extraction","status":"queued","pipeline_enqueued":true}]}',
+        "error_message": "",
+        "created_at": "2020-01-01T00:00:00+00:00",
+    }
+    result = lab_service.refresh_run(client, "c-orphan", "run-orphan")
+    assert result["run"]["status"] == "failed"
+    assert "never admitted" in (result["run"].get("error_message") or "").lower()
 
 
 def test_update_case_referral_text(monkeypatch: pytest.MonkeyPatch):
