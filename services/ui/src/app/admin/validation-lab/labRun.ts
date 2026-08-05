@@ -9,11 +9,15 @@
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
 import {
+  batchPollTimeoutMs,
   getRun,
   pollRunUntilTerminal,
+  SINGLE_LAB_RUN_POLL_TIMEOUT_MS,
   startRun,
   type LabRun,
 } from "./labApi";
+
+export { batchPollTimeoutMs, SINGLE_LAB_RUN_POLL_TIMEOUT_MS } from "./labApi";
 
 export const DEFAULT_LAB_PLAN_ID = "pd-referral-assessment";
 
@@ -83,7 +87,7 @@ export async function pollCasePipeline(
   opts?: { intervalMs?: number; timeoutMs?: number },
 ): Promise<LabRun> {
   const intervalMs = opts?.intervalMs ?? 2000;
-  const timeoutMs = opts?.timeoutMs ?? 120000;
+  const timeoutMs = opts?.timeoutMs ?? SINGLE_LAB_RUN_POLL_TIMEOUT_MS;
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const packed = await getRun(caseId, runId);
@@ -169,14 +173,6 @@ export interface ManyRunTick {
 
 function isTerminalStatus(status: string): boolean {
   return status === "completed" || status === "failed";
-}
-
-/** Scale multi-case poll window with batch size (min 10m, max 45m). */
-export function batchPollTimeoutMs(caseCount: number): number {
-  const perCaseMs = 90_000;
-  const floorMs = 600_000;
-  const ceilingMs = 2_700_000;
-  return Math.min(ceilingMs, Math.max(floorMs, caseCount * perCaseMs));
 }
 
 /**

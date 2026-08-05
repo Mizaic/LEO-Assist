@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -36,6 +37,7 @@ from libs.validation_lab.pipeline import (
     first_pipeline_error,
     poll_run_status,
     read_real_outputs,
+    resolve_pipeline_run_id,
 )
 from libs.validation_lab.ag_pipeline import (
     build_ag_pipeline_message,
@@ -45,6 +47,8 @@ from libs.validation_lab.ruleset_version import resolve_ruleset_version
 from libs.validation_lab.scaffold import materialise_case
 
 logger = logging.getLogger(__name__)
+
+LAB_ORPHAN_QUEUED_SECONDS = int(os.getenv("LAB_ORPHAN_QUEUED_SECONDS", "120"))
 
 
 def _llm_upsert_fields(outputs: RunOutputs | dict[str, Any] | None) -> dict[str, Any]:
@@ -419,6 +423,56 @@ def get_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
     return _json_safe({"run": run, "case": case})
 
 
+def _lab_run_age_seconds(run: dict[str, Any]) -> float | None:
+    raw = run.get("created_at")
+    if raw is None:
+        return None
+    if hasattr(raw, "to_native"):
+        created = raw.to_native()
+    elif isinstance(raw, str) and raw.strip():
+        created = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    else:
+        return None
+    now = datetime.now(timezone.utc)
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    return (now - created).total_seconds()
+
+
+def _fail_orphan_queued_lab_run(
+    client: Any,
+    *,
+    case_id: str,
+    run_id: str,
+    run: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Mark a Lab run failed when the worker never admitted a PipelineRun."""
+    age = _lab_run_age_seconds(run)
+    if age is None or age < LAB_ORPHAN_QUEUED_SECONDS:
+        return None
+    outputs = RunOutputs.from_dict(run.get("outputs") or {})
+    if first_pipeline_error(outputs):
+        return None
+    error = (
+        "Pipeline worker never admitted this run. "
+        "Re-test or check pipeline-worker and Service Bus."
+    )
+    client.run(
+        UPSERT_LAB_RUN,
+        case_id=case_id,
+        run_id=run_id,
+        persist_mode=run["persist_mode"],
+        plan_id=run["plan_id"],
+        phase_ids=run["phase_ids"],
+        status="failed",
+        outputs_json=_dumps(run.get("outputs") or {}),
+        error_message=error[:500],
+        ruleset_version=run.get("ruleset_version"),
+        **_llm_upsert_fields(run.get("outputs")),
+    )
+    return attach_stage_progress(client, get_run(client, case_id, run_id), run_id)
+
+
 def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
     """Poll the real pipeline for a production Lab run.
 
@@ -433,8 +487,20 @@ def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
     if run.get("status") in ("completed", "failed"):
         return attach_stage_progress(client, packed, run_id)
 
-    status_info = poll_run_status(client, run_id)
+    pipeline_run_id = resolve_pipeline_run_id(
+        client,
+        case=packed["case"],
+        run=run,
+        run_id=run_id,
+    )
+    status_info = poll_run_status(client, pipeline_run_id)
     real_status = status_info["status"]
+    if real_status == "queued" and run.get("status") == "queued":
+        failed = _fail_orphan_queued_lab_run(
+            client, case_id=case_id, run_id=run_id, run=run
+        )
+        if failed is not None:
+            return failed
     if real_status in ("completed", "failed"):
         outputs = read_real_outputs(client, status_info["assessment_id"])
         prior = run.get("outputs") or {}
@@ -452,7 +518,9 @@ def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
             ruleset_version=run.get("ruleset_version"),
             **_llm_upsert_fields(outputs),
         )
-        return attach_stage_progress(client, get_run(client, case_id, run_id), run_id)
+        return attach_stage_progress(
+            client, get_run(client, case_id, run_id), run_id, pipeline_run_id=pipeline_run_id
+        )
 
     if real_status == "running" and run.get("status") == "queued":
         client.run(
@@ -476,12 +544,14 @@ def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
                 recover_stuck_pipeline_run_sync,
             )
 
-            recover_stuck_pipeline_run_sync(client, run_id)
+            recover_stuck_pipeline_run_sync(client, pipeline_run_id)
         except Exception:
             logger.debug(
-                "Lab stuck-run recovery skipped for run_id=%s", run_id, exc_info=True
+                "Lab stuck-run recovery skipped for run_id=%s", pipeline_run_id, exc_info=True
             )
-    return attach_stage_progress(client, packed, run_id)
+    return attach_stage_progress(
+        client, packed, run_id, pipeline_run_id=pipeline_run_id
+    )
 
 
 def promote_gold(client: Any, case_id: str, run_id: str) -> dict[str, Any]:

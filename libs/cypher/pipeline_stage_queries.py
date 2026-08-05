@@ -114,6 +114,47 @@ RETURN r.id AS run_id,
        r.status AS status
 """
 
+# Validation Lab re-Tests must admit a distinct PipelineRun per Lab run_id.
+# Generic ADMIT_PIPELINE_RUN can return an older run via admission_key and leave
+# the new ValidationLabRun row orphaned at status=queued (DI-2289D095).
+ADMIT_VALIDATION_LAB_PIPELINE_RUN = """
+MERGE (r:PipelineRun {id: $run_id})
+ON CREATE SET
+    r.admission_key = $admission_key,
+    r.created_at = datetime(),
+    r.workflow_id = $workflow_id,
+    r.plan_definition_id = $plan_definition_id,
+    r.patient_id = $patient_id,
+    r.encounter_id = $encounter_id,
+    r.source = $source,
+    r.case_id = $case_id,
+    r.parent_run_id = $parent_run_id,
+    r.policy_version = $policy_version,
+    r.plan_version_id = $plan_version_id,
+    r.version_selection_reason = $version_selection_reason,
+    r.execution_manifest_json = $execution_manifest_json,
+    r.status = 'running',
+    r.first_step_enqueued = false,
+    r.updated_at = datetime()
+ON MATCH SET
+    r.updated_at = datetime()
+WITH r
+OPTIONAL MATCH (p:Patient {id: $patient_id})
+FOREACH (_ IN CASE WHEN p IS NULL THEN [] ELSE [1] END |
+  MERGE (p)-[:HAS_PIPELINE_RUN]->(r)
+)
+WITH r
+OPTIONAL MATCH (v:PlanDefinitionVersion {id: $plan_version_id})
+WHERE $plan_version_id IS NOT NULL AND trim($plan_version_id) <> ''
+FOREACH (_ IN CASE WHEN v IS NULL THEN [] ELSE [1] END |
+  MERGE (r)-[:USED_WORKFLOW]->(v)
+)
+RETURN r.id AS run_id,
+       false AS created,
+       coalesce(r.first_step_enqueued, false) AS first_step_enqueued,
+       r.status AS status
+"""
+
 GET_PIPELINE_RUN_EXECUTION_MANIFEST = """
 MATCH (r:PipelineRun {id: $run_id})
 RETURN coalesce(r.execution_manifest_json, '') AS execution_manifest_json

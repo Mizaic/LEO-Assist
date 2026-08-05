@@ -44,7 +44,7 @@ export function taskRowsFromSheet(input: {
       workerId: (s.worker_id || "").trim() || undefined,
     }));
   }
-  return (input.phases || []).map((p) => ({
+  return (input.phases || []).map((p, index) => ({
     key: p.phase_id,
     label: p.phase_id,
     status: input.terminal
@@ -53,7 +53,16 @@ export function taskRowsFromSheet(input: {
         : "completed"
       : p.status === "skipped_persist"
         ? "skipped_persist"
-        : "waiting",
+        : p.status === "queued" ||
+            p.status === "running" ||
+            p.status === "failed" ||
+            p.status === "completed"
+          ? p.status
+          : input.status === "queued" && index === 0
+            ? "queued"
+            : input.status === "queued"
+              ? "pending"
+              : "waiting",
   }));
 }
 

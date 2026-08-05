@@ -142,6 +142,17 @@ function SingleBody({ sheet }: { sheet: SingleRunSheet }) {
           Bitmap version: {sheet.rulesetVersion}
         </Typography>
       ) : null}
+      {sheet.status === "queued" && !(sheet.stages && sheet.stages.length) ? (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          data-testid="validation-lab-run-sheet-queued-hint"
+        >
+          Waiting for the pipeline worker to pick up this run from the queue.
+          The stage list updates once processing starts (this can take several
+          minutes when the queue is busy).
+        </Typography>
+      ) : null}
       <ProgressStrip
         label="Pipeline stages"
         value={

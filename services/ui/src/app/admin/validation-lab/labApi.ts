@@ -290,6 +290,17 @@ export function getRun(
 
 const TERMINAL_RUN_STATUSES = new Set(["completed", "failed"]);
 
+/** Scale multi-case poll window with batch size (min 10m, max 45m). */
+export function batchPollTimeoutMs(caseCount: number): number {
+  const perCaseMs = 90_000;
+  const floorMs = 600_000;
+  const ceilingMs = 2_700_000;
+  return Math.min(ceilingMs, Math.max(floorMs, caseCount * perCaseMs));
+}
+
+/** Single durable referral runs can take 20-40 minutes; do not stop polling at 2m. */
+export const SINGLE_LAB_RUN_POLL_TIMEOUT_MS = 2_700_000;
+
 /** Poll GET .../runs/{run_id} until the real pipeline reaches a terminal
  * status, or `timeoutMs` elapses. Never fabricates a result. */
 export async function pollRunUntilTerminal(
@@ -298,7 +309,7 @@ export async function pollRunUntilTerminal(
   opts: { intervalMs?: number; timeoutMs?: number } = {},
 ): Promise<LabRun> {
   const intervalMs = opts.intervalMs ?? 2000;
-  const timeoutMs = opts.timeoutMs ?? 120000;
+  const timeoutMs = opts.timeoutMs ?? SINGLE_LAB_RUN_POLL_TIMEOUT_MS;
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const packed = await getRun(caseId, runId);

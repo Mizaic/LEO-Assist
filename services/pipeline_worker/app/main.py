@@ -330,12 +330,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     body.get("plan_definition_id") or body.get("workflow_id") or ""
                 )
                 if is_durable_runner_enabled(plan_id):
-                    logger.error(
-                        "Durable plan message was not handled: plan_id=%s event_type=%s",
-                        plan_id,
-                        body.get("event_type"),
+                    msg = (
+                        f"Durable plan message was not handled: "
+                        f"plan_id={plan_id} event_type={body.get('event_type')}"
                     )
-                    return
+                    logger.error(msg)
+                    raise RuntimeError(msg)
             except MessageDeferError as defer:
                 logger.info(
                     "Durable step deferred: reason=%s run_id=%s action_id=%s",

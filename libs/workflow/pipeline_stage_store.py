@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 
 from libs.cypher.pipeline_stage_queries import (
     ADMIT_PIPELINE_RUN,
+    ADMIT_VALIDATION_LAB_PIPELINE_RUN,
     CLAIM_FIRST_STEP_ENQUEUE,
     CLAIM_OUTBOX_EVENT_FOR_SEND,
     CLAIM_PIPELINE_STAGE_RUN,
@@ -157,8 +158,14 @@ class PipelineStageStore:
         version_selection_reason: str = "",
         execution_manifest_json: str = "",
     ) -> RunAdmissionResult:
+        source = str(request.context.get("source") or "")
+        admit_query = (
+            ADMIT_VALIDATION_LAB_PIPELINE_RUN
+            if source.startswith("validation-lab")
+            else ADMIT_PIPELINE_RUN
+        )
         rows = self._client.run(
-            ADMIT_PIPELINE_RUN,
+            admit_query,
             admission_key=admission_key,
             run_id=request.run_id,
             workflow_id=request.workflow_id,
