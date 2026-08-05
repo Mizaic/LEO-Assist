@@ -38,6 +38,9 @@ PublishFn = Callable[[dict[str, Any], str], None]
 
 _PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 _TERMINAL_STATUSES = {"completed", "failed"}
+_LAB_EAGER_DURABLE_BOOTSTRAP = (
+    os.getenv("VALIDATION_LAB_EAGER_DURABLE_BOOTSTRAP", "true").lower() != "false"
+)
 
 _GET_PIPELINE_RUN = """
 MATCH (r:PipelineRun {id: $run_id})
@@ -141,6 +144,63 @@ def default_publish(body: dict[str, Any], run_id: str) -> None:
                 logger.debug("message bus close failed after publish", exc_info=True)
 
     _run_coro_sync(_send)
+
+
+def _is_validation_lab_source(body: dict[str, Any]) -> bool:
+    ctx = body.get("context") if isinstance(body.get("context"), dict) else {}
+    return str(ctx.get("source") or "").strip().startswith("validation-lab")
+
+
+def bootstrap_durable_lab_run(body: dict[str, Any]) -> str | None:
+    """Admit a Lab :PipelineRun immediately after publish.
+
+    Before the durable cutover, the legacy WorkflowEngine handled
+    ``referral-received`` in-process on the worker, so the UI saw progress
+    within seconds. Durable plans defer admission to ``DurableStepRunner.start``,
+    which only runs when the Service Bus consumer picks up the trigger message.
+    On validation, a backed-up ``pipeline-jobs`` queue left Lab runs stuck at
+    ``queued`` with empty ``stage_progress``.
+
+    Core-api calls this right after enqueue so the Lab ``run_id`` gets a
+    :PipelineRun before the first UI poll. The worker still consumes the
+    trigger message idempotently (``claim_first_step_enqueue`` no-ops).
+
+    Returns an error string on failure, or None when bootstrap ran or was skipped.
+    """
+    if not _LAB_EAGER_DURABLE_BOOTSTRAP:
+        return None
+    if not _is_validation_lab_source(body):
+        return None
+    plan_id = str(body.get("plan_definition_id") or body.get("workflow_id") or "")
+    from libs.workflow.durable_step_runner import (
+        DurableStepRunner,
+        is_durable_runner_enabled,
+    )
+
+    if not is_durable_runner_enabled(plan_id):
+        return None
+
+    async def _start() -> None:
+        from libs.message_bus.factory import create_message_bus
+
+        bus = create_message_bus()
+        try:
+            await DurableStepRunner.start(body, bus=bus, queue_name=_PIPELINE_QUEUE)
+        finally:
+            try:
+                await bus.close()
+            except BaseException:
+                logger.debug(
+                    "message bus close failed after lab durable bootstrap",
+                    exc_info=True,
+                )
+
+    try:
+        _run_coro_sync(_start)
+    except Exception as exc:
+        logger.warning("validation_lab.durable_bootstrap failed: %s", exc)
+        return str(exc)
+    return None
 
 
 def first_pipeline_error(outputs: RunOutputs) -> str:

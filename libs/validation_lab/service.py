@@ -33,6 +33,8 @@ from libs.validation_lab.models import PersistMode, ValidationCaseSpec
 from libs.validation_lab.pipeline import (
     PublishFn,
     attach_stage_progress,
+    bootstrap_durable_lab_run,
+    build_pipeline_message,
     execute_lab_run,
     first_pipeline_error,
     poll_run_status,
@@ -286,6 +288,7 @@ def start_run(
     outputs: RunOutputs | None = None,
     publish: PublishFn | None = None,
     ruleset_version: str | None = None,
+    eager_durable_bootstrap: bool = False,
 ) -> dict[str, Any]:
     """Start a Lab run. Production mode only enqueues -- it never fabricates
     output. Poll with `refresh_run` for the real pipeline result."""
@@ -302,14 +305,33 @@ def start_run(
         ruleset_version=ruleset_version,
     )
     enqueue_error = ""
+    bootstrap_error = ""
     if outputs is None and persist_mode is PersistMode.production:
         enqueue_error = first_pipeline_error(resolved)
+        if eager_durable_bootstrap and not enqueue_error:
+            body = build_pipeline_message(
+                case,
+                run_id=run_id,
+                plan_id=plan_id or case.get("plan_id") or "",
+                dry_run=False,
+                ruleset_version=ruleset_version,
+            )
+            bootstrap_error = bootstrap_durable_lab_run(body) or ""
+            if bootstrap_error:
+                for row in resolved.phase_outputs or []:
+                    row["pipeline_bootstrap_error"] = bootstrap_error
     if enqueue_error:
         status = "failed"
+    elif bootstrap_error:
+        status = "failed"
+        enqueue_error = bootstrap_error
     elif outputs is not None or persist_mode is PersistMode.dry_run:
         status = "completed"
     else:
         status = "queued"
+        pipe = poll_run_status(client, run_id)
+        if str(pipe.get("status") or "") == "running":
+            status = "running"
     stamped_version = resolve_ruleset_version(ruleset_version)
     client.run(
         UPSERT_LAB_RUN,
@@ -344,6 +366,7 @@ def start_ag_run(
     guideline_id: str | None = None,
     completeness_domain: str | None = None,
     completeness_subdomain: str | None = None,
+    eager_durable_bootstrap: bool = False,
 ) -> dict[str, Any]:
     """Resolve an existing CommunicationRequest by ubrn and enqueue A&G run."""
     resolved = resolve_communication_request(client, ubrn)
@@ -378,6 +401,10 @@ def start_ag_run(
         try:
             sender(body, run_id)
             pipeline_enqueued = True
+            if eager_durable_bootstrap:
+                bootstrap_err = bootstrap_durable_lab_run(body)
+                if bootstrap_err:
+                    pipeline_error = bootstrap_err
         except Exception as exc:
             pipeline_error = str(exc)
         for row in phase_outputs:
@@ -385,6 +412,10 @@ def start_ag_run(
             if pipeline_error:
                 row["pipeline_error"] = pipeline_error
     status = "completed" if dry else "queued"
+    if not dry and pipeline_enqueued and not pipeline_error:
+        pipe = poll_run_status(client, run_id)
+        if str(pipe.get("status") or "") == "running":
+            status = "running"
     return {
         "run": {
             "id": run_id,
@@ -519,7 +550,10 @@ def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
             **_llm_upsert_fields(outputs),
         )
         return attach_stage_progress(
-            client, get_run(client, case_id, run_id), run_id, pipeline_run_id=pipeline_run_id
+            client,
+            get_run(client, case_id, run_id),
+            run_id,
+            pipeline_run_id=pipeline_run_id,
         )
 
     if real_status == "running" and run.get("status") == "queued":
@@ -547,7 +581,9 @@ def refresh_run(client: Any, case_id: str, run_id: str) -> dict[str, Any]:
             recover_stuck_pipeline_run_sync(client, pipeline_run_id)
         except Exception:
             logger.debug(
-                "Lab stuck-run recovery skipped for run_id=%s", pipeline_run_id, exc_info=True
+                "Lab stuck-run recovery skipped for run_id=%s",
+                pipeline_run_id,
+                exc_info=True,
             )
     return attach_stage_progress(
         client, packed, run_id, pipeline_run_id=pipeline_run_id
