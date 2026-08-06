@@ -15,6 +15,7 @@ import { motion as fm } from "framer-motion";
 
 import { formatAgentName } from "./agentRoster";
 import type { PhaseOutput, StageProgress } from "./labApi";
+import type { LabTraceSpan } from "./inspectorTypes";
 import { formatStageLabel } from "./labRunFormat";
 
 export interface TaskRow {
@@ -35,9 +36,18 @@ export function taskRowsFromSheet(input: {
   phases: PhaseOutput[];
   terminal: boolean;
   status: string;
+  liveSpans?: LabTraceSpan[];
 }): TaskRow[] {
   if (input.stages && input.stages.length > 0) {
     return input.stages.map((s) => ({
+      key: s.step_id,
+      label: formatStageLabel(s.step_id),
+      status: s.status,
+      workerId: (s.worker_id || "").trim() || undefined,
+    }));
+  }
+  if (input.liveSpans && input.liveSpans.length > 0) {
+    return input.liveSpans.map((s) => ({
       key: s.step_id,
       label: formatStageLabel(s.step_id),
       status: s.status,

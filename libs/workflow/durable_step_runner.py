@@ -221,16 +221,21 @@ async def _publish_durable_step(
     queue_name: str,
     request: StepRequest,
     next_action_id: str,
+    *,
+    message_id: str | None = None,
 ) -> None:
     body = {
         **request.to_message(DURABLE_STEP_EVENT, next_action_id),
         "action_id": next_action_id,
     }
+    resolved_id = message_id or build_first_step_message_id(
+        request.run_id, next_action_id
+    )
     await bus.send(
         queue_name,
         Message(
             body=body,
-            message_id=build_first_step_message_id(request.run_id, next_action_id),
+            message_id=resolved_id,
             correlation_id=request.run_id,
             subject=DURABLE_STEP_EVENT,
         ),
@@ -337,9 +342,17 @@ async def _execute_action(action: _Action, state: dict[str, Any]) -> DurableStep
             provenance,
         )
     from libs.pipeline_graph.registry import get_registry
+    from libs.telemetry.tracing import trace_subgraph
 
-    graph = get_registry().build(action.subgraph_id)
-    output = await asyncio.to_thread(graph.invoke, state)
+    patient_id = str(state.get("patient_id") or "")
+    with trace_subgraph(
+        action.subgraph_id,
+        patient_id=patient_id,
+        action_id=action.action_id,
+        run_id=str(state.get("run_id") or ""),
+    ):
+        graph = get_registry().build(action.subgraph_id)
+        output = await asyncio.to_thread(graph.invoke, state)
     return envelope_step_result(
         DurableStepResult(
             status="completed",
@@ -361,21 +374,45 @@ def _emit_progress(
     event_type: str,
     action_id: str,
     result: DurableStepResult | None = None,
+    *,
+    action: _Action | None = None,
+    input_state: dict[str, Any] | None = None,
+    duration_ms: int | None = None,
+    worker_id: str = "",
 ) -> None:
     if not publisher:
         return
-    payload: dict[str, Any] = {
-        "type": event_type,
-        "run_id": request.run_id,
-        "patient_id": request.patient_id,
-        "encounter_id": request.encounter_id,
-        "workflow_id": request.workflow_id,
-        "action_id": action_id,
-        "status": result.status if result else "running",
-    }
-    if result:
-        payload["errors"] = result.errors
-        payload["metrics"] = result.metrics
+    from libs.validation_lab.trace_events import build_trace_event, keys_from_state
+
+    metrics = (result.metrics if result else None) or {}
+    if duration_ms is None and metrics.get("duration_ms") is not None:
+        duration_ms = int(metrics["duration_ms"])
+    output_state = (result.output if result else None) or {}
+    error = ""
+    if result and result.errors:
+        error = "; ".join(str(e) for e in result.errors[:3])
+    payload = build_trace_event(
+        event_type,
+        request.run_id,
+        service="pipeline-worker",
+        action_id=action_id,
+        step_id=request.step_id or action_id,
+        status=result.status if result else "running",
+        duration_ms=duration_ms,
+        input_keys=keys_from_state(input_state),
+        output_keys=keys_from_state(output_state),
+        subgraph_id=(action.subgraph_id if action else "") or "",
+        worker_id=worker_id,
+        error=error,
+        patient_id=request.patient_id,
+        plan_id=request.plan_definition_id or request.workflow_id,
+        extra={
+            "encounter_id": request.encounter_id,
+            "workflow_id": request.workflow_id,
+            "errors": result.errors if result else None,
+            "metrics": metrics or None,
+        },
+    )
     publisher(request.run_id, payload)
 
 
@@ -530,6 +567,7 @@ async def _already_completed_result(
         "durable_step_already_completed",
         ctx.action_id,
         result,
+        action=action,
     )
     return result
 
@@ -780,13 +818,22 @@ class DurableStepRunner:
                 "durable_step_poisoned",
                 action_id,
                 poisoned,
+                action=action,
             )
             return poisoned
         if claim.outcome == "already_completed":
             return await _already_completed_result(
                 claim, ctx, request, action, all_actions
             )
-        _emit_progress(ctx.publish_progress, request, "durable_step_started", action_id)
+        _emit_progress(
+            ctx.publish_progress,
+            request,
+            "durable_step_started",
+            action_id,
+            action=action,
+            input_state=loaded,
+            worker_id=claim.lease_owner,
+        )
         heartbeat = asyncio.create_task(
             heartbeat_stage_lease(
                 store,
@@ -858,7 +905,14 @@ class DurableStepRunner:
                 lease_generation=claim.lease_generation,
             )
         _emit_progress(
-            ctx.publish_progress, request, "durable_step_completed", action_id, result
+            ctx.publish_progress,
+            request,
+            "durable_step_completed",
+            action_id,
+            result,
+            action=action,
+            input_state=loaded,
+            worker_id=claim.lease_owner,
         )
         await _publish_successors(
             ctx.bus, ctx.queue_name, request, action, result, next_ids, store

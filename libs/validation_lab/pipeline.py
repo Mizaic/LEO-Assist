@@ -176,9 +176,22 @@ def bootstrap_durable_lab_run(body: dict[str, Any]) -> str | None:
         DurableStepRunner,
         is_durable_runner_enabled,
     )
+    from libs.validation_lab.trace_events import build_trace_event, publish_run_trace
 
     if not is_durable_runner_enabled(plan_id):
         return None
+
+    run_id = str(body.get("run_id") or "")
+    publish_run_trace(
+        run_id,
+        build_trace_event(
+            "lab.bootstrap.started",
+            run_id,
+            service="core-api",
+            plan_id=plan_id,
+            patient_id=str(body.get("patient_id") or ""),
+        ),
+    )
 
     async def _start() -> None:
         from libs.message_bus.factory import create_message_bus
@@ -197,8 +210,30 @@ def bootstrap_durable_lab_run(body: dict[str, Any]) -> str | None:
 
     try:
         _run_coro_sync(_start)
+        publish_run_trace(
+            run_id,
+            build_trace_event(
+                "lab.bootstrap.completed",
+                run_id,
+                service="core-api",
+                status="running",
+                plan_id=plan_id,
+                patient_id=str(body.get("patient_id") or ""),
+            ),
+        )
     except Exception as exc:
         logger.warning("validation_lab.durable_bootstrap failed: %s", exc)
+        publish_run_trace(
+            run_id,
+            build_trace_event(
+                "lab.bootstrap.failed",
+                run_id,
+                service="core-api",
+                status="failed",
+                plan_id=plan_id,
+                error=str(exc),
+            ),
+        )
         return str(exc)
     return None
 

@@ -480,6 +480,13 @@ WHERE pr.status = 'running'
 OPTIONAL MATCH (pr)-[:HAS_STAGE]->(s:PipelineStageRun)
 WITH pr, count(s) AS stage_n
 WHERE stage_n = 0
+  AND (
+    coalesce(pr.first_step_enqueued, false) = false
+    OR duration.between(
+         coalesce(pr.updated_at, pr.created_at, datetime()),
+         datetime()
+       ).seconds >= $retry_after_seconds
+  )
 RETURN pr.id AS run_id,
        pr.patient_id AS patient_id,
        pr.plan_definition_id AS plan_definition_id,
@@ -487,6 +494,19 @@ RETURN pr.id AS run_id,
        pr.case_id AS case_id,
        coalesce(pr.first_step_enqueued, false) AS first_step_enqueued
 LIMIT 1
+"""
+
+RESET_FIRST_STEP_FOR_RECOVERY = """
+MATCH (r:PipelineRun {id: $run_id})
+WHERE coalesce(r.first_step_enqueued, false) = true
+  AND NOT coalesce(r.status, 'running') IN
+    ['completed', 'failed', 'cancelled', 'poisoned']
+  AND NOT EXISTS { (r)-[:HAS_STAGE]->(:PipelineStageRun) }
+SET r.first_step_enqueued = false,
+    r.first_step_recovery_generation =
+        coalesce(r.first_step_recovery_generation, 0) + 1,
+    r.updated_at = datetime()
+RETURN r.first_step_recovery_generation AS recovery_generation
 """
 
 CLEAR_FIRST_STEP_ENQUEUE = """
@@ -553,6 +573,48 @@ RETURN s.output_json AS output_json,
        s.status AS status
 ORDER BY s.completed_at DESC
 LIMIT 1
+"""
+
+GET_PIPELINE_STAGE_DETAIL = """
+MATCH (:PipelineRun {id: $run_id})-[:HAS_STAGE]->(s:PipelineStageRun)
+WHERE s.step_id = $step_id
+RETURN s.step_id AS step_id,
+       s.status AS status,
+       s.input_json AS input_json,
+       s.output_json AS output_json,
+       s.output_refs_json AS output_refs_json,
+       coalesce(s.lease_owner, s.completed_by, '') AS worker_id,
+       toString(s.started_at) AS started_at,
+       toString(s.completed_at) AS completed_at,
+       coalesce(s.attempt, 1) AS attempt
+LIMIT 1
+"""
+
+GET_PIPELINE_RUN_INSPECTOR = """
+MATCH (r:PipelineRun {id: $run_id})
+OPTIONAL MATCH (r)-[:USED_WORKFLOW]->(v:PlanDefinitionVersion)
+RETURN r.id AS pipeline_run_id,
+       r.status AS pipeline_status,
+       r.plan_definition_id AS plan_id,
+       r.plan_version_id AS plan_version_id,
+       r.execution_manifest_json AS execution_manifest_json,
+       v.rawJson AS plan_raw_json,
+       v.versionId AS plan_version_number
+LIMIT 1
+"""
+
+LIST_PIPELINE_STAGE_RUNS_INSPECTOR = """
+MATCH (:PipelineRun {id: $run_id})-[:HAS_STAGE]->(s:PipelineStageRun)
+RETURN s.step_id AS step_id,
+       s.event_type AS event_type,
+       coalesce(s.status, 'pending') AS status,
+       coalesce(s.lease_owner, s.completed_by, '') AS worker_id,
+       toString(s.started_at) AS started_at,
+       toString(s.completed_at) AS completed_at,
+       coalesce(s.attempt, 1) AS attempt,
+       s.input_json AS input_json,
+       s.output_json AS output_json
+ORDER BY coalesce(s.started_at, s.created_at) ASC
 """
 
 WRITE_PIPELINE_RUN_COMPLETION = """

@@ -47,6 +47,7 @@ export function buildSupportContext(input: SupportContextInput): string {
     `status: ${input.status}`,
     `bitmap_version: ${input.rulesetVersion || "(none)"}`,
     `error: ${input.error || "(none)"}`,
+    `inspector_sse: ${input.runId ? `/api/pipeline/progress/${input.runId}` : "(none)"}`,
     "stages:",
     ...stageLines,
   ];
