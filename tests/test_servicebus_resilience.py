@@ -255,7 +255,65 @@ async def test_settle_swallows_dead_connection_error(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_settle_skips_abandon_when_shutdown_flag_set(monkeypatch) -> None:
+async def test_listener_health_reports_dead_when_task_not_started(
+    monkeypatch,
+) -> None:
+    adapter = _adapter_with_fake_client(monkeypatch, object())
+    health = adapter.listener_health("pipeline-jobs")
+    assert health["listener_alive"] is False
+    assert health["connect_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_listener_health_reports_alive_after_subscribe(monkeypatch) -> None:
+    class _Receiver:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            await asyncio.sleep(3600)
+            raise StopAsyncIteration
+
+    class _Renewer:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        def register(self, *args, **kwargs):
+            return None
+
+    class _FakeClient:
+        def get_queue_receiver(self, _queue: str) -> _Receiver:
+            return _Receiver()
+
+        async def close(self) -> None:
+            return None
+
+    adapter = _adapter_with_fake_client(monkeypatch, _FakeClient())
+    monkeypatch.setattr(
+        "azure.servicebus.aio.AutoLockRenewer",
+        lambda: _Renewer(),
+    )
+
+    async def _handler(_msg: Message) -> None:
+        return None
+
+    await adapter.subscribe("pipeline-jobs", _handler)
+    await asyncio.sleep(0.05)
+    health = adapter.listener_health("pipeline-jobs")
+    assert health["listener_alive"] is True
+    assert health["connect_count"] >= 1
+    assert health["last_connected_at"] is not None
+    await adapter.close()
+
     from azure.servicebus.exceptions import ServiceBusError
 
     class _FakeReceiver:

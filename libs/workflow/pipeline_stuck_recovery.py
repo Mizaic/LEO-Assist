@@ -21,7 +21,11 @@ from libs.workflow.durable_step_runner import (
 )
 from libs.workflow.durable_steps import StepRequest
 from libs.workflow.plan_manifest import load_manifest_for_run, load_plan_manifest
-from libs.workflow.pipeline_outbox import dispatch_stage_outbox
+from libs.workflow.pipeline_outbox import (
+    build_first_step_message_id,
+    build_first_step_recovery_message_id,
+    dispatch_stage_outbox,
+)
 from libs.workflow.pipeline_stage_store import PipelineStageStore
 
 logger = logging.getLogger(__name__)
@@ -157,7 +161,6 @@ async def _recover_zero_stage(
     *,
     queue_name: str,
 ) -> int:
-    store.clear_first_step_enqueue(run_id)
     plan_id = str(row.get("plan_definition_id") or "")
     manifest = _load_manifest(client, run_id, plan_id)
     if manifest is None:
@@ -176,21 +179,42 @@ async def _recover_zero_stage(
     trigger = next((a for a in manifest.actions if a.trigger_name), None)
     if trigger is None:
         return 0
-    if not store.claim_first_step_enqueue(run_id):
+    recovery_generation = 0
+    if bool(row.get("first_step_enqueued")):
+        bumped = store.reset_first_step_for_recovery(run_id)
+        if bumped is None:
+            return 0
+        recovery_generation = bumped
+    elif not store.claim_first_step_enqueue(run_id):
         return 0
     outgoing = _build_outgoing_edges(list(manifest.actions))
-    targets = (
-        [e["target"] for e in outgoing.get(trigger.action_id, [])]
-        if trigger.node_type == "trigger"
-        else [trigger.action_id]
-    )
+    if trigger.node_type == "trigger":
+        raw_targets = [e["target"] for e in outgoing.get(trigger.action_id, [])]
+    else:
+        raw_targets = [trigger.action_id]
+    targets = list(dict.fromkeys(raw_targets))
     try:
         for target in targets:
-            await _publish_durable_step(bus, queue_name, request, target)
+            message_id = (
+                build_first_step_recovery_message_id(
+                    run_id, target, recovery_generation
+                )
+                if recovery_generation > 0
+                else build_first_step_message_id(run_id, target)
+            )
+            await _publish_durable_step(
+                bus,
+                queue_name,
+                request,
+                target,
+                message_id=message_id,
+            )
         logger.warning(
-            "Stuck-run recovery republished first step: run_id=%s targets=%s",
+            "Stuck-run recovery republished first step: run_id=%s targets=%s "
+            "recovery_generation=%s",
             run_id,
             targets,
+            recovery_generation,
         )
         return len(targets)
     except Exception:

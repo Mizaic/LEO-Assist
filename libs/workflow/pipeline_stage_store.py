@@ -37,6 +37,7 @@ from libs.cypher.pipeline_stage_queries import (
     GET_STUCK_COMPLETED_STAGE_FOR_RUN,
     GET_SUCCESSOR_STAGE_STATUSES,
     GET_ZERO_STAGE_RUNNING_RUN,
+    RESET_FIRST_STEP_FOR_RECOVERY,
     HAS_ANY_OUTBOX_FOR_STAGE,
     HAS_PENDING_OUTBOX_FOR_STAGE,
     MARK_OUTBOX_EVENT_SENT,
@@ -537,9 +538,28 @@ class PipelineStageStore:
         return dict(row) if isinstance(row, dict) else None
 
     def load_zero_stage_running_run(self, run_id: str) -> dict[str, Any] | None:
-        rows = self._client.run(GET_ZERO_STAGE_RUNNING_RUN, run_id=run_id)
+        retry_after = max(
+            15,
+            int(os.getenv("STUCK_ZERO_STAGE_RETRY_SECONDS", "60")),
+        )
+        rows = self._client.run(
+            GET_ZERO_STAGE_RUNNING_RUN,
+            run_id=run_id,
+            retry_after_seconds=retry_after,
+        )
         row = (rows or [None])[0]
         return dict(row) if isinstance(row, dict) else None
+
+    def reset_first_step_for_recovery(self, run_id: str) -> int | None:
+        """Clear enqueue guard and bump recovery generation for a fresh SB message_id."""
+        rows = self._client.run(RESET_FIRST_STEP_FOR_RECOVERY, run_id=run_id)
+        row = (rows or [{}])[0] if rows else {}
+        if not row:
+            return None
+        generation = row.get("recovery_generation")
+        if generation is None:
+            return None
+        return int(generation)
 
     def load_accumulated_state(self, run_id: str) -> dict[str, Any]:
         rows = self._client.run(GET_PIPELINE_STAGE_OUTPUTS, run_id=run_id)

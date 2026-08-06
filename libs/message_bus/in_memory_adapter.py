@@ -73,3 +73,14 @@ class InMemoryQueueAdapter(MessageBusAdapter):
             t.cancel()
         self._tasks.clear()
         self._queues.clear()
+
+    def listener_health(self, queue_or_topic: str) -> dict[str, Any]:
+        alive = any(not task.done() for task in self._tasks)
+        return {
+            "listener_alive": alive,
+            "last_connected_at": None,
+            "connect_count": 1 if alive else 0,
+            "last_disconnect_at": None,
+            "last_listener_error": None,
+            "in_flight_handlers": 0,
+        }

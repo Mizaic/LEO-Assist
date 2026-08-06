@@ -57,6 +57,16 @@ def build_first_step_message_id(run_id: str, action_id: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def build_first_step_recovery_message_id(
+    run_id: str,
+    action_id: str,
+    recovery_generation: int,
+) -> str:
+    """Fresh message_id for stuck-run first-step recovery (avoids SB dedupe)."""
+    raw = f"msg:first:recover:{run_id}:{action_id}:{recovery_generation}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def build_successor_outbox_events(
     request: StepRequest,
     *,

@@ -9,6 +9,8 @@
  *   DI: DI-2289D095
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
+import type { LabRunInspectorSnapshot, LabStageDetail } from "./inspectorTypes";
+
 export type PmhCategory = "condition" | "medication" | "allergy";
 export type LabCaseType = "referral" | "ag";
 export type LabScenarioType = "generic" | "spo_ag" | "ras_referral";
@@ -333,6 +335,25 @@ export function promoteGold(
 export function scoreRun(caseId: string, runId: string): Promise<Record<string, unknown>> {
   return apiJson(
     `/api/validation-lab/cases/${encodeURIComponent(caseId)}/runs/${encodeURIComponent(runId)}/score`,
+  );
+}
+
+export function getRunInspector(
+  caseId: string,
+  runId: string,
+): Promise<LabRunInspectorSnapshot> {
+  return apiJson(
+    `/api/validation-lab/cases/${encodeURIComponent(caseId)}/runs/${encodeURIComponent(runId)}/inspector`,
+  );
+}
+
+export function getRunInspectorStage(
+  caseId: string,
+  runId: string,
+  stepId: string,
+): Promise<LabStageDetail> {
+  return apiJson(
+    `/api/validation-lab/cases/${encodeURIComponent(caseId)}/runs/${encodeURIComponent(runId)}/inspector/stages/${encodeURIComponent(stepId)}`,
   );
 }
 

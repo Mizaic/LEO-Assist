@@ -36,6 +36,7 @@ from libs.cypher.pipeline_stage_queries import (
     MARK_OUTBOX_EVENT_SENT,
     MARK_STAGE_NEXT_PUBLISHED,
     RENEW_PIPELINE_STAGE_LEASE,
+    RESET_FIRST_STEP_FOR_RECOVERY,
     UPSERT_PIPELINE_RUN,
 )
 
@@ -106,7 +107,12 @@ class InMemoryClaimClient:
             if query == GET_STUCK_COMPLETED_STAGE_FOR_RUN:
                 return self._stuck_completed(params["run_id"])
             if query == GET_ZERO_STAGE_RUNNING_RUN:
-                return self._zero_stage(params["run_id"])
+                return self._zero_stage(
+                    params["run_id"],
+                    int(params.get("retry_after_seconds", 60)),
+                )
+            if query == RESET_FIRST_STEP_FOR_RECOVERY:
+                return self._reset_first_step_recovery(params["run_id"])
             if query == ENSURE_PIPELINE_STAGE_OUTBOX:
                 return [self._ensure_outbox(params)]
             raise ValueError(f"Unsupported query in InMemoryClaimClient: {query[:60]}")
@@ -335,7 +341,20 @@ class InMemoryClaimClient:
         if run.get("first_step_enqueued"):
             return [{"enqueued": False}]
         run["first_step_enqueued"] = True
+        run["updated_at"] = datetime.now(timezone.utc)
         return [{"enqueued": True}]
+
+    def _reset_first_step_recovery(self, run_id: str) -> list[dict[str, Any]]:
+        run = self.runs.get(run_id)
+        if run is None or not run.get("first_step_enqueued"):
+            return []
+        if any(s.get("run_id") == run_id for s in self.stages.values()):
+            return []
+        generation = int(run.get("first_step_recovery_generation") or 0) + 1
+        run["first_step_recovery_generation"] = generation
+        run["first_step_enqueued"] = False
+        run["updated_at"] = datetime.now(timezone.utc)
+        return [{"recovery_generation": generation}]
 
     def _clear_first_step(self, run_id: str) -> list[dict[str, Any]]:
         run = self.runs.get(run_id)
@@ -372,12 +391,21 @@ class InMemoryClaimClient:
             }
         ]
 
-    def _zero_stage(self, run_id: str) -> list[dict[str, Any]]:
+    def _zero_stage(self, run_id: str, retry_after_seconds: int = 60) -> list[dict[str, Any]]:
         run = self.runs.get(run_id)
         if not run or run.get("status") != "running":
             return []
         if any(s.get("run_id") == run_id for s in self.stages.values()):
             return []
+        if run.get("first_step_enqueued"):
+            updated = run.get("updated_at") or run.get("created_at")
+            if updated is None:
+                return []
+            if isinstance(updated, str):
+                updated = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+            age = (datetime.now(timezone.utc) - updated).total_seconds()
+            if age < retry_after_seconds:
+                return []
         return [
             {
                 "run_id": run_id,

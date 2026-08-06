@@ -20,6 +20,7 @@ import json
 import logging
 import os
 from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from libs.message_bus.base import Message, MessageBusAdapter
@@ -60,13 +61,32 @@ def _log_servicebus_connection_error(exc: Exception, queue: str, delay_s: int) -
         )
 
 
-def _on_listener_task_done(task: "asyncio.Task[None]", queue: str) -> None:
+@dataclass
+class _QueueListenerState:
+    task: asyncio.Task[None] | None = None
+    last_connected_at: str | None = None
+    connect_count: int = 0
+    last_disconnect_at: str | None = None
+    last_listener_error: str | None = None
+
+    @property
+    def listener_alive(self) -> bool:
+        return self.task is not None and not self.task.done()
+
+
+def _on_listener_task_done(
+    task: "asyncio.Task[None]",
+    queue: str,
+    state: _QueueListenerState,
+) -> None:
     """Done callback that surfaces listener task exceptions."""
+    state.last_disconnect_at = datetime.now(timezone.utc).isoformat()
     if task.cancelled():
         logger.warning("Service Bus listener task for %s was cancelled", queue)
         return
     exc = task.exception()
     if exc is not None:
+        state.last_listener_error = str(exc)
         logger.critical(
             "Service Bus listener for %s terminated with an unhandled exception: %s",
             queue,
@@ -147,8 +167,35 @@ class AzureServiceBusAdapter(MessageBusAdapter):
         self._receivers: list[Any] = []
         self._tasks: list[Any] = []
         self._in_flight: set[asyncio.Task[Any]] = set()
+        self._listener_states: dict[str, _QueueListenerState] = {}
         self._close_lock = asyncio.Lock()
         self._closed = False
+
+    def listener_health(self, queue_or_topic: str) -> dict[str, Any]:
+        """Return listener liveness for /health/consumer and monitoring."""
+        state = self._listener_states.get(queue_or_topic)
+        if state is None:
+            return {
+                "listener_alive": False,
+                "last_connected_at": None,
+                "connect_count": 0,
+                "last_disconnect_at": None,
+                "last_listener_error": None,
+                "in_flight_handlers": len(self._in_flight),
+            }
+        last_error = state.last_listener_error
+        if state.task is not None and state.task.done() and not state.task.cancelled():
+            exc = state.task.exception()
+            if exc is not None:
+                last_error = str(exc)
+        return {
+            "listener_alive": state.listener_alive,
+            "last_connected_at": state.last_connected_at,
+            "connect_count": state.connect_count,
+            "last_disconnect_at": state.last_disconnect_at,
+            "last_listener_error": last_error,
+            "in_flight_handlers": len(self._in_flight),
+        }
 
     def _sender_lock(self, queue_or_topic: str) -> asyncio.Lock:
         """Return the per-queue lock used to serialise send + eviction."""
@@ -390,6 +437,10 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                 self._in_flight.add(task)
                 task.add_done_callback(self._in_flight.discard)
 
+        listener_state = self._listener_states.setdefault(
+            queue_or_topic, _QueueListenerState()
+        )
+
         async def _loop() -> None:
             attempts = 0
 
@@ -407,6 +458,22 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                     try:
                         async with AutoLockRenewer() as renewer:
                             async with receiver:
+                                listener_state.connect_count += 1
+                                listener_state.last_connected_at = datetime.now(
+                                    timezone.utc
+                                ).isoformat()
+                                if listener_state.connect_count == 1:
+                                    logger.info(
+                                        "Service Bus listener connected for %s",
+                                        queue_or_topic,
+                                    )
+                                else:
+                                    logger.info(
+                                        "Service Bus listener reconnected for %s "
+                                        "(connect #%d)",
+                                        queue_or_topic,
+                                        listener_state.connect_count,
+                                    )
                                 attempts = 0
                                 await _handle_receiver_messages(receiver, renewer)
                     except asyncio.CancelledError:
@@ -414,6 +481,9 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                     except ServiceBusError as exc:
                         if self._closed:
                             break
+                        listener_state.last_disconnect_at = datetime.now(
+                            timezone.utc
+                        ).isoformat()
                         attempts += 1
                         delay_s = _reconnect_backoff_seconds(attempts)
                         _log_servicebus_connection_error(exc, queue_or_topic, delay_s)
@@ -423,6 +493,9 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                     except Exception:
                         if self._closed:
                             break
+                        listener_state.last_disconnect_at = datetime.now(
+                            timezone.utc
+                        ).isoformat()
                         attempts += 1
                         delay_s = _reconnect_backoff_seconds(attempts)
                         logger.exception(
@@ -435,8 +508,11 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                 await self._drain_in_flight()
 
         task = asyncio.create_task(_loop())
+        listener_state.task = task
         self._tasks.append(task)
-        task.add_done_callback(lambda t: _on_listener_task_done(t, queue_or_topic))
+        task.add_done_callback(
+            lambda t: _on_listener_task_done(t, queue_or_topic, listener_state)
+        )
 
     async def close(self) -> None:
         async with self._close_lock:

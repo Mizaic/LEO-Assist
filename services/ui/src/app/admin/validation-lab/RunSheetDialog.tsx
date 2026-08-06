@@ -13,6 +13,7 @@
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -36,6 +37,12 @@ import {
   taskRowsFromSheet,
 } from "./RunSheetTasks";
 import { buildSupportContext } from "./runSheetSupport";
+import { RunInspectorDrawer } from "./inspector/RunInspectorDrawer";
+import type { LabTraceSpan } from "./inspectorTypes";
+import {
+  useLabRunInspector,
+  useLabRunStagePoll,
+} from "@/hooks/useLabRunInspector";
 
 export interface SingleRunSheet {
   mode: "single";
@@ -113,9 +120,17 @@ function CopySupportDetails({ sheet }: { sheet: SingleRunSheet }) {
   );
 }
 
-function SingleBody({ sheet }: { sheet: SingleRunSheet }) {
+function SingleBody({
+  sheet,
+  onOpenInspector,
+  liveSpans,
+}: {
+  sheet: SingleRunSheet;
+  onOpenInspector: () => void;
+  liveSpans?: LabTraceSpan[];
+}) {
   const usage = usageFromRunOutputs(sheet.llmUsage);
-  const rows = taskRowsFromSheet(sheet);
+  const rows = taskRowsFromSheet({ ...sheet, liveSpans });
   const progress = stageProgressCounts(rows);
   const tone =
     sheet.status === "failed"
@@ -131,6 +146,16 @@ function SingleBody({ sheet }: { sheet: SingleRunSheet }) {
       <Typography variant="body2">
         Status: <strong>{sheet.status}</strong>
         {sheet.runId ? ` · ${sheet.runId.slice(0, 8)}` : ""}
+        {sheet.runId ? (
+          <Chip
+            size="small"
+            label="Debug"
+            clickable
+            onClick={onOpenInspector}
+            sx={{ ml: 1, verticalAlign: "middle" }}
+            data-testid="validation-lab-run-sheet-debug"
+          />
+        ) : null}
       </Typography>
       {sheet.rulesetVersion ? (
         <Typography
@@ -309,6 +334,22 @@ function MultiBody({ sheet }: { sheet: MultiRunSheet }) {
 
 export default function RunSheetDialog({ sheet, onClose }: Props) {
   const { reducedMotion } = useMotion();
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const single = sheet?.mode === "single" ? sheet : null;
+  const polledStages = useLabRunStagePoll(
+    single?.caseId || "",
+    single?.runId || "",
+    Boolean(single?.runId),
+    Boolean(single?.terminal),
+  );
+  const mergedStages =
+    single?.stages && single.stages.length > 0 ? single.stages : polledStages;
+  const inspector = useLabRunInspector({
+    caseId: single?.caseId || "",
+    runId: single?.runId || "",
+    enabled: Boolean(single?.runId),
+    pollStages: mergedStages,
+  });
   if (!sheet) return null;
   const watching =
     sheet.mode === "single"
@@ -334,7 +375,11 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
         <DialogTitle>{title}</DialogTitle>
         <DialogContent>
           {sheet.mode === "single" ? (
-            <SingleBody sheet={sheet} />
+            <SingleBody
+              sheet={sheet}
+              onOpenInspector={() => setInspectorOpen(true)}
+              liveSpans={inspector.spans}
+            />
           ) : (
             <MultiBody sheet={sheet} />
           )}
@@ -349,6 +394,15 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
           </Button>
         </DialogActions>
       </fm.div>
+      {sheet.mode === "single" && sheet.runId ? (
+        <RunInspectorDrawer
+          open={inspectorOpen}
+          onClose={() => setInspectorOpen(false)}
+          runId={sheet.runId}
+          title={sheet.title}
+          inspector={inspector}
+        />
+      ) : null}
     </Dialog>
   );
 }

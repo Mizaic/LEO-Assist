@@ -472,6 +472,48 @@ def get_run(
         client.close()
 
 
+@router.get("/cases/{case_id}/runs/{run_id}/inspector")
+def get_run_inspector(
+    case_id: str,
+    run_id: str,
+    _scope: CallerScope = Depends(require_admin_or_service),
+) -> dict[str, Any]:
+    """Snapshot for Validation Lab run inspector (trace + manifest + spans)."""
+    from libs.validation_lab import inspector as lab_inspector
+
+    client = _client()
+    try:
+        return lab_inspector.get_run_inspector(client, case_id=case_id, run_id=run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        client.close()
+
+
+@router.get("/cases/{case_id}/runs/{run_id}/inspector/stages/{step_id}")
+def get_run_inspector_stage(
+    case_id: str,
+    run_id: str,
+    step_id: str,
+    _scope: CallerScope = Depends(require_admin_or_service),
+) -> dict[str, Any]:
+    """Stage input/output JSON for Validation Lab data-flow tab."""
+    from libs.validation_lab import inspector as lab_inspector
+
+    client = _client()
+    try:
+        return lab_inspector.get_stage_detail(
+            client,
+            case_id=case_id,
+            run_id=run_id,
+            step_id=step_id,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        client.close()
+
+
 @router.post("/cases/{case_id}/runs/{run_id}/promote-gold")
 def promote_gold(
     case_id: str,

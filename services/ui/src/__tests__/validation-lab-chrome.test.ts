@@ -244,6 +244,10 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(sheet).toMatch(/framer-motion/);
     expect(sheet).not.toMatch(/window\.confirm/);
     expect(sheet).not.toMatch(/\balert\s*\(/);
+    expect(sheet).toMatch(/validation-lab-run-sheet-debug/);
+    expect(sheet).toMatch(/RunInspectorDrawer/);
+    expect(sheet).toMatch(/useLabRunInspector/);
+    expect(sheet).toMatch(/liveSpans/);
   });
 
   test("TC-016: single run sheet lists stages task-by-task and skips queued as done", () => {
@@ -263,6 +267,7 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(sheet).toMatch(/TaskList/);
     expect(sheet).toMatch(/stages\?:/);
     expect(tasks).toMatch(/validation-lab-run-sheet-tasks/);
+    expect(tasks).toMatch(/liveSpans\?:/);
     expect(tasks).toMatch(/DONE_STATUSES/);
     expect(tasks).toMatch(
       /DONE_STATUSES = new Set\(\[\s*"completed",\s*"failed",\s*"skipped_persist",\s*\]\)/,
