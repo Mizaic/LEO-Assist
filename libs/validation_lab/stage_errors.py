@@ -1,4 +1,12 @@
-"""Parse persisted pipeline stage errors for Validation Lab inspector."""
+"""Parse persisted pipeline stage errors for Validation Lab inspector.
+
+Auto-stamped Atlas trace.
+
+Atlas trace:
+  DO: DO-158BE606
+  DI: DI-2289D095
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
+"""
 
 from __future__ import annotations
 

@@ -7,7 +7,7 @@
  */
 
 const LOW_CONF_RE =
-  /^terminology_low_confidence:\s*(\d+)\s+entity\/entities below score threshold ([0-9.]+)\s*--\s*(.+)$/s;
+  /^terminology_low_confidence:\s*(\d+)\s+entity\/entities below score threshold ([0-9.]+)\s*--\s*([\s\S]+)$/;
 const TERM_SCORE_RE = /"([^"]+)"\s*\(score\s*([0-9.]+)\)/g;
 
 export function plainEnglishPipelineError(error: string): string {
