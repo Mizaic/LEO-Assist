@@ -24,10 +24,10 @@
  * creates an OBSERVATION leaf; otherwise confirm stays a CONCEPT
  * presence check (depth still applies).
  */
+import type { ObservationSeed } from "./ConceptSearchPanel";
 import { isLikelyObservable } from "./observableHit";
 import type {
   ConceptSearchHit,
-  EditableObservationPayload,
   LogicCriterion,
   LogicSeed,
   ObservationOperator,
@@ -88,7 +88,7 @@ export function draftHasNumericValue(draft: ObservableThresholdDraft): boolean {
 export function observationSeedFromPick(
   hit: ConceptSearchHit,
   draft: ObservableThresholdDraft,
-): Partial<EditableObservationPayload> | null {
+): ObservationSeed | null {
   if (!isLikelyObservable(hit) || !draftHasNumericValue(draft)) return null;
   const lo = Number(draft.value);
   const unit = draft.unit.trim();

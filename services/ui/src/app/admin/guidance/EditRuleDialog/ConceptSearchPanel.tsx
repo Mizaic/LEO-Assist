@@ -39,6 +39,7 @@ import Typography from "@mui/material/Typography";
 
 import ConceptExpandDialog from "./ConceptExpandDialog";
 import { SEARCH_PANEL, friendlyTerm } from "./copy";
+import { isLikelyObservable } from "./observableHit";
 import PriorResolutionNudge from "./PriorResolutionNudge";
 import type {
   ConceptSearchHit,
@@ -46,6 +47,8 @@ import type {
   LogicCriterion,
   PriorConceptResolution,
 } from "./types";
+
+export { isLikelyObservable } from "./observableHit";
 
 /**
  * Seed passed to ``onPickObservation`` when the reviewer picks the
@@ -98,8 +101,6 @@ interface Props {
    */
   embedded?: boolean;
 }
-
-export { isLikelyObservable } from "./observableHit";
 
 const SEARCH_DEBOUNCE_MS = 250;
 const PRIOR_RESOLUTIONS_MIN_QUERY_LENGTH = 2;
