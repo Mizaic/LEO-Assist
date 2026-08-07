@@ -1,5 +1,5 @@
 /**
- * Plain-English pipeline stage errors for Validation Lab live log.
+ * Plain-English pipeline stage messages for Validation Lab live log.
  *
  * Atlas trace:
  *   DO: DO-158BE606
@@ -9,13 +9,15 @@
 const LOW_CONF_RE =
   /^terminology_low_confidence:\s*(\d+)\s+entity\/entities below score threshold ([0-9.]+)\s*--\s*([\s\S]+)$/;
 const TERM_SCORE_RE = /"([^"]+)"\s*\(score\s*([0-9.]+)\)/g;
+const NOT_CODEABLE_RE =
+  /^coding_verifier:\s*(\d+)\s+(entity|entities)\s+classified not_codeable$/;
 
-export function plainEnglishPipelineError(error: string): string {
-  const text = String(error || "").trim();
-  if (!text) return "";
+export function plainEnglishPipelineMessage(text: string): string {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
 
-  if (text.startsWith("terminology_low_confidence:")) {
-    const match = LOW_CONF_RE.exec(text);
+  if (raw.startsWith("terminology_low_confidence:")) {
+    const match = LOW_CONF_RE.exec(raw);
     if (match) {
       const count = Number(match[1]);
       const thresholdPct = Math.round(Number(match[2]) * 100);
@@ -35,19 +37,34 @@ export function plainEnglishPipelineError(error: string): string {
         return (
           `Could not map ${count} clinical ${noun} to SNOMED codes with enough ` +
           `confidence (need at least ${thresholdPct}%): ${joined}. ` +
-          "The run stopped so unsafe codes are not applied automatically."
+          "Those terms were left uncoded."
         );
       }
     }
     return (
       "One or more clinical terms could not be mapped to SNOMED codes with " +
-      "enough confidence. The run stopped so unsafe codes are not applied " +
-      "automatically."
+      "enough confidence. Those terms were left uncoded."
     );
   }
 
-  if (text.startsWith("terminology:")) {
-    const detail = text.slice("terminology:".length).trim();
+  if (raw.startsWith("coding_verifier:") && raw.includes("not_codeable")) {
+    const match = NOT_CODEABLE_RE.exec(raw);
+    if (match) {
+      const count = Number(match[1]);
+      const noun = count === 1 ? "term" : "terms";
+      return (
+        `${count} extracted ${noun} were not coded because they are ` +
+        "descriptors or overlap another finding."
+      );
+    }
+    return (
+      "Some extracted terms were not coded because they are descriptors " +
+      "or overlap another finding."
+    );
+  }
+
+  if (raw.startsWith("terminology:")) {
+    const detail = raw.slice("terminology:".length).trim();
     const lower = detail.toLowerCase();
     if (lower.includes("connection") || lower.includes("refused")) {
       return (
@@ -59,17 +76,33 @@ export function plainEnglishPipelineError(error: string): string {
     return "Terminology lookup failed.";
   }
 
-  if (text.startsWith("stage_poisoned")) {
+  if (raw.startsWith("coding_verifier:") && raw.includes("gate_failed")) {
+    return (
+      "The coding checker could not verify one or more SNOMED matches. " +
+      "Human review is required."
+    );
+  }
+
+  if (raw.startsWith("stage_poisoned")) {
     return "This step failed too many times and was stopped.";
   }
 
-  return text;
+  return raw;
+}
+
+/** @deprecated use plainEnglishPipelineMessage */
+export function plainEnglishPipelineError(error: string): string {
+  return plainEnglishPipelineMessage(error);
+}
+
+export function summarizeStageMessages(messages: string[]): string {
+  const cleaned = messages.map((e) => String(e || "").trim()).filter(Boolean);
+  if (!cleaned.length) return "";
+  return cleaned.map(plainEnglishPipelineMessage).join(" ");
 }
 
 export function summarizeStageErrors(errors: string[]): string {
-  const cleaned = errors.map((e) => String(e || "").trim()).filter(Boolean);
-  if (!cleaned.length) return "";
-  return cleaned.map(plainEnglishPipelineError).join(" ");
+  return summarizeStageMessages(errors);
 }
 
 export function stageLabelFromStepId(stepId: string): string {

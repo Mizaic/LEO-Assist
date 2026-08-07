@@ -11,7 +11,7 @@ from libs.terminology.client import ResolvedTerm, TerminologyClient
 def test_no_safe_term_marks_unresolved_and_logs_terminology_low_confidence() -> None:
     entities = [{"text": "fatigue", "label": "finding"}]
 
-    def _fake_batch(self, terms, expected_tags, runtime):
+    def _fake_batch(self, terms, expected_tags, runtime, org_id=None):
         return {
             "fatigue": [
                 ResolvedTerm(
@@ -31,6 +31,7 @@ def test_no_safe_term_marks_unresolved_and_logs_terminology_low_confidence() -> 
 
     unresolved = result["resolved_entities"][0]
     assert unresolved["terminology_unresolved"] is True
-    errors = result.get("errors") or []
-    assert any(err.startswith("terminology_low_confidence:") for err in errors)
-    assert '"fatigue"' in errors[0]
+    warnings = result.get("warnings") or []
+    assert any(w.startswith("terminology_low_confidence:") for w in warnings)
+    assert '"fatigue"' in warnings[0]
+    assert not (result.get("errors") or [])

@@ -179,6 +179,93 @@ async def test_run_step_handler_exception_clears_lease_and_fails_run() -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_step_warnings_only_dispatches_successors() -> None:
+    current = _Action(action_id="act-a", subgraph_id="terminology")
+    nxt = _Action(
+        action_id="act-b",
+        subgraph_id="post_processing",
+        related_actions=[{"actionId": "act-a"}],
+    )
+    mock_bus = AsyncMock()
+    mock_graph = MagicMock()
+    mock_graph.invoke = MagicMock(
+        return_value={
+            "warnings": [
+                'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "dysphagia" (score 0.42)'
+            ],
+            "errors": [],
+        }
+    )
+    body = {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": "act-a",
+        "step_id": "act-a",
+        "plan_definition_id": "pd-referral-assessment",
+        "run_id": "run-warn-only",
+        "patient_id": "p-warn",
+    }
+
+    with (
+        patch(
+            "libs.workflow.durable_step_runner.load_manifest_for_run",
+            return_value=_manifest(current, nxt),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.PatientGraphClient",
+            return_value=MagicMock(close=MagicMock()),
+        ),
+        patch(
+            "libs.workflow.durable_step_runner.dispatch_stage_outbox",
+            new_callable=AsyncMock,
+        ) as dispatch_mock,
+        patch(
+            "libs.workflow.durable_step_runner.load_step_state",
+            return_value={"patient_id": "p-warn"},
+        ),
+        patch(
+            "libs.pipeline_graph.registry.get_registry",
+            return_value=MagicMock(build=MagicMock(return_value=mock_graph)),
+        ),
+    ):
+        client = InMemoryClaimClient()
+        store = PipelineStageStore(client)
+        store.upsert_run(_request("run-warn-only", "act-a"), status="running")
+        with patch(
+            "libs.workflow.durable_step_runner.PipelineStageStore",
+            return_value=store,
+        ):
+            result = await DurableStepRunner.run_step(body, bus=mock_bus)
+
+    assert result.status == "completed"
+    assert client.runs["run-warn-only"]["status"] == "running"
+    dispatch_mock.assert_called_once()
+
+
+def test_complete_stage_warnings_only_does_not_fail_run() -> None:
+    client = InMemoryClaimClient()
+    store = PipelineStageStore(client)
+    request = _request("run-warn-store", "act-a")
+    store.upsert_run(request, status="running")
+    claim = store.claim_stage(request, {}, lease_owner="worker-a", lease_seconds=3600)
+
+    store.complete_stage(
+        request,
+        StepResult(
+            status="completed",
+            warnings=["coding_verifier: 1 entity classified not_codeable"],
+        ),
+        next_action_ids=["act-b"],
+        lease_owner=claim.lease_owner,
+        lease_generation=claim.lease_generation,
+    )
+
+    assert client.runs[request.run_id]["status"] == "running"
+    stage = client.stages[stage_run_id(request.run_id, request.step_id)]
+    assert stage["status"] == "completed"
+    assert store.load_pending_outbox(request)
+
+
+@pytest.mark.asyncio
 async def test_stuck_recovery_skips_failed_run() -> None:
     client = InMemoryClaimClient()
     run_id = "run-fail-stuck"

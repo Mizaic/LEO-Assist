@@ -68,6 +68,7 @@ class TerminologyState(TypedDict, total=False):
     patient_sex: str
     org_id: str
     errors: list[str]
+    warnings: list[str]
 
 
 # Leading tokens that are never useful as the core SNOMED lookup term.
@@ -241,9 +242,15 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
     entities = state.get("entities") or []
     expected_tags = state.get("expected_tags") or {}
     errors: list[str] = list(state.get("errors") or [])
+    warnings: list[str] = list(state.get("warnings") or [])
     min_score = float(state.get("confidence_threshold") or _DEFAULT_MIN_SCORE)
     if not entities:
-        return {"entities": [], "resolved_entities": [], "errors": errors}
+        return {
+            "entities": [],
+            "resolved_entities": [],
+            "errors": errors,
+            "warnings": warnings,
+        }
     try:
         terms = []
         tag_map: dict[str, str] = dict(expected_tags)
@@ -271,9 +278,9 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             resolved.append(merged)
         unresolved = [r for r in resolved if r.get("terminology_unresolved")]
         if unresolved:
-            errors.append(
+            warnings.append(
                 f"terminology_low_confidence: {len(unresolved)} entity/entities below "
-                f"score threshold {min_score:.2f} — "
+                f"score threshold {min_score:.2f} -- "
                 + ", ".join(
                     f'"{u.get("text")}" (score {u.get("score", 0):.2f})'
                     for u in unresolved
@@ -288,11 +295,21 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             patient_age=state.get("patient_age"),
         )
         resolved = _dedup_by_concept_id(resolved)
-        return {"entities": resolved, "resolved_entities": resolved, "errors": errors}
+        return {
+            "entities": resolved,
+            "resolved_entities": resolved,
+            "errors": errors,
+            "warnings": warnings,
+        }
     except Exception as exc:
         logger.exception("Terminology resolution failed")
         errors.append(f"terminology: {exc}")
-        return {"entities": entities, "resolved_entities": entities, "errors": errors}
+        return {
+            "entities": entities,
+            "resolved_entities": entities,
+            "errors": errors,
+            "warnings": warnings,
+        }
 
 
 def build_terminology_subgraph() -> CompiledStateGraph:

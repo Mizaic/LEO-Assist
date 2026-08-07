@@ -65,7 +65,7 @@ def test_multi_classification_triple_each_gets_own_tag_hint() -> None:
 
     batch_calls: list[tuple[list[str], dict | None]] = []
 
-    def _fake_batch(self, terms, expected_tags, runtime):
+    def _fake_batch(self, terms, expected_tags, runtime, org_id=None):
         batch_calls.append((list(terms), dict(expected_tags) if expected_tags else None))
         results = {}
         for term in terms:
@@ -176,7 +176,7 @@ def test_merge_resolution_rejects_below_threshold() -> None:
 def test_resolve_terms_logs_terminology_low_confidence_for_unresolved() -> None:
     entities = [{"text": "fatigue", "label": "finding"}]
 
-    def _fake_batch(self, terms, expected_tags, runtime):
+    def _fake_batch(self, terms, expected_tags, runtime, org_id=None):
         return {
             "fatigue": [
                 ResolvedTerm(
@@ -197,5 +197,5 @@ def test_resolve_terms_logs_terminology_low_confidence_for_unresolved() -> None:
     assert result["resolved_entities"][0]["terminology_unresolved"] is True
     assert any(
         err.startswith("terminology_low_confidence:")
-        for err in result.get("errors") or []
+        for err in result.get("warnings") or []
     )

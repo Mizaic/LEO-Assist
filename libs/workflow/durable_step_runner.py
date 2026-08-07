@@ -357,6 +357,7 @@ async def _execute_action(action: _Action, state: dict[str, Any]) -> DurableStep
         DurableStepResult(
             status="completed",
             output=dict(output or {}),
+            warnings=list((output or {}).get("warnings") or []),
             errors=list((output or {}).get("errors") or []),
         ),
         provenance,
@@ -389,8 +390,11 @@ def _emit_progress(
         duration_ms = int(metrics["duration_ms"])
     output_state = (result.output if result else None) or {}
     error = ""
+    warning = ""
     if result and result.errors:
         error = "; ".join(str(e) for e in result.errors[:3])
+    if result and result.warnings:
+        warning = "; ".join(str(w) for w in result.warnings[:3])
     payload = build_trace_event(
         event_type,
         request.run_id,
@@ -410,6 +414,8 @@ def _emit_progress(
             "encounter_id": request.encounter_id,
             "workflow_id": request.workflow_id,
             "errors": result.errors if result else None,
+            "warnings": result.warnings if result else None,
+            "warning": warning or None,
             "metrics": metrics or None,
         },
     )

@@ -9,6 +9,7 @@
 import type { StageProgress } from "./labApi";
 import {
   summarizeStageErrors,
+  summarizeStageMessages,
 } from "./pipelineStageErrors";
 
 export interface LabTraceSpan {
@@ -24,7 +25,9 @@ export interface LabTraceSpan {
   duration_ms?: number;
   subgraph_id?: string;
   errors?: string[];
+  warnings?: string[];
   error_summary?: string;
+  warning_summary?: string;
   source?: "neo4j" | "sse";
 }
 
@@ -75,7 +78,9 @@ export interface LabStageDetail {
   input?: Record<string, unknown> | null;
   output?: Record<string, unknown> | null;
   errors?: string[];
+  warnings?: string[];
   error_summary?: string;
+  warning_summary?: string;
   truncated?: boolean;
 }
 
@@ -103,8 +108,11 @@ export function eventsFromSpans(spans: LabTraceSpan[]): LabTraceEvent[] {
           ? "durable_step_failed"
           : "durable_step_completed";
       const errors = span.errors || [];
+      const warnings = span.warnings || [];
       const errorSummary =
         span.error_summary || summarizeStageErrors(errors) || undefined;
+      const warningSummary =
+        span.warning_summary || summarizeStageMessages(warnings) || undefined;
       events.push(
         traceEventFromPayload({
           type,
@@ -115,7 +123,9 @@ export function eventsFromSpans(spans: LabTraceSpan[]): LabTraceEvent[] {
           duration_ms: span.duration_ms,
           ts: span.completed_at,
           errors: errors.length ? errors : undefined,
+          warnings: warnings.length ? warnings : undefined,
           error: errorSummary,
+          warning: warningSummary,
         }),
       );
     }
@@ -137,7 +147,9 @@ function spanFromStage(row: StageProgress): LabTraceSpan {
     started_at: row.started_at,
     completed_at: row.completed_at,
     errors: row.errors,
+    warnings: row.warnings,
     error_summary: row.error_summary,
+    warning_summary: row.warning_summary,
     source: "neo4j",
   };
 }
@@ -177,11 +189,20 @@ function spanFromSse(payload: Record<string, unknown>): LabTraceSpan | null {
     errors: Array.isArray(payload.errors)
       ? payload.errors.map(String)
       : undefined,
+    warnings: Array.isArray(payload.warnings)
+      ? payload.warnings.map(String)
+      : undefined,
     error_summary:
       typeof payload.error === "string" && payload.error.trim()
         ? payload.error.trim()
         : summarizeStageErrors(
             Array.isArray(payload.errors) ? payload.errors.map(String) : [],
+          ) || undefined,
+    warning_summary:
+      typeof payload.warning === "string" && payload.warning.trim()
+        ? payload.warning.trim()
+        : summarizeStageMessages(
+            Array.isArray(payload.warnings) ? payload.warnings.map(String) : [],
           ) || undefined,
     source: "sse",
   };
@@ -210,7 +231,9 @@ function mergeSpan(existing: LabTraceSpan, incoming: LabTraceSpan): LabTraceSpan
     duration_ms: incoming.duration_ms ?? existing.duration_ms,
     subgraph_id: incoming.subgraph_id || existing.subgraph_id,
     errors: incoming.errors?.length ? incoming.errors : existing.errors,
+    warnings: incoming.warnings?.length ? incoming.warnings : existing.warnings,
     error_summary: incoming.error_summary || existing.error_summary,
+    warning_summary: incoming.warning_summary || existing.warning_summary,
     source: existing.source === "neo4j" ? "neo4j" : incoming.source,
   };
 }

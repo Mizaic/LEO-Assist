@@ -18,8 +18,9 @@ import Typography from "@mui/material/Typography";
 
 import type { LabTraceEvent } from "../inspectorTypes";
 import {
-  plainEnglishPipelineError,
+  plainEnglishPipelineMessage,
   summarizeStageErrors,
+  summarizeStageMessages,
 } from "../pipelineStageErrors";
 
 interface Props {
@@ -64,8 +65,20 @@ function formatEventError(payload: Record<string, unknown>): string | null {
     typeof payload.error === "string" && payload.error.trim()
       ? payload.error.trim()
       : "";
-  if (summary) return plainEnglishPipelineError(summary);
+  if (summary) return plainEnglishPipelineMessage(summary);
   return formatErrors(payload.errors);
+}
+
+function formatEventWarning(payload: Record<string, unknown>): string | null {
+  const summary =
+    typeof payload.warning === "string" && payload.warning.trim()
+      ? payload.warning.trim()
+      : "";
+  if (summary) return plainEnglishPipelineMessage(summary);
+  if (!Array.isArray(payload.warnings) || payload.warnings.length === 0) {
+    return null;
+  }
+  return summarizeStageMessages(payload.warnings.map(String));
 }
 
 export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
@@ -134,6 +147,7 @@ export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
             const outputKeys = formatKeyList(payload.output_keys);
             const metrics = formatMetrics(payload.metrics);
             const plainError = formatEventError(payload);
+            const plainWarning = formatEventWarning(payload);
             const duration =
               typeof payload.duration_ms === "number"
                 ? `${payload.duration_ms}ms`
@@ -168,6 +182,11 @@ export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
                 {metrics ? (
                   <Typography component="div" sx={{ color: "#f9e2af", fontSize: 11 }}>
                     metrics: {metrics}
+                  </Typography>
+                ) : null}
+                {plainWarning ? (
+                  <Typography component="div" sx={{ color: "#f9e2af", fontSize: 12, mt: 0.25 }}>
+                    {plainWarning}
                   </Typography>
                 ) : null}
                 {plainError ? (

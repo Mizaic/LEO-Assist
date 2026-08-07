@@ -184,6 +184,9 @@ def test_verify_entities_wrong_domain_rejected():
     assert entities[0]["terminology_unresolved"] is True
     assert entities[0]["concept_id"] is None
     assert entities[0]["coding_verifier_verdict"] == "not_codeable"
+    warnings = result.get("warnings") or []
+    assert any("not_codeable" in w for w in warnings)
+    assert not (result.get("errors") or [])
 
 
 # ---------------------------------------------------------------------------

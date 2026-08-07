@@ -94,7 +94,7 @@ describe("mergeInspectorState", () => {
             'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "dysphagia" (score 0.42)',
           ],
           error_summary:
-            'Could not map 1 clinical term to SNOMED codes with enough confidence (need at least 55%): "dysphagia" (42% match). The run stopped so unsafe codes are not applied automatically.',
+            'Could not map 1 clinical term to SNOMED codes with enough confidence (need at least 55%): "dysphagia" (42% match). Those terms were left uncoded.',
           source: "neo4j",
         },
       ],

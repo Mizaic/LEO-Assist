@@ -47,6 +47,7 @@ class CodingVerifierState(TypedDict, total=False):
     encounter_text: str
     confidence_threshold: float
     errors: list[str]
+    warnings: list[str]
 
 
 def _is_exact_match(entity: dict[str, Any]) -> bool:
@@ -147,10 +148,11 @@ def _verify_entities(state: CodingVerifierState) -> dict[str, Any]:
     entities = list(state.get("entities") or [])
     encounter_text = str(state.get("encounter_text") or "")
     errors: list[str] = list(state.get("errors") or [])
+    warnings: list[str] = list(state.get("warnings") or [])
     min_score = float(state.get("confidence_threshold") or _DEFAULT_MIN_SCORE)
 
     if not entities:
-        return {"entities": entities, "errors": errors}
+        return {"entities": entities, "errors": errors, "warnings": warnings}
 
     eligible_indices: list[int] = []
     eligible_entities: list[dict[str, Any]] = []
@@ -164,7 +166,7 @@ def _verify_entities(state: CodingVerifierState) -> dict[str, Any]:
         eligible_entities.append(ent)
 
     if not eligible_entities:
-        return {"entities": entities, "errors": errors}
+        return {"entities": entities, "errors": errors, "warnings": warnings}
 
     verdicts = verify_coding_batch(eligible_entities, encounter_text)
 
@@ -188,12 +190,15 @@ def _verify_entities(state: CodingVerifierState) -> dict[str, Any]:
             gate_failed_count += 1
 
     if not_codeable_count:
-        errors.append(
-            f"coding_verifier: {not_codeable_count} entity/entities classified not_codeable"
+        noun = "entity" if not_codeable_count == 1 else "entities"
+        warnings.append(
+            f"coding_verifier: {not_codeable_count} {noun} classified not_codeable"
         )
     if gate_failed_count:
+        noun = "entity" if gate_failed_count == 1 else "entities"
         errors.append(
-            f"coding_verifier: {gate_failed_count} entity/entities gate_failed (human review required)"
+            f"coding_verifier: {gate_failed_count} {noun} gate_failed "
+            f"(human review required)"
         )
 
     logger.info(
@@ -204,7 +209,7 @@ def _verify_entities(state: CodingVerifierState) -> dict[str, Any]:
         gate_failed_count,
     )
 
-    return {"entities": updated, "errors": errors}
+    return {"entities": updated, "errors": errors, "warnings": warnings}
 
 
 def build_coding_verifier_subgraph() -> CompiledStateGraph:
