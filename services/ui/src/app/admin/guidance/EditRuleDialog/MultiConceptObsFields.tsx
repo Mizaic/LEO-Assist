@@ -11,7 +11,8 @@
 
 /**
  * Operator / value / unit row for a ticked observable hit in
- * MultiConceptPicker. Depth stays on the parent row.
+ * MultiConceptPicker. Depth stays on the parent row. Unit is a
+ * dropdown from the lab unit converter (LabResultConfig).
  */
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -21,6 +22,7 @@ import Typography from "@mui/material/Typography";
 
 import { MULTI_CONCEPT_PICKER, OPERATOR_LABELS } from "./copy";
 import type { ObservableThresholdDraft } from "./multiConceptSeed";
+import ObservableUnitSelect from "./ObservableUnitSelect";
 import type { ObservationOperator } from "./types";
 
 const OPERATORS: ObservationOperator[] = [
@@ -34,11 +36,17 @@ const OPERATORS: ObservationOperator[] = [
 
 interface Props {
   term: string;
+  observableId: string;
   draft: ObservableThresholdDraft;
   onChange: (next: ObservableThresholdDraft) => void;
 }
 
-export default function MultiConceptObsFields({ term, draft, onChange }: Props) {
+export default function MultiConceptObsFields({
+  term,
+  observableId,
+  draft,
+  onChange,
+}: Props) {
   const isBetween = draft.operator === "between";
   return (
     <Stack spacing={0.75} sx={{ mt: 0.5 }}>
@@ -90,16 +98,11 @@ export default function MultiConceptObsFields({ term, draft, onChange }: Props) 
             }}
           />
         )}
-        <TextField
-          size="small"
-          label={MULTI_CONCEPT_PICKER.unitLabel}
+        <ObservableUnitSelect
+          observableId={observableId}
           value={draft.unit}
-          onChange={(e) => onChange({ ...draft, unit: e.target.value })}
-          placeholder="mm"
-          inputProps={{
-            "aria-label": MULTI_CONCEPT_PICKER.unitAriaLabel(term),
-            style: { width: 64 },
-          }}
+          onChange={(unit) => onChange({ ...draft, unit })}
+          ariaLabel={MULTI_CONCEPT_PICKER.unitAriaLabel(term)}
         />
       </Stack>
     </Stack>

@@ -31,6 +31,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 import { OPERATOR_LABELS } from "../copy";
 import { isLikelyObservable } from "../observableHit";
+import ObservableUnitSelect from "../ObservableUnitSelect";
 import type { ConceptSearchHit, ObservationOperator } from "../types";
 import {
   DEFAULT_AGE_LAB_BANDS,
@@ -186,13 +187,12 @@ export default function AgeLabBandsDialog({ open, onClose, onConfirm }: Props) {
                 </MenuItem>
               ))}
             </Select>
-            <TextField
-              size="small"
-              label="Unit"
+            <ObservableUnitSelect
+              observableId={observableId}
               value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              inputProps={{ "aria-label": "Lab unit" }}
-              sx={{ width: 120 }}
+              onChange={setUnit}
+              ariaLabel="Lab unit"
+              minWidth={120}
             />
           </Stack>
 

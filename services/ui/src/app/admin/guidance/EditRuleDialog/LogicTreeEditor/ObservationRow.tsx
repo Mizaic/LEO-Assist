@@ -22,6 +22,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { useMotion } from "@leo/design-system";
 
 import { OBSERVATION_MODE_LABELS, OPERATOR_LABELS, friendlyTerm } from "../copy";
+import ObservableUnitSelect from "../ObservableUnitSelect";
 import type { EditableLogicNode, EditableObservationPayload, NodeUpdate, ObservationOperator } from "../types";
 import { popVariants } from "../../motionPresets";
 
@@ -150,11 +151,13 @@ export default function ObservationRow({ node, onUpdate, onSelect }: Props) {
           />
         </>
       )}
-      <TextField size="small" value={obs.unit ?? ""}
-        onChange={(e) => setObs({ unit: e.target.value })}
-        placeholder="mmol/L"
-        inputProps={{ "aria-label": "Unit" }}
-        sx={{ width: 90 }}
+      <ObservableUnitSelect
+        observableId={obs.observable_id}
+        value={obs.unit ?? ""}
+        onChange={(unit) => setObs({ unit })}
+        ariaLabel="Unit"
+        autoFillCanonical={false}
+        minWidth={90}
       />
       <Tooltip title="Remove this lab value">
         <IconButton size="small" aria-label="Remove this lab value"

@@ -332,6 +332,7 @@ function MultiConceptHitRow({
           {showObs && (
             <MultiConceptObsFields
               term={friendly}
+              observableId={hit.snomed_concept_id}
               draft={threshold}
               onChange={onThresholdChange}
             />

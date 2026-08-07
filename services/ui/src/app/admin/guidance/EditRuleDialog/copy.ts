@@ -606,7 +606,7 @@ export const MULTI_CONCEPT_PICKER = {
   emptyHint:
     "Tick one or more results below, then confirm. Each one can match exactly, or match more specific terms too. For a measurable reading, set the comparison, value, and unit.",
   observationHint:
-    "Measurable reading. Fill value (and unit) to compare numbers, or leave value blank to match the code as present only.",
+    "Measurable reading. Fill the value and pick a unit from the list to compare numbers, or leave value blank to match the code as present only.",
   operatorAriaLabel: (term: string) => `Comparison for ${term}`,
   valueLabel: "Value",
   value2Label: "And",
