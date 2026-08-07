@@ -244,15 +244,20 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(sheet).toMatch(/framer-motion/);
     expect(sheet).not.toMatch(/window\.confirm/);
     expect(sheet).not.toMatch(/\balert\s*\(/);
-    expect(sheet).toMatch(/validation-lab-run-sheet-debug/);
-    expect(sheet).toMatch(/RunInspectorDrawer/);
-    expect(sheet).toMatch(/disableEnforceFocus=\{inspectorOpen\}/);
+    expect(sheet).toMatch(/RunInspectorPanel/);
     expect(sheet).toMatch(/useLabRunInspector/);
     expect(sheet).toMatch(/liveSpans/);
-    const drawer = readFile(
-      "services/ui/src/app/admin/validation-lab/inspector/RunInspectorDrawer.tsx",
+    expect(sheet).toMatch(/maxWidth="md"/);
+    const inspectorPanel = readFile(
+      "services/ui/src/app/admin/validation-lab/inspector/RunInspectorPanel.tsx",
     );
-    expect(drawer).toMatch(/zIndex:\s*1400/);
+    expect(inspectorPanel).toMatch(/validation-lab-run-inspector/);
+    expect(inspectorPanel).toMatch(/RunInspectorSummaryTab/);
+    expect(inspectorPanel).toMatch(/validation-lab-inspector-tab-summary/);
+    const traceTab = readFile(
+      "services/ui/src/app/admin/validation-lab/inspector/RunInspectorTraceTab.tsx",
+    );
+    expect(traceTab).toMatch(/TraceWaterfallChart/);
   });
 
   test("TC-016: single run sheet lists stages task-by-task and skips queued as done", () => {

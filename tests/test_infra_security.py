@@ -125,6 +125,26 @@ class TestContainerAppsIngressPolicy:
                 assert external is False, f"{name}: must use external: false (internal only)"
 
 
+class TestMessageBusEnvParity:
+    """Publishers and consumers must share the same Service Bus env vars."""
+
+    def test_shared_env_declares_service_bus_namespace_and_connection_string(self):
+        source = CONTAINER_APPS.read_text()
+        shared_start = source.index("var sharedEnv = [")
+        shared_end = source.index("var sharedSecrets = [")
+        shared_block = source[shared_start:shared_end]
+        assert "AZURE_SERVICE_BUS_NAMESPACE" in shared_block
+        assert "AZURE_SERVICE_BUS_CONNECTION_STRING" in shared_block
+        assert "sbNamespaceFqdn" in shared_block
+
+    def test_core_api_and_pipeline_worker_use_shared_env(self):
+        source = CONTAINER_APPS.read_text()
+        apps = dict(_container_app_blocks(source))
+        for name in ("core-api", "pipeline-worker"):
+            block = apps[name]
+            assert "sharedEnv" in block, f"{name} must include sharedEnv"
+
+
 class TestCoreApiKnowledgeGraphEnv:
     """core-api must receive the full KnowledgeGraphClient credential set."""
 

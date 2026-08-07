@@ -55,7 +55,7 @@ DEFAULT_REFERRAL_POLICY: dict[str, Any] = {
         "recall": {"name": "sbar_recall", "version": 1},
     },
     "models": {
-        "provider": "aws",
+        "provider": "azure",
         "tier": "big",
     },
     "failureBehaviour": "fail_closed",

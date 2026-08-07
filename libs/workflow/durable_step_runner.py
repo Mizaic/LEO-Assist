@@ -544,6 +544,21 @@ async def _already_completed_result(
         next_event_type=DURABLE_STEP_EVENT if claim.next_action_ids else None,
         next_step_id=claim.next_action_ids[0] if claim.next_action_ids else None,
     )
+    if ctx.store.get_run_status(request.run_id) in {
+        "failed",
+        "poisoned",
+        "cancelled",
+        "paused",
+    }:
+        _emit_progress(
+            ctx.publish_progress,
+            request,
+            "durable_step_already_completed",
+            ctx.action_id,
+            result,
+            action=action,
+        )
+        return result
     if claim.next_action_ids and ctx.store.successors_need_enqueue(
         request.run_id, claim.next_action_ids
     ):
@@ -588,6 +603,54 @@ def _attach_next_event(
         next_event_type=DURABLE_STEP_EVENT,
         next_step_id=next_ids[0],
     )
+
+
+def _is_stage_failure(result: DurableStepResult) -> bool:
+    return result.status in {"failed", "poisoned", "paused"} or bool(result.errors)
+
+
+def _coerce_failure_result(result: DurableStepResult) -> DurableStepResult:
+    status = result.status
+    if status == "completed" and result.errors:
+        status = "failed"
+    return DurableStepResult(
+        status=status,
+        output=result.output,
+        output_refs=result.output_refs,
+        warnings=result.warnings,
+        errors=result.errors,
+        metrics=result.metrics,
+        provenance=dict(result.provenance),
+        next_event_type=None,
+        next_step_id=None,
+    )
+
+
+async def _finalize_stage_failure(
+    ctx: "_ClaimedStepContext",
+    request: StepRequest,
+    action: _Action,
+    claim: StageClaimResult,
+    result: DurableStepResult,
+) -> DurableStepResult:
+    failed = _coerce_failure_result(result)
+    ctx.store.complete_stage(
+        request,
+        failed,
+        next_action_ids=[],
+        lease_owner=claim.lease_owner,
+        lease_generation=claim.lease_generation,
+    )
+    _emit_progress(
+        ctx.publish_progress,
+        request,
+        "durable_step_failed",
+        ctx.action_id,
+        failed,
+        action=action,
+        worker_id=claim.lease_owner,
+    )
+    return failed
 
 
 @dataclass
@@ -754,21 +817,6 @@ class DurableStepRunner:
             # Expected when another delivery holds the stage lease or completion
             # must be retried; the pipeline worker abandons the Service Bus msg.
             raise
-        except Exception as exc:
-            logger.exception(
-                "DurableStepRunner step failed: action_id=%s run_id=%s",
-                action_id,
-                request.run_id,
-            )
-            failed = DurableStepResult(status="failed", errors=[str(exc)])
-            try:
-                store.complete_stage(request, failed)
-            except Exception:
-                logger.debug("Failed to persist step failure", exc_info=True)
-            _emit_progress(
-                publish_progress, request, "durable_step_failed", action_id, failed
-            )
-            raise
         finally:
             client.close()
 
@@ -847,6 +895,13 @@ class DurableStepRunner:
         )
         try:
             result = await _execute_action(action, loaded)
+        except Exception as exc:
+            logger.exception(
+                "DurableStepRunner action failed: action_id=%s run_id=%s",
+                action_id,
+                request.run_id,
+            )
+            result = DurableStepResult(status="failed", errors=[str(exc)])
         finally:
             heartbeat.cancel()
             try:
@@ -854,6 +909,10 @@ class DurableStepRunner:
             except asyncio.CancelledError:
                 pass
         result = _with_metrics(result, ctx.started, loaded)
+        if _is_stage_failure(result):
+            return await _finalize_stage_failure(
+                ctx, request, action, claim, result
+            )
         outgoing = _build_outgoing_edges(all_actions)
         next_ids = _resolve_next_action_ids(action, result, outgoing)
         result = _attach_next_event(result, next_ids)

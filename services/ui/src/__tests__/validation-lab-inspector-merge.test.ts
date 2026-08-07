@@ -53,6 +53,29 @@ describe("mergeInspectorState", () => {
     expect(merged.spans[0].step_id).toBe("act-ref-extract");
     expect(merged.spans[0].status).toBe("running");
   });
+
+  it("hydrates log events from neo4j spans when sse is empty", () => {
+    const snapshot: LabRunInspectorSnapshot = {
+      lab_run_id: "lab-1",
+      pipeline_run_id: "pipe-1",
+      lab_status: "completed",
+      pipeline_status: "completed",
+      plan_id: "pd-referral-assessment",
+      spans: [
+        {
+          step_id: "act-ref-extract",
+          status: "completed",
+          started_at: "2026-08-06T10:00:00Z",
+          completed_at: "2026-08-06T10:00:05Z",
+          source: "neo4j",
+        },
+      ],
+      sse_path: "/api/pipeline/progress/pipe-1",
+    };
+    const merged = mergeInspectorState(snapshot, [], []);
+    expect(merged.events.length).toBeGreaterThanOrEqual(2);
+    expect(merged.events[0].type).toBe("durable_step_started");
+  });
 });
 
 describe("taskRowsFromSheet liveSpans fallback", () => {

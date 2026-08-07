@@ -235,6 +235,8 @@ async def recover_stuck_pipeline_run(
     """Best-effort recovery for a running PipelineRun with no active work."""
     queue = queue_name or _PIPELINE_QUEUE
     store = PipelineStageStore(client)
+    if store.get_run_status(run_id) != "running":
+        return 0
     stuck = store.load_stuck_completed_stage(run_id)
     if stuck:
         return await _recover_sent_orphan(

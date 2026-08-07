@@ -747,6 +747,9 @@ resource trainingWorker 'Microsoft.App/containerApps@2024-03-01' = {
 
 // -- pipeline-worker (services/pipeline_worker: HTTP + Service Bus consumer)
 // Matches local dev: scripts/start_leo-ai-core.ps1 -Services pipeline_worker
+// Message bus: sharedEnv injects AZURE_SERVICE_BUS_NAMESPACE and
+// AZURE_SERVICE_BUS_CONNECTION_STRING (same as core-api) so create_message_bus()
+// selects the Azure adapter on both publisher and consumer paths.
 resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'pipeline-worker'
   location: location

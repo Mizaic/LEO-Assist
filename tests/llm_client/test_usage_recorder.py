@@ -27,35 +27,78 @@ def _restore_default_callback():
     token_tracker.set_tracking_callback(previous)
 
 
-class _FakeResponse:
-    def __init__(self, input_tokens: int, output_tokens: int) -> None:
-        self.content = '{"ok": true}'
-        self.usage_metadata = {
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-        }
-        self.response_metadata = {"usage": {}}
-
-
 @pytest.fixture
-def stub_bedrock(monkeypatch):
-    holder = {"responses": []}
+def stub_create_llm(monkeypatch):
+    from libs.llm_client.factory import _fire_converse_tracking
 
-    async def _fake_get_model():
-        return object()
+    holder = {"responses": [], "error": None}
 
-    async def _fake_invoke(model, messages, config=None, **_kw):
-        return holder["responses"].pop(0)
+    class _FakeClient:
+        model_id = "gpt-test"
 
-    monkeypatch.setattr(json_helper, "get_bedrock_model", _fake_get_model)
-    monkeypatch.setattr(json_helper, "invoke_with_retry", _fake_invoke)
+        def converse(self, **kwargs):
+            if holder["error"] is not None:
+                _fire_converse_tracking(
+                    agent_task=kwargs.get("agent_task", "unknown"),
+                    patient_id=kwargs.get("patient_id", ""),
+                    model_name=self.model_id,
+                    model_provider="azure",
+                    input_tokens=0,
+                    output_tokens=0,
+                    cache_read_input_tokens=0,
+                    cache_creation_input_tokens=0,
+                    latency_ms=0,
+                    success=False,
+                    error_message=str(holder["error"]),
+                )
+                raise holder["error"]
+            resp = holder["responses"].pop(0)
+            _fire_converse_tracking(
+                agent_task=kwargs.get("agent_task", "unknown"),
+                patient_id=kwargs.get("patient_id", ""),
+                model_name=self.model_id,
+                model_provider="azure",
+                input_tokens=int(getattr(resp, "input_tokens", 0) or 0),
+                output_tokens=int(getattr(resp, "output_tokens", 0) or 0),
+                cache_read_input_tokens=int(
+                    getattr(resp, "cached_input_tokens", 0) or 0
+                ),
+                cache_creation_input_tokens=int(
+                    getattr(resp, "cache_creation_input_tokens", 0) or 0
+                ),
+                latency_ms=0,
+                success=True,
+            )
+            return resp
+
+    def _fake_create_llm(*_args, **_kwargs):
+        return _FakeClient()
+
+    monkeypatch.setattr(json_helper, "create_llm", _fake_create_llm)
     return holder
 
 
-def test_recorder_accumulates_two_nested_invocations(stub_bedrock):
-    stub_bedrock["responses"] = [
-        _FakeResponse(100, 25),
-        _FakeResponse(40, 10),
+def test_recorder_accumulates_two_nested_invocations(stub_create_llm, monkeypatch):
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    from libs.llm_client.factory import LLMResponse
+
+    stub_create_llm["responses"] = [
+        LLMResponse(
+            text='{"ok": true}',
+            input_tokens=100,
+            output_tokens=25,
+            cached_input_tokens=0,
+            stop_reason="end_turn",
+            model_id="gpt-test",
+        ),
+        LLMResponse(
+            text='{"ok": true}',
+            input_tokens=40,
+            output_tokens=10,
+            cached_input_tokens=0,
+            stop_reason="end_turn",
+            model_id="gpt-test",
+        ),
     ]
 
     async def _go():
@@ -75,12 +118,43 @@ def test_recorder_accumulates_two_nested_invocations(stub_bedrock):
     assert rec.cost_usd(LLMCostConfig.for_tier("small")) > 0
 
 
-def test_concurrent_tasks_have_isolated_recorders(stub_bedrock):
-    stub_bedrock["responses"] = [
-        _FakeResponse(100, 10),
-        _FakeResponse(100, 10),
-        _FakeResponse(100, 10),
-        _FakeResponse(100, 10),
+def test_concurrent_tasks_have_isolated_recorders(stub_create_llm, monkeypatch):
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    from libs.llm_client.factory import LLMResponse
+
+    stub_create_llm["responses"] = [
+        LLMResponse(
+            text='{"ok": true}',
+            input_tokens=100,
+            output_tokens=10,
+            cached_input_tokens=0,
+            stop_reason="end_turn",
+            model_id="gpt-test",
+        ),
+        LLMResponse(
+            text='{"ok": true}',
+            input_tokens=100,
+            output_tokens=10,
+            cached_input_tokens=0,
+            stop_reason="end_turn",
+            model_id="gpt-test",
+        ),
+        LLMResponse(
+            text='{"ok": true}',
+            input_tokens=100,
+            output_tokens=10,
+            cached_input_tokens=0,
+            stop_reason="end_turn",
+            model_id="gpt-test",
+        ),
+        LLMResponse(
+            text='{"ok": true}',
+            input_tokens=100,
+            output_tokens=10,
+            cached_input_tokens=0,
+            stop_reason="end_turn",
+            model_id="gpt-test",
+        ),
     ]
 
     async def _scope(num_calls: int):
@@ -106,8 +180,20 @@ def test_outer_recorder_is_not_active_outside_with_block():
     assert get_active_recorder() is None
 
 
-def test_to_audit_dict_returns_uiwire_compatible_shape(stub_bedrock):
-    stub_bedrock["responses"] = [_FakeResponse(50, 5)]
+def test_to_audit_dict_returns_uiwire_compatible_shape(stub_create_llm, monkeypatch):
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    from libs.llm_client.factory import LLMResponse
+
+    stub_create_llm["responses"] = [
+        LLMResponse(
+            text='{"ok": true}',
+            input_tokens=50,
+            output_tokens=5,
+            cached_input_tokens=0,
+            stop_reason="end_turn",
+            model_id="gpt-test",
+        ),
+    ]
 
     async def _go():
         with LLMUsageRecorder() as rec:

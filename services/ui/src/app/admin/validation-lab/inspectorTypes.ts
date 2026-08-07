@@ -67,6 +67,43 @@ export interface LabStageDetail {
 
 const DONE = new Set(["completed", "failed", "poisoned", "skipped_persist"]);
 
+/** Rebuild a readable log from persisted Neo4j spans when SSE missed events. */
+export function eventsFromSpans(spans: LabTraceSpan[]): LabTraceEvent[] {
+  const events: LabTraceEvent[] = [];
+  for (const span of spans) {
+    if (span.started_at) {
+      events.push(
+        traceEventFromPayload({
+          type: "durable_step_started",
+          action_id: span.step_id,
+          step_id: span.step_id,
+          status: "running",
+          worker_id: span.worker_id,
+          ts: span.started_at,
+        }),
+      );
+    }
+    if (span.completed_at && DONE.has(span.status)) {
+      const type =
+        span.status === "failed" || span.status === "poisoned"
+          ? "durable_step_failed"
+          : "durable_step_completed";
+      events.push(
+        traceEventFromPayload({
+          type,
+          action_id: span.step_id,
+          step_id: span.step_id,
+          status: span.status,
+          worker_id: span.worker_id,
+          duration_ms: span.duration_ms,
+          ts: span.completed_at,
+        }),
+      );
+    }
+  }
+  return events.sort((a, b) => a.ts.localeCompare(b.ts));
+}
+
 function eventDedupeKey(ev: LabTraceEvent): string {
   const action = String(ev.payload.action_id || ev.payload.step_id || "");
   return `${ev.type}|${action}|${ev.ts}`;
@@ -172,9 +209,11 @@ export function mergeInspectorState(
       current ? mergeSpan(current, fromSse) : fromSse,
     );
   }
+  const mergedEvents =
+    events.length > 0 ? events : eventsFromSpans(Array.from(spanMap.values()));
   const dedupedEvents: LabTraceEvent[] = [];
   const seen = new Set<string>();
-  for (const ev of events) {
+  for (const ev of mergedEvents) {
     const key = eventDedupeKey(ev);
     if (seen.has(key)) continue;
     seen.add(key);

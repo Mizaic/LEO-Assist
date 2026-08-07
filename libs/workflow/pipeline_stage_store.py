@@ -32,6 +32,7 @@ from libs.cypher.pipeline_stage_queries import (
     ENSURE_PIPELINE_STAGE_CONSTRAINT,
     ENSURE_PIPELINE_STAGE_OUTBOX,
     GET_PENDING_OUTBOX_FOR_STAGE,
+    GET_PIPELINE_RUN_STATUS,
     GET_PIPELINE_STAGE_OUTPUTS,
     GET_SENT_OUTBOX_FOR_STAGE,
     GET_STUCK_COMPLETED_STAGE_FOR_RUN,
@@ -55,6 +56,10 @@ ClaimOutcome = Literal["claimed", "already_completed", "busy", "poisoned"]
 CompleteOutcome = Literal["completed", "stale_lease"]
 
 _STAGE_LEASE_SECONDS = max(60, int(os.getenv("PIPELINE_STAGE_LEASE_SECONDS", "3600")))
+_TERMINAL_RUN_STATUSES = frozenset(
+    {"completed", "failed", "cancelled", "poisoned", "paused"}
+)
+_TERMINAL_STAGE_FAILURE = frozenset({"failed", "poisoned", "paused"})
 
 
 def _stage_max_attempts() -> int:
@@ -194,6 +199,14 @@ class PipelineStageStore:
         row = (rows or [{}])[0] if rows else {}
         return bool(row.get("enqueued"))
 
+    def get_run_status(self, run_id: str) -> str:
+        rows = self._client.run(GET_PIPELINE_RUN_STATUS, run_id=run_id)
+        row = (rows or [{}])[0] if rows else {}
+        return str(row.get("status") or "running")
+
+    def is_run_terminal(self, run_id: str) -> bool:
+        return self.get_run_status(run_id) in _TERMINAL_RUN_STATUSES
+
     def upsert_run(self, request: StepRequest, *, status: str = "running") -> None:
         self._client.run(
             UPSERT_PIPELINE_RUN,
@@ -287,19 +300,29 @@ class PipelineStageStore:
         lease_owner: str = "",
         lease_generation: int = 0,
     ) -> StageCompleteResult:
-        run_status = "completed" if not result.next_event_type else "running"
-        if result.status in {"failed", "paused"}:
-            run_status = result.status
+        stage_status = result.status
+        if stage_status == "completed" and result.errors:
+            stage_status = "failed"
+        stage_failed = (
+            stage_status in _TERMINAL_STAGE_FAILURE or bool(result.errors)
+        )
+        effective_next: list[str] = [] if stage_failed else list(next_action_ids or [])
+        if stage_failed:
+            run_status = "paused" if stage_status == "paused" else "failed"
+        elif not result.next_event_type and not effective_next:
+            run_status = "completed"
+        else:
+            run_status = "running"
         stage_id = stage_run_id(request.run_id, request.step_id)
         outbox_events: list[dict[str, str]] = []
-        if next_action_ids:
+        if effective_next:
             template = body_template or request.to_message(
                 "durable_step", request.step_id
             )
             outbox_events = build_successor_outbox_events(
                 request,
                 stage_run_id=stage_id,
-                next_action_ids=next_action_ids,
+                next_action_ids=effective_next,
                 successor_edges=successor_edges or [],
                 queue_name=queue_name,
                 body_template=template,
@@ -308,7 +331,7 @@ class PipelineStageStore:
             COMPLETE_PIPELINE_STAGE_RUN,
             run_id=request.run_id,
             stage_run_id=stage_id,
-            status=result.status,
+            status=stage_status,
             run_status=run_status,
             assessment_id=result.output.get("sbar_assessment_id"),
             output_json=json.dumps(result.output, default=str, sort_keys=True),
@@ -318,7 +341,7 @@ class PipelineStageStore:
             errors_json=json.dumps(result.errors, default=str),
             warnings_json=json.dumps(result.warnings, default=str),
             metrics_json=json.dumps(result.metrics, default=str, sort_keys=True),
-            next_action_ids_json=json.dumps(next_action_ids or [], default=str),
+            next_action_ids_json=json.dumps(effective_next, default=str),
             next_published=bool(next_published),
             outbox_events=outbox_events,
             lease_owner=lease_owner,

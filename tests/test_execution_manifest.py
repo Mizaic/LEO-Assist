@@ -7,6 +7,7 @@ import json
 from libs.workflow.execution_manifest import (
     build_execution_manifest,
     manifest_from_json,
+    resolve_model_config,
 )
 from libs.workflow.plan_manifest import PlanManifest
 from libs.workflow.referral_policy import DEFAULT_REFERRAL_POLICY
@@ -66,3 +67,11 @@ def test_manifest_round_trip_json() -> None:
     restored = manifest_from_json(json.dumps(raw))
     assert restored["policy_version"] == "v3"
     assert restored["referral_policy"]["llm"]["background"]["temperature"] == 0.0
+
+
+def test_resolve_model_config_uses_pipeline_provider(monkeypatch) -> None:
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    row = resolve_model_config({"models": {"provider": "aws", "tier": "big"}})
+    assert row["provider"] == "azure"
+    assert row["tier"] == "big"
+    assert row["key"] == "azure:big"
