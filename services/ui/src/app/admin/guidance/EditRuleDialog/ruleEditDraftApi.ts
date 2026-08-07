@@ -2,8 +2,12 @@
  * Client for Neo4j-backed rule-edit draft persistence (DI-D52E923B).
  *
  * Atlas: DI-D52E923B / DO-BED08F09 / VT-35051473
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
-
 export interface RuleEditDraftWizardState {
   currentStepId?: string;
   wizardPhase?: string | null;

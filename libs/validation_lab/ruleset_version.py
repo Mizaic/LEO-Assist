@@ -1,5 +1,10 @@
 """Resolve the guideline bitmap version stamped on Validation Lab runs.
 
+Atlas trace:
+  DO: DO-3A70C3DD
+  DI: DI-724CD8A5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A70C3DD")
+
 Atlas:
   DI: DI-58CE9939
   DO: DO-3A70C3DD

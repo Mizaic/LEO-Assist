@@ -1,6 +1,11 @@
 /**
  * Lab bitmap test dialog -- choose compiled version, pick cases, live progress.
  * Atlas: DO-599B9828 / DI-8DD23CE2. Pins ruleset_version per run; live pointer unchanged.
+ *
+ * Atlas trace:
+ *   DO: DO-2C03CA0E
+ *   DI: DI-3F771AFB
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-2C03CA0E")
  */
 "use client";
 
