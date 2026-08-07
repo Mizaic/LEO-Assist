@@ -50,12 +50,46 @@ def _serialise_salvage(item: SalvageSentence) -> dict[str, Any]:
     }
 
 
+def serialise_completeness_for_context(
+    completeness_result: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Slim completeness payload for the Background LLM CONTEXT."""
+    if not isinstance(completeness_result, dict):
+        return None
+    if not completeness_result.get("configured"):
+        return None
+
+    def _groups(key: str) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        for group in completeness_result.get(key) or []:
+            if not isinstance(group, dict):
+                continue
+            name = str(group.get("name") or "").strip()
+            if not name:
+                continue
+            out.append({"name": name, "required": bool(group.get("required"))})
+        return out
+
+    missing_groups = _groups("missing_groups")
+    if not missing_groups:
+        return None
+    return {
+        "configured": True,
+        "complete": bool(completeness_result.get("complete")),
+        "domain": str(completeness_result.get("domain") or ""),
+        "subdomain": str(completeness_result.get("subdomain") or ""),
+        "missing_groups": missing_groups,
+        "matched_groups": _groups("matched_groups"),
+    }
+
+
 def build_codes_first_envelope(
     sources: list[ResolvedSource],
     codes: list[ResolvedCode],
     coverage: CoverageReport | None = None,
     *,
     referring_specialty: str | None = None,
+    completeness_result: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the CONTEXT body for Background without full-chunk prose dumps."""
     coded_chunk_ids = {str(c.chunk_id or c.source_id or "") for c in codes if c}
@@ -85,6 +119,9 @@ def build_codes_first_envelope(
         body["salvage_sentences"] = [
             _serialise_salvage(s) for s in coverage.salvage_sentences
         ]
+    completeness = serialise_completeness_for_context(completeness_result)
+    if completeness:
+        body["completeness"] = completeness
     return body
 
 
@@ -94,12 +131,14 @@ def build_codes_first_user_message(
     coverage: CoverageReport | None = None,
     *,
     referring_specialty: str | None = None,
+    completeness_result: dict[str, Any] | None = None,
 ) -> str:
     body = build_codes_first_envelope(
         sources,
         codes,
         coverage,
         referring_specialty=referring_specialty,
+        completeness_result=completeness_result,
     )
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
 

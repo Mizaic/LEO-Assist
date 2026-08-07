@@ -180,6 +180,7 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             "chunk_ids": list(state.get("chunk_ids") or []),
             "referral_id": referral_id,
             "referral_reason": str(state.get("referral_reason") or "").strip(),
+            "completeness_result": state.get("completeness_result"),
         },
     )
     result = await SBAROrchestrator(

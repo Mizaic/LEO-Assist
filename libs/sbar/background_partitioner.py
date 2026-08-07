@@ -249,6 +249,7 @@ def _build_user_message(
     part_index: int,
     part_total: int,
     coverage: CoverageReport | None = None,
+    completeness_result: dict[str, Any] | None = None,
 ) -> str:
     """Build the JSON-in-fence user message for one partition."""
     sources = [s.source for s in slices]
@@ -257,6 +258,7 @@ def _build_user_message(
         codes,
         coverage,
         referring_specialty=referring_specialty,
+        completeness_result=completeness_result,
     )
     for entry, slice_ in zip(body.get("sources") or [], slices):
         if slice_.is_split:
@@ -435,6 +437,7 @@ def partition_background_sources(
     *,
     referring_specialty: str | None = None,
     coverage: CoverageReport | None = None,
+    completeness_result: dict[str, Any] | None = None,
     max_input_tokens: int | None = None,
     system_prompt_reserve_tokens: int = _SYSTEM_PROMPT_RESERVE_TOKENS,
     max_parts: int = _MAX_PARTS_DEFAULT,
@@ -462,6 +465,7 @@ def partition_background_sources(
         codes,
         coverage,
         referring_specialty=referring_specialty,
+        completeness_result=completeness_result,
     )
     overhead_body["sources"] = []
     overhead_text = (
@@ -477,6 +481,7 @@ def partition_background_sources(
             part_index=1,
             part_total=1,
             coverage=coverage,
+            completeness_result=completeness_result,
         )
         return [
             Partition(
@@ -519,6 +524,7 @@ def partition_background_sources(
             part_index=idx,
             part_total=total_parts,
             coverage=coverage,
+            completeness_result=completeness_result,
         )
         descriptors = [
             PartitionDescriptor(

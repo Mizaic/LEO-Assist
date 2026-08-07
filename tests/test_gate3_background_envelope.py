@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 import re
 
-from libs.sbar.background_envelope import build_codes_first_user_message
+from libs.sbar.background_envelope import (
+    build_codes_first_user_message,
+    serialise_completeness_for_context,
+)
 from libs.sbar.source_resolver import ResolvedCode, ResolvedSource
 from libs.sbar.uncoded_coverage import CoverageReport, SalvageSentence
 
@@ -55,3 +58,34 @@ def test_includes_salvage_sentences_and_accounting() -> None:
     )
     assert body["salvage_sentences"][0]["text"].startswith("Progressive")
     assert body["source_accounting"]["salvage_sentences"] == 1
+
+
+def test_includes_structured_completeness_missing_groups() -> None:
+    completeness = {
+        "configured": True,
+        "complete": False,
+        "domain": "cancer_referrals",
+        "subdomain": "upper_gi",
+        "missing_groups": [
+            {"name": "Examination findings", "required": True},
+        ],
+        "matched_groups": [
+            {"name": "Presenting symptom", "required": True},
+        ],
+    }
+    msg = build_codes_first_user_message([], [], completeness_result=completeness)
+    body = json.loads(
+        re.search(r"```json\n(?P<body>.*)\n```", msg, re.DOTALL).group("body")
+    )
+    assert body["completeness"]["missing_groups"][0]["name"] == "Examination findings"
+
+
+def test_omits_completeness_when_no_missing_groups() -> None:
+    completeness = {
+        "configured": True,
+        "complete": True,
+        "missing_groups": [],
+        "matched_groups": [{"name": "Presenting symptom", "required": True}],
+    }
+    slim = serialise_completeness_for_context(completeness)
+    assert slim is None

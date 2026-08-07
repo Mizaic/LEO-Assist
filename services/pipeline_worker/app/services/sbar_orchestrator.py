@@ -275,6 +275,7 @@ class SBAROrchestrator:
                 referring_specialty=_first_specialty(resolved_situation),
                 patient_id=payload.situation.patient_id,
                 coverage=gate3.coverage,
+                completeness_result=_completeness_from_payload(payload),
                 progress_cb=_on_part_progress,
                 policy_runtime=self._policy_runtime,
             )
@@ -1122,6 +1123,15 @@ class SBAROrchestrator:
 def _preview(text: str, max_chars: int = 240) -> str:
     text = (text or "").strip()
     return text if len(text) <= max_chars else text[: max_chars - 1] + "..."
+
+
+def _completeness_from_payload(payload: Any) -> dict[str, Any] | None:
+    """Structured completeness from the referral pipeline, when present."""
+    extra = getattr(payload, "extra", None) or {}
+    if not isinstance(extra, dict):
+        return None
+    result = extra.get("completeness_result")
+    return dict(result) if isinstance(result, dict) else None
 
 
 def _first_specialty(resolved) -> str | None:

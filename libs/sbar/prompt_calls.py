@@ -571,6 +571,7 @@ async def call_background(
     referring_specialty: str | None = None,
     patient_id: str = "",
     coverage: CoverageReport | None = None,
+    completeness_result: dict[str, Any] | None = None,
     prompt_fetcher: PromptFetcher | None = None,
     invoker: Callable[..., Awaitable[dict[str, Any]]] | None = None,
     progress_cb: PartProgressCallback | None = None,
@@ -615,6 +616,7 @@ async def call_background(
         codes,
         referring_specialty=referring_specialty,
         coverage=coverage,
+        completeness_result=completeness_result,
     )
 
     notices: list[str] = []
