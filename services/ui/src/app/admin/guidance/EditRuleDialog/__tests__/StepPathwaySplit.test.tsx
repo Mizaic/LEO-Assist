@@ -447,4 +447,27 @@ describe("StepPathwaySplit: no split found", () => {
     );
     expect(onNoSplit).toHaveBeenCalledTimes(1);
   });
+
+  it("opens age and lab bands dialog when that action is provided", async () => {
+    const user = userEvent.setup();
+    render(
+      <StepPathwaySplit
+        recommendationText={NO_SPLIT_TEXT}
+        recommendationStructure={null}
+        onConfirm={jest.fn()}
+        onNoSplit={jest.fn()}
+        onAgeLabBands={jest.fn()}
+      />,
+    );
+
+    // Tooltip title becomes aria-label when describeChild is false.
+    await user.click(
+      screen.getByRole("button", {
+        name: /table-style rules.*PSA or CA125/i,
+      }),
+    );
+    expect(
+      screen.getByRole("heading", { name: /age and lab bands/i }),
+    ).toBeInTheDocument();
+  });
 });

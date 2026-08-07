@@ -56,9 +56,11 @@ import PathwayConditionsStage, { resolvePathwayNodes } from "./PathwayConditions
 import StepPathwaySplit from "./StepPathwaySplit";
 import StepPrerequisites from "./StepPrerequisites";
 import { SPLIT_COUNT_CHANGE_WARNING, WIZARD_CHROME } from "./copy";
+import { buildAgeLabBandTree, type AgeLabBandSpec } from "./ageLabBands";
 import {
   findNodeById,
   materializePathways,
+  pathwaySummaryText,
   readMaterializedPathways,
   splitWouldDiscardPathwayLeaves,
 } from "./wizardMapping";
@@ -453,6 +455,26 @@ export default function HighlightWizard({
     });
   }, [recommendationText, recommendationStructure, companionPanels, guidelineId]);
 
+  const handleAgeLabBands = useCallback(
+    (spec: AgeLabBandSpec) => {
+      const bandTree = buildAgeLabBandTree(spec);
+      onUpdate({ kind: "replace_root", node: bandTree });
+      const pathways = bandTree.children ?? [];
+      const boundaries: PathwayTextBoundary[] = pathways.map((pathway) => ({
+        text: pathwaySummaryText(pathway),
+        start: 0,
+        end: 0,
+        source: "tree",
+      }));
+      dispatch({
+        type: "CONFIRM_SPLIT",
+        boundaries,
+        readyImmediately: true,
+      });
+    },
+    [onUpdate],
+  );
+
   const handleBack = useCallback(() => dispatch({ type: "BACK" }), []);
 
   return (
@@ -502,6 +524,7 @@ export default function HighlightWizard({
             initialBoundaries={state.boundaries}
             onConfirm={handleConfirmSplit}
             onNoSplit={handleNoSplit}
+            onAgeLabBands={handleAgeLabBands}
             onProposedBoundariesChange={setProposedBoundaries}
           />
         ))}

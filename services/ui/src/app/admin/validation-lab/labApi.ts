@@ -136,6 +136,8 @@ export interface StageProgress {
   worker_id?: string;
   started_at?: string;
   completed_at?: string;
+  errors?: string[];
+  error_summary?: string;
 }
 
 export interface LabRunLlmUsage {

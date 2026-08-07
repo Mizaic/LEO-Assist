@@ -39,6 +39,8 @@ import {
   type PathwayTextBoundary,
   type RecommendationStructure,
 } from "../SentenceEditor/pathwayTextSplit";
+import AgeLabBandsDialog from "./AgeLabBandsDialog";
+import type { AgeLabBandSpec } from "./ageLabBands";
 import { STEP_PATHWAY_SPLIT, WIZARD_TOOLTIPS } from "./copy";
 import PathwayBoundaryRow from "./PathwayBoundaryRow";
 import { MergedToOneState, NoSplitState } from "./PathwaySplitEmptyStates";
@@ -59,6 +61,8 @@ export interface StepPathwaySplitProps {
   /** "No, it applies the same way to everyone" -- skips straight to a
    *  single Step 3 pass with no lettered pathways. */
   onNoSplit: () => void;
+  /** Table-driven age x lab bands (PSA / CA125). */
+  onAgeLabBands?: (spec: AgeLabBandSpec) => void;
   /**
    * Fires whenever the proposed situation list changes (initial
    * detect, merge, split) so the host can paint each situation a
@@ -75,6 +79,7 @@ export default function StepPathwaySplit({
   initialBoundaries,
   onConfirm,
   onNoSplit,
+  onAgeLabBands,
   onProposedBoundariesChange,
 }: StepPathwaySplitProps) {
   const derivedBoundaries = useMemo(
@@ -86,6 +91,7 @@ export default function StepPathwaySplit({
   );
   const [mode, setMode] = useState<SelectMode>("idle");
   const [selected, setSelected] = useState<number[]>([]);
+  const [ageLabOpen, setAgeLabOpen] = useState(false);
   /**
    * Set only when the REVIEWER's own merge collapsed exactly two rows
    * down to one -- lets the empty-state branch tell "you merged
@@ -189,7 +195,22 @@ export default function StepPathwaySplit({
         {preMergeSnapshot ? (
           <MergedToOneState onUndo={handleUndoMerge} onNoSplit={onNoSplit} />
         ) : (
-          <NoSplitState onNoSplit={onNoSplit} />
+          <NoSplitState
+            onNoSplit={onNoSplit}
+            onAgeLabBands={
+              onAgeLabBands ? () => setAgeLabOpen(true) : undefined
+            }
+          />
+        )}
+        {onAgeLabBands && (
+          <AgeLabBandsDialog
+            open={ageLabOpen}
+            onClose={() => setAgeLabOpen(false)}
+            onConfirm={(spec) => {
+              setAgeLabOpen(false);
+              onAgeLabBands(spec);
+            }}
+          />
         )}
       </Stack>
     );
@@ -228,7 +249,19 @@ export default function StepPathwaySplit({
         onStartSplit={() => setMode("splitting")}
         onConfirmMerge={handleConfirmMerge}
         onCancel={resetSelection}
+        onAgeLabBands={onAgeLabBands ? () => setAgeLabOpen(true) : undefined}
       />
+
+      {onAgeLabBands && (
+        <AgeLabBandsDialog
+          open={ageLabOpen}
+          onClose={() => setAgeLabOpen(false)}
+          onConfirm={(spec) => {
+            setAgeLabOpen(false);
+            onAgeLabBands(spec);
+          }}
+        />
+      )}
 
       {confirmNonAdjacentMerge && (
         <ConfirmDialog
@@ -285,6 +318,7 @@ function StepActions({
   onStartSplit,
   onConfirmMerge,
   onCancel,
+  onAgeLabBands,
 }: {
   mode: SelectMode;
   canConfirmMerge: boolean;
@@ -295,6 +329,7 @@ function StepActions({
   onStartSplit: () => void;
   onConfirmMerge: () => void;
   onCancel: () => void;
+  onAgeLabBands?: () => void;
 }) {
   if (mode === "merging") {
     return (
@@ -350,6 +385,13 @@ function StepActions({
             </Button>
           </Tooltip>
         </>
+      )}
+      {onAgeLabBands && (
+        <Tooltip title={STEP_PATHWAY_SPLIT.ageLabBandsHint}>
+          <Button variant="outlined" size="small" onClick={onAgeLabBands}>
+            {STEP_PATHWAY_SPLIT.ageLabBandsLabel}
+          </Button>
+        </Tooltip>
       )}
     </Stack>
   );

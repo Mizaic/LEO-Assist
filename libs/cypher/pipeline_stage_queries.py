@@ -558,7 +558,8 @@ RETURN s.step_id AS step_id,
        coalesce(s.status, 'pending') AS status,
        coalesce(s.lease_owner, s.completed_by, '') AS worker_id,
        toString(s.started_at) AS started_at,
-       toString(s.completed_at) AS completed_at
+       toString(s.completed_at) AS completed_at,
+       s.errors_json AS errors_json
 ORDER BY coalesce(s.started_at, s.created_at) ASC
 """
 
@@ -591,6 +592,7 @@ RETURN s.step_id AS step_id,
        s.input_json AS input_json,
        s.output_json AS output_json,
        s.output_refs_json AS output_refs_json,
+       s.errors_json AS errors_json,
        coalesce(s.lease_owner, s.completed_by, '') AS worker_id,
        toString(s.started_at) AS started_at,
        toString(s.completed_at) AS completed_at,
@@ -621,7 +623,8 @@ RETURN s.step_id AS step_id,
        toString(s.completed_at) AS completed_at,
        coalesce(s.attempt, 1) AS attempt,
        s.input_json AS input_json,
-       s.output_json AS output_json
+       s.output_json AS output_json,
+       s.errors_json AS errors_json
 ORDER BY coalesce(s.started_at, s.created_at) ASC
 """
 

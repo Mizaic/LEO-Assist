@@ -76,6 +76,34 @@ describe("mergeInspectorState", () => {
     expect(merged.events.length).toBeGreaterThanOrEqual(2);
     expect(merged.events[0].type).toBe("durable_step_started");
   });
+
+  it("includes plain English failure reason when span carries errors", () => {
+    const snapshot: LabRunInspectorSnapshot = {
+      lab_run_id: "lab-1",
+      pipeline_run_id: "pipe-1",
+      lab_status: "failed",
+      pipeline_status: "failed",
+      plan_id: "pd-referral-assessment",
+      spans: [
+        {
+          step_id: "act-ref-terminology",
+          status: "failed",
+          started_at: "2026-08-07T13:52:10.498Z",
+          completed_at: "2026-08-07T13:52:11.067Z",
+          errors: [
+            'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "dysphagia" (score 0.42)',
+          ],
+          error_summary:
+            'Could not map 1 clinical term to SNOMED codes with enough confidence (need at least 55%): "dysphagia" (42% match). The run stopped so unsafe codes are not applied automatically.',
+          source: "neo4j",
+        },
+      ],
+      sse_path: "/api/pipeline/progress/pipe-1",
+    };
+    const merged = mergeInspectorState(snapshot, [], []);
+    const failed = merged.events.find((ev) => ev.type === "durable_step_failed");
+    expect(String(failed?.payload.error || "")).toContain("dysphagia");
+  });
 });
 
 describe("taskRowsFromSheet liveSpans fallback", () => {

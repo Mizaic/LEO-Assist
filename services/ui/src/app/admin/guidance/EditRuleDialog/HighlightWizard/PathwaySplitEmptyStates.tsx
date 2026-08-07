@@ -34,17 +34,38 @@ const EMPTY_STATE_BOX_SX = {
   textAlign: "center",
 } as const;
 
-export function NoSplitState({ onNoSplit }: { onNoSplit: () => void }) {
+export function NoSplitState({
+  onNoSplit,
+  onAgeLabBands,
+}: {
+  onNoSplit: () => void;
+  onAgeLabBands?: () => void;
+}) {
   return (
     <Box sx={EMPTY_STATE_BOX_SX}>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         {STEP_PATHWAY_SPLIT.noSplitBody}
       </Typography>
-      <Tooltip title={WIZARD_TOOLTIPS.noSplit}>
-        <Button variant="outlined" size="small" onClick={onNoSplit}>
-          {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
-        </Button>
-      </Tooltip>
+      <Stack
+        direction="row"
+        spacing={1}
+        justifyContent="center"
+        flexWrap="wrap"
+        sx={{ rowGap: 1 }}
+      >
+        <Tooltip title={WIZARD_TOOLTIPS.noSplit}>
+          <Button variant="outlined" size="small" onClick={onNoSplit}>
+            {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
+          </Button>
+        </Tooltip>
+        {onAgeLabBands && (
+          <Tooltip title={STEP_PATHWAY_SPLIT.ageLabBandsHint}>
+            <Button variant="contained" size="small" onClick={onAgeLabBands}>
+              {STEP_PATHWAY_SPLIT.ageLabBandsLabel}
+            </Button>
+          </Tooltip>
+        )}
+      </Stack>
     </Box>
   );
 }

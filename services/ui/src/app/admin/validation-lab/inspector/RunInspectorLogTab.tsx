@@ -17,6 +17,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import type { LabTraceEvent } from "../inspectorTypes";
+import {
+  plainEnglishPipelineError,
+  summarizeStageErrors,
+} from "../pipelineStageErrors";
 
 interface Props {
   events: LabTraceEvent[];
@@ -52,7 +56,16 @@ function formatMetrics(metrics: unknown): string | null {
 
 function formatErrors(errors: unknown): string | null {
   if (!Array.isArray(errors) || errors.length === 0) return null;
-  return errors.map(String).join("; ");
+  return summarizeStageErrors(errors.map(String));
+}
+
+function formatEventError(payload: Record<string, unknown>): string | null {
+  const summary =
+    typeof payload.error === "string" && payload.error.trim()
+      ? payload.error.trim()
+      : "";
+  if (summary) return plainEnglishPipelineError(summary);
+  return formatErrors(payload.errors);
 }
 
 export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
@@ -120,7 +133,7 @@ export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
             const inputKeys = formatKeyList(payload.input_keys);
             const outputKeys = formatKeyList(payload.output_keys);
             const metrics = formatMetrics(payload.metrics);
-            const errors = formatErrors(payload.errors);
+            const plainError = formatEventError(payload);
             const duration =
               typeof payload.duration_ms === "number"
                 ? `${payload.duration_ms}ms`
@@ -157,14 +170,9 @@ export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
                     metrics: {metrics}
                   </Typography>
                 ) : null}
-                {payload.error ? (
-                  <Typography component="div" sx={{ color: "#f38ba8" }}>
-                    {String(payload.error)}
-                  </Typography>
-                ) : null}
-                {errors ? (
-                  <Typography component="div" sx={{ color: "#f38ba8", fontSize: 11 }}>
-                    errors: {errors}
+                {plainError ? (
+                  <Typography component="div" sx={{ color: "#f38ba8", fontSize: 12, mt: 0.25 }}>
+                    {plainError}
                   </Typography>
                 ) : null}
               </Box>

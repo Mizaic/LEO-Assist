@@ -31,6 +31,10 @@ from libs.referral_simulator.message import (
 )
 from libs.validation_lab.gold import RunOutputs
 from libs.validation_lab.models import PersistMode
+from libs.validation_lab.stage_errors import (
+    plain_english_pipeline_error,
+    stage_errors_from_row,
+)
 from libs.validation_lab.tenant import VALIDATION_LAB_TENANT_ID
 
 logger = logging.getLogger(__name__)
@@ -394,6 +398,7 @@ def list_stage_progress(client: Any, run_id: str) -> list[dict[str, str]]:
         step_id = str(row.get("step_id") or "").strip()
         if not step_id:
             continue
+        errors = stage_errors_from_row(row)
         out.append(
             {
                 "step_id": step_id,
@@ -402,6 +407,10 @@ def list_stage_progress(client: Any, run_id: str) -> list[dict[str, str]]:
                 "worker_id": str(row.get("worker_id") or ""),
                 "started_at": str(row.get("started_at") or ""),
                 "completed_at": str(row.get("completed_at") or ""),
+                "errors": errors,
+                "error_summary": plain_english_pipeline_error(errors[0])
+                if errors
+                else "",
             }
         )
     return out

@@ -127,6 +127,9 @@ export const STEP_PATHWAY_SPLIT = {
   mergeInstruction: "Tap two rows below to combine them, then confirm.",
   noSplitBody: "We couldn't find more than one situation in this text.",
   noSplitConfirmLabel: "Doesn't split -- one set of rules for everyone",
+  ageLabBandsLabel: "Build from age and lab bands",
+  ageLabBandsHint:
+    "For table-style rules (for example PSA or CA125 by age). Creates one situation per age range with its own lab threshold.",
   /** Distinct from `noSplitBody` -- that copy describes what the tool
    *  found on its own and would be a flat contradiction if shown
    *  after the reviewer's OWN merge action collapsed everything down

@@ -18,6 +18,10 @@ from libs.cypher.pipeline_stage_queries import (
     LIST_PIPELINE_STAGE_RUNS_INSPECTOR,
 )
 from libs.validation_lab.pipeline import resolve_pipeline_run_id
+from libs.validation_lab.stage_errors import (
+    plain_english_pipeline_error,
+    stage_errors_from_row,
+)
 from libs.validation_lab.trace_events import keys_from_state
 from libs.workflow.execution_manifest import manifest_from_json
 
@@ -194,6 +198,7 @@ def _plan_steps_from_spans(stage_rows: list[dict[str, Any]]) -> list[dict[str, A
 def _span_row(row: dict[str, Any]) -> dict[str, Any]:
     input_obj = _loads_json(row.get("input_json"))
     output_obj = _loads_json(row.get("output_json"))
+    errors = stage_errors_from_row(row)
     return {
         "step_id": str(row.get("step_id") or ""),
         "event_type": str(row.get("event_type") or ""),
@@ -204,6 +209,10 @@ def _span_row(row: dict[str, Any]) -> dict[str, Any]:
         "attempt": int(row.get("attempt") or 1),
         "input_keys": keys_from_state(input_obj),
         "output_keys": keys_from_state(output_obj),
+        "errors": errors,
+        "error_summary": plain_english_pipeline_error(errors[0])
+        if errors
+        else "",
     }
 
 
@@ -288,6 +297,7 @@ def get_stage_detail(
     row = rows[0]
     input_data, input_truncated = _truncate_json(row.get("input_json"))
     output_data, output_truncated = _truncate_json(row.get("output_json"))
+    errors = stage_errors_from_row(row)
     return {
         "step_id": str(row.get("step_id") or step_id),
         "status": str(row.get("status") or ""),
@@ -297,5 +307,9 @@ def get_stage_detail(
         "attempt": int(row.get("attempt") or 1),
         "input": input_data,
         "output": output_data,
+        "errors": errors,
+        "error_summary": plain_english_pipeline_error(errors[0])
+        if errors
+        else "",
         "truncated": input_truncated or output_truncated,
     }
