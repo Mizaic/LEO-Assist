@@ -68,7 +68,7 @@ export function RunInspectorLogTab({ events }: Props) {
           maxHeight: 420,
           overflow: "auto",
         }}
-        ref={(node) => {
+        ref={(node: HTMLDivElement | null) => {
           if (autoScroll && node) node.scrollTop = node.scrollHeight;
         }}
       >

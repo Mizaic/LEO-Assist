@@ -39,7 +39,7 @@ export function RunInspectorTraceTab({
   selectedStepId,
   onSelectStep,
 }: Props) {
-  const ordered =
+  const ordered: LabTraceSpan[] =
     spans.length > 0
       ? spans
       : planSteps.map((s) => ({
@@ -50,7 +50,7 @@ export function RunInspectorTraceTab({
 
   const maxMs = Math.max(
     1,
-    ...ordered.map((s) => spanDurationMs(s as LabTraceSpan) || 0),
+    ...ordered.map((s) => spanDurationMs(s) || 0),
   );
 
   return (
@@ -61,7 +61,7 @@ export function RunInspectorTraceTab({
         </Typography>
       ) : (
         ordered.map((span) => {
-          const ms = spanDurationMs(span as LabTraceSpan);
+          const ms = spanDurationMs(span);
           const width = ms != null ? Math.max(4, (ms / maxMs) * 100) : 8;
           const selected = selectedStepId === span.step_id;
           return (
