@@ -130,7 +130,7 @@ def get_run_inspector(
         "execution_manifest": manifest,
         "plan_steps": _parse_plan_steps(row.get("plan_raw_json")),
         "spans": [_span_row(r) for r in (stage_rows or [])],
-        "sse_path": f"/api/pipeline/progress/{run_id}",
+        "sse_path": f"/api/pipeline/progress/{pipeline_run_id}",
     }
 
 

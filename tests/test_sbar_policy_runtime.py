@@ -84,4 +84,4 @@ def test_make_llm_invoker_routes_through_factory(mock_create) -> None:
     )
     assert raw["situation_markdown"] == "ok"
     assert raw["_model_config"]["key"] == "aws:big"
-    mock_create.assert_called_once_with(provider="aws", tier="big")
+    mock_create.assert_called_once_with(provider="azure", tier="big")

@@ -38,6 +38,13 @@ PublishFn = Callable[[dict[str, Any], str], None]
 
 _PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
 _TERMINAL_STATUSES = {"completed", "failed"}
+_FAILED_RUN_STATUSES = frozenset({"failed", "poisoned", "cancelled", "paused"})
+
+
+def _normalize_pipeline_status(status: str) -> str:
+    if status in _FAILED_RUN_STATUSES:
+        return "failed"
+    return status
 _LAB_EAGER_DURABLE_BOOTSTRAP = (
     os.getenv("VALIDATION_LAB_EAGER_DURABLE_BOOTSTRAP", "true").lower() != "false"
 )
@@ -355,7 +362,7 @@ def poll_run_status(client: Any, run_id: str) -> dict[str, str]:
     if rows:
         row = rows[0]
         return {
-            "status": str(row.get("status") or "queued"),
+            "status": _normalize_pipeline_status(str(row.get("status") or "queued")),
             "assessment_id": str(row.get("assessment_id") or ""),
         }
     audit_rows = client.run(

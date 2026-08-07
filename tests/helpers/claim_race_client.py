@@ -26,6 +26,7 @@ from libs.cypher.pipeline_stage_queries import (
     ENSURE_PIPELINE_STAGE_CONSTRAINT,
     ENSURE_PIPELINE_STAGE_OUTBOX,
     GET_PENDING_OUTBOX_FOR_STAGE,
+    GET_PIPELINE_RUN_STATUS,
     GET_SENT_OUTBOX_FOR_STAGE,
     GET_STUCK_COMPLETED_STAGE_FOR_RUN,
     GET_SUCCESSOR_STAGE_STATUSES,
@@ -67,6 +68,9 @@ class InMemoryClaimClient:
                 return []
             if query == UPSERT_PIPELINE_RUN:
                 return [self._upsert_run(params)]
+            if query == GET_PIPELINE_RUN_STATUS:
+                run = self.runs.get(params["run_id"], {})
+                return [{"status": str(run.get("status") or "running")}]
             if query == CLAIM_PIPELINE_STAGE_RUN:
                 return [self._claim(params)]
             if query == RENEW_PIPELINE_STAGE_LEASE:
@@ -186,7 +190,9 @@ class InMemoryClaimClient:
                 next_attempt = int(stage.get("attempt") or 0) + 1
             if next_attempt > max_attempts:
                 stage["status"] = "poisoned"
-                self.runs[run_id]["status"] = "poisoned"
+                stage["lease_owner"] = None
+                stage["lease_until"] = None
+                self.runs[run_id]["status"] = "failed"
                 return self._claim_row("poisoned", stage)
             stage["status"] = "running"
             stage["lease_owner"] = owner

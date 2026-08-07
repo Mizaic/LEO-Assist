@@ -73,14 +73,16 @@ export function useLabRunInspector(
     void refreshSnapshot();
   }, [enabled, caseId, runId, refreshSnapshot]);
 
+  const progressRunId = snapshot?.pipeline_run_id || runId;
+
   useEffect(() => {
-    if (!enabled || !runId) return;
+    if (!enabled || !progressRunId) return;
     const origin = window.location.origin;
     const source = new EventSource(
-      `${origin}/api/pipeline/progress/${encodeURIComponent(runId)}`,
+      `${origin}/api/pipeline/progress/${encodeURIComponent(progressRunId)}`,
     );
     esRef.current = source;
-    setConnected(true);
+    setConnected(false);
 
     const onPayload = (payload: Record<string, unknown>) => {
       setEvents((prev) => [...prev, traceEventFromPayload(payload)]);
@@ -118,6 +120,10 @@ export function useLabRunInspector(
       }
     };
 
+    source.onopen = () => {
+      setConnected(true);
+    };
+
     source.onerror = () => {
       setConnected(false);
     };
@@ -127,7 +133,7 @@ export function useLabRunInspector(
       esRef.current = null;
       setConnected(false);
     };
-  }, [enabled, runId]);
+  }, [enabled, progressRunId]);
 
   useEffect(() => {
     if (!selectedStepId || !caseId || !runId) {

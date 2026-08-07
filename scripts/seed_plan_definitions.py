@@ -685,7 +685,7 @@ PLAN_DEFINITIONS = [
                 "recommendation": {"name": "sbar_recommendation", "version": 2},
                 "recall": {"name": "sbar_recall", "version": 1},
             },
-            "models": {"provider": "aws", "tier": "big"},
+            "models": {"provider": "azure", "tier": "big"},
             "failureBehaviour": "fail_closed",
         },
         "_versionRollout": {

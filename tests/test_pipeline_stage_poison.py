@@ -53,7 +53,7 @@ def test_exceeded_attempts_returns_poison(monkeypatch: pytest.MonkeyPatch) -> No
     poison = store.claim_stage(request, {}, lease_owner="worker-c", lease_seconds=3600)
     assert poison.outcome == "poisoned"
     assert client.stages[stage_id]["status"] == "poisoned"
-    assert client.runs[request.run_id]["status"] == "poisoned"
+    assert client.runs[request.run_id]["status"] == "failed"
 
 
 def test_poisoned_stage_cannot_be_claimed_again(

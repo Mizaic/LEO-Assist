@@ -161,6 +161,12 @@ RETURN coalesce(r.execution_manifest_json, '') AS execution_manifest_json
 LIMIT 1
 """
 
+GET_PIPELINE_RUN_STATUS = """
+MATCH (r:PipelineRun {id: $run_id})
+RETURN coalesce(r.status, 'running') AS status
+LIMIT 1
+"""
+
 CLAIM_FIRST_STEP_ENQUEUE = """
 MATCH (r:PipelineRun {id: $run_id})
 WHERE coalesce(r.first_step_enqueued, false) = false
@@ -249,8 +255,10 @@ CALL {
     WITH r, s, next_attempt
     WITH r, s, next_attempt WHERE next_attempt > $max_attempts
     SET s.status = 'poisoned',
+        s.lease_owner = null,
+        s.lease_until = null,
         s.updated_at = datetime(),
-        r.status = 'poisoned',
+        r.status = 'failed',
         r.updated_at = datetime()
     RETURN 'poisoned' AS outcome,
            null AS output_json,

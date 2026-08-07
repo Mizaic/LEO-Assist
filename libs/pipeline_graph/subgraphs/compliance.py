@@ -15,6 +15,10 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from libs.lab_results.pipeline import observations_from_entities
+from libs.pipeline_graph.subgraphs.compliance_diagnostics import (
+    build_guideline_diagnostics,
+    build_stage_summary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,8 @@ class ComplianceState(TypedDict, total=False):
     guideline_result: dict[str, Any]
     compliance_result: dict[str, Any]
     compliance_report: dict[str, Any]
+    stage_summary: dict[str, Any]
+    guideline_diagnostics: dict[str, Any]
     errors: list[str]
 
 
@@ -99,6 +105,14 @@ def _evaluate_guideline(state: ComplianceState, codes: list[str]) -> dict[str, A
     return result
 
 
+def _guideline_evaluator() -> Any:
+    from services.terminology_api.app.services.guideline_evaluator import (
+        GuidelineEvaluator,
+    )
+
+    return GuidelineEvaluator()
+
+
 def evaluate_compliance(state: ComplianceState) -> dict[str, Any]:
     patient_id = state.get("patient_id") or ""
     logger.info("Evaluating compliance for patient %s", patient_id)
@@ -107,12 +121,23 @@ def evaluate_compliance(state: ComplianceState) -> dict[str, Any]:
     codes = _entity_codes(entities)
     try:
         result = _evaluate_guideline(state, codes)
-        return {
+        payload = {
             "compliance_result": result,
             "compliance_report": result,
             "guideline_result": result,
+            "stage_summary": build_stage_summary(
+                state, codes=codes, entities=entities, result=result
+            ),
             "errors": errors,
         }
+        if state.get("capture_validation_output"):
+            payload["guideline_diagnostics"] = build_guideline_diagnostics(
+                _guideline_evaluator(),
+                state,
+                codes=codes,
+                result=result,
+            )
+        return payload
     except Exception as exc:
         logger.exception("Guideline evaluation failed")
         errors.append(f"guideline_evaluation: {exc}")

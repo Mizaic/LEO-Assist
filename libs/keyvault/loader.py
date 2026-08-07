@@ -3,7 +3,7 @@
 Atlas trace:
   DO: DO-AA3B7FCC
   DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  Look up via: get_design_control(dc_type="design_output", dc_id="DO-AA3B7FCC")
 
 Load secrets from Azure Key Vault into os.environ at service startup.
 
@@ -11,8 +11,9 @@ Call load_keyvault_secrets() as the very first statement in each service
 main.py, before any other imports that read environment variables.
 
 In ACA (production): AZURE_KEYVAULT_URL is injected by the Bicep template.
-The Bicep also wires secrets directly via secretRef, so this loader acts as
-a belt-and-braces fallback and for the local development path.
+When that variable is set, Key Vault must be reachable and every required
+secret must load successfully -- otherwise startup fails fast so the
+container does not run with missing credentials.
 
 Locally: two supported paths.
 1. Set AZURE_KEYVAULT_URL=https://mizaicai-dev-kv.vault.azure.net in your
@@ -100,6 +101,10 @@ _OPTIONAL_KV_SECRET_NAMES: frozenset[str] = frozenset(
 )
 
 
+class KeyVaultStartupError(RuntimeError):
+    """Key Vault is required but could not supply secrets at startup."""
+
+
 def _is_secret_not_found(exc: BaseException) -> bool:
     """True when Key Vault answered that the secret name does not exist."""
     name = type(exc).__name__
@@ -110,11 +115,7 @@ def _is_secret_not_found(exc: BaseException) -> bool:
 
 
 def _is_credential_failure(exc: BaseException) -> bool:
-    """True when Key Vault access failed because auth itself is broken.
-
-    Distinguishes a one-off missing secret (keep trying other names) from an
-    expired `az login` / DefaultAzureCredential collapse (abort the loop).
-    """
+    """True when Key Vault access failed because auth itself is broken."""
     name = type(exc).__name__
     if name in {
         "ClientAuthenticationError",
@@ -131,6 +132,16 @@ def _is_credential_failure(exc: BaseException) -> bool:
     )
 
 
+def _abort_keyvault_startup(
+    message: str, *, cause: BaseException | None = None
+) -> None:
+    """Log a clear ERROR and stop startup when Key Vault is mandatory."""
+    logger.error(message)
+    if cause is not None:
+        raise KeyVaultStartupError(message) from cause
+    raise KeyVaultStartupError(message)
+
+
 def _load_local_secrets_fallback(only_keys: set[str] | None = None) -> int:
     """Load secrets/.env.secrets into os.environ when KV is disabled.
 
@@ -138,16 +149,7 @@ def _load_local_secrets_fallback(only_keys: set[str] | None = None) -> int:
     env vars are NOT overwritten (override=False) so anything explicitly
     exported in the shell still wins.
 
-    When `only_keys` is given, only those keys are considered (used by the
-    KV-recovery path below, so a KV outage never leaks unrelated local-only
-    values into an environment that otherwise trusts Key Vault).
-
     Returns the number of vars loaded (0 if the file does not exist).
-
-    This is the local-dev fallback path called out in the module docstring;
-    without it, services started under macOS Terminal.app via osascript do
-    not inherit secrets exported by the start script (osascript "do script"
-    does not propagate env), and inter-service auth fails with 401.
     """
     if not _LOCAL_SECRETS_FILE.is_file():
         return 0
@@ -174,95 +176,92 @@ def _load_local_secrets_fallback(only_keys: set[str] | None = None) -> int:
     return loaded
 
 
-def load_keyvault_secrets() -> None:
-    """Pull secrets from Azure Key Vault into os.environ.
+def _load_local_dev_secrets() -> None:
+    """Local path when AZURE_KEYVAULT_URL is not set."""
+    loaded = _load_local_secrets_fallback()
+    if loaded:
+        logger.info(
+            "AZURE_KEYVAULT_URL not set -- loaded %d secrets from %s "
+            "(local dev fallback)",
+            loaded,
+            _LOCAL_SECRETS_FILE,
+        )
+    else:
+        logger.debug(
+            "AZURE_KEYVAULT_URL not set and no %s present -- "
+            "running with shell-env secrets only",
+            _LOCAL_SECRETS_FILE,
+        )
 
-    When AZURE_KEYVAULT_URL is set: pull every name in SECRET_MAP from KV and
-    overwrite os.environ so production values always win over local .env files.
 
-    When AZURE_KEYVAULT_URL is not set: fall back to loading
-    ``secrets/.env.secrets`` (without overriding anything already in the
-    environment). This is the documented local-dev path -- it ensures every
-    service has a consistent environment, including SERVICE_AUTH_SECRET so
-    that inter-service auth works.
-    """
-    vault_url = os.environ.get("AZURE_KEYVAULT_URL", "")
-    if not vault_url:
-        loaded = _load_local_secrets_fallback()
-        if loaded:
-            logger.info(
-                "AZURE_KEYVAULT_URL not set -- loaded %d secrets from %s "
-                "(local dev fallback)",
-                loaded,
-                _LOCAL_SECRETS_FILE,
-            )
-        else:
-            logger.debug(
-                "AZURE_KEYVAULT_URL not set and no %s present -- "
-                "running with shell-env secrets only",
-                _LOCAL_SECRETS_FILE,
-            )
-        return
-
+def _build_secret_client(vault_url: str):
+    """Import Azure SDK pieces and return a SecretClient."""
     try:
         from azure.keyvault.secrets import SecretClient
         from libs.azure.credentials import get_credential
     except ModuleNotFoundError as exc:
-        logger.warning(
-            "AZURE_KEYVAULT_URL is set but Azure SDK is not installed (%s). "
-            "Install azure-keyvault-secrets or unset AZURE_KEYVAULT_URL and "
-            "use secrets/.env.secrets. Falling back to local secrets file only.",
-            exc,
+        _abort_keyvault_startup(
+            "AZURE_KEYVAULT_URL is set but the Azure Key Vault SDK is not "
+            "installed. Install azure-keyvault-secrets or unset "
+            "AZURE_KEYVAULT_URL for local dev.",
+            cause=exc,
         )
-        _load_local_secrets_fallback()
-        return
+    return SecretClient(vault_url=vault_url, credential=get_credential())
 
-    client = SecretClient(vault_url=vault_url, credential=get_credential())
+
+def _handle_kv_fetch_error(
+    vault_url: str,
+    env_key: str,
+    kv_name: str,
+    exc: BaseException,
+    missing_required: list[str],
+) -> None:
+    """Classify a Key Vault fetch failure; abort or record for later."""
+    if _is_credential_failure(exc):
+        _abort_keyvault_startup(
+            "Key Vault is unreachable at startup: authentication failed for "
+            f"{vault_url} while loading {kv_name} -> {env_key}. "
+            "The service will not start without valid Key Vault access.",
+            cause=exc,
+        )
+    if _is_secret_not_found(exc) and kv_name in _OPTIONAL_KV_SECRET_NAMES:
+        logger.info(
+            "Optional KV secret %s not present; skipping (%s)",
+            kv_name,
+            env_key,
+        )
+        return
+    if _is_secret_not_found(exc):
+        missing_required.append(f"{kv_name} -> {env_key}")
+        return
+    _abort_keyvault_startup(
+        "Key Vault is unreachable at startup: failed to load "
+        f"{kv_name} -> {env_key} from {vault_url}: {exc}. "
+        "The service will not start without working Key Vault access.",
+        cause=exc,
+    )
+
+
+def _load_from_keyvault(vault_url: str) -> None:
+    """Pull every required secret from Key Vault; fail fast on any error."""
+    client = _build_secret_client(vault_url)
     loaded = 0
-    failed_keys: set[str] = set()
-    auth_broken = False
+    missing_required: list[str] = []
     for env_key, kv_name in SECRET_MAP.items():
-        if auth_broken:
-            failed_keys.add(env_key)
-            continue
         try:
             secret = client.get_secret(kv_name)
             os.environ[env_key] = secret.value or ""
             loaded += 1
         except Exception as exc:
-            failed_keys.add(env_key)
-            if _is_credential_failure(exc):
-                # One expired az login would otherwise retry DefaultAzureCredential
-                # for every remaining secret (~30 huge stack traces). Bail out of
-                # the KV loop and recover from secrets/.env.secrets once.
-                auth_broken = True
-                logger.warning(
-                    "Key Vault authentication failed on first secret "
-                    "(%s -> %s): %s. Skipping remaining KV fetches and "
-                    "falling back to local secrets file if present.",
-                    kv_name,
-                    env_key,
-                    exc,
-                )
-            elif _is_secret_not_found(exc) and kv_name in _OPTIONAL_KV_SECRET_NAMES:
-                logger.info(
-                    "Optional KV secret %s not present; skipping (%s)",
-                    kv_name,
-                    env_key,
-                )
-            elif _is_secret_not_found(exc):
-                logger.warning(
-                    "Could not load KV secret %s -> %s (not found in vault)",
-                    kv_name,
-                    env_key,
-                )
-            else:
-                logger.warning(
-                    "Could not load KV secret %s -> %s: %s",
-                    kv_name,
-                    env_key,
-                    exc,
-                )
+            _handle_kv_fetch_error(vault_url, env_key, kv_name, exc, missing_required)
+
+    if missing_required:
+        _abort_keyvault_startup(
+            "Key Vault at "
+            f"{vault_url} is missing required secrets: "
+            f"{', '.join(missing_required)}. "
+            "The service will not start until all required secrets are present."
+        )
 
     logger.info(
         "Loaded %d/%d secrets from Key Vault %s",
@@ -271,24 +270,20 @@ def load_keyvault_secrets() -> None:
         vault_url,
     )
 
-    if failed_keys:
-        # Belt-and-braces recovery: a stale az login, a revoked credential, or
-        # a transient KV outage must not silently leave every downstream
-        # service without Neo4j/Bedrock/etc credentials (see
-        # services/analytics_api dashboards.py PatientGraphClient failures).
-        # secrets/.env.secrets does not exist in any deployed environment, so
-        # this is a genuine no-op there -- it only helps local dev recover
-        # from an expired `az login` session.
-        recovered = _load_local_secrets_fallback(only_keys=failed_keys)
-        if recovered:
-            logger.warning(
-                "Key Vault fetch failed for %d secret(s) (%s) -- recovered %d "
-                "from local %s as a fallback. This MUST NOT happen in a "
-                "deployed environment; if it does, Key Vault access is "
-                "broken and needs investigating (e.g. expired credential, "
-                "missing RBAC, network policy).",
-                len(failed_keys),
-                ", ".join(sorted(failed_keys)),
-                recovered,
-                _LOCAL_SECRETS_FILE,
-            )
+
+def load_keyvault_secrets() -> None:
+    """Pull secrets from Azure Key Vault into os.environ.
+
+    When AZURE_KEYVAULT_URL is set: pull every name in SECRET_MAP from KV and
+    overwrite os.environ. Startup fails if Key Vault is unreachable, auth
+    fails, or any required secret is missing.
+
+    When AZURE_KEYVAULT_URL is not set: fall back to loading
+    ``secrets/.env.secrets`` (without overriding anything already in the
+    environment). This is the documented local-dev path.
+    """
+    vault_url = os.environ.get("AZURE_KEYVAULT_URL", "")
+    if not vault_url:
+        _load_local_dev_secrets()
+        return
+    _load_from_keyvault(vault_url)

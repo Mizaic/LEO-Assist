@@ -38,10 +38,10 @@ def resolve_durable_step_settlement(result: Any) -> MessageSettlementAction:
         return "abandon"
     if status == "poisoned":
         return "complete"
+    if status == "failed":
+        return "complete"
     if status == "completed":
         return "complete"
-    if status == "failed":
-        return "abandon"
     return "complete"
 
 

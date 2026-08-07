@@ -1,18 +1,17 @@
-"""Tests for the local-dev fallback in libs.keyvault.loader.
+"""Tests for libs.keyvault.loader startup secret loading.
 
 When AZURE_KEYVAULT_URL is not set the loader must fall back to reading
 secrets/.env.secrets so every service that calls load_keyvault_secrets()
 ends up with a consistent environment, including SERVICE_AUTH_SECRET.
 
-Regression: without this fallback, services started under macOS Terminal.app
-via `osascript do script` (which does NOT propagate parent shell env) ran
-with an empty SERVICE_AUTH_SECRET. The result was 401 "Missing service auth
-token" loops on every inter-service call to /reload, /extract, etc.
+When AZURE_KEYVAULT_URL is set the loader must fail fast if Key Vault is
+unreachable, auth fails, or required secrets are missing.
 """
 
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 from pathlib import Path
 
@@ -33,6 +32,13 @@ def loader_module(monkeypatch, tmp_path):
     fake_secrets = tmp_path / ".env.secrets"
     monkeypatch.setattr(mod, "_LOCAL_SECRETS_FILE", fake_secrets, raising=True)
     return mod, fake_secrets
+
+
+def _stub_kv_client(monkeypatch, client_cls):
+    monkeypatch.setattr("azure.keyvault.secrets.SecretClient", client_cls, raising=True)
+    monkeypatch.setattr(
+        "libs.azure.credentials.get_credential", lambda: object(), raising=True
+    )
 
 
 def test_fallback_loads_service_auth_secret_when_kv_disabled(
@@ -78,15 +84,12 @@ def test_fallback_is_safe_when_secrets_file_absent(loader_module, monkeypatch):
 
 
 def test_fallback_skipped_when_kv_url_set(loader_module, monkeypatch):
-    """If AZURE_KEYVAULT_URL is set we must not also read the local file --
-    KV is the single source of truth in any deployed environment.
-    """
+    """If AZURE_KEYVAULT_URL is set we must not also read the local file."""
     mod, secrets_file = loader_module
     monkeypatch.setenv("AZURE_KEYVAULT_URL", "https://example.vault.azure.net/")
     monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
     secrets_file.write_text("SERVICE_AUTH_SECRET=should-not-be-loaded\n")
 
-    # Stub out the KV path so we don't actually call Azure.
     called = {"count": 0}
 
     class _FakeSecret:
@@ -100,12 +103,7 @@ def test_fallback_skipped_when_kv_url_set(loader_module, monkeypatch):
             called["count"] += 1
             return _FakeSecret()
 
-    monkeypatch.setattr(
-        "azure.keyvault.secrets.SecretClient", _FakeClient, raising=True
-    )
-    monkeypatch.setattr(
-        "libs.azure.credentials.get_credential", lambda: object(), raising=True
-    )
+    _stub_kv_client(monkeypatch, _FakeClient)
 
     mod.load_keyvault_secrets()
 
@@ -113,17 +111,7 @@ def test_fallback_skipped_when_kv_url_set(loader_module, monkeypatch):
     assert os.environ.get("SERVICE_AUTH_SECRET") == "from-kv"
 
 
-def test_kv_failure_recovers_from_local_secrets_file(loader_module, monkeypatch):
-    """A stale az login / KV outage must not leave every secret unset.
-
-    Regression: secrets/.env.config sets AZURE_KEYVAULT_URL unconditionally,
-    so any service whose KV credential has expired silently ended up with
-    NEO4J_URI/NEO4J_PASSWORD etc. missing entirely -- e.g.
-    services/analytics_api/app/routers/dashboards.py raising
-    "RuntimeError: Neo4j credentials missing for unknown" deep inside a
-    request handler, with no fallback to the local secrets file that was
-    sitting right there with valid values.
-    """
+def test_kv_auth_failure_raises_startup_error(loader_module, monkeypatch):
     mod, secrets_file = loader_module
     monkeypatch.setenv("AZURE_KEYVAULT_URL", "https://example.vault.azure.net/")
     monkeypatch.delenv("NEO4J_URI", raising=False)
@@ -143,24 +131,84 @@ def test_kv_failure_recovers_from_local_secrets_file(loader_module, monkeypatch)
                 "token has expired"
             )
 
-    monkeypatch.setattr(
-        "azure.keyvault.secrets.SecretClient", _FakeClient, raising=True
-    )
-    monkeypatch.setattr(
-        "libs.azure.credentials.get_credential", lambda: object(), raising=True
-    )
+    _stub_kv_client(monkeypatch, _FakeClient)
 
-    mod.load_keyvault_secrets()
+    with pytest.raises(mod.KeyVaultStartupError, match="authentication failed"):
+        mod.load_keyvault_secrets()
 
-    assert os.environ.get("NEO4J_URI") == "neo4j+s://local-fallback"
-    # Auth collapse must not retry DefaultAzureCredential for every secret.
     assert called["count"] == 1
+    assert "NEO4J_URI" not in os.environ
+
+
+def test_kv_missing_required_secret_raises_startup_error(loader_module, monkeypatch):
+    mod, _secrets_file = loader_module
+    monkeypatch.setenv("AZURE_KEYVAULT_URL", "https://example.vault.azure.net/")
+
+    class _MissingSecret(Exception):
+        pass
+
+    class _FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def get_secret(self, name):
+            if name == "neo4j-patient-uri":
+                raise _MissingSecret(
+                    "(SecretNotFound) A secret with (name/id) "
+                    "neo4j-patient-uri was not found in this key vault."
+                )
+
+            class _Secret:
+                value = "from-kv"
+
+            return _Secret()
+
+    _stub_kv_client(monkeypatch, _FakeClient)
+
+    with pytest.raises(mod.KeyVaultStartupError, match="missing required secrets"):
+        mod.load_keyvault_secrets()
+
+
+def test_kv_connection_error_raises_startup_error(loader_module, monkeypatch):
+    mod, _secrets_file = loader_module
+    monkeypatch.setenv("AZURE_KEYVAULT_URL", "https://example.vault.azure.net/")
+
+    class _FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def get_secret(self, name):
+            raise ConnectionError("Failed to reach key vault endpoint")
+
+    _stub_kv_client(monkeypatch, _FakeClient)
+
+    with pytest.raises(mod.KeyVaultStartupError, match="unreachable at startup"):
+        mod.load_keyvault_secrets()
+
+
+def test_kv_missing_sdk_raises_when_url_set(loader_module, monkeypatch):
+    mod, _secrets_file = loader_module
+    monkeypatch.setenv("AZURE_KEYVAULT_URL", "https://example.vault.azure.net/")
+
+    import builtins
+
+    real_import = builtins.__import__
+
+    def _import_without_kv(name, *args, **kwargs):
+        if name == "azure.keyvault.secrets":
+            raise ModuleNotFoundError("azure-keyvault-secrets")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _import_without_kv)
+
+    with pytest.raises(mod.KeyVaultStartupError, match="SDK is not installed"):
+        mod.load_keyvault_secrets()
 
 
 def test_kv_success_does_not_pull_in_unrelated_local_secrets(
     loader_module, monkeypatch
 ):
-    """Only keys that actually failed KV lookup may come from the local file."""
+    """KV success must not read the local secrets file."""
     mod, secrets_file = loader_module
     monkeypatch.setenv("AZURE_KEYVAULT_URL", "https://example.vault.azure.net/")
     monkeypatch.delenv("NEO4J_URI", raising=False)
@@ -176,12 +224,7 @@ def test_kv_success_does_not_pull_in_unrelated_local_secrets(
         def get_secret(self, name):
             return _FakeSecret()
 
-    monkeypatch.setattr(
-        "azure.keyvault.secrets.SecretClient", _FakeClient, raising=True
-    )
-    monkeypatch.setattr(
-        "libs.azure.credentials.get_credential", lambda: object(), raising=True
-    )
+    _stub_kv_client(monkeypatch, _FakeClient)
 
     mod.load_keyvault_secrets()
 
@@ -200,8 +243,6 @@ def test_optional_mail_graph_secret_not_found_is_quiet(
     loader_module, monkeypatch, caplog
 ):
     """Missing optional mail-graph secrets must not dump Azure stack text."""
-    import logging
-
     mod, _secrets_file = loader_module
     monkeypatch.setenv("AZURE_KEYVAULT_URL", "https://example.vault.azure.net/")
 
@@ -224,12 +265,7 @@ def test_optional_mail_graph_secret_not_found_is_quiet(
 
             return _Secret()
 
-    monkeypatch.setattr(
-        "azure.keyvault.secrets.SecretClient", _FakeClient, raising=True
-    )
-    monkeypatch.setattr(
-        "libs.azure.credentials.get_credential", lambda: object(), raising=True
-    )
+    _stub_kv_client(monkeypatch, _FakeClient)
 
     with caplog.at_level(logging.INFO, logger="libs.keyvault.loader"):
         mod.load_keyvault_secrets()

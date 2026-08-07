@@ -13,7 +13,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
-from libs.llm_client.factory import create_llm
+from libs.llm_client.factory import create_llm, default_llm_provider
 from libs.llm_client.json_helper import _extract_json
 from libs.prompts.registry import get_prompt
 from libs.sbar.prompt_calls import PromptFetcher
@@ -91,7 +91,7 @@ def stage_llm_params(runtime: SbarPolicyRuntime, stage: StageName) -> dict[str, 
 
 def make_llm_invoker(runtime: SbarPolicyRuntime, stage: StageName) -> LlmInvoker:
     params = stage_llm_params(runtime, stage)
-    provider = runtime.model_provider or "azure"
+    provider = default_llm_provider()
     tier = runtime.model_tier or "big"
 
     async def _invoke(
