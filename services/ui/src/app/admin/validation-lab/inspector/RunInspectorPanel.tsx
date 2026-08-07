@@ -76,13 +76,14 @@ export function RunInspectorPanel({
         sx={{
           display: "flex",
           flexDirection: "column",
+          flex: 1,
           minHeight: 360,
           maxHeight: "min(68vh, 720px)",
           overflow: "hidden",
         }}
       >
         {inspector.error ? (
-          <Typography color="error" variant="body2" sx={{ mb: 1 }}>
+          <Typography color="error" variant="body2" sx={{ mb: 1, flexShrink: 0 }}>
             {inspector.error}
           </Typography>
         ) : null}

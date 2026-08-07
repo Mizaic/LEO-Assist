@@ -20,9 +20,13 @@ from libs.sbar.uncoded_coverage import CoverageReport, SalvageSentence
 
 
 def serialise_code(code: ResolvedCode) -> dict[str, Any]:
+    patient_wording = sanitise_for_prompt(
+        code.evidence_sentence or code.evidence or ""
+    )
     return {
         "concept_id": code.concept_id,
         "term": code.term,
+        "patient_wording": patient_wording,
         "semantic_tag": code.semantic_tag,
         "assertion": code.assertion,
         "evidence": sanitise_for_prompt(code.evidence or ""),

@@ -209,7 +209,7 @@ def test_assessment_landmarks_are_bold_and_guideline_includes_code() -> None:
     assert "**Recommendation:**" in out.markdown
     assert "**Action:**" in out.markdown
     assert (
-        "**Guideline:** Suspected cancer: recognition and referral (`NG12`)"
+        "**Guideline:** NICE Suspected cancer: recognition and referral (`NG12`)"
         in out.markdown
     )
 

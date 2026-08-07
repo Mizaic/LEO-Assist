@@ -1389,6 +1389,8 @@ def _format_match(
         "strength": rule.get("strength"),
         "guideline_id": rule.get("guideline_id"),
         "guideline_title": rule.get("guideline_title"),
+        "guideline_publisher": rule.get("guideline_publisher"),
+        "guideline_source": rule.get("guideline_source"),
         "chapter_title": rule.get("chapter_title"),
         "recommendation_verbatim": rule.get("recommendation_verbatim"),
         # "action" (singular) is a one-release back-compat shim equal to

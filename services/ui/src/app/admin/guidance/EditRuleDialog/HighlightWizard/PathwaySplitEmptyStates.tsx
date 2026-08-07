@@ -47,17 +47,11 @@ export function NoSplitState({
         {STEP_PATHWAY_SPLIT.noSplitBody}
       </Typography>
       <Stack
-        direction="row"
+        direction="column"
         spacing={1}
-        justifyContent="center"
-        flexWrap="wrap"
+        alignItems="center"
         sx={{ rowGap: 1 }}
       >
-        <Tooltip title={WIZARD_TOOLTIPS.noSplit}>
-          <Button variant="outlined" size="small" onClick={onNoSplit}>
-            {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
-          </Button>
-        </Tooltip>
         {onAgeLabBands && (
           <Tooltip title={STEP_PATHWAY_SPLIT.ageLabBandsHint}>
             <Button variant="contained" size="small" onClick={onAgeLabBands}>
@@ -65,6 +59,11 @@ export function NoSplitState({
             </Button>
           </Tooltip>
         )}
+        <Tooltip title={WIZARD_TOOLTIPS.noSplit}>
+          <Button variant="outlined" size="small" onClick={onNoSplit}>
+            {STEP_PATHWAY_SPLIT.noSplitConfirmLabel}
+          </Button>
+        </Tooltip>
       </Stack>
     </Box>
   );

@@ -316,17 +316,19 @@ def _render_action_lines(rule: dict[str, Any]) -> list[str]:
 
 
 def _render_guideline_line(rule: dict[str, Any]) -> str | None:
-    """Return a bold Guideline landmark with title and code when available.
+    """Return a bold Guideline landmark with author, title, and code.
 
-    Example: ``**Guideline:** Suspected cancer: recognition and referral (`NG12`)``
+    Example: ``**Guideline:** NICE Suspected cancer: recognition and referral (`NG12`)``
     """
-    gid = (rule.get("guideline_id") or "").strip()
-    gtitle = (rule.get("guideline_title") or "").strip()
-    if not gtitle and not gid:
-        return None
-    if gtitle and gid and gtitle != gid:
-        return f"**Guideline:** {gtitle} (`{gid}`)"
-    return f"**Guideline:** {gtitle or gid}"
+    from libs.guidance.guideline_attribution import format_guideline_attribution
+
+    return format_guideline_attribution(
+        guideline_id=rule.get("guideline_id") or "",
+        guideline_title=rule.get("guideline_title") or "",
+        guideline_author=rule.get("guideline_author"),
+        guideline_publisher=rule.get("guideline_publisher"),
+        guideline_source=rule.get("guideline_source"),
+    )
 
 
 def _render_rule_bullet(rule: dict[str, Any]) -> str:

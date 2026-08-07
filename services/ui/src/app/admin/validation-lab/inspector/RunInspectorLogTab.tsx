@@ -185,12 +185,30 @@ export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
                   </Typography>
                 ) : null}
                 {plainWarning ? (
-                  <Typography component="div" sx={{ color: "#f9e2af", fontSize: 12, mt: 0.25 }}>
+                  <Typography
+                    component="div"
+                    sx={{
+                      color: "#f9e2af",
+                      fontSize: 12,
+                      mt: 0.25,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
                     {plainWarning}
                   </Typography>
                 ) : null}
                 {plainError ? (
-                  <Typography component="div" sx={{ color: "#f38ba8", fontSize: 12, mt: 0.25 }}>
+                  <Typography
+                    component="div"
+                    sx={{
+                      color: "#f38ba8",
+                      fontSize: 12,
+                      mt: 0.25,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
                     {plainError}
                   </Typography>
                 ) : null}

@@ -31,7 +31,11 @@ export function plainEnglishPipelineMessage(text: string): string {
       }
       if (terms.length) {
         const joined = terms
-          .map(({ term, scorePct }) => `"${term}" (${scorePct}% match)`)
+          .map(({ term, scorePct }) =>
+            scorePct <= 0
+              ? `"${term}" (no SNOMED match found)`
+              : `"${term}" (${scorePct}% match)`,
+          )
           .join(", ");
         const noun = count === 1 ? "term" : "terms";
         return (

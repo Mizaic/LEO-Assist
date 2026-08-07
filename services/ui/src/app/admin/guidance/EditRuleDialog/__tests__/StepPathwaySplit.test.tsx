@@ -441,6 +441,9 @@ describe("StepPathwaySplit: no split found", () => {
     expect(
       screen.getByText(/couldn't find more than one situation/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/shared symptoms belong in always true/i),
+    ).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: RegExp(WIZARD_TOOLTIPS.noSplit, "i") }),
@@ -463,7 +466,7 @@ describe("StepPathwaySplit: no split found", () => {
     // Tooltip title becomes aria-label when describeChild is false.
     await user.click(
       screen.getByRole("button", {
-        name: /table-style rules.*PSA or CA125/i,
+        name: /one situation per age range.*lab threshold/i,
       }),
     );
     expect(

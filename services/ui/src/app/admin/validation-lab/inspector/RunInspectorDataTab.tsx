@@ -159,9 +159,19 @@ export function RunInspectorDataTab({
     <Stack
       spacing={1.5}
       data-testid="validation-lab-inspector-data"
-      sx={{ flex: 1, minHeight: 0, overflow: "auto" }}
+      sx={{
+        flex: 1,
+        minHeight: 0,
+        overflow: "hidden",
+        display: "flex",
+      }}
     >
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ flexShrink: 0 }}
+      >
         <Typography variant="body2" color="text.secondary">
           Pipeline endpoints and how data flows between stages.
         </Typography>
@@ -183,99 +193,101 @@ export function RunInspectorDataTab({
         </ToggleButtonGroup>
       </Stack>
 
-      {view === "map" ? (
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={1.5}
-          alignItems="stretch"
-        >
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+        {view === "map" ? (
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={1.5}
+            alignItems="stretch"
+          >
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+                overflow: "hidden",
+                bgcolor: "grey.50",
+              }}
+            >
+              <TraceFlowGraph
+                planSteps={planSteps}
+                planEdges={planEdges}
+                spans={ordered}
+                selectedStepId={selectedStepId}
+                onSelectStep={onSelectStep}
+              />
+            </Box>
+            {selectedStepId ? (
+              <TraceEndpointPanel
+                stepId={selectedStepId}
+                planSteps={planSteps}
+                planEdges={planEdges}
+                spans={ordered}
+                onSelectStep={onSelectStep}
+              />
+            ) : null}
+          </Stack>
+        ) : (
           <Box
             sx={{
-              flex: 1,
-              minWidth: 0,
               border: "1px solid",
               borderColor: "divider",
               borderRadius: 1,
-              overflow: "hidden",
-              bgcolor: "grey.50",
+              p: 1.5,
+              bgcolor: "background.paper",
             }}
           >
-            <TraceFlowGraph
-              planSteps={planSteps}
-              planEdges={planEdges}
+            <TraceWaterfallChart
               spans={ordered}
               selectedStepId={selectedStepId}
               onSelectStep={onSelectStep}
             />
           </Box>
-          {selectedStepId ? (
-            <TraceEndpointPanel
-              stepId={selectedStepId}
-              planSteps={planSteps}
-              planEdges={planEdges}
-              spans={ordered}
-              onSelectStep={onSelectStep}
-            />
-          ) : null}
-        </Stack>
-      ) : (
-        <Box
-          sx={{
-            minHeight: 160,
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            p: 1.5,
-            bgcolor: "background.paper",
-          }}
-        >
-          <TraceWaterfallChart
-            spans={ordered}
-            selectedStepId={selectedStepId}
-            onSelectStep={onSelectStep}
-          />
-        </Box>
-      )}
+        )}
+      </Box>
 
-      <Divider />
-      {!selectedStepId ? (
-        <Typography variant="body2" color="text.secondary">
-          Select an endpoint to inspect upstream/downstream links and state changes.
-        </Typography>
-      ) : null}
-      {loading ? (
-        <Typography variant="body2" color="text.secondary">
-          Loading stage detail...
-        </Typography>
-      ) : null}
-      {stageDetail?.truncated ? (
-        <Typography variant="caption" color="warning.main">
-          Payload truncated for display. Use support export for full JSON.
-        </Typography>
-      ) : null}
-      {selectedStepId && !loading && changes.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          No input/output diff yet for {formatStageLabel(selectedStepId)}.
-        </Typography>
-      ) : null}
-      {changes.length > 0 ? (
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 160,
-            maxHeight: 280,
-            overflow: "auto",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            p: 1,
-          }}
-        >
-          {changes.map((change, index) => (
-            <DiffChangeRow key={`${change.kind}-${index}`} change={change} index={index} />
-          ))}
-        </Box>
-      ) : null}
+      <Stack spacing={1} sx={{ flexShrink: 0, pt: 0.5 }}>
+        <Divider />
+        {!selectedStepId ? (
+          <Typography variant="body2" color="text.secondary">
+            Select an endpoint to inspect upstream/downstream links and state changes.
+          </Typography>
+        ) : null}
+        {loading ? (
+          <Typography variant="body2" color="text.secondary">
+            Loading stage detail...
+          </Typography>
+        ) : null}
+        {stageDetail?.truncated ? (
+          <Typography variant="caption" color="warning.main">
+            Payload truncated for display. Use support export for full JSON.
+          </Typography>
+        ) : null}
+        {selectedStepId && !loading && changes.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            No input/output diff yet for {formatStageLabel(selectedStepId)}.
+          </Typography>
+        ) : null}
+        {changes.length > 0 ? (
+          <Box
+            sx={{
+              minHeight: 120,
+              maxHeight: 220,
+              overflow: "auto",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              p: 1,
+            }}
+          >
+            {changes.map((change, index) => (
+              <DiffChangeRow key={`${change.kind}-${index}`} change={change} index={index} />
+            ))}
+          </Box>
+        ) : null}
+      </Stack>
     </Stack>
   );
 }

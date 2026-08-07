@@ -199,3 +199,12 @@ def test_resolve_terms_logs_terminology_low_confidence_for_unresolved() -> None:
         err.startswith("terminology_low_confidence:")
         for err in result.get("warnings") or []
     )
+
+
+def test_resolve_lookup_term_strips_dysphagia_meal_suffix() -> None:
+    from libs.pipeline_graph.subgraphs.terminology import _resolve_lookup_term
+
+    lookup = _resolve_lookup_term(
+        {"text": "difficulty swallowing both solids and liquids", "label": "finding"}
+    )
+    assert lookup == "difficulty swallowing"

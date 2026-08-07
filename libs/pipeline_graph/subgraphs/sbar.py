@@ -50,6 +50,38 @@ class SBARSubgraphState(TypedDict, total=False):
     sbar_report: dict[str, Any]
     review_status: str
     errors: list[str]
+    warnings: list[str]
+
+
+_AUDIT_BLOCKER_TOKENS = (
+    "execution_manifest_missing",
+    "execution_manifest_incomplete",
+    "prompt_provenance_missing",
+    "prompt_hash_missing:",
+    "model_provenance_missing",
+    "source_accounting_missing",
+    "source_accounting_invalid",
+    "audit_link_missing",
+)
+
+
+def _partition_pipeline_messages(
+    messages: list[str],
+) -> tuple[list[str], list[str]]:
+    """Split orchestrator messages into hard errors vs audit/provenance warnings."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    for raw in messages:
+        msg = str(raw or "").strip()
+        if not msg:
+            continue
+        if msg.startswith("audit:") or any(
+            tok in msg for tok in _AUDIT_BLOCKER_TOKENS
+        ):
+            warnings.append(msg)
+        else:
+            errors.append(msg)
+    return errors, warnings
 
 
 def _assessment_id(run_id: str, encounter_id: str) -> str:
@@ -158,6 +190,10 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
     if completeness_result:
         _persist_completeness(assessment_id, completeness_result)
 
+    pipeline_errors, pipeline_warnings = _partition_pipeline_messages(
+        list(result.errors or [])
+    )
+
     return {
         "sbar_assessment_id": result.assessment_id,
         "sbar_status": result.status,
@@ -176,7 +212,8 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             "actions": result.actions,
             "rules": result.rules,
         },
-        "errors": result.errors,
+        "errors": pipeline_errors,
+        "warnings": pipeline_warnings,
         "review_status": "pending_review",
     }
 

@@ -22,6 +22,14 @@ describe("plainEnglishPipelineMessage", () => {
     expect(text).not.toContain("stopped");
   });
 
+  it("uses plain language when no SNOMED match was found", () => {
+    const raw =
+      'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "suspected cancer pathway for assessment of oesophageal cancer" (score 0.00)';
+    const text = plainEnglishPipelineMessage(raw);
+    expect(text).toContain("no SNOMED match found");
+    expect(text).not.toContain("(0% match)");
+  });
+
   it("explains coding verifier not_codeable in plain English", () => {
     const text = plainEnglishPipelineMessage(
       "coding_verifier: 1 entity classified not_codeable",

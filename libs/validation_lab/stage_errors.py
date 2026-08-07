@@ -83,6 +83,8 @@ def plain_english_pipeline_message(text: str) -> str:
             if terms:
                 parts = [
                     f'"{term}" ({round(float(score) * 100)}% match)'
+                    if float(score) > 0
+                    else f'"{term}" (no SNOMED match found)'
                     for term, score in terms
                 ]
                 joined = ", ".join(parts)

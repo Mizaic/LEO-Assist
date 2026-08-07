@@ -57,6 +57,7 @@ import StepPathwaySplit from "./StepPathwaySplit";
 import StepPrerequisites from "./StepPrerequisites";
 import { SPLIT_COUNT_CHANGE_WARNING, WIZARD_CHROME } from "./copy";
 import { buildAgeLabBandTree, type AgeLabBandSpec } from "./ageLabBands";
+import { attachAgeLabBandOr } from "./attachAgeLabBands";
 import {
   findNodeById,
   materializePathways,
@@ -457,9 +458,12 @@ export default function HighlightWizard({
 
   const handleAgeLabBands = useCallback(
     (spec: AgeLabBandSpec) => {
-      const bandTree = buildAgeLabBandTree(spec);
-      onUpdate({ kind: "replace_root", node: bandTree });
-      const pathways = bandTree.children ?? [];
+      // Situations are only age x lab bands. Shared symptoms stay on
+      // Always true -- attach the OR beside existing prerequisites.
+      const bandOr = buildAgeLabBandTree(spec);
+      const nextRoot = attachAgeLabBandOr(tree, bandOr);
+      onUpdate({ kind: "replace_root", node: nextRoot });
+      const pathways = bandOr.children ?? [];
       const boundaries: PathwayTextBoundary[] = pathways.map((pathway) => ({
         text: pathwaySummaryText(pathway),
         start: 0,
@@ -472,7 +476,7 @@ export default function HighlightWizard({
         readyImmediately: true,
       });
     },
-    [onUpdate],
+    [onUpdate, tree],
   );
 
   const handleBack = useCallback(() => dispatch({ type: "BACK" }), []);

@@ -125,11 +125,12 @@ export const STEP_PATHWAY_SPLIT = {
    *  inside the one row being split), so it needs its own banner or
    *  the reviewer just sees rows go clickable with no explanation. */
   mergeInstruction: "Tap two rows below to combine them, then confirm.",
-  noSplitBody: "We couldn't find more than one situation in this text.",
+  noSplitBody:
+    "We couldn't find more than one situation in this text. Shared symptoms belong in Always true. If ages have different lab cut-offs (for example PSA or CA125), build those bands here.",
   noSplitConfirmLabel: "Doesn't split -- one set of rules for everyone",
   ageLabBandsLabel: "Build from age and lab bands",
   ageLabBandsHint:
-    "For table-style rules (for example PSA or CA125 by age). Creates one situation per age range with its own lab threshold.",
+    "Creates one situation per age range with its own lab threshold. Shared symptoms stay in Always true -- each situation is only age plus the lab value.",
   /** Distinct from `noSplitBody` -- that copy describes what the tool
    *  found on its own and would be a flat contradiction if shown
    *  after the reviewer's OWN merge action collapsed everything down

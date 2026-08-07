@@ -57,6 +57,16 @@ def test_plain_english_for_terminology_low_confidence() -> None:
     assert "stopped" not in text
 
 
+def test_plain_english_for_no_snomed_match() -> None:
+    raw = (
+        'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- '
+        '"suspected cancer pathway for assessment of oesophageal cancer" (score 0.00)'
+    )
+    text = plain_english_pipeline_message(raw)
+    assert "no SNOMED match found" in text
+    assert "0% match" not in text
+
+
 def test_plain_english_for_coding_verifier_not_codeable() -> None:
     text = plain_english_pipeline_message(
         "coding_verifier: 1 entity classified not_codeable"

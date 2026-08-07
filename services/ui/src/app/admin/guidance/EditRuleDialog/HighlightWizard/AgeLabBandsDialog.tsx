@@ -110,9 +110,9 @@ export default function AgeLabBandsDialog({ open, onClose, onConfirm }: Props) {
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            Build one situation per age range, each with its own lab
-            threshold. Example: 40 to 49 with PSA more than 2 ug/L, or 50
-            to 59 with PSA more than 3.5 ug/L.
+            Each situation is only an age range plus a lab threshold.
+            Shared symptoms stay in Always true. Example: 40 to 49 with
+            PSA more than 2 ug/L, or 50 to 59 with PSA more than 3.5 ug/L.
           </Typography>
 
           <TextField

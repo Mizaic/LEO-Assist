@@ -79,6 +79,7 @@ ON CREATE SET
     g.type             = $guidance_type,
     g.publicationDate  = $pub_date,
     g.lastModifiedDate = $last_modified_date,
+    g.publisher        = $publisher,
     g.source           = 'nice_syndication_api',
     g.ingestVersion    = 1,
     g.createdAt        = datetime()
@@ -86,6 +87,7 @@ ON MATCH SET
     g.title            = $title,
     g.publicationDate  = $pub_date,
     g.lastModifiedDate = $last_modified_date,
+    g.publisher        = $publisher,
     g.ingestVersion    = coalesce(g.ingestVersion, 0) + 1,
     g.updatedAt        = datetime()
 RETURN g.id AS id, g.ingestVersion AS version
@@ -336,6 +338,12 @@ class NiceGraphUpserter:
         """
         code = _extract_code(guidance_json)
         meta = guidance_json.get("MetadataApplicationProfile") or {}
+        publisher = (
+            meta.get("Publisher")
+            or meta.get("Creator")
+            or meta.get("Source")
+            or "NICE"
+        )
         params = {
             "id": code,
             "code": code,
@@ -348,6 +356,7 @@ class NiceGraphUpserter:
             "last_modified_date": parse_nice_ms_date(
                 guidance_json.get("LastModified") or meta.get("Modified") or ""
             ),
+            "publisher": str(publisher).strip() or "NICE",
         }
         driver = _kg_driver()
         try:

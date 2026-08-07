@@ -121,6 +121,22 @@ def _strip_leading_modifiers(text: str) -> str:
     return " ".join(words) if words else text
 
 
+_LOOKUP_STRIP_SUFFIXES = (
+    " both solids and liquids",
+    " solids and liquids",
+    " to solids and liquids",
+)
+
+
+def _strip_trailing_modifiers(text: str) -> str:
+    """Remove trailing meal-consistency qualifiers that block SNOMED lookup."""
+    lowered = text.lower()
+    for suffix in _LOOKUP_STRIP_SUFFIXES:
+        if lowered.endswith(suffix):
+            return text[: len(text) - len(suffix)].strip()
+    return text
+
+
 def _resolve_lookup_term(entity: dict[str, Any]) -> str:
     lookup = str(entity.get("lookup_term") or "").strip()
     text = str(entity.get("text") or "").strip()
@@ -130,7 +146,7 @@ def _resolve_lookup_term(entity: dict[str, Any]) -> str:
     # resolver sees "ovary enlarged" instead of "left ovary enlarged" and
     # "ascites" instead of "moderate ascites".
     if not lookup or lookup.lower() == text.lower():
-        stripped = _strip_leading_modifiers(text)
+        stripped = _strip_trailing_modifiers(_strip_leading_modifiers(text))
         if stripped and stripped != text:
             return stripped
         if not lookup:
