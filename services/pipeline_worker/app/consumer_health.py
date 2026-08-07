@@ -42,8 +42,11 @@ def consumer_state() -> dict[str, Any]:
 
 
 def consumer_health_payload() -> dict[str, Any]:
+    from libs.message_bus.runtime_config import describe_message_bus_runtime
+
     bus = _message_bus
     queue = str(_consumer_state.get("queue") or "")
+    runtime = describe_message_bus_runtime(queue_name=queue or None)
     if bus is not None and hasattr(bus, "listener_health") and queue:
         _consumer_state["listener"] = bus.listener_health(queue)
     listener = _consumer_state.get("listener") or {}
@@ -61,5 +64,6 @@ def consumer_health_payload() -> dict[str, Any]:
     return {
         "healthy": healthy,
         "unhealthy_reasons": unhealthy_reasons,
+        "message_bus": runtime,
         **_consumer_state,
     }

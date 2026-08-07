@@ -360,11 +360,13 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
   const dismissLabel = watching ? "Work in background" : "Dismiss";
 
   return (
+    <>
     <Dialog
       open
       onClose={onClose}
       fullWidth
       maxWidth="sm"
+      disableEnforceFocus={inspectorOpen}
       data-testid="validation-lab-run-sheet"
     >
       <fm.div
@@ -394,15 +396,16 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
           </Button>
         </DialogActions>
       </fm.div>
-      {sheet.mode === "single" && sheet.runId ? (
-        <RunInspectorDrawer
-          open={inspectorOpen}
-          onClose={() => setInspectorOpen(false)}
-          runId={sheet.runId}
-          title={sheet.title}
-          inspector={inspector}
-        />
-      ) : null}
     </Dialog>
+    {sheet.mode === "single" && sheet.runId ? (
+      <RunInspectorDrawer
+        open={inspectorOpen}
+        onClose={() => setInspectorOpen(false)}
+        runId={sheet.runId}
+        title={sheet.title}
+        inspector={inspector}
+      />
+    ) : null}
+    </>
   );
 }

@@ -186,6 +186,14 @@ async def lifespan(app: object):
 
     _validate_startup_deps()
 
+    from libs.message_bus.runtime_config import log_message_bus_startup
+
+    log_message_bus_startup(
+        logging.getLogger(__name__),
+        service="core-api",
+        queue_name=os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs"),
+    )
+
     from app.db.neo4j_client import PatientGraphClient
     from app.services.tenant_seed import seed_tenant_defaults
 

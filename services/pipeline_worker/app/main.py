@@ -272,6 +272,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     bus = create_message_bus()
     set_message_bus(bus)
+    from libs.message_bus.runtime_config import log_message_bus_startup
+
+    log_message_bus_startup(logger, service="pipeline-worker", queue_name=QUEUE_NAME)
 
     neo4j_driver = None
     patient_audit_driver = None

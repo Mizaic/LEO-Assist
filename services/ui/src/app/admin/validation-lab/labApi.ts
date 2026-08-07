@@ -9,6 +9,8 @@
  *   DI: DI-2289D095
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
+import { triggerReauth } from "@/lib/api/client";
+
 import type { LabRunInspectorSnapshot, LabStageDetail } from "./inspectorTypes";
 
 export type PmhCategory = "condition" | "medication" | "allergy";
@@ -215,6 +217,7 @@ async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401) await triggerReauth();
     throw new Error(
       typeof body.detail === "string" ? body.detail : `Request failed (${res.status})`,
     );

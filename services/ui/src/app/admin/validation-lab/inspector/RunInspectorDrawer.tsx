@@ -45,8 +45,11 @@ export function RunInspectorDrawer({
       anchor="right"
       open={open}
       onClose={onClose}
-      PaperProps={{
-        sx: { width: { xs: "100%", sm: 520 }, maxWidth: "100vw" },
+      slotProps={{
+        root: { sx: { zIndex: 1400 } },
+        paper: {
+          sx: { width: { xs: "100%", sm: 520 }, maxWidth: "100vw" },
+        },
       }}
       data-testid="validation-lab-run-inspector"
     >

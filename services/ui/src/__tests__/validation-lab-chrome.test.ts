@@ -246,8 +246,13 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(sheet).not.toMatch(/\balert\s*\(/);
     expect(sheet).toMatch(/validation-lab-run-sheet-debug/);
     expect(sheet).toMatch(/RunInspectorDrawer/);
+    expect(sheet).toMatch(/disableEnforceFocus=\{inspectorOpen\}/);
     expect(sheet).toMatch(/useLabRunInspector/);
     expect(sheet).toMatch(/liveSpans/);
+    const drawer = readFile(
+      "services/ui/src/app/admin/validation-lab/inspector/RunInspectorDrawer.tsx",
+    );
+    expect(drawer).toMatch(/zIndex:\s*1400/);
   });
 
   test("TC-016: single run sheet lists stages task-by-task and skips queued as done", () => {

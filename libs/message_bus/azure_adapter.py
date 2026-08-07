@@ -141,6 +141,10 @@ class AzureServiceBusAdapter(MessageBusAdapter):
     def __init__(self, fully_qualified_namespace: str) -> None:
         from azure.servicebus.aio import ServiceBusClient
 
+        from libs.message_bus.runtime_config import describe_message_bus_runtime
+
+        self._runtime = describe_message_bus_runtime()
+        self._namespace_fqdn = fully_qualified_namespace
         connection_string = os.getenv("AZURE_SERVICE_BUS_CONNECTION_STRING", "").strip()
         if connection_string:
             self._client = ServiceBusClient.from_connection_string(
@@ -463,9 +467,18 @@ class AzureServiceBusAdapter(MessageBusAdapter):
                                     timezone.utc
                                 ).isoformat()
                                 if listener_state.connect_count == 1:
+                                    endpoint = self._runtime.get("endpoint") or "-"
+                                    namespace_env = (
+                                        self._runtime.get("namespace_env") or "-"
+                                    )
+                                    auth = self._runtime.get("auth") or "-"
                                     logger.info(
-                                        "Service Bus listener connected for %s",
+                                        "Service Bus listener connected queue=%s "
+                                        "namespace_env=%s endpoint=%s auth=%s",
                                         queue_or_topic,
+                                        namespace_env,
+                                        endpoint,
+                                        auth,
                                     )
                                 else:
                                     logger.info(
