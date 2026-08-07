@@ -23,6 +23,24 @@ from libs.workflow.execution_manifest import manifest_from_json
 
 _MAX_JSON_BYTES = max(32_768, int(os.getenv("LAB_INSPECTOR_MAX_JSON_BYTES", "262144")))
 
+_LOAD_PLAN_RAW_BY_VERSION = """
+MATCH (v:PlanDefinitionVersion)
+WHERE v.id = $plan_version_id
+   OR toString(v.versionId) = $plan_version_id
+   OR ('v' + toString(v.versionId)) = $plan_version_id
+RETURN v.rawJson AS plan_raw_json,
+       v.versionId AS plan_version_number
+LIMIT 1
+"""
+
+_LOAD_PLAN_RAW_BY_PLAN = """
+MATCH (pd:PlanDefinition {id: $plan_id})-[:HAS_VERSION]->(v:PlanDefinitionVersion)
+RETURN v.rawJson AS plan_raw_json,
+       v.versionId AS plan_version_number
+ORDER BY v.versionId DESC
+LIMIT 1
+"""
+
 
 def _loads_json(raw: Any) -> dict[str, Any]:
     if isinstance(raw, dict):
@@ -105,6 +123,74 @@ def _parse_plan_edges(raw_json: Any) -> list[dict[str, Any]]:
     return edges
 
 
+def _load_plan_raw_from_knowledge_graph(
+    *,
+    plan_version_id: str,
+    plan_id: str,
+) -> tuple[Any, Any]:
+    """Load PlanDefinitionVersion rawJson from the knowledge graph."""
+    from libs.neo4j_client.client import KnowledgeGraphClient
+
+    kg = KnowledgeGraphClient()
+    try:
+        version_key = (plan_version_id or "").strip()
+        if version_key:
+            rows = kg.run(_LOAD_PLAN_RAW_BY_VERSION, plan_version_id=version_key)
+            if rows and rows[0].get("plan_raw_json"):
+                return rows[0]["plan_raw_json"], rows[0].get("plan_version_number")
+        plan_key = (plan_id or "").strip()
+        if plan_key:
+            rows = kg.run(_LOAD_PLAN_RAW_BY_PLAN, plan_id=plan_key)
+            if rows and rows[0].get("plan_raw_json"):
+                return rows[0]["plan_raw_json"], rows[0].get("plan_version_number")
+    finally:
+        kg.close()
+    return None, None
+
+
+def _resolve_plan_raw_json(
+    row: dict[str, Any],
+    *,
+    run: dict[str, Any],
+    case: dict[str, Any],
+    manifest: dict[str, Any],
+) -> tuple[Any, Any]:
+    """Prefer patient-graph pin; fall back to knowledge graph by version id."""
+    raw = row.get("plan_raw_json")
+    version_number = row.get("plan_version_number")
+    if raw:
+        return raw, version_number
+
+    plan_id = str(row.get("plan_id") or run.get("plan_id") or case.get("plan_id") or "")
+    plan_version_id = str(
+        row.get("plan_version_id") or manifest.get("plan_version_id") or ""
+    )
+    return _load_plan_raw_from_knowledge_graph(
+        plan_version_id=plan_version_id,
+        plan_id=plan_id,
+    )
+
+
+def _plan_steps_from_spans(stage_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Last-resort plan steps so the flow map can render recorded stage spans."""
+    steps: list[dict[str, Any]] = []
+    for idx, row in enumerate(stage_rows or []):
+        step_id = str(row.get("step_id") or "").strip()
+        if not step_id:
+            continue
+        steps.append(
+            {
+                "action_id": step_id,
+                "subgraph_id": str(row.get("event_type") or ""),
+                "node_type": "action",
+                "sequence": idx,
+                "durable_loads": [],
+                "durable_persists": [],
+            }
+        )
+    return steps
+
+
 def _span_row(row: dict[str, Any]) -> dict[str, Any]:
     input_obj = _loads_json(row.get("input_json"))
     output_obj = _loads_json(row.get("output_json"))
@@ -146,19 +232,30 @@ def get_run_inspector(
         run_id=pipeline_run_id,
     )
     manifest = manifest_from_json(str(row.get("execution_manifest_json") or ""))
+    plan_id = str(row.get("plan_id") or run.get("plan_id") or case.get("plan_id") or "")
+    plan_version_id = str(
+        row.get("plan_version_id") or manifest.get("plan_version_id") or ""
+    )
+    plan_raw_json, plan_version_number = _resolve_plan_raw_json(
+        row,
+        run=run,
+        case=case,
+        manifest=manifest,
+    )
+    plan_steps = _parse_plan_steps(plan_raw_json)
+    if not plan_steps and stage_rows:
+        plan_steps = _plan_steps_from_spans(stage_rows)
     return {
         "lab_run_id": run_id,
         "pipeline_run_id": pipeline_run_id,
         "lab_status": str(run.get("status") or ""),
         "pipeline_status": str(row.get("pipeline_status") or "queued"),
-        "plan_id": str(
-            row.get("plan_id") or run.get("plan_id") or case.get("plan_id") or ""
-        ),
-        "plan_version_id": str(row.get("plan_version_id") or ""),
-        "plan_version_number": row.get("plan_version_number"),
+        "plan_id": plan_id,
+        "plan_version_id": plan_version_id,
+        "plan_version_number": plan_version_number or row.get("plan_version_number"),
         "execution_manifest": manifest,
-        "plan_steps": _parse_plan_steps(row.get("plan_raw_json")),
-        "plan_edges": _parse_plan_edges(row.get("plan_raw_json")),
+        "plan_steps": plan_steps,
+        "plan_edges": _parse_plan_edges(plan_raw_json),
         "spans": [_span_row(r) for r in (stage_rows or [])],
         "sse_path": f"/api/pipeline/progress/{pipeline_run_id}",
     }
