@@ -1,5 +1,10 @@
 """Validation Lab compliance trace helpers (stage summary + guideline diagnostics).
 
+Atlas trace:
+  DI: DI-FE423B8D
+  DO: DO-158BE606
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-FE423B8D")
+
 Only populated when ``capture_validation_output`` is true on pipeline state.
 """
 

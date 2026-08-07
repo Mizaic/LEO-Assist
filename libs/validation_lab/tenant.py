@@ -1,5 +1,10 @@
 """Synthetic tenant id for Validation Lab pipeline runs.
 
+Atlas trace:
+  DI: DI-FE423B8D
+  DO: DO-158BE606
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-FE423B8D")
+
 Validation Lab cases are single-tenant synthetic graphs. Production
 referral traffic carries a real tenant id for chunk scope checks; lab
 runs use a fixed sentinel so durable steps can reuse the same loaders

@@ -37,7 +37,7 @@ const NODE_HEIGHT = 56;
 type EndpointNodeData = FlowEndpoint & { selected: boolean };
 
 function EndpointNode({ data }: NodeProps) {
-  const item = data as EndpointNodeData;
+  const item = data as unknown as EndpointNodeData;
   return (
     <Box
       sx={{

@@ -1,6 +1,11 @@
 /**
  * Open SBAR result control for a completed Validation Lab single run.
- * Atlas: DI-FE423B8D / DO-158BE606 / VT-8F7346F1
+ *
+ * Atlas trace:
+ *   DI: DI-FE423B8D
+ *   DO: DO-158BE606
+ *   VT: VT-8F7346F1
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-FE423B8D")
  */
 "use client";
 
