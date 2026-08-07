@@ -420,8 +420,7 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
             "encounter_text": loaded.get("encounter_text") or "",
             "sentences": loaded.get("sentences") or [],
             "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
-            "errors": list(state.get("errors") or [])
-            + list(loaded.get("errors") or []),
+            "errors": list(loaded.get("errors") or []),
         }
     return {
         "encounter_text": "",

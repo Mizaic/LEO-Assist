@@ -111,6 +111,7 @@ def _write_attachment_chunks(
             char_start=chunk["char_start"],
             char_end=chunk["char_end"],
             ordinal=chunk["ordinal"],
+            tenant_id="validation-lab" if source == SOURCE_VALIDATION_LAB else "",
         )
         chunk_ids.append(chunk["id"])
     return chunk_ids
@@ -151,9 +152,7 @@ def _spo_ag_thread(spec: ValidationCaseSpec, knowledge_client: Any | None) -> li
         AgConversationTurn(
             category="REQUESTER",
             note=requester_note,
-            sent_datetime=(
-                spec.ag_thread[0].sent_datetime if spec.ag_thread else ""
-            ),
+            sent_datetime=(spec.ag_thread[0].sent_datetime if spec.ag_thread else ""),
             attachment_text=(
                 spec.ag_thread[0].attachment_text if spec.ag_thread else ""
             ),

@@ -76,6 +76,35 @@ def _parse_plan_steps(raw_json: Any) -> list[dict[str, Any]]:
     return steps
 
 
+def _parse_plan_edges(raw_json: Any) -> list[dict[str, Any]]:
+    """Extract canvas successor edges from PlanDefinition relatedAction."""
+    plan = _loads_json(raw_json)
+    actions = plan.get("action") or plan.get("actions") or []
+    if not isinstance(actions, list):
+        return []
+    edges: list[dict[str, Any]] = []
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        target_id = str(action.get("id") or "").strip()
+        if not target_id:
+            continue
+        for rel in action.get("relatedAction") or []:
+            if not isinstance(rel, dict):
+                continue
+            source_id = str(rel.get("actionId") or "").strip()
+            if not source_id:
+                continue
+            edges.append(
+                {
+                    "source": source_id,
+                    "target": target_id,
+                    "relationship": str(rel.get("relationship") or "after-end"),
+                }
+            )
+    return edges
+
+
 def _span_row(row: dict[str, Any]) -> dict[str, Any]:
     input_obj = _loads_json(row.get("input_json"))
     output_obj = _loads_json(row.get("output_json"))
@@ -129,6 +158,7 @@ def get_run_inspector(
         "plan_version_number": row.get("plan_version_number"),
         "execution_manifest": manifest,
         "plan_steps": _parse_plan_steps(row.get("plan_raw_json")),
+        "plan_edges": _parse_plan_edges(row.get("plan_raw_json")),
         "spans": [_span_row(r) for r in (stage_rows or [])],
         "sse_path": f"/api/pipeline/progress/{pipeline_run_id}",
     }

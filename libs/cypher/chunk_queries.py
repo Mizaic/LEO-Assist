@@ -25,16 +25,13 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-
 # -- Constraint / index DDL -------------------------------------------------
 
 CHUNK_CONSTRAINTS: list[str] = [
-    "CREATE CONSTRAINT chunk_id IF NOT EXISTS "
-    "FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
+    "CREATE CONSTRAINT chunk_id IF NOT EXISTS " "FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
     "CREATE INDEX chunk_document_reference IF NOT EXISTS "
     "FOR (c:Chunk) ON (c.document_reference_id)",
-    "CREATE INDEX chunk_sha256 IF NOT EXISTS "
-    "FOR (c:Chunk) ON (c.sha256)",
+    "CREATE INDEX chunk_sha256 IF NOT EXISTS " "FOR (c:Chunk) ON (c.sha256)",
 ]
 
 
@@ -63,6 +60,9 @@ SET c.document_reference_id = $document_reference_id,
     c.char_start            = $char_start,
     c.char_end              = $char_end,
     c.ordinal               = $ordinal,
+    c.tenantId              = CASE
+        WHEN $tenant_id <> '' THEN $tenant_id
+        ELSE c.tenantId END,
     c.updated_at            = datetime(),
     c.created_at            = coalesce(c.created_at, datetime())
 MERGE (dr)-[r:HAS_CHUNK]->(c)
@@ -141,6 +141,7 @@ def upsert_chunk_payload(
     char_start: int,
     char_end: int,
     session: Any,
+    tenant_id: str = "",
 ) -> str:
     """Idempotently upsert a :Chunk under the given DocumentReference.
 
@@ -157,5 +158,6 @@ def upsert_chunk_payload(
         char_start=char_start,
         char_end=char_end,
         ordinal=ordinal,
+        tenant_id=tenant_id,
     )
     return chunk_id

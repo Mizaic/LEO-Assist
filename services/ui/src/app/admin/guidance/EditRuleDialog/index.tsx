@@ -84,7 +84,9 @@ import {
   type TourStep,
 } from "../guidanceTourSteps";
 import ConceptCoachPopover from "./ConceptCoachPopover";
-import ConceptSearchPanel from "./ConceptSearchPanel";
+import ConceptSearchPanel, {
+  type ObservationSeed,
+} from "./ConceptSearchPanel";
 import ConceptSynonymDialog from "./ConceptSynonymDialog";
 import ChipSearchPopover from "./ChipSearchPopover";
 import DraftResumeBanner from "./DraftResumeBanner";
@@ -256,8 +258,8 @@ interface SearchTarget {
    * "match any of these" -- never several separate ANDed leaves).
    * The Advanced/Sentence editor's own "+Add" leaves this false so it
    * keeps ConceptSearchPanel's single-pick flow, including the
-   * "Compare value..." observation affordance MultiConceptPicker does
-   * not have.
+   * "Compare value..." observation affordance. MultiConceptPicker also
+   * supports operator / value / unit on observable hits.
    */
   multiPick: boolean;
 }
@@ -1168,18 +1170,16 @@ export default function EditRuleDialog({
     setSearchTarget(IDLE_TARGET);
   }
 
-  function handlePickObservation(seed: {
-    observable_id: string;
-    observable_term?: string;
-    unit?: string;
-  }) {
+  function handlePickObservation(seed: ObservationSeed) {
     if (searchTarget.mode !== "add" || !searchTarget.parentNodeId || !tree) return;
+    const sourceRowText = searchTarget.initialQuery.trim() || undefined;
     const parent = findNode(tree, searchTarget.parentNodeId);
     if (parent && canHaveChildren(parent.kind)) {
       handleUpdate({
         kind: "add_observation",
         parentNodeId: searchTarget.parentNodeId,
         seed,
+        sourceRowText,
       });
     } else if (parent && parent.node_id === tree.node_id) {
       const groupRoot = wrapRootInAnd(tree);
@@ -1188,6 +1188,7 @@ export default function EditRuleDialog({
           kind: "add_observation",
           parentNodeId: groupRoot.node_id,
           seed,
+          sourceRowText,
         }),
       );
     }

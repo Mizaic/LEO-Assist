@@ -674,7 +674,7 @@ export function applyUpdate(
       });
     }
     case "add_observation": {
-      const observation = makeObservationNode(update.seed);
+      const observation = makeObservationNode(update.seed, update.sourceRowText);
       return mapNode(root, (n) => {
         if (n.node_id !== update.parentNodeId) return n;
         if (isOrGroupSymptomsOnly(n)) {
@@ -1185,6 +1185,7 @@ export function makeRuleFiredNode(): EditableLogicNode {
 
 function makeObservationNode(
   seed?: Partial<EditableObservationPayload>,
+  sourceRowText?: string,
 ): EditableLogicNode {
   const base: EditableObservationPayload = {
     kind: "OBSERVATION",
@@ -1203,6 +1204,7 @@ function makeObservationNode(
     node_id: freshNodeId(),
     kind: "OBSERVATION",
     observation: seed ? { ...base, ...seed } : base,
+    ...(sourceRowText ? { source_row_text: sourceRowText } : {}),
   };
 }
 

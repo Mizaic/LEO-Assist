@@ -98,7 +98,7 @@ describe("VT - CandidateLabTestDialog chrome", () => {
     expect(helpers).not.toMatch(
       /item\.status !== "completed"[\s\S]{0,120}byCase\[item\.caseId\] = "error"/,
     );
-    expect(labRun).toMatch(/export function batchPollTimeoutMs/);
+    expect(labRun).toMatch(/batchPollTimeoutMs/);
     expect(batch).toMatch(/batchPollTimeoutMs/);
   });
 });

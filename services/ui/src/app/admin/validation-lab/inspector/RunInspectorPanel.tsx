@@ -20,7 +20,6 @@ import type { UseLabRunInspectorReturn } from "@/hooks/useLabRunInspector";
 import { RunInspectorDataTab } from "./RunInspectorDataTab";
 import { RunInspectorLogTab } from "./RunInspectorLogTab";
 import { RunInspectorSummaryTab } from "./RunInspectorSummaryTab";
-import { RunInspectorTraceTab } from "./RunInspectorTraceTab";
 
 interface Props {
   runId: string;
@@ -70,11 +69,18 @@ export function RunInspectorPanel({
         sx={{ borderBottom: 1, borderColor: "divider" }}
       >
         <Tab label="Live log" data-testid="validation-lab-inspector-tab-log" />
-        <Tab label="Trace" data-testid="validation-lab-inspector-tab-trace" />
-        <Tab label="Summary" data-testid="validation-lab-inspector-tab-summary" />
         <Tab label="Data flow" data-testid="validation-lab-inspector-tab-data" />
+        <Tab label="Summary" data-testid="validation-lab-inspector-tab-summary" />
       </Tabs>
-      <Box sx={{ minHeight: 240 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 360,
+          maxHeight: "min(68vh, 720px)",
+          overflow: "hidden",
+        }}
+      >
         {inspector.error ? (
           <Typography color="error" variant="body2" sx={{ mb: 1 }}>
             {inspector.error}
@@ -88,26 +94,20 @@ export function RunInspectorPanel({
           />
         ) : null}
         {tab === 1 ? (
-          <RunInspectorTraceTab
+          <RunInspectorDataTab
             spans={inspector.spans}
             planSteps={inspector.snapshot?.plan_steps || []}
-            selectedStepId={inspector.selectedStepId}
-            onSelectStep={inspector.setSelectedStepId}
-          />
-        ) : null}
-        {tab === 2 ? (
-          <RunInspectorSummaryTab
-            spans={inspector.spans}
-            planSteps={inspector.snapshot?.plan_steps || []}
+            planEdges={inspector.snapshot?.plan_edges}
             selectedStepId={inspector.selectedStepId}
             onSelectStep={inspector.setSelectedStepId}
             stageDetail={inspector.stageDetail}
             loading={inspector.stageLoading}
           />
         ) : null}
-        {tab === 3 ? (
-          <RunInspectorDataTab
+        {tab === 2 ? (
+          <RunInspectorSummaryTab
             spans={inspector.spans}
+            planSteps={inspector.snapshot?.plan_steps || []}
             selectedStepId={inspector.selectedStepId}
             onSelectStep={inspector.setSelectedStepId}
             stageDetail={inspector.stageDetail}

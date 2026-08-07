@@ -570,6 +570,7 @@ export const CONCEPT_EXPAND = {
  * every result carries a checkbox and, once ticked, an explicit depth
  * field defaulting to 0 (exact match only) -- see multiConceptSeed.ts for
  * why this default deliberately differs from the legacy add flow.
+ * Observable hits also expose operator / value / unit for a reading.
  */
 export const MULTI_CONCEPT_PICKER = {
   searchLabel: "Search clinical terms",
@@ -601,7 +602,19 @@ export const MULTI_CONCEPT_PICKER = {
   depthPreviewApiCap:
     "Showing the first 200 codes from the terminology service. Raise depth carefully if you need a narrower set.",
   confirmLabel: (n: number) => (n === 1 ? "Add 1 code" : `Add ${n} codes`),
+  confirmObservationLabel: "Add this reading",
   emptyHint:
-    "Tick one or more results below, then confirm. Each one can match exactly, or match more specific terms too.",
+    "Tick one or more results below, then confirm. Each one can match exactly, or match more specific terms too. For a measurable reading, set the comparison, value, and unit.",
+  observationHint:
+    "Measurable reading. Fill value (and unit) to compare numbers, or leave value blank to match the code as present only.",
+  operatorAriaLabel: (term: string) => `Comparison for ${term}`,
+  valueLabel: "Value",
+  value2Label: "And",
+  unitLabel: "Unit",
+  valueAriaLabel: (term: string) => `Value for ${term}`,
+  value2AriaLabel: (term: string) => `Upper value for ${term}`,
+  unitAriaLabel: (term: string) => `Unit for ${term}`,
+  obsMultiConflict:
+    "A reading value can only be added when one code is selected. Clear the value, or untick the other codes.",
 } as const;
 

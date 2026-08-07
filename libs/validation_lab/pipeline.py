@@ -31,6 +31,7 @@ from libs.referral_simulator.message import (
 )
 from libs.validation_lab.gold import RunOutputs
 from libs.validation_lab.models import PersistMode
+from libs.validation_lab.tenant import VALIDATION_LAB_TENANT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,8 @@ def _normalize_pipeline_status(status: str) -> str:
     if status in _FAILED_RUN_STATUSES:
         return "failed"
     return status
+
+
 _LAB_EAGER_DURABLE_BOOTSTRAP = (
     os.getenv("VALIDATION_LAB_EAGER_DURABLE_BOOTSTRAP", "true").lower() != "false"
 )
@@ -98,6 +101,7 @@ def build_pipeline_message(
             chunk_ids=list(case.get("chunk_ids") or []) or None,
             context={"case_id": case.get("id"), "source": "validation-lab"},
         )
+        body["tenant_id"] = VALIDATION_LAB_TENANT_ID
         body["dry_run"] = dry_run
         body["capture_validation_output"] = True
         return body
@@ -113,6 +117,7 @@ def build_pipeline_message(
         guideline_ruleset_version=ruleset_version,
         context={"case_id": case.get("id"), "source": "validation-lab"},
     )
+    body["tenant_id"] = VALIDATION_LAB_TENANT_ID
     body["dry_run"] = dry_run
     body["capture_validation_output"] = True
     return body

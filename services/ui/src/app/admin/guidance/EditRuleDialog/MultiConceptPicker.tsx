@@ -2,9 +2,10 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DI: DI-42246DA7
- *   DO: DO-F8C56339
- *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
+ *   DI: DI-C21AE387 / DI-42246DA7
+ *   DO: DO-AA74E9A6 / DO-F8C56339
+ *   VT: VT-5632FA0D
+ *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-C21AE387")
  */
 "use client";
 
@@ -17,10 +18,9 @@
  * for one row), with each pick's descendant-matching depth asked
  * explicitly instead of silently defaulting -- see multiConceptSeed.ts.
  *
- * Search reuses the same debounced /api/terminology/search endpoint and
- * 250ms debounce as ConceptSearchPanel; this component intentionally does
- * not duplicate that panel's prior-resolutions nudge or observation-swap
- * affordance, both of which are single-pick concerns.
+ * Observable hits also expose operator / value / unit. With one measurable
+ * code selected and a value filled, confirm creates an OBSERVATION leaf
+ * via onConfirmObservation; otherwise confirm stays CONCEPT via onConfirm.
  */
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
@@ -32,13 +32,20 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import type { ObservationSeed } from "./ConceptSearchPanel";
 import { MULTI_CONCEPT_PICKER, friendlyTerm } from "./copy";
 import DepthInclusionTooltip from "./DepthInclusionTooltip";
+import MultiConceptObsFields from "./MultiConceptObsFields";
 import {
   DEFAULT_CONCEPT_DEPTH,
   buildMultiSeedCriterion,
+  emptyThresholdForHit,
+  isConflictingObsMultiPick,
+  observationSeedFromPick,
   seedFromHit,
+  type ObservableThresholdDraft,
 } from "./multiConceptSeed";
+import { isLikelyObservable } from "./observableHit";
 import type { ConceptSearchHit, LogicCriterion } from "./types";
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -47,6 +54,11 @@ interface Props {
   /** Suggested initial query -- typically the highlighted phrase. */
   initialQuery: string;
   onConfirm: (criterion: LogicCriterion) => void;
+  /**
+   * When the reviewer sets a numeric threshold on a single observable
+   * hit, confirm calls this instead of onConfirm.
+   */
+  onConfirmObservation?: (seed: ObservationSeed) => void;
   /** When true, the results list fills remaining popover height. */
   embedded?: boolean;
 }
@@ -54,6 +66,7 @@ interface Props {
 export default function MultiConceptPicker({
   initialQuery,
   onConfirm,
+  onConfirmObservation,
   embedded = false,
 }: Props) {
   const [query, setQuery] = useState(initialQuery);
@@ -62,6 +75,9 @@ export default function MultiConceptPicker({
   const [error, setError] = useState<string | null>(null);
   const [depthByConceptId, setDepthByConceptId] = useState<
     Map<string, number>
+  >(new Map());
+  const [thresholdByConceptId, setThresholdByConceptId] = useState<
+    Map<string, ObservableThresholdDraft>
   >(new Map());
 
   useEffect(() => {
@@ -92,6 +108,23 @@ export default function MultiConceptPicker({
   const selectedHits = hits.filter((h) =>
     depthByConceptId.has(h.snomed_concept_id),
   );
+  const selectedDrafts = selectedHits.map(
+    (h) =>
+      thresholdByConceptId.get(h.snomed_concept_id) ??
+      emptyThresholdForHit(h, initialQuery),
+  );
+  const multiConflict = isConflictingObsMultiPick(
+    selectedHits.length,
+    selectedDrafts,
+  );
+  const singleObsSeed =
+    selectedHits.length === 1 && onConfirmObservation
+      ? observationSeedFromPick(
+          selectedHits[0],
+          thresholdByConceptId.get(selectedHits[0].snomed_concept_id) ??
+            emptyThresholdForHit(selectedHits[0], initialQuery),
+        )
+      : null;
 
   function toggle(hit: ConceptSearchHit) {
     setDepthByConceptId((prev) => {
@@ -103,19 +136,44 @@ export default function MultiConceptPicker({
       }
       return next;
     });
+    setThresholdByConceptId((prev) => {
+      const next = new Map(prev);
+      if (next.has(hit.snomed_concept_id)) {
+        next.delete(hit.snomed_concept_id);
+      } else if (isLikelyObservable(hit)) {
+        next.set(hit.snomed_concept_id, emptyThresholdForHit(hit, initialQuery));
+      }
+      return next;
+    });
   }
 
   function setDepth(conceptId: string, depth: number) {
     setDepthByConceptId((prev) => new Map(prev).set(conceptId, depth));
   }
 
+  function setThreshold(conceptId: string, draft: ObservableThresholdDraft) {
+    setThresholdByConceptId((prev) => new Map(prev).set(conceptId, draft));
+  }
+
   function handleConfirm() {
-    if (selectedHits.length === 0) return;
+    if (selectedHits.length === 0 || multiConflict) return;
+    if (singleObsSeed && onConfirmObservation) {
+      onConfirmObservation(singleObsSeed);
+      return;
+    }
     const seeds = selectedHits.map((h) =>
-      seedFromHit(h, depthByConceptId.get(h.snomed_concept_id) ?? DEFAULT_CONCEPT_DEPTH),
+      seedFromHit(
+        h,
+        depthByConceptId.get(h.snomed_concept_id) ?? DEFAULT_CONCEPT_DEPTH,
+      ),
     );
     onConfirm(buildMultiSeedCriterion(seeds));
   }
+
+  const confirmDisabled = selectedIds.length === 0 || multiConflict;
+  const confirmLabel = singleObsSeed
+    ? MULTI_CONCEPT_PICKER.confirmObservationLabel
+    : MULTI_CONCEPT_PICKER.confirmLabel(selectedIds.length);
 
   return (
     <Stack
@@ -139,18 +197,15 @@ export default function MultiConceptPicker({
           {error}
         </Alert>
       )}
+      {multiConflict && (
+        <Alert severity="info" sx={{ py: 0.5 }}>
+          {MULTI_CONCEPT_PICKER.obsMultiConflict}
+        </Alert>
+      )}
       <Box
         sx={{
           flex: 1,
           minHeight: embedded ? 0 : 200,
-          // Always a real number, even when embedded in a popover:
-          // each ticked result grows this list by a "Depth" stepper
-          // row, and the host Popover only positions itself once, on
-          // open -- an unbounded (`undefined`) height here lets later
-          // ticks grow the popover past the bottom of the screen with
-          // nothing to stop it. A fixed cap plus this box's own
-          // scrollbar keeps the popover's total size predictable
-          // however many results the reviewer ticks.
           maxHeight: embedded ? 320 : 480,
           overflowY: "auto",
           border: "1px solid",
@@ -176,18 +231,25 @@ export default function MultiConceptPicker({
               key={hit.snomed_concept_id}
               hit={hit}
               checked={depthByConceptId.has(hit.snomed_concept_id)}
-              depth={depthByConceptId.get(hit.snomed_concept_id) ?? DEFAULT_CONCEPT_DEPTH}
+              depth={
+                depthByConceptId.get(hit.snomed_concept_id) ??
+                DEFAULT_CONCEPT_DEPTH
+              }
+              threshold={thresholdByConceptId.get(hit.snomed_concept_id)}
               onToggle={() => toggle(hit)}
               onDepthChange={(d) => setDepth(hit.snomed_concept_id, d)}
+              onThresholdChange={(draft) =>
+                setThreshold(hit.snomed_concept_id, draft)
+              }
             />
           ))}
       </Box>
       <Button
         variant="contained"
-        disabled={selectedIds.length === 0}
+        disabled={confirmDisabled}
         onClick={handleConfirm}
       >
-        {MULTI_CONCEPT_PICKER.confirmLabel(selectedIds.length)}
+        {confirmLabel}
       </Button>
     </Stack>
   );
@@ -197,16 +259,21 @@ function MultiConceptHitRow({
   hit,
   checked,
   depth,
+  threshold,
   onToggle,
   onDepthChange,
+  onThresholdChange,
 }: {
   hit: ConceptSearchHit;
   checked: boolean;
   depth: number;
+  threshold?: ObservableThresholdDraft;
   onToggle: () => void;
   onDepthChange: (depth: number) => void;
+  onThresholdChange: (draft: ObservableThresholdDraft) => void;
 }) {
   const friendly = friendlyTerm(hit.term);
+  const showObs = checked && isLikelyObservable(hit) && threshold;
   return (
     <Stack
       spacing={0.5}
@@ -222,7 +289,9 @@ function MultiConceptHitRow({
           size="small"
           checked={checked}
           onChange={onToggle}
-          inputProps={{ "aria-label": MULTI_CONCEPT_PICKER.selectAriaLabel(friendly) }}
+          inputProps={{
+            "aria-label": MULTI_CONCEPT_PICKER.selectAriaLabel(friendly),
+          }}
         />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.2 }}>
@@ -247,7 +316,9 @@ function MultiConceptHitRow({
               value={depth}
               onChange={(e) => {
                 const n = Number(e.target.value);
-                onDepthChange(Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0);
+                onDepthChange(
+                  Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0,
+                );
               }}
               label="Depth"
               inputProps={{
@@ -258,6 +329,13 @@ function MultiConceptHitRow({
               }}
             />
           </DepthInclusionTooltip>
+          {showObs && (
+            <MultiConceptObsFields
+              term={friendly}
+              draft={threshold}
+              onChange={onThresholdChange}
+            />
+          )}
         </Box>
       )}
     </Stack>

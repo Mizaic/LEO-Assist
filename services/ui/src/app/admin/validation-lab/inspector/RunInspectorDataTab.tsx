@@ -1,5 +1,5 @@
 /**
- * Data flow tab: Zipkin waterfall plus stage input/output diff.
+ * Data flow tab: Zipkin-style endpoint map, timeline, and state diff.
  *
  * Atlas trace:
  *   DO: DO-158BE606
@@ -13,6 +13,8 @@ import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -26,16 +28,27 @@ import {
   type StateChange,
 } from "@/lib/pipelineStateDiff";
 import { formatStageLabel } from "../labRunFormat";
-import type { LabStageDetail, LabTraceSpan } from "../inspectorTypes";
+import type {
+  LabPlanEdge,
+  LabPlanStep,
+  LabStageDetail,
+  LabTraceSpan,
+} from "../inspectorTypes";
+import { TraceEndpointPanel } from "./TraceEndpointPanel";
+import { TraceFlowGraph } from "./TraceFlowGraph";
 import { TraceWaterfallChart } from "./TraceWaterfallChart";
 
 interface Props {
   spans: LabTraceSpan[];
+  planSteps: LabPlanStep[];
+  planEdges?: LabPlanEdge[];
   selectedStepId: string | null;
   onSelectStep: (id: string | null) => void;
   stageDetail: LabStageDetail | null;
   loading: boolean;
 }
+
+type DataView = "map" | "timeline";
 
 function formatChangeValue(value: unknown): string {
   if (value === undefined) return "(none)";
@@ -120,28 +133,114 @@ function DiffChangeRow({ change, index }: { change: StateChange; index: number }
 
 export function RunInspectorDataTab({
   spans,
+  planSteps,
+  planEdges,
   selectedStepId,
   onSelectStep,
   stageDetail,
   loading,
 }: Props) {
+  const [view, setView] = useState<DataView>("map");
+  const ordered: LabTraceSpan[] =
+    spans.length > 0
+      ? spans
+      : planSteps.map((step) => ({
+          step_id: step.action_id,
+          status: "pending",
+          subgraph_id: step.subgraph_id,
+        }));
+
   const changes =
     stageDetail?.input != null || stageDetail?.output != null
       ? collectStateChanges(stageDetail?.input ?? {}, stageDetail?.output ?? {})
       : [];
 
   return (
-    <Stack spacing={1.5} data-testid="validation-lab-inspector-data">
-      <TraceWaterfallChart
-        spans={spans}
-        selectedStepId={selectedStepId}
-        onSelectStep={onSelectStep}
-        compact
-      />
+    <Stack
+      spacing={1.5}
+      data-testid="validation-lab-inspector-data"
+      sx={{ flex: 1, minHeight: 0, overflow: "auto" }}
+    >
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="body2" color="text.secondary">
+          Pipeline endpoints and how data flows between stages.
+        </Typography>
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={view}
+          onChange={(_, next: DataView | null) => {
+            if (next) setView(next);
+          }}
+          aria-label="Data flow view"
+        >
+          <ToggleButton value="map" aria-label="Flow map">
+            Flow map
+          </ToggleButton>
+          <ToggleButton value="timeline" aria-label="Timeline">
+            Timeline
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
+
+      {view === "map" ? (
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={1.5}
+          alignItems="stretch"
+        >
+          <Box
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              overflow: "hidden",
+              bgcolor: "grey.50",
+            }}
+          >
+            <TraceFlowGraph
+              planSteps={planSteps}
+              planEdges={planEdges}
+              spans={ordered}
+              selectedStepId={selectedStepId}
+              onSelectStep={onSelectStep}
+            />
+          </Box>
+          {selectedStepId ? (
+            <TraceEndpointPanel
+              stepId={selectedStepId}
+              planSteps={planSteps}
+              planEdges={planEdges}
+              spans={ordered}
+              onSelectStep={onSelectStep}
+            />
+          ) : null}
+        </Stack>
+      ) : (
+        <Box
+          sx={{
+            minHeight: 160,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            p: 1.5,
+            bgcolor: "background.paper",
+          }}
+        >
+          <TraceWaterfallChart
+            spans={ordered}
+            selectedStepId={selectedStepId}
+            onSelectStep={onSelectStep}
+          />
+        </Box>
+      )}
+
       <Divider />
       {!selectedStepId ? (
         <Typography variant="body2" color="text.secondary">
-          Select a span above to view input/output changes for that stage.
+          Select an endpoint to inspect upstream/downstream links and state changes.
         </Typography>
       ) : null}
       {loading ? (
@@ -162,7 +261,9 @@ export function RunInspectorDataTab({
       {changes.length > 0 ? (
         <Box
           sx={{
-            maxHeight: 320,
+            flex: 1,
+            minHeight: 160,
+            maxHeight: 280,
             overflow: "auto",
             border: "1px solid",
             borderColor: "divider",

@@ -28,6 +28,10 @@ from libs.pipeline.communication_thread_loader import (
 )
 from libs.workflow.durable_steps import StepRequest
 from libs.workflow.pipeline_stage_store import PipelineStageStore
+from libs.validation_lab.tenant import (
+    VALIDATION_LAB_TENANT_ID,
+    is_validation_lab_pipeline_state,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +110,27 @@ def default_source_fields(
     )
 
 
+def _resolve_tenant_id(
+    state: dict[str, Any],
+    request: StepRequest,
+    body: dict[str, Any] | None,
+) -> str:
+    for candidate in (
+        request.tenant_id,
+        state.get("tenant_id"),
+        (body or {}).get("tenant_id"),
+        ((body or {}).get("context") or {}).get("tenant_id"),
+    ):
+        text = str(candidate or "").strip()
+        if text:
+            return text
+    if is_validation_lab_pipeline_state(state) or is_validation_lab_pipeline_state(
+        {"context": (body or {}).get("context") or {}}
+    ):
+        return VALIDATION_LAB_TENANT_ID
+    return ""
+
+
 def load_document_chunks_into_state(
     client: PatientGraphClient,
     state: dict[str, Any],
@@ -113,6 +138,21 @@ def load_document_chunks_into_state(
 ) -> None:
     chunk_ids = chunk_ids_from_state(state)
     if not chunk_ids or state.get("sentences"):
+        return
+    if is_validation_lab_pipeline_state(state):
+        loaded = load_document_chunks_from_neo4j(client, chunk_ids)
+        state.update(loaded)
+        if not loaded.get("errors"):
+            return
+        logger.warning(
+            "validation_lab document_chunks load failed run_id=%s chunk_count=%d errors=%s",
+            request.run_id,
+            len(chunk_ids),
+            loaded.get("errors"),
+        )
+        state["errors"] = list(state.get("errors") or []) + list(
+            loaded.get("errors") or []
+        )
         return
     scope_errors = _validate_trigger_chunk_scope(client, state, chunk_ids)
     if scope_errors:
@@ -362,7 +402,7 @@ def load_step_state(
             "run_id": request.run_id,
             "plan_definition_id": request.plan_definition_id,
             "workflow_id": request.workflow_id,
-            "tenant_id": request.tenant_id,
+            "tenant_id": _resolve_tenant_id(state, request, body),
             "requested_by": request.requested_by,
             "source_node_type": source_type,
             "source_node_id": source_id,

@@ -293,6 +293,15 @@ export function getRun(
   );
 }
 
+/** Real assessment id from a Lab run, or null when SBAR is not ready yet. */
+export async function loadSbarAssessmentId(
+  caseId: string,
+  runId: string,
+): Promise<string | null> {
+  const packed = await getRun(caseId, runId);
+  return packed.run.outputs?.sbar_assessment_id || null;
+}
+
 const TERMINAL_RUN_STATUSES = new Set(["completed", "failed"]);
 
 /** Scale multi-case poll window with batch size (min 10m, max 45m). */

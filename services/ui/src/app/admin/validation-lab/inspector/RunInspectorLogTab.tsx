@@ -31,7 +31,7 @@ function emptyLogMessage(
 ): string {
   if (filteredEmpty) return "No events match your filter.";
   if (terminal) {
-    return `No live events captured for this ${runStatus || "completed"} run. Stage history is on the Trace tab.`;
+    return `No live events captured for this ${runStatus || "completed"} run. Stage history is on the Data flow tab.`;
   }
   return "Waiting for pipeline events...";
 }
@@ -70,7 +70,11 @@ export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
   }, [events, filter]);
 
   return (
-    <Stack spacing={1} data-testid="validation-lab-inspector-log">
+    <Stack
+      spacing={1}
+      data-testid="validation-lab-inspector-log"
+      sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
+    >
       <Stack direction="row" spacing={1} alignItems="center">
         <TextField
           size="small"
@@ -92,13 +96,14 @@ export function RunInspectorLogTab({ events, terminal, runStatus }: Props) {
       </Stack>
       <Box
         sx={{
+          flex: 1,
+          minHeight: 300,
           fontFamily: "monospace",
           fontSize: 12,
           bgcolor: "grey.900",
           color: "grey.100",
           p: 1.5,
           borderRadius: 1,
-          maxHeight: 420,
           overflow: "auto",
         }}
         ref={(node: HTMLDivElement | null) => {

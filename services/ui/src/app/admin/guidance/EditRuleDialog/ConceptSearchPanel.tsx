@@ -54,10 +54,15 @@ import type {
  * SNOMED hit alone: the threshold + operator still require reviewer
  * input.
  */
+/**
+ * Seed for an OBSERVATION leaf. Compare-value only fills id/term/unit;
+ * the multi-pick highlight path may also send operator + value.
+ */
 export type ObservationSeed = Pick<
   EditableObservationPayload,
   "observable_id" | "observable_term" | "unit"
->;
+> &
+  Partial<Pick<EditableObservationPayload, "operator" | "value">>;
 
 interface Props {
   /** Controls header copy + button label. */
@@ -94,35 +99,7 @@ interface Props {
   embedded?: boolean;
 }
 
-/**
- * Heuristic: does this SNOMED hit look like an observable / measurement
- * that can carry a numeric threshold? Based on the SNOMED top-level
- * semantic tags the terminology search can return today. We keep the
- * match permissive -- false positives only cost the reviewer an extra
- * read of the button; false negatives hide a useful affordance.
- *
- * Known observable-ish tags (SNOMED CT US/UK editions):
- *
- *   - "observable entity"     -- e.g. "Platelet count"
- *   - "measurement"           -- e.g. "Haemoglobin A1c measurement"
- *   - "procedure"             -- covers "Blood pressure measurement"
- *   - "laboratory test"       -- covers "Serum creatinine test"
- *   - "qualifier value"       -- rarely but includes some unit qualifiers
- *
- * Anything else (finding, disorder, substance, physical object, ...)
- * is treated as a plain concept.
- */
-export function isLikelyObservable(hit: ConceptSearchHit): boolean {
-  const tag = (hit.semantic_tag ?? "").toLowerCase().trim();
-  if (!tag) return false;
-  return (
-    tag.includes("observable") ||
-    tag.includes("measurement") ||
-    tag.includes("laboratory") ||
-    // Blood pressure lives under "procedure" in SNOMED CT.
-    (tag === "procedure" && /\b(pressure|rate|level|count|ratio)\b/i.test(hit.term))
-  );
-}
+export { isLikelyObservable } from "./observableHit";
 
 const SEARCH_DEBOUNCE_MS = 250;
 const PRIOR_RESOLUTIONS_MIN_QUERY_LENGTH = 2;

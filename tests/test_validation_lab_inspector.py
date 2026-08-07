@@ -50,6 +50,28 @@ class _InspectorClient:
         return []
 
 
+def test_parse_plan_edges_from_related_action() -> None:
+    raw = """
+    {
+      "action": [
+        {"id": "act-a"},
+        {
+          "id": "act-b",
+          "relatedAction": [{"actionId": "act-a", "relationship": "after-end"}]
+        }
+      ]
+    }
+    """
+    edges = lab_inspector._parse_plan_edges(raw)
+    assert edges == [
+        {
+            "source": "act-a",
+            "target": "act-b",
+            "relationship": "after-end",
+        }
+    ]
+
+
 def test_get_run_inspector_returns_spans(monkeypatch: pytest.MonkeyPatch) -> None:
     client = _InspectorClient()
     client.cases["case-1"] = {"id": "case-1", "plan_id": "pd-referral-assessment"}
@@ -62,7 +84,13 @@ def test_get_run_inspector_returns_spans(monkeypatch: pytest.MonkeyPatch) -> Non
         "pipeline_status": "running",
         "plan_id": "pd-referral-assessment",
         "execution_manifest_json": '{"schema_version":"1.0"}',
-        "plan_raw_json": '{"action":[{"id":"act-ref-extract","_dynamicValues":{"params":{"subgraphId":"extraction"}}}]}',
+        "plan_raw_json": (
+            '{"action":['
+            '{"id":"act-ref-durable-start","_dynamicValues":{"params":{"nodeType":"trigger","subgraphId":"trigger"}}},'
+            '{"id":"act-ref-extract","relatedAction":[{"actionId":"act-ref-durable-start","relationship":"after-end"}],'
+            '"_dynamicValues":{"params":{"subgraphId":"extraction"}}}'
+            "]}"
+        ),
     }
     client.stages["run-1"] = [
         {
@@ -92,4 +120,5 @@ def test_get_run_inspector_returns_spans(monkeypatch: pytest.MonkeyPatch) -> Non
     assert payload["pipeline_run_id"] == "run-1"
     assert len(payload["spans"]) == 1
     assert payload["spans"][0]["input_keys"] == ["patient_id"]
-    assert payload["plan_steps"][0]["action_id"] == "act-ref-extract"
+    assert payload["plan_steps"][0]["action_id"] == "act-ref-durable-start"
+    assert payload["plan_edges"][0]["target"] == "act-ref-extract"

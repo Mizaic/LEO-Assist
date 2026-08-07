@@ -62,9 +62,9 @@ interface Props {
    * criterion (see MultiConceptPicker's own doc comment for why that
    * is not the same as adding several separate leaves). The
    * highlight-to-build wizard's own row-click and highlighted-selection
-   * add flows set this; the Advanced/Sentence editor's "+Add" does not,
-   * since it still needs ConceptSearchPanel's "Compare value..."
-   * observation affordance.
+   * add flows set this; the Advanced/Sentence editor's "+Add" does not.
+   * MultiConceptPicker now also supports operator / value / unit on
+   * observable hits (same OBSERVATION path as "Compare value...").
    */
   multiPick?: boolean;
   onPick: (criterion: LogicCriterion) => void;
@@ -74,11 +74,10 @@ interface Props {
    */
   onAddMany?: (criteria: LogicCriterion[]) => void;
   /**
-   * Phase 6b: forwarded to ConceptSearchPanel. When the popover is in
-   * "add" mode (i.e. inserting a new leaf under a group) the parent
-   * may pass a handler that inserts an OBSERVATION leaf instead of a
-   * CONCEPT when the reviewer picks "Compare value..." on an
-   * observable-looking hit. Ignored when ``multiPick`` is true.
+   * Phase 6b: forwarded to ConceptSearchPanel ("Compare value...") and
+   * MultiConceptPicker (operator / value / unit on a ticked observable).
+   * When the popover is in "add" mode the parent inserts an OBSERVATION
+   * leaf instead of a CONCEPT.
    */
   onPickObservation?: (seed: ObservationSeed) => void;
   onClose: () => void;
@@ -224,6 +223,9 @@ export default function ChipSearchPopover({
             initialQuery={initialQuery}
             embedded
             onConfirm={onPick}
+            onConfirmObservation={
+              mode === "add" ? onPickObservation : undefined
+            }
           />
         ) : (
           <ConceptSearchPanel

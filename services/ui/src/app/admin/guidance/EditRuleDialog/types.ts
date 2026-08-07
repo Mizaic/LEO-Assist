@@ -396,8 +396,11 @@ export type NodeUpdate =
        * reviewer picks an observable concept in the search panel we
        * preload the observable_id / observable_term / unit so the
        * reviewer only has to fill in the operator and threshold.
+       * The highlight multi-pick path may also preload operator + value.
        */
       seed?: Partial<EditableObservationPayload>;
+      /** See `EditableLogicNode.source_row_text`'s doc comment. */
+      sourceRowText?: string;
     }
   | {
       kind: "set_observation";

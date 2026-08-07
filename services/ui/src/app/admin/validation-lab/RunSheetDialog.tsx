@@ -36,6 +36,7 @@ import {
   taskRowsFromSheet,
 } from "./RunSheetTasks";
 import { buildSupportContext } from "./runSheetSupport";
+import { RunSheetSbarActions } from "./RunSheetSbar";
 import { RunInspectorPanel } from "./inspector/RunInspectorPanel";
 import type { LabTraceSpan } from "./inspectorTypes";
 import type { UseLabRunInspectorReturn } from "@/hooks/useLabRunInspector";
@@ -361,7 +362,7 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
       open
       onClose={onClose}
       fullWidth
-      maxWidth="md"
+      maxWidth="lg"
       data-testid="validation-lab-run-sheet"
     >
       <fm.div
@@ -381,7 +382,10 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
             <MultiBody sheet={sheet} />
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1, flexWrap: "wrap" }}>
+          {sheet.mode === "single" ? (
+            <RunSheetSbarActions sheet={sheet} />
+          ) : null}
           <Button
             onClick={onClose}
             variant="contained"

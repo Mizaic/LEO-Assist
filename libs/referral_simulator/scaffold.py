@@ -145,6 +145,7 @@ def scaffold_referral(
     case_id: str = "",
     parent_run_id: str = "",
     document_title: str = "Referral document",
+    tenant_id: str = "",
 ) -> list[str]:
     """Write Patient+RR+DR+Chunks (+ optional correlation Encounter)."""
     if not str(patient_id or "").strip():
@@ -156,6 +157,9 @@ def scaffold_referral(
 
     chunks = split_into_chunks(text, dr_id)
     resolved_birth = birth_date or _birth_date_from_age(patient_age)
+    resolved_tenant = tenant_id or (
+        "validation-lab" if source == "validation-lab" else ""
+    )
     client = PatientGraphClient()
     try:
         with client.session() as session:
@@ -183,6 +187,7 @@ def scaffold_referral(
                     char_start=chunk["char_start"],
                     char_end=chunk["char_end"],
                     ordinal=chunk["ordinal"],
+                    tenant_id=resolved_tenant,
                 )
             if str(encounter_id or "").strip():
                 session.run(

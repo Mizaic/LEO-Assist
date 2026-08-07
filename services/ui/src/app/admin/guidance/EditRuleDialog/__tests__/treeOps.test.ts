@@ -128,6 +128,43 @@ describe("treeOps", () => {
     expect(updated!.children![1].children![1].source_row_text).toBeUndefined();
   });
 
+  it("add_observation tags the new leaf with sourceRowText and seeded threshold", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: {
+            snomed_concept_id: "49727002",
+            preferred_term: "Cough (finding)",
+            semantic_tag: "finding",
+          },
+        },
+      ],
+    });
+    const updated = applyUpdate(tree, {
+      kind: "add_observation",
+      parentNodeId: tree.node_id,
+      seed: {
+        observable_id: "396361002",
+        observable_term: "Lesion size, largest dimension",
+        operator: ">=",
+        value: 7,
+        unit: "mm",
+      },
+      sourceRowText: "largest diameter 7 mm or more",
+    });
+    const leaf = updated!.children!.find((c) => c.kind === "OBSERVATION");
+    expect(leaf).toBeDefined();
+    expect(leaf!.source_row_text).toBe("largest diameter 7 mm or more");
+    expect(leaf!.observation).toMatchObject({
+      observable_id: "396361002",
+      operator: ">=",
+      value: 7,
+      unit: "mm",
+    });
+  });
+
   it("add_group nests a new empty OR sub-group under an AND pathway, enabling AND + a set of OR's", () => {
     const tree = makeTree();
     const updated = applyUpdate(tree, {

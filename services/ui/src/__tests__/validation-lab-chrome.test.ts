@@ -247,17 +247,20 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(sheet).toMatch(/RunInspectorPanel/);
     expect(sheet).toMatch(/useLabRunInspector/);
     expect(sheet).toMatch(/liveSpans/);
-    expect(sheet).toMatch(/maxWidth="md"/);
+    expect(sheet).toMatch(/maxWidth="lg"/);
     const inspectorPanel = readFile(
       "services/ui/src/app/admin/validation-lab/inspector/RunInspectorPanel.tsx",
     );
     expect(inspectorPanel).toMatch(/validation-lab-run-inspector/);
     expect(inspectorPanel).toMatch(/RunInspectorSummaryTab/);
     expect(inspectorPanel).toMatch(/validation-lab-inspector-tab-summary/);
-    const traceTab = readFile(
-      "services/ui/src/app/admin/validation-lab/inspector/RunInspectorTraceTab.tsx",
+    expect(inspectorPanel).toMatch(/validation-lab-inspector-tab-data/);
+    const dataTab = readFile(
+      "services/ui/src/app/admin/validation-lab/inspector/RunInspectorDataTab.tsx",
     );
-    expect(traceTab).toMatch(/TraceWaterfallChart/);
+    expect(dataTab).toMatch(/TraceWaterfallChart/);
+    expect(dataTab).toMatch(/TraceFlowGraph/);
+    expect(dataTab).toMatch(/TraceEndpointPanel/);
   });
 
   test("TC-016: single run sheet lists stages task-by-task and skips queued as done", () => {
@@ -311,6 +314,26 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(roster).toMatch(/PIPELINE_AGENT_ROSTER/);
     expect(roster).toMatch(/formatAgentName/);
     expect(roster).toMatch(/"Ada"/);
+  });
+
+  test("TC-018: completed single run sheet opens SBAR in a Drawer via CDN host", () => {
+    const sheet = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetDialog.tsx",
+    );
+    const sbar = readFile(
+      "services/ui/src/app/admin/validation-lab/RunSheetSbar.tsx",
+    );
+    const api = readFile("services/ui/src/app/admin/validation-lab/labApi.ts");
+    expect(sheet).toMatch(/RunSheetSbarActions/);
+    expect(sbar).toMatch(/Open SBAR result/);
+    expect(sbar).toMatch(/validation-lab-run-sheet-open-sbar/);
+    expect(sbar).toMatch(/from\s+["']@mui\/material\/Drawer["']/);
+    expect(sbar).toMatch(/validation-lab-run-sheet-sbar-drawer/);
+    expect(sbar).toMatch(/LeoSbarHost/);
+    expect(sbar).toMatch(/loadSbarAssessmentId/);
+    expect(sbar).toMatch(/sheet\.status !== "completed"/);
+    expect(api).toMatch(/export async function loadSbarAssessmentId/);
+    expect(api).toMatch(/sbar_assessment_id/);
   });
 
   test("TC-015: Lab run cost from Assessment telemetry shown on card and sheet", () => {

@@ -39,6 +39,12 @@ export interface LabPlanStep {
   durable_persists?: string[];
 }
 
+export interface LabPlanEdge {
+  source: string;
+  target: string;
+  relationship?: string;
+}
+
 export interface LabRunInspectorSnapshot {
   lab_run_id: string;
   pipeline_run_id: string;
@@ -49,6 +55,7 @@ export interface LabRunInspectorSnapshot {
   plan_version_number?: number | null;
   execution_manifest?: Record<string, unknown>;
   plan_steps?: LabPlanStep[];
+  plan_edges?: LabPlanEdge[];
   spans: LabTraceSpan[];
   sse_path: string;
 }

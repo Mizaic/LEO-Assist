@@ -14,6 +14,7 @@ from libs.cypher.communication_thread_queries import (
     RESOLVE_COMMUNICATION_REQUEST_BY_UBRN,
 )
 from libs.referral_simulator.message import build_communication_assessment_message
+from libs.validation_lab.tenant import VALIDATION_LAB_TENANT_ID
 
 
 class AgPipelineError(ValueError):
@@ -73,4 +74,5 @@ def build_ag_pipeline_message(
     )
     body["dry_run"] = dry_run
     body["capture_validation_output"] = True
+    body["tenant_id"] = VALIDATION_LAB_TENANT_ID
     return body

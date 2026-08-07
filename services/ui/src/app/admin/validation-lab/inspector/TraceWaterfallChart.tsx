@@ -124,7 +124,7 @@ export function TraceWaterfallChart({
             <Box
               sx={{
                 position: "relative",
-                height: compact ? 18 : 22,
+                height: compact ? 18 : 28,
                 bgcolor: "grey.100",
                 borderRadius: 0.5,
                 overflow: "hidden",

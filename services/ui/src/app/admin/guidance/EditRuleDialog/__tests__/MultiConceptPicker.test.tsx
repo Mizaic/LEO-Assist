@@ -53,6 +53,12 @@ const VOMITING = {
   semantic_tag: "finding",
 };
 
+const LESION_SIZE = {
+  snomed_concept_id: "396361002",
+  term: "Lesion size, largest dimension",
+  semantic_tag: "observable_entity",
+};
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -202,5 +208,113 @@ describe("MultiConceptPicker", () => {
     expect(tip).toHaveTextContent(/nausea variant 1/i);
     expect(tip).toHaveTextContent(/nausea variant 12/i);
     expect(tip).not.toHaveTextContent(/and \d+ more/i);
+  });
+
+  it("shows operator, value, and unit for a ticked observable, prefilled from the phrase", async () => {
+    const user = userEvent.setup();
+    mockSearch([LESION_SIZE]);
+    render(
+      <MultiConceptPicker
+        initialQuery="largest diameter 7 mm or more"
+        onConfirm={jest.fn()}
+        onConfirmObservation={jest.fn()}
+      />,
+    );
+
+    await user.click(
+      await screen.findByRole("checkbox", {
+        name: /select lesion size, largest dimension/i,
+      }),
+    );
+
+    expect(
+      screen.getByLabelText(/comparison for lesion size/i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/value for lesion size/i)).toHaveValue(7);
+    expect(screen.getByLabelText(/unit for lesion size/i)).toHaveValue("mm");
+    expect(
+      screen.getByRole("button", { name: /add this reading/i }),
+    ).toBeEnabled();
+  });
+
+  it("confirms an OBSERVATION seed when value is filled on one observable", async () => {
+    const user = userEvent.setup();
+    mockSearch([LESION_SIZE]);
+    const onConfirm = jest.fn();
+    const onConfirmObservation = jest.fn();
+    render(
+      <MultiConceptPicker
+        initialQuery="largest diameter 7 mm or more"
+        onConfirm={onConfirm}
+        onConfirmObservation={onConfirmObservation}
+      />,
+    );
+
+    await user.click(
+      await screen.findByRole("checkbox", {
+        name: /select lesion size, largest dimension/i,
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: /add this reading/i }));
+
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onConfirmObservation).toHaveBeenCalledWith({
+      observable_id: "396361002",
+      observable_term: "Lesion size, largest dimension",
+      operator: ">=",
+      value: 7,
+      unit: "mm",
+    });
+  });
+
+  it("disables confirm when several codes are selected and a reading value is filled", async () => {
+    const user = userEvent.setup();
+    mockSearch([LESION_SIZE, NAUSEA]);
+    render(
+      <MultiConceptPicker
+        initialQuery="largest diameter 7 mm or more"
+        onConfirm={jest.fn()}
+        onConfirmObservation={jest.fn()}
+      />,
+    );
+
+    await user.click(
+      await screen.findByRole("checkbox", {
+        name: /select lesion size, largest dimension/i,
+      }),
+    );
+    await user.click(screen.getByRole("checkbox", { name: /select nausea/i }));
+
+    expect(
+      screen.getByText(/reading value can only be added when one code is selected/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /add 2 codes/i })).toBeDisabled();
+  });
+
+  it("stays on the CONCEPT path when an observable has a blank value", async () => {
+    const user = userEvent.setup();
+    mockSearch([LESION_SIZE]);
+    const onConfirm = jest.fn();
+    const onConfirmObservation = jest.fn();
+    render(
+      <MultiConceptPicker
+        initialQuery="lesion size"
+        onConfirm={onConfirm}
+        onConfirmObservation={onConfirmObservation}
+      />,
+    );
+
+    await user.click(
+      await screen.findByRole("checkbox", {
+        name: /select lesion size, largest dimension/i,
+      }),
+    );
+    const value = screen.getByLabelText(/value for lesion size/i);
+    await user.clear(value);
+    await user.click(screen.getByRole("button", { name: "Add 1 code" }));
+
+    expect(onConfirmObservation).not.toHaveBeenCalled();
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm.mock.calls[0][0].snomed_concept_id).toBe("396361002");
   });
 });

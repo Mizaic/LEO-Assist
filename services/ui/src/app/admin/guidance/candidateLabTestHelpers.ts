@@ -66,13 +66,7 @@ export async function scoreSheetItems(
   };
 }
 
-export async function loadSbarAssessmentId(
-  caseId: string,
-  runId: string,
-): Promise<string | null> {
-  const packed = await getRun(caseId, runId);
-  return packed.run.outputs?.sbar_assessment_id || null;
-}
+export { loadSbarAssessmentId } from "../validation-lab/labApi";
 
 export function progressCounts(items: MultiRunSheetItem[]): {
   terminal: number;
