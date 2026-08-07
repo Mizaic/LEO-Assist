@@ -33,6 +33,11 @@ from libs.cypher.device_queries import (
     SET_DEVICE_STATUS,
     UPSERT_PIPELINE_CONFIG,
 )
+from libs.llm_client.factory import (
+    aws_llm_enabled,
+    default_llm_provider,
+    effective_llm_provider,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +111,7 @@ def get_pipeline_config(
         if not row:
             # Return env-var defaults if no config node exists yet
             return {
-                "provider": os.getenv("PIPELINE_MODEL_PROVIDER", "azure"),
+                "provider": default_llm_provider(),
                 "tier": os.getenv("PIPELINE_MODEL_TIER", "small"),
                 "extractor_backend": os.getenv("CODING_EXTRACTOR_BACKEND", "llm"),
                 "strict": os.getenv("CODING_EXTRACTOR_STRICT", "false").lower()
@@ -115,7 +120,9 @@ def get_pipeline_config(
                 == "true",
                 "source": "env",
             }
-        return {**dict(row), "source": "neo4j"}
+        stored = dict(row)
+        stored["provider"] = effective_llm_provider(str(stored.get("provider") or "azure"))
+        return {**stored, "source": "neo4j"}
     finally:
         client.close()
 
@@ -195,6 +202,14 @@ def update_pipeline_config(
     body: PipelineConfigRequest,
     _scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
+    if body.provider == "aws" and not aws_llm_enabled():
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "AWS Bedrock is disabled in this environment "
+                "(AWS_LLM_ENABLED=false). Set AWS_LLM_ENABLED=true to enable it."
+            ),
+        )
     if body.provider not in _VALID_PROVIDERS:
         raise HTTPException(
             status_code=400, detail=f"provider must be one of {_VALID_PROVIDERS}"

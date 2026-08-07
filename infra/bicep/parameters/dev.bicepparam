@@ -12,6 +12,7 @@ param neo4jUser = 'neo4j'
 param neo4jKnowledgeUser = 'neo4j'
 
 // AWS Bedrock (model ARNs stored in Key Vault as aws-big-model / aws-small-model / aws-max-model)
+// Bedrock LLM calls are disabled by default via AWS_LLM_ENABLED=false in container-apps.bicep.
 param awsDefaultRegion = 'eu-west-2'
 
 // Azure OpenAI - shared account via deploy-openai.ps1; endpoint synced to bicepparam

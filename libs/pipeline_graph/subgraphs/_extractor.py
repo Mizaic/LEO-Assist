@@ -69,9 +69,9 @@ logger = logging.getLogger(__name__)
 
 def _active_provider() -> str:
     """Return the active LLM provider name (``"aws"`` or ``"azure"``)."""
-    import os
+    from libs.llm_client.factory import default_llm_provider
 
-    return os.getenv("PIPELINE_MODEL_PROVIDER", "azure")
+    return default_llm_provider()
 
 
 def _guard_example_text(value: Any) -> str:

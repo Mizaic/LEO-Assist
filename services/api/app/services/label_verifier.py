@@ -1290,10 +1290,14 @@ def _process_label(
             result.error = True
             return result
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as inner:
-            fut_aws = inner.submit(_call_model_for_label, "aws", text, entities)
-            fut_azure = inner.submit(_call_model_for_label, "azure", text, entities)
-            aws_rows = fut_aws.result()
-            azure_rows = fut_azure.result()
+            if aws_llm_enabled():
+                fut_aws = inner.submit(_call_model_for_label, "aws", text, entities)
+                fut_azure = inner.submit(_call_model_for_label, "azure", text, entities)
+                aws_rows = fut_aws.result()
+                azure_rows = fut_azure.result()
+            else:
+                azure_rows = _call_model_for_label("azure", text, entities)
+                aws_rows = azure_rows
 
         aws_by_idx: dict[int, dict] = {
             int(item.get("entity_index", -1)): item

@@ -191,6 +191,8 @@ var sharedEnv = [
 
   // Pipeline and coding extractor
   { name: 'PIPELINE_MODEL_PROVIDER', value: 'azure' }
+  // Bedrock is opt-in only; keep false unless AWS credentials are actively maintained.
+  { name: 'AWS_LLM_ENABLED', value: 'false' }
   { name: 'PIPELINE_MODEL_TIER', value: 'small' }
   { name: 'CODING_EXTRACTOR_BACKEND', value: codingExtractorBackend }
   { name: 'CODING_EXTRACTOR_STRICT', value: codingExtractorStrict }

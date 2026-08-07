@@ -70,8 +70,18 @@ def test_manifest_round_trip_json() -> None:
 
 
 def test_resolve_model_config_uses_pipeline_provider(monkeypatch) -> None:
+    monkeypatch.setenv("AWS_LLM_ENABLED", "false")
     monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
     row = resolve_model_config({"models": {"provider": "aws", "tier": "big"}})
     assert row["provider"] == "azure"
     assert row["tier"] == "big"
     assert row["key"] == "azure:big"
+
+
+def test_resolve_model_config_can_snapshot_aws_when_enabled(monkeypatch) -> None:
+    monkeypatch.setenv("AWS_LLM_ENABLED", "true")
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "aws")
+    monkeypatch.setenv("AWS_BIG_MODEL", "eu.anthropic.claude-sonnet-4-6")
+    row = resolve_model_config({"models": {"provider": "aws", "tier": "big"}})
+    assert row["provider"] == "aws"
+    assert row["key"] == "aws:big"

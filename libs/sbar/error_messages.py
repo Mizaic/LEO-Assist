@@ -98,6 +98,9 @@ def _is_access_denied(raw: str) -> bool:
         or "unauthorizedoperation" in text
         or "expiredtoken" in text
         or "credentialerror" in text
+        or "unrecognizedclientexception" in text
+        or "invalid security token" in text
+        or "security token included in the request is invalid" in text
     )
 
 

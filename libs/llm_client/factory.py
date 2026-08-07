@@ -42,18 +42,46 @@ _BEDROCK_CACHEPOINT_UNSUPPORTED_MODELS: set[str] = set()
 
 # Default provider when PIPELINE_MODEL_PROVIDER is unset.
 _DEFAULT_PIPELINE_PROVIDER = "azure"
+_AWS_LLM_ENABLED_ENV = "AWS_LLM_ENABLED"
+
+
+def aws_llm_enabled() -> bool:
+    """Return True when AWS Bedrock LLM calls are allowed.
+
+    Opt-in only. When unset or false, all pipeline routing uses Azure even if
+    ``PIPELINE_MODEL_PROVIDER=aws`` or an execution manifest pins ``aws``.
+    """
+    raw = (os.getenv(_AWS_LLM_ENABLED_ENV) or "false").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _normalize_provider_name(provider: str) -> str:
+    normalized = (provider or "").strip().lower()
+    if normalized in {"aws", "azure"}:
+        return normalized
+    return _DEFAULT_PIPELINE_PROVIDER
+
+
+def effective_llm_provider(provider: str) -> str:
+    """Apply ``AWS_LLM_ENABLED`` and return the provider that will actually run."""
+    resolved = _normalize_provider_name(provider)
+    if resolved == "aws" and not aws_llm_enabled():
+        logger.warning(
+            "AWS Bedrock LLM is disabled (%s=false); using azure instead of aws",
+            _AWS_LLM_ENABLED_ENV,
+        )
+        return "azure"
+    return resolved
 
 
 def default_llm_provider() -> str:
     """Resolve the pipeline LLM provider (azure or aws).
 
     Reads ``PIPELINE_MODEL_PROVIDER``; defaults to ``azure`` (GPT).
+    When ``AWS_LLM_ENABLED`` is false (default), aws is never returned.
     """
     raw = (os.getenv("PIPELINE_MODEL_PROVIDER") or _DEFAULT_PIPELINE_PROVIDER).strip()
-    provider = raw.lower()
-    if provider in {"aws", "azure"}:
-        return provider
-    return _DEFAULT_PIPELINE_PROVIDER
+    return effective_llm_provider(raw)
 
 
 _TIER_ENV = {
@@ -920,6 +948,8 @@ def create_llm(
     """
     if provider is None:
         provider = default_llm_provider()
+    else:
+        provider = effective_llm_provider(provider)
 
     if model_id is None:
         env_key = _TIER_ENV.get(provider, {}).get(tier)

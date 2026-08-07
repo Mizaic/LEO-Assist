@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "2499602405276619561"
+      "templateHash": "17051391027093373179"
     }
   },
   "parameters": {
@@ -89,6 +89,14 @@
     "frontendUrl": {
       "type": "string"
     },
+    "uiCustomHostname": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "uiManagedCertificateId": {
+      "type": "string",
+      "defaultValue": ""
+    },
     "uiCustomDomainHost": {
       "type": "string",
       "defaultValue": ""
@@ -101,6 +109,25 @@
       "type": "bool",
       "defaultValue": false
     },
+    "widgetPublicHost": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "mailFromAddress": {
+      "type": "string"
+    },
+    "deployContainerApps": {
+      "type": "bool",
+      "defaultValue": true
+    },
+    "knowledgeGraphEnvironment": {
+      "type": "string",
+      "defaultValue": "[parameters('environment')]"
+    },
+    "acrSubscriptionId": {
+      "type": "string",
+      "defaultValue": "[subscription().subscriptionId]"
+    },
     "acrResourceGroup": {
       "type": "string",
       "defaultValue": "leo-ai"
@@ -108,6 +135,10 @@
     "acrName": {
       "type": "string",
       "defaultValue": "leoaicr"
+    },
+    "storageAccountSubscriptionId": {
+      "type": "string",
+      "defaultValue": "[subscription().subscriptionId]"
     },
     "storageAccountResourceGroup": {
       "type": "string",
@@ -119,7 +150,7 @@
     }
   },
   "variables": {
-    "identityName": "[format('leoai-{0}-id', parameters('environment'))]"
+    "identityName": "[format('mizaicai-{0}-id', parameters('environment'))]"
   },
   "resources": [
     {
@@ -132,6 +163,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "acr-pull-role",
+      "subscriptionId": "[parameters('acrSubscriptionId')]",
       "resourceGroup": "[parameters('acrResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -190,6 +222,7 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "blob-contrib-role",
+      "subscriptionId": "[parameters('storageAccountSubscriptionId')]",
       "resourceGroup": "[parameters('storageAccountResourceGroup')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -243,6 +276,56 @@
       "dependsOn": [
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
       ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "model-store-container",
+      "subscriptionId": "[parameters('storageAccountSubscriptionId')]",
+      "resourceGroup": "[parameters('storageAccountResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountName": {
+            "value": "[parameters('storageAccountName')]"
+          },
+          "containerName": {
+            "value": "[parameters('modelStoreContainer')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "7524792558081283050"
+            }
+          },
+          "parameters": {
+            "storageAccountName": {
+              "type": "string"
+            },
+            "containerName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', parameters('containerName'))]",
+              "properties": {
+                "publicAccess": "None"
+              }
+            }
+          ]
+        }
+      }
     },
     {
       "type": "Microsoft.Resources/deployments",
@@ -346,56 +429,6 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "redis",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "environment": {
-            "value": "[parameters('environment')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.41.2.15936",
-              "templateHash": "18326089369737334896"
-            }
-          },
-          "parameters": {
-            "environment": {
-              "type": "string"
-            }
-          },
-          "variables": {
-            "redisName": "[format('leoai-{0}-redis', parameters('environment'))]"
-          },
-          "resources": [],
-          "outputs": {
-            "redisHostname": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.Cache/redisEnterprise', variables('redisName')), '2025-07-01').hostName]"
-            },
-            "redisPort": {
-              "type": "int",
-              "value": 10000
-            },
-            "redisName": {
-              "type": "string",
-              "value": "[variables('redisName')]"
-            }
-          }
-        }
-      }
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
       "name": "servicebus",
       "properties": {
         "expressionEvaluationOptions": {
@@ -420,7 +453,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "12529755833039935742"
+              "templateHash": "13349425742600842409"
             }
           },
           "parameters": {
@@ -487,7 +520,35 @@
               "properties": {
                 "lockDuration": "PT5M",
                 "maxDeliveryCount": 10,
+                "defaultMessageTimeToLive": "P1D",
+                "requiresDuplicateDetection": true,
+                "duplicateDetectionHistoryTimeWindow": "PT1H"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/queues",
+              "apiVersion": "2022-10-01-preview",
+              "name": "[format('{0}/{1}', variables('sbNamespaceName'), 'audit-jobs')]",
+              "properties": {
+                "lockDuration": "PT5M",
+                "maxDeliveryCount": 3,
                 "defaultMessageTimeToLive": "P1D"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/queues",
+              "apiVersion": "2022-10-01-preview",
+              "name": "[format('{0}/{1}', variables('sbNamespaceName'), 'referral-assessments-output')]",
+              "properties": {
+                "lockDuration": "PT5M",
+                "maxDeliveryCount": 10,
+                "defaultMessageTimeToLive": "P7D"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.ServiceBus/namespaces', variables('sbNamespaceName'))]"
@@ -525,6 +586,7 @@
       ]
     },
     {
+      "condition": "[parameters('deployContainerApps')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "container-apps",
@@ -547,7 +609,7 @@
             "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2023-01-31').clientId]"
           },
           "acrLoginServer": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('acrResourceGroup')), 'Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').loginServer]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', parameters('acrSubscriptionId'), parameters('acrResourceGroup')), 'Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-07-01').loginServer]"
           },
           "kvUri": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyvault'), '2025-04-01').outputs.kvUri.value]"
@@ -584,6 +646,9 @@
           },
           "codingExtractorStrict": {
             "value": "[parameters('codingExtractorStrict')]"
+          },
+          "storageAccountName": {
+            "value": "[parameters('storageAccountName')]"
           },
           "modelStoreContainer": {
             "value": "[parameters('modelStoreContainer')]"
@@ -632,6 +697,21 @@
           },
           "uiIngressCertificateIsManaged": {
             "value": "[parameters('uiIngressCertificateIsManaged')]"
+          },
+          "uiCustomHostname": {
+            "value": "[parameters('uiCustomHostname')]"
+          },
+          "uiManagedCertificateId": {
+            "value": "[parameters('uiManagedCertificateId')]"
+          },
+          "widgetPublicHost": {
+            "value": "[parameters('widgetPublicHost')]"
+          },
+          "mailFromAddress": {
+            "value": "[parameters('mailFromAddress')]"
+          },
+          "knowledgeGraphEnvironment": {
+            "value": "[parameters('knowledgeGraphEnvironment')]"
           }
         },
         "template": {
@@ -641,7 +721,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "10291517250165807428"
+              "templateHash": "5745537932899166856"
             }
           },
           "parameters": {
@@ -698,6 +778,9 @@
             "codingExtractorStrict": {
               "type": "string"
             },
+            "storageAccountName": {
+              "type": "string"
+            },
             "modelStoreContainer": {
               "type": "string"
             },
@@ -736,6 +819,14 @@
             "frontendUrl": {
               "type": "string"
             },
+            "uiCustomHostname": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "uiManagedCertificateId": {
+              "type": "string",
+              "defaultValue": ""
+            },
             "snomedTerminologyServer": {
               "type": "string",
               "defaultValue": ""
@@ -751,345 +842,33 @@
             "uiIngressCertificateIsManaged": {
               "type": "bool",
               "defaultValue": false
+            },
+            "widgetPublicHost": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "mailFromAddress": {
+              "type": "string"
+            },
+            "knowledgeGraphEnvironment": {
+              "type": "string",
+              "defaultValue": "[parameters('environment')]"
             }
           },
           "variables": {
             "usePlaceholder": "[equals(parameters('imageTag'), 'placeholder')]",
             "placeholderImage": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
             "registryConfig": "[if(variables('usePlaceholder'), createArray(), createArray(createObject('server', parameters('acrLoginServer'), 'identity', parameters('managedIdentityId'))))]",
-            "prefix": "[format('leoai-{0}', parameters('environment'))]",
+            "storageAccountUrl": "[format('https://{0}.blob.{1}', parameters('storageAccountName'), environment().suffixes.storage)]",
+            "prefix": "[format('mizaicai-{0}', parameters('environment'))]",
             "caeName": "[format('{0}-cae', variables('prefix'))]",
             "logWorkspaceName": "[format('{0}-logs', variables('prefix'))]",
-            "termApiUrl": "http://terminology-api",
-            "fhirApiUrl": "http://fhir-api",
-            "analyticsApiUrl": "http://analytics-api",
-            "modelInferenceUrl": "http://model-inference",
-            "pipelineWorkerUrl": "http://pipeline-worker",
+            "_frontendHostPart": "[split(replace(replace(parameters('frontendUrl'), 'https://', ''), 'http://', ''), '/')[0]]",
+            "sessionKeyNamespace": "[split(variables('_frontendHostPart'), '.')[0]]",
             "hasUiTlsCustomDomain": "[and(not(empty(parameters('uiCustomDomainHost'))), not(empty(parameters('uiIngressCertificateName'))))]",
+            "hasUiManagedCustomDomain": "[and(not(empty(parameters('uiCustomHostname'))), not(empty(parameters('uiManagedCertificateId'))))]",
             "uiIngressCertificateResourceId": "[if(variables('hasUiTlsCustomDomain'), if(parameters('uiIngressCertificateIsManaged'), resourceId('Microsoft.App/managedEnvironments/managedCertificates', variables('caeName'), parameters('uiIngressCertificateName')), resourceId('Microsoft.App/managedEnvironments/certificates', variables('caeName'), parameters('uiIngressCertificateName'))), '')]",
-            "uiIngressCustomDomains": "[if(variables('hasUiTlsCustomDomain'), createArray(createObject('name', parameters('uiCustomDomainHost'), 'bindingType', 'SniEnabled', 'certificateId', variables('uiIngressCertificateResourceId'))), createArray())]",
-            "sharedEnv": [
-              {
-                "name": "AZURE_KEYVAULT_URL",
-                "value": "[parameters('kvUri')]"
-              },
-              {
-                "name": "AZURE_CLIENT_ID",
-                "value": "[parameters('managedIdentityClientId')]"
-              },
-              {
-                "name": "AZURE_SERVICE_BUS_NAMESPACE",
-                "value": "[parameters('sbNamespaceFqdn')]"
-              },
-              {
-                "name": "OPENAI_API_TYPE",
-                "value": "azure"
-              },
-              {
-                "name": "AZURE_OPENAI_ENDPOINT",
-                "value": "[parameters('aoaiEndpoint')]"
-              },
-              {
-                "name": "AZURE_OPENAI_BIG_MODEL",
-                "value": "[parameters('azureOpenAiBigModel')]"
-              },
-              {
-                "name": "AZURE_OPENAI_SMALL_MODEL",
-                "value": "[parameters('azureOpenAiSmallModel')]"
-              },
-              {
-                "name": "AZURE_OPENAI_API_VERSION",
-                "value": "[parameters('azureOpenAiApiVersion')]"
-              },
-              {
-                "name": "AWS_DEFAULT_REGION",
-                "value": "[parameters('awsDefaultRegion')]"
-              },
-              {
-                "name": "PIPELINE_MODEL_PROVIDER",
-                "value": "azure"
-              },
-              {
-                "name": "PIPELINE_MODEL_TIER",
-                "value": "small"
-              },
-              {
-                "name": "CODING_EXTRACTOR_BACKEND",
-                "value": "[parameters('codingExtractorBackend')]"
-              },
-              {
-                "name": "CODING_EXTRACTOR_STRICT",
-                "value": "[parameters('codingExtractorStrict')]"
-              },
-              {
-                "name": "CODING_MODEL_PROVIDER",
-                "value": "service"
-              },
-              {
-                "name": "CODING_MODEL_NAME",
-                "value": "[parameters('modelStoreModelName')]"
-              },
-              {
-                "name": "CODING_MODEL_TIMEOUT_MS",
-                "value": "10000"
-              },
-              {
-                "name": "CODING_MODEL_MAX_RETRIES",
-                "value": "2"
-              },
-              {
-                "name": "MODEL_STORE_CONTAINER",
-                "value": "[parameters('modelStoreContainer')]"
-              },
-              {
-                "name": "MODEL_STORE_MODEL_NAME",
-                "value": "[parameters('modelStoreModelName')]"
-              },
-              {
-                "name": "MODEL_REGISTRY_STORE",
-                "value": "neo4j"
-              },
-              {
-                "name": "MODEL_REGISTRY_STORE_PATH",
-                "value": "/var/model_cache/model_registry.json"
-              },
-              {
-                "name": "MODEL_MIN_PRECISION",
-                "value": "[parameters('modelMinPrecision')]"
-              },
-              {
-                "name": "MODEL_MIN_RECALL",
-                "value": "[parameters('modelMinRecall')]"
-              },
-              {
-                "name": "MODEL_CANARY_MIN_PRECISION",
-                "value": "[parameters('modelMinPrecision')]"
-              },
-              {
-                "name": "MODEL_CANARY_MIN_RECALL",
-                "value": "[parameters('modelMinRecall')]"
-              },
-              {
-                "name": "MODEL_REQUIRED_SCHEMA_VERSION",
-                "value": "1.0"
-              },
-              {
-                "name": "MODEL_REQUIRED_DEID_VERSION",
-                "value": "1.0"
-              },
-              {
-                "name": "MODEL_REQUIRED_LABEL_VERSION",
-                "value": "1.0"
-              },
-              {
-                "name": "HITL_LOW_CONFIDENCE_THRESHOLD",
-                "value": "[parameters('hitlLowConfidenceThreshold')]"
-              },
-              {
-                "name": "HITL_PEER_REVIEW_RATE",
-                "value": "[parameters('hitlPeerReviewRate')]"
-              },
-              {
-                "name": "CODING_MODE",
-                "value": "[parameters('codingMode')]"
-              },
-              {
-                "name": "LABEL_VERIFY_WORKERS",
-                "value": "50"
-              },
-              {
-                "name": "LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY",
-                "value": "20"
-              },
-              {
-                "name": "LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY",
-                "value": "120"
-              },
-              {
-                "name": "LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY",
-                "value": "60"
-              },
-              {
-                "name": "TRAINING_HF_BASE_MODEL",
-                "value": "emilyalsentzer/Bio_ClinicalBERT"
-              },
-              {
-                "name": "TRAINING_FROZEN_COMPONENTS",
-                "value": "transformer"
-              },
-              {
-                "name": "TRAINING_MAX_CONCURRENT_JOBS",
-                "value": "1"
-              },
-              {
-                "name": "TRAINING_JOB_TIMEOUT_S",
-                "value": "43200"
-              },
-              {
-                "name": "TRAINING_MIN_LABEL_COUNT",
-                "value": "50"
-              },
-              {
-                "name": "TRAINING_USE_GPU",
-                "value": "false"
-              },
-              {
-                "name": "HF_HOME",
-                "value": "/var/model_cache/hf_cache"
-              },
-              {
-                "name": "HF_HUB_OFFLINE",
-                "value": "1"
-              },
-              {
-                "name": "VECTOR_MODEL",
-                "value": "emilyalsentzer/Bio_ClinicalBERT"
-              },
-              {
-                "name": "VECTOR_DIMENSION",
-                "value": "768"
-              },
-              {
-                "name": "VECTOR_DEVICE",
-                "value": "cpu"
-              },
-              {
-                "name": "SNOMED_TERMINOLOGY_SERVER",
-                "value": "[parameters('snomedTerminologyServer')]"
-              },
-              {
-                "name": "NCDA_CONFIG_DIR",
-                "value": "configs/snomed"
-              },
-              {
-                "name": "TERMINOLOGY_API_URLS",
-                "value": "[variables('termApiUrl')]"
-              },
-              {
-                "name": "COOKIE_SECURE",
-                "value": "[parameters('cookieSecure')]"
-              },
-              {
-                "name": "SESSION_TTL_HOURS",
-                "value": "[parameters('sessionTtlHours')]"
-              },
-              {
-                "name": "ALLOWED_ORIGINS",
-                "value": "[parameters('allowedOrigins')]"
-              },
-              {
-                "name": "CORS_ORIGINS",
-                "value": "[parameters('allowedOrigins')]"
-              },
-              {
-                "name": "NEO4J_PASSWORD",
-                "secretRef": "neo4j-patient-password"
-              },
-              {
-                "name": "NEO4J_URI",
-                "secretRef": "neo4j-patient-uri"
-              },
-              {
-                "name": "KNOWLEDGE_GRAPH_NEO4J_URI",
-                "secretRef": "neo4j-knowledge-uri"
-              },
-              {
-                "name": "KNOWLEDGE_GRAPH_NEO4J_PASSWORD",
-                "secretRef": "neo4j-knowledge-password"
-              },
-              {
-                "name": "GUIDELINE_NEO4J_URI",
-                "secretRef": "neo4j-guideline-uri"
-              },
-              {
-                "name": "GUIDELINE_NEO4J_PASSWORD",
-                "secretRef": "neo4j-guideline-password"
-              },
-              {
-                "name": "REDIS_URL",
-                "secretRef": "redis-url"
-              },
-              {
-                "name": "AZURE_AD_TENANT_ID",
-                "secretRef": "azure-ad-tenant-id"
-              },
-              {
-                "name": "AZURE_AD_CLIENT_SECRET",
-                "secretRef": "azure-ad-client-secret"
-              },
-              {
-                "name": "AZURE_OPENAI_API_KEY",
-                "secretRef": "azure-openai-api-key"
-              },
-              {
-                "name": "AZURE_STORAGE_CONNECTION_STRING",
-                "secretRef": "azure-storage-connection-string"
-              },
-              {
-                "name": "AZURE_SERVICE_BUS_CONNECTION_STRING",
-                "secretRef": "azure-service-bus-connection-string"
-              },
-              {
-                "name": "AWS_ACCESS_KEY_ID",
-                "secretRef": "aws-access-key-id"
-              },
-              {
-                "name": "AWS_SECRET_ACCESS_KEY",
-                "secretRef": "aws-secret-access-key"
-              },
-              {
-                "name": "AWS_BIG_MODEL",
-                "secretRef": "aws-big-model"
-              },
-              {
-                "name": "AWS_SMALL_MODEL",
-                "secretRef": "aws-small-model"
-              },
-              {
-                "name": "AWS_MAX_MODEL",
-                "secretRef": "aws-max-model"
-              },
-              {
-                "name": "SNOMED_API_KEY",
-                "secretRef": "snomed-api-key"
-              },
-              {
-                "name": "UMLS_API_KEY",
-                "secretRef": "umls-api-key"
-              },
-              {
-                "name": "NHS_TRUD_API_KEY",
-                "secretRef": "nhs-trud-api-key"
-              },
-              {
-                "name": "AZURE_AD_CLIENT_ID",
-                "secretRef": "azure-ad-client-id"
-              },
-              {
-                "name": "ANALYTICS_API_APP_ID",
-                "secretRef": "analytics-api-app-id"
-              },
-              {
-                "name": "FHIR_API_APP_ID",
-                "secretRef": "fhir-api-app-id"
-              },
-              {
-                "name": "MODEL_INFERENCE_APP_ID",
-                "secretRef": "model-inference-app-id"
-              },
-              {
-                "name": "TERMINOLOGY_API_APP_ID",
-                "secretRef": "terminology-api-app-id"
-              },
-              {
-                "name": "AUTH_SECRET",
-                "secretRef": "auth-secret"
-              },
-              {
-                "name": "SERVICE_AUTH_SECRET",
-                "secretRef": "service-auth-secret"
-              }
-            ],
+            "uiIngressCustomDomains": "[if(variables('hasUiTlsCustomDomain'), createArray(createObject('name', parameters('uiCustomDomainHost'), 'bindingType', 'SniEnabled', 'certificateId', variables('uiIngressCertificateResourceId'))), if(variables('hasUiManagedCustomDomain'), createArray(createObject('name', parameters('uiCustomHostname'), 'bindingType', 'SniEnabled', 'certificateId', parameters('uiManagedCertificateId'))), createArray()))]",
             "sharedSecrets": [
               {
                 "name": "neo4j-patient-password",
@@ -1139,11 +918,6 @@
               {
                 "name": "azure-openai-api-key",
                 "keyVaultUrl": "[format('{0}secrets/azure-openai-api-key', parameters('kvUri'))]",
-                "identity": "[parameters('managedIdentityId')]"
-              },
-              {
-                "name": "azure-storage-connection-string",
-                "keyVaultUrl": "[format('{0}secrets/azure-storage-connection-string', parameters('kvUri'))]",
                 "identity": "[parameters('managedIdentityId')]"
               },
               {
@@ -1197,6 +971,21 @@
                 "identity": "[parameters('managedIdentityId')]"
               },
               {
+                "name": "mail-graph-tenant-id",
+                "keyVaultUrl": "[format('{0}secrets/mail-graph-tenant-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "mail-graph-client-id",
+                "keyVaultUrl": "[format('{0}secrets/mail-graph-client-id', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "mail-graph-client-secret",
+                "keyVaultUrl": "[format('{0}secrets/mail-graph-client-secret', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
                 "name": "analytics-api-app-id",
                 "keyVaultUrl": "[format('{0}secrets/analytics-api-app-id', parameters('kvUri'))]",
                 "identity": "[parameters('managedIdentityId')]"
@@ -1224,6 +1013,16 @@
               {
                 "name": "service-auth-secret",
                 "keyVaultUrl": "[format('{0}secrets/service-auth-secret', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "sdk-host-shared-secret",
+                "keyVaultUrl": "[format('{0}secrets/sdk-host-shared-secret', parameters('kvUri'))]",
+                "identity": "[parameters('managedIdentityId')]"
+              },
+              {
+                "name": "sdk-widget-token-secret",
+                "keyVaultUrl": "[format('{0}secrets/sdk-widget-token-secret', parameters('kvUri'))]",
                 "identity": "[parameters('managedIdentityId')]"
               }
             ],
@@ -1282,7 +1081,7 @@
                   "secrets": "[variables('sharedSecrets')]",
                   "registries": "[variables('registryConfig')]",
                   "ingress": {
-                    "external": true,
+                    "external": false,
                     "targetPort": 8000,
                     "transport": "http"
                   }
@@ -1293,10 +1092,10 @@
                       "name": "core-api",
                       "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/core-api:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
                       "resources": {
-                        "cpu": "[json('0.5')]",
-                        "memory": "1Gi"
+                        "cpu": "[json('1.0')]",
+                        "memory": "2Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'FHIR_API_URL', 'value', variables('fhirApiUrl')), createObject('name', 'FHIR_API_BASE', 'value', variables('fhirApiUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'ANALYTICS_API_BASE', 'value', variables('analyticsApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'PIPELINE_WORKER_URL', 'value', variables('pipelineWorkerUrl')), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'MAIL_FROM_ADDRESS', 'value', 'leo.support@healthcarecopilot.ai')))]",
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'FHIR_API_URL', 'value', format('https://fhir-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'FHIR_API_BASE', 'value', format('https://fhir-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'ANALYTICS_API_URL', 'value', format('https://analytics-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'ANALYTICS_API_BASE', 'value', format('https://analytics-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', format('https://model-inference.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'PIPELINE_WORKER_URL', 'value', format('https://pipeline-worker.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'RESEARCH_WORKER_URL', 'value', format('https://research-worker.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'FRONTEND_URL', 'value', parameters('frontendUrl')), createObject('name', 'AUTH_REDIRECT_URI', 'value', format('{0}/auth/callback', parameters('frontendUrl'))), createObject('name', 'WIDGET_PUBLIC_HOST', 'value', parameters('widgetPublicHost')), createObject('name', 'MAIL_FROM_ADDRESS', 'value', parameters('mailFromAddress')), createObject('name', 'MAIL_GRAPH_TENANT_ID', 'secretRef', 'mail-graph-tenant-id'), createObject('name', 'MAIL_GRAPH_CLIENT_ID', 'secretRef', 'mail-graph-client-id'), createObject('name', 'MAIL_GRAPH_CLIENT_SECRET', 'secretRef', 'mail-graph-client-secret'), createObject('name', 'UVICORN_WORKERS', 'value', '2'), createObject('name', 'SCENARIO_SDK_HOST_ENABLED', 'value', '1'), createObject('name', 'SCENARIO_SDK_HOST_ID', 'value', 'leo-scenario-runner')))]",
                       "probes": [
                         {
                           "type": "Liveness",
@@ -1325,7 +1124,17 @@
                   ],
                   "scale": {
                     "minReplicas": 1,
-                    "maxReplicas": 3
+                    "maxReplicas": 6,
+                    "rules": [
+                      {
+                        "name": "core-api-http",
+                        "http": {
+                          "metadata": {
+                            "concurrentRequests": "50"
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               },
@@ -1357,15 +1166,25 @@
                       "name": "ui",
                       "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/ui:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
                       "resources": {
-                        "cpu": "[json('0.25')]",
-                        "memory": "0.5Gi"
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'INTERNAL_API_BASE', 'value', 'http://core-api'), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'TRAINING_WORKER_URL', 'value', 'http://training-worker'), createObject('name', 'NODE_ENV', 'value', 'production'), createObject('name', 'AUTH_URL', 'value', parameters('frontendUrl')), createObject('name', 'NEXT_PUBLIC_API_BASE', 'value', '')))]"
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'INTERNAL_API_BASE', 'value', format('https://core-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'TERMINOLOGY_API_URL', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'TRAINING_WORKER_URL', 'value', format('https://training-worker.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'PIPELINE_WORKER_URL', 'value', format('https://pipeline-worker.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'NODE_ENV', 'value', 'production'), createObject('name', 'AUTH_URL', 'value', parameters('frontendUrl')), createObject('name', 'NEXT_PUBLIC_API_BASE', 'value', ''), createObject('name', 'UI_FETCH_CONNECTIONS_PER_HOST', 'value', '16'), createObject('name', 'UI_FETCH_KEEPALIVE_MS', 'value', '30000')))]"
                     }
                   ],
                   "scale": {
                     "minReplicas": 1,
-                    "maxReplicas": 2
+                    "maxReplicas": 4,
+                    "rules": [
+                      {
+                        "name": "ui-http",
+                        "http": {
+                          "metadata": {
+                            "concurrentRequests": "100"
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               },
@@ -1396,10 +1215,10 @@
                       "name": "terminology-api",
                       "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/terminology-api:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
                       "resources": {
-                        "cpu": "[json('0.25')]",
-                        "memory": "0.5Gi"
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser'))))]",
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser')), createObject('name', 'UVICORN_WORKERS', 'value', '2')))]",
                       "probes": [
                         {
                           "type": "Liveness",
@@ -1427,7 +1246,7 @@
                     }
                   ],
                   "scale": {
-                    "minReplicas": 0,
+                    "minReplicas": 1,
                     "maxReplicas": 3
                   }
                 }
@@ -1459,10 +1278,10 @@
                       "name": "fhir-api",
                       "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/fhir-api:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
                       "resources": {
-                        "cpu": "[json('0.25')]",
-                        "memory": "0.5Gi"
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser'))))]",
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser')), createObject('name', 'UVICORN_WORKERS', 'value', '2')))]",
                       "probes": [
                         {
                           "type": "Liveness",
@@ -1490,7 +1309,7 @@
                     }
                   ],
                   "scale": {
-                    "minReplicas": 0,
+                    "minReplicas": 1,
                     "maxReplicas": 3
                   }
                 }
@@ -1522,10 +1341,10 @@
                       "name": "analytics-api",
                       "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/analytics-api:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
                       "resources": {
-                        "cpu": "[json('0.25')]",
-                        "memory": "0.5Gi"
+                        "cpu": "[json('1.0')]",
+                        "memory": "2Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser'))))]",
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', 'value', parameters('neo4jKnowledgeUser')), createObject('name', 'UVICORN_WORKERS', 'value', '2')))]",
                       "probes": [
                         {
                           "type": "Liveness",
@@ -1553,8 +1372,18 @@
                     }
                   ],
                   "scale": {
-                    "minReplicas": 0,
-                    "maxReplicas": 3
+                    "minReplicas": 1,
+                    "maxReplicas": 6,
+                    "rules": [
+                      {
+                        "name": "analytics-api-http",
+                        "http": {
+                          "metadata": {
+                            "concurrentRequests": "50"
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               },
@@ -1588,7 +1417,7 @@
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'MODEL_STORE_CACHE_DIR', 'value', '/var/model_cache')))]",
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'MODEL_STORE_CACHE_DIR', 'value', '/var/model_cache')))]",
                       "probes": [
                         {
                           "type": "Liveness",
@@ -1651,7 +1480,376 @@
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
                       },
-                      "env": "[variables('sharedEnv')]",
+                      "env": [
+                        {
+                          "name": "AZURE_KEYVAULT_URL",
+                          "value": "[parameters('kvUri')]"
+                        },
+                        {
+                          "name": "AZURE_CLIENT_ID",
+                          "value": "[parameters('managedIdentityClientId')]"
+                        },
+                        {
+                          "name": "AZURE_SERVICE_BUS_NAMESPACE",
+                          "value": "[parameters('sbNamespaceFqdn')]"
+                        },
+                        {
+                          "name": "AZURE_STORAGE_ACCOUNT_URL",
+                          "value": "[variables('storageAccountUrl')]"
+                        },
+                        {
+                          "name": "OPENAI_API_TYPE",
+                          "value": "azure"
+                        },
+                        {
+                          "name": "AZURE_OPENAI_ENDPOINT",
+                          "value": "[parameters('aoaiEndpoint')]"
+                        },
+                        {
+                          "name": "AZURE_OPENAI_BIG_MODEL",
+                          "value": "[parameters('azureOpenAiBigModel')]"
+                        },
+                        {
+                          "name": "AZURE_OPENAI_SMALL_MODEL",
+                          "value": "[parameters('azureOpenAiSmallModel')]"
+                        },
+                        {
+                          "name": "AZURE_OPENAI_API_VERSION",
+                          "value": "[parameters('azureOpenAiApiVersion')]"
+                        },
+                        {
+                          "name": "AWS_DEFAULT_REGION",
+                          "value": "[parameters('awsDefaultRegion')]"
+                        },
+                        {
+                          "name": "PIPELINE_MODEL_PROVIDER",
+                          "value": "azure"
+                        },
+                        {
+                          "name": "AWS_LLM_ENABLED",
+                          "value": "false"
+                        },
+                        {
+                          "name": "PIPELINE_MODEL_TIER",
+                          "value": "small"
+                        },
+                        {
+                          "name": "CODING_EXTRACTOR_BACKEND",
+                          "value": "[parameters('codingExtractorBackend')]"
+                        },
+                        {
+                          "name": "CODING_EXTRACTOR_STRICT",
+                          "value": "[parameters('codingExtractorStrict')]"
+                        },
+                        {
+                          "name": "CODING_MODEL_PROVIDER",
+                          "value": "service"
+                        },
+                        {
+                          "name": "CODING_MODEL_NAME",
+                          "value": "[parameters('modelStoreModelName')]"
+                        },
+                        {
+                          "name": "CODING_MODEL_TIMEOUT_MS",
+                          "value": "10000"
+                        },
+                        {
+                          "name": "CODING_MODEL_MAX_RETRIES",
+                          "value": "2"
+                        },
+                        {
+                          "name": "MODEL_STORE_CONTAINER",
+                          "value": "[parameters('modelStoreContainer')]"
+                        },
+                        {
+                          "name": "MODEL_STORE_MODEL_NAME",
+                          "value": "[parameters('modelStoreModelName')]"
+                        },
+                        {
+                          "name": "MODEL_REGISTRY_STORE",
+                          "value": "neo4j"
+                        },
+                        {
+                          "name": "MODEL_REGISTRY_STORE_PATH",
+                          "value": "/var/model_cache/model_registry.json"
+                        },
+                        {
+                          "name": "MODEL_MIN_PRECISION",
+                          "value": "[parameters('modelMinPrecision')]"
+                        },
+                        {
+                          "name": "MODEL_MIN_RECALL",
+                          "value": "[parameters('modelMinRecall')]"
+                        },
+                        {
+                          "name": "MODEL_CANARY_MIN_PRECISION",
+                          "value": "[parameters('modelMinPrecision')]"
+                        },
+                        {
+                          "name": "MODEL_CANARY_MIN_RECALL",
+                          "value": "[parameters('modelMinRecall')]"
+                        },
+                        {
+                          "name": "MODEL_REQUIRED_SCHEMA_VERSION",
+                          "value": "1.0"
+                        },
+                        {
+                          "name": "MODEL_REQUIRED_DEID_VERSION",
+                          "value": "1.0"
+                        },
+                        {
+                          "name": "MODEL_REQUIRED_LABEL_VERSION",
+                          "value": "1.0"
+                        },
+                        {
+                          "name": "HITL_LOW_CONFIDENCE_THRESHOLD",
+                          "value": "[parameters('hitlLowConfidenceThreshold')]"
+                        },
+                        {
+                          "name": "HITL_PEER_REVIEW_RATE",
+                          "value": "[parameters('hitlPeerReviewRate')]"
+                        },
+                        {
+                          "name": "CODING_MODE",
+                          "value": "[parameters('codingMode')]"
+                        },
+                        {
+                          "name": "LABEL_VERIFY_WORKERS",
+                          "value": "50"
+                        },
+                        {
+                          "name": "LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY",
+                          "value": "20"
+                        },
+                        {
+                          "name": "LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY",
+                          "value": "120"
+                        },
+                        {
+                          "name": "LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY",
+                          "value": "60"
+                        },
+                        {
+                          "name": "TRAINING_HF_BASE_MODEL",
+                          "value": "emilyalsentzer/Bio_ClinicalBERT"
+                        },
+                        {
+                          "name": "TRAINING_FROZEN_COMPONENTS",
+                          "value": "transformer"
+                        },
+                        {
+                          "name": "TRAINING_MAX_CONCURRENT_JOBS",
+                          "value": "1"
+                        },
+                        {
+                          "name": "TRAINING_JOB_TIMEOUT_S",
+                          "value": "43200"
+                        },
+                        {
+                          "name": "TRAINING_MIN_LABEL_COUNT",
+                          "value": "50"
+                        },
+                        {
+                          "name": "TRAINING_USE_GPU",
+                          "value": "false"
+                        },
+                        {
+                          "name": "HF_HOME",
+                          "value": "/var/model_cache/hf_cache"
+                        },
+                        {
+                          "name": "HF_HUB_OFFLINE",
+                          "value": "1"
+                        },
+                        {
+                          "name": "TRANSFORMERS_OFFLINE",
+                          "value": "1"
+                        },
+                        {
+                          "name": "VECTOR_MODEL",
+                          "value": "emilyalsentzer/Bio_ClinicalBERT"
+                        },
+                        {
+                          "name": "VECTOR_DIMENSION",
+                          "value": "768"
+                        },
+                        {
+                          "name": "VECTOR_DEVICE",
+                          "value": "cpu"
+                        },
+                        {
+                          "name": "SNOMED_TERMINOLOGY_SERVER",
+                          "value": "[parameters('snomedTerminologyServer')]"
+                        },
+                        {
+                          "name": "NCDA_CONFIG_DIR",
+                          "value": "configs/snomed"
+                        },
+                        {
+                          "name": "TERMINOLOGY_API_URLS",
+                          "value": "[format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)]"
+                        },
+                        {
+                          "name": "COOKIE_SECURE",
+                          "value": "[parameters('cookieSecure')]"
+                        },
+                        {
+                          "name": "SESSION_TTL_HOURS",
+                          "value": "[parameters('sessionTtlHours')]"
+                        },
+                        {
+                          "name": "SESSION_KEY_NAMESPACE",
+                          "value": "[variables('sessionKeyNamespace')]"
+                        },
+                        {
+                          "name": "ALLOWED_ORIGINS",
+                          "value": "[parameters('allowedOrigins')]"
+                        },
+                        {
+                          "name": "CORS_ORIGINS",
+                          "value": "[parameters('allowedOrigins')]"
+                        },
+                        {
+                          "name": "ANYIO_THREADPOOL_TOKENS",
+                          "value": "200"
+                        },
+                        {
+                          "name": "NEO4J_MAX_POOL_SIZE",
+                          "value": "50"
+                        },
+                        {
+                          "name": "NEO4J_ACQUIRE_TIMEOUT",
+                          "value": "60"
+                        },
+                        {
+                          "name": "CALLER_SCOPE_CACHE_TTL_SECONDS",
+                          "value": "60"
+                        },
+                        {
+                          "name": "AUDIT_SCOPE_PARALLELISM",
+                          "value": "3"
+                        },
+                        {
+                          "name": "LEO_DEPLOYMENT_ENVIRONMENT",
+                          "value": "[parameters('environment')]"
+                        },
+                        {
+                          "name": "KNOWLEDGE_GRAPH_ENVIRONMENT",
+                          "value": "[parameters('knowledgeGraphEnvironment')]"
+                        },
+                        {
+                          "name": "NEO4J_PASSWORD",
+                          "secretRef": "neo4j-patient-password"
+                        },
+                        {
+                          "name": "NEO4J_URI",
+                          "secretRef": "neo4j-patient-uri"
+                        },
+                        {
+                          "name": "KNOWLEDGE_GRAPH_NEO4J_URI",
+                          "secretRef": "neo4j-knowledge-uri"
+                        },
+                        {
+                          "name": "KNOWLEDGE_GRAPH_NEO4J_PASSWORD",
+                          "secretRef": "neo4j-knowledge-password"
+                        },
+                        {
+                          "name": "GUIDELINE_NEO4J_URI",
+                          "secretRef": "neo4j-guideline-uri"
+                        },
+                        {
+                          "name": "GUIDELINE_NEO4J_PASSWORD",
+                          "secretRef": "neo4j-guideline-password"
+                        },
+                        {
+                          "name": "REDIS_URL",
+                          "secretRef": "redis-url"
+                        },
+                        {
+                          "name": "AZURE_AD_TENANT_ID",
+                          "secretRef": "azure-ad-tenant-id"
+                        },
+                        {
+                          "name": "AZURE_AD_CLIENT_SECRET",
+                          "secretRef": "azure-ad-client-secret"
+                        },
+                        {
+                          "name": "AZURE_OPENAI_API_KEY",
+                          "secretRef": "azure-openai-api-key"
+                        },
+                        {
+                          "name": "AZURE_SERVICE_BUS_CONNECTION_STRING",
+                          "secretRef": "azure-service-bus-connection-string"
+                        },
+                        {
+                          "name": "AWS_ACCESS_KEY_ID",
+                          "secretRef": "aws-access-key-id"
+                        },
+                        {
+                          "name": "AWS_SECRET_ACCESS_KEY",
+                          "secretRef": "aws-secret-access-key"
+                        },
+                        {
+                          "name": "AWS_BIG_MODEL",
+                          "secretRef": "aws-big-model"
+                        },
+                        {
+                          "name": "AWS_SMALL_MODEL",
+                          "secretRef": "aws-small-model"
+                        },
+                        {
+                          "name": "AWS_MAX_MODEL",
+                          "secretRef": "aws-max-model"
+                        },
+                        {
+                          "name": "SNOMED_API_KEY",
+                          "secretRef": "snomed-api-key"
+                        },
+                        {
+                          "name": "UMLS_API_KEY",
+                          "secretRef": "umls-api-key"
+                        },
+                        {
+                          "name": "NHS_TRUD_API_KEY",
+                          "secretRef": "nhs-trud-api-key"
+                        },
+                        {
+                          "name": "AZURE_AD_CLIENT_ID",
+                          "secretRef": "azure-ad-client-id"
+                        },
+                        {
+                          "name": "ANALYTICS_API_APP_ID",
+                          "secretRef": "analytics-api-app-id"
+                        },
+                        {
+                          "name": "FHIR_API_APP_ID",
+                          "secretRef": "fhir-api-app-id"
+                        },
+                        {
+                          "name": "MODEL_INFERENCE_APP_ID",
+                          "secretRef": "model-inference-app-id"
+                        },
+                        {
+                          "name": "TERMINOLOGY_API_APP_ID",
+                          "secretRef": "terminology-api-app-id"
+                        },
+                        {
+                          "name": "AUTH_SECRET",
+                          "secretRef": "auth-secret"
+                        },
+                        {
+                          "name": "SERVICE_AUTH_SECRET",
+                          "secretRef": "service-auth-secret"
+                        },
+                        {
+                          "name": "SDK_HOST_SHARED_SECRET",
+                          "secretRef": "sdk-host-shared-secret"
+                        },
+                        {
+                          "name": "SDK_WIDGET_TOKEN_SECRET",
+                          "secretRef": "sdk-widget-token-secret"
+                        }
+                      ],
                       "probes": [
                         {
                           "type": "Liveness",
@@ -1714,7 +1912,7 @@
                         "cpu": "[json('1.0')]",
                         "memory": "2Gi"
                       },
-                      "env": "[union(variables('sharedEnv'), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', variables('termApiUrl')), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', variables('modelInferenceUrl')), createObject('name', 'ANALYTICS_API_URL', 'value', variables('analyticsApiUrl')), createObject('name', 'PIPELINE_WORKER_PORT', 'value', '8006'), createObject('name', 'PIPELINE_QUEUE_NAME', 'value', 'pipeline-jobs'), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds'))))]",
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'TERMINOLOGY_API_URL', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'CODING_MODEL_ENDPOINT', 'value', format('https://model-inference.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'ANALYTICS_API_URL', 'value', format('https://analytics-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'PIPELINE_WORKER_PORT', 'value', '8006'), createObject('name', 'PIPELINE_QUEUE_NAME', 'value', 'pipeline-jobs'), createObject('name', 'SB_MAX_LOCK_RENEWAL_SECONDS', 'value', parameters('sbMaxLockRenewalSeconds')), createObject('name', 'SB_MAX_CONCURRENT_CALLS', 'value', '8'), createObject('name', 'CODING_ENCOUNTER_PARALLELISM', 'value', '4'), createObject('name', 'EPISODE_ENGINE_CANDIDATE_PARALLELISM', 'value', '8'), createObject('name', 'MODEL_INFERENCE_MAX_CONCURRENCY', 'value', '4')))]",
                       "probes": [
                         {
                           "type": "Liveness",
@@ -1743,7 +1941,7 @@
                   ],
                   "scale": {
                     "minReplicas": 1,
-                    "maxReplicas": 5,
+                    "maxReplicas": 10,
                     "rules": [
                       {
                         "name": "pipeline-jobs-keda",
@@ -1752,7 +1950,7 @@
                           "metadata": {
                             "queueName": "pipeline-jobs",
                             "namespace": "[parameters('sbNamespaceFqdn')]",
-                            "messageCount": "5"
+                            "messageCount": "16"
                           },
                           "auth": [
                             {
@@ -1769,6 +1967,69 @@
               "dependsOn": [
                 "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]"
               ]
+            },
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2024-03-01",
+              "name": "research-worker",
+              "location": "[parameters('location')]",
+              "identity": "[variables('identityConfig')]",
+              "properties": {
+                "environmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]",
+                "configuration": {
+                  "secrets": "[variables('sharedSecrets')]",
+                  "registries": "[variables('registryConfig')]",
+                  "ingress": {
+                    "external": false,
+                    "targetPort": 8007,
+                    "transport": "http"
+                  }
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "research-worker",
+                      "image": "[if(variables('usePlaceholder'), variables('placeholderImage'), format('{0}/research-worker:{1}', parameters('acrLoginServer'), parameters('imageTag')))]",
+                      "resources": {
+                        "cpu": "[json('1.0')]",
+                        "memory": "2Gi"
+                      },
+                      "env": "[union(createArray(createObject('name', 'AZURE_KEYVAULT_URL', 'value', parameters('kvUri')), createObject('name', 'AZURE_CLIENT_ID', 'value', parameters('managedIdentityClientId')), createObject('name', 'AZURE_SERVICE_BUS_NAMESPACE', 'value', parameters('sbNamespaceFqdn')), createObject('name', 'AZURE_STORAGE_ACCOUNT_URL', 'value', variables('storageAccountUrl')), createObject('name', 'OPENAI_API_TYPE', 'value', 'azure'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', parameters('aoaiEndpoint')), createObject('name', 'AZURE_OPENAI_BIG_MODEL', 'value', parameters('azureOpenAiBigModel')), createObject('name', 'AZURE_OPENAI_SMALL_MODEL', 'value', parameters('azureOpenAiSmallModel')), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AWS_DEFAULT_REGION', 'value', parameters('awsDefaultRegion')), createObject('name', 'PIPELINE_MODEL_PROVIDER', 'value', 'azure'), createObject('name', 'AWS_LLM_ENABLED', 'value', 'false'), createObject('name', 'PIPELINE_MODEL_TIER', 'value', 'small'), createObject('name', 'CODING_EXTRACTOR_BACKEND', 'value', parameters('codingExtractorBackend')), createObject('name', 'CODING_EXTRACTOR_STRICT', 'value', parameters('codingExtractorStrict')), createObject('name', 'CODING_MODEL_PROVIDER', 'value', 'service'), createObject('name', 'CODING_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'CODING_MODEL_TIMEOUT_MS', 'value', '10000'), createObject('name', 'CODING_MODEL_MAX_RETRIES', 'value', '2'), createObject('name', 'MODEL_STORE_CONTAINER', 'value', parameters('modelStoreContainer')), createObject('name', 'MODEL_STORE_MODEL_NAME', 'value', parameters('modelStoreModelName')), createObject('name', 'MODEL_REGISTRY_STORE', 'value', 'neo4j'), createObject('name', 'MODEL_REGISTRY_STORE_PATH', 'value', '/var/model_cache/model_registry.json'), createObject('name', 'MODEL_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_CANARY_MIN_PRECISION', 'value', parameters('modelMinPrecision')), createObject('name', 'MODEL_CANARY_MIN_RECALL', 'value', parameters('modelMinRecall')), createObject('name', 'MODEL_REQUIRED_SCHEMA_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_DEID_VERSION', 'value', '1.0'), createObject('name', 'MODEL_REQUIRED_LABEL_VERSION', 'value', '1.0'), createObject('name', 'HITL_LOW_CONFIDENCE_THRESHOLD', 'value', parameters('hitlLowConfidenceThreshold')), createObject('name', 'HITL_PEER_REVIEW_RATE', 'value', parameters('hitlPeerReviewRate')), createObject('name', 'CODING_MODE', 'value', parameters('codingMode')), createObject('name', 'LABEL_VERIFY_WORKERS', 'value', '50'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MIN_CONCURRENCY', 'value', '20'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_MAX_CONCURRENCY', 'value', '120'), createObject('name', 'LABEL_VERIFY_ADAPTIVE_INITIAL_CONCURRENCY', 'value', '60'), createObject('name', 'TRAINING_HF_BASE_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'TRAINING_FROZEN_COMPONENTS', 'value', 'transformer'), createObject('name', 'TRAINING_MAX_CONCURRENT_JOBS', 'value', '1'), createObject('name', 'TRAINING_JOB_TIMEOUT_S', 'value', '43200'), createObject('name', 'TRAINING_MIN_LABEL_COUNT', 'value', '50'), createObject('name', 'TRAINING_USE_GPU', 'value', 'false'), createObject('name', 'HF_HOME', 'value', '/var/model_cache/hf_cache'), createObject('name', 'HF_HUB_OFFLINE', 'value', '1'), createObject('name', 'TRANSFORMERS_OFFLINE', 'value', '1'), createObject('name', 'VECTOR_MODEL', 'value', 'emilyalsentzer/Bio_ClinicalBERT'), createObject('name', 'VECTOR_DIMENSION', 'value', '768'), createObject('name', 'VECTOR_DEVICE', 'value', 'cpu'), createObject('name', 'SNOMED_TERMINOLOGY_SERVER', 'value', parameters('snomedTerminologyServer')), createObject('name', 'NCDA_CONFIG_DIR', 'value', 'configs/snomed'), createObject('name', 'TERMINOLOGY_API_URLS', 'value', format('https://terminology-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'COOKIE_SECURE', 'value', parameters('cookieSecure')), createObject('name', 'SESSION_TTL_HOURS', 'value', parameters('sessionTtlHours')), createObject('name', 'SESSION_KEY_NAMESPACE', 'value', variables('sessionKeyNamespace')), createObject('name', 'ALLOWED_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'CORS_ORIGINS', 'value', parameters('allowedOrigins')), createObject('name', 'ANYIO_THREADPOOL_TOKENS', 'value', '200'), createObject('name', 'NEO4J_MAX_POOL_SIZE', 'value', '50'), createObject('name', 'NEO4J_ACQUIRE_TIMEOUT', 'value', '60'), createObject('name', 'CALLER_SCOPE_CACHE_TTL_SECONDS', 'value', '60'), createObject('name', 'AUDIT_SCOPE_PARALLELISM', 'value', '3'), createObject('name', 'LEO_DEPLOYMENT_ENVIRONMENT', 'value', parameters('environment')), createObject('name', 'KNOWLEDGE_GRAPH_ENVIRONMENT', 'value', parameters('knowledgeGraphEnvironment')), createObject('name', 'NEO4J_PASSWORD', 'secretRef', 'neo4j-patient-password'), createObject('name', 'NEO4J_URI', 'secretRef', 'neo4j-patient-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_URI', 'secretRef', 'neo4j-knowledge-uri'), createObject('name', 'KNOWLEDGE_GRAPH_NEO4J_PASSWORD', 'secretRef', 'neo4j-knowledge-password'), createObject('name', 'GUIDELINE_NEO4J_URI', 'secretRef', 'neo4j-guideline-uri'), createObject('name', 'GUIDELINE_NEO4J_PASSWORD', 'secretRef', 'neo4j-guideline-password'), createObject('name', 'REDIS_URL', 'secretRef', 'redis-url'), createObject('name', 'AZURE_AD_TENANT_ID', 'secretRef', 'azure-ad-tenant-id'), createObject('name', 'AZURE_AD_CLIENT_SECRET', 'secretRef', 'azure-ad-client-secret'), createObject('name', 'AZURE_OPENAI_API_KEY', 'secretRef', 'azure-openai-api-key'), createObject('name', 'AZURE_SERVICE_BUS_CONNECTION_STRING', 'secretRef', 'azure-service-bus-connection-string'), createObject('name', 'AWS_ACCESS_KEY_ID', 'secretRef', 'aws-access-key-id'), createObject('name', 'AWS_SECRET_ACCESS_KEY', 'secretRef', 'aws-secret-access-key'), createObject('name', 'AWS_BIG_MODEL', 'secretRef', 'aws-big-model'), createObject('name', 'AWS_SMALL_MODEL', 'secretRef', 'aws-small-model'), createObject('name', 'AWS_MAX_MODEL', 'secretRef', 'aws-max-model'), createObject('name', 'SNOMED_API_KEY', 'secretRef', 'snomed-api-key'), createObject('name', 'UMLS_API_KEY', 'secretRef', 'umls-api-key'), createObject('name', 'NHS_TRUD_API_KEY', 'secretRef', 'nhs-trud-api-key'), createObject('name', 'AZURE_AD_CLIENT_ID', 'secretRef', 'azure-ad-client-id'), createObject('name', 'ANALYTICS_API_APP_ID', 'secretRef', 'analytics-api-app-id'), createObject('name', 'FHIR_API_APP_ID', 'secretRef', 'fhir-api-app-id'), createObject('name', 'MODEL_INFERENCE_APP_ID', 'secretRef', 'model-inference-app-id'), createObject('name', 'TERMINOLOGY_API_APP_ID', 'secretRef', 'terminology-api-app-id'), createObject('name', 'AUTH_SECRET', 'secretRef', 'auth-secret'), createObject('name', 'SERVICE_AUTH_SECRET', 'secretRef', 'service-auth-secret'), createObject('name', 'SDK_HOST_SHARED_SECRET', 'secretRef', 'sdk-host-shared-secret'), createObject('name', 'SDK_WIDGET_TOKEN_SECRET', 'secretRef', 'sdk-widget-token-secret')), createArray(createObject('name', 'NEO4J_USER', 'value', parameters('neo4jUser')), createObject('name', 'ANALYTICS_API_URL', 'value', format('https://analytics-api.internal.{0}', reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain)), createObject('name', 'RESEARCH_WORKER_PORT', 'value', '8007')))]",
+                      "probes": [
+                        {
+                          "type": "Liveness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8007,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 10,
+                          "periodSeconds": 30,
+                          "failureThreshold": 3
+                        },
+                        {
+                          "type": "Readiness",
+                          "httpGet": {
+                            "path": "/health",
+                            "port": 8007,
+                            "scheme": "HTTP"
+                          },
+                          "initialDelaySeconds": 5,
+                          "periodSeconds": 10,
+                          "failureThreshold": 3
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 0,
+                    "maxReplicas": 2
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', variables('caeName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -1779,6 +2040,10 @@
             "uiFqdn": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.App/containerApps', 'ui'), '2024-03-01').configuration.ingress.fqdn]"
+            },
+            "acaDefaultDomain": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/managedEnvironments', variables('caeName')), '2024-03-01').defaultDomain]"
             }
           }
         }
@@ -1793,11 +2058,19 @@
   "outputs": {
     "coreApiFqdn": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-apps'), '2025-04-01').outputs.coreApiFqdn.value]"
+      "value": "[if(parameters('deployContainerApps'), reference(resourceId('Microsoft.Resources/deployments', 'container-apps'), '2025-04-01').outputs.coreApiFqdn.value, '')]"
     },
     "uiFqdn": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'container-apps'), '2025-04-01').outputs.uiFqdn.value]"
+      "value": "[if(parameters('deployContainerApps'), reference(resourceId('Microsoft.Resources/deployments', 'container-apps'), '2025-04-01').outputs.uiFqdn.value, '')]"
+    },
+    "acaDefaultDomain": {
+      "type": "string",
+      "value": "[if(parameters('deployContainerApps'), reference(resourceId('Microsoft.Resources/deployments', 'container-apps'), '2025-04-01').outputs.acaDefaultDomain.value, '')]"
+    },
+    "deployContainerApps": {
+      "type": "bool",
+      "value": "[parameters('deployContainerApps')]"
     },
     "kvUri": {
       "type": "string",
@@ -1806,6 +2079,14 @@
     "sbNamespaceFqdn": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'servicebus'), '2025-04-01').outputs.sbNamespaceFqdn.value]"
+    },
+    "aoaiEndpoint": {
+      "type": "string",
+      "value": "[parameters('azureOpenAiEndpoint')]"
+    },
+    "storageAccountUrl": {
+      "type": "string",
+      "value": "[format('https://{0}.blob.{1}', parameters('storageAccountName'), environment().suffixes.storage)]"
     }
   }
 }
