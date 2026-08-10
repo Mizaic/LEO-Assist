@@ -99,6 +99,7 @@ export function assessmentToDocumentRow(row: AssessmentRow): DocumentRow {
     markdown_url: null,
     episode_id: row.episode_id,
     episode_label: row.episode_label || "General",
+    referral_id: null,
     sbar: {
       sbar_id: row.assessment_id,
       status: row.status,
