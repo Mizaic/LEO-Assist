@@ -76,7 +76,8 @@ def resolve_pipeline_chunks(
         referral_id=rid,
         document_reference_id=document_reference_id,
     )
-    source_id = str((sibling_rows[0] or {}).get("source_document_id") or "").strip()
+    first_sibling = sibling_rows[0] if sibling_rows else {}
+    source_id = str((first_sibling or {}).get("source_document_id") or "").strip()
     if source_id:
         sibling = list_document_chunks_normalized(
             client,

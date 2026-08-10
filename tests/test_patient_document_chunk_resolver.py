@@ -72,3 +72,21 @@ def test_resolve_pipeline_chunks_falls_back_to_sibling():
     assert resolved.resolution == "referral_sibling"
     assert resolved.source_document_id == "DocumentReference-151063"
     assert len(resolved.chunks) == 1
+
+
+def test_resolve_pipeline_chunks_empty_sibling_returns_none():
+    client = MagicMock()
+    client.run.return_value = []
+
+    with patch(
+        "libs.patient_document_runs.chunk_resolver.list_document_chunks_normalized",
+        return_value=[],
+    ):
+        resolved = resolve_pipeline_chunks(
+            client,
+            document_reference_id="000049816848-clinical-information",
+            referral_id="000049816848",
+        )
+    assert resolved.resolution == "none"
+    assert resolved.chunks == []
+    assert resolved.source_document_id == "000049816848-clinical-information"
