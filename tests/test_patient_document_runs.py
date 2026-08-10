@@ -82,6 +82,9 @@ def test_start_document_run_publishes_referral_received():
             ordered_chunk_ids=["c1", "c2"],
         ),
     ), patch(
+        "libs.patient_document_runs.service.resolve_pipeline_chunks",
+        return_value=MagicMock(chunks=[]),
+    ), patch(
         "libs.patient_document_runs.service.poll_run_status",
         return_value={"status": "queued", "assessment_id": ""},
     ), patch(
