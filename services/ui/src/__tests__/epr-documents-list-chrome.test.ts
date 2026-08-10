@@ -23,6 +23,17 @@ describe("EPR documents list chrome", () => {
     const src = readUi("components/patients/DocumentListPanel.tsx");
     expect(src).toMatch(/fetchEprAssessments/);
     expect(src).toMatch(/mergeDocumentsNewestFirst/);
+    expect(src).toMatch(/initialDocumentId/);
+    expect(src).toMatch(/initialReferralId/);
+    expect(src).toMatch(/clinical information/);
+    expect(src).toMatch(/2ww/);
+  });
+
+  test("DocumentViewer renders markdown inline or offers Open PDF", () => {
+    const src = readUi("components/patients/DocumentViewer.tsx");
+    expect(src).toMatch(/MarkdownEditor/);
+    expect(src).toMatch(/Open \{fileKindLabel\(kind\)\}/);
+    expect(src).toMatch(/original_url \|\| doc\.markdown_url/);
   });
 
   test("documentFormat exposes merge helper and SBAR type guard", () => {

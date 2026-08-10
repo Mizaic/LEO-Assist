@@ -326,6 +326,35 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "output": '{"terms": [{"sentence_id": "s0", "text": "suspected cancer pathway for stomach cancer", "lookup_term": "malignant neoplasm of upper gastrointestinal tract suspected", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
+        "category": "precision:referral_scope:upper_gi_oesophagus",
+        "model_scope": "any",
+        "description": "Upper GI oesophageal 2WW -- one situation span only",
+        "input": (
+            "[s0] I am referring James Mitchell urgently via the suspected cancer "
+            "pathway for assessment of oesophageal cancer. He has progressive "
+            "dysphagia over 6 weeks."
+        ),
+        "output": (
+            '{"terms": [{"sentence_id": "s0", '
+            '"text": "suspected cancer pathway for assessment of oesophageal cancer", '
+            '"lookup_term": "malignant neoplasm of upper gastrointestinal tract suspected", '
+            '"semantic_tag": "situation", "assertion": "present", '
+            '"value": null, "unit": null, "reference_range": null}]}'
+        ),
+    },
+    {
+        "category": "precision:referral_scope:upper_gi_assess",
+        "model_scope": "any",
+        "description": "Assess for oesophageal cancer -- situation not disorder",
+        "input": "[s0] Refer for upper GI endoscopy to assess for oesophageal cancer.",
+        "output": (
+            '{"terms": [{"sentence_id": "s0", "text": "assess for oesophageal cancer", '
+            '"lookup_term": "malignant neoplasm of upper gastrointestinal tract suspected", '
+            '"semantic_tag": "situation", "assertion": "present", '
+            '"value": null, "unit": null, "reference_range": null}]}'
+        ),
+    },
+    {
         "category": "precision:referral_scope:submitted",
         "model_scope": "any",
         "description": "Plan line referral submitted -- no entity",

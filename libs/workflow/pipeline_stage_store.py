@@ -167,7 +167,7 @@ class PipelineStageStore:
         source = str(request.context.get("source") or "")
         admit_query = (
             ADMIT_VALIDATION_LAB_PIPELINE_RUN
-            if source.startswith("validation-lab")
+            if source.startswith("validation-lab") or source == "patient-viewer"
             else ADMIT_PIPELINE_RUN
         )
         rows = self._client.run(

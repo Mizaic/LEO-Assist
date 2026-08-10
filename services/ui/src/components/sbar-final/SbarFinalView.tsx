@@ -170,7 +170,7 @@ export function splitFinalSbar(md: string): SbarSection[] {
   for (const line of lines) {
     const heading = line.match(/^##\s+(.+?)\s*$/);
     if (heading) {
-      const name = heading[1].trim().toLowerCase();
+      const name = heading[1].trim().toLowerCase().replace(/:$/, "");
       const stage = (SECTION_ORDER as string[]).find(
         (s) => s === name,
       ) as SbarStageName | undefined;

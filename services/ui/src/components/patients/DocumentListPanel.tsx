@@ -212,7 +212,10 @@ function matchesFilter(doc: DocumentRow, filter: string): boolean {
     return (
       t.includes("referral") ||
       title.includes("referral") ||
-      cat.includes("referral")
+      cat.includes("referral") ||
+      title.includes("clinical information") ||
+      title.includes("2ww") ||
+      title.includes("form v")
     );
   }
   if (filter === "letter") {
@@ -234,9 +237,25 @@ function matchesFilter(doc: DocumentRow, filter: string): boolean {
 interface Props {
   patientId: string;
   scopeEpisodeIds?: string[];
+  /** Pre-select a document when opening from Timeline or another tab. */
+  initialDocumentId?: string;
+  /** Pre-select the first document linked to this referral id. */
+  initialReferralId?: string;
 }
 
-export function DocumentListPanel({ patientId, scopeEpisodeIds }: Props) {
+function docMatchesReferral(doc: DocumentRow, referralId: string): boolean {
+  const prefix = referralId.trim();
+  if (!prefix) return false;
+  const docId = doc.document_id;
+  return docId === prefix || docId.startsWith(`${prefix}-`);
+}
+
+export function DocumentListPanel({
+  patientId,
+  scopeEpisodeIds,
+  initialDocumentId,
+  initialReferralId,
+}: Props) {
   const [docs, setDocs] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -275,6 +294,18 @@ export function DocumentListPanel({ patientId, scopeEpisodeIds }: Props) {
       )
       .finally(() => setLoading(false));
   }, [patientId, scopeEpisodeIds]);
+
+  useEffect(() => {
+    if (loading || docs.length === 0) return;
+    if (initialDocumentId && docs.some((d) => d.document_id === initialDocumentId)) {
+      setSelectedId(initialDocumentId);
+      return;
+    }
+    if (initialReferralId) {
+      const match = docs.find((d) => docMatchesReferral(d, initialReferralId));
+      if (match) setSelectedId(match.document_id);
+    }
+  }, [loading, docs, initialDocumentId, initialReferralId]);
 
   const filtered = useMemo(() => {
     const base = docs.filter((d) => matchesFilter(d, filter));
@@ -381,7 +412,7 @@ export function DocumentListPanel({ patientId, scopeEpisodeIds }: Props) {
 
         <Box sx={{ flex: 1, overflowY: "auto", bgcolor: "#FFFFFF" }}>
           {selected ? (
-            <DocumentViewer doc={selected} />
+            <DocumentViewer doc={selected} patientId={patientId} />
           ) : (
             <Box sx={{ p: 4, textAlign: "center", color: "#94A3B8" }}>
               <ArticleOutlinedIcon sx={{ fontSize: 40, mb: 1 }} />

@@ -76,6 +76,10 @@ export function isSbarDocument(doc: DocumentRow): boolean {
   return type.includes("sbar") || category === "sbar";
 }
 
+export function hasLinkedSbarAssessment(doc: DocumentRow): boolean {
+  return Boolean(doc.sbar?.sbar_id?.trim());
+}
+
 /** Map a patient Assessment into a Documents-tab row (SBAR). */
 export function assessmentToDocumentRow(row: AssessmentRow): DocumentRow {
   const preview =

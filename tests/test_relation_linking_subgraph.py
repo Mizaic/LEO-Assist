@@ -105,3 +105,23 @@ def test_relation_linking_prompt_config_is_composed_with_shared_guidelines(monke
         }
     )
     assert "[shared-guidelines:relation_linking]" in captured.get("system", "")
+
+
+def test_relation_linking_tolerates_malformed_llm_json(monkeypatch):
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM("{bad json: trailing, comma,}"),
+    )
+    monkeypatch.setattr(relation_linking_mod, "_MODEL_CONFIDENCE_THRESHOLD", 0.99)
+    graph = build_relation_linking_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": "no numbness in arm",
+            "entities": [
+                {"text": "numbness", "label": "finding"},
+                {"text": "arm", "label": "body structure"},
+            ],
+        }
+    )
+    assert not out.get("errors")
+    assert out["entities"][0].get("lookup_term") == "arm numbness"

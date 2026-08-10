@@ -61,8 +61,52 @@ export interface SbarPdfMeta {
 export function composeSbarMarkdownFromAssessment(
   assessment: SbarAssessmentForPdf,
 ): string {
-  if (assessment.content && assessment.content.trim()) {
-    return assessment.content.trim();
+  const stripStageHeading = (text: string | null | undefined, stage: string) => {
+    const body = (text ?? "").trim();
+    if (!body) return "";
+    return body.replace(
+      new RegExp(`^##\\s+${stage}:?\\s*\\n?`, "i"),
+      "",
+    ).trim();
+  };
+
+  const situation = stripStageHeading(assessment.situation, "situation");
+  const background = stripStageHeading(assessment.background, "background");
+  const assessmentText = stripStageHeading(assessment.assessment, "assessment");
+  const recommendation = stripStageHeading(
+    assessment.recommendation,
+    "recommendation",
+  );
+
+  if (situation || background || assessmentText || recommendation) {
+    return [
+      "# SBAR",
+      "",
+      "## Situation",
+      "",
+      situation || "_Not generated._",
+      "",
+      "## Background",
+      "",
+      background || "_Not generated._",
+      "",
+      "## Assessment",
+      "",
+      assessmentText || "_Not generated._",
+      "",
+      "## Recommendation",
+      "",
+      recommendation || "_Not generated._",
+    ].join("\n");
+  }
+
+  const content = assessment.content?.trim() ?? "";
+  const lower = content.toLowerCase();
+  const hasAllStages = ["situation", "background", "assessment", "recommendation"].every(
+    (stage) => new RegExp(`^##\\s+${stage}\\s*$`, "m").test(lower),
+  );
+  if (content && hasAllStages) {
+    return content;
   }
   return [
     "# SBAR",

@@ -164,6 +164,12 @@ def default_publish(body: dict[str, Any], run_id: str) -> None:
     _run_coro_sync(_send)
 
 
+def _is_eager_bootstrap_source(body: dict[str, Any]) -> bool:
+    ctx = body.get("context") if isinstance(body.get("context"), dict) else {}
+    source = str(ctx.get("source") or "").strip()
+    return source.startswith("validation-lab") or source == "patient-viewer"
+
+
 def _is_validation_lab_source(body: dict[str, Any]) -> bool:
     ctx = body.get("context") if isinstance(body.get("context"), dict) else {}
     return str(ctx.get("source") or "").strip().startswith("validation-lab")
@@ -187,7 +193,7 @@ def bootstrap_durable_lab_run(body: dict[str, Any]) -> str | None:
     """
     if not _LAB_EAGER_DURABLE_BOOTSTRAP:
         return None
-    if not _is_validation_lab_source(body):
+    if not _is_eager_bootstrap_source(body):
         return None
     plan_id = str(body.get("plan_definition_id") or body.get("workflow_id") or "")
     from libs.workflow.durable_step_runner import (

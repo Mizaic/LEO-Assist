@@ -226,3 +226,31 @@ def test_extraction_check_prompt_config_is_composed_with_shared_guidelines(monke
         }
     )
     assert "[shared-guidelines:extraction_check]" in captured.get("system", "")
+
+
+def test_extraction_check_tolerates_malformed_llm_json(monkeypatch):
+    payload = (
+        '{ "terms": [ { "text": "Allergies: Shellfish Allergy", '
+        '"lookup_term": "allergy to shellfish", "semantic_tag": "situation", '
+        '"assertion": "present", "confidence": 0.78, "value": ""'
+    )
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(payload),
+    )
+    graph = build_extraction_check_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": "Allergies: Shellfish Allergy documented.",
+            "entities": [
+                {
+                    "text": "Shellfish Allergy",
+                    "label": "situation",
+                    "assertion": "present",
+                },
+            ],
+        }
+    )
+    assert not out.get("errors")
+    assert len(out["entities"]) == 1
+    assert out["entities"][0]["text"] == "Shellfish Allergy"

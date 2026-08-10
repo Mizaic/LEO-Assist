@@ -152,7 +152,9 @@ KEEP (extract when present in sentence_subset):
 - patient declined referral (clinical decision)
 - site-named suspected cancer as situation (present): "suspected breast cancer",
   "breast suspected cancer pathway", "suspected cancer pathway for stomach cancer",
-  "gastric malignancy", "suspected lower GI cancer"
+  "gastric malignancy", "suspected lower GI cancer",
+  "suspected cancer pathway for assessment of oesophageal cancer",
+  "assess for oesophageal cancer", "exclude malignancy"
 - positive family history as situation (present): "Mother had breast cancer",
   "FH of breast cancer", "family history of bowel cancer"
 - NSS / SystmOne safety checklist items when echoed in free text (warfarin treatment,
@@ -430,6 +432,14 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
      "breast suspected cancer pathway" ->
        lookup_term: "malignant neoplasm of breast suspected"
        semantic_tag: situation, assertion: present
+     "assessment of oesophageal cancer" / "assess for oesophageal cancer" /
+     "exclude malignancy" / "suspected cancer pathway for assessment of
+     oesophageal cancer" ->
+       extract ONE situation span covering the clinical suspicion (prefer the
+       full pathway phrase when present, not a bare "oesophageal cancer" fragment)
+       lookup_term: "malignant neoplasm of upper gastrointestinal tract suspected"
+       semantic_tag: situation, assertion: present
+       Do NOT emit a separate disorder span for the site cancer noun.
 4. Severity / grade / stage when stated: mild, moderate, severe, stage N
    - "severe anaemia" -> lookup_term: "severe anaemia"
 5. Laterality and site: left, right, bilateral, unilateral, distal, proximal,

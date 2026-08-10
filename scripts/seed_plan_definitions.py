@@ -837,6 +837,7 @@ PLAN_DEFINITIONS = [
                 "_sequence": 2,
                 "_subgraphId": "post_processing",
                 "_durableEventType": "post_processing_requested",
+                "definitionCanonical": "ActivityDefinition/ad-post-processing",
                 "relatedAction": [
                     {"actionId": "act-ref-extract", "relationship": "after-end"}
                 ],

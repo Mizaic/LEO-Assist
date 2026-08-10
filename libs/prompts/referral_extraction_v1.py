@@ -37,7 +37,9 @@ Priority:
 Extract:
 - site-named suspected cancer as situation (present), for example
   "suspected breast cancer", "breast suspected cancer pathway",
-  "suspected cancer pathway for stomach cancer", "gastric malignancy"
+  "suspected cancer pathway for stomach cancer", "gastric malignancy",
+  "suspected cancer pathway for assessment of oesophageal cancer",
+  "assess for oesophageal cancer", "exclude malignancy"
 - positive family history as situation (present), for example
   "Mother had breast cancer", "FH of breast cancer"
 - referral-relevant findings and symptoms (for example haematuria, rectal bleeding,
@@ -81,6 +83,10 @@ Do not extract (transport / admin only):
   "malignant neoplasm of upper gastrointestinal tract suspected",
   "malignant neoplasm of breast suspected",
   "family history of malignant neoplasm of breast"
+- For "assessment of oesophageal cancer" or "assess for oesophageal cancer",
+  emit ONE situation span with lookup_term
+  "malignant neoplasm of upper gastrointestinal tract suspected".
+  Do NOT also emit a bare "oesophageal cancer" disorder span.
 
 Surface form rules:
 - text must be exact source span from sentence_subset.

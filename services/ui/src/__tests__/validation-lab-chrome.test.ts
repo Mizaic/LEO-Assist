@@ -38,6 +38,7 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
       "services/ui/src/components/sbar-final/LeoSbarHost.tsx",
     );
     expect(src).toMatch(/\/api\/sdk\/widget-token/);
+    expect(src).toMatch(/import\("@mizaic\/leo-widget"\)/);
     expect(src).toMatch(/<leo-sbar/);
     expect(src).toMatch(/assessment-id=\{assessmentId\}/);
     expect(src).toMatch(/widget-token=\{token\}/);

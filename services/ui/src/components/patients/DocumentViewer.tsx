@@ -28,9 +28,11 @@ import {
   categoryLabel,
   extractSourceFilename,
   fileKindLabel,
+  hasLinkedSbarAssessment,
   inferFileKind,
   isSbarDocument,
 } from "./documentFormat";
+import { DocumentChunkPanel } from "./DocumentChunkPanel";
 
 type ViewMode = "rendered" | "raw";
 
@@ -104,19 +106,23 @@ function RenderedPane({ body }: { body: string }) {
 
 interface Props {
   doc: DocumentRow;
+  patientId?: string;
 }
 
-export function DocumentViewer({ doc }: Props) {
+export function DocumentViewer({ doc, patientId }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("rendered");
   const kind = inferFileKind(doc);
   const sourceFile = extractSourceFilename(doc.full_text);
   const isSbar = isSbarDocument(doc);
+  const linkedSbar = hasLinkedSbarAssessment(doc);
   const assessmentId = doc.sbar?.sbar_id?.trim() || "";
+  const showSbarWidget = Boolean(assessmentId && (linkedSbar || isSbar));
   const sbarMd = buildSbarMarkdown(doc);
   const body = useMemo(
     () => stripDocHeader(doc.full_text || doc.text_preview || ""),
     [doc.full_text, doc.text_preview]
   );
+  const showDocumentBody = Boolean(body) && !(isSbar && assessmentId);
   const openUrl = doc.original_url || doc.markdown_url;
 
   return (
@@ -164,14 +170,34 @@ export function DocumentViewer({ doc }: Props) {
         )}
       </Stack>
 
-      {isSbar && assessmentId ? (
-        <LeoSbarHost assessmentId={assessmentId} testId="document-sbar" />
-      ) : isSbar && sbarMd ? (
+      {patientId && !isSbar && (
+        <DocumentChunkPanel patientId={patientId} doc={doc} />
+      )}
+
+      {isSbar && (
+        <Alert severity="info" sx={{ mb: 2 }} data-testid="document-sbar-reprocess-hint">
+          To reprocess source chunks, select the referral Word or PDF document
+          (for example BR7 updated 4.docx) in the list on the left.
+        </Alert>
+      )}
+
+      {showSbarWidget && (
+        <Box sx={{ mb: 2 }} data-testid={isSbar ? "document-sbar-widget" : "document-linked-sbar"}>
+          {!isSbar && (
+            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 1 }}>
+              Linked SBAR assessment
+            </Typography>
+          )}
+          <LeoSbarHost assessmentId={assessmentId} testId="document-sbar" />
+        </Box>
+      )}
+
+      {!showSbarWidget && isSbar && sbarMd ? (
         <Alert severity="warning" data-testid="document-sbar-missing-id">
           This SBAR document is missing an assessment id. Open it from an
           Assessment row so the CDN widget can load the clinical summary.
         </Alert>
-      ) : body ? (
+      ) : showDocumentBody ? (
         <>
           <Stack
             direction="row"

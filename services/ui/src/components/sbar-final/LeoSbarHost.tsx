@@ -31,8 +31,6 @@ import {
   type SbarAssessmentForPdf,
 } from "@/lib/exportSbarPdf";
 
-import "@mizaic/leo-widget";
-
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace React {
@@ -111,6 +109,7 @@ export function LeoSbarHost({
   testId = "leo-sbar-host",
 }: LeoSbarHostProps) {
   const [token, setToken] = useState<string | null>(null);
+  const [widgetReady, setWidgetReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -118,6 +117,22 @@ export function LeoSbarHost({
   const [complianceAlerts, setComplianceAlerts] = useState<ComplianceAlert[]>([]);
   const [recallNeedsReview, setRecallNeedsReview] = useState(false);
   const [recallMissingFlags, setRecallMissingFlags] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import("@mizaic/leo-widget")
+      .then(() => {
+        if (!cancelled) setWidgetReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError("Unable to load the SBAR viewer. Please retry.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,6 +238,7 @@ export function LeoSbarHost({
 
   const proxyOrigin =
     typeof window !== "undefined" ? window.location.origin : "";
+  const bootstrapping = loading || Boolean(token && !widgetReady);
 
   return (
     <Box data-testid={testId}>
@@ -283,26 +299,26 @@ export function LeoSbarHost({
         </Alert>
       ))}
 
-      {loading && (
+      {bootstrapping && !error && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 2 }}>
           <CircularProgress size={20} aria-label="Loading SBAR widget" />
           <Typography variant="body2">Loading SBAR viewer...</Typography>
         </Box>
       )}
 
-      {!loading && (error || !token) && (
-        <Alert severity="error" data-testid={`${testId}-error`}>
-          {error || "Unable to load SBAR viewer."}
-        </Alert>
-      )}
-
-      {!loading && token && (
+      {!bootstrapping && widgetReady && token && (
         <leo-sbar
           data-testid="leo-sbar-widget"
           assessment-id={assessmentId}
           widget-token={token}
           proxy-origin={proxyOrigin}
         />
+      )}
+
+      {!bootstrapping && (error || !token) && (
+        <Alert severity="error" data-testid={`${testId}-error`}>
+          {error || "Unable to load SBAR viewer."}
+        </Alert>
       )}
     </Box>
   );

@@ -236,3 +236,35 @@ def test_encounter_list_counts_documents_links():
     queries_src = _read(QUERIES)
     assert "doc_coded_count" in queries_src
     assert "[:DOCUMENTS]->(coded)" in queries_src
+
+
+def test_documents_query_includes_referral_linked_document_references():
+    """Documents tab must union patient-linked and referral-linked DR nodes."""
+    queries_src = _read(QUERIES)
+    assert "GET_DOCUMENTS_ADMIN" in queries_src
+    assert "HAS_DOCUMENT_REFERENCE]->(doc:DocumentReference)" in queries_src
+    assert (
+        "<-[:FOR_PATIENT]-(:ReferralRequest)-[:HAS_DOCUMENT]->(doc:DocumentReference)"
+        in queries_src
+    )
+    assert "UNION" in queries_src
+    assert "rr_via:ReferralRequest)-[:HAS_DOCUMENT]->(doc)" in queries_src
+
+
+def test_timeline_query_includes_referrals_and_documents():
+    """Timeline must list referral requests and referral-linked documents."""
+    queries_src = _read(QUERIES)
+    assert "GET_TIMELINE_ADMIN" in queries_src
+    assert "'referral' AS item_type" in queries_src
+    assert "'document' AS item_type" in queries_src
+    assert "'sbar' AS item_type" in queries_src
+    assert "HAS_ASSESSMENT]->(a:Assessment)" in queries_src
+    assert "<-[:FOR_PATIENT]-(rr:ReferralRequest)" in queries_src
+    assert "HAS_DOCUMENT]->(dr:DocumentReference)" in queries_src
+    assert "LIMIT 200" in queries_src
+
+
+def test_documents_query_returns_referral_id():
+    queries_src = _read(QUERIES)
+    assert "AS referral_id" in queries_src
+    assert "WITH doc, full_text, ep, rr, head(collect(a)) AS a" in queries_src

@@ -36,6 +36,7 @@ from pydantic import BaseModel, Field
 
 from app.services import host_governance
 from libs.cypher.sbar_assessment_queries import GET_ASSESSMENT, assessment_to_dict
+from libs.sbar.markdown_compose import compose_sbar_markdown
 from libs.sdk_auth import (
     WIDGET_TOKEN_MAX_TTL_SECONDS,
     WidgetTokenError,
@@ -461,7 +462,7 @@ def _load_sbar_payload(assessment_id: str, tenant_id: str) -> SbarPayload:
         assessment_id=assessment_id,
         tenant_id=tenant_id,
         generated_at=str(generated_at),
-        markdown=record.get("content") or "",
+        markdown=compose_sbar_markdown(record),
         background_parts=background_parts,
         guideline_matches=_decode_assessment_rules(record.get("assessment_rules")),
         completeness_findings=completeness,
