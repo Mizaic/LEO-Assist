@@ -6,8 +6,7 @@
  *   DI: DI-357A7468
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5D3EA371")
  *
- * Shows encounters, episode starts, and safety netting alerts together in a
- * single descending-date list. No event type is filtered out.
+ * Shows encounters, episodes, alerts, referrals, documents, and SBARs in date order.
  */
 "use client";
 
@@ -17,7 +16,10 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import ForwardToInboxOutlinedIcon from "@mui/icons-material/ForwardToInboxOutlined";
 import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import HealingOutlinedIcon from "@mui/icons-material/HealingOutlined";
@@ -50,6 +52,21 @@ const ITEM_TYPE_CONFIG: Record<
     color: "#B45309",
     icon: <WarningAmberOutlinedIcon fontSize="small" />,
   },
+  referral: {
+    label: "Referral",
+    color: "#4338CA",
+    icon: <ForwardToInboxOutlinedIcon fontSize="small" />,
+  },
+  document: {
+    label: "Document",
+    color: "#0369A1",
+    icon: <DescriptionOutlinedIcon fontSize="small" />,
+  },
+  sbar: {
+    label: "SBAR",
+    color: "#047857",
+    icon: <AssessmentOutlinedIcon fontSize="small" />,
+  },
 };
 
 function getConfig(type: string) {
@@ -59,6 +76,15 @@ function getConfig(type: string) {
       color: "#475569",
       icon: <AssignmentOutlinedIcon fontSize="small" />,
     }
+  );
+}
+
+function isClickableType(type: string): boolean {
+  return (
+    type === "encounter" ||
+    type === "document" ||
+    type === "referral" ||
+    type === "sbar"
   );
 }
 
@@ -123,7 +149,7 @@ export function ActivityTimeline({
       />
       {items.map((item, idx) => {
         const cfg = getConfig(item.item_type);
-        const clickable = Boolean(onItemClick) && item.item_type === "encounter";
+        const clickable = Boolean(onItemClick) && isClickableType(item.item_type);
         return (
           <Box
             key={`${item.item_type}-${item.item_id}-${idx}`}

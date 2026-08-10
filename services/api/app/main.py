@@ -56,6 +56,7 @@ from app.routers.devices import router as devices_router
 from app.routers.presets import router as presets_router
 from app.routers.training import router as training_router
 from app.routers.patients import router as patients_router
+from app.routers.patient_document_runs import router as patient_document_runs_router
 from app.routers.pipeline import router as pipeline_router
 from app.routers.proxy import router as proxy_router
 from app.routers.review import router as review_router
@@ -482,6 +483,7 @@ app.include_router(anchor_review_router)
 app.include_router(auth_router)
 app.include_router(proxy_router)
 app.include_router(patients_router)
+app.include_router(patient_document_runs_router)
 app.include_router(pipeline_router)
 app.include_router(review_router)
 app.include_router(work_router)

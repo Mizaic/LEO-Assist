@@ -32,6 +32,11 @@ export function stripSourceComments(md: string): string {
     .replace(SOURCE_COMMENT_INLINE_RE, "");
 }
 
+function normalizeStageName(raw: string): SbarStageName | null {
+  const name = raw.trim().toLowerCase().replace(/:$/, "");
+  return SECTION_SET.has(name) ? (name as SbarStageName) : null;
+}
+
 export function splitFinalSbar(md: string): SbarSection[] {
   const lines = (md ?? "").split(/\r?\n/);
   const out = new Map<SbarStageName, string[]>();
@@ -39,9 +44,9 @@ export function splitFinalSbar(md: string): SbarSection[] {
   for (const line of lines) {
     const heading = HEADING_RE.exec(line);
     if (heading && heading[1]) {
-      const name = heading[1].trim().toLowerCase();
-      if (SECTION_SET.has(name)) {
-        current = name as SbarStageName;
+      const stage = normalizeStageName(heading[1]);
+      if (stage) {
+        current = stage;
         if (!out.has(current)) out.set(current, []);
         continue;
       }

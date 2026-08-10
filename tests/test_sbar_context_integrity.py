@@ -111,6 +111,42 @@ def test_validate_passes_when_all_records_connected() -> None:
     assert result.errors == []
 
 
+def test_validate_accepts_referral_assessment_correlation_encounter() -> None:
+    session = _FakeSession(
+        responses=[
+            {"id": "pat-1"},
+            {"id": "000049823847"},
+            {"id": "000049823847"},
+            {"id": "rr-1"},
+            {"id": "000049823847"},
+        ]
+    )
+    payload = _payload(
+        encounter_id="000049823847:referral-assessment",
+        situation=SBARSituationInput(
+            patient_id="pat-1",
+            artifacts=[
+                SBARArtifactRef(
+                    type=SituationArtifactType.encounter,
+                    id="000049823847:referral-assessment",
+                ),
+                SBARArtifactRef(
+                    type=SituationArtifactType.referral_request,
+                    id="000049823847",
+                ),
+            ],
+        ),
+        background=[
+            SBARBackgroundSourceRef(
+                type=BackgroundSourceType.encounter,
+                id="000049823847:referral-assessment",
+            )
+        ],
+    )
+    result = validate_sbar_context(session, payload)
+    assert result.ok is True
+
+
 def test_orchestrator_stops_before_llm_on_integrity_failure() -> None:
     session = _FakeSession(responses=[None])
     client = _FakeClient(session)

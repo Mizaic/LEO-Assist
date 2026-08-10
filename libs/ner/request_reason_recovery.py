@@ -344,7 +344,18 @@ def _build_situation(
     }
 
 
+def infer_suspected_cancer_site(reason_text: str) -> str:
+    """Return the site key for a suspected-cancer phrase."""
+    return _infer_suspected_cancer_site(reason_text)
+
+
+SUSPECTED_CANCER_BY_SITE = _SUSPECTED_CANCER_BY_SITE
+
+
 __all__ = [
+    "SUSPECTED_CANCER_BY_SITE",
+    "SuspectedCancerSituation",
+    "infer_suspected_cancer_site",
     "propose_request_reason_entities",
     "propose_request_reason_findings",
     "recover_request_reason_entities",

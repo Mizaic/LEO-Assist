@@ -66,6 +66,25 @@ def test_validation_lab_admission_key_includes_run_id() -> None:
     assert first != prod
 
 
+def test_patient_viewer_admission_key_includes_run_id() -> None:
+    """Care reprocess runs must not reuse a prior failed PipelineRun."""
+    base = {
+        "event_type": "referral-received",
+        "plan_definition_id": "pd-referral-assessment",
+        "patient_id": "9728344007",
+        "referral_id": "000049823847",
+        "chunk_ids": ["chunk-a"],
+        "context": {
+            "source": "patient-viewer",
+            "referral_id": "000049823847",
+            "document_reference_id": "DocumentReference-151066",
+        },
+    }
+    first = build_admission_key({**base, "run_id": "run-one"})
+    second = build_admission_key({**base, "run_id": "run-two"})
+    assert first != second
+
+
 class _AdmissionClient:
     """Minimal in-memory client for run admission races."""
 
@@ -224,3 +243,31 @@ def test_validation_lab_admit_creates_run_by_lab_run_id() -> None:
     )
     assert result.run_id == "lab-run-new"
     assert client.runs_by_id["lab-run-new"]["id"] == "lab-run-new"
+
+
+def test_patient_viewer_admit_creates_run_by_run_id() -> None:
+    """Care reprocess must not reuse an older failed PipelineRun."""
+    client = _AdmissionClient()
+    store = PipelineStageStore(client)
+    shared_key = build_admission_key(_body("old-run"))
+    client.runs_by_key[shared_key] = {
+        "id": "old-run",
+        "admission_key": shared_key,
+        "first_step_enqueued": True,
+        "status": "failed",
+    }
+    client.runs_by_id["old-run"] = client.runs_by_key[shared_key]
+    viewer_body = {
+        **_body("viewer-run-new"),
+        "context": {
+            "source": "patient-viewer",
+            "referral_id": "ref-1",
+            "document_reference_id": "dr-1",
+        },
+    }
+    result = store.admit_run(
+        StepRequest.from_message(viewer_body),
+        admission_key=build_admission_key(viewer_body),
+    )
+    assert result.run_id == "viewer-run-new"
+    assert client.runs_by_id["viewer-run-new"]["id"] == "viewer-run-new"

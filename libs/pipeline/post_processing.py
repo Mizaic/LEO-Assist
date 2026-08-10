@@ -47,6 +47,7 @@ we h3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
 7b. Referral Proc Guard   -- keep referral procedures as present
 7c. Observable Trend Split -- split current vs historical result values
 8. Situation Lookup Norm. -- normalise situation text for terminology
+8b. Suspected Cancer Lookup -- enrich lookup_term for suspected referrals
 9. Disorder Gate          -- LLM dual-model disorder classification (optional)
 """
 
@@ -585,7 +586,7 @@ def merge_cross_line_lab_findings(
 
 
 def clean_observable_surface_forms(
-    entities: list[dict[str, Any]]
+    entities: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Apply the shared surface-form cleanup to every observable_entity.
 
@@ -1682,6 +1683,21 @@ def run_post_processing_with_trace(
         "layer_8",
         "Situation Lookup Normalisation",
         lambda current: (_apply_situation_lookup(current), current)[1],
+    )
+
+    # Layer 8b: Suspected cancer lookup enrichment (pre-terminology)
+    def _run_suspected_cancer_lookup(
+        current: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        from libs.ner.suspected_cancer_guard import enrich_suspected_cancer_lookups
+
+        enrich_suspected_cancer_lookups(encounter_text, current)
+        return current
+
+    _run_layer(
+        "layer_8b",
+        "Suspected Cancer Lookup Enrichment",
+        _run_suspected_cancer_lookup,
     )
 
     # Layer 9: Disorder Gate (optional)

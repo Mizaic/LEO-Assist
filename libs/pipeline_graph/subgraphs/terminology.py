@@ -13,12 +13,17 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from libs.lab_results.pipeline import enrich_lab_result_findings
+from libs.ner.suspected_cancer_guard import (
+    dedupe_suspected_malignancy_conflicts,
+    enrich_suspected_cancer_lookups,
+    guard_suspected_cancer_resolutions,
+)
 from libs.pipeline.post_processing import (
     apply_false_absent_assertion_guards,
     fix_double_negated_situations,
     fix_polarity_encoded_findings,
 )
-from libs.lab_results.pipeline import enrich_lab_result_findings
 from libs.terminology.client import TerminologyClient
 
 logger = logging.getLogger(__name__)
@@ -60,6 +65,7 @@ def _is_blocked_mapping(text: str, concept_id: str | None) -> bool:
 
 
 class TerminologyState(TypedDict, total=False):
+    encounter_text: str
     entities: list[dict[str, Any]]
     expected_tags: dict[str, str]
     resolved_entities: list[dict[str, Any]]
@@ -138,21 +144,31 @@ def _strip_trailing_modifiers(text: str) -> str:
 
 
 def _resolve_lookup_term(entity: dict[str, Any]) -> str:
-    lookup = str(entity.get("lookup_term") or "").strip()
     text = str(entity.get("text") or "").strip()
+    normalized_lookup = str(entity.get("normalized_lookup") or "").strip()
+    normalized = str(entity.get("normalized") or "").strip()
+    lookup = str(entity.get("lookup_term") or "").strip()
 
-    # When the LLM sets lookup_term to the same value as text (or leaves it
-    # empty), strip leading qualifier/laterality tokens so the SNOMED
-    # resolver sees "ovary enlarged" instead of "left ovary enlarged" and
-    # "ascites" instead of "moderate ascites".
+    for candidate in (normalized_lookup, normalized, lookup):
+        if candidate and "suspected" in candidate.lower():
+            return candidate
+
+    if lookup and lookup.lower() != text.lower():
+        return lookup
+
+    if normalized_lookup:
+        return normalized_lookup
+
+    if normalized and normalized.lower() != text.lower():
+        return normalized
+
+    # When lookup mirrors surface text, strip leading qualifiers so the SNOMED
+    # resolver sees "ovary enlarged" instead of "left ovary enlarged".
     if not lookup or lookup.lower() == text.lower():
         stripped = _strip_trailing_modifiers(_strip_leading_modifiers(text))
         if stripped and stripped != text:
             return stripped
-        if not lookup:
-            # Fall through to relation-based enrichment below.
-            pass
-        else:
+        if lookup:
             return lookup
 
     if lookup:
@@ -268,6 +284,8 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             "warnings": warnings,
         }
     try:
+        encounter_text = str(state.get("encounter_text") or "")
+        enrich_suspected_cancer_lookups(encounter_text, entities)
         terms = []
         tag_map: dict[str, str] = dict(expected_tags)
         lookup_by_index: dict[int, str] = {}
@@ -302,6 +320,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
                     for u in unresolved
                 )
             )
+        guard_suspected_cancer_resolutions(encounter_text, resolved)
         fix_double_negated_situations(resolved)
         fix_polarity_encoded_findings(resolved)
         apply_false_absent_assertion_guards(resolved)
@@ -310,6 +329,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             patient_sex=state.get("patient_sex"),
             patient_age=state.get("patient_age"),
         )
+        resolved = dedupe_suspected_malignancy_conflicts(resolved)
         resolved = _dedup_by_concept_id(resolved)
         return {
             "entities": resolved,

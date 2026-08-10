@@ -73,6 +73,8 @@ export function PatientShell({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [selectedEncounterId, setSelectedEncounterId] = useState<string | undefined>();
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | undefined>();
+  const [selectedReferralId, setSelectedReferralId] = useState<string | undefined>();
 
   const isServiceProvider =
     session?.organizations.some((o) => o.scopeType === "service_provider") ??
@@ -105,6 +107,24 @@ export function PatientShell({
   const handleEncounterClick = useCallback((encId: string) => {
     setSelectedEncounterId(encId);
     setActiveTab("encounters");
+  }, []);
+
+  const handleDocumentClick = useCallback((documentId: string) => {
+    setSelectedDocumentId(documentId);
+    setSelectedReferralId(undefined);
+    setActiveTab("documents");
+  }, []);
+
+  const handleReferralClick = useCallback((referralId: string) => {
+    setSelectedReferralId(referralId);
+    setSelectedDocumentId(undefined);
+    setActiveTab("documents");
+  }, []);
+
+  const handleSbarClick = useCallback((assessmentId: string) => {
+    setSelectedDocumentId(`assessment:${assessmentId}`);
+    setSelectedReferralId(undefined);
+    setActiveTab("documents");
   }, []);
 
   const scopeEpisodeIds = isServiceProvider
@@ -204,6 +224,9 @@ export function PatientShell({
               timelineItems={timeline}
               loading={detailLoading || timelineLoading}
               onEncounterClick={handleEncounterClick}
+              onDocumentClick={handleDocumentClick}
+              onReferralClick={handleReferralClick}
+              onSbarClick={handleSbarClick}
             />
           )}
           {activeTab === "encounters" && (
@@ -217,6 +240,8 @@ export function PatientShell({
             <DocumentListPanel
               patientId={patientId}
               scopeEpisodeIds={scopeEpisodeIds}
+              initialDocumentId={selectedDocumentId}
+              initialReferralId={selectedReferralId}
             />
           )}
           {activeTab === "alerts" && <AlertsPanel patientId={patientId} />}

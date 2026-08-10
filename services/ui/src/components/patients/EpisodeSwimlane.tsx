@@ -60,6 +60,9 @@ interface SwimlaneProps {
   timelineItems: TimelineItem[];
   loading?: boolean;
   onEncounterClick?: (encounterId: string) => void;
+  onDocumentClick?: (documentId: string) => void;
+  onReferralClick?: (referralId: string) => void;
+  onSbarClick?: (assessmentId: string) => void;
 }
 
 export function EpisodeSwimlane({
@@ -68,6 +71,9 @@ export function EpisodeSwimlane({
   timelineItems,
   loading,
   onEncounterClick,
+  onDocumentClick,
+  onReferralClick,
+  onSbarClick,
 }: SwimlaneProps) {
   if (loading) {
     return (
@@ -79,60 +85,65 @@ export function EpisodeSwimlane({
     );
   }
 
-  if (episodes.length === 0) {
+  if (!loading && episodes.length === 0 && timelineItems.length === 0) {
     return (
-      <Alert severity="info">No episodes on record for this patient.</Alert>
+      <Alert severity="info">No episodes or clinical activity on record.</Alert>
     );
   }
 
   const activityItems = sortNewestFirst(timelineItems);
+  const hasEpisodes = episodes.length > 0;
 
   return (
     <Box sx={{ pb: 2 }} data-testid="epr-episode-swimlane">
-      <Stack
-        direction="row"
-        spacing={2}
-        sx={{ mb: 2 }}
-        alignItems="center"
-        flexWrap="wrap"
-      >
-        <Stack direction="row" spacing={0.75} alignItems="center">
-          <Box
-            sx={{
-              width: 16,
-              height: 16,
-              borderRadius: "3px",
-              transform: "rotate(45deg)",
-              bgcolor: "#64748B",
-            }}
-          />
-          <Typography variant="caption" color="text.secondary">
-            Clinical milestone
-          </Typography>
-        </Stack>
-        <Stack direction="row" spacing={0.75} alignItems="center">
-          <Box
-            sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#94A3B8" }}
-          />
-          <Typography variant="caption" color="text.secondary">
-            Encounter
-          </Typography>
-        </Stack>
-      </Stack>
+      {hasEpisodes && (
+        <>
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{ mb: 2 }}
+            alignItems="center"
+            flexWrap="wrap"
+          >
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: "3px",
+                  transform: "rotate(45deg)",
+                  bgcolor: "#64748B",
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Clinical milestone
+              </Typography>
+            </Stack>
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <Box
+                sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#94A3B8" }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                Encounter
+              </Typography>
+            </Stack>
+          </Stack>
 
-      {episodes.map((ep, i) => (
-        <EpisodeLaneCard
-          key={ep.episode_id ?? String(i)}
-          patientId={patientId}
-          ep={ep}
-          encounters={encountersForEpisode(ep, timelineItems)}
-          onEncounterClick={onEncounterClick}
-        />
-      ))}
+          {episodes.map((ep, i) => (
+            <EpisodeLaneCard
+              key={ep.episode_id ?? String(i)}
+              patientId={patientId}
+              ep={ep}
+              encounters={encountersForEpisode(ep, timelineItems)}
+              onEncounterClick={onEncounterClick}
+            />
+          ))}
+        </>
+      )}
 
       <Paper
         variant="outlined"
-        sx={{ p: 2, borderRadius: "10px", mt: 1 }}
+        sx={{ p: 2, borderRadius: "10px", mt: hasEpisodes ? 1 : 0 }}
         data-testid="epr-timeline-activity"
       >
         <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
@@ -143,14 +154,26 @@ export function EpisodeSwimlane({
           color="text.secondary"
           sx={{ display: "block", mb: 1.5 }}
         >
-          Encounters, episode events, and alerts in date order. Select an
-          encounter to open it.
+          Referrals, documents, SBAR assessments, encounters, episodes, and alerts
+          in date order. Select an item to open it.
         </Typography>
         <ActivityTimeline
           items={activityItems}
           onItemClick={(item) => {
             if (item.item_type === "encounter") {
               onEncounterClick?.(item.item_id);
+              return;
+            }
+            if (item.item_type === "document") {
+              onDocumentClick?.(item.item_id);
+              return;
+            }
+            if (item.item_type === "referral") {
+              onReferralClick?.(item.item_id);
+              return;
+            }
+            if (item.item_type === "sbar") {
+              onSbarClick?.(item.item_id);
             }
           }}
         />

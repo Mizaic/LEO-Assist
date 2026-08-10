@@ -193,6 +193,7 @@ export interface DocumentRow {
   markdown_url: string | null;
   episode_id: string | null;
   episode_label: string;
+  referral_id: string | null;
   sbar: SbarContent | null;
 }
 

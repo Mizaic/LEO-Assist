@@ -36,9 +36,33 @@ describe("EPR timeline layout chrome", () => {
     expect(src).toMatch(/EpisodeSwimlane/);
   });
 
-  test("ActivityTimeline supports encounter click-through", () => {
+  test("ActivityTimeline marks encounters, documents, referrals, and SBARs clickable", () => {
     const src = readUi("components/patients/ActivityTimeline.tsx");
     expect(src).toMatch(/onItemClick/);
+    expect(src).toMatch(/isClickableType/);
+    expect(src).toMatch(/referral:/);
+    expect(src).toMatch(/document:/);
+    expect(src).toMatch(/sbar:/);
+  });
+
+  test("EpisodeSwimlane routes timeline clicks to tab handlers", () => {
+    const src = readUi("components/patients/EpisodeSwimlane.tsx");
     expect(src).toMatch(/item_type === "encounter"/);
+    expect(src).toMatch(/item_type === "document"/);
+    expect(src).toMatch(/item_type === "referral"/);
+    expect(src).toMatch(/item_type === "sbar"/);
+    expect(src).toMatch(/onDocumentClick/);
+    expect(src).toMatch(/onReferralClick/);
+    expect(src).toMatch(/onSbarClick/);
+  });
+
+  test("PatientShell wires timeline document, referral, and SBAR click-through", () => {
+    const src = readUi("components/patients/PatientShell.tsx");
+    expect(src).toMatch(/handleDocumentClick/);
+    expect(src).toMatch(/handleReferralClick/);
+    expect(src).toMatch(/handleSbarClick/);
+    expect(src).toMatch(/assessment:/);
+    expect(src).toMatch(/initialDocumentId/);
+    expect(src).toMatch(/initialReferralId/);
   });
 });

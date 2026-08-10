@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, TypedDict
@@ -19,6 +20,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from libs.llm_client.json_helper import _extract_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.relations.policy import (
     allowed_relation_types,
@@ -33,7 +35,10 @@ _MODEL_CONFIDENCE_THRESHOLD = float(
     os.getenv("RELATION_MODEL_CONFIDENCE_THRESHOLD", "0.72")
 )
 _RELATION_MODEL_PATH = os.getenv("RELATION_MODEL_PATH", "").strip()
+_RELATION_LINKER_MAX_TOKENS = int(os.getenv("RELATION_LINKER_MAX_TOKENS", "8000"))
+_RELATION_LINKER_ENTITY_CAP = int(os.getenv("RELATION_LINKER_ENTITY_CAP", "80"))
 _RELATION_MODEL_CACHE: dict[str, Any] | None = None
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", re.IGNORECASE)
 
 
 class RelationLinkState(TypedDict, total=False):
@@ -83,6 +88,43 @@ def _build_compound_lookup(head_text: str, tail_text: str) -> str:
     return f"{t} {h}".strip()
 
 
+def _parse_relation_linker_result(raw: str) -> dict[str, Any]:
+    """Parse relation-linker JSON without failing the pipeline stage."""
+    text = (raw or "").strip()
+    if not text:
+        return {"relations": [], "suppress": []}
+
+    candidates: list[str] = []
+    fence_match = _JSON_FENCE_RE.search(text)
+    if fence_match:
+        candidates.append(fence_match.group(1).strip())
+    if text.startswith("{"):
+        candidates.append(text)
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end > start:
+        candidates.append(text[start : end + 1])
+
+    seen: set[str] = set()
+    for candidate in candidates:
+        if not candidate or candidate in seen:
+            continue
+        seen.add(candidate)
+        try:
+            parsed = _extract_json(candidate)
+        except json.JSONDecodeError:
+            try:
+                parsed = json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
+        if isinstance(parsed, dict):
+            return parsed
+    logger.warning(
+        "relation_linker returned invalid JSON; using model-only relations",
+    )
+    return {"relations": [], "suppress": []}
+
+
 def _run_linker(state: RelationLinkState) -> dict[str, Any]:
     encounter_text = str(state.get("encounter_text") or "")
     entities = list(state.get("entities") or [])
@@ -91,9 +133,12 @@ def _run_linker(state: RelationLinkState) -> dict[str, Any]:
 
     prompt = _resolve_prompt(state)
     tier = str(state.get("model_tier") or "small")
+    llm_entities = entities
+    if _RELATION_LINKER_ENTITY_CAP > 0:
+        llm_entities = entities[:_RELATION_LINKER_ENTITY_CAP]
     payload = {
         "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
-        "entities": entities,
+        "entities": llm_entities,
     }
     errors = list(state.get("errors") or [])
     try:
@@ -106,17 +151,16 @@ def _run_linker(state: RelationLinkState) -> dict[str, Any]:
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=True)}
             ],
             temperature=0.0,
-            max_tokens=900,
+            max_tokens=_RELATION_LINKER_MAX_TOKENS,
             json_mode=True,
             agent_task="v3_pipeline_relation_linker",
         )
-        raw = response.text or "{}"
-        parsed = json.loads(raw) if raw.strip().startswith("{") else {}
+        parsed = _parse_relation_linker_result(response.text or "")
         if not isinstance(parsed, dict):
-            parsed = {}
+            parsed = {"relations": [], "suppress": []}
         return {"relation_link_result": parsed, "errors": errors}
     except Exception as exc:
-        errors.append(str(exc))
+        logger.warning("relation_linker LLM call failed: %s", exc)
         return {"relation_link_result": {"relations": [], "suppress": []}, "errors": errors}
 
 

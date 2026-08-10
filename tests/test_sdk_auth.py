@@ -278,8 +278,46 @@ def test_sbar_returns_real_assessment(client: TestClient) -> None:
     body = response.json()
     assert body["assessment_id"] == "ASSESS-1"
     assert body["tenant_id"] == "tenant-A"
-    assert "situation" in body["markdown"].lower() or body["markdown"] != ""
+    markdown = body["markdown"].lower()
+    assert "## situation" in markdown
+    assert "## background" in markdown
+    assert "## assessment" in markdown
+    assert "## recommendation" in markdown
     assert body["completeness_findings"] is None
+
+
+def test_sbar_rebuilds_markdown_when_content_missing_stages(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Incomplete persisted content must not hide Situation or Background."""
+    import app.routers.sdk_auth as sdk_auth_module
+
+    record = {
+        **_SAMPLE_RECORD,
+        "content": "## Assessment\n\nA only.\n\n## Recommendation\n\nR only.",
+        "situation": "## Situation:\n55-year-old with cough.",
+        "background": "No prior investigations.",
+        "assessment": "NG12 rule fired.",
+        "recommendation": "Chest X-ray within 2 weeks.",
+    }
+    monkeypatch.setattr(
+        sdk_auth_module,
+        "_query_assessment_from_neo4j",
+        lambda _id: record,
+    )
+
+    token = _mint_token_for("ASSESS-1")
+    response = client.get(
+        "/sdk/sbar/ASSESS-1",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    markdown = response.json()["markdown"].lower()
+    assert "## situation" in markdown
+    assert "55-year-old with cough." in markdown
+    assert "## background" in markdown
+    assert "no prior investigations." in markdown
 
 
 def test_sbar_returns_guideline_verbatim(client: TestClient) -> None:

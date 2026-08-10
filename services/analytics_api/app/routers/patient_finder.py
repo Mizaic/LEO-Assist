@@ -108,6 +108,13 @@ class ChunkSummary(BaseModel):
     id: str
     ordinal: int
     preview: str
+    text: Optional[str] = None
+
+
+class ResolvedChunkList(BaseModel):
+    chunks: List[ChunkSummary]
+    source_document_id: str
+    resolution: str
 
 
 # ---------------------------------------------------------------------------
@@ -479,6 +486,7 @@ def list_patient_document_references(
 def list_document_reference_chunks(
     document_reference_id: str,
     limit: int = Query(500, ge=1, le=2000),
+    include_text: bool = Query(False),
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Ordered chunks under a DocumentReference, with text preview.
@@ -531,8 +539,97 @@ def list_document_reference_chunks(
                     id=str(chunk_id),
                     ordinal=int(r.get("ordinal") or 0),
                     preview=preview,
+                    text=text if include_text else None,
                 )
             )
         return out
+    finally:
+        client.close()
+
+
+def _chunk_scope_clause(scope: CallerScope) -> tuple[str, Dict[str, Any]]:
+    if scope.is_admin:
+        return "true", {}
+    scope_where = (
+        "EXISTS { "
+        "  MATCH (dr)<-[:HAS_DOCUMENT_REFERENCE]-(_p:Patient) "
+        "        -[:HAS_GENERAL_PRACTITIONER]->(_gp) "
+        "  WHERE _gp.id IN $scope_org_ids "
+        "} OR EXISTS { "
+        "  MATCH (dr)<-[:HAS_DOCUMENT]-(_rr:ReferralRequest) "
+        "        -[:FOR_PATIENT]->(_p:Patient) "
+        "        -[:HAS_GENERAL_PRACTITIONER]->(_gp) "
+        "  WHERE _gp.id IN $scope_org_ids "
+        "}"
+    )
+    return scope_where, {"scope_org_ids": scope.org_ids}
+
+
+def _rows_to_chunk_summaries(
+    rows: list[dict[str, Any]],
+    *,
+    include_text: bool,
+    limit: int,
+) -> List[ChunkSummary]:
+    out: List[ChunkSummary] = []
+    for r in rows[:limit]:
+        chunk_id = r.get("id")
+        if not chunk_id:
+            continue
+        text = (r.get("text") or "").strip()
+        preview = text[:80] + ("..." if len(text) > 80 else "")
+        out.append(
+            ChunkSummary(
+                id=str(chunk_id),
+                ordinal=int(r.get("ordinal") or 0),
+                preview=preview,
+                text=text if include_text else None,
+            )
+        )
+    return out
+
+
+@router.get(
+    "/document-references/{document_reference_id}/resolved-chunks",
+    response_model=ResolvedChunkList,
+)
+def list_resolved_document_reference_chunks(
+    document_reference_id: str,
+    referral_id: Optional[str] = Query(None),
+    limit: int = Query(500, ge=1, le=2000),
+    include_text: bool = Query(False),
+    scope: CallerScope = Depends(get_caller_scope),
+):
+    """Return pipeline chunks for a document, falling back to referral bundle."""
+    from libs.patient_document_runs.chunk_resolver import resolve_pipeline_chunks
+
+    client = PatientGraphClient()
+    try:
+        scope_where, scope_params = _chunk_scope_clause(scope)
+        visible = client.run(
+            "MATCH (dr:DocumentReference {id: $drid}) "
+            f"WHERE {scope_where} "
+            "RETURN dr.id AS id LIMIT 1",
+            drid=document_reference_id,
+            **scope_params,
+        )
+        if not visible:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        resolved = resolve_pipeline_chunks(
+            client,
+            document_reference_id=document_reference_id,
+            referral_id=referral_id,
+        )
+        chunks = _rows_to_chunk_summaries(
+            resolved.chunks,
+            include_text=include_text,
+            limit=limit,
+        )
+        return ResolvedChunkList(
+            chunks=chunks,
+            source_document_id=resolved.source_document_id,
+            resolution=resolved.resolution,
+        )
     finally:
         client.close()

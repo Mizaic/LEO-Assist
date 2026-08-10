@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from copy import deepcopy
 from typing import Any, TypedDict
@@ -18,6 +19,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from libs.llm_client.json_helper import _extract_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.relations.policy import allowed_relation_types
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
@@ -43,6 +45,8 @@ _CONFIRMED_DIAGNOSIS_RE = re.compile(
 )
 
 _ALLOWED_RELATION_TYPES = allowed_relation_types()
+_LLM_CHECK_MAX_TOKENS = int(os.getenv("LLM_CHECK_MAX_TOKENS", "8000"))
+_LLM_CHECK_ENTITY_CAP = int(os.getenv("LLM_CHECK_ENTITY_CAP", "80"))
 
 
 class LLMCheckState(TypedDict, total=False):
@@ -88,7 +92,7 @@ def _parse_json_result(raw: str) -> dict[str, Any]:
     fence_match = _JSON_FENCE_RE.search(text)
     if fence_match:
         candidates.append(fence_match.group(1).strip())
-    if text.startswith("{") and text.endswith("}"):
+    if text.startswith("{"):
         candidates.append(text)
     object_match = _JSON_OBJECT_RE.search(text)
     if object_match:
@@ -101,12 +105,18 @@ def _parse_json_result(raw: str) -> dict[str, Any]:
             continue
         seen.add(candidate)
         try:
-            parsed = json.loads(candidate)
-        except Exception:
-            continue
+            parsed = _extract_json(candidate)
+        except json.JSONDecodeError:
+            try:
+                parsed = json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
         if isinstance(parsed, dict):
             return parsed
-    raise ValueError(f"Invalid JSON output from LLM check: {text[:220]}")
+    logger.warning(
+        "llm_check returned invalid JSON; continuing without LLM corrections",
+    )
+    return {}
 
 
 def _resolve_prompt(mode: str, state: LLMCheckState) -> str:
@@ -331,9 +341,12 @@ def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
     entities = list(state.get("entities") or [])
     tier = str(state.get("model_tier") or "small")
     prompt = _resolve_prompt(mode, state)
+    llm_entities = entities
+    if _LLM_CHECK_ENTITY_CAP > 0:
+        llm_entities = entities[:_LLM_CHECK_ENTITY_CAP]
     payload = {
         "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
-        "entities": entities,
+        "entities": llm_entities,
     }
     errors = list(state.get("errors") or [])
     try:
@@ -346,14 +359,14 @@ def _run_check(state: LLMCheckState, mode: str) -> dict[str, Any]:
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=True)}
             ],
             temperature=0.0,
-            max_tokens=1200,
+            max_tokens=_LLM_CHECK_MAX_TOKENS,
             json_mode=True,
             agent_task="v3_pipeline_llm_check",
         )
         result = _parse_json_result(response.text or "{}")
         return {"llm_check_result": result, "errors": errors}
     except Exception as exc:
-        errors.append(str(exc))
+        logger.warning("llm_check LLM call failed: %s", exc)
         return {"llm_check_result": {}, "errors": errors}
 
 

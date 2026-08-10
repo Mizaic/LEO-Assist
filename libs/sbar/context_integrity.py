@@ -32,9 +32,18 @@ LIMIT 1
 """
 
 _ENCOUNTER_FOR_PATIENT = """
-MATCH (p:Patient)-[:HAS_ENCOUNTER]->(e:Encounter {id: $record_id})
+MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(e:Encounter {id: $record_id})
+WITH p, e
+WHERE e IS NOT NULL
 RETURN e.id AS id
+LIMIT 1
+UNION
+MATCH (rr:ReferralRequest)-[:FOR_PATIENT]->(p:Patient)
+WHERE toString(p.id) = $patient_id
+  AND $record_id = toString(rr.id) + ':referral-assessment'
+RETURN rr.id AS id
 LIMIT 1
 """
 

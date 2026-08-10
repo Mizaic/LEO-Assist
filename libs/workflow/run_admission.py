@@ -50,8 +50,10 @@ def build_admission_key(body: dict[str, Any]) -> str:
         "chunk_content_hashes": [str(item) for item in chunk_hashes],
     }
     source = str(body_context.get("source") or context.get("source") or "").strip()
-    # validation-lab and validation-lab-ag-run both re-Test the same graph shape.
-    if source.startswith("validation-lab"):
+    # validation-lab, validation-lab-ag-run, and patient-viewer re-runs must admit
+    # a distinct PipelineRun per message run_id instead of reusing a prior
+    # admission_key match (DI-2289D095).
+    if source.startswith("validation-lab") or source == "patient-viewer":
         payload["lab_run_id"] = str(body.get("run_id") or request.run_id or "")
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

@@ -78,3 +78,22 @@ def test_preserves_trigger_order_for_valid_chunks() -> None:
     )
     assert result.ok is True
     assert result.ordered_chunk_ids == ["c3", "c1", "c2"]
+
+
+def test_accepts_list_based_graph_client() -> None:
+    class _ListClient:
+        def run(self, _query: str, **kwargs: Any):
+            chunk_id = kwargs.get("chunk_id")
+            return [{"id": chunk_id}] if chunk_id == "c1" else []
+
+    result = validate_trigger_chunk_scope(
+        _ListClient(),
+        TriggerChunkScopeRequest(
+            tenant_id="tenant-1",
+            patient_id="pat-1",
+            referral_id="rr-1",
+            chunk_ids=["c1"],
+        ),
+    )
+    assert result.ok is True
+    assert result.ordered_chunk_ids == ["c1"]

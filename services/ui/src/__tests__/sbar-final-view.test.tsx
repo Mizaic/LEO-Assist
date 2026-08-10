@@ -142,6 +142,14 @@ describe("splitFinalSbar", () => {
       "background",
     ]);
   });
+
+  it("matches stage headings with a trailing colon", () => {
+    const sections = splitFinalSbar(
+      "## Situation:\nFast track referral.\n\n## Background\nRecent symptoms.",
+    );
+    expect(sections.map((s) => s.stage)).toEqual(["situation", "background"]);
+    expect(sections[0].body).toContain("Fast track referral.");
+  });
 });
 
 describe("stripSourceComments", () => {

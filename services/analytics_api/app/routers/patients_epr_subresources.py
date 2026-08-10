@@ -38,6 +38,14 @@ from .patients_epr_queries import (
 
 router = APIRouter()
 
+
+def _coerce_optional_text(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -109,6 +117,7 @@ class DocumentRow(BaseModel):
     markdown_url: Optional[str] = None
     episode_id: Optional[str] = None
     episode_label: str = "General"
+    referral_id: Optional[str] = None
     sbar: Optional[SbarContent] = None
 
 
@@ -290,6 +299,7 @@ def get_patient_documents(
                 markdown_url=r.get("markdown_url") or None,
                 episode_id=r.get("episode_id"),
                 episode_label=r.get("episode_label") or "General",
+                referral_id=r.get("referral_id") or None,
                 sbar=sbar,
             )
         )
@@ -324,15 +334,17 @@ def get_patient_assessments(
             assessment=r.get("assessment"),
             recommendation=r.get("recommendation"),
             content=r.get("content"),
-            stt=r.get("stt"),
+            stt=_coerce_optional_text(r.get("stt")),
             stt_evidence=r.get("stt_evidence"),
             completeness_failed_count=(
                 int(r["completeness_failed_count"])
                 if r.get("completeness_failed_count") is not None
                 else None
             ),
-            background_parts=r.get("background_parts"),
-            completeness_result_json=r.get("completeness_result_json"),
+            background_parts=_coerce_optional_text(r.get("background_parts")),
+            completeness_result_json=_coerce_optional_text(
+                r.get("completeness_result_json")
+            ),
         )
         for r in rows
         if r.get("assessment_id")

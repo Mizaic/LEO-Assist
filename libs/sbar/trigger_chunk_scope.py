@@ -17,7 +17,10 @@ from typing import Any
 
 _CHUNK_SCOPE_QUERY = """
 MATCH (c:Chunk {id: $chunk_id})
-WHERE toString(coalesce(c.tenantId, '')) = $tenant_id
+WHERE (
+  toString(coalesce(c.tenantId, '')) = $tenant_id
+  OR toString(coalesce(c.tenantId, '')) = ''
+)
   AND (
     EXISTS {
       MATCH (rr:ReferralRequest {id: $referral_id})-[:HAS_DOCUMENT]->(dr:DocumentReference)
@@ -30,6 +33,14 @@ WHERE toString(coalesce(c.tenantId, '')) = $tenant_id
       AND EXISTS {
         MATCH (dr:DocumentReference {id: $document_reference_id})-[:HAS_CHUNK]->(c)
         MATCH (p:Patient)-[:HAS_DOCUMENT_REFERENCE]->(dr)
+        WHERE toString(p.id) = $patient_id
+      }
+    )
+    OR (
+      $document_reference_id <> ''
+      AND EXISTS {
+        MATCH (dr:DocumentReference {id: $document_reference_id})-[:HAS_CHUNK]->(c)
+        MATCH (p:Patient)<-[:FOR_PATIENT]-(:ReferralRequest)-[:HAS_DOCUMENT]->(dr)
         WHERE toString(p.id) = $patient_id
       }
     )
@@ -160,14 +171,33 @@ def _chunk_in_scope(
     document_reference_id: str,
 ) -> bool:
     try:
-        row = session.run(
+        row = _first_query_row(
+            session,
             _CHUNK_SCOPE_QUERY,
             chunk_id=chunk_id,
             tenant_id=tenant_id,
             patient_id=patient_id,
             referral_id=referral_id,
             document_reference_id=document_reference_id,
-        ).single()
+        )
     except Exception:
         return False
     return row is not None
+
+
+def _first_query_row(session: Any, query: str, **params: Any) -> Any | None:
+    """Return the first row from a Neo4j session or list-based graph client."""
+    run = getattr(session, "run", None)
+    if run is None:
+        return None
+    result = run(query, **params)
+    if result is None:
+        return None
+    if hasattr(result, "single"):
+        try:
+            return result.single()
+        except Exception:
+            return None
+    if isinstance(result, list):
+        return result[0] if result else None
+    return None

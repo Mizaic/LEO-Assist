@@ -475,6 +475,13 @@ export interface PatientFinderChunk {
   id: string;
   ordinal: number;
   preview: string;
+  text?: string | null;
+}
+
+export interface ResolvedDocumentChunks {
+  chunks: PatientFinderChunk[];
+  source_document_id: string;
+  resolution: "direct" | "referral_bundle" | "referral_sibling" | "none" | string;
 }
 
 export async function searchPatients(
@@ -545,12 +552,30 @@ export async function listPatientDocumentReferences(
 export async function listDocumentReferenceChunks(
   documentReferenceId: string,
   limit = 500,
+  includeText = false,
 ): Promise<PatientFinderChunk[]> {
   const params = new URLSearchParams({ limit: String(limit) });
+  if (includeText) params.set("include_text", "true");
   return fetchJson<PatientFinderChunk[]>(
     `${ANALYTICS_BASE}/analytics/document-references/${encodeURIComponent(
       documentReferenceId,
     )}/chunks?${params}`,
+  );
+}
+
+export async function listResolvedDocumentReferenceChunks(
+  documentReferenceId: string,
+  referralId?: string | null,
+  limit = 500,
+  includeText = false,
+): Promise<ResolvedDocumentChunks> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (includeText) params.set("include_text", "true");
+  if (referralId) params.set("referral_id", referralId);
+  return fetchJson<ResolvedDocumentChunks>(
+    `${ANALYTICS_BASE}/analytics/document-references/${encodeURIComponent(
+      documentReferenceId,
+    )}/resolved-chunks?${params}`,
   );
 }
 
