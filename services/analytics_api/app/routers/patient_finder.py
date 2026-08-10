@@ -32,6 +32,7 @@ from pydantic import BaseModel
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
+from libs.patient_document_runs.chunk_resolver import resolve_pipeline_chunks
 
 from services.analytics_api.app.routers.cohorts import (
     CohortFilter,
@@ -601,8 +602,6 @@ def list_resolved_document_reference_chunks(
     scope: CallerScope = Depends(get_caller_scope),
 ):
     """Return pipeline chunks for a document, falling back to referral bundle."""
-    from libs.patient_document_runs.chunk_resolver import resolve_pipeline_chunks
-
     client = PatientGraphClient()
     try:
         scope_where, scope_params = _chunk_scope_clause(scope)
@@ -620,6 +619,7 @@ def list_resolved_document_reference_chunks(
             client,
             document_reference_id=document_reference_id,
             referral_id=referral_id,
+            backfill_legacy_ids=False,
         )
         chunks = _rows_to_chunk_summaries(
             resolved.chunks,
@@ -631,5 +631,17 @@ def list_resolved_document_reference_chunks(
             source_document_id=resolved.source_document_id,
             resolution=resolved.resolution,
         )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception(
+            "resolved-chunks failed for document_reference_id=%r referral_id=%r",
+            document_reference_id,
+            referral_id,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Could not load pipeline chunks for this document.",
+        ) from exc
     finally:
         client.close()

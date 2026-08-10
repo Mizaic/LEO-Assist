@@ -15,7 +15,11 @@ from pydantic import BaseModel, Field
 from app.db.neo4j_client import PatientGraphClient
 from app.deps import require_admin_or_service
 from libs.auth.org_scope import CallerScope, require_patient_in_scope
-from libs.patient_document_runs import DocumentRunError, refresh_document_run, start_document_run
+from libs.patient_document_runs.service import (
+    DocumentRunError,
+    refresh_document_run,
+    start_document_run,
+)
 
 router = APIRouter(prefix="/patients", tags=["patient-document-runs"])
 

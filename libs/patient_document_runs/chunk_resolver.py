@@ -35,11 +35,13 @@ def resolve_pipeline_chunks(
     document_reference_id: str,
     referral_id: str | None,
     limit: int = 500,
+    backfill_legacy_ids: bool = True,
 ) -> ResolvedPipelineChunks:
     direct = list_document_chunks_normalized(
         client,
         document_reference_id=document_reference_id,
         limit=limit,
+        backfill_legacy_ids=backfill_legacy_ids,
     )
     if direct:
         return ResolvedPipelineChunks(
@@ -80,6 +82,7 @@ def resolve_pipeline_chunks(
             client,
             document_reference_id=source_id,
             limit=limit,
+            backfill_legacy_ids=backfill_legacy_ids,
         )
         if sibling:
             return ResolvedPipelineChunks(

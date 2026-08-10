@@ -11,6 +11,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from libs.patient_document_runs.chunk_resolver import resolve_pipeline_chunks
 from libs.patient_document_runs.queries import (
     ENSURE_REFERRAL_ASSESSMENT_ENCOUNTER,
     RESOLVE_DOCUMENT_RUN_CONTEXT,
@@ -131,6 +132,12 @@ def start_document_run(
         patient_id=patient_id,
         document_reference_id=document_reference_id,
         tenant_fallback=tenant_fallback,
+    )
+    resolve_pipeline_chunks(
+        client,
+        document_reference_id=ctx.document_reference_id,
+        referral_id=ctx.referral_id,
+        backfill_legacy_ids=True,
     )
     with client.session() as session:
         scope = validate_trigger_chunk_scope(

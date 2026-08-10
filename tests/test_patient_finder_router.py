@@ -286,3 +286,24 @@ def test_chunks_endpoint_truncates_text_to_80_char_preview() -> None:
     assert rows[0]["id"] == "c-1"
     assert rows[0]["preview"].endswith("...")
     assert len(rows[0]["preview"]) == 83  # 80 chars + "..."
+
+
+def test_resolved_chunks_endpoint_returns_referral_bundle_chunks() -> None:
+    scope_rows = [{"id": "dr-pdf"}]
+    with _patched_client([scope_rows]), patch(
+        "services.analytics_api.app.routers.patient_finder.resolve_pipeline_chunks",
+        return_value=MagicMock(
+            chunks=[{"id": "c-1", "ordinal": 0, "text": "Referral body"}],
+            source_document_id="000049823847:leo-referral-bundle",
+            resolution="referral_bundle",
+        ),
+    ):
+        r = TestClient(_make_app(ADMIN_SCOPE)).get(
+            "/document-references/dr-pdf/resolved-chunks",
+            params={"referral_id": "000049823847", "include_text": "true"},
+        )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["resolution"] == "referral_bundle"
+    assert body["source_document_id"] == "000049823847:leo-referral-bundle"
+    assert body["chunks"][0]["text"] == "Referral body"

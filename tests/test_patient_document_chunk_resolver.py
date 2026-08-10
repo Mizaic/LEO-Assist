@@ -18,7 +18,12 @@ def test_resolve_pipeline_chunks_prefers_direct():
             document_reference_id="dr-1",
             referral_id="rr-1",
         )
-    list_chunks.assert_called_once_with(client, document_reference_id="dr-1", limit=500)
+    list_chunks.assert_called_once_with(
+        client,
+        document_reference_id="dr-1",
+        limit=500,
+        backfill_legacy_ids=True,
+    )
     assert resolved.resolution == "direct"
     assert resolved.source_document_id == "dr-1"
     assert len(resolved.chunks) == 1
@@ -27,7 +32,7 @@ def test_resolve_pipeline_chunks_prefers_direct():
 def test_resolve_pipeline_chunks_falls_back_to_bundle():
     client = MagicMock()
 
-    def _list(client_arg, document_reference_id, limit=500):
+    def _list(client_arg, document_reference_id, limit=500, backfill_legacy_ids=True):
         if document_reference_id == "000049831707:leo-referral-bundle":
             return [{"id": "c2", "ordinal": 1, "text": "bundle text"}]
         return []
@@ -50,7 +55,7 @@ def test_resolve_pipeline_chunks_falls_back_to_sibling():
     client = MagicMock()
     client.run.return_value = [{"source_document_id": "DocumentReference-151063"}]
 
-    def _list(client_arg, document_reference_id, limit=500):
+    def _list(client_arg, document_reference_id, limit=500, backfill_legacy_ids=True):
         if document_reference_id == "DocumentReference-151063":
             return [{"id": "c3", "ordinal": 0, "text": "form"}]
         return []
