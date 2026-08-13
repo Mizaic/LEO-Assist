@@ -22,7 +22,9 @@ def test_stage_errors_from_row_prefers_errors_json() -> None:
 def test_stage_warnings_from_row_prefers_warnings_json() -> None:
     row = {
         "warnings_json": json.dumps(
-            ['terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "dysphagia" (score 0.42)']
+            [
+                'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "dysphagia" (score 0.42)'
+            ]
         ),
         "output_json": json.dumps({"warnings": ["ignored"]}),
     }
@@ -32,11 +34,7 @@ def test_stage_warnings_from_row_prefers_warnings_json() -> None:
 def test_stage_warnings_from_row_falls_back_to_output_warnings() -> None:
     row = {
         "output_json": json.dumps(
-            {
-                "warnings": [
-                    "coding_verifier: 1 entity classified not_codeable"
-                ]
-            }
+            {"warnings": ["coding_verifier: 1 entity classified not_codeable"]}
         )
     }
     assert stage_warnings_from_row(row) == [
@@ -46,7 +44,7 @@ def test_stage_warnings_from_row_falls_back_to_output_warnings() -> None:
 
 def test_plain_english_for_terminology_low_confidence() -> None:
     raw = (
-        'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- '
+        "terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "
         '"dysphagia" (score 0.42)'
     )
     text = plain_english_pipeline_message(raw)
@@ -59,7 +57,7 @@ def test_plain_english_for_terminology_low_confidence() -> None:
 
 def test_plain_english_for_no_snomed_match() -> None:
     raw = (
-        'terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- '
+        "terminology_low_confidence: 1 entity/entities below score threshold 0.55 -- "
         '"suspected cancer pathway for assessment of oesophageal cancer" (score 0.00)'
     )
     text = plain_english_pipeline_message(raw)
@@ -78,3 +76,20 @@ def test_plain_english_for_coding_verifier_not_codeable() -> None:
 def test_plain_english_for_terminology_connection_error() -> None:
     text = plain_english_pipeline_message("terminology: Connection refused")
     assert "terminology service" in text.lower()
+
+
+def test_plain_english_strips_sbar_stage_prefix() -> None:
+    text = plain_english_pipeline_message(
+        "situation:timeout:The AI service took too long to write "
+        "the Situation section. Try running it again in a moment."
+    )
+    assert text.startswith("The AI service took too long")
+    assert not text.startswith("situation:")
+
+
+def test_plain_english_keeps_legacy_sbar_message() -> None:
+    text = plain_english_pipeline_message(
+        "situation:Something went wrong while writing the Situation section."
+    )
+    assert "Situation section" in text
+    assert not text.startswith("situation:")

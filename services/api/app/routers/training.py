@@ -20,6 +20,7 @@ Sub-routers (see each module's docstring for its routes):
   - coding_review.py               -- HITL coding review queue + Ask LEO
   - context_and_ignore_rules.py    -- post-processor/context/ignore rules,
                                        surface-form admin
+  - phrase_mappings.py             -- rejected-phrase inbox and two-person publish
   - training_synthetic_data.py     -- synthetic gold-standard generation
   - training_candidates.py         -- TrainingCandidate dedupe/prune/
                                        active-learning + AI-first-pass jobs
@@ -36,6 +37,7 @@ from fastapi import APIRouter
 
 from app.routers.coding_review import router as _coding_review_router
 from app.routers.context_and_ignore_rules import router as _rules_router
+from app.routers.phrase_mappings import router as _phrase_mappings_router
 from app.routers.training_candidates import router as _candidates_router
 from app.routers.training_corpus import router as _corpus_router
 from app.routers.training_gold_labels import router as _gold_labels_router
@@ -49,6 +51,7 @@ router.include_router(_jobs_router)
 router.include_router(_labels_router)
 router.include_router(_coding_review_router)
 router.include_router(_rules_router)
+router.include_router(_phrase_mappings_router)
 router.include_router(_synthetic_router)
 router.include_router(_candidates_router)
 router.include_router(_gold_labels_router)

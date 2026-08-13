@@ -29,12 +29,11 @@
  *     deleted in Phase 3.
  *   - While the guided highlight-to-build wizard (step "who") is
  *     still working through its own steps, the right column shows
- *     GuidelineQuotePanel (the pinned NICE wording) instead --
- *     LivePreviewPane has nothing useful to summarise until the tree
- *     is actually built, and pinning the source sentence removes the
- *     scroll-up-scroll-down loop reviewers hit checking their picks
- *     against it. `guidedPanelMode` swaps back to "preview" once the
- *     wizard reaches Review.
+ *     GuidelineQuotePanel (the pinned NICE wording) -- and keeps
+ *     showing it on Check / Suggest / Save so reviewers can go back
+ *     and forward without losing the source sentence. LivePreviewPane
+ *     stacks below the quote once the tree is worth summarising
+ *     (wizard Review, or outer steps 2-3).
  *   - ChipSearchPopover still anchors to the chip / +Add element the
  *     reviewer just clicked, so concept search appears in context
  *     instead of in a separate column.
@@ -410,13 +409,14 @@ export default function EditRuleDialog({
   const [currentStepId, setCurrentStepId] = useState<StepId>("who");
   /** Guided wizard phase for the flat stepper (null when not mounted). */
   const [wizardPhase, setWizardPhase] = useState<WizardStepKind | null>(null);
-  /** Pin the NICE quote while building; live preview at Check / Suggest / Save. */
-  const guidedPanelMode: "quote" | "preview" =
+  /** Pin the NICE quote whenever we have source wording. */
+  const hasGuidelineQuote = Boolean(rule?.recommendation_text?.trim());
+  /** Live summary below the quote once the tree is far enough along. */
+  const inWizardBuild =
     currentStepId === "who" &&
     wizardPhase != null &&
-    wizardPhase !== "review"
-      ? "quote"
-      : "preview";
+    wizardPhase !== "review";
+  const showLivePreview = !hasGuidelineQuote || !inWizardBuild;
   /** Confirmed situation count -- survives Review clearing active index. */
   const [situationCount, setSituationCount] = useState(0);
   /** True once the reviewer has reached Check so that slot stays jumpable. */
@@ -1567,30 +1567,46 @@ export default function EditRuleDialog({
                 minHeight: 0,
               }}
             >
-              {/* No AnimatePresence wait here: quote vs preview must
-                  swap on the same paint as wizardPhase, or reviewers
-                  (and tests) briefly see the wrong side panel. */}
-              {guidedPanelMode === "quote" ? (
-                <GuidelineQuotePanel
-                  recommendationText={rule?.recommendation_text}
-                  tree={tree}
-                  pathwayBoundaries={activeSituation.boundaries}
-                  activePathwayIndex={activeSituation.pathwayIndex}
-                />
-              ) : (
-                <LivePreviewPane
-                  summary={summary}
-                  actions={actions}
-                  priority={priority}
-                  dueDays={dueDays}
-                  showBeforeAfter={currentStepId === "save"}
-                  beforeSummary={beforeSummary}
-                  beforeActions={originalActions}
-                  beforePriority={originalPriority}
-                  beforeDueDays={originalDueDays}
-                  recommendationText={rule?.recommendation_text}
-                />
-              )}
+              {/* Quote stays pinned whenever NICE source text exists;
+                  live preview stacks below once the tree is built. */}
+              <Stack spacing={0} sx={{ minHeight: 0 }}>
+                {hasGuidelineQuote ? (
+                  <Box
+                    sx={{
+                      flexShrink: 0,
+                      ...(showLivePreview
+                        ? {
+                            maxHeight: { md: "42vh" },
+                            overflowY: "auto",
+                            borderBottom: "1px solid",
+                            borderColor: "divider",
+                          }
+                        : {}),
+                    }}
+                  >
+                    <GuidelineQuotePanel
+                      recommendationText={rule?.recommendation_text}
+                      tree={tree}
+                      pathwayBoundaries={activeSituation.boundaries}
+                      activePathwayIndex={activeSituation.pathwayIndex}
+                    />
+                  </Box>
+                ) : null}
+                {showLivePreview ? (
+                  <LivePreviewPane
+                    summary={summary}
+                    actions={actions}
+                    priority={priority}
+                    dueDays={dueDays}
+                    showBeforeAfter={currentStepId === "save"}
+                    beforeSummary={beforeSummary}
+                    beforeActions={originalActions}
+                    beforePriority={originalPriority}
+                    beforeDueDays={originalDueDays}
+                    recommendationText={rule?.recommendation_text}
+                  />
+                ) : null}
+              </Stack>
             </Box>
           </Box>
         </Box>

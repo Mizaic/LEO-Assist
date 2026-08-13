@@ -11,6 +11,7 @@ import json
 from typing import Any
 from unittest.mock import MagicMock
 
+from services.api.app.services.candidate_ai_first_pass import _extractor
 from services.api.app.services.candidate_ai_first_pass._extractor import (
     ai_extract_entities,
 )
@@ -22,6 +23,33 @@ def _candidate(text: str, entities: list[dict[str, Any]]) -> dict[str, Any]:
         "text": text,
         "entities_json": json.dumps(entities),
     }
+
+
+def _prompt_loader() -> tuple[str, dict[str, Any]]:
+    return "managed extraction prompt", {"type": "array", "items": {"type": "object"}}
+
+
+def test_extractor_loads_managed_prompt_bundle(monkeypatch):
+    schema = {"type": "array", "items": {"type": "object"}}
+    monkeypatch.setattr(
+        _extractor,
+        "get_prompt_config",
+        lambda *_args, **_kwargs: {
+            "systemPrompt": "managed",
+            "outputSchema": json.dumps(schema),
+            "fewShotExamples": [],
+        },
+    )
+    monkeypatch.setattr(
+        _extractor,
+        "_assemble_managed_prompt",
+        lambda **kwargs: f"assembled:{kwargs['instructions']}",
+    )
+
+    system, loaded_schema = _extractor._load_registry_prompt()
+
+    assert system == "assembled:managed"
+    assert loaded_schema == schema
 
 
 def test_VT_194_TC_001_extractor_falls_back_on_llm_failure():
@@ -42,6 +70,7 @@ def test_VT_194_TC_001_extractor_falls_back_on_llm_failure():
         k=5,
         tier="small",
         call_llm=_raise,
+        prompt_loader=_prompt_loader,
     )
 
     assert result.fallback_used is True
@@ -59,9 +88,11 @@ def test_VT_194_TC_002_extractor_requests_top_k_few_shot_exemplars():
 
     captured: dict[str, Any] = {}
 
-    def _stub_llm(_system, user_msg, *, tier="small", **_kw):
+    def _stub_llm(system, user_msg, *, tier="small", **kwargs):
+        captured["system"] = system
         captured["user_msg"] = user_msg
         captured["tier"] = tier
+        captured["schema"] = kwargs.get("structured_schema")
         return (
             json.dumps(
                 [
@@ -88,6 +119,7 @@ def test_VT_194_TC_002_extractor_requests_top_k_few_shot_exemplars():
         k=5,
         tier="small",
         call_llm=_stub_llm,
+        prompt_loader=_prompt_loader,
     )
 
     selector.select.assert_called_once()
@@ -99,6 +131,8 @@ def test_VT_194_TC_002_extractor_requests_top_k_few_shot_exemplars():
         assert kwargs.get("k") == 5
     assert result.fallback_used is False
     assert result.entity_count == 2
+    assert captured["system"] == "managed extraction prompt"
+    assert captured["schema"]["type"] == "array"
     assert "Hb 12 g/dL" in captured["user_msg"]
     assert captured["tier"] == "small"
 
@@ -118,6 +152,7 @@ def test_extractor_falls_back_on_unparseable_llm_output():
         k=5,
         tier="small",
         call_llm=_stub_llm,
+        prompt_loader=_prompt_loader,
     )
 
     assert result.fallback_used is True

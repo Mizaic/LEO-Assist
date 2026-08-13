@@ -1,13 +1,13 @@
 """JSON-specific LLM invocation wrapper.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design_output", dc_id="DO-AA3B7FCC")
+  DO: DO-FA8FCECF
+  DI: DI-7B978C0C
+  VT: VT-06157CF6
 
 Provides invoke_llm_json() which routes through ``create_llm`` using
 ``PIPELINE_MODEL_PROVIDER`` (default Azure OpenAI) and parses the response
-as JSON with retry logic.
+as JSON with bounded retry and optional JSON Schema validation.
 """
 
 from __future__ import annotations
@@ -17,8 +17,10 @@ import json
 import logging
 import re
 import time
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any
 
+from jsonschema import ValidationError, validate
 from libs.llm_client.factory import create_llm, default_llm_provider
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,19 @@ logger = logging.getLogger(__name__)
 _JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
 
 
-def _extract_json(text: str) -> Dict[str, Any]:
+@dataclass(frozen=True)
+class JSONInvocationOptions:
+    """Provider-neutral controls for one structured invocation."""
+
+    max_tokens: int = 1024
+    temperature: float = 0.0
+    max_retries: int = 3
+    tier: str = "big"
+    schema: dict[str, Any] | None = None
+    verbosity: str = "low"
+
+
+def _extract_json(text: str) -> dict[str, Any]:
     """Extract JSON from an LLM response that may contain markdown fencing."""
     text = text.strip()
     if text.startswith("{"):
@@ -41,77 +55,89 @@ def _extract_json(text: str) -> Dict[str, Any]:
     raise json.JSONDecodeError("No JSON object found in response", text, 0)
 
 
+def _parse_and_validate(raw_text: str, schema: dict[str, Any] | None) -> dict[str, Any]:
+    result = _extract_json(raw_text)
+    if schema is not None:
+        validate(instance=result, schema=schema)
+    return result
+
+
+def _retry_prompts(
+    system_prompt: str, user_message: str, schema: dict[str, Any] | None
+) -> tuple[str, str]:
+    contract = "Return one JSON object that matches the supplied schema exactly."
+    if schema is None:
+        contract = "Return one valid JSON object."
+    return (
+        f"{system_prompt}\n\nOUTPUT CORRECTION: {contract} No prose or markdown.",
+        f"{user_message}\n\n{contract}",
+    )
+
+
+async def _invoke_once(
+    client: Any,
+    *,
+    system: str,
+    user: str,
+    options: JSONInvocationOptions,
+    agent_task: str,
+    patient_id: str,
+) -> str:
+    response = await asyncio.to_thread(
+        client.converse,
+        system=system,
+        messages=[{"role": "user", "content": user}],
+        max_tokens=options.max_tokens,
+        temperature=options.temperature,
+        json_mode=True,
+        structured_schema=options.schema,
+        verbosity=options.verbosity,
+        agent_task=agent_task,
+        patient_id=patient_id,
+    )
+    return (response.text or "").strip()
+
+
 async def invoke_llm_json(
     system_prompt: str,
     user_message: str,
     *,
-    max_tokens: int = 1024,
-    temperature: float = 0.0,
-    prefill_hint: Optional[str] = None,
+    options: JSONInvocationOptions | None = None,
     agent_task: str = "unknown",
     patient_id: str = "",
-    max_retries: int = 3,
-    tier: str = "big",
-) -> Dict[str, Any]:
-    """Invoke the LLM and parse the response as JSON.
-
-    Uses ``PIPELINE_MODEL_PROVIDER`` (default ``azure``) via ``create_llm``.
-    Telemetry is emitted by ``LLMClient.converse`` (DI-LEO-AI-515).
-
-    Args:
-        system_prompt: System prompt for the model.
-        user_message: User message / task description.
-        max_tokens: Maximum tokens in the response.
-        temperature: Sampling temperature.
-        prefill_hint: Optional assistant pre-fill (appended to parsed text only).
-        agent_task: Task label for usage tracking.
-        patient_id: Patient ID for usage tracking.
-        max_retries: Number of retries on JSON parse failure.
-        tier: Model tier (``small`` / ``big`` / ``max``).
-
-    Returns:
-        Parsed JSON dict, or a dict with an "error" key on failure.
-    """
+) -> dict[str, Any]:
+    """Invoke the configured LLM and return a validated JSON object."""
+    config = options or JSONInvocationOptions()
     provider = default_llm_provider()
-    client = await asyncio.to_thread(create_llm, provider=provider, tier=tier)
-
+    client = await asyncio.to_thread(create_llm, provider=provider, tier=config.tier)
     system = system_prompt
     user = user_message
     last_error = ""
-    for attempt in range(max_retries):
+    for attempt in range(config.max_retries):
         started = time.perf_counter()
         try:
-            resp = await asyncio.to_thread(
-                client.converse,
+            raw_text = await _invoke_once(
+                client,
                 system=system,
-                messages=[{"role": "user", "content": user}],
-                max_tokens=max_tokens,
-                temperature=temperature,
-                json_mode=True,
+                user=user,
+                options=config,
                 agent_task=agent_task,
                 patient_id=patient_id,
             )
-            raw_text = (resp.text or "").strip()
-            if prefill_hint:
-                raw_text = prefill_hint + raw_text
-
-            result = _extract_json(raw_text)
-            return result
-        except json.JSONDecodeError as exc:
+            return _parse_and_validate(raw_text, config.schema)
+        except (json.JSONDecodeError, ValidationError) as exc:
             last_error = str(exc)
             logger.warning(
                 "JSON parse failed (attempt %d/%d) for %s: %s",
                 attempt + 1,
-                max_retries,
+                config.max_retries,
                 agent_task,
                 last_error,
             )
-            if attempt < max_retries - 1:
-                system = (
-                    f"{system_prompt}\n\n"
-                    "Return ONLY valid JSON. No prose, no markdown."
+            if attempt < config.max_retries - 1:
+                system, user = _retry_prompts(
+                    system_prompt, user_message, config.schema
                 )
-                user = f"{user_message}\n\nReturn a single JSON object only."
         except Exception as exc:
             latency_ms = int((time.perf_counter() - started) * 1000)
             logger.error(
@@ -122,4 +148,8 @@ async def invoke_llm_json(
             )
             return {"error": str(exc)}
 
-    return {"error": f"JSON parse failed after {max_retries} attempts: {last_error}"}
+    return {
+        "error": (
+            f"JSON validation failed after {config.max_retries} attempts: {last_error}"
+        )
+    }

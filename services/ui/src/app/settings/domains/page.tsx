@@ -246,6 +246,11 @@ export default function DomainsListPage() {
               onNavigate={(id) => router.push(`/settings/domains/${id}`)}
               onEdit={openEdit}
               onDelete={setDeleteTarget}
+              onTestInLab={(domain) =>
+                router.push(
+                  `/admin/knowledge?tab=validation-lab&domain_id=${domain.id}`,
+                )
+              }
             />
           ))}
         </Box>

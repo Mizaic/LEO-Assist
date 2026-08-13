@@ -90,7 +90,7 @@ Complete before any Azure deployment.
 ### A.2 Azure OpenAI
 
 1. Deploy the shared account in Track B.3 (`deploy-openai.ps1`).
-2. Deploy models matching Bicep params (`gpt-5.4`, `gpt-5.4-nano` or your
+2. Deploy models matching Bicep params (`gpt-5.4`, `gpt-5-mini` or your
    equivalents).
 3. Record API key for Track E (`azureOpenAiEndpoint` is synced into bicepparam
    files automatically).

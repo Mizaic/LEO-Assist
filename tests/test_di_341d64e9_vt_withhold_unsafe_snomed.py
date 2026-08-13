@@ -52,3 +52,4 @@ def test_does_not_attach_or_persist_snomed_unless_top_candidate_is_safe() -> Non
 
     persist_source = Path("libs/pipeline_graph/subgraphs/persist.py").read_text()
     assert 'if not concept_id or e.get("terminology_unresolved"):' in persist_source
+    assert "record_uncoded_phrases" in persist_source

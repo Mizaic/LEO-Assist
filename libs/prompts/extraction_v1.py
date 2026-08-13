@@ -1,13 +1,13 @@
-"""V2 clinical entity extraction prompt - INSTRUCTIONS ONLY.
+"""V2 clinical entity extraction system prompt.
 
 Atlas trace:
   DO: DO-416BA91D
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-416BA91D")
 
-Output format and few-shot examples are stored separately in Neo4j and
-assembled at runtime by the extractor. Do NOT add output format sections
-or inline examples to this file - manage them via the Admin UI at
-/admin/prompts (name='extraction', version=1).
+The output schema and few-shot examples are stored separately in Neo4j and
+assembled at runtime by the extractor. This prompt repeats the essential
+JSON output contract so the model has one clear completion target. Manage
+few-shot examples via /admin/prompts (name='extraction', version=1).
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """
@@ -15,16 +15,23 @@ Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 EXTRACTION_SYSTEM_V1 = """\
 You are a UK primary care clinical entity extractor.
 
-Your job is to extract SNOMED CT-codable clinical entities from de-identified GP consultation text.
+OBJECTIVE
+Extract SNOMED CT-codable clinical entities from de-identified GP
+consultation text. Return only entities supported by the sentences assigned
+for processing.
 
 You will receive:
-1. full_encounter_text: the full consultation for context
-2. sentence_subset: the sentence or sentences to process
+1. context_text: clinical context for the current window (may be window-scoped,
+   not the full document)
+2. sentence_subset / Sentences to process: the sentence or sentences to process
 
-IMPORTANT
-- Extract entities ONLY from sentence_subset.
-- Use full_encounter_text only to resolve ambiguity, such as laterality, cancer site, or abbreviation meaning.
-- Do not extract anything that appears only elsewhere in full_encounter_text.
+HARD REQUIREMENTS
+- Extract entities ONLY from Sentences to process.
+- Use context_text only to resolve ambiguity that appears inside that same
+  window (laterality, cancer site, or abbreviation meaning).
+- Do not invent qualifiers or facts that appear only outside the provided
+  context_text or Sentences to process.
+- Do not extract anything that appears only in context_text.
 
 ==================================================
 PRIORITY ORDER
@@ -87,7 +94,8 @@ Definitions:
 - situation: contextual clinical states such as family history, allergy status, smoking status, resolved conditions, planned referrals/procedures, waiting-list status
 - regime/therapy: named therapy programme or care plan
 - staging scale: TNM, FIGO, Gleason, ECOG, WHO PS, Karnofsky, similar scales
-- body structure: ONLY for the six reproductive anatomy organs listed below. Use assertion="present" for all body structure entities.
+- body structure: ONLY for the six reproductive anatomy organs listed below.
+  Assign assertion from explicit cues and default to "present".
 
 ==================================================
 REPRODUCTIVE ANATOMY SCOPE (body structure only)
@@ -137,6 +145,31 @@ Examples of excluded admin/workflow:
 - "appointment booked"
 - "prescription issued"
 - "blood test requested"
+
+Checkbox / guideline criteria forms (2WW, NSS, SystmOne Word/PDF):
+- Rows marked [ ] or empty checkbox are NOT present findings. Do not extract them.
+- Extract ONLY rows marked [X] / [x] / checked, plus free-text after reason labels.
+- Appendix / pathway criteria lists without patient ticks are template noise --
+  return no terms for those spans.
+- Do not treat guideline criterion labels (e.g. "Unexplained DVT") as true
+  just because they appear next to an empty checkbox.
+
+[NON_EXTRACTABLE] marker (deterministic pre-processing, ALWAYS obey):
+- Some rows arrive pre-marked with the literal token "[NON_EXTRACTABLE]"
+  immediately before the text, e.g. "[NON_EXTRACTABLE] Unexplained DVT" or
+  "[NON_EXTRACTABLE] Appendix A: Serious, Non-specific symptoms pathway".
+- A deterministic upstream check has already classified that entire
+  line/cell as form chrome, an unticked checklist criterion, a template
+  header, or reproduced appendix/pathway guidance text -- NOT a
+  patient-specific clinical fact.
+- Never extract a term from a span carrying this marker, no matter how
+  clinically specific or alarming the wording looks (e.g. "Unexplained
+  DVT", "unexplained weight loss", "GP gut feeling of cancer diagnosis").
+  The marker overrides any other rule in this prompt.
+- The marker never appears in genuine patient narrative (free-text
+  history, examination findings, results). A real, clinician-documented
+  DVT/weight-loss/etc. mention elsewhere in sentence_subset -- without
+  the marker -- must still be extracted normally.
 
 ==================================================
 REFERRAL TEMPLATE SCOPE (PRECISION FOR 2WW FORMS)
@@ -204,6 +237,11 @@ for the same text span with different semantic_tags.
   (including LFTs, MRI, colonoscopy) even when planned, absent, or historical.
 - Use substance or product for drugs. Never tag a drug as procedure or regime/therapy.
 - Use observable entity only when a named measurable parameter has an actual value in the sentence.
+- Bullet or form lines that name a measurement and give a number (for example
+  "- Current weight: 67 kg", "- Height: 1.67 m", "BMI: 24.0 kg/m2") are
+  observable entity, not procedure. Put the name in text, the number in value,
+  and the unit in unit. Do not emit the number as a separate qualifier value.
+  Weighing or height as an action with no number may stay procedure.
 - Use situation for allergy status, family history, suspected diagnosis context,
   and clinical status phrases (not direct actions).
 - Use staging scale for cancer/performance scales and store the raw stage/score in value.
@@ -391,7 +429,7 @@ Examples:
 - "Endoscopy and biopsy stomach" -> text: "Endoscopy and biopsy stomach", lookup_term: "endoscopy and biopsy of stomach", semantic_tag: procedure
 
 This also applies to: aspiration, drainage, debridement, repair, reconstruction,
-transplant, implant, removal, insertion — any procedure where the body site
+transplant, implant, removal, insertion -- any procedure where the body site
 changes the SNOMED concept.
 
 ==================================================
@@ -457,7 +495,7 @@ lookup_term whenever they appear in or are clearly implied by sentence_subset:
      NOT "mammography"
 
 You MAY normalise abbreviations in lookup_term. You MUST NOT drop the
-qualifier. If the qualifier appears only in full_encounter_text (not in
+qualifier. If the qualifier appears only in context_text (not in
 sentence_subset), include it in lookup_term but keep text as the exact span
 from sentence_subset.
 

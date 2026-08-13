@@ -29,6 +29,7 @@ const EXPECTED_KEYS: KnowledgeTabKey[] = [
   "training-data",
   "surface-forms",
   "context-rules",
+  "guard-rules",
   "ai-instructions",
   "clinical-guidelines",
   "pathways",

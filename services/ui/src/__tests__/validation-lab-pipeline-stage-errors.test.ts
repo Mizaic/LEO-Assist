@@ -42,6 +42,14 @@ describe("plainEnglishPipelineMessage", () => {
     const text = plainEnglishPipelineMessage("terminology: Connection refused");
     expect(text.toLowerCase()).toContain("terminology service");
   });
+
+  it("strips SBAR stage prefixes from draft assessment errors", () => {
+    const text = plainEnglishPipelineMessage(
+      "situation:timeout:The AI service took too long to write the Situation section.",
+    );
+    expect(text).toContain("too long");
+    expect(text).not.toMatch(/^situation:/);
+  });
 });
 
 describe("eventsFromSpans", () => {

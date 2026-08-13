@@ -30,21 +30,37 @@ class StartDocumentRunBody(BaseModel):
     plan_id: str = Field(default="pd-referral-assessment")
 
 
+class DocumentRunLlmUsage(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cached_input_tokens: int = 0
+    total_tokens: int = 0
+    llm_calls: int = 0
+    cost_usd: float = 0.0
+    latency_ms: int = 0
+    model_id: str = ""
+    model_provider: str = ""
+
+
 class DocumentRunResponse(BaseModel):
     run_id: str
     status: str
     assessment_id: str | None = None
     error_message: str | None = None
     stage_progress: list[dict[str, Any]] = Field(default_factory=list)
+    llm_usage: DocumentRunLlmUsage | None = None
 
 
 def _to_response(result: Any) -> DocumentRunResponse:
+    usage = getattr(result, "llm_usage", None) or None
+    llm_usage = DocumentRunLlmUsage(**usage) if isinstance(usage, dict) and usage else None
     return DocumentRunResponse(
         run_id=result.run_id,
         status=result.status,
         assessment_id=result.assessment_id or None,
         error_message=result.error_message or None,
         stage_progress=list(result.stage_progress or []),
+        llm_usage=llm_usage,
     )
 
 

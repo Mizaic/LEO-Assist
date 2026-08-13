@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validation Lab - Run Review (click-through prototype)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 14px; color: #0f172a; background: #64748b; }
+
+    /* -- Lightbox overlay (always visible for prototype) -- */
+    .lightbox-backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .lightbox {
+      width: min(1600px, 100%); height: min(920px, calc(100vh - 32px));
+      background: #fff; border-radius: 12px; box-shadow: 0 24px 48px rgba(0,0,0,0.18);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* -- Header -- */
+    .header {
+      flex-shrink: 0; padding: 14px 20px; border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap; background: #f8fafc;
+    }
+    .header h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .header-meta { font-size: 12px; color: #64748b; }
+    .header-meta strong { color: #0f172a; }
+    .header-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1;
+      background: #fff; font-size: 13px; cursor: pointer; color: #334155;
+    }
+    .btn:hover { background: #f1f5f9; }
+    .btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .chip {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+    }
+    .chip-done { background: #dcfce7; color: #166534; }
+    .chip-run { background: #dbeafe; color: #1e40af; }
+    .chip-pending { background: #f1f5f9; color: #64748b; }
+
+    /* -- Batch switcher -- */
+    .batch-bar {
+      flex-shrink: 0; padding: 8px 20px; border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; gap: 12px; background: #fff;
+    }
+    .batch-bar label { font-size: 12px; color: #64748b; }
+    .batch-bar select {
+      padding: 6px 10px; border-radius: 8px; border: 1px solid #cbd5e1;
+      font-size: 13px; min-width: 280px;
+    }
+    .batch-progress { font-size: 12px; color: #64748b; margin-left: auto; }
+
+    /* -- Split body -- */
+    .body { flex: 1; display: flex; min-height: 0; }
+
+    /* -- Left pane -- */
+    .pane-left {
+      width: 40%; min-width: 320px; border-right: 1px solid #e2e8f0;
+      display: flex; flex-direction: column; background: #fafafa;
+    }
+    .pane-tabs {
+      display: flex; border-bottom: 1px solid #e2e8f0; background: #fff;
+    }
+    .pane-tab {
+      flex: 1; padding: 10px; border: none; background: none; cursor: pointer;
+      font-size: 12px; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent;
+    }
+    .pane-tab.active { color: #1e40af; border-bottom-color: #1e40af; }
+    .pane-tab:hover { background: #f8fafc; }
+    .pane-left-content { flex: 1; overflow: auto; padding: 12px; }
+
+    .chunk-list { list-style: none; margin: 0 0 12px; padding: 0; }
+    .chunk-item {
+      padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+      margin-bottom: 8px; cursor: pointer; background: #fff;
+    }
+    .chunk-item:hover { border-color: #93c5fd; }
+    .chunk-item.active { border-color: #1e40af; background: #eff6ff; }
+    .chunk-item .ordinal { font-size: 11px; color: #64748b; }
+    .chunk-item .preview { font-size: 12px; margin-top: 4px; color: #334155; }
+    .chunk-item .stats { font-size: 10px; color: #047857; margin-top: 6px; }
+
+    .chunk-filter-banner {
+      padding: 8px 12px; margin-bottom: 10px; border-radius: 8px;
+      background: #eff6ff; border: 1px solid #93c5fd; font-size: 12px; color: #1e40af;
+    }
+    .chunk-filter-banner button {
+      margin-left: 8px; padding: 2px 8px; font-size: 11px; border-radius: 6px;
+      border: 1px solid #93c5fd; background: #fff; cursor: pointer; color: #1e40af;
+    }
+
+    .chunk-codes-panel {
+      margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+      background: #fff; overflow: hidden;
+    }
+    .chunk-codes-panel .head {
+      padding: 8px 12px; background: #f0fdf4; border-bottom: 1px solid #e2e8f0;
+      font-size: 11px; font-weight: 700; color: #166534;
+    }
+    .chunk-codes-panel .body { padding: 8px 12px; font-size: 11px; }
+    .code-chip {
+      display: inline-block; padding: 3px 8px; margin: 0 6px 6px 0;
+      border-radius: 6px; font-family: ui-monospace, monospace; font-size: 10px;
+      background: #ecfdf5; color: #047857; border: 1px solid #bbf7d0; cursor: default;
+    }
+    .code-chip .evidence { color: #64748b; font-family: system-ui, sans-serif; }
+
+    .chunk-group { margin-bottom: 14px; }
+    .chunk-group-head {
+      font-size: 11px; font-weight: 700; color: #475569; padding: 6px 0;
+      border-bottom: 1px solid #e2e8f0; margin-bottom: 6px;
+    }
+    .chunk-group-head.dimmed { opacity: 0.35; }
+    .chunk-group-head.active-chunk { color: #1e40af; border-bottom-color: #93c5fd; }
+
+    .row-dimmed { opacity: 0.35; }
+    .row-highlight { background: #fefce8; }
+
+    .doc-view {
+      border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;
+      background: #fff; font-size: 13px; line-height: 1.55; white-space: pre-wrap;
+    }
+    .doc-view .hl { background: #fef08a; padding: 0 2px; border-radius: 2px; }
+
+    .pmh-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .pmh-table th, .pmh-table td { padding: 8px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    .pmh-table th { color: #64748b; font-weight: 600; }
+
+    /* -- Right pane -- */
+    .pane-right { flex: 1; display: flex; min-width: 0; }
+
+    .stage-rail {
+      width: 220px; flex-shrink: 0; border-right: 1px solid #e2e8f0;
+      overflow: auto; background: #fff; padding: 8px 0;
+    }
+    .stage-rail h2 {
+      margin: 0; padding: 8px 14px; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.04em; color: #64748b; font-weight: 700;
+    }
+    .stage-btn {
+      display: block; width: 100%; text-align: left; padding: 10px 14px;
+      border: none; background: none; cursor: pointer; border-left: 3px solid transparent;
+    }
+    .stage-btn:hover { background: #f8fafc; }
+    .stage-btn.active { background: #eff6ff; border-left-color: #1e40af; }
+    .stage-btn .name { font-size: 13px; font-weight: 600; display: block; }
+    .stage-btn .sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .stage-btn .cost { font-size: 10px; color: #047857; margin-top: 2px; }
+
+    .stage-detail { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .stage-detail-scroll { flex: 1; overflow: auto; padding: 16px 20px; }
+
+    .stage-headline {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+    }
+    .stage-headline .icon { font-size: 20px; }
+    .stage-headline h3 { margin: 0; font-size: 15px; }
+
+    .telemetry-strip {
+      display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 14px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      margin-bottom: 16px; font-size: 12px;
+    }
+    .telemetry-strip span { color: #64748b; }
+    .telemetry-strip strong { color: #0f172a; }
+
+    .card {
+      border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; overflow: hidden;
+    }
+    .card-head {
+      padding: 8px 12px; background: #f8fafc; font-size: 12px; font-weight: 700;
+      border-bottom: 1px solid #e2e8f0; color: #475569;
+    }
+    .card-body { padding: 12px; font-size: 12px; }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .pill {
+      padding: 3px 8px; border-radius: 999px; font-size: 11px;
+      background: #dbeafe; color: #1e40af;
+    }
+
+    .mini-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .mini-table th { text-align: left; color: #64748b; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+    .mini-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; }
+
+    .diff-row { padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-family: ui-monospace, monospace; font-size: 11px; }
+    .diff-before { color: #b91c1c; }
+    .diff-after { color: #15803d; }
+
+    .layer-trace { font-size: 11px; }
+    .layer-trace div { padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
+
+    /* -- Live log footer -- */
+    .live-log {
+      flex-shrink: 0; border-top: 1px solid #e2e8f0; background: #0f172a; color: #e2e8f0;
+    }
+    .live-log-toggle {
+      width: 100%; padding: 8px 16px; border: none; background: #1e293b;
+      color: #94a3b8; font-size: 12px; font-weight: 600; cursor: pointer; text-align: left;
+    }
+    .live-log-toggle:hover { background: #334155; }
+    .live-log-body {
+      max-height: 0; overflow: hidden; transition: max-height 0.2s ease;
+      font-family: ui-monospace, monospace; font-size: 11px; padding: 0 16px;
+    }
+    .live-log.open .live-log-body { max-height: 140px; overflow: auto; padding: 8px 16px 12px; }
+    .log-line { padding: 2px 0; }
+    .log-time { color: #64748b; }
+
+    .proto-banner {
+      position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+      background: #0f172a; color: #f8fafc; padding: 8px 16px; border-radius: 8px;
+      font-size: 12px; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="lightbox-backdrop">
+  <div class="lightbox" role="dialog" aria-labelledby="lightbox-title" aria-modal="true">
+    <header class="header">
+      <div>
+        <h1 id="lightbox-title">Run review</h1>
+        <div class="header-meta">
+          Case: <strong id="case-title">SPoA - suspected lung cancer referral</strong>
+          &middot; Run <strong id="run-id">a3f8c912</strong>
+          &middot; Status <span class="chip chip-done" id="run-status">completed</span>
+        </div>
+      </div>
+      <div class="header-meta">
+        Bitmap: <strong style="font-family: monospace;">v2026.04.18-candidate</strong>
+        &middot; Total cost: <strong id="total-cost">$0.0842</strong>
+        (<span id="total-tokens">24.3k</span> tokens, <span id="total-calls">6</span> calls)
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn">Copy support details</button>
+        <button type="button" class="btn btn-primary">Open SBAR</button>
+        <button type="button" class="btn">Promote gold</button>
+        <button type="button" class="btn" onclick="alert('Close would dismiss the lightbox in the real app.')">Close</button>
+      </div>
+    </header>
+
+    <div class="batch-bar">
+      <label for="case-select">Batch case</label>
+      <select id="case-select" aria-label="Select case in batch"></select>
+      <span class="batch-progress" id="batch-progress">2 of 3 completed</span>
+    </div>
+
+    <div class="body">
+      <!-- LEFT: source documents -->
+      <aside class="pane-left">
+        <div class="pane-tabs" role="tablist">
+          <button type="button" class="pane-tab active" data-left-tab="chunks" role="tab" aria-selected="true">Chunks</button>
+          <button type="button" class="pane-tab" data-left-tab="pmh" role="tab">PMH</button>
+          <button type="button" class="pane-tab" data-left-tab="encounters" role="tab">Encounters</button>
+        </div>
+        <div class="pane-left-content">
+          <div id="panel-chunks">
+            <ul class="chunk-list" id="chunk-list"></ul>
+            <div class="doc-view" id="doc-view"></div>
+            <div class="chunk-codes-panel" id="chunk-codes-panel">
+              <div class="head" id="chunk-codes-head">SNOMED codes from this chunk (persisted graph)</div>
+              <div class="body" id="chunk-codes-body"></div>
+            </div>
+          </div>
+          <div id="panel-pmh" class="hidden">
+            <table class="pmh-table">
+              <thead><tr><th>Category</th><th>Term</th><th>SNOMED</th></tr></thead>
+              <tbody id="pmh-body"></tbody>
+            </table>
+          </div>
+          <div id="panel-encounters" class="hidden">
+            <div class="doc-view" id="encounter-view"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT: pipeline stages -->
+      <main class="pane-right">
+        <nav class="stage-rail" aria-label="Pipeline stages">
+          <h2>Stages</h2>
+          <div id="stage-rail"></div>
+        </nav>
+        <section class="stage-detail">
+          <div class="stage-detail-scroll" id="stage-detail"></div>
+          <div class="live-log" id="live-log">
+            <button type="button" class="live-log-toggle" id="log-toggle" aria-expanded="false">
+              Live log (click to expand)
+            </button>
+            <div class="live-log-body" id="log-body"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="proto-banner" id="proto-banner">Operator run review -- chunk + stage detail. <a href="validation-lab-accuracy-loop.html">Back to Validation Lab hub</a></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var CASES = [
+    {
+      id: "case-1",
+      title: "SPoA - suspected lung cancer referral",
+      runId: "a3f8c912",
+      status: "completed",
+      totalCost: 0.0842,
+      totalTokens: "24.3k",
+      totalCalls: 6,
+      chunks: [
+        {
+          id: "chunk-dr1-001-abc",
+          ordinal: 1,
+          preview: "Dear Colleague, I am referring this 68 year old...",
+          text: "Dear Colleague,\n\nI am referring this 68 year old gentleman who presented with a persistent cough and weight loss over 6 weeks.\n\nPast medical history includes COPD and hypertension.\n\nChest X-ray shows a suspicious left upper lobe opacity.\n\nYours sincerely,\nDr Smith",
+          highlightTerms: ["persistent cough", "weight loss", "COPD", "hypertension", "suspicious left upper lobe opacity"]
+        },
+        {
+          id: "chunk-dr1-002-def",
+          ordinal: 2,
+          preview: "Examination: reduced breath sounds LUL...",
+          text: "Examination:\n- Reduced breath sounds left upper lobe\n- No clubbing\n- SpO2 94% on room air\n\nPlan: 2WW referral to respiratory.",
+          highlightTerms: ["Reduced breath sounds left upper lobe", "SpO2 94%"]
+        },
+        {
+          id: "chunk-dr1-003-ghi",
+          ordinal: 3,
+          preview: "Investigations: FBC, U&E, LFTs attached...",
+          text: "Investigations attached:\n- FBC: Hb 128 g/L\n- WCC 8.2\n- CRP 12 mg/L\n\nPatient aware of referral reason.",
+          highlightTerms: ["Hb 128", "CRP 12"]
+        }
+      ],
+      /* Simulates GET_CHUNK_WITH_CODES after persist -- (Chunk)-[:DOCUMENTS]->(Concept) */
+      codesByChunk: {
+        "chunk-dr1-001-abc": [
+          { code: "49727002", term: "Cough", evidence: "persistent cough", assertion: "present" },
+          { code: "89362005", term: "Weight loss", evidence: "weight loss", assertion: "present" },
+          { code: "13645005", term: "COPD", evidence: "COPD", assertion: "history" },
+          { code: "59621000", term: "Essential hypertension", evidence: "hypertension", assertion: "history" },
+          { code: "233604007", term: "Pneumonia", evidence: "suspicious left upper lobe opacity", assertion: "present" }
+        ],
+        "chunk-dr1-002-def": [
+          { code: "301280008", term: "Reduced breath sounds", evidence: "Reduced breath sounds left upper lobe", assertion: "present" },
+          { code: "431314004", term: "Peripheral oxygen saturation", evidence: "SpO2 94%", assertion: "present" }
+        ],
+        "chunk-dr1-003-ghi": [
+          { code: "165581007", term: "Haemoglobin level", evidence: "Hb 128", assertion: "present" },
+          { code: "365981007", term: "C reactive protein", evidence: "CRP 12", assertion: "present" }
+        ]
+      },
+      /* Entities carry __sentence_id (= chunk id) through extraction -> coding */
+      entitiesByChunk: {
+        "chunk-dr1-001-abc": [
+          { text: "persistent cough", tag: "finding", assertion: "present", code: "49727002", term: "Cough" },
+          { text: "weight loss", tag: "finding", assertion: "present", code: "89362005", term: "Weight loss" },
+          { text: "COPD", tag: "disorder", assertion: "history", code: "13645005", term: "COPD" },
+          { text: "hypertension", tag: "disorder", assertion: "history", code: "59621000", term: "Essential hypertension" },
+          { text: "suspicious left upper lobe opacity", tag: "finding", assertion: "present", code: "233604007", term: "Pneumonia" }
+        ],
+        "chunk-dr1-002-def": [
+          { text: "Reduced breath sounds left upper lobe", tag: "finding", assertion: "present", code: "301280008", term: "Reduced breath sounds" },
+          { text: "SpO2 94%", tag: "observable", assertion: "present", code: "431314004", term: "Peripheral oxygen saturation" }
+        ],
+        "chunk-dr1-003-ghi": [
+          { text: "Hb 128 g/L", tag: "observable", assertion: "present", code: "165581007", term: "Haemoglobin level" },
+          { text: "CRP 12 mg/L", tag: "observable", assertion: "present", code: "365981007", term: "C reactive protein" }
+        ]
+      },
+      pmh: [
+        { cat: "Condition", term: "Chronic obstructive pulmonary disease", code: "13645005" },
+        { cat: "Condition", term: "Essential hypertension", code: "59621000" },
+        { cat: "Medication", term: "Salbutamol inhaler", code: "372756006" }
+      ],
+      encounter: "GP consultation (14 Jan 2026)\n\nPatient reports 6 week history of cough and 4 kg weight loss. Smoker 30 pack-years. Examination as per referral letter.",
+      stages: [
+        {
+          id: "extract",
+          label: "Extraction",
+          status: "completed",
+          duration: "4.2s",
+          cost: "$0.0312",
+          icon: "[E]",
+          headline: "Found 9 clinical facts across 3 chunks",
+          telemetry: { prompt: "extraction v3", model: "claude-sonnet", inTok: 8420, outTok: 1204, cost: "$0.0312" },
+          summary: "entities",
+          groupByChunk: true,
+          diff: [{ path: "entities", before: "(none)", after: "9 entities (3 chunks)" }]
+        },
+        {
+          id: "post-process",
+          label: "Post-processing",
+          status: "completed",
+          duration: "0.3s",
+          cost: null,
+          icon: "[P]",
+          headline: "Cleaned 9 -> 9 entities (0 removed; chunk ids preserved)",
+          telemetry: null,
+          groupByChunk: true,
+          layers: [
+            { name: "Lab-value guard", before: 9, after: 9 },
+            { name: "Scope guard", before: 9, after: 9 },
+            { name: "ConText assertions", before: 9, after: 9 }
+          ],
+          diff: [{ path: "entities", before: "9", after: "9 (__sentence_id kept)" }]
+        },
+        {
+          id: "terminology",
+          label: "Coding (terminology)",
+          status: "completed",
+          duration: "1.8s",
+          cost: null,
+          icon: "[C]",
+          headline: "Resolved 9 of 9 entities to SNOMED CT (per chunk)",
+          telemetry: null,
+          groupByChunk: true,
+          showCodes: true,
+          diff: [{ path: "resolved_entities", before: "(none)", after: "9 coded across 3 chunks" }]
+        },
+        {
+          id: "compliance",
+          label: "Compliance",
+          status: "completed",
+          duration: "2.1s",
+          cost: "$0.0180",
+          icon: "[G]",
+          headline: "3 matching rules - 2WW lung pathway triggered",
+          telemetry: { prompt: "compliance v2", model: "claude-sonnet", inTok: 5200, outTok: 890, cost: "$0.0180" },
+          rules: [
+            { id: "NG12-1.3", match: true, label: "Suspected lung cancer - urgent referral" },
+            { id: "NG12-1.4", match: false, label: "Chest X-ray within 2 weeks" }
+          ],
+          snomedIn: ["49727002", "13645005", "89362005", "233604007", "301280008"],
+          snomedOut: ["49727002", "13645005", "89362005", "233604007", "162573006"],
+          /* Compliance sees flat codes only -- provenance is a derived join */
+          codeProvenance: [
+            { code: "49727002", term: "Cough", chunks: [1] },
+            { code: "89362005", term: "Weight loss", chunks: [1] },
+            { code: "13645005", term: "COPD", chunks: [1] },
+            { code: "233604007", term: "Pneumonia", chunks: [1] },
+            { code: "301280008", term: "Reduced breath sounds", chunks: [2] },
+            { code: "162573006", term: "Urgent referral", chunks: [] }
+          ],
+          diff: [{ path: "matching_rules", before: "[]", after: "[NG12-1.3]" }]
+        },
+        {
+          id: "completeness",
+          label: "Completeness",
+          status: "completed",
+          duration: "0.4s",
+          cost: null,
+          icon: "[Q]",
+          headline: "2 missing items flagged for reviewer",
+          telemetry: null,
+          missing: ["Smoking status quantified", "Performance status"],
+          diff: [{ path: "completeness.missing", before: "[]", after: "2 items" }]
+        },
+        {
+          id: "sbar",
+          label: "SBAR",
+          status: "completed",
+          duration: "8.6s",
+          cost: "$0.0350",
+          icon: "[S]",
+          headline: "SBAR draft ready for human review",
+          telemetry: { prompt: "sbar_background v1", model: "claude-sonnet", inTok: 11200, outTok: 2100, cost: "$0.0350" },
+          diff: [{ path: "sbar_assessment_id", before: "(none)", after: "assess-7f2a" }]
+        }
+      ],
+      log: [
+        "[12:01:02] durable-ref-extract started",
+        "[12:01:06] durable-ref-extract completed (14 entities)",
+        "[12:01:06] durable-ref-post-process started",
+        "[12:01:07] durable-ref-post-process completed",
+        "[12:01:07] durable-ref-terminology started",
+        "[12:01:09] durable-ref-terminology completed",
+        "[12:01:09] durable-ref-compliance started",
+        "[12:01:11] durable-ref-compliance completed",
+        "[12:01:11] durable-ref-completeness started",
+        "[12:01:12] durable-ref-sbar started",
+        "[12:01:20] run completed"
+      ]
+    },
+    {
+      id: "case-2",
+      title: "Generic - diabetes annual review",
+      runId: "b7e1d004",
+      status: "running",
+      totalCost: 0.0121,
+      totalTokens: "4.1k",
+      totalCalls: 2,
+      chunks: [
+        {
+          id: "chunk-dm-001",
+          ordinal: 1,
+          preview: "Annual diabetes review. HbA1c 58 mmol/mol...",
+          text: "Annual diabetes review.\n\nHbA1c 58 mmol/mol (target <53).\nBP 138/86. BMI 31.\n\nContinue metformin. Lifestyle advice given.",
+          highlightTerms: ["HbA1c 58", "BP 138/86", "BMI 31"]
+        }
+      ],
+      codesByChunk: {
+        "chunk-dm-001": [
+          { code: "43396009", term: "HbA1c", evidence: "HbA1c 58", assertion: "present" }
+        ]
+      },
+      entitiesByChunk: {
+        "chunk-dm-001": [
+          { text: "HbA1c 58 mmol/mol", tag: "observable", assertion: "present", code: "43396009", term: "HbA1c" },
+          { text: "BP 138/86", tag: "observable", assertion: "present", code: "", term: "" },
+          { text: "BMI 31", tag: "observable", assertion: "present", code: "", term: "" }
+        ]
+      },
+      pmh: [
+        { cat: "Condition", term: "Type 2 diabetes mellitus", code: "44054006" }
+      ],
+      encounter: "Diabetes clinic (10 Jan 2026)\n\nRoutine review.",
+      stages: [
+        { id: "extract", label: "Extraction", status: "completed", duration: "3.1s", cost: "$0.0121", icon: "[E]", headline: "Found 3 clinical facts (1 chunk)", telemetry: { prompt: "extraction v3", model: "claude-sonnet", inTok: 2100, outTok: 450, cost: "$0.0121" }, groupByChunk: true, diff: [] },
+        { id: "post-process", label: "Post-processing", status: "running", duration: "...", cost: null, icon: "[P]", headline: "Running...", telemetry: null, layers: [], diff: [] },
+        { id: "terminology", label: "Coding", status: "pending", duration: null, cost: null, icon: "[C]", headline: "Waiting", telemetry: null, coded: [], diff: [] },
+        { id: "compliance", label: "Compliance", status: "pending", duration: null, cost: null, icon: "[G]", headline: "Waiting", telemetry: null, rules: [], diff: [] },
+        { id: "completeness", label: "Completeness", status: "pending", duration: null, cost: null, icon: "[Q]", headline: "Waiting", telemetry: null, missing: [], diff: [] },
+        { id: "sbar", label: "SBAR", status: "pending", duration: null, cost: null, icon: "[S]", headline: "Waiting", telemetry: null, diff: [] }
+      ],
+      log: [
+        "[12:05:01] durable-ref-extract started",
+        "[12:05:04] durable-ref-extract completed",
+        "[12:05:04] durable-ref-post-process started"
+      ]
+    },
+    {
+      id: "case-3",
+      title: "RAS - knee pain referral",
+      runId: "c9aa1100",
+      status: "failed",
+      totalCost: 0.0088,
+      totalTokens: "2.8k",
+      totalCalls: 1,
+      chunks: [
+        { id: "chunk-knee-001", ordinal: 1, preview: "Referral for chronic knee pain...", text: "Referral for chronic knee pain following injury 8 months ago.\n\nMRI pending.", highlightTerms: ["chronic knee pain"] }
+      ],
+      codesByChunk: {},
+      entitiesByChunk: {},
+      pmh: [],
+      encounter: "GP consultation (8 Jan 2026)\n\nKnee pain review.",
+      stages: [
+        { id: "extract", label: "Extraction", status: "failed", duration: "1.2s", cost: "$0.0088", icon: "[E]", headline: "Extraction failed - worker timeout", telemetry: { prompt: "extraction v3", model: "claude-sonnet", inTok: 1800, outTok: 0, cost: "$0.0088" }, entities: [], diff: [] },
+        { id: "post-process", label: "Post-processing", status: "pending", duration: null, cost: null, icon: "[P]", headline: "Skipped", telemetry: null, layers: [], diff: [] }
+      ],
+      log: ["[12:08:01] durable-ref-extract started", "[12:08:02] ERROR: step timeout after 120s"]
+    }
+  ];
+
+  var state = { caseIndex: 0, chunkIndex: 0, stageIndex: 0, leftTab: "chunks", chunkFilter: null };
+
+  function currentCase() { return CASES[state.caseIndex]; }
+
+  function selectedChunk() {
+    var c = currentCase();
+    return c.chunks[state.chunkIndex] || null;
+  }
+
+  function chunkEntityCount(chunkId) {
+    var map = currentCase().entitiesByChunk || {};
+    return (map[chunkId] || []).length;
+  }
+
+  function chunkCodeCount(chunkId) {
+    var map = currentCase().codesByChunk || {};
+    return (map[chunkId] || []).length;
+  }
+
+  function allEntitiesFlat() {
+    var map = currentCase().entitiesByChunk || {};
+    var out = [];
+    Object.keys(map).forEach(function (chunkId) {
+      (map[chunkId] || []).forEach(function (e) {
+        out.push(Object.assign({ chunkId: chunkId }, e));
+      });
+    });
+    return out;
+  }
+
+  function chunkOrdinalForId(chunkId) {
+    var chunks = currentCase().chunks || [];
+    for (var i = 0; i < chunks.length; i++) {
+      if (chunks[i].id === chunkId) return chunks[i].ordinal;
+    }
+    return "?";
+  }
+
+  function isChunkFocused(chunkId) {
+    if (state.chunkFilter === null) return true;
+    return state.chunkFilter === chunkId;
+  }
+
+  function statusChipClass(status) {
+    if (status === "completed") return "chip-done";
+    if (status === "running") return "chip-run";
+    return "chip-pending";
+  }
+
+  function renderCaseSelect() {
+    var sel = document.getElementById("case-select");
+    sel.innerHTML = "";
+    CASES.forEach(function (c, i) {
+      var opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = c.title + " (" + c.status + ")";
+      sel.appendChild(opt);
+    });
+    sel.value = String(state.caseIndex);
+    var done = CASES.filter(function (c) { return c.status === "completed"; }).length;
+    document.getElementById("batch-progress").textContent = done + " of " + CASES.length + " completed";
+  }
+
+  function renderHeader() {
+    var c = currentCase();
+    document.getElementById("case-title").textContent = c.title;
+    document.getElementById("run-id").textContent = c.runId.slice(0, 8);
+    var st = document.getElementById("run-status");
+    st.textContent = c.status;
+    st.className = "chip " + statusChipClass(c.status);
+    document.getElementById("total-cost").textContent = "$" + c.totalCost.toFixed(4);
+    document.getElementById("total-tokens").textContent = c.totalTokens;
+    document.getElementById("total-calls").textContent = String(c.totalCalls);
+  }
+
+  function renderChunks() {
+    var c = currentCase();
+    var list = document.getElementById("chunk-list");
+    list.innerHTML = "";
+    c.chunks.forEach(function (chunk, i) {
+      var li = document.createElement("li");
+      li.className = "chunk-item" + (i === state.chunkIndex ? " active" : "");
+      var entN = chunkEntityCount(chunk.id);
+      var codeN = chunkCodeCount(chunk.id);
+      li.innerHTML =
+        "<div class=\"ordinal\">Chunk " + chunk.ordinal + " <span style=\"font-family:monospace;color:#94a3b8\">" + chunk.id.slice(-8) + "</span></div>" +
+        "<div class=\"preview\">" + chunk.preview + "</div>" +
+        "<div class=\"stats\">" + entN + " extracted" + (codeN ? " / " + codeN + " coded" : "") + "</div>";
+      li.onclick = function () {
+        state.chunkIndex = i;
+        state.chunkFilter = chunk.id;
+        renderChunks();
+        renderDocView();
+        renderChunkCodesPanel();
+        renderStageRail();
+        renderStageDetail();
+      };
+      list.appendChild(li);
+    });
+    renderDocView();
+    renderChunkCodesPanel();
+  }
+
+  function renderDocView() {
+    var chunk = selectedChunk();
+    var el = document.getElementById("doc-view");
+    if (!chunk) { el.textContent = "No chunks."; return; }
+    var text = chunk.text;
+    (chunk.highlightTerms || []).forEach(function (term) {
+      var re = new RegExp("(" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi");
+      text = text.replace(re, "<span class=\"hl\">$1</span>");
+    });
+    el.innerHTML = text;
+  }
+
+  function renderChunkCodesPanel() {
+    var chunk = selectedChunk();
+    var head = document.getElementById("chunk-codes-head");
+    var body = document.getElementById("chunk-codes-body");
+    if (!chunk) {
+      head.textContent = "SNOMED codes from this chunk";
+      body.innerHTML = "<span style=\"color:#64748b\">No chunk selected.</span>";
+      return;
+    }
+    var codes = (currentCase().codesByChunk || {})[chunk.id] || [];
+    head.textContent = "SNOMED codes from Chunk " + chunk.ordinal + " (Chunk)-[:DOCUMENTS]->(Concept)";
+    if (!codes.length) {
+      body.innerHTML = "<span style=\"color:#64748b\">No codes persisted for this chunk yet.</span>";
+      return;
+    }
+    body.innerHTML = codes.map(function (c) {
+      return "<span class=\"code-chip\" title=\"" + c.evidence + "\">" + c.code +
+        " <span class=\"evidence\">" + c.term + " &middot; \"" + c.evidence + "\"</span></span>";
+    }).join("");
+  }
+
+  function chunkFilterBannerHtml() {
+    if (state.chunkFilter === null) return "";
+    var ord = chunkOrdinalForId(state.chunkFilter);
+    return "<div class=\"chunk-filter-banner\">Filtering stage view to <strong>Chunk " + ord + "</strong> (__sentence_id)." +
+      "<button type=\"button\" id=\"clear-chunk-filter\">Show all chunks</button></div>";
+  }
+
+  function renderEntitiesByChunk(showCodes) {
+    var map = currentCase().entitiesByChunk || {};
+    var html = "";
+    var chunkIds = currentCase().chunks.map(function (c) { return c.id; });
+    chunkIds.forEach(function (chunkId) {
+      var ents = map[chunkId] || [];
+      if (!ents.length) return;
+      var ord = chunkOrdinalForId(chunkId);
+      var focused = isChunkFocused(chunkId);
+      html += "<div class=\"chunk-group\">";
+      html += "<div class=\"chunk-group-head" + (focused ? " active-chunk" : " dimmed") + "\">Chunk " + ord + " (" + ents.length + ")</div>";
+      html += "<table class=\"mini-table\"><thead><tr>";
+      if (showCodes) {
+        html += "<th>Surface form</th><th>SNOMED</th><th>Term</th><th>Assertion</th></tr></thead><tbody>";
+        ents.forEach(function (e) {
+          var rowCls = focused ? "row-highlight" : "row-dimmed";
+          html += "<tr class=\"" + rowCls + "\"><td>" + e.text + "</td><td style=\"font-family:monospace\">" +
+            (e.code || "-") + "</td><td>" + (e.term || "-") + "</td><td>" + e.assertion + "</td></tr>";
+        });
+      } else {
+        html += "<th>Text</th><th>Tag</th><th>Assertion</th></tr></thead><tbody>";
+        ents.forEach(function (e) {
+          var rowCls = focused ? "row-highlight" : "row-dimmed";
+          html += "<tr class=\"" + rowCls + "\"><td>" + e.text + "</td><td>" + e.tag + "</td><td>" + e.assertion + "</td></tr>";
+        });
+      }
+      html += "</tbody></table></div>";
+    });
+    return html;
+  }
+
+  function renderPmh() {
+    var tbody = document.getElementById("pmh-body");
+    tbody.innerHTML = "";
+    currentCase().pmh.forEach(function (row) {
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + row.cat + "</td><td>" + row.term + "</td><td style=\"font-family:monospace\">" + row.code + "</td>";
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderEncounter() {
+    document.getElementById("encounter-view").textContent = currentCase().encounter;
+  }
+
+  function renderStageRail() {
+    var rail = document.getElementById("stage-rail");
+    rail.innerHTML = "";
+    currentCase().stages.forEach(function (stage, i) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "stage-btn" + (i === state.stageIndex ? " active" : "");
+      btn.innerHTML = "<span class=\"name\">" + stage.icon + " " + stage.label + "</span>" +
+        "<span class=\"sub\">" + stage.status + (stage.duration ? " - " + stage.duration : "") + "</span>" +
+        (stage.cost ? "<span class=\"cost\">" + stage.cost + "</span>" : "");
+      btn.onclick = function () { state.stageIndex = i; renderStageRail(); renderStageDetail(); };
+      rail.appendChild(btn);
+    });
+  }
+
+  function telemetryHtml(t) {
+    if (!t) return "<span>No LLM step at this stage.</span>";
+    return "<span>Prompt:</span> <strong>" + t.prompt + "</strong> " +
+      "<span>Model:</span> <strong>" + t.model + "</strong> " +
+      "<span>Tokens:</span> <strong>" + t.inTok + " in / " + t.outTok + " out</strong> " +
+      "<span>Cost:</span> <strong>" + t.cost + "</strong> " +
+      "<button type=\"button\" class=\"btn\" style=\"padding:2px 8px;font-size:11px\" onclick=\"alert('Would open Prompt Simulator for this config.')\">View prompt</button>";
+  }
+
+  function renderStageDetail() {
+    var stage = currentCase().stages[state.stageIndex];
+    var html = chunkFilterBannerHtml();
+    html += "<div class=\"stage-headline\"><span class=\"icon\">" + stage.icon + "</span><h3>" + stage.headline + "</h3></div>";
+    html += "<div class=\"telemetry-strip\">" + telemetryHtml(stage.telemetry) + "</div>";
+
+    if (stage.groupByChunk && currentCase().entitiesByChunk) {
+      var cardTitle = stage.showCodes
+        ? "SNOMED coding grouped by chunk (__sentence_id)"
+        : "Entities grouped by chunk (__sentence_id)";
+      html += "<div class=\"card\"><div class=\"card-head\">" + cardTitle + "</div><div class=\"card-body\">";
+      html += renderEntitiesByChunk(!!stage.showCodes);
+      html += "</div></div>";
+    } else if (stage.entities) {
+      html += "<div class=\"card\"><div class=\"card-head\">Extracted entities (output)</div><div class=\"card-body\">";
+      html += "<div class=\"pill-row\">";
+      stage.entities.forEach(function (e) {
+        html += "<span class=\"pill\">" + e.text + " (" + e.tag + ", " + e.assertion + ")</span>";
+      });
+      html += "</div></div></div>";
+    }
+
+    if (stage.layers && stage.layers.length) {
+      html += "<div class=\"card\"><div class=\"card-head\">Post-processing layers (in / out counts)</div><div class=\"card-body layer-trace\">";
+      stage.layers.forEach(function (l) {
+        html += "<div>" + l.name + ": " + l.before + " -> " + l.after + "</div>";
+      });
+      html += "</div></div>";
+    }
+
+    if (stage.coded) {
+      html += "<div class=\"card\"><div class=\"card-head\">SNOMED coding (input entities -> output codes)</div><div class=\"card-body\">";
+      html += "<table class=\"mini-table\"><thead><tr><th>Surface form</th><th>Code</th><th>Preferred term</th></tr></thead><tbody>";
+      stage.coded.forEach(function (r) {
+        html += "<tr><td>" + r.text + "</td><td>" + r.code + "</td><td>" + r.term + "</td></tr>";
+      });
+      html += "</tbody></table></div></div>";
+    }
+
+    if (stage.rules) {
+      html += "<div class=\"card\"><div class=\"card-head\">Compliance (SNOMED in -> rules + SNOMED out)</div><div class=\"card-body\">";
+      if (stage.snomedIn) {
+        html += "<p><strong>SNOMED in:</strong> " + stage.snomedIn.join(", ") + "</p>";
+      }
+      html += "<table class=\"mini-table\"><thead><tr><th>Rule</th><th>Match</th></tr></thead><tbody>";
+      stage.rules.forEach(function (r) {
+        html += "<tr><td>" + r.id + " - " + r.label + "</td><td>" + (r.match ? "yes" : "no") + "</td></tr>";
+      });
+      html += "</tbody></table>";
+      if (stage.snomedOut) {
+        html += "<p style=\"margin-top:8px\"><strong>SNOMED out:</strong> " + stage.snomedOut.join(", ") + "</p>";
+      }
+      if (stage.codeProvenance && stage.codeProvenance.length) {
+        html += "<p style=\"margin-top:12px;font-size:11px;color:#64748b\">Compliance evaluates a <strong>flat code set</strong>. Chunk mapping below is derived from entity __sentence_id (not stored on compliance_result).</p>";
+        html += "<table class=\"mini-table\" style=\"margin-top:8px\"><thead><tr><th>SNOMED</th><th>Term</th><th>Source chunk(s)</th></tr></thead><tbody>";
+        stage.codeProvenance.forEach(function (row) {
+          var chunkLabel = row.chunks.length
+            ? row.chunks.map(function (n) { return "Chunk " + n; }).join(", ")
+            : "added by compliance (not from text)";
+          var highlight = state.chunkFilter !== null && row.chunks.indexOf(chunkOrdinalForId(state.chunkFilter)) >= 0;
+          html += "<tr class=\"" + (highlight ? "row-highlight" : "") + "\"><td style=\"font-family:monospace\">" +
+            row.code + "</td><td>" + row.term + "</td><td>" + chunkLabel + "</td></tr>";
+        });
+        html += "</tbody></table>";
+      }
+      html += "</div></div>";
+    }
+
+    if (stage.id === "sbar" && currentCase().codesByChunk) {
+      html += "<div class=\"card\"><div class=\"card-head\">Assessment codes (flat -- no chunk field on Assessment)</div><div class=\"card-body\">";
+      html += "<p style=\"font-size:11px;color:#64748b;margin-top:0\">SBAR stores <code>assessment_codes</code> as a sorted list. Join back to chunks via entities or GET_CHUNK_WITH_CODES.</p>";
+      html += renderEntitiesByChunk(true);
+      html += "</div></div>";
+    }
+
+    if (stage.missing && stage.missing.length) {
+      html += "<div class=\"card\"><div class=\"card-head\">Completeness gaps</div><div class=\"card-body\"><ul>";
+      stage.missing.forEach(function (m) { html += "<li>" + m + "</li>"; });
+      html += "</ul></div></div>";
+    }
+
+    if (stage.diff && stage.diff.length) {
+      html += "<div class=\"card\"><div class=\"card-head\">State diff (input -> output)</div><div class=\"card-body\">";
+      stage.diff.forEach(function (d) {
+        html += "<div class=\"diff-row\"><div class=\"diff-before\">before " + d.path + ": " + d.before + "</div>";
+        html += "<div class=\"diff-after\">after " + d.path + ": " + d.after + "</div></div>";
+      });
+      html += "</div></div>";
+    }
+
+    document.getElementById("stage-detail").innerHTML = html;
+    var clearBtn = document.getElementById("clear-chunk-filter");
+    if (clearBtn) {
+      clearBtn.onclick = function () {
+        state.chunkFilter = null;
+        renderStageDetail();
+      };
+    }
+  }
+
+  function renderLog() {
+    var body = document.getElementById("log-body");
+    body.innerHTML = currentCase().log.map(function (line) {
+      return "<div class=\"log-line\"><span class=\"log-time\">" + line.slice(0, 10) + "</span> " + line.slice(11) + "</div>";
+    }).join("");
+  }
+
+  function setLeftTab(tab) {
+    state.leftTab = tab;
+    document.querySelectorAll(".pane-tab").forEach(function (btn) {
+      var on = btn.getAttribute("data-left-tab") === tab;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.getElementById("panel-chunks").classList.toggle("hidden", tab !== "chunks");
+    document.getElementById("panel-pmh").classList.toggle("hidden", tab !== "pmh");
+    document.getElementById("panel-encounters").classList.toggle("hidden", tab !== "encounters");
+  }
+
+  function renderAll() {
+    renderCaseSelect();
+    renderHeader();
+    renderChunks();
+    renderPmh();
+    renderEncounter();
+    renderStageRail();
+    renderStageDetail();
+    renderLog();
+    setLeftTab(state.leftTab);
+  }
+
+  document.getElementById("case-select").onchange = function (e) {
+    state.caseIndex = parseInt(e.target.value, 10);
+    state.chunkIndex = 0;
+    state.stageIndex = 0;
+    state.chunkFilter = null;
+    renderAll();
+  };
+
+  document.querySelectorAll(".pane-tab").forEach(function (btn) {
+    btn.onclick = function () { setLeftTab(btn.getAttribute("data-left-tab")); };
+  });
+
+  document.getElementById("log-toggle").onclick = function () {
+    var log = document.getElementById("live-log");
+    var open = log.classList.toggle("open");
+    this.setAttribute("aria-expanded", open ? "true" : "false");
+    this.textContent = open ? "Live log (click to collapse)" : "Live log (click to expand)";
+  };
+
+  function applyUrlContext() {
+    var params = new URLSearchParams(window.location.search);
+    var banner = document.getElementById("proto-banner");
+    var bits = ["Operator run review -- chunk + stage detail"];
+    if (params.get("source") === "clinical" && params.get("patient")) {
+      bits.push("Clinical replay: " + params.get("patient"));
+    } else if (params.get("source") === "rule" && params.get("run")) {
+      bits.push("Rule test: " + params.get("run"));
+    } else if (params.get("compare") === "ab") {
+      bits.push("Run A vs Run B compare");
+    }
+    bits.push('<a href="validation-lab-accuracy-loop.html">Back to Validation Lab hub</a>');
+    banner.innerHTML = bits.join(" -- ");
+  }
+
+  applyUrlContext();
+  renderAll();
+})();
+</script>
+</body>
+</html>

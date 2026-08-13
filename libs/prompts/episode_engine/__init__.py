@@ -1,9 +1,12 @@
-"""Versioned prompts for the Haiku episode engine.
+"""Versioned prompts for the clinical episode engine.
+
+Azure OpenAI GPT-5 is the primary provider. AWS Bedrock is optional. Prompt
+contracts remain provider-neutral so routing can change without clinical drift.
 
 Each stage has its own module with:
     SYSTEM           : str  -- prepended with INJECTION_GUARD
     USER_TEMPLATE    : str  -- format(...) template; arg names documented per file
-    SCHEMA           : dict -- JSON Schema for Bedrock tool_config
+    SCHEMA           : dict -- JSON Schema for structured tool output
     TOOL_NAME        : str  -- tool name for forced JSON
     VERSION          : str  -- "v1", "v2", ...
 

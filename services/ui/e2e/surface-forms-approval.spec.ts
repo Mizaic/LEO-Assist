@@ -40,7 +40,7 @@ test.describe("Surface form approval workflow (VT-8DE34E84)", () => {
     await stubSurfaceFormAuditLog(page);
     await gotoSurfaceFormsTab(page);
     await page.getByTestId("toolbar-action-audit-log").click();
-    await expect(page.getByRole("dialog", { name: "Surface form change log" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Change log" })).toBeVisible();
     await expect(page.getByText(`approve · ${SURFACE_FORM_NORMALIZED}`)).toBeVisible();
     await expect(page.getByText(`upsert · ${SURFACE_FORM_NORMALIZED}`)).toBeVisible();
     await expect(page.getByText("Mapping approved for runtime resolve")).toBeVisible();

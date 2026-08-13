@@ -139,13 +139,13 @@ DEVICES: list[dict] = [
     # ----------------------------------------------------------------
     {
         "device_id": "device-azure-small",
-        "name": "GPT-5.4-nano (small)",
+        "name": "GPT-5.4-mini (small)",
         "provider": "Azure OpenAI",
         "device_type": "llm",
         "role": "small",
         "status": "active",
         "env_var": "AZURE_OPENAI_SMALL_MODEL",
-        "default_model_id": "gpt-5.4-nano",
+        "default_model_id": "gpt-5-mini",
         "endpoint_env_var": "AZURE_OPENAI_ENDPOINT",
         "notes": "Azure alternative for small-tier extraction.",
     },

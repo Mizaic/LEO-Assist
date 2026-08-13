@@ -1,4 +1,4 @@
-"""V1 cancer exclusion detection prompt — INSTRUCTIONS ONLY.
+"""V1 cancer exclusion detection prompt -- INSTRUCTIONS ONLY.
 
 Atlas trace:
   DO: DO-BEFC4C67
@@ -7,7 +7,7 @@ Atlas trace:
 
 Output schema and few-shot examples are stored separately in Neo4j and
 assembled at runtime. Do NOT add output format sections or inline examples
-to this file — manage them via the Admin UI at /admin/prompts
+to this file -- manage them via the Admin UI at /admin/prompts
 (name='exclusion_detect', version=1).
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
@@ -23,26 +23,26 @@ of that cancer referral.
 
 ## Outcomes
 
-cancer_excluded — Cancer has been RULED OUT for this referral pathway:
+cancer_excluded -- Cancer has been RULED OUT for this referral pathway:
   - "No evidence of cancer", "Cancer excluded", "discharged - no malignancy"
   - Biopsy/histology showing benign findings for the SAME site as the referral
   - "All clear" in the context of the cancer investigation
   - Investigation results explicitly negative for cancer (not just normal bloods)
-  - "Reassured — benign lesion" when the lesion was the reason for referral
+  - "Reassured -- benign lesion" when the lesion was the reason for referral
 
-cancer_confirmed — A positive cancer diagnosis has been made:
+cancer_confirmed -- A positive cancer diagnosis has been made:
   - Histology/biopsy confirming malignancy
   - Named cancer type recorded as new active diagnosis
   - MDT outcome confirming cancer
   - "Diagnosed with [cancer type]"
 
-still_investigating — Investigations are ongoing, no conclusion yet:
+still_investigating -- Investigations are ongoing, no conclusion yet:
   - "Awaiting biopsy results", "further investigation needed"
   - "Referred for CT/MRI scan", "pending histology"
   - Follow-up appointment booked for results
   - "Under investigation" or "query" language
 
-pending_letter — A clinical letter or document has been received/filed that
+pending_letter -- A clinical letter or document has been received/filed that
   likely contains the investigation outcome, but the encounter text only
   references the letter without quoting its clinical content:
   - "Clinic letter received from [specialty]"
@@ -53,7 +53,7 @@ pending_letter — A clinical letter or document has been received/filed that
   Note: if the letter content IS quoted and contains a result, classify
   as cancer_excluded or cancer_confirmed instead.
 
-not_relevant — The encounter has no bearing on the cancer referral pathway:
+not_relevant -- The encounter has no bearing on the cancer referral pathway:
   - Unrelated clinical content (flu jab, mental health review, diabetes check)
   - Administrative entries with no clinical content
   - Family history of cancer (not the patient's own investigation)
@@ -67,7 +67,7 @@ not_relevant — The encounter has no bearing on the cancer referral pathway:
 3. Screening programme invitations ("Bowel cancer screening programme - no response")
    are not_relevant unless they contain actual results.
 4. "Seen in fast track suspected X cancer clinic" is about the referral pathway
-   itself — classify based on what ELSE the encounter says about the outcome.
+   itself -- classify based on what ELSE the encounter says about the outcome.
    If it only records the clinic visit with no result, it is still_investigating.
 5. If you are unsure, use still_investigating. Only use cancer_excluded or
    cancer_confirmed when the evidence is clear.\

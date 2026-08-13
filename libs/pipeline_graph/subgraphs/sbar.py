@@ -43,6 +43,14 @@ class SBARSubgraphState(TypedDict, total=False):
     guideline_ids: list[str]
     referral_id: str
     document_reference_id: str
+    referral_reason: str
+    source_node_type: str
+    compliance_result: dict[str, Any]
+    healthcare_service_id: str
+    healthcare_service_name: str
+    healthcare_service_specialty: str
+    healthcare_service_spoa_id: str
+    healthcare_service_missing: bool
     completeness_result: dict[str, Any]
     sbar_assessment_id: str
     sbar_status: str
@@ -75,9 +83,7 @@ def _partition_pipeline_messages(
         msg = str(raw or "").strip()
         if not msg:
             continue
-        if msg.startswith("audit:") or any(
-            tok in msg for tok in _AUDIT_BLOCKER_TOKENS
-        ):
+        if msg.startswith("audit:") or any(tok in msg for tok in _AUDIT_BLOCKER_TOKENS):
             warnings.append(msg)
         else:
             errors.append(msg)
@@ -181,6 +187,13 @@ async def _async_run_sbar(state: SBARSubgraphState) -> dict[str, Any]:
             "referral_id": referral_id,
             "referral_reason": str(state.get("referral_reason") or "").strip(),
             "completeness_result": state.get("completeness_result"),
+            "compliance_result": state.get("compliance_result"),
+            "source_node_type": str(state.get("source_node_type") or "ReferralRequest"),
+            "healthcare_service_id": state.get("healthcare_service_id"),
+            "healthcare_service_name": state.get("healthcare_service_name"),
+            "healthcare_service_specialty": state.get("healthcare_service_specialty"),
+            "healthcare_service_spoa_id": state.get("healthcare_service_spoa_id"),
+            "healthcare_service_missing": state.get("healthcare_service_missing"),
         },
     )
     result = await SBAROrchestrator(

@@ -16,6 +16,7 @@ from libs.units.observable_units import (
     is_known_observable,
     list_known_observables,
 )
+from libs.units.unit_equivalence import normalise_unit, units_are_equivalent
 
 __all__ = [
     "OBSERVABLE_UNIT_REGISTRY",
@@ -27,4 +28,6 @@ __all__ = [
     "get_reference_range",
     "is_known_observable",
     "list_known_observables",
+    "normalise_unit",
+    "units_are_equivalent",
 ]

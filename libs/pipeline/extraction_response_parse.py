@@ -140,6 +140,25 @@ def _looks_like_no_entities_prose(text: str) -> bool:
     return any(n in low for n in needles)
 
 
+_TERM_LIST_KEYS = ("terms", "entities", "output", "items", "result")
+
+
+def _coerce_terms_payload(data: dict[str, Any]) -> dict[str, Any]:
+    """Normalise GPT-5 aliases onto the canonical ``terms`` array."""
+    for key in _TERM_LIST_KEYS:
+        value = data.get(key)
+        if isinstance(value, list) and value:
+            if key == "terms":
+                return data
+            out = dict(data)
+            out["terms"] = value
+            return out
+    if not isinstance(data.get("terms"), list):
+        data = dict(data)
+        data["terms"] = []
+    return data
+
+
 def parse_extraction_terms_response(raw: str) -> tuple[dict[str, Any], ParseSource]:
     """Return a terms payload dict and how it was obtained.
 
@@ -155,9 +174,7 @@ def parse_extraction_terms_response(raw: str) -> tuple[dict[str, Any], ParseSour
     cleaned = _strip_markdown_fences(original)
     data = _try_load_json_object(cleaned)
     if data is not None:
-        if "terms" not in data:
-            data["terms"] = []
-        return data, "json_ok"
+        return _coerce_terms_payload(data), "json_ok"
     salvaged = _salvage_terms_payload(cleaned)
     if salvaged is not None:
         logger.info("Recovered extraction terms from malformed LLM JSON")

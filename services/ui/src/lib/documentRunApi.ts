@@ -45,12 +45,25 @@ export interface DocumentRunStage {
   error_summary?: string;
 }
 
+export interface DocumentRunLlmUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cached_input_tokens?: number;
+  total_tokens?: number;
+  llm_calls?: number;
+  cost_usd?: number;
+  latency_ms?: number;
+  model_id?: string;
+  model_provider?: string;
+}
+
 export interface DocumentRunResponse {
   run_id: string;
   status: string;
   assessment_id: string | null;
   error_message: string | null;
   stage_progress: DocumentRunStage[];
+  llm_usage?: DocumentRunLlmUsage | null;
 }
 
 export interface StartDocumentRunRequest {

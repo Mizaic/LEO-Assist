@@ -14,6 +14,8 @@ import json
 import re
 from typing import Any
 
+from libs.sbar.error_messages import KNOWN_ERROR_CODES, SBAR_STAGE_NAMES
+
 _LOW_CONF_RE = re.compile(
     r"^terminology_low_confidence:\s*(\d+)\s+entity/entities below "
     r"score threshold ([0-9.]+)\s*--\s*(.+)$",
@@ -67,11 +69,26 @@ def stage_warnings_from_row(row: dict[str, Any]) -> list[str]:
     return []
 
 
+def _sbar_pipeline_message(raw: str) -> str | None:
+    """Strip SBAR stage prefixes and keep the classified reason."""
+    stage, sep, rest = raw.partition(":")
+    if not sep or stage not in SBAR_STAGE_NAMES:
+        return None
+    code, code_sep, message = rest.partition(":")
+    if code_sep and code in KNOWN_ERROR_CODES:
+        return message.strip() or rest.strip()
+    return rest.strip() or raw
+
+
 def plain_english_pipeline_message(text: str) -> str:
     """Turn a machine error or warning string into clinician-readable text."""
     raw = str(text or "").strip()
     if not raw:
         return ""
+
+    sbar_text = _sbar_pipeline_message(raw)
+    if sbar_text is not None:
+        return sbar_text
 
     if raw.startswith("terminology_low_confidence:"):
         match = _LOW_CONF_RE.match(raw)
@@ -82,9 +99,11 @@ def plain_english_pipeline_message(text: str) -> str:
             terms = _TERM_SCORE_RE.findall(terms_blob)
             if terms:
                 parts = [
-                    f'"{term}" ({round(float(score) * 100)}% match)'
-                    if float(score) > 0
-                    else f'"{term}" (no SNOMED match found)'
+                    (
+                        f'"{term}" ({round(float(score) * 100)}% match)'
+                        if float(score) > 0
+                        else f'"{term}" (no SNOMED match found)'
+                    )
                     for term, score in terms
                 ]
                 joined = ", ".join(parts)

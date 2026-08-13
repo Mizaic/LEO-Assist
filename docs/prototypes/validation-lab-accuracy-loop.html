@@ -1,0 +1,2292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validation Lab - two modes (prototype)</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 15px; line-height: 1.5; color: #0f172a; background: #cbd5e1;
+    }
+
+    .shell {
+      max-width: 960px; margin: 0 auto; min-height: 100vh;
+      background: #fff; box-shadow: 0 0 48px rgba(15, 23, 42, 0.12);
+      display: flex; flex-direction: column;
+    }
+    .shell.wide { max-width: 1280px; }
+
+    .top {
+      padding: 14px 18px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+      display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+    }
+    .top h1 { margin: 0; font-size: 18px; font-weight: 700; flex: 1; }
+    .top p { margin: 4px 0 0; font-size: 12px; color: #64748b; }
+    .mode-pill {
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+      background: #dbeafe; color: #1e40af;
+    }
+    .mode-pill.clinical { background: #fce7f3; color: #9d174d; }
+    .mode-pill.synthetic { background: #dbeafe; color: #1e40af; }
+    .mode-pill.production { background: #fef3c7; color: #92400e; }
+
+    .context-strip {
+      padding: 10px 18px; background: #eff6ff; border-bottom: 1px solid #bfdbfe;
+      font-size: 13px;
+    }
+    .context-strip.clinical { background: #fdf2f8; border-color: #fbcfe8; }
+    .context-strip strong { display: block; font-size: 14px; }
+    .context-strip span { color: #475569; font-size: 12px; }
+
+    .stepper-wrap { overflow-x: auto; border-bottom: 1px solid #e2e8f0; }
+    .stepper { display: flex; gap: 6px; padding: 8px 14px; min-width: max-content; }
+    .step-pill {
+      padding: 6px 12px; border-radius: 999px; border: 1px solid #e2e8f0;
+      background: #fff; font-size: 11px; font-weight: 600; color: #64748b;
+      cursor: pointer; white-space: nowrap;
+    }
+    .step-pill.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+    .step-pill.done { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .step-pill.skipped { opacity: 0.4; text-decoration: line-through; cursor: default; }
+
+    .main { flex: 1; padding: 18px; padding-bottom: 80px; }
+    .main.review-layout { padding: 0; display: flex; flex-direction: column; min-height: 560px; }
+
+    h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; }
+    .lead { margin: 0 0 16px; color: #475569; font-size: 14px; }
+
+    .mode-grid { display: grid; gap: 14px; }
+    @media (min-width: 640px) { .mode-grid { grid-template-columns: 1fr 1fr; } }
+
+    .mode-card {
+      padding: 20px; border: 2px solid #e2e8f0; border-radius: 14px;
+      cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .mode-card:hover { border-color: #93c5fd; box-shadow: 0 4px 16px rgba(30, 64, 175, 0.08); }
+    .mode-card h3 { margin: 0 0 6px; font-size: 17px; }
+    .mode-card p { margin: 0 0 12px; font-size: 13px; color: #64748b; }
+    .mode-card ul { margin: 0; padding-left: 18px; font-size: 12px; color: #475569; }
+    .mode-card li { margin-bottom: 4px; }
+
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .btn {
+      padding: 10px 16px; border-radius: 10px; border: 1px solid #cbd5e1;
+      background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; color: #334155;
+    }
+    .btn:hover { background: #f1f5f9; }
+    .btn-primary { background: #1e40af; color: #fff; border-color: #1e40af; }
+    .btn-success { background: #047857; color: #fff; border-color: #047857; }
+    .btn-ghost { border: none; background: none; color: #64748b; }
+
+    .card {
+      border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 12px; overflow: hidden;
+    }
+    .card-head {
+      padding: 10px 14px; background: #f8fafc; font-size: 13px; font-weight: 700;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .card-body { padding: 14px; font-size: 14px; }
+
+    .rule-list { list-style: none; margin: 0; padding: 0; }
+    .rule-item {
+      padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 10px;
+      margin-bottom: 8px; cursor: pointer;
+    }
+    .rule-item:hover { border-color: #93c5fd; }
+    .rule-item.selected { border-color: #1e40af; background: #eff6ff; }
+    .rule-item .id { font-size: 11px; font-family: ui-monospace, monospace; color: #64748b; }
+    .rule-item .title { font-weight: 600; margin: 4px 0; }
+    .rule-item .concepts { font-size: 12px; color: #475569; }
+
+    .patient-list { list-style: none; margin: 0; padding: 0; }
+    .patient-item {
+      padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 10px;
+      margin-bottom: 8px; cursor: pointer; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .patient-item:hover { border-color: #f9a8d4; }
+    .patient-item.selected { border-color: #be185d; background: #fdf2f8; }
+    .patient-item .avatar {
+      width: 40px; height: 40px; border-radius: 10px; background: #fce7f3;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #9d174d; flex-shrink: 0;
+    }
+
+    .chip { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+    .chip-bad { background: #fee2e2; color: #991b1b; }
+    .chip-ok { background: #dcfce7; color: #166534; }
+    .chip-warn { background: #fef3c7; color: #92400e; }
+    .chip-info { background: #dbeafe; color: #1e40af; }
+
+    .status-hero {
+      text-align: center; padding: 18px; border-radius: 12px; margin-bottom: 14px;
+    }
+    .status-hero.issue { background: #fff7ed; border: 1px solid #fed7aa; }
+    .status-hero.ok { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .status-hero.neutral { background: #f8fafc; border: 1px solid #e2e8f0; }
+
+    /* -- Generate episode tabs -- */
+    .tab-row { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 8px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
+      background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; color: #64748b;
+    }
+    .tab-btn.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+
+    .toggle-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+    .toggle {
+      display: flex; align-items: center; gap: 8px; font-size: 13px;
+      padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer;
+    }
+    .toggle.on { border-color: #1e40af; background: #eff6ff; }
+    .toggle input { margin: 0; }
+
+    .doc-preview {
+      border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;
+      background: #fff; font-size: 13px; white-space: pre-wrap; line-height: 1.55;
+      font-family: ui-monospace, monospace;
+    }
+
+    /* -- Shared review layout -- */
+    .review-toolbar {
+      padding: 10px 14px; border-bottom: 1px solid #e2e8f0;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fff;
+    }
+    .review-body { flex: 1; display: flex; min-height: 480px; }
+    .review-left {
+      width: 36%; min-width: 280px; border-right: 1px solid #e2e8f0;
+      overflow: auto; padding: 12px; background: #fafafa;
+    }
+    .review-right { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #fff; }
+
+    /* -- Process-mining stage wizard -- */
+    .stage-wizard { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .stage-wizard-head {
+      padding: 12px 16px; border-bottom: 1px solid #e2e8f0;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .stage-wizard-head h3 { margin: 0; font-size: 16px; flex: 1; min-width: 180px; }
+    .stage-wizard-nav { display: flex; gap: 6px; }
+    .stage-wizard-nav .btn { padding: 6px 12px; font-size: 12px; }
+
+    .pipeline-track {
+      display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid #e2e8f0;
+      overflow-x: auto; background: #f8fafc;
+    }
+    .pipeline-dot {
+      flex: 1; min-width: 72px; padding: 8px 6px; border-radius: 8px; border: 1px solid #e2e8f0;
+      background: #fff; font-size: 10px; font-weight: 600; color: #64748b; cursor: pointer;
+      text-align: center; line-height: 1.3;
+    }
+    .pipeline-dot.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+    .pipeline-dot.done { background: #f0fdf4; color: #166534; border-color: #86efac; }
+    .pipeline-dot.issue { background: #fff7ed; color: #9a3412; border-color: #fdba74; }
+    .pipeline-dot .num { display: block; font-size: 9px; opacity: 0.8; margin-bottom: 2px; }
+
+    .stage-wizard-body { flex: 1; overflow: auto; padding: 16px; }
+
+    .flow-stack { display: flex; flex-direction: column; gap: 0; max-width: 720px; }
+    .flow-section {
+      border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; background: #fff;
+    }
+    .flow-section-head {
+      padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; border-bottom: 1px solid #e2e8f0;
+    }
+    .flow-section.in .flow-section-head { background: #f1f5f9; color: #475569; }
+    .flow-section.process .flow-section-head { background: #eff6ff; color: #1e40af; }
+    .flow-section.out .flow-section-head { background: #f0fdf4; color: #166534; }
+    .flow-section-body { padding: 10px 12px; font-size: 12px; }
+
+    .flow-arrow {
+      text-align: center; padding: 6px 0; color: #94a3b8; font-size: 18px; line-height: 1;
+    }
+    .flow-meta { font-size: 11px; color: #64748b; margin-bottom: 8px; }
+
+    .flow-item {
+      display: flex; gap: 8px; align-items: flex-start; padding: 7px 0;
+      border-bottom: 1px solid #f1f5f9; font-size: 12px;
+    }
+    .flow-item:last-child { border-bottom: none; }
+    .flow-item.dimmed { opacity: 0.35; }
+    .flow-item.dropped { opacity: 0.55; text-decoration: line-through; color: #991b1b; }
+    .flow-item.changed { background: #fffbeb; margin: 0 -12px; padding: 7px 12px; }
+    .flow-item.error { background: #fef2f2; margin: 0 -12px; padding: 7px 12px; }
+
+    .flow-status {
+      flex-shrink: 0; font-size: 9px; font-weight: 700; padding: 2px 6px;
+      border-radius: 4px; text-transform: uppercase; min-width: 52px; text-align: center;
+    }
+    .flow-status.pass { background: #f1f5f9; color: #64748b; }
+    .flow-status.added { background: #dbeafe; color: #1e40af; }
+    .flow-status.changed { background: #fef3c7; color: #92400e; }
+    .flow-status.dropped { background: #fee2e2; color: #991b1b; }
+    .flow-status.error { background: #fee2e2; color: #991b1b; }
+
+    .flow-item-main { flex: 1; min-width: 0; }
+    .flow-item-main .mono { font-family: ui-monospace, monospace; font-size: 11px; color: #047857; }
+    .flow-item-main .sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+    .process-step { padding: 5px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12px; }
+    .process-step:last-child { border-bottom: none; }
+    .process-step strong { color: #1e40af; }
+
+    .handoff-bar {
+      margin-top: 14px; padding: 10px 14px; border-radius: 8px;
+      background: #f8fafc; border: 1px dashed #cbd5e1; font-size: 12px; color: #475569;
+    }
+    .handoff-bar strong { color: #0f172a; }
+
+    .fix-tool-card {
+      border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px;
+      margin-bottom: 14px; background: #fff;
+    }
+    .fix-tool-card.fix-tool-code { border-color: #93c5fd; background: #f8faff; }
+    .fix-tool-card.fix-tool-eng { border-color: #fcd34d; background: #fffbeb; }
+
+    .fix-tool-head {
+      display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px;
+    }
+    .fix-tool-icon {
+      flex-shrink: 0; font-size: 20px; width: 36px; height: 36px;
+      background: #dbeafe; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .fix-tool-icon.fix-tool-icon-warn { background: #fef3c7; }
+    .fix-tool-head strong { font-size: 14px; }
+
+    .sf-search-wrap { margin-bottom: 10px; }
+    .sf-search-input {
+      width: 100%; padding: 9px 12px; border: 2px solid #93c5fd; border-radius: 8px;
+      font-size: 14px; font-family: ui-monospace, monospace; color: #1e293b;
+      outline: none; box-sizing: border-box;
+    }
+    .sf-search-input:focus { border-color: #2563eb; }
+    .sf-no-result {
+      padding: 12px 14px; background: #f8fafc; border: 1px dashed #cbd5e1;
+      border-radius: 8px; font-size: 13px; color: #64748b; margin-bottom: 8px;
+    }
+    .sf-saved-bar {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      padding: 8px 0; font-size: 12px; color: #64748b;
+    }
+    .sf-saved-chip {
+      background: #dcfce7; color: #166534; padding: 2px 10px; border-radius: 10px;
+      font-size: 12px; font-weight: 600; font-family: ui-monospace, monospace;
+    }
+    .sf-mapping-row.sf-ok { background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+    .sf-mapping-row {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; margin-bottom: 8px; font-size: 13px;
+    }
+    .sf-mapping-row.sf-wrong { background: #fef2f2; border: 1px solid #fecaca; }
+    .sf-mapping-row.sf-proposed { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .sf-mapping-term { font-family: ui-monospace, monospace; font-weight: 600; min-width: 70px; color: #1e293b; }
+    .sf-arrow { color: #94a3b8; font-size: 16px; }
+    .sf-mapping-code { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .code-badge {
+      padding: 2px 8px; border-radius: 6px; font-family: ui-monospace, monospace;
+      font-size: 11px; font-weight: 700;
+    }
+    .code-badge.wrong { background: #fecaca; color: #991b1b; }
+    .code-badge.ok { background: #bbf7d0; color: #166534; }
+    .sf-badge-wrong {
+      padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 700;
+      background: #fee2e2; color: #991b1b;
+    }
+    .sf-badge-ok {
+      padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 700;
+      background: #dcfce7; color: #166534;
+    }
+
+    .fix-tool-actions {
+      display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap;
+    }
+    .fix-applied-bar {
+      margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+      background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534;
+      font-size: 13px; font-weight: 600;
+    }
+
+    .eng-detail {
+      background: #fff; border: 1px solid #fde68a; border-radius: 8px;
+      padding: 12px 14px; margin-bottom: 12px;
+    }
+    .eng-file-row { display: flex; align-items: center; gap: 10px; }
+    .eng-file-label {
+      font-size: 11px; font-weight: 700; color: #92400e;
+      text-transform: uppercase; min-width: 90px;
+    }
+    .eng-file-path {
+      font-family: ui-monospace, monospace; font-size: 12px;
+      background: #fef9c3; padding: 2px 8px; border-radius: 4px; color: #78350f; flex: 1;
+    }
+
+    .scenario-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 2px;
+    }
+    .scenario-card {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 12px 14px; border: 2px solid #e2e8f0; border-radius: 10px;
+      background: #fff; cursor: pointer; transition: border-color 0.15s;
+    }
+    .scenario-card input[type=radio] { display: none; }
+    .scenario-card:hover { border-color: #93c5fd; }
+    .scenario-card.selected { border-color: #2563eb; background: #eff6ff; }
+    .scenario-card strong { display: block; margin-bottom: 4px; font-size: 14px; }
+    .scenario-card p { margin: 0; font-size: 12px; color: #475569; line-height: 1.4; }
+    .sc-icon {
+      flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+      background: #dcfce7; color: #166534; font-size: 16px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; margin-top: 2px;
+    }
+    .sc-icon.sc-warn { background: #fff7ed; color: #9a3412; }
+
+    .safety-rail {
+      padding: 8px 16px; background: #f0fdf4; border-bottom: 1px solid #bbf7d0;
+      font-size: 12px; color: #166534; font-weight: 600; letter-spacing: 0.01em;
+    }
+
+    .focus-question {
+      padding: 10px 14px; background: #eff6ff; border-radius: 8px;
+      border-left: 3px solid #3b82f6; font-size: 13px; color: #1e3a8a;
+      margin-bottom: 12px; font-weight: 500;
+    }
+
+    .ask-leo-strip {
+      margin: 10px 0;
+    }
+    .ask-leo-btn {
+      font-size: 12px; padding: 6px 12px; background: #fff;
+      border: 1px solid #a5b4fc; color: #4338ca; border-radius: 8px;
+      cursor: pointer; font-weight: 600;
+    }
+    .ask-leo-btn:hover { background: #eef2ff; }
+    .ask-leo-btn.ask-leo-quiet {
+      color: #64748b; border-color: #e2e8f0;
+    }
+    .ask-leo-btn.ask-leo-quiet:hover { color: #4338ca; border-color: #a5b4fc; }
+    .ask-leo-response {
+      display: flex; gap: 10px; margin-top: 10px; padding: 12px 14px;
+      background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 10px;
+      font-size: 13px; line-height: 1.6; color: #1e1b4b;
+    }
+    .leo-avatar {
+      flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
+      background: #6d28d9; color: #fff; font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .leo-text { flex: 1; }
+
+    .issue-callout {
+      margin-bottom: 14px; padding: 12px 14px; border-radius: 10px;
+      background: #fff7ed; border: 1px solid #fed7aa; font-size: 13px;
+    }
+    .issue-callout strong { display: block; margin-bottom: 4px; color: #9a3412; }
+
+    .count-strip {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px;
+    }
+    .count-strip span { color: #64748b; }
+    .count-strip .bad { color: #991b1b; font-weight: 700; }
+    .count-strip .warn { color: #854d0e; font-weight: 700; }
+    .count-strip .ok { color: #166534; font-weight: 700; }
+
+    .chunk-list { list-style: none; margin: 0 0 10px; padding: 0; }
+    .chunk-item {
+      padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px;
+      margin-bottom: 6px; cursor: pointer; background: #fff; font-size: 12px;
+    }
+    .chunk-item:hover { border-color: #93c5fd; }
+    .chunk-item.active { border-color: #1e40af; background: #eff6ff; }
+    .chunk-item .ord { font-size: 10px; color: #64748b; }
+    .chunk-item .codes { font-size: 10px; color: #047857; margin-top: 4px; }
+
+    .doc-block {
+      border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;
+      background: #fff; font-size: 13px; white-space: pre-wrap; line-height: 1.5;
+      margin-bottom: 10px;
+    }
+    .doc-block .label { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 6px; }
+    .doc-block .hl { background: #fef08a; padding: 0 2px; border-radius: 2px; }
+    .doc-block .hl-active {
+      background: #fb923c; padding: 0 2px; border-radius: 2px;
+      box-shadow: 0 0 0 2px #fdba74; font-weight: 600;
+    }
+
+    .flow-item.clickable { cursor: pointer; }
+    .flow-item.clickable:hover { background: #f8fafc; }
+    .flow-item.source-focus { background: #fff7ed; outline: 1px solid #fdba74; }
+
+    .filter-banner {
+      padding: 6px 10px; margin-bottom: 8px; border-radius: 8px;
+      background: #eff6ff; border: 1px solid #93c5fd; font-size: 11px; color: #1e40af;
+    }
+    .filter-banner button {
+      margin-left: 6px; padding: 2px 8px; font-size: 10px; border-radius: 6px;
+      border: 1px solid #93c5fd; background: #fff; cursor: pointer; color: #1e40af;
+    }
+
+    .telemetry-strip {
+      display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 12px;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      margin-bottom: 12px; font-size: 12px;
+    }
+    .telemetry-strip span { color: #64748b; }
+    .telemetry-strip strong { color: #0f172a; }
+
+    .io-box {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 10px; margin-bottom: 8px; font-size: 12px;
+    }
+    .io-box h4 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; color: #64748b; }
+
+    .entity-row {
+      padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px;
+    }
+    .entity-row.dimmed { opacity: 0.35; }
+    .entity-row .code { font-family: ui-monospace, monospace; font-size: 11px; color: #047857; }
+
+    .compare-grid { display: grid; gap: 12px; }
+    @media (min-width: 640px) { .compare-grid { grid-template-columns: 1fr 1fr; } }
+    .compare-col { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .compare-col .head { padding: 10px 14px; font-weight: 700; font-size: 13px; }
+    .compare-col.run-a .head { background: #fee2e2; color: #991b1b; }
+    .compare-col.run-b .head { background: #dcfce7; color: #166534; }
+    .compare-col .body { padding: 14px; font-size: 13px; }
+
+    .footer {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 960px; padding: 10px 16px;
+      background: #fff; border-top: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .shell.wide ~ .footer, .footer.wide { max-width: 1280px; }
+
+    .hidden { display: none !important; }
+    .proto-note {
+      position: fixed; bottom: 58px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; background: #0f172a; color: #f8fafc; padding: 6px 12px;
+      border-radius: 8px; max-width: 92%; text-align: center;
+    }
+    .proto-note a { color: #93c5fd; }
+
+    input[type="search"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1;
+      border-radius: 8px; font-size: 14px; margin-bottom: 12px;
+    }
+
+    .gold-box {
+      background: #fefce8; border: 1px solid #fde047; border-radius: 12px;
+      padding: 16px; margin-top: 12px;
+    }
+    .checklist { list-style: none; margin: 0; padding: 0; }
+    .checklist li { padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+    .checklist li.done { color: #166534; }
+
+    /* -- Left context tabs (source + guideline + outcome in one place) -- */
+    .context-tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+    .ctx-tab {
+      padding: 6px 10px; border-radius: 8px; border: 1px solid #e2e8f0;
+      background: #fff; font-size: 11px; font-weight: 600; cursor: pointer; color: #64748b;
+    }
+    .ctx-tab.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+
+    .mapping-pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+      border-radius: 999px; border: 1px solid #bbf7d0; background: #ecfdf5;
+      font-size: 11px; cursor: pointer; margin: 0 6px 6px 0;
+    }
+    .mapping-pill:hover { border-color: #1e40af; background: #eff6ff; }
+    .mapping-pill.flagged { border-color: #f87171; background: #fef2f2; }
+    .mapping-pill .code { font-family: ui-monospace, monospace; color: #047857; }
+
+    .problem-group { margin-bottom: 12px; }
+    .problem-group h4 { margin: 0 0 6px; font-size: 12px; color: #475569; }
+
+    .flag-bar {
+      padding: 10px 14px; background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 8px; font-size: 12px; margin-bottom: 12px;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+
+    .flag-btn {
+      padding: 3px 8px; font-size: 10px; border-radius: 6px; border: 1px solid #fca5a5;
+      background: #fff; color: #991b1b; cursor: pointer; font-weight: 600;
+    }
+    .flag-btn.flagged { background: #991b1b; color: #fff; border-color: #991b1b; }
+
+    .sbar-preview {
+      font-size: 13px; line-height: 1.55; white-space: pre-wrap;
+      border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #fff;
+    }
+    .sbar-preview .section { margin-bottom: 10px; }
+    .sbar-preview .label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+
+    .home-strip {
+      margin-top: 20px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px;
+      background: #f8fafc; font-size: 13px;
+    }
+    .home-strip h3 { margin: 0 0 8px; font-size: 14px; }
+    .home-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .home-links .btn { padding: 6px 12px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<div class="shell" id="shell">
+  <header class="top">
+    <div style="flex:1">
+      <h1>Validation Lab</h1>
+      <p>Two ways in. Same process-mining review.</p>
+    </div>
+    <span class="mode-pill hidden" id="mode-pill"></span>
+    <button type="button" class="btn btn-ghost hidden" id="btn-home">Back to home</button>
+  </header>
+
+  <div class="context-strip hidden" id="context-strip">
+    <strong id="ctx-title">--</strong>
+    <span id="ctx-meta">--</span>
+  </div>
+
+  <div class="stepper-wrap hidden" id="stepper-wrap">
+    <nav class="stepper" id="stepper"></nav>
+  </div>
+
+  <main class="main" id="main"></main>
+</div>
+
+<footer class="footer" id="footer">
+  <button type="button" class="btn" id="btn-back" disabled>Back</button>
+  <span id="footer-label" style="font-size:12px;color:#64748b">Choose a path</span>
+  <button type="button" class="btn btn-primary" id="btn-forward">Continue</button>
+</footer>
+
+<div class="proto-note">
+  Static prototype -- rule test or clinical replay.
+  <a href="validation-lab-run-review.html">Full operator run review</a>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var RULES = [
+    {
+      id: "NG12-1.3",
+      title: "Suspected lung cancer - offer urgent referral",
+      concepts: ["49727002 Cough", "89362005 Weight loss", "233604007 Imaging finding"],
+      expect: "Rule should match when cough + weight loss + suspicious imaging present."
+    },
+    {
+      id: "NG12-1.4",
+      title: "Chest X-ray result - unexpected finding",
+      concepts: ["168731009 Chest X-ray abnormal"],
+      expect: "Rule should match when abnormal CXR documented within 2 weeks."
+    },
+    {
+      id: "NG59-1.1",
+      title: "Upper GI - dysphagia referral",
+      concepts: ["288939007 Dysphagia", "162031009 Dyspepsia"],
+      expect: "Rule should match for progressive dysphagia pattern."
+    }
+  ];
+
+  var PATIENTS = [
+    {
+      id: "pat-8842",
+      name: "J. Morrison",
+      age: 68, sex: "M",
+      review: "Clinician rejected SBAR: wrong urgency. 2WW pathway not shown.",
+      runId: "prod-run-f4a2",
+      date: "11 Aug 2026",
+      ruleMissed: "NG12-1.3",
+      issue: "Compliance did not fire despite cough + weight loss in referral."
+    },
+    {
+      id: "pat-7103",
+      name: "S. Patel",
+      age: 54, sex: "F",
+      review: "Coding query: COPD coded as active instead of history.",
+      runId: "prod-run-c91b",
+      date: "9 Aug 2026",
+      ruleMissed: null,
+      issue: "Post-processing assertion wrong on PMH line in chunk 1."
+    },
+    {
+      id: "pat-2291",
+      name: "R. Hughes",
+      age: 72, sex: "M",
+      review: "SBAR background missing GP consultation context.",
+      runId: "prod-run-88de",
+      date: "7 Aug 2026",
+      ruleMissed: null,
+      issue: "SBAR stage did not pull encounter text into background."
+    }
+  ];
+
+  var CHUNKS = [
+    {
+      id: "chunk-001",
+      ordinal: 1,
+      preview: "Dear Colleague, I am referring this 68 year old...",
+      text: "Dear Colleague,\n\nI am referring this 68 year old gentleman who presented with a persistent cough and weight loss over 6 weeks.\n\nPast medical history includes COPD and hypertension.\n\nChest X-ray shows a suspicious left upper lobe opacity.\n\nYours sincerely,\nDr Smith",
+      highlights: ["persistent cough", "weight loss", "COPD", "hypertension", "suspicious left upper lobe opacity"],
+      entities: [
+        { text: "persistent cough", code: "49727002", term: "Cough", assertion: "present" },
+        { text: "weight loss", code: "89362005", term: "Weight loss", assertion: "present" },
+        { text: "COPD", code: "13645005", term: "COPD", assertion: "history" },
+        { text: "hypertension", code: "59621000", term: "Essential hypertension", assertion: "history" },
+        { text: "suspicious left upper lobe opacity", code: "233604007", term: "Pneumonia", assertion: "present", issue: true }
+      ]
+    },
+    {
+      id: "chunk-002",
+      ordinal: 2,
+      preview: "Examination: reduced breath sounds LUL...",
+      text: "Examination:\n- Reduced breath sounds left upper lobe\n- No clubbing\n- SpO2 94% on room air\n\nPlan: 2WW referral to respiratory.",
+      highlights: ["Reduced breath sounds left upper lobe", "SpO2 94%"],
+      entities: [
+        { text: "Reduced breath sounds left upper lobe", code: "301280008", term: "Reduced breath sounds", assertion: "present" },
+        { text: "SpO2 94%", code: "431314004", term: "Peripheral oxygen saturation", assertion: "present" }
+      ]
+    },
+    {
+      id: "chunk-003",
+      ordinal: 3,
+      preview: "Investigations: FBC, U&E, LFTs attached...",
+      text: "Investigations attached:\n- FBC: Hb 128 g/L\n- WCC 8.2\n- CRP 12 mg/L\n\nPatient aware of referral reason.",
+      highlights: ["Hb 128", "CRP 12"],
+      entities: [
+        { text: "Hb 128 g/L", code: "165581007", term: "Haemoglobin level", assertion: "present" },
+        { text: "CRP 12 mg/L", code: "365981007", term: "C reactive protein", assertion: "present" }
+      ]
+    }
+  ];
+
+  var SOAP_PREVIEW =
+    "GP consultation (14 Jan 2026)\n\nS: 6 week cough, 4 kg weight loss. Smoker 30 pack-years.\n" +
+    "O: Reduced breath sounds LUL. SpO2 94%. CXR: LUL opacity.\n" +
+    "A: Suspected lung cancer - refer 2WW.\nP: Urgent respiratory referral.";
+
+  var EPR_PREVIEW =
+    "GP Connect bundle (Consumer demonstrator shape)\n\n" +
+    "Patient: Morrison, James (68M)\n" +
+    "Encounter: GP consultation 2026-01-14\n" +
+    "Conditions: COPD (13645005), Hypertension (59621000)\n" +
+    "Observations: SpO2 94%, Weight -4kg\n" +
+    "Referral: Respiratory 2WW (linked document)";
+
+  var STAGE_IDS = ["extract", "post", "coding", "compliance", "completeness", "sbar"];
+
+  var STAGES = [
+    {
+      id: "extract", name: "Reading the letter",
+      plain: "The system reads each section of the referral and picks out clinical facts.",
+      question: "Does every important fact appear here? Click any item to see where it came from."
+    },
+    {
+      id: "post", name: "Cleaning the facts",
+      plain: "The system applies rules to remove noise and tag each fact with context (e.g. past history vs current problem).",
+      question: "Did the cleaning remove anything it should have kept? Count in vs count out."
+    },
+    {
+      id: "coding", name: "Adding medical codes",
+      plain: "Each fact is matched to a standard medical code (SNOMED CT) so rules can act on it.",
+      question: "Is each fact matched to the right code? Click an item to check the source text."
+    },
+    {
+      id: "compliance", name: "Checking the guideline",
+      plain: "The system checks whether the coded facts trigger the guideline rule.",
+      question: "Did the right codes arrive here? If a rule did not fire, trace back to which code was wrong or missing."
+    },
+    {
+      id: "completeness", name: "Checking for gaps",
+      plain: "The system checks whether the referral is missing information the guideline expects.",
+      question: "Are the missing items genuinely absent from the letter, or were they extracted but lost earlier?"
+    },
+    {
+      id: "sbar", name: "Draft assessment",
+      plain: "The system writes a draft clinical summary based on everything above.",
+      question: "Does the assessment reflect the correct urgency and pathway? If not, the problem is usually in an earlier stage."
+    }
+  ];
+
+  function askLeoText(stageId) {
+    if (stageId === "extract") {
+      return "I looked at the referral letter section by section. I picked out 9 clinical facts across 3 sections. " +
+        "Each fact is linked back to the section it came from so you can check it. " +
+        "If something important is missing here, it may not have been clear enough in the letter for me to spot.";
+    }
+    if (stageId === "post") {
+      if (isPostDropScenario()) {
+        return "The cleaning step removed 'weight loss' because a rule called the scope guard decided it looked like " +
+          "general lifestyle context rather than a specific symptom. " +
+          "This is a silent removal -- the fact was in the letter but never reached the coding step. " +
+          "To fix this, the scope guard rule needs to be updated to allow weight loss in a referral narrative.";
+      }
+      return "The cleaning step checked every fact for context -- past history versus current problem, " +
+        "and whether values were meaningful. All 9 facts passed through unchanged. " +
+        "COPD was correctly tagged as past history.";
+    }
+    if (stageId === "coding") {
+      if (isCodingErrorScenario()) {
+        return "I matched each fact to a standard medical code. Most matched well, " +
+          "but 'suspicious left upper lobe opacity' was matched to pneumonia (an infection) " +
+          "rather than an imaging finding. This is because the phrase 'opacity' can mean either. " +
+          "The guideline rule is looking for an imaging finding code, so it did not fire. " +
+          "Flagging this will let you update the matching rules.";
+      }
+      return "I matched each fact to a standard medical code. All matched correctly here. " +
+        "If a rule did not fire, the problem is likely in the cleaning step -- " +
+        "a fact was removed before it reached me.";
+    }
+    if (stageId === "compliance") {
+      return "I checked whether the coded facts triggered the guideline rule NG12-1.3. " +
+        "This rule needs: cough present, weight loss present, and a suspicious imaging finding. " +
+        (state.fixed
+          ? "All three were present -- the rule fired and the urgent pathway was triggered."
+          : "The rule did not fire. A required code was either wrong or missing. " +
+            "Look back at the coding or cleaning steps.");
+    }
+    if (stageId === "completeness") {
+      return "I checked whether the referral contained everything the guideline expects. " +
+        "Two items were not found: smoking history in pack-years, and performance status. " +
+        "These may have been in the letter but not clearly stated, or genuinely missing.";
+    }
+    if (stageId === "sbar") {
+      return "I wrote a draft summary based on everything above. " +
+        (state.fixed
+          ? "The summary correctly includes the urgent 2-week referral recommendation."
+          : "The summary does not mention the urgent referral because the guideline rule did not fire. " +
+            "Fix the rule issue first, then the summary will update automatically.");
+    }
+    return "I do not have specific guidance for this stage yet.";
+  }
+
+  function isHappyPath() {
+    return state.failureScenario === "happy";
+  }
+
+  function isPostDropScenario() {
+    return state.mode === "rule" && state.failureScenario === "post_drop" && !state.fixed && !isHappyPath();
+  }
+
+  function isCodingErrorScenario() {
+    return state.mode === "rule" && state.failureScenario === "coding_error" && !state.fixed && !isHappyPath();
+  }
+
+  function isWeightLoss(label) {
+    return label === "weight loss";
+  }
+
+  function opacityCode() {
+    if (state.fixed || isPostDropScenario()) return "168731009";
+    return "233604007";
+  }
+
+  function opacityTerm() {
+    if (state.fixed || isPostDropScenario()) return "Chest X-ray abnormal";
+    return "Pneumonia";
+  }
+
+  function buildEntityItems(withCodes) {
+    var items = [];
+    CHUNKS.forEach(function (ch) {
+      (ch.entities || []).forEach(function (e) {
+        var isOpacity = e.text.indexOf("opacity") >= 0;
+        var code = withCodes ? (isOpacity ? opacityCode() : e.code) : null;
+        var term = withCodes ? (isOpacity ? opacityTerm() : e.term) : null;
+        var status = "pass";
+        var note = "chunk " + ch.ordinal + " -- click to view source";
+        if (!withCodes) status = "added";
+        if (isOpacity && withCodes && isCodingErrorScenario()) {
+          status = "error";
+          note = "Wrong SNOMED -- click to view source in chunk " + ch.ordinal;
+        }
+        if (withCodes && isPostDropScenario() && isWeightLoss(e.text)) {
+          return;
+        }
+        if (state.mode === "clinical" && state.selectedPatient && state.selectedPatient.id === "pat-7103") {
+          if (e.text === "COPD" && withCodes) {
+            status = "changed";
+            note = "Assertion present -- should be history (chunk " + ch.ordinal + ")";
+          }
+        }
+        items.push({
+          label: e.text,
+          code: code,
+          term: term,
+          status: status,
+          note: note,
+          chunk: ch.ordinal,
+          chunkId: ch.id,
+          highlightTerm: sourceHighlightFor(ch, e.text)
+        });
+      });
+    });
+    return items;
+  }
+
+  function postOutItems(entities) {
+    return entities.map(function (e) {
+      var copy = Object.assign({}, e, { status: "pass" });
+      if (e.label === "COPD" && state.mode === "clinical" && state.selectedPatient && state.selectedPatient.id === "pat-7103") {
+        copy.status = "changed";
+        copy.note = "Assertion flipped to present (incorrect)";
+      }
+      if (isPostDropScenario() && isWeightLoss(e.label)) {
+        copy.status = "dropped";
+        copy.note = "Scope guard removed -- silent drop (chunk 1). Click to view source.";
+      }
+      return copy;
+    });
+  }
+
+  function entitiesAfterPost(entities) {
+    return postOutItems(entities).filter(function (e) { return e.status !== "dropped"; });
+  }
+
+  function complianceFailReason() {
+    if (isPostDropScenario()) {
+      return "NG12-1.3 did not fire -- weight loss was removed by the cleaning step and never reached here";
+    }
+    return "NG12-1.3 did not fire -- the imaging finding code was wrong (pneumonia instead of imaging finding)";
+  }
+
+  function fullLetterText() {
+    return CHUNKS.map(function (c) { return c.text; }).join("\n\n");
+  }
+
+  function allHighlights() {
+    var terms = [];
+    CHUNKS.forEach(function (c) { terms = terms.concat(c.highlights || []); });
+    return terms;
+  }
+
+  function sbarPreviewText() {
+    if (state.fixed) {
+      return "Situation: 68M referred with cough and weight loss.\n\n" +
+        "Background: COPD (history), CXR LUL opacity.\n\n" +
+        "Assessment: Suspected lung cancer. NG12-1.3 matched.\n\n" +
+        "Recommendation: Urgent 2WW respiratory referral.";
+    }
+    return "Situation: 68M referred with cough and weight loss.\n\n" +
+      "Background: COPD, CXR finding.\n\n" +
+      "Assessment: Respiratory symptoms under investigation.\n\n" +
+      "Recommendation: Routine follow-up suggested.";
+  }
+
+  function problemLists() {
+    var coded = buildEntityItems(true);
+    var conditions = [];
+    var findings = [];
+    coded.forEach(function (it) {
+      var entry = {
+        id: it.label,
+        text: it.label,
+        code: it.code,
+        term: it.term,
+        chunk: it.chunk,
+        chunkId: it.chunkId,
+        status: it.status,
+        kind: it.label === "COPD" || it.label === "hypertension" ? "condition" : "finding"
+      };
+      if (entry.kind === "condition") conditions.push(entry);
+      else findings.push(entry);
+    });
+    return { conditions: conditions, findings: findings };
+  }
+
+  function flaggedCount() {
+    return Object.keys(state.flagged).length;
+  }
+
+  function itemKey(it) {
+    return (it.id || it.label || "") + "|" + (it.code || "");
+  }
+
+  function filterByChunk(items) {
+    if (!state.selectedChunk) return items;
+    return items.filter(function (it) {
+      return !it.chunkId || it.chunkId === state.selectedChunk;
+    });
+  }
+
+  function renderFlowItems(items, showFlag) {
+    return filterByChunk(items).map(function (it) {
+      var cls = "flow-item";
+      if (it.chunkId) cls += " clickable";
+      if (it.chunkId && state.selectedChunk === it.chunkId &&
+          state.sourceHighlight && it.highlightTerm &&
+          state.sourceHighlight.toLowerCase() === it.highlightTerm.toLowerCase()) {
+        cls += " source-focus";
+      }
+      if (it.status === "dropped") cls += " dropped";
+      else if (it.status === "error") cls += " error";
+      else if (it.status === "changed") cls += " changed";
+      if (state.selectedChunk && it.chunkId && it.chunkId !== state.selectedChunk) cls += " dimmed";
+      var codeLine = it.code
+        ? "<span class=\"mono\">" + it.code + " " + (it.term || "") + "</span>"
+        : "";
+      var key = itemKey(it);
+      var canFlag = showFlag && (it.status === "error" || it.status === "changed" || it.status === "dropped");
+      var flagBtn = canFlag
+        ? "<button type=\"button\" class=\"flag-btn" + (state.flagged[key] ? " flagged" : "") +
+          "\" data-flag=\"" + key + "\">" + (state.flagged[key] ? "Marked wrong (tap to undo)" : "Mark as wrong") + "</button>"
+        : "";
+      var jumpAttrs = it.chunkId
+        ? " data-source-jump=\"1\" data-chunk-id=\"" + it.chunkId + "\" data-source-term=\"" +
+          (it.highlightTerm || it.label).replace(/"/g, "&quot;") + "\""
+        : "";
+      return "<div class=\"" + cls + "\"" + jumpAttrs + " title=\"" +
+        (it.chunkId ? "Show source in chunk " + it.chunk : "") + "\">" +
+        "<span class=\"flow-status " + it.status + "\">" + it.status + "</span>" +
+        "<div class=\"flow-item-main\">" + it.label + (codeLine ? " " + codeLine : "") +
+        (it.note ? "<div class=\"sub\">" + it.note + "</div>" : "") +
+        "</div>" + flagBtn + "</div>";
+    }).join("");
+  }
+
+  function renderProblemListsPanel() {
+    var lists = problemLists();
+    function pills(items) {
+      return items.map(function (it) {
+        var key = itemKey(it);
+        var flagged = state.flagged[key];
+        return "<span class=\"mapping-pill" + (flagged ? " flagged" : "") + "\" data-map-chunk=\"" + it.chunkId +
+          "\" data-source-term=\"" + sourceHighlightFor(
+            CHUNKS.find(function (c) { return c.id === it.chunkId; }), it.text
+          ).replace(/"/g, "&quot;") + "\" data-flag=\"" + key + "\">" +
+          it.text + " <span class=\"code\">" + it.code + "</span></span>";
+      }).join("");
+    }
+    return "<div class=\"card\" style=\"margin-top:12px\"><div class=\"card-head\">Medical codes assigned to this patient (what the clinician would see)</div>" +
+      "<div class=\"card-body\">" +
+      "<div class=\"problem-group\"><h4>Diagnoses</h4>" + pills(lists.conditions) + "</div>" +
+      "<div class=\"problem-group\"><h4>Other findings</h4>" + pills(lists.findings) +
+      "<span class=\"mapping-pill\" style=\"opacity:0.6\">+2 lab results (see full view)</span></div>" +
+      "<p style=\"font-size:12px;color:#64748b;margin:8px 0 0\">Tap a code to see where it came from in the letter. If it looks wrong, tap it again to mark it.</p>" +
+      "</div></div>";
+  }
+
+  function countStatuses(items) {
+    var c = { pass: 0, added: 0, changed: 0, dropped: 0, error: 0 };
+    items.forEach(function (it) { if (c[it.status] !== undefined) c[it.status]++; });
+    return c;
+  }
+
+  function getStageFlow(index) {
+    var stage = STAGES[index];
+    var entities = buildEntityItems(false);
+    var coded = buildEntityItems(true);
+    var postOut = postOutItems(entities);
+    var afterPost = entitiesAfterPost(entities);
+    var snomedIn = coded.filter(function (it) { return it.code; });
+    var complianceMatched = state.fixed;
+    var codeCount = snomedIn.length;
+
+    var flows = {
+      extract: {
+        issue: null,
+        counts: { in: 3, out: 9, dropped: 0, changed: 0, error: 0 },
+        inLabel: "Referral letter (3 sections)",
+        inItems: CHUNKS.map(function (ch) {
+          return {
+            label: "Chunk " + ch.ordinal + ": " + ch.preview.slice(0, 48) + "...",
+            status: "pass",
+            note: "Click to open chunk " + ch.ordinal,
+            chunk: ch.ordinal,
+            chunkId: ch.id,
+            highlightTerm: (ch.highlights && ch.highlights[0]) || null
+          };
+        }),
+        process: [
+          { text: "AI reads each section and pulls out clinical facts (9.6k words processed, cost $0.03)" },
+          { text: "Each section is read separately so the source of every fact is tracked" },
+          { text: "9 clinical facts found across 3 sections" }
+        ],
+        outLabel: "9 facts passed to the cleaning step",
+        outItems: entities,
+        handoff: "9 facts (each linked to its source section) -> Cleaning"
+      },
+      post: {
+        issue: isPostDropScenario() ? "rule" : null,
+        counts: isPostDropScenario()
+          ? { in: 9, out: 8, dropped: 1, changed: 0, error: 0 }
+          : { in: 9, out: 9, dropped: 0, changed: 0, error: 0 },
+        inLabel: "9 facts from the reading step",
+        inItems: entities.map(function (e) {
+          return Object.assign({}, e, { status: "pass" });
+        }),
+        process: isPostDropScenario()
+          ? [
+            { text: "9 facts checked against cleaning rules -- 1 removed" },
+            { text: "Lab values checked: no changes" },
+            { text: "Context check: 'weight loss' removed by scope rule (treated as lifestyle, not a symptom)" },
+            { text: "Context check: COPD tagged as past history (correct)" }
+          ]
+          : [
+            { text: "9 facts checked against cleaning rules -- none removed" },
+            { text: "Lab values checked: no changes" },
+            { text: "Context check: COPD tagged as past history (correct)" },
+            { text: "All 9 facts passed through unchanged" }
+          ],
+        outLabel: isPostDropScenario() ? "8 facts passed to the coding step (1 quietly removed)" : "9 facts passed to the coding step",
+        outItems: postOut,
+        handoff: isPostDropScenario()
+          ? "8 facts -> Coding (weight loss was removed here and is now missing)"
+          : "9 facts -> Coding"
+      },
+      coding: {
+        issue: isCodingErrorScenario() ? "rule" : null,
+        counts: isPostDropScenario()
+          ? { in: 8, out: 8, dropped: 0, changed: 0, error: 0 }
+          : (state.fixed
+            ? { in: 9, out: 9, dropped: 0, changed: 1, error: 0 }
+            : { in: 9, out: 9, dropped: 0, changed: 0, error: 1 }),
+        inLabel: "Facts from the cleaning step",
+        inItems: afterPost.map(function (e) { return Object.assign({}, e, { status: "pass" }); }),
+        process: isPostDropScenario()
+          ? [
+            { text: "Each fact matched to a standard medical code (SNOMED CT)" },
+            { text: "8 of 8 facts matched -- all codes look correct here" },
+            { text: "The problem is not at this step -- weight loss was removed earlier" }
+          ]
+          : [
+            { text: "Each fact matched to a standard medical code (SNOMED CT)" },
+            { text: "9 of 9 facts matched" },
+            { text: state.fixed
+              ? "Opacity: matched to imaging finding (correct, after fix)"
+              : "Opacity: matched to pneumonia (wrong -- it should be an imaging finding)" }
+          ],
+        outLabel: "Medical codes passed to the guideline check",
+        outItems: coded,
+        handoff: codeCount + " medical codes -> Guideline check"
+      },
+      compliance: {
+        issue: state.fixed ? null : "rule",
+        counts: complianceMatched
+          ? { in: codeCount, out: 1, dropped: 0, changed: 0, error: 0 }
+          : { in: codeCount, out: 0, dropped: 0, changed: 0, error: isPostDropScenario() ? 0 : 1 },
+        inLabel: "Medical codes from the coding step",
+        inItems: snomedIn.map(function (e) {
+          var copy = Object.assign({}, e, { status: "pass" });
+          if (e.label.indexOf("opacity") >= 0 && isCodingErrorScenario()) copy.status = "error";
+          return copy;
+        }).concat(isPostDropScenario() ? [{
+          label: "Weight loss (code: 89362005)",
+          status: "dropped",
+          note: "Should be here from section 1 but was removed in the cleaning step",
+          chunkId: "chunk-001",
+          highlightTerm: "weight loss"
+        }] : []),
+        process: [
+          { text: "Guideline NG12-1.3 checked -- it needs: cough AND weight loss AND a suspicious imaging finding" },
+          { text: state.fixed
+            ? "All three were present -- guideline fired, urgent referral pathway triggered"
+            : complianceFailReason() }
+        ],
+        outLabel: "Result passed to the gap check and draft assessment",
+        outItems: complianceMatched
+          ? [{ label: "NG12-1.3 matched -- urgent referral pathway", status: "added", note: "Guideline fired correctly" }]
+          : [{ label: "No guideline matched", status: "dropped", note: "NG12-1.3 expected but did not fire -- see above" }],
+        handoff: complianceMatched
+          ? "Guideline matched -> gap check and draft assessment"
+          : "No guideline matched -> gap check and draft assessment (urgent pathway missing)"
+      },
+      completeness: {
+        issue: null,
+        counts: { in: codeCount, out: 2, dropped: 0, changed: 0, error: 0 },
+        inLabel: "Guideline result and coded facts",
+        inItems: [
+          { label: codeCount + " medical codes", status: "pass", note: "From the coding step" },
+          { label: "Guideline result: " + (complianceMatched ? "NG12-1.3 matched" : "no guideline matched"), status: complianceMatched ? "pass" : "dropped", note: "" }
+        ],
+        process: [
+          { text: "Checklist run against NG12 lung cancer pathway" },
+          { text: "2 items the guideline expects were not found in the letter or the coded facts" }
+        ],
+        outLabel: "Missing items highlighted for the reviewer",
+        outItems: [
+          { label: "Smoking history (how many pack-years) -- not found", status: "dropped", note: "Not in section 1 or coded facts" },
+          { label: "Performance status (how well the patient functions day-to-day) -- not found", status: "dropped", note: "Not in referral" }
+        ],
+        handoff: "Missing items noted -> draft assessment (for information only)"
+      },
+      sbar: {
+        issue: state.fixed ? null : "rule",
+        counts: { in: 2, out: 1, dropped: 0, changed: 0, error: state.fixed ? 0 : 1 },
+        inLabel: "Guideline result and coded facts",
+        inItems: [
+          { label: "Guideline result: " + (complianceMatched ? "NG12-1.3 matched" : "no guideline matched"), status: complianceMatched ? "pass" : "error" },
+          { label: "9 medical codes and referral letter content", status: "pass" }
+        ],
+        process: [
+          { text: "AI writes a draft clinical summary (Situation, Background, Assessment, Recommendation) -- cost $0.04" },
+          { text: "The urgency and pathway in the summary depend on which guideline fired above" }
+        ],
+        outLabel: "Draft assessment for a human clinician to review",
+        outItems: [{
+          label: state.fixed
+            ? "Assessment includes urgent 2WW respiratory referral language"
+            : "Assessment generated WITHOUT urgent 2WW language",
+          status: state.fixed ? "added" : "error",
+          note: state.fixed ? "Correct downstream of fixed compliance" : "Downstream of failed compliance -- no pathway language"
+        }],
+        handoff: "SBAR draft -> clinician review queue"
+      }
+    };
+
+    var flow = flows[stage.id];
+    if (state.mode === "clinical" && state.selectedPatient && state.selectedPatient.id === "pat-7103" && stage.id === "post") {
+      flow.issue = "clinical";
+    }
+    if (state.mode === "clinical" && state.selectedPatient && state.selectedPatient.id === "pat-2291" && stage.id === "sbar") {
+      flow.issue = "clinical";
+      flow.outItems = [{
+        label: "Background missing GP encounter context from graph",
+        status: "error",
+        note: "Encounter text not pulled into SBAR background"
+      }];
+    }
+    return Object.assign({ stage: stage, index: index }, flow);
+  }
+
+  var state = {
+    mode: null,
+    step: "home",
+    selectedRule: null,
+    selectedPatient: null,
+    stageIndex: 0,
+    selectedChunk: null,
+    generateTab: "referral",
+    includeEpr: false,
+    includeSoap: true,
+    runLabel: "Run A",
+    fixed: false,
+    savedGold: false,
+    leftTab: "letter",
+    flagged: {},
+    sourceHighlight: null,
+    failureScenario: "coding_error",
+    askLeoOpen: null,
+    fixApplied: false,
+    taskRaised: false,
+    sfSearch: "opacity",
+    sfSaved: {},
+    sgSection: ""
+  };
+
+  var RULE_STEPS = [
+    { id: "pick-rule", label: "Pick rule" },
+    { id: "generate", label: "Check case" },
+    { id: "run", label: "Run pipeline" },
+    { id: "review", label: "Review results" },
+    { id: "fix", label: "Fix" },
+    { id: "retest", label: "Retest" },
+    { id: "gold", label: "Save gold" }
+  ];
+
+  var CLINICAL_STEPS = [
+    { id: "pick-patient", label: "Pick patient" },
+    { id: "context", label: "Understand the issue" },
+    { id: "review", label: "Review results" },
+    { id: "capture", label: "Record what you found" }
+  ];
+
+  function steps() {
+    return state.mode === "rule" ? RULE_STEPS : CLINICAL_STEPS;
+  }
+
+  function setShellWide(wide) {
+    document.getElementById("shell").classList.toggle("wide", wide);
+    document.getElementById("footer").classList.toggle("wide", wide);
+  }
+
+  function escapeRegex(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function sourceHighlightFor(ch, label) {
+    if (!ch) return label;
+    var lower = (label || "").toLowerCase();
+    var match = null;
+    (ch.highlights || []).forEach(function (h) {
+      if (lower.indexOf(h.toLowerCase()) >= 0) match = h;
+    });
+    if (match) return match;
+    (ch.highlights || []).forEach(function (h) {
+      if (h.toLowerCase().indexOf(lower) >= 0) match = h;
+    });
+    return match || label;
+  }
+
+  function highlightChunkText(ch) {
+    var out = ch.text;
+    if (state.sourceHighlight) {
+      var activeRe = new RegExp(escapeRegex(state.sourceHighlight), "gi");
+      out = out.replace(activeRe, function (m) {
+        return "<span class=\"hl-active\">" + m + "</span>";
+      });
+    }
+    (ch.highlights || []).forEach(function (t) {
+      if (state.sourceHighlight && t.toLowerCase() === state.sourceHighlight.toLowerCase()) return;
+      var re = new RegExp(escapeRegex(t), "gi");
+      out = out.replace(re, function (m) {
+        return "<span class=\"hl\">" + m + "</span>";
+      });
+    });
+    return out;
+  }
+
+  function highlightText(text, terms) {
+    var out = text;
+    (terms || []).forEach(function (t) {
+      var re = new RegExp(escapeRegex(t), "gi");
+      out = out.replace(re, function (m) { return "<span class=\"hl\">" + m + "</span>"; });
+    });
+    return out;
+  }
+
+  function focusSource(chunkId, term) {
+    var ch = CHUNKS.find(function (c) { return c.id === chunkId; });
+    state.selectedChunk = chunkId;
+    state.leftTab = "chunks";
+    state.sourceHighlight = term ? sourceHighlightFor(ch, term) : null;
+    render();
+  }
+
+  function stageHasIssue(index) {
+    var flow = getStageFlow(index);
+    return flow.issue && !state.fixed;
+  }
+
+  function renderReviewPanel() {
+    var idx = state.stageIndex;
+    if (idx < 0) idx = 0;
+    if (idx >= STAGES.length) idx = STAGES.length - 1;
+    state.stageIndex = idx;
+
+    var flow = getStageFlow(idx);
+    var counts = flow.counts || {};
+
+    var stage = STAGES[idx];
+    var askLeoToggleId = "ask-leo-" + stage.id;
+
+    var issueCallout = "";
+    if (flow.issue && !state.fixed) {
+      var issueText = state.mode === "clinical" && state.selectedPatient
+        ? state.selectedPatient.issue
+        : "Something was removed or matched to the wrong code at this stage. Check the items below.";
+      issueCallout = "<div class=\"issue-callout\">" +
+        "<strong>Problem found at this stage</strong><br>" + issueText +
+        "<div class=\"ask-leo-strip\">" +
+        "<button type=\"button\" class=\"btn ask-leo-btn\" id=\"" + askLeoToggleId + "\">" +
+        (state.askLeoOpen === stage.id ? "Hide explanation" : "Ask LEO -- explain this in plain English") +
+        "</button></div>" +
+        (state.askLeoOpen === stage.id
+          ? "<div class=\"ask-leo-response\"><div class=\"leo-avatar\">LEO</div><div class=\"leo-text\">" +
+            askLeoText(stage.id) + "</div></div>"
+          : "") +
+        "</div>";
+    }
+
+    var countStrip = "<div class=\"count-strip\">" +
+      "<span>Arrived: <strong>" + (counts.in != null ? counts.in : "-") + "</strong></span>" +
+      "<span>Passed on: <strong>" + (counts.out != null ? counts.out : "-") + "</strong></span>" +
+      (counts.dropped ? "<span class=\"bad\">Removed: " + counts.dropped + "</span>" : "") +
+      (counts.changed ? "<span class=\"warn\">Changed: <strong>" + counts.changed + "</strong></span>" : "") +
+      (counts.error ? "<span class=\"bad\">Wrong code: " + counts.error + "</span>" : "") +
+      "</div>";
+
+    var processHtml = flow.process.map(function (p) {
+      return "<div class=\"process-step\">" + p.text + "</div>";
+    }).join("");
+
+    var trackHtml = STAGES.map(function (s, i) {
+      var cls = "pipeline-dot";
+      if (i === idx) cls += " active";
+      else if (i < idx) cls += " done";
+      if (stageHasIssue(i)) cls += " issue";
+      return "<button type=\"button\" class=\"" + cls + "\" data-stage-idx=\"" + i + "\">" +
+        "<span class=\"num\">" + (i + 1) + "/" + STAGES.length + "</span>" + s.name + "</button>";
+    }).join("");
+
+    var prevDisabled = idx <= 0 ? " disabled" : "";
+    var nextDisabled = idx >= STAGES.length - 1 ? " disabled" : "";
+
+    return (
+      "<div class=\"safety-rail\">Safe to explore -- nothing you do here changes real patient data or live rules.</div>" +
+      "<div class=\"review-toolbar\">" +
+      "<strong>Step-by-step pipeline review</strong>" +
+      "<span style=\"font-size:12px;color:#64748b\">See what arrived, what happened, and what moved on</span>" +
+      "<a href=\"" + inspectorUrl() + "\" class=\"btn\" style=\"padding:6px 12px;font-size:12px;margin-left:auto;text-decoration:none\">Full technical view</a>" +
+      "</div>" +
+      "<div class=\"review-body\">" +
+      "<div class=\"review-left\" id=\"review-left\">" + renderLeftContext() +
+      (state.mode === "clinical"
+        ? "<div class=\"card\"><div class=\"card-head\">What the clinician flagged</div><div class=\"card-body\" style=\"font-size:13px\">" +
+          state.selectedPatient.review + "</div></div>"
+        : "") +
+      "<div class=\"card\" style=\"margin-top:10px;border-left:3px solid #3b82f6\"><div class=\"card-head\">How to check</div><div class=\"card-body\" style=\"font-size:13px\">" +
+      "<ol style=\"margin:0;padding-left:18px;line-height:1.7\">" +
+      "<li>Read the source letter on the left.</li>" +
+      "<li>Click any item on the right to jump to its source text.</li>" +
+      "<li>If a code looks wrong, click <strong>Flag as wrong</strong>.</li>" +
+      "<li>Once you have flagged what is wrong, go to the Fix step.</li>" +
+      "</ol></div></div>" +
+      "</div>" +
+      "<div class=\"review-right\">" +
+      "<div class=\"stage-wizard\">" +
+      "<div class=\"stage-wizard-head\">" +
+      "<div>" +
+      "<h3 style=\"margin:0 0 4px\">" + flow.stage.name + "</h3>" +
+      "<p style=\"margin:0;font-size:13px;color:#475569\">" + (stage.plain || "") + "</p>" +
+      "</div>" +
+      "<div class=\"stage-wizard-nav\">" +
+      "<button type=\"button\" class=\"btn\" id=\"stage-prev\"" + prevDisabled + ">Back</button>" +
+      "<button type=\"button\" class=\"btn btn-primary\" id=\"stage-next\"" + nextDisabled + ">Next</button>" +
+      "</div></div>" +
+      "<div class=\"pipeline-track\">" + trackHtml + "</div>" +
+      "<div class=\"stage-wizard-body\">" +
+      "<div class=\"focus-question\">" + (stage.question || "") + "</div>" +
+      issueCallout +
+      (!flow.issue
+        ? "<div class=\"ask-leo-strip\">" +
+          "<button type=\"button\" class=\"btn ask-leo-btn ask-leo-quiet\" id=\"" + askLeoToggleId + "\">" +
+          (state.askLeoOpen === stage.id ? "Hide LEO explanation" : "Ask LEO -- explain this stage") +
+          "</button>" +
+          (state.askLeoOpen === stage.id
+            ? "<div class=\"ask-leo-response\"><div class=\"leo-avatar\">LEO</div><div class=\"leo-text\">" +
+              askLeoText(stage.id) + "</div></div>"
+            : "") +
+          "</div>"
+        : "") +
+      (flaggedCount() > 0
+        ? "<div class=\"flag-bar\"><strong>" + flaggedCount() + " item(s) flagged as wrong</strong> -- ready for the Fix step." +
+          "<button type=\"button\" class=\"btn btn-primary\" style=\"padding:4px 10px;font-size:12px\" id=\"btn-go-fix\">Go to Fix</button></div>"
+        : "") +
+      countStrip +
+      "<div class=\"flow-stack\">" +
+      "<div class=\"flow-section in\">" +
+      "<div class=\"flow-section-head\">What arrived -- " + flow.inLabel + "</div>" +
+      "<div class=\"flow-section-body\">" + renderFlowItems(flow.inItems, false) + "</div></div>" +
+      "<div class=\"flow-arrow\">&#8595;</div>" +
+      "<div class=\"flow-section process\">" +
+      "<div class=\"flow-section-head\">What the system did</div>" +
+      "<div class=\"flow-section-body\">" + processHtml + "</div></div>" +
+      "<div class=\"flow-arrow\">&#8595;</div>" +
+      "<div class=\"flow-section out\">" +
+      "<div class=\"flow-section-head\">What moved on -- " + flow.outLabel + "</div>" +
+      "<div class=\"flow-section-body\">" + renderFlowItems(flow.outItems, true) + "</div></div>" +
+      "</div>" +
+      (idx === 2 ? renderProblemListsPanel() : "") +
+      (idx === 5 ? "<div class=\"card\" style=\"margin-top:12px\"><div class=\"card-head\">Draft assessment (clinical outcome)</div>" +
+        "<div class=\"card-body sbar-preview\">" + sbarPreviewText().split("\n\n").map(function (p) {
+          var parts = p.split(": ");
+          return parts.length > 1
+            ? "<div class=\"section\"><div class=\"label\">" + parts[0] + "</div>" + parts.slice(1).join(": ") + "</div>"
+            : "<div class=\"section\">" + p + "</div>";
+        }).join("") + "</div></div>" : "") +
+      "<div class=\"handoff-bar\">Moved to next stage: <strong>" + flow.handoff + "</strong></div>" +
+      "</div></div></div></div>"
+    );
+  }
+
+  function bindReviewEvents() {
+    document.querySelectorAll("[data-chunk]").forEach(function (el) {
+      el.onclick = function () {
+        var id = el.getAttribute("data-chunk");
+        if (state.selectedChunk === id && !state.sourceHighlight) {
+          state.selectedChunk = null;
+          state.sourceHighlight = null;
+        } else {
+          state.selectedChunk = id;
+          state.sourceHighlight = null;
+        }
+        render();
+      };
+    });
+    var clearBtn = document.getElementById("clear-chunk-filter");
+    if (clearBtn) {
+      clearBtn.onclick = function () {
+        state.selectedChunk = null;
+        state.sourceHighlight = null;
+        render();
+      };
+    }
+    document.querySelectorAll("[data-stage-idx]").forEach(function (btn) {
+      btn.onclick = function () {
+        state.stageIndex = parseInt(btn.getAttribute("data-stage-idx"), 10);
+        render();
+      };
+    });
+    var prev = document.getElementById("stage-prev");
+    var next = document.getElementById("stage-next");
+    if (prev) {
+      prev.onclick = function () {
+        if (state.stageIndex > 0) { state.stageIndex--; render(); }
+      };
+    }
+    if (next) {
+      next.onclick = function () {
+        if (state.stageIndex < STAGES.length - 1) { state.stageIndex++; render(); }
+      };
+    }
+    STAGES.forEach(function (s) {
+      var leoBtn = document.getElementById("ask-leo-" + s.id);
+      if (leoBtn) {
+        leoBtn.onclick = function () {
+          state.askLeoOpen = state.askLeoOpen === s.id ? null : s.id;
+          render();
+        };
+      }
+    });
+    document.querySelectorAll("[data-flag]").forEach(function (btn) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        var key = btn.getAttribute("data-flag");
+        if (state.flagged[key]) delete state.flagged[key];
+        else state.flagged[key] = true;
+        render();
+      };
+    });
+    document.querySelectorAll("[data-source-jump]").forEach(function (row) {
+      row.onclick = function (e) {
+        if (e.target.closest(".flag-btn")) return;
+        focusSource(
+          row.getAttribute("data-chunk-id"),
+          row.getAttribute("data-source-term")
+        );
+      };
+    });
+    document.querySelectorAll("[data-map-chunk]").forEach(function (pill) {
+      pill.onclick = function () {
+        focusSource(
+          pill.getAttribute("data-map-chunk"),
+          pill.getAttribute("data-source-term")
+        );
+      };
+    });
+    document.querySelectorAll("[data-ctx-tab]").forEach(function (btn) {
+      btn.onclick = function () {
+        state.leftTab = btn.getAttribute("data-ctx-tab");
+        render();
+      };
+    });
+    var goFix = document.getElementById("btn-go-fix");
+    if (goFix && state.mode === "rule") {
+      goFix.onclick = function () { state.step = "fix"; render(); };
+    }
+    if (state.selectedChunk) {
+      var view = document.getElementById("chunk-source-view");
+      if (view) view.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
+  function renderStepper() {
+    var wrap = document.getElementById("stepper-wrap");
+    var nav = document.getElementById("stepper");
+    if (state.step === "home") {
+      wrap.classList.add("hidden");
+      return;
+    }
+    wrap.classList.remove("hidden");
+    nav.innerHTML = "";
+    var list = steps();
+    var idx = list.findIndex(function (s) { return s.id === state.step; });
+    var happySkip = isHappyPath() && state.mode === "rule";
+    list.forEach(function (s, i) {
+      var skipped = happySkip && (s.id === "fix" || s.id === "retest");
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "step-pill" +
+        (s.id === state.step ? " active" : "") +
+        (i < idx ? " done" : "") +
+        (skipped ? " skipped" : "");
+      btn.textContent = skipped ? s.label + " (skipped)" : (i + 1) + ". " + s.label;
+      btn.onclick = function () {
+        if (!skipped && (i <= idx || s.id === "review")) { state.step = s.id; render(); }
+      };
+      nav.appendChild(btn);
+    });
+  }
+
+  function renderContext() {
+    var strip = document.getElementById("context-strip");
+    var pill = document.getElementById("mode-pill");
+    var homeBtn = document.getElementById("btn-home");
+    if (state.step === "home") {
+      strip.classList.add("hidden");
+      pill.classList.add("hidden");
+      homeBtn.classList.add("hidden");
+      return;
+    }
+    strip.classList.remove("hidden");
+    pill.classList.remove("hidden");
+    homeBtn.classList.remove("hidden");
+    strip.classList.toggle("clinical", state.mode === "clinical");
+    pill.className = "mode-pill";
+    if (state.mode === "rule") {
+      pill.classList.add("synthetic");
+      pill.textContent = "Testing a rule";
+    } else {
+      pill.classList.add("clinical", "production");
+      pill.textContent = "Investigating a clinical case";
+    }
+
+    if (state.mode === "rule" && state.selectedRule) {
+      document.getElementById("ctx-title").textContent = state.selectedRule.id + " - " + state.selectedRule.title;
+      document.getElementById("ctx-meta").textContent = state.runLabel + " -- test case -- rule set v2026.04.18";
+    } else if (state.mode === "clinical" && state.selectedPatient) {
+      document.getElementById("ctx-title").textContent = state.selectedPatient.name + " (" + state.selectedPatient.id + ")";
+      document.getElementById("ctx-meta").textContent =
+        "Saved run " + state.selectedPatient.runId + " -- replayed from records -- " + state.selectedPatient.date;
+    }
+  }
+
+  function renderLeftContext() {
+    var tabs = [
+      { id: "letter", label: "Full letter" },
+      { id: "chunks", label: "Sections" },
+      { id: "guideline", label: "Guideline rule" },
+      { id: "outcome", label: "AI assessment" }
+    ];
+    var tabHtml = "<div class=\"context-tabs\">" + tabs.map(function (t) {
+      return "<button type=\"button\" class=\"ctx-tab" + (state.leftTab === t.id ? " active" : "") +
+        "\" data-ctx-tab=\"" + t.id + "\">" + t.label + "</button>";
+    }).join("") + "</div>";
+
+    var body = "";
+    if (state.leftTab === "letter") {
+      body = "<div class=\"doc-block\"><div class=\"label\">Referral letter (full)</div>" +
+        highlightText(fullLetterText(), allHighlights()) + "</div>";
+    } else if (state.leftTab === "guideline") {
+      var rule = state.selectedRule || { id: "NG12-1.3", title: "Suspected lung cancer", concepts: [], expect: "" };
+      body = "<div class=\"card\"><div class=\"card-head\">" + rule.id + "</div><div class=\"card-body\" style=\"font-size:13px\">" +
+        "<p style=\"margin:0 0 8px\"><strong>" + rule.title + "</strong></p>" +
+        (rule.concepts.length ? "<p style=\"margin:0 0 8px\">Triggers: " + rule.concepts.join("; ") + "</p>" : "") +
+        "<p style=\"margin:0;font-size:12px;color:#64748b\">" + (rule.expect || "Expected rule behaviour for this case.") + "</p>" +
+        "<p style=\"margin:10px 0 0;font-size:12px\">Match status: <span class=\"chip " + (state.fixed ? "chip-ok" : "chip-bad") + "\">" +
+        (state.fixed ? "Matched" : "Not matched") + "</span></p></div></div>";
+    } else if (state.leftTab === "outcome") {
+      body = "<div class=\"sbar-preview\">" + sbarPreviewText().split("\n\n").map(function (p) {
+        var parts = p.split(": ");
+        return parts.length > 1
+          ? "<div class=\"section\"><div class=\"label\">" + parts[0] + "</div>" + parts.slice(1).join(": ") + "</div>"
+          : "<div class=\"section\">" + p + "</div>";
+      }).join("") + "</div>";
+    } else {
+      body = renderChunkList();
+    }
+    return tabHtml + body;
+  }
+
+  function renderChunkList() {
+    var filter = state.selectedChunk;
+    var html = "<div class=\"label\" style=\"font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px\">Referral sections -- click an item on the right to jump to its source text</div>";
+    if (filter) {
+      var ch = CHUNKS.find(function (c) { return c.id === filter; });
+      html += "<div class=\"filter-banner\">Showing section " + (ch ? ch.ordinal : "?") +
+        (state.sourceHighlight ? " -- highlighting: &quot;" + state.sourceHighlight + "&quot;" : "") +
+        "<button type=\"button\" id=\"clear-chunk-filter\">Show all sections</button></div>";
+    }
+    html += "<ul class=\"chunk-list\">";
+    CHUNKS.forEach(function (ch) {
+      var codeCount = (ch.entities || []).length;
+      html += "<li class=\"chunk-item" + (filter === ch.id ? " active" : "") + "\" data-chunk=\"" + ch.id + "\">" +
+        "<div class=\"ord\">Section " + ch.ordinal + "</div>" +
+        ch.preview +
+        "<div class=\"codes\">" + codeCount + " facts found here</div></li>";
+    });
+    html += "</ul>";
+    var activeChunk = filter ? CHUNKS.find(function (c) { return c.id === filter; }) : CHUNKS[0];
+    html += "<div class=\"doc-block\" id=\"chunk-source-view\"><div class=\"label\">Section " + activeChunk.ordinal + " text</div>" +
+      highlightChunkText(activeChunk) + "</div>";
+    return html;
+  }
+
+  function inspectorUrl() {
+    var q = state.mode === "clinical" && state.selectedPatient
+      ? "?source=clinical&patient=" + state.selectedPatient.id
+      : "?source=rule&run=" + (state.fixed ? "run-b" : "run-a");
+    return "validation-lab-run-review.html" + q;
+  }
+
+  function renderHome() {
+    setShellWide(false);
+    document.getElementById("main").className = "main";
+    document.getElementById("main").innerHTML =
+      "<h2>Validation Lab</h2>" +
+      "<p class=\"lead\">Check that the AI pipeline produces the right result for a clinical case. Choose where to start.</p>" +
+      "<div class=\"mode-grid\">" +
+      "<div class=\"mode-card\" id=\"mode-rule\">" +
+      "<h3>Test a guideline rule</h3>" +
+      "<p>Check whether the pipeline correctly identifies a case that should trigger a clinical guideline -- for example, a 2-week wait cancer referral.</p>" +
+      "<ul><li>Pick the guideline rule</li><li>A test case is built for you automatically</li><li>Run the pipeline and review each step</li><li>Fix any problems and save for automated testing</li></ul>" +
+      "</div>" +
+      "<div class=\"mode-card\" id=\"mode-clinical\">" +
+      "<h3>Investigate a clinical complaint</h3>" +
+      "<p>A clinician said the AI got it wrong. Look at the saved pipeline run to find out where the problem happened.</p>" +
+      "<ul><li>Pick the patient from the list</li><li>Read what the clinician said</li><li>Step through each stage of the pipeline</li><li>Record what you found</li></ul>" +
+      "</div></div>" +
+      "<div class=\"home-strip\"><h3>Pick up where you left off</h3>" +
+      "<div class=\"home-links\">" +
+      "<button type=\"button\" class=\"btn\" id=\"home-gold\">Saved test cases (3)</button>" +
+      "<button type=\"button\" class=\"btn\" id=\"home-flagged\">Complaints to review (3)</button>" +
+      "<button type=\"button\" class=\"btn\" id=\"home-happy\">Quick check: NG12-1.3 happy path</button>" +
+      "<button type=\"button\" class=\"btn\" id=\"home-rule\">Edge case: NG12-1.3 wrong code</button>" +
+      "<button type=\"button\" class=\"btn\" id=\"home-post-drop\">Edge case: NG12-1.3 missing fact</button>" +
+      "</div></div>";
+    document.getElementById("mode-rule").onclick = function () {
+      state.mode = "rule"; state.step = "pick-rule"; state.selectedRule = null;
+      state.fixed = false; state.runLabel = "Run A"; state.selectedChunk = null; state.stageIndex = 0;
+      state.flagged = {}; state.leftTab = "letter"; state.failureScenario = "coding_error";
+      state.fixApplied = false; state.taskRaised = false; state.sfSearch = "opacity"; state.sfSaved = {}; state.sgSection = ""; render();
+    };
+    document.getElementById("mode-clinical").onclick = function () {
+      state.mode = "clinical"; state.step = "pick-patient"; state.selectedPatient = null;
+      state.selectedChunk = null; state.flagged = {}; state.leftTab = "letter"; render();
+    };
+    document.getElementById("home-flagged").onclick = function () {
+      state.mode = "clinical"; state.step = "pick-patient"; render();
+    };
+    document.getElementById("home-gold").onclick = function () {
+      state.mode = "rule"; state.step = "pick-rule"; render();
+    };
+    document.getElementById("home-happy").onclick = function () {
+      state.mode = "rule"; state.step = "pick-rule";
+      state.selectedRule = RULES[0]; state.failureScenario = "happy"; state.fixed = true; render();
+    };
+    document.getElementById("home-rule").onclick = function () {
+      state.mode = "rule"; state.step = "pick-rule";
+      state.selectedRule = RULES[0]; state.failureScenario = "coding_error"; render();
+    };
+    document.getElementById("home-post-drop").onclick = function () {
+      state.mode = "rule"; state.step = "pick-rule";
+      state.selectedRule = RULES[0]; state.failureScenario = "post_drop"; render();
+    };
+    document.getElementById("footer-label").textContent = "Choose a path";
+    document.getElementById("btn-back").disabled = true;
+    document.getElementById("btn-forward").textContent = "Continue";
+    document.getElementById("btn-forward").disabled = true;
+  }
+
+  function renderRulePick() {
+    setShellWide(false);
+    document.getElementById("main").className = "main";
+    var html = "<h2>Pick a rule to test</h2><p class=\"lead\">Choose a clinical guideline rule. The lab will build a test case for it and run the pipeline so you can check whether the rule fires correctly.</p><ul class=\"rule-list\">";
+    RULES.forEach(function (r) {
+          html += "<li class=\"rule-item" + (state.selectedRule && state.selectedRule.id === r.id ? " selected" : "") + "\" data-rule=\"" + r.id + "\">" +
+        "<div class=\"id\">" + r.id + "</div><div class=\"title\">" + r.title + "</div>" +
+        "<div class=\"concepts\">Looks for: " + r.concepts.join("; ") + "</div></li>";
+    });
+    html += "</ul>";
+    document.getElementById("main").innerHTML = html;
+    document.querySelectorAll("[data-rule]").forEach(function (el) {
+      el.onclick = function () {
+        state.selectedRule = RULES.find(function (r) { return r.id === el.getAttribute("data-rule"); });
+        render();
+      };
+    });
+    document.getElementById("btn-forward").disabled = !state.selectedRule;
+  }
+
+  function renderGenerate() {
+    setShellWide(false);
+    document.getElementById("main").className = "main";
+    var tabs = [
+      { id: "soap", label: "GP SOAP note", show: state.includeSoap },
+      { id: "referral", label: "Referral letter", show: true },
+      { id: "epr", label: "GP Connect EPR", show: state.includeEpr }
+    ];
+    var tabHtml = "<div class=\"tab-row\">";
+    tabs.forEach(function (t) {
+      if (!t.show) return;
+      tabHtml += "<button type=\"button\" class=\"tab-btn" + (state.generateTab === t.id ? " active" : "") + "\" data-gen-tab=\"" + t.id + "\">" + t.label + "</button>";
+    });
+    tabHtml += "</div>";
+
+    var preview = CHUNKS.map(function (c) { return c.text; }).join("\n\n---\n\n");
+    if (state.generateTab === "soap") preview = SOAP_PREVIEW;
+    if (state.generateTab === "epr") preview = EPR_PREVIEW;
+
+    document.getElementById("main").innerHTML =
+      "<h2>Check the test case</h2>" +
+      "<p class=\"lead\">This test case was built automatically to match the rule. Check it looks right before running the pipeline.</p>" +
+      "<div class=\"card\"><div class=\"card-head\">What this rule expects</div><div class=\"card-body\">" + state.selectedRule.expect + "</div></div>" +
+      "<div class=\"card\"><div class=\"card-head\">What do you want to test?</div><div class=\"card-body\">" +
+      "<div class=\"scenario-grid\">" +
+      "<label class=\"scenario-card" + (state.failureScenario === "happy" ? " selected" : "") + "\">" +
+      "<input type=\"radio\" name=\"fail-scenario\" id=\"sc-happy\"" + (state.failureScenario === "happy" ? " checked" : "") + ">" +
+      "<div class=\"sc-icon\">&#10003;</div>" +
+      "<div><strong>Happy path</strong><p>Everything should work correctly. Check the pipeline fires the guideline and produces the right assessment.</p></div>" +
+      "</label>" +
+      "<label class=\"scenario-card" + (state.failureScenario === "coding_error" ? " selected" : "") + "\">" +
+      "<input type=\"radio\" name=\"fail-scenario\" id=\"sc-coding\"" + (state.failureScenario === "coding_error" ? " checked" : "") + ">" +
+      "<div class=\"sc-icon sc-warn\">&#8764;</div>" +
+      "<div><strong>Wrong medical code</strong><p>'Opacity' is matched to pneumonia instead of an imaging finding. The guideline check fails silently.</p></div>" +
+      "</label>" +
+      "<label class=\"scenario-card" + (state.failureScenario === "post_drop" ? " selected" : "") + "\">" +
+      "<input type=\"radio\" name=\"fail-scenario\" id=\"sc-post\"" + (state.failureScenario === "post_drop" ? " checked" : "") + ">" +
+      "<div class=\"sc-icon sc-warn\">&#8722;</div>" +
+      "<div><strong>Fact quietly removed</strong><p>'Weight loss' is in the letter but the cleaning step strips it out. The coding step looks fine -- the problem is invisible until the guideline fails.</p></div>" +
+      "</label>" +
+      "</div></div></div>" +
+      "<div class=\"card\"><div class=\"card-head\">Preview the referral letter</div><div class=\"card-body\">" + tabHtml +
+      "<div class=\"doc-preview\">" + preview + "</div></div></div>" +
+      "<details style=\"margin-top:12px\"><summary style=\"cursor:pointer;font-size:13px;color:#64748b\">Advanced: include more source documents</summary>" +
+      "<div class=\"toggle-row\" style=\"margin-top:8px\">" +
+      "<label class=\"toggle" + (state.includeSoap ? " on" : "") + "\"><input type=\"checkbox\" id=\"tog-soap\"" + (state.includeSoap ? " checked" : "") + "> Add GP consultation note</label>" +
+      "<label class=\"toggle" + (state.includeEpr ? " on" : "") + "\"><input type=\"checkbox\" id=\"tog-epr\"" + (state.includeEpr ? " checked" : "") + "> Add GP records summary</label>" +
+      "</div></details>";
+
+    document.getElementById("tog-soap").onchange = function () {
+      state.includeSoap = this.checked;
+      if (!state.includeSoap && state.generateTab === "soap") state.generateTab = "referral";
+      render();
+    };
+    document.getElementById("tog-epr").onchange = function () {
+      state.includeEpr = this.checked;
+      if (state.includeEpr && state.generateTab === "referral") state.generateTab = "epr";
+      if (!state.includeEpr && state.generateTab === "epr") state.generateTab = "referral";
+      render();
+    };
+    document.querySelectorAll("[data-gen-tab]").forEach(function (btn) {
+      btn.onclick = function () {
+        state.generateTab = btn.getAttribute("data-gen-tab");
+        render();
+      };
+    });
+    document.getElementById("sc-happy").onchange = function () {
+      if (this.checked) { state.failureScenario = "happy"; state.fixed = true; state.fixApplied = false; state.taskRaised = false; state.sfSearch = "opacity"; state.sfSaved = {}; state.sgSection = ""; render(); }
+    };
+    document.getElementById("sc-coding").onchange = function () {
+      if (this.checked) { state.failureScenario = "coding_error"; state.fixed = false; state.fixApplied = false; state.taskRaised = false; state.sfSearch = "opacity"; state.sfSaved = {}; state.sgSection = ""; render(); }
+    };
+    document.getElementById("sc-post").onchange = function () {
+      if (this.checked) { state.failureScenario = "post_drop"; state.fixed = false; state.fixApplied = false; state.taskRaised = false; state.sfSearch = "opacity"; state.sfSaved = {}; state.sgSection = ""; render(); }
+    };
+    document.getElementById("btn-forward").textContent = "Run pipeline";
+  }
+
+  function renderRun() {
+    var scenarioNote = isHappyPath()
+      ? "Happy path -- all steps should pass."
+      : (isPostDropScenario()
+        ? "Edge case: fact quietly removed -- watch the Cleaning step."
+        : "Edge case: wrong medical code -- watch the Coding step.");
+    document.getElementById("main").innerHTML =
+      "<div class=\"status-hero neutral\"><h2 style=\"font-size:18px\">Running the pipeline...</h2>" +
+      "<p style=\"margin:8px 0 0\">The test case is being processed the same way as a real referral. Each step is saved so you can review it.</p>" +
+      "<p style=\"margin:6px 0 0;font-size:12px;opacity:0.8\">" + scenarioNote + "</p></div>" +
+      "<ul class=\"checklist\">" +
+      "<li class=\"done\">Referral received</li>" +
+      "<li class=\"done\">Reading the letter (3 sections, 9 facts found)</li>" +
+      "<li class=\"done\">Cleaning and coding</li>" +
+      "<li class=\"done\">Checking the guideline</li>" +
+      "<li class=\"done\">Checking for missing information</li>" +
+      "<li class=\"done\">Draft assessment ready</li>" +
+      "</ul>" +
+      "<p style=\"font-size:13px;color:#64748b;margin-top:12px\">Each step has been saved so you can step through it in the next screen.</p>";
+    document.getElementById("btn-forward").textContent = "Review results";
+  }
+
+  function renderReview() {
+    setShellWide(true);
+    document.getElementById("main").className = "main review-layout";
+    var hero = "";
+    if (state.mode === "rule") {
+      hero = isHappyPath()
+        ? "<div class=\"status-hero ok\" style=\"margin:12px 18px 0\"><strong>Happy path run.</strong> Everything should pass. Step through each stage and confirm the guideline fires and the assessment is correct.</div>"
+        : (state.fixed
+          ? "<div class=\"status-hero ok\" style=\"margin:12px 18px 0\"><strong>Fix looks good.</strong> Step through the stages again to see what changed.</div>"
+          : (isPostDropScenario()
+            ? "<div class=\"status-hero issue\" style=\"margin:12px 18px 0\"><strong>Problem found: a fact was quietly removed.</strong> Weight loss is in the letter but was stripped out before coding. Start at stage 2 (Cleaning the facts) to see why.</div>"
+            : "<div class=\"status-hero issue\" style=\"margin:12px 18px 0\"><strong>Problem found: a medical code is wrong.</strong> 'Opacity' was matched to pneumonia instead of an imaging finding. Start at stage 3 (Adding medical codes) to see where it went wrong.</div>"));
+    } else {
+      hero = "<div class=\"status-hero issue\" style=\"margin:12px 18px 0\"><strong>A clinician flagged this case.</strong> Step through each stage to find out where the pipeline went wrong.</div>";
+    }
+    document.getElementById("main").innerHTML = hero + renderReviewPanel();
+    bindReviewEvents();
+    document.getElementById("btn-forward").textContent =
+      state.mode !== "rule" ? "Record what you found"
+      : isHappyPath() ? "Save as gold test case"
+      : "Fix the problem";
+  }
+
+  function renderFix() {
+    setShellWide(false);
+    document.getElementById("main").className = "main";
+
+    var whatWentWrong = isPostDropScenario()
+      ? "The cleaning step removed 'weight loss' from the referral letter. It treated it as general lifestyle information rather than a clinical symptom. " +
+        "The guideline rule needs weight loss to be present. Without it, the urgent pathway was not triggered."
+      : "The word 'opacity' was matched to pneumonia -- an infection -- rather than an imaging finding. " +
+        "The guideline rule is looking for an imaging finding code. Because it got the wrong code, the urgent pathway was not triggered.";
+
+    var fixTool = isPostDropScenario()
+      ? renderFixToolScopeGuard()
+      : renderFixToolSurfaceForm();
+
+    var flagBlock = flaggedCount() > 0
+      ? "<div class=\"card\"><div class=\"card-head\">Items you marked as wrong (" + flaggedCount() + ")</div>" +
+        "<div class=\"card-body\" style=\"font-size:13px;color:#475569\">" +
+        Object.keys(state.flagged).map(function (k) {
+          return "<span class=\"mapping-pill\">" + k + "</span>";
+        }).join(" ") + "</div></div>"
+      : "<div class=\"card\" style=\"border-color:#fca5a5\"><div class=\"card-head\" style=\"color:#991b1b\">No items marked yet</div>" +
+        "<div class=\"card-body\" style=\"font-size:13px\">Go back to Review results and tap <strong>Mark as wrong</strong> on the item that is incorrect. " +
+        "That tells the fix step what to target.</div></div>";
+
+    document.getElementById("main").innerHTML =
+      "<h2>Fix the problem</h2>" +
+      "<p class=\"lead\">Each fix goes to the right tool for this type of problem. Changes are not live until retested and saved as gold.</p>" +
+      flagBlock +
+      "<div class=\"card\"><div class=\"card-head\">What went wrong</div>" +
+      "<div class=\"card-body\" style=\"font-size:13px\">" + whatWentWrong + "</div></div>" +
+      fixTool;
+
+    var searchInput = document.getElementById("sf-search-input");
+    if (searchInput) {
+      searchInput.oninput = function () {
+        state.sfSearch = this.value;
+        render();
+      };
+      searchInput.focus();
+    }
+    document.querySelectorAll("[data-sf-save]").forEach(function (btn) {
+      btn.onclick = function () {
+        var key = btn.getAttribute("data-sf-save");
+        state.sfSaved[key] = true;
+        render();
+      };
+    });
+    document.querySelectorAll("[data-sf-create]").forEach(function (btn) {
+      btn.onclick = function () {
+        var key = btn.getAttribute("data-sf-create").toLowerCase().trim();
+        state.sfSaved[key] = true;
+        render();
+      };
+    });
+    var sgSelect = document.getElementById("sg-section-select");
+    if (sgSelect) {
+      sgSelect.onchange = function () {
+        state.sgSection = sgSelect.value;
+        render();
+      };
+    }
+    var applyBtn = document.getElementById("btn-apply-fix");
+    if (applyBtn) {
+      applyBtn.onclick = function () {
+        state.fixApplied = true;
+        render();
+      };
+    }
+    document.getElementById("btn-forward").textContent = "Retest";
+    document.getElementById("btn-forward").disabled = !state.fixApplied;
+  }
+
+  var SF_MOCK = {
+    "opacity": {
+      current: { code: "233604007", term: "Pneumonia", status: "wrong" },
+      proposed: { code: "168731009", term: "Chest X-ray abnormal / imaging finding", status: "proposed" }
+    },
+    "suspicious opacity": {
+      current: { code: "233604007", term: "Pneumonia", status: "wrong" },
+      proposed: { code: "168731009", term: "Chest X-ray abnormal / imaging finding", status: "proposed" }
+    },
+    "lul opacity": {
+      current: null,
+      proposed: { code: "168731009", term: "Chest X-ray abnormal / imaging finding", status: "new" }
+    },
+    "consolidation": {
+      current: { code: "168731009", term: "Chest X-ray abnormal / imaging finding", status: "ok" },
+      proposed: null
+    }
+  };
+
+  function sfLookup(term) {
+    var key = (term || "").toLowerCase().trim();
+    return SF_MOCK[key] || null;
+  }
+
+  function renderFixToolSurfaceForm() {
+    var term = state.sfSearch || "opacity";
+    var result = sfLookup(term);
+    var savedKeys = Object.keys(state.sfSaved);
+    var anyUnsaved = result && result.proposed && result.proposed.status !== "ok" && !state.sfSaved[term.toLowerCase().trim()];
+    var allApplied = state.fixApplied;
+
+    var mappingRows = "";
+    if (result) {
+      if (result.current) {
+        var curCls = result.current.status === "ok" ? "sf-ok" : "sf-wrong";
+        var curBadge = result.current.status === "ok"
+          ? "<span class=\"sf-badge-ok\">Correct</span>"
+          : "<span class=\"sf-badge-wrong\">Wrong</span>";
+        mappingRows +=
+          "<div class=\"sf-mapping-row " + curCls + "\">" +
+          "<div class=\"sf-mapping-term\">" + term + "</div>" +
+          "<div class=\"sf-arrow\">&#8594;</div>" +
+          "<div class=\"sf-mapping-code\"><span class=\"code-badge " + (result.current.status === "ok" ? "ok" : "wrong") + "\">" +
+          result.current.code + "</span> " + result.current.term + " " + curBadge + "</div>" +
+          "</div>";
+      }
+      if (result.proposed) {
+        var saved = state.sfSaved[term.toLowerCase().trim()];
+        var propBadge = saved
+          ? "<span class=\"sf-badge-ok\">Saved</span>"
+          : (result.proposed.status === "new" ? "<span class=\"sf-badge-ok\">New mapping</span>" : "<span class=\"sf-badge-ok\">Proposed fix</span>");
+        mappingRows +=
+          "<div class=\"sf-mapping-row sf-proposed\">" +
+          "<div class=\"sf-mapping-term\">" + term + "</div>" +
+          "<div class=\"sf-arrow\">&#8594;</div>" +
+          "<div class=\"sf-mapping-code\"><span class=\"code-badge ok\">" +
+          result.proposed.code + "</span> " + result.proposed.term + " " + propBadge +
+          (!saved
+            ? " <button type=\"button\" class=\"btn\" style=\"padding:3px 10px;font-size:11px;margin-left:6px\" data-sf-save=\"" + term.toLowerCase().trim() + "\">Save</button>"
+            : "") +
+          "</div>" +
+          "</div>";
+      }
+    } else if (term.length > 0) {
+      mappingRows =
+        "<div class=\"sf-no-result\">" +
+        "No mapping found for <strong>" + term + "</strong>. " +
+        "<button type=\"button\" class=\"btn\" style=\"padding:3px 10px;font-size:11px;margin-left:4px\" data-sf-create=\"" + term + "\">Create mapping</button>" +
+        "</div>";
+    }
+
+    var savedBar = savedKeys.length > 0
+      ? "<div class=\"sf-saved-bar\">Saved: " +
+        savedKeys.map(function (k) { return "<span class=\"sf-saved-chip\">" + k + "</span>"; }).join("") +
+        "</div>"
+      : "";
+
+    return (
+      "<div class=\"fix-tool-card fix-tool-code\">" +
+      "<div class=\"fix-tool-head\">" +
+      "<div class=\"fix-tool-icon\">&#x1F3F7;</div>" +
+      "<div><strong>Fix: update the medical code matching</strong>" +
+      "<p style=\"margin:2px 0 0;font-size:12px;color:#475569\">The same tool as Knowledge hub &rsaquo; Medical code matching. Search any term, save fixes, then retest.</p></div>" +
+      "</div>" +
+      "<div class=\"sf-search-wrap\">" +
+      "<input type=\"search\" class=\"sf-search-input\" id=\"sf-search-input\" value=\"" + term.replace(/"/g, "&quot;") + "\" placeholder=\"Search a term...\" autocomplete=\"off\">" +
+      "</div>" +
+      mappingRows +
+      savedBar +
+      (savedKeys.length > 0 && !allApplied
+        ? "<div class=\"fix-tool-actions\">" +
+          "<button type=\"button\" class=\"btn btn-primary\" id=\"btn-apply-fix\">Apply " + savedKeys.length + " saved change" + (savedKeys.length > 1 ? "s" : "") + " and retest</button>" +
+          "<span style=\"font-size:12px;color:#64748b\">Tested against the full suite before going live</span>" +
+          "</div>"
+        : "") +
+      (allApplied
+        ? "<div class=\"fix-applied-bar\">" +
+          "<strong>Surface form updated.</strong> " +
+          savedKeys.map(function (k) {
+            var r = sfLookup(k);
+            var newCode = r && r.proposed ? r.proposed.code : "new";
+            var newTerm = r && r.proposed ? r.proposed.term : k;
+            return "<span style=\"font-family:ui-monospace,monospace\">" + k + "</span> &rarr; " + newCode + " " + newTerm;
+          }).join("; ") +
+          ". Click <strong>Retest</strong> above to confirm the guideline now fires correctly." +
+          "</div>"
+        : "") +
+      "</div>"
+    );
+  }
+
+  function renderFixToolScopeGuard() {
+    var saved = state.fixApplied;
+    var SG_SECTIONS = ["Reason for referral", "Clinical summary", "History", "Presenting complaint"];
+    var selectedSection = state.sgSection || "";
+
+    var sectionOptions = SG_SECTIONS.map(function (s) {
+      var sel = s === selectedSection ? " selected" : "";
+      return "<option value=\"" + s + "\"" + sel + ">" + s + "</option>";
+    }).join("");
+
+    var rulePreview = selectedSection
+      ? "Allow <strong>weight loss</strong> when it appears in section <strong>" + selectedSection + "</strong>. " +
+        "The safety-netting suppression will still apply in all other sections."
+      : "<em>Choose a section above to see the rule preview.</em>";
+
+    var savedBar = saved
+      ? "<div class=\"fix-applied-bar\" style=\"background:#f0fdf4;border-color:#bbf7d0;color:#166534\">" +
+        "<strong>Scope guard rule saved.</strong> 'weight loss' will be kept when it appears in <strong>" + selectedSection + "</strong>. " +
+        "Click <strong>Retest</strong> above to confirm the guideline now fires correctly." +
+        "</div>"
+      : "";
+
+    return (
+      "<div class=\"fix-tool-card fix-tool-code\">" +
+      "<div class=\"fix-tool-head\">" +
+      "<div class=\"fix-tool-icon\" style=\"background:#eff6ff;color:#1d4ed8\">&#9654;</div>" +
+      "<div><strong>Fix: add a scope guard rule</strong>" +
+      "<p style=\"margin:2px 0 0;font-size:12px;color:#374151\">The pipeline dropped 'weight loss' because a safety-netting rule treats lifestyle terms as patient advice, not clinical facts. You can add an exception rule -- no code change needed.</p></div>" +
+      "</div>" +
+
+      "<div style=\"background:#fafafa;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-top:12px\">" +
+      "<p style=\"margin:0 0 6px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em\">Rule that fired</p>" +
+      "<div style=\"font-size:13px;color:#1e293b;line-height:1.5\">" +
+      "<strong>Safety-netting suppression</strong> &mdash; the sentence matched a lifestyle/advice pattern.<br>" +
+      "<span style=\"font-family:ui-monospace,monospace;font-size:11px;color:#64748b\">_SAFETY_NETTING_RE (libs/ner/scope_guard.py)</span>" +
+      "</div>" +
+      "</div>" +
+
+      "<div style=\"margin-top:16px\">" +
+      "<p style=\"margin:0 0 6px;font-size:13px;font-weight:600\">In which document section should 'weight loss' be kept?</p>" +
+      "<p style=\"margin:0 0 8px;font-size:12px;color:#64748b\">Scope guard rules are section-aware. The suppression will still run everywhere else.</p>" +
+      "<select id=\"sg-section-select\" style=\"width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff\">" +
+      "<option value=\"\">-- Choose a section --</option>" +
+      sectionOptions +
+      "</select>" +
+      "</div>" +
+
+      "<div style=\"margin-top:12px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;line-height:1.5\">" +
+      "<span style=\"font-size:11px;font-weight:600;color:#1d4ed8;text-transform:uppercase;letter-spacing:.04em\">Rule preview</span><br>" +
+      rulePreview +
+      "</div>" +
+
+      "<div style=\"margin-top:10px;font-size:11px;color:#64748b\">" +
+      "Scope guard rules follow the same pattern as context rules: saved to Neo4j, loaded at runtime. No deployment needed." +
+      "</div>" +
+
+      (savedBar ? "<div style=\"margin-top:12px\">" + savedBar + "</div>" : "") +
+
+      (!saved && selectedSection
+        ? "<div class=\"fix-tool-actions\" style=\"margin-top:14px\">" +
+          "<button type=\"button\" class=\"btn btn-primary\" id=\"btn-apply-fix\">Save rule and retest</button>" +
+          "<span style=\"font-size:12px;color:#64748b\">This updates Neo4j immediately -- no restart needed</span>" +
+          "</div>"
+        : "") +
+
+      "</div>"
+    );
+  }
+
+  function renderRetest() {
+    var runA = isPostDropScenario()
+      ? "<p><strong>Cleaning:</strong> weight loss removed (9 facts in, 8 out)</p>" +
+        "<p><strong>Coding:</strong> 8 codes assigned (looked fine)</p>" +
+        "<p><strong>Guideline check:</strong> NG12-1.3 did not fire</p>"
+      : "<p><strong>Guideline check:</strong> NG12-1.3 did not fire</p>" +
+        "<p><strong>Coding problem:</strong> opacity matched to pneumonia (wrong code)</p>" +
+        "<p><strong>Draft assessment:</strong> no urgent pathway mentioned</p>";
+    var runB = isPostDropScenario()
+      ? "<p><strong>Cleaning:</strong> weight loss kept (9 facts in, 9 out)</p>" +
+        "<p><strong>Coding:</strong> 9 codes including weight loss (89362005)</p>" +
+        "<p><strong>Guideline check:</strong> NG12-1.3 fired correctly</p>"
+      : "<p><strong>Guideline check:</strong> NG12-1.3 fired correctly</p>" +
+        "<p><strong>Coding:</strong> opacity matched to imaging finding (correct code)</p>" +
+        "<p><strong>Draft assessment:</strong> urgent 2-week referral included</p>";
+    document.getElementById("main").innerHTML =
+      "<h2>Check whether the fix worked</h2>" +
+      "<p class=\"lead\">Same referral letter, same case. Only the rules changed between the two runs. Compare the results.</p>" +
+      "<div class=\"compare-grid\">" +
+      "<div class=\"compare-col run-a\"><div class=\"head\">Before the fix</div><div class=\"body\">" + runA + "</div></div>" +
+      "<div class=\"compare-col run-b\"><div class=\"head\">After the fix</div><div class=\"body\">" + runB + "</div></div></div>" +
+      "<div class=\"btn-row\"><button type=\"button\" class=\"btn\" id=\"btn-view-run-b\">Step through the fixed run</button>" +
+      "<a href=\"validation-lab-run-review.html?compare=ab\" class=\"btn\">Compare both runs side by side</a></div>";
+    document.getElementById("btn-view-run-b").onclick = function () {
+      state.fixed = true; state.runLabel = "Run B"; state.step = "review";
+      state.stageIndex = state.failureScenario === "post_drop" ? 1 : 3;
+      render();
+    };
+    document.getElementById("btn-forward").textContent = "Save as gold";
+  }
+
+  function renderGold() {
+    document.getElementById("main").innerHTML =
+      "<h2>Save as a gold test case</h2>" +
+      "<p class=\"lead\">This saves the case and the correct results. The automated tests will re-run it every time the rules change to make sure it still works.</p>" +
+      "<div class=\"gold-box\">" +
+      "<p style=\"margin:0 0 10px\"><strong>What gets saved</strong></p>" +
+      "<ul class=\"checklist\">" +
+      "<li" + (state.savedGold ? " class=\"done\"" : "") + ">Test case linked to rule " + state.selectedRule.id + "</li>" +
+      "<li" + (state.savedGold ? " class=\"done\"" : "") + ">The referral letter and sections (no patient identifiers)</li>" +
+      "<li" + (state.savedGold ? " class=\"done\"" : "") + ">The correct answers: which rule should fire, which codes are expected, what the draft assessment should say</li>" +
+      "<li" + (state.savedGold ? " class=\"done\"" : "") + ">Results from the fixed run -- these become the pass/fail standard</li>" +
+      "<li" + (state.savedGold ? " class=\"done\"" : "") + ">Automated testing will re-run this every time rules are updated</li>" +
+      "</ul></div>" +
+      (state.savedGold ? "<div class=\"status-hero ok\" style=\"margin-top:16px\"><strong>Saved.</strong> This case is now part of the automated test suite. The pipeline will be re-checked against it on every update.</div>" : "");
+    document.getElementById("btn-forward").textContent = state.savedGold ? "Done" : "Save gold case";
+  }
+
+  function renderPatientPick() {
+    document.getElementById("main").innerHTML =
+      "<h2>Select patient to review</h2>" +
+      "<p class=\"lead\">These are cases where a clinician flagged the AI assessment as wrong. Pick one to see what happened.</p>" +
+      "<input type=\"search\" placeholder=\"Search by name or patient ID...\" />" +
+      "<ul class=\"patient-list\">" +
+      PATIENTS.map(function (p) {
+        return "<li class=\"patient-item" + (state.selectedPatient && state.selectedPatient.id === p.id ? " selected" : "") + "\" data-patient=\"" + p.id + "\">" +
+          "<div class=\"avatar\">" + p.name.charAt(0) + "</div>" +
+          "<div><strong>" + p.name + "</strong> <span style=\"color:#64748b;font-size:12px\">" + p.age + "y " + p.sex + "</span>" +
+          " <span class=\"chip chip-bad\">bad review</span>" +
+          "<div style=\"font-size:12px;margin-top:4px\">" + p.review + "</div>" +
+          "<div style=\"font-size:11px;color:#64748b;margin-top:4px\">Run " + p.runId + " -- " + p.date + "</div></div></li>";
+      }).join("") + "</ul>";
+    document.querySelectorAll("[data-patient]").forEach(function (el) {
+      el.onclick = function () {
+        state.selectedPatient = PATIENTS.find(function (p) { return p.id === el.getAttribute("data-patient"); });
+        render();
+      };
+    });
+    document.getElementById("btn-forward").disabled = !state.selectedPatient;
+  }
+
+  function renderClinicalContext() {
+    var p = state.selectedPatient;
+    document.getElementById("main").innerHTML =
+      "<h2>Understand the issue</h2>" +
+      "<p class=\"lead\">Read what the clinician said, then step through the saved pipeline results to find where it went wrong.</p>" +
+      "<div class=\"card\"><div class=\"card-head\">What the clinician said</div><div class=\"card-body\">" + p.review + "</div></div>" +
+      "<div class=\"card\"><div class=\"card-head\">Where to look</div><div class=\"card-body\">" + p.issue + "</div></div>" +
+      (p.ruleMissed
+        ? "<div class=\"card\"><div class=\"card-head\">Guideline that may not have fired</div><div class=\"card-body\">" +
+          p.ruleMissed + " -- if you want to test this rule on a synthetic case instead:" +
+          " <button type=\"button\" class=\"btn\" style=\"padding:4px 10px;font-size:12px;margin-left:8px\" id=\"btn-jump-rule\">Test this rule</button></div></div>"
+        : "") +
+      "<div class=\"card\" style=\"border-left:3px solid #3b82f6\"><div class=\"card-head\">About this view</div><div class=\"card-body\" style=\"font-size:13px\">" +
+      "You are looking at the saved results from run <code>" + p.runId + "</code>. " +
+      "Nothing will change in the live system. The pipeline is not re-run -- you are reviewing what already happened.</div></div>";
+    document.getElementById("btn-forward").textContent = "Step through the pipeline";
+    var jump = document.getElementById("btn-jump-rule");
+    if (jump) {
+      jump.onclick = function () {
+        state.mode = "rule";
+        state.step = "pick-rule";
+        state.selectedRule = RULES.find(function (r) { return r.id === p.ruleMissed; }) || null;
+        render();
+      };
+    }
+  }
+
+  function renderCapture() {
+    document.getElementById("main").innerHTML =
+      "<h2>Record what you found</h2>" +
+      "<p class=\"lead\">Use this real case to make the pipeline stronger. Choose how.</p>" +
+      "<div class=\"card\"><div class=\"card-body\" style=\"font-size:14px\">" +
+      "<p style=\"margin:0 0 14px\"><strong>Option 1 -- save this case as a test</strong><br>" +
+      "The referral is de-identified and saved with the correct expected results. " +
+      "The automated tests will re-run it every time the pipeline is updated.</p>" +
+      "<p style=\"margin:0\"><strong>Option 2 -- find and fix the underlying rule</strong><br>" +
+      "Switch to rule-testing mode for " + (state.selectedPatient.ruleMissed || "the relevant rule") + ". " +
+      "Build a synthetic case, find the fault, fix it, and save gold.</p>" +
+      "</div></div>" +
+      "<div class=\"btn-row\">" +
+      "<button type=\"button\" class=\"btn btn-success\" id=\"btn-save-cap\">Save as test case</button>" +
+      "<button type=\"button\" class=\"btn\" id=\"btn-to-rule\">Find and fix the rule</button>" +
+      "</div>" +
+      (state.savedGold ? "<div class=\"status-hero ok\" style=\"margin-top:16px\"><strong>Saved.</strong> This real case is now part of the automated test suite.</div>" : "");
+    document.getElementById("btn-save-cap").onclick = function () { state.savedGold = true; render(); };
+    document.getElementById("btn-to-rule").onclick = function () {
+      state.mode = "rule";
+      state.step = "pick-rule";
+      if (state.selectedPatient.ruleMissed) {
+        state.selectedRule = RULES.find(function (r) { return r.id === state.selectedPatient.ruleMissed; }) || null;
+      }
+      render();
+    };
+    document.getElementById("btn-forward").disabled = true;
+  }
+
+  function initialReviewStageIndex() {
+    if (state.mode === "clinical" && state.selectedPatient) {
+      if (state.selectedPatient.id === "pat-7103") return 1;
+      if (state.selectedPatient.id === "pat-2291") return 5;
+      if (state.selectedPatient.id === "pat-8842") return 3;
+    }
+    if (isHappyPath()) return 0;
+    if (state.fixed) return 3;
+    if (state.failureScenario === "post_drop") return 1;
+    return 2;
+  }
+
+  function goForward() {
+    if (state.step === "home") return;
+    if (state.mode === "rule") {
+      var ri = RULE_STEPS.findIndex(function (s) { return s.id === state.step; });
+      if (state.step === "gold") {
+        if (!state.savedGold) { state.savedGold = true; render(); return; }
+        state.step = "home"; state.mode = null; state.savedGold = false; state.fixed = false;
+        state.runLabel = "Run A"; state.selectedChunk = null; render(); return;
+      }
+      if (state.step === "review" && isHappyPath()) {
+        state.step = "gold";
+      } else {
+        state.step = RULE_STEPS[Math.min(ri + 1, RULE_STEPS.length - 1)].id;
+      }
+      if (state.step === "review") state.stageIndex = initialReviewStageIndex();
+    } else {
+      if (state.step === "capture") return;
+      var ci = CLINICAL_STEPS.findIndex(function (s) { return s.id === state.step; });
+      state.step = CLINICAL_STEPS[Math.min(ci + 1, CLINICAL_STEPS.length - 1)].id;
+      if (state.step === "review") state.stageIndex = initialReviewStageIndex();
+    }
+    render();
+  }
+
+  function goBack() {
+    if (state.step === "home") return;
+    if (state.mode === "rule") {
+      var ri = RULE_STEPS.findIndex(function (s) { return s.id === state.step; });
+      if (ri <= 0) { state.step = "home"; state.mode = null; }
+      else state.step = RULE_STEPS[ri - 1].id;
+    } else {
+      var ci = CLINICAL_STEPS.findIndex(function (s) { return s.id === state.step; });
+      if (ci <= 0) { state.step = "home"; state.mode = null; }
+      else state.step = CLINICAL_STEPS[ci - 1].id;
+    }
+    render();
+  }
+
+  function render() {
+    renderContext();
+    renderStepper();
+
+    if (state.step === "home") { renderHome(); return; }
+
+    document.getElementById("btn-back").disabled = false;
+    document.getElementById("btn-forward").disabled = false;
+
+    if (state.mode === "rule") {
+      if (state.step === "pick-rule") renderRulePick();
+      else if (state.step === "generate") renderGenerate();
+      else if (state.step === "run") renderRun();
+      else if (state.step === "review") renderReview();
+      else if (state.step === "fix") renderFix();
+      else if (state.step === "retest") renderRetest();
+      else if (state.step === "gold") renderGold();
+    } else {
+      if (state.step === "pick-patient") renderPatientPick();
+      else if (state.step === "context") renderClinicalContext();
+      else if (state.step === "review") renderReview();
+      else if (state.step === "capture") renderCapture();
+    }
+
+    var list = steps();
+    var idx = list.findIndex(function (s) { return s.id === state.step; });
+    document.getElementById("footer-label").textContent =
+      (state.mode === "rule" ? "Rule test" : "Clinical review") + " -- step " + (idx + 1) + " of " + list.length;
+  }
+
+  document.getElementById("btn-forward").onclick = goForward;
+  document.getElementById("btn-back").onclick = goBack;
+  document.getElementById("btn-home").onclick = function () {
+    state.step = "home"; state.mode = null; state.fixed = false;
+    state.runLabel = "Run A"; state.selectedChunk = null; state.stageIndex = 0; render();
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

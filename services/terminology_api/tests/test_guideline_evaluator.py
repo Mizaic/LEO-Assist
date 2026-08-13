@@ -511,6 +511,7 @@ def test_matched_via_omitted_when_only_primary_seed_hits(evaluator_factory):
     matched_via = result["matched_rules"][0]["matched_via"]
     assert matched_via == [
         {
+            "kind": "CONCEPT",
             "node_id": "n1",
             "primary_concept_id": "1",
             "preferred_term": "Smoker",
@@ -537,6 +538,125 @@ def test_matched_via_lists_every_hit_when_multiple_seeds_present(evaluator_facto
     result = ev.evaluate_patient(["1", "2"])
     matched_via = result["matched_rules"][0]["matched_via"]
     assert matched_via[0]["matched_concept_ids"] == ["1", "2"]
+
+
+def test_matched_via_includes_demographic_age_sex_and_concept(evaluator_factory):
+    """Firing rules report age, gender, and SNOMED hits in matched_via."""
+    bm = BitMap([1])
+    rule = {
+        "rule_id": "r-age-sex",
+        "name": "Breast rule",
+        "schema_version": 2,
+        "guideline_id": "NG12",
+        "logic_tree": {
+            "kind": "AND",
+            "node_id": "root",
+            "children": [
+                {
+                    "kind": "DEMOGRAPHIC",
+                    "node_id": "age1",
+                    "field": "age",
+                    "operator": ">=",
+                    "value": 50.0,
+                    "unit": "years",
+                },
+                {
+                    "kind": "DEMOGRAPHIC",
+                    "node_id": "sex1",
+                    "field": "sex",
+                    "operator": "=",
+                    "value": "female",
+                },
+                {
+                    "kind": "CONCEPT",
+                    "node_id": "n1",
+                    "bitmap_id": "bm1",
+                    "criterion": {
+                        "primary_concept_id": "1",
+                        "snomed_concept_id": "1",
+                        "preferred_term": "Nipple discharge symptom (finding)",
+                    },
+                    "seed_concept_ids": ["1"],
+                },
+            ],
+        },
+    }
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"1": 1},
+        bitmaps={"bm1": bm},
+    )
+    result = ev.evaluate_patient(["1"], patient_age=71, patient_sex="female")
+    matched_via = result["matched_rules"][0]["matched_via"]
+    assert matched_via[0]["kind"] == "DEMOGRAPHIC"
+    assert matched_via[0]["field"] == "age"
+    assert matched_via[0]["patient_value"] == 71
+    assert matched_via[1]["field"] == "sex"
+    assert matched_via[2]["matched_concept_ids"] == ["1"]
+
+
+def test_matched_via_or_branch_excludes_non_firing_concepts(evaluator_factory):
+    """Only the winning OR branch contributes concept attribution."""
+    rule = {
+        "rule_id": "r-or",
+        "name": "OR rule",
+        "schema_version": 2,
+        "guideline_id": "NG12",
+        "logic_tree": {
+            "kind": "OR",
+            "node_id": "root",
+            "children": [
+                {
+                    "kind": "AND",
+                    "node_id": "branch-a",
+                    "children": [
+                        {
+                            "kind": "DEMOGRAPHIC",
+                            "node_id": "age-a",
+                            "field": "age",
+                            "operator": ">=",
+                            "value": 50.0,
+                            "unit": "years",
+                        },
+                        {
+                            "kind": "CONCEPT",
+                            "node_id": "n-a",
+                            "bitmap_id": "bm-a",
+                            "criterion": {
+                                "primary_concept_id": "1",
+                                "snomed_concept_id": "1",
+                                "preferred_term": "Breast lump",
+                            },
+                            "seed_concept_ids": ["1"],
+                        },
+                    ],
+                },
+                {
+                    "kind": "CONCEPT",
+                    "node_id": "n-b",
+                    "bitmap_id": "bm-b",
+                    "criterion": {
+                        "primary_concept_id": "2",
+                        "snomed_concept_id": "2",
+                        "preferred_term": "Cough",
+                    },
+                    "seed_concept_ids": ["2"],
+                },
+            ],
+        },
+    }
+    ev = evaluator_factory(
+        current_ruleset={"version": "v1", "rules": [rule]},
+        int_id_map={"1": 1, "2": 2},
+        bitmaps={"bm-a": BitMap([1]), "bm-b": BitMap([2])},
+    )
+    result = ev.evaluate_patient(["1", "2"], patient_age=71)
+    matched_via = result["matched_rules"][0]["matched_via"]
+    terms = [
+        entry.get("preferred_term") or entry.get("field") for entry in matched_via
+    ]
+    assert "Breast lump" in terms
+    assert "Cough" not in terms
 
 
 def test_matched_via_absent_for_schema_v1_rule(evaluator_factory):

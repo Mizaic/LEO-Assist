@@ -10,6 +10,7 @@ import pytest
 
 from libs.llm_client import json_helper, token_tracker
 from libs.llm_client.usage_recorder import (
+    LLMCallRecord,
     LLMUsageRecorder,
     _default_tracking_callback,
     get_active_recorder,
@@ -218,3 +219,33 @@ def test_to_audit_dict_returns_uiwire_compatible_shape(stub_create_llm, monkeypa
     assert payload["output_tokens"] == 5
     assert payload["llm_calls"] == 1
     assert payload["cost_usd"] > 0
+
+
+def test_recorder_prices_gpt54_at_big_rates_when_env_is_small(monkeypatch):
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    monkeypatch.setenv("PIPELINE_MODEL_TIER", "small")
+    for suffix in (
+        "COST_PER_1M_INPUT_TOKEN",
+        "COST_PER_1M_CACHED_INPUT_TOKEN",
+        "COST_PER_1M_OUTPUT_TOKEN",
+        "COST_PER_1M_CACHE_WRITE_TOKEN",
+    ):
+        monkeypatch.delenv(f"AZURE_OPENAI_BIG_MODEL_{suffix}", raising=False)
+        monkeypatch.delenv(f"AZURE_OPENAI_SMALL_MODEL_{suffix}", raising=False)
+    rec = LLMUsageRecorder()
+    rec.record(
+        LLMCallRecord(
+            agent_task="sbar_background",
+            model_name="gpt-5.4",
+            model_provider="azure",
+            input_tokens=22576,
+            output_tokens=1104,
+            cached_input_tokens=0,
+            latency_ms=100,
+            success=True,
+        )
+    )
+    env_cfg = LLMCostConfig.from_env()
+    assert abs(rec.cost_usd(env_cfg) - 0.073) < 1e-6
+    mini_cost = rec.usage.cost_usd(env_cfg)
+    assert abs(mini_cost - 0.0219) < 1e-6

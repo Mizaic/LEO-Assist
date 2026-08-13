@@ -314,8 +314,10 @@ describe("PathwayConditionsStage: editing an already-resolved OBSERVATION row", 
 
   function ObsHarness({
     onSelectNode = jest.fn(),
+    onEditConcept = jest.fn(),
   }: {
     onSelectNode?: (nodeId: string, anchor?: HTMLElement | null) => void;
+    onEditConcept?: (nodeId: string) => void;
   }) {
     const [tree, setTree] = useState<EditableLogicNode>({
       node_id: "root",
@@ -337,38 +339,21 @@ describe("PathwayConditionsStage: editing an already-resolved OBSERVATION row", 
         onSelectNode={onSelectNode}
         onUpdate={(update) => setTree((curr) => applyUpdate(curr, update) ?? curr)}
         onRequestAdd={jest.fn()}
-        onEditConcept={jest.fn()}
+        onEditConcept={onEditConcept}
         onConfirmPathway={jest.fn()}
       />
     );
   }
 
-  it("toggles the inline lab-value editor instead of calling onSelectNode", async () => {
+  it("routes a resolved OBSERVATION row to onEditConcept for threshold editing", async () => {
     const user = userEvent.setup();
+    const onEditConcept = jest.fn();
     const onSelectNode = jest.fn();
-    render(<ObsHarness onSelectNode={onSelectNode} />);
-
-    expect(screen.queryByLabelText(/how to compare the lab value/i)).not.toBeInTheDocument();
+    render(<ObsHarness onSelectNode={onSelectNode} onEditConcept={onEditConcept} />);
 
     await user.click(screen.getByText(OBS_TEXT));
+    expect(onEditConcept).toHaveBeenCalledWith("obs-1");
     expect(onSelectNode).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(/how to compare the lab value/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^value$/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^unit$/i)).toBeInTheDocument();
-
-    await user.click(screen.getByText(OBS_TEXT));
-    expect(screen.queryByLabelText(/how to compare the lab value/i)).not.toBeInTheDocument();
-  });
-
-  it("routes the ObservationRow chip click to onSelectNode so the reviewer can still swap the observable", async () => {
-    const user = userEvent.setup();
-    const onSelectNode = jest.fn();
-    render(<ObsHarness onSelectNode={onSelectNode} />);
-
-    await user.click(screen.getByText(OBS_TEXT));
-    await user.click(screen.getByRole("button", { name: /platelet count\. click to swap/i }));
-
-    expect(onSelectNode).toHaveBeenCalledWith("obs-1", expect.anything());
   });
 });
 

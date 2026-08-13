@@ -1,4 +1,4 @@
-"""Anchor domain review prompt — v1 — INSTRUCTIONS ONLY.
+"""Anchor domain review prompt -- v1 -- INSTRUCTIONS ONLY.
 
 Atlas trace:
   DO: DO-BEFC4C67
@@ -7,7 +7,7 @@ Atlas trace:
 
 Output schema and few-shot examples are stored separately in Neo4j and
 assembled at runtime. Do NOT add output format sections or inline examples
-to this file — manage them via the Admin UI at /admin/prompts
+to this file -- manage them via the Admin UI at /admin/prompts
 (name='anchor_domain_review', version=1).
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
@@ -19,7 +19,7 @@ ANCHOR_DOMAIN_REVIEW_V1 = """You are a clinical NLP expert reviewing JSONL extra
 
 ## INPUT FORMAT
 Each JSONL line contains:
-- `line_number`: integer index (use this in output — do NOT renumber)
+- `line_number`: integer index (use this in output -- do NOT renumber)
 - `concept_id`: SNOMED CT concept ID (may be incorrect)
 - `concept_name`: SNOMED CT FSN (may be incorrect)
 - `text`: The source clinical text that triggered detection
@@ -40,7 +40,7 @@ Assign exactly ONE domain:
 | `2WW_REFERRAL` | Fast track / 2WW referral action initiated ("fast track referral for suspected X cancer") |
 | `2WW_CLINIC_SEEN` | Patient attended a 2WW / fast track clinic ("Seen in fast track suspected X clinic") |
 | `2WW_REFERRAL_REJECTED` | Referral rejected, declined, or did not attend |
-| `CANCER_TREATMENT` | Active cancer treatment (chemotherapy, radiotherapy, surgery for cancer, endocrine therapy for cancer — letrozole, tamoxifen, abiraterone etc) |
+| `CANCER_TREATMENT` | Active cancer treatment (chemotherapy, radiotherapy, surgery for cancer, endocrine therapy for cancer -- letrozole, tamoxifen, abiraterone etc) |
 | `CANCER_TREATMENT_HISTORICAL` | Past cancer treatment clearly completed ("finished chemotherapy", "had mastectomy in 2020") |
 | `INVESTIGATION` | Diagnostic investigation for cancer workup (biopsy, CT scan, colonoscopy, PSA, CEA) |
 | `METASTATIC_DISEASE` | Secondary / metastatic cancer ("metastasis to lymph node", "liver mets", "bone secondaries") |
@@ -50,7 +50,7 @@ Assign exactly ONE domain:
 ### Step 2: Concept Validation
 Assess whether the `concept_id` and `concept_name` are correct for the evidence text.
 - `concept_correct`: true/false
-- `suggested_concept_id`: null (do NOT guess IDs — only provide if you are certain from SNOMED knowledge)
+- `suggested_concept_id`: null (do NOT guess IDs -- only provide if you are certain from SNOMED knowledge)
 - `suggested_concept_name`: plain English description if concept is wrong
 
 ### Step 3: Assertion
@@ -67,10 +67,10 @@ From the `text` field, extract the key phrase pattern. Generate a medspaCy Targe
 Rules:
 - Use `{"LOWER": "word"}` for case-insensitive single tokens
 - Use `{"IN": ["word1", "word2"]}` for variants (spelling, abbreviations)
-- Use `{"OP": "?"}` sparingly — only for genuinely optional tokens (e.g. articles)
+- Use `{"OP": "?"}` sparingly -- only for genuinely optional tokens (e.g. articles)
 - Use `{"OP": "+"}` for repeated tokens only when semantically required
 - The label must be the DOMAIN string from Step 1
-- Keep patterns concise — 3 to 8 tokens maximum
+- Keep patterns concise -- 3 to 8 tokens maximum
 
 ## CRITICAL CONSTRAINTS
 - This pipeline is a UKCA Class I Software as a Medical Device (SaMD). Do NOT guess SNOMED concept IDs.

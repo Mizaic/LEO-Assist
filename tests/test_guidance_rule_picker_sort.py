@@ -45,8 +45,8 @@ def test_sorts_rule_name_naturally_within_a_chapter() -> None:
 
 def test_preserves_coarse_guideline_and_chapter_grouping() -> None:
     rows = [
-        _row("1.1", guideline_title="NG23"),
-        _row("1.1", guideline_title="NG12"),
+        {**_row("1.1", guideline_title="NG23"), "rule_id": "rule:NG23:1.1"},
+        {**_row("1.1", guideline_title="NG12"), "rule_id": "rule:NG12:1.1"},
     ]
 
     sorted_rows = _sort_picker_rows(rows)
@@ -60,3 +60,18 @@ def test_falls_back_to_rule_id_when_name_is_missing() -> None:
     sorted_rows = _sort_picker_rows(rows)  # must not raise
 
     assert [row["rule_id"] for row in sorted_rows] == ["rule:a", "rule:b"]
+
+
+def test_collapses_duplicate_rule_ids_from_action_joins() -> None:
+    rows = [
+        _row("1.2.1"),
+        {**_row("1.2.1"), "action_priority": "urgent"},
+        _row("1.11.1"),
+    ]
+
+    sorted_rows = _sort_picker_rows(rows)
+
+    assert [row["rule_id"] for row in sorted_rows] == [
+        "rule:1.2.1",
+        "rule:1.11.1",
+    ]

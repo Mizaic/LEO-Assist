@@ -20,6 +20,7 @@ PATIENT_SEMANTIC_SHORTCUT_REL_TYPES: tuple[str, ...] = (
     "HAS_OBSERVABLE_ENTITY",
     "HAS_PROCEDURE",
     "HAS_CONCEPT",
+    "HAS_PHARMACEUTICAL_BIOLOGIC_PRODUCT",
 )
 
 _PATIENT_SEMANTIC_SHORTCUT_REL_UNION = "|".join(PATIENT_SEMANTIC_SHORTCUT_REL_TYPES)
@@ -61,6 +62,23 @@ RETURN deleted
 """
 
 # Encounter-[:DOCUMENTS]-> and Chunk-[:DOCUMENTS]-> (sentence-level coding).
+#
+# Chunks reach the patient graph via two independent paths: patient-direct
+# (p)-[:HAS_DOCUMENT_REFERENCE]->(DocumentReference) for uploaded encounter
+# documents, and (ReferralRequest)-[:HAS_DOCUMENT]->(DocumentReference) for
+# referral documents, where the ReferralRequest links to the patient via
+# FOR_PATIENT rather than the patient linking directly to the document. A
+# reset that only walked the first path silently left codings on referral
+# documents in place (measured: 50 of 272 referral-document pairs
+# unreachable on the live patient graph), so both paths must be swept.
+#
+# Each WITH that calls collect(...) carries forward only plain variables
+# (never a `carried_var + collect(...)` expression in the same WITH) --
+# combining a non-aggregated variable with a fresh aggregate in one
+# expression is illegal in this Neo4j version ("Aggregation column
+# contains implicit grouping expressions") and the prior version of this
+# query had exactly that bug, so it could not execute at all. List
+# concatenation happens only in a later WITH that contains no aggregate.
 RESET_PATIENT_DOCUMENTS = """
 MATCH (p:Patient)
 WHERE toString(p.id) = $patient_id
@@ -68,7 +86,14 @@ OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)-[re:DOCUMENTS]->()
 WITH p, collect(re) AS enc_col
 OPTIONAL MATCH (p)-[:HAS_DOCUMENT_REFERENCE]->(:DocumentReference)
       -[:HAS_CHUNK]->(:Chunk)-[rc:DOCUMENTS]->()
-WITH [r IN enc_col + collect(rc) WHERE r IS NOT NULL] AS rels
+WITH p, enc_col, collect(rc) AS doc_col
+WITH p, enc_col + doc_col AS acc
+OPTIONAL MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)-[:HAS_DOCUMENT]->(:DocumentReference)
+      -[:HAS_CHUNK]->(:Chunk)-[rr:DOCUMENTS]->()
+WITH acc, collect(rr) AS ref_col
+WITH acc + ref_col AS combined
+UNWIND combined AS rel
+WITH collect(DISTINCT rel) AS rels
 WITH rels, size(rels) AS links_deleted
 FOREACH (rel IN rels | DELETE rel)
 RETURN links_deleted
@@ -82,6 +107,32 @@ WITH collect(r) AS rels
 WITH rels, size(rels) AS direct_deleted
 FOREACH (rel IN rels | DELETE rel)
 RETURN direct_deleted
+"""
+
+# SBAR assessments are version-controlled: `completed` is a real version and
+# must survive a reset, `draft` is an aborted or superseded run and is safe
+# to delete before a replay. Scoped to one referral so a replay never
+# touches another referral's history. DETACH DELETE removes the node's
+# patient-level HAS_ASSESSMENT edge too, so nothing is left dangling.
+RESET_REFERRAL_DRAFT_ASSESSMENTS = """
+MATCH (r:ReferralRequest {id: $referral_id})-[:HAS_ASSESSMENT]->(a:Assessment)
+WHERE a.status = 'draft'
+WITH collect(DISTINCT a) AS nodes
+WITH nodes, size(nodes) AS deleted
+FOREACH (n IN nodes | DETACH DELETE n)
+RETURN deleted
+"""
+
+# One-off cleanup of existing draft-assessment detritus across the whole
+# patient graph, applying the same rule as RESET_REFERRAL_DRAFT_ASSESSMENTS
+# but unscoped. Run manually, not wired into any automatic reset path.
+RESET_ALL_DRAFT_ASSESSMENTS = """
+MATCH (a:Assessment)
+WHERE a.status = 'draft'
+WITH collect(DISTINCT a) AS nodes
+WITH nodes, size(nodes) AS deleted
+FOREACH (n IN nodes | DETACH DELETE n)
+RETURN deleted
 """
 
 RESET_PATIENT_LLM_USAGE = """

@@ -1,4 +1,4 @@
-"""V1 episode builder and consolidation prompts — INSTRUCTIONS ONLY.
+"""V1 episode builder and consolidation prompts -- INSTRUCTIONS ONLY.
 
 Atlas trace:
   DO: DO-B7060F57
@@ -7,7 +7,7 @@ Atlas trace:
 
 Output schemas and few-shot examples are stored separately in Neo4j and
 assembled at runtime. Do NOT add output format sections or inline examples
-to this file — manage them via the Admin UI at /admin/prompts.
+to this file -- manage them via the Admin UI at /admin/prompts.
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
 """

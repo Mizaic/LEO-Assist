@@ -7,9 +7,9 @@ Atlas trace:
 
 DI-LEO-AI-208 / DO-LEO-AI-205.
 
-Calls Haiku 4.5 (tier='small' via libs.llm_client.factory.create_llm)
-with the production EXTRACTION_SYSTEM_V1 prompt and a top-k of nearest
-gold few-shot exemplars selected by BioClinicalBERT cosine similarity.
+Calls the configured small model with the production extraction PromptConfig
+and a top-k of nearest gold few-shot exemplars selected by BioClinicalBERT
+cosine similarity.
 
 On any LLM failure the extractor falls back to the candidate's
 existing entities_json so the workflow never silently zeros out an
@@ -20,12 +20,14 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from libs.prompts.extraction_v1 import EXTRACTION_SYSTEM_V1
-from libs.prompts.few_shot_selector import FewShotSelector
+from libs.prompts.registry import get_prompt_config
 
 from ._types import ExtractedEntity, ExtractionResult
+
+if TYPE_CHECKING:
+    from libs.prompts.few_shot_selector import FewShotSelector
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,25 @@ _DEFAULT_FEW_SHOT_K = 5
 _MAX_OUTPUT_TOKENS = 1500
 _MAX_TEXT_CHARS = 16_000
 _MAX_HINT_ENTITIES = 30
+
+
+def _assemble_managed_prompt(**kwargs: Any) -> str:
+    from libs.pipeline_graph.subgraphs._extractor import assemble_system_prompt
+
+    return assemble_system_prompt(**kwargs)
+
+
+def _load_registry_prompt() -> tuple[str, dict[str, Any] | None]:
+    """Load the managed extraction prompt, examples, and strict schema."""
+    config = get_prompt_config("extraction", version=1)
+    schema_raw = config.get("outputSchema")
+    schema = json.loads(schema_raw) if isinstance(schema_raw, str) else schema_raw
+    system = _assemble_managed_prompt(
+        instructions=str(config.get("systemPrompt") or ""),
+        output_schema_json=schema_raw,
+        few_shot_examples=config.get("fewShotExamples") or [],
+    )
+    return system, schema if isinstance(schema, dict) else None
 
 
 def _safe_load_entities(raw: Any) -> list[dict[str, Any]]:
@@ -45,7 +66,9 @@ def _safe_load_entities(raw: Any) -> list[dict[str, Any]]:
         parsed = json.loads(raw)
     except (json.JSONDecodeError, TypeError):
         return []
-    return [e for e in parsed if isinstance(e, dict)] if isinstance(parsed, list) else []
+    return (
+        [e for e in parsed if isinstance(e, dict)] if isinstance(parsed, list) else []
+    )
 
 
 def _to_extracted(rows: list[dict[str, Any]]) -> list[ExtractedEntity]:
@@ -62,9 +85,7 @@ def _to_extracted(rows: list[dict[str, Any]]) -> list[ExtractedEntity]:
             if k not in {"text", "label", "assertion", "ai_first_pass"}
         }
         out.append(
-            ExtractedEntity(
-                text=text, label=label, assertion=assertion, extras=extras
-            )
+            ExtractedEntity(text=text, label=label, assertion=assertion, extras=extras)
         )
     return out
 
@@ -121,6 +142,7 @@ def _call_haiku(
     *,
     tier: str = "small",
     patient_id: str = "",
+    structured_schema: dict[str, Any] | None = None,
 ) -> tuple[str, str]:
     """Invoke Haiku via the shared LLM factory; returns (text, model_id).
 
@@ -135,6 +157,9 @@ def _call_haiku(
         messages=[{"role": "user", "content": user_msg}],
         temperature=0.0,
         max_tokens=_MAX_OUTPUT_TOKENS,
+        json_mode=True,
+        structured_schema=structured_schema,
+        verbosity="low",
         agent_task="candidate_ai_first_pass",
         patient_id=str(patient_id or ""),
     )
@@ -179,6 +204,7 @@ def ai_extract_entities(
     k: int = _DEFAULT_FEW_SHOT_K,
     tier: str = "small",
     call_llm: Any = _call_haiku,
+    prompt_loader: Any = _load_registry_prompt,
 ) -> ExtractionResult:
     """Run the AI extractor for one candidate.
 
@@ -213,8 +239,13 @@ def ai_extract_entities(
 
     patient_id = str(candidate.get("patient_id") or "")
     try:
+        system, schema = prompt_loader()
         raw, _model_id = call_llm(
-            EXTRACTION_SYSTEM_V1, user_msg, tier=tier, patient_id=patient_id
+            system,
+            user_msg,
+            tier=tier,
+            patient_id=patient_id,
+            structured_schema=schema,
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning(

@@ -22,6 +22,7 @@ See DI-LEO-AI-513 and DI-LEO-AI-516.
 
 from __future__ import annotations
 
+import re
 from typing import TypedDict
 
 # Stages a reviewer would recognise on the SBAR Playground.
@@ -42,7 +43,11 @@ KNOWN_ERROR_CODES: frozenset[str] = frozenset(
         "input_too_long",
         "throttled",
         "access_denied",
+        "timeout",
         "network",
+        "invalid_json",
+        "content_filter",
+        "service_error",
         "missing_section",
         "too_many_parts",
         "reduce_failed",
@@ -50,6 +55,8 @@ KNOWN_ERROR_CODES: frozenset[str] = frozenset(
         "unknown",
     }
 )
+_EXCEPTION_FAMILY_RE = re.compile(r"\b([A-Z][A-Za-z0-9]*(?:Error|Exception))\b")
+_HTTP_FAMILY_RE = re.compile(r"\b(?:HTTP|status(?:_code)?)\s*[:=]?\s*(\d{3})\b", re.I)
 
 
 # Stage-aware suffixes so the same friendly text reads naturally for
@@ -61,6 +68,7 @@ _STAGE_NOUNS: dict[str, str] = {
     "assessment": "the Assessment section",
     "recommendation": "the Recommendation section",
 }
+SBAR_STAGE_NAMES: frozenset[str] = frozenset(_STAGE_NOUNS)
 
 
 def _stage_noun(stage: str) -> str:
@@ -104,16 +112,65 @@ def _is_access_denied(raw: str) -> bool:
     )
 
 
+def _is_timeout(raw: str) -> bool:
+    text = raw.lower()
+    return (
+        "apitimeouterror" in text
+        or "readtimeout" in text
+        or "connecttimeout" in text
+        or "timed out" in text
+        or "timeout" in text
+        and ("api" in text or "request" in text or "error" in text)
+    )
+
+
 def _is_network(raw: str) -> bool:
     text = raw.lower()
     return (
         "endpointconnectionerror" in text
+        or "apiconnectionerror" in text
         or "connection" in text
         and ("refused" in text or "reset" in text or "timeout" in text)
-        or "timed out" in text
         or "name resolution" in text
         or "ssl" in text
         and "error" in text
+    )
+
+
+def _is_invalid_json(raw: str) -> bool:
+    text = raw.lower()
+    return (
+        "jsondecodeerror" in text
+        or "json validation failed" in text
+        or "no json object found" in text
+        or "invalid json" in text
+        or "expecting value" in text
+        and "json" in text
+    )
+
+
+def _is_content_filter(raw: str) -> bool:
+    text = raw.lower()
+    return (
+        "content_filter" in text
+        or "contentfilter" in text
+        or "content management policy" in text
+        or "responsibleai" in text
+        or "responsible ai" in text
+    )
+
+
+def _is_service_error(raw: str) -> bool:
+    text = raw.lower()
+    return (
+        "serviceunavailable" in text
+        or "internalserver" in text
+        or "overloaded" in text
+        or "the server had an error" in text
+        or "http 5" in text
+        or "status 5" in text
+        or " 529" in text
+        or "status_code=5" in text
     )
 
 
@@ -140,12 +197,31 @@ def _classify(raw: str) -> str:
         return "throttled"
     if _is_access_denied(raw):
         return "access_denied"
+    if _is_timeout(raw):
+        return "timeout"
     if _is_network(raw):
         return "network"
+    if _is_invalid_json(raw):
+        return "invalid_json"
+    if _is_content_filter(raw):
+        return "content_filter"
+    if _is_service_error(raw):
+        return "service_error"
     return "unknown"
 
 
-def _message_for(code: str, stage: str) -> str:
+def _safe_family(raw: str) -> str:
+    """Short exception family for unclassified errors. Never the vendor sentence."""
+    http = _HTTP_FAMILY_RE.search(raw or "")
+    if http:
+        return f"HTTP {http.group(1)}"
+    match = _EXCEPTION_FAMILY_RE.search(raw or "")
+    if match:
+        return match.group(1)[:40]
+    return "unclassified"
+
+
+def _message_for(code: str, stage: str, family: str = "unclassified") -> str:
     noun = _stage_noun(stage)
     if code == "input_too_long":
         return (
@@ -162,10 +238,30 @@ def _message_for(code: str, stage: str) -> str:
             f"We could not reach the AI service to write {noun} "
             "because the connection was refused. The team has been told."
         )
+    if code == "timeout":
+        return (
+            f"The AI service took too long to write {noun}. "
+            "Try running it again in a moment."
+        )
     if code == "network":
         return (
             f"We could not reach the AI service to write {noun} "
             "because of a network problem. Try again in a moment."
+        )
+    if code == "invalid_json":
+        return (
+            f"The model did not return usable text for {noun}. "
+            "Try running it again."
+        )
+    if code == "content_filter":
+        return (
+            f"The AI service blocked the request while writing {noun}. "
+            "Tell the team if this keeps happening."
+        )
+    if code == "service_error":
+        return (
+            f"The AI service had an internal error while writing {noun}. "
+            "Wait a moment and run it again."
         )
     if code == "missing_section":
         return (
@@ -190,8 +286,9 @@ def _message_for(code: str, stage: str) -> str:
             f"One part of {noun} did not finish. The other parts are "
             "shown below. Try running it again."
         )
+    label = family if family and family != "unclassified" else "unclassified"
     return (
-        f"Something went wrong while writing {noun}. "
+        f"Something went wrong while writing {noun} ({label}). "
         "Try running it again. If it keeps happening, tell the team."
     )
 
@@ -212,7 +309,12 @@ def translate_error(stage: str, raw: str) -> FriendlyError:
         vendor string for known failure modes.
     """
     code = _classify(raw or "")
-    return {"stage": stage, "code": code, "message": _message_for(code, stage)}
+    family = _safe_family(raw or "")
+    return {
+        "stage": stage,
+        "code": code,
+        "message": _message_for(code, stage, family=family),
+    }
 
 
 class FriendlyNotice(TypedDict):

@@ -1,0 +1,78 @@
+{
+  "description": "Situation lookup normalisation rules for UK primary care NER entities.",
+  "family": "situation_lookup",
+  "rules": [
+    {
+      "rule_id": "sl-001",
+      "pattern": "\\b(?:2ww|two\\s+week\\s+wait)\\s+referral\\b",
+      "canonical": "fast track referral",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-002",
+      "pattern": "\\b(?:on\\s+)?waiting\\s+list\\s+(?:for|to)\\b",
+      "canonical": "planned procedure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-003",
+      "pattern": "\\bbooked\\s+(?:for|in)\\b",
+      "canonical": "planned procedure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-004",
+      "pattern": "\\bscheduled\\s+(?:for|to)\\b",
+      "canonical": "planned procedure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-005",
+      "pattern": "\\bplanned\\s+(?:procedure|operation|surgery|intervention|admission|discharge)\\b",
+      "canonical": "planned procedure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-006",
+      "pattern": "\\bawaiting\\s+(?:procedure|operation|surgery|biopsy|scan|investigation)\\b",
+      "canonical": "planned procedure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-007",
+      "pattern": "\\bawaiting\\s+(?:results?|report|opinion|review)\\b",
+      "canonical": null,
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-008",
+      "pattern": "\\breferred\\s+(?:for|to)\\b",
+      "canonical": "referral to service",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "sl-009",
+      "pattern": "\\breferral\\s+(?:for|to)\\b",
+      "canonical": "referral to service",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    }
+  ]
+}

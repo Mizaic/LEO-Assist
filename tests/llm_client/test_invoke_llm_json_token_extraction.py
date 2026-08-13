@@ -44,12 +44,13 @@ def stub_create_llm(monkeypatch):
     """Replace create_llm with a stub client whose converse returns a preset."""
     from libs.llm_client.factory import _fire_converse_tracking
 
-    holder: dict[str, Any] = {"response": None, "error": None}
+    holder: dict[str, Any] = {"response": None, "error": None, "requests": []}
 
     class _FakeClient:
         model_id = "gpt-test"
 
         def converse(self, **kwargs):
+            holder["requests"].append(kwargs)
             if holder["error"] is not None:
                 _fire_converse_tracking(
                     agent_task=kwargs.get("agent_task", "unknown"),
@@ -166,3 +167,50 @@ def test_callback_fires_on_invocation_error_with_failure_metadata(
     assert payload["success"] is False
     assert payload["error_message"]
     assert payload["model_provider"] == "azure"
+
+
+def test_strict_schema_is_forwarded_and_validated(stub_create_llm, monkeypatch):
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    stub_create_llm["response"] = _FakeLLMResponse(text='{"value": 3}')
+    schema = {
+        "type": "object",
+        "properties": {"value": {"type": "integer"}},
+        "required": ["value"],
+        "additionalProperties": False,
+    }
+
+    result = asyncio.run(
+        json_helper.invoke_llm_json(
+            "sys",
+            "usr",
+            options=json_helper.JSONInvocationOptions(schema=schema),
+        )
+    )
+
+    assert result == {"value": 3}
+    assert stub_create_llm["requests"][0]["structured_schema"] == schema
+    assert stub_create_llm["requests"][0]["verbosity"] == "low"
+
+
+def test_schema_failure_is_bounded(stub_create_llm, monkeypatch):
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    stub_create_llm["response"] = _FakeLLMResponse(text='{"value": "wrong"}')
+    schema = {
+        "type": "object",
+        "properties": {"value": {"type": "integer"}},
+        "required": ["value"],
+    }
+
+    result = asyncio.run(
+        json_helper.invoke_llm_json(
+            "sys",
+            "usr",
+            options=json_helper.JSONInvocationOptions(
+                schema=schema,
+                max_retries=2,
+            ),
+        )
+    )
+
+    assert "error" in result
+    assert len(stub_create_llm["requests"]) == 2

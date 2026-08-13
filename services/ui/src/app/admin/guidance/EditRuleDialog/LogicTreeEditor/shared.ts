@@ -39,7 +39,7 @@ export const KIND_COLORS: Record<string, string> = {
 export const KIND_SECTION_LABELS: Record<string, string> = {
   OR: "EITHER OF THESE",
   AND: "ALL OF THESE",
-  NOT: "NONE OF THESE",
+  NOT: "PATIENT SHOULD NOT HAVE",
   AT_LEAST: "AT LEAST N OF THESE",
 };
 

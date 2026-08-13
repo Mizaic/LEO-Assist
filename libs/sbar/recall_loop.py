@@ -176,6 +176,7 @@ async def run_recall_loop(
         allowed_chunk_ids=allowed_chunk_ids,
     )
     messages: list[dict[str, Any]] = [{"role": "user", "content": user}]
+    response_items: list[Any] = []
     tool_config = build_recall_tool_config()
     llm_calls = 0
     tokens_used = 0
@@ -191,17 +192,22 @@ async def run_recall_loop(
             tier=tier,
             patient_id=patient_id,
             tool_config=tool_config,
+            response_items=response_items,
         )
         tokens_used += _estimate_tokens(resp)
         tool_uses = list(getattr(resp, "tool_uses", None) or [])
         if not tool_uses:
             break
 
-        assistant_blocks: list[dict[str, Any]] = []
-        if getattr(resp, "text", None):
-            assistant_blocks.append({"text": resp.text})
-        assistant_blocks.extend({"toolUse": tu} for tu in tool_uses)
-        messages.append({"role": "assistant", "content": assistant_blocks})
+        raw_items = list(getattr(resp, "raw_output_items", None) or [])
+        if raw_items:
+            response_items.extend(raw_items)
+        else:
+            assistant_blocks: list[dict[str, Any]] = []
+            if getattr(resp, "text", None):
+                assistant_blocks.append({"text": resp.text})
+            assistant_blocks.extend({"toolUse": tu} for tu in tool_uses)
+            messages.append({"role": "assistant", "content": assistant_blocks})
 
         tool_results: list[dict[str, Any]] = []
         for tu in tool_uses:
@@ -212,8 +218,17 @@ async def run_recall_loop(
             if name == "submit_recall_result":
                 submit_payload = payload
             tool_results.append(_tool_result_block(tool_use_id, payload))
+            if raw_items:
+                response_items.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": tool_use_id,
+                        "output": json.dumps(payload, ensure_ascii=True),
+                    }
+                )
 
-        messages.append({"role": "user", "content": tool_results})
+        if not raw_items:
+            messages.append({"role": "user", "content": tool_results})
         audit_log = list(registry.audit_log)
 
         if submit_payload is not None:
@@ -288,6 +303,7 @@ async def _converse(
     tier: str,
     patient_id: str,
     tool_config: dict[str, Any],
+    response_items: list[Any],
 ) -> Any:
     if converse_fn is not None:
         return await converse_fn(
@@ -296,6 +312,7 @@ async def _converse(
             tool_config=tool_config,
             agent_task="sbar_recall",
             patient_id=patient_id,
+            response_items=response_items,
         )
     client = await asyncio.to_thread(create_llm, provider=provider, tier=tier)
     return await asyncio.to_thread(
@@ -305,6 +322,7 @@ async def _converse(
         max_tokens=512,
         temperature=0.0,
         tool_config=tool_config,
+        response_items=response_items,
         agent_task="sbar_recall",
         patient_id=patient_id,
     )

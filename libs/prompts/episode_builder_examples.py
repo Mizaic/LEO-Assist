@@ -24,7 +24,7 @@ Category taxonomy:
 from __future__ import annotations
 
 EPISODE_BUILDER_EXAMPLES: list[dict] = [
-    # ── Episode: confirmed ────────────────────────────────────────────────────
+    # -- Episode: confirmed ----------------------------------------------------
     {
         "category": "episode:confirmed",
         "model_scope": "any",
@@ -47,14 +47,14 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
             "Episode ID: ep-007\nCancer type: colorectal\nEntry type: referral\n"
             "Entry date: 2022-09-05\n\n"
             "Coded data:\n"
-            "- 2022-09-05 (enc-01): 2WW referral to lower GI surgery — change in bowel habit\n"
+            "- 2022-09-05 (enc-01): 2WW referral to lower GI surgery -- change in bowel habit\n"
             "- 2022-10-18 (enc-05): Colonoscopy: T3 adenocarcinoma sigmoid colon\n"
             "- 2022-10-25 (enc-06): MDT outcome: sigmoid colectomy planned\n"
             "- 2022-11-10 (enc-08): Sigmoid colectomy performed"
         ),
         "output": '{"status": "confirmed", "confidence": 98, "reasoning": "Colonoscopy on 2022-10-18 confirmed T3 adenocarcinoma; MDT decision and surgical treatment on 2022-11-10 corroborate.", "diagnosis_date": "2022-10-18", "treatment_date": "2022-11-10"}',
     },
-    # ── Episode: confirmed-inferred ───────────────────────────────────────────
+    # -- Episode: confirmed-inferred -------------------------------------------
     {
         "category": "episode:confirmed-inferred",
         "model_scope": "any",
@@ -63,14 +63,14 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
             "Episode ID: ep-012\nCancer type: haematological\nEntry type: referral\n"
             "Entry date: 2021-11-20\n\n"
             "Coded data:\n"
-            "- 2021-11-20 (enc-01): 2WW referral to haematology — lymphadenopathy\n"
+            "- 2021-11-20 (enc-01): 2WW referral to haematology -- lymphadenopathy\n"
             "- 2022-01-08 (enc-05): Letter from haematology filed\n"
             "- 2022-01-15 (enc-06): First cycle CHOP chemotherapy commenced\n"
-            "- 2022-03-10 (enc-09): Ongoing CHOP — cycle 4"
+            "- 2022-03-10 (enc-09): Ongoing CHOP -- cycle 4"
         ),
         "output": '{"status": "confirmed", "confidence": 82, "reasoning": "No explicit diagnosis text present, but CHOP chemotherapy is cancer-specific treatment indicating confirmed haematological malignancy. Diagnosis inferred at earliest treatment encounter.", "diagnosis_date": "2022-01-08", "treatment_date": "2022-01-15"}',
     },
-    # ── Episode: excluded ─────────────────────────────────────────────────────
+    # -- Episode: excluded -----------------------------------------------------
     {
         "category": "episode:excluded",
         "model_scope": "any",
@@ -79,9 +79,9 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
             "Episode ID: ep-021\nCancer type: skin\nEntry type: referral\n"
             "Entry date: 2023-07-03\n\n"
             "Coded data:\n"
-            "- 2023-07-03 (enc-01): Fast track referral to dermatology — suspicious pigmented lesion\n"
+            "- 2023-07-03 (enc-01): Fast track referral to dermatology -- suspicious pigmented lesion\n"
             "- 2023-07-24 (enc-03): Seen in fast track suspected skin cancer clinic\n"
-            "- 2023-08-10 (enc-05): Biopsy result: benign intradermal naevus — no malignancy\n"
+            "- 2023-08-10 (enc-05): Biopsy result: benign intradermal naevus -- no malignancy\n"
             "- 2023-08-10 (enc-05): Discharged from 2WW pathway"
         ),
         "output": '{"status": "excluded", "confidence": 97, "reasoning": "Biopsy on 2023-08-10 confirmed benign intradermal naevus with no malignancy; patient discharged from 2WW pathway.", "diagnosis_date": null, "treatment_date": null}',
@@ -94,13 +94,13 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
             "Episode ID: ep-035\nCancer type: colorectal\nEntry type: referral\n"
             "Entry date: 2023-02-14\n\n"
             "Coded data:\n"
-            "- 2023-02-14 (enc-01): Positive FIT result — 2WW referral lower GI\n"
-            "- 2023-03-20 (enc-04): Colonoscopy — no polyps, no cancer detected, NAD\n"
+            "- 2023-02-14 (enc-01): Positive FIT result -- 2WW referral lower GI\n"
+            "- 2023-03-20 (enc-04): Colonoscopy -- no polyps, no cancer detected, NAD\n"
             "- 2023-03-20 (enc-04): No evidence of colorectal cancer"
         ),
         "output": '{"status": "excluded", "confidence": 94, "reasoning": "Colonoscopy on 2023-03-20 found no polyps or cancer. NAD recorded with explicit no evidence of colorectal cancer.", "diagnosis_date": null, "treatment_date": null}',
     },
-    # ── Episode: inconclusive ─────────────────────────────────────────────────
+    # -- Episode: inconclusive -------------------------------------------------
     {
         "category": "episode:inconclusive",
         "model_scope": "any",
@@ -109,14 +109,14 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
             "Episode ID: ep-044\nCancer type: prostate\nEntry type: referral\n"
             "Entry date: 2023-10-05\n\n"
             "Coded data:\n"
-            "- 2023-10-05 (enc-01): 2WW referral urology — PSA 18.4\n"
-            "- 2023-11-12 (enc-03): Seen in prostate cancer clinic — MRI prostate ordered\n"
-            "- 2023-12-01 (enc-05): MRI showed suspicious lesion — TRUS biopsy planned\n"
+            "- 2023-10-05 (enc-01): 2WW referral urology -- PSA 18.4\n"
+            "- 2023-11-12 (enc-03): Seen in prostate cancer clinic -- MRI prostate ordered\n"
+            "- 2023-12-01 (enc-05): MRI showed suspicious lesion -- TRUS biopsy planned\n"
             "- 2023-12-20 (enc-07): Awaiting biopsy results"
         ),
         "output": '{"status": "inconclusive", "confidence": 35, "reasoning": "Suspicious MRI lesion warrants high suspicion but biopsy results are pending; no confirmed diagnosis or exclusion.", "diagnosis_date": null, "treatment_date": null}',
     },
-    # ── Consolidation: merge ──────────────────────────────────────────────────
+    # -- Consolidation: merge --------------------------------------------------
     {
         "category": "consolidation:merge",
         "model_scope": "any",
@@ -147,7 +147,7 @@ EPISODE_BUILDER_EXAMPLES: list[dict] = [
         ),
         "output": '{"should_merge": true, "primary_episode_id": "ep-B2", "reasoning": "Urological haematuria referral led to discovery of retroperitoneal lymphadenopathy; urology explicitly referred to haematology. Haematological episode (ep-B2) is the actual cancer with confirmed DLBCL and treatment.", "merged_cancer_type": "haematological"}',
     },
-    # ── Consolidation: no-merge ───────────────────────────────────────────────
+    # -- Consolidation: no-merge -----------------------------------------------
     {
         "category": "consolidation:no-merge",
         "model_scope": "any",

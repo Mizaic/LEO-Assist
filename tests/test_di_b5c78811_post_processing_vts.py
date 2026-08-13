@@ -43,6 +43,7 @@ LABEL_VERIFIER = ROOT / "services/api/app/services/label_verifier.py"
 POST_PROCESSING_SUBGRAPH = ROOT / "libs/pipeline_graph/subgraphs/post_processing.py"
 EXTRACTION_SCENARIOS_ROUTER = ROOT / "services/api/app/routers/extraction_scenarios.py"
 
+
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -68,6 +69,8 @@ def test_vt88920daa_shared_post_processing_stack_layer_order() -> None:
     assert completed.index(by_id["layer_5"]) < completed.index(by_id["layer_6"])
     assert by_id["layer_5"]["name"] == "Value-Unit Linking"
     assert by_id["layer_6"]["name"] == "Entity-Type Normalisation"
+    assert completed.index(by_id["layer_4c"]) < completed.index(by_id["layer_5"])
+    assert by_id["layer_4c"]["name"] == "Measurement Observable Recovery"
 
 
 # -- AC2: observable normalisation + surface cleanup ---------------------------
@@ -85,7 +88,9 @@ def test_vt29af2163_observable_normalisation_and_surface_cleanup() -> None:
             "assertion": "present",
         }
     ]
-    ranged = normalize_observable_entities("", range_entities, add_qualifier_value=False)[0]
+    ranged = normalize_observable_entities(
+        "", range_entities, add_qualifier_value=False
+    )[0]
     assert ranged["value"] == "106"
     assert ranged["unit"] == "g/L"
     assert ranged.get("reference_range") == "130-180"
@@ -137,6 +142,34 @@ def test_vt2a7c5322_value_unit_linking_before_entity_type_normalisation() -> Non
     assert obs[0]["text"] == "HbA1c"
     assert obs[0].get("value") == "45.0"
     assert obs[0].get("unit") == "mmol/mol"
+
+
+# -- AC9: mis-tagged measurement names ---------------------------------------
+
+
+def test_measurement_name_split_from_value_becomes_observable() -> None:
+    """VT-E6BD0CA9 / DI-B5C78811 -- weight/height/BMI split from value become observables."""
+    encounter = "- Height: 1.67 m\n- Current weight: 67 kg\n- BMI: 24.0 kg/m2"
+    entities = [
+        {"text": "- Current weight", "label": "procedure", "start": 18, "end": 35},
+        {"text": "67 kg", "label": "qualifier_value", "start": 37, "end": 42},
+        {"text": "- Height", "label": "procedure", "start": 0, "end": 8},
+        {"text": "BMI", "label": "finding", "start": 45, "end": 48},
+        {"text": "24.0 kg/m", "label": "qualifier_value", "start": 50, "end": 59},
+    ]
+    processed, trace = run_post_processing_with_trace(encounter, entities)
+    by_id = {r["layer_id"]: r for r in trace if r.get("status") == "completed"}
+    assert by_id["layer_4c"]["name"] == "Measurement Observable Recovery"
+
+    by_text = {str(e.get("text") or "").lower(): e for e in processed}
+    weight = by_text["current weight"]
+    assert weight["label"] == "observable_entity"
+    assert weight.get("value") == "67"
+    assert weight.get("unit") == "kg"
+    assert weight.get("lookup_term") == "current body weight"
+    assert by_text["height"]["value"] == "1.67"
+    assert by_text["bmi"]["unit"] == "kg/m2"
+    assert "67 kg" not in by_text
 
 
 # -- AC4: structured observable not demoted ----------------------------------
@@ -240,6 +273,66 @@ def test_vtcc118874_context_sets_negation_and_family() -> None:
     }
     apply_context_detection_to_dicts(fhx_sentence, [fhx_ent])
     assert fhx_ent["assertion"] == "family"
+
+
+def test_vtcc118874_context_preserves_present_for_duration_hx_idiom() -> None:
+    """VT-CC118874 / DI-B5C78811 AC6 -- UK 2WW referral forms use "<N> wk/mo hx
+    [of] <symptom>" to mean the symptom has been ONGOING for that duration, the
+    opposite of medspaCy's default 'history'/'hx' HISTORICAL cue (intended for
+    past medical history lists). Confirmed against three real, never-before
+    reviewed referrals in the six-site pilot (UGI18, UR16, GY22): the current
+    presenting complaint driving each 2WW referral -- vomiting, weight loss,
+    haematuria, dysuria, a vulval lump -- was marked historical instead of
+    present, purely because of the duration phrase's own "hx"/"history" token.
+    """
+    from libs.ner.context_engine import apply_context_detection_to_dicts
+
+    cases = [
+        (
+            "4-wk hx unexplained NV haematuria + dysuria, no infection on labs.",
+            "dysuria",
+        ),
+        (
+            "4-wk hx of unexplained vulval lump + ulceration, w/ intermittent bleeding.",
+            "vulval lump",
+        ),
+        (
+            "4 mo hx of unexplained wt loss + persistent vomiting with no clear cause.",
+            "vomiting",
+        ),
+        (
+            "Four-week history of unexplained non-visible haematuria and dysuria.",
+            "dysuria",
+        ),
+    ]
+    for sentence, term in cases:
+        start = sentence.lower().find(term.lower())
+        assert start >= 0, f"fixture bug: {term!r} not in {sentence!r}"
+        ent = {
+            "text": term,
+            "label": "finding",
+            "assertion": "present",
+            "start": start,
+            "end": start + len(term),
+        }
+        apply_context_detection_to_dicts(sentence, [ent])
+        assert ent["assertion"] == "present", (
+            f"{term!r} in {sentence!r} should stay present (duration-hx idiom), "
+            f"got {ent['assertion']!r}"
+        )
+
+    # Control: a genuine past-history cue with no duration phrase must still
+    # be marked historical -- the fix must not blanket-suppress "hx of".
+    control_sentence = "3x hx of falls, query osteoporosis."
+    control_ent = {
+        "text": "falls",
+        "label": "finding",
+        "assertion": "present",
+        "start": control_sentence.find("falls"),
+        "end": control_sentence.find("falls") + len("falls"),
+    }
+    apply_context_detection_to_dicts(control_sentence, [control_ent])
+    assert control_ent["assertion"] == "historical"
 
 
 # -- AC7: cross-line lab merge ------------------------------------------------

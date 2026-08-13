@@ -62,6 +62,12 @@ DEFAULT_REPORTS_ROOT = _REPO_ROOT / "data" / "sbar-golden-set-reports"
 
 @dataclass
 class _FakeSession:
+    """Context-integrity preflight (libs/sbar/context_integrity.py, added
+    after this runner) queries the session before any LLM stage runs, and
+    treats an empty result as "record not connected to patient" -- fail
+    closed. Every check here must resolve as found so the deterministic
+    stubs below are actually exercised."""
+
     runs: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
 
     def run(self, query: str, **kwargs):
@@ -71,7 +77,10 @@ class _FakeSession:
 
 class _FakeResult:
     def single(self):
-        return None
+        return {"id": "found"}
+
+    def __iter__(self):
+        return iter(())
 
 
 class _FakeClient:
@@ -236,12 +245,12 @@ def build_stub_callers(fixture: Fixture) -> tuple[Callable, Callable, Callable]:
     return _situation, _background, _recommendation
 
 
-def build_stub_evaluator(fixture: Fixture) -> Callable[..., dict[str, Any]]:
+def build_stub_evaluator(fixture: Fixture) -> Callable[..., Any]:
     eva = fixture.raw.get("evaluator_response") or {}
     outage = bool(eva.get("outage"))
     matched = list(eva.get("matched_rules") or [])
 
-    def _evaluate(**_kw):
+    async def _evaluate(**_kw):
         if outage:
             raise RuntimeError("evaluator unavailable (golden-set outage stub)")
         return {"matched_rules": matched, "active_version": "golden-set"}

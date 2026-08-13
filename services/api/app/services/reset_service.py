@@ -24,6 +24,7 @@ from app.models.neo4j_schema import (
     RESET_PATIENT_DOCUMENTS,
     RESET_PATIENT_DIRECT_SEMANTIC,
 )
+from libs.cypher.cleanup_queries import RESET_REFERRAL_DRAFT_ASSESSMENTS
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,27 @@ def reset_patient(patient_id: str, session) -> dict[str, int | str]:
         "reset_patient complete: patient=%s total_deleted=%d", patient_id, total
     )
     return {"patient_id": patient_id, "links_deleted": total}
+
+
+def reset_referral_draft_assessments(
+    referral_id: str, session
+) -> dict[str, int | str]:
+    """Delete draft SBAR assessments for one referral ahead of a replay.
+
+    `completed` assessments are real versions and are left untouched;
+    `draft` assessments are aborted or superseded runs, so clearing them
+    gives the reviewer a clean slate without losing version history.
+    """
+    record = session.run(
+        RESET_REFERRAL_DRAFT_ASSESSMENTS, referral_id=referral_id
+    ).single()
+    deleted = int(record["deleted"] or 0) if record else 0
+    logger.info(
+        "reset_referral_draft_assessments: referral=%s deleted=%d",
+        referral_id,
+        deleted,
+    )
+    return {"referral_id": referral_id, "draft_assessments_deleted": deleted}
 
 
 def reset_encounter(

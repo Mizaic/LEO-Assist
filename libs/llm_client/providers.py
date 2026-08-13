@@ -1,9 +1,8 @@
-"""LLM provider management with Bedrock primary and Azure OpenAI fallback.
+"""LangChain LLM provider management with Azure GPT-5.x primary.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  DO: DO-FA8FCECF
+  DI: DI-7B978C0C
 
 Ported from auditor_2 agent/core/models.py.
 Decoupled from agent-specific tool bindings.
@@ -17,12 +16,12 @@ import os
 import random
 import time
 from functools import lru_cache
-from typing import Any, List, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 logger = logging.getLogger("libs.llm_client.providers")
 
 _BEDROCK_MODEL = None
-_USE_AZURE_PRIMARY = os.getenv("USE_AZURE_PRIMARY", "false").lower() in (
+_USE_AZURE_PRIMARY = os.getenv("USE_AZURE_PRIMARY", "true").lower() in (
     "true",
     "1",
     "yes",
@@ -80,7 +79,8 @@ def get_azure_model():
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
     deployment = os.getenv("AZURE_OPENAI_BIG_MODEL", "gpt-5.4")
-    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+    transport = os.getenv("AZURE_OPENAI_TRANSPORT", "responses").strip().lower()
+    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
 
     if not endpoint or not api_key:
         raise ValueError("Azure OpenAI credentials not configured")
@@ -90,15 +90,35 @@ def get_azure_model():
         api_key=api_key,
         deployment=deployment,
         api_version=api_version,
+        transport=transport,
     )
 
 
 @lru_cache(maxsize=8)
 def _cached_azure_model(
-    *, endpoint: str, api_key: str, deployment: str, api_version: str
+    *,
+    endpoint: str,
+    api_key: str,
+    deployment: str,
+    api_version: str,
+    transport: str,
 ):
-    from langchain_openai import AzureChatOpenAI
     from pydantic import SecretStr
+
+    if transport == "responses":
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
+            model=deployment,
+            base_url=f"{endpoint.rstrip('/')}/openai/v1/",
+            api_key=SecretStr(api_key),
+            use_responses_api=True,
+            store=False,
+        )
+    if transport != "chat_completions":
+        raise ValueError(f"Unsupported AZURE_OPENAI_TRANSPORT: {transport}")
+
+    from langchain_openai import AzureChatOpenAI
 
     return AzureChatOpenAI(
         azure_endpoint=endpoint,
@@ -180,7 +200,6 @@ async def invoke_with_fallback(
     with ``success=False`` and zero token counts.
     """
     azure_model_name = f"azure-{os.getenv('AZURE_OPENAI_BIG_MODEL', 'gpt-5.4')}"
-    bedrock_model_name = _bedrock_model_id().split("/")[-1] or "bedrock"
 
     if _USE_AZURE_PRIMARY:
         azure = get_azure_model()
@@ -211,6 +230,7 @@ async def invoke_with_fallback(
         )
         return response
 
+    bedrock_model_name = _bedrock_model_id().split("/")[-1] or "bedrock"
     bedrock_started = time.monotonic()
     try:
         bound = model.bind_tools(tools) if tools else model
@@ -272,6 +292,12 @@ async def invoke_with_fallback(
     return response
 
 
+def _infer_invoke_tier(model_name: str) -> str:
+    from libs.llm_usage import infer_model_tier
+
+    return infer_model_tier(model_name)
+
+
 async def _fire_invoke_tracking(
     *,
     response: Any,
@@ -320,6 +346,7 @@ async def _fire_invoke_tracking(
             success=success,
             error_message=str(error_message or "")[:400],
             input_excludes_cache=provider in ("aws", "bedrock"),
+            model_tier=_infer_invoke_tier(model_name),
             **counts,
         )
     except Exception:

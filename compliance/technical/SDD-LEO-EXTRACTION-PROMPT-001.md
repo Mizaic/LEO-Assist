@@ -4,15 +4,15 @@
 | ----- | ----- |
 | Document type | TECHDOC -- Software Detailed Design (SDD) |
 | Document ID | SDD-LEO-EXTRACTION-PROMPT-001 |
-| Version | 1.0.3 |
+| Version | 1.1.0 |
 | Status | Draft |
-| Date | 2026-06-02 |
+| Date | 2026-08-13 |
 | Product | LEO Clinical Decision Support (PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4) |
 | Software item | extraction-prompt-runtime |
 | Safety class | B (IEC 62304) |
 | Standards | IEC 62304:2006+AMD1:2015 Section 5.4; ISO/IEC 25010:2011 |
 | Parent documents | Software Architecture Document (Atlas SAD); NLP pipeline SDD (NLP-PIPELINE-DD-001) |
-| Related Atlas (code stamps) | DI-B954388C, DI-48AD06E5, DI-A0C90595, DI-F298AE65; DO-83EBEE2C, DO-0289F3A5, DO-54397CCD |
+| Related Atlas (code stamps) | DI-7B978C0C; DO-FA8FCECF; R-24FA3B75; VT-06157CF6; VAL-541EE980 |
 
 **Document sections (TECHDOC layout)**
 
@@ -47,7 +47,7 @@ The design satisfies **IEC 62304:2006+AMD1:2015 Section 5.4** (detailed design f
 | Engineering | Implement, review, and refactor extraction prompt behaviour without re-deriving flow from code. |
 | Quality / RA | Confirm design implements Atlas design inputs and supports verification tests. |
 | Clinical safety | Assess whether prompt drift, example poisoning, or wrong-model examples could affect proposals before human review. |
-| Operations | Configure `PromptConfig`, environment variables, and Bedrock prompt caching. |
+| Operations | Configure `PromptConfig`, Azure Responses settings, and the Chat Completions rollback flag. |
 
 ### 1.3 Scope boundary
 
@@ -73,8 +73,8 @@ The design satisfies **IEC 62304:2006+AMD1:2015 Section 5.4** (detailed design f
 | Characteristic | How this design supports it |
 | -------------- | ---------------------------- |
 | Functional suitability | Separates instructions, schema, and examples; core vs dynamic few-shot targets encounter shape. |
-| Performance efficiency | Static system prefix + Bedrock `cachePoint`; one LLM call per encounter for all sentences. |
-| Compatibility | Provider-aware `model_scope`; shared adapter for pipeline worker and pipeline graph. |
+| Performance efficiency | Stable system prefix supports provider caching; one LLM call per encounter for all sentences. |
+| Compatibility | Provider-aware `model_scope`; Azure Responses is primary and Bedrock remains optional. |
 | Usability (admin) | PromptConfig editable without deploy; seed script restores factory defaults. |
 | Reliability | Registry fails loud if Neo4j missing; selector falls back to ordered categories if embeddings fail. |
 | Security | Examples expected de-identified; clinical text in user message (prompt injection controls tracked separately). |
@@ -235,6 +235,22 @@ If routed subset has **fewer than 3** examples, pool = routed + remainder (prese
 | `merge_results` | Emit entities and extraction metadata for downstream subgraphs. |
 
 `_run_llm_extraction` reads `prompt_config` from state, calls `build_extractor`, runs `extract_batch_with_usage`, returns entities and `llm_tokens`.
+
+### 2.7 Azure GPT-5 Responses transport
+
+`libs/llm_client/azure_responses.py` maps the provider-neutral
+`LLMClient.converse()` contract to the Azure `/openai/v1` Responses API.
+Clinical requests set `store=false`. The adapter supports reasoning effort,
+low output verbosity, strict object-root JSON Schema, and function tools.
+Stateless tool loops replay raw response items and append
+`function_call_output` items. They do not rely on provider-side conversation
+storage.
+
+`AZURE_OPENAI_TRANSPORT=responses` is the normal route.
+`chat_completions` is an explicit rollback route for non-tool calls only.
+The client fails if a tool loop or unsupported strict schema would otherwise
+be silently downgraded. Usage mapping records input, output, cached, and
+reasoning tokens through the existing audit callback.
 
 ---
 
@@ -401,8 +417,12 @@ Invalid JSON: log warning, return empty entities (usage still recorded). Downstr
 
 | Variable | Default | Effect on this design |
 | -------- | ------- | --------------------- |
-| `PIPELINE_MODEL_PROVIDER` | `aws` | Few-shot `model_scope` filter |
+| `PIPELINE_MODEL_PROVIDER` | `azure` | Primary provider and few-shot `model_scope` filter |
 | `PIPELINE_MODEL_TIER` | `small` | LLM size / cost |
+| `AZURE_OPENAI_TRANSPORT` | `responses` | Azure v1 route; `chat_completions` is rollback only |
+| `AZURE_OPENAI_SMALL_MODEL` | `gpt-5-mini` | Small deployment |
+| `AZURE_OPENAI_BIG_MODEL` | `gpt-5.4` | Large deployment |
+| `AZURE_OPENAI_API_VERSION` | `2025-04-01-preview` | Used only by Chat Completions rollback |
 | `VECTOR_MODEL` | empty | Enables semantic few-shot; empty -> fallback sort only |
 | `VECTOR_DEVICE` | `auto` | Embedder device selection |
 | `BEDROCK_PROMPT_CACHING` | `auto` | System prompt cachePoint |
@@ -418,14 +438,18 @@ Invalid JSON: log warning, return empty entities (usage still recorded). Downstr
 | `tests/test_prompt_registry_config.py` | Neo4j PromptConfig normalisation |
 | `tests/test_llm_extractor.py` | Worker adapter parity (where applicable) |
 | `tests/test_workflow_prompt_config_load.py` | Id-based `_load_prompt_config` matches registry normalisation including `maxFewShot` |
+| `tests/llm_client/test_azure_responses.py` | Azure v1 request shape, strict schema, tools, rollback, and usage mapping |
+| `tests/test_evaluate_gpt5_prompts.py` | De-identified model comparison, schema checks, cost, latency, and safety gate |
+| `tests/test_force_reseed_prompt_configs.py` | Backup, confirmation token, force reseed, and read-back safeguards |
 
-Atlas verification tests should be confirmed in Atlas (`VT-*` linked to DI-B954388C and related DIs) before baselining this SDD.
+Atlas verification is recorded against `VT-06157CF6`, linked to
+`DI-7B978C0C` and `DO-FA8FCECF`.
 
 ### 3.5 Design decisions and rationale
 
 | Decision | Rationale | Alternative rejected |
 | -------- | --------- | ------------------- |
-| Split core (system) vs dynamic (user) | Maximises Bedrock prefix cache hit rate; keeps stable instructions + schema + anchor examples cached. | All examples in user message (cache miss every time). |
+| Split core (system) vs dynamic (user) | Keeps instructions, schema, and anchor examples stable for provider caching. | All examples in user message (cache miss every time). |
 | One LLM call per encounter | Latency and cost; sentences share document context. | Per-sentence calls (N x cost). |
 | Neo4j-only registry | Runtime tuning without release; single source for Admin UI and pipeline. | Python fallback constants (drift risk). |
 | Domain routing before embedding | Reduces wrong-pattern examples (e.g. lab vs oncology). | Pure semantic only (no clinical bucket guard). |
@@ -455,15 +479,14 @@ risk ID.
 | **R-72C9B609** | R-LEO-AI-001 | Incorrect SNOMED CT coding from NLP extraction | Wrong or misleading few-shot examples (core or dynamic) cause systematic bias in extracted entities | Incorrect coding proposals in review queue; pathway/analytics distortion | Serious (human review dependent) |
 | **R-72C9B609** | R-LEO-AI-001 | (same) | `FewShotSelector` falls back to category ordering when `VECTOR_MODEL` is absent or embedding fails, yielding suboptimal or inconsistent examples | Same as above; quality drift harder to detect per encounter | Minor-Serious |
 | **R-E1546339** | R-LEO-AI-009 | Protected health information not removed before processing | Patient-identifiable data stored in `fewShotExamples` and sent in the static system or dynamic user prompt | Confidentiality breach via LLM provider logs or admin exports | Critical / Serious |
-| **R-8CE8CBBE** | R-LEO-AI-032 | Clinical text (PHI) exposed to external LLM providers | Encounter text plus selected few-shot snippets transmitted to Bedrock/Azure on each `llm.converse` | GDPR special-category breach; processor non-compliance | Critical |
+| **R-8CE8CBBE** | R-LEO-AI-032 | Clinical text (PHI) exposed to external LLM providers | Encounter text plus selected few-shot snippets transmitted to Azure or optional Bedrock on each `llm.converse` | GDPR special-category breach; processor non-compliance | Critical |
 | **R-036E176B** | R-LEO-AI-030, R-LEO-AI-014, R-LEO-AI-184 | Hidden / adversarial instructions in clinical text (YAML: prompt injection) | Instruction-like content in `encounter_text` in the extraction user message causes the model to ignore schema or emit spurious entities | Garbage or missing entities; incorrect review workload | Minor-Critical (context dependent) |
 | **R-64E80574** | R-LEO-AI-025 | Incorrect pipeline or programme configuration | Wrong `promptConfigId`, name/version, or `maxFewShot`; stale seed vs user PromptConfig drift | Out-of-spec extraction until detected in review or monitoring | Serious |
 | **R-6632BB66** | R-LEO-AI-118 | AI interpretation inaccurate or misleading | Misleading few-shot `output` JSON teaches incorrect assertion or entity patterns | Reviewer trust in AI suggestions reduced; subtle systematic errors | Minor-Serious |
 
-**Design input linkage (gap):** **DI-B954388C** (PromptConfig, smart few-shot, caching) implements
-controls for this subsystem. Gap remediation (2026-04-20) flagged **DI_NO_RISK**. Before
-baseline, QA/RA should add `MITIGATES` edges from **DI-B954388C** to the risks above
-(at minimum **R-72C9B609**, **R-E1546339**, **R-8CE8CBBE**, **R-036E176B**, **R-64E80574**).
+The GPT-5 transport and prompt publication controls are linked through
+`DI-7B978C0C` to `R-24FA3B75`. Existing extraction risks remain authoritative
+for extraction-specific clinical and privacy hazards.
 
 ### 4.2 Design controls mapped to Atlas risks
 
@@ -478,7 +501,7 @@ baseline, QA/RA should add `MITIGATES` edges from **DI-B954388C** to the risks a
 | Audit trail | R-72C9B609, R-64E80574 | `prompt_hash`, `few_shot_example_ids`, LLM usage on state / AuditEvent | Pipeline telemetry tests |
 | Domain routing + semantic few-shot | R-72C9B609 | `FewShotSelector` buckets + `VECTOR_MODEL` ranking | `test_few_shot_selector_routing` |
 | Deterministic selector fallback | R-72C9B609 | Category priority when embeddings unavailable | `test_few_shot_selector_routing` |
-| Prompt injection hygiene (partial) | R-036E176B | `INJECTION_GUARD` / `sanitise_for_prompt` on LLM surfaces; **gap on extraction** (OI-2) | Security review; align with escalation/verify paths |
+| Prompt injection hygiene | R-036E176B | `guard_system_prompt`, `INJECTION_GUARD`, and clinical-input sanitisation on LLM surfaces | Prompt safety and attack-simulation tests |
 
 ### 4.3 Residual risk acceptance (draft)
 
@@ -486,22 +509,24 @@ With the human review gate operational, residual risk from extraction prompt and
 few-shot behaviour is **conditionally acceptable** against the Atlas risks in
 Section 4.1, provided:
 
-- **DI-B954388C** is linked to those risks in Atlas with `MITIGATES` (not only training-data risks).
+- The changed Atlas controls retain their `MITIGATES` links.
 - PromptConfig production changes follow QA/RA change control.
 - Monitoring includes extraction empty-rate, reviewer override rate, and `prompt_hash` drift per release.
-- **OI-2** (`INJECTION_GUARD` on `_extractor`) is closed or explicitly waived by the CSO.
+- The mandatory human review gate remains active.
 
 ### 4.4 Privacy
 
 - **Encounter text** is sent to the LLM in the user message (necessary for extraction). Processing must follow DPA/DPIA and tenant BAA.
 - **Few-shot library** must not contain patient-identifiable data; examples are curated synthetic or de-identified snippets.
 - **Telemetry** records example ids and prompt hash, not full prompt text, in standard pipeline usage fields.
+- **Azure processing:** the configured account was verified in Azure as UK South on 2026-08-13. Responses requests set `store=false`.
 
 ### 4.5 Cybersecurity
 
 - Admin prompt API requires authorised roles (see `prompts.py` router dependencies).
 - No secrets in PromptConfig nodes.
-- LLM calls use tenant-configured Bedrock / Azure endpoints (factory), not ad-hoc clients.
+- LLM calls use the shared factory and tenant-configured endpoints, not ad-hoc clients.
+- Strict schemas require an object root. Unsupported tool or schema capabilities fail instead of silently downgrading.
 
 ---
 

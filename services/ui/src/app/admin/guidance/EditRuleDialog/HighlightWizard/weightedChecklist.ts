@@ -211,12 +211,45 @@ function blankConcept(term: string): EditableLogicNode {
   };
 }
 
+function leafRowKey(leaf: EditableLogicNode): string {
+  if (leaf.source_row_text) return leaf.source_row_text.toLowerCase();
+  if (leaf.kind === "CONCEPT") {
+    return (leaf.criterion?.term || leaf.criterion?.preferred_term || "").toLowerCase();
+  }
+  if (leaf.kind === "OBSERVATION") {
+    return (leaf.observation?.observable_term || "").toLowerCase();
+  }
+  return "";
+}
+
 function cloneCodedOrBlank(
   source: EditableLogicNode | undefined,
   term: string,
 ): EditableLogicNode {
+  if (!source) return blankConcept(term);
+
   if (
-    source?.kind === "CONCEPT" &&
+    source.kind === "OBSERVATION" &&
+    source.observation?.observable_id?.trim()
+  ) {
+    return {
+      ...source,
+      node_id: freshNodeId(),
+      source_row_text: term,
+      observation: { ...source.observation },
+    };
+  }
+
+  if (source.kind === "DEMOGRAPHIC" && source.field) {
+    return {
+      ...source,
+      node_id: freshNodeId(),
+      source_row_text: term,
+    };
+  }
+
+  if (
+    source.kind === "CONCEPT" &&
     (source.criterion?.snomed_concept_id || (source.criterion?.seeds?.length ?? 0) > 0)
   ) {
     return {
@@ -264,7 +297,7 @@ export function withReifiedWeightedChecklist(
 
   const byRow = new Map<string, EditableLogicNode>();
   for (const leaf of leaves) {
-    const key = (leaf.source_row_text || leaf.criterion?.term || "").toLowerCase();
+    const key = leafRowKey(leaf);
     if (key) byRow.set(key, leaf);
   }
 

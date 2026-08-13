@@ -27,14 +27,14 @@ Category taxonomy (extends label_verification_examples.py):
 from __future__ import annotations
 
 LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
-    # ── Finding vs Disorder ────────────────────────────────────────────────────
+    # -- Finding vs Disorder ----------------------------------------------------
     {
         "category": "label-disambig:find-dis",
         "model_scope": "any",
         "description": "Suggestive of melanoma - finding not disorder",
         "input": (
-            'Model A: "finding" — rationale: "Suggestive of is uncertain, not confirmed."\n'
-            'Model B: "disorder" — rationale: "Melanoma is a serious cancer diagnosis."\n'
+            'Model A: "finding" -- rationale: "Suggestive of is uncertain, not confirmed."\n'
+            'Model B: "disorder" -- rationale: "Melanoma is a serious cancer diagnosis."\n'
             'Entity text: "suggestive of melanoma"\n'
             'Encounter context: "Irregular pigmented lesion on back, suggestive of melanoma. Biopsy arranged."'
         ),
@@ -45,21 +45,21 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "Malignant melanoma confirmed on biopsy - disorder",
         "input": (
-            'Model A: "disorder" — rationale: "Biopsy confirmed malignant melanoma is a definitive diagnosis."\n'
-            'Model B: "finding" — rationale: "Melanoma is described as a clinical observation."\n'
+            'Model A: "disorder" -- rationale: "Biopsy confirmed malignant melanoma is a definitive diagnosis."\n'
+            'Model B: "finding" -- rationale: "Melanoma is described as a clinical observation."\n'
             'Entity text: "malignant melanoma"\n'
             'Encounter context: "Biopsy confirmed malignant melanoma. Wide local excision planned."'
         ),
         "output": '{"resolved_label": "disorder", "confidence": 0.97, "reason": "Biopsy confirmed malignant melanoma is a definitive diagnosis statement; disorder is correct per the finding-vs-disorder boundary."}',
     },
-    # ── Observable entity vs qualifier value ─────────────────────────────────
+    # -- Observable entity vs qualifier value ---------------------------------
     {
         "category": "label-disambig:obs-qual",
         "model_scope": "any",
         "description": "PSA - test name is observable_entity",
         "input": (
-            'Model A: "observable_entity" — rationale: "PSA is a measurable clinical parameter."\n'
-            'Model B: "finding" — rationale: "PSA result was raised, suggesting a clinical finding."\n'
+            'Model A: "observable_entity" -- rationale: "PSA is a measurable clinical parameter."\n'
+            'Model B: "finding" -- rationale: "PSA result was raised, suggesting a clinical finding."\n'
             'Entity text: "PSA"\n'
             'Encounter context: "PSA 12.4 ng/mL. Fast track referral to urology."'
         ),
@@ -70,21 +70,21 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "Lab result value - qualifier_value not observable_entity",
         "input": (
-            'Model A: "qualifier_value" — rationale: "142 mmol/L is the measurement result value."\n'
-            'Model B: "observable_entity" — rationale: "It describes a lab measurement."\n'
+            'Model A: "qualifier_value" -- rationale: "142 mmol/L is the measurement result value."\n'
+            'Model B: "observable_entity" -- rationale: "It describes a lab measurement."\n'
             'Entity text: "142 mmol/L"\n'
             'Encounter context: "Serum sodium level (XE2q0) 142 mmol/L [135-145]"'
         ),
         "output": '{"resolved_label": "qualifier_value", "confidence": 0.97, "reason": "142 mmol/L is the value+unit component of a lab result; the test name Serum sodium level is the observable_entity. qualifier_value is correct."}',
     },
-    # ── X_DOSAGE vs qualifier_value ──────────────────────────────────────────
+    # -- X_DOSAGE vs qualifier_value ------------------------------------------
     {
         "category": "label-disambig:dosage-qual",
         "model_scope": "any",
         "description": "240 mg next to drug - X_DOSAGE not qualifier_value",
         "input": (
-            'Model A: "X_DOSAGE" — rationale: "240 mg is the dose of Degarelix (a drug)."\n'
-            'Model B: "qualifier_value" — rationale: "mg values are generally qualifier_value."\n'
+            'Model A: "X_DOSAGE" -- rationale: "240 mg is the dose of Degarelix (a drug)."\n'
+            'Model B: "qualifier_value" -- rationale: "mg values are generally qualifier_value."\n'
             'Entity text: "240 mg"\n'
             'Encounter context: "Degarelix 240 mg SC injection administered today."'
         ),
@@ -95,8 +95,8 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "eGFR value - qualifier_value never X_DOSAGE",
         "input": (
-            'Model A: "qualifier_value" — rationale: "43 mL/min is a lab result value."\n'
-            'Model B: "X_DOSAGE" — rationale: "mL/min with a number could be a dosage."\n'
+            'Model A: "qualifier_value" -- rationale: "43 mL/min is a lab result value."\n'
+            'Model B: "X_DOSAGE" -- rationale: "mL/min with a number could be a dosage."\n'
             'Entity text: "43 mL/min"\n'
             'Encounter context: "eGFR using creatinine (CKD-EPI) per 1.73 square metres 43 mL/min"'
         ),
@@ -107,21 +107,21 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "Smoking consumption - qualifier_value not X_DOSAGE",
         "input": (
-            'Model A: "qualifier_value" — rationale: "Smoking amount qualifies the smoking status."\n'
-            'Model B: "X_DOSAGE" — rationale: "Quantity could be interpreted as a dose."\n'
+            'Model A: "qualifier_value" -- rationale: "Smoking amount qualifies the smoking status."\n'
+            'Model B: "X_DOSAGE" -- rationale: "Quantity could be interpreted as a dose."\n'
             'Entity text: "1-9 cigs/day"\n'
             'Encounter context: "Current smoker, 1-9 cigs/day."'
         ),
         "output": '{"resolved_label": "qualifier_value", "confidence": 0.93, "reason": "Smoking consumption is a qualifying amount for a lifestyle factor, not a medication dose; qualifier_value is correct."}',
     },
-    # ── Substance vs procedure ────────────────────────────────────────────────
+    # -- Substance vs procedure ------------------------------------------------
     {
         "category": "label-disambig:sub-proc",
         "model_scope": "any",
         "description": "Drug name alone - substance not procedure",
         "input": (
-            'Model A: "substance" — rationale: "Degarelix is a drug name (bare ingredient)."\n'
-            'Model B: "procedure" — rationale: "It is part of a treatment action."\n'
+            'Model A: "substance" -- rationale: "Degarelix is a drug name (bare ingredient)."\n'
+            'Model B: "procedure" -- rationale: "It is part of a treatment action."\n'
             'Entity text: "Degarelix"\n'
             'Encounter context: "Degarelix 240 mg SC injection administered today."'
         ),
@@ -132,21 +132,21 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "Full drug administration phrase - procedure",
         "input": (
-            'Model A: "procedure" — rationale: "Administered today describes a treatment action performed."\n'
-            'Model B: "substance" — rationale: "Degarelix is a drug."\n'
+            'Model A: "procedure" -- rationale: "Administered today describes a treatment action performed."\n'
+            'Model B: "substance" -- rationale: "Degarelix is a drug."\n'
             'Entity text: "Degarelix 240 mg SC injection administered today"\n'
             'Encounter context: "Degarelix 240 mg SC injection administered today."'
         ),
         "output": '{"resolved_label": "procedure", "confidence": 0.95, "reason": "The full phrase including administered today is a treatment action performed on the patient; procedure is correct. Drug name alone would be substance."}',
     },
-    # ── Situation vs Disorder ─────────────────────────────────────────────────
+    # -- Situation vs Disorder -------------------------------------------------
     {
         "category": "label-disambig:sit-dis",
         "model_scope": "any",
         "description": "DVT risk - situation not disorder",
         "input": (
-            'Model A: "situation" — rationale: "DVT risk is a risk/pending status, not a confirmed diagnosis."\n'
-            'Model B: "disorder" — rationale: "DVT is a clinical disorder."\n'
+            'Model A: "situation" -- rationale: "DVT risk is a risk/pending status, not a confirmed diagnosis."\n'
+            'Model B: "disorder" -- rationale: "DVT is a clinical disorder."\n'
             'Entity text: "DVT risk"\n'
             'Encounter context: "High DVT risk - prescribe LMWH prophylaxis."'
         ),
@@ -157,21 +157,21 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "Cancer ruled out - situation",
         "input": (
-            'Model A: "situation" — rationale: "Cancer ruled out is a diagnostic conclusion status."\n'
-            'Model B: "finding" — rationale: "It describes a clinical outcome finding."\n'
+            'Model A: "situation" -- rationale: "Cancer ruled out is a diagnostic conclusion status."\n'
+            'Model B: "finding" -- rationale: "It describes a clinical outcome finding."\n'
             'Entity text: "Cancer ruled out"\n'
             'Encounter context: "Discharged from 2WW pathway. Cancer ruled out."'
         ),
         "output": '{"resolved_label": "situation", "confidence": 0.94, "reason": "Cancer ruled out is a clinical status statement (diagnostic conclusion); situation is correct per boundary rules."}',
     },
-    # ── Regime therapy vs Substance ───────────────────────────────────────────
+    # -- Regime therapy vs Substance -------------------------------------------
     {
         "category": "label-disambig:regime-sub",
         "model_scope": "any",
         "description": "Chemo shorthand - regime_therapy not substance",
         "input": (
-            'Model A: "regime_therapy" — rationale: "Chemo is shorthand for a treatment regimen."\n'
-            'Model B: "substance" — rationale: "Chemo refers to a chemical treatment agent."\n'
+            'Model A: "regime_therapy" -- rationale: "Chemo is shorthand for a treatment regimen."\n'
+            'Model B: "substance" -- rationale: "Chemo refers to a chemical treatment agent."\n'
             'Entity text: "chemo"\n'
             'Encounter context: "Discussed pros and cons of chemo with oncologist."'
         ),
@@ -182,47 +182,47 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "HRT as treatment regime shorthand",
         "input": (
-            'Model A: "regime_therapy" — rationale: "HRT is a named treatment programme."\n'
-            'Model B: "substance" — rationale: "HRT is a hormonal drug."\n'
+            'Model A: "regime_therapy" -- rationale: "HRT is a named treatment programme."\n'
+            'Model B: "substance" -- rationale: "HRT is a hormonal drug."\n'
             'Entity text: "HRT"\n'
             'Encounter context: "Started HRT for menopausal symptoms."'
         ),
         "output": '{"resolved_label": "regime_therapy", "confidence": 0.89, "reason": "HRT in treatment context is a treatment regimen shorthand; regime_therapy is correct per boundary rules."}',
     },
-    # ── Record artifact vs Procedure ─────────────────────────────────────────
+    # -- Record artifact vs Procedure -----------------------------------------
     {
         "category": "label-disambig:artifact-proc",
         "model_scope": "any",
         "description": "MDT outcome heading - record_artifact not procedure",
         "input": (
-            'Model A: "record_artifact" — rationale: "MDT Meet Outcome is a document heading."\n'
-            'Model B: "procedure" — rationale: "MDT is a clinical governance activity."\n'
+            'Model A: "record_artifact" -- rationale: "MDT Meet Outcome is a document heading."\n'
+            'Model B: "procedure" -- rationale: "MDT is a clinical governance activity."\n'
             'Entity text: "Colorectal Cancer MDT Meet Outcome"\n'
             'Encounter context: "Colorectal Cancer MDT Meet Outcome: proceed with sigmoid colectomy."'
         ),
         "output": '{"resolved_label": "record_artifact", "confidence": 0.90, "reason": "MDT Meet Outcome in this form is a document/correspondence heading (record_artifact). MDT as a standalone action is procedure; the outcome heading is record_artifact."}',
     },
-    # ── Temporal vs qualifier value ───────────────────────────────────────────
+    # -- Temporal vs qualifier value -------------------------------------------
     {
         "category": "label-disambig:temporal-qual",
         "model_scope": "any",
         "description": "New Episode - qualifier_value not X_TEMPORAL",
         "input": (
-            'Model A: "qualifier_value" — rationale: "New Episode is an episode context marker."\n'
-            'Model B: "X_TEMPORAL" — rationale: "It relates to time/episode tracking."\n'
+            'Model A: "qualifier_value" -- rationale: "New Episode is an episode context marker."\n'
+            'Model B: "X_TEMPORAL" -- rationale: "It relates to time/episode tracking."\n'
             'Entity text: "New Episode"\n'
             'Encounter context: "Minor: Constipation (XE0rD) (New Episode)"'
         ),
         "output": '{"resolved_label": "qualifier_value", "confidence": 0.93, "reason": "New Episode is an episode context marker qualifying the clinical entry, not a temporal expression; qualifier_value is correct."}',
     },
-    # ── Negation: base type preserved ─────────────────────────────────────────
+    # -- Negation: base type preserved -----------------------------------------
     {
         "category": "label-disambig:negation",
         "model_scope": "any",
         "description": "Negated finding keeps finding label - no jaundice",
         "input": (
-            'Model A: "finding" — rationale: "Jaundice is a symptom/sign; negation handled by post-processing."\n'
-            'Model B: "situation" — rationale: "Negated jaundice describes a clinical status."\n'
+            'Model A: "finding" -- rationale: "Jaundice is a symptom/sign; negation handled by post-processing."\n'
+            'Model B: "situation" -- rationale: "Negated jaundice describes a clinical status."\n'
             'Entity text: "jaundice"\n'
             'Encounter context: "No jaundice noted on examination."'
         ),
@@ -233,34 +233,34 @@ LABEL_DISAMBIGUATION_EXAMPLES: list[dict] = [
         "model_scope": "any",
         "description": "Negated disorder keeps disorder label",
         "input": (
-            'Model A: "disorder" — rationale: "Infection is a disorder; negation is handled separately."\n'
-            'Model B: "situation" — rationale: "No evidence of infection is a clinical status."\n'
+            'Model A: "disorder" -- rationale: "Infection is a disorder; negation is handled separately."\n'
+            'Model B: "situation" -- rationale: "No evidence of infection is a clinical status."\n'
             'Entity text: "infection"\n'
             'Encounter context: "No evidence of infection identified."'
         ),
         "output": '{"resolved_label": "disorder", "confidence": 0.92, "reason": "Infection as a negated concept retains its base type (disorder); X_NEGATION_CUE is not a valid label. assertion=absent is set by post-processing."}',
     },
-    # ── Planned procedure - situation ─────────────────────────────────────────
+    # -- Planned procedure - situation -----------------------------------------
     {
         "category": "label-disambig:sit-dis",
         "model_scope": "any",
         "description": "Colonoscopy planned - situation not procedure",
         "input": (
-            'Model A: "situation" — rationale: "Colonoscopy planned/booked is pending; SNOMED 405613005."\n'
-            'Model B: "procedure" — rationale: "Colonoscopy is a clinical procedure."\n'
+            'Model A: "situation" -- rationale: "Colonoscopy planned/booked is pending; SNOMED 405613005."\n'
+            'Model B: "procedure" -- rationale: "Colonoscopy is a clinical procedure."\n'
             'Entity text: "colonoscopy planned"\n'
             'Encounter context: "Colonoscopy planned. Referred to endoscopy unit."'
         ),
         "output": '{"resolved_label": "situation", "confidence": 0.94, "reason": "Planned/booked procedures not yet performed are situation (SNOMED 405613005 Planned procedure); procedure = performed. situation is correct."}',
     },
-    # ── Formal staging ────────────────────────────────────────────────────────
+    # -- Formal staging --------------------------------------------------------
     {
         "category": "label-disambig:obs-qual",
         "model_scope": "any",
         "description": "Formal staging FIGO IB1 - tumor_staging not qualifier_value",
         "input": (
-            'Model A: "tumor_staging" — rationale: "FIGO IB1 is a formal cancer staging classification."\n'
-            'Model B: "qualifier_value" — rationale: "Staging values qualify the cancer diagnosis."\n'
+            'Model A: "tumor_staging" -- rationale: "FIGO IB1 is a formal cancer staging classification."\n'
+            'Model B: "qualifier_value" -- rationale: "Staging values qualify the cancer diagnosis."\n'
             'Entity text: "FIGO IB1"\n'
             'Encounter context: "Cervical carcinoma FIGO IB1. Referred to gynaecological oncology."'
         ),

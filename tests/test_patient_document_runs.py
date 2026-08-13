@@ -8,10 +8,12 @@ import pytest
 
 from libs.patient_document_runs.service import (
     DocumentRunError,
+    refresh_document_run,
     resolve_document_run_context,
     start_document_run,
 )
 from libs.sbar.trigger_chunk_scope import TriggerChunkScopeResult
+from libs.validation_lab.gold import RunOutputs
 
 
 def test_resolve_document_run_context_requires_referral():
@@ -124,3 +126,48 @@ def test_start_document_run_rejects_empty_chunk_ids():
             document_reference_id="dr1",
             chunk_ids=[],
         )
+
+
+def test_refresh_document_run_includes_llm_usage_when_completed():
+    client = MagicMock()
+    with patch(
+        "libs.patient_document_runs.service.poll_run_status",
+        return_value={"status": "completed", "assessment_id": "asm-1"},
+    ), patch(
+        "libs.patient_document_runs.service.list_stage_progress",
+        return_value=[{"step_id": "sbar", "status": "completed"}],
+    ), patch(
+        "libs.patient_document_runs.service.read_real_outputs",
+        return_value=RunOutputs(
+            llm_usage={
+                "cost_usd": 0.012345,
+                "total_tokens": 45200,
+                "llm_calls": 8,
+                "input_tokens": 40000,
+                "output_tokens": 5200,
+            }
+        ),
+    ):
+        result = refresh_document_run(client, run_id="run-1")
+
+    assert result.status == "completed"
+    assert result.assessment_id == "asm-1"
+    assert result.llm_usage is not None
+    assert result.llm_usage["cost_usd"] == 0.012345
+    assert result.llm_usage["total_tokens"] == 45200
+    assert result.llm_usage["llm_calls"] == 8
+
+
+def test_refresh_document_run_omits_llm_usage_while_running():
+    client = MagicMock()
+    with patch(
+        "libs.patient_document_runs.service.poll_run_status",
+        return_value={"status": "running", "assessment_id": ""},
+    ), patch(
+        "libs.patient_document_runs.service.list_stage_progress",
+        return_value=[{"step_id": "extraction", "status": "running"}],
+    ):
+        result = refresh_document_run(client, run_id="run-2")
+
+    assert result.status == "running"
+    assert result.llm_usage is None

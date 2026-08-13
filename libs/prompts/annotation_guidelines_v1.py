@@ -12,6 +12,12 @@ from __future__ import annotations
 ANNOTATION_GUIDELINES_V1 = """\
 ## Shared annotation guidelines
 
+Objective: keep human review, extraction, and verification labels clinically
+consistent without changing the caller's output schema.
+
+Priorities: preserve approved gold labels first; keep clinical state in the
+assertion field; use only the approved labels and relation types below.
+
 Apply these rules when reviewing, extracting, or checking any annotation.
 Lines starting with >> show real gold-verified span examples:
 "text" | label | assertion | SNOMED code.
@@ -107,4 +113,9 @@ Lines starting with >> show real gold-verified span examples:
     Smoking assessments and weighing procedures stay "procedure".
     >> Smoking History | procedure | present | SNOMED: 196771000000101
     >> Smoking assessment | procedure | present | SNOMED: 196771000000101
+    Numeric weight, height, and BMI results are "observable_entity",
+    not procedure. Put the name, value, and unit on one observable.
+    >> Current weight | observable_entity | present | value=67 unit=kg
+    >> Height | observable_entity | present | value=1.67 unit=m
+    >> BMI | observable_entity | present | value=24.0 unit=kg/m2
 """

@@ -82,7 +82,7 @@ async def _async_extract_reason(
     run_id: str,
 ) -> dict[str, Any]:
     from libs.cypher.chunk_queries import GET_REASON_CHUNKS_BY_IDS, SET_REFERRAL_REASON
-    from libs.llm_client.json_helper import invoke_llm_json
+    from libs.llm_client.json_helper import JSONInvocationOptions, invoke_llm_json
     from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
     from libs.neo4j_client.client import PatientGraphClient
     from libs.prompts.referral_reason_v1 import REFERRAL_REASON_SYSTEM_V1
@@ -107,7 +107,17 @@ async def _async_extract_reason(
     result = await invoke_llm_json(
         INJECTION_GUARD + REFERRAL_REASON_SYSTEM_V1,
         sanitise_for_prompt(candidate_text, max_chars=2000),
-        max_tokens=256,
+        options=JSONInvocationOptions(
+            max_tokens=256,
+            schema={
+                "type": "object",
+                "properties": {
+                    "reason": {"type": "string", "minLength": 1, "maxLength": 300}
+                },
+                "required": ["reason"],
+                "additionalProperties": False,
+            },
+        ),
         agent_task="referral_reason_extraction",
         patient_id=patient_id,
     )

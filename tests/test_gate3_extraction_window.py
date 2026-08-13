@@ -6,8 +6,10 @@ from libs.pipeline.extraction_window import (
     ChunkRef,
     WindowUsage,
     aggregate_window_usage,
+    estimate_tokens,
     merge_window_entities,
     plan_extraction_windows,
+    plan_extraction_windows_by_tokens,
 )
 
 
@@ -22,6 +24,31 @@ def test_planner_creates_three_windows_for_25_chunks() -> None:
     assert covered[0] == "c0"
     assert covered[-1] == "c24"
     assert len(set(covered)) == 25
+
+
+def test_token_planner_caps_chunk_count_and_covers_all() -> None:
+    chunks = [
+        ChunkRef(chunk_id=f"c{i}", text=("abcde " * 20) + str(i)) for i in range(12)
+    ]
+    windows = plan_extraction_windows_by_tokens(
+        chunks,
+        max_window_input_tokens=800,
+        window_overlap_chunks=1,
+        max_chunks_per_window=5,
+        overhead_tokens=40,
+    )
+    assert windows
+    assert all(len(w.chunk_ids) <= 5 for w in windows)
+    covered = {cid for w in windows for cid in w.chunk_ids}
+    assert covered == {f"c{i}" for i in range(12)}
+    for window in windows:
+        if window.truncated:
+            continue
+        context = "\n\n".join(c.text for c in chunks if c.chunk_id in window.chunk_ids)
+        sentence_block = "\n".join(
+            f"[{c.chunk_id}] {c.text}" for c in chunks if c.chunk_id in window.chunk_ids
+        )
+        assert estimate_tokens(context) + estimate_tokens(sentence_block) + 40 <= 800
 
 
 def test_merge_preserves_chunk_provenance() -> None:

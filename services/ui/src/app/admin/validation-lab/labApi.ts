@@ -213,6 +213,22 @@ export interface LabCase {
   updated_at?: string;
 }
 
+export function formatLabApiError(
+  body: { detail?: unknown },
+  status: number,
+): string {
+  const detail = body.detail;
+  const fromApi = typeof detail === "string" ? detail.trim() : "";
+  if (status === 404 && (!fromApi || /^not found$/i.test(fromApi))) {
+    return (
+      "Could not reach the Validation Lab API. " +
+      "Another service may be using port 8000, or Core API is not running."
+    );
+  }
+  if (fromApi) return fromApi;
+  return `Request failed (${status})`;
+}
+
 async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     credentials: "include",
@@ -222,9 +238,7 @@ async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (res.status === 401) await triggerReauth();
-    throw new Error(
-      typeof body.detail === "string" ? body.detail : `Request failed (${res.status})`,
-    );
+    throw new Error(formatLabApiError(body, res.status));
   }
   return body as T;
 }

@@ -53,8 +53,10 @@ import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 
 import BlockedCodesPanel from "./BlockedCodesPanel";
 import ConceptSearchPanel from "./ConceptSearchPanel";
+import ObservationEditDialogBody from "./ObservationEditDialogBody";
 import SeedDescendantsList from "./SeedDescendantsList";
-import { friendlyTerm } from "./copy";
+import { friendlyTerm, SYNONYM_OBSERVATION_EDIT } from "./copy";
+import { isLikelyObservableSeed } from "./observableHit";
 import type {
   EditableLogicNode,
   LogicCriterion,
@@ -122,7 +124,19 @@ export default function ConceptSynonymDialog({
     () => deriveSynonymEditorState(criterion),
     [criterion],
   );
-  const chipLabel = friendlyTerm(criterion?.preferred_term) || "this chip";
+  const primarySeed = seeds.find((s) => s.snomed_concept_id === primaryId) ?? seeds[0];
+  const isObservationLeaf = node?.kind === "OBSERVATION";
+  const showObservableThreshold =
+    isObservationLeaf ||
+    (!!primarySeed && isLikelyObservableSeed(primarySeed));
+  const chipLabel = isObservationLeaf
+    ? friendlyTerm(node?.observation?.observable_term) || "this reading"
+    : friendlyTerm(criterion?.preferred_term) || "this chip";
+  const subtitle = isObservationLeaf
+    ? SYNONYM_OBSERVATION_EDIT.dialogSubtitleObservation
+    : showObservableThreshold
+      ? SYNONYM_OBSERVATION_EDIT.dialogSubtitleObservableConcept
+      : "Add other codes that mean the same thing, or block codes that should not fire this rule.";
 
   if (!node) return null;
 
@@ -171,8 +185,7 @@ export default function ConceptSynonymDialog({
             color="text.secondary"
             sx={{ display: "block", mt: 0.25, lineHeight: 1.45 }}
           >
-            Add other codes that mean the same thing, or block codes
-            that should not fire this rule.
+            {subtitle}
           </Typography>
         </Box>
         <Tooltip title="Close (ESC)">
@@ -187,15 +200,32 @@ export default function ConceptSynonymDialog({
         </Tooltip>
       </DialogTitle>
       <DialogContent dividers sx={{ p: 2 }}>
-        <SynonymEditorBody
-          nodeId={node.node_id}
-          seeds={seeds}
-          excluded={excluded}
-          primaryId={primaryId}
-          chipLabel={chipLabel}
-          onUpdate={onUpdate}
-          onClearMatch={onClearMatch}
-        />
+        {isObservationLeaf ? (
+          <ObservationEditDialogBody
+            node={node}
+            primarySeed={primarySeed}
+            onUpdate={onUpdate}
+          />
+        ) : (
+          <Stack spacing={2}>
+            <SynonymEditorBody
+              nodeId={node.node_id}
+              seeds={seeds}
+              excluded={excluded}
+              primaryId={primaryId}
+              chipLabel={chipLabel}
+              onUpdate={onUpdate}
+              onClearMatch={onClearMatch}
+            />
+            {showObservableThreshold && (
+              <ObservationEditDialogBody
+                node={node}
+                primarySeed={primarySeed}
+                onUpdate={onUpdate}
+              />
+            )}
+          </Stack>
+        )}
       </DialogContent>
       <DialogActions
         sx={{

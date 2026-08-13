@@ -24,14 +24,14 @@ Category taxonomy:
 from __future__ import annotations
 
 EXCLUSION_DETECT_EXAMPLES: list[dict] = [
-    # ── Cancer excluded ───────────────────────────────────────────────────────
+    # -- Cancer excluded -------------------------------------------------------
     {
         "category": "exclusion:cancer-excluded",
         "model_scope": "any",
         "description": "Biopsy result benign - cancer excluded",
         "input": (
             "Referral context: fast track referral for suspected skin cancer.\n"
-            "Encounter: Biopsy result reviewed. Intradermal naevus — benign. "
+            "Encounter: Biopsy result reviewed. Intradermal naevus -- benign. "
             "No malignancy identified. Patient reassured. Discharged from 2WW pathway."
         ),
         "output": '{"outcome": "cancer_excluded", "confidence": 0.97, "evidence_text": "Intradermal naevus - benign. No malignancy identified. Discharged from 2WW pathway.", "reasoning": "Biopsy confirms benign intradermal naevus with explicit no malignancy; patient discharged from 2WW pathway."}',
@@ -58,7 +58,7 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "cancer_excluded", "confidence": 0.96, "evidence_text": "TRUS biopsy: all cores benign. No malignancy.", "reasoning": "TRUS biopsy confirmed all cores benign with explicit no malignancy; prostate cancer excluded."}',
     },
-    # ── Cancer confirmed ──────────────────────────────────────────────────────
+    # -- Cancer confirmed ------------------------------------------------------
     {
         "category": "exclusion:cancer-confirmed",
         "model_scope": "any",
@@ -81,7 +81,7 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "cancer_confirmed", "confidence": 0.97, "evidence_text": "NSCLC right upper lobe, T3 N2 M0. Referred for radical radiotherapy.", "reasoning": "MDT confirms non-small cell lung cancer with staging; referral for radical radiotherapy confirms active cancer management."}',
     },
-    # ── Still investigating ───────────────────────────────────────────────────
+    # -- Still investigating ---------------------------------------------------
     {
         "category": "exclusion:still-investigating",
         "model_scope": "any",
@@ -104,7 +104,7 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "still_investigating", "confidence": 0.82, "evidence_text": "Seen in fast track clinic. CT colonoscopy performed today. Results to follow.", "reasoning": "Clinic attendance documented and investigation performed but no result yet; still awaiting outcome."}',
     },
-    # ── Pending letter ────────────────────────────────────────────────────────
+    # -- Pending letter --------------------------------------------------------
     {
         "category": "exclusion:pending-letter",
         "model_scope": "any",
@@ -125,7 +125,7 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         ),
         "output": '{"outcome": "pending_letter", "confidence": 0.80, "evidence_text": "Discharge summary received from City Hospital haematology. Filed to record.", "reasoning": "Haematology discharge summary filed without quoted content; outcome determination requires reading the document."}',
     },
-    # ── Not relevant ──────────────────────────────────────────────────────────
+    # -- Not relevant ----------------------------------------------------------
     {
         "category": "exclusion:not-relevant",
         "model_scope": "any",
@@ -152,18 +152,18 @@ EXCLUSION_DETECT_EXAMPLES: list[dict] = [
         "description": "Screening invitation with no result - not_relevant",
         "input": (
             "Referral context: 2WW referral lower GI for positive FIT.\n"
-            "Encounter: Bowel cancer screening programme — invitation sent. No response recorded."
+            "Encounter: Bowel cancer screening programme -- invitation sent. No response recorded."
         ),
         "output": '{"outcome": "not_relevant", "confidence": 0.88, "evidence_text": "Bowel cancer screening programme - invitation sent. No response recorded.", "reasoning": "Screening invitation without results does not represent a post-referral pathway outcome."}',
     },
-    # ── Conservative: borderline ──────────────────────────────────────────────
+    # -- Conservative: borderline ----------------------------------------------
     {
         "category": "exclusion:conservative",
         "model_scope": "any",
         "description": "Benign finding at unrelated site - not cancer_excluded",
         "input": (
             "Referral context: 2WW referral urology for haematuria.\n"
-            "Encounter: Blood results: eGFR 61, MSU clear. INR 2.3 — within range. "
+            "Encounter: Blood results: eGFR 61, MSU clear. INR 2.3 -- within range. "
             "Continue warfarin. Review in 6 weeks."
         ),
         "output": '{"outcome": "still_investigating", "confidence": 0.55, "evidence_text": "MSU clear. eGFR 61.", "reasoning": "MSU clear suggests one negative test but does not confirm exclusion of urological malignancy; insufficient evidence to classify as excluded."}',

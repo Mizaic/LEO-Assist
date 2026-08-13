@@ -212,8 +212,55 @@ def _canonical_entity_relations(
     for row in rows:
         idx = int(row.get("target_idx", -1))
         if 0 <= idx < len(entities):
-            row["target_text"] = str(entities[idx].get("text") or row.get("target_text") or "")
+            row["target_text"] = str(
+                entities[idx].get("text") or row.get("target_text") or ""
+            )
     return rows
+
+
+def _write_coding_decisions(
+    session: Any,
+    *,
+    entities: list[dict[str, Any]],
+    encounter_id: str,
+    patient_id: str,
+    run_id: str,
+) -> int:
+    from libs.cypher.coding_decision_queries import UPSERT_CODING_DECISION
+
+    n = 0
+    patient_hash = hashlib.sha256(patient_id.encode()).hexdigest()[:16]
+    for e in entities:
+        if bool(e.get("_relation_suppressed")):
+            continue
+        text = e.get("text", "")
+        unresolved = (not e.get("concept_id")) or bool(e.get("terminology_unresolved"))
+        decision = "left_uncoded" if unresolved else "auto_coded"
+        reason = (
+            f"terminology unresolved; pipeline run {run_id}"
+            if unresolved
+            else f"pipeline run {run_id}"
+        )
+        decision_id = hashlib.sha256(
+            f"{encounter_id}|{text}|{e.get('label', '')}".encode()
+        ).hexdigest()[:32]
+        session.run(
+            UPSERT_CODING_DECISION,
+            decision_id=decision_id,
+            encounter_id=encounter_id,
+            patient_id_hash=patient_hash,
+            entity_text=text,
+            entity_label=e.get("label") or e.get("semantic_tag", ""),
+            assertion=e.get("assertion", "present"),
+            tier=e.get("tier", "silver"),
+            decision=decision,
+            reason=reason,
+            terminology_score=float(e.get("score", 0)),
+            consensus_verdict=None,
+            model_ids=None,
+        )
+        n += 1
+    return n
 
 
 def write_patient_graph(state: PersistState) -> dict[str, Any]:
@@ -242,12 +289,12 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
         }
 
     try:
-        from libs.cypher.coding_decision_queries import UPSERT_CODING_DECISION
         from libs.cypher.documents_queries import write_documents_from_sentences_payload
 
         client = _get_patient_graph_client()
         n = 0
         docs_written = 0
+        uncoded: list[dict[str, Any]] = []
         try:
             with client.session() as session:
                 # Build a sentence payload compatible with documents_queries writer.
@@ -263,6 +310,7 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                         continue
                     concept_id = e.get("concept_id")
                     if not concept_id or e.get("terminology_unresolved"):
+                        uncoded.append(e)
                         continue
                     sentence_id = e.get("__sentence_id") or fallback_sentence_id
                     body_site, body_site_concept_id, body_site_term = (
@@ -336,33 +384,18 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                     source_label=default_source_label,
                 )
 
-                for e in entities:
-                    if bool(e.get("_relation_suppressed")):
-                        continue
-                    text = e.get("text", "")
-                    decision_id = hashlib.sha256(
-                        f"{encounter_id}|{text}|{e.get('label', '')}".encode()
-                    ).hexdigest()[:32]
-                    session.run(
-                        UPSERT_CODING_DECISION,
-                        decision_id=decision_id,
-                        encounter_id=encounter_id,
-                        patient_id_hash=hashlib.sha256(patient_id.encode()).hexdigest()[
-                            :16
-                        ],
-                        entity_text=text,
-                        entity_label=e.get("label") or e.get("semantic_tag", ""),
-                        assertion=e.get("assertion", "present"),
-                        tier=e.get("tier", "silver"),
-                        decision="auto_coded",
-                        reason=f"pipeline run {run_id}",
-                        terminology_score=float(e.get("score", 0)),
-                        consensus_verdict=None,
-                        model_ids=None,
-                    )
-                    n += 1
+                n = _write_coding_decisions(
+                    session,
+                    entities=entities,
+                    encounter_id=encounter_id,
+                    patient_id=patient_id,
+                    run_id=run_id,
+                )
         finally:
             client.close()
+        from libs.pipeline.uncoded_phrase import record_uncoded_phrases
+
+        record_uncoded_phrases(uncoded, raw_sentences)
         logger.info(
             "Wrote %d DOCUMENTS links and %d CodingDecision nodes for encounter %s",
             docs_written,
@@ -426,9 +459,7 @@ def write_gold_training(state: PersistState) -> dict[str, Any]:
             build_context_window as _build_context_window,
         )
 
-        _short_threshold = int(
-            os.getenv("NER_SHORT_CONTEXT_THRESHOLD", "50")
-        )
+        _short_threshold = int(os.getenv("NER_SHORT_CONTEXT_THRESHOLD", "50"))
 
         quality_score = float(verification.get("confidence", 1.0))
 

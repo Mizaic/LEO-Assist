@@ -70,6 +70,24 @@ describe("VT-141 TC-002 ProgressStrip", () => {
     const track = screen.getByTestId("progress-strip-track");
     expect(track.getAttribute("aria-valuenow")).toBe("0");
   });
+
+  it("renders indeterminate mindfulness pulse without a percent value", () => {
+    render(
+      <ProgressStrip
+        label="Building the candidate lookup index..."
+        indeterminate
+        subtitle="Elapsed 12s"
+      />,
+    );
+    const strip = screen.getByTestId("progress-strip");
+    expect(strip.getAttribute("data-indeterminate")).toBe("true");
+    expect(strip.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByTestId("progress-strip-indeterminate")).toBeTruthy();
+    expect(
+      screen.getByTestId("progress-strip-track").getAttribute("aria-valuenow"),
+    ).toBeNull();
+    expect(screen.getByText("Elapsed 12s")).toBeTruthy();
+  });
 });
 
 describe("VT-141 TC-003 SegmentedTabs", () => {

@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phrase mappings -- workflow prototype</title>
+  <style>
+    :root {
+      --text: #0F172A;
+      --text-2: #596577;
+      --caption: #6B7280;
+      --brand: #1D4ED8;
+      --brand-hover: #1E40AF;
+      --success: #047857;
+      --warning: #B45309;
+      --danger: #B91C1C;
+      --surface: #FFFFFF;
+      --grouped: #F2F2F7;
+      --divider: rgba(15, 23, 42, 0.08);
+      --overlay: rgba(15, 23, 42, 0.36);
+      --focus: rgba(37, 99, 235, 0.35);
+      --radius: 12px;
+      --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+      --spring: cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font: 16px/1.45 var(--font);
+      color: var(--text);
+      background: #CBD5E1;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:active:not(:disabled) { transform: scale(0.97); }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 232px 1fr;
+      grid-template-rows: auto 1fr;
+      max-width: 1440px;
+      height: 100vh;
+      margin: 0 auto;
+      background: var(--grouped);
+      overflow: hidden;
+    }
+    .role-bar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      background: #F59E0B;
+      color: #1C1917;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .role-bar select {
+      border: 0;
+      border-radius: 8px;
+      padding: 4px 8px;
+      background: #fff;
+      font-weight: 600;
+    }
+    .role-hint { font-weight: 500; opacity: 0.85; }
+
+    .sidebar {
+      background: rgba(248, 250, 252, 0.82);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-right: 1px solid var(--divider);
+      padding: 16px 12px;
+    }
+    .brand {
+      margin: 4px 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--caption);
+    }
+    .nav-label {
+      margin: 14px 8px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--caption);
+    }
+    .nav-item {
+      display: block; width: 100%;
+      padding: 8px 10px; margin: 1px 0;
+      border: 0; border-radius: 8px;
+      background: transparent; color: #475569;
+      font-size: 13px; font-weight: 500; text-align: left;
+    }
+    .nav-item.active {
+      background: rgba(29, 78, 216, 0.08);
+      color: var(--brand); font-weight: 600;
+    }
+
+    .main { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; }
+    .chrome {
+      padding: 16px 24px 10px;
+      background: rgba(242, 242, 247, 0.72);
+      backdrop-filter: blur(24px) saturate(180%);
+    }
+    .chrome-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    h1 {
+      margin: 0;
+      font-size: 28px; line-height: 1.08;
+      letter-spacing: -0.022em; font-weight: 700;
+    }
+    .lede { margin: 6px 0 0; font-size: 14px; color: var(--text-2); max-width: 52ch; }
+    .btn {
+      border: 0; border-radius: 10px;
+      padding: 8px 14px; font-size: 14px; font-weight: 600;
+      background: transparent; color: var(--brand);
+    }
+    .btn:hover { background: rgba(29, 78, 216, 0.08); }
+    .btn-primary { background: var(--brand); color: #fff; }
+    .btn-primary:hover { background: var(--brand-hover); }
+    .btn-danger { color: var(--danger); }
+    .btn-danger.solid { background: var(--danger); color: #fff; }
+    .btn-warn { background: #B45309; color: #fff; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .segments {
+      display: inline-flex; margin-top: 12px; padding: 3px;
+      background: rgba(15, 23, 42, 0.06); border-radius: 10px; flex-wrap: wrap;
+    }
+    .seg {
+      border: 0; background: transparent; color: var(--text-2);
+      font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px;
+    }
+    .seg.active { background: #fff; color: var(--text); }
+    .seg .count { margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--warning); }
+    .search-wrap { margin-top: 12px; position: relative; }
+    .search {
+      width: 100%; height: 44px; border: 0; border-radius: 12px;
+      padding: 0 14px 0 40px; background: rgba(255,255,255,0.88);
+      box-shadow: inset 0 0 0 1px var(--divider); font-size: 16px;
+    }
+    .search:focus { outline: none; box-shadow: inset 0 0 0 2px var(--brand); background: #fff; }
+    .search-icon { position: absolute; left: 14px; top: 13px; width: 16px; height: 16px; color: var(--caption); pointer-events: none; }
+    .code-toolbar { display: flex; gap: 8px; align-items: stretch; margin: 4px 0 10px; }
+    .code-toolbar .search-wrap { flex: 1; margin: 0; }
+    .ask-leo {
+      flex-shrink: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 12px;
+      background: #0F172A; color: #fff; font-weight: 600;
+    }
+    .ask-leo:hover { background: #1E293B; }
+    .ask-leo:disabled { opacity: 0.45; cursor: wait; }
+    .leo-banner {
+      background: #FFF7ED; color: #9A3412; border-radius: 10px;
+      padding: 10px 12px; font-size: 13px; margin: 0 0 12px;
+    }
+    .hit-meta { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+    .score-pill {
+      font-size: 11px; font-weight: 700; color: #1E40AF;
+      background: #DBEAFE; border-radius: 999px; padding: 2px 8px;
+    }
+    .choice.leo-pick {
+      border-color: #EA580C;
+      background: linear-gradient(180deg, #FFF7ED 0%, #FFEDD5 100%);
+      box-shadow: 0 0 0 1px #FDBA74, 0 10px 28px rgba(234, 88, 12, 0.38);
+      animation: leo-heat 1.5s ease-in-out infinite;
+    }
+    .choice.leo-pick.picked {
+      border-color: #C2410C;
+      background: linear-gradient(180deg, #FFEDD5 0%, #FED7AA 100%);
+    }
+    .leo-hot {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #EA580C; color: #fff;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      border-radius: 999px; padding: 3px 10px;
+    }
+    .leo-flame { width: 12px; height: 12px; flex-shrink: 0; }
+    .leo-reason {
+      display: block; margin-top: 8px;
+      font-size: 13px; color: #9A3412; font-weight: 600; line-height: 1.4;
+    }
+    .rank-pill {
+      font-size: 11px; font-weight: 700; color: var(--caption);
+      background: #F1F5F9; border-radius: 999px; padding: 2px 8px;
+    }
+    @keyframes leo-heat {
+      0%, 100% { box-shadow: 0 0 0 1px #FDBA74, 0 6px 18px rgba(234, 88, 12, 0.28); }
+      50% { box-shadow: 0 0 0 2px #FB923C, 0 12px 36px rgba(234, 88, 12, 0.55); }
+    }
+    .reject-note { font-size: 13px; color: var(--text-2); margin: 8px 0 0; }
+    .facts {
+      display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0;
+    }
+    .fact {
+      display: inline-flex; align-items: baseline; gap: 6px;
+      background: var(--grouped); border-radius: 999px;
+      padding: 4px 10px; font-size: 12px; color: var(--text-2);
+    }
+    .fact strong { color: var(--text); font-weight: 700; }
+    .fact.mismatch { background: #FEF3C7; color: #92400E; }
+    .fact.mismatch strong { color: #78350F; }
+    .tag-diff { color: var(--warning); font-weight: 700; }
+    .empty-hits {
+      padding: 18px 14px; margin-bottom: 10px;
+      border: 1px dashed var(--divider); border-radius: 14px;
+      color: var(--text-2); font-size: 14px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 38%) 1fr;
+      min-height: 0;
+    }
+    .list-pane { min-height: 0; overflow: auto; padding: 4px 16px 32px; }
+    .detail-pane {
+      min-height: 0; overflow: hidden; padding: 4px 24px 0 16px;
+      display: flex; flex-direction: column;
+    }
+
+    .group { background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+    .row {
+      display: flex; align-items: flex-start; gap: 12px; width: 100%;
+      padding: 12px 14px; border: 0; background: transparent; text-align: left;
+      border-bottom: 1px solid var(--divider);
+    }
+    .row:last-child { border-bottom: 0; }
+    .row:hover { background: rgba(29, 78, 216, 0.04); }
+    .row.selected { background: rgba(29, 78, 216, 0.08); }
+    .row-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+    .row-meta { font-size: 12px; color: var(--caption); margin-top: 2px; }
+    .tag {
+      font-size: 11px; font-weight: 600; color: var(--caption);
+      background: #F1F5F9; border-radius: 999px; padding: 2px 8px; flex-shrink: 0;
+    }
+    .tag.map { background: #DBEAFE; color: #1E40AF; }
+    .tag.exclude { background: #FEE2E2; color: #991B1B; }
+    .tag.skip { background: #F1F5F9; color: #475569; }
+
+    .empty { padding: 48px 24px; text-align: center; }
+    .empty h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: -0.02em; line-height: 1.15; }
+    .empty p { margin: 0 auto 16px; max-width: 40ch; color: var(--text-2); font-size: 15px; }
+
+    .detail-card {
+      background: var(--surface); border-radius: 16px;
+      padding: 22px 22px 0;
+      display: flex; flex-direction: column;
+      flex: 1; min-height: 0;
+    }
+    .detail-scroll { flex: 1; min-height: 0; overflow: auto; padding-bottom: 12px; }
+    .dock {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+      margin: 0 -22px 0; padding: 12px 22px 16px;
+      border-top: 1px solid var(--divider);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px) saturate(180%);
+    }
+    .dock-hint { margin-right: auto; font-size: 13px; color: var(--caption); }
+    .dock .btn-primary { min-width: 168px; padding: 10px 18px; }
+    .kicker { font-size: 12px; font-weight: 600; color: var(--caption); text-transform: uppercase; letter-spacing: 0.04em; }
+    .detail-title { margin: 4px 0 0; font-size: 24px; line-height: 1.12; letter-spacing: -0.022em; font-weight: 700; }
+    .snippet {
+      margin: 14px 0; padding: 12px 14px; border-radius: 10px;
+      background: var(--grouped); color: var(--text-2); font-size: 14px;
+    }
+    .snippet strong { color: var(--text); }
+    .section-label {
+      margin: 18px 0 8px; font-size: 12px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase; color: var(--caption);
+    }
+    .choice {
+      display: block; width: 100%; text-align: left;
+      border: 2px solid var(--divider); background: #fff;
+      border-radius: 14px; padding: 14px; margin-bottom: 10px;
+    }
+    .choice:hover { border-color: #93C5FD; }
+    .choice.picked { border-color: var(--brand); background: #EFF6FF; }
+    .choice.exclude.picked { border-color: var(--danger); background: #FEF2F2; }
+    .choice strong { display: block; font-size: 16px; letter-spacing: -0.01em; }
+    .choice span { display: block; margin-top: 4px; font-size: 13px; color: var(--text-2); }
+    .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .warn {
+      background: #FFFBEB; color: #92400E; border-radius: 10px;
+      padding: 10px 12px; font-size: 13px; margin: 10px 0;
+    }
+    .ok {
+      background: #ECFDF5; color: var(--success); border-radius: 10px;
+      padding: 10px 12px; font-size: 13px; margin: 10px 0;
+    }
+    textarea, .field {
+      width: 100%; border: 0; border-radius: 10px; padding: 10px 12px;
+      background: var(--grouped); font-size: 15px;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+
+    .scrim {
+      position: fixed; inset: 0; background: var(--overlay);
+      opacity: 0; pointer-events: none;
+      transition: opacity 280ms var(--spring); z-index: 20;
+    }
+    .scrim.open { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: fixed; right: 0; top: 48px; bottom: 0;
+      width: min(440px, 100%);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(28px) saturate(180%);
+      transform: translateX(110%);
+      transition: transform 380ms var(--spring);
+      z-index: 21; display: flex; flex-direction: column; padding: 18px 20px;
+    }
+    .sheet.open { transform: translateX(0); }
+    .sheet.bottom {
+      top: auto; left: 0; right: 0; width: 100%; max-height: 70vh;
+      border-radius: 16px 16px 0 0; transform: translateY(110%);
+    }
+    .sheet.bottom.open { transform: translateY(0); }
+    .grabber { width: 36px; height: 5px; border-radius: 99px; background: #CBD5E1; margin: 0 auto 12px; }
+    .sheet h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.02em; line-height: 1.15; }
+    .toast {
+      position: fixed; left: 50%; bottom: 24px;
+      transform: translateX(-50%) translateY(20px); opacity: 0;
+      background: #0F172A; color: #fff; padding: 10px 14px;
+      border-radius: 12px; font-size: 14px; font-weight: 500; z-index: 30;
+      transition: opacity 200ms ease, transform 380ms var(--spring);
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .proto-flag {
+      position: fixed; left: 12px; bottom: 12px; z-index: 5;
+      font-size: 11px; font-weight: 600; color: var(--caption);
+      background: rgba(255,255,255,0.8); backdrop-filter: blur(12px);
+      padding: 6px 10px; border-radius: 999px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
+      button:active:not(:disabled) { transform: none; }
+      .choice.leo-pick { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="role-bar">
+      You are
+      <select id="role" aria-label="Prototype role">
+        <option value="engineer">Engineer (draft only)</option>
+        <option value="reviewer">Clinical administrator (can publish)</option>
+      </select>
+      <span class="role-hint" id="role-hint">You can map and exclude. You cannot publish your own batch.</span>
+    </div>
+
+    <aside class="sidebar">
+      <p class="brand">Knowledge</p>
+      <div class="nav-label">NLP and AI</div>
+      <button class="nav-item" type="button">Training Data</button>
+      <button class="nav-item active" type="button">Phrase mappings</button>
+      <button class="nav-item" type="button">Context Rules</button>
+      <button class="nav-item" type="button">AI Instructions</button>
+    </aside>
+
+    <div class="main">
+      <header class="chrome">
+        <div class="chrome-row">
+          <div>
+            <h1>Phrase mappings</h1>
+            <p class="lede" id="lede">When the pipeline cannot code a phrase (score below 55%), it lands here grouped by phrase. Search SNOMED or Ask LEO, then save a draft for someone else to publish.</p>
+          </div>
+          <div id="chrome-actions"></div>
+        </div>
+        <div class="segments" role="tablist" aria-label="Workspaces">
+          <button class="seg active" type="button" data-mode="inbox">Inbox <span class="count" id="c-inbox">0</span></button>
+          <button class="seg" type="button" data-mode="drafts">My drafts <span class="count" id="c-drafts">0</span></button>
+          <button class="seg" type="button" data-mode="review">Review <span class="count" id="c-review">0</span></button>
+          <button class="seg" type="button" data-mode="live">Live dictionary</button>
+        </div>
+        <div class="search-wrap" id="search-wrap" hidden>
+          <svg class="search-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M11 11l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <input class="search" id="search" type="search" placeholder="Search a live phrase or code" aria-label="Search live dictionary">
+        </div>
+      </header>
+      <div class="workspace">
+        <section class="list-pane" id="list" aria-label="Queue"></section>
+        <section class="detail-pane" id="detail" aria-live="polite"></section>
+      </div>
+    </div>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <aside class="sheet" id="sheet" role="dialog" aria-modal="true"></aside>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="proto-flag">Click-through prototype -- switch role in the yellow bar</div>
+
+  <script>
+    const LIVE = [
+      { id: "44054006", term: "Diabetes mellitus type 2", tag: "disorder", aliases: ["T2DM", "type 2 diabetes", "DM2"] },
+      { id: "233985008", term: "Abdominal aortic aneurysm", tag: "disorder", aliases: ["AAA"] },
+      { id: "21522001", term: "Abdominal pain", tag: "finding", aliases: ["abdo pain", "tummy pain"] }
+    ];
+
+    const SNOMED = [
+      { id: "1030791000000100", term: "Prostate specific antigen level", tag: "observable entity", keys: "psa prostate specific antigen level ng/ml lab value" },
+      { id: "396152005", term: "PSA above reference range", tag: "finding", keys: "psa high raised elevated above reference range 12.4" },
+      { id: "63476009", term: "PSA measurement", tag: "procedure", keys: "psa measurement test done procedure" },
+      { id: "1022491000000105", term: "Serum prostate specific antigen concentration", tag: "observable entity", keys: "serum psa concentration lab" },
+      { id: "116289008", term: "Abdominal bloating", tag: "finding", keys: "bloating bloated abdomen wind" },
+      { id: "162076009", term: "Excessive upper gastrointestinal gas", tag: "finding", keys: "bloating gas wind" },
+      { id: "276431000000102", term: "Fast track referral for suspected urological cancer", tag: "procedure", keys: "2ww two week wait urgent urology referral suspected cancer" },
+      { id: "397657005", term: "Malignant neoplasm of urinary system suspected", tag: "situation", keys: "suspected urological cancer malignancy" },
+      { id: "183851006", term: "Referral to urologist", tag: "procedure", keys: "urology referral specialist" },
+      { id: "185389009", term: "Follow-up encounter", tag: "procedure", keys: "awaiting appointment follow up wait" },
+      { id: "308720009", term: "Letter encounter", tag: "procedure", keys: "letter admin correspondence" }
+    ];
+
+    const INBOX = [
+      {
+        id: "in-1",
+        phrase: "PSA",
+        source: "Pipeline rejected -- 14 notes this month",
+        snippet: "Repeat <strong>PSA</strong> 12.4 ng/ml. Discuss 2WW urology.",
+        kind: "reject",
+        score: 0.42,
+        notes: 14,
+        extractedTag: "procedure",
+        rejectedTerm: "PSA measurement",
+        rejectedTag: "procedure"
+      },
+      {
+        id: "in-2",
+        phrase: "bloating",
+        source: "Pipeline rejected -- 86 notes",
+        snippet: "Patient reports constant <strong>bloating</strong> after meals.",
+        kind: "reject",
+        score: 0.31,
+        notes: 86,
+        extractedTag: "disorder",
+        rejectedTerm: "Abdominal distension disorder",
+        rejectedTag: "disorder"
+      },
+      {
+        id: "in-3",
+        phrase: "awaiting appointment",
+        source: "Reviewer asked to stop coding this",
+        snippet: "Colonoscopy <strong>awaiting appointment</strong>. No result yet.",
+        kind: "exclude",
+        score: null,
+        notes: 9,
+        extractedTag: "procedure",
+        rejectedTerm: "",
+        rejectedTag: ""
+      },
+      {
+        id: "in-4",
+        phrase: "2 ww urgent urology referral",
+        source: "Pipeline rejected -- 6 notes",
+        snippet: "GP made a <strong>2 ww urgent urology referral</strong> today.",
+        kind: "reject",
+        score: 0.48,
+        notes: 6,
+        extractedTag: "finding",
+        rejectedTerm: "Urgent referral",
+        rejectedTag: "finding"
+      },
+      {
+        id: "in-5",
+        phrase: "VAL-D681 local test phrase",
+        source: "Test leftover in live dictionary",
+        snippet: "Synthetic fixture. Should not be coded.",
+        kind: "exclude",
+        score: null,
+        notes: 1,
+        extractedTag: "finding",
+        rejectedTerm: "",
+        rejectedTag: ""
+      }
+    ];
+
+    const THRESHOLD = 0.55;
+
+    const state = {
+      role: "engineer",
+      mode: "inbox",
+      selected: null,
+      query: "",
+      drafts: [],
+      review: [],
+      pick: null,
+      excludeReason: "",
+      codeQuery: "",
+      hits: [],
+      leoBusy: false,
+      leoRanked: false,
+      leoReason: "",
+      leoAltQuery: "",
+      didSearch: false
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
+    const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 3200);
+    }
+
+    function counts() {
+      $("c-inbox").textContent = String(INBOX.length);
+      $("c-drafts").textContent = String(state.drafts.length);
+      $("c-review").textContent = String(state.review.length);
+    }
+
+    function setRole(role) {
+      state.role = role;
+      $("role-hint").textContent = role === "engineer"
+        ? "You can map and exclude. You cannot publish your own batch."
+        : "You can publish someone else's batch. You cannot approve a batch you drafted.";
+      render();
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      state.selected = null;
+      state.pick = null;
+      state.excludeReason = "";
+      state.lastPhrase = null;
+      state.codeQuery = "";
+      state.hits = [];
+      state.leoBusy = false;
+      state.leoRanked = false;
+      state.leoReason = "";
+      state.leoAltQuery = "";
+      state.didSearch = false;
+      document.querySelectorAll(".seg").forEach((s) => s.classList.toggle("active", s.dataset.mode === mode));
+      $("search-wrap").hidden = mode !== "live";
+      const ledes = {
+        inbox: "When the pipeline cannot code a phrase (score below 55%), it lands here grouped by phrase. Search SNOMED or Ask LEO, then save a draft for someone else to publish.",
+        drafts: "Your unpublished batch. Submit when ready. These do not change coding yet.",
+        review: "Submitted by someone else. Approve, edit, or send back. Publishing is what makes the pipeline change.",
+        live: "What the pipeline already uses. Search a phrase. Retire or remap starts a new draft -- it does not write through."
+      };
+      $("lede").textContent = ledes[mode];
+      render();
+    }
+
+    function currentList() {
+      if (state.mode === "inbox") return INBOX;
+      if (state.mode === "drafts") return state.drafts;
+      if (state.mode === "review") return state.review;
+      const q = norm(state.query);
+      if (!q) return [];
+      return LIVE.filter((c) => norm(c.term + " " + c.aliases.join(" ") + " " + c.id).includes(q));
+    }
+
+    function selectedItem() {
+      const list = currentList();
+      return list.find((x) => x.id === state.selected) || list[0] || null;
+    }
+
+    function renderList() {
+      const pane = $("list");
+      const list = currentList();
+      if (state.mode === "live" && !state.query) {
+        pane.innerHTML = `<div class="empty"><h2>Find a live mapping</h2><p>Type a phrase or code. This is the dictionary, not the work queue.</p></div>`;
+        return;
+      }
+      if (!list.length) {
+        const copy = {
+          inbox: ["Inbox is clear", "Phrases the pipeline could not code (score below 55%) will land here, grouped by phrase."],
+          drafts: ["No drafts", "Pick a phrase in Inbox and choose Map, Exclude, or Skip."],
+          review: ["Nothing to publish", "When an engineer submits a batch, it appears here for a second person."]
+        }[state.mode] || ["No matches", "Try another search."];
+        pane.innerHTML = `<div class="empty"><h2>${copy[0]}</h2><p>${copy[1]}</p></div>`;
+        return;
+      }
+      const sel = selectedItem();
+      pane.innerHTML = `<div class="group">${list.map((item) => {
+        const title = item.phrase || item.term;
+        const tagHint = item.extractedTag ? `Tagged as ${item.extractedTag}` : "";
+        const meta = [item.source || (item.aliases ? item.aliases.join(", ") : item.action), tagHint].filter(Boolean).join(" -- ");
+        const tag = item.action === "map" ? "map" : item.action === "exclude" || item.kind === "exclude" ? "exclude" : item.action === "skip" ? "skip" : "";
+        const tagLabel = item.action || (item.kind === "exclude" ? "exclude" : item.score != null ? "below 55%" : item.tag || item.kind);
+        return `<button class="row ${sel && sel.id === item.id ? "selected" : ""}" type="button" data-id="${item.id}">
+          <div style="flex:1;min-width:0">
+            <div class="row-title">${escapeHtml(title)}</div>
+            <div class="row-meta">${escapeHtml(meta)}</div>
+          </div>
+          ${tagLabel ? `<span class="tag ${tag}">${escapeHtml(tagLabel)}</span>` : ""}
+        </button>`;
+      }).join("")}</div>`;
+      pane.querySelectorAll("[data-id]").forEach((el) => {
+        el.onclick = () => {
+          state.selected = el.dataset.id;
+          state.pick = null;
+          state.excludeReason = "";
+          state.lastPhrase = null;
+          render();
+        };
+      });
+    }
+
+    function renderDetail() {
+      const pane = $("detail");
+      const item = selectedItem();
+      if (state.mode === "inbox") return renderInboxDetail(pane, item);
+      if (state.mode === "drafts") return renderDraftDetail(pane, item);
+      if (state.mode === "review") return renderReviewDetail(pane, item);
+      return renderLiveDetail(pane, item);
+    }
+
+    function searchSnomed(q) {
+      const n = norm(q);
+      if (!n) return [];
+      const words = n.split(" ").filter((w) => w.length > 1);
+      return SNOMED
+        .map((c) => {
+          const bag = norm(c.term + " " + c.keys + " " + c.id);
+          const hits = words.filter((w) => bag.includes(w)).length;
+          return { ...c, searchScore: hits };
+        })
+        .filter((c) => c.searchScore > 0)
+        .sort((a, b) => b.searchScore - a.searchScore)
+        .slice(0, 8);
+    }
+
+    function snippetText(item) {
+      return String(item.snippet || "").replace(/<[^>]+>/g, " ");
+    }
+
+    function scoreAgainstNote(hit, item) {
+      const hay = norm(item.phrase + " " + snippetText(item));
+      const bag = norm(hit.term + " " + (hit.keys || "") + " " + (hit.tag || ""));
+      return bag.split(" ").filter((w) => w.length > 2 && hay.includes(w)).length;
+    }
+
+    function noteHasLabValue(item) {
+      const note = snippetText(item);
+      return /\d/.test(note) && /(ng\/ml|mmol|u\/l|iu\/l|g\/l|%|umol)/i.test(note);
+    }
+
+    function noteIsReferral(item) {
+      return /referral|2\s*ww|two week/i.test(item.phrase + " " + snippetText(item));
+    }
+
+    function leoReasonFor(item, top, altQuery) {
+      if (!top) return "LEO could not pick a code from this list.";
+      if (noteHasLabValue(item) && top.tag === "observable entity") {
+        return "The note has a number and a unit. That is a lab value, not the test being done. Extraction tagged this as "
+          + item.extractedTag + ", so LEO searched again for a level.";
+      }
+      if (noteIsReferral(item) && /referral/i.test(top.term)) {
+        return "The note is about making a referral, not a diagnosis. LEO picked the referral procedure.";
+      }
+      if (altQuery) {
+        return "The first SNOMED list looked wrong for this note, so LEO searched again for \"" + altQuery + "\".";
+      }
+      return "LEO compared each code to this note, not just the phrase, and put this one first.";
+    }
+
+    function rankWithLeo(item, hits) {
+      const lab = noteHasLabValue(item);
+      const referral = noteIsReferral(item);
+      let altQuery = "";
+      let pool = hits.slice();
+      if (lab && item.extractedTag && item.extractedTag !== "observable entity") {
+        altQuery = item.phrase + " level";
+        searchSnomed(altQuery).forEach((extra) => {
+          if (!pool.some((p) => p.id === extra.id)) pool.push(extra);
+        });
+      }
+      if (referral && item.extractedTag && item.extractedTag !== "procedure") {
+        altQuery = "fast track referral suspected cancer";
+        searchSnomed(altQuery).forEach((extra) => {
+          if (!pool.some((p) => p.id === extra.id)) pool.push(extra);
+        });
+      }
+      const scored = pool.map((h) => {
+        let n = scoreAgainstNote(h, item);
+        if (lab && h.tag === "observable entity") n += 6;
+        if (lab && h.tag === "procedure") n -= 4;
+        if (lab && /above reference|raised|high/i.test(h.term)) n += 1;
+        if (referral && /referral/i.test(h.term)) n += 5;
+        if (referral && h.tag === "finding") n -= 2;
+        return { ...h, leoScore: n };
+      }).sort((a, b) => b.leoScore - a.leoScore);
+      return {
+        hits: scored,
+        altQuery: altQuery,
+        reason: leoReasonFor(item, scored[0], altQuery)
+      };
+    }
+
+    function ensureHits(item) {
+      if (state.lastPhrase === item.id) return;
+      state.lastPhrase = item.id;
+      state.codeQuery = "";
+      state.hits = [];
+      state.didSearch = false;
+      state.leoRanked = false;
+      state.leoBusy = false;
+      state.leoReason = "";
+      state.leoAltQuery = "";
+      if (item.kind === "exclude" && !state.pick) state.pick = "exclude";
+    }
+
+    function conceptById(id) {
+      return SNOMED.find((c) => c.id === id) || state.hits.find((c) => c.id === id) || null;
+    }
+
+    function renderInboxDetail(pane, item) {
+      if (!item) {
+        pane.innerHTML = `<div class="empty"><h2>Pick a phrase</h2><p>Start from the inbox. Search SNOMED or Ask LEO. Do not browse the live dictionary until you need to look something up.</p></div>`;
+        return;
+      }
+      ensureHits(item);
+      const action = state.pick || (item.kind === "exclude" ? "exclude" : null);
+      const hits = state.hits;
+      const rejectLine = item.score != null
+        ? `Pipeline best match scored ${(item.score * 100).toFixed(0)}%. Needs ${Math.round(THRESHOLD * 100)}% to code. Same phrase in ${item.notes} notes.`
+        : `This phrase is not a coding reject. Someone asked to stop coding it.`;
+      const waiting = !hits.length && action !== "exclude" && action !== "skip";
+      const emptyHits = waiting && !state.didSearch && !state.leoRanked
+        ? `<div class="empty-hits">The list stays empty until you search SNOMED or press Ask LEO. Ask LEO will search using this note, not the pipeline's guessed type.</div>`
+        : "";
+      const noMatch = waiting && (state.didSearch || state.leoRanked)
+        ? `<div class="warn">No SNOMED matches for that search. Try another phrase, or Ask LEO.</div>`
+        : "";
+      const facts = item.extractedTag ? `
+          <div class="facts">
+            <span class="fact mismatch"><strong>Extraction tagged this as ${escapeHtml(item.extractedTag)}</strong></span>
+            ${item.rejectedTerm ? `<span class="fact">Best match under that tag: <strong>${escapeHtml(item.rejectedTerm)}</strong> (${Math.round((item.score || 0) * 100)}%)</span>` : ""}
+          </div>
+          ${item.extractedTag ? `<div class="warn">That tag is passed into SNOMED lookup, so a wrong type can tank the score. Search is not filtered to ${escapeHtml(item.extractedTag)}. Ask LEO uses the note, not that guessed type.</div>` : ""}
+        ` : "";
+      const flame = `<svg class="leo-flame" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1c1 3-2 4-1 7 2-2 5 0 5 4 0 3-2.5 5-6 5S2 15 2 12c0-5 4-7 6-11z"/></svg>`;
+      const hitCards = action === "exclude" || action === "skip" ? "" : hits.map((o, i) => {
+        const typeDiff = item.extractedTag && o.tag && o.tag !== item.extractedTag;
+        const isLeo = state.leoRanked && i === 0;
+        return `
+            <button class="choice ${action === o.id ? "picked" : ""} ${isLeo ? "leo-pick" : ""}" type="button" data-map="${o.id}">
+              <strong>Map to ${escapeHtml(o.term)}</strong>
+              <span>${escapeHtml(o.tag)} -- ${escapeHtml(o.id)}</span>
+              <div class="hit-meta">
+                ${isLeo ? `<span class="leo-hot">${flame} LEO recommends</span>` : ""}
+                ${state.leoRanked && i > 0 ? `<span class="rank-pill">Also considered ${i + 1}</span>` : ""}
+                ${!state.leoRanked ? `<span class="score-pill">SNOMED search</span>` : ""}
+                ${typeDiff ? `<span class="tag-diff">Different type than extraction</span>` : (item.extractedTag && o.tag === item.extractedTag ? `<span class="score-pill">Same type as extraction</span>` : "")}
+              </div>
+              ${isLeo && state.leoReason ? `<span class="leo-reason">${escapeHtml(state.leoReason)}</span>` : ""}
+            </button>`;
+      }).join("");
+      pane.innerHTML = `
+        <article class="detail-card">
+          <div class="detail-scroll">
+          <div class="kicker">${escapeHtml(item.source)}</div>
+          <h2 class="detail-title">${escapeHtml(item.phrase)}</h2>
+          <p class="reject-note">${escapeHtml(rejectLine)}</p>
+          ${facts}
+          <div class="snippet">From a note: ${item.snippet}</div>
+          <p class="section-label">Find the SNOMED code</p>
+          <div class="code-toolbar">
+            <div class="search-wrap">
+              <svg class="search-icon" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M11 11l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+              <input class="search" id="code-q" type="search" value="${escapeHtml(state.codeQuery)}" placeholder="Search SNOMED by name or code" aria-label="Search SNOMED">
+            </div>
+            <button class="ask-leo" type="button" id="ask-leo" ${state.leoBusy ? "disabled" : ""}>${state.leoBusy ? "Asking LEO..." : "Ask LEO"}</button>
+          </div>
+          ${state.leoRanked ? `<div class="leo-banner">${state.leoAltQuery ? `LEO did not trust the first list (extraction said ${escapeHtml(item.extractedTag || "the wrong type")}), so it searched again for "${escapeHtml(state.leoAltQuery)}". ` : "LEO ranked these codes using the phrase and the note. "}This is a suggestion. You still pick the code. Saving still goes to drafts, not live.</div>` : ""}
+          ${emptyHits}${noMatch}
+          ${hitCards}
+          <button class="choice exclude ${action === "exclude" ? "picked" : ""}" type="button" data-act="exclude">
+            <strong>Exclude -- stop trying to code this</strong>
+            <span>Use when the words are not a clinical fact (waiting, admin text, test junk). Needs a reason.</span>
+          </button>
+          <button class="choice ${action === "skip" ? "picked" : ""}" type="button" data-act="skip">
+            <strong>Skip for now</strong>
+            <span>Leave it in the inbox for someone else.</span>
+          </button>
+          ${action === "exclude" ? `
+            <label class="section-label" for="reason">Why exclude?</label>
+            <textarea id="reason" placeholder="e.g. This is appointment status, not a diagnosis.">${escapeHtml(state.excludeReason)}</textarea>
+            ${!state.excludeReason.trim() ? `<div class="warn">Exclude is blocked until you write a reason. A broad exclude can hide real diagnoses.</div>` : ""}
+          ` : ""}
+          </div>
+          <div class="dock">
+            <span class="dock-hint">${canSaveDraft(action) ? (action === "skip" ? "Stays in the inbox." : "Goes to your drafts. Not live.") : "Pick a code, exclude, or skip."}</span>
+            <button class="btn btn-primary" type="button" id="save-draft" ${canSaveDraft(action) ? "" : "disabled"}>${action === "skip" ? "Leave in inbox" : "Save to my drafts"}</button>
+          </div>
+        </article>`;
+      const qEl = $("code-q");
+      if (qEl) {
+        qEl.oninput = (e) => {
+          const keep = e.target.selectionStart;
+          state.codeQuery = e.target.value;
+          state.didSearch = Boolean(state.codeQuery.trim());
+          state.hits = state.didSearch ? searchSnomed(state.codeQuery) : [];
+          state.leoRanked = false;
+          state.leoReason = "";
+          state.leoAltQuery = "";
+          if (state.pick && state.pick !== "exclude" && state.pick !== "skip") state.pick = null;
+          renderInboxDetail(pane, item);
+          const again = $("code-q");
+          if (again) {
+            again.focus();
+            try { again.setSelectionRange(keep, keep); } catch (err) {}
+          }
+        };
+      }
+      const ask = $("ask-leo");
+      if (ask) ask.onclick = () => {
+        state.leoBusy = true;
+        renderInboxDetail(pane, item);
+        window.setTimeout(() => {
+          const pool = state.hits.length ? state.hits : searchSnomed(item.phrase);
+          const ranked = rankWithLeo(item, pool);
+          state.hits = ranked.hits;
+          state.leoReason = ranked.reason;
+          state.leoAltQuery = ranked.altQuery;
+          state.leoBusy = false;
+          state.leoRanked = true;
+          state.pick = state.hits[0] ? state.hits[0].id : null;
+          toast("LEO put its pick at the top. Check it before you save.");
+          renderInboxDetail($("detail"), item);
+        }, 700);
+      };
+      pane.querySelectorAll("[data-map]").forEach((el) => {
+        el.onclick = () => { state.pick = el.dataset.map; state.excludeReason = ""; renderInboxDetail(pane, item); };
+      });
+      pane.querySelectorAll("[data-act]").forEach((el) => {
+        el.onclick = () => { state.pick = el.dataset.act; renderInboxDetail(pane, item); };
+      });
+      const reason = $("reason");
+      if (reason) reason.oninput = () => {
+        state.excludeReason = reason.value;
+        const ok = canSaveDraft("exclude");
+        $("save-draft").disabled = !ok;
+        const hint = pane.querySelector(".dock-hint");
+        if (hint) hint.textContent = ok ? "Goes to your drafts. Not live." : "Write a reason to exclude.";
+        const w = pane.querySelector(".warn");
+        if (w && state.excludeReason.trim()) w.remove();
+      };
+      $("save-draft").onclick = () => saveDraft(item, action);
+    }
+
+    function canSaveDraft(action) {
+      if (!action) return false;
+      if (action === "skip") return true;
+      if (action === "exclude") return state.excludeReason.trim().length > 8;
+      return Boolean(conceptById(action));
+    }
+
+    function saveDraft(item, action) {
+      if (action === "skip") {
+        state.pick = null;
+        toast("Left in the inbox for someone else.");
+        render();
+        return;
+      }
+      const hit = conceptById(action);
+      state.drafts.push({
+        id: "d-" + item.id,
+        phrase: item.phrase,
+        source: item.source,
+        snippet: item.snippet,
+        action: action === "exclude" ? "exclude" : "map",
+        conceptId: hit ? hit.id : "",
+        conceptTerm: hit ? hit.term : "",
+        extractedTag: item.extractedTag || "",
+        rejectedTerm: item.rejectedTerm || "",
+        rejectedTag: item.rejectedTag || "",
+        reason: state.excludeReason,
+        author: state.role
+      });
+      const idx = INBOX.findIndex((x) => x.id === item.id);
+      if (idx >= 0) INBOX.splice(idx, 1);
+      state.pick = null;
+      state.excludeReason = "";
+      state.selected = null;
+      state.lastPhrase = null;
+      toast("Saved as draft. Not live.");
+      if (!INBOX.length) setMode("drafts");
+      else render();
+    }
+
+    function renderDraftDetail(pane, item) {
+      if (!item) {
+        pane.innerHTML = `<div class="empty"><h2>Build a batch</h2><p>Drafts do not change coding. Submit when the pile is ready for a second person.</p></div>`;
+        return;
+      }
+      pane.innerHTML = `
+        <article class="detail-card">
+          <div class="kicker">Draft -- not live</div>
+          <h2 class="detail-title">${escapeHtml(item.phrase)}</h2>
+          <div class="snippet">${item.snippet}</div>
+          <p class="ok">${item.action === "map" ? `Will map to ${escapeHtml(item.conceptTerm)} after review.` : item.action === "exclude" ? `Will stop coding this. Reason: ${escapeHtml(item.reason)}` : "Skipped. Stays out of the dictionary."}</p>
+          <div class="actions">
+            <button class="btn" type="button" id="back-inbox">Send back to inbox</button>
+          </div>
+        </article>`;
+      $("back-inbox").onclick = () => {
+        INBOX.push({
+          id: item.id.replace(/^d-/, "in-"),
+          phrase: item.phrase, source: item.source, snippet: item.snippet,
+          kind: item.action === "exclude" ? "exclude" : "reject",
+          score: null,
+          notes: 1,
+          extractedTag: item.extractedTag || "",
+          rejectedTerm: item.rejectedTerm || "",
+          rejectedTag: item.rejectedTag || ""
+        });
+        state.drafts = state.drafts.filter((d) => d.id !== item.id);
+        toast("Returned to inbox.");
+        render();
+      };
+    }
+
+    function renderReviewDetail(pane, item) {
+      if (state.role === "engineer") {
+        pane.innerHTML = `<div class="empty"><h2>A second person publishes</h2><p>Switch the yellow bar to Clinical administrator to review a submitted batch. You cannot approve your own work.</p></div>`;
+        return;
+      }
+      if (!item) {
+        pane.innerHTML = `<div class="empty"><h2>Nothing submitted</h2><p>Switch to Engineer, draft a few phrases, then Submit batch.</p></div>`;
+        return;
+      }
+      const isExclude = item.action === "exclude";
+      pane.innerHTML = `
+        <article class="detail-card">
+          <div class="kicker">Submitted by engineer -- you publish</div>
+          <h2 class="detail-title">${escapeHtml(item.phrase)}</h2>
+          <div class="snippet">${item.snippet}</div>
+          ${isExclude ? `<div class="warn"><strong>Exclude.</strong> After you publish, LEO will stop offering a code for this phrase in every future note. Reason: ${escapeHtml(item.reason)}</div>` : `<p class="ok">Map to ${escapeHtml(item.conceptTerm)}.</p>`}
+          <div class="actions">
+            <button class="btn" type="button" id="send-back">Send back</button>
+            <button class="btn ${isExclude ? "btn-warn" : "btn-primary"}" type="button" id="publish">${isExclude ? "Publish exclude" : "Publish mapping"}</button>
+          </div>
+        </article>`;
+      $("send-back").onclick = () => {
+        state.drafts.push(item);
+        state.review = state.review.filter((d) => d.id !== item.id);
+        toast("Sent back to the engineer's drafts.");
+        render();
+      };
+      $("publish").onclick = () => publishOne(item);
+    }
+
+    function publishOne(item) {
+      if (item.action === "map" && item.conceptId) {
+        let live = LIVE.find((c) => c.id === item.conceptId);
+        if (!live) {
+          live = { id: item.conceptId, term: item.conceptTerm, tag: "disorder", aliases: [] };
+          LIVE.push(live);
+        }
+        if (!live.aliases.includes(item.phrase)) live.aliases.push(item.phrase);
+      }
+      state.review = state.review.filter((d) => d.id !== item.id);
+      toast(item.action === "exclude"
+        ? `Published. LEO will stop coding "${item.phrase}" on the next run.`
+        : `Published. LEO will code "${item.phrase}" as ${item.conceptTerm} on the next run.`);
+      render();
+    }
+
+    function renderLiveDetail(pane, item) {
+      if (!item) {
+        pane.innerHTML = `<div class="empty"><h2>Look up, do not dump</h2><p>Live mappings are searched, not listed A to Z. To change one, start a draft.</p></div>`;
+        return;
+      }
+      pane.innerHTML = `
+        <article class="detail-card">
+          <div class="kicker">Live -- used by the pipeline</div>
+          <h2 class="detail-title">${escapeHtml(item.term)}</h2>
+          <p class="row-meta">${escapeHtml(item.id)} · ${escapeHtml(item.tag)}</p>
+          <p class="section-label">Phrases LEO recognises</p>
+          ${item.aliases.map((a) => `<div class="row-title" style="padding:8px 0;border-bottom:1px solid var(--divider)">${escapeHtml(a)}</div>`).join("")}
+          <div class="actions">
+            <button class="btn btn-danger" type="button" id="retire">Start a draft to retire this</button>
+          </div>
+        </article>`;
+      $("retire").onclick = () => {
+        INBOX.unshift({
+          id: "in-retire-" + item.id,
+          phrase: item.aliases[0] || item.term,
+          source: "Retire request from live dictionary",
+          snippet: `Currently live as <strong>${escapeHtml(item.term)}</strong>.`,
+          kind: "exclude",
+          score: null,
+          notes: 1
+        });
+        toast("A retire request was added to the inbox as a draft-to-be. Not live yet.");
+        setMode("inbox");
+      };
+    }
+
+    function renderChrome() {
+      const box = $("chrome-actions");
+      if (state.mode === "drafts") {
+        const n = state.drafts.filter((d) => d.action !== "skip").length;
+        box.innerHTML = `<button class="btn btn-primary" type="button" id="submit-batch" ${n && state.role === "engineer" ? "" : "disabled"}>Submit ${n} for review</button>`;
+        const btn = $("submit-batch");
+        if (btn) btn.onclick = submitBatch;
+      } else if (state.mode === "review" && state.role === "reviewer" && state.review.length) {
+        box.innerHTML = `<span class="lede">${state.review.length} waiting to publish</span>`;
+      } else {
+        box.innerHTML = "";
+      }
+    }
+
+    function submitBatch() {
+      if (state.role !== "engineer") {
+        toast("Only the author submits. A different person publishes.");
+        return;
+      }
+      const ready = state.drafts.filter((d) => d.action !== "skip");
+      if (!ready.length) return;
+      ready.forEach((d) => { d.author = "engineer"; state.review.push(d); });
+      state.drafts = state.drafts.filter((d) => d.action === "skip");
+      toast(`${ready.length} sent for review. Still not live.`);
+      setMode("review");
+    }
+
+    function render() {
+      counts();
+      renderChrome();
+      renderList();
+      renderDetail();
+    }
+
+    $("role").onchange = (e) => setRole(e.target.value);
+    document.querySelectorAll(".seg").forEach((s) => s.onclick = () => setMode(s.dataset.mode));
+    $("search").oninput = (e) => { state.query = e.target.value; state.selected = null; render(); };
+    $("scrim").onclick = () => { $("sheet").classList.remove("open"); $("scrim").classList.remove("open"); };
+
+    render();
+  </script>
+</body>
+</html>

@@ -90,7 +90,8 @@ class TestVerifyDisorderEndToEnd:
         assert result == DisorderVerdict.ACTIVE_DIAGNOSIS
         call_kwargs = mock_consensus.call_args.kwargs
         assert call_kwargs["fail_verdict"] == "gate_failed"
-        assert call_kwargs["tier"] in {"small", "big", "max"}
+        assert call_kwargs["options"].tier in {"small", "big", "max"}
+        assert call_kwargs["options"].structured_schema["type"] == "object"
 
     @patch("libs.llm_client.disorder_verifier.run_consensus")
     def test_informational_autonomous(self, mock_consensus):

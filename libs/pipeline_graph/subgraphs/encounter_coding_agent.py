@@ -61,6 +61,7 @@ class CodingAgentState(TypedDict, total=False):
     tier: str  # "big" | "small"
     apply: bool
     messages: list[dict]
+    response_items: list[Any]
     verdict: dict | None
     tool_iterations: int
     input_tokens: int
@@ -558,6 +559,7 @@ def load_encounter(state: CodingAgentState) -> dict:
         "verdict": None,
         "_pending_tool_uses": [],
         "messages": [{"role": "user", "content": user_msg}],
+        "response_items": [],
     }
 
 
@@ -569,6 +571,7 @@ def coder(state: CodingAgentState) -> dict:
     tier = state.get("tier") or "big"
     mode = state.get("mode") or "audit"
     messages = list(state.get("messages") or [])
+    response_items = list(state.get("response_items") or [])
     errors = list(state.get("errors") or [])
 
     patient_id = str(state.get("patient_id") or "")
@@ -580,17 +583,22 @@ def coder(state: CodingAgentState) -> dict:
             messages=deepcopy(messages),
             max_tokens=4096,
             tool_config=_TOOL_CONFIG,
+            response_items=response_items,
             agent_task="encounter_coding_agent",
             patient_id=patient_id,
         )
-        assistant_content: list[dict] = []
-        if resp.text:
-            assistant_content.append({"text": resp.text})
-        for tu in resp.tool_uses:
-            assistant_content.append({"toolUse": tu})
-        messages.append({"role": "assistant", "content": assistant_content})
+        raw_items = list(getattr(resp, "raw_output_items", None) or [])
+        if raw_items:
+            response_items.extend(raw_items)
+        else:
+            assistant_content: list[dict] = []
+            if resp.text:
+                assistant_content.append({"text": resp.text})
+            assistant_content.extend({"toolUse": tu} for tu in resp.tool_uses)
+            messages.append({"role": "assistant", "content": assistant_content})
         return {
             "messages": messages,
+            "response_items": response_items,
             "model_id": resp.model_id,
             "input_tokens": (state.get("input_tokens") or 0) + resp.input_tokens,
             "output_tokens": (state.get("output_tokens") or 0) + resp.output_tokens,
@@ -606,9 +614,10 @@ def coder(state: CodingAgentState) -> dict:
 
 def _dispatch_tool_uses(
     tool_uses: list[dict], encounter_text: str
-) -> tuple[list[dict], dict | None]:
-    """Dispatch tool calls; return (tool_result_blocks, verdict_or_None)."""
+) -> tuple[list[dict], list[dict], dict | None]:
+    """Dispatch calls and return Bedrock blocks, Responses items, and verdict."""
     results: list[dict] = []
+    response_outputs: list[dict] = []
     verdict: dict | None = None
 
     for tu in tool_uses:
@@ -618,7 +627,9 @@ def _dispatch_tool_uses(
 
         if name == "submit_verdict":
             verdict = inp
-            results.append(_tool_result_block(tool_id, {"ok": True, "received": True}))
+            payload = {"ok": True, "received": True}
+            results.append(_tool_result_block(tool_id, payload))
+            response_outputs.append(_response_tool_output(tool_id, payload))
             continue
 
         if name == "read_context":
@@ -631,24 +642,38 @@ def _dispatch_tool_uses(
             payload = {"ok": False, "error": str(exc)}
 
         results.append(_tool_result_block(tool_id, payload))
+        response_outputs.append(_response_tool_output(tool_id, payload))
 
-    return results, verdict
+    return results, response_outputs, verdict
+
+
+def _response_tool_output(tool_id: str, payload: dict) -> dict:
+    return {
+        "type": "function_call_output",
+        "call_id": tool_id,
+        "output": json.dumps(payload, ensure_ascii=True),
+    }
 
 
 def execute_tools(state: CodingAgentState) -> dict:
     """Dispatch pending tool calls; set verdict if submit_verdict was called."""
     tool_uses = list(state.get("_pending_tool_uses") or [])
     messages = list(state.get("messages") or [])
+    response_items = list(state.get("response_items") or [])
     iters = (state.get("tool_iterations") or 0) + 1
     text = state.get("encounter_text") or ""
 
-    results, verdict = _dispatch_tool_uses(tool_uses, text)
+    results, response_outputs, verdict = _dispatch_tool_uses(tool_uses, text)
 
     if results:
-        messages.append({"role": "user", "content": results})
+        if response_items:
+            response_items.extend(response_outputs)
+        else:
+            messages.append({"role": "user", "content": results})
 
     return {
         "messages": messages,
+        "response_items": response_items,
         "tool_iterations": iters,
         "_pending_tool_uses": [],
         "verdict": verdict,
@@ -667,21 +692,17 @@ def _forced_verdict_call(state: CodingAgentState) -> dict | None:
     tier = state.get("tier") or "big"
     mode = state.get("mode") or "audit"
     messages = list(state.get("messages") or [])
-    messages.append(
-        {
-            "role": "user",
-            "content": [
-                {
-                    "text": (
-                        "You have not yet called submit_verdict. "
-                        "Based on your analysis so far, call submit_verdict NOW with "
-                        "your best verdict. Use needs_review only if you cannot determine "
-                        "correctness. For admin-only encounters use no_clinical_content."
-                    ),
-                }
-            ],
-        }
+    response_items = list(state.get("response_items") or [])
+    reminder = (
+        "You have not yet called submit_verdict. Based on your analysis so far, "
+        "call submit_verdict now with your best verdict. Use needs_review only if "
+        "you cannot determine correctness. For admin-only encounters use "
+        "no_clinical_content."
     )
+    if response_items:
+        response_items.append({"role": "user", "content": reminder})
+    else:
+        messages.append({"role": "user", "content": [{"text": reminder}]})
     try:
         llm = create_llm(tier=tier)
         resp = llm.converse(
@@ -689,6 +710,7 @@ def _forced_verdict_call(state: CodingAgentState) -> dict | None:
             messages=deepcopy(messages),
             max_tokens=2048,
             tool_config=_TOOL_CONFIG,
+            response_items=response_items,
             agent_task="encounter_coding_agent_forced_verdict",
             patient_id=str(state.get("patient_id") or ""),
         )

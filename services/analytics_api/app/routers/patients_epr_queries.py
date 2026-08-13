@@ -302,6 +302,7 @@ _ENCOUNTER_DETAIL_BODY = (
     "  code_id: toString(concept.conceptId), "
     "  display: concept.name, "
     "  system: 'SNOMED', "
+    "  evidence: rel.evidence, "
     "  evidence_sentence: rel.evidence_sentence, "
     "  assertion: rel.assertion, "
     "  confidence: rel.confidence, "
@@ -356,20 +357,23 @@ _DOCUMENTS_BODY = (
     "OPTIONAL MATCH (doc)-[:HAS_CHUNK]->(chunk:Chunk) "
     "WITH p, doc, chunk "
     "ORDER BY coalesce(chunk.ordinal, 0) "
-    "WITH p, doc, collect(chunk.text) AS chunk_texts "
-    "WITH p, doc, chunk_texts, "
+    "WITH p, doc, collect(chunk.text) AS chunk_texts, count(chunk) AS chunk_count "
+    "WITH p, doc, chunk_texts, chunk_count, "
     "  reduce(s = '', t IN chunk_texts | "
     "    CASE WHEN s = '' THEN coalesce(t, '') "
     "    ELSE s + '\\n\\n' + coalesce(t, '') END) AS full_text "
     "OPTIONAL MATCH (p)-[:HAS_EPISODE_OF_CARE]->(ep:EpisodeOfCare) "
     "WHERE doc.episode_id IS NULL OR ep.episode_id = doc.episode_id "
-    "WITH doc, full_text, head(collect(ep)) AS ep "
+    "WITH doc, full_text, chunk_count, head(collect(ep)) AS ep "
     "OPTIONAL MATCH (doc)-[:DERIVED_FROM]->(rr_from:ReferralRequest) "
     "OPTIONAL MATCH (rr_via:ReferralRequest)-[:HAS_DOCUMENT]->(doc) "
-    "WITH doc, full_text, ep, coalesce(rr_from, rr_via) AS rr "
+    "WITH doc, full_text, chunk_count, ep, coalesce(rr_from, rr_via) AS rr "
+    "OPTIONAL MATCH (rr)-[:FOR_SERVICE]->(svc:Service) "
+    "OPTIONAL MATCH (rr)-[:IN_WORKFLOW]->(:Workflow)-[:FOR_SERVICE]->(svc2:Service) "
+    "WITH doc, full_text, chunk_count, ep, rr, coalesce(svc, svc2) AS svc "
     "OPTIONAL MATCH (rr)-[:HAS_ASSESSMENT]->(a:Assessment) "
     "WHERE a.type = 'SBAR' OR a IS NULL "
-    "WITH doc, full_text, ep, rr, head(collect(a)) AS a "
+    "WITH doc, full_text, chunk_count, ep, rr, svc, head(collect(a)) AS a "
     "RETURN doc.id AS document_id, "
     "       toString(coalesce("
     "         doc.date, doc.creation, rr.createdAt, rr.eReferralPathwayStart"
@@ -394,6 +398,10 @@ _DOCUMENTS_BODY = (
     "       coalesce(doc.episode_id, ep.episode_id) AS episode_id, "
     "       coalesce(ep.condition_type, ep.cancer_type, 'General') AS episode_label, "
     "       coalesce(toString(rr.id), '') AS referral_id, "
+    "       coalesce(rr.specialty, '') AS referral_specialty, "
+    "       coalesce(rr.clinicType, '') AS clinic_type, "
+    "       coalesce(svc.name, '') AS service_name, "
+    "       coalesce(chunk_count, 0) AS chunk_count, "
     "       a.id AS sbar_id, "
     "       a.status AS sbar_status, "
     "       a.situation AS sbar_situation, "
@@ -409,6 +417,43 @@ GET_DOCUMENTS_SCOPED = (
 )
 
 GET_DOCUMENTS_ADMIN = "MATCH (p:Patient {id: $patient_id}) " + _DOCUMENTS_BODY
+
+_DOCUMENT_FILE_BODY = (
+    "CALL { "
+    "  WITH p "
+    "  MATCH (p)-[:HAS_DOCUMENT_REFERENCE]->(doc:DocumentReference) "
+    "  WHERE doc.id = $document_id "
+    "  RETURN doc "
+    "  UNION "
+    "  WITH p "
+    "  MATCH (p)<-[:FOR_PATIENT]-(:ReferralRequest)-[:HAS_DOCUMENT]->(doc:DocumentReference) "
+    "  WHERE doc.id = $document_id "
+    "  RETURN doc "
+    "} "
+    "WITH doc "
+    "OPTIONAL MATCH (doc)-[:HAS_CHUNK]->(chunk:Chunk) "
+    "WITH doc, chunk "
+    "ORDER BY coalesce(chunk.ordinal, 0) "
+    "WITH doc, collect(chunk.text) AS chunk_texts, count(chunk) AS chunk_count "
+    "WITH doc, chunk_texts, chunk_count, "
+    "  reduce(s = '', t IN chunk_texts | "
+    "    CASE WHEN s = '' THEN coalesce(t, '') "
+    "    ELSE s + '\\n\\n' + coalesce(t, '') END) AS full_text "
+    "RETURN coalesce(doc.leoOriginalUrl, doc.url, '') AS original_url, "
+    "       coalesce(doc.leoMarkdownUrl, '') AS markdown_url, "
+    "       coalesce(doc.contentType, '') AS content_type, "
+    "       coalesce(doc.title, doc.documentTitle, 'document') AS title, "
+    "       coalesce(nullif(doc.text, ''), full_text, '') AS full_text, "
+    "       coalesce(chunk_count, 0) AS chunk_count "
+    "LIMIT 1"
+)
+
+GET_DOCUMENT_FILE_SCOPED = (
+    "MATCH (p:Patient {id: $patient_id}) "
+    "WHERE " + _ORG_GUARD + " " + _DOCUMENT_FILE_BODY
+)
+
+GET_DOCUMENT_FILE_ADMIN = "MATCH (p:Patient {id: $patient_id}) " + _DOCUMENT_FILE_BODY
 
 # ---------------------------------------------------------------------------
 # Patient-level SBAR assessments (episode-scoped + rollup)

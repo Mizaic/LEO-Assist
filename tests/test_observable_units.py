@@ -131,6 +131,19 @@ def test_authored_unit_fallback_for_unregistered_observable() -> None:
         )
 
 
+def test_fit_unit_spellings_canonicalise_to_the_rule_unit() -> None:
+    obs_id = "1049361000000101"
+    assert (
+        canonicalise_value_for_observation(
+            obs_id,
+            126.0,
+            "\u00b5g Hb/g faeces",
+            rule_canonical_unit="microgram/g",
+        )
+        == 126.0
+    )
+
+
 def test_resolve_effective_canonical_unit_requires_unit_when_unknown() -> None:
     with pytest.raises(UnknownObservableError):
         resolve_effective_canonical_unit("9999999999", "")

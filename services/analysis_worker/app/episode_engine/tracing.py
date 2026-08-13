@@ -25,7 +25,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from libs.llm_usage import LLMCostConfig, LLMUsage
+from libs.llm_usage import LLMUsage, cost_config_for_invocation
 from libs.neo4j_client.client import PatientGraphClient
 from services.analysis_worker.app.episode_engine.schemas import Provenance, StageTrace
 
@@ -150,9 +150,7 @@ def persist_trace(
             episode_count=int(episode_count),
             total_input_tokens=int(sum(s.input_tokens for s in stages)),
             total_output_tokens=int(sum(s.output_tokens for s in stages)),
-            total_cached_input_tokens=int(
-                sum(s.cached_input_tokens for s in stages)
-            ),
+            total_cached_input_tokens=int(sum(s.cached_input_tokens for s in stages)),
             total_cost_usd=round(sum(s.cost_usd for s in stages), 6),
             total_latency_ms=int(sum(s.latency_ms for s in stages)),
             stages_json=stages_json,
@@ -177,6 +175,13 @@ def persist_trace(
     )
 
 
+def _stage_excludes_cache(stage: StageTrace) -> bool:
+    model_id = str(getattr(stage, "model_id", "") or "").lower()
+    return any(
+        tag in model_id for tag in ("anthropic", "claude", "haiku", "sonnet", "opus")
+    )
+
+
 def _resolve_total_cost_usd(stages: list[StageTrace]) -> float:
     """Return the total cost across all stages.
 
@@ -191,16 +196,22 @@ def _resolve_total_cost_usd(stages: list[StageTrace]) -> float:
     if direct > 0.0:
         return round(direct, 6)
     try:
-        usage = LLMUsage(
-            input_tokens=sum(int(s.input_tokens or 0) for s in stages),
-            output_tokens=sum(int(s.output_tokens or 0) for s in stages),
-            cached_input_tokens=sum(
-                int(getattr(s, "cached_input_tokens", 0) or 0) for s in stages
-            ),
-            llm_calls=len(stages),
-        )
-        cfg = LLMCostConfig.for_tier("small")
-        return round(usage.cost_usd(cfg), 6)
+        total = 0.0
+        for stage in stages:
+            usage = LLMUsage(
+                input_tokens=int(stage.input_tokens or 0),
+                output_tokens=int(stage.output_tokens or 0),
+                cached_input_tokens=int(getattr(stage, "cached_input_tokens", 0) or 0),
+                llm_calls=1,
+                input_excludes_cache=_stage_excludes_cache(stage),
+            )
+            cfg = cost_config_for_invocation(
+                "",
+                str(getattr(stage, "tier", "") or ""),
+                str(getattr(stage, "model_id", "") or ""),
+            )
+            total += usage.cost_usd(cfg)
+        return round(total, 6)
     except Exception:
         return 0.0
 
@@ -232,14 +243,13 @@ def _write_audit_event(
         if errors:
             first_error = str(errors[0])[:400]
         else:
-            failed = next(
-                (s for s in stages if not getattr(s, "ok", True)), None
-            )
+            failed = next((s for s in stages if not getattr(s, "ok", True)), None)
             if failed is not None and getattr(failed, "error", None):
                 first_error = str(failed.error)[:400]
 
         primary_provider = (
-            "azure" if (stages and "azure" in (stages[0].model_id or "").lower())
+            "azure"
+            if (stages and "azure" in (stages[0].model_id or "").lower())
             else "bedrock"
         )
         primary_tier = getattr(stages[0], "tier", "") if stages else ""

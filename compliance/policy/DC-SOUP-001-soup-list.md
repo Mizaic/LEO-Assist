@@ -65,10 +65,10 @@ package directly (transitive-only packages are not repeated here).
 | 15a | **azure-identity** | >= 1.19.0 (1.16.0 floor in terminology loader -- see 7.4) | PyPI | api, terminology_api, analytics_api, fhir_api, pipeline_worker, model_inference, training_worker, ods_sync, terminology (loader) | Azure AD credential chain for Key Vault / Blob / Service Bus auth | Medium |
 | 15b | **azure-keyvault-secrets** | >= 4.8.0 | PyPI | api, terminology_api, analytics_api, fhir_api, pipeline_worker, model_inference, training_worker, ods_sync, terminology (loader) | Secret retrieval at startup | Medium |
 | 15c | **azure-storage-blob** | >= 12.20.0 | PyPI | api (root), model_inference, training_worker | NER model artifact store | Medium |
-| 16 | **openai** | >= 1.30.0 | PyPI | (via langchain-openai) | Azure OpenAI SDK; LLM fallback provider | Medium |
+| 16 | **openai** | >= 2.0 | PyPI | api, analytics_api, pipeline_worker | Azure OpenAI v1 Responses SDK; strict structured output and function tools | Medium |
 | 17 | **langchain-core** | >= 0.2.0 | PyPI | (transitive) | LLM provider abstraction layer | Medium |
 | 18 | **langchain-aws** | >= 0.3.0 | PyPI | api, analytics_api, pipeline_worker | LangChain Bedrock integration | Medium |
-| 19 | **langchain-openai** | >= 0.3.0 | PyPI | api, analytics_api, pipeline_worker | LangChain Azure OpenAI integration | Medium |
+| 19 | **langchain-openai** | >= 0.3.0 | PyPI | api, analytics_api, pipeline_worker | LangChain Azure OpenAI integration for compatibility callers | Medium |
 | 20 | **PyJWT** | >= 2.8.0 | PyPI | (auth libs) | JWT decoding; Azure AD token validation | Medium |
 | 20a | **python-jose[cryptography]** | >= 3.4.0 (all services, aligned 2026-07-01) | PyPI | api, fhir_api, pipeline_worker | JWT/JWK verification at the OAuth callback auth boundary | High |
 | 21 | **langgraph** | >= 0.4.0 | PyPI | api, pipeline_worker | Pipeline orchestration | Medium |
@@ -209,8 +209,8 @@ and are listed only to show where the UI depends on internal packages.
 | 4 | **Azure Cache for Redis** | 7.x | Azure | Pipeline progress, LLM response cache | Medium |
 | 5 | **Azure Service Bus** | Standard | Azure | Async job queue for coding and analysis workers | Medium |
 | 6 | **Azure Active Directory** | v2.0 | Azure | Authentication, RBAC, multi-tenancy | Medium |
-| 7 | **AWS Bedrock** | Current | AWS | Primary LLM provider (Claude Haiku 4.5 / Sonnet 4.6, see 3.1) | High |
-| 8 | **Azure OpenAI** | API version 2024-12-01-preview (default; overridable via `AZURE_OPENAI_API_VERSION`) | Azure | Fallback LLM provider; model set via `AZURE_OPENAI_SMALL_MODEL` / `AZURE_OPENAI_BIG_MODEL` env vars | High |
+| 7 | **AWS Bedrock** | Current | AWS | Optional compatibility LLM provider; disabled by default | High |
+| 8 | **Azure OpenAI** | Undated `/openai/v1` Responses endpoint; dated API version retained for rollback only | Azure, UK South | Primary GPT-5 LLM provider; `gpt-5-mini` and `gpt-5.4`; stateless calls use `store=false` | High |
 | 9 | **Python** | 3.12 | python.org | Backend runtime | Medium |
 | 10 | **Node.js** | >= 20, < 23 (per `services/ui/package.json` engines) | nodejs.org | Frontend runtime | Low |
 | 11 | **Docker** | 24+ | docker.com | Container runtime (local development) | Low |

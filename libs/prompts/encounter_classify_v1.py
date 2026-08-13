@@ -1,4 +1,4 @@
-"""V1 encounter pre-classification prompt — INSTRUCTIONS ONLY.
+"""V1 encounter pre-classification prompt -- INSTRUCTIONS ONLY.
 
 Atlas trace:
   DO: DO-BEFC4C67
@@ -7,7 +7,7 @@ Atlas trace:
 
 Output schema and few-shot examples are stored separately in Neo4j and
 assembled at runtime. Do NOT add output format sections or inline examples
-to this file — manage them via the Admin UI at /admin/prompts
+to this file -- manage them via the Admin UI at /admin/prompts
 (name='encounter_classify', version=1).
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
@@ -19,7 +19,7 @@ classify its content type and clinical domains.
 
 ## Content Types
 
-admin_only — The encounter contains NO clinical assessment, symptoms, findings,
+admin_only -- The encounter contains NO clinical assessment, symptoms, findings,
   diagnoses, medications, or test results. Classify as admin_only if the text is
   primarily any of:
     - Appointment reminders or booking confirmations
@@ -33,7 +33,7 @@ admin_only — The encounter contains NO clinical assessment, symptoms, findings
   For admin_only: set domains=[], key_clinical_signals=[], expected_semantic_tags=[],
   clinical_significance="low".
 
-document_transfer — A document was received or sent. The GP encounter itself is just
+document_transfer -- A document was received or sent. The GP encounter itself is just
   a filing action, even if the document contains clinical information. Examples:
     - Hospital discharge summaries filed without GP annotation
     - Outgoing referral letters
@@ -41,7 +41,7 @@ document_transfer — A document was received or sent. The GP encounter itself i
     - Clinic letters from secondary care
     - Pathology or radiology reports received and filed
 
-clinical — The GP, practice nurse, or HCA has performed a clinical assessment.
+clinical -- The GP, practice nurse, or HCA has performed a clinical assessment.
   There must be at least one of: symptoms recorded, examination findings, diagnosis
   made, medication prescribed or reviewed, telephone consultation with clinical
   content, investigation ordered with clinical rationale, or referral decision made.

@@ -44,6 +44,12 @@ WHAT TO PRODUCE
   citations, deduplicated by (source_type, source_id)).
 - Merged missing[] and conflicts[] arrays.
 
+PRIORITY ORDER
+1. Preserve every supported input fact and citation.
+2. Add no facts and resolve no clinical meaning.
+3. Deduplicate only literal duplicates, then order for readability.
+4. Follow the supplied JSON schema exactly.
+
 HARD RULES (10)
 1. NO NEW FACTS. Do not introduce any clinical fact, medication,
    date, value, condition, or finding that is not already present

@@ -17,6 +17,8 @@ from __future__ import annotations
 import logging
 import os
 
+from libs.llm_usage import COST_DEFAULTS
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -42,7 +44,7 @@ _MODEL_ID_DEFAULTS: dict[str, dict[str, str]] = {
         "max": "eu.anthropic.claude-opus-4-6-v1",
     },
     "azure": {
-        "small": "gpt-5.4-nano",
+        "small": "gpt-5-mini",
         "big": "gpt-5.4",
     },
 }
@@ -54,7 +56,7 @@ _DISPLAY_NAMES: dict[str, dict[str, str]] = {
         "max": "Claude Opus (AWS Bedrock)",
     },
     "azure": {
-        "small": "GPT-5.4 nano (Azure OpenAI)",
+        "small": "GPT-5 mini (Azure OpenAI)",
         "big": "GPT-5.4 (Azure OpenAI)",
     },
 }
@@ -72,63 +74,15 @@ _COST_ENV_PREFIXES: dict[str, dict[str, str]] = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Baseline cost defaults (USD per 1M tokens). Verified 2026-07-22.
-#
-# AWS EU cross-region inference profiles = Anthropic base * 1.1:
-#   Haiku 4.5: 1.10 / 0.110 / 1.375 write / 5.50
-#   Sonnet 4.6: 3.30 / 0.330 / 4.125 write / 16.50
-#   Opus 4.6: 5.50 / 0.550 / 6.875 write / 27.50
-# Cache write = 5-minute TTL at 1.25x input (Bedrock / Anthropic default).
-#
-# Azure OpenAI list rates (USD / 1M tokens):
-#   GPT-5.4-nano: 0.20 / 0.02 cached / 1.25
-#   GPT-5 (big tier placeholder): 1.38 / 0.14 / 11.00
-# Azure has no separate cache-write rate; write defaults to input rate.
-# ---------------------------------------------------------------------------
-
-_COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
-    "aws": {
-        "small": {
-            "input": 1.10,
-            "cached": 0.110,
-            "cache_write": 1.375,
-            "output": 5.50,
-        },
-        "big": {
-            "input": 3.30,
-            "cached": 0.330,
-            "cache_write": 4.125,
-            "output": 16.50,
-        },
-        "max": {
-            "input": 5.50,
-            "cached": 0.550,
-            "cache_write": 6.875,
-            "output": 27.50,
-        },
-    },
-    "azure": {
-        "small": {
-            "input": 0.20,
-            "cached": 0.02,
-            "cache_write": 0.20,
-            "output": 1.25,
-        },
-        "big": {
-            "input": 1.38,
-            "cached": 0.14,
-            "cache_write": 1.38,
-            "output": 11.00,
-        },
-    },
-}
+# Baseline cost defaults live in libs.llm_usage.COST_DEFAULTS (single source).
+# Azure gpt-5-mini deployment on mizaic-cds-oai: $0.75 / $0.075 cached / $4.50 out.
+# Azure gpt-5.4 (<272k): $2.50 / $0.25 cached / $15.00 out.
 
 
 def _model_seed_row(provider: str, tier: str) -> dict:
     prefix = _COST_ENV_PREFIXES[provider][tier]
     model_id_env = _MODEL_ID_ENVS[provider][tier]
-    defaults = _COST_DEFAULTS[provider][tier]
+    defaults = COST_DEFAULTS[provider][tier]
     input_rate = float(
         os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", str(defaults["input"]))
     )

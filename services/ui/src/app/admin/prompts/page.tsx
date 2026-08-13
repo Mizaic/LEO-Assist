@@ -30,7 +30,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { sortByIsoDateDesc } from "@/lib/dateSort";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -406,10 +406,11 @@ function SkeletonList() {
 
 export default function PromptsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [prompts, setPrompts] = useState<PromptConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("prompt_name") || "");
   const [activeCategory, setActiveCategory] = useState<string>(CATEGORY_ALL);
 
   useEffect(() => {

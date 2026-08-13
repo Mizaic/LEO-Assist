@@ -29,6 +29,10 @@ from typing import Any, Callable
 
 from pyroaring import BitMap
 
+from libs.guidelines.action_already_done import (
+    all_actions_already_done,
+    apply_already_done_filter,
+)
 from services.terminology_api.app.services.bitmap_store import BitmapStore
 from services.terminology_api.app.services.observation_evaluator import (
     observation_matches,
@@ -260,7 +264,13 @@ class GuidelineEvaluator:
         patient_bitmap = self._build_patient_bitmap(effective_codes)
         bitmap_cache, int_id_cache = _prefetch_rule_caches(rules, self._store)
         matches = self._collect_matches(
-            rules, patient_bitmap, pathway_filter, ctx, bitmap_cache, int_id_cache
+            rules,
+            patient_bitmap,
+            pathway_filter,
+            ctx,
+            bitmap_cache,
+            int_id_cache,
+            patient_codes=effective_codes,
         )
         return {
             "matched_rules": matches,
@@ -302,6 +312,7 @@ class GuidelineEvaluator:
         ctx: _PatientContext,
         bitmap_cache: dict[str, BitMap],
         int_id_cache: dict[str, int],
+        patient_codes: list[str] | None = None,
     ) -> list[dict]:
         """Run the rule-matching loop and return formatted matches."""
         rules_by_id = {r["rule_id"]: r for r in rules if r.get("rule_id")}
@@ -309,15 +320,27 @@ class GuidelineEvaluator:
             self, rules_by_id, patient_bitmap, ctx, bitmap_cache
         )
         matches = []
+        codes = patient_codes or []
         for rule in rules:
             if pathway_filter and rule.get("guideline_id") != pathway_filter:
                 continue
             rule_id = rule.get("rule_id", "")
-            if session.evaluate(rule_id):
-                matched_via = self._collect_matched_via(
-                    rule, patient_bitmap, int_id_cache=int_id_cache
-                )
-                matches.append(_format_match(rule, matched_via=matched_via))
+            if not session.evaluate(rule_id):
+                continue
+            matched_via = self._collect_firing_path_matched_via(
+                rule,
+                patient_bitmap,
+                ctx,
+                bitmap_cache,
+                session=session,
+            )
+            payload = apply_already_done_filter(
+                _format_match(rule, matched_via=matched_via),
+                codes,
+                ctx.observations,
+            )
+            if payload is not None:
+                matches.append(payload)
         return matches
 
     def diagnose(
@@ -439,6 +462,12 @@ class GuidelineEvaluator:
             treatment_history=treatment_history,
             session=_diag_session,
         )
+        already_actioned = False
+        if fires and all_actions_already_done(
+            rule, effective_codes, patient_observations
+        ):
+            fires = False
+            already_actioned = True
 
         resolved_count = sum(
             1 for c in effective_codes if self._store.get_int_id(c) is not None
@@ -449,6 +478,7 @@ class GuidelineEvaluator:
             "guideline_id": rule.get("guideline_id"),
             "schema_version": int(rule.get("schema_version") or 1),
             "fires": fires,
+            "already_actioned": already_actioned,
             "annotated_tree": annotated,
             "not_compiled": False,
             "rule_found": True,
@@ -816,6 +846,36 @@ class GuidelineEvaluator:
 
         _walk(rule.get("logic_tree"))
         return out
+
+    def _collect_firing_path_matched_via(
+        self,
+        rule: dict,
+        patient_bm: BitMap,
+        ctx: _PatientContext,
+        bitmap_cache: dict[str, BitMap],
+        *,
+        session: _RuleEvaluationSession | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return matched leaves from the firing branch for SBAR attribution."""
+        if int(rule.get("schema_version") or 1) != 2:
+            return _applies_to_demographic_matched_via(rule, ctx.age)
+        logic_tree = rule.get("logic_tree")
+        if not logic_tree:
+            return []
+        annotated = self._annotate_logic_tree(
+            logic_tree,
+            patient_bm,
+            ctx.age,
+            ctx.sex,
+            patient_observations=ctx.observations,
+            active_medications=ctx.medications or [],
+            allergies=ctx.allergies or [],
+            treatment_history=ctx.treatments or [],
+            session=session,
+        )
+        if not annotated or not annotated.get("matched"):
+            return []
+        return _matched_via_from_firing_path(annotated, ctx.age, ctx.sex)
 
     def _build_patient_bitmap(self, concept_ids: list[str]) -> BitMap:
         """Map patient concept IDs to integer IDs and build a BitMap.
@@ -1371,6 +1431,195 @@ def _check_demographic_node(
     return False
 
 
+def _matched_via_dedupe_key(entry: dict[str, Any]) -> str:
+    kind = str(entry.get("kind") or "").upper()
+    if kind == "DEMOGRAPHIC":
+        return f"demo:{entry.get('field')}"
+    if kind == "CONCEPT":
+        return f"concept:{entry.get('node_id') or entry.get('primary_concept_id')}"
+    if kind == "OBSERVATION":
+        return f"obs:{entry.get('node_id') or entry.get('observable_term')}"
+    if kind == "MEDICATION":
+        return f"med:{entry.get('node_id') or entry.get('drug_class')}"
+    if kind == "ALLERGY":
+        return f"allergy:{entry.get('node_id') or entry.get('allergy_class')}"
+    if kind == "TREATMENT_HISTORY":
+        return f"tx:{entry.get('node_id') or entry.get('treatment_class')}"
+    if kind == "RULE_FIRED":
+        return f"rule:{entry.get('referenced_rule_id')}"
+    return f"other:{entry.get('node_id')}"
+
+
+def _dedupe_matched_via_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        key = _matched_via_dedupe_key(entry)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(entry)
+    return out
+
+
+def _matched_via_entry_from_annotated_leaf(
+    node: dict[str, Any],
+    patient_age: float | None,
+    patient_sex: str | None,
+) -> dict[str, Any] | None:
+    kind = str(node.get("kind") or "").upper()
+    if kind == "DEMOGRAPHIC":
+        return _demographic_matched_via_entry(node, patient_age, patient_sex)
+    if kind == "CONCEPT":
+        hits = list(node.get("matched_concept_ids") or [])
+        if not hits:
+            return None
+        criterion = dict(node.get("criterion") or {})
+        return {
+            "kind": "CONCEPT",
+            "node_id": node.get("node_id"),
+            "primary_concept_id": (
+                criterion.get("primary_concept_id")
+                or criterion.get("snomed_concept_id")
+            ),
+            "preferred_term": criterion.get("preferred_term") or criterion.get("term"),
+            "matched_concept_ids": hits,
+        }
+    if kind == "OBSERVATION":
+        term = str(node.get("observable_term") or node.get("observable_id") or "").strip()
+        if not term:
+            return None
+        return {
+            "kind": "OBSERVATION",
+            "node_id": node.get("node_id"),
+            "observable_term": term,
+            "operator": node.get("operator"),
+            "value": node.get("value"),
+            "unit": node.get("unit") or node.get("wire_unit"),
+            "mode": node.get("mode"),
+        }
+    if kind == "MEDICATION":
+        label = str(node.get("term") or node.get("drug_class") or "").strip()
+        if not label:
+            return None
+        return {
+            "kind": "MEDICATION",
+            "node_id": node.get("node_id"),
+            "term": label,
+            "drug_class": node.get("drug_class"),
+        }
+    if kind == "ALLERGY":
+        label = str(node.get("term") or node.get("allergy_class") or "").strip()
+        if not label:
+            return None
+        return {
+            "kind": "ALLERGY",
+            "node_id": node.get("node_id"),
+            "term": label,
+            "allergy_class": node.get("allergy_class"),
+        }
+    if kind == "TREATMENT_HISTORY":
+        label = str(node.get("term") or node.get("treatment_class") or "").strip()
+        if not label:
+            return None
+        return {
+            "kind": "TREATMENT_HISTORY",
+            "node_id": node.get("node_id"),
+            "term": label,
+            "treatment_class": node.get("treatment_class"),
+        }
+    if kind == "RULE_FIRED":
+        label = str(node.get("display_name") or node.get("referenced_rule_id") or "").strip()
+        if not label:
+            return None
+        return {
+            "kind": "RULE_FIRED",
+            "node_id": node.get("node_id"),
+            "display_name": label,
+            "referenced_rule_id": node.get("referenced_rule_id"),
+            "outcome": node.get("outcome"),
+        }
+    return None
+
+
+def _matched_via_from_firing_path(
+    node: dict[str, Any],
+    patient_age: float | None,
+    patient_sex: str | None,
+) -> list[dict[str, Any]]:
+    if not node or not node.get("matched"):
+        return []
+    kind = str(node.get("kind") or "").upper()
+    if kind in {
+        "CONCEPT",
+        "DEMOGRAPHIC",
+        "OBSERVATION",
+        "MEDICATION",
+        "ALLERGY",
+        "TREATMENT_HISTORY",
+        "RULE_FIRED",
+    }:
+        entry = _matched_via_entry_from_annotated_leaf(node, patient_age, patient_sex)
+        return [entry] if entry else []
+    if kind == "OR":
+        for child in node.get("children") or []:
+            if child.get("matched"):
+                return _matched_via_from_firing_path(child, patient_age, patient_sex)
+        return []
+    if kind in {"AND", "AT_LEAST"}:
+        merged: list[dict[str, Any]] = []
+        for child in node.get("children") or []:
+            if child.get("matched"):
+                merged.extend(
+                    _matched_via_from_firing_path(child, patient_age, patient_sex)
+                )
+        return _dedupe_matched_via_entries(merged)
+    return []
+
+
+def _demographic_matched_via_entry(
+    node: dict[str, Any],
+    patient_age: float | None,
+    patient_sex: str | None,
+) -> dict[str, Any]:
+    field = str(node.get("field") or "").lower()
+    entry: dict[str, Any] = {
+        "kind": "DEMOGRAPHIC",
+        "field": field,
+        "operator": node.get("operator"),
+        "value": node.get("value"),
+        "unit": node.get("unit"),
+    }
+    if field == "age":
+        entry["patient_value"] = patient_age
+    elif field == "sex":
+        entry["patient_value"] = patient_sex
+    return entry
+
+
+def _applies_to_demographic_matched_via(
+    rule: dict,
+    patient_age: float | None,
+) -> list[dict[str, Any]]:
+    if patient_age is None:
+        return []
+    out: list[dict[str, Any]] = []
+    for constraint in rule.get("applies_to") or []:
+        if constraint.get("concept_id") != _AGE_CONCEPT_ID:
+            continue
+        out.append(
+            {
+                "kind": "DEMOGRAPHIC",
+                "field": "age",
+                "operator": constraint.get("operator") or ">=",
+                "value": constraint.get("value"),
+                "unit": "years",
+                "patient_value": patient_age,
+            }
+        )
+    return out
+
+
 def _format_match(
     rule: dict,
     *,
@@ -1378,10 +1627,9 @@ def _format_match(
 ) -> dict:
     """Format a matched rule for the API response.
 
-    ``matched_via`` (DI-LEO-AI-510) lists which exact SNOMED code(s) on the
-    patient caused each CONCEPT chip in the rule to fire. The SBAR
-    formatter uses this so narratives can say "matched on Cigarette
-    smoker" rather than only naming the rule.
+    ``matched_via`` (DI-LEO-AI-510) lists every satisfied leaf on the firing
+    branch: demographics, SNOMED concepts, observations, medications,
+    allergies, treatment history, and nested rule references.
     """
     payload = {
         "rule_id": rule["rule_id"],

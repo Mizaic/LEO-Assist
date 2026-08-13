@@ -13,7 +13,7 @@ Both share the same format_output_schema_block() renderer (flat-object style).
 """
 
 EPISODE_BUILDER_OUTPUT_SCHEMA: dict = {
-    "description": "Return ONLY a single valid JSON object — no markdown, no preamble.",
+    "description": "Return ONLY a single valid JSON object -- no markdown, no preamble.",
     "type": "object",
     "required": [
         "status",
@@ -52,7 +52,7 @@ EPISODE_BUILDER_OUTPUT_SCHEMA: dict = {
 }
 
 EPISODE_CONSOLIDATION_OUTPUT_SCHEMA: dict = {
-    "description": "Return ONLY a single valid JSON object — no markdown, no preamble.",
+    "description": "Return ONLY a single valid JSON object -- no markdown, no preamble.",
     "type": "object",
     "required": [
         "should_merge",

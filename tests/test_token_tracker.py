@@ -58,6 +58,8 @@ class TestExtractTokenCounts:
         assert counts["input_tokens"] == 200
         assert counts["output_tokens"] == 80
         assert counts["input_token_details"] == {"cached_tokens": 20}
+        assert counts["cache_read_input_tokens"] == 20
+        assert counts["reasoning_tokens"] == 5
 
     def test_empty_response(self):
         from libs.llm_client.token_tracker import extract_token_counts

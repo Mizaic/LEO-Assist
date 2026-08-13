@@ -39,7 +39,9 @@ import {
   POLICY_OPTIONS,
   SCOPE_OPTIONS,
   buildVersionItem,
+  compilePhaseLabel,
   computeActiveStep,
+  formatCompileElapsed,
 } from "./bitmapLifecycleHelpers";
 import CandidateLabTestDialog from "./CandidateLabTestDialog";
 import { useBitmapLifecycle } from "./useBitmapLifecycle";
@@ -261,13 +263,22 @@ export default function BitmapLifecycleSection({
         </Alert>
       )}
       {life.compiling && (
-        <Box sx={{ mb: 2 }}>
-          <ProgressStrip
-            label="Building the candidate lookup index..."
-            value={0}
-            total={1}
-            subtitle="This may take up to a few minutes."
-          />
+        <Box sx={{ mb: 2 }} data-testid="bitmap-compile-progress">
+          <AnimatePresence mode="wait">
+            <fm.div
+              key={compilePhaseLabel(life.compileElapsedSec)}
+              initial={reducedMotion ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reducedMotion ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: reducedMotion ? 0 : 0.22 }}
+            >
+              <ProgressStrip
+                indeterminate
+                label={compilePhaseLabel(life.compileElapsedSec)}
+                subtitle={`Elapsed ${formatCompileElapsed(life.compileElapsedSec)}`}
+              />
+            </fm.div>
+          </AnimatePresence>
         </Box>
       )}
       {life.candidateTestSummary && (

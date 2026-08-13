@@ -227,9 +227,16 @@ def test_multi_rule_priority_sort(runner_module) -> None:
     fx = fixtures["fixture-10"]
     outcome = runner_module.run_fixture(fx)
     assess = outcome.content
-    assert assess.find("R-UGI-001") < assess.find("R-MSK-001"), (
+    # Assessment prose cites rules by name, not raw rule_id (see
+    # libs/sbar/assessment_formatter.py, commit 6f09bb5, 2026-05-22).
+    ugi_name = "New dysphagia age >=55 -> 2WW upper GI"
+    msk_name = "Mild knee OA -> routine MSK advice"
+    assert assess.find(ugi_name) < assess.find(msk_name), (
         "2WW rule must render before routine rule"
     )
+    # rule_id remains available structurally, sorted 2WW-first.
+    rule_ids = [r.get("rule_id") for r in outcome.rules]
+    assert rule_ids.index("R-UGI-001") < rule_ids.index("R-MSK-001")
     assert outcome.pathway_hints["rtr"] == "yes"
     assert "R-UGI-001" in outcome.pathway_hints["stt_evidence"]
 

@@ -1,0 +1,1145 @@
+{
+  "created_at_utc": "2026-08-10T13:32:44.705952+00:00",
+  "prompts": [
+    {
+      "id": "723abe46-25f0-4988-a03d-5154580cf6f8",
+      "name": "extraction",
+      "version": 1,
+      "source": "user",
+      "max_few_shot": 20,
+      "few_shot_examples": [
+        {
+          "id": "seed_ex_000",
+          "input": "[s0] No fever.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"fever\", \"lookup_term\": \"fever\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:absent",
+          "model_scope": "any",
+          "description": "Simple negation",
+          "core": true
+        },
+        {
+          "id": "seed_ex_001",
+          "input": "[s0] Denies chest pain.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"chest pain\", \"lookup_term\": \"chest pain\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:absent",
+          "model_scope": "any",
+          "description": "Denial with explicit cue",
+          "core": false
+        },
+        {
+          "id": "seed_ex_002",
+          "input": "[s0] No bloating, change in bowel habit, or rectal bleeding.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"bloating\", \"lookup_term\": \"bloating\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"change in bowel habit\", \"lookup_term\": \"change in bowel habit\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"rectal bleeding\", \"lookup_term\": \"rectal bleeding\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "negation:compound",
+          "model_scope": "any",
+          "description": "Opening negation applies to every entity in the sentence",
+          "core": true
+        },
+        {
+          "id": "seed_ex_003",
+          "input": "[s0] Reports no nausea, vomiting, or diarrhoea.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"nausea\", \"lookup_term\": \"nausea\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"vomiting\", \"lookup_term\": \"vomiting\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"diarrhoea\", \"lookup_term\": \"diarrhoea\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "negation:compound",
+          "model_scope": "any",
+          "description": "Reports no \u2014 all three entities absent",
+          "core": false
+        },
+        {
+          "id": "seed_ex_004",
+          "input": "[s0] ? UTI",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"? UTI\", \"lookup_term\": \"suspected urinary tract infection\", \"semantic_tag\": \"disorder\", \"assertion\": \"possible\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:possible",
+          "model_scope": "any",
+          "description": "Question mark prefix",
+          "core": false
+        },
+        {
+          "id": "seed_ex_005",
+          "input": "[s0] Mass concerning for lymphoma.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"mass\", \"lookup_term\": \"mass\", \"semantic_tag\": \"finding\", \"assertion\": \"possible\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:possible",
+          "model_scope": "any",
+          "description": "Concerning for \u2014 uncertain malignancy",
+          "core": false
+        },
+        {
+          "id": "seed_ex_006",
+          "input": "[s0] Back pain on Friday, but this has since resolved.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Back pain\", \"lookup_term\": \"back pain\", \"semantic_tag\": \"finding\", \"assertion\": \"historical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:historical",
+          "model_scope": "any",
+          "description": "Resolved in same sentence",
+          "core": true
+        },
+        {
+          "id": "seed_ex_007",
+          "input": "[s0] Bleeding has stopped.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Bleeding\", \"lookup_term\": \"bleeding\", \"semantic_tag\": \"finding\", \"assertion\": \"historical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:historical",
+          "model_scope": "any",
+          "description": "Bleeding stopped \u2014 historical",
+          "core": false
+        },
+        {
+          "id": "seed_ex_008",
+          "input": "[s0] PMH: appendicectomy 2019.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"appendicectomy\", \"lookup_term\": \"appendicectomy\", \"semantic_tag\": \"procedure\", \"assertion\": \"historical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:historical",
+          "model_scope": "any",
+          "description": "Past medical history with explicit cue",
+          "core": false
+        },
+        {
+          "id": "seed_ex_009",
+          "input": "[s0] Referred for physiotherapy.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"physiotherapy\", \"lookup_term\": \"physiotherapy\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:planned",
+          "model_scope": "any",
+          "description": "Booked referral -- confirmed, not yet happened",
+          "core": true
+        },
+        {
+          "id": "seed_ex_010",
+          "input": "[s0] Awaiting MRI spine.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"MRI spine\", \"lookup_term\": \"MRI scan of spine\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:planned",
+          "model_scope": "any",
+          "description": "Awaiting investigation -- confirmed, not yet done",
+          "core": false
+        },
+        {
+          "id": "seed_ex_011",
+          "input": "[s0] If associated with shortness of breath, seek urgent review.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Safety-netting text -- do not extract as present",
+          "core": true
+        },
+        {
+          "id": "seed_ex_012",
+          "input": "[s0] Will refer to cardiology if no improvement.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"refer to cardiology\", \"lookup_term\": \"referral to cardiology\", \"semantic_tag\": \"procedure\", \"assertion\": \"hypothetical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Conditional future action -- not yet arranged",
+          "core": false
+        },
+        {
+          "id": "seed_ex_013",
+          "input": "[s0] Mother had breast cancer.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Mother had breast cancer\", \"lookup_term\": \"family history of malignant neoplasm of breast\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:family",
+          "model_scope": "any",
+          "description": "Family history",
+          "core": true
+        },
+        {
+          "id": "seed_ex_014",
+          "input": "[s0] Thought to be eczema but biopsy confirmed psoriasis.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"eczema\", \"lookup_term\": \"eczema\", \"semantic_tag\": \"disorder\", \"assertion\": \"refuted\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"psoriasis\", \"lookup_term\": \"psoriasis\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:refuted",
+          "model_scope": "any",
+          "description": "Initial impression overridden by biopsy",
+          "core": false
+        },
+        {
+          "id": "seed_ex_015",
+          "input": "[s0] Patient declined statins.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"statins\", \"lookup_term\": \"statin\", \"semantic_tag\": \"substance\", \"assertion\": \"declined\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:declined",
+          "model_scope": "any",
+          "description": "Patient declined medication",
+          "core": false
+        },
+        {
+          "id": "seed_ex_016",
+          "input": "[s0] Patient refused colonoscopy.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"colonoscopy\", \"lookup_term\": \"colonoscopy\", \"semantic_tag\": \"procedure\", \"assertion\": \"declined\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:declined",
+          "model_scope": "any",
+          "description": "Patient refused investigation",
+          "core": false
+        },
+        {
+          "id": "seed_ex_017",
+          "input": "[s0] MRI cancelled due to claustrophobia.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"MRI\", \"lookup_term\": \"magnetic resonance imaging\", \"semantic_tag\": \"procedure\", \"assertion\": \"cancelled\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:cancelled",
+          "model_scope": "any",
+          "description": "Procedure cancelled",
+          "core": false
+        },
+        {
+          "id": "seed_ex_018",
+          "input": "[s0] DNA \u2014 appointment cancelled.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:cancelled",
+          "model_scope": "any",
+          "description": "Did not attend",
+          "core": false
+        },
+        {
+          "id": "seed_ex_019",
+          "input": "[s0] HTN, T2DM and CKD.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"HTN\", \"lookup_term\": \"hypertension\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"T2DM\", \"lookup_term\": \"type 2 diabetes mellitus\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"CKD\", \"lookup_term\": \"chronic kidney disease\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "multi-entity",
+          "model_scope": "any",
+          "description": "Three comorbidities in problem list",
+          "core": true
+        },
+        {
+          "id": "seed_ex_020",
+          "input": "[s0] eGFR 43 \u2014 CKD stage 3b.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"eGFR\", \"lookup_term\": \"estimated glomerular filtration rate\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"43\", \"unit\": \"mL/min\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"CKD stage 3b\", \"lookup_term\": \"chronic kidney disease stage 3b\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "multi-entity",
+          "model_scope": "any",
+          "description": "Observable entity plus a disorder in the same sentence",
+          "core": false
+        },
+        {
+          "id": "seed_ex_021",
+          "input": "[s0] Haemoglobin concentration (Xa96v) 106 g/L [130-180] - Outside reference range.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Haemoglobin concentration\", \"lookup_term\": \"haemoglobin concentration\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"106\", \"unit\": \"g/L\", \"reference_range\": \"130-180\"}]}",
+          "deidentified": true,
+          "category": "observable",
+          "model_scope": "any",
+          "description": "Compound lab result \u2014 parameter name only in text, value/unit/range in fields",
+          "core": true
+        },
+        {
+          "id": "seed_ex_022",
+          "input": "[s0] eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 69 mL/min.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"eGFR\", \"lookup_term\": \"estimated glomerular filtration rate\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"69\", \"unit\": \"mL/min\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "observable",
+          "model_scope": "any",
+          "description": "Lab result \u2014 do NOT infer a disorder from the value",
+          "core": false
+        },
+        {
+          "id": "seed_ex_023",
+          "input": "[s0] HR: 73 bpm",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"HR\", \"lookup_term\": \"pulse rate\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"73\", \"unit\": \"bpm\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "vital-signs",
+          "model_scope": "any",
+          "description": "Vital-signs shorthand with value",
+          "core": false
+        },
+        {
+          "id": "seed_ex_024",
+          "input": "[s0] BP: 142/92 mmHg",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"BP\", \"lookup_term\": \"blood pressure\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"142/92\", \"unit\": \"mmHg\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "vital-signs",
+          "model_scope": "any",
+          "description": "Blood pressure",
+          "core": false
+        },
+        {
+          "id": "seed_ex_025",
+          "input": "[s0] Breast cancer T2N1M0.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Breast cancer\", \"lookup_term\": \"breast cancer\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"T2N1M0\", \"lookup_term\": \"TNM staging\", \"semantic_tag\": \"staging scale\", \"assertion\": \"present\", \"value\": \"T2N1M0\", \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "staging",
+          "model_scope": "any",
+          "description": "TNM staging with primary tumour disorder",
+          "core": false
+        },
+        {
+          "id": "seed_ex_026",
+          "input": "[s0] Prostate cancer Gleason 7 (3+4).",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Prostate cancer\", \"lookup_term\": \"prostate cancer\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Gleason 7 (3+4)\", \"lookup_term\": \"Gleason score\", \"semantic_tag\": \"staging scale\", \"assertion\": \"present\", \"value\": \"7 (3+4)\", \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "staging",
+          "model_scope": "any",
+          "description": "Gleason score",
+          "core": false
+        },
+        {
+          "id": "seed_ex_027",
+          "input": "[s0] ECOG PS2.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"ECOG PS2\", \"lookup_term\": \"ECOG performance status\", \"semantic_tag\": \"staging scale\", \"assertion\": \"present\", \"value\": \"2\", \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "staging",
+          "model_scope": "any",
+          "description": "ECOG performance status",
+          "core": false
+        },
+        {
+          "id": "seed_ex_028",
+          "input": "[s0] Cervical carcinoma Stage IIIA.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Cervical carcinoma\", \"lookup_term\": \"carcinoma of cervix\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Stage IIIA\", \"lookup_term\": \"FIGO staging\", \"semantic_tag\": \"staging scale\", \"assertion\": \"present\", \"value\": \"IIIA\", \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "staging",
+          "model_scope": "any",
+          "description": "FIGO staging",
+          "core": false
+        },
+        {
+          "id": "seed_ex_029",
+          "input": "[s0] AF and IHD.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"AF\", \"lookup_term\": \"atrial fibrillation\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"IHD\", \"lookup_term\": \"ischaemic heart disease\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "abbreviation",
+          "model_scope": "any",
+          "description": "Common GP abbreviation \u2192 standard lookup term",
+          "core": true
+        },
+        {
+          "id": "seed_ex_030",
+          "input": "[s0] Amoxicillin 500mg capsules.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Amoxicillin 500mg capsules\", \"lookup_term\": \"amoxicillin\", \"semantic_tag\": \"substance\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "brand-name",
+          "model_scope": "any",
+          "description": "Brand name in text, generic in lookup_term",
+          "core": false
+        },
+        {
+          "id": "seed_ex_031",
+          "input": "[s0] Allergic to penicillin.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Allergic to penicillin\", \"lookup_term\": \"allergy to penicillin\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:allergy",
+          "model_scope": "any",
+          "description": "Allergy status",
+          "core": false
+        },
+        {
+          "id": "seed_ex_032",
+          "input": "[s0] NKDA.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"NKDA\", \"lookup_term\": \"no known drug allergies\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:allergy",
+          "model_scope": "any",
+          "description": "No known drug allergies",
+          "core": false
+        },
+        {
+          "id": "seed_ex_033",
+          "input": "[s0] Urgent 2WW brain/CNS referral for personality change and new visual disturbance.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"personality change\", \"lookup_term\": \"personality change\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"visual disturbance\", \"lookup_term\": \"visual disturbance\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope",
+          "model_scope": "any",
+          "description": "2WW email header with symptoms -- skip referral routing phrase",
+          "core": true
+        },
+        {
+          "id": "seed_ex_034",
+          "input": "[s0] Refer this patient under the breast suspected cancer pathway.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"breast suspected cancer pathway\", \"lookup_term\": \"malignant neoplasm of breast suspected\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope",
+          "model_scope": "any",
+          "description": "Breast suspected pathway -- situation present",
+          "core": false
+        },
+        {
+          "id": "seed_ex_035",
+          "input": "[s0] An urgent MRI scan of the brain has been arranged as part of this 2WW brain/CNS referral.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"urgent MRI scan of the brain\", \"lookup_term\": \"magnetic resonance imaging of brain\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:ng12_mri",
+          "model_scope": "any",
+          "description": "NG12 plan -- MRI arranged, skip 2WW pathway echo",
+          "core": true
+        },
+        {
+          "id": "seed_ex_036",
+          "input": "[s0] Problem: Suspected lower GI cancer -- FIT+ in lab feed; 2WW referral placed. History: fresh rectal bleeding and change in bowel habit.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Suspected lower GI cancer\", \"lookup_term\": \"malignant neoplasm of lower gastrointestinal tract suspected\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"FIT+\", \"lookup_term\": \"faecal immunochemical test positive\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"fresh rectal bleeding\", \"lookup_term\": \"rectal bleeding\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"change in bowel habit\", \"lookup_term\": \"change in bowel habit\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:lower_gi_fit",
+          "model_scope": "any",
+          "description": "Lower GI -- suspected situation, FIT+, symptoms; skip referral placed",
+          "core": true
+        },
+        {
+          "id": "seed_ex_037",
+          "input": "[s0] Refer under the suspected cancer pathway for stomach cancer.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"suspected cancer pathway for stomach cancer\", \"lookup_term\": \"malignant neoplasm of upper gastrointestinal tract suspected\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:upper_gi_stomach",
+          "model_scope": "any",
+          "description": "Upper GI stomach pathway -- situation present",
+          "core": false
+        },
+        {
+          "id": "seed_ex_038",
+          "input": "[s0] Plan: 2WW lower GI referral submitted via e-Referral Service today.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "precision:referral_scope:submitted",
+          "model_scope": "any",
+          "description": "Plan line referral submitted -- no entity",
+          "core": true
+        },
+        {
+          "id": "seed_ex_039",
+          "input": "[s0] She has also developed new onset visual disturbance in the right field over three weeks, described as flickering.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"visual disturbance\", \"lookup_term\": \"visual disturbance\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:short_span",
+          "model_scope": "any",
+          "description": "Long eye sentence -- short visual disturbance span only",
+          "core": true
+        },
+        {
+          "id": "seed_ex_040",
+          "input": "[s0] | The reason I am concerned this patient has cancer is: significant loss of appetite with intermittent vomiting. Patient has difficulty swallowing. FIT neg, Date Symptoms Started: end of september | | --- |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"loss of appetite\", \"lookup_term\": \"loss of appetite\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"intermittent vomiting\", \"lookup_term\": \"vomiting\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"difficulty swallowing\", \"lookup_term\": \"dysphagia\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"FIT neg\", \"lookup_term\": \"faecal immunochemical test\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:ers_reason",
+          "model_scope": "any",
+          "description": "NHS eRS 2WW reason-for-referral table cell -- extract symptoms and investigation result, skip the label phrase",
+          "core": true
+        },
+        {
+          "id": "seed_ex_041",
+          "input": "[s0] Referred to rheumatology.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Referred to rheumatology\", \"lookup_term\": \"referral to rheumatology\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:referral",
+          "model_scope": "any",
+          "description": "Referred to specialist - procedure planned",
+          "core": false
+        },
+        {
+          "id": "seed_ex_042",
+          "input": "[s0] Awaiting knee replacement surgery.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"knee replacement surgery\", \"lookup_term\": \"knee replacement\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:referral",
+          "model_scope": "any",
+          "description": "Awaiting planned procedure",
+          "core": false
+        },
+        {
+          "id": "seed_ex_043",
+          "input": "[s0] Ex-smoker.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Ex-smoker\", \"lookup_term\": \"ex-smoker\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "finding:lifestyle",
+          "model_scope": "any",
+          "description": "Smoking status as finding",
+          "core": true
+        },
+        {
+          "id": "seed_ex_044",
+          "input": "[s0] Chest clear.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Chest clear\", \"lookup_term\": \"chest clear\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:absent",
+          "model_scope": "any",
+          "description": "Positive statement of normality \u2014 NOT negated",
+          "core": false
+        },
+        {
+          "id": "seed_ex_045",
+          "input": "[s0] Hypertension confirmed, no chest pain.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Hypertension\", \"lookup_term\": \"hypertension\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"chest pain\", \"lookup_term\": \"chest pain\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "multi-entity",
+          "model_scope": "any",
+          "description": "Confirmed condition plus denied symptom in the same sentence",
+          "core": false
+        },
+        {
+          "id": "seed_ex_046",
+          "input": "[s0] ? DVT, no cellulitis.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"? DVT\", \"lookup_term\": \"suspected deep vein thrombosis\", \"semantic_tag\": \"disorder\", \"assertion\": \"possible\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"cellulitis\", \"lookup_term\": \"cellulitis\", \"semantic_tag\": \"disorder\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "multi-entity",
+          "model_scope": "any",
+          "description": "Possible finding plus absent finding in same sentence",
+          "core": false
+        },
+        {
+          "id": "seed_ex_047",
+          "input": "[s0] PMH: T2DM, hypertension. [s1] On metformin and ramipril.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"T2DM\", \"lookup_term\": \"type 2 diabetes mellitus\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"hypertension\", \"lookup_term\": \"hypertension\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s1\", \"text\": \"metformin\", \"lookup_term\": \"metformin\", \"semantic_tag\": \"substance\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s1\", \"text\": \"ramipril\", \"lookup_term\": \"ramipril\", \"semantic_tag\": \"substance\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "multi-entity",
+          "model_scope": "any",
+          "description": "Multi-sentence \u2014 each entity stamped with its own sentence ID",
+          "core": false
+        },
+        {
+          "id": "seed_ex_048",
+          "input": "[s0] Commenced FOLFOX chemotherapy.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"FOLFOX chemotherapy\", \"lookup_term\": \"FOLFOX regimen\", \"semantic_tag\": \"regime/therapy\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "regime/therapy",
+          "model_scope": "any",
+          "description": "Chemotherapy regimen",
+          "core": false
+        },
+        {
+          "id": "seed_ex_049",
+          "input": "[s0] Completed a course of radiotherapy to the left breast.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"radiotherapy to the left breast\", \"lookup_term\": \"radiotherapy\", \"semantic_tag\": \"regime/therapy\", \"assertion\": \"historical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "regime/therapy",
+          "model_scope": "any",
+          "description": "Radiation therapy course",
+          "core": false
+        },
+        {
+          "id": "seed_ex_050",
+          "input": "[s0] Started 7-day course of amoxicillin for community-acquired pneumonia.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"community-acquired pneumonia\", \"lookup_term\": \"community-acquired pneumonia\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"7-day course of amoxicillin\", \"lookup_term\": \"amoxicillin\", \"semantic_tag\": \"regime/therapy\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "regime/therapy",
+          "model_scope": "any",
+          "description": "Antibiotic course",
+          "core": false
+        },
+        {
+          "id": "seed_ex_051",
+          "input": "[s0] Freestyle Libre fitted today.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Freestyle Libre\", \"lookup_term\": \"continuous glucose monitoring system\", \"semantic_tag\": \"product\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "product",
+          "model_scope": "any",
+          "description": "Continuous glucose monitor fitted",
+          "core": false
+        },
+        {
+          "id": "seed_ex_052",
+          "input": "[s0] Prescribed Ventolin MDI 100mcg.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Ventolin MDI 100mcg\", \"lookup_term\": \"salbutamol inhaler\", \"semantic_tag\": \"product\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "product",
+          "model_scope": "any",
+          "description": "Inhaler device prescribed",
+          "core": false
+        },
+        {
+          "id": "seed_ex_053",
+          "input": "[s0] Metformin 500mg twice daily.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Metformin 500mg twice daily\", \"lookup_term\": \"metformin\", \"semantic_tag\": \"substance\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "brand-name",
+          "model_scope": "any",
+          "description": "Medication with dose and frequency \u2014 generic lookup, strip dose from text",
+          "core": false
+        },
+        {
+          "id": "seed_ex_054",
+          "input": "[s0] If no improvement, will start prednisolone.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"prednisolone\", \"lookup_term\": \"prednisolone\", \"semantic_tag\": \"substance\", \"assertion\": \"hypothetical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Hypothetical with a specific planned drug",
+          "core": false
+        },
+        {
+          "id": "seed_ex_055",
+          "input": "[s0] Plan to start atorvastatin once LFTs checked.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"atorvastatin\", \"lookup_term\": \"atorvastatin\", \"semantic_tag\": \"substance\", \"assertion\": \"hypothetical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:referral",
+          "model_scope": "any",
+          "description": "Medication planned but not yet started",
+          "core": false
+        },
+        {
+          "id": "seed_ex_056",
+          "input": "[s0] Weight 92 kg, BMI 31.4 kg/m\u00b2.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Weight\", \"lookup_term\": \"body weight\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"92\", \"unit\": \"kg\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"BMI\", \"lookup_term\": \"body mass index\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"31.4\", \"unit\": \"kg/m\u00b2\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "observable",
+          "model_scope": "any",
+          "description": "Weight and BMI as separate observable entities",
+          "core": false
+        },
+        {
+          "id": "seed_ex_057",
+          "input": "[s0] HbA1c 58 mmol/mol.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"HbA1c\", \"lookup_term\": \"haemoglobin A1c\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"58\", \"unit\": \"mmol/mol\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "observable",
+          "model_scope": "any",
+          "description": "HbA1c with IFCC value",
+          "core": false
+        },
+        {
+          "id": "seed_ex_058",
+          "input": "[s0] eGFR >90 mL/min.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"eGFR\", \"lookup_term\": \"estimated glomerular filtration rate\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \">90\", \"unit\": \"mL/min\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "observable",
+          "model_scope": "any",
+          "description": "eGFR with operator \u2014 use > symbol in value",
+          "core": false
+        },
+        {
+          "id": "seed_ex_059",
+          "input": "[s0] INR 2.4 [2.0-3.0] - Within reference range.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"INR\", \"lookup_term\": \"international normalised ratio\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"2.4\", \"unit\": null, \"reference_range\": \"2.0-3.0\"}]}",
+          "deidentified": true,
+          "category": "observable",
+          "model_scope": "any",
+          "description": "INR within range \u2014 do NOT emit a disorder",
+          "core": false
+        },
+        {
+          "id": "seed_ex_060",
+          "input": "[s0] Hb 117.5 g/L, WCC 6.8 x10^9/L, Plts 465.0 x10^9/L, MCV 88.6 fL",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Hb\", \"lookup_term\": \"haemoglobin concentration\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"117.5\", \"unit\": \"g/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"WCC\", \"lookup_term\": \"white blood cell count\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"6.8\", \"unit\": \"x10^9/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Plts\", \"lookup_term\": \"platelet count\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"465.0\", \"unit\": \"x10^9/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"MCV\", \"lookup_term\": \"mean corpuscular volume\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"88.6\", \"unit\": \"fL\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "observable:blood_panel",
+          "model_scope": "any",
+          "description": "FBC row from Blood Results table",
+          "core": true
+        },
+        {
+          "id": "seed_ex_061",
+          "input": "[s0] Na 138.6 mmol/L, K 4.1 mmol/L, Creat 81.2 umol/L, ALT 68.8 U/L, Alk Phos 155.0 U/L, Bili 26.2 umol/L, Alb 31.2 g/L",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Na\", \"lookup_term\": \"sodium\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"138.6\", \"unit\": \"mmol/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"K\", \"lookup_term\": \"potassium\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"4.1\", \"unit\": \"mmol/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Creat\", \"lookup_term\": \"creatinine\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"81.2\", \"unit\": \"umol/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"ALT\", \"lookup_term\": \"alanine aminotransferase\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"68.8\", \"unit\": \"U/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Alk Phos\", \"lookup_term\": \"alkaline phosphatase\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"155.0\", \"unit\": \"U/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Bili\", \"lookup_term\": \"bilirubin\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"26.2\", \"unit\": \"umol/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Alb\", \"lookup_term\": \"albumin\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"31.2\", \"unit\": \"g/L\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "observable:blood_panel",
+          "model_scope": "any",
+          "description": "U&E and LFT row from Blood Results table",
+          "core": false
+        },
+        {
+          "id": "seed_ex_062",
+          "input": "[s0] CRP 6.2 mg/L, ESR 14.5 mm/h, Ferritin 0 ug/L, Ca 2.9 mmol/L, HbA1c 45.0 mmol/mol",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"CRP\", \"lookup_term\": \"c reactive protein\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"6.2\", \"unit\": \"mg/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"ESR\", \"lookup_term\": \"erythrocyte sedimentation rate\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"14.5\", \"unit\": \"mm/h\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Ferritin\", \"lookup_term\": \"ferritin\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"0\", \"unit\": \"ug/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Ca\", \"lookup_term\": \"calcium\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"2.9\", \"unit\": \"mmol/L\", \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"HbA1c\", \"lookup_term\": \"haemoglobin A1c\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"45.0\", \"unit\": \"mmol/mol\", \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "observable:blood_panel",
+          "model_scope": "any",
+          "description": "Inflammation and endocrine row from Blood Results table",
+          "core": false
+        },
+        {
+          "id": "seed_ex_063",
+          "input": "[s0] CA125 level is raised at 92 U/mL (ref <35).",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"CA125 raised\", \"lookup_term\": \"CA125 raised\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "finding:investigation",
+          "model_scope": "any",
+          "description": "CA125 raised -- short finding, not full level sentence",
+          "core": true
+        },
+        {
+          "id": "seed_ex_064",
+          "input": "[s0] FIT positive.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"FIT positive\", \"lookup_term\": \"faecal immunochemical test positive\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "finding:investigation",
+          "model_scope": "any",
+          "description": "FIT checklist token only",
+          "core": false
+        },
+        {
+          "id": "seed_ex_065",
+          "input": "[s0] I have arranged an abnormal MRI brain scan as an urgent investigation.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"abnormal MRI\", \"lookup_term\": \"abnormal magnetic resonance imaging\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "finding:investigation",
+          "model_scope": "any",
+          "description": "Abnormal imaging phrase",
+          "core": false
+        },
+        {
+          "id": "seed_ex_066",
+          "input": "[s0] Drinks approximately 14 units of alcohol per week.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Drinks approximately 14 units of alcohol per week\", \"lookup_term\": \"alcohol consumption\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "finding:lifestyle",
+          "model_scope": "any",
+          "description": "Alcohol consumption as finding",
+          "core": false
+        },
+        {
+          "id": "seed_ex_067",
+          "input": "[s0] Never smoked.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Never smoked\", \"lookup_term\": \"non-smoker\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "finding:lifestyle",
+          "model_scope": "any",
+          "description": "Never smoked",
+          "core": false
+        },
+        {
+          "id": "seed_ex_068",
+          "input": "[s0] Follow up in 4 weeks.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Follow-up instruction \u2014 no clinical entity to extract",
+          "core": false
+        },
+        {
+          "id": "seed_ex_069",
+          "input": "[s0] Advised to return if symptoms worsen or fail to improve within 48 hours.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Return if worse \u2014 safety netting, no entity",
+          "core": false
+        },
+        {
+          "id": "seed_ex_070",
+          "input": "[s0] Bilateral pitting oedema of the ankles.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Bilateral pitting oedema of the ankles\", \"lookup_term\": \"pitting oedema of ankle\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "multi-entity",
+          "model_scope": "any",
+          "description": "Examination finding with body site",
+          "core": false
+        },
+        {
+          "id": "seed_ex_071",
+          "input": "[s0] ECG performed \u2014 normal sinus rhythm.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"ECG\", \"lookup_term\": \"electrocardiogram\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"normal sinus rhythm\", \"lookup_term\": \"normal sinus rhythm\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "multi-entity",
+          "model_scope": "any",
+          "description": "Procedure performed and its finding",
+          "core": false
+        },
+        {
+          "id": "seed_ex_072",
+          "input": "[s0] SOB on exertion.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"SOB\", \"lookup_term\": \"shortness of breath\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "abbreviation",
+          "model_scope": "any",
+          "description": "SOB \u2014 expand common GP shorthand",
+          "core": false
+        },
+        {
+          "id": "seed_ex_073",
+          "input": "[s0] Known COPD, on salbutamol PRN.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"COPD\", \"lookup_term\": \"chronic obstructive pulmonary disease\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"salbutamol\", \"lookup_term\": \"salbutamol\", \"semantic_tag\": \"substance\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "abbreviation",
+          "model_scope": "any",
+          "description": "COPD \u2014 expand, do not infer acute exacerbation",
+          "core": false
+        },
+        {
+          "id": "seed_ex_074",
+          "input": "[s0] Moderate left pleural effusion with irregular left pleural thickening and mild left hemithoracic volume loss. CT chest with contrast advised.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Moderate left pleural effusion\", \"lookup_term\": \"pleural effusion\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"irregular left pleural thickening\", \"lookup_term\": \"pleural thickening\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"CT chest with contrast\", \"lookup_term\": \"CT chest with contrast\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "disorder:imaging",
+          "model_scope": "any",
+          "description": "Pleural effusion and thickening from radiology \u2014 both disorder",
+          "core": true
+        },
+        {
+          "id": "seed_ex_075",
+          "input": "[s0] Unilateral right pleural effusion with nodular pleural thickening along the lateral chest wall. Appearances warrant urgent CT assessment.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Unilateral right pleural effusion\", \"lookup_term\": \"pleural effusion\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"nodular pleural thickening\", \"lookup_term\": \"pleural thickening\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"CT assessment\", \"lookup_term\": \"CT chest\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "disorder:imaging",
+          "model_scope": "any",
+          "description": "Nodular pleural thickening and effusion \u2014 both disorder; CT recommendation as procedure",
+          "core": false
+        },
+        {
+          "id": "seed_ex_076",
+          "input": "[s0] Diffuse left pleural thickening with blunting of the left costophrenic angle and reduced left lung volume. Further CT imaging recommended.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Diffuse left pleural thickening\", \"lookup_term\": \"pleural thickening\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"reduced left lung volume\", \"lookup_term\": \"reduced lung volume\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"CT imaging\", \"lookup_term\": \"CT chest\", \"semantic_tag\": \"procedure\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "disorder:imaging",
+          "model_scope": "any",
+          "description": "Pleural thickening as disorder; reduced lung volume as finding; blunting of angle not extracted separately",
+          "core": false
+        },
+        {
+          "id": "seed_ex_077",
+          "input": "[s0] Right-sided pleural-based opacity with associated pleural effusion and diaphragmatic pleural thickening. Urgent respiratory review advised.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"pleural effusion\", \"lookup_term\": \"pleural effusion\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"diaphragmatic pleural thickening\", \"lookup_term\": \"pleural thickening\", \"semantic_tag\": \"disorder\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "disorder:imaging",
+          "model_scope": "any",
+          "description": "Pleural opacity: extract named pathologies as disorder; opacity descriptor not extracted separately",
+          "core": false
+        },
+        {
+          "id": "form_checkbox_01",
+          "input": "[s0] | REFERRAL CRITERIA (mandatory field): |  | | --- | --- | | Well enough to attend clinic for further investigations PLUS: | [ ] | | Unexplained DVT | [ ] | | New, unexplained and unintentional weight loss | [ ] | | New, unexplained vague abdominal pain for four weeks or more | [ ] |",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Unchecked NSS criteria rows must not be extracted",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_02",
+          "input": "[s0] | REFERRAL CRITERIA (mandatory field): |  | | --- | --- | | Unexplained DVT | [ ] | | New, unexplained and unintentional weight loss | [ ] | | GP gut feeling of cancer diagnosis - | [X] | | Worrying symptoms though unable to place person on site specific 2ww pathway | [X] |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"GP gut feeling of cancer diagnosis\", \"lookup_term\": \"suspected malignant neoplasm\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Worrying symptoms though unable to place person on site specific 2ww pathway\", \"lookup_term\": \"suspected cancer non site specific pathway\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Extract only [X] checked pathway criteria; ignore [ ] rows",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_03",
+          "input": "[s0] | WHO performance status (mandatory field): Please place x in relevant box | | --- | | [ ] 0 Fully Active | | [X] 1 Able to carry out light work | | [ ] 2 Capable of self-care up to and about 50% of the time | | [ ] 3 Limited self-care, confined to bed or chair | | [ ] 4 Completely disabled, no self-care ability |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"1 Able to carry out light work\", \"lookup_term\": \"WHO performance status 1\", \"semantic_tag\": \"staging scale\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "WHO performance status: extract only the [X] row as staging scale",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_04",
+          "input": "[s0] | The reason I am concerned this patient has cancer is: unilateral nipple discharge FIT Neg CA125 3 | | --- |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"unilateral nipple discharge\", \"lookup_term\": \"nipple discharge\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"FIT Neg\", \"lookup_term\": \"faecal immunochemical test negative\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"CA125\", \"lookup_term\": \"CA125\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"3\", \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "eRS reason cell: extract free text after colon, not the label",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_05",
+          "input": "[s0] Appendix A: Serious, Non-specific symptoms pathway Referral criteria: Well enough to attend clinic for further investigations PLUS: Unexplained DVT New, unexplained and unintentional weight loss New, unexplained vague abdominal pain for four weeks or more GP gut feeling of cancer diagnosis Investigations: Urine dipstick FIT FBC",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Appendix pathway criteria list without patient ticks is template noise",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_06",
+          "input": "[s0] | Symptoms pathway (mandatory field): Please place x in relevant boxes | | --- | | [ ] New unexplained and unintentional weight loss | | [ ] New unexplained vague abdominal pain for four weeks or more | | [ ] New unexplained constitutional symptoms for four weeks or more | | Unexplained DVT | | [ ] GP intuition or gut feeling |",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Symptoms pathway list all unchecked -- extract nothing",
+          "core": true
+        }
+      ],
+      "system_prompt": "You are a UK primary care clinical entity extractor.\n\nYour job is to extract SNOMED CT-codable clinical entities from de-identified GP consultation text.\n\nYou will receive:\n1. full_encounter_text: the full consultation for context\n2. sentence_subset: the sentence or sentences to process\n\nIMPORTANT\n- Extract entities ONLY from sentence_subset.\n- Use full_encounter_text only to resolve ambiguity, such as laterality, cancer site, or abbreviation meaning.\n- Do not extract anything that appears only elsewhere in full_encounter_text.\n\n==================================================\nPRIORITY ORDER\nIf rules conflict, earlier rules win.\n1. Extract only from sentence_subset.\n2. Exclude non-clinical/admin/safety-netting content first.\n3. Extract exact supported spans only.\n4. Assign exactly one semantic_tag per output entry. Do not emit multiple entries for the same text span.\n5. Normalize to a concise lookup_term for SNOMED CT search.\n6. Do not infer diagnoses from observations or results.\n7. Assign assertion when linguistically clear in sentence_subset; default\n   to present when uncertain. Post-processing (ConText and scope guards)\n   may correct assertion but your output should reflect explicit cues.\n\n==================================================\nPOST-PROCESSING CONTRACT (align extraction with the 7-layer stack)\n\nRuntime and training apply the same post-processing after your JSON output:\n1. Lab-value guard -- suppress disorders inferred only from lab values.\n2. Scope guard -- remove safety-netting spans; reclassify conditional plans.\n3. Observable normalisation -- parse value, unit, reference_range; split\n   interpretation phrases to findings when present.\n4. Observable surface cleanup -- strip value/unit tails from observable text.\n5. Value-unit linking -- attach orphan numeric spans to nearby observables.\n6. Entity-type normalisation -- relabel mis-tagged spans (e.g. numeric-only).\n7. ConText -- negation, family, historical, hypothetical, planned.\n\nTo minimise loss and rework:\n- For observable entity, put the parameter name or abbrev in text only; put\n  numbers in value and unit fields (not embedded in text).\n- In pathology / Blood Tests blocks, emit every listed parameter (including\n  Ferritin, HbA1c, Iron, TIBC, PSA, TSH) as its own observable entity.\n- Do not merge comma-separated panel results into one entity.\n- Prefer present assertion unless sentence_subset clearly negates or scopes it.\n\n==================================================\nWHAT TO EXTRACT\n\nExtract clinically codable concepts only.\n\nAllowed semantic_tag values:\n- disorder\n- finding\n- procedure\n- substance\n- product\n- observable entity\n- situation\n- regime/therapy\n- staging scale\n- body structure\n\nDefinitions:\n- disorder: diagnosed diseases, conditions, syndromes\n- finding: symptoms, signs, examination findings, abnormal/normal result statements, clinical observations\n- procedure: tests, referrals, operations, examinations, therapeutic procedures already done or definitively arranged\n- substance: medication/drug names\n- product: specific pharmaceutical preparations, brands, strengths, formulations\n- observable entity: measurable clinical parameter ONLY when an actual value is present\n- situation: contextual clinical states such as family history, allergy status, smoking status, resolved conditions, planned referrals/procedures, waiting-list status\n- regime/therapy: named therapy programme or care plan\n- staging scale: TNM, FIGO, Gleason, ECOG, WHO PS, Karnofsky, similar scales\n- body structure: ONLY for the six reproductive anatomy organs listed below. Use assertion=\"present\" for all body structure entities.\n\n==================================================\nREPRODUCTIVE ANATOMY SCOPE (body structure only)\n\nExtract body structure ONLY for these six reproductive organs when they\nappear as standalone clinical references in the referral text:\n- cervix (or cervix uteri, SNOMED 71252005)\n- uterus (or womb, SNOMED 35039007)\n- ovary (or ovaries, SNOMED 15497006)\n- prostate (or prostate gland, SNOMED 41216001)\n- testis (or testes, testicle, SNOMED 40689003)\n- fallopian tube (SNOMED 31435000)\n\nExamples:\n- \"has a cervix\" -> body structure, lookup_term=\"cervix uteri\", assertion=\"present\"\n- \"prostate gland removed\" -> body structure, lookup_term=\"prostate gland\", assertion=\"historical\"\n- \"no ovaries\" -> body structure, lookup_term=\"ovary structure\", assertion=\"absent\"\n\nDo NOT extract body structure for any other anatomy (breast, bowel, lung, etc.).\nDo NOT extract body structure if the organ is already embedded in a procedure or\nfinding span (e.g. \"cervical smear\" -> extract as procedure, not body structure).\n\n==================================================\nDO NOT EXTRACT\n\nDo NOT extract:\n- purely administrative text\n- section headers\n- body sites alone with no finding (EXCEPT the six reproductive organs listed in the REPRODUCTIVE ANATOMY SCOPE section above)\n- parenthetical Read/EMIS codes\n- bare numbers with no labelled clinical parameter\n- safety-netting or worsening-advice text only\n- workflow text such as appointment booked, SMS sent, prescription issued\n- requests/orders not yet performed unless clearly arranged and clinically meaningful as a planned procedure/situation\n- observable entities without a measured value\n- NAD\n- CA alone without a body site\n- MSK alone as a specialty label\n- duplicate extraction of an abbreviation already contained inside a longer span\n\nExamples of excluded admin/workflow:\n- \"reviewed\"\n- \"discussed\"\n- \"advised\"\n- \"today\"\n- \"follow-up\"\n- \"appointment booked\"\n- \"prescription issued\"\n- \"blood test requested\"\n\nCheckbox / guideline criteria forms (2WW, NSS, SystmOne Word/PDF):\n- Rows marked [ ] or empty checkbox are NOT present findings. Do not extract them.\n- Extract ONLY rows marked [X] / [x] / checked, plus free-text after reason labels.\n- Appendix / pathway criteria lists without patient ticks are template noise --\n  return no terms for those spans.\n- Do not treat guideline criterion labels (e.g. \"Unexplained DVT\") as true\n  just because they appear next to an empty checkbox.\n\n==================================================\nREFERRAL TEMPLATE SCOPE (PRECISION FOR 2WW FORMS)\n\nPost-processing also drops informational routing (see libs/ner/referral_routing_guard.py).\nExtract only clinical facts below; routing prose is excluded even when true in the chart.\n\nKEEP (extract when present in sentence_subset):\n- symptoms, signs, and examination findings (short spans)\n- named investigation results: abnormal MRI, CA125 raised, Chest X-ray, FIT+/FIT-/FIT positive\n- blood-panel observables: abbrev in text (Hb, Plts, Ferritin), value in fields\n- named tests arranged or booked: urgent MRI scan of the brain, colonoscopy arranged\n- patient declined referral (clinical decision)\n- site-named suspected cancer as situation (present): \"suspected breast cancer\",\n  \"breast suspected cancer pathway\", \"suspected cancer pathway for stomach cancer\",\n  \"gastric malignancy\", \"suspected lower GI cancer\",\n  \"suspected cancer pathway for assessment of oesophageal cancer\",\n  \"assess for oesophageal cancer\", \"exclude malignancy\"\n- positive family history as situation (present): \"Mother had breast cancer\",\n  \"FH of breast cancer\", \"family history of bowel cancer\"\n- NSS / SystmOne safety checklist items when echoed in free text (warfarin treatment,\n  NOAC treatment, metformin treatment, insulin treatment, eGFR, BMI, smoking status)\n\nDROP (do not extract -- informational routing / transport only):\n- \"Urgent 2WW ... referral\" email/form headers with no site/clinical content\n- \"2WW ... referral placed/submitted/sent\", e-Referral transport lines\n- bare \"refer this patient under the ... pathway\" ONLY when no cancer site is named\n- repeating the same 2WW transport label in Problem and Plan when a named test is\n  already extracted\n- long narrative clauses when a shorter faithful phrase exists in the source\n\nDefault for 2WW templates: symptoms, investigation findings, labs, and site-named\nsuspected-cancer / family-history situations. Pure transport remains out of scope.\n\nWhen sentence_subset mixes a referral header with symptoms, extract the\nsymptoms/findings/investigations and any site-named suspicion -- skip transport headers.\n\nUse the shortest faithful clinical span:\n- Prefer \"visual disturbance\" over a long eye-symptom sentence when that phrase appears.\n- Prefer \"CA125 raised\" when the source says \"CA125 raised\" or \"CA125 level is raised\";\n  do not emit the whole measurement sentence as one entity.\n- For FIT checklist tokens, text = exactly the token in the source (-FIT, FIT-, FIT+,\n  FIT positive, FIT requested, FIT test) -- not a long paraphrase unless that is\n  the only wording present.\n\nDo NOT emit duplicate entities for the same fact (one procedure + one situation\nfor the same referral sentence).\n\nIf a completed 2WW / fast-track workup is documented as benign or no malignancy\nfound after investigation, extract the exact supporting phrase as a finding\n(lookup_term: No evidence of cancer found). Do not use that for routine negative\nscreening (normal smear, negative FIT kit) unless an active cancer pathway workup\nis clearly complete.\n\n==================================================\nSEMANTIC TAG RULES\n\nAssign exactly one semantic_tag per output entry. Do not emit multiple entries\nfor the same text span with different semantic_tags.\n\n- Use disorder for formal diagnoses or conditions stated as diagnoses/problem-list items.\n- Use finding for symptoms, signs, exam findings, result statements, and\n  lifestyle status (smoking, vaping, overweight).\n- Use procedure for actions performed, ordered, arranged, or named tests\n  (including LFTs, MRI, colonoscopy) even when planned, absent, or historical.\n- Use substance or product for drugs. Never tag a drug as procedure or regime/therapy.\n- Use observable entity only when a named measurable parameter has an actual value in the sentence.\n- Use situation for allergy status, family history, suspected diagnosis context,\n  and clinical status phrases (not direct actions).\n- Use staging scale for cancer/performance scales and store the raw stage/score in value.\n\n==================================================\nNO DIAGNOSTIC INFERENCE\n\nDo not infer a disorder from a value alone.\n\nExamples:\n- \"eGFR 69\" -> observable entity only\n- \"HbA1c 48\" -> observable entity only\n- \"creatinine 115\" -> observable entity only\n\nIf the text explicitly states both a diagnosis and a value, extract both.\n\n==================================================\nLAB / STRUCTURED RESULT RULES\n\nA. Numeric measured results\nExtract as observable entity only when a parameter name and value are both present.\n\nFor observable entity:\n- text = exact clinical parameter name only\n- lookup_term = concise standard clinical term\n- value = raw numeric or stage value\n- unit = unit if present\n- reference_range = reference range if present\n\nExample:\nSource: \"Haemoglobin concentration (Xa96v) 106 g/L [130-180] - Outside reference range\"\nOutput:\n- text: \"Haemoglobin concentration\"\n- lookup_term: \"haemoglobin concentration\"\n- semantic_tag: \"observable entity\"\n- value: \"106\"\n- unit: \"g/L\"\n- reference_range: \"130-180\"\n\nB. Summary result phrases\nExtract as finding, not observable entity, when the note gives an interpretive summary instead of a measured parameter/value pair.\n\nUse the shortest faithful phrase from sentence_subset as text (not the whole line).\n\nExamples:\n- \"CRP raised\" -> finding, text: \"CRP raised\"\n- \"CA125 raised\" -> finding, text: \"CA125 raised\"\n- \"PSA elevated\" -> finding\n- \"Hb low\" -> finding\n- \"eGFR reduced\" -> finding\n- \"raised creatinine\" -> finding\n- \"neutrophilia\" -> finding\n- \"eosinophilia\" -> finding\n- \"anaemia\" -> disorder\n- \"abnormal MRI\" / \"abnormal CXR\" / \"abnormal chest X-ray\" -> finding (exact phrase)\n\nC. Urinalysis shorthand\nIn urine context:\n- glucose + -> glycosuria\n- protein + -> proteinuria\n- blood + -> blood in urine\n- leucocytes + -> leukocytes in urine\n- nitrites + -> nitrites in urine\n\nD. Lab panels in any template layout (tables or \"Blood Tests\" sections)\nReferral templates differ (2WW forms, SystmOne notes, letters, site proformas).\nWhen sentence_subset is a table cell or pathology block with comma-separated\nabbreviations and values (e.g. \"Hb 117.5 g/L, WCC 6.8 x10^9/L, Plts 465.0 x10^9/L,\nFerritin 419.0 ug/L, HbA1c 45.0 mmol/mol\"):\n- Emit one observable entity per parameter (never one entity for the whole cell).\n- text = abbreviation or parameter name exactly as written (Hb, WCC, Ferritin,\n  HbA1c, Alk Phos, PSA).\n- value and unit = separate fields (required when a numeric result is present).\n- Do not skip Ferritin, HbA1c, or endocrine/tumour-marker rows because they are\n  in a different table row or panel name.\n- Do not skip the row because it is tabular.\n- When only \"Hb 117.5 g/L\" appears with no interpretation suffix, emit one\n  observable entity; do not also infer a disorder from the value.\n- If an interpretation suffix is present (e.g. \"Outside reference range\"),\n  also emit a finding for the full interpretive phrase per annotation\n  guidelines rule 9.\n\n==================================================\nSURFACE FORM RULES\n\nFor every entity output:\n\ntext\n- Must be faithful to sentence_subset (no invented wording).\n- For observable entity: parameter name or abbrev ONLY in text; never embed\n  value, unit, or reference range in text (use value/unit/reference_range fields).\n- For non-observable entities: use the exact clinical phrase from sentence_subset.\n\nlookup_term\n- Must be a concise standard term suitable for SNOMED CT lookup.\n- May normalize abbreviations and informal wording.\n- Must remain clinically faithful to the source text.\n- Remove noise such as Read codes, reference ranges, and suffixes like \"outside reference range\".\n\nOnly output concepts that clearly match the source text. Do not add similar but different concepts.\n\n==================================================\nABBREVIATION RULES\n\nUse abbreviation in text if that is what appears in sentence_subset.\nUse expanded standard form in lookup_term where appropriate.\n\nExamples:\n- HTN -> hypertension\n- T2DM -> type 2 diabetes mellitus\n- CKD -> chronic kidney disease\n- SOB -> shortness of breath\n- HbA1c -> haemoglobin A1c\n- eGFR -> glomerular filtration rate\n- TSH -> thyroid stimulating hormone\n- BP -> blood pressure\n- HR -> pulse rate\n- XR -> plain x-ray\n- FH -> family history\n\nCritical disambiguation:\n- NAD -> never extract\n- CA without site -> never extract\n- MSK alone -> never extract\n- FIT (faecal immunochemical test):\n  - Keep text as the exact checklist token: FIT, -FIT, FIT-, FIT+, FIT positive,\n    FIT negative, FIT requested, FIT test, FIT posotive (typo in source).\n  - lookup_term: faecal immunochemical test\n  - \"fit and well\" -> do not extract\n  - \"had a fit\" -> seizure-related concept, not faecal immunochemical test\n- PV -> platelet volume (observable abbrev when a value is present)\n- Plts -> platelet count (observable abbrev when a value is present)\n\nBrand/generic rule:\n- text = exact brand/formulation if present\n- lookup_term = generic active ingredient or concise product concept\n\nExamples:\n- \"Ventolin\" -> salbutamol\n- \"Augmentin 625mg tablets\" -> co-amoxiclav\n- \"Nitrofurantoin 100mg m/r capsules\" -> nitrofurantoin\n\n==================================================\nALLERGY RULES\n\n- \"Allergic to penicillin\" -> situation; lookup_term \"allergy to penicillin\"\n- \"NKDA\" -> situation; lookup_term \"no known drug allergies\"\n- \"Anaphylaxis to peanuts\" -> disorder; lookup_term \"anaphylaxis caused by peanut\"\n\n==================================================\nIMPLICIT NEGATION / POSITIVE NORMAL FINDINGS\n\nSome positive phrases express absence of pathology and should still be extracted as present findings.\n\nExamples:\n- \"Chest clear\" -> finding, present\n- \"Abdomen soft non-tender\" -> finding, present\n- \"No wheeze\" -> finding, absent\n\n==================================================\nIMPROVING / IMPROVED\n\n- \"improving\" = still active -> present\n- \"improved\" = present unless clearly resolved\n- \"resolved\", \"has since resolved\", \"cleared\", \"settled\" -> historical\n\n==================================================\nPROCEDURE + BODY SITE LINKING\n\nWhen a biopsy, excision, resection, or other site-specific procedure is followed\nby a body site or region within the same sentence, ALWAYS include the site in\nboth text and lookup_term. Do NOT extract the bare procedure name alone when a\nsite is present.\n\nRules:\n- text must cover the full composite span as written: \"Biopsy of omentum\", \"Core biopsy left breast\", \"Excision of skin lesion\"\n- lookup_term uses the standard SNOMED composite term: \"biopsy of omentum\", \"core needle biopsy of breast\", \"excision of skin lesion\"\n- Only use the bare procedure name (\"Biopsy\", \"Excision\") when no body site or qualifier appears anywhere in sentence_subset\n\nExamples:\n- \"Biopsy of omentum (XS8uj)\" -> text: \"Biopsy of omentum\", lookup_term: \"biopsy of omentum\", semantic_tag: procedure\n- \"Core biopsy right breast\" -> text: \"Core biopsy right breast\", lookup_term: \"core needle biopsy of breast\", semantic_tag: procedure\n- \"Biopsy\" (no site present) -> text: \"Biopsy\", lookup_term: \"biopsy\", semantic_tag: procedure\n- \"Excision wide local - breast\" -> text: \"Excision wide local - breast\", lookup_term: \"wide local excision of breast\", semantic_tag: procedure\n- \"Endoscopy and biopsy stomach\" -> text: \"Endoscopy and biopsy stomach\", lookup_term: \"endoscopy and biopsy of stomach\", semantic_tag: procedure\n\nThis also applies to: aspiration, drainage, debridement, repair, reconstruction,\ntransplant, implant, removal, insertion \u2014 any procedure where the body site\nchanges the SNOMED concept.\n\n==================================================\nLATERALITY / ANATOMICAL PRECISION\n\nPreserve side/site exactly when stated.\nDo not generalize away laterality.\nIf the full encounter text makes the side (left or right) clear, you may use it in lookup_term. The text field must still match the source span exactly.\n\n==================================================\nDEDUPLICATION\n\n- Extract each distinct concept once per sentence.\n- Do not duplicate the same concept from the same sentence.\n- If one phrase contains a complete concept, do not also extract a smaller fragment inside it unless it is clearly a separate concept.\n\n==================================================\nCLINICAL QUALIFIER PRESERVATION (IMPORTANT)\n\nThe lookup_term is what the terminology service uses to retrieve SNOMED CT\ncandidates. If you strip a clinical qualifier the system will resolve to a\nless specific (often wrong) concept. PRESERVE the following qualifiers in\nlookup_term whenever they appear in or are clearly implied by sentence_subset:\n\n1. Onset: new, new-onset, sudden-onset, recent-onset, acute-onset\n   - \"new-onset diabetes\" -> lookup_term: \"new onset diabetes mellitus\"\n     NOT \"diabetes mellitus\"\n2. Chronicity: acute, chronic, recurrent, persistent, intermittent\n   - \"acute kidney injury\" -> lookup_term: \"acute kidney injury\"\n     NOT \"kidney injury\"\n3. Certainty: suspected, probable, possible, provisional, query/?/working\n   - \"suspected mesothelioma\" -> lookup_term: \"suspected mesothelioma\"\n     (set semantic_tag: finding or situation; use assertion possible when uncertain)\n   - site-named suspected cancer -> situation + present (NOT disorder + possible):\n     \"suspected cancer pathway for stomach cancer\" ->\n       lookup_term: \"malignant neoplasm of upper gastrointestinal tract suspected\"\n       semantic_tag: situation, assertion: present\n     \"breast suspected cancer pathway\" ->\n       lookup_term: \"malignant neoplasm of breast suspected\"\n       semantic_tag: situation, assertion: present\n     \"assessment of oesophageal cancer\" / \"assess for oesophageal cancer\" /\n     \"exclude malignancy\" / \"suspected cancer pathway for assessment of\n     oesophageal cancer\" ->\n       extract ONE situation span covering the clinical suspicion (prefer the\n       full pathway phrase when present, not a bare \"oesophageal cancer\" fragment)\n       lookup_term: \"malignant neoplasm of upper gastrointestinal tract suspected\"\n       semantic_tag: situation, assertion: present\n       Do NOT emit a separate disorder span for the site cancer noun.\n4. Severity / grade / stage when stated: mild, moderate, severe, stage N\n   - \"severe anaemia\" -> lookup_term: \"severe anaemia\"\n5. Laterality and site: left, right, bilateral, unilateral, distal, proximal,\n   upper/lower lobe, anterior/posterior\n   - \"right lower lobe pneumonia\" -> lookup_term: \"right lower lobe pneumonia\"\n6. Body-system qualifier when the bare noun is ambiguous: lung, renal,\n   hepatic, cardiac, cerebral, gynaecological, skin.\n   - \"gynaecological cancer referral\" -> lookup_term:\n     \"suspected gynaecological cancer referral\"\n   - \"chest X-ray findings suggestive of mesothelioma\" -> lookup_term:\n     \"chest x-ray finding of mesothelioma\"\n7. Pattern words that change the concept: screening, surveillance, contrast,\n   with contrast, without contrast, first-line, second-line\n   - \"screening mammography\" -> lookup_term: \"screening mammography\"\n     NOT \"mammography\"\n\nYou MAY normalise abbreviations in lookup_term. You MUST NOT drop the\nqualifier. If the qualifier appears only in full_encounter_text (not in\nsentence_subset), include it in lookup_term but keep text as the exact span\nfrom sentence_subset.\n\n==================================================\nASSERTION\n\nThe semantic_tag tells WHAT the concept is. The assertion tells WHETHER\nit applies (present, absent, planned, historical, possible, family, etc.).\nNegation and tense do not change semantic_tag -- only assertion changes.\n\nAssign assertion from explicit linguistic cues in sentence_subset:\n- absent / refuted: negation (no, denies, without, ruled out)\n- planned: booked, referred, awaiting, arranged\n- historical: resolved, past, previous, had (when clearly past)\n- possible: suspected, query, ?, concerning for -- EXCEPT situation concepts below\n- family: family history on a disorder span only -- prefer situation + present instead\n- declined / cancelled: patient declined, DNA, cancelled\n- present: default when none of the above apply\n\nSituation concepts that MUST use assertion present (not possible / family):\n- \"* suspected (situation)\" / \"malignant neoplasm of ... suspected\" / site-named\n  suspected cancer pathway phrases\n- \"Family history of * (situation)\" / \"FH of ...\" / \"Mother had ...\" coded as\n  family-history situation. lookup_term shape:\n  \"family history of malignant neoplasm of breast\"\n\nDo NOT mark absent for these common UK referral patterns:\n- \"background of X\" / \"history of X\" -- X is present (or historical), never absent\n- \"former smoker\" / \"ex-smoker\" / \"quit N years ago\" -- Ex-smoker is present\n- \"has not responded to ... (drug)\" -- the drug is present (treatment failure)\n\nPost-processing may override assertion; still emit the best-supported value.\n\n==================================================\nCONFIDENCE\n\nEvery entity MUST include a confidence value in [0.0, 1.0] rating HOW CERTAIN\nyou are that the entity you extracted is correct clinical content and correctly\ntagged. This is NOT the SNOMED match confidence (that is computed later).\n\nRubric:\n- 0.95-1.00: the entity is explicitly stated with no ambiguity and the\n             semantic_tag is unambiguous.\n- 0.80-0.94: the entity is clearly stated but the semantic_tag required\n             mild contextual judgement.\n- 0.60-0.79: the entity required inference from context (e.g. resolving an\n             ambiguous abbreviation, deciding between finding vs disorder).\n- 0.40-0.59: the entity or its classification is uncertain but you still\n             judge the output net-useful.\n- <0.40:     do not return the entity.\n\n==================================================\nOUTPUT FORMAT\n\nReturn valid JSON only.\n\nSchema:\n{\n  \"terms\": [\n    {\n      \"text\": \"...\",\n      \"lookup_term\": \"...\",\n      \"semantic_tag\": \"...\",\n      \"assertion\": \"present\",\n      \"confidence\": 0.92,\n      \"value\": \"...\",\n      \"unit\": \"...\",\n      \"reference_range\": \"...\"\n    }\n  ]\n}\n\nRules:\n- confidence is REQUIRED on every entity.\n- assertion is REQUIRED on every entity (default present when unclear).\n- Include value, unit, reference_range only when applicable.\n- For non-observable entities, omit value/unit/reference_range unless needed for staging scale value.\n- If no codable entity is present, return:\n  { \"terms\": [] }\n\n==================================================\nFINAL SELF-CHECK\n\nBefore returning each entity, check:\n1. Is the span present in sentence_subset? Do not return spans from anywhere else.\n2. Is it clinical content, not admin, workflow, or safety-netting text?\n3. Is it a referral/pathway routing sentence that should be skipped per REFERRAL TEMPLATE SCOPE?\n4. Am I coding what is written, not a diagnosis inferred from a value?\n5. For observables: is text only the parameter name/abbrev with value in value/unit fields?\n6. For procedures: if a body site appears in the sentence, does my text span include it?\n7. Did I preserve onset/chronicity/certainty/laterality qualifiers in lookup_term?\n8. Is confidence a genuine self-assessment and not a constant 1.0?\n\nReturn JSON only.\n"
+    },
+    {
+      "id": "c339a83d-7a49-47f1-9603-04582f6d9e98",
+      "name": "referral_extraction",
+      "version": 1,
+      "source": "user",
+      "max_few_shot": 12,
+      "few_shot_examples": [
+        {
+          "id": "seed_referral_ex_002",
+          "input": "[s0] No bloating, change in bowel habit, or rectal bleeding.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"bloating\", \"lookup_term\": \"bloating\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"change in bowel habit\", \"lookup_term\": \"change in bowel habit\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"rectal bleeding\", \"lookup_term\": \"rectal bleeding\", \"semantic_tag\": \"finding\", \"assertion\": \"absent\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "negation:compound",
+          "model_scope": "any",
+          "description": "Opening negation applies to every entity in the sentence",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_009",
+          "input": "[s0] Referred for physiotherapy.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"physiotherapy\", \"lookup_term\": \"physiotherapy\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:planned",
+          "model_scope": "any",
+          "description": "Booked referral -- confirmed, not yet happened",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_010",
+          "input": "[s0] Awaiting MRI spine.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"MRI spine\", \"lookup_term\": \"MRI scan of spine\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:planned",
+          "model_scope": "any",
+          "description": "Awaiting investigation -- confirmed, not yet done",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_011",
+          "input": "[s0] If associated with shortness of breath, seek urgent review.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Safety-netting text -- do not extract as present",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_012",
+          "input": "[s0] Will refer to cardiology if no improvement.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"refer to cardiology\", \"lookup_term\": \"referral to cardiology\", \"semantic_tag\": \"procedure\", \"assertion\": \"hypothetical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Conditional future action -- not yet arranged",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_015",
+          "input": "[s0] Patient declined statins.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"statins\", \"lookup_term\": \"statin\", \"semantic_tag\": \"substance\", \"assertion\": \"declined\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:declined",
+          "model_scope": "any",
+          "description": "Patient declined medication",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_016",
+          "input": "[s0] Patient refused colonoscopy.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"colonoscopy\", \"lookup_term\": \"colonoscopy\", \"semantic_tag\": \"procedure\", \"assertion\": \"declined\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:declined",
+          "model_scope": "any",
+          "description": "Patient refused investigation",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_017",
+          "input": "[s0] MRI cancelled due to claustrophobia.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"MRI\", \"lookup_term\": \"magnetic resonance imaging\", \"semantic_tag\": \"procedure\", \"assertion\": \"cancelled\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:cancelled",
+          "model_scope": "any",
+          "description": "Procedure cancelled",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_018",
+          "input": "[s0] DNA \u2014 appointment cancelled.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:cancelled",
+          "model_scope": "any",
+          "description": "Did not attend",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_033",
+          "input": "[s0] Urgent 2WW brain/CNS referral for personality change and new visual disturbance.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"personality change\", \"lookup_term\": \"personality change\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"visual disturbance\", \"lookup_term\": \"visual disturbance\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope",
+          "model_scope": "any",
+          "description": "2WW email header with symptoms -- skip referral routing phrase",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_034",
+          "input": "[s0] Refer this patient under the breast suspected cancer pathway.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"breast suspected cancer pathway\", \"lookup_term\": \"malignant neoplasm of breast suspected\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope",
+          "model_scope": "any",
+          "description": "Breast suspected pathway -- situation present",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_035",
+          "input": "[s0] An urgent MRI scan of the brain has been arranged as part of this 2WW brain/CNS referral.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"urgent MRI scan of the brain\", \"lookup_term\": \"magnetic resonance imaging of brain\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:ng12_mri",
+          "model_scope": "any",
+          "description": "NG12 plan -- MRI arranged, skip 2WW pathway echo",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_036",
+          "input": "[s0] Problem: Suspected lower GI cancer -- FIT+ in lab feed; 2WW referral placed. History: fresh rectal bleeding and change in bowel habit.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Suspected lower GI cancer\", \"lookup_term\": \"malignant neoplasm of lower gastrointestinal tract suspected\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"FIT+\", \"lookup_term\": \"faecal immunochemical test positive\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"fresh rectal bleeding\", \"lookup_term\": \"rectal bleeding\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"change in bowel habit\", \"lookup_term\": \"change in bowel habit\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:lower_gi_fit",
+          "model_scope": "any",
+          "description": "Lower GI -- suspected situation, FIT+, symptoms; skip referral placed",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_037",
+          "input": "[s0] Refer under the suspected cancer pathway for stomach cancer.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"suspected cancer pathway for stomach cancer\", \"lookup_term\": \"malignant neoplasm of upper gastrointestinal tract suspected\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:upper_gi_stomach",
+          "model_scope": "any",
+          "description": "Upper GI stomach pathway -- situation present",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_038",
+          "input": "[s0] Plan: 2WW lower GI referral submitted via e-Referral Service today.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "precision:referral_scope:submitted",
+          "model_scope": "any",
+          "description": "Plan line referral submitted -- no entity",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_040",
+          "input": "[s0] | The reason I am concerned this patient has cancer is: significant loss of appetite with intermittent vomiting. Patient has difficulty swallowing. FIT neg, Date Symptoms Started: end of september | | --- |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"loss of appetite\", \"lookup_term\": \"loss of appetite\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"intermittent vomiting\", \"lookup_term\": \"vomiting\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"difficulty swallowing\", \"lookup_term\": \"dysphagia\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"FIT neg\", \"lookup_term\": \"faecal immunochemical test\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "precision:referral_scope:ers_reason",
+          "model_scope": "any",
+          "description": "NHS eRS 2WW reason-for-referral table cell -- extract symptoms and investigation result, skip the label phrase",
+          "core": true
+        },
+        {
+          "id": "seed_referral_ex_041",
+          "input": "[s0] Referred to rheumatology.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"Referred to rheumatology\", \"lookup_term\": \"referral to rheumatology\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:referral",
+          "model_scope": "any",
+          "description": "Referred to specialist - procedure planned",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_042",
+          "input": "[s0] Awaiting knee replacement surgery.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"knee replacement surgery\", \"lookup_term\": \"knee replacement\", \"semantic_tag\": \"procedure\", \"assertion\": \"planned\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:referral",
+          "model_scope": "any",
+          "description": "Awaiting planned procedure",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_054",
+          "input": "[s0] If no improvement, will start prednisolone.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"prednisolone\", \"lookup_term\": \"prednisolone\", \"semantic_tag\": \"substance\", \"assertion\": \"hypothetical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Hypothetical with a specific planned drug",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_055",
+          "input": "[s0] Plan to start atorvastatin once LFTs checked.",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"atorvastatin\", \"lookup_term\": \"atorvastatin\", \"semantic_tag\": \"substance\", \"assertion\": \"hypothetical\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "situation:referral",
+          "model_scope": "any",
+          "description": "Medication planned but not yet started",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_068",
+          "input": "[s0] Follow up in 4 weeks.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Follow-up instruction \u2014 no clinical entity to extract",
+          "core": false
+        },
+        {
+          "id": "seed_referral_ex_069",
+          "input": "[s0] Advised to return if symptoms worsen or fail to improve within 48 hours.",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "assertion:hypothetical",
+          "model_scope": "any",
+          "description": "Return if worse \u2014 safety netting, no entity",
+          "core": false
+        },
+        {
+          "id": "form_checkbox_01",
+          "input": "[s0] | REFERRAL CRITERIA (mandatory field): |  | | --- | --- | | Well enough to attend clinic for further investigations PLUS: | [ ] | | Unexplained DVT | [ ] | | New, unexplained and unintentional weight loss | [ ] | | New, unexplained vague abdominal pain for four weeks or more | [ ] |",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Unchecked NSS criteria rows must not be extracted",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_02",
+          "input": "[s0] | REFERRAL CRITERIA (mandatory field): |  | | --- | --- | | Unexplained DVT | [ ] | | New, unexplained and unintentional weight loss | [ ] | | GP gut feeling of cancer diagnosis - | [X] | | Worrying symptoms though unable to place person on site specific 2ww pathway | [X] |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"GP gut feeling of cancer diagnosis\", \"lookup_term\": \"suspected malignant neoplasm\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"Worrying symptoms though unable to place person on site specific 2ww pathway\", \"lookup_term\": \"suspected cancer non site specific pathway\", \"semantic_tag\": \"situation\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Extract only [X] checked pathway criteria; ignore [ ] rows",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_03",
+          "input": "[s0] | WHO performance status (mandatory field): Please place x in relevant box | | --- | | [ ] 0 Fully Active | | [X] 1 Able to carry out light work | | [ ] 2 Capable of self-care up to and about 50% of the time | | [ ] 3 Limited self-care, confined to bed or chair | | [ ] 4 Completely disabled, no self-care ability |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"1 Able to carry out light work\", \"lookup_term\": \"WHO performance status 1\", \"semantic_tag\": \"staging scale\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "WHO performance status: extract only the [X] row as staging scale",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_04",
+          "input": "[s0] | The reason I am concerned this patient has cancer is: unilateral nipple discharge FIT Neg CA125 3 | | --- |",
+          "output": "{\"terms\": [{\"sentence_id\": \"s0\", \"text\": \"unilateral nipple discharge\", \"lookup_term\": \"nipple discharge\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"FIT Neg\", \"lookup_term\": \"faecal immunochemical test negative\", \"semantic_tag\": \"finding\", \"assertion\": \"present\", \"value\": null, \"unit\": null, \"reference_range\": null}, {\"sentence_id\": \"s0\", \"text\": \"CA125\", \"lookup_term\": \"CA125\", \"semantic_tag\": \"observable entity\", \"assertion\": \"present\", \"value\": \"3\", \"unit\": null, \"reference_range\": null}]}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "eRS reason cell: extract free text after colon, not the label",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_05",
+          "input": "[s0] Appendix A: Serious, Non-specific symptoms pathway Referral criteria: Well enough to attend clinic for further investigations PLUS: Unexplained DVT New, unexplained and unintentional weight loss New, unexplained vague abdominal pain for four weeks or more GP gut feeling of cancer diagnosis Investigations: Urine dipstick FIT FBC",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Appendix pathway criteria list without patient ticks is template noise",
+          "core": true
+        },
+        {
+          "id": "form_checkbox_06",
+          "input": "[s0] | Symptoms pathway (mandatory field): Please place x in relevant boxes | | --- | | [ ] New unexplained and unintentional weight loss | | [ ] New unexplained vague abdominal pain for four weeks or more | | [ ] New unexplained constitutional symptoms for four weeks or more | | Unexplained DVT | | [ ] GP intuition or gut feeling |",
+          "output": "{\"terms\": []}",
+          "deidentified": true,
+          "category": "form:checkbox",
+          "model_scope": "any",
+          "description": "Symptoms pathway list all unchecked -- extract nothing",
+          "core": true
+        }
+      ],
+      "system_prompt": "You are a UK primary care referral extraction model.\n\nExtract clinically meaningful entities that justify, explain, or result from\nreferral decisions in de-identified consultation text.\n\nYou will receive:\n1. full_encounter_text: full note for context only\n2. sentence_subset: sentence(s) to extract from\n\nCore rules:\n- Extract only from sentence_subset.\n- Use full_encounter_text only to resolve ambiguity.\n- Do not output assertion. Assertion is set downstream by post-processing.\n- Return JSON only in the configured schema.\n\nPriority:\n1. Keep referral evidence clinically grounded.\n2. Prefer concise, codable spans over long narrative fragments.\n3. Exclude admin and template noise.\n\nExtract:\n- site-named suspected cancer as situation (present), for example\n  \"suspected breast cancer\", \"breast suspected cancer pathway\",\n  \"suspected cancer pathway for stomach cancer\", \"gastric malignancy\",\n  \"suspected cancer pathway for assessment of oesophageal cancer\",\n  \"assess for oesophageal cancer\", \"exclude malignancy\"\n- positive family history as situation (present), for example\n  \"Mother had breast cancer\", \"FH of breast cancer\"\n- referral-relevant findings and symptoms (for example haematuria, rectal bleeding,\n  neck lump, progressive dysphagia, loss of appetite, vomiting, weight loss,\n  difficulty swallowing, abdominal pain, fatigue)\n- measurable observables only when a named parameter has a value\n- clinically important findings even when the sentence does not explicitly mention\n  referral wording\n\nNHS eRS 2WW form section headers (HIGHEST PRIORITY):\nThe following label phrases introduce the referral reason on NHS eRS and\nsite-specific 2WW referral forms. They appear as plain text or inside markdown\ntable cells (| label: content |). Skip the label phrase itself; extract ALL\nclinical content that follows the colon as findings or procedures:\n- \"The reason I am concerned this patient has cancer is:\"\n- \"The reason for referral is:\"\n- \"Referral information:\"\n- \"Referral criteria and clinical information:\"\n- \"Clinical information:\"\n- \"Reasons for request:\"\nDo not suppress content from these cells as section-heading or admin noise.\nTreat every symptom, sign, investigation result, and finding after the colon\nas a high-priority extraction target.\n\nCheckbox / guideline criteria forms (2WW, NSS, SystmOne Word/PDF):\n- Rows marked [ ] or empty checkbox are NOT present findings. Do not extract them.\n- Extract ONLY rows marked [X] / [x] / checked, plus free-text after reason labels.\n- Appendix / pathway criteria lists without patient ticks are template noise --\n  return no terms for those spans.\n- Do not treat guideline criterion labels (e.g. \"Unexplained DVT\") as true\n  just because they appear next to an empty checkbox.\n\nDo not extract (transport / admin only):\n- standalone admin workflow noise (appointment booked, letter sent, reviewed)\n- the label phrases themselves (section headings or form field labels)\n- values with no labelled clinical parameter\n- bare pathway codes with no clinical meaning beyond admin routing\n- \"2WW ... referral placed/submitted/sent\", e-Referral plumbing\n- email/form headers with no site or clinical content\n\n2WW / fast track rules:\n- KEEP site-named suspected cancer as situation (present); DROP pure transport.\n- If sentence_subset documents attendance in a fast-track clinic, extract as a finding.\n- If text explicitly says no malignancy found after completed fast-track workup,\n  extract that finding.\n- Do not require literal words \"referral\", \"2WW\", or \"pathway\" before extracting\n  red-flag symptoms, signs, or abnormal findings.\n- lookup_term shapes for situations:\n  \"malignant neoplasm of upper gastrointestinal tract suspected\",\n  \"malignant neoplasm of breast suspected\",\n  \"family history of malignant neoplasm of breast\"\n- For \"assessment of oesophageal cancer\" or \"assess for oesophageal cancer\",\n  emit ONE situation span with lookup_term\n  \"malignant neoplasm of upper gastrointestinal tract suspected\".\n  Do NOT also emit a bare \"oesophageal cancer\" disorder span.\n\nSurface form rules:\n- text must be exact source span from sentence_subset.\n- lookup_term should be concise and clinically faithful.\n- preserve qualifiers that change meaning (new, recurrent, persistent, suspected,\n  left/right, upper/lower, stage/grade words).\n\nReturn no entities when only administrative referral plumbing is present.\n"
+    }
+  ]
+}

@@ -46,7 +46,12 @@ def test_put_active_rejects_invalid_referral_policy(mock_cls) -> None:
             "_workflowMode": "durable_pubsub",
             "_referralPolicy": {
                 "schemaVersion": "1.0",
-                "extraction": {"windowSize": 3, "windowOverlap": 3},
+                "extraction": {
+                    "windowSize": 3,
+                    "windowOverlap": 3,
+                    "contextMode": "window_local",
+                    "maxWindowInputTokens": 3500,
+                },
             },
             "action": [{"id": "a1", "_subgraphId": "extraction"}],
         },

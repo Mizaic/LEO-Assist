@@ -1,0 +1,11 @@
+{
+  "name": "gpt-5.4-responses",
+  "provider": "azure",
+  "tier": "big",
+  "model_id": "gpt-5.4",
+  "reasoning_effort": "medium",
+  "verbosity": "low",
+  "use_reasoning": true,
+  "max_tokens": 512,
+  "example_ids": []
+}

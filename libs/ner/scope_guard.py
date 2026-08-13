@@ -49,8 +49,7 @@ logger = logging.getLogger(__name__)
 # Safety-netting / contingency text detection
 # ---------------------------------------------------------------------------
 
-_SAFETY_NETTING_RE = re.compile(
-    r"\b("
+_BUILTIN_SAFETY_NETTING_ALTS = (
     r"if\s+(?:you\s+)?(?:develop|experience|notice|get|have|feel|become|worsen)"
     r"|anytime\s+you\s+have"
     r"|any\s+time\s+you\s+have"
@@ -65,9 +64,19 @@ _SAFETY_NETTING_RE = re.compile(
     r"|return\s+(?:immediately|urgently|sooner)\s+if"
     r"|(?:come|go)\s+back\s+(?:if|should)"
     r"|(?:ring|phone|contact)\s+(?:us|the\s+surgery|your\s+(?:gp|doctor))\s+if"
-    r")\b",
-    re.IGNORECASE,
 )
+
+
+def _build_safety_netting_re(custom: list[str]) -> re.Pattern[str]:
+    alts = _BUILTIN_SAFETY_NETTING_ALTS
+    if custom:
+        alts = alts + "|" + "|".join(custom)
+    return re.compile(r"\b(" + alts + r")\b", re.IGNORECASE)
+
+
+_SAFETY_NETTING_RE = _build_safety_netting_re([])
+
+
 
 # ---------------------------------------------------------------------------
 # Treatment recommendation / advisory language
@@ -175,6 +184,52 @@ def _is_side_effect_list_item(sentence_text: str, entity_text: str) -> bool:
         return False
     items = (match.group("items") or "").lower()
     return text.lower() in items
+
+
+def _fetch_neo4j_scope_rules(family: str) -> list[dict]:
+    """Fetch :NerGuardRule nodes for the scope guard from Neo4j.
+
+    Returns [] when Neo4j is unreachable.
+    """
+    try:
+        from libs.pipeline.config_loader import _fetch_neo4j_rules
+
+        return _fetch_neo4j_rules(family)
+    except Exception:
+        logger.warning(
+            "Could not fetch scope guard rules from Neo4j -- using builtins",
+            exc_info=True,
+        )
+        return []
+
+
+def reload_scope_guard() -> None:
+    """Rebuild the safety-netting regex from Neo4j custom rules.
+
+    Call this after creating or deactivating an :NerGuardRule node with
+    family='scope_guard'.
+    """
+    global _SAFETY_NETTING_RE
+    import json
+
+    rows = _fetch_neo4j_scope_rules("scope_guard")
+    custom_patterns: list[str] = []
+    for row in rows:
+        if not row.get("active", True):
+            continue
+        try:
+            payload = json.loads(row.get("payload") or "{}")
+        except (ValueError, TypeError):
+            payload = {}
+        rule_type = payload.get("rule_type") or row.get("rule_type", "safety_netting")
+        pattern = payload.get("pattern") or row.get("pattern", "")
+        if pattern and rule_type == "safety_netting":
+            custom_patterns.append(pattern)
+    _SAFETY_NETTING_RE = _build_safety_netting_re(custom_patterns)
+    logger.info(
+        "Scope guard reloaded: %d custom safety-netting patterns",
+        len(custom_patterns),
+    )
 
 
 def is_safety_netting_sentence(sentence_text: str) -> bool:

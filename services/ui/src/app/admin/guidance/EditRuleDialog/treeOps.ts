@@ -689,6 +689,17 @@ export function applyUpdate(
           ? { ...n, observation: { ...update.observation } }
           : n,
       );
+    case "convert_concept_to_observation":
+      return mapNode(root, (n) => {
+        if (n.node_id !== update.nodeId || n.kind !== "CONCEPT") return n;
+        const { criterion: _drop, ...rest } = n;
+        void _drop;
+        return {
+          ...rest,
+          kind: "OBSERVATION",
+          observation: { ...update.observation },
+        };
+      });
     case "set_name": {
       // Only group nodes may carry a plain-English name. Silent no-op
       // on leaves so a stale handler wired to a CONCEPT / DEMOGRAPHIC

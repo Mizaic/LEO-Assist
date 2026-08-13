@@ -85,7 +85,7 @@ describe("EditRuleDialog: guided reopen after a filled multi-pathway save", () =
       screen.getByRole("region", { name: /live preview of this rule/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("region", { name: /nice guideline wording for this rule/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
+    ).toBeInTheDocument();
   });
 });

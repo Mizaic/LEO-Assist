@@ -179,7 +179,8 @@ function highlightTerms(text: string, terms: EncounterDetail["coded_terms"]): Re
       `${term.system ?? "SNOMED"}: ${term.code_id ?? ""}`,
       term.assertion ? `Assertion: ${term.assertion}` : null,
       term.confidence != null ? `Confidence: ${Math.round(term.confidence * 100)}%` : null,
-      term.evidence_sentence ? `"${term.evidence_sentence}"` : null,
+      term.evidence ? `evidence: "${term.evidence}"` : null,
+      term.evidence_sentence ? `evidence_sentence: "${term.evidence_sentence}"` : null,
     ].filter(Boolean).join(" | ");
     return (
       <Tooltip key={i} title={tip} arrow>
@@ -288,7 +289,8 @@ function EncounterViewer({
                   const tipLines = [
                     t.code_id ? `${t.system}: ${t.code_id}` : null,
                     t.confidence != null ? `Confidence: ${Math.round(t.confidence * 100)}%` : null,
-                    t.evidence_sentence ? `Evidence: "${t.evidence_sentence}"` : null,
+                    t.evidence ? `evidence: "${t.evidence}"` : null,
+                    t.evidence_sentence ? `evidence_sentence: "${t.evidence_sentence}"` : null,
                     t.value != null ? `Value: ${t.value}${t.unit ? " " + t.unit : ""}` : null,
                   ].filter(Boolean).join(" | ");
                   return (

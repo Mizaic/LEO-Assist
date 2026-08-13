@@ -92,6 +92,18 @@ from libs.cypher.extraction_scenario_queries import (
     EXTRACTION_SCENARIO_CONSTRAINTS,
 )
 
+# Configurable NER guard rules (P1-A config infrastructure -- DO-F20DE29D)
+NER_GUARD_RULE_CONSTRAINTS: list[str] = [
+    "CREATE CONSTRAINT ner_guard_rule_id IF NOT EXISTS FOR (r:NerGuardRule) REQUIRE r.rule_id IS UNIQUE",
+    "CREATE INDEX ner_guard_rule_family IF NOT EXISTS FOR (r:NerGuardRule) ON (r.family)",
+    "CREATE INDEX ner_guard_rule_org IF NOT EXISTS FOR (r:NerGuardRule) ON (r.org_id)",
+    "CREATE INDEX ner_guard_rule_active IF NOT EXISTS FOR (r:NerGuardRule) ON (r.active)",
+    # Backfill: ContextRule and LabelPostProcessorRule lacked constraints
+    "CREATE INDEX context_rule_org IF NOT EXISTS FOR (r:ContextRule) ON (r.org_id)",
+    "CREATE INDEX context_rule_active IF NOT EXISTS FOR (r:ContextRule) ON (r.active)",
+    "CREATE INDEX label_post_processor_rule_active IF NOT EXISTS FOR (r:LabelPostProcessorRule) ON (r.active)",
+]
+
 CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE FULLTEXT INDEX surface_form_fulltext IF NOT EXISTS FOR (sf:SurfaceForm) ON EACH [sf.form]",
     "CREATE CONSTRAINT surface_form_normalized IF NOT EXISTS FOR (sf:SurfaceForm) REQUIRE sf.normalized IS UNIQUE",
@@ -107,5 +119,8 @@ CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE INDEX gold_label_candidate IF NOT EXISTS FOR (g:GoldLabel) ON (g.candidate_id)",
     "CREATE CONSTRAINT surface_form_task_id IF NOT EXISTS FOR (t:SurfaceFormTask) REQUIRE t.task_id IS UNIQUE",
     "CREATE INDEX surface_form_task_status IF NOT EXISTS FOR (t:SurfaceFormTask) ON (t.status)",
+    "CREATE CONSTRAINT uncoded_phrase_key IF NOT EXISTS FOR (u:UncodedPhrase) REQUIRE u.phrase_key IS UNIQUE",
+    "CREATE INDEX uncoded_phrase_status IF NOT EXISTS FOR (u:UncodedPhrase) ON (u.status)",
     *EXTRACTION_SCENARIO_CONSTRAINTS,
+    *NER_GUARD_RULE_CONSTRAINTS,
 ]

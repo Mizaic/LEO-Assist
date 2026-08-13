@@ -364,6 +364,30 @@ describe("LogicTreeEditor -- OR-root pathway list layout", () => {
       groupKind: "OR",
     });
   });
+
+  it("clicking 'Patient should not have' dispatches add_group with groupKind NOT", () => {
+    const tree = makeOrRoot();
+    const pathwayA = tree.children?.[0];
+    const onUpdate = jest.fn();
+    render(
+      <LogicTreeEditor
+        root={tree}
+        selectedNodeId={null}
+        onSelect={noop}
+        onUpdate={onUpdate}
+        onRequestAdd={noop}
+      />,
+    );
+    const shouldNotBtns = screen.getAllByRole("button", {
+      name: /patient should not have/i,
+    });
+    fireEvent.click(shouldNotBtns[0]);
+    expect(onUpdate).toHaveBeenCalledWith({
+      kind: "add_group",
+      parentNodeId: pathwayA?.node_id,
+      groupKind: "NOT",
+    });
+  });
 });
 
 describe("LogicTreeEditor -- pathway split nested inside a demographic AND (NG12 1.2.9)", () => {

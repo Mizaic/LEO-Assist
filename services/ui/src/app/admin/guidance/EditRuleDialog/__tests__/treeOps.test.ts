@@ -165,6 +165,47 @@ describe("treeOps", () => {
     });
   });
 
+  it("convert_concept_to_observation replaces a coded CONCEPT with an OBSERVATION leaf", () => {
+    const tree = assignNodeIds({
+      kind: "AND",
+      children: [
+        {
+          kind: "CONCEPT",
+          criterion: {
+            snomed_concept_id: "396361002",
+            preferred_term: "Lesion size, largest dimension",
+            semantic_tag: "observable_entity",
+            seeds: [
+              {
+                snomed_concept_id: "396361002",
+                preferred_term: "Lesion size, largest dimension",
+                semantic_tag: "observable_entity",
+              },
+            ],
+          },
+        },
+      ],
+    });
+    const conceptId = tree.children![0].node_id;
+    const updated = applyUpdate(tree, {
+      kind: "convert_concept_to_observation",
+      nodeId: conceptId,
+      observation: {
+        kind: "OBSERVATION",
+        observable_id: "396361002",
+        observable_term: "Lesion size, largest dimension",
+        operator: ">=",
+        value: 7,
+        unit: "mm",
+        within_days: 365,
+      },
+    });
+    const leaf = updated!.children![0];
+    expect(leaf.kind).toBe("OBSERVATION");
+    expect(leaf.criterion).toBeUndefined();
+    expect(leaf.observation).toMatchObject({ value: 7, unit: "mm" });
+  });
+
   it("add_group nests a new empty OR sub-group under an AND pathway, enabling AND + a set of OR's", () => {
     const tree = makeTree();
     const updated = applyUpdate(tree, {

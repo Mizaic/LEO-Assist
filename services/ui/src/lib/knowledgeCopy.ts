@@ -21,6 +21,7 @@ export type KnowledgeTabKey =
   | "training-data"
   | "surface-forms"
   | "context-rules"
+  | "guard-rules"
   | "ai-instructions"
   | "clinical-guidelines"
   | "pathways"
@@ -65,34 +66,34 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
 
   "surface-forms": {
     default: {
-      title: "Surface Forms",
-      lede: "Match the words clinicians write to the codes LEO uses.",
-      how: "Add a phrase, link it to a code, and save.",
-      what: "LEO will pick up the phrase in new notes and code it.",
+      title: "Phrase mappings",
+      lede: "When LEO cannot code a phrase, it lands here grouped by the words.",
+      how: "Search for the code. Save a draft. A different person publishes it.",
+      what: "Publishing is what makes the next note use the mapping.",
     },
     triage_clinician: {
       title: "Phrase shortcuts",
       lede: "Local phrases your team writes that mean the same thing.",
-      how: "Add a phrase and link it to the code you want LEO to pick.",
-      what: "LEO reads the phrase as that code from now on.",
+      how: "Pick the code that fits. Save a draft for a colleague to publish.",
+      what: "After publish, LEO reads the phrase as that code.",
     },
     clinical_administrator: {
-      title: "Surface forms queue",
-      lede: "Clinician phrases waiting to be linked to a SNOMED code.",
-      how: "Search for the code. Link it. Save the pair.",
-      what: "The next note that uses the phrase gets coded right.",
+      title: "Phrase mappings queue",
+      lede: "Phrases the pipeline could not code, waiting for a mapping.",
+      how: "Search for the code. Save a draft. Someone else publishes.",
+      what: "A published mapping is what the pipeline uses next time.",
     },
     auditor: {
-      title: "Lexicon change log",
-      lede: "Every surface form mapping, author, and review status.",
-      how: "Audit new mappings weekly and retire unused ones.",
-      what: "Keeps the lexicon explainable in a regulator inspection.",
+      title: "Phrase mapping log",
+      lede: "Every draft, publish, and exclude for phrases LEO could not code.",
+      how: "Check who drafted and who published. They must be different people.",
+      what: "This keeps the live dictionary explainable in an inspection.",
     },
     platform_admin: {
-      title: "Surface form rules",
-      lede: "Lexicon size, import jobs, and per-tenant overrides.",
-      how: "Run the bulk import and review job results.",
-      what: "Large tenants share a base lexicon with local overrides.",
+      title: "Phrase mapping rules",
+      lede: "Inbox size, drafts, and live dictionary for this site.",
+      how: "Watch the inbox count and the publish queue.",
+      what: "Large sites share one dictionary with local drafts.",
     },
   },
 
@@ -126,6 +127,39 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       lede: "Trigger phrases and the tenants each rule set is scoped to.",
       how: "Review which tenants share rule sets and which override them.",
       what: "Keeps rule scope transparent per tenant.",
+    },
+  },
+
+  "guard-rules": {
+    default: {
+      title: "Pipeline Guards",
+      lede: "Rules that filter or adjust what LEO extracts from a note.",
+      how: "Add a rule, set the pattern, and save. No code change needed.",
+      what: "Guards run after extraction and before coding. They stop wrong codes reaching reviewers.",
+    },
+    triage_clinician: {
+      title: "Extraction filters",
+      lede: "Rules that stop LEO coding things it should not.",
+      how: "Check the list. If a rule is wrong, flag it for a platform admin.",
+      what: "Each rule stops one kind of error before it reaches your queue.",
+    },
+    clinical_administrator: {
+      title: "Guard rule queue",
+      lede: "Rules that filter extractions before they become codes.",
+      how: "Review new rules. Check the pattern matches your expectations.",
+      what: "Approved rules run at the next pipeline trigger.",
+    },
+    auditor: {
+      title: "NER guard rules (evidence)",
+      lede: "Configurable NerGuardRule nodes that extend built-in pipeline guards.",
+      how: "Audit rule history, check family and scope, and confirm version evidence.",
+      what: "Supports IEC 62304 traceability for DI-34712A9A.",
+    },
+    platform_admin: {
+      title: "Pipeline guard configuration",
+      lede: "Extend guard families without a code change. Rules live in Neo4j.",
+      how: "Pick a family, add a pattern-based rule, set scope and priority.",
+      what: "Three-tier loading: seed defaults then Neo4j overrides per org or plan.",
     },
   },
 
@@ -264,9 +298,9 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
   "validation-lab": {
     default: {
       title: "Validation Lab",
-      lede: "One place to build a test patient, run the referral, and save gold.",
-      how: "Add a patient, PMH, and encounters, then write and submit a referral.",
-      what: "One testing path for extraction, codes, rules, and SBAR.",
+      lede: "Check that LEO reads a letter the way you would.",
+      how: "Make a test, run it, then check each step.",
+      what: "A saved test helps LEO stay right next time.",
     },
     triage_clinician: {
       title: "Validation Lab",

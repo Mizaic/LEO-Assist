@@ -762,19 +762,22 @@ def _recheck_suggest_alts(term: str, entity_label: str) -> list[str]:
     import json as _json
 
     from libs.llm_client.factory import create_llm
+    from libs.llm_client.prompt_safety import INJECTION_GUARD
 
-    system = (
-        "You are a UK primary care clinical terminology assistant. "
-        "Your job is to suggest alternative phrasings that would match SNOMED CT concepts. "
-        "If the term is too vague, ambiguous, or product-specific to have useful SNOMED "
-        "alternatives, you MUST return an empty array []. "
-        "Respond ONLY with a valid JSON array of strings -- no explanation, no markdown."
+    system = INJECTION_GUARD + (
+        "Objective: Suggest SNOMED CT-friendly alternative phrasings for one "
+        "UK primary care term.\n"
+        "Scope: Return a preferred term, common abbreviation, or close synonym "
+        "only when it preserves the supplied meaning and entity type.\n"
+        "Hard requirements: Do not guess. If the term is vague, ambiguous, "
+        "product-specific, or has no useful alternatives, return [].\n"
+        "Output contract: Return only a valid JSON array containing at most "
+        "3 unique strings. Do not add prose, markdown, or code fences."
     )
     user = (
         f'Term: "{term}" (type: {entity_label})\n'
-        "Suggest up to 3 alternatives: the preferred SNOMED term, a common abbreviation, "
-        "and one synonym a UK GP might write. "
-        "If you cannot suggest meaningful alternatives, return []. "
+        "Suggest the preferred SNOMED term, a common abbreviation, and one "
+        "synonym a UK GP might write when each is meaningful. "
         'Output format: ["phrase1", "phrase2"] or []'
     )
     try:

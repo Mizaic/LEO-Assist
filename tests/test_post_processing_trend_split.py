@@ -7,6 +7,11 @@ def test_now_marker_overrides_pre_marker_value_through_full_pipeline():
     # "weight loss 10kg - now 79kg": the 10kg is a delta (weight change), so
     # only the post-"now" value (79kg) should reach the observable's
     # value/unit fields after the full post-processing stack runs.
+    #
+    # `text` stays as the full original surface form (commit e31352a1
+    # deliberately removed truncation here): the terminology subgraph needs
+    # the complete span, including the delta number, to resolve the correct
+    # SNOMED concept. Only the structured value/unit fields are overridden.
     encounter = "weight loss 10kg - now 79kg"
     entities = [
         {
@@ -27,7 +32,7 @@ def test_now_marker_overrides_pre_marker_value_through_full_pipeline():
     obs = observables[0]
     assert str(obs.get("value")) == "79"
     assert str(obs.get("unit")).lower() == "kg"
-    assert obs.get("text") == "weight loss 10kg"
+    assert obs.get("text") == encounter
 
 
 def test_splits_observable_into_present_and_historical_values():

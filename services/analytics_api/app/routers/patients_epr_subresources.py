@@ -18,6 +18,8 @@ from pydantic import BaseModel
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
 from libs.neo4j_client.client import PatientGraphClient
+from libs.patient_documents.blob_url_signer import sign_patient_document_url
+from libs.patient_documents.folder_label import resolve_document_folder_label
 
 from .patients_epr_queries import (
     GET_ALERTS_ADMIN,
@@ -45,6 +47,7 @@ def _coerce_optional_text(value: Any) -> Optional[str]:
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -78,6 +81,7 @@ class CodedTerm(BaseModel):
     code_id: Optional[str] = None
     display: Optional[str] = None
     system: str = "SNOMED"
+    evidence: Optional[str] = None
     evidence_sentence: Optional[str] = None
     assertion: Optional[str] = None
     confidence: Optional[float] = None
@@ -117,7 +121,9 @@ class DocumentRow(BaseModel):
     markdown_url: Optional[str] = None
     episode_id: Optional[str] = None
     episode_label: str = "General"
+    folder_label: str = "General"
     referral_id: Optional[str] = None
+    chunk_count: int = 0
     sbar: Optional[SbarContent] = None
 
 
@@ -169,9 +175,7 @@ class EpisodeMilestones(BaseModel):
     steps: list[MilestoneStep] = []
 
 
-def _cypher_params(
-    scope: CallerScope, patient_id: str, **extra: Any
-) -> dict[str, Any]:
+def _cypher_params(scope: CallerScope, patient_id: str, **extra: Any) -> dict[str, Any]:
     params: dict[str, Any] = {"patient_id": patient_id, **extra}
     if not scope.is_admin:
         params["scope_org_ids"] = scope.org_ids
@@ -239,9 +243,12 @@ def get_encounter_detail(
             code_id=t.get("code_id"),
             display=_strip_snomed_suffix(t.get("display") or t.get("code_id")),
             system=t.get("system") or "SNOMED",
+            evidence=t.get("evidence"),
             evidence_sentence=t.get("evidence_sentence"),
             assertion=t.get("assertion"),
-            confidence=float(t["confidence"]) if t.get("confidence") is not None else None,
+            confidence=(
+                float(t["confidence"]) if t.get("confidence") is not None else None
+            ),
             value=str(t["value"]) if t.get("value") is not None else None,
             unit=t.get("unit"),
         )
@@ -295,11 +302,18 @@ def get_patient_documents(
                 text_preview=r.get("text_preview") or None,
                 full_text=r.get("full_text") or "",
                 content_type=r.get("content_type") or None,
-                original_url=r.get("original_url") or None,
-                markdown_url=r.get("markdown_url") or None,
+                original_url=sign_patient_document_url(r.get("original_url") or None),
+                markdown_url=sign_patient_document_url(r.get("markdown_url") or None),
                 episode_id=r.get("episode_id"),
                 episode_label=r.get("episode_label") or "General",
+                folder_label=resolve_document_folder_label(
+                    episode_label=r.get("episode_label") or "General",
+                    clinic_type=r.get("clinic_type") or None,
+                    referral_specialty=r.get("referral_specialty") or None,
+                    service_name=r.get("service_name") or None,
+                ),
                 referral_id=r.get("referral_id") or None,
+                chunk_count=int(r.get("chunk_count") or 0),
                 sbar=sbar,
             )
         )
@@ -485,10 +499,15 @@ def patch_alert(
 ) -> AlertActionResult:
     """Mark an alert as reviewed, resolved, or escalated."""
     if body.action not in {"resolve", "escalate", "review"}:
-        raise HTTPException(status_code=400, detail="action must be resolve, escalate, or review")
+        raise HTTPException(
+            status_code=400, detail="action must be resolve, escalate, or review"
+        )
     params = _cypher_params(
-        scope, patient_id, alert_id=alert_id,
-        action=body.action, reviewed_by=body.reviewed_by or "user",
+        scope,
+        patient_id,
+        alert_id=alert_id,
+        action=body.action,
+        reviewed_by=body.reviewed_by or "user",
     )
     client = PatientGraphClient()
     try:

@@ -5,11 +5,10 @@ Atlas trace:
   DI: DI-CBCA6E2D
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-710D9EEB")
 
-Cheap Haiku batched relevance triage for the encounters that the
-always-keep guards have NOT already kept. The model receives up to 20
-short encounter snippets at a time, plus the suspected cancer site, and
-returns a per-encounter ``keep`` decision with a one-sentence
-plain-English reason.
+The configured small-tier model performs batched relevance triage for
+encounters that the always-keep guards have NOT already kept. Azure OpenAI
+GPT-5 is primary and AWS Bedrock is optional. The model receives up to 20
+short encounter snippets and returns one ``keep`` decision per encounter.
 
 Reading age 9-11 throughout the prompt and in the model response.
 """
@@ -23,8 +22,15 @@ TOOL_NAME = "submit_relevance"
 
 SYSTEM = INJECTION_GUARD + (
     "You are a UK primary care cancer pathway focus assistant.\n"
-    "You will look at a batch of short encounter notes and decide which\n"
-    "ones to KEEP for a deeper cancer pathway audit.\n\n"
+    "OBJECTIVE\n"
+    "Decide which short encounter notes to KEEP for a deeper cancer\n"
+    "pathway audit.\n\n"
+    "PRIORITY ORDER\n"
+    "1. Never drop an encounter that may contain pathway evidence.\n"
+    "2. Keep safety-netting, delay, investigation, and treatment evidence.\n"
+    "3. Drop only clearly unrelated routine care or empty admin echoes.\n"
+    "4. Return exactly one schema-valid decision per input encounter.\n\n"
+    "HARD REQUIREMENTS\n"
     "KEEP an encounter when it is about ANY of these:\n"
     "  - the suspected cancer or the work-up that looks for it\n"
     "    (symptoms, examinations, blood tests, scans, biopsies)\n"
@@ -51,7 +57,8 @@ SYSTEM = INJECTION_GUARD + (
     "  - keep (true or false)\n"
     "  - reason (one short sentence in plain English, no medical\n"
     "    jargon, no abbreviations on first use)\n\n"
-    "Respond by calling the submit_relevance tool ONCE.\n"
+    "OUTPUT CONTRACT\n"
+    "Call submit_relevance exactly once with one decision per input row.\n"
 )
 
 

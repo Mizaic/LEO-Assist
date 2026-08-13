@@ -229,6 +229,8 @@ def test_encounter_detail_reads_documents_relationship():
     queries_src = _read(QUERIES)
     assert ":DOCUMENTS]->(concept)" in queries_src
     assert "GET_ENCOUNTER_DETAIL_ADMIN" in queries_src
+    assert "evidence: rel.evidence" in queries_src
+    assert "evidence_sentence: rel.evidence_sentence" in queries_src
 
 
 def test_encounter_list_counts_documents_links():
@@ -249,6 +251,10 @@ def test_documents_query_includes_referral_linked_document_references():
     )
     assert "UNION" in queries_src
     assert "rr_via:ReferralRequest)-[:HAS_DOCUMENT]->(doc)" in queries_src
+    assert "AS clinic_type" in queries_src
+    assert "AS service_name" in queries_src
+    assert "AS chunk_count" in queries_src
+    assert "count(chunk) AS chunk_count" in queries_src
 
 
 def test_timeline_query_includes_referrals_and_documents():
@@ -267,4 +273,4 @@ def test_timeline_query_includes_referrals_and_documents():
 def test_documents_query_returns_referral_id():
     queries_src = _read(QUERIES)
     assert "AS referral_id" in queries_src
-    assert "WITH doc, full_text, ep, rr, head(collect(a)) AS a" in queries_src
+    assert "WITH doc, full_text, ep, rr, svc, head(collect(a)) AS a" in queries_src

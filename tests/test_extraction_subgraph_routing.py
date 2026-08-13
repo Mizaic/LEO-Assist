@@ -6,8 +6,10 @@ pytest.importorskip("langgraph.graph")
 
 from libs.ner.extractor_contract import ExtractionItem
 from libs.pipeline_graph.subgraphs.extraction import (
+    _llm_model_fields,
     _resolve_model_mode,
     extract_entities,
+    merge_results,
 )
 from libs.workflow.engine import WorkflowEngine
 
@@ -251,7 +253,7 @@ def _stub_llm_run(monkeypatch, calls: list[str]):
     module (which depends on numpy / torch).
     """
 
-    def _fake_llm(encounter_text, chunks, state):
+    def _fake_llm(encounter_text, chunks, state, **_kwargs):
         calls.append("llm")
         return {
             "entities": [
@@ -465,3 +467,25 @@ def test_record_to_action_ordinary_action_defaults_to_action():
     action = WorkflowEngine._record_to_action(record)
     assert action.node_type == "action"
     assert action.subgraph_id == "extraction"
+
+
+def test_merge_results_warns_when_no_facts_found():
+    result = merge_results(
+        {"entities": [], "extraction_route": "llm-windowed"}
+    )
+    assert result["entities"] == []
+    assert result["warnings"]
+    assert "found no clinical facts" in result["warnings"][0]
+
+
+def test_llm_model_fields_use_live_deployment_id():
+    fields = _llm_model_fields(
+        {},
+        {
+            "model_id": "gpt-5-mini",
+            "prompt_name": "extraction",
+            "prompt_version": 1,
+        },
+    )
+    assert fields["extraction_model_name"] == "gpt-5-mini"
+    assert fields["extraction_model_version"] == "extraction v1"

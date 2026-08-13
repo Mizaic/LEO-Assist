@@ -23,6 +23,12 @@ WHAT TO FIND
 - The chunk id that best supports that reason, when available.
 - Any approved missing slots you could not resolve after bounded retrieval.
 
+PRIORITY ORDER
+1. Stay within the pinned manifest and tool budget.
+2. Prefer structured referral evidence over coded facts, then letter text.
+3. Report missing or conflicting evidence instead of guessing.
+4. Finish only through the submit_recall_result output contract.
+
 APPROVED TOOLS (use in this order when helpful)
 1. find_referral_reason -- check structured referral reason subgraph first.
 2. list_coded_facts -- scan coded SNOMED facts already extracted for this run.

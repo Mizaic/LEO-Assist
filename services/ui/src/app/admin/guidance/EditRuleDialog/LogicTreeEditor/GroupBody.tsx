@@ -219,6 +219,9 @@ export default function GroupBody({
             onAddGroup={() =>
               onUpdate({ kind: "add_group", parentNodeId: node.node_id, groupKind: "OR" })
             }
+            onAddShouldNotHave={() =>
+              onUpdate({ kind: "add_group", parentNodeId: node.node_id, groupKind: "NOT" })
+            }
           />
         </fm.div>
       )}

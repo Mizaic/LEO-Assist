@@ -12,14 +12,22 @@ import { color } from "../tokens/color";
 import { radius } from "../tokens/spacing";
 import { typography } from "../tokens/typography";
 import { useMotion } from "../motion";
+import { ProgressStripScanner } from "./ProgressStripScanner";
 
 export interface ProgressStripProps {
   label: string;
-  value: number;
-  total: number;
+  /** Ignored when indeterminate is true. */
+  value?: number;
+  /** Ignored when indeterminate is true. */
+  total?: number;
   // Optional right-hand side subtitle (e.g. "55% complete").
   subtitle?: string;
   tone?: "neutral" | "positive" | "warning" | "danger";
+  /**
+   * When true, shows a slow mindfulness pulse instead of a percent fill.
+   * Use for long jobs with no server-side percent.
+   */
+  indeterminate?: boolean;
 }
 
 /**
@@ -44,20 +52,26 @@ function clampPct(value: number, total: number): number {
 
 export function ProgressStrip({
   label,
-  value,
-  total,
+  value = 0,
+  total = 0,
   subtitle,
   tone = "neutral",
+  indeterminate = false,
 }: ProgressStripProps) {
   const { reducedMotion } = useMotion();
-  const pct = clampPct(value, total);
+  const pct = indeterminate ? 0 : clampPct(value, total);
   const fill = toneFill(tone);
   const transitionMs = reducedMotion ? 0 : 360;
+  const rightLabel =
+    subtitle ?? (indeterminate ? "In progress" : pct + "% complete");
+  const trackHeight = 8;
 
   return (
     <section
       aria-label={label}
+      aria-busy={indeterminate || undefined}
       data-testid="progress-strip"
+      data-indeterminate={indeterminate ? "true" : "false"}
       style={{
         background: color.surface.raised,
         border: "1px solid " + color.surface.divider,
@@ -91,36 +105,42 @@ export function ProgressStrip({
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {subtitle ?? pct + "% complete"}
+          {rightLabel}
         </span>
       </header>
       <div
         role="progressbar"
         aria-label={label}
-        aria-valuenow={pct}
+        aria-valuenow={indeterminate ? undefined : pct}
         aria-valuemin={0}
         aria-valuemax={100}
         data-testid="progress-strip-track"
         style={{
           position: "relative",
-          height: 8,
+          height: trackHeight,
           borderRadius: radius.pill,
           background: color.surface.alt,
           overflow: "hidden",
         }}
       >
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: pct + "%",
-            background: fill,
-            borderRadius: radius.pill,
-            transition:
-              "width " + transitionMs + "ms ease-out, background 180ms ease-out",
-          }}
-        />
+        {indeterminate ? (
+          <ProgressStripScanner reducedMotion={reducedMotion} />
+        ) : (
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: pct + "%",
+              background: fill,
+              borderRadius: radius.pill,
+              transition:
+                "width " +
+                transitionMs +
+                "ms ease-out, background 180ms ease-out",
+            }}
+          />
+        )}
       </div>
     </section>
   );

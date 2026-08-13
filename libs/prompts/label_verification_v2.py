@@ -1,4 +1,4 @@
-"""V2 label verification prompt — INSTRUCTIONS ONLY.
+"""V2 label verification prompt -- INSTRUCTIONS ONLY.
 
 Atlas trace:
   DO: DO-54397CCD
@@ -7,7 +7,7 @@ Atlas trace:
 
 Output schema and few-shot examples are stored separately in Neo4j and
 assembled at runtime. Do NOT add output format sections or inline examples
-to this file — manage them via the Admin UI at /admin/prompts
+to this file -- manage them via the Admin UI at /admin/prompts
 (name='label_verification', version=2).
 
 Run ``python -m scripts.seed_prompt_configs`` to push changes to Neo4j.
@@ -74,7 +74,7 @@ Allowed labels:
 
 Decision ladder (apply in order):
 1) Document/admin artifact or correspondence phrase -> record_artifact or event
-2) Risk/ruled-out/pathway-status statement -> situation (NOT for negated entities — \
+2) Risk/ruled-out/pathway-status statement -> situation (NOT for negated entities -- \
 negated entities keep their base clinical type per the negation rules below)
 3) Clinical action / investigation / treatment phrase -> procedure, including \
 mentions that are planned, historical, hypothetical, absent, or under discussion \
@@ -90,15 +90,15 @@ the drug name alone (e.g. "Degarelix") -> substance.
 10) Staging/grade values -> qualifier_value or tumor_staging/staging_scale
 11) Temporal expression -> X_TEMPORAL
 12) MEDICATION dose/frequency/route tokens -> X_DOSAGE / X_FREQUENCY / X_ROUTE
-13) Do NOT label negation tokens (no, denies, without) as entities — negation is handled by post-processing
+13) Do NOT label negation tokens (no, denies, without) as entities -- negation is handled by post-processing
 
-IMPORTANT — Negation is handled by post-processing, NOT by entity labels:
+IMPORTANT -- Negation is handled by post-processing, NOT by entity labels:
 - Do NOT label negation tokens (no, denies, without, nil, never) as entities
 - Post-processing stores assertion=absent on the negated entity automatically
-- If you see a negated concept ("no jaundice"), label "jaundice" with its correct clinical type (finding/disorder) — the negation is handled separately
-- If an entity seems redundant or overlapping, keep its CORRECT clinical label — do not try to remove it by mislabeling
+- If you see a negated concept ("no jaundice"), label "jaundice" with its correct clinical type (finding/disorder) -- the negation is handled separately
+- If an entity seems redundant or overlapping, keep its CORRECT clinical label -- do not try to remove it by mislabeling
 
-IMPORTANT — Multi-label spans:
+IMPORTANT -- Multi-label spans:
 - One span of text can have two or more correct labels. Keep all of them.
 - Do not reduce a multi-label span to a single semantic type.
 - Multi-label annotations are clinically valid and intentional.
@@ -110,12 +110,12 @@ X_DOSAGE vs qualifier_value:
 - Number next to a drug name (e.g. "Degarelix 240 mg") -> X_DOSAGE
 - Number next to a lab test name (e.g. "Serum sodium level 142 mmol/L") -> qualifier_value
 
-CRITICAL — substance vs observable_entity for analyte names:
+CRITICAL -- substance vs observable_entity for analyte names:
 - Bare analyte names (creatinine, albumin, phosphate, cholesterol) within lab result context are NOT standalone substance entities
 - "creatinine" in "Urine creatinine level 5.5 mmol/L" -> do NOT label separately; the full test name is the observable_entity
 - "capecitabine" in "Started capecitabine for colorectal cancer" -> substance (medication context)
 
-CRITICAL — result descriptors:
+CRITICAL -- result descriptors:
 - "Abnormal", "Outside reference range", "Satisfactory", "Normal - No Action", "within normal limits" -> qualifier_value (NOT finding)
 - These describe the quality/status of a measurement result
 
@@ -141,7 +141,7 @@ Boundary rules:
   - procedure = the clinical action itself, even when context says planned / pending / historical / absent / hypothetical ("colonoscopy planned", "mammogram clear", "biopsy booked", "radiotherapy planned")
   - situation = pathway / waiting-list / administrative status wording when the span expresses status rather than the action itself ("on waiting list", "discharged from pathway", "cancer ruled out")
   - do NOT relabel a procedure noun to situation solely because it has not happened yet; the status belongs in assertion/context, not the semantic type
-- Pathway events use standard clinical labels — pathway significance is determined by the analytics pipeline:
+- Pathway events use standard clinical labels -- pathway significance is determined by the analytics pipeline:
   - "Discharged from 2WW pathway" -> situation (clinical status change)
   - "First cycle CHOP chemotherapy" -> procedure (treatment administered)
   - "Cancer ruled out" -> situation (diagnostic conclusion)
@@ -157,8 +157,8 @@ Boundary rules:
 - Negated clinical terms: preserve the BASE type of the negated concept:
   - "no jaundice" -> label "jaundice" as finding (negation is handled by post-processing assertion=absent)
   - "no evidence of infection" -> label "infection" as finding or disorder based on context
-  - Do NOT label "no" as an entity — negation tokens are not entities
-  - Do NOT relabel the negated concept as situation — it keeps its base clinical type
+  - Do NOT label "no" as an entity -- negation tokens are not entities
+  - Do NOT relabel the negated concept as situation -- it keeps its base clinical type
 - Severity/modifier words (severe, mild, worsened, pale, urgent, minor) -> qualifier_value
 - Uncertainty markers (??, ???) -> qualifier_value (not X_NEGATION_CUE)
 - Treatment shorthands:

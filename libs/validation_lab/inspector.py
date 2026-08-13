@@ -18,6 +18,7 @@ from libs.cypher.pipeline_stage_queries import (
     LIST_PIPELINE_STAGE_RUNS_INSPECTOR,
 )
 from libs.validation_lab.pipeline import resolve_pipeline_run_id
+from libs.validation_lab.source_text import source_text_from_stage_rows
 from libs.validation_lab.stage_errors import (
     plain_english_pipeline_error,
     plain_english_pipeline_message,
@@ -25,6 +26,10 @@ from libs.validation_lab.stage_errors import (
     stage_warnings_from_row,
 )
 from libs.validation_lab.trace_events import keys_from_state
+from libs.validation_lab.work_preview import (
+    compact_inspector_payload,
+    stage_work_preview,
+)
 from libs.workflow.execution_manifest import manifest_from_json
 
 _MAX_JSON_BYTES = max(32_768, int(os.getenv("LAB_INSPECTOR_MAX_JSON_BYTES", "262144")))
@@ -63,10 +68,13 @@ def _loads_json(raw: Any) -> dict[str, Any]:
 def _truncate_json(raw: Any) -> tuple[Any, bool]:
     if raw is None:
         return None, False
+    parsed = _loads_json(raw) if isinstance(raw, str) else raw
     text = raw if isinstance(raw, str) else json.dumps(raw, default=str)
     if len(text.encode("utf-8")) <= _MAX_JSON_BYTES:
-        return _loads_json(raw) if isinstance(raw, str) else raw, False
-    return {"_truncated": True, "_preview": text[: _MAX_JSON_BYTES // 2]}, True
+        return parsed, False
+    compact = compact_inspector_payload(parsed)
+    compact["_truncated"] = True
+    return compact, True
 
 
 def _parse_plan_steps(raw_json: Any) -> list[dict[str, Any]]:
@@ -214,12 +222,57 @@ def _span_row(row: dict[str, Any]) -> dict[str, Any]:
         "output_keys": keys_from_state(output_obj),
         "errors": errors,
         "warnings": warnings,
-        "error_summary": plain_english_pipeline_error(errors[0])
-        if errors
-        else "",
-        "warning_summary": plain_english_pipeline_message(warnings[0])
-        if warnings
-        else "",
+        "error_summary": plain_english_pipeline_error(errors[0]) if errors else "",
+        "warning_summary": (
+            plain_english_pipeline_message(warnings[0]) if warnings else ""
+        ),
+        "work_preview": stage_work_preview(output_obj, input_obj),
+    }
+
+
+def snapshot_for_pipeline_run(
+    client: Any,
+    *,
+    pipeline_run_id: str,
+    lab_run_id: str = "",
+    lab_status: str = "",
+    fallback_plan_id: str = "",
+) -> dict[str, Any]:
+    """Build inspector snapshot from a live PipelineRun id (no enqueue)."""
+    pid = str(pipeline_run_id or "").strip()
+    rows = client.run(GET_PIPELINE_RUN_INSPECTOR, run_id=pid)
+    if not rows:
+        raise KeyError(f"PipelineRun not found: {pid}")
+    row = rows[0]
+    stage_rows = client.run(LIST_PIPELINE_STAGE_RUNS_INSPECTOR, run_id=pid)
+    manifest = manifest_from_json(str(row.get("execution_manifest_json") or ""))
+    plan_id = str(row.get("plan_id") or fallback_plan_id or "")
+    plan_version_id = str(
+        row.get("plan_version_id") or manifest.get("plan_version_id") or ""
+    )
+    plan_raw_json, plan_version_number = _resolve_plan_raw_json(
+        row,
+        run={"plan_id": plan_id},
+        case={"plan_id": plan_id},
+        manifest=manifest,
+    )
+    plan_steps = _parse_plan_steps(plan_raw_json)
+    if not plan_steps and stage_rows:
+        plan_steps = _plan_steps_from_spans(stage_rows)
+    return {
+        "lab_run_id": lab_run_id or pid,
+        "pipeline_run_id": pid,
+        "lab_status": lab_status or str(row.get("pipeline_status") or ""),
+        "pipeline_status": str(row.get("pipeline_status") or "queued"),
+        "plan_id": plan_id,
+        "plan_version_id": plan_version_id,
+        "plan_version_number": plan_version_number or row.get("plan_version_number"),
+        "execution_manifest": manifest,
+        "plan_steps": plan_steps,
+        "plan_edges": _parse_plan_edges(plan_raw_json),
+        "spans": [_span_row(r) for r in (stage_rows or [])],
+        "source_text": source_text_from_stage_rows(stage_rows or []),
+        "sse_path": f"/api/pipeline/progress/{pid}",
     }
 
 
@@ -241,40 +294,62 @@ def get_run_inspector(
         run=run,
         run_id=run_id,
     )
-    rows = client.run(GET_PIPELINE_RUN_INSPECTOR, run_id=pipeline_run_id)
-    row = (rows or [{}])[0] if rows else {}
-    stage_rows = client.run(
-        LIST_PIPELINE_STAGE_RUNS_INSPECTOR,
-        run_id=pipeline_run_id,
+    return snapshot_for_pipeline_run(
+        client,
+        pipeline_run_id=pipeline_run_id,
+        lab_run_id=run_id,
+        lab_status=str(run.get("status") or ""),
+        fallback_plan_id=str(run.get("plan_id") or case.get("plan_id") or ""),
     )
-    manifest = manifest_from_json(str(row.get("execution_manifest_json") or ""))
-    plan_id = str(row.get("plan_id") or run.get("plan_id") or case.get("plan_id") or "")
-    plan_version_id = str(
-        row.get("plan_version_id") or manifest.get("plan_version_id") or ""
-    )
-    plan_raw_json, plan_version_number = _resolve_plan_raw_json(
-        row,
-        run=run,
-        case=case,
-        manifest=manifest,
-    )
-    plan_steps = _parse_plan_steps(plan_raw_json)
-    if not plan_steps and stage_rows:
-        plan_steps = _plan_steps_from_spans(stage_rows)
+
+
+def get_pipeline_inspector(client: Any, run_id: str) -> dict[str, Any]:
+    """Inspector for a real PipelineRun -- does not enqueue a new job."""
+    from libs.validation_lab.clinical_runs import require_pipeline_run
+
+    require_pipeline_run(client, run_id)
+    return snapshot_for_pipeline_run(client, pipeline_run_id=run_id)
+
+
+def _stage_detail_payload(row: dict[str, Any], step_id: str) -> dict[str, Any]:
+    input_data, input_truncated = _truncate_json(row.get("input_json"))
+    output_data, output_truncated = _truncate_json(row.get("output_json"))
+    errors = stage_errors_from_row(row)
+    warnings = stage_warnings_from_row(row)
     return {
-        "lab_run_id": run_id,
-        "pipeline_run_id": pipeline_run_id,
-        "lab_status": str(run.get("status") or ""),
-        "pipeline_status": str(row.get("pipeline_status") or "queued"),
-        "plan_id": plan_id,
-        "plan_version_id": plan_version_id,
-        "plan_version_number": plan_version_number or row.get("plan_version_number"),
-        "execution_manifest": manifest,
-        "plan_steps": plan_steps,
-        "plan_edges": _parse_plan_edges(plan_raw_json),
-        "spans": [_span_row(r) for r in (stage_rows or [])],
-        "sse_path": f"/api/pipeline/progress/{pipeline_run_id}",
+        "step_id": str(row.get("step_id") or step_id),
+        "status": str(row.get("status") or ""),
+        "worker_id": str(row.get("worker_id") or ""),
+        "started_at": str(row.get("started_at") or ""),
+        "completed_at": str(row.get("completed_at") or ""),
+        "attempt": int(row.get("attempt") or 1),
+        "input": input_data,
+        "output": output_data,
+        "errors": errors,
+        "warnings": warnings,
+        "error_summary": plain_english_pipeline_error(errors[0]) if errors else "",
+        "warning_summary": (
+            plain_english_pipeline_message(warnings[0]) if warnings else ""
+        ),
+        "truncated": input_truncated or output_truncated,
     }
+
+
+def get_pipeline_stage_detail(
+    client: Any,
+    *,
+    pipeline_run_id: str,
+    step_id: str,
+) -> dict[str, Any]:
+    """Return full stage input/output JSON for a live PipelineRun."""
+    rows = client.run(
+        GET_PIPELINE_STAGE_DETAIL,
+        run_id=pipeline_run_id,
+        step_id=step_id,
+    )
+    if not rows:
+        raise KeyError(f"Pipeline stage not found: {step_id}")
+    return _stage_detail_payload(rows[0], step_id)
 
 
 def get_stage_detail(
@@ -294,34 +369,8 @@ def get_stage_detail(
         run=packed["run"],
         run_id=run_id,
     )
-    rows = client.run(
-        GET_PIPELINE_STAGE_DETAIL,
-        run_id=pipeline_run_id,
+    return get_pipeline_stage_detail(
+        client,
+        pipeline_run_id=pipeline_run_id,
         step_id=step_id,
     )
-    if not rows:
-        raise KeyError(f"Pipeline stage not found: {step_id}")
-    row = rows[0]
-    input_data, input_truncated = _truncate_json(row.get("input_json"))
-    output_data, output_truncated = _truncate_json(row.get("output_json"))
-    errors = stage_errors_from_row(row)
-    warnings = stage_warnings_from_row(row)
-    return {
-        "step_id": str(row.get("step_id") or step_id),
-        "status": str(row.get("status") or ""),
-        "worker_id": str(row.get("worker_id") or ""),
-        "started_at": str(row.get("started_at") or ""),
-        "completed_at": str(row.get("completed_at") or ""),
-        "attempt": int(row.get("attempt") or 1),
-        "input": input_data,
-        "output": output_data,
-        "errors": errors,
-        "warnings": warnings,
-        "error_summary": plain_english_pipeline_error(errors[0])
-        if errors
-        else "",
-        "warning_summary": plain_english_pipeline_message(warnings[0])
-        if warnings
-        else "",
-        "truncated": input_truncated or output_truncated,
-    }

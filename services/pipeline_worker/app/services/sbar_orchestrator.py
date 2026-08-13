@@ -75,6 +75,7 @@ from libs.sbar.orchestrator_gate3 import (
     prepare_gate3_context,
     situation_extra_context,
 )
+from libs.sbar.pii_guard import strip_dob_citations
 from libs.sbar.source_resolver import (
     aggregate_codes,
     resolve_background_sources,
@@ -295,6 +296,11 @@ class SBAROrchestrator:
             else:
                 sit_result = sit_raw
             situation_md = sit_result.get("markdown") or ""
+            situation_md, dob_stripped = strip_dob_citations(
+                situation_md, resolved_situation.patient_summary.get("birth_date")
+            )
+            if dob_stripped:
+                errors.append("situation:pii_guard_stripped_dob_citation")
             sit_friendly = self._record_stage_error(
                 "situation", sit_result, errors, errors_detail
             )
@@ -328,6 +334,11 @@ class SBAROrchestrator:
             else:
                 bg_result = bg_raw
             background_md = bg_result.get("markdown") or ""
+            background_md, bg_dob_stripped = strip_dob_citations(
+                background_md, resolved_situation.patient_summary.get("birth_date")
+            )
+            if bg_dob_stripped:
+                errors.append("background:pii_guard_stripped_dob_citation")
             bg_friendly = self._record_stage_error(
                 "background", bg_result, errors, errors_detail
             )
@@ -384,18 +395,55 @@ class SBAROrchestrator:
             )
             patient_codes = sorted({c.concept_id for c in aggregated})
             demographics = _assessment_demographics(resolved_situation.patient_summary)
+            extra = dict(payload.extra or {})
+            compliance_result = extra.get("compliance_result")
             try:
-                eval_payload = await self._evaluate(
-                    patient_codes=eval_codes,
-                    guideline_ids=payload.guideline_ids or None,
-                    patient_age=demographics.get("patient_age"),
-                    patient_sex=demographics.get("patient_sex"),
-                )
-                narrative: AssessmentNarrative = self._format(
-                    matched_rules=eval_payload.get("matched_rules") or [],
-                    patient_codes=patient_codes,
-                    guideline_ids=payload.guideline_ids or None,
-                )
+                if isinstance(compliance_result, dict) and (
+                    compliance_result.get("primary")
+                    or compliance_result.get("alternatives")
+                ):
+                    from libs.sbar.spoa_disposition import derive_spoa_disposition
+
+                    primary_rules = list(
+                        (compliance_result.get("primary") or {}).get("matched_rules")
+                        or compliance_result.get("matched_rules")
+                        or []
+                    )
+                    alternative_rules = list(
+                        (compliance_result.get("alternatives") or {}).get(
+                            "matched_rules"
+                        )
+                        or []
+                    )
+                    spoa_code, spoa_evidence = derive_spoa_disposition(
+                        primary_rules=primary_rules,
+                        alternative_rules=alternative_rules,
+                        source_node_type=str(extra.get("source_node_type") or ""),
+                        healthcare_service_spoa_id=str(
+                            extra.get("healthcare_service_spoa_id") or ""
+                        )
+                        or None,
+                    )
+                    narrative: AssessmentNarrative = self._format(
+                        matched_rules=primary_rules,
+                        patient_codes=patient_codes,
+                        guideline_ids=payload.guideline_ids or None,
+                        compliance_context=compliance_result,
+                        spoa_disposition=spoa_code,
+                        spoa_disposition_evidence=spoa_evidence,
+                    )
+                else:
+                    eval_payload = await self._evaluate(
+                        patient_codes=eval_codes,
+                        guideline_ids=payload.guideline_ids or None,
+                        patient_age=demographics.get("patient_age"),
+                        patient_sex=demographics.get("patient_sex"),
+                    )
+                    narrative = self._format(
+                        matched_rules=eval_payload.get("matched_rules") or [],
+                        patient_codes=patient_codes,
+                        guideline_ids=payload.guideline_ids or None,
+                    )
             except Exception as exc:
                 logger.exception("SBAR assessment formatter failed")
                 friendly = translate_error("assessment", str(exc))
@@ -459,6 +507,8 @@ class SBAROrchestrator:
                     guidelines=payload.guideline_ids,
                     patient_id=payload.situation.patient_id,
                     policy_runtime=self._policy_runtime,
+                    spoa_disposition=narrative.spoa_disposition,
+                    spoa_disposition_evidence=narrative.spoa_disposition_evidence,
                 )
             except Exception as exc:
                 logger.exception("SBAR recommendation call failed")
@@ -471,6 +521,21 @@ class SBAROrchestrator:
                     "error_code": friendly["code"],
                 }
             recommendation_md = rec_result.get("markdown") or ""
+            recommendation_md, rec_dob_stripped = strip_dob_citations(
+                recommendation_md, resolved_situation.patient_summary.get("birth_date")
+            )
+            if rec_dob_stripped:
+                errors.append("recommendation:pii_guard_stripped_dob_citation")
+            if narrative.spoa_disposition:
+                from libs.sbar.spoa_disposition import (
+                    prepend_spoa_disposition_to_recommendation,
+                )
+
+                recommendation_md = prepend_spoa_disposition_to_recommendation(
+                    recommendation_md,
+                    narrative.spoa_disposition,
+                    narrative.spoa_disposition_evidence,
+                )
             actions = list(rec_result.get("actions") or [])
             rec_friendly = self._record_stage_error(
                 "recommendation", rec_result, errors, errors_detail
@@ -554,6 +619,8 @@ class SBAROrchestrator:
                 alternative_pathway_evidence=hints.get("alternative_pathway_evidence"),
                 rtr=hints.get("rtr"),
                 rtr_evidence=hints.get("rtr_evidence"),
+                spoa_disposition=narrative.spoa_disposition,
+                spoa_disposition_evidence=narrative.spoa_disposition_evidence,
             )
 
             duration = time.time() - started
@@ -620,7 +687,7 @@ class SBAROrchestrator:
             "code": str(code),
             "message": str(message),
         }
-        errors.append(f"{stage}:{message}")
+        errors.append(f"{stage}:{code}:{message}")
         errors_detail.append(friendly)
         return friendly
 
@@ -831,6 +898,8 @@ class SBAROrchestrator:
                 alternative_pathway_evidence=None,
                 rtr=None,
                 rtr_evidence=None,
+                spoa_disposition=None,
+                spoa_disposition_evidence=None,
             )
         duration = time.time() - started
         self._emit(
@@ -989,8 +1058,8 @@ class SBAROrchestrator:
 
         cfg = LLMCostConfig.from_env()
         first_error = stage_errors[0][:400] if stage_errors else None
-        model_provider = "bedrock"
-        model_tier = "big"
+        model_provider = "azure"
+        model_tier = "small"
         if self._policy_runtime is not None:
             model_provider = self._policy_runtime.model_provider or model_provider
             model_tier = self._policy_runtime.model_tier or model_tier

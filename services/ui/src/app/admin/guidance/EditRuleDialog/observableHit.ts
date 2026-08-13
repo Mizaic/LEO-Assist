@@ -7,7 +7,7 @@
  *   Look up via: get_design_control(dc_type="design-input", dc_id="DI-42246DA7")
  */
 
-import type { ConceptSearchHit } from "./types";
+import type { ConceptSearchHit, LogicSeed } from "./types";
 
 /**
  * Heuristic: does this SNOMED hit look like an observable / measurement
@@ -23,13 +23,23 @@ import type { ConceptSearchHit } from "./types";
  * Anything else (finding, disorder, substance, physical object, ...)
  * is treated as a plain concept.
  */
-export function isLikelyObservable(hit: ConceptSearchHit): boolean {
-  const tag = (hit.semantic_tag ?? "").toLowerCase().trim();
-  if (!tag) return false;
+function tagLooksObservable(tag: string, term: string): boolean {
+  const t = tag.toLowerCase().trim();
+  if (!t) return false;
   return (
-    tag.includes("observable") ||
-    tag.includes("measurement") ||
-    tag.includes("laboratory") ||
-    (tag === "procedure" && /\b(pressure|rate|level|count|ratio)\b/i.test(hit.term))
+    t.includes("observable") ||
+    t.includes("measurement") ||
+    t.includes("laboratory") ||
+    (t === "procedure" && /\b(pressure|rate|level|count|ratio)\b/i.test(term))
   );
+}
+
+export function isLikelyObservable(hit: ConceptSearchHit): boolean {
+  return tagLooksObservable(hit.semantic_tag ?? "", hit.term);
+}
+
+/** Same heuristic as `isLikelyObservable`, for an already-picked seed. */
+export function isLikelyObservableSeed(seed: LogicSeed | undefined): boolean {
+  if (!seed) return false;
+  return tagLooksObservable(seed.semantic_tag ?? "", seed.preferred_term ?? "");
 }

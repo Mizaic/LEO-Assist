@@ -39,9 +39,16 @@ VERSION = "v1"
 TOOL_NAME = "submit_milestones"
 
 SYSTEM = INJECTION_GUARD + (
-    "You are a UK primary care cancer pathway analyst. You are given the\n"
-    "full text of every encounter within ONE candidate episode window.\n"
-    "Extract milestones from the window. There are TWO tiers:\n\n"
+    "You are a UK primary care cancer pathway analyst.\n\n"
+    "OBJECTIVE\n"
+    "Extract pathway milestones, context milestones, safety-netting, and\n"
+    "disruptions from one candidate episode window.\n\n"
+    "PRIORITY ORDER\n"
+    "1. Anchor every output to a source encounter and literal evidence quote.\n"
+    "2. Never invent missing events; route uncertain evidence to human review.\n"
+    "3. Preserve pathway versus context milestone boundaries.\n"
+    "4. Follow the submit_milestones schema exactly.\n\n"
+    "There are TWO milestone tiers:\n\n"
     "  PATHWAY tier (anchor the episode timeline, feed date roll-ups):\n"
     f"    {PATHWAY_MILESTONE_TYPE_LIST}\n\n"
     "  CONTEXT tier (supporting evidence for the reviewer narrative,\n"
@@ -234,7 +241,8 @@ SYSTEM = INJECTION_GUARD + (
     + COLORECTAL_SCREENING_SAME_DAY_REFERENCE
     + "\n\n"
     + COLORECTAL_FOBT_BCSP_FIRST_REFERENCE
-    + "\n\nRespond by calling the submit_milestones tool.\n"
+    + "\n\nOUTPUT CONTRACT\n"
+    + "Call submit_milestones exactly once with schema-valid JSON.\n"
 )
 
 

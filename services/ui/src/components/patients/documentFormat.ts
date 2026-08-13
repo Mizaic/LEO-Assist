@@ -8,7 +8,7 @@
  */
 import type { AssessmentRow, DocumentRow } from "@/lib/patientEprApi";
 
-export type DocumentFileKind = "pdf" | "word" | "markdown" | "letter" | "unknown";
+export type DocumentFileKind = "pdf" | "word" | "html" | "markdown" | "letter" | "unknown";
 
 const DOC_HEADER_RE = /^--- Document:\s*(.+?)\s*---/m;
 
@@ -20,18 +20,35 @@ export function extractSourceFilename(text: string): string | null {
 export function inferFileKind(doc: DocumentRow): DocumentFileKind {
   const ct = (doc.content_type ?? "").toLowerCase();
   if (ct.includes("pdf")) return "pdf";
-  if (ct.includes("word") || ct.includes("docx") || ct.includes("msword")) {
+  if (
+    ct.includes("word") ||
+    ct.includes("docx") ||
+    ct.includes("msword") ||
+    ct.includes("wordprocessingml")
+  ) {
     return "word";
   }
   if (ct.includes("markdown") || ct.includes("text/markdown")) return "markdown";
+  if (ct.includes("html")) return "html";
 
   const title = doc.title.toLowerCase();
   if (title.endsWith(".pdf")) return "pdf";
   if (title.endsWith(".docx") || title.endsWith(".doc")) return "word";
+  if (title.endsWith(".html") || title.endsWith(".htm")) return "html";
+
+  const fileUrl = (doc.original_url || doc.markdown_url || "").toLowerCase();
+  const filePath = fileUrl.split("?", 1)[0] ?? "";
+  if (filePath.endsWith(".pdf")) return "pdf";
+  if (filePath.includes("wordprocessingml.document") || filePath.endsWith(".docx")) {
+    return "word";
+  }
+  if (filePath.endsWith(".doc")) return "word";
+  if (filePath.endsWith(".html") || filePath.endsWith(".htm")) return "html";
 
   const source = extractSourceFilename(doc.full_text)?.toLowerCase() ?? "";
   if (source.endsWith(".pdf")) return "pdf";
   if (source.endsWith(".docx") || source.endsWith(".doc")) return "word";
+  if (source.endsWith(".html") || source.endsWith(".htm")) return "html";
 
   const dtype = doc.document_type.toLowerCase();
   if (
@@ -50,12 +67,28 @@ export function inferFileKind(doc: DocumentRow): DocumentFileKind {
   return doc.full_text ? "markdown" : "unknown";
 }
 
+export function isWordDocumentRow(doc: DocumentRow): boolean {
+  return inferFileKind(doc) === "word";
+}
+
+export function isHtmlDocumentRow(doc: DocumentRow): boolean {
+  return inferFileKind(doc) === "html";
+}
+
+export function looksLikeHtmlBody(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  return trimmed.startsWith("<") || /<html[\s>]/i.test(trimmed) || /<body[\s>]/i.test(trimmed);
+}
+
 export function fileKindLabel(kind: DocumentFileKind): string {
   switch (kind) {
     case "pdf":
       return "PDF";
     case "word":
       return "Word";
+    case "html":
+      return "HTML";
     case "markdown":
       return "Markdown";
     case "letter":
@@ -99,7 +132,9 @@ export function assessmentToDocumentRow(row: AssessmentRow): DocumentRow {
     markdown_url: null,
     episode_id: row.episode_id,
     episode_label: row.episode_label || "General",
+    folder_label: row.episode_label || "General",
     referral_id: null,
+    chunk_count: 0,
     sbar: {
       sbar_id: row.assessment_id,
       status: row.status,

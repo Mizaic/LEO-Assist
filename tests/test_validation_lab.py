@@ -8,6 +8,7 @@ Atlas:
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -510,6 +511,34 @@ def test_read_real_outputs_llm_usage_from_assessment():
     out = read_real_outputs(client, "ass-cost")
     assert out.llm_usage["cost_usd"] == 0.004
     assert out.llm_usage["llm_calls"] == 1
+
+
+def test_read_real_outputs_parses_assessment_rules_json_string():
+    """sbar_orchestrator.py persists assessment_rules via json.dumps(narrative.rules)
+    -- a single JSON string encoding a list of full rule objects, not a Neo4j
+    string list. Confirmed against a real replayed referral (BR7, 9728344007):
+    the un-parsed string produced a matching_rules list of individual
+    characters instead of rule ids."""
+    from libs.validation_lab.pipeline import read_real_outputs
+
+    client = FakeClient()
+    client.assessments["ass-rules"] = {
+        "assessment_codes": ["162164007"],
+        "assessment_rules": json.dumps(
+            [
+                {
+                    "rule_id": "rule:NG12:v1:CH002:SEC003:R000:12c9def5",
+                    "name": "Rule: 1.4.1",
+                    "strength": "refer",
+                    "guideline_id": "NG12",
+                }
+            ]
+        ),
+        "content": "# SBAR\n",
+        "completeness_result_json": "{}",
+    }
+    out = read_real_outputs(client, "ass-rules")
+    assert out.matching_rules == ["rule:NG12:v1:CH002:SEC003:R000:12c9def5"]
 
 
 def test_refresh_run_is_noop_while_still_queued():

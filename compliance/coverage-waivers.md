@@ -535,6 +535,22 @@ fully cleared and removed from the open list:
 - **Clear by**: 2026-09-30 -- migrate or retire sync validation runner; assess
   analysis-worker durable admission in a follow-on sprint.
 
+## W-023 -- GPT-5 clinical validation approval outstanding (2026-08-13)
+
+- **Scope**: `VAL-541EE980` for the Azure GPT-5 prompt migration.
+- **Evidence available**: Both configured GPT deployments passed the six-family
+  de-identified capability set. Technical verification `VT-06157CF6` passed.
+- **Gap**: The separate 97-case extraction corpus is still marked
+  `draft_for_clinician_approval` and has not been run as approved live
+  validation evidence. No independent clinical or quality reviewer has signed
+  the validation result.
+- **Control**: Keep mandatory human review active. Do not treat
+  `VAL-541EE980` as passed or use it as a production release approval.
+- **Owner**: Clinical Safety Officer and QA/RA Lead.
+- **Clear by**: Before production release -- approve the fixed corpus, run it
+  on `gpt-5-mini` and `gpt-5.4`, review every safety-critical difference, and
+  record a passing Atlas validation run.
+
 ---
 
 - **Per-release**: Engineering Lead inspects W-004 / W-007 /

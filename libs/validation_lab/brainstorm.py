@@ -23,7 +23,7 @@ from libs.prompts.validation_lab_brainstorm_v1 import (
     UNDERSTAND_TOOL_CONFIG,
 )
 from libs.validation_lab.brainstorm_tools import search_guidelines, search_snomed
-from libs.validation_lab.rule_grounded_eval import (
+from libs.validation_lab.rule_grounded_eval import (  # noqa: F401
     evaluate_variant_against_rule,  # re-export for propose monkeypatch
 )
 from libs.validation_lab.scenario_patch import (
@@ -155,6 +155,7 @@ def _run_tool_loop(
 
     llm = create_llm(tier="small")
     convo = list(messages)
+    response_items: list[Any] = []
     seen_concepts: dict[str, dict] = {}
     seen_observables: set[str] = set()
     proposed: list[dict[str, Any]] = []
@@ -167,6 +168,7 @@ def _run_tool_loop(
             system=SYSTEM_PROMPT,
             messages=convo,
             tool_config=tool_config,
+            response_items=response_items,
             agent_task=agent_task,
             max_tokens=max_tokens,
         )
@@ -175,11 +177,15 @@ def _run_tool_loop(
         tool_uses = list(getattr(resp, "tool_uses", None) or [])
         if not tool_uses:
             break
-        assistant_content: list[dict[str, Any]] = []
-        if resp.text:
-            assistant_content.append({"text": resp.text})
-        assistant_content.extend({"toolUse": tu} for tu in tool_uses)
-        convo.append({"role": "assistant", "content": assistant_content})
+        raw_items = list(getattr(resp, "raw_output_items", None) or [])
+        if raw_items:
+            response_items.extend(raw_items)
+        else:
+            assistant_content: list[dict[str, Any]] = []
+            if resp.text:
+                assistant_content.append({"text": resp.text})
+            assistant_content.extend({"toolUse": tu} for tu in tool_uses)
+            convo.append({"role": "assistant", "content": assistant_content})
         tool_results: list[dict[str, Any]] = []
         for tu in tool_uses:
             name = str(tu.get("name") or "")
@@ -201,7 +207,16 @@ def _run_tool_loop(
                 }
             )
             tool_results.append(_build_tool_result_block(tu_id, payload))
-        convo.append({"role": "user", "content": tool_results})
+            if raw_items:
+                response_items.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": tu_id,
+                        "output": json.dumps(payload, ensure_ascii=True),
+                    }
+                )
+        if not raw_items:
+            convo.append({"role": "user", "content": tool_results})
 
     return {
         "assistant_message": " ".join(text_parts).strip(),

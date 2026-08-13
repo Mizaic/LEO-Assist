@@ -135,6 +135,7 @@ describe("VT-7DE8E8ED - CodedEntityChip evidence popover", () => {
     expect(
       await screen.findByText(/Patient reports weight gain consistent with obesity\./),
     ).toBeInTheDocument();
+    expect(screen.getByText(/evidence: obesity/)).toBeInTheDocument();
   });
 
   test("TC-005: a single-mention concept auto-expands its evidence", async () => {

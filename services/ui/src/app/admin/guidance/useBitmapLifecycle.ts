@@ -31,6 +31,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
   const [versions, setVersions] = useState<VersionEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [compiling, setCompiling] = useState(false);
+  const [compileElapsedSec, setCompileElapsedSec] = useState(0);
   const [rollingBack, setRollingBack] = useState(false);
   const [activatingVersion, setActivatingVersion] = useState<string | null>(null);
   const [confirmVersion, setConfirmVersion] = useState<string | null>(null);
@@ -81,6 +82,19 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     if (pollRef.current) clearInterval(pollRef.current);
   }, []);
 
+  useEffect(() => {
+    if (!compiling) {
+      setCompileElapsedSec(0);
+      return;
+    }
+    const started = Date.now();
+    setCompileElapsedSec(0);
+    const tick = setInterval(() => {
+      setCompileElapsedSec(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [compiling]);
+
   const handleCompile = useCallback(async () => {
     setCompiling(true);
     setError(null);
@@ -102,27 +116,53 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
       const started = (await resp.json()) as { job_id: string; version: string };
       setCandidateVersion(started.version);
       const pollStart = Date.now();
+      const finishCompile = (ok: boolean) => {
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
+        setCompiling(false);
+        setRefreshKey((n) => n + 1);
+        if (ok) {
+          setJustCompiled(true);
+          setTimeout(() => setJustCompiled(false), 2200);
+        }
+      };
       pollRef.current = setInterval(async () => {
+        const elapsed = Date.now() - pollStart;
         const jobResp = await fetch(
           `/api/terminology/guidelines/bitmap/jobs/${started.job_id}`,
         );
-        const elapsed = Date.now() - pollStart;
-        let jobDone = false;
         if (jobResp.ok) {
           const job = (await jobResp.json()) as { status?: string };
-          jobDone = job.status === "done" || job.status === "error";
           if (job.status === "error") {
             setError("Compile failed. Check the API logs and try again.");
+            finishCompile(false);
+            return;
+          }
+          if (job.status === "done") {
+            finishCompile(true);
+            return;
           }
         }
-        if (jobDone || elapsed > 300_000) {
-          clearInterval(pollRef.current!);
-          setCompiling(false);
-          setRefreshKey((n) => n + 1);
-          if (jobDone) {
-            setJustCompiled(true);
-            setTimeout(() => setJustCompiled(false), 2200);
+        // Job state is in-memory -- lost on API reload. If the candidate
+        // version is already listed, compile succeeded even when the job
+        // endpoint 404s or never flips to done.
+        const versionsResp = await fetch(
+          `/api/terminology/guidelines/bitmap/versions?scope_type=${encodeURIComponent(
+            scopeType,
+          )}&scope_id=${encodeURIComponent(scopeId || "default")}`,
+        );
+        if (versionsResp.ok) {
+          const listed = (await versionsResp.json()) as Array<{ version?: string }>;
+          if (listed.some((v) => v.version === started.version)) {
+            finishCompile(true);
+            return;
           }
+        }
+        if (elapsed > 300_000) {
+          setError(
+            "Compile is taking too long. Refresh the page -- the candidate may already be ready.",
+          );
+          finishCompile(false);
         }
       }, 3000);
     } catch {
@@ -254,6 +294,7 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
     versions,
     error,
     compiling,
+    compileElapsedSec,
     rollingBack,
     activatingVersion,
     confirmVersion,

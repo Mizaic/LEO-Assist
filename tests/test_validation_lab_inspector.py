@@ -120,6 +120,7 @@ def test_get_run_inspector_returns_spans(monkeypatch: pytest.MonkeyPatch) -> Non
     assert payload["pipeline_run_id"] == "run-1"
     assert len(payload["spans"]) == 1
     assert payload["spans"][0]["input_keys"] == ["patient_id"]
+    assert "work_preview" in payload["spans"][0]
     assert payload["plan_steps"][0]["action_id"] == "act-ref-durable-start"
     assert payload["plan_edges"][0]["target"] == "act-ref-extract"
 
@@ -242,3 +243,36 @@ def test_get_run_inspector_falls_back_to_stage_spans(
             "durable_persists": [],
         }
     ]
+
+
+def test_span_row_includes_work_preview() -> None:
+    row = lab_inspector._span_row(
+        {
+            "step_id": "act-ref-extract",
+            "event_type": "extraction",
+            "status": "completed",
+            "worker_id": "w1",
+            "started_at": "2026-08-06T10:00:00+00:00",
+            "completed_at": "2026-08-06T10:00:05+00:00",
+            "attempt": 1,
+            "input_json": "{}",
+            "output_json": (
+                '{"entities":[{"text":"dysphagia","concept_id":"40739000"}]}'
+            ),
+        }
+    )
+    assert row["work_preview"]["headline"].startswith("Coded")
+    assert row["work_preview"]["items"][0]["text"] == "dysphagia"
+    assert row["work_preview"]["items"][0]["code"] == "40739000"
+
+
+def test_truncate_json_keeps_entities(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lab_inspector, "_MAX_JSON_BYTES", 200)
+    payload = {
+        "entities": [{"text": "dysphagia", "concept_id": "40739000"}],
+        "encounter_text": "x" * 5000,
+    }
+    compact, truncated = lab_inspector._truncate_json(payload)
+    assert truncated is True
+    assert compact["entities"][0]["text"] == "dysphagia"
+    assert compact["entities"][0]["concept_id"] == "40739000"

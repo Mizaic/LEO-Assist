@@ -87,6 +87,9 @@ describe("EditRuleDialog phase 3 (right-column preview)", () => {
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
     goToEditorStep(2);
+    expect(
+      screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
+    ).toBeInTheDocument();
     const pane = screen.getByRole("region", {
       name: /live preview of this rule/i,
     });
@@ -101,6 +104,9 @@ describe("EditRuleDialog phase 3 (right-column preview)", () => {
       <EditRuleDialog rule={VAGUE_RULE} open onClose={() => {}} onSave={() => {}} />,
     );
     goToEditorStep(2);
+    expect(
+      screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
+    ).toBeInTheDocument();
     const pane = screen.getByRole("region", {
       name: /live preview of this rule/i,
     });

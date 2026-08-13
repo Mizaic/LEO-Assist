@@ -8,7 +8,7 @@ Atlas trace:
 Provides:
 - deterministic normalization and typo handling
 - lexical fulltext query construction
-- optional Haiku rewrite with fail-open fallback
+- optional language-model rewrite with fail-open fallback
 """
 
 from __future__ import annotations
@@ -21,9 +21,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from libs.llm_client.factory import create_llm
+from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.search.term_expansion import (
-    SYNONYM_MAP as _SYNONYM_MAP,
-    TYPO_MAP as _TYPO_MAP,
     expand_search_terms as _shared_expand_search_terms,
     normalise_tokens as _shared_normalise_tokens,
 )
@@ -83,15 +82,20 @@ def _llm_rewrite_enabled() -> bool:
     }
 
 
-def _try_haiku_rewrite(normalized_query: str) -> tuple[str, float | None, str | None]:
+def _try_llm_rewrite(normalized_query: str) -> tuple[str, float | None, str | None]:
     if not _llm_rewrite_enabled():
         return normalized_query, None, None
     try:
         client = create_llm(tier="small")
-        system = (
-            "You rewrite clinical search queries for encounter retrieval. "
-            "Return strict JSON with keys: rewritten_query, confidence, reasoning. "
-            "Keep intent unchanged. Correct spelling. Expand only clinically-relevant terms."
+        system = INJECTION_GUARD + (
+            "Objective: Rewrite one clinical search query for UK primary-care "
+            "encounter retrieval.\n"
+            "Scope: Correct spelling and expand only clinically relevant terms "
+            "while preserving the original intent.\n"
+            "Hard requirements: Do not add symptoms, diagnoses, demographics, "
+            "or intent not present in the query. Keep the rewrite concise.\n"
+            'Output contract: Return only {"rewritten_query": "<string>", '
+            '"confidence": <number from 0 to 1>, "reasoning": "<brief string>"}.'
         )
         user = json.dumps({"query": normalized_query})
         response = client.converse(
@@ -100,6 +104,17 @@ def _try_haiku_rewrite(normalized_query: str) -> tuple[str, float | None, str | 
             max_tokens=200,
             temperature=0.0,
             json_mode=True,
+            structured_schema={
+                "type": "object",
+                "properties": {
+                    "rewritten_query": {"type": "string"},
+                    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    "reasoning": {"type": "string"},
+                },
+                "required": ["rewritten_query", "confidence", "reasoning"],
+                "additionalProperties": False,
+            },
+            verbosity="low",
             agent_task="encounter_query_rewriter",
         )
         payload = json.loads(response.text)
@@ -114,9 +129,7 @@ def _try_haiku_rewrite(normalized_query: str) -> tuple[str, float | None, str | 
             reasoning = None
         return rewritten or normalized_query, confidence, reasoning
     except Exception:
-        logger.warning(
-            "Haiku query rewrite unavailable -- fail-open to normalized query"
-        )
+        logger.warning("LLM query rewrite unavailable -- fail-open to normalized query")
         return normalized_query, None, None
 
 
@@ -167,9 +180,12 @@ _CLINICAL_SYNONYM_TOOL_CONFIG: dict[str, Any] = {
 
 def _clinical_synonyms_enabled() -> bool:
     """Default ON. Disable explicitly with ENCOUNTER_QUERY_SYNONYMS_ENABLED=false."""
-    return str(
-        os.getenv("ENCOUNTER_QUERY_SYNONYMS_ENABLED", "true")
-    ).lower() in {"1", "true", "yes", "on"}
+    return str(os.getenv("ENCOUNTER_QUERY_SYNONYMS_ENABLED", "true")).lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def _clean_synonym_list(raw_synonyms: list[Any]) -> list[str]:
@@ -251,14 +267,16 @@ def _expand_clinical_synonyms(normalized_query: str) -> tuple[list[str], str]:
         return [], "disabled"
     try:
         client = create_llm(tier="small")
-        system = (
-            "You generate clinical synonyms for a UK general-practice "
-            "encounter search. You MUST call the "
-            "submit_clinical_synonyms tool exactly once with up to 12 "
-            "short clinical synonyms for the user's query. Include UK "
-            "and US spellings, common abbreviations, lay wording, and "
-            "tightly related findings. Do NOT include broader "
-            "categories or unrelated concepts."
+        system = INJECTION_GUARD + (
+            "Objective: Generate concise clinical synonyms for one UK general-"
+            "practice encounter search query.\n"
+            "Scope: Include UK and US spellings, common abbreviations, lay "
+            "wording, and tightly related findings that preserve search intent.\n"
+            "Hard requirements: Do not include broader categories, unrelated "
+            "concepts, or invented patient facts. Return at most 12 unique "
+            "phrases.\n"
+            "Output contract: Call submit_clinical_synonyms exactly once. Do "
+            "not return free text."
         )
         user = (
             f"Query: {query}\n\n"
@@ -274,7 +292,7 @@ def _expand_clinical_synonyms(normalized_query: str) -> tuple[list[str], str]:
             agent_task="clinical_synonym_expansion",
         )
         cleaned = _extract_synonyms_from_response(response)
-        source = "haiku" if cleaned else "no_synonyms"
+        source = "llm" if cleaned else "no_synonyms"
         if len(_CLINICAL_SYNONYM_CACHE) >= _CLINICAL_SYNONYM_CACHE_MAX:
             _CLINICAL_SYNONYM_CACHE.pop(next(iter(_CLINICAL_SYNONYM_CACHE)))
         _CLINICAL_SYNONYM_CACHE[query] = (cleaned, source)
@@ -292,7 +310,7 @@ def understand_query(raw_query: str) -> QueryUnderstanding:
     original = raw_query.strip()
     tokens = _normalise_tokens(original)
     normalized = " ".join(tokens) if tokens else original
-    rewritten, confidence, reasoning = _try_haiku_rewrite(normalized)
+    rewritten, confidence, reasoning = _try_llm_rewrite(normalized)
     expanded_terms = _expand_terms(_normalise_tokens(rewritten))
     fulltext_query = _build_fulltext_query(expanded_terms, rewritten)
     rewrite_applied = rewritten.strip().lower() != normalized.strip().lower()
@@ -302,7 +320,7 @@ def understand_query(raw_query: str) -> QueryUnderstanding:
         normalized_query=normalized,
         rewritten_query=rewritten,
         rewrite_applied=rewrite_applied,
-        rewrite_source="haiku" if confidence is not None else "deterministic",
+        rewrite_source="llm" if confidence is not None else "deterministic",
         rewrite_confidence=confidence,
         fulltext_query=fulltext_query,
         expanded_terms=expanded_terms,

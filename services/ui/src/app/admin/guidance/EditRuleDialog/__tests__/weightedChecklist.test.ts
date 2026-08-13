@@ -120,4 +120,59 @@ describe("withReifiedWeightedChecklist", () => {
     );
     expect(lesion).toBeTruthy();
   });
+
+  it("preserves OBSERVATION leaves with thresholds through reification", () => {
+    const checklist = buildWeightedChecklistState(TEXT, [NG12_1_7_1_COMPANION], true)!;
+    const diameterObs: EditableLogicNode = {
+      node_id: "obs-diameter",
+      kind: "OBSERVATION",
+      source_row_text: "largest diameter 7 mm or more",
+      observation: {
+        kind: "OBSERVATION",
+        observable_id: "396361002",
+        observable_term: "Lesion size, largest dimension",
+        operator: ">=",
+        value: 7,
+        unit: "mm",
+        within_days: 365,
+      },
+    };
+    const tree: EditableLogicNode = {
+      node_id: "root",
+      kind: "AND",
+      children: [
+        {
+          node_id: "lesion",
+          kind: "CONCEPT",
+          source_row_text: "suspicious pigmented skin lesion",
+          criterion: {
+            snomed_concept_id: "lesion",
+            preferred_term: "suspicious pigmented skin lesion",
+            term: "suspicious pigmented skin lesion",
+            seeds: [{ snomed_concept_id: "lesion", preferred_term: "suspicious pigmented skin lesion" }],
+          },
+        },
+        diameterObs,
+      ],
+    };
+    const next = withReifiedWeightedChecklist(tree, checklist);
+    const walk = (n: EditableLogicNode, out: EditableLogicNode[]): void => {
+      if (n.kind === "OBSERVATION") out.push(n);
+      for (const c of n.children ?? []) walk(c, out);
+    };
+    const observations: EditableLogicNode[] = [];
+    walk(next, observations);
+    expect(observations.length).toBeGreaterThan(0);
+    expect(
+      observations.some(
+        (o) =>
+          o.observation?.observable_id === "396361002" &&
+          o.observation?.value === 7 &&
+          o.observation?.unit === "mm",
+      ),
+    ).toBe(true);
+    expect(
+      observations.some((o) => o.source_row_text === "largest diameter 7 mm or more"),
+    ).toBe(true);
+  });
 });

@@ -58,6 +58,17 @@ export async function stubKnowledgeAdminAuth(page: Page) {
       needs_role_choice: false,
     }),
   );
+  await page.route("**/api/training/phrase-mappings**", (route) =>
+    fulfillJson(route, {
+      items: [],
+      total: 0,
+      inbox: 0,
+      draft: 0,
+      review: 0,
+      closed: 0,
+      my_drafts: 0,
+    }),
+  );
 }
 
 export async function gotoSurfaceFormsTab(page: Page) {
@@ -65,6 +76,7 @@ export async function gotoSurfaceFormsTab(page: Page) {
   const main = page.locator("#main-content");
   await expect(main.getByText("NLP & AI")).toBeVisible({ timeout: 15_000 });
   await expect(page).toHaveURL(/tab=surface-forms/);
+  await page.getByRole("tab", { name: /Live dictionary/i }).click();
   await expect(main.getByText("Diabetes mellitus type 2 (disorder)")).toBeVisible({
     timeout: 15_000,
   });
@@ -76,6 +88,10 @@ export async function stubSurfaceFormRoutes(page: Page) {
   let deactivateCalls = 0;
 
   await stubKnowledgeAdminAuth(page);
+
+  await page.route("**/api/training/phrase-mappings**", (route) =>
+    fulfillJson(route, { items: [], total: 0, inbox: 0, draft: 0, review: 0, closed: 0, my_drafts: 0 }),
+  );
 
   await page.route("**/api/terminology/surface-forms/grouped**", (route) =>
     fulfillJson(route, buildGroupedSurfaceFormsPayload(aliasStatus)),

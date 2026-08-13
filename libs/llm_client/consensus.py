@@ -116,26 +116,41 @@ class ConsensusResult:
     llm_calls: int = 0
 
 
+@dataclass(frozen=True)
+class ConsensusOptions:
+    """Provider-neutral controls for a consensus request."""
+
+    max_tokens: int = 150
+    json_mode: bool = False
+    tier: str | None = None
+    structured_schema: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class _ConsensusRequest:
+    system_prompt: str
+    user_msg: str
+    parse_fn: Callable[[str], Any]
+    fail_verdict: Any
+    options: ConsensusOptions
+
+
 def _call_provider(
     provider: str,
     tier: str,
-    system_prompt: str,
-    user_msg: str,
-    max_tokens: int,
-    *,
-    json_mode: bool = False,
-    agent_task: str = "consensus",
-    patient_id: str = "",
+    request: _ConsensusRequest,
 ) -> LLMResponse:
     client = create_llm(provider=provider, tier=tier)
     return client.converse(
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_msg}],
+        system=request.system_prompt,
+        messages=[{"role": "user", "content": request.user_msg}],
         temperature=0.0,
-        max_tokens=max_tokens,
-        json_mode=json_mode,
-        agent_task=agent_task,
-        patient_id=patient_id,
+        max_tokens=request.options.max_tokens,
+        json_mode=request.options.json_mode,
+        structured_schema=request.options.structured_schema,
+        verbosity="low",
+        agent_task="consensus",
+        patient_id="",
     )
 
 
@@ -151,12 +166,7 @@ def _sum_tokens(responses: list[LLMResponse | None]) -> dict[str, int]:
 def _safe_call(
     provider: str,
     tier: str,
-    system_prompt: str,
-    user_msg: str,
-    max_tokens: int,
-    parse_fn: Callable[[str], Any],
-    *,
-    json_mode: bool = False,
+    request: _ConsensusRequest,
 ) -> tuple[LLMResponse | None, Any, str]:
     """Call a single provider and return ``(response, verdict, model_id)``.
 
@@ -164,37 +174,18 @@ def _safe_call(
     degrade.
     """
     try:
-        resp = _call_provider(
-            provider, tier, system_prompt, user_msg, max_tokens, json_mode=json_mode
-        )
+        resp = _call_provider(provider, tier, request)
     except Exception:
         logger.warning("Consensus (%s/%s): call failed", provider, tier, exc_info=True)
         return None, None, ""
-    verdict = parse_fn(resp.text) if resp else None
+    verdict = request.parse_fn(resp.text) if resp else None
     return resp, verdict, (resp.model_id if resp else "")
 
 
-def _single_model(
-    system_prompt: str,
-    user_msg: str,
-    parse_fn: Callable[[str], Any],
-    fail_verdict: Any,
-    max_tokens: int,
-    tier: str,
-    *,
-    json_mode: bool,
-) -> ConsensusResult:
+def _single_model(request: _ConsensusRequest, tier: str) -> ConsensusResult:
     provider = default_llm_provider()
     label = f"{provider}/{tier}"
-    resp, verdict, model_id = _safe_call(
-        provider,
-        tier,
-        system_prompt,
-        user_msg,
-        max_tokens,
-        parse_fn,
-        json_mode=json_mode,
-    )
+    resp, verdict, model_id = _safe_call(provider, tier, request)
 
     if resp and not verdict:
         logger.warning(
@@ -204,18 +195,19 @@ def _single_model(
             len(resp.text or ""),
         )
         retry_msg = (
-            user_msg
+            request.user_msg
             + "\n\nSTRICT OUTPUT REMINDER: Return ONLY one valid JSON object. "
             + "No prose, no markdown fences, no explanation."
         )
+        retry_request = _ConsensusRequest(
+            system_prompt=request.system_prompt,
+            user_msg=retry_msg,
+            parse_fn=request.parse_fn,
+            fail_verdict=request.fail_verdict,
+            options=request.options,
+        )
         resp_retry, retry_verdict, retry_model_id = _safe_call(
-            provider,
-            tier,
-            system_prompt,
-            retry_msg,
-            max_tokens,
-            parse_fn,
-            json_mode=json_mode,
+            provider, tier, retry_request
         )
         if retry_verdict:
             resp = resp_retry
@@ -229,7 +221,7 @@ def _single_model(
             "Consensus (%s): failed after retry -- returning fail_verdict", label
         )
         return ConsensusResult(
-            verdict=fail_verdict,
+            verdict=request.fail_verdict,
             reason=f"{label} call/parse failed",
             model_ids=[model_id] if model_id else [],
             **tok,
@@ -245,37 +237,20 @@ def _single_model(
     )
 
 
-def _dual_model(
-    system_prompt: str,
-    user_msg: str,
-    parse_fn: Callable[[str], Any],
-    fail_verdict: Any,
-    max_tokens: int,
-    arbitrator_tier: str,
-    *,
-    json_mode: bool,
-) -> ConsensusResult:
+def _dual_model(request: _ConsensusRequest, arbitrator_tier: str) -> ConsensusResult:
     """Run Azure small + Azure big in parallel; arbitrate on disagreement."""
     with ThreadPoolExecutor(max_workers=2) as pool:
         primary_future = pool.submit(
             _safe_call,
             "azure",
             "small",
-            system_prompt,
-            user_msg,
-            max_tokens,
-            parse_fn,
-            json_mode=json_mode,
+            request,
         )
         secondary_future = pool.submit(
             _safe_call,
             "azure",
             "big",
-            system_prompt,
-            user_msg,
-            max_tokens,
-            parse_fn,
-            json_mode=json_mode,
+            request,
         )
         primary_resp, primary_verdict, primary_model = primary_future.result()
         secondary_resp, secondary_verdict, secondary_model = secondary_future.result()
@@ -295,15 +270,7 @@ def _dual_model(
         )
 
     # Disagreement OR at least one panel failed -> arbitrate.
-    arb_resp, arb_verdict, arb_model = _safe_call(
-        "azure",
-        arbitrator_tier,
-        system_prompt,
-        user_msg,
-        max_tokens,
-        parse_fn,
-        json_mode=json_mode,
-    )
+    arb_resp, arb_verdict, arb_model = _safe_call("azure", arbitrator_tier, request)
     responses.append(arb_resp)
     tok = _sum_tokens(responses)
 
@@ -322,7 +289,7 @@ def _dual_model(
             **tok,
         )
 
-    fallback_verdict = primary_verdict or secondary_verdict or fail_verdict
+    fallback_verdict = primary_verdict or secondary_verdict or request.fail_verdict
     return ConsensusResult(
         verdict=fallback_verdict,
         aws_verdict=primary_verdict or "",
@@ -350,9 +317,7 @@ def run_consensus(
     user_msg: str,
     parse_fn: Callable[[str], Any],
     fail_verdict: Any,
-    max_tokens: int = 150,
-    json_mode: bool = False,
-    tier: str | None = None,
+    options: ConsensusOptions | None = None,
 ) -> ConsensusResult:
     """Run the LLM judge in single-model or dual-model mode.
 
@@ -366,30 +331,24 @@ def run_consensus(
         parse_fn: Extracts the verdict string from raw LLM output. MUST
             return a falsy value on parse failure.
         fail_verdict: Returned when no provider produces a parseable verdict.
-        max_tokens: Max output tokens per call.
-        json_mode: Passed through to the provider client.
-        tier: Single-model tier override; ignored when dual-model is active.
+        options: Output, tier and strict-schema controls.
     """
+    config = options or ConsensusOptions()
+    tier = config.tier
     if tier is None or tier not in _VALID_CONSENSUS_TIERS:
         tier = _consensus_aws_tier()
+    request = _ConsensusRequest(
+        system_prompt=system_prompt,
+        user_msg=user_msg,
+        parse_fn=parse_fn,
+        fail_verdict=fail_verdict,
+        options=config,
+    )
 
     if _dual_model_enabled():
         return _dual_model(
-            system_prompt,
-            user_msg,
-            parse_fn,
-            fail_verdict,
-            max_tokens,
+            request,
             arbitrator_tier=_consensus_aws_tier(),
-            json_mode=json_mode,
         )
 
-    return _single_model(
-        system_prompt,
-        user_msg,
-        parse_fn,
-        fail_verdict,
-        max_tokens,
-        tier,
-        json_mode=json_mode,
-    )
+    return _single_model(request, tier)

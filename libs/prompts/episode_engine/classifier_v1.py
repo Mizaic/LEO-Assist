@@ -25,9 +25,15 @@ VERSION = "v1"
 TOOL_NAME = "submit_classification"
 
 SYSTEM = INJECTION_GUARD + (
-    "You are a UK primary care cancer pathway analyst. You will look at\n"
-    "ONE candidate episode window and classify it as one of:\n"
+    "You are a UK primary care cancer pathway analyst.\n\n"
+    "OBJECTIVE\n"
+    "Classify one candidate episode window as one of:\n"
     f"  {EPISODE_TYPE_LIST}\n\n"
+    "PRIORITY ORDER\n"
+    "1. Use only evidence in the supplied window.\n"
+    "2. Prefer uncertain when evidence is ambiguous or contradictory.\n"
+    "3. Use non_cancer only when the window clearly is not a cancer pathway.\n"
+    "4. Follow the submit_classification schema exactly.\n\n"
     "Definitions:\n"
     "  cancer       : a confirmed cancer diagnosis exists, or referral +\n"
     "                 strong cancer-suspicion signal with the pathway\n"
@@ -46,7 +52,8 @@ SYSTEM = INJECTION_GUARD + (
     "outcome; 0.7-0.9 when narrative is consistent but lacks codes; <0.7\n"
     "when key milestones are missing or contradictory.\n\n"
     + RULES_OF_THE_ROAD
-    + "\n\nRespond by calling the submit_classification tool.\n"
+    + "\n\nOUTPUT CONTRACT\n"
+    + "Call submit_classification exactly once with schema-valid JSON.\n"
 )
 
 

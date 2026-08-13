@@ -1,8 +1,8 @@
 """Compliance evaluation subgraph.
 
 Atlas trace:
-  DO: DO-69F520C9
-  DI: DI-F22160C3
+  DO: DO-69F520C9, DO-EBD03C23
+  DI: DI-F22160C3, DI-0C8DC7AB
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-69F520C9")
 """
 
@@ -30,6 +30,12 @@ class ComplianceState(TypedDict, total=False):
     guideline_scope_type: str
     guideline_scope_id: str
     guideline_id: str
+    primary_guideline_ids: list[str]
+    healthcare_service_id: str
+    healthcare_service_name: str
+    healthcare_service_specialty: str
+    healthcare_service_spoa_id: str
+    healthcare_service_missing: bool
     guideline_ruleset_version: str
     patient_age: float
     patient_sex: str
@@ -43,11 +49,7 @@ class ComplianceState(TypedDict, total=False):
 
 
 def _entity_codes(entities: list[dict[str, Any]]) -> list[str]:
-    """Return SNOMED concept IDs for all coded entities in a pipeline run.
-
-    Includes body_structure entities (reproductive anatomy, DI-9AA2CDA5 clause c)
-    since their snomed_concept_id is set by Sprint 2 precision gates.
-    """
+    """Return SNOMED concept IDs for all coded entities in a pipeline run."""
     codes: list[str] = []
     for entity in entities:
         concept_id = entity.get("concept_id") or entity.get("snomed_concept_id")
@@ -59,35 +61,51 @@ def _entity_codes(entities: list[dict[str, Any]]) -> list[str]:
     return codes
 
 
-def _evaluate_guideline(state: ComplianceState, codes: list[str]) -> dict[str, Any]:
+def _dedupe_rules(rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for rule in rules:
+        rule_id = str(rule.get("rule_id") or "").strip()
+        if not rule_id or rule_id in merged:
+            continue
+        merged[rule_id] = rule
+    return list(merged.values())
+
+
+def _evaluate_guideline(
+    state: ComplianceState,
+    codes: list[str],
+    *,
+    scope_type: str | None = None,
+    scope_id: str | None = None,
+    pathway_filter: str | None = None,
+) -> dict[str, Any]:
     from services.terminology_api.app.services.guideline_evaluator import (
         GuidelineEvaluator,
     )
 
-    scope_type = str(state.get("guideline_scope_type") or "guideline")
-    scope_id = str(state.get("guideline_scope_id") or state.get("guideline_id") or "")
+    resolved_scope_type = scope_type or str(
+        state.get("guideline_scope_type") or "guideline"
+    )
+    resolved_scope_id = scope_id or str(
+        state.get("guideline_scope_id") or state.get("guideline_id") or ""
+    )
+    resolved_pathway = (
+        pathway_filter if pathway_filter is not None else (resolved_scope_id or None)
+    )
     observations = state.get("patient_observations")
     if observations is None:
         observations = observations_from_entities(list(state.get("entities") or []))
-    # Sprint 1: medication, allergy, and treatment_history lists are wired
-    # here so the evaluator can match the new MEDICATION, ALLERGY, and
-    # TREATMENT_HISTORY leaf kinds. In Sprint 1, live pipeline runs will
-    # pass empty lists (these facts are not yet extracted from the graph).
-    # They will be populated in the GraphFactLoader sprint.
     active_medications = list(state.get("active_medications") or [])
     allergies = list(state.get("allergies") or [])
     treatment_history = list(state.get("treatment_history") or [])
-    # Per-run override only -- never touches the Redis "current version"
-    # pointer used by real traffic. Set by Validation Lab candidate-ruleset
-    # testing (libs/validation_lab/pipeline.py); absent on live referrals.
     ruleset_version = state.get("guideline_ruleset_version") or None
     result = GuidelineEvaluator().evaluate_patient(
         codes,
-        pathway_filter=scope_id or None,
+        pathway_filter=resolved_pathway,
         patient_age=state.get("patient_age"),
         patient_sex=state.get("patient_sex"),
-        scope_type=scope_type if scope_id else None,
-        scope_id=scope_id or None,
+        scope_type=resolved_scope_type if resolved_scope_id else None,
+        scope_id=resolved_scope_id or None,
         ruleset_version=ruleset_version,
         patient_observations=observations,
         active_medications=active_medications or None,
@@ -102,6 +120,92 @@ def _evaluate_guideline(state: ComplianceState, codes: list[str]) -> dict[str, A
     result["patient_allergy_count"] = len(allergies)
     result["patient_treatment_count"] = len(treatment_history)
     result["is_compliant"] = bool(result.get("matched_rules"))
+    return result
+
+
+def _primary_guideline_ids(state: ComplianceState) -> list[str]:
+    ids = [
+        str(item).strip()
+        for item in list(state.get("primary_guideline_ids") or [])
+        if str(item).strip()
+    ]
+    if ids:
+        return ids
+    scope_id = str(state.get("guideline_scope_id") or state.get("guideline_id") or "")
+    return [scope_id] if scope_id else []
+
+
+def _evaluate_dual_compliance(
+    state: ComplianceState,
+    codes: list[str],
+) -> dict[str, Any]:
+    primary_ids = _primary_guideline_ids(state)
+    primary_rules: list[dict[str, Any]] = []
+    primary_payload: dict[str, Any] = {}
+
+    if primary_ids:
+        for guideline_id in primary_ids:
+            payload = _evaluate_guideline(
+                state,
+                codes,
+                scope_type="guideline",
+                scope_id=guideline_id,
+                pathway_filter=guideline_id,
+            )
+            primary_payload = payload
+            primary_rules.extend(payload.get("matched_rules") or [])
+        primary_rules = _dedupe_rules(primary_rules)
+    else:
+        primary_payload = _evaluate_guideline(
+            state,
+            codes,
+            scope_type="global",
+            scope_id=None,
+            pathway_filter=None,
+        )
+        primary_rules = list(primary_payload.get("matched_rules") or [])
+
+    alternative_rules: list[dict[str, Any]] = []
+    if not primary_rules:
+        alt_payload = _evaluate_guideline(
+            state,
+            codes,
+            scope_type="global",
+            scope_id=None,
+            pathway_filter=None,
+        )
+        primary_set = set(primary_ids)
+        for rule in alt_payload.get("matched_rules") or []:
+            guideline_id = str(rule.get("guideline_id") or "").strip()
+            if guideline_id and guideline_id in primary_set:
+                continue
+            alternative_rules.append(rule)
+        alternative_rules = _dedupe_rules(alternative_rules)
+
+    alt_guideline_ids = sorted(
+        {
+            str(rule.get("guideline_id") or "").strip()
+            for rule in alternative_rules
+            if str(rule.get("guideline_id") or "").strip()
+        }
+    )
+
+    result = dict(primary_payload or {})
+    result["matched_rules"] = primary_rules
+    result["primary"] = {
+        "guideline_ids": primary_ids,
+        "matched_rules": primary_rules,
+        "service_id": state.get("healthcare_service_id"),
+        "service_name": state.get("healthcare_service_name"),
+        "service_specialty": state.get("healthcare_service_specialty"),
+        "supported": bool(primary_rules),
+    }
+    result["alternatives"] = {
+        "guideline_ids": alt_guideline_ids,
+        "matched_rules": alternative_rules,
+    }
+    result["healthcare_service_missing"] = bool(state.get("healthcare_service_missing"))
+    result["is_compliant"] = bool(primary_rules)
     return result
 
 
@@ -120,7 +224,7 @@ def evaluate_compliance(state: ComplianceState) -> dict[str, Any]:
     entities = list(state.get("entities") or [])
     codes = _entity_codes(entities)
     try:
-        result = _evaluate_guideline(state, codes)
+        result = _evaluate_dual_compliance(state, codes)
         payload = {
             "compliance_result": result,
             "compliance_report": result,

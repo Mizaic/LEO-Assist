@@ -87,7 +87,11 @@ reviewer_expectations:
     - "## Assessment"
     - "## Recommendation"
   required_phrases_in_assessment:
-    - "R-COLO-001"
+    # Assessment prose cites the rule by name/guideline, not the raw
+    # rule_id (libs/sbar/assessment_formatter.py, commit 6f09bb5,
+    # 2026-05-22): rule_id is still available structurally via
+    # RunOutcome.rules / pathway_hints.stt_evidence.
+    - "PR bleeding + IDA age >=60 -> 2WW colorectal"
     - "colorectal"
   required_phrases_in_recommendation:
     - ["2WW", "two-week wait", "two week wait"]

@@ -92,14 +92,33 @@ def resolve_prompt_hashes(policy: dict[str, Any]) -> dict[str, str]:
     return out
 
 
+_VALID_MODEL_TIERS = frozenset({"small", "big", "max"})
+
+
+def apply_manifest_model_tier(state: dict[str, Any]) -> None:
+    """Copy the pinned execution-manifest tier onto state when unset."""
+    current = str(state.get("model_tier") or "").strip().lower()
+    if current in _VALID_MODEL_TIERS:
+        return
+    manifest = state.get("execution_manifest")
+    if not isinstance(manifest, dict):
+        return
+    tier = str((manifest.get("model") or {}).get("tier") or "").strip().lower()
+    if tier in _VALID_MODEL_TIERS:
+        state["model_tier"] = tier
+
+
 def resolve_model_config(policy: dict[str, Any]) -> dict[str, Any]:
     """Resolve immutable ModelConfig fields from the pinned provider/tier."""
     from libs.llm_client.factory import default_llm_provider
 
     models = policy.get("models") or {}
     # Deployment env is the runtime source of truth; plan policy still pins tier.
+    # Default small; pin big or max on the plan when a run needs a larger model.
     provider = default_llm_provider()
-    tier = str(models.get("tier") or "big").strip().lower()
+    tier = str(models.get("tier") or "small").strip().lower()
+    if tier not in _VALID_MODEL_TIERS:
+        tier = "small"
     key = f"{provider}:{tier}"
     row: dict[str, Any] = {
         "key": key,

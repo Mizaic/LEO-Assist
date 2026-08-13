@@ -30,6 +30,7 @@ const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
   "training-data": "wide",
   "surface-forms": "wide",
   "context-rules": "wide",
+  "guard-rules": "wide",
   "ai-instructions": "wide",
   "clinical-guidelines": "wide",
   pathways: "wide",
@@ -42,6 +43,7 @@ const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
 const GoldDatasetPage = dynamic(() => import("@/app/admin/gold-dataset/page"), { ssr: false });
 const SurfaceFormsPage = dynamic(() => import("@/app/admin/surface-forms/page"), { ssr: false });
 const ContextRulesPage = dynamic(() => import("@/app/admin/context-rules/page"), { ssr: false });
+const GuardRulesPage = dynamic(() => import("@/app/admin/guard-rules/page"), { ssr: false });
 const PromptsPage = dynamic(() => import("@/app/admin/prompts/page"), { ssr: false });
 const GuidancePage = dynamic(() => import("@/app/admin/guidance/page"), { ssr: false });
 const PathwaysPage = dynamic(() => import("@/app/admin/pathways/page"), { ssr: false });
@@ -57,6 +59,7 @@ const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
   "training-data": GoldDatasetPage,
   "surface-forms": SurfaceFormsPage,
   "context-rules": ContextRulesPage,
+  "guard-rules": GuardRulesPage,
   "ai-instructions": PromptsPage,
   "clinical-guidelines": GuidancePage,
   pathways: PathwaysPage,
@@ -69,8 +72,9 @@ const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
 // Canonical tab order -- keys are part of URL contract and must stay stable.
 export const TABS: Array<{ key: KnowledgeTabKey; label: string }> = [
   { key: "training-data", label: "Training Data" },
-  { key: "surface-forms", label: "Surface Forms" },
+  { key: "surface-forms", label: "Phrase mappings" },
   { key: "context-rules", label: "Context Rules" },
+  { key: "guard-rules", label: "Pipeline Guards" },
   { key: "ai-instructions", label: "AI Instructions" },
   { key: "clinical-guidelines", label: "Clinical Guidelines" },
   { key: "pathways", label: "Pathways" },

@@ -78,17 +78,14 @@ _PRIORITY_LABEL: dict[str, str] = {
 
 @dataclass
 class AssessmentNarrative:
-    """Output of ``format_assessment``.
-
-    ``markdown`` is human-readable Markdown that goes into
-    ``Assessment.assessment``. ``rules`` and ``codes`` are the structured
-    snapshots that get persisted alongside it for downstream consumers.
-    """
+    """Output of ``format_assessment``."""
 
     markdown: str
     rules: list[dict[str, Any]] = field(default_factory=list)
     codes: list[str] = field(default_factory=list)
     pathway_hints: dict[str, Any] = field(default_factory=dict)
+    spoa_disposition: str | None = None
+    spoa_disposition_evidence: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -184,17 +181,21 @@ def format_assessment(
     matched_rules: list[dict[str, Any]],
     patient_codes: list[str],
     guideline_ids: list[str] | None = None,
+    compliance_context: dict[str, Any] | None = None,
+    spoa_disposition: str | None = None,
+    spoa_disposition_evidence: str | None = None,
 ) -> AssessmentNarrative:
-    """Render matched rules into Markdown + structured snapshots.
+    """Render matched rules into Markdown + structured snapshots."""
+    if compliance_context:
+        return _format_spoa_assessment(
+            matched_rules=matched_rules,
+            patient_codes=patient_codes,
+            guideline_ids=guideline_ids,
+            compliance_context=compliance_context,
+            spoa_disposition=spoa_disposition,
+            spoa_disposition_evidence=spoa_disposition_evidence,
+        )
 
-    The Markdown begins with a one-line summary, then a section per
-    priority (2WW, Urgent, Routine), then a 'No matches' fallback when
-    nothing fires. Pathway hints (``stt`` / ``rtr`` / ``alternative``)
-    are derived from the matched rules per DI-LEO-AI-189: STT is the
-    minimum due-days across 2WW matches, RTR is set to "yes" when any
-    2WW or urgent rule fires, and alternative_pathway lists rules whose
-    strength is "conditional" or whose priority is "routine".
-    """
     if not matched_rules:
         return AssessmentNarrative(
             markdown=(
@@ -235,12 +236,8 @@ def format_assessment(
         by_priority.setdefault(prio, []).append(rule)
 
     lines: list[str] = []
-    scope = (
-        "guidelines " + ", ".join(guideline_ids) if guideline_ids else "global"
-    )
-    lines.append(
-        f"**{len(rules_sorted)} guideline rule(s) fired** (scope: {scope})."
-    )
+    scope = "guidelines " + ", ".join(guideline_ids) if guideline_ids else "global"
+    lines.append(f"**{len(rules_sorted)} guideline rule(s) fired** (scope: {scope}).")
 
     for prio in ("immediate", "very_urgent", "2ww", "urgent", "routine"):
         bucket = by_priority.get(prio) or []
@@ -258,7 +255,100 @@ def format_assessment(
         rules=[_rule_snapshot(r) for r in rules_sorted],
         codes=patient_codes,
         pathway_hints=pathway_hints,
+        spoa_disposition=spoa_disposition,
+        spoa_disposition_evidence=spoa_disposition_evidence,
     )
+
+
+def _format_spoa_assessment(
+    *,
+    matched_rules: list[dict[str, Any]],
+    patient_codes: list[str],
+    guideline_ids: list[str] | None,
+    compliance_context: dict[str, Any],
+    spoa_disposition: str | None,
+    spoa_disposition_evidence: str | None,
+) -> AssessmentNarrative:
+    primary = dict(compliance_context.get("primary") or {})
+    alternatives = dict(compliance_context.get("alternatives") or {})
+    primary_rules = list(primary.get("matched_rules") or matched_rules or [])
+    alternative_rules = list(alternatives.get("matched_rules") or [])
+    service_name = str(primary.get("service_name") or "").strip()
+    service_specialty = str(primary.get("service_specialty") or "").strip()
+    primary_ids = list(primary.get("guideline_ids") or guideline_ids or [])
+    supported = bool(primary.get("supported"))
+
+    lines: list[str] = []
+    if service_name:
+        scope = f"{service_name}"
+        if service_specialty:
+            scope += f" ({service_specialty})"
+        if primary_ids:
+            scope += f" -- guidelines {', '.join(primary_ids)}"
+        lines.append(f"**Receiving service:** {scope}.")
+    elif compliance_context.get("healthcare_service_missing"):
+        lines.append(
+            "_Receiving service is not linked; guideline scope may be incomplete._"
+        )
+
+    if supported:
+        lines.append("**Supported by receiving service?** yes.")
+        lines.extend(_render_rule_section("Primary matches", primary_rules))
+    else:
+        lines.append("**Supported by receiving service?** no.")
+        lines.append(
+            "_No matching guideline rules fired for this patient's coded evidence "
+            f"against the receiving service scope._"
+        )
+        lines.append(f"Reviewed against {len(patient_codes)} SNOMED concept(s).")
+
+    if alternative_rules:
+        lines.append("")
+        lines.append("**Other guidelines that would support this request**")
+        for rule in alternative_rules[:5]:
+            lines.append(_render_rule_bullet(rule))
+
+    rules_for_hints = primary_rules or alternative_rules
+    pathway_hints = (
+        _derive_pathway_hints(rules_for_hints)
+        if rules_for_hints
+        else {
+            "stt": None,
+            "stt_evidence": None,
+            "alternative_pathway": None,
+            "alternative_pathway_evidence": None,
+            "rtr": "no",
+            "rtr_evidence": "No matching rules fired",
+        }
+    )
+    all_rules = _dedupe_rules_by_id(primary_rules + alternative_rules)
+    return AssessmentNarrative(
+        markdown="\n".join(lines),
+        rules=[_rule_snapshot(r) for r in all_rules],
+        codes=patient_codes,
+        pathway_hints=pathway_hints,
+        spoa_disposition=spoa_disposition,
+        spoa_disposition_evidence=spoa_disposition_evidence,
+    )
+
+
+def _render_rule_section(title: str, rules: list[dict[str, Any]]) -> list[str]:
+    if not rules:
+        return []
+    lines = ["", f"**{title}**"]
+    for rule in rules:
+        lines.append(_render_rule_bullet(rule))
+    return lines
+
+
+def _dedupe_rules_by_id(rules: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for rule in rules:
+        rule_id = str(rule.get("rule_id") or "").strip()
+        if not rule_id or rule_id in merged:
+            continue
+        merged[rule_id] = rule
+    return list(merged.values())
 
 
 # ---------------------------------------------------------------------------
@@ -367,8 +457,73 @@ def _chip_label(entry: dict[str, Any]) -> str:
     return chip_label
 
 
+def _format_age_years(value: float | int | None) -> str:
+    if value is None:
+        return ""
+    rounded = int(value) if float(value).is_integer() else round(float(value), 1)
+    return str(rounded)
+
+
+def _demographic_matched_via_fragment(entry: dict[str, Any]) -> str | None:
+    field = str(entry.get("field") or "").lower()
+    if field == "age":
+        patient_age = entry.get("patient_value")
+        if patient_age is None:
+            return None
+        operator = str(entry.get("operator") or ">=").strip()
+        threshold = entry.get("value")
+        age_text = _format_age_years(patient_age)
+        if operator == ">=" and threshold is not None:
+            return f"Age {age_text} years ({_format_age_years(threshold)} or over)"
+        if operator == ">" and threshold is not None:
+            return f"Age {age_text} years (over {_format_age_years(threshold)})"
+        if operator == "between" and isinstance(threshold, (list, tuple)):
+            low = _format_age_years(threshold[0])
+            high = _format_age_years(threshold[1])
+            return f"Age {age_text} years ({low} to {high} years)"
+        return f"Age {age_text} years"
+    if field == "sex":
+        patient_sex = str(entry.get("patient_value") or "").strip().lower()
+        if not patient_sex:
+            return None
+        label = {"male": "male", "female": "female"}.get(patient_sex, patient_sex)
+        return f"Gender recorded as {label}"
+    return None
+
+
+def _observation_matched_via_fragment(entry: dict[str, Any]) -> str | None:
+    term = str(entry.get("observable_term") or "").strip()
+    if not term:
+        return None
+    operator = str(entry.get("operator") or "").strip()
+    value = entry.get("value")
+    unit = str(entry.get("unit") or "").strip()
+    if operator and value is not None:
+        suffix = f" {unit}" if unit else ""
+        return f"{term} {operator} {value}{suffix}"
+    return term
+
+
+def _label_matched_via_fragment(entry: dict[str, Any], fallback: str) -> str | None:
+    label = str(entry.get("term") or entry.get("display_name") or "").strip()
+    return label or fallback
+
+
 def _matched_via_fragment(entry: dict[str, Any]) -> str | None:
     """Render one matched_via leaf as a short display fragment, or None."""
+    kind = str(entry.get("kind") or "").upper()
+    if kind == "DEMOGRAPHIC":
+        return _demographic_matched_via_fragment(entry)
+    if kind == "OBSERVATION":
+        return _observation_matched_via_fragment(entry)
+    if kind == "MEDICATION":
+        return _label_matched_via_fragment(entry, "Active medication matched")
+    if kind == "ALLERGY":
+        return _label_matched_via_fragment(entry, "Allergy matched")
+    if kind == "TREATMENT_HISTORY":
+        return _label_matched_via_fragment(entry, "Treatment history matched")
+    if kind == "RULE_FIRED":
+        return _label_matched_via_fragment(entry, "Linked rule matched")
     hits = list(entry.get("matched_concept_ids") or [])
     if not hits:
         return None
@@ -376,16 +531,19 @@ def _matched_via_fragment(entry: dict[str, Any]) -> str | None:
     chip_label = _chip_label(entry)
     if hits == [primary]:
         return chip_label
+    # A trailing qualifier (rather than a leading "a related coded
+    # finding for ..." clause) reads more naturally when several
+    # leaves are joined with "; " in one "Matched on:" line, and
+    # avoids repeating the same clause for every leaf.
     if len(hits) == 1:
-        return f"a related coded finding for {chip_label}"
-    return f"related coded findings for {chip_label}"
+        return f"{chip_label} (related finding)"
+    return f"{chip_label} (related findings)"
 
 
 def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
     """Render per-leaf hits as a short, plain-English line for SBAR.
 
-    Implements UN-LEO-AI-093 acceptance criterion: name the matched code
-    rather than only the rule. Output uses sentence case and short labels
+    Implements UN-LEO-AI-093 acceptance criterion: name every satisfied leaf on
     so the reading age stays at 9-11 (per `health-literacy.mdc`).
 
     Duplicate leaf labels are collapsed (same concept chip appearing more
@@ -394,8 +552,11 @@ def _render_matched_via(matched_via: list[dict[str, Any]] | None) -> str:
     audit.
 
     Examples:
+        - Age gate                        -> "Age 71 years (50 or over)"
+        - Sex gate                        -> "Gender recorded as female"
         - One leaf, one hit, exact match  -> "Smoker"
-        - One leaf, one hit, descendant   -> "a related coded finding for Smoker"
+        - One leaf, one hit, descendant   -> "Smoker (related finding)"
+        - One leaf, many hits, descendant -> "Smoker (related findings)"
         - Two distinct leaves             -> "Smoker; History of asbestos exposure"
         - Three identical leaf labels     -> "Weight decreased"
     """
@@ -477,9 +638,7 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
         stt_evidence = "; ".join(r.get("rule_id", "?") for r in immediate[:3])
     elif very_urgent:
         due_days = [
-            _rule_due_days(r)
-            for r in very_urgent
-            if _rule_due_days(r) is not None
+            _rule_due_days(r) for r in very_urgent if _rule_due_days(r) is not None
         ]
         stt = (
             f"Within {min(due_days)} days (very urgent)"
@@ -488,9 +647,7 @@ def _derive_pathway_hints(rules: list[dict[str, Any]]) -> dict[str, Any]:
         )
         stt_evidence = "; ".join(r.get("rule_id", "?") for r in very_urgent[:3])
     elif twoww:
-        due_days = [
-            _rule_due_days(r) for r in twoww if _rule_due_days(r) is not None
-        ]
+        due_days = [_rule_due_days(r) for r in twoww if _rule_due_days(r) is not None]
         if due_days:
             stt = f"Within {min(due_days)} days (two-week wait)"
         else:

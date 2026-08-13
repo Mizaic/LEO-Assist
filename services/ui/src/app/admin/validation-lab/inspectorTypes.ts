@@ -12,8 +12,24 @@ import {
   summarizeStageMessages,
 } from "./pipelineStageErrors";
 
+export interface LabWorkItem {
+  kind: string;
+  text: string;
+  code?: string;
+  /** :DOCUMENTS.evidence -- the mention span. */
+  evidence?: string;
+  /** :DOCUMENTS.evidence_sentence -- the de-identified sentence. */
+  evidenceSentence?: string;
+}
+
+export interface LabWorkPreview {
+  headline?: string;
+  items?: LabWorkItem[];
+}
+
 export interface LabTraceSpan {
   step_id: string;
+  name?: string;
   event_type?: string;
   status: string;
   worker_id?: string;
@@ -28,7 +44,10 @@ export interface LabTraceSpan {
   warnings?: string[];
   error_summary?: string;
   warning_summary?: string;
+  work_preview?: LabWorkPreview;
   source?: "neo4j" | "sse";
+  rule_id?: string;
+  source_sentence?: string;
 }
 
 export interface LabTraceEvent {
@@ -65,6 +84,7 @@ export interface LabRunInspectorSnapshot {
   plan_steps?: LabPlanStep[];
   plan_edges?: LabPlanEdge[];
   spans: LabTraceSpan[];
+  source_text?: string;
   sse_path: string;
 }
 
@@ -234,6 +254,9 @@ function mergeSpan(existing: LabTraceSpan, incoming: LabTraceSpan): LabTraceSpan
     warnings: incoming.warnings?.length ? incoming.warnings : existing.warnings,
     error_summary: incoming.error_summary || existing.error_summary,
     warning_summary: incoming.warning_summary || existing.warning_summary,
+    work_preview: incoming.work_preview?.headline || incoming.work_preview?.items?.length
+      ? incoming.work_preview
+      : existing.work_preview,
     source: existing.source === "neo4j" ? "neo4j" : incoming.source,
   };
 }

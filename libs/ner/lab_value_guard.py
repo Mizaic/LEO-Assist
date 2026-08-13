@@ -2,16 +2,21 @@
 
 Atlas trace:
   DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
+  DI: DI-9456E5BE, DI-34712A9A
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
 
 Clinical safety rule: lab results (eGFR, creatinine, HbA1c, etc.) are
-observations — the pipeline must NEVER infer a diagnosis from a numeric
+observations -- the pipeline must NEVER infer a diagnosis from a numeric
 measurement.  If the LLM returns a disorder whose evidence text is a lab
 result line, this guard removes it before terminology resolution.
 
 This is a post-extraction filter, not a replacement for prompt-level rules.
 It exists as a safety net in case the LLM ignores its instructions.
+
+Configurable extension (P1-D): platform admins can add new lab test patterns
+via :NerGuardRule nodes (family='lab_value_guard') in Neo4j so the guard
+covers new biomarkers without a code deployment. Custom patterns are OR-ed
+with the builtin list. Call reload_lab_value_guard() after mutations.
 """
 
 from __future__ import annotations
@@ -22,8 +27,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_LAB_TEST_RE = re.compile(
-    r"\b("
+_BUILTIN_LAB_PATTERNS = (
     r"e?gfr|creatinine|sodium|potassium|haemoglobin|hemoglobin|hba1c|hb\b|"
     r"cholesterol|triglyceride|albumin|bilirubin|ferritin|"
     r"platelet|neutrophil|lymphocyte|white\s*cell|red\s*cell|"
@@ -42,9 +46,65 @@ _LAB_TEST_RE = re.compile(
     r"alkaline\s*phosphatase|"
     r"gamma\s*glutamyl\s*transferase|"
     r"glomerular\s*filtration"
-    r")\b",
-    re.IGNORECASE,
 )
+
+# Custom patterns added via Neo4j (rebuilt by reload_lab_value_guard()).
+_custom_lab_patterns: list[str] = []
+
+# Custom inferred-disorder mappings from Neo4j.
+_custom_disorder_map: dict[str, tuple[str, ...]] = {}
+
+
+def _build_lab_test_re(custom: list[str]) -> re.Pattern[str]:
+    """Compile the combined lab test regex from builtins and custom patterns."""
+    all_parts = _BUILTIN_LAB_PATTERNS
+    if custom:
+        all_parts = all_parts + "|" + "|".join(custom)
+    return re.compile(r"\b(" + all_parts + r")\b", re.IGNORECASE)
+
+
+def _fetch_neo4j_lab_rules(family: str) -> list[dict]:
+    """Fetch :NerGuardRule nodes for the lab value guard from Neo4j."""
+    try:
+        from libs.pipeline.config_loader import _fetch_neo4j_rules
+
+        return _fetch_neo4j_rules(family)
+    except Exception:
+        logger.warning(
+            "Could not fetch Neo4j lab guard rules -- using builtins only",
+            exc_info=True,
+        )
+        return []
+
+
+def reload_lab_value_guard() -> None:
+    """Rebuild the lab test regex and disorder map from Neo4j custom rules.
+
+    Call this after creating or deactivating a :NerGuardRule node with
+    family='lab_value_guard'.
+    """
+    global _custom_lab_patterns, _custom_disorder_map, _LAB_TEST_RE
+    rows = _fetch_neo4j_lab_rules("lab_value_guard")
+    _custom_lab_patterns = [
+        r["pattern"]
+        for r in rows
+        if r.get("active", True) and r.get("pattern")
+    ]
+    _custom_disorder_map = {}
+    for r in rows:
+        if r.get("active", True) and r.get("pattern") and r.get("suppressed_disorders"):
+            key = r["pattern"].strip().lower()
+            _custom_disorder_map[key] = tuple(r["suppressed_disorders"])
+    _LAB_TEST_RE = _build_lab_test_re(_custom_lab_patterns)
+    logger.info(
+        "Lab value guard reloaded: %d builtin + %d custom patterns",
+        len(_BUILTIN_LAB_PATTERNS.split("|")),
+        len(_custom_lab_patterns),
+    )
+
+
+# Initialise the regex at module load (without Neo4j; uses builtins only).
+_LAB_TEST_RE = _build_lab_test_re([])
 
 _MEASUREMENT_RE = re.compile(
     r"\d+(?:\.\d+)?(?:\s*/\s*\d+(?:\.\d+)?)?\s*"

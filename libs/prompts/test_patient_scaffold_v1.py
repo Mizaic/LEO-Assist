@@ -2,13 +2,13 @@
 
 The Knowledge > Test Patients tab calls this when a reviewer clicks
 "Scaffold from rule" and picks one AppropriatenessRule. The scaffolder
-gives Haiku:
+gives the configured language model:
   - the verbatim NICE recommendation,
   - the SNOMED criteria that must trigger the rule,
   - the action priority (2ww / urgent / routine),
   - any APPLIES_TO demographics constraints (age, sex).
 
-Haiku returns a small JSON proposal that we map onto the existing
+The model returns a small JSON proposal that we map onto the existing
 test-patient editor shape:
   - one or two short consultation notes that mention every trigger
     SNOMED in natural clinician phrasing,
@@ -18,7 +18,7 @@ test-patient editor shape:
 The expected SBAR is filled in deterministically by the service
 afterwards (recommendation_text -> Recommendation, action_priority
 -> expected_action_priority, picked rule -> matched_rule_ids), so
-Haiku never has to invent the "ground truth" answer it is supposed
+the model never has to invent the "ground truth" answer it is supposed
 to be a test for.
 
 Rules of the road:
@@ -36,9 +36,11 @@ from __future__ import annotations
 import json
 from typing import Iterable
 
+from libs.llm_client.prompt_safety import INJECTION_GUARD
+
 
 _SCHEMA_HINT = """\
-Return ONLY a JSON object that matches this schema:
+Return ONLY a JSON object that matches this shape:
 {
   "demographics": {
     "age": <int between 18 and 95>,
@@ -50,8 +52,7 @@ Return ONLY a JSON object that matches this schema:
       "source_label": "GP consultation" | "Hospital letter" | "Telephone triage" | "A&E note",
       "date_offset_days": <negative integer, days before today, e.g. -7>,
       "text": "<2-5 short sentences. UK GP style. PMHx, OE, plan abbreviations are fine.>"
-    },
-    ...  // 1 or 2 encounters total
+    }
   ],
   "reviewer_focus": "<one short sentence: what should the reviewer check?>"
 }
@@ -99,17 +100,21 @@ def _format_triggers(triggers: Iterable[dict]) -> str:
             continue
         rows.append(f"  - {term} (SNOMED {cid})")
     if not rows:
-        return "  (no specific triggers -- write notes consistent with the recommendation)"
+        return (
+            "  (no specific triggers -- write notes consistent with the recommendation)"
+        )
     return "\n".join(rows)
 
 
-SYSTEM_PROMPT = (
-    "You are a UK clinical test-data assistant. Your job is to scaffold a "
-    "synthetic test patient that should make a specific NICE-derived rule "
-    "fire. You are NOT making a clinical decision -- you are writing a "
-    "plausible record so QA can verify the rule engine. Treat every output "
-    "as test data: never invent identifying details. "
-    "Always return strictly valid JSON matching the user-supplied schema."
+SYSTEM_PROMPT = INJECTION_GUARD + (
+    "Objective: Scaffold a synthetic UK test patient that should make the "
+    "specified NICE-derived rule fire so QA can verify the rule engine.\n"
+    "Scope: Write plausible test data from the supplied rule, recommendation, "
+    "triggers, and demographic constraints. Do not make a clinical decision.\n"
+    "Hard requirements: Include every trigger in the notes, satisfy every "
+    "demographic constraint, and never include real identifying details.\n"
+    "Output contract: Return only strictly valid JSON matching the shape in "
+    "the user message. Do not add prose, markdown, or code fences."
 )
 
 
@@ -124,10 +129,10 @@ def build_user_prompt(
     triggers: list[dict],
     demographic_constraints: list[dict] | None = None,
 ) -> str:
-    """Compose the user message Haiku sees.
+    """Compose the user message the configured language model sees.
 
     `triggers` is a list of {concept_id, preferred_term} dicts. They are
-    rendered verbatim into the prompt so Haiku can echo each preferred
+    rendered verbatim into the prompt so the model can echo each preferred
     term back into the encounter text.
     """
     return (
@@ -151,7 +156,7 @@ def build_user_prompt(
 def expected_field_set() -> set[str]:
     """The top-level keys the scaffolder service relies on.
 
-    Used by the validator -- if Haiku omits any of these we treat the
+    Used by the validator -- if the model omits any of these we treat the
     response as a hard failure rather than silently writing a half-baked
     test patient.
     """
