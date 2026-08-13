@@ -100,7 +100,7 @@ function FamilyCardGrid({
   return (
     <Grid container spacing={2}>
       {cards.map((key, index) => (
-        <Grid item xs={12} sm={6} md={4} key={key}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
           <GuardFamilyCard
             copy={GUARD_FAMILY_COPY[key]}
             rules={filtered.filter((rule) => rule.family === key)}
