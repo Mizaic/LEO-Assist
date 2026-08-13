@@ -50,14 +50,21 @@ interface StatusBadgeProps {
 }
 
 function StatusBadge({ status }: StatusBadgeProps) {
-  const config: Record<StageStatus, { label: string; color: "success" | "error" | "default" | "warning"; icon: React.ReactNode }> = {
+  const config: Record<
+    StageStatus,
+    {
+      label: string;
+      color: "success" | "error" | "default" | "warning";
+      icon?: React.ReactElement;
+    }
+  > = {
     passed: { label: "Passed", color: "success", icon: <CheckCircleOutlineIcon fontSize="small" /> },
     failed: { label: "Failed", color: "error", icon: <ErrorOutlineIcon fontSize="small" /> },
     skipped: { label: "Skipped", color: "default", icon: <RemoveCircleOutlineIcon fontSize="small" /> },
-    running: { label: "Running", color: "warning", icon: null },
+    running: { label: "Running", color: "warning" },
   };
   const { label, color, icon } = config[status];
-  return <Chip size="small" label={label} color={color} icon={icon ?? undefined} />;
+  return <Chip size="small" label={label} color={color} icon={icon} />;
 }
 
 interface StageCardProps {

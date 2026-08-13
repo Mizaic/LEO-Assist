@@ -10,6 +10,17 @@ import RuleEditor, { type RuleFormValues } from "@/components/workbench/RuleEdit
 import { humanizePattern } from "./humanizePattern";
 import type { NerGuardRule } from "./types";
 
+function toFormValues(
+  rule: NerGuardRule | null,
+): Partial<RuleFormValues> | null {
+  if (!rule) return null;
+  return {
+    pattern: rule.pattern,
+    rule_type: rule.rule_type,
+    active: rule.active,
+  };
+}
+
 interface GuardEditorPanelProps {
   selectedRule: NerGuardRule | null;
   addingNew: boolean;
@@ -37,7 +48,7 @@ export default function GuardEditorPanel({
             ? "Add guard rule"
             : selectedRule?.summary || humanizePattern(selectedRule?.pattern ?? "")
         }
-        initialValues={selectedRule ?? null}
+        initialValues={toFormValues(selectedRule)}
         ruleTypeOptions={ruleTypeOptions}
         onSave={onSave}
         onCancel={onCancel}
