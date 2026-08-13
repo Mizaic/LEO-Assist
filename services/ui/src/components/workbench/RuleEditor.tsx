@@ -51,6 +51,8 @@ export interface RuleEditorProps {
   ruleFamily?: string;
   /** When true, fields are locked and Save is hidden (built-in rules). */
   readOnly?: boolean;
+  /** Called after a version restore so the parent can reload the rule. */
+  onReverted?: () => void;
 }
 
 export default function RuleEditor({
