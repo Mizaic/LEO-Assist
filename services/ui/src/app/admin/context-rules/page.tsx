@@ -125,7 +125,7 @@ function CategoryCardGrid({
       {keys.map((key, index) => {
         const rules = filtered.filter((rule) => rule.category === key);
         return (
-          <Grid item xs={12} sm={6} md={4} key={key}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
             <ContextCategoryCard
               copy={categoryCopyFor(key)}
               rules={rules}
