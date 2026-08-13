@@ -347,6 +347,7 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
     runId: single?.runId || "",
     enabled: Boolean(single?.runId),
     pollStages: mergedStages,
+    terminal: Boolean(single?.terminal),
   });
   if (!sheet) return null;
   const watching =

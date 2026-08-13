@@ -9,6 +9,7 @@ Tests cover the six acceptance criteria defined in VT-C265FD93.
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -280,7 +281,7 @@ def test_verify_entities_gate_failed_sets_tier_override():
 
 
 def test_verify_entities_single_batch_call_for_multiple():
-    """verify_coding_batch is called once regardless of entity count."""
+    """Subgraph calls verify_coding_batch once; sub-batching is internal."""
     entities = [
         _make_entity(text="pleural effusion", concept_id=f"c{i}")
         for i in range(5)
@@ -304,3 +305,64 @@ def test_verify_entities_single_batch_call_for_multiple():
     mock_batch.assert_called_once()
     call_entities = mock_batch.call_args[0][0]
     assert len(call_entities) == 5
+
+
+# ---------------------------------------------------------------------------
+# libs.llm_client.coding_verifier -- batch size / response caps
+# ---------------------------------------------------------------------------
+
+
+def test_coding_verifier_response_cap_scales_with_batch():
+    from libs.llm_client.coding_verifier import _response_cap, _token_budget
+
+    assert _response_cap(5) < _response_cap(40)
+    assert _response_cap(40) >= 8_000
+    assert _token_budget(40) > 2_000
+    assert _token_budget(40) <= 8_000
+
+
+def test_coding_verifier_splits_large_batches():
+    """Large entity lists are verified in sub-batches under the response cap."""
+    from libs.llm_client.coding_verifier import (
+        _SUB_BATCH_SIZE,
+        verify_coding_batch,
+    )
+
+    entities = [
+        {
+            "text": f"finding {i}",
+            "term": f"Finding {i}",
+            "concept_id": str(1000 + i),
+            "semantic_tag": "finding",
+        }
+        for i in range(_SUB_BATCH_SIZE + 5)
+    ]
+    call_sizes: list[int] = []
+
+    class _FakeResult:
+        def __init__(self, count: int):
+            self.verdict = [
+                {
+                    "index": i,
+                    "verdict": "accept",
+                    "better_term": None,
+                    "reason": "ok",
+                }
+                for i in range(count)
+            ]
+
+    def _fake_consensus(**kwargs):
+        payload = json.loads(kwargs["user_msg"])
+        count = len(payload["proposed_codes"])
+        call_sizes.append(count)
+        return _FakeResult(count)
+
+    with patch(
+        "libs.llm_client.coding_verifier.run_consensus",
+        side_effect=_fake_consensus,
+    ):
+        verdicts = verify_coding_batch(entities, "clinical text")
+
+    assert call_sizes == [_SUB_BATCH_SIZE, 5]
+    assert len(verdicts) == len(entities)
+    assert [v["index"] for v in verdicts] == list(range(len(entities)))

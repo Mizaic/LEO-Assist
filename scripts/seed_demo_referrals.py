@@ -41,7 +41,7 @@ sys.path.insert(0, str(ROOT / "services" / "api"))
 load_dotenv(ROOT / "secrets" / ".env")
 load_dotenv(ROOT / ".env", override=False)
 
-from libs.neo4j_client.client import PatientGraphClient  # noqa: E402
+from libs.neo4j_client.client import PatientGraphClient
 
 _RNG = random.Random(99)
 
@@ -906,6 +906,7 @@ def _seed_referrals(client: PatientGraphClient) -> list[dict[str, Any]]:
         p = _person(idx)
         chunks_fn = _CHUNK_FACTORIES[pathway]
         chunks_text = chunks_fn(p)
+        rr_id = _rr_id(idx)
         _seed_referral_request(client, idx, specialty_label, priority, p["referral_date"])
         dr = _seed_document_reference(client, idx, pathway, p["referral_date"])
         chunk_ids = _seed_chunks(client, dr, chunks_text)

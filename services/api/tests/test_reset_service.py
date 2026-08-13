@@ -14,8 +14,13 @@ from app.models.neo4j_schema import (
 from libs.cypher.cleanup_queries import (
     RESET_PATIENT_DOCUMENTS,
     RESET_PATIENT_DIRECT_SEMANTIC,
+    RESET_REFERRAL_DRAFT_ASSESSMENTS,
 )
-from app.services.reset_service import reset_encounter, reset_patient
+from app.services.reset_service import (
+    reset_encounter,
+    reset_patient,
+    reset_referral_draft_assessments,
+)
 
 
 def _make_encounter_session_sides(concept_ids=("111", "222")):
@@ -90,8 +95,59 @@ class TestResetPatient:
         assert "HAS_CLINICAL_FINDING" in RESET_PATIENT_DIRECT_SEMANTIC
         assert "HAS_OBSERVABLE_ENTITY" in RESET_PATIENT_DIRECT_SEMANTIC
         assert "HAS_CONCEPT" in RESET_PATIENT_DIRECT_SEMANTIC
+        assert "HAS_PHARMACEUTICAL_BIOLOGIC_PRODUCT" in RESET_PATIENT_DIRECT_SEMANTIC
         # Old label-based filter must be gone
         assert "SnomedConcept" not in RESET_PATIENT_DIRECT_SEMANTIC
+
+    def test_documents_query_reaches_referral_attached_chunks(self) -> None:
+        """RESET_PATIENT_DOCUMENTS must also traverse
+        (Patient)<-[:FOR_PATIENT]-(ReferralRequest)-[:HAS_DOCUMENT]->(DocumentReference),
+        not just the patient-direct HAS_DOCUMENT_REFERENCE path.
+
+        Referral documents attach to the patient graph only via
+        ReferralRequest, so the patient-direct-only query silently leaves
+        codings behind on referral documents after a reset. Measured on the
+        live patient graph: 50 of 272 referral-document pairs were
+        unreachable by this query before the fix.
+        """
+        assert "ReferralRequest" in RESET_PATIENT_DOCUMENTS
+        assert "FOR_PATIENT" in RESET_PATIENT_DOCUMENTS
+        assert "HAS_DOCUMENT]->" in RESET_PATIENT_DOCUMENTS
+
+
+class TestResetReferralDraftAssessments:
+    """Tests for reset_referral_draft_assessments().
+
+    SBAR assessments are version-controlled: a `completed` Assessment is a
+    real version and must survive a reset. A `draft` Assessment is an
+    aborted or superseded run and is safe to delete before a replay, so the
+    reviewer is never looking at yesterday's leftovers.
+    """
+
+    def test_query_scopes_to_draft_status_and_detach_deletes(self) -> None:
+        assert "ReferralRequest" in RESET_REFERRAL_DRAFT_ASSESSMENTS
+        assert "'draft'" in RESET_REFERRAL_DRAFT_ASSESSMENTS
+        assert "DETACH DELETE" in RESET_REFERRAL_DRAFT_ASSESSMENTS
+        # Completed assessments must never be touched by this query.
+        assert "'completed'" not in RESET_REFERRAL_DRAFT_ASSESSMENTS
+
+    def test_returns_deleted_count(self) -> None:
+        session = MagicMock()
+        session.run.return_value.single.return_value = {"deleted": 3}
+        result = reset_referral_draft_assessments("ref-1", session)
+        assert result == {
+            "referral_id": "ref-1",
+            "draft_assessments_deleted": 3,
+        }
+        session.run.assert_called_once_with(
+            RESET_REFERRAL_DRAFT_ASSESSMENTS, referral_id="ref-1"
+        )
+
+    def test_none_result_returns_zero(self) -> None:
+        session = MagicMock()
+        session.run.return_value.single.return_value = None
+        result = reset_referral_draft_assessments("ref-1", session)
+        assert result["draft_assessments_deleted"] == 0
 
 
 class TestResetEncounter:

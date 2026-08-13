@@ -15,7 +15,9 @@ from libs.pipeline.post_processing import (
 )
 
 
-def test_vt2a7c5322_value_unit_linking_runs_before_entity_type_normalisation_in_trace() -> None:
+def test_vt2a7c5322_value_unit_linking_runs_before_entity_type_normalisation_in_trace() -> (
+    None
+):
     entities = [
         {
             "text": "Hb",
@@ -44,6 +46,8 @@ def test_vt2a7c5322_value_unit_linking_runs_before_entity_type_normalisation_in_
     assert completed.index(by_id["layer_5"]) < completed.index(by_id["layer_6"])
     assert by_id["layer_5"]["name"] == "Value-Unit Linking"
     assert by_id["layer_6"]["name"] == "Entity-Type Normalisation"
+    assert completed.index(by_id["layer_4c"]) < completed.index(by_id["layer_5"])
+    assert by_id["layer_4c"]["name"] == "Measurement Observable Recovery"
 
 
 def test_referral_routing_guard_runs_after_lab_value_before_scope() -> None:

@@ -1756,16 +1756,22 @@ ORDER BY rule.id, coalesce(proc.id, proc.conceptId)
                         rule_data.get("rule_id"),
                     )
                 continue
-            actions.append(
-                {
-                    "concept_id": concept_id,
-                    "name": item.get("name"),
-                    "strength": item.get("strength") or "unspecified",
-                    "priority": item.get("priority") or "routine",
-                    "due_days": item.get("due_days"),
-                }
-            )
+            actions.append(self._compiled_action_item(item, str(concept_id)))
         return actions
+
+    @staticmethod
+    def _compiled_action_item(item: dict[str, Any], concept_id: str) -> dict[str, Any]:
+        """Build one compiled action, including already-done evidence ids."""
+        from libs.guidelines.investigation_family import evidence_ids_for_action
+
+        return {
+            "concept_id": concept_id,
+            "name": item.get("name"),
+            "strength": item.get("strength") or "unspecified",
+            "priority": item.get("priority") or "routine",
+            "due_days": item.get("due_days"),
+            "already_done_evidence_ids": sorted(evidence_ids_for_action(concept_id)),
+        }
 
     def _compile_schema_v2_rule(
         self,

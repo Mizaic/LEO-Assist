@@ -1,0 +1,222 @@
+{
+  "families": {
+    "scope_guard": {
+      "note": "If you develop chest pain, call 999",
+      "without_guard": "Chest pain is coded as a current finding.",
+      "with_guard": "Chest pain is suppressed. It never reaches the coding review list.",
+      "data_change": "The entity is deleted from the extract (suppressed).",
+      "source_test": "tests/test_scope_guard.py::TestReclassifyAssertion::test_safety_netting_returns_suppressed",
+      "check": { "kind": "scope_suppressed", "semantic_tag": "disorder" }
+    },
+    "lab_value_guard": {
+      "note": "eGFR 58 mL/min",
+      "without_guard": "The number can be coded as kidney disease.",
+      "with_guard": "This line is treated as a lab result, not a diagnosis.",
+      "data_change": "A lab name plus a number stays a measurement.",
+      "source_test": "tests/libs/pipeline/test_lab_value_guard.py::TestLabValueGuardParity::test_builtin_lab_sentences_detected",
+      "check": { "kind": "lab_result" }
+    },
+    "referral_routing_guard": {
+      "note": "FIT positive - 2WW referral submitted",
+      "without_guard": "A bare 'referral submitted' line is treated as form wording and dropped.",
+      "with_guard": "This line is kept because it names FIT, a real test.",
+      "data_change": "Informational referral wording is removed. Named tests and cancer sites stay.",
+      "source_test": "tests/libs/pipeline/test_referral_routing_guard.py::TestReferralRoutingGuardParity",
+      "check": {
+        "kind": "referral_keep",
+        "drop_note": "referral submitted"
+      }
+    },
+    "assertion_guard": {
+      "note": "Ex-smoker",
+      "without_guard": "A nearby 'not' can mark ex-smoker as absent.",
+      "with_guard": "Ex-smoker is restored to present. The status is already in the words.",
+      "data_change": "Assertion is set back to present for this lifestyle code.",
+      "source_test": "tests/libs/pipeline/test_assertion_guard.py::TestAssertionGuardParity::test_builtin_concepts_restored_to_present",
+      "check": {
+        "kind": "assertion_present",
+        "concept_id": "8517006",
+        "term": "Ex-smoker"
+      }
+    },
+    "entity_type_norm": {
+      "note": "new episode",
+      "without_guard": "New episode can be coded as a disease.",
+      "with_guard": "It is relabelled as a qualifier. It is not a condition.",
+      "data_change": "Entity type changes from a temporal or finding label to qualifier_value.",
+      "source_test": "tests/libs/pipeline/test_entity_type_norm.py::TestEntityTypeNormParity::test_builtin_episode_markers_reclassified",
+      "check": {
+        "kind": "entity_relabel",
+        "start_label": "X_TEMPORAL"
+      }
+    },
+    "checkbox_norm": {
+      "note": "Has the patient been seen before? [X]",
+      "without_guard": "The form question can be extracted as a clinical finding.",
+      "with_guard": "The admin question is marked so it is not extracted.",
+      "data_change": "Admin form prompts are marked non-extractable.",
+      "source_test": "tests/libs/pipeline/test_checkbox_normalizer.py::TestCheckboxNormParity::test_builtin_admin_questions_suppressed",
+      "check": { "kind": "checkbox_suppress" }
+    },
+    "situation_lookup": {
+      "note": "2ww referral",
+      "without_guard": "Search uses the local wording and can miss the usual code.",
+      "with_guard": "The phrase is rewritten to fast track referral.",
+      "data_change": "Surface text is replaced with a standard lookup term. No diagnosis is added.",
+      "source_test": "tests/libs/pipeline/test_situation_lookup.py::TestSituationLookupParity",
+      "check": {
+        "kind": "situation_rewrite",
+        "expected": "fast track referral"
+      }
+    },
+    "term_concept_blocklist": {
+      "note": "fit",
+      "without_guard": "FIT can auto-code as a seizure (91175000).",
+      "with_guard": "That seizure code is blocked. A reviewer can still pick the stool test.",
+      "data_change": "The listed clinical code is suppressed for this wording. The mention is not deleted.",
+      "source_test": "tests/libs/pipeline/test_term_concept_blocklist.py::TestIsBlockedMappingParity",
+      "check": {
+        "kind": "blocklist",
+        "text": "fit",
+        "concept_id": "91175000"
+      }
+    }
+  },
+  "types": {
+    "scope_guard:safety_netting": {
+      "note": "If you develop chest pain, call 999",
+      "without_guard": "Chest pain is coded as a current finding.",
+      "with_guard": "Chest pain is suppressed. It never reaches the coding review list.",
+      "data_change": "The entity is deleted from the extract (suppressed).",
+      "source_test": "tests/test_scope_guard.py::TestReclassifyAssertion::test_safety_netting_returns_suppressed",
+      "check": { "kind": "scope_suppressed", "semantic_tag": "disorder" }
+    },
+    "scope_guard:recommendation": {
+      "note": "Consider starting metformin 500mg",
+      "without_guard": "Metformin is coded as a current drug.",
+      "with_guard": "Metformin is kept but marked hypothetical. A reviewer decides.",
+      "data_change": "Assertion changes from present to hypothetical. The entity is not deleted.",
+      "source_test": "tests/test_scope_guard.py::TestReclassifyAssertion::test_recommendation_reclassifies_to_hypothetical",
+      "check": {
+        "kind": "scope_hypothetical",
+        "semantic_tag": "substance"
+      }
+    },
+    "entity_type_norm:severity_modifier": {
+      "note": "severe",
+      "without_guard": "Severe can be coded as a disease.",
+      "with_guard": "It is relabelled as a qualifier of another finding.",
+      "data_change": "Entity type changes from finding to qualifier_value.",
+      "source_test": "tests/libs/pipeline/test_entity_type_norm.py::TestEntityTypeNormParity::test_builtin_severity_modifiers_reclassified",
+      "check": {
+        "kind": "entity_relabel",
+        "start_label": "finding"
+      }
+    },
+    "referral_routing_guard:named_test": {
+      "note": "MRI scan arranged",
+      "without_guard": "A bare referral-submitted line is dropped as form wording.",
+      "with_guard": "This line is kept because it names MRI, a real test.",
+      "data_change": "Spans that name a test stay in the extract.",
+      "source_test": "tests/libs/pipeline/test_referral_routing_guard.py::TestReferralRoutingGuardParity::test_keep_spans_not_suppressed",
+      "check": {
+        "kind": "referral_keep",
+        "drop_note": "referral submitted"
+      }
+    },
+    "referral_routing_guard:site": {
+      "note": "suspected breast cancer",
+      "without_guard": "Pathway labels can drown out the cancer site.",
+      "with_guard": "The cancer site is kept.",
+      "data_change": "Site-named suspected-cancer wording stays in the extract.",
+      "source_test": "tests/libs/pipeline/test_referral_routing_guard.py::TestReferralRoutingGuardParity::test_keep_spans_not_suppressed",
+      "check": {
+        "kind": "referral_keep",
+        "drop_note": "referral submitted"
+      }
+    },
+    "referral_routing_guard:keep_action": {
+      "note": "patient declined referral",
+      "without_guard": "Any line with referral can be dropped as form wording.",
+      "with_guard": "Declined referral is kept. It is a clinical action.",
+      "data_change": "Keep-action phrases stay in the extract.",
+      "source_test": "tests/libs/pipeline/test_referral_routing_guard.py::TestReferralRoutingGuardParity::test_keep_spans_not_suppressed",
+      "check": {
+        "kind": "referral_keep",
+        "drop_note": "referral submitted"
+      }
+    }
+  },
+  "rules": {
+    "tcb-001": {
+      "note": "spinal surgery",
+      "without_guard": "A generic mention can auto-code to a specific named operation (1287097003).",
+      "with_guard": "That operation code is blocked.",
+      "data_change": "Auto-coding of this wording to 1287097003 is suppressed.",
+      "source_test": "tests/libs/pipeline/test_term_concept_blocklist.py::TestIsBlockedMappingParity",
+      "check": {
+        "kind": "blocklist",
+        "text": "spinal surgery",
+        "concept_id": "1287097003"
+      }
+    },
+    "tcb-002": {
+      "note": "not sleeping well",
+      "without_guard": "This phrasing can auto-code to malaise (367391008).",
+      "with_guard": "That malaise code is blocked.",
+      "data_change": "Auto-coding of this wording to 367391008 is suppressed.",
+      "source_test": "tests/libs/pipeline/test_term_concept_blocklist.py::TestIsBlockedMappingParity",
+      "check": {
+        "kind": "blocklist",
+        "text": "not sleeping well",
+        "concept_id": "367391008"
+      }
+    },
+    "tcb-003": {
+      "note": "nerve compression",
+      "without_guard": "Advice wording can auto-code to malignant neoplasm of nervous system (372063002).",
+      "with_guard": "That neoplasm code is blocked.",
+      "data_change": "Auto-coding of this wording to 372063002 is suppressed.",
+      "source_test": "tests/libs/pipeline/test_term_concept_blocklist.py::TestIsBlockedMappingParity",
+      "check": {
+        "kind": "blocklist",
+        "text": "nerve compression",
+        "concept_id": "372063002"
+      }
+    },
+    "tcb-004": {
+      "note": "fit",
+      "without_guard": "FIT can auto-code as a seizure (91175000).",
+      "with_guard": "That seizure code is blocked.",
+      "data_change": "Auto-coding of this wording to 91175000 is suppressed.",
+      "source_test": "tests/libs/pipeline/test_term_concept_blocklist.py::TestIsBlockedMappingParity",
+      "check": {
+        "kind": "blocklist",
+        "text": "fit",
+        "concept_id": "91175000"
+      }
+    },
+    "sl-001": {
+      "note": "2ww referral",
+      "without_guard": "Search looks for 2ww referral and can miss the usual code.",
+      "with_guard": "Rewritten to fast track referral.",
+      "data_change": "Surface text is replaced with fast track referral.",
+      "source_test": "tests/libs/pipeline/test_situation_lookup.py::TestSituationLookupParity",
+      "check": {
+        "kind": "situation_rewrite",
+        "expected": "fast track referral"
+      }
+    },
+    "sl-007": {
+      "note": "awaiting results",
+      "without_guard": "The phrase might be rewritten when it should be left alone.",
+      "with_guard": "Left as awaiting results. No rewrite.",
+      "data_change": "No canonical term. The extract wording is unchanged.",
+      "source_test": "tests/libs/pipeline/test_situation_lookup.py::TestSituationLookupParity",
+      "check": {
+        "kind": "situation_rewrite",
+        "expected": null
+      }
+    }
+  }
+}

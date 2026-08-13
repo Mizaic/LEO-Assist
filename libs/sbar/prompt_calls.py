@@ -1,9 +1,10 @@
 """LLM call wrappers for the three SBAR prompts.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  DO: DO-249AADD3
+  DI: DI-C6D01509
+  VT: VT-EC74EAD9
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-249AADD3")
 
 Centralised so the orchestrator stays focused on flow control and so the
 prompt-rendering rules (CONTEXT serialisation, sanitisation, fallback
@@ -22,7 +23,7 @@ import logging
 import re
 from typing import Any, Awaitable, Callable
 
-from libs.llm_client.json_helper import invoke_llm_json
+from libs.llm_client.json_helper import JSONInvocationOptions, invoke_llm_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.prompts.registry import get_prompt
 from libs.sbar.assessment_formatter import STRENGTH_RANK, _render_matched_via
@@ -158,8 +159,7 @@ def build_referral_justification_bullet(rules: list[dict[str, Any]]) -> str:
     conditions = _combine_matched_conditions(ordered)
     if conditions and guideline_title:
         return (
-            f"Referral is supported by {names} -- {guideline_title} "
-            f"({conditions})."
+            f"Referral is supported by {names} -- {guideline_title} " f"({conditions})."
         )
     if guideline_title:
         return f"Referral is supported by {names} -- {guideline_title}."
@@ -228,6 +228,8 @@ def _serialise_recommendation_context(
     assessment_rules: list[dict[str, Any]],
     guideline_titles: list[str],
     guidelines: list[str],
+    spoa_disposition: str | None = None,
+    spoa_disposition_evidence: str | None = None,
 ) -> str:
     primary_rule_id = _select_primary_rule_id(assessment_rules)
     referral_justification_bullet = build_referral_justification_bullet(
@@ -242,6 +244,12 @@ def _serialise_recommendation_context(
         "referral_justification_bullet": referral_justification_bullet,
         "guideline_titles": guideline_titles,
         "guidelines": guidelines,
+        "spoa_disposition": spoa_disposition,
+        "spoa_disposition_evidence": spoa_disposition_evidence,
+        "advisory_note": (
+            "The SPoA disposition is advisory. Do not state that booking, routing, "
+            "letters, or eRS actions were completed."
+        ),
     }
     return "CONTEXT:\n```json\n" + json.dumps(body, default=str) + "\n```"
 
@@ -273,6 +281,29 @@ def _resolve_prompt_fetcher(
     return prompt_fetcher or _default_prompt
 
 
+async def _invoke_llm_json_compat(
+    system_prompt: str,
+    user_message: str,
+    *,
+    max_tokens: int = 1024,
+    temperature: float = 0.0,
+    agent_task: str = "unknown",
+    patient_id: str = "",
+    **_ignored: Any,
+) -> dict[str, Any]:
+    """Map SBAR token kwargs onto JSONInvocationOptions."""
+    return await invoke_llm_json(
+        system_prompt,
+        user_message,
+        options=JSONInvocationOptions(
+            max_tokens=int(max_tokens),
+            temperature=float(temperature),
+        ),
+        agent_task=agent_task,
+        patient_id=patient_id,
+    )
+
+
 def _resolve_invoker(
     invoker: Callable[..., Awaitable[dict[str, Any]]] | None,
     *,
@@ -285,7 +316,7 @@ def _resolve_invoker(
         from libs.sbar.policy_runtime import make_llm_invoker
 
         return make_llm_invoker(policy_runtime, stage)
-    return invoke_llm_json
+    return _invoke_llm_json_compat
 
 
 async def call_situation(
@@ -745,7 +776,7 @@ async def call_recall(
 
         system = SBAR_RECALL_SYSTEM_V1
     provider = "azure"
-    tier = "big"
+    tier = "small"
     if policy_runtime is not None:
         provider = str(getattr(policy_runtime, "model_provider", None) or provider)
         tier = str(getattr(policy_runtime, "model_tier", None) or tier)
@@ -789,6 +820,8 @@ async def call_recommendation(
     prompt_fetcher: PromptFetcher | None = None,
     invoker: Callable[..., Awaitable[dict[str, Any]]] | None = None,
     policy_runtime: Any | None = None,
+    spoa_disposition: str | None = None,
+    spoa_disposition_evidence: str | None = None,
 ) -> dict[str, Any]:
     fetcher = _resolve_prompt_fetcher(prompt_fetcher)
     if policy_runtime is not None and prompt_fetcher is None:
@@ -811,6 +844,8 @@ async def call_recommendation(
         assessment_rules=assessment_rules,
         guideline_titles=guideline_titles,
         guidelines=guidelines,
+        spoa_disposition=spoa_disposition,
+        spoa_disposition_evidence=spoa_disposition_evidence,
     )
     raw = await llm(
         system,

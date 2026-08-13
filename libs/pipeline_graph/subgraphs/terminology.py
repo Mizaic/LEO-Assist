@@ -7,7 +7,9 @@ Atlas trace:
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -41,26 +43,86 @@ logger = logging.getLogger(__name__)
 # now that the score reflects absolute strength rather than relative
 # rank within the per-term candidate pool.
 _DEFAULT_MIN_SCORE = 0.55
-_TERM_CONCEPT_BLOCKLIST: dict[str, set[str]] = {
-    # Generic mention in notes; do not auto-code to a specific named operation.
-    "spinal surgery": {"1287097003"},
-    # Symptom phrasing should not be coerced to broad malaise.
-    "not sleeping well": {"367391008"},
-    # Mechanical wording in patient advice; not malignant neoplasm of nervous system.
-    "nerve compression": {"372063002"},
-    # FIT is a test (Faecal Immunochemical Test), not a seizure.
-    "fit": {"91175000"},
-}
+_BLOCKLIST_SEED_PATH = (
+    Path(__file__).parent.parent.parent.parent
+    / "libs"
+    / "ner"
+    / "resources"
+    / "term_concept_blocklist.json"
+)
+_FAMILY_BLOCKLIST = "term_concept_blocklist"
 
 
 def _normalise_text_key(value: str) -> str:
     return " ".join((value or "").strip().lower().split())
 
 
+# Singleton: surface_form_key -> frozenset of blocked concept IDs.
+# Rebuilt at module import and on _reload_blocklist_singleton().
+_blocklist_singleton: dict[str, frozenset[str]] = {}
+
+
+def _fetch_neo4j_blocklist(family: str) -> list[dict]:
+    """Fetch :NerGuardRule nodes for the blocklist family from Neo4j.
+
+    Returns [] if Neo4j is unreachable.
+    """
+    try:
+        from libs.pipeline.config_loader import _fetch_neo4j_rules
+
+        return _fetch_neo4j_rules(family)
+    except Exception:
+        logger.warning(
+            "Could not fetch Neo4j blocklist rules -- using builtins only",
+            exc_info=True,
+        )
+        return []
+
+
+def _build_blocklist() -> dict[str, frozenset[str]]:
+    """Build the blocklist dict from seed JSON and Neo4j rows."""
+    result: dict[str, set[str]] = {}
+
+    if _BLOCKLIST_SEED_PATH.exists():
+        try:
+            data = json.loads(_BLOCKLIST_SEED_PATH.read_text(encoding="utf-8"))
+            for r in data.get("rules", []):
+                if not r.get("active", True):
+                    continue
+                key = _normalise_text_key(r.get("surface_form", ""))
+                ids = r.get("blocked_concept_ids", [])
+                if key and ids:
+                    result.setdefault(key, set()).update(str(i) for i in ids)
+        except Exception:
+            logger.error("Failed to parse blocklist seed file", exc_info=True)
+
+    for row in _fetch_neo4j_blocklist(_FAMILY_BLOCKLIST):
+        if not row.get("active", True):
+            continue
+        key = _normalise_text_key(row.get("surface_form", ""))
+        ids = row.get("blocked_concept_ids", [])
+        if key and ids:
+            result.setdefault(key, set()).update(str(i) for i in ids)
+
+    return {k: frozenset(v) for k, v in result.items()}
+
+
+def _reload_blocklist_singleton() -> None:
+    """Rebuild the blocklist singleton, re-fetching custom rules from Neo4j."""
+    global _blocklist_singleton
+    _blocklist_singleton = _build_blocklist()
+    logger.info(
+        "Term concept blocklist reloaded (%d entries)", len(_blocklist_singleton)
+    )
+
+
+_reload_blocklist_singleton()
+
+
 def _is_blocked_mapping(text: str, concept_id: str | None) -> bool:
     if not concept_id:
         return False
-    blocked = _TERM_CONCEPT_BLOCKLIST.get(_normalise_text_key(text))
+    blocked = _blocklist_singleton.get(_normalise_text_key(text))
     return bool(blocked and str(concept_id) in blocked)
 
 
@@ -122,8 +184,12 @@ def _strip_leading_modifiers(text: str) -> str:
     word is clinical so we never strip the concept itself.
     """
     words = text.split()
-    while words and words[0].lower().rstrip("-,;") in _LOOKUP_STRIP_PREFIXES:
-        words = words[1:]
+    while words:
+        first = words[0].lower().rstrip("-,;")
+        if first in _LOOKUP_STRIP_PREFIXES or not words[0].strip("-*.|"):
+            words = words[1:]
+            continue
+        break
     return " ".join(words) if words else text
 
 
@@ -200,6 +266,9 @@ def _merge_resolution(
     if _is_blocked_mapping(str(e.get("text") or ""), best.concept_id):
         merged["score"] = round(float(best.score or 0.0), 4)
         merged["terminology_unresolved"] = True
+        merged["rejected_term"] = best.term
+        merged["rejected_concept_id"] = best.concept_id
+        merged["rejected_tag"] = best.semantic_tag
         for field in ("concept_id", "term", "read_code"):
             merged[field] = None
         logger.info(
@@ -215,6 +284,9 @@ def _merge_resolution(
         # an unreliable SNOMED match, so we clear the code fields entirely.
         merged["score"] = round(best.score, 4)
         merged["terminology_unresolved"] = True
+        merged["rejected_term"] = best.term
+        merged["rejected_concept_id"] = best.concept_id
+        merged["rejected_tag"] = best.semantic_tag
         # Preserve any existing code fields as None so callers can tell they
         # were checked but rejected, rather than never attempted.
         for field in ("concept_id", "term", "read_code"):

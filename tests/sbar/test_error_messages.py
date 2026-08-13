@@ -41,7 +41,12 @@ _BEDROCK_INPUT_TOO_LONG = (
             "EndpointConnectionError: Could not connect to the endpoint URL",
             "network",
         ),
-        ("Connection timed out after 30s", "network"),
+        ("Connection timed out after 30s", "timeout"),
+        ("APITimeoutError: Request timed out.", "timeout"),
+        (
+            "JSON validation failed after 2 attempts: Expecting value",
+            "invalid_json",
+        ),
         ("missing_background_markdown", "missing_section"),
         ("totally unexpected vendor message", "unknown"),
         ("", "unknown"),
@@ -75,3 +80,15 @@ def test_translate_error_unknown_falls_back_to_generic_message() -> None:
     assert result["code"] == "unknown"
     assert "something weird happened" not in result["message"]
     assert "Background" in result["message"]
+    assert "unclassified" in result["message"]
+
+
+def test_translate_error_unknown_includes_exception_family() -> None:
+    result = translate_error(
+        "situation",
+        "ModelErrorException: the model returned an unexpected payload",
+    )
+    assert result["code"] == "unknown"
+    assert "ModelErrorException" in result["message"]
+    assert "unexpected payload" not in result["message"]
+    assert "Situation" in result["message"]

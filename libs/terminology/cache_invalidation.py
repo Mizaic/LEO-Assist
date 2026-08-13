@@ -1,13 +1,17 @@
 """Terminology cache invalidation helpers.
 
 Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+  UN: UN-72B60B2D
+  DI: DI-47D2CD86
+  DO: DO-5A88E0B9
+  VT: VT-DDEB829F
 
 SurfaceForm changes alter the resolver's source of truth. Any cached
 resolution result may therefore be stale after a mapping is added, approved,
 deleted, deduplicated, or deactivated.
+
+Resolver keys are versioned (currently term_resolve:v2:...). Invalidation
+matches the whole family so a version bump cannot leave stale hits.
 """
 
 from __future__ import annotations
@@ -20,7 +24,9 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_REDIS_URL = "redis://localhost:6379"
 _DEFAULT_CLIENT_CACHE_PREFIX = "terminology:api:v3:"
-_RESOLVER_CACHE_PATTERN = "term_resolve:v1:*"
+# Shared with TerminologyCache.generate_key. Do not pin a version suffix.
+RESOLVER_CACHE_KEY_FAMILY = "term_resolve"
+RESOLVER_CACHE_INVALIDATION_PATTERN = f"{RESOLVER_CACHE_KEY_FAMILY}:*"
 _CLIENT_RESOLVE_CACHE_PATTERN = "terminology:api:*:resolve:*"
 _DELETE_BATCH_SIZE = 500
 
@@ -31,7 +37,7 @@ def _cache_patterns() -> tuple[str, ...]:
         _DEFAULT_CLIENT_CACHE_PREFIX,
     )
     patterns = {
-        _RESOLVER_CACHE_PATTERN,
+        RESOLVER_CACHE_INVALIDATION_PATTERN,
         _CLIENT_RESOLVE_CACHE_PATTERN,
         f"{client_prefix}resolve:*",
     }

@@ -23,17 +23,37 @@ describe("EPR documents list chrome", () => {
     const src = readUi("components/patients/DocumentListPanel.tsx");
     expect(src).toMatch(/fetchEprAssessments/);
     expect(src).toMatch(/mergeDocumentsNewestFirst/);
+    expect(src).toMatch(/documentFolderKey/);
+    expect(src).toMatch(/DocumentFolderBlock/);
+    expect(src).toMatch(/Specialty/);
+    expect(src).toMatch(/Expand all/);
     expect(src).toMatch(/initialDocumentId/);
     expect(src).toMatch(/initialReferralId/);
-    expect(src).toMatch(/clinical information/);
-    expect(src).toMatch(/2ww/);
+    const filters = readUi("components/patients/documentListFilters.ts");
+    expect(filters).toMatch(/clinical information/);
+    expect(filters).toMatch(/2ww/);
   });
 
-  test("DocumentViewer renders markdown inline or offers Open PDF", () => {
+  test("DocumentViewer renders markdown inline or embeds PDF and Word preview", () => {
     const src = readUi("components/patients/DocumentViewer.tsx");
+    const word = readUi("components/patients/DocumentWordPreviewPane.tsx");
+    const html = readUi("components/patients/DocumentHtmlPreviewPane.tsx");
+    const fmt = readUi("components/patients/documentFormat.ts");
+    const api = readUi("lib/patientEprApi.ts");
     expect(src).toMatch(/MarkdownEditor/);
-    expect(src).toMatch(/Open \{fileKindLabel\(kind\)\}/);
-    expect(src).toMatch(/original_url \|\| doc\.markdown_url/);
+    expect(src).toMatch(/InlinePdfPane/);
+    expect(src).toMatch(/DocumentWordPreviewPane/);
+    expect(src).toMatch(/DocumentHtmlPreviewPane/);
+    expect(src).toMatch(/showHtmlPreview/);
+    expect(fmt).toMatch(/wordprocessingml/);
+    expect(fmt).toMatch(/isHtmlDocumentRow/);
+    expect(html).toMatch(/srcDoc/);
+    expect(html).toMatch(/DOMPurify\.sanitize/);
+    expect(html).toMatch(/wrapClinicalPreviewHtml/);
+    expect(readUi("components/patients/clinicalPreviewDocument.ts")).toMatch(/CLINICAL_PREVIEW_CSS/);
+    expect(word).toMatch(/fetchDocumentPreview/);
+    expect(word).toMatch(/DOMPurify\.sanitize/);
+    expect(api).toMatch(/fetchDocumentPreview/);
   });
 
   test("documentFormat exposes merge helper and SBAR type guard", () => {
@@ -41,5 +61,17 @@ describe("EPR documents list chrome", () => {
     expect(src).toMatch(/export function isSbarDocument/);
     expect(src).toMatch(/export function mergeDocumentsNewestFirst/);
     expect(src).toMatch(/document_type: "SBAR"/);
+    expect(src).toMatch(/chunk_count: 0/);
+  });
+
+  test("DocumentListItem shows AI ready chip when chunks exist", () => {
+    const item = readUi("components/patients/DocumentListItem.tsx");
+    const chip = readUi("components/patients/DocumentAiReadyChip.tsx");
+    const api = readUi("lib/patientEprApi.ts");
+    expect(item).toMatch(/DocumentAiReadyChip/);
+    expect(item).toMatch(/chunk_count/);
+    expect(chip).toMatch(/AI ready/);
+    expect(chip).toMatch(/document-ai-ready-chip/);
+    expect(api).toMatch(/chunk_count/);
   });
 });

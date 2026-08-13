@@ -40,6 +40,7 @@ describe("EditRuleDialog/copy", () => {
       expect(GROUP_KIND_LABELS.AND).toMatch(/ALL of these/);
       expect(GROUP_KIND_LABELS.OR).toMatch(/ANY of these/);
       expect(GROUP_KIND_LABELS.NOT).toMatch(/NOT have any of these/);
+      expect(GROUP_KIND_SHORT.NOT).toMatch(/Should not have/);
       expect(GROUP_KIND_LABELS.AT_LEAST).toMatch(/at least N of these/);
       expect(GROUP_KIND_LABELS.MEDICATION).toMatch(/Medicine/);
       expect(GROUP_KIND_LABELS.ALLERGY).toMatch(/Allergy/);

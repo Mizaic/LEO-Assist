@@ -11,11 +11,9 @@ confidence, this module escalates to progressively larger models.  Each
 tier's rationale is preserved so the HITL operator (or an audit) can see
 exactly which model resolved the issue and why.
 
-Tier mapping (AWS Bedrock only -- Azure is not available):
-
-  small  ->  Claude Haiku 4.5
-  big    ->  Claude Sonnet 4.6
-  max    ->  Claude Opus 4.6
+Provider routing is configured by ``create_llm``. Azure OpenAI GPT-5 is the
+primary provider and AWS Bedrock is optional. The clinical prompt and tier
+names stay provider-neutral.
 """
 
 from __future__ import annotations
@@ -233,9 +231,15 @@ def escalate_coding(
     """
     system_prompt = INJECTION_GUARD + (
         "You are a UK primary care SNOMED CT coding specialist.\n\n"
-        "Given a clinical entity extracted from a GP record, suggest the "
-        "best matching SNOMED CT Fully Specified Name (FSN).\n\n"
-        "RULES:\n"
+        "OBJECTIVE\n"
+        "Suggest the best matching SNOMED CT Fully Specified Name (FSN) "
+        "for the supplied clinical entity and encounter evidence.\n\n"
+        "PRIORITY ORDER\n"
+        "1. Code only what the encounter states; never diagnose from a result.\n"
+        "2. Preserve specimen, unit, site, and clinical qualifiers.\n"
+        "3. Report ambiguity with low confidence instead of guessing.\n"
+        "4. Follow the JSON output contract exactly.\n\n"
+        "HARD REQUIREMENTS\n"
         "1. Do NOT invent or guess SNOMED concept IDs. Never include a numeric "
         "SNOMED ID in your response. The concept_term field must be a plain "
         "text FSN only -- the system will look up the real ID separately.\n"
@@ -263,8 +267,9 @@ def escalate_coding(
         "(eGFR, HbA1c, creatinine, sodium, haemoglobin) is an observation, "
         "not a diagnosis. CKD-EPI is a formula name, not CKD. If the entity "
         "is a lab measurement, suggest an observable entity FSN, not a "
-        "disorder. Set confidence below 0.3 and explain that a lab value alone "
-        "does not constitute a diagnosis.\n"
+        "disorder. If the request would require inferring a disorder from the "
+        "value alone, set confidence below 0.3 and explain why. For a valid "
+        "observable measurement, score confidence from the terminology match.\n"
         "10. Ambiguous abbreviation rules (UK primary care context):\n"
         "   a) CA alone (no organ/site in encounter): set confidence 0.0 and "
         "state that an organ site is required before coding. Do not suggest a "
@@ -275,7 +280,8 @@ def escalate_coding(
         "   c) NAD: set confidence 0.0 and do not suggest any concept. NAD is "
         "ambiguous in UK primary care -- it can mean 'No abnormality detected' "
         "OR 'No apparent distress'. Leave uncoded for manual review.\n\n"
-        "Respond ONLY with a JSON object:\n"
+        "OUTPUT CONTRACT\n"
+        "Return only this JSON object:\n"
         '{"concept_term": "<FSN>", "confidence": 0.0-1.0, "reason": "<brief>"}\n\n'
         "If you cannot confidently identify the concept, set confidence "
         "below 0.5 and explain why in reason."
@@ -368,15 +374,22 @@ def escalate_coding(
 
 _CANDIDATES_SYSTEM = INJECTION_GUARD + (
     "You are a UK primary care SNOMED CT coding specialist.\n\n"
-    "You are given real SNOMED CT concepts retrieved from the terminology index. "
-    "Choose one of four actions:\n"
+    "OBJECTIVE\n"
+    "Choose the safest supported action for real SNOMED CT concepts retrieved "
+    "from the terminology index.\n\n"
+    "PRIORITY ORDER\n"
+    "1. Code only the documented entity; never infer a diagnosis.\n"
+    "2. Pick only a clinically faithful indexed concept.\n"
+    "3. Use ambiguous or search instead of guessing.\n"
+    "4. Follow the JSON output contract exactly.\n\n"
+    "ACTIONS\n"
     "  pick          - select the best concept from the list by its index\n"
     "  search        - none fit; suggest a better plain-English search query\n"
     "  ambiguous     - the correct code cannot be determined from the evidence\n"
     "  not_codeable  - the encounter text shows this specific entity should NOT "
-    "be coded at all (procedure not yet performed, ruled out, no evidence of, "
+    "be coded at all (for example, ruled out, no evidence of, or explicitly "
     "negated existence)\n\n"
-    "RULES:\n"
+    "HARD REQUIREMENTS\n"
     "1. Never invent or guess SNOMED concept IDs. Only reference the indexed "
     "concepts by number.\n"
     "2. Prefer UK SNOMED CT edition concepts where available.\n"
@@ -441,7 +454,8 @@ _CANDIDATES_SYSTEM = INJECTION_GUARD + (
     "the specific anatomical SNOMED term for that organ. Do NOT pick a broader "
     "body-system concept (e.g. 'female genital system'). If candidates contain "
     "both the specific organ and a broader system, pick the organ-level concept.\n\n"
-    "Respond ONLY with JSON. Include 'assertion' only when it differs from "
+    "OUTPUT CONTRACT\n"
+    "Return only JSON. Include 'assertion' only when it differs from "
     "'present' (i.e. set it to 'declined', 'cancelled', or 'refuted' per rules 7/8):\n"
     '  {"action":"pick","selected_index":<int>,"reason":"<one sentence>"}\n'
     '  {"action":"pick","selected_index":<int>,"reason":"<one sentence>","assertion":"declined"}\n'
@@ -561,14 +575,21 @@ def escalate_coding_from_candidates(
 
 _VERIFY_SYSTEM = INJECTION_GUARD + (
     "You are a UK primary care SNOMED CT coding specialist.\n\n"
-    "A terminology index matched an entity from a GP encounter to a SNOMED "
-    "concept. Your task: decide whether the match is CORRECT.\n\n"
+    "OBJECTIVE\n"
+    "Decide whether the terminology index match accurately represents the "
+    "entity in the supplied GP encounter context.\n\n"
+    "PRIORITY ORDER\n"
+    "1. Use only the supplied entity and encounter evidence.\n"
+    "2. Prefer uncertain when context is insufficient.\n"
+    "3. Do not infer a diagnosis or missing qualifier.\n"
+    "4. Follow the JSON output contract exactly.\n\n"
     "Return exactly one verdict:\n"
     "  correct   -- the SNOMED concept accurately represents the entity in "
     "this clinical context\n"
     "  incorrect -- the concept does not match; explain briefly\n"
     "  uncertain -- insufficient context to decide\n\n"
-    "Respond ONLY with JSON:\n"
+    "OUTPUT CONTRACT\n"
+    "Return only JSON:\n"
     '{"verdict": "<correct|incorrect|uncertain>", "reason": "<one sentence>"}'
 )
 
@@ -593,7 +614,7 @@ def verify_coding_consensus(
     In autonomous mode, failure defaults to 'uncertain' (do not auto-code).
     In HITL mode, failure defaults to 'correct' (let human review).
     """
-    from libs.llm_client.consensus import run_consensus
+    from libs.llm_client.consensus import ConsensusOptions, run_consensus
 
     fail_v = "uncertain" if coding_mode == "autonomous" else "correct"
     user_msg = json.dumps(
@@ -609,7 +630,22 @@ def verify_coding_consensus(
         user_msg=user_msg,
         parse_fn=_parse_verify_verdict,
         fail_verdict=fail_v,
-        max_tokens=150,
+        options=ConsensusOptions(
+            max_tokens=150,
+            json_mode=True,
+            structured_schema={
+                "type": "object",
+                "properties": {
+                    "verdict": {
+                        "type": "string",
+                        "enum": ["correct", "incorrect", "uncertain"],
+                    },
+                    "reason": {"type": "string"},
+                },
+                "required": ["verdict", "reason"],
+                "additionalProperties": False,
+            },
+        ),
     )
     logger.info(
         "verify_coding_consensus entity=%s verdict=%s agreed=%s",

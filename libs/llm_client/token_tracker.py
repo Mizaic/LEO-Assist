@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger("libs.llm_client.token_tracker")
@@ -44,6 +43,32 @@ def _usage_int(usage: dict[str, Any], *keys: str) -> int:
         except (TypeError, ValueError):
             continue
     return 0
+
+
+def _detail_int(details: Any, key: str) -> int:
+    """Read a numeric field from a dict or SDK object."""
+    if isinstance(details, dict):
+        return _usage_int(details, key)
+    if details is None:
+        return 0
+    try:
+        return int(getattr(details, key, 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _fill_azure_token_details(counts: dict[str, Any], meta: dict[str, Any]) -> None:
+    token_usage = meta.get("token_usage") or {}
+    if not isinstance(token_usage, dict):
+        return
+    prompt_details = token_usage.get("prompt_tokens_details")
+    completion_details = token_usage.get("completion_tokens_details")
+    counts["input_token_details"] = prompt_details
+    counts["output_token_details"] = completion_details
+    counts["reasoning_tokens"] = _detail_int(completion_details, "reasoning_tokens")
+    cached = _detail_int(prompt_details, "cached_tokens")
+    if cached and not counts["cache_read_input_tokens"]:
+        counts["cache_read_input_tokens"] = cached
 
 
 def extract_token_counts(response: Any, provider: str) -> Dict[str, Any]:
@@ -111,20 +136,7 @@ def extract_token_counts(response: Any, provider: str) -> Dict[str, Any]:
                     bu, "output_tokens", "outputTokens"
                 )
     elif provider == "azure":
-        token_usage = meta.get("token_usage") or {}
-        if isinstance(token_usage, dict):
-            prompt_details = token_usage.get("prompt_tokens_details")
-            completion_details = token_usage.get("completion_tokens_details")
-            counts["input_token_details"] = prompt_details
-            counts["output_token_details"] = completion_details
-            if isinstance(completion_details, dict):
-                counts["reasoning_tokens"] = _usage_int(
-                    completion_details, "reasoning_tokens"
-                )
-            elif completion_details is not None:
-                counts["reasoning_tokens"] = int(
-                    getattr(completion_details, "reasoning_tokens", 0) or 0
-                )
+        _fill_azure_token_details(counts, meta)
     return counts
 
 

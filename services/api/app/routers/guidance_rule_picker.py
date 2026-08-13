@@ -64,7 +64,7 @@ def _sort_picker_rows(rows: list[dict]) -> list[dict]:
     grouping (still fine as a plain string sort) and only replaces the
     ``rule.name`` tiebreak with numeric-segment comparison.
     """
-    return sorted(
+    ordered = sorted(
         rows,
         key=lambda row: (
             row.get("guideline_title") or "",
@@ -72,3 +72,17 @@ def _sort_picker_rows(rows: list[dict]) -> list[dict]:
             natural_sort_key(row.get("name") or row.get("rule_id")),
         ),
     )
+    return _unique_by_rule_id(ordered)
+
+
+def _unique_by_rule_id(rows: list[dict]) -> list[dict]:
+    """One row per rule. Action joins can otherwise repeat the same id."""
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for row in rows:
+        rid = str(row.get("rule_id") or "")
+        if not rid or rid in seen:
+            continue
+        seen.add(rid)
+        unique.append(row)
+    return unique

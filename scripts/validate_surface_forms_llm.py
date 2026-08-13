@@ -21,6 +21,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from libs.llm_client.prompt_safety import INJECTION_GUARD
+
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
@@ -389,10 +391,10 @@ def llm_validate_batch(
     batch_rows: list[dict[str, Any]],
     max_retries: int,
 ) -> dict[str, Any]:
-    system_prompt = (
+    system_prompt = INJECTION_GUARD + (
         "You are a strict clinical data QA validator for GP surface-form rows. "
         "Validate ONLY against the provided explicit rules and allowed type/tag map. "
-        "Return JSON only, no prose."
+        "Return one JSON object matching the schema in the user message. No prose."
     )
     allowed_map = {
         "symptom": "finding",
@@ -419,7 +421,7 @@ def llm_validate_batch(
         "- 'referral', 'document_event', and 'administrative_event' are valid types.\n"
         "- GP misspellings/typos faithful to the original note are acceptable surface forms for R15.\n"
         "- Safety-netting phrases ('if no better', 'if no improvement', 'unless urgent') "
-        "are NOT clinical negations — ignore them for R11.\n"
+        "are NOT clinical negations -- ignore them for R11.\n"
         "- 'patient denies X. Y. Z' means ALL listed entities are negated, not just the first.\n"
         "- Vague but real GP examination phrases ('obvious local trigger') are acceptable when negated.\n"
         "- advice_event (situation) = advice WAS given/declined/not indicated (state). "
@@ -467,11 +469,11 @@ def llm_fix_batch(
     allow_drop: bool,
 ) -> dict[str, Any]:
     """Send failed rows to LLM and get corrected entities back."""
-    system_prompt = (
+    system_prompt = INJECTION_GUARD + (
         "You are a clinical data QA fixer for GP surface-form training rows. "
         "You receive rows that failed validation together with the issues found. "
-        "Return corrected rows as JSON. Do NOT invent new entities. "
-        "Fix only the identified issues. Return JSON only, no prose."
+        "Return corrected rows as one JSON object matching the user-message schema. "
+        "Do NOT invent new entities. Fix only the identified issues. No prose."
     )
     allowed_map = {k: v for k, v in TYPE_TO_TAG.items()}
     entity_schema_desc = (
@@ -514,7 +516,7 @@ def llm_fix_batch(
         + "- lab_result: HbA1c, cholesterol, liver/renal function, electrolytes, "
         + "blood chemistry, urine tests, SARS-CoV-2 test results.\n"
         + "- Safety-netting phrases (if no better, symptoms worsen to return, "
-        + "when to seek medical help) are NOT clinical entities — drop them.\n"
+        + "when to seek medical help) are NOT clinical entities -- drop them.\n"
         + "- Admin phrases (additional SCR dataset, COPI regulations, gov.uk, "
         + "contact patient, prescription issue) should be administrative_event/record artifact.\n"
         + "- Preserve clinical concept specificity. Do NOT rewrite to broader terms "

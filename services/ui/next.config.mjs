@@ -90,12 +90,24 @@ const nextConfig = {
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
               "connect-src 'self'",
+              "frame-src 'self' blob:",
               "frame-ancestors 'none'",
             ].join("; "),
           },
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+      {
+        source:
+          "/api/proxy/analytics/patients/:patientId/documents/:documentId/file",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self'",
           },
         ],
       },
@@ -130,7 +142,6 @@ const nextConfig = {
       { source: "/admin/surface-forms", destination: "/admin/knowledge?tab=surface-forms", permanent: true },
       { source: "/admin/context-rules", destination: "/admin/knowledge?tab=context-rules", permanent: true },
       { source: "/admin/prompts", destination: "/admin/knowledge?tab=ai-instructions", permanent: true },
-      { source: "/admin/prompts/:path*", destination: "/admin/knowledge?tab=ai-instructions", permanent: false },
       { source: "/admin/guidance", destination: "/admin/knowledge?tab=clinical-guidelines", permanent: true },
       // Clinical -> Knowledge (Phase 2 IA merge, DI-LEO-AI-135 / R-LEO-AI-093)
       // /admin/clinical has been folded into /admin/knowledge. Every legacy

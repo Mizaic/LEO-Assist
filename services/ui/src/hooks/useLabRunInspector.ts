@@ -16,6 +16,10 @@ import {
   type StageProgress,
 } from "@/app/admin/validation-lab/labApi";
 import {
+  getPipelineRunInspector,
+  getPipelineRunInspectorStage,
+} from "@/app/admin/validation-lab/labFindingsApi";
+import {
   mergeInspectorState,
   traceEventFromPayload,
   type LabRunInspectorSnapshot,
@@ -27,8 +31,10 @@ import {
 export interface UseLabRunInspectorOptions {
   caseId: string;
   runId: string;
+  pipelineRunId?: string;
   enabled: boolean;
   pollStages?: StageProgress[];
+  terminal?: boolean;
 }
 
 export interface UseLabRunInspectorReturn {
@@ -47,7 +53,7 @@ export interface UseLabRunInspectorReturn {
 export function useLabRunInspector(
   opts: UseLabRunInspectorOptions,
 ): UseLabRunInspectorReturn {
-  const { caseId, runId, enabled, pollStages } = opts;
+  const { caseId, runId, pipelineRunId, enabled, pollStages, terminal } = opts;
   const [snapshot, setSnapshot] = useState<LabRunInspectorSnapshot | null>(null);
   const [events, setEvents] = useState<LabTraceEvent[]>([]);
   const [connected, setConnected] = useState(false);
@@ -58,20 +64,34 @@ export function useLabRunInspector(
   const esRef = useRef<EventSource | null>(null);
 
   const refreshSnapshot = useCallback(async () => {
-    if (!caseId || !runId) return;
     try {
-      const data = await getRunInspector(caseId, runId);
+      const data =
+        caseId && runId
+          ? await getRunInspector(caseId, runId)
+          : pipelineRunId
+            ? await getPipelineRunInspector(pipelineRunId)
+            : null;
+      if (!data) return;
       setSnapshot(data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Inspector load failed");
     }
-  }, [caseId, runId]);
+  }, [caseId, runId, pipelineRunId]);
 
   useEffect(() => {
-    if (!enabled || !caseId || !runId) return;
+    if (!enabled || (!(caseId && runId) && !pipelineRunId)) return;
     void refreshSnapshot();
-  }, [enabled, caseId, runId, refreshSnapshot]);
+  }, [enabled, caseId, runId, pipelineRunId, refreshSnapshot]);
+
+  useEffect(() => {
+    if (!enabled || terminal) return;
+    if (!(caseId && runId) && !pipelineRunId) return;
+    const id = window.setInterval(() => {
+      void refreshSnapshot();
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, [enabled, caseId, runId, pipelineRunId, terminal, refreshSnapshot]);
 
   const progressRunId = snapshot?.pipeline_run_id || runId;
 
@@ -135,14 +155,29 @@ export function useLabRunInspector(
     };
   }, [enabled, progressRunId]);
 
+  const merged = useMemo(
+    () => mergeInspectorState(snapshot, events, pollStages),
+    [snapshot, events, pollStages],
+  );
+
+  const selectedSpan = merged.spans.find((s) => s.step_id === selectedStepId);
+  const selectedStatus = selectedSpan?.status || "";
+  const selectedPreview = selectedSpan?.work_preview?.headline || "";
+
   useEffect(() => {
-    if (!selectedStepId || !caseId || !runId) {
+    if (!selectedStepId) {
       setStageDetail(null);
       return;
     }
     let cancelled = false;
     setStageLoading(true);
-    getRunInspectorStage(caseId, runId, selectedStepId)
+    const load =
+      caseId && runId
+        ? getRunInspectorStage(caseId, runId, selectedStepId)
+        : pipelineRunId
+          ? getPipelineRunInspectorStage(pipelineRunId, selectedStepId)
+          : Promise.resolve(null);
+    load
       .then((detail) => {
         if (!cancelled) setStageDetail(detail);
       })
@@ -155,12 +190,7 @@ export function useLabRunInspector(
     return () => {
       cancelled = true;
     };
-  }, [caseId, runId, selectedStepId]);
-
-  const merged = useMemo(
-    () => mergeInspectorState(snapshot, events, pollStages),
-    [snapshot, events, pollStages],
-  );
+  }, [caseId, runId, pipelineRunId, selectedStepId, selectedStatus, selectedPreview]);
 
   return {
     snapshot,

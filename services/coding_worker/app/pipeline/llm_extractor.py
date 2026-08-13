@@ -204,21 +204,6 @@ _VALID_ASSERTIONS = {
 }
 
 _DEFAULT_CONFIDENCE = 0.75
-_EXTRACTION_MAX_TOKENS_CAP = 8192
-_EXTRACTION_MAX_TOKENS_FLOOR = 2048
-
-
-def _extraction_max_tokens(sentence_count: int) -> int:
-    """Scale output budget with batch size to reduce JSON truncation."""
-    import os
-
-    raw = os.getenv("EXTRACTION_MAX_TOKENS", "").strip()
-    if raw.isdigit():
-        return max(
-            _EXTRACTION_MAX_TOKENS_FLOOR, min(int(raw), _EXTRACTION_MAX_TOKENS_CAP)
-        )
-    scaled = 200 + 80 * max(sentence_count, 1)
-    return max(_EXTRACTION_MAX_TOKENS_FLOOR, min(scaled, _EXTRACTION_MAX_TOKENS_CAP))
 
 
 def _parse_assertion(raw: Any) -> str:
@@ -362,13 +347,16 @@ class LLMExtractor:
         if not self.enabled or not sentences or not self._system_prompt:
             return []
         user_msg = self._build_user_prompt(encounter_text, sentences)
-        max_tokens = _extraction_max_tokens(len(sentences))
+        from libs.pipeline.extraction_token_budget import extraction_max_tokens
+
+        max_tokens = extraction_max_tokens(len(sentences))
         try:
             resp = self.client.converse(
                 system=self._system_prompt,
                 messages=[{"role": "user", "content": user_msg}],
                 max_tokens=max_tokens,
                 temperature=0.0,
+                json_mode=True,
                 agent_task="coding_worker_llm_extractor",
             )
             from libs.pipeline.llm_clinical_input import guard_llm_extraction_response
@@ -424,16 +412,26 @@ class LLMExtractor:
         return ""
 
     @staticmethod
-    def _build_user_prompt(encounter_text: str, sentences: list) -> str:
+    def _build_user_prompt(
+        encounter_text: str,
+        sentences: list,
+        *,
+        context_mode: str = "full_document",
+    ) -> str:
+        from libs.pipeline.extraction_prompt import build_extraction_user_message
         from libs.pipeline.llm_clinical_input import guard_user_clinical_text
 
         safe_encounter = guard_user_clinical_text(encounter_text)
-        parts = [f"ENCOUNTER TEXT:\n{safe_encounter}\n\nSENTENCES TO EXTRACT FROM:"]
-        for sentence in sentences:
-            sid = getattr(sentence, "sentence_id", "s0")
-            text = guard_user_clinical_text(getattr(sentence, "text", ""))
-            parts.append(f"[{sid}] {text}")
-        return "\n".join(parts)
+        sentence_block = "\n".join(
+            f"[{getattr(sentence, 'sentence_id', 's0')}] "
+            f"{guard_user_clinical_text(getattr(sentence, 'text', ''))}"
+            for sentence in sentences
+        )
+        return build_extraction_user_message(
+            safe_encounter,
+            sentence_block,
+            context_mode=context_mode,
+        )
 
     def _parse_terms(
         self,

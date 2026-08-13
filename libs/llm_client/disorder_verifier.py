@@ -13,10 +13,10 @@ text.
 
 Backing implementation
 ----------------------
-``libs.llm_client.consensus.run_consensus`` issues a single AWS Bedrock call
-(with one parse-retry). An optional dual-model consensus can be enabled via
-``CONSENSUS_DUAL_MODEL=true`` which dispatches parallel AWS + Azure small-tier
-judges with a big-tier arbitrator on disagreement (see ``consensus.py``).
+``libs.llm_client.consensus.run_consensus`` uses the configured model routing.
+Azure OpenAI GPT-5 is primary and AWS Bedrock is optional. When dual-model
+consensus is enabled, a configured arbitrator resolves disagreement (see
+``consensus.py``).
 
 Fail-safe behaviour
 -------------------
@@ -36,6 +36,7 @@ import re
 from enum import Enum
 
 from libs.llm_client.consensus import (
+    ConsensusOptions,
     ConsensusResult,
     _consensus_verifier_tier,
     run_consensus,
@@ -53,10 +54,15 @@ _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 
 _SYSTEM_PROMPT = INJECTION_GUARD + (
     "You are a UK primary care clinical coding specialist.\n\n"
-    "You are given a clinical entity (a disorder or condition) extracted from a "
-    "GP record encounter, along with the full encounter text.\n\n"
-    "Your task: decide whether the entity represents an ACTIVE confirmed diagnosis "
-    "for this patient, or whether it appears in a different context.\n\n"
+    "OBJECTIVE\n"
+    "Classify whether the supplied disorder entity is an active confirmed "
+    "diagnosis for this patient or appears in another context.\n\n"
+    "PRIORITY ORDER\n"
+    "1. Use only explicit evidence in the supplied encounter.\n"
+    "2. Never infer a diagnosis from a test name, formula, or lab value.\n"
+    "3. Prefer uncertain when evidence is insufficient.\n"
+    "4. Follow the JSON output contract exactly.\n\n"
+    "VERDICTS\n"
     "Return exactly ONE of these verdicts:\n"
     "  active_diagnosis -- the disorder is asserted as a current confirmed finding "
     "for this patient (e.g. 'Patient has CKD stage 3', 'Dx: type 2 diabetes', "
@@ -69,18 +75,18 @@ _SYSTEM_PROMPT = INJECTION_GUARD + (
     "lists, or active management contexts -- those are active_diagnosis.\n"
     "  historical      -- the entity clearly refers to a past RESOLVED condition, "
     "appearing after h/o, history of, background, or explicit past-tense "
-    "resolution language. 'Discussed X' does NOT make X historical — "
+    "resolution language. 'Discussed X' does NOT make X historical -- "
     "discussion of a condition means it is actively managed.\n"
     "  refuted         -- the entity was an initial impression later overridden "
     "by investigation (e.g. 'initially suggested Barrett's oesophagus, but biopsy "
     "confirmed cancer'). The overridden impression is refuted, not informational.\n"
     "  uncertain       -- the entity is prefixed with possible, query, ?, or "
     "clinical context is insufficient to classify\n\n"
-    "RULES:\n"
+    "HARD REQUIREMENTS\n"
     "1. If the entity is ONLY in a test name or measurement label, return "
     "informational.\n"
     "2. If the entity appears in a referral reason or monitoring plan, it is "
-    "active_diagnosis (the patient HAS the condition — that is why they are "
+    "active_diagnosis (the patient HAS the condition -- that is why they are "
     "being referred or monitored).\n"
     "3. When in doubt between active_diagnosis and uncertain, prefer uncertain.\n"
     "4. When in doubt between informational and historical, prefer informational.\n"
@@ -92,7 +98,8 @@ _SYSTEM_PROMPT = INJECTION_GUARD + (
     "diagnosis for the patient.\n"
     "7. An initial impression later contradicted by investigation is refuted, "
     "not informational.\n\n"
-    "Respond ONLY with a JSON object:\n"
+    "OUTPUT CONTRACT\n"
+    "Return only this JSON object:\n"
     '{"verdict": "<one of the five verdicts>", "reason": "<one sentence>"}'
 )
 
@@ -137,6 +144,18 @@ def _parse_verdict(text: str) -> str:
 
 
 _VALID_VERDICTS = {v.value for v in DisorderVerdict}
+_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "verdict": {
+            "type": "string",
+            "enum": sorted(_VALID_VERDICTS - {DisorderVerdict.GATE_FAILED.value}),
+        },
+        "reason": {"type": "string"},
+    },
+    "required": ["verdict", "reason"],
+    "additionalProperties": False,
+}
 
 
 def _fail_verdict_for_mode(coding_mode: str) -> str:
@@ -179,8 +198,12 @@ def verify_disorder(
         user_msg=user_msg,
         parse_fn=_parse_verdict,
         fail_verdict=fail_v,
-        max_tokens=150,
-        tier=_consensus_verifier_tier(),
+        options=ConsensusOptions(
+            max_tokens=150,
+            json_mode=True,
+            tier=_consensus_verifier_tier(),
+            structured_schema=_OUTPUT_SCHEMA,
+        ),
     )
 
     raw = result.verdict

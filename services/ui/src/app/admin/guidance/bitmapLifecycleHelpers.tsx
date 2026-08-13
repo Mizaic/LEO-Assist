@@ -128,6 +128,30 @@ export const COMPILE_STEPS = [
   "Test and go live",
 ];
 
+/** Timed copy while compile has no server percent. Order by afterSec. */
+export const COMPILE_PHASES: ReadonlyArray<{ afterSec: number; label: string }> = [
+  { afterSec: 0, label: "Loading approved rules..." },
+  { afterSec: 8, label: "Walking concept closures..." },
+  { afterSec: 25, label: "Building the candidate lookup index..." },
+  { afterSec: 60, label: "Writing bitmap to Redis..." },
+  { afterSec: 120, label: "Still working -- large scopes can take a few minutes..." },
+];
+
+export function compilePhaseLabel(elapsedSec: number): string {
+  const sec = Number.isFinite(elapsedSec) ? Math.max(0, elapsedSec) : 0;
+  let label = COMPILE_PHASES[0].label;
+  for (const phase of COMPILE_PHASES) {
+    if (sec >= phase.afterSec) label = phase.label;
+  }
+  return label;
+}
+
+export function formatCompileElapsed(elapsedSec: number): string {
+  const s = Math.max(0, Math.floor(Number.isFinite(elapsedSec) ? elapsedSec : 0));
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
 export function buildVersionItem(
   v: VersionEntry,
   activating: string | null,

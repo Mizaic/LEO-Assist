@@ -12,9 +12,65 @@ const TERM_SCORE_RE = /"([^"]+)"\s*\(score\s*([0-9.]+)\)/g;
 const NOT_CODEABLE_RE =
   /^coding_verifier:\s*(\d+)\s+(entity|entities)\s+classified not_codeable$/;
 
+const SBAR_STAGES = new Set([
+  "situation",
+  "background",
+  "assessment",
+  "recommendation",
+]);
+
+const SBAR_CODES = new Set([
+  "input_too_long",
+  "throttled",
+  "access_denied",
+  "timeout",
+  "network",
+  "invalid_json",
+  "content_filter",
+  "service_error",
+  "missing_section",
+  "too_many_parts",
+  "reduce_failed",
+  "background_part_failed",
+  "unknown",
+]);
+
+export function parseSbarStageError(text: string): {
+  stage: string;
+  code: string;
+  message: string;
+} | null {
+  const raw = String(text || "").trim();
+  const cut = raw.indexOf(":");
+  if (cut < 0) return null;
+  const stage = raw.slice(0, cut);
+  if (!SBAR_STAGES.has(stage)) return null;
+  const rest = raw.slice(cut + 1);
+  const codeCut = rest.indexOf(":");
+  if (codeCut >= 0) {
+    const code = rest.slice(0, codeCut);
+    if (SBAR_CODES.has(code)) {
+      return {
+        stage,
+        code,
+        message: rest.slice(codeCut + 1).trim() || rest,
+      };
+    }
+  }
+  return { stage, code: "", message: rest.trim() || raw };
+}
+
+function sbarPipelineMessage(raw: string): string | null {
+  const parsed = parseSbarStageError(raw);
+  return parsed ? parsed.message : null;
+}
+
 export function plainEnglishPipelineMessage(text: string): string {
   const raw = String(text || "").trim();
   if (!raw) return "";
+
+  const sbarText = sbarPipelineMessage(raw);
+  if (sbarText !== null) return sbarText;
 
   if (raw.startsWith("terminology_low_confidence:")) {
     const match = LOW_CONF_RE.exec(raw);

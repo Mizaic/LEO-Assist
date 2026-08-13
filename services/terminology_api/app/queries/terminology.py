@@ -330,10 +330,15 @@ OPTIONAL MATCH (p:Concept)-[:HAS_COMPONENT]->(c) WHERE p.active = true
 OPTIONAL MATCH (c)-[:INTERPRETS]->(obs:Concept)  WHERE obs.active = true
 OPTIONAL MATCH (c)-[:HAS_COMPONENT]->(comp:Concept) WHERE comp.active = true
 OPTIONAL MATCH (c)-[:HAS_ASSOCIATED_FINDING]->(assoc_f:Concept) WHERE assoc_f.active = true
+OPTIONAL MATCH (f_obs:Concept)-[hr:HAS_RELATIONSHIP]->(c)
+WHERE hr.type_id = '363714003' AND f_obs.active = true
+OPTIONAL MATCH (f_obs2:Concept)-[:INTERPRETS_OBSERVABLE]->(c)
+WHERE f_obs2.active = true
 
 RETURN
   c.id AS concept_id,
-  [x IN collect(DISTINCT f)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETED_BY'}]       AS interpreted_by_findings,
+  [x IN collect(DISTINCT f) + collect(DISTINCT f_obs) + collect(DISTINCT f_obs2)
+     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETED_BY'}] AS interpreted_by_findings,
   [x IN collect(DISTINCT p)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'COMPONENT_OF'}]          AS component_of_procedures,
   [x IN collect(DISTINCT obs)     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETS'}]            AS interprets_observables,
   [x IN collect(DISTINCT comp)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_COMPONENT'}]         AS has_components,
@@ -678,7 +683,8 @@ RETURN c.fsn            AS concept_fsn,
 # snomed_attribute_projection.py (phase 3 loader):
 #
 #   HAS_COMPONENT  (246093002) — procedure -[HAS_COMPONENT]-> observable_entity
-#   INTERPRETS     (363713009) — finding   -[INTERPRETS]->   observable_entity
+#   INTERPRETS     (363713009) — finding   -[INTERPRETS]->   qualifier value
+#   INTERPRETS_OBSERVABLE (363714003) — finding -[HAS_RELATIONSHIP]-> observable
 #   HAS_ASSOCIATED_FINDING (246090004) — concept -[HAS_ASSOCIATED_FINDING]-> finding
 #
 # Given any concept in the procedure / observable_entity / finding family,
@@ -709,11 +715,17 @@ WHERE comp.active = true
 OPTIONAL MATCH (c)-[:HAS_ASSOCIATED_FINDING]->(assoc_f:Concept)
 WHERE assoc_f.active = true
 
+OPTIONAL MATCH (f_obs:Concept)-[hr:HAS_RELATIONSHIP]->(c)
+WHERE hr.type_id = '363714003' AND f_obs.active = true
+OPTIONAL MATCH (f_obs2:Concept)-[:INTERPRETS_OBSERVABLE]->(c)
+WHERE f_obs2.active = true
+
 RETURN
   c.id           AS concept_id,
   c.fsn          AS concept_fsn,
   c.semantic_tag AS semantic_tag,
-  [x IN collect(DISTINCT f)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETED_BY'}]      AS interpreted_by_findings,
+  [x IN collect(DISTINCT f) + collect(DISTINCT f_obs) + collect(DISTINCT f_obs2)
+     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETED_BY'}] AS interpreted_by_findings,
   [x IN collect(DISTINCT p)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'COMPONENT_OF'}]         AS component_of_procedures,
   [x IN collect(DISTINCT obs)     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETS'}]           AS interprets_observables,
   [x IN collect(DISTINCT comp)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_COMPONENT'}]        AS has_components,

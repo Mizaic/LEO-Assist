@@ -9,6 +9,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -82,6 +83,19 @@ export default function RuleReviewSection({ refreshKey }: Props) {
   const [sessionApprovedOpen, setSessionApprovedOpen] = useState(false);
   const [sessionExcludedOpen, setSessionExcludedOpen] = useState(false);
   const [guidelineFilter, setGuidelineFilter] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const prefillRuleId = searchParams.get("rule_id") || "";
+
+  useEffect(() => {
+    if (!prefillRuleId || editRule) return;
+    const match = [
+      ...pendingRules,
+      ...approvedRules,
+      ...excludedRules,
+      ...supersededRules,
+    ].find((row) => row.rule_id === prefillRuleId);
+    if (match) setEditRule(match);
+  }, [prefillRuleId, pendingRules, approvedRules, excludedRules, supersededRules, editRule]);
 
   const allGuidelineIds = useMemo(() => {
     const ids = new Set(

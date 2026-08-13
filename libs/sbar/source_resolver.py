@@ -167,6 +167,7 @@ _REFERRAL_REQUEST_QUERY = """
 MATCH (rr:ReferralRequest {id: $artifact_id})
 RETURN coalesce(rr.id, '')          AS id,
        coalesce(rr.specialty, '')   AS specialty,
+       coalesce(rr.clinicType, '')  AS clinic_type,
        coalesce(rr.priority, '')    AS priority,
        coalesce(rr.reason, '')      AS reason,
        coalesce(rr.status, '')      AS status,

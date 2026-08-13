@@ -5,7 +5,7 @@ Usage:
     python -m scripts.seed_prompt_configs --missing # seed only absent prompts
     python -m scripts.seed_prompt_configs --force   # overwrite all factory prompts
 
-Idempotent — uses MERGE on (name, version), so re-running is safe.
+Idempotent -- uses MERGE on (name, version), so re-running is safe.
 By default only overwrites prompt text for nodes whose ``source`` is still
 ``seed``; user-edited prompts (source='user') are left untouched unless
 ``--force`` is passed.
@@ -79,7 +79,7 @@ def _add(
     )
 
 
-# ── Extraction — structured output schema + example library ─────────────────
+# -- Extraction -- structured output schema + example library -----------------
 from libs.prompts.extraction_output_schema import EXTRACTION_OUTPUT_SCHEMA
 from libs.prompts.extraction_examples import EXTRACTION_EXAMPLES
 from libs.prompts.referral_extraction_v1 import REFERRAL_EXTRACTION_SYSTEM_V1
@@ -120,6 +120,7 @@ _REFERRAL_EXAMPLE_CATEGORIES = {
     "assertion:declined",
     "assertion:cancelled",
     "precision:referral_scope:ers_reason",
+    "form:checkbox",
 }
 _REFERRAL_EXAMPLE_TERMS = (
     "2ww",
@@ -373,7 +374,7 @@ _add(
     description="Single-turn quality check that drops unsupported codes and forces review on ambiguous coding.",
 )
 
-# ── Disambiguation ────────────────────────────────────────────────────────────
+# -- Disambiguation ------------------------------------------------------------
 from libs.prompts.disambiguation_output_schema import DISAMBIGUATION_OUTPUT_SCHEMA
 from libs.prompts.disambiguation_examples import DISAMBIGUATION_EXAMPLES
 
@@ -399,7 +400,7 @@ _add(
     description="Disambiguates extracted entities against candidate SNOMED concepts.",
 )
 
-# ── Episode builder ────────────────────────────────────────────────────────────
+# -- Episode builder ------------------------------------------------------------
 from libs.prompts.episode_builder_output_schema import (
     EPISODE_BUILDER_OUTPUT_SCHEMA,
     EPISODE_CONSOLIDATION_OUTPUT_SCHEMA,
@@ -442,7 +443,7 @@ _add(
     output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
     few_shot_examples=_builder_examples,
     max_few_shot=20,
-    description="System role for the episode builder — groups coded entities into clinical episodes.",
+    description="System role for the episode builder -- groups coded entities into clinical episodes.",
 )
 _add(
     "episode_builder_task",
@@ -451,7 +452,7 @@ _add(
     output_schema=json.dumps(EPISODE_BUILDER_OUTPUT_SCHEMA),
     few_shot_examples=_builder_examples,
     max_few_shot=20,
-    description="Task instructions for the episode builder — structures entities per clinical encounter.",
+    description="Task instructions for the episode builder -- structures entities per clinical encounter.",
 )
 _add(
     "episode_consolidation_system",
@@ -472,7 +473,7 @@ _add(
     description="Task instructions for consolidating episodes across multiple encounters.",
 )
 
-# ── Encounter classify ─────────────────────────────────────────────────────────
+# -- Encounter classify ---------------------------------------------------------
 from libs.prompts.encounter_classify_output_schema import (
     ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA,
 )
@@ -500,7 +501,7 @@ _add(
     description="Classifies encounters by type and clinical tier before extraction.",
 )
 
-# ── Anchor domain review ───────────────────────────────────────────────────────
+# -- Anchor domain review -------------------------------------------------------
 from libs.prompts.anchor_domain_review_output_schema import (
     ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA,
 )
@@ -528,7 +529,7 @@ _add(
     description="Reviews anchor training records: assigns clinical domains, validates SNOMED concepts, generates medspaCy TargetRules.",
 )
 
-# ── Exclusion detect ───────────────────────────────────────────────────────────
+# -- Exclusion detect -----------------------------------------------------------
 from libs.prompts.exclusion_detect_output_schema import EXCLUSION_DETECT_OUTPUT_SCHEMA
 from libs.prompts.exclusion_detect_examples import EXCLUSION_DETECT_EXAMPLES
 
@@ -554,7 +555,7 @@ _add(
     description="Classifies post-referral encounters as cancer_excluded / confirmed / still_investigating / pending_letter / not_relevant.",
 )
 
-# ── Label verification ─────────────────────────────────────────────────────────
+# -- Label verification ---------------------------------------------------------
 _add(
     "annotation_guidelines",
     1,
@@ -568,7 +569,7 @@ _add(
     ),
 )
 
-# ── Label verification ─────────────────────────────────────────────────────────
+# -- Label verification ---------------------------------------------------------
 from libs.prompts.label_verification_output_schema import (
     LABEL_VERIFICATION_OUTPUT_SCHEMA,
 )
@@ -596,7 +597,7 @@ _add(
     description="Verifies extracted label quality against the source text before gold-label persistence.",
 )
 
-# ── Pipeline verification ─────────────────────────────────────────────────────
+# -- Pipeline verification -----------------------------------------------------
 from libs.prompts.verification_output_schema import VERIFICATION_OUTPUT_SCHEMA
 from libs.prompts.verification_examples import VERIFICATION_EXAMPLES
 
@@ -622,7 +623,7 @@ _add(
     description="Pipeline verification judge for material extraction errors with optional terminology lookups.",
 )
 
-# ── Label disambiguation ───────────────────────────────────────────────────────
+# -- Label disambiguation -------------------------------------------------------
 from libs.prompts.label_disambiguation_output_schema import (
     LABEL_DISAMBIGUATION_OUTPUT_SCHEMA,
 )
@@ -647,10 +648,10 @@ _add(
         for i, ex in enumerate(LABEL_DISAMBIGUATION_EXAMPLES)
     ],
     max_few_shot=20,
-    description="Disambiguates uncertain NER labels using context from the full encounter — resolves model disagreements.",
+    description="Disambiguates uncertain NER labels using context from the full encounter -- resolves model disagreements.",
 )
 
-# ── NICE → Rules: guidance rule extraction + verifier ─────────────────────────
+# -- NICE -> Rules: guidance rule extraction + verifier -------------------------
 from libs.prompts.guidance_rule_extraction_output_schema import (
     GUIDANCE_RULE_EXTRACTION_OUTPUT_SCHEMA,
     GUIDANCE_RULE_EXTRACTION_EXAMPLES,
@@ -1144,11 +1145,11 @@ def seed_if_missing() -> None:
 
         if seeded:
             logger.info(
-                "[PromptSeed] Done — %d seeded, %d already present.", seeded, skipped
+                "[PromptSeed] Done -- %d seeded, %d already present.", seeded, skipped
             )
         else:
             logger.debug(
-                "[PromptSeed] All %d prompts already present — nothing to seed.",
+                "[PromptSeed] All %d prompts already present -- nothing to seed.",
                 skipped,
             )
     finally:
@@ -1171,7 +1172,7 @@ def main(missing_only: bool = False, *, force: bool = False) -> None:
                 session, prompt["name"], prompt["version"]
             ):
                 logger.info(
-                    "  %s v%d — already present, skipped",
+                    "  %s v%d -- already present, skipped",
                     prompt["name"],
                     prompt["version"],
                 )
@@ -1195,7 +1196,7 @@ def main(missing_only: bool = False, *, force: bool = False) -> None:
                 action = "created" if source == "seed" else "skipped (user-edited)"
             n_examples = len(prompt.get("few_shot_examples", []))
             logger.info(
-                "  %s v%d — %s (%d examples)",
+                "  %s v%d -- %s (%d examples)",
                 prompt["name"],
                 prompt["version"],
                 action,

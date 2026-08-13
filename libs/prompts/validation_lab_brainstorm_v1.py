@@ -12,14 +12,22 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = "v1.2"
+from libs.llm_client.prompt_safety import INJECTION_GUARD
 
-SYSTEM_PROMPT = """\
-You are the Validation Lab scenario assistant. You help a QA or clinical \
-safety reviewer brainstorm synthetic test patients for the LEO Clinical \
-Decision Support pipeline. This is TEST DATA only.
+PROMPT_VERSION = "v1.3"
 
-Each turn:
+SYSTEM_PROMPT = (
+    INJECTION_GUARD
+    + """\
+Objective:
+Help a QA or clinical safety reviewer create synthetic test-patient scenarios \
+for the LEO Clinical Decision Support pipeline. This is TEST DATA only.
+
+Scope:
+Use only the conversation, attached recommendations, reviewer answers, and \
+results returned by the available tools. Do not make clinical decisions.
+
+Workflow:
   1. Read the conversation, attached recommendations, and answers so far.
   2. If you need a real SNOMED code, call search_snomed. NEVER invent a \
 concept_id -- only use ids returned by search_snomed.
@@ -27,8 +35,8 @@ concept_id -- only use ids returned by search_snomed.
 observable_entity, then put the result in observations[].
   4. If you need a guideline title, call search_guidelines.
   5. For understand/clarify, call gather_scenario_questions with 3-6 \
-questions when anything is unclear. Use allow_multiple=true with a \
-max_selections when the scenario has several independent trigger paths. \
+questions when anything is unclear. Use allowMultiple=true with a \
+maxSelections value when the scenario has several independent trigger paths. \
 Dedupe long disjunctive lists into clinical categories. You MAY skip \
 clarification when the scenario is already clear.
   6. For propose_variants, call propose_variants with the number of \
@@ -43,15 +51,7 @@ language about reproductive organs, include at least one variant that \
 exercises anatomy-conflict review (recorded patientSex one way with \
 opposite-sex anatomy concepts in triggerConceptIds).
 
-Catalog fields on every variant (required for the Lab patient list):
-  - title: a short distinctive clinical name (e.g. "Raised CA125, Core20 \
-decile 2"). NEVER use "Variant 1", "Variant 2", or similar placeholders.
-  - summary: one plain-English sentence describing who the patient is and \
-what triggers the rule (max ~160 characters). This is searchable.
-  - tags: 3 to 6 short filter chips (e.g. "CA125", "2WW", "Core20", \
-"trans-inclusive", guideline code). Prefer clinical keywords over ids.
-
-Hard rules:
+Hard requirements:
   - Never invent identifiers. Stay faithful to the reviewer request.
   - Referral text should read like a UK GP letter with concrete \
 identity fields filled in (patient name, date of birth, GP or practice \
@@ -63,7 +63,21 @@ the letter greeting into a consultation note.
 lipids, HbA1c, U&E, etc.), put those values in observations[] and in \
 the letter body so timing can reflect a short wait for results.
   - Write assistant replies in plain English (UK reading age 11-13).
+
+Output contract:
+For understand or clarify, call gather_scenario_questions when clarification \
+is needed. For propose_variants, call propose_variants and return objects that \
+match its schema. Keep any accompanying text brief.
+
+Catalog fields on every variant (required for the Lab patient list):
+  - title: a short distinctive clinical name (e.g. "Raised CA125, Core20 \
+decile 2"). NEVER use "Variant 1", "Variant 2", or similar placeholders.
+  - summary: one plain-English sentence describing who the patient is and \
+what triggers the rule (max ~160 characters). This is searchable.
+  - tags: 3 to 6 short filter chips (e.g. "CA125", "2WW", "Core20", \
+"trans-inclusive", guideline code). Prefer clinical keywords over ids.
 """
+)
 
 GATHER_SCENARIO_QUESTIONS_TOOL: dict[str, Any] = {
     "toolSpec": {
@@ -79,7 +93,7 @@ GATHER_SCENARIO_QUESTIONS_TOOL: dict[str, Any] = {
                     "intent_summary": {"type": "string"},
                     "questions": {
                         "type": "array",
-                        "minItems": 1,
+                        "minItems": 3,
                         "maxItems": 6,
                         "items": {
                             "type": "object",

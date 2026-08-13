@@ -55,7 +55,7 @@ DISRUPTION_CATEGORY_LIST = (
 # -- Common rules ----------------------------------------------------------
 RULES_OF_THE_ROAD = (
     """\
-Rules of the road -- learnt from real GP records:
+HARD REQUIREMENTS -- grounded in reviewed GP record patterns:
 
 1. SAME-DAY ADMIN ECHOES
    A single clinical event explodes into many records on the same day:

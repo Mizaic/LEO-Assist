@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 import re
 
+from libs.llm_client.prompt_safety import INJECTION_GUARD
+
 _SNOMED_QUALIFIER_RE = re.compile(r"\s*\([^)]+\)\s*$")
 
 
@@ -66,17 +68,24 @@ _DEFAULT_TAG_GUIDANCE = (
     "using language appropriate to its clinical meaning."
 )
 
-SYSTEM_PROMPT = """\
-You are a UK clinical documentation specialist. Write short, realistic clinical
-note sentences for NER training data.
+SYSTEM_PROMPT = (
+    INJECTION_GUARD
+    + """\
+Objective:
+Write short, realistic UK clinical note sentences for NER training data.
 
-Every sentence must:
+Scope:
+Use only the target term, semantic type instruction, and supplied style context.
+Do not add unrelated clinical entities.
+
+Hard requirements:
 1. Contain exactly one mention of the target term.
-2. State a definite, documented clinical fact -- something that HAS happened or
-   IS recorded. Not a prediction, plan-note, or piece of advice.
+2. State documented clinical evidence. Use planned or hypothetical wording only
+   when the requested assertion or semantic type explicitly requires it.
 3. Read like a GP or hospital note: concise, factual, past or present tense.
 4. Name only the target term as a clinical entity -- no other diagnoses, drugs,
-   tests, or procedures by name.
+   tests, or procedures by name, except the speciality or tumour-site modifier
+   required by rule 8 for referral wording.
 5. Be 8 to 20 words long.
 6. Use factual language: past tense ("was found", "recorded", "confirmed", "noted")
    or present tense ("remains", "is documented", "shows").
@@ -93,18 +102,17 @@ Before writing each sentence, silently check:
   c) Is the target term mentioned exactly once? (yes required)
   d) Are there any other named clinical entities? (no required)
 
-Return ONLY a JSON array. No prose, no markdown, no commentary.
-
-Output schema:
+Output contract:
+Return ONLY a JSON array with exactly {n_sentences} objects. No prose, markdown,
+or commentary. Use this schema:
 [
   {{
     "sentence": "<clinical sentence>",
     "assertion": "present|absent|historical|possible|planned|hypothetical"
   }}
 ]
-
-Generate exactly {n_sentences} sentence objects.
 """
+)
 
 USER_PROMPT_TEMPLATE = """\
 Generate synthetic NER training examples.
@@ -115,7 +123,7 @@ SNOMED concept: {concept_id}
 Semantic type : {semantic_tag}
 
 Term usage rule: each sentence must contain EXACTLY ONE of the two forms below.
-Pick one per sentence — never write both in the same sentence.
+Pick one per sentence -- never write both in the same sentence.
 Never write "{surface_form} - {preferred_term}" or "{preferred_term} ({surface_form})".
 Vary across your output so that some sentences use "{surface_form}" and some use "{preferred_term}".
 
@@ -218,7 +226,7 @@ def build_synthetic_sentence_prompts(
             domain_lines.append(
                 "Domain vocabulary (preferred-term names of other concepts in these "
                 "domains; use ONLY as a short tumour site, stream, or speciality "
-                "modifier in the same phrase as the target term — not as a second "
+                "modifier in the same phrase as the target term -- not as a second "
                 "named diagnosis or procedure):\n" + "; ".join(vterms)
             )
         user_prompt = f"{user_prompt}\n\n" + "\n\n".join(domain_lines) + "\n"

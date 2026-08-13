@@ -12,6 +12,8 @@ import os
 import hashlib
 from typing import Any
 
+from libs.terminology.cache_invalidation import RESOLVER_CACHE_KEY_FAMILY
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +52,7 @@ class TerminologyCache:
         org_str = (org_id or "").strip() or "_"
         fp = (package_fingerprint or "").strip() or "_"
         return (
-            f"term_resolve:v2:{text_hash}:{tag_str}:{enrich_lab_domain}"
+            f"{RESOLVER_CACHE_KEY_FAMILY}:v2:{text_hash}:{tag_str}:{enrich_lab_domain}"
             f":{org_str}:{fp}"
         )
 

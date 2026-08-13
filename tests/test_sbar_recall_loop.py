@@ -16,6 +16,7 @@ from libs.sbar.recall_tools import RecallScope, RecallToolRegistry
 class _FakeLlmResponse:
     text: str = ""
     tool_uses: list[dict[str, Any]] = field(default_factory=list)
+    raw_output_items: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _registry(
@@ -67,12 +68,21 @@ async def test_llm_loop_fetches_manifest_chunk_and_submits() -> None:
         allowed=["c1"],
         chunks={"c1": {"id": "c1", "text": "Referral for progressive dysphagia."}},
     )
-    calls = {"n": 0}
+    calls: dict[str, Any] = {"n": 0, "response_items": []}
 
-    async def _fake_converse(_system, _messages, **_kwargs):
+    async def _fake_converse(_system, _messages, **kwargs):
         calls["n"] += 1
+        calls["response_items"].append(list(kwargs.get("response_items") or []))
         if calls["n"] == 1:
             return _FakeLlmResponse(
+                raw_output_items=[
+                    {
+                        "type": "function_call",
+                        "call_id": "tu-1",
+                        "name": "fetch_chunk",
+                        "arguments": '{"chunk_id": "c1"}',
+                    }
+                ],
                 tool_uses=[
                     {
                         "name": "fetch_chunk",
@@ -82,6 +92,14 @@ async def test_llm_loop_fetches_manifest_chunk_and_submits() -> None:
                 ]
             )
         return _FakeLlmResponse(
+            raw_output_items=[
+                {
+                    "type": "function_call",
+                    "call_id": "tu-2",
+                    "name": "submit_recall_result",
+                    "arguments": "{}",
+                }
+            ],
             tool_uses=[
                 {
                     "name": "submit_recall_result",
@@ -108,6 +126,10 @@ async def test_llm_loop_fetches_manifest_chunk_and_submits() -> None:
     assert result.evidence.chunk_id == "c1"
     assert result.llm_calls == 2
     assert registry.fetch_count == 1
+    continuation = calls["response_items"][1]
+    assert continuation[0]["call_id"] == "tu-1"
+    assert continuation[1]["type"] == "function_call_output"
+    assert continuation[1]["call_id"] == "tu-1"
 
 
 @pytest.mark.asyncio

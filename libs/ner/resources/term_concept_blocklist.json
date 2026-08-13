@@ -1,0 +1,42 @@
+{
+  "description": "Terminology concept blocklist: surface forms whose auto-coded SNOMED concept IDs are suppressed in UK primary care context.",
+  "family": "term_concept_blocklist",
+  "rules": [
+    {
+      "rule_id": "tcb-001",
+      "surface_form": "spinal surgery",
+      "blocked_concept_ids": ["1287097003"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "Generic mention in notes; do not auto-code to a specific named operation."
+    },
+    {
+      "rule_id": "tcb-002",
+      "surface_form": "not sleeping well",
+      "blocked_concept_ids": ["367391008"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "Symptom phrasing should not be coerced to broad malaise."
+    },
+    {
+      "rule_id": "tcb-003",
+      "surface_form": "nerve compression",
+      "blocked_concept_ids": ["372063002"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "Mechanical wording in patient advice; not malignant neoplasm of nervous system."
+    },
+    {
+      "rule_id": "tcb-004",
+      "surface_form": "fit",
+      "blocked_concept_ids": ["91175000"],
+      "active": true,
+      "priority": 10,
+      "created_by": "system",
+      "comment": "FIT is a test (Faecal Immunochemical Test), not a seizure."
+    }
+  ]
+}

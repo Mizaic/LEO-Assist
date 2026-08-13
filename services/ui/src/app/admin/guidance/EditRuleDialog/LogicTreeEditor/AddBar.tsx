@@ -12,6 +12,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import AddIcon from "@mui/icons-material/Add";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 
 import { useMotion } from "@leo/design-system";
 
@@ -44,6 +45,8 @@ interface Props {
   /** Adds a nested sub-group (for example "any of these" inside an
    *  "all of these" pathway) as a new child of the current group. */
   onAddGroup?: () => void;
+  /** Adds a nested "patient should not have" group (logic kind NOT). */
+  onAddShouldNotHave?: () => void;
 }
 
 export default function AddBar({
@@ -52,6 +55,7 @@ export default function AddBar({
   onAddObservation,
   onAddRuleFired,
   onAddGroup,
+  onAddShouldNotHave,
 }: Props) {
   const { reducedMotion } = useMotion();
   const spring = bounceInteraction(reducedMotion);
@@ -121,6 +125,20 @@ export default function AddBar({
             aria-label="Add a condition group, for example a set of options where any one match is enough"
           >
             Add condition group
+          </Button>
+        </fm.div>
+      )}
+      {onAddShouldNotHave && (
+        <fm.div style={{ display: "inline-flex" }} {...spring}>
+          <Button
+            startIcon={<BlockOutlinedIcon sx={{ fontSize: 14 }} />}
+            size="small"
+            variant="outlined"
+            sx={dashedBtnSx}
+            onClick={onAddShouldNotHave}
+            aria-label="Add things the patient should not have"
+          >
+            Patient should not have
           </Button>
         </fm.div>
       )}

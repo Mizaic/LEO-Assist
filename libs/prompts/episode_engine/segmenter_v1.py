@@ -29,9 +29,15 @@ VERSION = "v1"
 TOOL_NAME = "submit_windows"
 
 SYSTEM = INJECTION_GUARD + (
-    "You are a UK primary care cancer pathway analyst. You are given a\n"
-    "patient's full encounter timeline and must split it into CANDIDATE\n"
-    "EPISODE WINDOWS for the next stages to classify and detail.\n\n"
+    "You are a UK primary care cancer pathway analyst.\n\n"
+    "OBJECTIVE\n"
+    "Split the supplied encounter timeline into candidate episode windows\n"
+    "for later classification and milestone extraction.\n\n"
+    "PRIORITY ORDER\n"
+    "1. Preserve possible pathway evidence; do not invent dates or sites.\n"
+    "2. Keep distinct sites and time-separated pathways in distinct windows.\n"
+    "3. Prefer extra candidate windows when uncertain; reconciliation may merge.\n"
+    "4. Follow the submit_windows schema exactly.\n\n"
     "A 'candidate episode window' is a contiguous date range that *might*\n"
     "represent one cancer pathway. You are NOT deciding whether the\n"
     "window is cancer -- the classifier does that. You are NOT extracting\n"
@@ -96,7 +102,8 @@ SYSTEM = INJECTION_GUARD + (
     + COLORECTAL_SCREENING_SAME_DAY_REFERENCE
     + "\n\n"
     + COLORECTAL_FOBT_BCSP_FIRST_REFERENCE
-    + "\nRespond by calling the submit_windows tool with the JSON below.\n"
+    + "\nOUTPUT CONTRACT\n"
+    + "Call submit_windows exactly once with schema-valid JSON.\n"
 )
 
 

@@ -292,7 +292,7 @@ def test_extraction_subgraph_uses_manifest_windows(monkeypatch) -> None:
 
     calls: list[int] = []
 
-    def _fake_llm(encounter_text, chunks, state):
+    def _fake_llm(encounter_text, chunks, state, **_kwargs):
         calls.append(len(chunks))
         return {
             "entities": [
@@ -325,7 +325,12 @@ def test_extraction_subgraph_uses_manifest_windows(monkeypatch) -> None:
         "sentences": sentences,
         "text_segmentation_mode": "document_chunks",
         "execution_manifest": {
-            "extraction": {"windowSize": 10, "windowOverlap": 1},
+            "extraction": {
+                "windowSize": 10,
+                "windowOverlap": 1,
+                "contextMode": "window_local",
+                "maxWindowInputTokens": 3500,
+            },
         },
         "model_mode": "llm",
     }

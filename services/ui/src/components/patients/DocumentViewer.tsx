@@ -1,8 +1,7 @@
 /**
  * DocumentViewer -- right-pane clinical document reader.
  *
- * Renders chunk text as markdown, with raw toggle and open-original link
- * when a PDF or Word file URL is available.
+ * Renders text inline, embeds PDFs, and opens reprocess chunk selection in a dialog.
  *
  * Atlas trace:
  *   DO: DO-5F9A50D8
@@ -20,19 +19,32 @@ import Stack from "@mui/material/Stack";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import type { DocumentRow } from "@/lib/patientEprApi";
+import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
+import { patientDocumentFileUrl, type DocumentRow } from "@/lib/patientEprApi";
 import MarkdownEditor from "@/components/markdown-editor/MarkdownEditor";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { deletePatientDocument } from "@/lib/patientDocumentsApi";
 import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
+import { useOrg } from "@/context/OrgContext";
 import {
   categoryLabel,
   extractSourceFilename,
   fileKindLabel,
   hasLinkedSbarAssessment,
   inferFileKind,
+  isHtmlDocumentRow,
   isSbarDocument,
+  isWordDocumentRow,
+  looksLikeHtmlBody,
 } from "./documentFormat";
 import { DocumentChunkPanel } from "./DocumentChunkPanel";
+import { DocumentAiReadyChip } from "./DocumentAiReadyChip";
+import { DocumentEditorDialog } from "./DocumentEditorDialog";
+import { DocumentHtmlPreviewPane } from "./DocumentHtmlPreviewPane";
+import { DocumentWordPreviewPane } from "./DocumentWordPreviewPane";
 
 type ViewMode = "rendered" | "raw";
 
@@ -104,13 +116,51 @@ function RenderedPane({ body }: { body: string }) {
   );
 }
 
+function InlinePdfPane({ url, title }: { url: string; title: string }) {
+  return (
+    <Box
+      component="iframe"
+      src={url}
+      title={title}
+      data-testid="document-inline-pdf"
+      sx={{
+        display: "block",
+        width: "100%",
+        minHeight: 480,
+        height: "calc(100vh - 320px)",
+        border: "1px solid #E2E8F0",
+        borderRadius: "8px",
+        bgcolor: "#F8FAFC",
+      }}
+    />
+  );
+}
+
 interface Props {
   doc: DocumentRow;
   patientId?: string;
+  canManageDocuments?: boolean;
+  onDocumentsChanged?: () => void;
 }
 
-export function DocumentViewer({ doc, patientId }: Props) {
+function isEditableDocument(doc: DocumentRow): boolean {
+  if (isSbarDocument(doc)) return false;
+  return !doc.original_url && !doc.markdown_url;
+}
+
+export function DocumentViewer({
+  doc,
+  patientId,
+  canManageDocuments = false,
+  onDocumentsChanged,
+}: Props) {
+  const { isPlatformAdmin } = useOrg();
   const [viewMode, setViewMode] = useState<ViewMode>("rendered");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [reprocessOpen, setReprocessOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const kind = inferFileKind(doc);
   const sourceFile = extractSourceFilename(doc.full_text);
   const isSbar = isSbarDocument(doc);
@@ -120,10 +170,37 @@ export function DocumentViewer({ doc, patientId }: Props) {
   const sbarMd = buildSbarMarkdown(doc);
   const body = useMemo(
     () => stripDocHeader(doc.full_text || doc.text_preview || ""),
-    [doc.full_text, doc.text_preview]
+    [doc.full_text, doc.text_preview],
   );
   const showDocumentBody = Boolean(body) && !(isSbar && assessmentId);
   const openUrl = doc.original_url || doc.markdown_url;
+  const showInlinePdf = kind === "pdf" && Boolean(openUrl);
+  const showInlineWord = isWordDocumentRow(doc) && Boolean(openUrl);
+  const showInlineHtml =
+    isHtmlDocumentRow(doc) && Boolean(openUrl || looksLikeHtmlBody(body));
+  const inlineFileUrl =
+    patientId && showInlinePdf
+      ? patientDocumentFileUrl(patientId, doc.document_id)
+      : null;
+  const showWordPreview = Boolean(patientId && showInlineWord);
+  const showHtmlPreview = Boolean(patientId && showInlineHtml);
+  const showManageActions = canManageDocuments && patientId && isEditableDocument(doc);
+  const showReprocess = Boolean(isPlatformAdmin && patientId && !isSbar);
+
+  const handleDelete = async () => {
+    if (!patientId) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await deletePatientDocument(patientId, doc.document_id);
+      setConfirmDelete(false);
+      onDocumentsChanged?.();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Unable to delete document.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   return (
     <Box sx={{ p: 2, height: "100%", overflowY: "auto" }}>
@@ -138,20 +215,60 @@ export function DocumentViewer({ doc, patientId }: Props) {
             </Typography>
           )}
         </Box>
-        {openUrl && (
+        {showReprocess && (
           <Button
             size="small"
             variant="outlined"
+            startIcon={<ReplayOutlinedIcon />}
+            onClick={() => setReprocessOpen(true)}
+            data-testid="document-reprocess-button"
+          >
+            Reprocess
+          </Button>
+        )}
+        {openUrl && (
+          <Button
+            size="small"
+            variant="text"
             startIcon={<OpenInNewIcon />}
             href={openUrl}
             target="_blank"
             rel="noopener noreferrer"
             component="a"
           >
-            Open {fileKindLabel(kind)}
+            Open in new tab
           </Button>
         )}
+        {showManageActions && (
+          <>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<EditOutlinedIcon />}
+              onClick={() => setEditorOpen(true)}
+              data-testid="edit-document-button"
+            >
+              Edit
+            </Button>
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              startIcon={<DeleteOutlineIcon />}
+              onClick={() => setConfirmDelete(true)}
+              data-testid="delete-document-button"
+            >
+              Delete
+            </Button>
+          </>
+        )}
       </Stack>
+
+      {deleteError && (
+        <Alert severity="error" sx={{ mb: 1.5 }}>
+          {deleteError}
+        </Alert>
+      )}
 
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mb: 2 }}>
         <Chip label={fileKindLabel(kind)} size="small" sx={{ height: 20, fontSize: 10 }} />
@@ -168,11 +285,8 @@ export function DocumentViewer({ doc, patientId }: Props) {
             {fmt(doc.document_date)}
           </Typography>
         )}
+        <DocumentAiReadyChip chunkCount={doc.chunk_count ?? 0} size="medium" />
       </Stack>
-
-      {patientId && !isSbar && (
-        <DocumentChunkPanel patientId={patientId} doc={doc} />
-      )}
 
       {isSbar && (
         <Alert severity="info" sx={{ mb: 2 }} data-testid="document-sbar-reprocess-hint">
@@ -197,6 +311,17 @@ export function DocumentViewer({ doc, patientId }: Props) {
           This SBAR document is missing an assessment id. Open it from an
           Assessment row so the CDN widget can load the clinical summary.
         </Alert>
+      ) : inlineFileUrl ? (
+        <InlinePdfPane url={inlineFileUrl} title={doc.title} />
+      ) : showWordPreview && patientId ? (
+        <DocumentWordPreviewPane patientId={patientId} documentId={doc.document_id} />
+      ) : showHtmlPreview && patientId ? (
+        <DocumentHtmlPreviewPane
+          patientId={patientId}
+          documentId={doc.document_id}
+          inlineHtml={looksLikeHtmlBody(body) ? body : undefined}
+          title={doc.title}
+        />
       ) : showDocumentBody ? (
         <>
           <Stack
@@ -226,9 +351,49 @@ export function DocumentViewer({ doc, patientId }: Props) {
       ) : (
         <Alert severity="info">
           {openUrl
-            ? "This document is stored as a file. Use Open to view the original."
+            ? `This ${fileKindLabel(kind).toLowerCase()} file could not be embedded. Use Open in new tab.`
             : "No readable content is available for this document yet."}
         </Alert>
+      )}
+
+      {showReprocess && patientId && (
+        <DocumentChunkPanel
+          patientId={patientId}
+          doc={doc}
+          open={reprocessOpen}
+          onClose={() => setReprocessOpen(false)}
+        />
+      )}
+
+      {showManageActions && patientId && (
+        <>
+          <DocumentEditorDialog
+            open={editorOpen}
+            patientId={patientId}
+            initial={{
+              documentId: doc.document_id,
+              title: doc.title,
+              category: doc.category ?? "referral",
+              documentDate: doc.document_date?.slice(0, 10) ?? "",
+              markdownBody: doc.full_text || doc.text_preview || "",
+              episodeId: doc.episode_id ?? "",
+            }}
+            onClose={() => setEditorOpen(false)}
+            onSaved={() => onDocumentsChanged?.()}
+          />
+          {confirmDelete && (
+            <ConfirmDialog
+              title="Delete document?"
+              body={`This will permanently delete ${doc.title}. This cannot be undone.`}
+              confirmLabel="Delete"
+              variant="danger"
+              busy={deleteBusy}
+              busyLabel="Deleting..."
+              onConfirm={() => void handleDelete()}
+              onCancel={() => setConfirmDelete(false)}
+            />
+          )}
+        </>
       )}
     </Box>
   );

@@ -23,6 +23,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from libs.llm_client.prompt_safety import INJECTION_GUARD
+
 import requests
 from dotenv import load_dotenv
 
@@ -107,7 +109,7 @@ class ConceptContext:
 def _norm(text: str) -> str:
     t = text.strip()
     t = re.sub(r"\s+", " ", t)
-    return t.replace("–", "-").replace("—", "-")
+    return t.replace("\u2013", "-").replace("\u2014", "-")
 
 
 def _clean_candidate(text: str) -> str:
@@ -375,7 +377,7 @@ def llm_expand_concept(
 ) -> dict[str, Any]:
     evidence_top = [f"{k} ({v})" for k, v in concept.evidence_counter.most_common(8)]
     evidence_examples = concept.evidence_snippets[:5]
-    system_prompt = (
+    system_prompt = INJECTION_GUARD + (
         "You are a clinical terminology assistant for UK GP free-text normalization. "
         "Generate plausible shorthand/surface forms for ONE SNOMED concept only. "
         "Do not output unrelated concepts."
@@ -686,7 +688,6 @@ def main() -> None:
     }
 
     touched_files: set[Path] = set()
-    concept_by_id = {c.concept_id: c for c in concepts}
     workers = max(1, int(args.workers))
     concept_results: dict[str, tuple[dict[str, Any], list[str]]] = {}
 

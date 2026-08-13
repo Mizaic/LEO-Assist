@@ -131,33 +131,43 @@ export function MentionRow({
               {detailError}
             </Alert>
           )}
-          {detail && (
-            <Box
-              sx={{
-                borderLeft: "3px solid #CBD5E1",
-                pl: 1,
-                py: 0.25,
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  display: "block",
-                  fontStyle: "italic",
-                  color: "text.secondary",
-                  lineHeight: 1.5,
-                }}
-              >
-                &quot;
-                {detail.evidence_sentence ||
-                  detail.evidence ||
-                  "No evidence sentence recorded."}
-                &quot;
-              </Typography>
-            </Box>
-          )}
+          {detail && <MentionEvidence detail={detail} />}
         </Box>
       )}
+    </Box>
+  );
+}
+
+function MentionEvidence({ detail }: { detail: ConceptMentionDetail }) {
+  const span = (detail.evidence || "").trim();
+  const sentence = (detail.evidence_sentence || "").trim();
+  if (!span && !sentence) {
+    return (
+      <Typography variant="caption" color="text.secondary" fontStyle="italic">
+        No evidence recorded.
+      </Typography>
+    );
+  }
+  return (
+    <Box sx={{ borderLeft: "3px solid #CBD5E1", pl: 1, py: 0.25 }}>
+      {span ? (
+        <Typography variant="caption" sx={{ display: "block", lineHeight: 1.5 }}>
+          evidence: {span}
+        </Typography>
+      ) : null}
+      {sentence ? (
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            fontStyle: "italic",
+            color: "text.secondary",
+            lineHeight: 1.5,
+          }}
+        >
+          evidence_sentence: &quot;{sentence}&quot;
+        </Typography>
+      ) : null}
     </Box>
   );
 }

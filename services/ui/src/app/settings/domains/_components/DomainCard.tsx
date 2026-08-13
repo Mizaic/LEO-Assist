@@ -13,6 +13,7 @@ import { motion as fm } from "framer-motion";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
@@ -21,6 +22,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 
 import type { DomainSummary, DomainUseCase } from "@/lib/analyticsApi";
 
@@ -69,6 +71,7 @@ export interface DomainCardProps {
   onNavigate: (id: string) => void;
   onEdit: (domain: DomainSummary) => void;
   onDelete: (domain: DomainSummary) => void;
+  onTestInLab?: (domain: DomainSummary) => void;
 }
 
 export default function DomainCard({
@@ -78,12 +81,14 @@ export default function DomainCard({
   onNavigate,
   onEdit,
   onDelete,
+  onTestInLab,
 }: DomainCardProps) {
   const [hovered, setHovered] = useState(false);
   const isNice = domain.source === "nice";
   const isPlatform = domain.source === "platform";
   const accent = isNice ? "#2563EB" : isPlatform ? "#64748B" : "#16A34A";
   const useCases: DomainUseCase[] = domain.use_cases ?? (domain.minimum_dataset_domain ? ["completeness"] : []);
+  const coveragePct = domain.coverage_pct;
 
   return (
     <fm.div
@@ -190,11 +195,52 @@ export default function DomainCard({
 
       <Box sx={{ flex: 1 }} />
 
+      {coveragePct !== undefined && (
+        <Box sx={{ mt: 0.5 }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.25 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.68rem" }}>
+              Coding coverage
+            </Typography>
+            <Typography variant="caption" sx={{ fontSize: "0.68rem", fontWeight: 600, color: coveragePct >= 80 ? "#166534" : coveragePct >= 50 ? "#92400E" : "#991B1B" }}>
+              {Math.round(coveragePct)}%
+            </Typography>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={Math.min(coveragePct, 100)}
+            sx={{
+              height: 4,
+              borderRadius: 2,
+              bgcolor: "#F1F5F9",
+              "& .MuiLinearProgress-bar": {
+                bgcolor: coveragePct >= 80 ? "#16A34A" : coveragePct >= 50 ? "#D97706" : "#DC2626",
+              },
+            }}
+            aria-label={`${Math.round(coveragePct)}% coding coverage`}
+          />
+        </Box>
+      )}
+
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem", fontWeight: 500 }}>
           {domain.subdomain_count} subdomain{domain.subdomain_count !== 1 ? "s" : ""}
         </Typography>
-        <ChevronRightIcon sx={{ fontSize: 18, color: "#94A3B8" }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          {onTestInLab && (
+            <Tooltip title="Test this area in Validation Lab">
+              <IconButton
+                size="small"
+                aria-label={`Test ${domain.name} in validation lab`}
+                data-testid="domain-card-test-in-lab"
+                onClick={(e) => { e.stopPropagation(); onTestInLab(domain); }}
+                sx={{ opacity: hovered ? 1 : 0, transition: "opacity 0.15s" }}
+              >
+                <ScienceOutlinedIcon fontSize="small" sx={{ color: "#6366F1" }} />
+              </IconButton>
+            </Tooltip>
+          )}
+          <ChevronRightIcon sx={{ fontSize: 18, color: "#94A3B8" }} />
+        </Box>
       </Box>
     </fm.div>
   );

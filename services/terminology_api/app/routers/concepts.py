@@ -10,12 +10,12 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.neo4j_client.client import KnowledgeGraphClient
 from libs.terminology.semantic_tag import normalise_semantic_tag
 from services.terminology_api.app.queries.terminology import (
@@ -46,15 +46,15 @@ class RelatedConceptsResult(BaseModel):
     """Full ontology family for a lab-domain concept.
 
     For an observable_entity like ``MCH (observable entity)``:
-    - ``interpreted_by_findings``  — findings that have this as their observable
+    - ``interpreted_by_findings`` -- findings that have this as their observable
       (e.g. *Finding of MCH level (finding)* via INTERPRETS)
-    - ``component_of_procedures`` — procedures that include this observable
+    - ``component_of_procedures`` -- procedures that include this observable
       (e.g. *MCH determination (procedure)* via HAS_COMPONENT)
-    - ``interprets_observables``   — observables that this finding interprets
+    - ``interprets_observables`` -- observables that this finding interprets
       (only populated when the queried concept is a finding)
-    - ``has_components``           — observables that this procedure measures
+    - ``has_components`` -- observables that this procedure measures
       (only populated when the queried concept is a procedure)
-    - ``associated_findings``      — findings linked via HAS_ASSOCIATED_FINDING
+    - ``associated_findings`` -- findings linked via HAS_ASSOCIATED_FINDING
     """
 
     concept_id: str
@@ -174,16 +174,17 @@ def suggest_aliases_for_concept(concept_id: str):
 
     existing_list = ", ".join(f'"{e}"' for e in existing) if existing else "none yet"
 
-    system_prompt = (
+    system_prompt = INJECTION_GUARD + (
         "You are a UK primary care clinical terminology assistant. "
         "You suggest short text strings that UK GPs write in free-text consultation notes. "
         "Focus on NHS-specific abbreviations, clinical shorthand, and common spelling variants. "
-        "Respond ONLY with a valid JSON array of strings — no explanation, no markdown fences."
+        'Respond ONLY with {"suggestions": ["alias1", "alias2"]}. '
+        "Do not add explanation or markdown fences."
     )
     user_prompt = (
         f'Concept: "{concept_fsn}" (SNOMED {concept_id}, type: {semantic_tag})\n'
         f"Existing aliases: {existing_list}\n\n"
-        "Suggest up to 10 additional short phrases (1–6 words each) a UK GP might write "
+        "Suggest up to 10 additional short phrases (1-6 words each) a UK GP might write "
         "in a free-text consultation note to mean this concept. "
         "Include abbreviations, misspellings, acronyms, and NHS shorthand. "
         "Do NOT repeat the existing aliases.\n"
@@ -197,13 +198,26 @@ def suggest_aliases_for_concept(concept_id: str):
             messages=[{"role": "user", "content": user_prompt}],
             max_tokens=512,
             temperature=0.3,
+            json_mode=True,
+            structured_schema={
+                "type": "object",
+                "properties": {
+                    "suggestions": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1, "maxLength": 80},
+                        "maxItems": 10,
+                    }
+                },
+                "required": ["suggestions"],
+                "additionalProperties": False,
+            },
             agent_task="terminology_api_synonym_suggester",
         )
         text = response.text.strip()
-        match = re.search(r"\[.*\]", text, re.DOTALL)
-        if not match:
+        payload = json.loads(text)
+        raw = payload.get("suggestions") if isinstance(payload, dict) else None
+        if not isinstance(raw, list):
             return {"suggestions": [], "concept_id": concept_id}
-        raw = json.loads(match.group())
         suggestions = [
             s.strip()
             for s in raw

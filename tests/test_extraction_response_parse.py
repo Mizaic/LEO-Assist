@@ -23,6 +23,20 @@ def test_adds_terms_key():
     assert src == "json_ok"
 
 
+def test_accepts_entities_alias():
+    raw = '{"entities": [{"text": "jaundice", "lookup_term": "jaundice"}]}'
+    data, src = parse_extraction_terms_response(raw)
+    assert src == "json_ok"
+    assert data["terms"][0]["text"] == "jaundice"
+
+
+def test_prefers_filled_entities_over_empty_terms():
+    raw = '{"terms": [], "entities": [{"text": "weight loss"}]}'
+    data, src = parse_extraction_terms_response(raw)
+    assert src == "json_ok"
+    assert data["terms"][0]["text"] == "weight loss"
+
+
 def test_preamble_and_brace_trim():
     raw = 'Intro text {"terms": [{"text": "x"}]} trailing'
     data, src = parse_extraction_terms_response(raw)

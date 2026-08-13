@@ -668,15 +668,20 @@ PLAN_DEFINITIONS = [
         "_workflowMode": "durable_pubsub",
         "_referralPolicy": {
             "schemaVersion": "1.0",
-            "extraction": {"windowSize": 10, "windowOverlap": 1},
+            "extraction": {
+                "windowSize": 10,
+                "windowOverlap": 1,
+                "contextMode": "window_local",
+                "maxWindowInputTokens": 16000,
+            },
             "salvage": {"maxSentences": 50, "includeQualifiers": True},
             "evidence": {"maxCodesPerChunk": 200, "maxEvidenceChars": 8000},
             "alerts": {"twowDetectorVersion": "1.0"},
             "recall": {"maxChunkFetches": 5, "maxLlmCalls": 2, "maxTokens": 50000},
             "llm": {
-                "situation": {"temperature": 0.0, "maxTokens": 512},
-                "background": {"temperature": 0.0, "maxTokens": 1024},
-                "recommendation": {"temperature": 0.0, "maxTokens": 1024},
+                "situation": {"temperature": 0.0, "maxTokens": 2048},
+                "background": {"temperature": 0.0, "maxTokens": 4096},
+                "recommendation": {"temperature": 0.0, "maxTokens": 4096},
                 "runTokenBudget": 200000,
             },
             "prompts": {
@@ -685,7 +690,7 @@ PLAN_DEFINITIONS = [
                 "recommendation": {"name": "sbar_recommendation", "version": 2},
                 "recall": {"name": "sbar_recall", "version": 1},
             },
-            "models": {"provider": "azure", "tier": "big"},
+            "models": {"provider": "azure", "tier": "small"},
             "failureBehaviour": "fail_closed",
         },
         "_versionRollout": {
@@ -941,11 +946,11 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
-                "id": "act-ref-compliance",
-                "title": "Compliance Check",
+                "id": "act-ref-referral-reason",
+                "title": "Extract Referral Reason",
                 "_sequence": 8,
-                "_subgraphId": "compliance",
-                "_durableEventType": "compliance_requested",
+                "_subgraphId": "referral_reason",
+                "_durableEventType": "referral_reason_requested",
                 "relatedAction": [
                     {"actionId": "act-ref-persist-facts", "relationship": "after-end"}
                 ],
@@ -958,9 +963,29 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
+                "id": "act-ref-compliance",
+                "title": "Compliance Check",
+                "_sequence": 9,
+                "_subgraphId": "compliance",
+                "_durableEventType": "compliance_requested",
+                "relatedAction": [
+                    {
+                        "actionId": "act-ref-referral-reason",
+                        "relationship": "after-end",
+                    }
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-referral-reason",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
+                ],
+            },
+            {
                 "id": "act-ref-completeness",
                 "title": "Assess Completeness",
-                "_sequence": 9,
+                "_sequence": 10,
                 "_subgraphId": "quality_check",
                 "_durableEventType": "completeness_requested",
                 "relatedAction": [
@@ -969,26 +994,6 @@ PLAN_DEFINITIONS = [
                 "relatedActionEdges": [
                     {
                         "actionId": "act-ref-compliance",
-                        "sourceHandle": "next",
-                        "targetHandle": "prev",
-                    }
-                ],
-            },
-            {
-                "id": "act-ref-referral-reason",
-                "title": "Extract Referral Reason",
-                "_sequence": 10,
-                "_subgraphId": "referral_reason",
-                "_durableEventType": "referral_reason_requested",
-                "relatedAction": [
-                    {
-                        "actionId": "act-ref-completeness",
-                        "relationship": "after-end",
-                    }
-                ],
-                "relatedActionEdges": [
-                    {
-                        "actionId": "act-ref-completeness",
                         "sourceHandle": "next",
                         "targetHandle": "prev",
                     }
@@ -1004,13 +1009,13 @@ PLAN_DEFINITIONS = [
                 "_completionEventType": "referral_assessment_completed",
                 "relatedAction": [
                     {
-                        "actionId": "act-ref-referral-reason",
+                        "actionId": "act-ref-completeness",
                         "relationship": "after-end",
                     }
                 ],
                 "relatedActionEdges": [
                     {
-                        "actionId": "act-ref-referral-reason",
+                        "actionId": "act-ref-completeness",
                         "sourceHandle": "next",
                         "targetHandle": "prev",
                     }

@@ -104,10 +104,13 @@ class TestNegationDetection:
         item = _item("chest pain", assertion="present")
         assert item.assertion == "present"
 
-    def test_parse_terms_ignores_llm_supplied_assertion(self):
-        """DI-LEO-AI-103: LLM extractor MUST NOT honour LLM-assigned
-        assertion. All entities are initialised to "present" (negated=False);
-        downstream ConText + scope guards are the sole authority."""
+    def test_parse_terms_honours_valid_llm_supplied_assertion(self):
+        """Superseded DI-LEO-AI-103 (see DI-B5C78811 AC6, test_assertion_llm_exclusion.py):
+        the extractor now aligns with the LLM annotation guidelines and honours
+        a valid LLM-supplied assertion via `_parse_assertion()` -- it is no
+        longer forced to "present". ConText and the scope guard still run
+        downstream and can override an incorrect extractor emission, so the
+        LLM's value is never the sole signal (see `_parse_assertion` docstring)."""
         from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
 
         with patch.object(LLMExtractor, "_init_client", return_value=MagicMock()):
@@ -127,13 +130,13 @@ class TestNegationDetection:
         }
         terms = ext._parse_terms(payload, sentences)
         assert len(terms) == 1
-        assert terms[0].assertion == "present"
-        assert terms[0].context["negated"] is False
+        assert terms[0].assertion == "absent"
+        assert terms[0].context["negated"] is True
 
-    def test_parse_terms_initialises_all_entities_as_present(self):
-        """DI-LEO-AI-103: every entity from `_parse_terms` starts at
-        assertion="present" regardless of any LLM-supplied assertion
-        value. ConText runs downstream and is the sole authority."""
+    def test_parse_terms_falls_back_to_present_for_invalid_assertion(self):
+        """`_parse_assertion` only trusts values in `_VALID_ASSERTIONS`; a
+        missing or unrecognised assertion still defaults to "present", while
+        a valid value (e.g. "absent") passes through unchanged."""
         from services.coding_worker.app.pipeline.llm_extractor import LLMExtractor
 
         with patch.object(LLMExtractor, "_init_client", return_value=MagicMock()):
@@ -147,7 +150,7 @@ class TestNegationDetection:
                     "text": "hypertension",
                     "lookup_term": "hypertension",
                     "semantic_tag": "disease",
-                    "assertion": "present",
+                    "assertion": "not-a-real-assertion",
                 },
                 {
                     "sentence_id": "s1",
@@ -161,8 +164,8 @@ class TestNegationDetection:
         terms = ext._parse_terms(payload, sentences)
         assert terms[0].assertion == "present"
         assert terms[0].context["negated"] is False
-        assert terms[1].assertion == "present"
-        assert terms[1].context["negated"] is False
+        assert terms[1].assertion == "absent"
+        assert terms[1].context["negated"] is True
 
 
 # ---------------------------------------------------------------------------

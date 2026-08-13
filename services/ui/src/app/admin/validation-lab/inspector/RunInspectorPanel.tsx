@@ -9,14 +9,18 @@
 
 import { useState } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
+import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
+import { useRouter } from "next/navigation";
 
 import type { UseLabRunInspectorReturn } from "@/hooks/useLabRunInspector";
+import { PipelineWizard } from "./PipelineWizard";
 import { RunInspectorDataTab } from "./RunInspectorDataTab";
 import { RunInspectorLogTab } from "./RunInspectorLogTab";
 import { RunInspectorSummaryTab } from "./RunInspectorSummaryTab";
@@ -34,6 +38,7 @@ export function RunInspectorPanel({
   terminal,
   inspector,
 }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState(0);
   const liveLabel = inspector.connected
     ? "Live"
@@ -52,12 +57,39 @@ export function RunInspectorPanel({
         <Typography variant="subtitle2" fontWeight={700}>
           Run inspector
         </Typography>
-        <Chip
-          size="small"
-          label={liveLabel}
-          color={inspector.connected ? "success" : "default"}
-          data-testid="validation-lab-inspector-live-chip"
-        />
+        <Stack direction="row" spacing={1} alignItems="center">
+          {tab === 0 && inspector.spans.some((s) => s.status === "failed") && (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<BuildOutlinedIcon />}
+              data-testid="validation-lab-fix-in-workbench"
+              onClick={() => {
+                const failedSpan = inspector.spans.find(
+                  (s) => s.status === "failed",
+                );
+                const params = new URLSearchParams();
+                if (failedSpan?.rule_id) {
+                  params.set("fired_rule_id", failedSpan.rule_id);
+                }
+                if (failedSpan?.source_sentence) {
+                  params.set("source_sentence", failedSpan.source_sentence);
+                }
+                router.push(
+                  `/admin/knowledge?tab=guard-rules&${params.toString()}`,
+                );
+              }}
+            >
+              Fix in workbench
+            </Button>
+          )}
+          <Chip
+            size="small"
+            label={liveLabel}
+            color={inspector.connected ? "success" : "default"}
+            data-testid="validation-lab-inspector-live-chip"
+          />
+        </Stack>
       </Stack>
       <Typography variant="caption" color="text.secondary">
         {runId.slice(0, 8)} · {runStatus}
@@ -68,6 +100,7 @@ export function RunInspectorPanel({
         variant="fullWidth"
         sx={{ borderBottom: 1, borderColor: "divider" }}
       >
+        <Tab label="Pipeline" data-testid="validation-lab-inspector-tab-pipeline" />
         <Tab label="Live log" data-testid="validation-lab-inspector-tab-log" />
         <Tab label="Data flow" data-testid="validation-lab-inspector-tab-data" />
         <Tab label="Summary" data-testid="validation-lab-inspector-tab-summary" />
@@ -88,13 +121,28 @@ export function RunInspectorPanel({
           </Typography>
         ) : null}
         {tab === 0 ? (
+          <PipelineWizard
+            spans={inspector.spans}
+            selectedStepId={inspector.selectedStepId}
+            onSelectStep={inspector.setSelectedStepId}
+            stageDetail={inspector.stageDetail}
+            stageLoading={inspector.stageLoading}
+            onFixInGuards={(span) => {
+              const params = new URLSearchParams();
+              if (span.rule_id) params.set("fired_rule_id", span.rule_id);
+              if (span.source_sentence) params.set("source_sentence", span.source_sentence);
+              router.push(`/admin/knowledge?tab=guard-rules&${params.toString()}`);
+            }}
+          />
+        ) : null}
+        {tab === 1 ? (
           <RunInspectorLogTab
             events={inspector.events}
             terminal={terminal}
             runStatus={runStatus}
           />
         ) : null}
-        {tab === 1 ? (
+        {tab === 2 ? (
           <RunInspectorDataTab
             spans={inspector.spans}
             planSteps={inspector.snapshot?.plan_steps || []}
@@ -105,7 +153,7 @@ export function RunInspectorPanel({
             loading={inspector.stageLoading}
           />
         ) : null}
-        {tab === 2 ? (
+        {tab === 3 ? (
           <RunInspectorSummaryTab
             spans={inspector.spans}
             planSteps={inspector.snapshot?.plan_steps || []}

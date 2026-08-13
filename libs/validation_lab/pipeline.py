@@ -443,7 +443,7 @@ def attach_stage_progress(
 
 
 def _json_loads_safe(raw: Any) -> Any:
-    if isinstance(raw, dict):
+    if isinstance(raw, (dict, list)):
         return raw
     if isinstance(raw, str) and raw.strip():
         try:
@@ -451,6 +451,30 @@ def _json_loads_safe(raw: Any) -> Any:
         except json.JSONDecodeError:
             return {}
     return {}
+
+
+def _matching_rule_ids(raw: Any) -> list[str]:
+    """Extract rule id strings from Assessment.assessment_rules.
+
+    `sbar_orchestrator.py` persists this property as a single JSON string
+    encoding a list of full rule objects (`json.dumps(narrative.rules)`),
+    not a Neo4j string list. Treating it as an already-iterable list of
+    strings silently iterates the JSON text character by character.
+    """
+    parsed = _json_loads_safe(raw)
+    if not isinstance(parsed, list):
+        return []
+    ids: list[str] = []
+    for rule in parsed:
+        if isinstance(rule, dict):
+            rule_id = str(rule.get("rule_id") or "").strip()
+            if rule_id:
+                ids.append(rule_id)
+        else:
+            candidate = str(rule).strip()
+            if candidate:
+                ids.append(candidate)
+    return ids
 
 
 def _llm_usage_from_assessment(row: dict[str, Any]) -> dict[str, Any]:
@@ -490,7 +514,7 @@ def read_real_outputs(client: Any, assessment_id: str) -> RunOutputs:
     completeness = _json_loads_safe(row.get("completeness_result_json"))
     return RunOutputs(
         snomed_codes=[str(c) for c in (row.get("assessment_codes") or [])],
-        matching_rules=[str(r) for r in (row.get("assessment_rules") or [])],
+        matching_rules=_matching_rule_ids(row.get("assessment_rules")),
         completeness=completeness if isinstance(completeness, dict) else {},
         sbar_assessment_id=assessment_id,
         sbar_markdown=str(row.get("content") or ""),

@@ -352,6 +352,11 @@ class TestEscalateCoding:
 
         system_used = mock_client.converse.call_args.kwargs["system"]
         assert system_used.startswith(INJECTION_GUARD)
+        assert "OBJECTIVE" in system_used
+        assert "PRIORITY ORDER" in system_used
+        assert "HARD REQUIREMENTS" in system_used
+        assert "OUTPUT CONTRACT" in system_used
+        assert "For a valid observable measurement" in system_used
 
     @patch("libs.llm_client.escalation.create_llm")
     def test_empty_concept_term_not_resolved(self, mock_create):
@@ -537,6 +542,13 @@ class TestEscalateCodingFromCandidates:
             candidates=_CANDIDATES,
         )
         assert result.action == "not_codeable"
+
+    def test_not_codeable_action_does_not_reject_pending_procedure(self):
+        from libs.llm_client.escalation import _CANDIDATES_SYSTEM
+
+        action_block = _CANDIDATES_SYSTEM.split("HARD REQUIREMENTS", 1)[0]
+        assert "procedure not yet performed" not in action_block
+        assert "pending/awaiting items" in _CANDIDATES_SYSTEM
 
     def test_no_candidates_returns_ambiguous_immediately(self):
         result = escalate_coding_from_candidates(

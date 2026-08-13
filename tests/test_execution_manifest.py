@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from libs.workflow.execution_manifest import (
+    apply_manifest_model_tier,
     build_execution_manifest,
     manifest_from_json,
     resolve_model_config,
@@ -43,9 +44,11 @@ def test_build_execution_manifest_snapshots_policy_and_prompts() -> None:
     )
     assert manifest["plan_version_id"] == "ver-node-3"
     assert manifest["referral_policy"]["extraction"]["windowSize"] == 10
+    assert manifest["referral_policy"]["extraction"]["contextMode"] == "window_local"
+    assert manifest["referral_policy"]["extraction"]["maxWindowInputTokens"] == 16000
     assert manifest["prompts"]["situation"]["content_hash"] == "abc123"
     assert manifest["model"]["key"] == "aws:big"
-    assert manifest["llm"]["situation"]["maxTokens"] == 512
+    assert manifest["llm"]["situation"]["maxTokens"] == 2048
 
 
 def test_manifest_round_trip_json() -> None:
@@ -76,6 +79,37 @@ def test_resolve_model_config_uses_pipeline_provider(monkeypatch) -> None:
     assert row["provider"] == "azure"
     assert row["tier"] == "big"
     assert row["key"] == "azure:big"
+
+
+def test_resolve_model_config_defaults_missing_tier_to_small(monkeypatch) -> None:
+    monkeypatch.setenv("AWS_LLM_ENABLED", "false")
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    row = resolve_model_config({"models": {"provider": "azure"}})
+    assert row["tier"] == "small"
+    assert row["key"] == "azure:small"
+
+
+def test_resolve_model_config_keeps_explicit_big_pin(monkeypatch) -> None:
+    monkeypatch.setenv("AWS_LLM_ENABLED", "false")
+    monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+    row = resolve_model_config({"models": {"provider": "azure", "tier": "big"}})
+    assert row["tier"] == "big"
+    assert row["key"] == "azure:big"
+
+
+def test_apply_manifest_model_tier_fills_when_unset() -> None:
+    state: dict = {"execution_manifest": {"model": {"tier": "small"}}}
+    apply_manifest_model_tier(state)
+    assert state["model_tier"] == "small"
+
+
+def test_apply_manifest_model_tier_does_not_override_existing() -> None:
+    state: dict = {
+        "model_tier": "big",
+        "execution_manifest": {"model": {"tier": "small"}},
+    }
+    apply_manifest_model_tier(state)
+    assert state["model_tier"] == "big"
 
 
 def test_resolve_model_config_can_snapshot_aws_when_enabled(monkeypatch) -> None:

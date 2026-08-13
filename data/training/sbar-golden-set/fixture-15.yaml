@@ -105,7 +105,11 @@ reviewer_expectations:
     - "## Assessment"
     - "## Recommendation"
   required_phrases_in_assessment:
-    - "R-HNC-001"
+    # Assessment prose cites the rule by name/guideline, not the raw
+    # rule_id (libs/sbar/assessment_formatter.py, commit 6f09bb5,
+    # 2026-05-22): rule_id is still available structurally via
+    # RunOutcome.rules / pathway_hints.stt_evidence.
+    - "Persistent unexplained neck lump age >=45 -> 2WW head and neck"
     - ["unexplained", "persistent unexplained"]
   required_phrases_in_recommendation:
     - ["2WW", "two-week wait", "two week wait"]

@@ -19,7 +19,7 @@ const TERM_SEARCH = path.join(
 );
 const SURFACE_FORMS = path.join(
   ROOT,
-  "services/ui/src/app/settings/surface-forms/page.tsx",
+  "services/ui/src/app/settings/surface-forms/LiveDictionaryPane.tsx",
 );
 const TYPES = path.join(ROOT, "services/ui/src/lib/types.ts");
 const LEGACY = path.join(ROOT, "services/ui/src/lib/api/legacy.ts");

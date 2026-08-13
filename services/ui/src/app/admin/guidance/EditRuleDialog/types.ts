@@ -407,6 +407,11 @@ export type NodeUpdate =
       nodeId: string;
       observation: EditableObservationPayload;
     }
+  | {
+      kind: "convert_concept_to_observation";
+      nodeId: string;
+      observation: EditableObservationPayload;
+    }
   // -- Synonym chip ops (UN-LEO-AI-093) --
   | { kind: "add_seed"; nodeId: string; seed: LogicSeed }
   | { kind: "remove_seed"; nodeId: string; conceptId: string }

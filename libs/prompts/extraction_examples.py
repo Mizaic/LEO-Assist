@@ -5,45 +5,50 @@ Atlas trace:
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-416BA91D")
 
 Each example has:
-  input       — de-identified clinical text snippet
-  output      — expected JSON output (as a string, will be parsed to validate)
-  category    — what clinical/linguistic pattern this example demonstrates
-  model_scope — which LLM provider this example is tuned for:
-                  "any"   → works equally well with Claude (AWS Bedrock) and OpenAI (Azure)
-                  "aws"   → tuned for Claude on AWS Bedrock (e.g. exploits Claude's XML/list
-                            instruction following or extended thinking phrasing)
-                  "azure" → tuned for OpenAI on Azure (e.g. GPT-specific JSON-mode phrasing
-                            or system-prompt structure differences)
-  description — short human-readable label for the Admin UI example library
+  input       - de-identified clinical text snippet
+  output      - expected JSON output (as a string, parsed for validation)
+  category    - clinical or linguistic pattern demonstrated
+  model_scope - provider routing hint:
+                  "any"   - provider-neutral; preferred for new examples
+                  "azure" - tuned for Azure OpenAI GPT-5, the primary provider
+                  "aws"   - tuned for the optional AWS Bedrock provider
+  description - short human-readable label for the Admin UI example library
 
 Category taxonomy:
-  assertion:absent        — negation patterns
-  assertion:possible      — uncertainty / suspected
-  assertion:historical    — past / resolved
-  assertion:hypothetical  — conditional / planned / safety-netting
-  assertion:family        — family history
-  assertion:refuted       — initial impression overridden
-  assertion:declined      — patient refusal
-  assertion:cancelled     — procedure/appointment cancellation
-  multi-entity            — sentence with more than one codable concept
-  observable              — lab results with value/unit/reference_range
-  staging                 — cancer staging / performance status
-  abbreviation            — GP abbreviations expanded in lookup_term
-  brand-name              — pharmaceutical brand → generic
-  situation:allergy       — allergy status
-  situation:referral      — referral to service / planned procedure
-  finding:lifestyle       — smoking and lifestyle status (finding, not situation)
-  observable:blood_panel  — Blood Results table row cells
-  vital-signs             — bedside measurement with shorthand label
-  negation:compound       — compound sentence where negation covers multiple entities
-  disorder:imaging        — named pathologies described via imaging (pleural effusion,
+  assertion:absent        -- negation patterns
+  assertion:possible      -- uncertainty / suspected
+  assertion:historical    -- past / resolved
+  assertion:hypothetical  -- conditional / planned / safety-netting
+  assertion:family        -- family history
+  assertion:refuted       -- initial impression overridden
+  assertion:declined      -- patient refusal
+  assertion:cancelled     -- procedure/appointment cancellation
+  multi-entity            -- sentence with more than one codable concept
+  observable              -- lab results with value/unit/reference_range
+  staging                 -- cancer staging / performance status
+  abbreviation            -- GP abbreviations expanded in lookup_term
+  brand-name              -- pharmaceutical brand -> generic
+  situation:allergy       -- allergy status
+  situation:referral      -- referral to service / planned procedure
+  finding:lifestyle       -- smoking and lifestyle status (finding, not situation)
+  observable:blood_panel  -- Blood Results table row cells
+  vital-signs             -- bedside measurement with shorthand label
+  negation:compound       -- compound sentence where negation covers multiple entities
+  disorder:imaging        -- named pathologies described via imaging (pleural effusion,
                             pleural thickening etc.) tagged as disorder not finding
+  form:checkbox           -- 2WW / NSS referral form [ ] / [X] rows and Appendix
+                            criteria lists (extract checked / free-text only);
+                            also covers the deterministic "[NON_EXTRACTABLE]"
+                            marker that libs/ner/form_checkbox_normalizer.py
+                            prefixes onto unticked/template rows -- including
+                            rows with no checkbox glyph at all -- before this
+                            text ever reaches the model
 """
 
 from __future__ import annotations
 
 EXTRACTION_EXAMPLES: list[dict] = [
-    # ── Assertion: absent ────────────────────────────────────────────────────
+    # -- Assertion: absent ----------------------------------------------------
     {
         "category": "assertion:absent",
         "model_scope": "any",
@@ -68,11 +73,11 @@ EXTRACTION_EXAMPLES: list[dict] = [
     {
         "category": "negation:compound",
         "model_scope": "any",
-        "description": "Reports no — all three entities absent",
+        "description": "Reports no -- all three entities absent",
         "input": "[s0] Reports no nausea, vomiting, or diarrhoea.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "nausea", "lookup_term": "nausea", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "vomiting", "lookup_term": "vomiting", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "diarrhoea", "lookup_term": "diarrhoea", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: possible ──────────────────────────────────────────────────
+    # -- Assertion: possible --------------------------------------------------
     {
         "category": "assertion:possible",
         "model_scope": "any",
@@ -83,11 +88,11 @@ EXTRACTION_EXAMPLES: list[dict] = [
     {
         "category": "assertion:possible",
         "model_scope": "any",
-        "description": "Concerning for — uncertain malignancy",
+        "description": "Concerning for -- uncertain malignancy",
         "input": "[s0] Mass concerning for lymphoma.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "mass", "lookup_term": "mass", "semantic_tag": "finding", "assertion": "possible", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: historical ────────────────────────────────────────────────
+    # -- Assertion: historical ------------------------------------------------
     {
         "category": "assertion:historical",
         "model_scope": "any",
@@ -98,7 +103,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
     {
         "category": "assertion:historical",
         "model_scope": "any",
-        "description": "Bleeding stopped — historical",
+        "description": "Bleeding stopped -- historical",
         "input": "[s0] Bleeding has stopped.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Bleeding", "lookup_term": "bleeding", "semantic_tag": "finding", "assertion": "historical", "value": null, "unit": null, "reference_range": null}]}',
     },
@@ -109,7 +114,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] PMH: appendicectomy 2019.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "appendicectomy", "lookup_term": "appendicectomy", "semantic_tag": "procedure", "assertion": "historical", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: planned ───────────────────────────────────────────────────
+    # -- Assertion: planned ---------------------------------------------------
     {
         "category": "assertion:planned",
         "model_scope": "any",
@@ -124,7 +129,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Awaiting MRI spine.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "MRI spine", "lookup_term": "MRI scan of spine", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: hypothetical ──────────────────────────────────────────────
+    # -- Assertion: hypothetical ----------------------------------------------
     {
         "category": "assertion:hypothetical",
         "model_scope": "any",
@@ -139,7 +144,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Will refer to cardiology if no improvement.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "refer to cardiology", "lookup_term": "referral to cardiology", "semantic_tag": "procedure", "assertion": "hypothetical", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: family history as situation + present ─────────────────────
+    # -- Assertion: family history as situation + present ---------------------
     {
         "category": "assertion:family",
         "model_scope": "any",
@@ -147,7 +152,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Mother had breast cancer.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Mother had breast cancer", "lookup_term": "family history of malignant neoplasm of breast", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: refuted ───────────────────────────────────────────────────
+    # -- Assertion: refuted ---------------------------------------------------
     {
         "category": "assertion:refuted",
         "model_scope": "any",
@@ -155,7 +160,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Thought to be eczema but biopsy confirmed psoriasis.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "eczema", "lookup_term": "eczema", "semantic_tag": "disorder", "assertion": "refuted", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "psoriasis", "lookup_term": "psoriasis", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: declined ──────────────────────────────────────────────────
+    # -- Assertion: declined --------------------------------------------------
     {
         "category": "assertion:declined",
         "model_scope": "any",
@@ -170,7 +175,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Patient refused colonoscopy.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "colonoscopy", "lookup_term": "colonoscopy", "semantic_tag": "procedure", "assertion": "declined", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Assertion: cancelled ─────────────────────────────────────────────────
+    # -- Assertion: cancelled -------------------------------------------------
     {
         "category": "assertion:cancelled",
         "model_scope": "any",
@@ -182,10 +187,10 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "category": "assertion:cancelled",
         "model_scope": "any",
         "description": "Did not attend",
-        "input": "[s0] DNA — appointment cancelled.",
+        "input": "[s0] DNA -- appointment cancelled.",
         "output": '{"terms": []}',
     },
-    # ── Multi-entity ─────────────────────────────────────────────────────────
+    # -- Multi-entity ---------------------------------------------------------
     {
         "category": "multi-entity",
         "model_scope": "any",
@@ -197,21 +202,21 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "category": "multi-entity",
         "model_scope": "any",
         "description": "Observable entity plus a disorder in the same sentence",
-        "input": "[s0] eGFR 43 — CKD stage 3b.",
+        "input": "[s0] eGFR 43 -- CKD stage 3b.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "eGFR", "lookup_term": "estimated glomerular filtration rate", "semantic_tag": "observable entity", "assertion": "present", "value": "43", "unit": "mL/min", "reference_range": null}, {"sentence_id": "s0", "text": "CKD stage 3b", "lookup_term": "chronic kidney disease stage 3b", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Observable entity ────────────────────────────────────────────────────
+    # -- Observable entity ----------------------------------------------------
     {
         "category": "observable",
         "model_scope": "any",
-        "description": "Compound lab result — parameter name only in text, value/unit/range in fields",
+        "description": "Compound lab result -- parameter name only in text, value/unit/range in fields",
         "input": "[s0] Haemoglobin concentration (Xa96v) 106 g/L [130-180] - Outside reference range.",
-        "output": '{"terms": [{"sentence_id": "s0", "text": "Haemoglobin concentration", "lookup_term": "haemoglobin concentration", "semantic_tag": "observable entity", "assertion": "present", "value": "106", "unit": "g/L", "reference_range": "130-180"}]}',
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Haemoglobin concentration", "lookup_term": "haemoglobin concentration", "semantic_tag": "observable entity", "assertion": "present", "value": "106", "unit": "g/L", "reference_range": "130-180"}, {"sentence_id": "s0", "text": "Haemoglobin concentration (Xa96v) 106 g/L [130-180] - Outside reference range", "lookup_term": "haemoglobin concentration outside reference range", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
         "category": "observable",
         "model_scope": "any",
-        "description": "Lab result — do NOT infer a disorder from the value",
+        "description": "Lab result -- do NOT infer a disorder from the value",
         "input": "[s0] eGFR using creatinine (CKD-EPI) per 1.73 square metres (XacUK) 69 mL/min.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "eGFR", "lookup_term": "estimated glomerular filtration rate", "semantic_tag": "observable entity", "assertion": "present", "value": "69", "unit": "mL/min", "reference_range": null}]}',
     },
@@ -229,7 +234,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] BP: 142/92 mmHg",
         "output": '{"terms": [{"sentence_id": "s0", "text": "BP", "lookup_term": "blood pressure", "semantic_tag": "observable entity", "assertion": "present", "value": "142/92", "unit": "mmHg", "reference_range": null}]}',
     },
-    # ── Staging scale ────────────────────────────────────────────────────────
+    # -- Staging scale --------------------------------------------------------
     {
         "category": "staging",
         "model_scope": "any",
@@ -258,15 +263,15 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Cervical carcinoma Stage IIIA.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Cervical carcinoma", "lookup_term": "carcinoma of cervix", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "Stage IIIA", "lookup_term": "FIGO staging", "semantic_tag": "staging scale", "assertion": "present", "value": "IIIA", "unit": null, "reference_range": null}]}',
     },
-    # ── Abbreviation expansion ───────────────────────────────────────────────
+    # -- Abbreviation expansion -----------------------------------------------
     {
         "category": "abbreviation",
         "model_scope": "any",
-        "description": "Common GP abbreviation → standard lookup term",
+        "description": "Common GP abbreviation -> standard lookup term",
         "input": "[s0] AF and IHD.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "AF", "lookup_term": "atrial fibrillation", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "IHD", "lookup_term": "ischaemic heart disease", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Brand name → generic ─────────────────────────────────────────────────
+    # -- Brand name -> generic -------------------------------------------------
     {
         "category": "brand-name",
         "model_scope": "any",
@@ -274,7 +279,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Amoxicillin 500mg capsules.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Amoxicillin 500mg capsules", "lookup_term": "amoxicillin", "semantic_tag": "substance", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Situation: allergy ───────────────────────────────────────────────────
+    # -- Situation: allergy ---------------------------------------------------
     {
         "category": "situation:allergy",
         "model_scope": "any",
@@ -289,7 +294,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] NKDA.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "NKDA", "lookup_term": "no known drug allergies", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Referral template: symptoms and labs only (no pathway prose) ─────────
+    # -- Referral template: symptoms and labs only (no pathway prose) ---------
     {
         "category": "precision:referral_scope",
         "model_scope": "any",
@@ -412,7 +417,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Awaiting knee replacement surgery.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "knee replacement surgery", "lookup_term": "knee replacement", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Finding: lifestyle (smoking per annotation guidelines rule 10) ───────
+    # -- Finding: lifestyle (smoking per annotation guidelines rule 10) -------
     {
         "category": "finding:lifestyle",
         "model_scope": "any",
@@ -420,15 +425,15 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Ex-smoker.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Ex-smoker", "lookup_term": "ex-smoker", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Implicit negation / normal finding ───────────────────────────────────
+    # -- Implicit negation / normal finding -----------------------------------
     {
         "category": "assertion:absent",
         "model_scope": "any",
-        "description": "Positive statement of normality — NOT negated",
+        "description": "Positive statement of normality -- NOT negated",
         "input": "[s0] Chest clear.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Chest clear", "lookup_term": "chest clear", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Multi-entity: mixed present + absent in one sentence ─────────────────
+    # -- Multi-entity: mixed present + absent in one sentence -----------------
     {
         "category": "multi-entity",
         "model_scope": "any",
@@ -446,11 +451,11 @@ EXTRACTION_EXAMPLES: list[dict] = [
     {
         "category": "multi-entity",
         "model_scope": "any",
-        "description": "Multi-sentence — each entity stamped with its own sentence ID",
+        "description": "Multi-sentence -- each entity stamped with its own sentence ID",
         "input": "[s0] PMH: T2DM, hypertension. [s1] On metformin and ramipril.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "T2DM", "lookup_term": "type 2 diabetes mellitus", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "hypertension", "lookup_term": "hypertension", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s1", "text": "metformin", "lookup_term": "metformin", "semantic_tag": "substance", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s1", "text": "ramipril", "lookup_term": "ramipril", "semantic_tag": "substance", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Regime / therapy ─────────────────────────────────────────────────────
+    # -- Regime / therapy -----------------------------------------------------
     {
         "category": "regime/therapy",
         "model_scope": "any",
@@ -472,7 +477,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Started 7-day course of amoxicillin for community-acquired pneumonia.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "community-acquired pneumonia", "lookup_term": "community-acquired pneumonia", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "7-day course of amoxicillin", "lookup_term": "amoxicillin", "semantic_tag": "regime/therapy", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Product (medical devices) ─────────────────────────────────────────────
+    # -- Product (medical devices) ---------------------------------------------
     {
         "category": "product",
         "model_scope": "any",
@@ -487,11 +492,11 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Prescribed Ventolin MDI 100mcg.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Ventolin MDI 100mcg", "lookup_term": "salbutamol inhaler", "semantic_tag": "product", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Medication with dose ─────────────────────────────────────────────────
+    # -- Medication with dose -------------------------------------------------
     {
         "category": "brand-name",
         "model_scope": "any",
-        "description": "Medication with dose and frequency — generic lookup, strip dose from text",
+        "description": "Medication with dose and frequency -- generic lookup, strip dose from text",
         "input": "[s0] Metformin 500mg twice daily.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Metformin 500mg twice daily", "lookup_term": "metformin", "semantic_tag": "substance", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
@@ -509,13 +514,20 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Plan to start atorvastatin once LFTs checked.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "atorvastatin", "lookup_term": "atorvastatin", "semantic_tag": "substance", "assertion": "hypothetical", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Observable: weight / BMI ─────────────────────────────────────────────
+    # -- Observable: weight / BMI ---------------------------------------------
     {
         "category": "observable",
         "model_scope": "any",
         "description": "Weight and BMI as separate observable entities",
-        "input": "[s0] Weight 92 kg, BMI 31.4 kg/m².",
-        "output": '{"terms": [{"sentence_id": "s0", "text": "Weight", "lookup_term": "body weight", "semantic_tag": "observable entity", "assertion": "present", "value": "92", "unit": "kg", "reference_range": null}, {"sentence_id": "s0", "text": "BMI", "lookup_term": "body mass index", "semantic_tag": "observable entity", "assertion": "present", "value": "31.4", "unit": "kg/m²", "reference_range": null}]}',
+        "input": "[s0] Weight 92 kg, BMI 31.4 kg/m2.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Weight", "lookup_term": "body weight", "semantic_tag": "observable entity", "assertion": "present", "value": "92", "unit": "kg", "reference_range": null}, {"sentence_id": "s0", "text": "BMI", "lookup_term": "body mass index", "semantic_tag": "observable entity", "assertion": "present", "value": "31.4", "unit": "kg/m2", "reference_range": null}]}',
+    },
+    {
+        "category": "observable",
+        "model_scope": "any",
+        "description": "Bullet vitals keep name, value, and unit on one observable",
+        "input": "[s0] - Height: 1.67 m\n- Current weight: 67 kg\n- BMI: 24.0 kg/m2.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "Height", "lookup_term": "body height", "semantic_tag": "observable entity", "assertion": "present", "value": "1.67", "unit": "m", "reference_range": null}, {"sentence_id": "s0", "text": "Current weight", "lookup_term": "current body weight", "semantic_tag": "observable entity", "assertion": "present", "value": "67", "unit": "kg", "reference_range": null}, {"sentence_id": "s0", "text": "BMI", "lookup_term": "body mass index", "semantic_tag": "observable entity", "assertion": "present", "value": "24.0", "unit": "kg/m2", "reference_range": null}]}',
     },
     {
         "category": "observable",
@@ -527,18 +539,18 @@ EXTRACTION_EXAMPLES: list[dict] = [
     {
         "category": "observable",
         "model_scope": "any",
-        "description": "eGFR with operator — use > symbol in value",
+        "description": "eGFR with operator -- use > symbol in value",
         "input": "[s0] eGFR >90 mL/min.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "eGFR", "lookup_term": "estimated glomerular filtration rate", "semantic_tag": "observable entity", "assertion": "present", "value": ">90", "unit": "mL/min", "reference_range": null}]}',
     },
     {
         "category": "observable",
         "model_scope": "any",
-        "description": "INR within range — do NOT emit a disorder",
+        "description": "INR within range -- do NOT emit a disorder",
         "input": "[s0] INR 2.4 [2.0-3.0] - Within reference range.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "INR", "lookup_term": "international normalised ratio", "semantic_tag": "observable entity", "assertion": "present", "value": "2.4", "unit": null, "reference_range": "2.0-3.0"}]}',
     },
-    # ── Observable: blood panel table rows ───────────────────────────────────
+    # -- Observable: blood panel table rows -----------------------------------
     {
         "category": "observable:blood_panel",
         "model_scope": "any",
@@ -581,7 +593,7 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] I have arranged an abnormal MRI brain scan as an urgent investigation.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "abnormal MRI", "lookup_term": "abnormal magnetic resonance imaging", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Social history ───────────────────────────────────────────────────────
+    # -- Social history -------------------------------------------------------
     {
         "category": "finding:lifestyle",
         "model_scope": "any",
@@ -596,22 +608,22 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Never smoked.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Never smoked", "lookup_term": "non-smoker", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── No codable entity (administrative / safety-netting text) ────────────
+    # -- No codable entity (administrative / safety-netting text) ------------
     {
         "category": "assertion:hypothetical",
         "model_scope": "any",
-        "description": "Follow-up instruction — no clinical entity to extract",
+        "description": "Follow-up instruction -- no clinical entity to extract",
         "input": "[s0] Follow up in 4 weeks.",
         "output": '{"terms": []}',
     },
     {
         "category": "assertion:hypothetical",
         "model_scope": "any",
-        "description": "Return if worse — safety netting, no entity",
+        "description": "Return if worse -- safety netting, no entity",
         "input": "[s0] Advised to return if symptoms worsen or fail to improve within 48 hours.",
         "output": '{"terms": []}',
     },
-    # ── Physical examination findings ────────────────────────────────────────
+    # -- Physical examination findings ----------------------------------------
     {
         "category": "multi-entity",
         "model_scope": "any",
@@ -623,39 +635,39 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "category": "multi-entity",
         "model_scope": "any",
         "description": "Procedure performed and its finding",
-        "input": "[s0] ECG performed — normal sinus rhythm.",
+        "input": "[s0] ECG performed -- normal sinus rhythm.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "ECG", "lookup_term": "electrocardiogram", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "normal sinus rhythm", "lookup_term": "normal sinus rhythm", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Abbreviation: short single-word entry ────────────────────────────────
+    # -- Abbreviation: short single-word entry --------------------------------
     {
         "category": "abbreviation",
         "model_scope": "any",
-        "description": "SOB — expand common GP shorthand",
+        "description": "SOB -- expand common GP shorthand",
         "input": "[s0] SOB on exertion.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "SOB", "lookup_term": "shortness of breath", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
         "category": "abbreviation",
         "model_scope": "any",
-        "description": "COPD — expand, do not infer acute exacerbation",
+        "description": "COPD -- expand, do not infer acute exacerbation",
         "input": "[s0] Known COPD, on salbutamol PRN.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "COPD", "lookup_term": "chronic obstructive pulmonary disease", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "salbutamol", "lookup_term": "salbutamol", "semantic_tag": "substance", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
-    # ── Disorder: imaging context (pleural pathology) ────────────────────────
+    # -- Disorder: imaging context (pleural pathology) ------------------------
     # Pleural effusion and pleural thickening are SNOMED disorders even when
     # described as imaging findings. Do NOT tag them as finding. Volume loss
     # and opacity descriptions are findings (or omitted if non-specific).
     {
         "category": "disorder:imaging",
         "model_scope": "any",
-        "description": "Pleural effusion and thickening from radiology — both disorder",
+        "description": "Pleural effusion and thickening from radiology -- both disorder",
         "input": "[s0] Moderate left pleural effusion with irregular left pleural thickening and mild left hemithoracic volume loss. CT chest with contrast advised.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Moderate left pleural effusion", "lookup_term": "pleural effusion", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "irregular left pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CT chest with contrast", "lookup_term": "CT chest with contrast", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
     {
         "category": "disorder:imaging",
         "model_scope": "any",
-        "description": "Nodular pleural thickening and effusion — both disorder; CT recommendation as procedure",
+        "description": "Nodular pleural thickening and effusion -- both disorder; CT recommendation as procedure",
         "input": "[s0] Unilateral right pleural effusion with nodular pleural thickening along the lateral chest wall. Appearances warrant urgent CT assessment.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "Unilateral right pleural effusion", "lookup_term": "pleural effusion", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "nodular pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CT assessment", "lookup_term": "CT chest", "semantic_tag": "procedure", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
@@ -672,6 +684,67 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "description": "Pleural opacity: extract named pathologies as disorder; opacity descriptor not extracted separately",
         "input": "[s0] Right-sided pleural-based opacity with associated pleural effusion and diaphragmatic pleural thickening. Urgent respiratory review advised.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "pleural effusion", "lookup_term": "pleural effusion", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "diaphragmatic pleural thickening", "lookup_term": "pleural thickening", "semantic_tag": "disorder", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    # -- Referral form checkboxes / guideline criteria ([ ] vs [X]) ----------
+    {
+        "category": "form:checkbox",
+        "model_scope": "any",
+        "description": "Unchecked NSS criteria rows must not be extracted",
+        "input": "[s0] | REFERRAL CRITERIA (mandatory field): |  | | --- | --- | | Well enough to attend clinic for further investigations PLUS: | [ ] | | Unexplained DVT | [ ] | | New, unexplained and unintentional weight loss | [ ] | | New, unexplained vague abdominal pain for four weeks or more | [ ] |",
+        "output": '{"terms": []}',
+    },
+    {
+        "category": "form:checkbox",
+        "model_scope": "any",
+        "description": "Extract only [X] checked pathway criteria; ignore [ ] rows",
+        "input": "[s0] | REFERRAL CRITERIA (mandatory field): |  | | --- | --- | | Unexplained DVT | [ ] | | New, unexplained and unintentional weight loss | [ ] | | GP gut feeling of cancer diagnosis - | [X] | | Worrying symptoms though unable to place person on site specific 2ww pathway | [X] |",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "GP gut feeling of cancer diagnosis", "lookup_term": "suspected malignant neoplasm", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "Worrying symptoms though unable to place person on site specific 2ww pathway", "lookup_term": "suspected cancer non site specific pathway", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "form:checkbox",
+        "model_scope": "any",
+        "description": "WHO performance status: extract only the [X] row as staging scale",
+        "input": "[s0] | WHO performance status (mandatory field): Please place x in relevant box | | --- | | [ ] 0 Fully Active | | [X] 1 Able to carry out light work | | [ ] 2 Capable of self-care up to and about 50% of the time | | [ ] 3 Limited self-care, confined to bed or chair | | [ ] 4 Completely disabled, no self-care ability |",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "1 Able to carry out light work", "lookup_term": "WHO performance status 1", "semantic_tag": "staging scale", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "form:checkbox",
+        "model_scope": "any",
+        "description": "eRS reason cell: extract free text after colon, not the label",
+        "input": "[s0] | The reason I am concerned this patient has cancer is: unilateral nipple discharge FIT Neg CA125 3 | | --- |",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "unilateral nipple discharge", "lookup_term": "nipple discharge", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "FIT Neg", "lookup_term": "faecal immunochemical test negative", "semantic_tag": "finding", "assertion": "present", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "CA125", "lookup_term": "CA125", "semantic_tag": "observable entity", "assertion": "present", "value": "3", "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "form:checkbox",
+        "model_scope": "any",
+        "description": "Appendix pathway criteria list without patient ticks is template noise",
+        "input": "[s0] Appendix A: Serious, Non-specific symptoms pathway Referral criteria: Well enough to attend clinic for further investigations PLUS: Unexplained DVT New, unexplained and unintentional weight loss New, unexplained vague abdominal pain for four weeks or more GP gut feeling of cancer diagnosis Investigations: Urine dipstick FIT FBC",
+        "output": '{"terms": []}',
+    },
+    {
+        "category": "form:checkbox",
+        "model_scope": "any",
+        "description": "Symptoms pathway list all unchecked -- extract nothing",
+        "input": "[s0] | Symptoms pathway (mandatory field): Please place x in relevant boxes | | --- | | [ ] New unexplained and unintentional weight loss | | [ ] New unexplained vague abdominal pain for four weeks or more | | [ ] New unexplained constitutional symptoms for four weeks or more | | Unexplained DVT | | [ ] GP intuition or gut feeling |",
+        "output": '{"terms": []}',
+    },
+    {
+        # Deterministic upstream normalisation (libs/ner/form_checkbox_normalizer.py)
+        # prefixes unticked/template rows with the literal "[NON_EXTRACTABLE]"
+        # token before this text ever reaches the model -- including rows
+        # whose checkbox glyph was lost during document conversion (e.g. a
+        # docx checkbox content control that produced no "[ ]"/"[X]" text at
+        # all). This example teaches the marker itself, distinct from the
+        # raw-glyph checkbox rules above: the marker excludes a span even
+        # when NO "[ ]"/"[X]" is visibly attached to it.
+        "category": "form:checkbox",
+        "model_scope": "any",
+        "description": (
+            "[NON_EXTRACTABLE] marker excludes a bare checklist row with no "
+            "checkbox glyph at all; unmarked ticked criterion still extracted"
+        ),
+        "input": "[s0] | Symptoms pathway (mandatory field): Please place x in relevant boxes | | --- | | [NON_EXTRACTABLE] [ ] New unexplained and unintentional weight loss | | [NON_EXTRACTABLE] Unexplained DVT | | GP intuition or gut feeling (please state reasons you are concerned the patient has cancer) |",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "GP intuition or gut feeling", "lookup_term": "suspected malignant neoplasm", "semantic_tag": "situation", "assertion": "present", "value": null, "unit": null, "reference_range": null}]}',
     },
 ]
 
@@ -710,5 +783,11 @@ _apply_core_by_first_category(
         "abbreviation",
         "finding:lifestyle",
         "disorder:imaging",
+        "form:checkbox",
     },
 )
+
+# Prefer every checkbox example in retrieval -- common 2WW form failure mode.
+for _ex in EXTRACTION_EXAMPLES:
+    if _ex.get("category") == "form:checkbox":
+        _ex["core"] = True

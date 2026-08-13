@@ -25,8 +25,8 @@ loadPlaywrightEnv();
  */
 const PROTOCOL = [
   "Open Validation Lab from Knowledge",
-  "Confirm the new-patient wizard mounts with step 1 fields visible",
-  "Step through profile, encounters and referral to the submit step",
+  "Confirm the two-door home, then open the guideline-rule path",
+  "Open Advanced letter editor and step through to referral",
   "Confirm SBAR surface is CDN widget host (LeoSbarHost mount point)",
 ] as const;
 
@@ -53,6 +53,9 @@ test.describe("VAL Validation Lab chrome @val", () => {
       await ctx.page.goto("/admin/knowledge?tab=validation-lab");
       await waitForPageSettled(ctx.page);
       await expect(ctx.page.getByTestId("validation-lab-page")).toBeVisible();
+      await expect(ctx.page.getByTestId("validation-lab-mode-rule")).toBeVisible();
+      await ctx.page.getByTestId("validation-lab-mode-rule").click();
+      await ctx.page.getByRole("button", { name: "Advanced: edit the letter" }).first().click();
       await expect(ctx.page.getByTestId("create-patient-wizard")).toBeVisible();
       await expect(ctx.page.getByTestId("wizard-title")).toBeVisible();
       await recordProtocolStep({

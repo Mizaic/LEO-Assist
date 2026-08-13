@@ -145,7 +145,7 @@ Encounter text:
 Entities to verify (JSON):
 {entities_json}
 
-Note: character offsets (start/end) are set by a trusted NLP tool — do NOT check or
+Note: character offsets (start/end) are set by a trusted NLP tool -- do NOT check or
 raise issues about span positions. Only assess clinical accuracy: completeness, labels,
 and assertions.
 
@@ -160,7 +160,7 @@ This is a materiality-based review:
 When providing corrections, use drop=true for any entity that:
   - Is a vague improvement or progress statement ("knee is improving", "doing well", "feeling better")
   - Is administrative narrative with no clinical concept ("discussed results", "letter filed", "reviewed")
-  - Cannot plausibly be represented as a SNOMED CT concept — i.e. a terminology lookup would fail
+  - Cannot plausibly be represented as a SNOMED CT concept -- a terminology lookup would fail
 Do NOT drop clinically codeable findings, disorders, procedures, or substances.
 
 Examples:
@@ -168,7 +168,7 @@ Examples:
   you might personally prefer a different label or synonym.
 - "knee is improving" should usually be dropped, not rewritten into an awkward pseudo-SNOMED term.
 
-Respond with JSON only — no prose, no markdown fences.
+Respond with JSON only -- no prose, no markdown fences.
 Required keys: is_accurate (bool), confidence (0.0-1.0), issues (list of strings).
 If you find issues, provide structured `corrections` referencing the entity index.
 """
@@ -332,6 +332,7 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
             encounter_text,
             json.dumps(entities, indent=2),
         )
+        response_items: list[Any] = []
 
         for _ in range(_MAX_VERIFICATION_TOOL_ITERATIONS):
             resp = llm.converse(
@@ -339,17 +340,22 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
                 messages=deepcopy(messages),
                 tool_config=_VERIFICATION_TOOL_CONFIG,
                 json_mode=True,
+                response_items=response_items,
                 agent_task="v3_pipeline_ner_verifier",
             )
 
             if resp.tool_uses:
-                assistant_content: list[dict[str, Any]] = []
-                if resp.text:
-                    assistant_content.append({"text": resp.text})
-                assistant_content.extend(
-                    {"toolUse": tool_use} for tool_use in resp.tool_uses
-                )
-                messages.append({"role": "assistant", "content": assistant_content})
+                raw_items = list(getattr(resp, "raw_output_items", None) or [])
+                if raw_items:
+                    response_items.extend(raw_items)
+                else:
+                    assistant_content: list[dict[str, Any]] = []
+                    if resp.text:
+                        assistant_content.append({"text": resp.text})
+                    assistant_content.extend(
+                        {"toolUse": tool_use} for tool_use in resp.tool_uses
+                    )
+                    messages.append({"role": "assistant", "content": assistant_content})
 
                 final_tool_use = next(
                     (
@@ -366,15 +372,24 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
                 tool_results: list[dict[str, Any]] = []
                 for tool_use in resp.tool_uses:
                     if tool_use.get("name") != "lookup_snomed":
+                        payload = {
+                            "ok": False,
+                            "error": f"unsupported_tool:{tool_use.get('name')}",
+                        }
                         tool_results.append(
                             _build_tool_result_block(
                                 str(tool_use.get("toolUseId") or ""),
-                                {
-                                    "ok": False,
-                                    "error": f"unsupported_tool:{tool_use.get('name')}",
-                                },
+                                payload,
                             )
                         )
+                        if raw_items:
+                            response_items.append(
+                                {
+                                    "type": "function_call_output",
+                                    "call_id": str(tool_use.get("toolUseId") or ""),
+                                    "output": json.dumps(payload, ensure_ascii=True),
+                                }
+                            )
                         continue
 
                     payload, trace = _execute_lookup_snomed(
@@ -386,12 +401,21 @@ def verify_entities(state: VerificationState) -> dict[str, Any]:
                             str(tool_use.get("toolUseId") or ""), payload
                         )
                     )
+                    if raw_items:
+                        response_items.append(
+                            {
+                                "type": "function_call_output",
+                                "call_id": str(tool_use.get("toolUseId") or ""),
+                                "output": json.dumps(payload, ensure_ascii=True),
+                            }
+                        )
 
                 if not tool_results:
                     raise ValueError(
                         "Verifier returned tool_use without executable tool calls"
                     )
-                messages.append({"role": "user", "content": tool_results})
+                if not raw_items:
+                    messages.append({"role": "user", "content": tool_results})
                 continue
 
             raw = (resp.text or "").strip()
@@ -466,7 +490,8 @@ def evaluate_result(state: VerificationState) -> dict[str, Any]:
 
     if confidence_pass:
         logger.info(
-            "Verification: retries exhausted but confidence %.2f >= threshold %.2f — accepting with confidence override",
+            "Verification: retries exhausted but confidence %.2f >= threshold %.2f "
+            "-- accepting with confidence override",
             confidence,
             threshold,
         )
@@ -529,7 +554,8 @@ def correct_entities(state: VerificationState) -> dict[str, Any]:
         if corr.get("drop"):
             drop_indices.add(idx)
             logger.info(
-                "correct_entities: dropping entity %d (%s) — not SNOMED-representable",
+                "correct_entities: dropping entity %d (%s) "
+                "-- not SNOMED-representable",
                 idx,
                 new_entities[idx].get("text", ""),
             )

@@ -26,6 +26,7 @@ from libs.prompts.sbar_situation_v1 import SBAR_SITUATION_SYSTEM_V1
 from libs.sbar.prompt_calls import (
     _LEGACY_SBAR_PROMPT_VERSIONS,
     _PROMPT_NAME_BACKGROUND,
+    _PROMPT_NAME_RECALL,
     _PROMPT_NAME_RECOMMENDATION,
     _PROMPT_NAME_SITUATION,
 )
@@ -105,12 +106,13 @@ def test_prompt_injection_rule_intact():
         ), f"{name}: prompt-injection rule must still be present"
 
 
-def test_legacy_fallback_pins_all_three_to_v2():
-    """Legacy fallback resolves SBAR fetches to v2 when no manifest is present."""
+def test_legacy_fallback_pins_sbar_prompts():
+    """Legacy fallback pins section prompts to v2 and recall to v1."""
     assert _LEGACY_SBAR_PROMPT_VERSIONS == {
         _PROMPT_NAME_SITUATION: 2,
         _PROMPT_NAME_BACKGROUND: 2,
         _PROMPT_NAME_RECOMMENDATION: 2,
+        _PROMPT_NAME_RECALL: 1,
     }
 
 

@@ -60,6 +60,7 @@ $SecretMap = [ordered]@{
     'nice-api-key'                        = 'NICE_API_KEY'
     'sdk-host-shared-secret'              = 'SDK_HOST_SHARED_SECRET'
     'sdk-widget-token-secret'             = 'SDK_WIDGET_TOKEN_SECRET'
+    'azure-storage-connection-string'     = 'AZURE_STORAGE_CONNECTION_STRING'
 }
 
 $lines = @()

@@ -1,0 +1,110 @@
+---
+description: GPT-5 prompt authoring and publication -- every new or changed prompt, schema, or few-shot set must match Atlas prompt DIs and the Azure GPT-5 Responses contract.
+globs: libs/prompts/**/*.py,libs/llm_client/**/*.py,libs/sbar/**/*.py,libs/cohort_annotation/prompts/**/*.py,scripts/*prompt*.py,scripts/*llm*.py,scripts/seed_prompt_configs.py,scripts/force_reseed_prompt_configs.py,scripts/audit_gpt5_prompts.py,scripts/evaluate_gpt5_prompts.py,services/*/app/**/*.py
+alwaysApply: false
+---
+
+# GPT-5 Prompt Standards
+
+Apply when creating or changing any system prompt, output schema, few-shot
+example, or LLM call site. Atlas is the source of truth. Do not invent a
+local prompt style that contradicts the DIs below.
+
+Look up the live artefacts before editing:
+
+```
+get_design_control(dc_type="design-input", dc_id="DI-7B978C0C")
+get_design_control(dc_type="design-input", dc_id="DI-C6D01509")
+get_design_control(dc_type="design-input", dc_id="DI-EFEB21A1")
+get_design_control(dc_type="design-input", dc_id="DI-B5C78811")
+```
+
+Product: `PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4`.
+Owning implementation: `DO-FA8FCECF`. Verification: `VT-06157CF6`.
+Clinical validation: `VAL-541EE980` (do not treat as passed without
+independent review).
+
+Related rules: `llm-security.mdc`, `dual-path-consistency.mdc`,
+`health-literacy.mdc`, `ascii-only.mdc`, `atlas-vt-enforcement.mdc`.
+
+## 1. Atlas obligations (do not weaken)
+
+- `DI-7B978C0C`: reviewed, versioned prompts and de-identified few-shots;
+  Azure `/openai/v1` Responses with `store=false`; supported object-root
+  JSON Schema; bounded stateless tool loops; telemetry; audit before
+  publish; backup and hash-verified force reseed.
+- `DI-C6D01509`: SBAR prompts stay evidence-bound. Do not invent facts.
+- `DI-EFEB21A1`: prepend `INJECTION_GUARD`; sanitise clinical text; never
+  put raw record text in the system prompt.
+- `DI-B5C78811`: extraction prompt output must match
+  `run_post_processing()` (labs, scope, assertions, labels).
+
+Class B prompt changes need the UN/DI/DO/Risk/VT chain first. Prefer
+updating `DI-7B978C0C` over creating a parallel prompt DI.
+
+## 2. Author for GPT-5.x, not Claude
+
+- Stable system prefix. Put changing case data in the user message.
+- One clear objective, then numbered hard requirements. Earlier rules win.
+- State the JSON contract in the system prompt. Do not say "JSON only"
+  without the object shape or a schema reference.
+- Few-shot outputs MUST be valid JSON that matches the schema.
+- Use `structured_schema` with an **object root**. Wrap arrays
+  (`{"suggestions": [...]}`, `{"verdicts": [...]}`).
+- Set `verbosity` and `reasoning_effort` only when the deployment
+  supports them. Unsupported capabilities MUST fail, not downgrade.
+- ASCII only. No Claude, Anthropic, Bedrock, Haiku, Sonnet, or
+  thinking-tag wording.
+- Conservative failure: uncertain or review, never a silent drop.
+- Patient-readable text: follow `health-literacy.mdc`.
+
+```python
+# BAD -- array root, Claude wording, no schema
+system = "You are Claude. Return a JSON array of terms."
+client.converse(system=system, messages=msgs, json_mode=True)
+
+# GOOD -- object-root schema, GPT-5 contract, injection guard
+system = INJECTION_GUARD + (
+    "Extract supported clinical spans. Return one JSON object "
+    "matching the supplied schema. No prose."
+)
+client.converse(
+    system=system,
+    messages=[{"role": "user", "content": sanitise_for_prompt(text)}],
+    json_mode=True,
+    structured_schema={
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["terms"],
+        "properties": {"terms": {"type": "array", "items": {"type": "string"}}},
+    },
+    verbosity="low",
+)
+```
+
+## 3. Runtime and publication
+
+- Call through `LLMClient.converse` / `invoke_llm_json` / `run_consensus`.
+  Do not add a new Azure or OpenAI client.
+- Seeded prompts: edit `libs/prompts/` (or the registered source), then
+  `scripts/audit_gpt5_prompts.py`. Publish only with
+  `scripts/force_reseed_prompt_configs.py` (backup, confirm, read-back).
+  Never `MERGE ... SET` PromptConfig by hand.
+- Runtime, training, and Ask LEO must use the same managed contract
+  (`get_prompt_config` or shared helpers). No copied inline prompts.
+- Tool loops: pass and append `response_items`; hard iteration cap;
+  Chat Completions rollback cannot run tools.
+- After clinical prompt edits, run the audit and the focused prompt
+  tests. Do not claim `VAL-541EE980` passed without the approved
+  97-case corpus and independent review.
+
+## 4. Checklist
+
+- [ ] Looked up the DIs above; Class B chain exists or was updated
+- [ ] `INJECTION_GUARD` + `sanitise_for_prompt()` (`llm-security.mdc`)
+- [ ] Object-root schema forwarded; few-shots match it
+- [ ] No stale provider wording; ASCII only
+- [ ] Dual-path / registry contract updated (`dual-path-consistency.mdc`)
+- [ ] `python scripts/audit_gpt5_prompts.py` reports zero issues
+- [ ] Seeded change uses guarded force-reseed, not a silent overwrite
+- [ ] Conservative fail path and human review remain in place

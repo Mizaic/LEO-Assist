@@ -21,6 +21,36 @@ function resolveApiBase(): string {
 
 const ANALYTICS_BASE = `${resolveApiBase()}/api/proxy/analytics`;
 
+/** Same-origin URL for inline PDF/file embedding (avoids CSP frame-src blocks). */
+export function patientDocumentFileUrl(
+  patientId: string,
+  documentId: string,
+): string {
+  return `${ANALYTICS_BASE}/patients/${encodeURIComponent(patientId)}/documents/${encodeURIComponent(documentId)}/file`;
+}
+
+/** Server-side Word preview (docx -> HTML via mammoth). */
+export function patientDocumentPreviewUrl(
+  patientId: string,
+  documentId: string,
+): string {
+  return `${ANALYTICS_BASE}/patients/${encodeURIComponent(patientId)}/documents/${encodeURIComponent(documentId)}/preview`;
+}
+
+export interface DocumentPreviewResponse {
+  html: string;
+  warnings: string[];
+}
+
+export async function fetchDocumentPreview(
+  patientId: string,
+  documentId: string,
+): Promise<DocumentPreviewResponse> {
+  return fetchJson<DocumentPreviewResponse>(
+    patientDocumentPreviewUrl(patientId, documentId),
+  );
+}
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
@@ -154,6 +184,7 @@ export interface CodedTerm {
   code_id: string | null;
   display: string | null;
   system: string;
+  evidence: string | null;
   evidence_sentence: string | null;
   assertion: string | null;
   confidence: number | null;
@@ -193,7 +224,9 @@ export interface DocumentRow {
   markdown_url: string | null;
   episode_id: string | null;
   episode_label: string;
+  folder_label?: string;
   referral_id: string | null;
+  chunk_count?: number;
   sbar: SbarContent | null;
 }
 

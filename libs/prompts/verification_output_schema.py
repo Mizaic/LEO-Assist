@@ -7,7 +7,7 @@ Atlas trace:
 """
 
 VERIFICATION_OUTPUT_SCHEMA: dict = {
-    "description": "Return JSON only — no markdown.",
+    "description": "Return JSON only -- no markdown.",
     "type": "object",
     "required": ["is_accurate", "confidence", "issues"],
     "properties": {

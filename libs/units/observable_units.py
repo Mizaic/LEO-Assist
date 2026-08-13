@@ -56,6 +56,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable, Literal
 
+from libs.units.unit_equivalence import units_are_equivalent
+
 
 class UnknownObservableError(KeyError):
     """Raised when an observable_id has no canonical unit registered.
@@ -584,10 +586,10 @@ def canonicalise_value_for_observation(
     """Convert a value to the rule's comparison unit.
 
     Registered observables use alias conversion from the registry.
-    Unregistered observables accept only exact unit matches against
-    ``rule_canonical_unit`` (the unit declared on the rule at compile
-    time). This lets any SNOMED observable entity compile for simple
-    absolute thresholds without a code change per observable.
+    Unregistered observables accept the authored rule unit when the
+    patient unit means the same quantity (for example FIT
+    ``ug Hb/g faeces`` vs ``microgram/g``). Different quantities
+    such as ``ug/L`` vs ``ug/g`` still fail.
     """
     if observable_id in OBSERVABLE_UNIT_REGISTRY:
         return canonicalise_value(observable_id, value, unit)
@@ -596,11 +598,11 @@ def canonicalise_value_for_observation(
         raise UnitConversionError(
             f"Observable {observable_id} value {value!r} is not a finite number."
         )
-    if (unit or "").strip() != (rule_canonical_unit or "").strip():
+    if not units_are_equivalent(unit, rule_canonical_unit):
         raise UnitConversionError(
             f"Observable {observable_id} is not in the curated unit "
             f"registry; patient unit {unit!r} must match the rule unit "
-            f"{rule_canonical_unit!r} exactly."
+            f"{rule_canonical_unit!r}."
         )
     return float(value)
 

@@ -59,6 +59,8 @@ def test_u4_1_referral_plan_pins_gate3_policy_fields() -> None:
     plan = _referral_plan()
     policy = plan.get("_referralPolicy") or DEFAULT_REFERRAL_POLICY
     assert policy["extraction"]["windowSize"] == 10
+    assert policy["extraction"]["contextMode"] == "window_local"
+    assert policy["extraction"]["maxWindowInputTokens"] == 16000
     assert policy["recall"]["maxChunkFetches"] == 5
     assert policy["prompts"]["recall"]["name"] == "sbar_recall"
 

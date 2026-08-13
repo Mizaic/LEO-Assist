@@ -82,19 +82,6 @@ class SimulateRequest(BaseModel):
 
 # ── Cost table helpers ────────────────────────────────────────────────────────
 
-_COST_ENV_PREFIXES: dict[str, dict[str, str]] = {
-    "aws": {
-        "small": "AWS_BEDROCK_MODEL_SMALL_MODEL",
-        "big": "AWS_BEDROCK_MODEL_BIG_MODEL",
-        "max": "AWS_BEDROCK_MODEL_MAX_MODEL",
-    },
-    "azure": {
-        "small": "AZURE_OPENAI_SMALL_MODEL",
-        "big": "AZURE_OPENAI_BIG_MODEL",
-        "max": "AZURE_OPENAI_BIG_MODEL",  # max == big for Azure
-    },
-}
-
 _MODEL_ID_ENVS: dict[str, dict[str, str]] = {
     "aws": {
         "small": "AWS_SMALL_MODEL",
@@ -115,7 +102,7 @@ _MODEL_ID_DEFAULTS: dict[str, dict[str, str]] = {
         "max": "eu.anthropic.claude-opus-4-6-v1",
     },
     "azure": {
-        "small": "gpt-5.4-nano",
+        "small": "gpt-5-mini",
         "big": "gpt-5.4",
         "max": "gpt-5.4",
     },
@@ -128,7 +115,7 @@ _DISPLAY_NAMES: dict[str, dict[str, str]] = {
         "max": "Claude Opus (AWS Bedrock)",
     },
     "azure": {
-        "small": "GPT-5.4 nano (Azure OpenAI)",
+        "small": "GPT-5.4 mini (Azure OpenAI)",
         "big": "GPT-5.4 (Azure OpenAI)",
         "max": "GPT-5.4 (Azure OpenAI)",
     },
@@ -139,22 +126,21 @@ import os as _os
 
 
 def _model_cost_entry(provider: str, tier: str) -> dict[str, Any]:
-    prefix = _COST_ENV_PREFIXES.get(provider, {}).get(tier, "")
     model_id_env = _MODEL_ID_ENVS.get(provider, {}).get(tier, "")
     model_id = _os.getenv(
         model_id_env, _MODEL_ID_DEFAULTS.get(provider, {}).get(tier, "")
     )
+    cfg = LLMCostConfig.for_provider_tier(provider, tier)
     return {
         "provider": provider,
         "tier": tier,
         "key": f"{provider}:{tier}",
         "modelId": model_id,
         "displayName": _DISPLAY_NAMES.get(provider, {}).get(tier, f"{provider}:{tier}"),
-        "costPer1mInput": float(_os.getenv(f"{prefix}_COST_PER_1M_INPUT_TOKEN", "0")),
-        "costPer1mCachedInput": float(
-            _os.getenv(f"{prefix}_COST_PER_1M_CACHED_INPUT_TOKEN", "0")
-        ),
-        "costPer1mOutput": float(_os.getenv(f"{prefix}_COST_PER_1M_OUTPUT_TOKEN", "0")),
+        "costPer1mInput": cfg.cost_per_1m_input,
+        "costPer1mCachedInput": cfg.cost_per_1m_cached_input,
+        "costPer1mOutput": cfg.cost_per_1m_output,
+        "costPer1mCacheWrite": cfg.cost_per_1m_cache_write,
     }
 
 
@@ -655,16 +641,24 @@ async def improve_prompt(
     """Use the MAX model to suggest improvements to a system prompt."""
     try:
         from libs.llm_client.factory import create_llm
+        from libs.llm_client.prompt_safety import INJECTION_GUARD
 
         llm = create_llm(tier="max")
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",
-                "content": (
-                    "You are an expert prompt engineer for clinical NLP systems. "
-                    "The user will give you a system prompt and an output schema. "
-                    "Improve the prompt for clarity, precision, and safety. "
-                    "Return ONLY the improved prompt text, no explanation."
+                "content": INJECTION_GUARD
+                + (
+                    "Objective: Improve the supplied clinical NLP system prompt "
+                    "for clarity, precision, safety, and reliable execution.\n"
+                    "Scope: Edit only the prompt text. Preserve its clinical "
+                    "intent, security controls, required behavior, and output "
+                    "schema.\n"
+                    "Hard requirements: Resolve contradictions; state objective, "
+                    "scope, hard requirements, and output contract explicitly; "
+                    "keep wording concise; do not add unsupported requirements.\n"
+                    "Output contract: Return only the improved system prompt as "
+                    "plain text. Do not explain changes or use markdown fences."
                 ),
             },
             {

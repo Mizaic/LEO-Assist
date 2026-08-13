@@ -2,8 +2,8 @@
 
 Atlas trace:
   DO: DO-64BDC193
-  Also implements: DO-83EBEE2C, DO-94D87FA7, DO-EDA32DB1
-  DI: DI-54D00E21, DI-66F1B177, DI-88C8BBCD, DI-B954388C
+  Also implements: DO-83EBEE2C, DO-94D87FA7, DO-EDA32DB1, DO-FA8FCECF
+  DI: DI-54D00E21, DI-66F1B177, DI-7B978C0C, DI-88C8BBCD, DI-B954388C
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-64BDC193")
 
 Returns a lightweight ``LLMClient`` with a ``.converse()`` method that works
@@ -12,7 +12,7 @@ identically regardless of whether the backend is AWS Bedrock or Azure OpenAI.
 Design decisions (see plan M2c):
 - Sync interface: matches the V3 pipeline's sync architecture.
 - The coding worker (async) wraps calls with ``asyncio.to_thread()``.
-- No LangChain dependency — raw ``boto3`` and ``openai`` for minimal overhead.
+- No LangChain dependency -- raw ``boto3`` and ``openai`` for minimal overhead.
 
 Usage::
 
@@ -104,7 +104,7 @@ _AWS_DEFAULTS = {
 }
 
 _AZURE_DEFAULTS = {
-    "small": "gpt-5.4-nano",
+    "small": "gpt-5-mini",
     "big": "gpt-5.4",
     "max": "gpt-5.4",
 }
@@ -129,6 +129,8 @@ class LLMResponse:
     tool_uses: list[dict[str, Any]] = field(default_factory=list)
     cache_creation_input_tokens: int = 0
     reasoning_tokens: int = 0
+    response_id: str = ""
+    raw_output_items: list[Any] = field(default_factory=list)
 
 
 class LLMStreamChunk(TypedDict, total=False):
@@ -150,7 +152,7 @@ class LLMStreamChunk(TypedDict, total=False):
 
 
 # Thinking-token budgets per tier (AWS extended thinking).
-# Small models get a lighter budget — Haiku doesn't need 8k thinking tokens for
+# Small models get a lighter budget -- Haiku doesn't need 8k thinking tokens for
 # most audit verdicts, and it keeps per-record cost reasonable.
 _REASONING_BUDGET_BY_TIER: dict[str, int] = {
     "small": int(os.getenv("AUDIT_REASONING_BUDGET_SMALL", "2000")),
@@ -160,9 +162,9 @@ _REASONING_BUDGET_BY_TIER: dict[str, int] = {
 _DEFAULT_REASONING_BUDGET = int(os.getenv("AUDIT_REASONING_BUDGET_TOKENS", "8000"))
 
 # Azure reasoning_effort per tier.
-# Small models use "low" — they're fast and we run two in parallel; the cost
+# Small models use "low" -- they're fast and we run two in parallel; the cost
 # of heavy reasoning on every cheap-consensus record adds up quickly.
-# Big/max use "high" — only called on escalated records, worth the extra thinking.
+# Big/max use "high" -- only called on escalated records, worth the extra thinking.
 _AZURE_REASONING_EFFORT_BY_TIER: dict[str, str] = {
     "small": os.getenv("AZURE_REASONING_EFFORT_SMALL", "low"),
     "big": os.getenv("AZURE_REASONING_EFFORT_BIG", "high"),
@@ -205,7 +207,9 @@ def _fire_converse_tracking(
     cache_creation_input_tokens: int,
     latency_ms: int,
     success: bool,
+    reasoning_tokens: int = 0,
     error_message: str = "",
+    model_tier: str = "",
 ) -> None:
     """Best-effort telemetry emission for LLMClient.converse.
 
@@ -226,10 +230,12 @@ def _fire_converse_tracking(
             output_tokens=int(max(0, output_tokens or 0)),
             cache_read_input_tokens=int(max(0, cache_read_input_tokens or 0)),
             cache_creation_input_tokens=int(max(0, cache_creation_input_tokens or 0)),
+            reasoning_tokens=int(max(0, reasoning_tokens or 0)),
             latency_ms=int(max(0, latency_ms or 0)),
             success=bool(success),
             error_message=str(error_message or "")[:400],
             input_excludes_cache=model_provider in ("aws", "bedrock"),
+            model_tier=str(model_tier or ""),
         )
     except Exception:
         logger.debug("converse telemetry emission failed", exc_info=True)
@@ -256,6 +262,7 @@ class LLMClient:
         self.reasoning_budget = reasoning_budget
         self.azure_reasoning_effort = azure_reasoning_effort
         self._client: Any = None
+        self._azure_transport: str | None = None
 
     def _get_client(self) -> Any:
         if self._client is not None:
@@ -283,6 +290,15 @@ class LLMClient:
         )
 
     def _init_azure(self) -> Any:
+        from libs.llm_client.azure_responses import (
+            azure_transport_name,
+            create_azure_responses_client,
+        )
+
+        self._azure_transport = azure_transport_name()
+        if self._azure_transport == "responses":
+            return create_azure_responses_client()
+
         import httpx
         from openai import AzureOpenAI
 
@@ -298,7 +314,7 @@ class LLMClient:
             api_key=os.environ["AZURE_OPENAI_API_KEY"],
             api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
             timeout=httpx.Timeout(read_timeout, connect=connect_timeout),
-            # Disable the SDK's built-in retries — we handle them ourselves in
+            # Disable the SDK's built-in retries -- we handle them ourselves in
             # _converse_azure so we can log each attempt at the right severity.
             max_retries=0,
         )
@@ -312,6 +328,9 @@ class LLMClient:
         tool_config: dict[str, Any] | None = None,
         json_mode: bool = False,
         *,
+        structured_schema: dict[str, Any] | None = None,
+        response_items: list[Any] | None = None,
+        verbosity: str | None = None,
         agent_task: str = "unknown",
         patient_id: str = "",
     ) -> LLMResponse:
@@ -320,15 +339,18 @@ class LLMClient:
         Args:
             tool_config: Optional Bedrock toolConfig dict. When provided, passes
                 it to the Converse API and populates LLMResponse.tool_uses with
-                any toolUse content blocks returned. Ignored for Azure provider.
+                any toolUse content blocks returned. Azure Responses translates
+                the same shape to OpenAI function tools.
             json_mode: When True, instructs the provider to emit only valid JSON.
-                * Azure OpenAI: sets ``response_format={"type": "json_object"}``.
-                  Requires the word "JSON" to appear somewhere in the prompt
-                  (already true for all structured-output callers in this codebase).
+                * Azure Responses: sets ``text.format`` to ``json_object``.
+                * Azure Chat rollback: sets ``response_format`` to ``json_object``.
                 * AWS Bedrock: JSON enforcement is handled via ``tool_config`` --
                   pass a schema-constrained toolConfig and Claude is forced to use
                   the tool (it physically cannot return prose).  ``json_mode=True``
                   is a no-op for Bedrock when ``tool_config`` is already supplied.
+            structured_schema: Optional strict JSON Schema for Azure Responses.
+            response_items: Prior raw Responses output items for stateless replay.
+            verbosity: Optional Azure Responses text verbosity.
             agent_task: Logical task tag forwarded to the LLM tracking
                 callback (DI-LEO-AI-515). Defaults to ``"unknown"`` so
                 callers that do not yet pass a task name remain
@@ -345,13 +367,17 @@ class LLMClient:
                     client, system, messages, max_tokens, temperature, tool_config
                 )
             else:
-                response = self._converse_azure(
-                    client,
-                    system,
-                    messages,
-                    max_tokens,
-                    temperature,
+                response = self._converse_azure_transport(
+                    client=client,
+                    system=system,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    tool_config=tool_config,
                     json_mode=json_mode,
+                    structured_schema=structured_schema,
+                    response_items=response_items,
+                    verbosity=verbosity,
                 )
         except Exception as exc:
             latency_ms = int((time.monotonic() - started) * 1000)
@@ -367,6 +393,7 @@ class LLMClient:
                 latency_ms=latency_ms,
                 success=False,
                 error_message=str(exc),
+                model_tier=self.tier,
             )
             raise
 
@@ -380,8 +407,10 @@ class LLMClient:
             output_tokens=int(response.output_tokens or 0),
             cache_read_input_tokens=int(response.cached_input_tokens or 0),
             cache_creation_input_tokens=int(response.cache_creation_input_tokens or 0),
+            reasoning_tokens=int(response.reasoning_tokens or 0),
             latency_ms=latency_ms,
             success=True,
+            model_tier=self.tier,
         )
         return response
 
@@ -406,7 +435,7 @@ class LLMClient:
             bedrock_messages.append({"role": role, "content": content})
 
         # Extended thinking: temperature must be 1.0 (Bedrock hard requirement).
-        # maxTokens must cover both thinking budget AND the response — add them.
+        # maxTokens must cover both thinking budget AND the response -- add them.
         effective_temp = 1.0 if self.use_reasoning else temperature
         effective_max_tokens = (
             max_tokens + self.reasoning_budget if self.use_reasoning else max_tokens
@@ -445,7 +474,7 @@ class LLMClient:
             if tool_config is not None:
                 # Extended thinking and tool_config cannot be combined on Bedrock.
                 logger.warning(
-                    "use_reasoning=True is incompatible with tool_config on Bedrock — "
+                    "use_reasoning=True is incompatible with tool_config on Bedrock -- "
                     "tools disabled for this call (%s)",
                     self.model_id,
                 )
@@ -478,7 +507,7 @@ class LLMClient:
             elif "toolUse" in item:
                 tool_uses.append(item["toolUse"])
             # reasoningContent blocks (extended thinking) are intentionally omitted
-            # from the returned text — they represent internal chain-of-thought and
+            # from the returned text -- they represent internal chain-of-thought and
             # are not part of the structured audit verdict JSON.
 
         usage = response.get("usage", {})
@@ -509,6 +538,50 @@ class LLMClient:
             stop_reason=stop_reason,
             model_id=self.model_id,
             tool_uses=tool_uses,
+        )
+
+    def _converse_azure_transport(
+        self,
+        *,
+        client: Any,
+        system: str,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        temperature: float,
+        tool_config: dict[str, Any] | None = None,
+        json_mode: bool = False,
+        structured_schema: dict[str, Any] | None = None,
+        response_items: list[Any] | None = None,
+        verbosity: str | None = None,
+    ) -> LLMResponse:
+        from libs.llm_client.azure_responses import azure_transport_name
+
+        transport = self._azure_transport or azure_transport_name()
+        if transport == "responses":
+            return self._converse_azure_responses(
+                client=client,
+                system=system,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                tool_config=tool_config,
+                json_mode=json_mode,
+                structured_schema=structured_schema,
+                response_items=response_items,
+                verbosity=verbosity,
+            )
+        if tool_config:
+            raise RuntimeError(
+                "Azure Chat Completions rollback does not support provider-neutral "
+                "tool loops; set AZURE_OPENAI_TRANSPORT=responses"
+            )
+        return self._converse_azure(
+            client,
+            system,
+            messages,
+            max_tokens,
+            temperature,
+            json_mode=json_mode,
         )
 
     def _converse_azure(
@@ -547,23 +620,22 @@ class LLMClient:
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 
+        from libs.llm_client.azure_responses import reasoning_max_output_tokens
+
+        kwargs["max_completion_tokens"] = reasoning_max_output_tokens(
+            max_tokens,
+            tier=self.tier,
+            use_reasoning=self.use_reasoning,
+        )
         if self.use_reasoning:
             # Pick tier-appropriate effort; individual override via azure_reasoning_effort.
             effort = _AZURE_REASONING_EFFORT_BY_TIER.get(
                 self.tier, self.azure_reasoning_effort
             )
             kwargs["reasoning_effort"] = effort
-            # max_completion_tokens must cover reasoning tokens + response tokens.
-            # GPT-5/o-series reasoning can consume thousands of tokens internally;
-            # if the budget runs out before the response, we get empty content.
-            # Scale up: response budget × 4 floor-capped at 16 000 for big models.
-            scale = 2 if self.tier == "small" else 4
-            kwargs["max_completion_tokens"] = max(max_tokens * scale, 8000)
             # temperature, top_p etc. are not supported by reasoning models.
-        else:
-            kwargs["max_completion_tokens"] = max_tokens
-            if temperature != 0.0:
-                kwargs["temperature"] = temperature
+        elif temperature != 0.0:
+            kwargs["temperature"] = temperature
 
         from openai import APIConnectionError, APIStatusError, APITimeoutError
 
@@ -591,7 +663,6 @@ class LLMClient:
             self.use_reasoning,
         )
 
-        last_exc: Exception | None = None
         for attempt in range(1, _max_retries + 1):
             t0 = time.monotonic()
             try:
@@ -616,9 +687,8 @@ class LLMClient:
                     )
                 break
 
-            except APITimeoutError as exc:
+            except APITimeoutError:
                 elapsed = time.monotonic() - t0
-                last_exc = exc
                 if attempt == _max_retries:
                     logger.error(
                         "Azure %s: TIMEOUT after %.1fs on final attempt %d/%d. "
@@ -652,7 +722,6 @@ class LLMClient:
 
             except APIConnectionError as exc:
                 elapsed = time.monotonic() - t0
-                last_exc = exc
                 if attempt == _max_retries:
                     logger.error(
                         "Azure %s: CONNECTION ERROR after %.1fs on final attempt %d/%d. "
@@ -671,7 +740,8 @@ class LLMClient:
                     _max_delay, _base_delay * (2 ** (attempt - 1))
                 ) + random.uniform(0, 0.5)
                 logger.warning(
-                    "Azure %s: connection error after %.1fs on attempt %d/%d — retrying in %.1fs: %s",
+                    "Azure %s: connection error after %.1fs on attempt %d/%d "
+                    "-- retrying in %.1fs: %s",
                     self.model_id,
                     elapsed,
                     attempt,
@@ -685,12 +755,12 @@ class LLMClient:
             except APIStatusError as exc:
                 elapsed = time.monotonic() - t0
                 if exc.status_code in _RETRYABLE_STATUS and attempt < _max_retries:
-                    last_exc = exc
                     delay = min(
                         _max_delay, _base_delay * (2 ** (attempt - 1))
                     ) + random.uniform(0, 0.5)
                     logger.warning(
-                        "Azure %s: HTTP %d after %.1fs on attempt %d/%d — retrying in %.1fs. "
+                        "Azure %s: HTTP %d after %.1fs on attempt %d/%d "
+                        "-- retrying in %.1fs. "
                         "response_id=%s body=%.200s",
                         self.model_id,
                         exc.status_code,
@@ -728,7 +798,7 @@ class LLMClient:
                     and attempt == 1
                 ):
                     logger.warning(
-                        "Azure model %s rejected reasoning params after %.1fs — "
+                        "Azure model %s rejected reasoning params after %.1fs -- "
                         "retrying without reasoning_effort: %s",
                         self.model_id,
                         elapsed,
@@ -785,6 +855,49 @@ class LLMClient:
             stop_reason=choice.finish_reason if choice else "",
             model_id=self.model_id,
         )
+
+    def _converse_azure_responses(
+        self,
+        *,
+        client: Any,
+        system: str,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        temperature: float,
+        tool_config: dict[str, Any] | None,
+        json_mode: bool,
+        structured_schema: dict[str, Any] | None,
+        response_items: list[Any] | None,
+        verbosity: str | None,
+    ) -> LLMResponse:
+        from libs.llm_client.azure_responses import (
+            AzureResponsesCall,
+            reasoning_max_output_tokens,
+            send_azure_responses,
+        )
+
+        effort = _AZURE_REASONING_EFFORT_BY_TIER.get(
+            self.tier, self.azure_reasoning_effort
+        )
+        call = AzureResponsesCall(
+            model_id=self.model_id,
+            system=system,
+            messages=messages,
+            max_output_tokens=reasoning_max_output_tokens(
+                max_tokens,
+                tier=self.tier,
+                use_reasoning=self.use_reasoning,
+            ),
+            temperature=temperature,
+            tool_config=tool_config,
+            structured_schema=structured_schema,
+            response_items=response_items,
+            verbosity=verbosity,
+            use_reasoning=self.use_reasoning,
+            reasoning_effort=effort,
+            json_mode=json_mode,
+        )
+        return send_azure_responses(client, call)
 
     # ------------------------------------------------------------------
     # Streaming interface (used by the audit draft assistant)
@@ -894,8 +1007,13 @@ class LLMClient:
         as a sequence of chunks so callers see a uniform interface.
         """
         try:
-            response = self._converse_azure(
-                self._get_client(), system, messages, max_tokens, temperature
+            response = self._converse_azure_transport(
+                client=self._get_client(),
+                system=system,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                tool_config=tool_config,
             )
         except Exception as exc:
             yield LLMStreamChunk(type="error", message=str(exc))
@@ -935,7 +1053,7 @@ def create_llm(
             * **AWS Bedrock (Claude)**: passes ``additionalModelRequestFields`` with
               ``{"thinking": {"type": "enabled", "budget_tokens": N}}``.  Forces
               ``temperature=1.0`` (Bedrock hard requirement).  Incompatible with
-              ``tool_config`` — tools are silently dropped when both are set.
+              ``tool_config`` -- tools are silently dropped when both are set.
 
             * **Azure OpenAI (o-series)**: passes ``reasoning_effort`` (default
               ``"high"``).  Non-o-series deployments that don't support the param
@@ -961,7 +1079,7 @@ def create_llm(
                 f"No model configured for provider={provider}, tier={tier}"
             )
 
-    # Tier-appropriate thinking budget — smaller models don't need 8k thinking tokens.
+    # Tier-appropriate thinking budget -- smaller models need less thinking.
     budget = (
         reasoning_budget
         if reasoning_budget is not None

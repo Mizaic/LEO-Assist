@@ -322,11 +322,11 @@ export default function PathwayConditionsStage({
   }
 
   function handleEditConfirmedLeaf(node: EditableLogicNode) {
-    if (node.kind === "CONCEPT") {
+    if (node.kind === "CONCEPT" || node.kind === "OBSERVATION") {
       onEditConcept(node.node_id);
-    } else if (node.kind === "OBSERVATION") {
-      setExpandedDemographicNodeId(null);
-      setExpandedObservationNodeId((prev) => (prev === node.node_id ? null : node.node_id));
+    } else if (node.kind === "DEMOGRAPHIC") {
+      setExpandedObservationNodeId(null);
+      setExpandedDemographicNodeId((prev) => (prev === node.node_id ? null : node.node_id));
     } else {
       onSelectNode(node.node_id);
     }
@@ -409,14 +409,11 @@ export default function PathwayConditionsStage({
       // operator/value/unit editor (chip inside still swaps via
       // onSelectNode); other kinds keep the single-pick swap.
       const existing = findNodeById(tree, decision.nodeId);
-      if (existing?.kind === "CONCEPT") {
+      if (existing?.kind === "CONCEPT" || existing?.kind === "OBSERVATION") {
         onEditConcept(decision.nodeId);
       } else if (existing?.kind === "DEMOGRAPHIC") {
         setExpandedObservationNodeId(null);
         setExpandedDemographicNodeId((prev) => (prev === decision.nodeId ? null : decision.nodeId));
-      } else if (existing?.kind === "OBSERVATION") {
-        setExpandedDemographicNodeId(null);
-        setExpandedObservationNodeId((prev) => (prev === decision.nodeId ? null : decision.nodeId));
       } else {
         onSelectNode(decision.nodeId, anchor);
       }

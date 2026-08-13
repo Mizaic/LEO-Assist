@@ -24,6 +24,8 @@ interface Props {
   /** Adds a nested sub-group (for example "any of these" inside an
    *  "all of these" pathway) as a new child of the current group. */
   onAddGroup?: () => void;
+  /** Adds a nested "patient should not have" group (logic kind NOT). */
+  onAddShouldNotHave?: () => void;
   /** Pure-CONCEPT AT_LEAST clusters only ever accept more concepts
    *  (matching InlineAtLeast's single "Add" Chip in GroupBody.tsx), so
    *  every other add-link is suppressed regardless of which handlers
@@ -58,6 +60,7 @@ export default function AddInlineLinks({
   onAddObservation,
   onAddRuleFired,
   onAddGroup,
+  onAddShouldNotHave,
   onlyConcept,
   conceptLabel = "+ add another symptom",
   conceptAriaLabel = "Add a symptom, sign, procedure, or situation",
@@ -118,6 +121,17 @@ export default function AddInlineLinks({
           aria-label="Add a condition group, for example a set of options where any one match is enough"
         >
           + add a condition group
+        </Box>
+      )}
+      {onAddShouldNotHave && !onlyConcept && (
+        <Box
+          component="button"
+          type="button"
+          sx={linkSx}
+          onClick={onAddShouldNotHave}
+          aria-label="Add things the patient should not have"
+        >
+          + patient should not have
         </Box>
       )}
     </Box>

@@ -35,7 +35,7 @@ Category taxonomy (extends extraction_examples.py):
 from __future__ import annotations
 
 LABEL_VERIFICATION_EXAMPLES: list[dict] = [
-    # ── Finding ───────────────────────────────────────────────────────────────
+    # -- Finding ---------------------------------------------------------------
     {
         "category": "label-verify:finding",
         "model_scope": "any",
@@ -56,7 +56,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "finding", "confidence": 0.91, "rule_triggered": "narrative_observation", "rationale": "Narrative description of trend is a clinical observation (finding); observable_entity requires a structured test-name + value.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Disorder ──────────────────────────────────────────────────────────────
+    # -- Disorder --------------------------------------------------------------
     {
         "category": "label-verify:disorder",
         "model_scope": "any",
@@ -67,7 +67,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "disorder", "confidence": 0.97, "rule_triggered": "confirmed_diagnosis", "rationale": "Histology confirms a specific cancer diagnosis; disorder is the correct label.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Observable entity vs qualifier value ──────────────────────────────────
+    # -- Observable entity vs qualifier value ----------------------------------
     {
         "category": "label-verify:observable",
         "model_scope": "any",
@@ -88,7 +88,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "observable_entity", "confidence": 0.97, "rule_triggered": "lab_test_name_span", "rationale": "Serum sodium level is the test name; Read code (XE2q0) and value/range excluded from span.", "is_new": false, "new_text": ""}, {"entity_index": 1, "suggested_label": "qualifier_value", "confidence": 0.98, "rule_triggered": "lab_result_value", "rationale": "142 mmol/L is a lab measurement value, not a medication dose; qualifier_value is correct.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Qualifier value variants ──────────────────────────────────────────────
+    # -- Qualifier value variants ----------------------------------------------
     {
         "category": "label-verify:qualifier",
         "model_scope": "any",
@@ -129,7 +129,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "qualifier_value", "confidence": 0.91, "rule_triggered": "severity_modifier", "rationale": "Severe qualifies the cough (finding); severity descriptors are qualifier_value, not standalone findings.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Procedure ─────────────────────────────────────────────────────────────
+    # -- Procedure -------------------------------------------------------------
     {
         "category": "label-verify:procedure",
         "model_scope": "any",
@@ -150,7 +150,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "procedure", "confidence": 0.92, "rule_triggered": "clinical_governance_activity", "rationale": "MDT (multidisciplinary team meeting) is a clinical governance procedure; record_artifact would apply to an MDT outcome heading.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Substance vs procedure boundary ──────────────────────────────────────
+    # -- Substance vs procedure boundary --------------------------------------
     {
         "category": "label-verify:boundary:sub-proc",
         "model_scope": "any",
@@ -161,7 +161,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "substance", "confidence": 0.96, "rule_triggered": "bare_drug_ingredient", "rationale": "Degarelix alone is a drug name (substance); the full administration phrase including administered is the procedure.", "is_new": false, "new_text": ""}, {"entity_index": 1, "suggested_label": "procedure", "confidence": 0.95, "rule_triggered": "drug_administration_phrase", "rationale": "The full span including administered today describes a treatment action performed (procedure).", "is_new": false, "new_text": ""}]}',
     },
-    # ── X_DOSAGE — medication dose only ──────────────────────────────────────
+    # -- X_DOSAGE -- medication dose only --------------------------------------
     {
         "category": "label-verify:x-dosage",
         "model_scope": "any",
@@ -170,7 +170,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
             'Encounter: "Degarelix 240 mg SC injection administered today."\n'
             'Entities: [{"entity_index": 0, "text": "240 mg", "current_label": "qualifier_value"}]'
         ),
-        "output": '{"entities": [{"entity_index": 0, "suggested_label": "X_DOSAGE", "confidence": 0.95, "rule_triggered": "medication_dose", "rationale": "240 mg appears next to a drug name (Degarelix) — this is a medication dose, so X_DOSAGE is correct.", "is_new": false, "new_text": ""}]}',
+        "output": '{"entities": [{"entity_index": 0, "suggested_label": "X_DOSAGE", "confidence": 0.95, "rule_triggered": "medication_dose", "rationale": "240 mg appears next to a drug name (Degarelix) -- this is a medication dose, so X_DOSAGE is correct.", "is_new": false, "new_text": ""}]}',
     },
     {
         "category": "label-verify:x-dosage",
@@ -182,7 +182,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "qualifier_value", "confidence": 0.97, "rule_triggered": "lab_result_value", "rationale": "43 mL/min is a lab measurement result (eGFR), not a medication dose; qualifier_value is correct, never X_DOSAGE.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Regime therapy ────────────────────────────────────────────────────────
+    # -- Regime therapy --------------------------------------------------------
     {
         "category": "label-verify:regime-therapy",
         "model_scope": "any",
@@ -193,7 +193,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "regime_therapy", "confidence": 0.92, "rule_triggered": "named_regimen", "rationale": "CHOP regimen names a treatment regimen/course rather than the act of treatment, so regime_therapy is correct.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Situation / procedure status boundary ────────────────────────────────
+    # -- Situation / procedure status boundary --------------------------------
     {
         "category": "label-verify:situation",
         "model_scope": "any",
@@ -224,7 +224,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "procedure", "confidence": 0.95, "rule_triggered": "preserve_existing_multilabel", "rationale": "This gold-annotated referral phrase can legitimately carry a procedure label; keep it rather than collapsing to a single type.", "is_new": false, "new_text": ""}, {"entity_index": 1, "suggested_label": "situation", "confidence": 0.95, "rule_triggered": "preserve_existing_multilabel", "rationale": "This gold-annotated referral phrase can also carry a pathway/status meaning; preserve both labels when the span is intentionally dual-labelled.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Negation: base type preserved ─────────────────────────────────────────
+    # -- Negation: base type preserved -----------------------------------------
     {
         "category": "label-verify:negation",
         "model_scope": "any",
@@ -235,7 +235,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "finding", "confidence": 0.95, "rule_triggered": "negated_base_type", "rationale": "Negated concepts keep their base clinical type (finding); negation is stored as assertion=absent by post-processing.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Record artifact ───────────────────────────────────────────────────────
+    # -- Record artifact -------------------------------------------------------
     {
         "category": "label-verify:record-artifact",
         "model_scope": "any",
@@ -246,7 +246,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "record_artifact", "confidence": 0.91, "rule_triggered": "document_heading", "rationale": "MDT Meet Outcome is a document heading / correspondence phrase, not a procedure action itself.", "is_new": false, "new_text": ""}]}',
     },
-    # ── Temporal expression ───────────────────────────────────────────────────
+    # -- Temporal expression ---------------------------------------------------
     {
         "category": "label-verify:x-temporal",
         "model_scope": "any",
@@ -257,7 +257,7 @@ LABEL_VERIFICATION_EXAMPLES: list[dict] = [
         ),
         "output": '{"entities": [{"entity_index": 0, "suggested_label": "X_TEMPORAL", "confidence": 0.93, "rule_triggered": "temporal_expression", "rationale": "28 days is a temporal duration for scheduling, not a measurement qualifier.", "is_new": false, "new_text": ""}]}',
     },
-    # ── New span suggested ────────────────────────────────────────────────────
+    # -- New span suggested ----------------------------------------------------
     {
         "category": "label-verify:new-span",
         "model_scope": "any",

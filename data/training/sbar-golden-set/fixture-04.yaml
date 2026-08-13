@@ -85,7 +85,11 @@ reviewer_expectations:
     - "## Assessment"
     - "## Recommendation"
   required_phrases_in_assessment:
-    - "R-LUTS-001"
+    # Assessment prose cites the rule by name/guideline, not the raw
+    # rule_id (libs/sbar/assessment_formatter.py, commit 6f09bb5,
+    # 2026-05-22): rule_id is still available structurally via
+    # RunOutcome.rules / pathway_hints.stt_evidence.
+    - "Mild LUTS with normal PSA -> routine urology"
   required_phrases_in_recommendation:
     - ["Routine", "routine"]
   banned_phrases:

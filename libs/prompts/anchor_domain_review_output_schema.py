@@ -8,11 +8,11 @@ Atlas trace:
 Seeded into Neo4j as the ``outputSchema`` field of the
 'anchor_domain_review' PromptConfig node (version 1).
 
-The response is a JSON array — one object per input JSONL line.
+The response is a JSON array -- one object per input JSONL line.
 """
 
 ANCHOR_DOMAIN_REVIEW_OUTPUT_SCHEMA: dict = {
-    "description": "Return a JSON array — one object per input line, in the same order. No preamble, no explanation outside the array.",
+    "description": "Return a JSON array -- one object per input line, in the same order. No preamble, no explanation outside the array.",
     "type": "array",
     "items": {
         "type": "object",

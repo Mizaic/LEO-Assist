@@ -26,6 +26,10 @@ from libs.pipeline.communication_thread_loader import (
     is_communication_thread_mode,
     load_communication_thread_from_neo4j,
 )
+from libs.clinical_scoping.healthcare_service import (
+    apply_healthcare_service_scope,
+    resolve_healthcare_service,
+)
 from libs.workflow.durable_steps import StepRequest
 from libs.workflow.pipeline_stage_store import PipelineStageStore
 from libs.validation_lab.tenant import (
@@ -434,9 +438,31 @@ def load_step_state(
             state["encounter_text"] = rows[0].get("text") or ""
     enrich_patient_demographics(client, request.patient_id, state)
     enrich_patient_org_id(client, request.patient_id, state)
+    _apply_healthcare_service_scope(client, state, request, source_type, source_id)
     _load_prompt_config(state, request.run_id)
     _load_execution_manifest(client, request.run_id, state)
     return state
+
+
+def _apply_healthcare_service_scope(
+    client: PatientGraphClient,
+    state: dict[str, Any],
+    request: StepRequest,
+    source_type: str,
+    source_id: str,
+) -> None:
+    if source_type not in {"ReferralRequest", "CommunicationRequest"}:
+        return
+    service = resolve_healthcare_service(
+        client,
+        source_node_type=source_type,
+        source_node_id=source_id,
+    )
+    apply_healthcare_service_scope(
+        state,
+        service,
+        message_guideline_ids=list(request.guideline_ids or []),
+    )
 
 
 def _load_execution_manifest(
@@ -444,20 +470,22 @@ def _load_execution_manifest(
     run_id: str,
     state: dict[str, Any],
 ) -> None:
-    if state.get("execution_manifest"):
-        return
-    try:
-        from libs.sbar.policy_runtime import load_execution_manifest
+    if not state.get("execution_manifest"):
+        try:
+            from libs.sbar.policy_runtime import load_execution_manifest
 
-        manifest = load_execution_manifest(client, run_id)
-        if manifest:
-            state["execution_manifest"] = manifest
-            state["execution_manifest_json"] = json.dumps(
-                manifest, sort_keys=True, default=str
+            manifest = load_execution_manifest(client, run_id)
+            if manifest:
+                state["execution_manifest"] = manifest
+                state["execution_manifest_json"] = json.dumps(
+                    manifest, sort_keys=True, default=str
+                )
+        except Exception:
+            logger.debug(
+                "execution_manifest unavailable for run %s",
+                run_id,
+                exc_info=True,
             )
-    except Exception:
-        logger.debug(
-            "execution_manifest unavailable for run %s",
-            run_id,
-            exc_info=True,
-        )
+    from libs.workflow.execution_manifest import apply_manifest_model_tier
+
+    apply_manifest_model_tier(state)

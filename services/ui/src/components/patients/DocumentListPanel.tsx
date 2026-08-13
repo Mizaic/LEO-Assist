@@ -1,7 +1,7 @@
 /**
  * DocumentListPanel -- split-pane clinical document browser.
  *
- * Left: filing-cabinet list grouped by episode, with file-type icons.
+ * Left: collapsible specialty folders with chip filters.
  * Right: rendered letter / PDF link viewer (DocumentViewer).
  *
  * Atlas trace:
@@ -10,29 +10,34 @@
  */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import AddIcon from "@mui/icons-material/Add";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import type { DocumentRow } from "@/lib/patientEprApi";
 import { fetchEprAssessments, fetchEprDocuments } from "@/lib/patientEprApi";
 import { DocumentViewer } from "./DocumentViewer";
+import { DocumentEditorDialog } from "./DocumentEditorDialog";
+import { DocumentFolderBlock } from "./DocumentFolderBlock";
+import { JourneyBuilderPanel } from "./JourneyBuilderPanel";
+import { useOrg } from "@/context/OrgContext";
 import {
-  categoryLabel,
-  fileKindLabel,
-  inferFileKind,
-  isSbarDocument,
-  mergeDocumentsNewestFirst,
-  type DocumentFileKind,
-} from "./documentFormat";
+  documentFolderKey,
+  folderCounts,
+  matchesTypeFilter,
+  sortFolderLabels,
+  TYPE_FILTER_OPTIONS,
+  type DocumentTypeFilter,
+} from "./documentListFilters";
+import { mergeDocumentsNewestFirst } from "./documentFormat";
 
 const CONDITION_ACCENT: Record<string, string> = {
   lung: "#1E40AF",
@@ -53,193 +58,29 @@ function accentForLabel(label: string): string {
   return CONDITION_ACCENT[key] ?? "#475569";
 }
 
-function fmt(iso: string | null): string {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return iso.slice(0, 10);
-  }
-}
-
-function FileIcon({ kind }: { kind: DocumentFileKind }) {
-  if (kind === "pdf") {
-    return <PictureAsPdfOutlinedIcon sx={{ fontSize: 18, color: "#B91C1C", flexShrink: 0 }} />;
-  }
-  if (kind === "word") {
-    return <DescriptionOutlinedIcon sx={{ fontSize: 18, color: "#1E40AF", flexShrink: 0 }} />;
-  }
-  return <ArticleOutlinedIcon sx={{ fontSize: 18, color: "#64748B", flexShrink: 0 }} />;
-}
-
-function DocListItem({
-  doc,
-  selected,
-  onSelect,
-}: {
-  doc: DocumentRow;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const kind = inferFileKind(doc);
-  const preview = doc.text_preview?.replace(/^--- Document:.*?---\s*/m, "").trim();
-
-  return (
-    <Box
-      component="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      sx={{
-        display: "block",
-        width: "100%",
-        textAlign: "left",
-        border: "none",
-        borderBottom: "1px solid #E2E8F0",
-        p: "12px 14px",
-        bgcolor: selected ? "#EFF6FF" : "transparent",
-        cursor: "pointer",
-        "&:hover": { bgcolor: selected ? "#EFF6FF" : "#F8FAFC" },
-      }}
-    >
-      <Stack direction="row" spacing={1.25} alignItems="flex-start">
-        <FileIcon kind={kind} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="body2" fontWeight={600} noWrap>
-            {doc.title}
-          </Typography>
-          <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" sx={{ mt: 0.25 }}>
-            <Chip label={fileKindLabel(kind)} size="small" sx={{ height: 18, fontSize: 10 }} />
-            {doc.category && (
-              <Chip
-                label={categoryLabel(doc.category)}
-                size="small"
-                sx={{ height: 18, fontSize: 10, bgcolor: "#F1F5F9" }}
-              />
-            )}
-            {doc.document_date && (
-              <Typography variant="caption" color="text.secondary">
-                {fmt(doc.document_date)}
-              </Typography>
-            )}
-          </Stack>
-          {preview && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{
-                display: "block",
-                mt: 0.5,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {preview}
-            </Typography>
-          )}
-        </Box>
-      </Stack>
-    </Box>
-  );
-}
-
-function FolderBlock({
+function FilterChipRow({
   label,
-  docs,
-  accent,
-  selectedId,
-  onSelect,
+  children,
 }: {
   label: string;
-  docs: DocumentRow[];
-  accent: string;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
+  children: ReactNode;
 }) {
   return (
-    <Box sx={{ mb: 1 }}>
-      <Box
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 2,
-          bgcolor: "#F8FAFC",
-          borderLeft: `3px solid ${accent}`,
-          px: 1.5,
-          py: 0.75,
-          mb: 0.5,
-        }}
-      >
-        <Stack direction="row" spacing={1} alignItems="center">
-          <FolderOutlinedIcon sx={{ fontSize: 15, color: accent }} />
-          <Typography variant="caption" fontWeight={700} color={accent} sx={{ textTransform: "capitalize" }}>
-            {label}
-          </Typography>
-          <Chip label={String(docs.length)} size="small" sx={{ height: 16, fontSize: 10 }} />
-        </Stack>
-      </Box>
-      {docs.map((d) => (
-        <DocListItem
-          key={d.document_id}
-          doc={d}
-          selected={selectedId === d.document_id}
-          onSelect={() => onSelect(d.document_id)}
-        />
-      ))}
-    </Box>
+    <Stack spacing={0.5} sx={{ mb: 1 }}>
+      <Typography variant="caption" fontWeight={700} color="text.secondary">
+        {label}
+      </Typography>
+      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+        {children}
+      </Stack>
+    </Stack>
   );
-}
-
-const FILTER_OPTIONS = [
-  { id: "all", label: "All" },
-  { id: "referral", label: "Referrals" },
-  { id: "letter", label: "Letters" },
-  { id: "summary", label: "Summaries" },
-  { id: "sbar", label: "SBARs" },
-];
-
-function matchesFilter(doc: DocumentRow, filter: string): boolean {
-  if (filter === "all") return true;
-  const t = doc.document_type.toLowerCase();
-  const title = doc.title.toLowerCase();
-  const cat = (doc.category ?? "").toLowerCase();
-  if (filter === "sbar") return isSbarDocument(doc);
-  if (filter === "referral") {
-    return (
-      t.includes("referral") ||
-      title.includes("referral") ||
-      cat.includes("referral") ||
-      title.includes("clinical information") ||
-      title.includes("2ww") ||
-      title.includes("form v")
-    );
-  }
-  if (filter === "letter") {
-    if (isSbarDocument(doc)) return false;
-    return (
-      t.includes("letter") ||
-      t.includes("clinic") ||
-      t.includes("document") ||
-      cat.includes("letter") ||
-      Boolean(doc.text_preview?.trim().toLowerCase().startsWith("dear "))
-    );
-  }
-  if (filter === "summary") {
-    return t.includes("summary") || t.includes("discharge") || cat.includes("summary");
-  }
-  return true;
 }
 
 interface Props {
   patientId: string;
   scopeEpisodeIds?: string[];
-  /** Pre-select a document when opening from Timeline or another tab. */
   initialDocumentId?: string;
-  /** Pre-select the first document linked to this referral id. */
   initialReferralId?: string;
 }
 
@@ -256,16 +97,19 @@ export function DocumentListPanel({
   initialDocumentId,
   initialReferralId,
 }: Props) {
+  const { isPlatformAdmin } = useOrg();
   const [docs, setDocs] = useState<DocumentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState<DocumentTypeFilter>("all");
+  const [folderFilter, setFolderFilter] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
+  const reloadDocs = useCallback(() => {
     setLoading(true);
-    setSelectedId(null);
     setError(null);
     Promise.all([
       fetchEprDocuments(patientId),
@@ -282,18 +126,30 @@ export function DocumentListPanel({
               (a) => !a.episode_id || scopeEpisodeIds.includes(a.episode_id),
             )
           : assessments;
-        const merged = mergeDocumentsNewestFirst(
-          scopedDocs,
-          scopedAssessments,
-        );
+        const merged = mergeDocumentsNewestFirst(scopedDocs, scopedAssessments);
         setDocs(merged);
-        setSelectedId(merged[0]?.document_id ?? null);
+        setSelectedId((prev) => {
+          if (prev && merged.some((d) => d.document_id === prev)) return prev;
+          return merged[0]?.document_id ?? null;
+        });
+        const labels = sortFolderLabels(Array.from(folderCounts(merged).keys()));
+        setExpandedFolders((prev) => {
+          const next: Record<string, boolean> = {};
+          for (const label of labels) {
+            next[label] = prev[label] ?? true;
+          }
+          return next;
+        });
       })
       .catch((e) =>
         setError(e instanceof Error ? e.message : "Failed to load documents."),
       )
       .finally(() => setLoading(false));
   }, [patientId, scopeEpisodeIds]);
+
+  useEffect(() => {
+    reloadDocs();
+  }, [reloadDocs]);
 
   useEffect(() => {
     if (loading || docs.length === 0) return;
@@ -307,34 +163,79 @@ export function DocumentListPanel({
     }
   }, [loading, docs, initialDocumentId, initialReferralId]);
 
+  useEffect(() => {
+    if (!selectedId) return;
+    const selected = docs.find((d) => d.document_id === selectedId);
+    if (!selected) return;
+    const folder = documentFolderKey(selected);
+    setExpandedFolders((prev) => ({ ...prev, [folder]: true }));
+  }, [selectedId, docs]);
+
+  const folderChipOptions = useMemo(() => {
+    const counts = folderCounts(docs);
+    return sortFolderLabels(Array.from(counts.keys())).map((label) => ({
+      label,
+      count: counts.get(label) ?? 0,
+    }));
+  }, [docs]);
+
   const filtered = useMemo(() => {
-    const base = docs.filter((d) => matchesFilter(d, filter));
+    let base = docs.filter((d) => matchesTypeFilter(d, typeFilter));
+    if (folderFilter) {
+      base = base.filter((d) => documentFolderKey(d) === folderFilter);
+    }
     if (!search.trim()) return base;
     const q = search.toLowerCase();
     return base.filter(
       (d) =>
         d.title.toLowerCase().includes(q) ||
         (d.text_preview ?? "").toLowerCase().includes(q) ||
-        (d.category ?? "").toLowerCase().includes(q)
+        (d.category ?? "").toLowerCase().includes(q) ||
+        documentFolderKey(d).toLowerCase().includes(q),
     );
-  }, [docs, filter, search]);
+  }, [docs, typeFilter, folderFilter, search]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, DocumentRow[]>();
     for (const doc of filtered) {
-      const key = doc.episode_label ?? "General";
+      const key = documentFolderKey(doc);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(doc);
     }
     return map;
   }, [filtered]);
 
+  const sortedFolderEntries = useMemo(() => {
+    return sortFolderLabels(Array.from(grouped.keys())).map((label) => [
+      label,
+      grouped.get(label) ?? [],
+    ] as const);
+  }, [grouped]);
+
   const selected = docs.find((d) => d.document_id === selectedId) ?? null;
+  const allExpanded = sortedFolderEntries.every(([label]) => expandedFolders[label] !== false);
+  const anyCollapsed = sortedFolderEntries.some(([label]) => expandedFolders[label] === false);
+
+  const toggleFolder = (label: string) => {
+    setExpandedFolders((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const setAllFoldersExpanded = (expanded: boolean) => {
+    setExpandedFolders((prev) => {
+      const next = { ...prev };
+      for (const [label] of sortedFolderEntries) {
+        next[label] = expanded;
+      }
+      return next;
+    });
+  };
 
   if (loading) {
     return (
       <Stack spacing={1.5}>
-        {[1, 2, 3].map((i) => <Skeleton key={i} variant="rounded" height={80} />)}
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} variant="rounded" height={80} />
+        ))}
       </Stack>
     );
   }
@@ -343,18 +244,65 @@ export function DocumentListPanel({
 
   return (
     <Box>
-      <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
-        {FILTER_OPTIONS.map((opt) => (
+      {isPlatformAdmin && (
+        <JourneyBuilderPanel
+          patientId={patientId}
+          documents={docs}
+          onDocumentsChanged={reloadDocs}
+        />
+      )}
+
+      <Box sx={{ mb: 1.5 }}>
+        <FilterChipRow label="Specialty">
           <Chip
-            key={opt.id}
-            label={opt.label}
-            onClick={() => setFilter(opt.id)}
-            variant={filter === opt.id ? "filled" : "outlined"}
-            color={filter === opt.id ? "primary" : "default"}
+            label="All specialties"
             size="small"
+            onClick={() => setFolderFilter(null)}
+            variant={folderFilter === null ? "filled" : "outlined"}
+            color={folderFilter === null ? "primary" : "default"}
           />
-        ))}
-      </Stack>
+          {folderChipOptions.map(({ label, count }) => (
+            <Chip
+              key={label}
+              label={`${label} (${count})`}
+              size="small"
+              onClick={() => setFolderFilter(folderFilter === label ? null : label)}
+              variant={folderFilter === label ? "filled" : "outlined"}
+              color={folderFilter === label ? "primary" : "default"}
+              sx={
+                folderFilter === label
+                  ? { bgcolor: accentForLabel(label), color: "#fff" }
+                  : { borderColor: accentForLabel(label), color: accentForLabel(label) }
+              }
+            />
+          ))}
+        </FilterChipRow>
+
+        <FilterChipRow label="Document type">
+          {TYPE_FILTER_OPTIONS.map((opt) => (
+            <Chip
+              key={opt.id}
+              label={opt.label}
+              size="small"
+              onClick={() => setTypeFilter(opt.id)}
+              variant={typeFilter === opt.id ? "filled" : "outlined"}
+              color={typeFilter === opt.id ? "primary" : "default"}
+            />
+          ))}
+          {isPlatformAdmin && (
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setEditorOpen(true)}
+              data-testid="add-document-button"
+              sx={{ ml: "auto" }}
+            >
+              Add document
+            </Button>
+          )}
+        </FilterChipRow>
+      </Box>
 
       <Box
         sx={{
@@ -362,7 +310,7 @@ export function DocumentListPanel({
           border: "1px solid #E2E8F0",
           borderRadius: "10px",
           overflow: "hidden",
-          height: "calc(100vh - 300px)",
+          height: "calc(100vh - 340px)",
           minHeight: 420,
         }}
       >
@@ -389,6 +337,26 @@ export function DocumentListPanel({
                 ),
               }}
             />
+            {sortedFolderEntries.length > 1 && (
+              <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => setAllFoldersExpanded(true)}
+                  disabled={allExpanded}
+                >
+                  Expand all
+                </Button>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => setAllFoldersExpanded(false)}
+                  disabled={anyCollapsed}
+                >
+                  Collapse all
+                </Button>
+              </Stack>
+            )}
           </Box>
           <Box sx={{ flex: 1, overflowY: "auto" }}>
             {grouped.size === 0 ? (
@@ -396,13 +364,15 @@ export function DocumentListPanel({
                 No documents match.
               </Alert>
             ) : (
-              Array.from(grouped.entries()).map(([label, labelDocs]) => (
-                <FolderBlock
+              sortedFolderEntries.map(([label, labelDocs]) => (
+                <DocumentFolderBlock
                   key={label}
                   label={label}
                   docs={labelDocs}
                   accent={accentForLabel(label)}
+                  expanded={expandedFolders[label] !== false}
                   selectedId={selectedId}
+                  onToggle={() => toggleFolder(label)}
                   onSelect={setSelectedId}
                 />
               ))
@@ -412,7 +382,12 @@ export function DocumentListPanel({
 
         <Box sx={{ flex: 1, overflowY: "auto", bgcolor: "#FFFFFF" }}>
           {selected ? (
-            <DocumentViewer doc={selected} patientId={patientId} />
+            <DocumentViewer
+              doc={selected}
+              patientId={patientId}
+              canManageDocuments={isPlatformAdmin}
+              onDocumentsChanged={reloadDocs}
+            />
           ) : (
             <Box sx={{ p: 4, textAlign: "center", color: "#94A3B8" }}>
               <ArticleOutlinedIcon sx={{ fontSize: 40, mb: 1 }} />
@@ -421,6 +396,13 @@ export function DocumentListPanel({
           )}
         </Box>
       </Box>
+
+      <DocumentEditorDialog
+        open={editorOpen}
+        patientId={patientId}
+        onClose={() => setEditorOpen(false)}
+        onSaved={() => reloadDocs()}
+      />
     </Box>
   );
 }

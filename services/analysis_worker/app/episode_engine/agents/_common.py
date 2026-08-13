@@ -24,12 +24,36 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from libs.llm_client.factory import LLMClient
-from libs.llm_usage import LLMCostConfig, LLMUsage
+from libs.llm_usage import LLMUsage, cost_config_for_invocation
 from services.analysis_worker.app.episode_engine.schemas import StageTrace
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+
+def _stage_cost_usd(
+    llm: LLMClient,
+    *,
+    input_tokens: int,
+    output_tokens: int,
+    cached_input_tokens: int,
+    llm_calls: int,
+    tier: str,
+) -> float:
+    """Price one stage at the client provider/tier, not the env default."""
+    provider = str(getattr(llm, "provider", "") or "")
+    usage = LLMUsage(
+        input_tokens=int(input_tokens),
+        output_tokens=int(output_tokens),
+        cached_input_tokens=int(cached_input_tokens),
+        llm_calls=int(llm_calls),
+        input_excludes_cache=provider.lower() in ("aws", "bedrock"),
+    )
+    cfg = cost_config_for_invocation(
+        provider, tier or str(getattr(llm, "tier", "") or ""), llm.model_id
+    )
+    return round(usage.cost_usd(cfg), 6)
 
 
 class StageError(RuntimeError):
@@ -184,14 +208,14 @@ def call_stage(
     # Cost is best-effort: if the env vars for this tier are not set,
     # cost_usd is 0 and we still record token counts.
     try:
-        usage = LLMUsage(
+        trace.cost_usd = _stage_cost_usd(
+            llm,
             input_tokens=trace.input_tokens,
             output_tokens=trace.output_tokens,
             cached_input_tokens=trace.cached_input_tokens,
             llm_calls=1,
+            tier=tier,
         )
-        cfg = LLMCostConfig.for_tier(tier or "small")
-        trace.cost_usd = round(usage.cost_usd(cfg), 6)
     except Exception:
         logger.debug(
             "Stage %s: cost calc failed; leaving cost_usd=0", stage, exc_info=True
@@ -221,8 +245,7 @@ def call_stage(
         return parsed, trace
     except ValidationError as exc:
         logger.warning(
-            "Stage %s schema validation failed (attempt 1) for %s: %s\n"
-            "Payload: %s",
+            "Stage %s schema validation failed (attempt 1) for %s: %s\n" "Payload: %s",
             stage,
             response_model.__name__,
             exc,
@@ -236,8 +259,7 @@ def call_stage(
     _open_tag = "<" + "parameter" + ">"
     _close_tag = "<" + "/parameter" + ">"
     retry_user = (
-        user
-        + "\n\nIMPORTANT: your previous response failed schema validation. "
+        user + "\n\nIMPORTANT: your previous response failed schema validation. "
         "Respond by calling the tool ONCE with a valid JSON object that "
         "matches the schema exactly. Do NOT include any XML tags such as "
         + _open_tag
@@ -263,20 +285,18 @@ def call_stage(
 
     trace.input_tokens += int(retry_resp.input_tokens or 0)
     trace.output_tokens += int(retry_resp.output_tokens or 0)
-    trace.cached_input_tokens += int(
-        getattr(retry_resp, "cached_input_tokens", 0) or 0
-    )
+    trace.cached_input_tokens += int(getattr(retry_resp, "cached_input_tokens", 0) or 0)
     trace.latency_ms += int((time.perf_counter() - retry_started) * 1000)
 
     try:
-        usage = LLMUsage(
+        trace.cost_usd = _stage_cost_usd(
+            llm,
             input_tokens=trace.input_tokens,
             output_tokens=trace.output_tokens,
             cached_input_tokens=trace.cached_input_tokens,
             llm_calls=2,
+            tier=tier,
         )
-        cfg = LLMCostConfig.for_tier(tier or "small")
-        trace.cost_usd = round(usage.cost_usd(cfg), 6)
     except Exception:
         logger.debug(
             "Stage %s: retry cost calc failed; leaving prior cost_usd",
@@ -297,10 +317,11 @@ def call_stage(
         parsed = response_model.model_validate(retry_payload)
     except ValidationError as exc:
         trace.ok = False
-        trace.error = f"schema validation failed after retry: {exc.error_count()} errors"
+        trace.error = (
+            f"schema validation failed after retry: {exc.error_count()} errors"
+        )
         logger.warning(
-            "Stage %s schema validation FAILED on retry for %s: %s\n"
-            "Payload: %s",
+            "Stage %s schema validation FAILED on retry for %s: %s\n" "Payload: %s",
             stage,
             response_model.__name__,
             exc,

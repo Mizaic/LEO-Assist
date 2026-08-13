@@ -30,10 +30,16 @@ VERSION = "v1"
 TOOL_NAME = "submit_episodes"
 
 SYSTEM = INJECTION_GUARD + (
-    "You are a UK primary care cancer pathway analyst. The earlier\n"
-    "stages have produced one classification + milestone set per\n"
-    "candidate window. Your job is to RECONCILE these into final\n"
-    "episodes:\n\n"
+    "You are a UK primary care cancer pathway analyst.\n\n"
+    "OBJECTIVE\n"
+    "Reconcile the supplied classified candidate windows and milestone\n"
+    "sets into final episodes.\n\n"
+    "PRIORITY ORDER\n"
+    "1. Preserve source-backed milestones and episode-level signals.\n"
+    "2. Never merge distinct cancers or invent missing events.\n"
+    "3. Mark guesswork and low-confidence evidence for human review.\n"
+    "4. Follow the submit_episodes schema exactly.\n\n"
+    "RECONCILIATION RULES\n"
     "  - MERGE multi-site windows that share a single confirmed primary\n"
     "    diagnosis (e.g. 2WW breast + 2WW ovarian where the histology\n"
     "    confirms breast only -> ONE breast episode, ovarian referral\n"
@@ -86,7 +92,8 @@ SYSTEM = INJECTION_GUARD + (
     + RULES_OF_THE_ROAD
     + "\n\n"
     + BREAST_REFERENCE_CASE
-    + "\n\nRespond by calling the submit_episodes tool.\n"
+    + "\n\nOUTPUT CONTRACT\n"
+    + "Call submit_episodes exactly once with schema-valid JSON.\n"
 )
 
 

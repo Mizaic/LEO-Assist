@@ -81,6 +81,7 @@ class ExtractionState(TypedDict, total=False):
     chunk_ids: list[str]
     document_reference_id: str
     errors: list[str]
+    warnings: list[str]
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -568,15 +569,16 @@ def _run_ner_extraction(
     }
 
 
-def _extraction_window_policy(state: dict[str, Any]) -> tuple[int, int] | None:
-    """Return (window_size, window_overlap) from pinned manifest, if present."""
-    manifest = state.get("execution_manifest") or {}
-    extraction = manifest.get("extraction") or {}
-    if not extraction:
-        return None
-    window_size = int(extraction.get("windowSize") or 10)
-    window_overlap = int(extraction.get("windowOverlap") or 1)
-    return window_size, window_overlap
+def _extraction_window_policy(state: dict[str, Any]) -> dict[str, Any] | None:
+    from libs.pipeline.windowed_llm_extraction import extraction_window_policy
+
+    return extraction_window_policy(state)
+
+
+def _normalise_chunks_for_llm(chunks: list[SentenceChunk]) -> list[SentenceChunk]:
+    from libs.pipeline.windowed_llm_extraction import normalise_chunks_for_llm
+
+    return normalise_chunks_for_llm(chunks)
 
 
 def _run_windowed_llm_extraction(
@@ -586,66 +588,44 @@ def _run_windowed_llm_extraction(
     *,
     window_size: int,
     window_overlap: int,
+    context_mode: str,
+    max_window_input_tokens: int,
+    span_chunks: list[SentenceChunk] | None = None,
 ) -> dict[str, Any]:
-    """Run LLM extraction in manifest-sized windows and merge entities."""
-    from libs.pipeline.extraction_window import (
-        ChunkRef,
-        WindowUsage,
-        aggregate_window_usage,
-        merge_window_entities,
-        plan_extraction_windows,
-    )
+    from libs.pipeline.windowed_llm_extraction import run_windowed_llm_extraction
 
-    chunk_refs = [
-        ChunkRef(chunk_id=str(c.sentence_id or ""), text=str(c.text or ""))
-        for c in chunks
-    ]
-    windows = plan_extraction_windows(
-        chunk_refs,
+    return run_windowed_llm_extraction(
+        encounter_text,
+        chunks,
+        state,
         window_size=window_size,
         window_overlap=window_overlap,
+        context_mode=context_mode,
+        max_window_input_tokens=max_window_input_tokens,
+        run_llm_extraction=_run_llm_extraction,
+        span_chunks=span_chunks,
     )
-    chunk_by_id = {str(c.sentence_id or ""): c for c in chunks}
-    window_outputs: list[list[dict[str, Any]]] = []
-    usages: list[WindowUsage] = []
-    merged_tokens: dict[str, Any] = {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "cached_tokens": 0,
-        "cost_usd": 0.0,
-    }
-    for window in windows:
-        window_chunks = [
-            chunk_by_id[cid] for cid in window.chunk_ids if cid in chunk_by_id
-        ]
-        if not window_chunks:
-            continue
-        partial = _run_llm_extraction(encounter_text, window_chunks, state)
-        entities = list(partial.get("entities") or [])
-        window_outputs.append(entities)
-        tokens = dict(partial.get("llm_tokens") or {})
-        usages.append(
-            WindowUsage(
-                window_index=window.index,
-                input_tokens=int(tokens.get("input_tokens") or 0),
-                output_tokens=int(tokens.get("output_tokens") or 0),
-                cache_read_tokens=int(tokens.get("cached_tokens") or 0),
-                cost_usd=float(tokens.get("cost_usd") or 0.0),
-            )
-        )
-        merged_tokens["input_tokens"] += int(tokens.get("input_tokens") or 0)
-        merged_tokens["output_tokens"] += int(tokens.get("output_tokens") or 0)
-        merged_tokens["cached_tokens"] += int(tokens.get("cached_tokens") or 0)
-        merged_tokens["cost_usd"] = round(
-            float(merged_tokens["cost_usd"]) + float(tokens.get("cost_usd") or 0.0),
-            6,
-        )
-    merged_entities = merge_window_entities(window_outputs)
-    merged_tokens["window_usage"] = aggregate_window_usage(usages)
+
+
+def _llm_model_fields(state: dict[str, Any], usage: dict[str, Any]) -> dict[str, Any]:
+    """Copy the live LLM deployment onto inspector model keys."""
+    requested = str(state.get("requested_model_version") or "").strip()
+    actual = str(usage.get("model_id") or "").strip()
+    if not actual:
+        tier = str(usage.get("model_tier") or "").strip()
+        actual = f"llm-{tier}" if tier else ""
+    prompt_name = str(usage.get("prompt_name") or "extraction").strip()
+    prompt_version = usage.get("prompt_version")
+    version = ""
+    if prompt_version is not None and str(prompt_version).strip() != "":
+        version = f"{prompt_name} v{prompt_version}"
     return {
-        "entities": merged_entities,
-        "llm_tokens": merged_tokens,
-        "extraction_route": "llm-windowed",
+        "extraction_model_name": actual,
+        "extraction_model_version": version,
+        "extraction_model_requested_version": requested,
+        "extraction_model_version_mismatch": bool(
+            requested and actual and requested != actual
+        ),
     }
 
 
@@ -653,6 +633,11 @@ def _run_llm_extraction(
     encounter_text: str,
     chunks: list[SentenceChunk],
     state: dict[str, Any],
+    *,
+    span_document_text: str | None = None,
+    span_sentences: list[SentenceChunk] | None = None,
+    context_mode: str = "full_document",
+    normalise_forms: bool = False,
 ) -> dict[str, Any]:
     """Invoke the LLM extractor and shape its output for state merge."""
     from libs.pipeline_graph.subgraphs._extractor import build_extractor
@@ -717,11 +702,19 @@ def _run_llm_extraction(
         prompt_name=str(cfg.get("name") or "extraction"),
         prompt_version=prompt_version,
     )
-    items, llm_tokens = extractor.extract_batch_with_usage(encounter_text, chunks)
+    llm_chunks = _normalise_chunks_for_llm(chunks) if normalise_forms else chunks
+    items, llm_tokens = extractor.extract_batch_with_usage(
+        encounter_text,
+        llm_chunks,
+        span_document_text=span_document_text,
+        span_sentences=span_sentences if span_sentences is not None else chunks,
+        context_mode=context_mode,
+    )
     return {
         "entities": _items_to_dicts(items),
         "llm_tokens": llm_tokens,
         "extraction_route": "llm",
+        **_llm_model_fields(state, llm_tokens),
     }
 
 
@@ -748,25 +741,38 @@ def _enrich_with_blood_panel_entities(
     return result
 
 
+def _chunks_from_state(
+    raw_sentences: list[dict[str, Any]],
+) -> tuple[list[SentenceChunk], list[SentenceChunk]]:
+    """Return (llm_chunks, span_chunks). Span chunks prefer text_raw."""
+    llm_chunks: list[SentenceChunk] = []
+    span_chunks: list[SentenceChunk] = []
+    for s in raw_sentences:
+        sid = s.get("sentence_id", "")
+        start = int(s.get("start", 0))
+        end = int(s.get("end", 0))
+        text = str(s.get("text") or "")
+        text_raw = str(s.get("text_raw") or text)
+        llm_chunks.append(
+            SentenceChunk(sentence_id=sid, text=text, start=start, end=end)
+        )
+        span_chunks.append(
+            SentenceChunk(sentence_id=sid, text=text_raw, start=start, end=end)
+        )
+    return llm_chunks, span_chunks
+
+
 def extract_entities(state: ExtractionState) -> dict[str, Any]:
     encounter_text = state.get("encounter_text") or ""
     raw_sentences = state.get("sentences") or []
     model_mode = _resolve_model_mode(state)
     try:
-        chunks = [
-            SentenceChunk(
-                sentence_id=s.get("sentence_id", ""),
-                text=s.get("text", ""),
-                start=int(s.get("start", 0)),
-                end=int(s.get("end", 0)),
-            )
-            for s in raw_sentences
-        ]
+        chunks, span_chunks = _chunks_from_state(raw_sentences)
 
         if model_mode == "ner":
-            result = _run_ner_extraction(encounter_text, chunks, state)
+            result = _run_ner_extraction(encounter_text, span_chunks, state)
             if not result.get("entities"):
-                fallback = _extract_lab_fallback_entities(encounter_text, chunks)
+                fallback = _extract_lab_fallback_entities(encounter_text, span_chunks)
                 if fallback:
                     logger.warning(
                         "NER extraction returned 0 entities; deterministic lab "
@@ -775,12 +781,14 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                     )
                     result["entities"] = fallback
                     result["extraction_route"] = "ner+lab-fallback"
-            return _enrich_with_blood_panel_entities(result, encounter_text, chunks)
+            return _enrich_with_blood_panel_entities(
+                result, encounter_text, span_chunks
+            )
 
         if model_mode == "auto":
             if _ner_backend_enabled():
                 try:
-                    ner_result = _run_ner_extraction(encounter_text, chunks, state)
+                    ner_result = _run_ner_extraction(encounter_text, span_chunks, state)
                 except Exception as exc:
                     logger.warning(
                         "Auto mode: NER extraction failed (%s); falling back to LLM",
@@ -790,33 +798,52 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                     if ner_result.get("entities"):
                         ner_result["extraction_route"] = "auto-ner"
                         return _enrich_with_blood_panel_entities(
-                            ner_result, encounter_text, chunks
+                            ner_result, encounter_text, span_chunks
                         )
                     logger.info(
                         "Auto mode: NER returned 0 entities; falling back to LLM"
                     )
             else:
                 logger.debug("Auto mode: NER backend not enabled; using LLM extractor")
-            llm_result = _run_llm_extraction(encounter_text, chunks, state)
+            llm_result = _run_llm_extraction(
+                encounter_text,
+                chunks,
+                state,
+                span_document_text=encounter_text,
+                span_sentences=span_chunks,
+            )
             llm_result["extraction_route"] = "auto-llm"
-            return _enrich_with_blood_panel_entities(llm_result, encounter_text, chunks)
+            return _enrich_with_blood_panel_entities(
+                llm_result, encounter_text, span_chunks
+            )
 
         # default: model_mode == "llm"
         policy = _extraction_window_policy(state)
-        if policy and len(chunks) > policy[0]:
-            from libs.pipeline.document_chunk_loader import is_document_chunks_mode
+        from libs.pipeline.document_chunk_loader import is_document_chunks_mode
 
-            if is_document_chunks_mode(state):
-                result = _run_windowed_llm_extraction(
-                    encounter_text,
-                    chunks,
-                    state,
-                    window_size=policy[0],
-                    window_overlap=policy[1],
-                )
-                return _enrich_with_blood_panel_entities(result, encounter_text, chunks)
-        result = _run_llm_extraction(encounter_text, chunks, state)
-        return _enrich_with_blood_panel_entities(result, encounter_text, chunks)
+        if policy and is_document_chunks_mode(state):
+            result = _run_windowed_llm_extraction(
+                encounter_text,
+                chunks,
+                state,
+                window_size=int(policy["window_size"]),
+                window_overlap=int(policy["window_overlap"]),
+                context_mode=str(policy["context_mode"]),
+                max_window_input_tokens=int(policy["max_window_input_tokens"]),
+                span_chunks=span_chunks,
+            )
+            return _enrich_with_blood_panel_entities(
+                result, encounter_text, span_chunks
+            )
+        result = _run_llm_extraction(
+            encounter_text,
+            chunks,
+            state,
+            span_document_text=encounter_text,
+            span_sentences=span_chunks,
+            normalise_forms=is_document_chunks_mode(state),
+        )
+        return _enrich_with_blood_panel_entities(result, encounter_text, span_chunks)
     except ImportError as e:
         logger.warning("Extractor unavailable: %s", e)
         return {"entities": [], "errors": [str(e)]}
@@ -830,9 +857,18 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
         return {"entities": [], "errors": [str(e)]}
 
 
+_EMPTY_EXTRACTION_WARNING = (
+    "extraction_empty: LEO read the letter but found no clinical facts"
+)
+
+
 def merge_results(state: ExtractionState) -> dict[str, Any]:
+    entities = list(state.get("entities") or [])
+    warnings = list(state.get("warnings") or [])
+    if not entities and _EMPTY_EXTRACTION_WARNING not in warnings:
+        warnings.append(_EMPTY_EXTRACTION_WARNING)
     return {
-        "entities": state.get("entities", []),
+        "entities": entities,
         "extraction_model_name": state.get("extraction_model_name", ""),
         "extraction_model_version": state.get("extraction_model_version", ""),
         "extraction_model_requested_version": state.get(
@@ -843,6 +879,7 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
         ),
         "extraction_route": state.get("extraction_route", ""),
         "errors": state.get("errors", []),
+        "warnings": warnings,
     }
 
 

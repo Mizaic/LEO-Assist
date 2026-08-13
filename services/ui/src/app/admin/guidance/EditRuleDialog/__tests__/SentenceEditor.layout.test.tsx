@@ -132,6 +132,18 @@ describe("GroupSentence -- flat leaf-only groups (task 5)", () => {
     });
   });
 
+  it("clicking '+ patient should not have' dispatches add_group with groupKind NOT", () => {
+    const onUpdate = jest.fn();
+    const tree = makeFlatAnd();
+    renderGroup(tree, { onUpdate });
+    fireEvent.click(screen.getByRole("button", { name: /patient should not have/i }));
+    expect(onUpdate).toHaveBeenCalledWith({
+      kind: "add_group",
+      parentNodeId: tree.node_id,
+      groupKind: "NOT",
+    });
+  });
+
   it("hides the add-links for a collapsed nested chunk (but not for its expanded ancestors)", () => {
     // AND(depth0, expanded) > OR(depth1, expanded) > AND(depth2, collapsed)[Cough]
     const tree = assignNodeIds({

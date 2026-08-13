@@ -58,7 +58,7 @@ from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 from libs.llm_client.token_tracker import set_tracking_callback
-from libs.llm_usage import LLMCostConfig, LLMUsage
+from libs.llm_usage import LLMCostConfig, LLMUsage, cost_config_for_invocation
 
 logger = logging.getLogger(__name__)
 
@@ -78,23 +78,46 @@ class LLMCallRecord:
     error_message: str = ""
     patient_id: str = ""
     cache_creation_input_tokens: int = 0
+    reasoning_tokens: int = 0
     input_excludes_cache: bool = False
+    model_tier: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "agent_task": self.agent_task,
             "model_name": self.model_name,
             "model_provider": self.model_provider,
+            "model_tier": self.model_tier,
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "cached_input_tokens": self.cached_input_tokens,
             "cache_creation_input_tokens": self.cache_creation_input_tokens,
+            "reasoning_tokens": self.reasoning_tokens,
             "input_excludes_cache": self.input_excludes_cache,
             "latency_ms": self.latency_ms,
             "success": self.success,
             "error_message": self.error_message,
             "patient_id": self.patient_id,
         }
+
+
+def _usage_from_call(call: LLMCallRecord) -> LLMUsage:
+    return LLMUsage(
+        input_tokens=int(call.input_tokens),
+        output_tokens=int(call.output_tokens),
+        cached_input_tokens=int(call.cached_input_tokens),
+        cache_creation_input_tokens=int(call.cache_creation_input_tokens),
+        reasoning_tokens=int(call.reasoning_tokens),
+        llm_calls=1,
+        input_excludes_cache=bool(call.input_excludes_cache),
+    )
+
+
+def _call_cost_usd(call: LLMCallRecord, fallback: LLMCostConfig | None = None) -> float:
+    cfg = cost_config_for_invocation(
+        call.model_provider, call.model_tier, call.model_name, fallback
+    )
+    return _usage_from_call(call).cost_usd(cfg)
 
 
 @dataclass
@@ -127,6 +150,7 @@ class LLMUsageRecorder:
             output_tokens=int(call.output_tokens),
             cached_input_tokens=int(call.cached_input_tokens),
             cache_creation_input_tokens=int(call.cache_creation_input_tokens),
+            reasoning_tokens=int(call.reasoning_tokens),
             llm_calls=1,
             input_excludes_cache=bool(call.input_excludes_cache),
         )
@@ -136,7 +160,11 @@ class LLMUsageRecorder:
             self.primary_provider = call.model_provider
 
     def cost_usd(self, config: LLMCostConfig | None = None) -> float:
-        """Return the rolled-up cost for everything recorded so far."""
+        """Return rolled-up cost, priced per call at that call's model."""
+        if self.calls:
+            return round(sum(_call_cost_usd(c, config) for c in self.calls), 6)
+        if config is None:
+            return 0.0
         return round(self.usage.cost_usd(config), 6)
 
     def to_audit_dict(self, config: LLMCostConfig | None = None) -> dict[str, Any]:
@@ -146,6 +174,7 @@ class LLMUsageRecorder:
             "output_tokens": int(self.usage.output_tokens),
             "cached_input_tokens": int(self.usage.cached_input_tokens),
             "cache_creation_input_tokens": int(self.usage.cache_creation_input_tokens),
+            "reasoning_tokens": int(self.usage.reasoning_tokens),
             "total_tokens": int(self.usage.total_tokens),
             "llm_calls": int(self.usage.llm_calls),
             "total_latency_ms": int(self.total_latency_ms),
@@ -195,7 +224,9 @@ def _default_tracking_callback(**kwargs: Any) -> None:
                 cache_creation_input_tokens=int(
                     kwargs.get("cache_creation_input_tokens") or 0
                 ),
+                reasoning_tokens=int(kwargs.get("reasoning_tokens") or 0),
                 input_excludes_cache=bool(excludes),
+                model_tier=str(kwargs.get("model_tier") or ""),
                 latency_ms=int(kwargs.get("latency_ms") or 0),
                 success=bool(kwargs.get("success", True)),
                 error_message=str(kwargs.get("error_message") or ""),

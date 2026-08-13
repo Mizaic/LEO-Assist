@@ -30,7 +30,7 @@ Category taxonomy (extends extraction_examples.py):
 from __future__ import annotations
 
 ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
-    # ── 2WW Referral ──────────────────────────────────────────────────────────
+    # -- 2WW Referral ----------------------------------------------------------
     {
         "category": "anchor:2ww-referral",
         "model_scope": "any",
@@ -45,7 +45,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "276436000", "concept_name": "Referral to lower gastrointestinal surgery (procedure)", "text": "2WW referral to lower GI surgery - change in bowel habit", "confidence": 0.88, "detection_method": "hybrid", "milestone_type": "referral", "label": 1}]',
         "output": '[{"line_number": 1, "original_concept_id": "276436000", "domain": "2WW_REFERRAL", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "present", "rationale": "2WW referral text with cancer-specific context confirms an active fast-track referral action.", "target_rule": "TargetRule(\'Referral to lower gastrointestinal surgery (procedure)\', \'2WW_REFERRAL\', pattern=[{\'LOWER\': \'2ww\'}, {\'LOWER\': \'referral\'}, {\'OP\': \'?\'}, {\'LOWER\': \'lower\'}, {\'LOWER\': \'gi\'}])"}]',
     },
-    # ── 2WW Clinic Seen ───────────────────────────────────────────────────────
+    # -- 2WW Clinic Seen -------------------------------------------------------
     {
         "category": "anchor:2ww-clinic-seen",
         "model_scope": "any",
@@ -53,7 +53,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "266753000", "concept_name": "Seen in urology clinic (finding)", "text": "Seen in fast track suspected prostate cancer clinic", "confidence": 0.82, "detection_method": "hybrid", "milestone_type": "specialist_visit", "label": 1}]',
         "output": '[{"line_number": 1, "original_concept_id": "266753000", "domain": "2WW_CLINIC_SEEN", "concept_correct": false, "suggested_concept_id": null, "suggested_concept_name": "Attendance at fast track suspected prostate cancer clinic", "assertion": "present", "rationale": "Text records clinic attendance, not just a referral; 2WW_CLINIC_SEEN is correct. SNOMED concept is generic urology clinic which is imprecise.", "target_rule": "TargetRule(\'Seen in fast track suspected prostate cancer clinic\', \'2WW_CLINIC_SEEN\', pattern=[{\'LOWER\': \'seen\'}, {\'LOWER\': \'in\'}, {\'LOWER\': \'fast\'}, {\'LOWER\': \'track\'}, {\'LOWER\': \'suspected\'}, {\'LOWER\': \'prostate\'}])"}]',
     },
-    # ── Cancer Diagnosis ──────────────────────────────────────────────────────
+    # -- Cancer Diagnosis ------------------------------------------------------
     {
         "category": "anchor:cancer-diagnosis",
         "model_scope": "any",
@@ -61,7 +61,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "363414004", "concept_name": "Malignant neoplasm of sigmoid colon (disorder)", "text": "Histology: moderately differentiated adenocarcinoma of sigmoid colon", "confidence": 0.97, "detection_method": "concept", "milestone_type": "diagnosis", "label": 1}]',
         "output": '[{"line_number": 1, "original_concept_id": "363414004", "domain": "CANCER_DIAGNOSIS", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "present", "rationale": "Histology text explicitly states confirmed adenocarcinoma; this is a present positive cancer diagnosis.", "target_rule": "TargetRule(\'Malignant neoplasm of sigmoid colon (disorder)\', \'CANCER_DIAGNOSIS\', pattern=[{\'LOWER\': \'adenocarcinoma\'}, {\'LOWER\': \'of\'}, {\'LOWER\': \'sigmoid\'}, {\'LOWER\': \'colon\'}])"}]',
     },
-    # ── Cancer Diagnosis Excluded ─────────────────────────────────────────────
+    # -- Cancer Diagnosis Excluded ---------------------------------------------
     {
         "category": "anchor:cancer-excluded",
         "model_scope": "any",
@@ -76,7 +76,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "160303001", "concept_name": "Family history of malignant neoplasm (situation)", "text": "No fam hx of cancer", "confidence": 0.74, "detection_method": "hybrid", "milestone_type": "referral", "label": 0}]',
         "output": '[{"line_number": 1, "original_concept_id": "160303001", "domain": "CANCER_DIAGNOSIS_EXCLUDED", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "family_history", "rationale": "Text states no family history of cancer; domain is CANCER_DIAGNOSIS_EXCLUDED with assertion family_history as per rules.", "target_rule": "TargetRule(\'Family history of malignant neoplasm (situation)\', \'CANCER_DIAGNOSIS_EXCLUDED\', pattern=[{\'LOWER\': \'no\'}, {\'LOWER\': \'fam\'}, {\'LOWER\': \'hx\'}, {\'LOWER\': \'of\'}, {\'LOWER\': \'cancer\'}])"}]',
     },
-    # ── Cancer Treatment ──────────────────────────────────────────────────────
+    # -- Cancer Treatment ------------------------------------------------------
     {
         "category": "anchor:cancer-treatment",
         "model_scope": "any",
@@ -91,7 +91,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "33195004", "concept_name": "Radiotherapy (procedure)", "text": "Completed radiotherapy to left breast 2020", "confidence": 0.87, "detection_method": "concept", "milestone_type": "treatment", "label": 1}]',
         "output": '[{"line_number": 1, "original_concept_id": "33195004", "domain": "CANCER_TREATMENT_HISTORICAL", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "historical", "rationale": "Completed radiotherapy with explicit past year (2020) indicates historical treatment, not active.", "target_rule": "TargetRule(\'Radiotherapy (procedure)\', \'CANCER_TREATMENT_HISTORICAL\', pattern=[{\'LOWER\': \'completed\'}, {\'LOWER\': \'radiotherapy\'}])"}]',
     },
-    # ── Investigation ─────────────────────────────────────────────────────────
+    # -- Investigation ---------------------------------------------------------
     {
         "category": "anchor:investigation",
         "model_scope": "any",
@@ -99,7 +99,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "169069000", "concept_name": "CT of abdomen (procedure)", "text": "CT abdomen chest pelvis for staging", "confidence": 0.85, "detection_method": "concept", "milestone_type": "investigation", "label": 1}]',
         "output": '[{"line_number": 1, "original_concept_id": "169069000", "domain": "INVESTIGATION", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "present", "rationale": "CT scan for staging is a diagnostic investigation in the cancer workup pathway.", "target_rule": "TargetRule(\'CT of abdomen (procedure)\', \'INVESTIGATION\', pattern=[{\'LOWER\': \'ct\'}, {\'LOWER\': \'abdomen\'}, {\'OP\': \'?\'}, {\'LOWER\': \'staging\'}])"}]',
     },
-    # ── Metastatic Disease ────────────────────────────────────────────────────
+    # -- Metastatic Disease ----------------------------------------------------
     {
         "category": "anchor:metastatic",
         "model_scope": "any",
@@ -107,7 +107,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "94225005", "concept_name": "Secondary malignant neoplasm of liver (disorder)", "text": "CT: liver metastases from colorectal primary", "confidence": 0.95, "detection_method": "concept", "milestone_type": "diagnosis", "label": 1}]',
         "output": '[{"line_number": 1, "original_concept_id": "94225005", "domain": "METASTATIC_DISEASE", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "present", "rationale": "Liver metastases from a known colorectal primary is confirmed metastatic disease.", "target_rule": "TargetRule(\'Secondary malignant neoplasm of liver (disorder)\', \'METASTATIC_DISEASE\', pattern=[{\'LOWER\': \'liver\'}, {\'IN\': [\'metastases\', \'mets\', \'metastasis\']}])"}]',
     },
-    # ── Non-Cancer ────────────────────────────────────────────────────────────
+    # -- Non-Cancer ------------------------------------------------------------
     {
         "category": "anchor:non-cancer",
         "model_scope": "any",
@@ -122,7 +122,7 @@ ANCHOR_DOMAIN_REVIEW_EXAMPLES: list[dict] = [
         "input": '[{"line_number": 1, "concept_id": "413810007", "concept_name": "Bowel cancer screening programme screening invitation (record artifact)", "text": "Bowel cancer screening programme - no response", "confidence": 0.61, "detection_method": "hybrid", "milestone_type": "referral", "label": 1}]',
         "output": '[{"line_number": 1, "original_concept_id": "413810007", "domain": "NON_CANCER", "concept_correct": true, "suggested_concept_id": null, "suggested_concept_name": null, "assertion": "present", "rationale": "Screening invitation with no response recorded is an administrative screening event, not a cancer pathway outcome.", "target_rule": "TargetRule(\'Bowel cancer screening programme screening invitation (record artifact)\', \'NON_CANCER\', pattern=[{\'LOWER\': \'bowel\'}, {\'LOWER\': \'cancer\'}, {\'LOWER\': \'screening\'}, {\'LOWER\': \'programme\'}, {\'OP\': \'?\'}])"}]',
     },
-    # ── Ambiguous ─────────────────────────────────────────────────────────────
+    # -- Ambiguous -------------------------------------------------------------
     {
         "category": "anchor:ambiguous",
         "model_scope": "any",

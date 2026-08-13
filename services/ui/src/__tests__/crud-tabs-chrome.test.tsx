@@ -65,8 +65,9 @@ describe("VT-LEO-AI-145 CRUD tabs chrome on design-system primitives", () => {
   it("TC-001b Surface Forms imports the right primitives", () => {
     const block = importBlock(surfaceForms);
     expect(block).toMatch(/\bStatHero\b/);
-    expect(block).toMatch(/\bFilterBar\b/);
+    expect(block).toMatch(/\bSegmentedTabs\b/);
     expect(block).toMatch(/\bToolbarActions\b/);
+    expect(block).toMatch(/\bEmptyState\b/);
   });
 
   it("TC-001c Domains imports the right primitives", () => {
@@ -115,12 +116,13 @@ describe("VT-LEO-AI-145 CRUD tabs chrome on design-system primitives", () => {
     expect(contextRules).toMatch(/exportContextRulesPdf/);
   });
 
-  it("TC-003b Surface Forms still wires the dedupe + suggest + delete handlers", () => {
-    expect(surfaceForms).toMatch(/handleAuditDuplicates/);
-    expect(surfaceForms).toMatch(/handleDeduplicate/);
-    expect(surfaceForms).toMatch(/handleSuggest\b/);
-    expect(surfaceForms).toMatch(/handleDeleteGroup/);
-    expect(surfaceForms).toMatch(/handleAddAlias/);
+  it("TC-003b Surface Forms still wires phrase mapping handlers", () => {
+    expect(surfaceForms).toMatch(/handleSave/);
+    expect(surfaceForms).toMatch(/handlePublish/);
+    expect(surfaceForms).toMatch(/Create local concept/);
+    const hook = read(path.join(ROOT, "surface-forms", "usePhraseMappings.ts"));
+    expect(hook).toMatch(/savePhraseDraft/);
+    expect(hook).toMatch(/publishPhrase/);
   });
 
   it("TC-003c Domains still wires loadDomains + createDomain", () => {
@@ -142,9 +144,9 @@ describe("VT-LEO-AI-145 CRUD tabs chrome on design-system primitives", () => {
     expect(contextRules).toMatch(/id:\s*"add-rule"/);
   });
 
-  it("TC-004b Surface Forms ToolbarActions exposes Audit + Add concept", () => {
-    expect(surfaceForms).toMatch(/id:\s*"audit-duplicates"/);
-    expect(surfaceForms).toMatch(/id:\s*"add-concept"/);
+  it("TC-004b Surface Forms ToolbarActions exposes Change log + Create local concept", () => {
+    expect(surfaceForms).toMatch(/id:\s*"audit-log"/);
+    expect(surfaceForms).toMatch(/id:\s*"create-local-concept"/);
   });
 
   it("TC-004c Domains ToolbarActions exposes Create area for platform admins", () => {
@@ -163,8 +165,9 @@ describe("VT-LEO-AI-145 CRUD tabs chrome on design-system primitives", () => {
     expect(contextRules).toMatch(/<ProgressiveReveal\b/);
   });
 
-  it("TC-005b Surface Forms wraps the toolbar in FilterBar", () => {
-    expect(surfaceForms).toMatch(/<FilterBar\b/);
+  it("TC-005b Surface Forms uses a live dictionary FilterBar", () => {
+    const live = read(path.join(ROOT, "surface-forms", "LiveDictionaryPane.tsx"));
+    expect(live).toMatch(/<FilterBar\b/);
   });
 
   it("TC-005c Domains uses framer-motion card grid (DomainCard)", () => {

@@ -2,7 +2,8 @@
 
 Atlas trace:
   DO: DO-E89DE9EE
-  DI: DI-090D4939, DI-29BF950F, DI-33376FBB, DI-8788B246, DI-9EE8D65E, DI-AB1C442D, DI-CB01B8A6
+  DI: DI-090D4939, DI-29BF950F, DI-33376FBB, DI-8788B246,
+      DI-9EE8D65E, DI-AB1C442D, DI-CB01B8A6
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-E89DE9EE")
 
 Embedded in PlanDefinition snapshots as ``_referralPolicy``. Invalid or
@@ -25,6 +26,8 @@ DEFAULT_REFERRAL_POLICY: dict[str, Any] = {
     "extraction": {
         "windowSize": 10,
         "windowOverlap": 1,
+        "contextMode": "window_local",
+        "maxWindowInputTokens": 16000,
     },
     "salvage": {
         "maxSentences": 50,
@@ -43,9 +46,9 @@ DEFAULT_REFERRAL_POLICY: dict[str, Any] = {
         "maxTokens": 50000,
     },
     "llm": {
-        "situation": {"temperature": 0.0, "maxTokens": 512},
-        "background": {"temperature": 0.0, "maxTokens": 1024},
-        "recommendation": {"temperature": 0.0, "maxTokens": 1024},
+        "situation": {"temperature": 0.0, "maxTokens": 2048},
+        "background": {"temperature": 0.0, "maxTokens": 4096},
+        "recommendation": {"temperature": 0.0, "maxTokens": 4096},
         "runTokenBudget": 200000,
     },
     "prompts": {
@@ -56,7 +59,7 @@ DEFAULT_REFERRAL_POLICY: dict[str, Any] = {
     },
     "models": {
         "provider": "azure",
-        "tier": "big",
+        "tier": "small",
     },
     "failureBehaviour": "fail_closed",
 }
@@ -103,6 +106,16 @@ def validate_referral_policy(policy: dict[str, Any]) -> list[str]:
         and window_overlap >= window_size
     ):
         errors.append("extraction.windowOverlap must be less than windowSize")
+    context_mode = str(extraction.get("contextMode") or "").strip().lower()
+    if context_mode not in {"window_local", "full_document"}:
+        errors.append("extraction.contextMode must be window_local or full_document")
+    max_window_tokens = _int_field(extraction, "maxWindowInputTokens")
+    if (
+        max_window_tokens is None
+        or max_window_tokens < 500
+        or max_window_tokens > 128000
+    ):
+        errors.append("extraction.maxWindowInputTokens must be between 500 and 128000")
 
     salvage = policy.get("salvage") or {}
     max_sentences = _int_field(salvage, "maxSentences")
@@ -140,8 +153,8 @@ def validate_referral_policy(policy: dict[str, Any]) -> list[str]:
         if not isinstance(temp, (int, float)) or temp < 0 or temp > 1:
             errors.append(f"llm.{stage}.temperature must be between 0 and 1")
         max_tokens = _int_field(stage_cfg, "maxTokens")
-        if max_tokens is None or max_tokens < 64 or max_tokens > 8192:
-            errors.append(f"llm.{stage}.maxTokens must be between 64 and 8192")
+        if max_tokens is None or max_tokens < 64 or max_tokens > 16384:
+            errors.append(f"llm.{stage}.maxTokens must be between 64 and 16384")
 
     prompts = policy.get("prompts") or {}
     if not isinstance(prompts, dict):

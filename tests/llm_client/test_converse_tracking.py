@@ -145,6 +145,7 @@ class _FakeAzureClient:
 @pytest.fixture
 def stub_azure(monkeypatch):
     holder: dict[str, Any] = {"response": None, "raise": None}
+    monkeypatch.setenv("AZURE_OPENAI_TRANSPORT", "chat_completions")
 
     def _fake_get_client(self):
         return _FakeAzureClient(holder["response"], holder["raise"])
@@ -194,6 +195,7 @@ def test_bedrock_converse_fires_tracking_with_matching_tokens(
     assert payload["output_tokens"] == 30
     assert payload["cache_read_input_tokens"] == 50
     assert payload["cache_creation_input_tokens"] == 15
+    assert payload["model_tier"] == "small"
     assert payload["input_excludes_cache"] is True
     assert payload["latency_ms"] >= 0
     assert payload["success"] is True
@@ -227,6 +229,7 @@ def test_azure_converse_fires_tracking_with_matching_tokens(
     assert payload["input_tokens"] == 200
     assert payload["output_tokens"] == 80
     assert payload["cache_read_input_tokens"] == 15
+    assert payload["model_tier"] == "small"
     assert payload["success"] is True
 
 

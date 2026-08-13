@@ -445,7 +445,7 @@ def create_context_rule(
             scope.email,
             org_id,
         )
-        return {
+        result = {
             "rule_id": rule_id,
             "literal": body.literal,
             "category": body.category,
@@ -464,6 +464,7 @@ def create_context_rule(
             "ConText pipeline reload failed after rule creation (non-fatal)",
             exc_info=True,
         )
+    return result
 
 
 @router.patch("/context-rules/{rule_id}/deactivate")
@@ -479,7 +480,7 @@ def deactivate_context_rule(
         if not row:
             raise HTTPException(status_code=404, detail=f"Rule {rule_id!r} not found")
         logger.info("ContextRule deactivated: %s", rule_id[:8])
-        return {"rule_id": rule_id, "active": False}
+        result = {"rule_id": rule_id, "active": False}
     finally:
         client.close()
 
@@ -493,6 +494,7 @@ def deactivate_context_rule(
             "ConText pipeline reload failed after rule deactivation (non-fatal)",
             exc_info=True,
         )
+    return result
 
 
 @router.delete("/surface-forms/{normalized}/revoke")

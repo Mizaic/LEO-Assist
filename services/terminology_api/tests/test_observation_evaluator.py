@@ -63,7 +63,9 @@ def _reading(value: float, days_ago: int, unit: str = "10*9/L") -> dict:
 def test_absolute_fires_when_latest_meets_threshold() -> None:
     leaf = _platelet_leaf()
     obs = [_reading(482.0, days_ago=10), _reading(350.0, days_ago=200)]
-    assert observation_matches(leaf, obs, patient_sex="male", patient_age=60.0, now=_NOW)
+    assert observation_matches(
+        leaf, obs, patient_sex="male", patient_age=60.0, now=_NOW
+    )
 
 
 def test_absolute_does_not_fire_when_latest_below_threshold() -> None:
@@ -103,7 +105,9 @@ def test_absolute_canonicalises_patient_unit() -> None:
         }
     ]
     # 0.482 /nL == 0.482 x10*9/L which is BELOW 400; should not fire.
-    assert not observation_matches(leaf, obs, patient_sex="male", patient_age=60, now=_NOW)
+    assert not observation_matches(
+        leaf, obs, patient_sex="male", patient_age=60, now=_NOW
+    )
 
 
 def test_absolute_between_operator() -> None:
@@ -299,7 +303,9 @@ def test_trend_percent_fires_on_25pct_fall() -> None:
     leaf = _egfr_leaf()
     obs = [_egfr_reading(60.0, days_ago=10), _egfr_reading(85.0, days_ago=350)]
     # delta = 100*(60-85)/85 = -29.4% which satisfies <= -25%.
-    assert observation_matches(leaf, obs, patient_sex="female", patient_age=70, now=_NOW)
+    assert observation_matches(
+        leaf, obs, patient_sex="female", patient_age=70, now=_NOW
+    )
 
 
 def test_trend_percent_does_not_fire_when_drop_too_small() -> None:
@@ -322,7 +328,9 @@ def test_trend_absolute_fires_on_drop() -> None:
     leaf = _egfr_leaf(trend={"delta_kind": "absolute", "window_days": 365}, value=-20.0)
     obs = [_egfr_reading(50.0, days_ago=10), _egfr_reading(85.0, days_ago=350)]
     # delta = 50 - 85 = -35.0 which satisfies <= -20.
-    assert observation_matches(leaf, obs, patient_sex="female", patient_age=70, now=_NOW)
+    assert observation_matches(
+        leaf, obs, patient_sex="female", patient_age=70, now=_NOW
+    )
 
 
 def test_trend_percent_fails_closed_when_baseline_zero() -> None:
@@ -498,6 +506,30 @@ def test_unregistered_observable_fires_with_authored_unit_match() -> None:
             "observed_at": (_NOW - timedelta(days=10)).isoformat(),
         }
     ]
-    assert observation_matches(
-        leaf, obs, patient_sex="male", patient_age=62, now=_NOW
-    )
+    assert observation_matches(leaf, obs, patient_sex="male", patient_age=62, now=_NOW)
+
+
+def test_fit_microgram_faeces_unit_matches_microgram_per_gram() -> None:
+    leaf = {
+        "kind": "observation",
+        "node_id": "obs_fit",
+        "observable_id": "1049361000000101",
+        "operator": ">=",
+        "value": 10.0,
+        "unit": "microgram/g",
+        "wire_unit": "microgram/g",
+        "within_days": 365,
+        "temporal": None,
+        "reference_range": None,
+        "trend": None,
+        "aggregation": None,
+    }
+    obs = [
+        {
+            "observable_id": "1049361000000101",
+            "value": 126.0,
+            "unit": "\u00b5g Hb/g faeces",
+            "observed_at": (_NOW - timedelta(days=7)).isoformat(),
+        }
+    ]
+    assert observation_matches(leaf, obs, patient_sex="male", patient_age=75, now=_NOW)

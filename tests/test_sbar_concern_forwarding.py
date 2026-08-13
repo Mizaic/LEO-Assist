@@ -33,6 +33,12 @@ from services.pipeline_worker.app.services.sbar_orchestrator import (
 
 @dataclass
 class _FakeSession:
+    """Context-integrity preflight (libs/sbar/context_integrity.py, added
+    after this test) queries the session before any LLM stage runs, and
+    treats an empty result as "record not connected to patient" -- fail
+    closed. Every check here must resolve as found so the orchestrator
+    proceeds far enough to exercise concern forwarding."""
+
     runs: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
 
     def run(self, query: str, **kwargs):
@@ -42,7 +48,7 @@ class _FakeSession:
 
 class _FakeResult:
     def single(self):
-        return None
+        return {"id": "found"}
 
 
 class _FakeClient:
@@ -153,7 +159,7 @@ def _build_orchestrator(monkeypatch, situation_spy):
 def test_orchestrator_forwards_concern_into_extra_context(monkeypatch) -> None:
     captured: dict[str, Any] = {}
 
-    async def _spy(_resolved, *, extra_context, patient_id):
+    async def _spy(_resolved, *, extra_context, patient_id, **_kwargs):
         captured["extra_context"] = dict(extra_context)
         captured["patient_id"] = patient_id
         return {"markdown": "ok", "raw": {}, "error": None}
@@ -172,7 +178,7 @@ def test_orchestrator_passes_none_for_empty_or_whitespace_concern(
 ) -> None:
     captured: dict[str, Any] = {}
 
-    async def _spy(_resolved, *, extra_context, patient_id):
+    async def _spy(_resolved, *, extra_context, patient_id, **_kwargs):
         captured["extra_context"] = dict(extra_context)
         return {"markdown": "ok", "raw": {}, "error": None}
 

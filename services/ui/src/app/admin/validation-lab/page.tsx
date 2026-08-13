@@ -2,42 +2,141 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-158BE606
- *   DI: DI-2289D095
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
+ *   DO: DO-4FD76836
+ *   DI: DI-238DA59A, DI-C953EF73, DI-562F2C9E
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-4FD76836")
  */
 "use client";
 
 /**
- * Validation Lab -- single clinical testing experience.
+ * Two-door Validation Lab home, then one run review.
  *
- * One flow: new test patient -> build profile -> add encounter(s) ->
- * create referral documentation -> submit referral (real pipeline run).
- * The former "Fixtures" (code-replay-only :TestPatient library) and
- * "Cases" split has been retired -- there is now one production-faithful
- * path.
- *
- * Atlas: UN-4DCE95C8 / DI-724CD8A5 / DI-2289D095 / DI-9138BAC9 / DI-A898556B
- * DO: DO-158BE606
+ * Atlas: UN-4DCE95C8 / DI-238DA59A / DI-C953EF73 / DI-562F2C9E
+ * DO: DO-4FD76836
  */
 
+import { useCallback, useEffect, useState } from "react";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 
+import AccuracyLoopHome, { type LabDoor } from "./AccuracyLoopHome";
+import ClinicalDoor from "./ClinicalDoor";
 import LabCasesPanel from "./LabCasesPanel";
+import RuleDoor from "./RuleDoor";
+import RunReviewLightbox, { type RunReviewTarget } from "./RunReviewLightbox";
+import { getCase, listCases, type LabCase } from "./labApi";
+import { listOpenFindings } from "./labFindingsApi";
+import { pollCasePipeline, queueCasePipeline } from "./labRun";
+import type { ValidationFinding } from "./findingTypes";
+
+type View = "home" | LabDoor;
 
 export default function ValidationLabPage() {
+  const [view, setView] = useState<View>("home");
+  const [review, setReview] = useState<RunReviewTarget | null>(null);
+  const [goldCases, setGoldCases] = useState<LabCase[]>([]);
+  const [findings, setFindings] = useState<ValidationFinding[]>([]);
+  const [twinPhrases, setTwinPhrases] = useState<string[]>([]);
+
+  const reloadStrip = useCallback(async () => {
+    const [cases, open] = await Promise.all([
+      listCases(),
+      listOpenFindings().catch(() => [] as ValidationFinding[]),
+    ]);
+    setGoldCases(cases.filter((row) => row.has_gold));
+    setFindings(open);
+  }, []);
+
+  useEffect(() => {
+    void reloadStrip().catch(() => undefined);
+  }, [reloadStrip]);
+
+  async function openGold(caseId: string) {
+    const labCase = await getCase(caseId);
+    const latest = labCase.runs?.[0];
+    setReview({
+      title: labCase.title,
+      caseId: labCase.id,
+      labRunId: latest?.id,
+      referralText: labCase.referral_text || "",
+      status: latest?.status || "idle",
+      terminal: Boolean(latest),
+      assessmentCaseId: labCase.id,
+    });
+  }
+
+  async function retest(headlines: Record<string, string>) {
+    if (!review?.caseId) return;
+    const started = await queueCasePipeline(review.caseId);
+    setReview({
+      ...review,
+      labRunId: started.id,
+      status: started.status,
+      terminal: false,
+      readOnly: false,
+      previousHeadlines: headlines,
+    });
+    const finalRun = await pollCasePipeline(review.caseId, started.id);
+    setReview((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: finalRun.status,
+            terminal: true,
+          }
+        : prev,
+    );
+  }
+
   return (
-    <Box sx={{ p: 3, maxWidth: 1200 }} data-testid="validation-lab-page">
-      <Typography variant="h5" component="h1" sx={{ mb: 1 }}>
-        Validation Lab
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        One place to test the clinical pipeline: build a test patient, add
-        their history and referral, then submit it through the real
-        pipeline and review the SBAR it produces.
-      </Typography>
-      <LabCasesPanel />
+    <Box data-testid="validation-lab-page">
+      {view === "home" ? (
+        <AccuracyLoopHome
+          goldCases={goldCases}
+          openFindings={findings}
+          onOpenDoor={setView}
+          onOpenGold={(id) => void openGold(id)}
+          onOpenFinding={(runId) =>
+            setReview({
+              title: "Finding",
+              pipelineRunId: runId,
+              labRunId: runId,
+              status: "completed",
+              terminal: true,
+              readOnly: true,
+            })
+          }
+        />
+      ) : null}
+      {view === "rule" ? (
+        <RuleDoor
+          seedPhrases={twinPhrases}
+          onBack={() => {
+            setView("home");
+            setTwinPhrases([]);
+          }}
+          onReview={setReview}
+        />
+      ) : null}
+      {view === "clinical" ? (
+        <ClinicalDoor onBack={() => setView("home")} onReview={setReview} />
+      ) : null}
+      {view === "saved" ? (
+        <LabCasesPanel initialMode="case" onBack={() => setView("home")} />
+      ) : null}
+      <RunReviewLightbox
+        target={review}
+        onClose={() => {
+          setReview(null);
+          void reloadStrip();
+        }}
+        onRetest={(headlines) => void retest(headlines)}
+        onSavedGold={() => void reloadStrip()}
+        onBuildTwin={(phrases) => {
+          setTwinPhrases(phrases);
+          setReview(null);
+          setView("rule");
+        }}
+      />
     </Box>
   );
 }

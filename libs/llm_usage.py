@@ -44,13 +44,14 @@ def _bedrock_cache_write_tokens(usage: dict) -> int:
     )
 
 
-# Baseline per-1M-token cost defaults, mirroring
-# services/api/app/services/model_config_seed.py.
-# AWS EU cross-region = Anthropic base * 1.1.
-# Azure defaults use Data Zone (EU) rates from azure.com (2026-07).
+# Baseline per-1M-token cost defaults (USD). Shared with model_config_seed.
+# AWS EU cross-region inference profiles = Anthropic base * 1.1.
+# Azure Global / Data Zone / Regional Standard meters share the same
+# per-token list price; mizaic-cds-oai gpt-5-mini deployment uses these rates.
+# Azure has no separate cache-write rate; write defaults to input rate.
 # Cache write (5m) = 1.25x input (Anthropic / Bedrock default TTL).
-# Sources verified 2026-07-22.
-_COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
+# Sources: azure.com OpenAI pricing, verified 2026-08-10.
+COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
     "aws": {
         # eu.anthropic.claude-haiku-4-5
         "small": {
@@ -75,22 +76,25 @@ _COST_DEFAULTS: dict[str, dict[str, dict[str, float]]] = {
         },
     },
     "azure": {
-        # GPT-5-mini Data Zone
+        # gpt-5-mini deployment on mizaic-cds-oai (Global Standard pricing)
         "small": {
-            "input": 0.28,
-            "cached": 0.03,
-            "cache_write": 0.28,
-            "output": 2.20,
+            "input": 0.75,
+            "cached": 0.075,
+            "cache_write": 0.75,
+            "output": 4.50,
         },
-        # GPT-5 Data Zone
+        # gpt-5.4 Global Standard (<272k context)
         "big": {
-            "input": 1.38,
-            "cached": 0.14,
-            "cache_write": 1.38,
-            "output": 11.00,
+            "input": 2.50,
+            "cached": 0.25,
+            "cache_write": 2.50,
+            "output": 15.00,
         },
     },
 }
+
+# Back-compat alias for internal lookups.
+_COST_DEFAULTS = COST_DEFAULTS
 
 
 @dataclass(frozen=True)
@@ -111,14 +115,20 @@ class LLMCostConfig:
     def for_tier(cls, tier: str) -> LLMCostConfig:
         """Resolve cost rates for an explicit tier (small/big/max)."""
         provider = os.getenv("PIPELINE_MODEL_PROVIDER", "azure").strip().lower()
+        return cls.for_provider_tier(provider, tier)
+
+    @classmethod
+    def for_provider_tier(cls, provider: str, tier: str) -> LLMCostConfig:
+        """Resolve cost rates for an explicit provider and tier."""
+        provider_lc = (provider or "azure").strip().lower()
         tier_lc = (tier or "small").strip().lower()
         tier_up = tier_lc.upper()
-        if provider == "azure":
+        if provider_lc == "azure":
             prefix = f"AZURE_OPENAI_{tier_up}_MODEL"
         else:
             prefix = f"AWS_BEDROCK_MODEL_{tier_up}_MODEL"
 
-        defaults = _COST_DEFAULTS.get(provider, {}).get(
+        defaults = _COST_DEFAULTS.get(provider_lc, {}).get(
             tier_lc,
             {"input": 0.0, "cached": 0.0, "cache_write": 0.0, "output": 0.0},
         )
@@ -144,6 +154,51 @@ class LLMCostConfig:
                 )
             ),
         )
+
+
+def infer_model_tier(model_name: str) -> str:
+    """Map a provider model id to small/big/max. Empty if unknown."""
+    name = (model_name or "").strip().lower()
+    if not name:
+        return ""
+    if "haiku" in name or "nano" in name or "mini" in name:
+        return "small"
+    if "opus" in name:
+        return "max"
+    if "sonnet" in name or "gpt-5" in name:
+        return "big"
+    return ""
+
+
+def _canonical_provider(provider: str, model_name: str) -> str:
+    p = (provider or "").strip().lower()
+    if p in ("aws", "bedrock"):
+        return "aws"
+    if p == "azure":
+        return "azure"
+    name = (model_name or "").lower()
+    claude_tags = ("anthropic", "claude", "haiku", "sonnet", "opus")
+    if any(tag in name for tag in claude_tags):
+        return "aws"
+    return "azure" if name else p
+
+
+def cost_config_for_invocation(
+    provider: str = "",
+    tier: str = "",
+    model_name: str = "",
+    fallback: LLMCostConfig | None = None,
+) -> LLMCostConfig:
+    """Resolve list-price rates for one LLM call, not the env default tier."""
+    provider_lc = _canonical_provider(provider, model_name)
+    tier_lc = (tier or "").strip().lower()
+    if tier_lc not in ("small", "big", "max"):
+        tier_lc = infer_model_tier(model_name)
+    if provider_lc in ("aws", "azure") and tier_lc in ("small", "big", "max"):
+        return LLMCostConfig.for_provider_tier(provider_lc, tier_lc)
+    if fallback is not None:
+        return fallback
+    return LLMCostConfig.from_env()
 
 
 @dataclass

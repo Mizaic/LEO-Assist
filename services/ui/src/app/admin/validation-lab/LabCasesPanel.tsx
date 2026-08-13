@@ -34,7 +34,8 @@ import {
   initialMultiSheet,
   runBatchWithLiveProgress,
 } from "./labBatchRunner";
-import RunSheetDialog, { type RunSheetState } from "./RunSheetDialog";
+import LabRunSheetHost from "./LabRunSheetHost";
+import type { RunSheetState } from "./RunSheetDialog";
 import TestPatientRolodex from "./TestPatientRolodex";
 import {
   deleteCase,
@@ -53,7 +54,13 @@ function carePatientHref(patientId: string): string {
   return `/care/patients/${encodeURIComponent(patientId)}`;
 }
 
-export default function LabCasesPanel() {
+export default function LabCasesPanel({
+  initialMode,
+  onBack,
+}: {
+  initialMode?: "rule" | "case";
+  onBack?: () => void;
+}) {
   const [cases, setCases] = useState<LabCase[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [detail, setDetail] = useState<LabCase | null>(null);
@@ -62,7 +69,8 @@ export default function LabCasesPanel() {
   const [score, setScore] = useState<Record<string, unknown> | null>(null);
   const [busy, setBusy] = useState(false);
   const [testingCaseId, setTestingCaseId] = useState("");
-  const [showWizard, setShowWizard] = useState(true);
+  // "rule" mode starts with the create wizard open; "case" mode goes straight to the list
+  const [showWizard, setShowWizard] = useState(initialMode !== "case");
   const [viewPatientId, setViewPatientId] = useState<string>("");
   const [runSheet, setRunSheet] = useState<RunSheetState | null>(null);
   const sheetOpenRef = useRef(true);
@@ -272,11 +280,24 @@ export default function LabCasesPanel() {
   const latestCost =
     latestRun?.outputs?.llm_usage?.cost_usd ?? latestRun?.llm_cost_usd;
 
+  const makingNew = showWizard;
+  const modeLabel = initialMode === "case" ? "Open a saved test" : "Make a new test";
+  const modeHint = makingNew
+    ? "Follow the steps. When you submit, LEO will read the letter."
+    : "Pick a test. Press Test to see what LEO found.";
+
   return (
     <Box data-testid="validation-lab-cases-panel">
+      {onBack ? (
+        <Button size="small" onClick={onBack} sx={{ mb: 1 }}>
+          Back to start
+        </Button>
+      ) : null}
+      <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>
+        {modeLabel}
+      </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Create synthetic test patients, browse them like a rolodex, then run
-        the real pipeline. Nothing shown here is fabricated.
+        {modeHint}
       </Typography>
 
       {error && (
@@ -292,7 +313,7 @@ export default function LabCasesPanel() {
 
       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
         <Button
-          variant={showWizard ? "contained" : "outlined"}
+          variant={makingNew ? "contained" : "outlined"}
           onClick={() => {
             setShowWizard(true);
             setDetail(null);
@@ -300,11 +321,18 @@ export default function LabCasesPanel() {
           }}
           data-testid="validation-lab-new-patient"
         >
-          New test patient
+          Make a new test
+        </Button>
+        <Button
+          variant={!makingNew ? "contained" : "outlined"}
+          onClick={() => setShowWizard(false)}
+          data-testid="validation-lab-browse"
+        >
+          Open a saved test
         </Button>
       </Stack>
 
-      {showWizard && (
+      {makingNew && (
         <Box sx={{ mb: 3 }}>
           <CreatePatientWizard
             onCaseCreated={() => {
@@ -314,6 +342,7 @@ export default function LabCasesPanel() {
         </Box>
       )}
 
+      {!makingNew && (
       <Box sx={{ mb: 3 }}>
         <TestPatientRolodex
           cases={cases}
@@ -329,8 +358,9 @@ export default function LabCasesPanel() {
           onDeleteMany={onDeleteMany}
         />
       </Box>
+      )}
 
-      {detail && (
+      {detail && !makingNew && (
         <Box sx={{ mb: 3 }} data-testid="validation-lab-case-detail">
           <Typography variant="subtitle1">
             Selected: {detail.title}
@@ -425,16 +455,22 @@ export default function LabCasesPanel() {
         </Box>
       )}
 
-      {assessmentId && (
+      {assessmentId && !makingNew && (
         <Box sx={{ mt: 2 }} data-testid="validation-lab-sbar">
           <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-            SBAR (CDN widget)
+            LEO's draft summary
           </Typography>
           <LeoSbarHost assessmentId={assessmentId} />
         </Box>
       )}
 
-      <RunSheetDialog sheet={runSheet} onClose={closeRunSheet} />
+      <LabRunSheetHost
+        sheet={runSheet}
+        detail={detail}
+        onClose={closeRunSheet}
+        onRetest={(caseId) => void onTest(caseId)}
+        onSavedGold={() => void onPromote()}
+      />
 
       <Dialog
         fullScreen

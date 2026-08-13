@@ -12,10 +12,13 @@ edges into stable, query-friendly relationship types based on typeId.
 
 Key lab-domain relationships added (for observable/procedure/finding traversal):
 
-    HAS_COMPONENT  (246093002) — procedure -[HAS_COMPONENT]-> observable_entity
+    HAS_COMPONENT  (246093002) — Component attribute (procedure or observable)
         e.g. "MCH determination (procedure)" -> "MCH (observable entity)"
 
-    INTERPRETS     (363713009) — finding -[INTERPRETS]-> observable_entity
+    INTERPRETS     (363713009) — Has interpretation -> qualifier value
+        e.g. "Occult blood detected" -> "Detected (qualifier value)"
+
+    INTERPRETS_OBSERVABLE (363714003) — Interprets -> observable entity
         e.g. "Finding of MCH level (finding)" -> "MCH (observable entity)"
 
     HAS_ASSOCIATED_FINDING (246090004) — concept -[HAS_ASSOCIATED_FINDING]-> finding
@@ -57,8 +60,9 @@ TYPE_ID_TO_REL = {
     "127489000": "HAS_ACTIVE_INGREDIENT",
     # --- Lab-domain family relationships ---
     # Enables: procedure <-> observable_entity <-> finding navigation
-    "246093002": "HAS_COMPONENT",  # procedure -[HAS_COMPONENT]-> observable_entity
-    "363713009": "INTERPRETS",  # finding -[INTERPRETS]-> observable_entity
+    "246093002": "HAS_COMPONENT",  # Component; often procedure -> observable
+    "363713009": "INTERPRETS",  # Has interpretation -> qualifier (detected)
+    "363714003": "INTERPRETS_OBSERVABLE",  # Interprets -> observable entity
     "246090004": "HAS_ASSOCIATED_FINDING",  # concept -[HAS_ASSOCIATED_FINDING]-> finding
 }
 

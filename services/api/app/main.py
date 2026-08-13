@@ -42,6 +42,7 @@ from app.deps import get_caller_scope_from_request
 from app.limiter import limiter
 from app.routers.admin import router as admin_router
 from app.routers.admin_entra import router as admin_entra_router
+from app.routers.workbench_admin import router as workbench_admin_router
 from app.routers.data_quality import router as data_quality_router
 from app.routers.onboarding import router as onboarding_router
 from app.routers.mail_router import router as mail_router
@@ -57,6 +58,7 @@ from app.routers.presets import router as presets_router
 from app.routers.training import router as training_router
 from app.routers.patients import router as patients_router
 from app.routers.patient_document_runs import router as patient_document_runs_router
+from app.routers.patient_documents import router as patient_documents_router
 from app.routers.pipeline import router as pipeline_router
 from app.routers.proxy import router as proxy_router
 from app.routers.review import router as review_router
@@ -88,6 +90,9 @@ from app.routers.validation_runs import router as validation_runs_router
 from app.routers.validation_lab import router as validation_lab_router
 from app.routers.validation_lab_brainstorm import (
     router as validation_lab_brainstorm_router,
+)
+from app.routers.validation_lab_clinical import (
+    router as validation_lab_clinical_router,
 )
 from app.routers.sdk_auth import router as sdk_auth_router
 from app.routers.sdk_governance import router as sdk_governance_router
@@ -455,19 +460,32 @@ async def require_xhr_for_mutations(request: Request, call_next):
     return await call_next(request)
 
 
+def _is_embeddable_patient_document_file(path: str) -> bool:
+    """Care document viewer embeds PDFs via same-origin iframe."""
+    normalized = path.rstrip("/")
+    return "/documents/" in normalized and normalized.endswith("/file")
+
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Add security headers to every response (CSP-T-001, defence-in-depth).
 
     The Content-Security-Policy is restrictive: this is a JSON API, not a
     document server, so no scripts, styles, or frames should ever be served.
+    Patient document file streams are the exception: they must be embeddable
+    in the Care Documents iframe on the same origin.
     """
     response = await call_next(request)
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'none'; frame-ancestors 'none'"
-    )
+    embeddable = _is_embeddable_patient_document_file(request.url.path)
+    if embeddable:
+        response.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    else:
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; frame-ancestors 'none'"
+        )
+        response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Strict-Transport-Security"] = (
         "max-age=63072000; includeSubDomains; preload"
@@ -477,6 +495,7 @@ async def add_security_headers(request: Request, call_next):
 
 app.include_router(admin_router)
 app.include_router(admin_entra_router)
+app.include_router(workbench_admin_router)
 app.include_router(onboarding_router)
 app.include_router(mail_router)
 app.include_router(anchor_review_router)
@@ -484,6 +503,7 @@ app.include_router(auth_router)
 app.include_router(proxy_router)
 app.include_router(patients_router)
 app.include_router(patient_document_runs_router)
+app.include_router(patient_documents_router)
 app.include_router(pipeline_router)
 app.include_router(review_router)
 app.include_router(work_router)
@@ -520,6 +540,7 @@ app.include_router(coding_validation_router)
 app.include_router(validation_runs_router)
 app.include_router(validation_lab_router)
 app.include_router(validation_lab_brainstorm_router)
+app.include_router(validation_lab_clinical_router)
 app.include_router(sdk_auth_router)
 app.include_router(sdk_telemetry_router)
 app.include_router(sdk_release_router)

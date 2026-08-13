@@ -171,6 +171,8 @@ SET a.content                       = $content,
     a.alternative_pathway_evidence  = $alternative_pathway_evidence,
     a.rtr                           = $rtr,
     a.rtr_evidence                  = $rtr_evidence,
+    a.spoa_disposition              = $spoa_disposition,
+    a.spoa_disposition_evidence     = $spoa_disposition_evidence,
     a.updated_at                    = datetime()
 RETURN a.id AS id, a.status AS status
 """
@@ -298,6 +300,8 @@ RETURN a.id                            AS id,
        a.alternative_pathway_evidence  AS alternative_pathway_evidence,
        a.rtr                           AS rtr,
        a.rtr_evidence                  AS rtr_evidence,
+       a.spoa_disposition              AS spoa_disposition,
+       a.spoa_disposition_evidence     AS spoa_disposition_evidence,
        a.errors                        AS errors,
        a.completeness_result_json      AS completeness_result_json,
        a.compliance_alerts_json        AS compliance_alerts_json,

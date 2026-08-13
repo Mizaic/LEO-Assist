@@ -1,0 +1,11 @@
+{
+  "name": "gpt-5-mini-responses",
+  "provider": "azure",
+  "tier": "small",
+  "model_id": "gpt-5-mini",
+  "reasoning_effort": "low",
+  "verbosity": "low",
+  "use_reasoning": true,
+  "max_tokens": 512,
+  "example_ids": []
+}

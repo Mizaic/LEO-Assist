@@ -185,3 +185,107 @@ class TestLLMCostConfig:
         cfg = LLMCostConfig.from_env()
         assert cfg.cost_per_1m_input == 1.25
         assert cfg.cost_per_1m_output == 10.0
+
+    def test_azure_small_defaults_match_gpt54_mini_list_price(
+        self, monkeypatch
+    ) -> None:
+        monkeypatch.delenv(
+            "AZURE_OPENAI_SMALL_MODEL_COST_PER_1M_INPUT_TOKEN", raising=False
+        )
+        monkeypatch.delenv(
+            "AZURE_OPENAI_SMALL_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", raising=False
+        )
+        monkeypatch.delenv(
+            "AZURE_OPENAI_SMALL_MODEL_COST_PER_1M_OUTPUT_TOKEN", raising=False
+        )
+        monkeypatch.delenv(
+            "AZURE_OPENAI_SMALL_MODEL_COST_PER_1M_CACHE_WRITE_TOKEN", raising=False
+        )
+        cfg = LLMCostConfig.for_provider_tier("azure", "small")
+        assert cfg.cost_per_1m_input == 0.75
+        assert cfg.cost_per_1m_cached_input == 0.075
+        assert cfg.cost_per_1m_output == 4.50
+        assert cfg.cost_per_1m_cache_write == 0.75
+
+    def test_azure_big_defaults_match_gpt54_list_price(self, monkeypatch) -> None:
+        monkeypatch.delenv(
+            "AZURE_OPENAI_BIG_MODEL_COST_PER_1M_INPUT_TOKEN", raising=False
+        )
+        monkeypatch.delenv(
+            "AZURE_OPENAI_BIG_MODEL_COST_PER_1M_CACHED_INPUT_TOKEN", raising=False
+        )
+        monkeypatch.delenv(
+            "AZURE_OPENAI_BIG_MODEL_COST_PER_1M_OUTPUT_TOKEN", raising=False
+        )
+        monkeypatch.delenv(
+            "AZURE_OPENAI_BIG_MODEL_COST_PER_1M_CACHE_WRITE_TOKEN", raising=False
+        )
+        cfg = LLMCostConfig.for_provider_tier("azure", "big")
+        assert cfg.cost_per_1m_input == 2.50
+        assert cfg.cost_per_1m_cached_input == 0.25
+        assert cfg.cost_per_1m_output == 15.00
+        assert cfg.cost_per_1m_cache_write == 2.50
+
+
+class TestCostConfigForInvocation:
+    def test_infer_gpt54_is_azure_big(self) -> None:
+        from libs.llm_usage import infer_model_tier
+
+        assert infer_model_tier("gpt-5.4") == "big"
+        assert infer_model_tier("gpt-5.4-mini") == "small"
+        assert infer_model_tier("eu.anthropic.claude-sonnet-4-6") == "big"
+        assert infer_model_tier("eu.anthropic.claude-haiku-4-5") == "small"
+
+    def test_gpt54_uses_big_rates_even_when_env_tier_is_small(
+        self, monkeypatch
+    ) -> None:
+        from libs.llm_usage import cost_config_for_invocation
+
+        monkeypatch.setenv("PIPELINE_MODEL_PROVIDER", "azure")
+        monkeypatch.setenv("PIPELINE_MODEL_TIER", "small")
+        for suffix in (
+            "COST_PER_1M_INPUT_TOKEN",
+            "COST_PER_1M_CACHED_INPUT_TOKEN",
+            "COST_PER_1M_OUTPUT_TOKEN",
+            "COST_PER_1M_CACHE_WRITE_TOKEN",
+        ):
+            monkeypatch.delenv(f"AZURE_OPENAI_BIG_MODEL_{suffix}", raising=False)
+            monkeypatch.delenv(f"AZURE_OPENAI_SMALL_MODEL_{suffix}", raising=False)
+        cfg = cost_config_for_invocation("azure", "", "gpt-5.4")
+        assert cfg.cost_per_1m_input == 2.50
+        assert cfg.cost_per_1m_output == 15.00
+
+    def test_live_sbar_example_matches_gpt54_list_price(self, monkeypatch) -> None:
+        """Regression: 22576 in / 1104 out on gpt-5.4 is $0.073, not mini $0.0219."""
+        from libs.llm_usage import LLMUsage, cost_config_for_invocation
+
+        for suffix in (
+            "COST_PER_1M_INPUT_TOKEN",
+            "COST_PER_1M_CACHED_INPUT_TOKEN",
+            "COST_PER_1M_OUTPUT_TOKEN",
+            "COST_PER_1M_CACHE_WRITE_TOKEN",
+        ):
+            monkeypatch.delenv(f"AZURE_OPENAI_BIG_MODEL_{suffix}", raising=False)
+        usage = LLMUsage(input_tokens=22576, output_tokens=1104, llm_calls=1)
+        cfg = cost_config_for_invocation("azure", "big", "gpt-5.4")
+        assert abs(usage.cost_usd(cfg) - 0.073) < 1e-6
+
+    def test_live_sbar_cached_example_subtracts_azure_cache(self, monkeypatch) -> None:
+        from libs.llm_usage import LLMUsage, cost_config_for_invocation
+
+        for suffix in (
+            "COST_PER_1M_INPUT_TOKEN",
+            "COST_PER_1M_CACHED_INPUT_TOKEN",
+            "COST_PER_1M_OUTPUT_TOKEN",
+            "COST_PER_1M_CACHE_WRITE_TOKEN",
+        ):
+            monkeypatch.delenv(f"AZURE_OPENAI_BIG_MODEL_{suffix}", raising=False)
+        usage = LLMUsage(
+            input_tokens=21749,
+            output_tokens=1121,
+            cached_input_tokens=4224,
+            llm_calls=1,
+            input_excludes_cache=False,
+        )
+        cfg = cost_config_for_invocation("azure", "big", "gpt-5.4")
+        assert abs(usage.cost_usd(cfg) - 0.0616835) < 1e-9

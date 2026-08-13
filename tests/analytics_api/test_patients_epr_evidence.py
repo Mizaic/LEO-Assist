@@ -121,6 +121,7 @@ def test_ac1_mentions_endpoint_returns_source_date_and_assertion():
 def test_ac4_mention_detail_endpoint_returns_evidence_and_preferred_term():
     router_src = _read(ROUTER)
     assert "class ConceptMentionDetail(BaseModel):" in router_src
+    assert "evidence: Optional[str]" in router_src
     assert "evidence_sentence: Optional[str]" in router_src
     assert "name: Optional[str]" in router_src
     assert "read_code: Optional[str]" in router_src

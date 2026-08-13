@@ -597,6 +597,8 @@ export interface DomainSummary {
   minimum_dataset_domain?: boolean;
   minimum_dataset_subdomain_count?: number;
   use_cases?: DomainUseCase[];
+  coverage_pct?: number;
+  coded_encounter_count?: number;
 }
 
 export interface SubdomainSummary {

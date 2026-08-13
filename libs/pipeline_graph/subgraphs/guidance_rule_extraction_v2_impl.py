@@ -1658,12 +1658,14 @@ def _run_small_to_big_expansion_tool_loop(
     ]
     llm = create_llm(tier="small")
     out_terms: list[str] = []
+    response_items: list[Any] = []
     for _ in range(2):
         resp = llm.converse(
             system=system,
             messages=messages,
             tool_config=_SEMANTIC_EXPANSION_TOOL_CONFIG,
             json_mode=True,
+            response_items=response_items,
             max_tokens=400,
             agent_task="guidance_semantic_expansion",
         )
@@ -1676,20 +1678,33 @@ def _run_small_to_big_expansion_tool_loop(
                     [str(t) for t in parsed["search_terms"] if str(t).strip()]
                 )
             break
-        assistant_content: list[dict[str, Any]] = []
-        if resp.text:
-            assistant_content.append({"text": resp.text})
-        assistant_content.extend({"toolUse": tu} for tu in resp.tool_uses)
-        messages.append({"role": "assistant", "content": assistant_content})
+        raw_items = list(getattr(resp, "raw_output_items", None) or [])
+        if raw_items:
+            response_items.extend(raw_items)
+        else:
+            assistant_content: list[dict[str, Any]] = []
+            if resp.text:
+                assistant_content.append({"text": resp.text})
+            assistant_content.extend({"toolUse": tu} for tu in resp.tool_uses)
+            messages.append({"role": "assistant", "content": assistant_content})
         tool_results: list[dict[str, Any]] = []
         for tu in resp.tool_uses:
             if tu.get("name") != "ask_big_for_expansions":
+                payload = {"ok": False, "error": "unsupported_tool"}
                 tool_results.append(
                     _build_tool_result_block(
                         str(tu.get("toolUseId") or ""),
-                        {"ok": False, "error": "unsupported_tool"},
+                        payload,
                     )
                 )
+                if raw_items:
+                    response_items.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": str(tu.get("toolUseId") or ""),
+                            "output": json.dumps(payload, ensure_ascii=True),
+                        }
+                    )
                 continue
             inp = dict(tu.get("input") or {})
             terms = _ask_big_for_semantic_expansions(
@@ -1704,9 +1719,21 @@ def _run_small_to_big_expansion_tool_loop(
                     {"ok": True, "search_terms": terms},
                 )
             )
+            if raw_items:
+                response_items.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": str(tu.get("toolUseId") or ""),
+                        "output": json.dumps(
+                            {"ok": True, "search_terms": terms},
+                            ensure_ascii=True,
+                        ),
+                    }
+                )
         if not tool_results:
             break
-        messages.append({"role": "user", "content": tool_results})
+        if not raw_items:
+            messages.append({"role": "user", "content": tool_results})
     return _dedupe_strs(out_terms)[:8]
 
 
@@ -1977,7 +2004,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
 
     if not system_prompt.strip():
         msg = (
-            f"No system prompt for recommendation {rec.get('id')!r} — "
+            f"No system prompt for recommendation {rec.get('id')!r} -- "
             "extraction BLOCKED. Run: python -m scripts.seed_prompt_configs"
         )
         logger.error(msg)
@@ -1986,7 +2013,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
 
     verbatim = rec.get("verbatim") or rec.get("title") or ""
     if not verbatim.strip():
-        logger.info("Recommendation %s has no verbatim text — skipping", rec.get("id"))
+        logger.info("Recommendation %s has no verbatim text -- skipping", rec.get("id"))
         return {"raw_criteria": None, "errors": errors, "llm_tokens": prior_tokens}
 
     try:
@@ -2056,7 +2083,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     user_msg = "\n".join(context_parts)
 
     try:
-        from libs.llm_client.consensus import run_consensus
+        from libs.llm_client.consensus import ConsensusOptions, run_consensus
 
         merged = dict(prior_tokens)
         attempt_msgs = [
@@ -2070,8 +2097,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 user_msg=attempt_msg,
                 parse_fn=_parse_llm_output,
                 fail_verdict=None,
-                max_tokens=2500,
-                json_mode=True,
+                options=ConsensusOptions(max_tokens=2500, json_mode=True),
             )
             merged = _merge_tokens(
                 merged,
@@ -2123,7 +2149,7 @@ def extract_criteria(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 )
                 continue
         logger.warning(
-            "No criteria extracted for recommendation %s — "
+            "No criteria extracted for recommendation %s -- "
             "LLM returned no parseable verdict after retry. Rule will NOT be written.",
             rec.get("id"),
         )
@@ -2578,7 +2604,7 @@ def code_snomed(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         return {"candidate_criteria": None, "errors": errors}
     except Exception as exc:
         logger.exception(
-            "SNOMED coding failed unexpectedly — rule will NOT be written to Neo4j."
+            "SNOMED coding failed unexpectedly -- rule will NOT be written to Neo4j."
         )
         errors.append(f"snomed_coding_error:{exc}")
         return {"candidate_criteria": None, "errors": errors}
@@ -3208,6 +3234,7 @@ def _run_snomed_resolver_tool_loop(
     search_history: list[list[str]] = []
     pool: list[ResolutionCandidate] = []
     accepted: dict[str, Any] | None = None
+    response_items: list[Any] = []
 
     for _ in range(_MAX_SNOMED_RESOLVER_ITERATIONS):
         resp = llm.converse(
@@ -3215,15 +3242,20 @@ def _run_snomed_resolver_tool_loop(
             messages=messages,
             tool_config=_GUIDANCE_SNOMED_TOOL_CONFIG,
             json_mode=True,
+            response_items=response_items,
             agent_task="guidance_snomed_resolver",
         )
 
         if resp.tool_uses:
-            assistant_content: list[dict[str, Any]] = []
-            if resp.text:
-                assistant_content.append({"text": resp.text})
-            assistant_content.extend({"toolUse": tu} for tu in resp.tool_uses)
-            messages.append({"role": "assistant", "content": assistant_content})
+            raw_items = list(getattr(resp, "raw_output_items", None) or [])
+            if raw_items:
+                response_items.extend(raw_items)
+            else:
+                assistant_content: list[dict[str, Any]] = []
+                if resp.text:
+                    assistant_content.append({"text": resp.text})
+                assistant_content.extend({"toolUse": tu} for tu in resp.tool_uses)
+                messages.append({"role": "assistant", "content": assistant_content})
 
             accept_tool = next(
                 (tu for tu in resp.tool_uses if tu.get("name") == "accept_code"), None
@@ -3235,15 +3267,24 @@ def _run_snomed_resolver_tool_loop(
             tool_results: list[dict[str, Any]] = []
             for tu in resp.tool_uses:
                 if tu.get("name") != "lookup_snomed":
+                    payload = {
+                        "ok": False,
+                        "error": f"unsupported_tool:{tu.get('name')}",
+                    }
                     tool_results.append(
                         _build_tool_result_block(
                             str(tu.get("toolUseId") or ""),
-                            {
-                                "ok": False,
-                                "error": f"unsupported_tool:{tu.get('name')}",
-                            },
+                            payload,
                         )
                     )
+                    if raw_items:
+                        response_items.append(
+                            {
+                                "type": "function_call_output",
+                                "call_id": str(tu.get("toolUseId") or ""),
+                                "output": json.dumps(payload, ensure_ascii=True),
+                            }
+                        )
                     continue
                 inp = dict(tu.get("input") or {})
                 inp.setdefault("entity_index", 0)
@@ -3267,10 +3308,19 @@ def _run_snomed_resolver_tool_loop(
                 tool_results.append(
                     _build_tool_result_block(str(tu.get("toolUseId") or ""), payload)
                 )
+                if raw_items:
+                    response_items.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": str(tu.get("toolUseId") or ""),
+                            "output": json.dumps(payload, ensure_ascii=True),
+                        }
+                    )
 
             if not tool_results:
                 break
-            messages.append({"role": "user", "content": tool_results})
+            if not raw_items:
+                messages.append({"role": "user", "content": tool_results})
             continue
 
         break
@@ -4200,8 +4250,9 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
     for attempt in range(2):
         try:
             from libs.llm_client.consensus import (
-                run_consensus,
+                ConsensusOptions,
                 _consensus_verifier_tier,
+                run_consensus,
             )
 
             verdict = run_consensus(
@@ -4209,9 +4260,11 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
                 user_msg=_build_verifier_user_msg(rec, raw or {}, working, few_shot),
                 parse_fn=_parse_verifier_output,
                 fail_verdict=None,
-                max_tokens=3000,
-                json_mode=True,
-                tier=_consensus_verifier_tier(),
+                options=ConsensusOptions(
+                    max_tokens=3000,
+                    json_mode=True,
+                    tier=_consensus_verifier_tier(),
+                ),
             )
             merged_tokens = _merge_tokens(
                 merged_tokens,
@@ -4332,7 +4385,8 @@ def verify_codes(state: GuidanceRuleExtractionState) -> dict[str, Any]:
         )
     ):
         logger.error(
-            "Verifier rejected or left unresolved terms for %s — rule will NOT be written. Errors=%s",
+            "Verifier rejected or left unresolved terms for %s "
+            "-- rule will NOT be written. Errors=%s",
             rec.get("id"),
             errors,
         )

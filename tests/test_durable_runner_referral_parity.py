@@ -94,9 +94,9 @@ EXPECTED_SUBGRAPH_ORDER = [
     "terminology",
     "coding_verifier",
     "persist",
+    "referral_reason",
     "compliance",
     "quality_check",
-    "referral_reason",
     "sbar",
 ]
 

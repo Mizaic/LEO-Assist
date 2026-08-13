@@ -17,5 +17,5 @@ def test_understand_query_applies_typo_normalization():
 def test_understand_query_without_llm_is_fail_open():
     result = understand_query("neck lump 2ww referral")
     assert result.original_query == "neck lump 2ww referral"
-    assert result.rewrite_source in {"deterministic", "haiku"}
+    assert result.rewrite_source in {"deterministic", "llm"}
     assert isinstance(result.rewrite_applied, bool)

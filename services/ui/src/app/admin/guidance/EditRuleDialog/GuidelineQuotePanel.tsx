@@ -17,9 +17,9 @@
  * half-built, so a live summary there is more confusing than useful.
  * What IS useful the whole way through is the guideline sentence
  * itself, pinned here instead of living at the top of a canvas the
- * reviewer has to scroll back up to re-read on every step. Once the
- * wizard reaches Review, the host swaps back to `LivePreviewPane`,
- * which is finally showing a tree worth previewing.
+ * reviewer has to scroll back up to re-read on every step. The host
+ * keeps this panel visible on Check / Suggest / Save as well, with
+ * LivePreviewPane stacked underneath once the tree is built.
  *
  * Highlighting modes:
  *  - Step 2 (boundaries set, no active index): each situation's full

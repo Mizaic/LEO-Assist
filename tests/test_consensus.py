@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from unittest.mock import patch
 
-from libs.llm_client.consensus import ConsensusResult, run_consensus
+from libs.llm_client.consensus import ConsensusOptions, ConsensusResult, run_consensus
 from libs.llm_client.factory import LLMResponse
 
 
@@ -37,7 +37,7 @@ class TestRunConsensusSuccess:
     )
     @patch("libs.llm_client.consensus._call_provider")
     def test_returns_parsed_verdict(self, mock_call):
-        mock_call.return_value = _make_response("YES", "gpt-5.4-nano")
+        mock_call.return_value = _make_response("YES", "gpt-5.4-mini")
         result = run_consensus(
             system_prompt="s",
             user_msg="m",
@@ -49,7 +49,7 @@ class TestRunConsensusSuccess:
         assert result.agreed is True
         assert result.azure_verdict == ""
         assert result.arbitrator_verdict == ""
-        assert "gpt-5.4-nano" in result.model_ids
+        assert "gpt-5.4-mini" in result.model_ids
         assert mock_call.call_count == 1
 
     @patch("libs.llm_client.consensus._call_provider")
@@ -60,9 +60,34 @@ class TestRunConsensusSuccess:
             user_msg="m",
             parse_fn=_simple_parse,
             fail_verdict="fail",
-            tier="small",
+            options=ConsensusOptions(tier="small"),
         )
         assert mock_call.call_args[0][1] == "small"
+
+    @patch("libs.llm_client.consensus._call_provider")
+    def test_strict_schema_controls_reach_provider_request(self, mock_call):
+        mock_call.return_value = _make_response('{"verdict": "yes"}')
+        schema = {
+            "type": "object",
+            "properties": {"verdict": {"type": "string"}},
+            "required": ["verdict"],
+            "additionalProperties": False,
+        }
+
+        run_consensus(
+            system_prompt="s",
+            user_msg="m",
+            parse_fn=lambda text: text,
+            fail_verdict="fail",
+            options=ConsensusOptions(
+                json_mode=True,
+                structured_schema=schema,
+            ),
+        )
+
+        request = mock_call.call_args[0][2]
+        assert request.options.structured_schema == schema
+        assert request.options.json_mode is True
 
 
 class TestParseRetry:
@@ -267,7 +292,7 @@ class TestSingleModelIsDefault:
     )
     @patch("libs.llm_client.consensus._call_provider")
     def test_default_provider_is_azure(self, mock_call):
-        mock_call.return_value = _make_response("yes", "gpt-5.4-nano")
+        mock_call.return_value = _make_response("yes", "gpt-5.4-mini")
         run_consensus(
             system_prompt="s",
             user_msg="m",

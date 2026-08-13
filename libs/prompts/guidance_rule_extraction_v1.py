@@ -408,7 +408,7 @@ the procedure itself. Never use procedure or qualifier-value concepts for these.
 - Replace the single `concept` leaf with an `OR` node of 3-5 specific
   radiological FINDING concepts a GP would code from an imaging report
 - All children must have semantic tag `finding`, `disorder`, or
-  `morphologic abnormality` — NEVER `procedure` or `qualifier value`
+  `morphologic abnormality` -- NEVER `procedure` or `qualifier value`
 - Each child keeps `term.source_text` set to the original NICE phrase
 
 **Safety rules:**
@@ -523,7 +523,7 @@ investigation procedure term instead.
 
 ## Output format
 
-Return ONLY valid JSON — no explanation, no markdown, no preamble.
+Return ONLY valid JSON -- no explanation, no markdown, no preamble.
 
 Preferred SituationDraft shape (fill the provided SITUATION_SHELLS):
 {

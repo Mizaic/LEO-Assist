@@ -10,11 +10,10 @@ Contains: ask_leo_coding, ask_leo_rank_candidates, ask_leo_smart
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from pydantic import BaseModel
 
 from libs.auth.org_scope import CallerScope, get_caller_scope
@@ -134,20 +133,21 @@ def register_askleo_routes(router) -> None:
         if not body.candidates:
             return {"selected_index": 0, "reason": ""}
 
-        from libs.llm_client.escalation import _parse_json
-        from libs.llm_client.factory import create_llm
-        from libs.llm_client.prompt_safety import INJECTION_GUARD, sanitise_for_prompt
+        from libs.llm_client.escalation import escalate_coding_from_candidates
         from libs.ner.lab_value_guard import (
             is_lab_result_sentence,
             should_suppress_disorder,
         )
 
         if is_lab_result_sentence(body.encounter_text or ""):
-            if body.entity_semantic_tag != "body_structure" and should_suppress_disorder(
-                entity_text=body.entity_text,
-                entity_semantic_tag="disorder",
-                entity_normalized=body.entity_text,
-                sentence_text=body.encounter_text or "",
+            if (
+                body.entity_semantic_tag != "body_structure"
+                and should_suppress_disorder(
+                    entity_text=body.entity_text,
+                    entity_semantic_tag="disorder",
+                    entity_normalized=body.entity_text,
+                    sentence_text=body.encounter_text or "",
+                )
             ):
                 return {
                     "selected_index": 0,
@@ -157,61 +157,18 @@ def register_askleo_routes(router) -> None:
                     ),
                 }
 
-        numbered = "\n".join(
-            f"{i}. {c.get('term', '')} (SNOMED: {c.get('snomed_concept_id', '')})"
-            for i, c in enumerate(body.candidates)
-        )
-        system = INJECTION_GUARD + (
-            "You are a UK primary care SNOMED CT coding specialist.\n"
-            "Pick the best concept from the numbered list for the clinical entity "
-            "and encounter context.\n\n"
-            "RULES:\n"
-            "1. Only pick from the numbered list. Do not invent or reference any "
-            "SNOMED concept IDs -- the list already contains the verified real codes.\n"
-            "2. Clinical subtype matters:\n"
-            "   - 'weight loss' without a qualifier -> generic term, not a specific "
-            "subtype (intentional/unintentional/unexplained) unless the encounter "
-            "text is clear.\n"
-            "   - 'no weight loss' suggests negation; pick the plain concept "
-            "(negation is handled separately).\n"
-            "3. Use measurement units to distinguish lab results: "
-            "g/L -> mass concentration; mmol/L -> substance concentration.\n"
-            "4. UK convention: blood tests are serum-based unless stated otherwise.\n"
-            "5. If no candidate clearly fits, pick the closest and note the lower "
-            "confidence in your reason.\n"
-            "6. Do NOT infer diagnoses from lab values. A lab result (eGFR, HbA1c, "
-            "creatinine, sodium) is an observation, not a diagnosis. CKD-EPI is a "
-            "formula name, not CKD. Pick the observable entity concept for lab results.\n"
-            "7. This system is a CODING tool. You code what is written.\n\n"
-            "Reply ONLY with JSON: "
-            '{"selected_index": <int>, "reason": "<one sentence>"}'
-        )
-        user_msg = json.dumps(
-            {
-                "entity_text": sanitise_for_prompt(body.entity_text, max_chars=200),
-                "encounter_text": sanitise_for_prompt(
-                    body.encounter_text, max_chars=16_000
-                ),
-                "candidates": numbered,
-            }
-        )
         tier = body.tier if body.tier in ("small", "big", "max") else "small"
         try:
-            client = create_llm(tier=tier)
-            response = client.converse(
-                system=system,
-                messages=[{"role": "user", "content": user_msg}],
-                temperature=0.0,
-                max_tokens=150,
-                agent_task="ask_leo_rank_candidates",
-                patient_id=str(getattr(body, "patient_id", "") or ""),
+            result = escalate_coding_from_candidates(
+                entity_text=body.entity_text,
+                encounter_text=body.encounter_text,
+                candidates=body.candidates,
+                tier=tier,
             )
-            parsed = _parse_json(response.text)
-            idx = int(parsed.get("selected_index", 0))
-            reason = str(parsed.get("reason", ""))[:300]
+            idx = result.selected_index if result.action == "pick" else 0
             if not (0 <= idx < len(body.candidates)):
                 idx = 0
-            return {"selected_index": idx, "reason": reason}
+            return {"selected_index": idx, "reason": result.reason[:300]}
         except Exception:
             logger.warning(
                 "ask-leo-rank failed for %r", body.entity_text, exc_info=True
@@ -241,11 +198,14 @@ def register_askleo_routes(router) -> None:
         safe_encounter = sanitise_for_prompt(body.encounter_text, max_chars=16_000)
 
         if is_lab_result_sentence(safe_encounter or ""):
-            if body.entity_semantic_tag != "body_structure" and should_suppress_disorder(
-                entity_text=safe_entity,
-                entity_semantic_tag="disorder",
-                entity_normalized=safe_entity,
-                sentence_text=safe_encounter or "",
+            if (
+                body.entity_semantic_tag != "body_structure"
+                and should_suppress_disorder(
+                    entity_text=safe_entity,
+                    entity_semantic_tag="disorder",
+                    entity_normalized=safe_entity,
+                    sentence_text=safe_encounter or "",
+                )
             ):
                 return {
                     "matched_candidate": None,

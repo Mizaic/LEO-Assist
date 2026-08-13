@@ -51,7 +51,7 @@ def build_runtime(manifest: dict[str, Any]) -> SbarPolicyRuntime:
         model_key=str(model.get("key") or ""),
         model_id=str(model.get("modelId") or ""),
         model_provider=str(model.get("provider") or "azure"),
-        model_tier=str(model.get("tier") or "big"),
+        model_tier=str(model.get("tier") or "small"),
     )
 
 
@@ -92,7 +92,7 @@ def stage_llm_params(runtime: SbarPolicyRuntime, stage: StageName) -> dict[str, 
 def make_llm_invoker(runtime: SbarPolicyRuntime, stage: StageName) -> LlmInvoker:
     params = stage_llm_params(runtime, stage)
     provider = default_llm_provider()
-    tier = runtime.model_tier or "big"
+    tier = runtime.model_tier or "small"
 
     async def _invoke(
         system_prompt: str,

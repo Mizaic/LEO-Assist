@@ -335,12 +335,13 @@ OSA
 
 kill_listener_on_port() {
   local port="$1"
+  local label="${2:-port ${port}}"
   local pids
   pids="$(lsof -ti TCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
   if [[ -n "$pids" ]]; then
     # shellcheck disable=SC2086
     kill -9 $pids 2>/dev/null || true
-    echo "    Training Worker    [freed port $port]"
+    echo "    ${label}  [freed port ${port}]"
     sleep 2
   fi
 }
@@ -352,6 +353,9 @@ echo ""
 echo "  Starting services..."
 
 if should_start "api"; then
+  # localhost:8000 must be Core API. A 127.0.0.1 bind from another repo
+  # wins on macOS and Validation Lab then returns a bare "Not Found".
+  kill_listener_on_port "$API_PORT" "Core API"
   start_service_window "Core API :${API_PORT}" \
     "'$VENV_PYTHON' -m uvicorn app.main:app --app-dir '$API_DIR' --reload --reload-dir services/api --reload-dir libs --host 0.0.0.0 --port $API_PORT"
   echo "    Core API           http://localhost:${API_PORT}"
@@ -405,7 +409,7 @@ else
 fi
 
 if [[ "$NO_TRAINING_WORKER" -eq 0 ]] && should_start "training_worker"; then
-  kill_listener_on_port "$TRAINING_WORKER_PORT"
+  kill_listener_on_port "$TRAINING_WORKER_PORT" "Training Worker"
   start_service_window "Training Worker :${TRAINING_WORKER_PORT}" \
     "TRAINING_JOB_TIMEOUT_S='$TRAINING_JOB_TIMEOUT_S' TRAINING_MAX_STEPS='$TRAINING_MAX_STEPS' '$TRAINING_VENV_PYTHON' -m uvicorn app.main:app --app-dir '$TRAINING_WORKER_DIR' --host 0.0.0.0 --port $TRAINING_WORKER_PORT"
   echo "    Training Worker    http://localhost:${TRAINING_WORKER_PORT}  (NER fine-tuning /train/jobs /train/progress, timeout=${TRAINING_JOB_TIMEOUT_S}s, max_steps=${TRAINING_MAX_STEPS})"

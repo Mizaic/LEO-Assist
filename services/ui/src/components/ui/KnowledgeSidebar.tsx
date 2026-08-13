@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
@@ -38,8 +39,9 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "NLP & AI",
     tabs: [
       { key: "training-data", label: "Training Data", icon: <SchoolOutlinedIcon sx={{ fontSize: 18 }} /> },
-      { key: "surface-forms", label: "Surface Forms", icon: <TextFieldsOutlinedIcon sx={{ fontSize: 18 }} /> },
+      { key: "surface-forms", label: "Phrase mappings", icon: <TextFieldsOutlinedIcon sx={{ fontSize: 18 }} /> },
       { key: "context-rules", label: "Context Rules", icon: <AccountTreeOutlinedIcon sx={{ fontSize: 18 }} /> },
+      { key: "guard-rules", label: "Pipeline Guards", icon: <ShieldOutlinedIcon sx={{ fontSize: 18 }} /> },
       { key: "ai-instructions", label: "AI Instructions", icon: <PsychologyOutlinedIcon sx={{ fontSize: 18 }} /> },
     ],
   },

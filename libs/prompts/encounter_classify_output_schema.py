@@ -10,7 +10,7 @@ Seeded into Neo4j as the ``outputSchema`` field of the
 """
 
 ENCOUNTER_CLASSIFY_OUTPUT_SCHEMA: dict = {
-    "description": "Return ONLY valid JSON — no explanation, no markdown, no preamble.",
+    "description": "Return ONLY valid JSON -- no explanation, no markdown, no preamble.",
     "type": "object",
     "required": [
         "content_type",

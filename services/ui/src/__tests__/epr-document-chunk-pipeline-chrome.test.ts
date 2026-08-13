@@ -18,9 +18,13 @@ describe("EPR document chunk pipeline chrome", () => {
     expect(panel).toMatch(/startDocumentRun/);
     expect(panel).toMatch(/pollDocumentRunUntilTerminal/);
     expect(panel).toMatch(/Run pipeline on selected chunks/);
+    expect(panel).toMatch(/document-run-cost/);
+    expect(panel).toMatch(/formatLlmSpend/);
     expect(panel).toMatch(/LeoSbarHost/);
-    expect(panel).toMatch(/platform admins/);
+    expect(panel).toMatch(/document-reprocess-dialog/);
+    expect(panel).toMatch(/Reprocess document/);
     expect(api).toMatch(/\/document-runs/);
+    expect(api).toMatch(/llm_usage/);
   });
 
   test("DocumentViewer renders linked SBAR on referral documents", () => {
@@ -29,7 +33,9 @@ describe("EPR document chunk pipeline chrome", () => {
     expect(src).toMatch(/document-linked-sbar/);
     expect(src).toMatch(/showDocumentBody/);
     expect(src).toMatch(/document-sbar-widget/);
-    expect(src).toMatch(/DocumentChunkPanel/);
-    expect(src).toMatch(/document-sbar-reprocess-hint/);
+    expect(src).toMatch(/document-reprocess-button/);
+    expect(src).toMatch(/patientDocumentFileUrl/);
+    expect(src).toMatch(/inlineFileUrl/);
+    expect(src).toMatch(/document-inline-pdf/);
   });
 });

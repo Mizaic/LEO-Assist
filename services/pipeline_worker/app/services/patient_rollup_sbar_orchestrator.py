@@ -164,6 +164,8 @@ class PatientRollupSBAROrchestrator:
             alternative_pathway_evidence=None,
             rtr=None,
             rtr_evidence=None,
+            spoa_disposition=None,
+            spoa_disposition_evidence=None,
         )
 
         duration = time.time() - started

@@ -5,7 +5,8 @@ Atlas trace:
   DI: DI-B5C78811
   DO: DO-728930A1, DO-416BA91D
   VT: VT-88920DAA, VT-29AF2163, VT-2A7C5322, VT-4231B0A0,
-      VT-E425D17E, VT-CC118874, VT-7AC15E8B, VT-29880CC8
+      VT-E425D17E, VT-CC118874, VT-7AC15E8B, VT-29880CC8,
+      VT-E6BD0CA9
   Look up via: get_design_control(dc_type="design-input", dc_id="DI-B5C78811")
 
 All layers execute in a fixed order on plain entity dicts (including 2b Referral Routing Guard).  Both the
@@ -39,6 +40,10 @@ we h3c2. Breast Screening Outcome Recovery -- NHS breast programme + abnormal
                              stringification (validation scoring, training
                              label exports, audit) sees a single canonical
                              surface form across both pipelines.
+4c. Measurement Observable Recovery -- DI-B5C78811. Retag weight/height/BMI
+                             names that were split from their number
+                             (often as procedure + qualifier_value) and
+                             attach value/unit before SNOMED lookup.
 5. Value-Unit Linking     -- attach numeric values to nearby observables
 6. Entity-Type Norm.      -- deterministic label corrections (runs after
                              linking so observables with structured value/unit
@@ -81,6 +86,7 @@ from libs.ner.local_concept_recovery import (
     LocalConceptPattern,
     recover_local_concept_entities,
 )
+from libs.ner.measurement_observable_recovery import recover_measurement_observables
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
 logger = logging.getLogger(__name__)
@@ -252,13 +258,14 @@ _RESULT_DESCRIPTOR_TEXTS = frozenset(
     }
 )
 
-_EPISODE_MARKER_TEXTS = frozenset(
+_BUILTIN_EPISODE_MARKER_TEXTS: frozenset[str] = frozenset(
     {
         "new episode",
         "ongoing episode",
         "first episode",
     }
 )
+_EPISODE_MARKER_TEXTS: frozenset[str] = _BUILTIN_EPISODE_MARKER_TEXTS
 
 _LIFESTYLE_FACTOR_TEXTS = frozenset(
     {
@@ -644,6 +651,53 @@ def _observable_has_structured_measurement(ent: dict[str, Any]) -> bool:
     if unit:
         return True
     return _is_string_result_text(value)
+
+
+def _fetch_neo4j_entity_norm_rules(family: str) -> list[dict]:
+    """Fetch :NerGuardRule nodes for entity-type normalisation from Neo4j.
+
+    Returns [] when Neo4j is unreachable.
+    """
+    try:
+        from libs.pipeline.config_loader import _fetch_neo4j_rules
+
+        return _fetch_neo4j_rules(family)
+    except Exception:
+        logger.warning(
+            "Could not fetch entity-type norm rules from Neo4j -- using builtins",
+            exc_info=True,
+        )
+        return []
+
+
+def reload_entity_type_norm() -> None:
+    """Rebuild entity-type normalisation lookup sets from Neo4j custom rules.
+
+    Call this after creating or deactivating an :NerGuardRule node with
+    family='entity_type_norm'.
+    """
+    global _EPISODE_MARKER_TEXTS
+    import json
+
+    rows = _fetch_neo4j_entity_norm_rules("entity_type_norm")
+    custom_markers: set[str] = set()
+    for row in rows:
+        if not row.get("active", True):
+            continue
+        try:
+            payload = json.loads(row.get("payload") or "{}")
+        except (ValueError, TypeError):
+            payload = {}
+        rule_type = payload.get("rule_type") or row.get("rule_type", "episode_marker")
+        text = (payload.get("text") or row.get("text", "")).strip().lower()
+        if text and rule_type == "episode_marker":
+            custom_markers.add(text)
+    _EPISODE_MARKER_TEXTS = _BUILTIN_EPISODE_MARKER_TEXTS | frozenset(custom_markers)
+    logger.info(
+        "Entity-type norm reloaded: %d built-in + %d custom episode markers",
+        len(_BUILTIN_EPISODE_MARKER_TEXTS),
+        len(custom_markers),
+    )
 
 
 def normalise_entity_types(entities: list[dict[str, Any]]) -> None:
@@ -1040,13 +1094,62 @@ def fix_polarity_encoded_findings(entities: list[dict[str, Any]]) -> None:
 
 # -- Layer 7d (c): Lifestyle status + PMH false-absent guards (DI-0F9542BF) --
 
-_LIFESTYLE_STATUS_CONCEPT_IDS = frozenset(
+_BUILTIN_LIFESTYLE_CONCEPT_IDS: frozenset[str] = frozenset(
     {
         "8517006",  # Ex-smoker (finding)
         "266919005",  # Never smoked tobacco (finding)
         "8392000",  # Non-smoker (finding)
     }
 )
+_custom_lifestyle_concept_ids: set[str] = set()
+_LIFESTYLE_STATUS_CONCEPT_IDS: frozenset[str] = _BUILTIN_LIFESTYLE_CONCEPT_IDS
+
+
+def _fetch_neo4j_assertion_rules(family: str) -> list[dict]:
+    """Fetch :NerGuardRule nodes for the assertion guard from Neo4j.
+
+    Returns [] when Neo4j is unreachable.
+    """
+    try:
+        from libs.pipeline.config_loader import _fetch_neo4j_rules
+
+        return _fetch_neo4j_rules(family)
+    except Exception:
+        logger.warning(
+            "Could not fetch assertion guard rules from Neo4j -- using builtins",
+            exc_info=True,
+        )
+        return []
+
+
+def reload_lifestyle_status_guard() -> None:
+    """Rebuild the lifestyle concept ID set from Neo4j custom rules.
+
+    Call this after creating or deactivating an :NerGuardRule node with
+    family='assertion_guard' and rule_type='lifestyle_concept'.
+    """
+    global _LIFESTYLE_STATUS_CONCEPT_IDS
+    import json
+
+    rows = _fetch_neo4j_assertion_rules("assertion_guard")
+    custom: set[str] = set()
+    for row in rows:
+        if not row.get("active", True):
+            continue
+        try:
+            payload = json.loads(row.get("payload") or "{}")
+        except (ValueError, TypeError):
+            payload = {}
+        cid = payload.get("concept_id") or row.get("concept_id", "")
+        if cid:
+            custom.add(str(cid))
+    _LIFESTYLE_STATUS_CONCEPT_IDS = _BUILTIN_LIFESTYLE_CONCEPT_IDS | frozenset(custom)
+    logger.info(
+        "Lifestyle status guard reloaded: %d built-in + %d custom concept IDs",
+        len(_BUILTIN_LIFESTYLE_CONCEPT_IDS),
+        len(custom),
+    )
+
 
 # Only status phrases that already encode polarity. Do not match bare "smoker"
 # (true "not a smoker" / "denies smoking" must stay absent).
@@ -1618,6 +1721,15 @@ def run_post_processing_with_trace(
         "layer_4b",
         "Observable Surface Cleanup",
         clean_observable_surface_forms,
+    )
+
+    # Layer 4c: Measurement Observable Recovery (DI-B5C78811 / DO-728930A1).
+    # Retag anthropometry names split from their value so Layer 5 / terminology
+    # see an observable_entity with structured value and unit.
+    _run_layer(
+        "layer_4c",
+        "Measurement Observable Recovery",
+        lambda current: recover_measurement_observables(encounter_text, current),
     )
 
     # Layer 5: Value-Unit Linking (before entity-type norm -- see module docstring)

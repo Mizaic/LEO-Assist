@@ -10,7 +10,7 @@ Seeded into Neo4j as the ``outputSchema`` field of the
 """
 
 EXCLUSION_DETECT_OUTPUT_SCHEMA: dict = {
-    "description": "Return ONLY valid JSON — no explanation, no markdown.",
+    "description": "Return ONLY valid JSON -- no explanation, no markdown.",
     "type": "object",
     "required": ["outcome", "confidence", "evidence_text", "reasoning"],
     "properties": {

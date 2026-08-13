@@ -192,6 +192,9 @@ describe("EditRuleDialog", () => {
     ).toBeInTheDocument();
 
     goToEditorStep(2);
+    expect(
+      screen.getByRole("region", { name: /nice guideline wording for this rule/i }),
+    ).toBeInTheDocument();
     const preview = screen.getByRole("region", {
       name: /live preview of this rule/i,
     });

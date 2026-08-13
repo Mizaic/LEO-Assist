@@ -66,4 +66,18 @@ describe("BitmapLifecycleSection motion pass", () => {
     expect(src).toMatch(/busyLabel="Going live\.\.\."/);
     expect(src).toMatch(/setActivatingVersion\(version\)/);
   });
+
+  test("compile progress uses indeterminate ProgressStrip with phase + elapsed", () => {
+    const src = read(SECTION, HOOK, HELPERS);
+    expect(src).toMatch(/indeterminate/);
+    expect(src).toMatch(/compilePhaseLabel/);
+    expect(src).toMatch(/formatCompileElapsed/);
+    expect(src).toMatch(/compileElapsedSec/);
+    expect(src).toMatch(/data-testid="bitmap-compile-progress"/);
+    expect(src).toMatch(/Building the candidate lookup index/);
+    expect(src).not.toMatch(
+      /label="Building the candidate lookup index\.\.\."[\s\S]{0,80}value=\{0\}/,
+    );
+  });
 });
+

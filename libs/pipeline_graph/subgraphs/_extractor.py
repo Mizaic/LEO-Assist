@@ -24,7 +24,7 @@ import json
 import logging
 from typing import Any
 
-from libs.llm_usage import LLMCostConfig, LLMUsage
+from libs.llm_usage import LLMCostConfig, LLMUsage, cost_config_for_invocation
 from libs.ner.extractor_contract import ExtractionItem
 from libs.ner.span_resolver import SpanResolver
 from libs.nlp.sentence_splitter import SentenceChunk
@@ -45,6 +45,53 @@ _VALID_ASSERTIONS_EXTRACT = {
 }
 
 _DEFAULT_EXTRACT_CONFIDENCE = 0.75
+
+
+def _neo4j_cost_config(provider: str, tier: str) -> LLMCostConfig | None:
+    """Load ModelConfig rates for this provider:tier, or None."""
+    try:
+        from libs.cypher.model_config_queries import GET_MODEL_CONFIG
+        from libs.neo4j_client.client import KnowledgeGraphClient
+
+        kg = KnowledgeGraphClient()
+    except Exception:
+        logger.debug("ModelConfig client unavailable (non-fatal)", exc_info=True)
+        return None
+    try:
+        with kg.session() as s:
+            mc = s.run(GET_MODEL_CONFIG, key=f"{provider}:{tier}").single()
+        if not mc:
+            return None
+        return LLMCostConfig(
+            cost_per_1m_input=float(mc["costPer1mInput"] or 0),
+            cost_per_1m_cached_input=float(mc["costPer1mCachedInput"] or 0),
+            cost_per_1m_output=float(mc["costPer1mOutput"] or 0),
+            cost_per_1m_cache_write=float(mc.get("costPer1mCacheWrite") or 0),
+        )
+    except Exception:
+        logger.debug("Cost calculation failed (non-fatal)", exc_info=True)
+        return None
+    finally:
+        kg.close()
+
+
+def _extraction_cost_usd(provider: str, tier: str, resp: Any) -> float:
+    """Price one extraction call at ModelConfig rates, then list-price fallback."""
+    usage = LLMUsage(
+        input_tokens=int(resp.input_tokens or 0),
+        output_tokens=int(resp.output_tokens or 0),
+        cached_input_tokens=int(resp.cached_input_tokens or 0),
+        cache_creation_input_tokens=int(
+            getattr(resp, "cache_creation_input_tokens", 0) or 0
+        ),
+        input_excludes_cache=provider in ("aws", "bedrock"),
+    )
+    cfg = _neo4j_cost_config(provider, tier)
+    if cfg is None:
+        cfg = cost_config_for_invocation(
+            provider, tier, str(getattr(resp, "model_id", "") or "")
+        )
+    return round(usage.cost_usd(cfg), 6)
 
 
 def _normalise_assertion(raw: Any) -> str:
@@ -250,20 +297,36 @@ class LLMExtractorAdapter:
         self,
         encounter_text: str,
         sentences: list[SentenceChunk],
+        *,
+        span_document_text: str | None = None,
+        span_sentences: list[SentenceChunk] | None = None,
+        context_mode: str = "full_document",
     ) -> tuple[list[ExtractionItem], dict]:
         """Run extraction and return (items, llm_token_dict).
 
+        ``encounter_text`` is the LLM clinical context (window or full).
+        ``span_document_text`` is the full document used for absolute offsets.
         ``llm_token_dict`` has keys: input_tokens, output_tokens, cached_tokens,
         cost_usd.
         It is written into subgraph state so WorkflowEngine can aggregate it.
         """
-        items, usage = self._run_llm(encounter_text, sentences)
+        items, usage = self._run_llm(
+            encounter_text,
+            sentences,
+            span_document_text=span_document_text,
+            span_sentences=span_sentences,
+            context_mode=context_mode,
+        )
         return items, usage
 
     def _run_llm(
         self,
         encounter_text: str,
         sentences: list[SentenceChunk],
+        *,
+        span_document_text: str | None = None,
+        span_sentences: list[SentenceChunk] | None = None,
+        context_mode: str = "full_document",
     ) -> tuple[list[ExtractionItem], dict]:
         """Core LLM call. Returns (items, usage_dict)."""
         if not sentences:
@@ -283,6 +346,8 @@ class LLMExtractorAdapter:
             }
         from libs.llm_client.factory import create_llm
 
+        from libs.pipeline.extraction_prompt import build_extraction_user_message
+        from libs.pipeline.extraction_token_budget import extraction_max_tokens
         from libs.pipeline.llm_clinical_input import (
             guard_llm_extraction_response,
             guard_user_clinical_text,
@@ -300,58 +365,26 @@ class LLMExtractorAdapter:
                 query_text=query_text, k=self._dynamic_budget
             )
         relevant_examples_block = _build_relevant_examples_block(dynamic_examples)
-
-        user_parts: list[str] = []
-        if relevant_examples_block:
-            user_parts.append(relevant_examples_block)
-        user_msg = (
-            f"Encounter text:\n{safe_encounter}\n\n"
-            f"Sentences to process:\n{sentence_block}"
+        final_user_msg = build_extraction_user_message(
+            safe_encounter,
+            sentence_block,
+            context_mode=context_mode,
+            relevant_examples_block=relevant_examples_block,
         )
-        user_parts.append(user_msg)
-        final_user_msg = "\n\n".join(user_parts)
         resp = llm.converse(
             system=self._system_prompt,
             messages=[{"role": "user", "content": final_user_msg}],
-            max_tokens=4096,
+            max_tokens=extraction_max_tokens(len(sentences)),
             temperature=0.0,
+            json_mode=True,
             agent_task="v3_pipeline_extractor",
         )
 
-        # Build usage dict — cost_usd resolved from Neo4j ModelConfig if available
-        cost_usd = 0.0
         try:
-            provider_key = f"{self._provider}:{self._tier}"
-            from libs.cypher.model_config_queries import GET_MODEL_CONFIG
-            from libs.neo4j_client.client import KnowledgeGraphClient
-
-            kg = KnowledgeGraphClient()
-            try:
-                with kg.session() as s:
-                    mc = s.run(GET_MODEL_CONFIG, key=provider_key).single()
-                if mc:
-                    usage = LLMUsage(
-                        input_tokens=int(resp.input_tokens or 0),
-                        output_tokens=int(resp.output_tokens or 0),
-                        cached_input_tokens=int(resp.cached_input_tokens or 0),
-                        cache_creation_input_tokens=int(
-                            getattr(resp, "cache_creation_input_tokens", 0) or 0
-                        ),
-                        input_excludes_cache=self._provider in ("aws", "bedrock"),
-                    )
-                    cfg = LLMCostConfig(
-                        cost_per_1m_input=float(mc["costPer1mInput"] or 0),
-                        cost_per_1m_cached_input=float(mc["costPer1mCachedInput"] or 0),
-                        cost_per_1m_output=float(mc["costPer1mOutput"] or 0),
-                        cost_per_1m_cache_write=float(
-                            mc.get("costPer1mCacheWrite") or 0
-                        ),
-                    )
-                    cost_usd = round(usage.cost_usd(cfg), 6)
-            finally:
-                kg.close()
+            cost_usd = _extraction_cost_usd(self._provider, self._tier, resp)
         except Exception:
             logger.debug("Cost calculation failed (non-fatal)", exc_info=True)
+            cost_usd = 0.0
 
         usage = {
             "input_tokens": resp.input_tokens,
@@ -363,6 +396,7 @@ class LLMExtractorAdapter:
             "prompt_hash": self._prompt_hash,
             "provider": self._provider,
             "model_tier": self._tier,
+            "model_id": str(getattr(resp, "model_id", "") or ""),
             "few_shot_example_ids": [
                 _example_id(ex)
                 for ex in (self._core_examples + dynamic_examples)
@@ -380,7 +414,11 @@ class LLMExtractorAdapter:
 
         terms = data.get("terms", [])
         items: list[ExtractionItem] = []
-        resolver = SpanResolver(encounter_text=encounter_text, sentences=sentences)
+        span_text = (
+            span_document_text if span_document_text is not None else encounter_text
+        )
+        resolver_sentences = span_sentences if span_sentences is not None else sentences
+        resolver = SpanResolver(encounter_text=span_text, sentences=resolver_sentences)
 
         for t in terms:
             text_val = t.get("text", "")
@@ -411,8 +449,18 @@ class LLMExtractorAdapter:
         self,
         encounter_text: str,
         sentences: list[SentenceChunk],
+        *,
+        span_document_text: str | None = None,
+        span_sentences: list[SentenceChunk] | None = None,
+        context_mode: str = "full_document",
     ) -> list[ExtractionItem]:
-        items, _ = self._run_llm(encounter_text, sentences)
+        items, _ = self._run_llm(
+            encounter_text,
+            sentences,
+            span_document_text=span_document_text,
+            span_sentences=span_sentences,
+            context_mode=context_mode,
+        )
         return items
 
 

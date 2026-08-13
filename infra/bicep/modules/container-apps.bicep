@@ -184,6 +184,8 @@ var sharedEnv = [
   { name: 'AZURE_OPENAI_ENDPOINT', value: aoaiEndpoint }
   { name: 'AZURE_OPENAI_BIG_MODEL', value: azureOpenAiBigModel }
   { name: 'AZURE_OPENAI_SMALL_MODEL', value: azureOpenAiSmallModel }
+  { name: 'AZURE_OPENAI_TRANSPORT', value: 'responses' }
+  // Used only when AZURE_OPENAI_TRANSPORT=chat_completions.
   { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
 
   // AWS Bedrock (non-secret config)

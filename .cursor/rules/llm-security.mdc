@@ -8,6 +8,9 @@ alwaysApply: false
 
 This codebase processes UK NHS clinical text (UK GDPR Article 9 special category data) via external LLMs (AWS Bedrock, Azure OpenAI). All LLM call sites must follow these rules.
 
+Prompt wording, schemas, few-shots, and publication also follow
+`gpt5-prompt-standards.mdc` (Atlas `DI-7B978C0C`).
+
 ## 1. Always Use `prompt_safety` Utilities
 
 Import from `libs.llm_client.prompt_safety` before any LLM call:

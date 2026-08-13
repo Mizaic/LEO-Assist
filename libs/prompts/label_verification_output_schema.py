@@ -12,7 +12,7 @@ The response is a JSON object with a single "entities" array key.
 """
 
 LABEL_VERIFICATION_OUTPUT_SCHEMA: dict = {
-    "description": "Return JSON only — no markdown.",
+    "description": "Return JSON only -- no markdown.",
     "type": "object",
     "properties": {
         "entities": {

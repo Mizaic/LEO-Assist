@@ -37,7 +37,7 @@ export const GROUP_KIND_LABELS: Record<LogicNodeKind, string> = {
 export const GROUP_KIND_SHORT: Record<LogicNodeKind, string> = {
   AND: "ALL of these",
   OR: "ANY of these",
-  NOT: "NONE of these",
+  NOT: "Should not have",
   AT_LEAST: "AT LEAST n of",
   CONCEPT: "Symptom",
   DEMOGRAPHIC: "Patient detail",
@@ -175,6 +175,7 @@ export const ADD_BAR_LABELS = {
   alternatives: "Add alternatives (any of these)",
   pathway: "Add another pathway",
   observation: "Add a lab value or reading",
+  shouldNotHave: "Patient should not have",
 };
 
 /**
@@ -535,6 +536,18 @@ export const SEARCH_PANEL = {
   askLeoIdeasLabel: "Ask LEO for ideas",
   askLeoIdeasHint:
     "LEO can suggest specific symptoms or findings you can tick and look up.",
+} as const;
+
+/** Reading comparison editor inside ConceptSynonymDialog. */
+export const SYNONYM_OBSERVATION_EDIT = {
+  heading: "Compare a value",
+  savedHint: "Reading comparison saved.",
+  footerHint:
+    "Leave the value blank to match the code as present only (no number check).",
+  dialogSubtitleObservation:
+    "Change how this reading is compared, or swap the clinical code.",
+  dialogSubtitleObservableConcept:
+    "Add other codes that mean the same thing, or set a value to compare.",
 } as const;
 
 /**

@@ -87,5 +87,6 @@ describe("AddBar motion pass", () => {
     expect(src).toMatch(/aria-label="Add a patient detail"/);
     expect(src).toMatch(/aria-label="Add a lab value or reading"/);
     expect(src).toMatch(/aria-label="Add a rule dependency"/);
+    expect(src).toMatch(/aria-label="Add things the patient should not have"/);
   });
 });

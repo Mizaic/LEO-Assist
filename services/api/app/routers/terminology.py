@@ -450,11 +450,12 @@ def suggest_aliases_for_concept(
     concept_id: str,
     _scope: CallerScope = Depends(require_admin),
 ):
-    """Use a small LLM (Claude Haiku via Bedrock) to suggest additional surface form aliases."""
+    """Use the configured small model to suggest surface-form aliases."""
     import json
     import re
 
     from libs.llm_client.factory import create_llm
+    from libs.llm_client.prompt_safety import INJECTION_GUARD
 
     coding_client = CodingGraphClient()
     try:
@@ -475,16 +476,20 @@ def suggest_aliases_for_concept(
 
     existing_list = ", ".join(f'"{e}"' for e in existing) if existing else "none yet"
 
-    system_prompt = (
-        "You are a UK primary care clinical terminology assistant. "
-        "You suggest short text strings that UK GPs write in free-text consultation notes. "
-        "Focus on NHS-specific abbreviations, clinical shorthand, and common spelling variants. "
-        "Respond ONLY with a valid JSON array of strings — no explanation, no markdown fences."
+    system_prompt = INJECTION_GUARD + (
+        "Objective: Suggest short surface-form aliases that UK GPs may write "
+        "for the supplied SNOMED CT concept.\n"
+        "Scope: Include NHS abbreviations, clinical shorthand, spelling "
+        "variants, and common misspellings that mean the same concept.\n"
+        "Hard requirements: Do not repeat supplied aliases. Do not add broader, "
+        "narrower, or unrelated concepts. Each alias must be 1-6 words.\n"
+        "Output contract: Return only a valid JSON array of up to 10 unique "
+        "strings. Do not add prose, markdown, or code fences."
     )
     user_prompt = (
         f'Concept: "{concept_fsn}" (SNOMED {concept_id}, type: {semantic_tag})\n'
         f"Existing aliases: {existing_list}\n\n"
-        "Suggest up to 10 additional short phrases (1–6 words each) a UK GP might write "
+        "Suggest up to 10 additional short phrases (1-6 words each) a UK GP might write "
         "in a free-text consultation note to mean this concept. "
         "Include abbreviations, misspellings, acronyms, and NHS shorthand. "
         "Do NOT repeat the existing aliases.\n"

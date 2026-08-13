@@ -26,6 +26,7 @@ from libs.validation_lab.pipeline import (
     default_publish,
     list_stage_progress,
     poll_run_status,
+    read_real_outputs,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,10 +59,44 @@ class StartDocumentRunResult:
     assessment_id: str
     error_message: str
     stage_progress: list[dict[str, str]]
+    llm_usage: dict[str, Any] | None = None
 
 
 class DocumentRunError(Exception):
     """Raised when a document run cannot be started or validated."""
+
+
+def _llm_usage_for_assessment(client: Any, assessment_id: str) -> dict[str, Any] | None:
+    """Read persisted Assessment telemetry (same source as Validation Lab)."""
+    aid = str(assessment_id or "").strip()
+    if not aid:
+        return None
+    usage = read_real_outputs(client, aid).llm_usage or {}
+    if not usage:
+        return None
+    return dict(usage)
+
+
+def _document_run_result(
+    client: Any,
+    *,
+    run_id: str,
+    status: str,
+    assessment_id: str,
+    error_message: str,
+    stage_progress: list[dict[str, str]],
+) -> StartDocumentRunResult:
+    llm_usage = None
+    if status == "completed":
+        llm_usage = _llm_usage_for_assessment(client, assessment_id)
+    return StartDocumentRunResult(
+        run_id=run_id,
+        status=status,
+        assessment_id=assessment_id,
+        error_message=error_message,
+        stage_progress=stage_progress,
+        llm_usage=llm_usage,
+    )
 
 
 def resolve_document_run_context(
@@ -195,7 +230,8 @@ def start_document_run(
         status = str(pipe.get("status") or status)
     assessment_id = str(pipe.get("assessment_id") or "")
     stages = list_stage_progress(client, run_id) if status != "failed" else []
-    return StartDocumentRunResult(
+    return _document_run_result(
+        client,
         run_id=run_id,
         status=status,
         assessment_id=assessment_id,
@@ -207,7 +243,8 @@ def start_document_run(
 def refresh_document_run(client: Any, *, run_id: str) -> StartDocumentRunResult:
     pipe = poll_run_status(client, run_id)
     status = str(pipe.get("status") or "queued")
-    return StartDocumentRunResult(
+    return _document_run_result(
+        client,
         run_id=run_id,
         status=status,
         assessment_id=str(pipe.get("assessment_id") or ""),

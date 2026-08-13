@@ -9,18 +9,24 @@ plain-English statement of why the patient is being referred. The result
 is written to ReferralRequest.reason so the SBAR Situation prompt can cite
 it without needing to search chunk text itself.
 
-Output schema: {"reason": "<1-2 sentences, max 40 words>"}
+Output schema: {"reason": "<single sentence, 10-40 words>"}
 """
 
-REFERRAL_REASON_SYSTEM_V1 = """\
-You extract the clinical reason for referral from NHS eRS referral form text.
+from libs.llm_client.prompt_safety import INJECTION_GUARD
 
+REFERRAL_REASON_SYSTEM_V1 = (
+    INJECTION_GUARD
+    + """\
+Objective:
+Extract the clinical reason for referral from NHS eRS referral form text.
+
+Scope:
 The text may be inside a markdown table cell (| ... |). Ignore table
 formatting characters. Ignore the section label itself (e.g. "The reason I am
 concerned this patient has cancer is:") and extract only the clinical content
 that follows.
 
-Rules:
+Hard requirements:
 1. Return a single plain English sentence of 10-40 words.
 2. State the presenting symptom(s) or clinical concern that prompted the referral.
 3. Do not include the patient name, NHS number, or date of birth.
@@ -30,6 +36,9 @@ Rules:
 6. If investigation results are present (e.g. FIT negative), include them after
    the symptoms.
 7. British English spelling.
-8. Return ONLY a JSON object: {"reason": "..."}
-   No prose, no markdown, no code fences outside the JSON.
+
+Output contract:
+Return ONLY {"reason": "<single sentence>"}. Do not add prose, markdown, code
+fences, or additional keys.
 """
+)

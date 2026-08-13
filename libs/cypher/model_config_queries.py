@@ -61,6 +61,7 @@ ON CREATE SET
   m.updated_at                 = datetime()
 ON MATCH SET
   m.display_name               = CASE WHEN m.source = 'seed' THEN $display_name ELSE m.display_name END,
+  m.model_id                   = CASE WHEN m.source = 'seed' THEN $model_id ELSE m.model_id END,
   m.cost_per_1m_input          = CASE WHEN m.source = 'seed' THEN $cost_per_1m_input ELSE m.cost_per_1m_input END,
   m.cost_per_1m_cached         = CASE WHEN m.source = 'seed' THEN $cost_per_1m_cached ELSE m.cost_per_1m_cached END,
   m.cost_per_1m_cache_write    = CASE WHEN m.source = 'seed' THEN $cost_per_1m_cache_write ELSE m.cost_per_1m_cache_write END,

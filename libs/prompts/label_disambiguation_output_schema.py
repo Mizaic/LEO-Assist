@@ -10,7 +10,7 @@ Seeded into Neo4j as the ``outputSchema`` field of the
 """
 
 LABEL_DISAMBIGUATION_OUTPUT_SCHEMA: dict = {
-    "description": "Return strict JSON only — no markdown.",
+    "description": "Return strict JSON only -- no markdown.",
     "type": "object",
     "required": ["resolved_label", "confidence", "reason"],
     "properties": {

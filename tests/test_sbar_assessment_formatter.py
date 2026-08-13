@@ -128,7 +128,7 @@ def test_matched_via_renders_specific_seed_in_markdown() -> None:
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["2"])
     assert "**Matched on:**" in out.markdown
-    assert "a related coded finding for Smoker" in out.markdown
+    assert "Smoker (related finding)" in out.markdown
 
 
 def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
@@ -144,7 +144,68 @@ def test_matched_via_renders_primary_only_when_primary_id_hits() -> None:
     ]
     out = format_assessment(matched_rules=[rule], patient_codes=["1"])
     assert "**Matched on:** Smoker" in out.markdown
-    assert "related coded finding" not in out.markdown
+    assert "related finding" not in out.markdown
+
+
+def test_matched_via_renders_age_and_gender() -> None:
+    rule = _rule("R-1", priority="2ww", name="Breast rule")
+    rule["matched_via"] = [
+        {
+            "kind": "DEMOGRAPHIC",
+            "field": "age",
+            "operator": ">=",
+            "value": 50,
+            "patient_value": 71,
+        },
+        {
+            "kind": "DEMOGRAPHIC",
+            "field": "sex",
+            "operator": "=",
+            "value": "female",
+            "patient_value": "female",
+        },
+        {
+            "primary_concept_id": "162164007",
+            "preferred_term": "Nipple discharge symptom (finding)",
+            "matched_concept_ids": ["162164007"],
+        },
+    ]
+    out = format_assessment(matched_rules=[rule], patient_codes=["162164007"])
+    assert (
+        "**Matched on:** Age 71 years (50 or over); Gender recorded as female; "
+        "Nipple discharge symptom" in out.markdown
+    )
+
+
+def test_matched_via_renders_multiple_related_leaves_without_repeated_clause() -> None:
+    """Several descendant hits under different leaves stay easy to scan.
+
+    Each leaf gets its own trailing "(related finding)" qualifier
+    instead of every fragment repeating a leading "a related coded
+    finding for ..." clause, which reads clunky once several leaves
+    are joined with "; " in one Matched on line.
+    """
+    rule = _rule("R-1", priority="urgent", name="Lung rule")
+    rule["matched_via"] = [
+        {
+            "node_id": "n1",
+            "primary_concept_id": "1",
+            "preferred_term": "Finding of tobacco smoking consumption",
+            "matched_concept_ids": ["2"],
+        },
+        {
+            "node_id": "n2",
+            "primary_concept_id": "3",
+            "preferred_term": "Weight decreased",
+            "matched_concept_ids": ["4"],
+        },
+    ]
+    out = format_assessment(matched_rules=[rule], patient_codes=["2", "4"])
+    assert (
+        "**Matched on:** Finding of tobacco smoking consumption "
+        "(related finding); Weight decreased (related finding)" in out.markdown
+    )
+    assert "a related coded finding for" not in out.markdown
 
 
 def test_matched_via_dedupes_identical_leaf_labels() -> None:

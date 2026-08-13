@@ -50,6 +50,12 @@ def test_runtime_from_state_prefers_dict() -> None:
     assert runtime.model_key == "aws:big"
 
 
+def test_build_runtime_defaults_missing_tier_to_small() -> None:
+    runtime = build_runtime({"model": {"key": "azure:small", "provider": "azure"}})
+    assert runtime.model_tier == "small"
+    assert runtime.model_provider == "azure"
+
+
 @patch("libs.sbar.policy_runtime.get_prompt", return_value="SYSTEM")
 def test_make_prompt_fetcher_uses_manifest_pins(mock_get) -> None:
     runtime = build_runtime(_manifest_dict())
@@ -62,7 +68,7 @@ def test_make_prompt_fetcher_uses_manifest_pins(mock_get) -> None:
 def test_stage_llm_params_reads_manifest() -> None:
     runtime = build_runtime(_manifest_dict())
     params = stage_llm_params(runtime, "background")
-    assert params["max_tokens"] == 1024
+    assert params["max_tokens"] == 4096
     assert params["temperature"] == 0.0
 
 

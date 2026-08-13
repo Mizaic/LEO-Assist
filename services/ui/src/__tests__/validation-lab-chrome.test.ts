@@ -14,9 +14,12 @@ function readFile(relPath: string): string {
 }
 
 describe("VT-22F3EF6A - Validation Lab chrome", () => {
-  test("TC-001: Validation Lab page mounts the single patient wizard flow", () => {
+  test("TC-001: Validation Lab page mounts the two-door clinical home", () => {
     const page = readFile(
       "services/ui/src/app/admin/validation-lab/page.tsx",
+    );
+    const home = readFile(
+      "services/ui/src/app/admin/validation-lab/AccuracyLoopHome.tsx",
     );
     const cases = readFile(
       "services/ui/src/app/admin/validation-lab/LabCasesPanel.tsx",
@@ -24,13 +27,22 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     const wizard = readFile(
       "services/ui/src/app/admin/validation-lab/CreatePatientWizard.tsx",
     );
+    const ruleDoor = readFile(
+      "services/ui/src/app/admin/validation-lab/RuleDoor.tsx",
+    );
     expect(page).toMatch(/validation-lab-page/);
+    expect(page).toMatch(/AccuracyLoopHome/);
     expect(page).toMatch(/LabCasesPanel/);
     expect(page).not.toMatch(/TestPatientLibraryKnowledgeTab/);
-    expect(cases).toMatch(/CreatePatientWizard/);
+    expect(home).toMatch(/Test a guideline rule/);
+    expect(home).toMatch(/Investigate a clinical complaint/);
+    expect(ruleDoor).toMatch(/CreatePatientWizard/);
     expect(cases).toMatch(/LeoSbarHost/);
     expect(wizard).toMatch(/Submit referral/);
     expect(wizard).toMatch(/wizard-step-referral/);
+    const api = readFile("services/ui/src/app/admin/validation-lab/labApi.ts");
+    expect(api).toMatch(/formatLabApiError/);
+    expect(api).toMatch(/Could not reach the Validation Lab API/);
   });
 
   test("TC-002: LeoSbarHost mints widget token and mounts leo-sbar", () => {
@@ -262,6 +274,11 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(dataTab).toMatch(/TraceWaterfallChart/);
     expect(dataTab).toMatch(/TraceFlowGraph/);
     expect(dataTab).toMatch(/TraceEndpointPanel/);
+    const stagePane = readFile(
+      "services/ui/src/app/admin/validation-lab/inspector/StageDetailPane.tsx",
+    );
+    expect(stagePane).toMatch(/extraction_model_name/);
+    expect(stagePane).toMatch(/Model /);
   });
 
   test("TC-016: single run sheet lists stages task-by-task and skips queued as done", () => {
@@ -411,5 +428,109 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(hook).toMatch(/previewPmhNarrative/);
     expect(api).toMatch(/previewPmhNarrative/);
     expect(api).toMatch(/LabScenarioType/);
+  });
+});
+
+describe("VT-10011926 - Validation Lab two-door home", () => {
+  test("home shows both doors and the gold/findings strip", () => {
+    const home = readFile(
+      "services/ui/src/app/admin/validation-lab/AccuracyLoopHome.tsx",
+    );
+    const page = readFile(
+      "services/ui/src/app/admin/validation-lab/page.tsx",
+    );
+    const rule = readFile(
+      "services/ui/src/app/admin/validation-lab/RuleDoor.tsx",
+    );
+    const clinical = readFile(
+      "services/ui/src/app/admin/validation-lab/ClinicalDoor.tsx",
+    );
+    const picker = readFile(
+      "services/ui/src/app/admin/validation-lab/ClinicalPatientPicker.tsx",
+    );
+    const doorState = readFile(
+      "services/ui/src/app/admin/validation-lab/clinicalDoorState.ts",
+    );
+    const used = readFile(
+      "services/ui/src/app/admin/validation-lab/clinicalUsedPatients.ts",
+    );
+    expect(home).toMatch(/Test a guideline rule/);
+    expect(home).toMatch(/Investigate a clinical complaint/);
+    expect(home).toMatch(/Saved gold cases/);
+    expect(home).toMatch(/Open findings/);
+    expect(home).toMatch(/validation-lab-home-strip/);
+    expect(rule).toMatch(/listGuidanceRules/);
+    expect(rule).toMatch(/queueCasePipeline/);
+    expect(rule).toMatch(/uniqueByRuleId/);
+    expect(doorState).toMatch(/listClinicalPipelineRuns/);
+    expect(doorState).toMatch(/listClinicalPatients/);
+    expect(clinical).toMatch(/does not start a new job/);
+    expect(picker).toMatch(/NHS number or referral number/);
+    expect(picker).toMatch(/UBRN/);
+    expect(picker).toMatch(/Recently used/);
+    expect(picker).toMatch(/Frequently used/);
+    expect(picker).toMatch(/All patients/);
+    expect(used).toMatch(/recentlyUsed/);
+    expect(used).toMatch(/frequentlyUsed/);
+    expect(doorState).toMatch(/whyOpened/);
+    expect(doorState).not.toMatch(/referralText: why/);
+    expect(home).toMatch(/Enter NHS number or referral number/);
+    expect(page).toMatch(/AccuracyLoopHome/);
+  });
+});
+
+describe("VT-F0A6B9F4 - run review mark as wrong", () => {
+  test("lightbox shows letter, stages, mark as wrong, SBAR, and log", () => {
+    const lightbox = readFile(
+      "services/ui/src/app/admin/validation-lab/RunReviewLightbox.tsx",
+    );
+    const pane = readFile(
+      "services/ui/src/app/admin/validation-lab/inspector/StageDetailPane.tsx",
+    );
+    const dialog = readFile(
+      "services/ui/src/app/admin/validation-lab/MarkWrongDialog.tsx",
+    );
+    const types = readFile(
+      "services/ui/src/app/admin/validation-lab/findingTypes.ts",
+    );
+    expect(lightbox).toMatch(/LetterPane/);
+    expect(lightbox).toMatch(/source_text/);
+    expect(lightbox).toMatch(/PipelineWizard/);
+    expect(lightbox).toMatch(/MarkWrongDialog/);
+    expect(lightbox).toMatch(/RunSheetSbarActions/);
+    expect(lightbox).toMatch(/Show live log/);
+    expect(pane).toMatch(/Mark as wrong/);
+    expect(dialog).toMatch(/extraction/);
+    expect(types).toMatch(/phrase_mapping/);
+    expect(types).toMatch(/guideline_rule/);
+    expect(dialog).not.toMatch(/ConText/);
+  });
+});
+
+describe("VT-5E51F5D9 - findings persist and fix routing", () => {
+  test("findings API and fix URLs cover each category", () => {
+    const api = readFile(
+      "services/ui/src/app/admin/validation-lab/labFindingsApi.ts",
+    );
+    const routes = readFile(
+      "services/ui/src/app/admin/validation-lab/fixRoutes.ts",
+    );
+    const clinical = readFile(
+      "services/api/app/routers/validation_lab_clinical.py",
+    );
+    expect(api).toMatch(/createFinding/);
+    expect(api).toMatch(/listClinicalPipelineRuns/);
+    expect(api).toMatch(/listClinicalPatients/);
+    expect(api).toMatch(/getPipelineRunInspector/);
+    expect(routes).toMatch(/tab: "ai-instructions"/);
+    expect(routes).toMatch(/tab: "context-rules"/);
+    expect(routes).toMatch(/tab: "guard-rules"/);
+    expect(routes).toMatch(/tab: "surface-forms"/);
+    expect(routes).toMatch(/tab: "clinical-guidelines"/);
+    expect(clinical).toMatch(/Does not enqueue/);
+    expect(clinical).toMatch(/get_pipeline_inspector/);
+    expect(clinical).toMatch(/find_pipeline_runs/);
+    expect(clinical).toMatch(/list_clinical_patients/);
+    expect(clinical).toMatch(/clinical-patients/);
   });
 });
