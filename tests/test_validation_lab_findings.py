@@ -8,6 +8,7 @@ Atlas:
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -146,6 +147,42 @@ def test_create_finding_stores_required_fields() -> None:
     assert len(listed) == 1
     open_rows = list_open_findings(client)
     assert open_rows[0]["id"] == row["id"]
+
+
+class _Neo4jDateTime:
+    def __init__(self, text: str) -> None:
+        self._text = text
+
+    def iso_format(self) -> str:
+        return self._text
+
+
+def test_saving_a_finding_returns_json_safe_timestamps() -> None:
+    client = FakeFindingClient()
+    inner = client.run
+
+    def with_datetimes(query: str, **params: Any) -> list[dict[str, Any]]:
+        rows = inner(query, **params)
+        for row in rows:
+            finding = row.get("finding")
+            if finding is not None:
+                finding["created_at"] = _Neo4jDateTime("2026-08-14T08:00:00Z")
+                finding["updated_at"] = _Neo4jDateTime("2026-08-14T08:00:00Z")
+        return rows
+
+    client.run = with_datetimes  # type: ignore[method-assign]
+    row = create_finding(
+        client,
+        run_id="run-1",
+        stage_id="terminology",
+        category="phrase_mapping",
+        target="bilirubin",
+        note="did not code",
+    )
+    payload = json.dumps(row)
+    assert "bilirubin" in payload
+    assert row["created_at"] == "2026-08-14T08:00:00Z"
+    assert row["updated_at"] == "2026-08-14T08:00:00Z"
 
 
 def test_create_finding_rejects_unknown_category() -> None:

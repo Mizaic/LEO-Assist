@@ -27,7 +27,8 @@ FOREACH (_ IN CASE WHEN pipe IS NULL THEN [] ELSE [1] END |
 )
 RETURN f {
   .id, .run_id, .stage_id, .category, .target, .note, .status,
-  .created_at, .updated_at
+  created_at: toString(f.created_at),
+  updated_at: toString(f.updated_at)
 } AS finding
 """
 
@@ -35,7 +36,8 @@ LIST_FINDINGS_FOR_RUN = """
 MATCH (f:ValidationFinding {run_id: $run_id})
 RETURN f {
   .id, .run_id, .stage_id, .category, .target, .note, .status,
-  .created_at, .updated_at
+  created_at: toString(f.created_at),
+  updated_at: toString(f.updated_at)
 } AS finding
 ORDER BY f.created_at DESC
 """
@@ -45,7 +47,8 @@ MATCH (f:ValidationFinding)
 WHERE f.status IN $statuses
 RETURN f {
   .id, .run_id, .stage_id, .category, .target, .note, .status,
-  .created_at, .updated_at
+  created_at: toString(f.created_at),
+  updated_at: toString(f.updated_at)
 } AS finding
 ORDER BY f.created_at DESC
 LIMIT $limit
