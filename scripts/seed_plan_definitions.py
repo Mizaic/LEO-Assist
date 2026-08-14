@@ -188,7 +188,7 @@ ACTIVITY_DEFINITIONS = [
         "resourceType": "ActivityDefinition",
         "name": "Relation Linking",
         "status": "active",
-        "description": "Single-turn LLM relation linking for body site and qualifier relations",
+        "description": "LLM judges SNOMED relation candidates and adds text-only links",
         "_subgraphId": "relation_linking",
         "dynamicValue": [
             {"path": "model_tier", "expression": {"expression": "small"}},
@@ -199,6 +199,18 @@ ACTIVITY_DEFINITIONS = [
             },
             {"path": "prompt_config_version", "expression": {"expression": "1"}},
         ],
+    },
+    {
+        "id": "ad-snomed-enrichment",
+        "resourceType": "ActivityDefinition",
+        "name": "SNOMED Relation Enrichment",
+        "status": "active",
+        "description": (
+            "Look up SNOMED ontology neighbours for coded facts and add "
+            "candidate relations plus inferred body sites"
+        ),
+        "_subgraphId": "snomed_enrichment",
+        "dynamicValue": [],
     },
     {
         "id": "ad-condition-extraction-route",
@@ -571,14 +583,34 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
+                "id": "act-snomed-enrich",
+                "title": "SNOMED Relation Enrichment",
+                "_sequence": 9,
+                "_subgraphId": "snomed_enrichment",
+                "definitionCanonical": "ActivityDefinition/ad-snomed-enrichment",
+                "relatedAction": [
+                    {"actionId": "act-coding-verify", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-snomed-relation-judge",
+                "title": "Judge SNOMED Relations",
+                "_sequence": 10,
+                "_subgraphId": "relation_linking",
+                "definitionCanonical": "ActivityDefinition/ad-relation-linking",
+                "relatedAction": [
+                    {"actionId": "act-snomed-enrich", "relationship": "after-end"}
+                ],
+            },
+            {
                 "id": "act-coding-route",
                 "title": "Route Coding Outcome",
-                "_sequence": 9,
+                "_sequence": 11,
                 "_subgraphId": "condition",
                 "_nodeType": "condition",
                 "definitionCanonical": "ActivityDefinition/ad-condition-coding-route",
                 "relatedAction": [
-                    {"actionId": "act-coding-verify", "relationship": "after-end"}
+                    {"actionId": "act-snomed-relation-judge", "relationship": "after-end"}
                 ],
             },
             {
@@ -754,6 +786,24 @@ PLAN_DEFINITIONS = [
                 "event_type": "coding_verifier_requested",
                 "loads": ["TerminologyResult"],
                 "persists": ["CodingVerifierResult"],
+                "emits_on_success": "snomed_enrichment_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-snomed-enrichment",
+                "event_type": "snomed_enrichment_requested",
+                "loads": ["CodingVerifierResult"],
+                "persists": ["SnomedEnrichmentResult"],
+                "emits_on_success": "snomed_relation_judge_requested",
+                "emits_on_failure": "durable_step_failed",
+                "idempotency_key": "run_id:step_id",
+            },
+            {
+                "step_id": "durable-ref-snomed-relation-judge",
+                "event_type": "snomed_relation_judge_requested",
+                "loads": ["SnomedEnrichmentResult"],
+                "persists": ["RelationJudgeResult"],
                 "emits_on_success": "clinical_facts_persist_requested",
                 "emits_on_failure": "durable_step_failed",
                 "idempotency_key": "run_id:step_id",
@@ -761,7 +811,7 @@ PLAN_DEFINITIONS = [
             {
                 "step_id": "durable-ref-clinical-facts-persist",
                 "event_type": "clinical_facts_persist_requested",
-                "loads": ["CodingVerifierResult"],
+                "loads": ["RelationJudgeResult"],
                 "persists": ["DOCUMENTS", "CodingDecision"],
                 "emits_on_success": "compliance_requested",
                 "emits_on_failure": "durable_step_failed",
@@ -926,20 +976,56 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
+                "id": "act-ref-snomed-enrich",
+                "title": "SNOMED Relation Enrichment",
+                "_sequence": 7,
+                "_subgraphId": "snomed_enrichment",
+                "_durableEventType": "snomed_enrichment_requested",
+                "definitionCanonical": "ActivityDefinition/ad-snomed-enrichment",
+                "relatedAction": [
+                    {"actionId": "act-ref-coding-verify", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-coding-verify",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
+                ],
+            },
+            {
+                "id": "act-ref-snomed-relation-judge",
+                "title": "Judge SNOMED Relations",
+                "_sequence": 8,
+                "_subgraphId": "relation_linking",
+                "_durableEventType": "snomed_relation_judge_requested",
+                "definitionCanonical": "ActivityDefinition/ad-relation-linking",
+                "relatedAction": [
+                    {"actionId": "act-ref-snomed-enrich", "relationship": "after-end"}
+                ],
+                "relatedActionEdges": [
+                    {
+                        "actionId": "act-ref-snomed-enrich",
+                        "sourceHandle": "next",
+                        "targetHandle": "prev",
+                    }
+                ],
+            },
+            {
                 "id": "act-ref-persist-facts",
                 "title": "Persist Clinical Facts",
-                "_sequence": 7,
+                "_sequence": 9,
                 "_subgraphId": "persist",
                 "_durableEventType": "clinical_facts_persist_requested",
                 "relatedAction": [
                     {
-                        "actionId": "act-ref-coding-verify",
+                        "actionId": "act-ref-snomed-relation-judge",
                         "relationship": "after-end",
                     }
                 ],
                 "relatedActionEdges": [
                     {
-                        "actionId": "act-ref-coding-verify",
+                        "actionId": "act-ref-snomed-relation-judge",
                         "sourceHandle": "next",
                         "targetHandle": "prev",
                     }
@@ -1114,13 +1200,36 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
+                "id": "act-ep-snomed-enrich",
+                "title": "SNOMED Relation Enrichment",
+                "_sequence": 7,
+                "_subgraphId": "snomed_enrichment",
+                "definitionCanonical": "ActivityDefinition/ad-snomed-enrichment",
+                "relatedAction": [
+                    {"actionId": "act-ep-coding-verify", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-ep-snomed-relation-judge",
+                "title": "Judge SNOMED Relations",
+                "_sequence": 8,
+                "_subgraphId": "relation_linking",
+                "definitionCanonical": "ActivityDefinition/ad-relation-linking",
+                "relatedAction": [
+                    {"actionId": "act-ep-snomed-enrich", "relationship": "after-end"}
+                ],
+            },
+            {
                 "id": "act-ep-tier-classify",
                 "title": "Classify Tiers",
-                "_sequence": 7,
+                "_sequence": 9,
                 "_subgraphId": "tier_classify",
                 "definitionCanonical": "ActivityDefinition/ad-tier-classify",
                 "relatedAction": [
-                    {"actionId": "act-ep-coding-verify", "relationship": "after-end"}
+                    {
+                        "actionId": "act-ep-snomed-relation-judge",
+                        "relationship": "after-end",
+                    }
                 ],
             },
             {
@@ -1212,9 +1321,29 @@ PLAN_DEFINITIONS = [
                 ],
             },
             {
+                "id": "act-gold-snomed-enrich",
+                "title": "SNOMED Relation Enrichment",
+                "_sequence": 6,
+                "_subgraphId": "snomed_enrichment",
+                "definitionCanonical": "ActivityDefinition/ad-snomed-enrichment",
+                "relatedAction": [
+                    {"actionId": "act-gold-terminology", "relationship": "after-end"}
+                ],
+            },
+            {
+                "id": "act-gold-snomed-relation-judge",
+                "title": "Judge SNOMED Relations",
+                "_sequence": 7,
+                "_subgraphId": "relation_linking",
+                "definitionCanonical": "ActivityDefinition/ad-relation-linking",
+                "relatedAction": [
+                    {"actionId": "act-gold-snomed-enrich", "relationship": "after-end"}
+                ],
+            },
+            {
                 "id": "act-gold-persist",
                 "title": "Persist Gold Labels",
-                "_sequence": 7,
+                "_sequence": 9,
                 "_subgraphId": "persist",
                 "definitionCanonical": "ActivityDefinition/ad-persist-training",
                 "relatedAction": [
@@ -1227,11 +1356,14 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-gold-surface-form-validation",
                 "title": "Surface Form Validation",
-                "_sequence": 6,
+                "_sequence": 8,
                 "_subgraphId": "surface_form_validation",
                 "definitionCanonical": "ActivityDefinition/ad-surface-form-validation",
                 "relatedAction": [
-                    {"actionId": "act-gold-terminology", "relationship": "after-end"}
+                    {
+                        "actionId": "act-gold-snomed-relation-judge",
+                        "relationship": "after-end",
+                    }
                 ],
             },
         ],

@@ -448,6 +448,12 @@ describe("VT-10011926 - Validation Lab two-door home", () => {
     const picker = readFile(
       "services/ui/src/app/admin/validation-lab/ClinicalPatientPicker.tsx",
     );
+    const lists = readFile(
+      "services/ui/src/app/admin/validation-lab/ClinicalPatientLists.tsx",
+    );
+    const chrome = readFile(
+      "services/ui/src/app/admin/validation-lab/clinicalDoorChrome.ts",
+    );
     const doorState = readFile(
       "services/ui/src/app/admin/validation-lab/clinicalDoorState.ts",
     );
@@ -464,12 +470,22 @@ describe("VT-10011926 - Validation Lab two-door home", () => {
     expect(rule).toMatch(/uniqueByRuleId/);
     expect(doorState).toMatch(/listClinicalPipelineRuns/);
     expect(doorState).toMatch(/listClinicalPatients/);
+    expect(doorState).toMatch(/searchMode/);
+    expect(doorState).toMatch(/listClinicalPipelineRuns\(\{ q, mode \}\)/);
     expect(clinical).toMatch(/does not start a new job/);
-    expect(picker).toMatch(/NHS number or referral number/);
+    expect(clinical).toMatch(/Why did you open this\?/);
+    expect(clinical).not.toMatch(/label="Why did you open this\?"/);
+    expect(picker).toMatch(/NHS number, or referral number/);
     expect(picker).toMatch(/UBRN/);
-    expect(picker).toMatch(/Recently used/);
-    expect(picker).toMatch(/Frequently used/);
-    expect(picker).toMatch(/All patients/);
+    expect(picker).toMatch(/In letters/);
+    expect(picker).toMatch(/Words from the letter/);
+    expect(lists).toMatch(/Recently used/);
+    expect(lists).toMatch(/Frequently used/);
+    expect(lists).toMatch(/All patients/);
+    expect(chrome).toMatch(/backdropFilter/);
+    expect(chrome).toMatch(/prefers-reduced-motion/);
+    expect(chrome).toMatch(/matchLabel/);
+    expect(picker).toMatch(/glassPanel/);
     expect(used).toMatch(/recentlyUsed/);
     expect(used).toMatch(/frequentlyUsed/);
     expect(doorState).toMatch(/whyOpened/);
@@ -484,6 +500,9 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     const lightbox = readFile(
       "services/ui/src/app/admin/validation-lab/RunReviewLightbox.tsx",
     );
+    const letter = readFile(
+      "services/ui/src/app/admin/validation-lab/LetterPane.tsx",
+    );
     const pane = readFile(
       "services/ui/src/app/admin/validation-lab/inspector/StageDetailPane.tsx",
     );
@@ -493,13 +512,65 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     const types = readFile(
       "services/ui/src/app/admin/validation-lab/findingTypes.ts",
     );
+    const marks = readFile(
+      "services/ui/src/app/admin/validation-lab/LetterMarks.tsx",
+    );
+    const legend = readFile(
+      "services/ui/src/app/admin/validation-lab/LetterMarkLegend.tsx",
+    );
+    const style = readFile(
+      "services/ui/src/app/admin/validation-lab/letterMarkStyle.ts",
+    );
+    const highlight = readFile(
+      "services/ui/src/app/admin/validation-lab/letterHighlight.ts",
+    );
     expect(lightbox).toMatch(/LetterPane/);
     expect(lightbox).toMatch(/source_text/);
+    expect(lightbox).toMatch(/stageLetterHighlights/);
+    expect(lightbox).not.toMatch(/items\?\.\[0\]\?\.text/);
+    expect(letter).toMatch(/LetterMarks/);
+    expect(letter).toMatch(/LetterMarkLegend/);
+    expect(letter).toMatch(/marks=\{marks\}/);
+    expect(letter).not.toMatch(/HighlightedText/);
+    expect(highlight).toMatch(/letterHighlightMarks/);
+    expect(highlight).toMatch(/semanticTag/);
+    expect(marks).toMatch(/data-assertion/);
+    expect(marks).toMatch(/data-semantic-tag/);
+    expect(marks).toMatch(/LetterMarkLegend/);
+    expect(marks).toMatch(/borderLeft/);
+    expect(marks).toMatch(/markContextBar/);
+    expect(legend).toMatch(/How to read a highlight/);
+    expect(legend).toMatch(/When it applies -- the bar/);
+    expect(legend).toMatch(/What it is -- the colour/);
+    expect(legend).toMatch(/LEGEND_WHEN_KEYS/);
+    expect(legend).toMatch(/LEGEND_WHAT_KEYS/);
+    expect(legend).toMatch(/the colour means finding. The bar means present/);
+    expect(style).toMatch(/export const ASSERTION_STYLE/);
+    expect(style).toMatch(/export const TAG_STYLE/);
+    expect(style).toMatch(/LEGEND_WHEN_KEYS/);
+    expect(style).toMatch(/markContextBar/);
+    expect(style).toMatch(/CONTEXT_BAR_PX/);
+    expect(style).toMatch(/#CA8A04/);
+    expect(style).toMatch(/#DC2626/);
+    expect(style).not.toMatch(/linear-gradient/);
+    expect(marks).toMatch(/CONTEXT_BAR_PX/);
+    expect(legend).toMatch(/CONTEXT_BAR_PX/);
+    expect(marks).toMatch(/data-change/);
+    expect(marks).toMatch(/leoUncoded/);
+    expect(style).toMatch(/historical/);
+    expect(style).toMatch(/#CBD5E1/);
+    expect(style).toMatch(/#99F6E4/);
+    expect(style).toMatch(/#F9A8D4/);
     expect(lightbox).toMatch(/PipelineWizard/);
     expect(lightbox).toMatch(/MarkWrongDialog/);
     expect(lightbox).toMatch(/RunSheetSbarActions/);
     expect(lightbox).toMatch(/Show live log/);
-    expect(pane).toMatch(/Mark as wrong/);
+    expect(pane).toMatch(/Yes, this step looks right/);
+    expect(pane).toMatch(/No, mark something wrong/);
+    expect(pane).toMatch(/validation-lab-next-step/);
+    expect(pane).toMatch(/validation-lab-mark-wrong/);
+    expect(pane).not.toMatch(/Next step/);
+    expect(pane).not.toMatch(/Mark as wrong/);
     expect(dialog).toMatch(/extraction/);
     expect(types).toMatch(/phrase_mapping/);
     expect(types).toMatch(/guideline_rule/);
@@ -521,6 +592,7 @@ describe("VT-5E51F5D9 - findings persist and fix routing", () => {
     expect(api).toMatch(/createFinding/);
     expect(api).toMatch(/listClinicalPipelineRuns/);
     expect(api).toMatch(/listClinicalPatients/);
+    expect(api).toMatch(/mode=\$\{mode\}/);
     expect(api).toMatch(/getPipelineRunInspector/);
     expect(routes).toMatch(/tab: "ai-instructions"/);
     expect(routes).toMatch(/tab: "context-rules"/);

@@ -13,9 +13,14 @@ from typing import Any
 
 import pytest
 
+from libs.cypher.validation_lab_finding_queries import (
+    FIND_PIPELINE_RUNS_BY_IDENTIFIER,
+    FIND_PIPELINE_RUNS_BY_LETTER,
+)
 from libs.validation_lab.clinical_runs import (
     compact_lookup,
     find_pipeline_runs,
+    letter_snippet,
     list_clinical_patients,
     list_recent_pipeline_runs,
     require_pipeline_run,
@@ -85,14 +90,18 @@ class FakeFindingClient:
                     "run_count": 2,
                 }
             ]
+        if params.get("needle"):
+            return [{**self.lookup_rows[0], "hit_text": "Patient has chest pain today"}]
         if params.get("compact"):
             compact = str(params["compact"])
+            lookup = str(params.get("lookup") or "").upper()
             return [
                 row
                 for row in self.lookup_rows
                 if compact
                 in compact_lookup(row.get("nhs_number") or "")
                 + compact_lookup(row.get("ubrn") or "")
+                or lookup in str(row.get("patient_name") or "").upper()
             ]
         if "MATCH (r:PipelineRun)" in q and "LIMIT $limit" in q:
             return [
@@ -210,6 +219,7 @@ def test_find_pipeline_runs_by_nhs_number_does_not_enqueue() -> None:
     rows = find_pipeline_runs(client, query="943 476 5919", limit=10)
     assert rows[0]["run_id"] == "pipe-1"
     assert rows[0]["nhs_number"] == "943 476 5919"
+    assert rows[0]["matched_on"] == "nhs"
     assert client.enqueued is False
 
 
@@ -217,7 +227,44 @@ def test_find_pipeline_runs_by_ubrn_does_not_enqueue() -> None:
     client = FakeFindingClient()
     rows = find_pipeline_runs(client, query="000000000001", limit=10)
     assert rows[0]["ubrn"] == "000000000001"
+    assert rows[0]["matched_on"] == "ubrn"
     assert client.enqueued is False
+
+
+def test_find_pipeline_runs_by_name_does_not_enqueue() -> None:
+    client = FakeFindingClient()
+    rows = find_pipeline_runs(client, query="Test", limit=10)
+    assert rows[0]["patient_name"] == "Test"
+    assert rows[0]["matched_on"] == "name"
+    assert client.enqueued is False
+
+
+def test_find_pipeline_runs_by_letter_does_not_enqueue() -> None:
+    client = FakeFindingClient()
+    rows = find_pipeline_runs(client, query="chest pain", mode="letters")
+    assert rows[0]["run_id"] == "pipe-1"
+    assert rows[0]["matched_on"] == "letter"
+    assert "chest pain" in rows[0]["snippet"]
+    assert client.enqueued is False
+
+
+def test_letter_search_ignores_short_queries() -> None:
+    client = FakeFindingClient()
+    assert find_pipeline_runs(client, query="ab", mode="letters") == []
+    assert client.queries == []
+
+
+def test_letter_snippet_keeps_nearby_words() -> None:
+    text = "The GP notes unexplained chest pain and weight loss."
+    assert "chest pain" in letter_snippet(text, "chest pain")
+
+
+def test_find_query_orders_by_alias_after_distinct() -> None:
+    tail = FIND_PIPELINE_RUNS_BY_IDENTIFIER.split("RETURN")[-1]
+    assert "ORDER BY run." not in tail
+    assert "ORDER BY created_raw DESC" in FIND_PIPELINE_RUNS_BY_IDENTIFIER
+    letter_tail = FIND_PIPELINE_RUNS_BY_LETTER.split("RETURN")[-1]
+    assert "ORDER BY run." not in letter_tail
 
 
 def test_compact_lookup_strips_spaces() -> None:

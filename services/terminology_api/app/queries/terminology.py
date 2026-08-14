@@ -330,6 +330,8 @@ OPTIONAL MATCH (p:Concept)-[:HAS_COMPONENT]->(c) WHERE p.active = true
 OPTIONAL MATCH (c)-[:INTERPRETS]->(obs:Concept)  WHERE obs.active = true
 OPTIONAL MATCH (c)-[:HAS_COMPONENT]->(comp:Concept) WHERE comp.active = true
 OPTIONAL MATCH (c)-[:HAS_ASSOCIATED_FINDING]->(assoc_f:Concept) WHERE assoc_f.active = true
+OPTIONAL MATCH (c)-[:HAS_FINDING_SITE]->(site:Concept) WHERE site.active = true
+OPTIONAL MATCH (c)-[:HAS_PROCEDURE_SITE]->(proc_site:Concept) WHERE proc_site.active = true
 OPTIONAL MATCH (f_obs:Concept)-[hr:HAS_RELATIONSHIP]->(c)
 WHERE hr.type_id = '363714003' AND f_obs.active = true
 OPTIONAL MATCH (f_obs2:Concept)-[:INTERPRETS_OBSERVABLE]->(c)
@@ -337,12 +339,16 @@ WHERE f_obs2.active = true
 
 RETURN
   c.id AS concept_id,
+  c.fsn AS concept_fsn,
+  c.semantic_tag AS semantic_tag,
   [x IN collect(DISTINCT f) + collect(DISTINCT f_obs) + collect(DISTINCT f_obs2)
      WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETED_BY'}] AS interpreted_by_findings,
   [x IN collect(DISTINCT p)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'COMPONENT_OF'}]          AS component_of_procedures,
   [x IN collect(DISTINCT obs)     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETS'}]            AS interprets_observables,
   [x IN collect(DISTINCT comp)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_COMPONENT'}]         AS has_components,
-  [x IN collect(DISTINCT assoc_f) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_ASSOCIATED_FINDING'}] AS associated_findings
+  [x IN collect(DISTINCT assoc_f) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_ASSOCIATED_FINDING'}] AS associated_findings,
+  [x IN collect(DISTINCT site)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_FINDING_SITE'}]      AS finding_sites,
+  [x IN collect(DISTINCT proc_site) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_PROCEDURE_SITE'}]  AS procedure_sites
 """
 
 UPSERT_SURFACE_FORMS = """
@@ -715,6 +721,12 @@ WHERE comp.active = true
 OPTIONAL MATCH (c)-[:HAS_ASSOCIATED_FINDING]->(assoc_f:Concept)
 WHERE assoc_f.active = true
 
+// Body sites for findings and procedures
+OPTIONAL MATCH (c)-[:HAS_FINDING_SITE]->(site:Concept)
+WHERE site.active = true
+OPTIONAL MATCH (c)-[:HAS_PROCEDURE_SITE]->(proc_site:Concept)
+WHERE proc_site.active = true
+
 OPTIONAL MATCH (f_obs:Concept)-[hr:HAS_RELATIONSHIP]->(c)
 WHERE hr.type_id = '363714003' AND f_obs.active = true
 OPTIONAL MATCH (f_obs2:Concept)-[:INTERPRETS_OBSERVABLE]->(c)
@@ -729,5 +741,7 @@ RETURN
   [x IN collect(DISTINCT p)       WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'COMPONENT_OF'}]         AS component_of_procedures,
   [x IN collect(DISTINCT obs)     WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'INTERPRETS'}]           AS interprets_observables,
   [x IN collect(DISTINCT comp)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_COMPONENT'}]        AS has_components,
-  [x IN collect(DISTINCT assoc_f) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_ASSOCIATED_FINDING'}] AS associated_findings
+  [x IN collect(DISTINCT assoc_f) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_ASSOCIATED_FINDING'}] AS associated_findings,
+  [x IN collect(DISTINCT site)    WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_FINDING_SITE'}]      AS finding_sites,
+  [x IN collect(DISTINCT proc_site) WHERE x IS NOT NULL | {id: x.id, fsn: x.fsn, semantic_tag: x.semantic_tag, rel: 'HAS_PROCEDURE_SITE'}]  AS procedure_sites
 """

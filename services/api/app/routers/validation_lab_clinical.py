@@ -91,6 +91,7 @@ def list_open_findings(
 def list_pipeline_runs(
     limit: int = Query(default=30, ge=1, le=100),
     q: str | None = Query(default=None),
+    mode: Literal["patient", "letters"] = Query(default="patient"),
     _scope: CallerScope = Depends(require_admin_or_service),
 ) -> list[dict[str, Any]]:
     """Recent or looked-up PipelineRuns. Does not enqueue a new job."""
@@ -98,7 +99,9 @@ def list_pipeline_runs(
     try:
         query = str(q or "").strip()
         if query:
-            return find_pipeline_runs(client, query=query, limit=limit)
+            return find_pipeline_runs(
+                client, query=query, limit=limit, mode=mode
+            )
         return list_recent_pipeline_runs(client, limit=limit)
     finally:
         client.close()

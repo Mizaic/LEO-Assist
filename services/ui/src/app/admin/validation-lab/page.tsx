@@ -23,6 +23,7 @@ import ClinicalDoor from "./ClinicalDoor";
 import LabCasesPanel from "./LabCasesPanel";
 import RuleDoor from "./RuleDoor";
 import RunReviewLightbox, { type RunReviewTarget } from "./RunReviewLightbox";
+import type { LabWorkPreview } from "./inspectorTypes";
 import { getCase, listCases, type LabCase } from "./labApi";
 import { listOpenFindings } from "./labFindingsApi";
 import { pollCasePipeline, queueCasePipeline } from "./labRun";
@@ -64,7 +65,7 @@ export default function ValidationLabPage() {
     });
   }
 
-  async function retest(headlines: Record<string, string>) {
+  async function retest(previews: Record<string, LabWorkPreview>) {
     if (!review?.caseId) return;
     const started = await queueCasePipeline(review.caseId);
     setReview({
@@ -73,7 +74,7 @@ export default function ValidationLabPage() {
       status: started.status,
       terminal: false,
       readOnly: false,
-      previousHeadlines: headlines,
+      previousPreviews: previews,
     });
     const finalRun = await pollCasePipeline(review.caseId, started.id);
     setReview((prev) =>
@@ -129,7 +130,7 @@ export default function ValidationLabPage() {
           setReview(null);
           void reloadStrip();
         }}
-        onRetest={(headlines) => void retest(headlines)}
+        onRetest={(previews) => void retest(previews)}
         onSavedGold={() => void reloadStrip()}
         onBuildTwin={(phrases) => {
           setTwinPhrases(phrases);

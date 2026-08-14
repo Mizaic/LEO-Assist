@@ -1,10 +1,11 @@
 """Referral-focused clinical entity extraction instructions.
 
 Atlas trace:
-  DO: DO-416BA91D
+  DO: DO-416BA91D / DO-6953211C
   Also implements: DO-728930A1
-  DI: DI-1B3B5375, DI-B492CAFD, DI-B5C78811
-  Look up via: get_design_control(dc_type="design-input", dc_id="DI-B492CAFD")
+  DI: DI-1B3B5375, DI-B492CAFD, DI-B5C78811, DI-6EDCD972
+  VT: VT-35BB209B
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-6EDCD972")
 
 This prompt is intended for referral-routing and pathway-trigger extraction.
 It uses the same JSON output contract as extraction_v1 but narrows emphasis to:
@@ -56,6 +57,10 @@ Extract:
 - measurable observables only when a named parameter has a value
 - clinically important findings even when the sentence does not explicitly mention
   referral wording
+- named tests or scans the clinician asks to arrange (please arrange, requested,
+  organised) as procedure with assertion planned
+- findings the letter says are not present, including "no X reported", as the
+  same kind of fact with assertion absent
 
 NHS eRS 2WW form section headers (HIGHEST PRIORITY):
 The following label phrases introduce the referral reason on NHS eRS and

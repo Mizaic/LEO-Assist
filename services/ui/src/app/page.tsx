@@ -17,7 +17,7 @@ import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Grid from "@mui/material/Grid";
-import CircularProgress from "@mui/material/CircularProgress";
+import { LeoLogo, LeoSplash } from "@leo/design-system";
 import CodeOutlinedIcon from "@mui/icons-material/CodeOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import AutoModeOutlinedIcon from "@mui/icons-material/AutoModeOutlined";
@@ -61,11 +61,7 @@ export default function Home() {
   }, [session, router]);
 
   if (status === "loading") {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <CircularProgress aria-label="Loading" />
-      </Box>
-    );
+    return <LeoSplash />;
   }
 
   if (session) return null;
@@ -85,18 +81,9 @@ export default function Home() {
           textAlign: "center",
         }}
       >
-        <Box
-          component="img"
-          src="/leo-icon.svg"
-          alt="LEO"
-          sx={{ width: 80, height: 80, mb: 3 }}
-        />
-        <Typography variant="h3" sx={{ fontWeight: 700, letterSpacing: "-0.02em", mb: 0.5 }}>
-          LEO
-        </Typography>
-        <Typography variant="body1" sx={{ color: "text.secondary", mb: 3, fontSize: "1.05rem" }}>
-          by Mizaic
-        </Typography>
+        <Box sx={{ mb: 3 }}>
+          <LeoLogo height={56} variant="light" spinning spinDuration={2.4} />
+        </Box>
         <Typography
           variant="h6"
           sx={{

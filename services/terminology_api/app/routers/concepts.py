@@ -19,6 +19,7 @@ from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.neo4j_client.client import KnowledgeGraphClient
 from libs.terminology.semantic_tag import normalise_semantic_tag
 from services.terminology_api.app.queries.terminology import (
+    BATCH_RELATED_CONCEPTS_QUERY,
     DESCENDANTS_TEMPLATE,
     GET_CONCEPT_FOR_SUGGESTION,
     RELATED_CONCEPTS_QUERY,
@@ -55,6 +56,8 @@ class RelatedConceptsResult(BaseModel):
     - ``has_components`` -- observables that this procedure measures
       (only populated when the queried concept is a procedure)
     - ``associated_findings`` -- findings linked via HAS_ASSOCIATED_FINDING
+    - ``finding_sites`` -- body structures via HAS_FINDING_SITE
+    - ``procedure_sites`` -- body structures via HAS_PROCEDURE_SITE
     """
 
     concept_id: str
@@ -65,6 +68,16 @@ class RelatedConceptsResult(BaseModel):
     interprets_observables: List[RelatedConceptRef] = []
     has_components: List[RelatedConceptRef] = []
     associated_findings: List[RelatedConceptRef] = []
+    finding_sites: List[RelatedConceptRef] = []
+    procedure_sites: List[RelatedConceptRef] = []
+
+
+class BatchRelatedRequest(BaseModel):
+    concept_ids: List[str]
+
+
+class BatchRelatedResponse(BaseModel):
+    results: dict[str, RelatedConceptsResult]
 
 
 @router.get(
@@ -72,8 +85,9 @@ class RelatedConceptsResult(BaseModel):
     response_model=RelatedConceptsResult,
     summary="Get related lab-domain concepts via SNOMED ontology relationships",
     description=(
-        "Traverse INTERPRETS, HAS_COMPONENT, and HAS_ASSOCIATED_FINDING relationships "
-        "to return the full observable_entity / procedure / finding family for a concept. "
+        "Traverse INTERPRETS, HAS_COMPONENT, HAS_ASSOCIATED_FINDING, "
+        "HAS_FINDING_SITE, and HAS_PROCEDURE_SITE relationships "
+        "to return the ontology family for a concept. "
         "Relationships are materialised by the phase-3 SNOMED attribute projection loader."
     ),
 )
@@ -90,31 +104,61 @@ def get_related_concepts(concept_id: str) -> RelatedConceptsResult:
             status_code=404, detail=f"Concept {concept_id} not found or inactive"
         )
 
-    row = rows[0]
+    return _row_to_related_result(rows[0])
 
-    def _to_refs(items: Any) -> List[RelatedConceptRef]:
-        if not items:
-            return []
-        return [
-            RelatedConceptRef(
-                id=str(item["id"]),
-                fsn=str(item["fsn"]),
-                semantic_tag=item.get("semantic_tag"),
-                rel=item.get("rel", ""),
-            )
-            for item in items
-            if item and item.get("id") and item.get("fsn")
-        ]
 
+@router.post(
+    "/concepts/batch-related",
+    response_model=BatchRelatedResponse,
+    summary="Batch-fetch SNOMED ontology neighbours for many concepts",
+)
+def batch_related_concepts(body: BatchRelatedRequest) -> BatchRelatedResponse:
+    """Return related-concept maps keyed by concept id."""
+    ids = [str(cid).strip() for cid in body.concept_ids if str(cid).strip()]
+    unique = list(dict.fromkeys(ids))
+    if not unique:
+        return BatchRelatedResponse(results={})
+    client = KnowledgeGraphClient()
+    try:
+        rows = client.run(BATCH_RELATED_CONCEPTS_QUERY, concept_ids=unique)
+    finally:
+        client.close()
+    results: dict[str, RelatedConceptsResult] = {}
+    for row in rows or []:
+        if not row or not row.get("concept_id"):
+            continue
+        parsed = _row_to_related_result(row)
+        results[parsed.concept_id] = parsed
+    return BatchRelatedResponse(results=results)
+
+
+def _to_refs(items: Any) -> List[RelatedConceptRef]:
+    if not items:
+        return []
+    return [
+        RelatedConceptRef(
+            id=str(item["id"]),
+            fsn=str(item["fsn"]),
+            semantic_tag=item.get("semantic_tag"),
+            rel=item.get("rel", ""),
+        )
+        for item in items
+        if item and item.get("id") and item.get("fsn")
+    ]
+
+
+def _row_to_related_result(row: dict[str, Any]) -> RelatedConceptsResult:
     return RelatedConceptsResult(
         concept_id=str(row["concept_id"]),
-        concept_fsn=str(row["concept_fsn"]),
+        concept_fsn=str(row.get("concept_fsn") or ""),
         semantic_tag=row.get("semantic_tag"),
         interpreted_by_findings=_to_refs(row.get("interpreted_by_findings")),
         component_of_procedures=_to_refs(row.get("component_of_procedures")),
         interprets_observables=_to_refs(row.get("interprets_observables")),
         has_components=_to_refs(row.get("has_components")),
         associated_findings=_to_refs(row.get("associated_findings")),
+        finding_sites=_to_refs(row.get("finding_sites")),
+        procedure_sites=_to_refs(row.get("procedure_sites")),
     )
 
 

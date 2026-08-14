@@ -14,6 +14,8 @@ const STEP_SUFFIX_TO_SUBGRAPH: Record<string, string> = {
   "relation-link": "relation_linking",
   "extraction-check": "extraction_check",
   terminology: "terminology",
+  "snomed-enrich": "snomed_enrichment",
+  snomed_enrichment: "snomed_enrichment",
   "coding-verify": "coding_verifier",
   "persist-facts": "persist",
   compliance: "compliance",

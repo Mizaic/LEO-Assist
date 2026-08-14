@@ -12,3 +12,4 @@ export * from "./fonts";
 export * from "./roles";
 export * from "./copy";
 export * from "./primitives";
+export * from "./brand";

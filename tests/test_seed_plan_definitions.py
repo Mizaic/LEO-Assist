@@ -17,7 +17,8 @@ def test_gp_plan_includes_extraction_and_coding_checks():
     assert "act-extraction-check" in ids
     assert "act-extraction-route" in ids
     assert "act-hitl-ner-queue" in ids
-    assert "act-coding-check" in ids
+    assert "act-snomed-enrich" in ids
+    assert "act-snomed-relation-judge" in ids
     assert "act-coding-route" in ids
     assert "act-hitl-coding-queue" in ids
 
@@ -36,12 +37,15 @@ def test_gp_plan_includes_extraction_and_coding_checks():
     ]
     assert by_id["act-extraction-route"]["_nodeType"] == "condition"
     assert by_id["act-coding-route"]["_nodeType"] == "condition"
-    assert by_id["act-coding-check"]["_sequence"] < by_id["act-coding-route"][
+    assert by_id["act-snomed-enrich"]["_sequence"] < by_id["act-snomed-relation-judge"][
         "_sequence"
     ]
-    assert by_id["act-coding-route"]["_sequence"] < by_id["act-tier-classify"][
+    assert by_id["act-snomed-relation-judge"]["_sequence"] < by_id["act-coding-route"][
         "_sequence"
     ]
+    assert by_id["act-coding-route"]["relatedAction"][0]["actionId"] == (
+        "act-snomed-relation-judge"
+    )
     assert by_id["act-terminology"]["relatedActionEdges"][0]["sourceHandle"] == (
         "pass_through"
     )
@@ -56,6 +60,7 @@ def test_gp_plan_includes_extraction_and_coding_checks():
 def test_new_activities_have_expected_dynamic_values():
     extraction_check = _activity("ad-extraction-check")
     relation_linking = _activity("ad-relation-linking")
+    snomed_enrichment = _activity("ad-snomed-enrichment")
     extraction_route = _activity("ad-condition-extraction-route")
     coding_check = _activity("ad-coding-check")
     coding_route = _activity("ad-condition-coding-route")
@@ -63,6 +68,7 @@ def test_new_activities_have_expected_dynamic_values():
 
     assert extraction_check["_subgraphId"] == "extraction_check"
     assert relation_linking["_subgraphId"] == "relation_linking"
+    assert snomed_enrichment["_subgraphId"] == "snomed_enrichment"
     assert extraction_route["_subgraphId"] == "condition"
     assert coding_check["_subgraphId"] == "coding_check"
     assert coding_route["_subgraphId"] == "condition"

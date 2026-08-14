@@ -66,7 +66,7 @@ export default function AccuracyLoopHome({
           color="#9D174D"
           icon={<FolderOpenOutlinedIcon sx={{ fontSize: 28, color: "#9D174D" }} />}
           headline="Investigate a clinical complaint"
-          description="Find the patient by NHS number or referral number, or pick from the list. Mark what went wrong. Do not start a new job."
+          description="Find the patient by name, NHS number, or referral number, or search the letter. Mark what went wrong. Do not start a new job."
           steps={[
             "1. Enter NHS number or referral number, or pick a patient",
             "2. Say why you opened it",

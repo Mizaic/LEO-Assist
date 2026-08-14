@@ -20,7 +20,7 @@ import { DemoModeProvider } from "@/context/DemoModeContext";
 import AppShell from "@/components/AppShell";
 import AuthProviderWrapper from "@/components/AuthProviderWrapper";
 import RoleShellProvider from "@/components/RoleShellProvider";
-import { dmSans, jetBrainsMono } from "@/lib/fonts";
+import { albertSans, overpass, jetBrainsMono } from "@/lib/fonts";
 import { fetchInitialSession } from "@/lib/serverSession";
 
 // All UI pages are authenticated and per-user. Disable Next.js Full Route
@@ -51,7 +51,7 @@ export default async function RootLayout({
     <html
       lang="en"
       dir="ltr"
-      className={`${dmSans.variable} ${jetBrainsMono.variable}`}
+      className={`${albertSans.variable} ${overpass.variable} ${jetBrainsMono.variable}`}
     >
       <body>
         <a href="#main-content" className="skip-link">

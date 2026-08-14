@@ -7,19 +7,38 @@ Atlas:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from libs.cypher.validation_lab_finding_queries import (
     FIND_PIPELINE_RUNS_BY_IDENTIFIER,
+    FIND_PIPELINE_RUNS_BY_LETTER,
     GET_PIPELINE_RUN_EXISTS,
     LIST_CLINICAL_PATIENTS,
     LIST_RECENT_PIPELINE_RUNS,
 )
 
+SearchMode = Literal["patient", "letters"]
+LETTER_MIN_CHARS = 3
+
 
 def compact_lookup(raw: str) -> str:
     """NHS numbers and UBRNs often arrive with spaces or hyphens."""
     return "".join(ch for ch in str(raw or "") if ch.isalnum()).upper()
+
+
+def letter_snippet(text: str, needle: str, radius: int = 48) -> str:
+    raw = " ".join(str(text or "").split())
+    key = str(needle or "").strip()
+    if not raw:
+        return ""
+    idx = raw.lower().find(key.lower())
+    if idx < 0:
+        return raw[:96]
+    start = max(0, idx - radius)
+    end = min(len(raw), idx + len(key) + radius)
+    prefix = "..." if start else ""
+    suffix = "..." if end < len(raw) else ""
+    return prefix + raw[start:end] + suffix
 
 
 def list_recent_pipeline_runs(
@@ -36,17 +55,12 @@ def find_pipeline_runs(
     *,
     query: str,
     limit: int = 30,
+    mode: SearchMode = "patient",
 ) -> list[dict[str, Any]]:
-    compact = compact_lookup(query)
-    if not compact:
-        return []
-    rows = client.run(
-        FIND_PIPELINE_RUNS_BY_IDENTIFIER,
-        lookup=str(query or "").strip(),
-        compact=compact,
-        limit=int(limit),
-    )
-    return [_run_row(row) for row in rows]
+    lookup = str(query or "").strip()
+    if str(mode) == "letters":
+        return _find_by_letter(client, lookup=lookup, limit=limit)
+    return _find_by_patient(client, lookup=lookup, limit=limit)
 
 
 def list_clinical_patients(
@@ -77,7 +91,68 @@ def require_pipeline_run(client: Any, run_id: str) -> dict[str, Any]:
     }
 
 
-def _run_row(row: dict[str, Any]) -> dict[str, Any]:
+def _find_by_patient(
+    client: Any,
+    *,
+    lookup: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    compact = compact_lookup(lookup)
+    if not compact:
+        return []
+    rows = client.run(
+        FIND_PIPELINE_RUNS_BY_IDENTIFIER,
+        lookup=lookup,
+        compact=compact,
+        limit=int(limit),
+    )
+    return [
+        _run_row(row, matched_on=_patient_match_reason(lookup, compact, row))
+        for row in rows
+    ]
+
+
+def _find_by_letter(
+    client: Any,
+    *,
+    lookup: str,
+    limit: int,
+) -> list[dict[str, Any]]:
+    if len(lookup) < LETTER_MIN_CHARS:
+        return []
+    rows = client.run(
+        FIND_PIPELINE_RUNS_BY_LETTER,
+        needle=lookup,
+        limit=int(limit),
+    )
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        item = _run_row(row, matched_on="letter")
+        item["snippet"] = letter_snippet(str(row.get("hit_text") or ""), lookup)
+        out.append(item)
+    return out
+
+
+def _patient_match_reason(
+    lookup: str,
+    compact: str,
+    row: dict[str, Any],
+) -> str:
+    if compact and compact_lookup(row.get("nhs_number") or "") == compact:
+        return "nhs"
+    if compact and compact_lookup(row.get("ubrn") or "") == compact:
+        return "ubrn"
+    name = str(row.get("patient_name") or "").upper()
+    if lookup.upper() and lookup.upper() in name:
+        return "name"
+    return "patient"
+
+
+def _run_row(
+    row: dict[str, Any],
+    *,
+    matched_on: str = "",
+) -> dict[str, Any]:
     return {
         "run_id": str(row.get("run_id") or ""),
         "status": str(row.get("status") or ""),
@@ -87,6 +162,8 @@ def _run_row(row: dict[str, Any]) -> dict[str, Any]:
         "patient_name": str(row.get("patient_name") or ""),
         "nhs_number": str(row.get("nhs_number") or ""),
         "ubrn": str(row.get("ubrn") or ""),
+        "matched_on": matched_on,
+        "snippet": str(row.get("snippet") or ""),
     }
 
 

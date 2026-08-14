@@ -18,7 +18,7 @@ const COPY: Record<string, PlainStageCopy> = {
   "extraction-check": {
     name: "Checking the reading",
     plain: "LEO checks the facts it just picked out.",
-    question: "Did checking drop a fact it should have kept?",
+    question: "Are all the facts still here after checking?",
   },
   extraction: {
     name: "Reading the letter",
@@ -27,28 +27,38 @@ const COPY: Record<string, PlainStageCopy> = {
   },
   post: {
     name: "Cleaning the facts",
-    plain: "LEO checks which facts are current, past, or just noise.",
-    question: "Did cleaning drop a fact it should have kept?",
+    plain: "LEO labels each fact as current, past, family history, or not present. It may also drop facts that are noise. Amber chips below mean the label changed.",
+    question: "Are all the facts still here after cleaning?",
   },
   post_process: {
     name: "Cleaning the facts",
-    plain: "LEO checks which facts are current, past, or just noise.",
-    question: "Did cleaning drop a fact it should have kept?",
+    plain: "LEO labels each fact as current, past, family history, or not present. It may also drop facts that are noise. Amber chips below mean the label changed.",
+    question: "Are all the facts still here after cleaning?",
   },
   "coding-verify": {
     name: "Checking the codes",
     plain: "LEO checks that each matched code is safe to use.",
-    question: "Did checking reject a code it should have kept?",
+    question: "Did all the right codes make it through?",
   },
   coding: {
     name: "Checking the codes",
     plain: "LEO checks that each matched code is safe to use.",
-    question: "Did checking reject a code it should have kept?",
+    question: "Did all the right codes make it through?",
   },
   terminology: {
     name: "Adding medical codes",
     plain: "LEO matches each fact to a standard code so rules can use it.",
     question: "Is each fact matched to the right code?",
+  },
+  snomed_enrichment: {
+    name: "Adding body sites from codes",
+    plain: "LEO uses the medical code book to add body sites and other links that the code already knows. Dashed chips were added from the code book, not from the letter.",
+    question: "Are the added body sites right for this letter?",
+  },
+  "snomed-enrich": {
+    name: "Adding body sites from codes",
+    plain: "LEO uses the medical code book to add body sites and other links that the code already knows. Dashed chips were added from the code book, not from the letter.",
+    question: "Are the added body sites right for this letter?",
   },
   persist: {
     name: "Saving the facts",
@@ -57,7 +67,7 @@ const COPY: Record<string, PlainStageCopy> = {
   },
   "relation-link": {
     name: "Linking the facts",
-    plain: "LEO links related facts together.",
+    plain: "LEO joins related facts. For example: pain linked to a body site, a finding linked to a condition, or a measurement linked to what it measures.",
     question: "Are the links between facts right?",
   },
   "referral-reason": {

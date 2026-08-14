@@ -6,12 +6,15 @@
  *   DI: DI-613A48DA
  *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-124AC2C4")
  */
-// Typography scale. DM Sans is loaded by the consuming Next app through
-// next/font and exposed as the --font-dm-sans CSS variable.
+// Typography scale. Albert Sans (body) and Overpass (headlines) are the
+// Mizaic brand fonts. Both are loaded by the consuming Next app through
+// next/font and exposed as --font-albert-sans / --font-overpass CSS
+// variables. JetBrains Mono is retained for code/kbd/SNOMED IDs.
 // See DI-LEO-AI-132.
 export const typography = {
   fontFamily: {
-    body: "var(--font-dm-sans), 'DM Sans', -apple-system, system-ui, sans-serif",
+    body: "var(--font-albert-sans), 'Albert Sans', -apple-system, system-ui, sans-serif",
+    heading: "var(--font-overpass), 'Overpass', -apple-system, system-ui, sans-serif",
     mono: "var(--font-jetbrains-mono), 'JetBrains Mono', 'Menlo', monospace",
   },
   fontSize: {

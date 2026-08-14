@@ -20,6 +20,22 @@ export interface LabWorkItem {
   evidence?: string;
   /** :DOCUMENTS.evidence_sentence -- the de-identified sentence. */
   evidenceSentence?: string;
+  /** present / historical / family / absent / planned / ... */
+  assertion?: string;
+  /** finding / disorder / situation / procedure / ... */
+  semanticTag?: string;
+  /** Numeric measurement extracted by observable post-processor. */
+  value?: string;
+  /** Unit for the measurement, e.g. "%" or "mmol/L". */
+  unit?: string;
+  /** Reference range string, e.g. "4.0 - 6.0". */
+  referenceRange?: string;
+  /** Relation type label, e.g. "at site" or "linked to" (relation items only). */
+  relationType?: string;
+  /** Target entity text for relation items. */
+  relationTarget?: string;
+  /** new | dropped | context | kind | coded | uncoded | measured | stable */
+  change?: string;
 }
 
 export interface LabWorkPreview {

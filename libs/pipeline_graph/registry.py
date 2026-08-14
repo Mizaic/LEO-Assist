@@ -155,6 +155,19 @@ def _register_defaults(registry: SubgraphRegistry) -> None:
         logger.error("Failed to register subgraph 'relation_linking': %s", exc)
 
     try:
+        from libs.pipeline_graph.subgraphs.snomed_enrichment import (
+            build_snomed_enrichment_subgraph,
+        )
+
+        registry.register(
+            "snomed_enrichment",
+            build_snomed_enrichment_subgraph,
+            description="SNOMED-grounded relation candidates and inferred sites",
+        )
+    except Exception as exc:
+        logger.error("Failed to register subgraph 'snomed_enrichment': %s", exc)
+
+    try:
         from libs.pipeline_graph.subgraphs.terminology import build_terminology_subgraph
 
         registry.register(

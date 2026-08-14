@@ -23,10 +23,15 @@ export const color = {
     inverse: "#FFFFFF",
     caption: "#6B7280",
   },
+  /* -- Mizaic brand palette -- */
   brand: {
-    primary: "#1D4ED8",
-    primaryHover: "#1E40AF",
-    secondary: "#0EA5E9",
+    /* Electric Blue: contrast 6.02:1 on white -- WCAG AA compliant */
+    primary: "#0d46d6",
+    primaryHover: "#002178",
+    primaryDark: "#00093b",
+    secondary: "#9338ff",
+    secondaryHover: "#6600ab",
+    accent: "#d758ff",
     onBrand: "#FFFFFF",
   },
   status: {

@@ -18,9 +18,9 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
+import { EvidenceTooltip } from "./EvidenceTooltip";
 import { formatKeyTooltip, isPresentValue } from "./stateKeyPresence";
 import {
-  formatEvidenceTooltip,
   isEntityList,
   itemsFromEntities,
   sentenceList,
@@ -114,10 +114,7 @@ function KeyChip({
         />
       </ValueTooltip>
       {entities.map((item, index) => (
-        <ValueTooltip
-          key={`${item.text}-${index}`}
-          text={formatEvidenceTooltip(item)}
-        >
+        <EvidenceTooltip key={`${item.text}-${index}`} item={item}>
           <Chip
             size="small"
             label={item.code ? `${item.text} -- ${item.code}` : item.text}
@@ -125,7 +122,7 @@ function KeyChip({
             data-testid="validation-lab-entity-chip"
             sx={{ ...PRESENT_SX, fontFamily: "inherit" }}
           />
-        </ValueTooltip>
+        </EvidenceTooltip>
       ))}
     </>
   );

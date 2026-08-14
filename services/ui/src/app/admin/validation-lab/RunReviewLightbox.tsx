@@ -38,6 +38,8 @@ import {
 } from "./findingTypes";
 import { fixHref, isInlineFix } from "./fixRoutes";
 import { promoteGold } from "./labApi";
+import { stageLetterHighlights } from "./letterHighlight";
+import type { LabWorkPreview } from "./inspectorTypes";
 
 export interface RunReviewTarget {
   title: string;
@@ -51,14 +53,15 @@ export interface RunReviewTarget {
   status: string;
   terminal: boolean;
   readOnly?: boolean;
-  previousHeadlines?: Record<string, string>;
+  /** Previous run's full work preview per step_id (retest mode). */
+  previousPreviews?: Record<string, LabWorkPreview>;
   assessmentCaseId?: string;
 }
 
 interface Props {
   target: RunReviewTarget | null;
   onClose: () => void;
-  onRetest?: (headlines: Record<string, string>) => void;
+  onRetest?: (previews: Record<string, LabWorkPreview>) => void;
   onSavedGold?: () => void;
   onBuildTwin?: (phrases: string[]) => void;
 }
@@ -88,7 +91,10 @@ function ReviewBody({
   onRetest,
   onSavedGold,
   onBuildTwin,
-}: Omit<Props, "target"> & { target: RunReviewTarget }) {
+}: Omit<Props, "target"> & {
+  target: RunReviewTarget;
+  onRetest?: (previews: Record<string, LabWorkPreview>) => void;
+}) {
   const caseId = target.caseId || "";
   const labRunId = target.labRunId || "";
   const pipelineRunId = target.pipelineRunId || "";
@@ -148,7 +154,12 @@ function ReviewBody({
   const selectedSpan = inspector.spans.find(
     (s) => s.step_id === inspector.selectedStepId,
   );
-  const highlight = markTarget || selectedSpan?.work_preview?.items?.[0]?.text;
+  const highlights = stageLetterHighlights(
+    inspector.selectedStepId,
+    inspector.spans,
+    inspector.stageDetail,
+    markTarget,
+  );
 
   return (
     <Dialog
@@ -174,11 +185,11 @@ function ReviewBody({
           onRetest={
             onRetest
               ? () => {
-                  const headlines: Record<string, string> = {};
+                  const previews: Record<string, LabWorkPreview> = {};
                   for (const span of inspector.spans) {
-                    headlines[span.step_id] = span.work_preview?.headline || "";
+                    previews[span.step_id] = span.work_preview || {};
                   }
-                  onRetest(headlines);
+                  onRetest(previews);
                 }
               : undefined
           }
@@ -204,7 +215,7 @@ function ReviewBody({
               target.referralText || inspector.snapshot?.source_text || ""
             }
             openedBecause={target.whyOpened}
-            highlight={highlight}
+            highlights={highlights}
             gpNote={target.gpNote}
             pmhText={target.pmhText}
           />
@@ -222,7 +233,7 @@ function ReviewBody({
                   onSelectStep={inspector.setSelectedStepId}
                   stageDetail={inspector.stageDetail}
                   stageLoading={inspector.stageLoading}
-                  previousHeadlines={target.previousHeadlines}
+                  previousPreviews={target.previousPreviews}
                   onFixInGuards={(span) => {
                     window.location.href = fixHref({
                       category: "guard",

@@ -113,10 +113,12 @@ def test_production_referral_assessment_uses_full_clinical_chain():
         "extraction_check",
         "terminology",
         "coding_verifier",
+        "snomed_enrichment",
+        "relation_linking",
         "persist",
+        "referral_reason",
         "compliance",
         "quality_check",
-        "referral_reason",
         "sbar",
     ]
     assert plan["action"][0]["trigger"] == [

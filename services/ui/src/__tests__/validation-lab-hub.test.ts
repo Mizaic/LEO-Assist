@@ -35,6 +35,15 @@ describe("Validation Lab home", () => {
     expect(home).toMatch(/validation-lab-mode-clinical/);
   });
 
+  it("keeps platform admin intro in plain English", () => {
+    const copy = fs.readFileSync(
+      path.join(__dirname, "../lib/knowledgeCopy.ts"),
+      "utf-8",
+    );
+    expect(copy).not.toMatch(/:ValidationCase/);
+    expect(copy).toMatch(/Find a patient and check how LEO read their letter/);
+  });
+
   it("does not use Technical or ConText jargon on the home cards", () => {
     expect(home).not.toMatch(/Technical/);
     expect(home).not.toMatch(/ConText/);

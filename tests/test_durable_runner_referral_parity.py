@@ -93,6 +93,8 @@ EXPECTED_SUBGRAPH_ORDER = [
     "extraction_check",
     "terminology",
     "coding_verifier",
+    "snomed_enrichment",
+    "relation_linking",
     "persist",
     "referral_reason",
     "compliance",

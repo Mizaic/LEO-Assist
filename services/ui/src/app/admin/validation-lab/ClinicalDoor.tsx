@@ -8,12 +8,15 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 
 import { LookupPanel } from "./ClinicalPatientPicker";
 import { useClinicalDoor } from "./clinicalDoorState";
+import { displayTitle, glassPanel, pressable, statusTone } from "./clinicalDoorChrome";
 import type { ClinicalPipelineRun } from "./labFindingsApi";
 import type { RunReviewTarget } from "./RunReviewLightbox";
 
@@ -25,18 +28,15 @@ interface Props {
 export default function ClinicalDoor({ onBack, onReview }: Props) {
   const door = useClinicalDoor(onReview);
   return (
-    <Box data-testid="validation-lab-clinical-door">
-      <Button size="small" onClick={onBack} sx={{ mb: 2 }}>
-        Back to start
-      </Button>
-      <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>
-        Investigate a clinical complaint
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Find the patient by NHS number or referral number. This does not start a new job.
-      </Typography>
+    <Box
+      data-testid="validation-lab-clinical-door"
+      sx={{ maxWidth: 760, mx: "auto", pb: 4 }}
+    >
+      <DoorHeader onBack={onBack} />
       {door.error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>{door.error}</Alert>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {door.error}
+        </Alert>
       ) : null}
       {door.picked ? (
         <WhyOpened
@@ -50,6 +50,8 @@ export default function ClinicalDoor({ onBack, onReview }: Props) {
         <LookupPanel
           query={door.query}
           onQuery={door.setQuery}
+          searchMode={door.searchMode}
+          onSearchMode={door.setSearchMode}
           busy={door.busy}
           searched={door.searched}
           rows={door.rows}
@@ -61,6 +63,32 @@ export default function ClinicalDoor({ onBack, onReview }: Props) {
         />
       )}
     </Box>
+  );
+}
+
+function DoorHeader({ onBack }: { onBack: () => void }) {
+  return (
+    <>
+      <Button
+        size="small"
+        onClick={onBack}
+        startIcon={<ChevronLeftIcon />}
+        sx={{ mb: 2, ...pressable }}
+      >
+        Back to start
+      </Button>
+      <Typography sx={{ ...displayTitle, mb: 0.75 }}>
+        Investigate a clinical complaint
+      </Typography>
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 3, maxWidth: 520, lineHeight: 1.55 }}
+      >
+        Find the patient by name, NHS number, or referral number. Or search
+        words in the letter. This does not start a new job.
+      </Typography>
+    </>
   );
 }
 
@@ -78,24 +106,46 @@ function WhyOpened({
   onOpen: () => void;
 }) {
   return (
-    <Stack spacing={2} data-testid="validation-lab-clinical-why">
-      <Typography variant="body2">
-        {picked.patient_name || picked.patient_id}. Run {picked.run_id}. Status{" "}
-        {picked.status}.
+    <Stack
+      spacing={2}
+      data-testid="validation-lab-clinical-why"
+      sx={{ ...glassPanel, p: { xs: 2, sm: 2.5 } }}
+    >
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography sx={{ fontWeight: 700, letterSpacing: "-0.01em" }}>
+          {picked.patient_name || picked.patient_id}
+        </Typography>
+        {picked.status ? (
+          <Chip
+            size="small"
+            label={picked.status}
+            color={statusTone(picked.status)}
+            variant="outlined"
+          />
+        ) : null}
+      </Stack>
+      <Typography variant="body2" color="text.secondary">
+        Run {picked.run_id}. Status {picked.status}.
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        Why did you open this?
       </Typography>
       <TextField
-        label="Why did you open this?"
         value={why}
         onChange={(e) => onWhy(e.target.value)}
         fullWidth
         multiline
         minRows={3}
+        placeholder="A short note for the review log"
+        inputProps={{ "aria-label": "Why did you open this?" }}
       />
       <Stack direction="row" spacing={1}>
-        <Button variant="contained" onClick={onOpen}>
+        <Button variant="contained" onClick={onOpen} sx={pressable}>
           Open review
         </Button>
-        <Button onClick={onBack}>Pick another</Button>
+        <Button onClick={onBack} sx={pressable}>
+          Pick another
+        </Button>
       </Stack>
     </Stack>
   );

@@ -1,9 +1,10 @@
 """Prompts for lightweight extraction quality checks.
 
 Atlas trace:
-  DO: DO-8620A68B
-  DI: DI-5A802C83
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8620A68B")
+  DO: DO-8620A68B / DO-6953211C
+  DI: DI-5A802C83 / DI-6EDCD972
+  VT: VT-35BB209B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6953211C")
 """
 
 EXTRACTION_CHECK_SYSTEM_V1 = """You are a clinical extraction quality checker.
@@ -15,9 +16,11 @@ Task:
 
 Rules:
 1) Drop entities that are template noise, admin checklist text, or non-clinical imports.
-2) Correct assertion when a mention is family or historical, not present.
+2) Correct assertion when a mention is family, historical, planned, or absent.
 3) Correct semantic label when clearly wrong.
 4) Add only clinically meaningful spans that are explicitly present in the text.
+   Always add a named test the clinician asked to arrange (procedure, planned)
+   and a finding the letter says is not present, including "no X reported".
 5) Do not infer a diagnosis from exclusion or screening language.
 6) Do not add entities that are not in the encounter text.
 7) Referral workflow text is not a confirmed diagnosis.
@@ -44,9 +47,11 @@ Task:
 
 Rules:
 1) Drop entities that are template noise, admin checklist text, or non-clinical imports.
-2) Correct assertion when a mention is family or historical, not present.
+2) Correct assertion when a mention is family, historical, planned, or absent.
 3) Correct semantic label when clearly wrong.
 4) Add only clinically meaningful spans explicitly present in the text.
+   Always add a named test the clinician asked to arrange (procedure, planned)
+   and a finding the letter says is not present, including "no X reported".
 5) Correct relation links when body site or qualifier links are wrong.
 6) Add relation links only when the text explicitly supports them.
 7) Do not infer a diagnosis from exclusion or screening language.
@@ -157,6 +162,24 @@ EXTRACTION_CHECK_EXAMPLES_V1 = [
         "model_scope": "any",
         "input": "Encounter: Type 2 diabetes mellitus reviewed. Entities: [{text:'Type 2 diabetes mellitus',label:'disorder',assertion:'present'}]",
         "output": '{"drop":[],"correct_assertion":[],"correct_label":[],"add":[]}',
+    },
+    {
+        "id": "ec-k",
+        "category": "add_planned",
+        "description": "Add missed please-arrange named tests as planned procedures",
+        "core": True,
+        "model_scope": "any",
+        "input": "Encounter: Please arrange urgent imaging (CT abdomen/pelvis) and liver function tests. Entities: []",
+        "output": '{"drop":[],"correct_assertion":[],"correct_label":[],"add":[{"text":"CT abdomen/pelvis","label":"procedure","assertion":"planned","lookup_term":"CT of abdomen and pelvis"},{"text":"liver function tests","label":"procedure","assertion":"planned","lookup_term":"liver function test"}]}',
+    },
+    {
+        "id": "ec-l",
+        "category": "add_absent",
+        "description": "Add missed no X reported as absent finding",
+        "core": True,
+        "model_scope": "any",
+        "input": "Encounter: No recent alcohol excess reported. Entities: []",
+        "output": '{"drop":[],"correct_assertion":[],"correct_label":[],"add":[{"text":"recent alcohol excess","label":"finding","assertion":"absent","lookup_term":"alcohol excess"}]}',
     },
 ]
 

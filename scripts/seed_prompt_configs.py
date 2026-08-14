@@ -116,6 +116,8 @@ _add(
 _REFERRAL_EXAMPLE_CATEGORIES = {
     "situation:referral",
     "assertion:planned",
+    "assertion:absent",
+    "negation:compound",
     "assertion:hypothetical",
     "assertion:declined",
     "assertion:cancelled",
@@ -129,6 +131,8 @@ _REFERRAL_EXAMPLE_TERMS = (
     "urgent suspected cancer",
     "referral",
     "pathway",
+    "please arrange",
+    "alcohol excess",
 )
 _REFERRAL_RED_FLAG_TERMS = (
     "haematuria",
@@ -300,25 +304,36 @@ _add(
     description="Single-turn extraction quality check for entity and relation corrections.",
 )
 
+_RELATION_ITEM_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "head_idx": {"type": "integer"},
+        "tail_idx": {"type": "integer"},
+        "type": {"type": "string"},
+        "confidence": {"type": "number"},
+    },
+    "required": ["head_idx", "tail_idx", "type"],
+}
 _RELATION_LINKING_OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
-        "relations": {
+        "confirmed": {"type": "array", "items": _RELATION_ITEM_SCHEMA},
+        "rejected": {
             "type": "array",
             "items": {
                 "type": "object",
                 "properties": {
                     "head_idx": {"type": "integer"},
                     "tail_idx": {"type": "integer"},
-                    "type": {"type": "string"},
-                    "confidence": {"type": "number"},
+                    "reason": {"type": "string"},
                 },
-                "required": ["head_idx", "tail_idx", "type"],
+                "required": ["head_idx", "tail_idx"],
             },
         },
+        "additional": {"type": "array", "items": _RELATION_ITEM_SCHEMA},
+        "relations": {"type": "array", "items": _RELATION_ITEM_SCHEMA},
         "suppress": {"type": "array", "items": {"type": "integer"}},
     },
-    "required": ["relations", "suppress"],
 }
 
 _add(
@@ -340,7 +355,10 @@ _add(
         for i, ex in enumerate(RELATION_LINKING_EXAMPLES_V1)
     ],
     max_few_shot=8,
-    description="Links extracted entities with typed relations such as finding_site.",
+    description=(
+        "Judges SNOMED-derived candidate relations against the encounter text "
+        "and may add text-only links such as laterality."
+    ),
 )
 
 _CODING_CHECK_OUTPUT_SCHEMA = {

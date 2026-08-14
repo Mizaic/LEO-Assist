@@ -9,13 +9,22 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 
-import type { ClinicalPipelineRun } from "./labFindingsApi";
+import { PatientSection, UsedAndAllLists } from "./ClinicalPatientLists";
+import type {
+  ClinicalPipelineRun,
+  ClinicalSearchMode,
+} from "./labFindingsApi";
+import { glassPanel, pressable } from "./clinicalDoorChrome";
 
 export interface LookupPanelProps {
   query: string;
   onQuery: (value: string) => void;
+  searchMode: ClinicalSearchMode;
+  onSearchMode: (mode: ClinicalSearchMode) => void;
   busy: boolean;
   searched: boolean;
   rows: ClinicalPipelineRun[];
@@ -28,16 +37,18 @@ export interface LookupPanelProps {
 
 export function LookupPanel(props: LookupPanelProps) {
   return (
-    <Stack spacing={2}>
+    <Stack spacing={3}>
       <LookupFields
         query={props.query}
         onQuery={props.onQuery}
+        searchMode={props.searchMode}
+        onSearchMode={props.onSearchMode}
         busy={props.busy}
         onFind={props.onFind}
       />
       {props.searched && props.rows.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          No pipeline run for that NHS number or referral number.
+          {emptyCopy(props.searchMode)}
         </Typography>
       ) : null}
       {props.rows.length > 0 ? (
@@ -58,152 +69,90 @@ export function LookupPanel(props: LookupPanelProps) {
   );
 }
 
+function emptyCopy(mode: ClinicalSearchMode): string {
+  if (mode === "letters") return "No letter contains those words.";
+  return "No pipeline run for that name, NHS number, or referral number.";
+}
+
 function LookupFields({
   query,
   onQuery,
+  searchMode,
+  onSearchMode,
   busy,
   onFind,
 }: {
   query: string;
   onQuery: (value: string) => void;
+  searchMode: ClinicalSearchMode;
+  onSearchMode: (mode: ClinicalSearchMode) => void;
   busy: boolean;
   onFind: () => void;
 }) {
+  const letters = searchMode === "letters";
   return (
-    <>
-      <TextField
-        label="NHS number or referral number"
-        helperText="The referral number is also called UBRN."
-        value={query}
-        onChange={(e) => onQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") onFind();
-        }}
-        fullWidth
-        data-testid="validation-lab-clinical-lookup"
-      />
-      <Button
-        variant="contained"
-        disabled={busy || !query.trim()}
-        onClick={onFind}
-        sx={{ alignSelf: "flex-start" }}
+    <Box sx={{ ...glassPanel, p: { xs: 2, sm: 2.5 } }}>
+      <SearchModeToggle value={searchMode} onChange={onSearchMode} />
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1.5}
+        alignItems={{ sm: "flex-start" }}
       >
-        {busy ? "Finding..." : "Find"}
-      </Button>
-    </>
-  );
-}
-
-function UsedAndAllLists({
-  recent,
-  frequent,
-  patients,
-  onPick,
-}: {
-  recent: ClinicalPipelineRun[];
-  frequent: ClinicalPipelineRun[];
-  patients: ClinicalPipelineRun[];
-  onPick: (row: ClinicalPipelineRun) => void;
-}) {
-  return (
-    <>
-      <PatientSection
-        title="Recently used"
-        testId="validation-lab-clinical-recent"
-        emptyText="Patients you open will show here."
-        rows={recent}
-        onPick={onPick}
-      />
-      <PatientSection
-        title="Frequently used"
-        testId="validation-lab-clinical-frequent"
-        emptyText="Patients you open often will show here."
-        rows={frequent}
-        onPick={onPick}
-      />
-      <PatientSection
-        title="All patients"
-        testId="validation-lab-clinical-all-patients"
-        emptyText="No patients with a pipeline run yet."
-        rows={patients}
-        onPick={onPick}
-        scroll
-      />
-    </>
-  );
-}
-
-function PatientSection({
-  title,
-  testId,
-  rows,
-  onPick,
-  emptyText,
-  scroll,
-}: {
-  title: string;
-  testId: string;
-  rows: ClinicalPipelineRun[];
-  onPick: (row: ClinicalPipelineRun) => void;
-  emptyText?: string;
-  scroll?: boolean;
-}) {
-  return (
-    <Box data-testid={testId}>
-      <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-        {title}
-      </Typography>
-      {rows.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          {emptyText || "None yet."}
-        </Typography>
-      ) : (
-        <Stack
-          spacing={1}
-          sx={scroll ? { maxHeight: 320, overflow: "auto" } : undefined}
+        <TextField
+          label={
+            letters
+              ? "Words from the letter"
+              : "Name, NHS number, or referral number"
+          }
+          helperText={
+            letters
+              ? "Type at least 3 letters. This does not start a new job."
+              : "The referral number is also called UBRN."
+          }
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onFind();
+          }}
+          fullWidth
+          data-testid="validation-lab-clinical-lookup"
+        />
+        <Button
+          variant="contained"
+          disabled={busy || !query.trim() || (letters && query.trim().length < 3)}
+          onClick={onFind}
+          sx={{ minWidth: 112, height: 56, borderRadius: "14px", ...pressable }}
         >
-          {rows.map((row) => (
-            <PatientRow
-              key={`${row.patient_id}-${row.run_id}-${row.nhs_number}`}
-              row={row}
-              onPick={onPick}
-            />
-          ))}
-        </Stack>
-      )}
+          {busy ? "Finding..." : "Find"}
+        </Button>
+      </Stack>
     </Box>
   );
 }
 
-function PatientRow({
-  row,
-  onPick,
+function SearchModeToggle({
+  value,
+  onChange,
 }: {
-  row: ClinicalPipelineRun;
-  onPick: (row: ClinicalPipelineRun) => void;
+  value: ClinicalSearchMode;
+  onChange: (mode: ClinicalSearchMode) => void;
 }) {
-  const extra = (row.run_count || 0) > 1 ? ` ${row.run_count} runs` : "";
   return (
-    <Box
-      onClick={() => onPick(row)}
-      sx={{
-        p: 1.5,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        cursor: "pointer",
-      }}
+    <ToggleButtonGroup
+      exclusive
+      size="small"
+      value={value}
+      onChange={(_, next) => next && onChange(next)}
+      aria-label="Search patients or letters"
+      data-testid="validation-lab-clinical-search-mode"
+      sx={{ mb: 1.5 }}
     >
-      <Typography variant="body2" fontWeight={700}>
-        {row.patient_name || row.patient_id || "Patient"}
-        {row.status ? ` -- ${row.status}` : ""}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        {row.nhs_number ? `NHS ${row.nhs_number} ` : ""}
-        {row.ubrn ? `UBRN ${row.ubrn} ` : ""}
-        {row.created_at}
-        {extra}
-      </Typography>
-    </Box>
+      <ToggleButton value="patient" sx={{ textTransform: "none", px: 1.5 }}>
+        Patient
+      </ToggleButton>
+      <ToggleButton value="letters" sx={{ textTransform: "none", px: 1.5 }}>
+        In letters
+      </ToggleButton>
+    </ToggleButtonGroup>
   );
 }

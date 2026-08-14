@@ -165,6 +165,14 @@ CALL {
     )
   MATCH (p:Patient {id: c.patient_id})
   RETURN p
+  UNION
+  MATCH (p:Patient)
+  WHERE size($lookup) >= 2
+    AND (
+      toUpper(toString(coalesce(p.displayName, ''))) CONTAINS toUpper($lookup)
+      OR toUpper(toString(coalesce(p.name, ''))) CONTAINS toUpper($lookup)
+    )
+  RETURN p
 }
 WITH DISTINCT p
 OPTIONAL MATCH (p)-[:HAS_PIPELINE_RUN]->(linked:PipelineRun)
@@ -179,15 +187,72 @@ WITH p, run
 WHERE run IS NOT NULL
 OPTIONAL MATCH (rr2:ReferralRequest)-[:FOR_PATIENT]->(p)
 WITH p, run, head(collect(rr2)) AS rr
-RETURN DISTINCT run.id AS run_id,
-       coalesce(run.status, '') AS status,
-       toString(coalesce(run.created_at, run.updated_at, datetime()))
-         AS created_at,
-       coalesce(run.plan_definition_id, run.plan_id, '') AS plan_id,
-       coalesce(p.id, '') AS patient_id,
-       coalesce(p.displayName, p.name, '') AS patient_name,
-       coalesce(p.nhsNumber, '') AS nhs_number,
-       coalesce(rr.ubrn, rr.id, '') AS ubrn
-ORDER BY run.created_at DESC
+WITH run.id AS run_id,
+     coalesce(run.status, '') AS status,
+     coalesce(run.created_at, run.updated_at) AS created_raw,
+     coalesce(run.plan_definition_id, run.plan_id, '') AS plan_id,
+     coalesce(p.id, '') AS patient_id,
+     coalesce(p.displayName, p.name, '') AS patient_name,
+     coalesce(p.nhsNumber, '') AS nhs_number,
+     coalesce(rr.ubrn, rr.id, '') AS ubrn
+WITH DISTINCT run_id, status, created_raw, plan_id, patient_id,
+     patient_name, nhs_number, ubrn
+ORDER BY created_raw DESC
+RETURN run_id, status,
+       toString(coalesce(created_raw, datetime())) AS created_at,
+       plan_id, patient_id, patient_name, nhs_number, ubrn
+LIMIT $limit
+"""
+
+FIND_PIPELINE_RUNS_BY_LETTER = """
+CALL {
+  MATCH (c:Chunk)
+  WHERE size($needle) >= 3
+    AND toLower(coalesce(c.text, '')) CONTAINS toLower($needle)
+  OPTIONAL MATCH (dr:DocumentReference)-[:HAS_CHUNK]->(c)
+  RETURN coalesce(c.text, '') AS hit_text, dr
+  UNION
+  MATCH (dr:DocumentReference)
+  WHERE size($needle) >= 3
+    AND toLower(coalesce(dr.text, '')) CONTAINS toLower($needle)
+  RETURN coalesce(dr.text, '') AS hit_text, dr
+}
+WITH hit_text, dr
+WHERE dr IS NOT NULL
+OPTIONAL MATCH (p1:Patient)-[:HAS_DOCUMENT_REFERENCE]->(dr)
+OPTIONAL MATCH (rr0:ReferralRequest)-[:HAS_DOCUMENT]->(dr)
+OPTIONAL MATCH (rr0)-[:FOR_PATIENT]->(p2:Patient)
+OPTIONAL MATCH (cr0:CommunicationRequest)-[:HAS_DOCUMENT]->(dr)
+OPTIONAL MATCH (cr0)-[:FOR_PATIENT]->(p3:Patient)
+WITH hit_text, coalesce(p1, p2, p3) AS p
+WHERE p IS NOT NULL
+WITH p, collect(hit_text)[0] AS hit_text
+OPTIONAL MATCH (p)-[:HAS_PIPELINE_RUN]->(linked:PipelineRun)
+OPTIONAL MATCH (byPid:PipelineRun {patient_id: p.id})
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)-[:TRIGGERED]->(trig:PipelineRun)
+OPTIONAL MATCH (p)-[:HAS_ENCOUNTER]->(:Encounter)<-[:FOR_ENCOUNTER]-(enc:PipelineRun)
+WITH p, hit_text,
+     collect(DISTINCT linked) + collect(DISTINCT byPid)
+     + collect(DISTINCT trig) + collect(DISTINCT enc) AS bag
+UNWIND bag AS run
+WITH p, hit_text, run
+WHERE run IS NOT NULL
+OPTIONAL MATCH (rr2:ReferralRequest)-[:FOR_PATIENT]->(p)
+WITH p, hit_text, run, head(collect(rr2)) AS rr
+WITH run.id AS run_id,
+     coalesce(run.status, '') AS status,
+     coalesce(run.created_at, run.updated_at) AS created_raw,
+     coalesce(run.plan_definition_id, run.plan_id, '') AS plan_id,
+     coalesce(p.id, '') AS patient_id,
+     coalesce(p.displayName, p.name, '') AS patient_name,
+     coalesce(p.nhsNumber, '') AS nhs_number,
+     coalesce(rr.ubrn, rr.id, '') AS ubrn,
+     hit_text
+WITH DISTINCT run_id, status, created_raw, plan_id, patient_id,
+     patient_name, nhs_number, ubrn, hit_text
+ORDER BY created_raw DESC
+RETURN run_id, status,
+       toString(coalesce(created_raw, datetime())) AS created_at,
+       plan_id, patient_id, patient_name, nhs_number, ubrn, hit_text
 LIMIT $limit
 """

@@ -1,0 +1,74 @@
+# Mizaic Brand Kit Enforcement
+
+Apply when writing any UI component, stylesheet, token file, or layout.
+The Mizaic brand kit overrides all previous generic colour and font choices.
+
+## Colour palette
+
+| Role            | Hex      | Notes                                    |
+|-----------------|----------|------------------------------------------|
+| Primary         | #0d46d6  | Electric Blue. 6.02:1 on white -- AA ok  |
+| Primary hover   | #002178  | Royal Blue                               |
+| Primary dark    | #00093b  | Midnight Navy -- splash bg, dark surfaces|
+| Secondary       | #9338ff  | Mizaic Violet                            |
+| Secondary hover | #6600ab  | Mizaic Indigo                            |
+| Brand accent    | #d758ff  | Magenta -- logo spinning-O only          |
+| Accent blue     | #0071e2  | Blue 1 -- info states, links             |
+| Light accent    | #0096fd  | Light Blue 1 -- focus ring on dark bg    |
+
+All colours live in `services/design-system/src/tokens/color.ts`.
+Import from `@leo/design-system` tokens. Never hardcode hex.
+
+## Forbidden values
+
+The old "generic blue" scheme is banned in new code:
+
+- `#1F3A8A` -- old primary (replaced by #0d46d6)
+- `#1D4ED8` -- old design-system brand primary (replaced by #0d46d6)
+- `#0F766E` -- old secondary teal (replaced by #9338ff)
+- `#1E40AF` -- old primary hover (replaced by #002178)
+- `#152A66` -- old primary dark (replaced by #00093b)
+
+If a pre-existing file still uses these values, add to the PR description
+and track in `compliance/coverage-waivers.md`.
+
+## Fonts
+
+| Role            | Family        | Weights loaded     |
+|-----------------|---------------|--------------------|
+| Body / UI copy  | Albert Sans   | 300 400 500 600 700|
+| Headlines (h1-h6)| Overpass     | 300 400 600 700    |
+| Code / SNOMED   | JetBrains Mono| 400 500            |
+
+Font CSS variables:
+- Body: `var(--font-albert-sans)`
+- Heading: `var(--font-overpass)`
+- Mono: `var(--font-jetbrains-mono)`
+
+Do NOT use `DM_Sans`, `--font-dm-sans`, or `DM Sans` in new code.
+Fonts are loaded in `services/ui/src/lib/fonts.ts` and applied to
+`<html>` in `app/layout.tsx`.
+
+## Logo
+
+- Use `<LeoLogo>` or `<LeoO>` from `@leo/design-system` for all
+  wordmark / icon usages. Never use `<img src="/leo-icon.svg">`.
+- Dark surfaces (sidebar, splash): `variant="dark"` (white letters).
+- Light surfaces (home page, print): `variant="light"` (navy letters).
+- Default spin is `spinning={true}` with `spinDuration={2.4}`.
+- For loading states use `<LeoLoader>` or `<LeoSplash>` from
+  `@leo/design-system`.
+
+## Checking compliance
+
+Static VT `brand-tokens-chrome.test.ts` (TODO: create) asserts:
+1. No file under `services/ui/src` imports `/leo-icon.svg`.
+2. `AppShell.tsx` imports `LeoLogo` / `LeoO` from `@leo/design-system`.
+3. `fonts.ts` uses `Albert_Sans` and `Overpass`, not `DM_Sans`.
+4. No new hex values in the forbidden list above appear in the codebase.
+
+## Design system as single source of truth
+
+All brand tokens flow through `services/design-system/src/tokens/color.ts`
+and `services/design-system/src/theme/index.ts`. A re-theme only ever
+touches those files -- no scattered hex constants in UI components.

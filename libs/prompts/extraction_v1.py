@@ -1,8 +1,10 @@
 """V2 clinical entity extraction system prompt.
 
 Atlas trace:
-  DO: DO-416BA91D
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-416BA91D")
+  DO: DO-416BA91D / DO-6953211C
+  DI: DI-6EDCD972
+  VT: VT-35BB209B
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-6953211C")
 
 The output schema and few-shot examples are stored separately in Neo4j and
 assembled at runtime by the extractor. This prompt repeats the essential
@@ -87,7 +89,7 @@ Allowed semantic_tag values:
 Definitions:
 - disorder: diagnosed diseases, conditions, syndromes
 - finding: symptoms, signs, examination findings, abnormal/normal result statements, clinical observations
-- procedure: tests, referrals, operations, examinations, therapeutic procedures already done or definitively arranged
+- procedure: tests, referrals, operations, examinations, and named tests the clinician asks to arrange (please arrange, requested, organised)
 - substance: medication/drug names
 - product: specific pharmaceutical preparations, brands, strengths, formulations
 - observable entity: measurable clinical parameter ONLY when an actual value is present
@@ -129,7 +131,7 @@ Do NOT extract:
 - bare numbers with no labelled clinical parameter
 - safety-netting or worsening-advice text only
 - workflow text such as appointment booked, SMS sent, prescription issued
-- requests/orders not yet performed unless clearly arranged and clinically meaningful as a planned procedure/situation
+- generic investigation requests with no named test (for example "investigations requested")
 - observable entities without a measured value
 - NAD
 - CA alone without a body site
@@ -144,7 +146,7 @@ Examples of excluded admin/workflow:
 - "follow-up"
 - "appointment booked"
 - "prescription issued"
-- "blood test requested"
+- "investigations requested" (no named test)
 
 Checkbox / guideline criteria forms (2WW, NSS, SystmOne Word/PDF):
 - Rows marked [ ] or empty checkbox are NOT present findings. Do not extract them.
@@ -233,8 +235,9 @@ for the same text span with different semantic_tags.
 - Use disorder for formal diagnoses or conditions stated as diagnoses/problem-list items.
 - Use finding for symptoms, signs, exam findings, result statements, and
   lifestyle status (smoking, vaping, overweight).
-- Use procedure for actions performed, ordered, arranged, or named tests
-  (including LFTs, MRI, colonoscopy) even when planned, absent, or historical.
+- Use procedure for actions performed, ordered, arranged, requested, or
+  please-arranged named tests (including LFTs, MRI, CT, colonoscopy)
+  even when planned, absent, or historical.
 - Use substance or product for drugs. Never tag a drug as procedure or regime/therapy.
 - Use observable entity only when a named measurable parameter has an actual value in the sentence.
 - Bullet or form lines that name a measurement and give a number (for example
@@ -507,8 +510,9 @@ it applies (present, absent, planned, historical, possible, family, etc.).
 Negation and tense do not change semantic_tag -- only assertion changes.
 
 Assign assertion from explicit linguistic cues in sentence_subset:
-- absent / refuted: negation (no, denies, without, ruled out)
-- planned: booked, referred, awaiting, arranged
+- absent / refuted: negation (no, denies, without, ruled out, no X reported)
+- planned: booked, referred, awaiting, arranged, please arrange, requested
+  (when a named test or scan is present)
 - historical: resolved, past, previous, had (when clearly past)
 - possible: suspected, query, ?, concerning for -- EXCEPT situation concepts below
 - family: family history on a disorder span only -- prefer situation + present instead

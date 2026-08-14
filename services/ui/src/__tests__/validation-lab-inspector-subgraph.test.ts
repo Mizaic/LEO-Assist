@@ -25,5 +25,6 @@ describe("resolveSubgraphId", () => {
 
   test("infers from durable step suffix", () => {
     expect(resolveSubgraphId("act-ref-relation-link", [])).toBe("relation_linking");
+    expect(resolveSubgraphId("act-ref-snomed-enrich", [])).toBe("snomed_enrichment");
   });
 });

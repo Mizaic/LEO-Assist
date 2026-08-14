@@ -18,6 +18,7 @@ import {
   listClinicalPatients,
   listClinicalPipelineRuns,
   type ClinicalPipelineRun,
+  type ClinicalSearchMode,
 } from "./labFindingsApi";
 import type { RunReviewTarget } from "./RunReviewLightbox";
 
@@ -31,6 +32,7 @@ interface LookupMutators {
 
 export function useClinicalDoor(onReview: (target: RunReviewTarget) => void) {
   const [query, setQuery] = useState("");
+  const [searchMode, setSearchMode] = useState<ClinicalSearchMode>("patient");
   const [rows, setRows] = useState<ClinicalPipelineRun[]>([]);
   const [patients, setPatients] = useState<ClinicalPipelineRun[]>([]);
   const [used, setUsed] = useState<UsedPatient[]>([]);
@@ -64,6 +66,12 @@ export function useClinicalDoor(onReview: (target: RunReviewTarget) => void) {
   return {
     query,
     setQuery,
+    searchMode,
+    setSearchMode: (mode: ClinicalSearchMode) => {
+      setSearchMode(mode);
+      setRows([]);
+      setSearched(false);
+    },
     rows,
     patients,
     picked,
@@ -74,7 +82,7 @@ export function useClinicalDoor(onReview: (target: RunReviewTarget) => void) {
     searched,
     recent,
     frequent,
-    onFind: () => void findRuns(query, mut),
+    onFind: () => void findRuns(query, searchMode, mut),
     onPick: (row: ClinicalPipelineRun) => void pickPatient(row, mut),
     onBackPick: () => setPicked(null),
     onOpen: () => openPicked(picked, why, setUsed, onReview),
@@ -97,13 +105,17 @@ async function loadAllPatients(
   }
 }
 
-async function findRuns(query: string, mut: LookupMutators) {
+async function findRuns(
+  query: string,
+  mode: ClinicalSearchMode,
+  mut: LookupMutators,
+) {
   const q = query.trim();
   if (!q) return;
   mut.setBusy(true);
   mut.setError("");
   try {
-    const found = await listClinicalPipelineRuns({ q });
+    const found = await listClinicalPipelineRuns({ q, mode });
     mut.setRows(found);
     mut.setSearched(true);
     mut.setPicked(found.length === 1 ? found[0] : null);
@@ -124,7 +136,7 @@ async function pickPatient(row: ClinicalPipelineRun, mut: LookupMutators) {
     mut.setPicked(row);
     return;
   }
-  await findRuns(key, mut);
+  await findRuns(key, "patient", mut);
 }
 
 function openPicked(

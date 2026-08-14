@@ -31,7 +31,8 @@ const SUBGRAPH_OPTIONS_RAW = [
   { id: "episode_engine",    label: "Find Episodes (AI)",     color: "#1A237E", category: "Reports",         description: "Read the patient timeline with an AI agent chain and identify cancer episodes and their milestones." },
   { id: "safety_net",        label: "Safety Netting",         color: "#FF5722", category: "Safety",          description: "Flag overdue tests, missing referral replies, or follow-up actions that are past due." },
   { id: "next_best_action",  label: "Next Best Action",       color: "#673AB7", category: "Safety",          description: "Suggest the most appropriate next clinical action based on the patient context." },
-  { id: "relation_linking",  label: "Link Entity Relations",  color: "#7B1FA2", category: "Clinical AI",     description: "Identify body-site and qualifier relations between extracted entities using a relation model and LLM." },
+  { id: "relation_linking",  label: "Link Entity Relations",  color: "#7B1FA2", category: "Clinical AI",     description: "Judge SNOMED relation candidates against the note and add text-only links the ontology missed." },
+  { id: "snomed_enrichment", label: "Enrich from SNOMED",     color: "#6A1B9A", category: "Clinical AI",     description: "Use coded SNOMED neighbours to propose links and add inferred body sites." },
   { id: "hitl_ner_queue",    label: "Queue NER Review",       color: "#F57F17", category: "HITL",            description: "Write extraction-change candidates to the human-in-the-loop training queue for review." },
   { id: "hitl_coding_queue", label: "Queue Coding Review",    color: "#E65100", category: "HITL",            description: "Write coding-issue candidates to the human-in-the-loop training queue for review." },
   { id: "rest_connector",    label: "Call REST API",          color: "#607D8B", category: "Integration",     description: "Send runtime state to an external REST API and map the response back into the pipeline." },
@@ -150,9 +151,14 @@ export const SUBGRAPH_IO: Record<string, {
     requiredFields: { entities: ["text", "semantic_tag", "assertion"] },
   },
   relation_linking: {
-    reads: ["entities", "encounter_text"],
+    reads: ["entities", "encounter_text", "snomed_candidates"],
     writes: ["entities", "relation_changes", "errors"],
     requiredFields: { entities: ["text", "semantic_tag", "assertion"] },
+  },
+  snomed_enrichment: {
+    reads: ["entities"],
+    writes: ["entities", "snomed_candidates", "errors"],
+    requiredFields: { entities: ["text", "concept_id"] },
   },
   hitl_ner_queue: {
     reads: ["entities", "encounter_text", "llm_check_changes"],
@@ -210,6 +216,7 @@ export const SUBGRAPH_CATEGORY: Record<string, SubgraphCategory> = {
   surface_form_validation: "generic",
   safety_net: "generic",
   relation_linking: "llm",
+  snomed_enrichment: "terminology",
   hitl_ner_queue: "generic",
   hitl_coding_queue: "generic",
   rest_connector: "generic",

@@ -102,6 +102,8 @@ def test_episode_bundle_chain_is_linear_coding_path() -> None:
         "extraction_check",
         "terminology",
         "coding_verifier",
+        "snomed_enrichment",
+        "relation_linking",
         "tier_classify",
         "persist",
     ]

@@ -25,25 +25,27 @@ import { typography } from "../tokens/typography";
  * Design Controls: DI-LEO-AI-141, DO-LEO-AI-138, VT-LEO-AI-140.
  */
 
-const MUI_PRIMARY = "#1F3A8A";
-const MUI_PRIMARY_LIGHT = "#3B5FD9";
-const MUI_PRIMARY_DARK = "#152A66";
+/* -- Mizaic brand palette -- */
+const MUI_PRIMARY = "#0d46d6";
+const MUI_PRIMARY_LIGHT = "#0071e2";
+const MUI_PRIMARY_DARK = "#002178";
 const MUI_DIVIDER = "#CBD5E1";
 const MUI_SELECTION = "#C7D2FE";
 
 const MOTION_FAST_MS = 120;
 
 const FONT_BODY = typography.fontFamily.body;
+const FONT_HEADING = typography.fontFamily.heading;
 const FONT_MONO = typography.fontFamily.mono;
 
 function displayScale() {
   return {
-    h1: { fontSize: "2rem", fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.01em" },
-    h2: { fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.25, letterSpacing: "-0.01em" },
-    h3: { fontSize: "1.25rem", fontWeight: 600, lineHeight: 1.3 },
-    h4: { fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.35, letterSpacing: "-0.01em" },
-    h5: { fontSize: "1rem", fontWeight: 700, lineHeight: 1.4, letterSpacing: "-0.01em" },
-    h6: { fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.4 },
+    h1: { fontFamily: FONT_HEADING, fontSize: "2rem", fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.01em" },
+    h2: { fontFamily: FONT_HEADING, fontSize: "1.5rem", fontWeight: 700, lineHeight: 1.25, letterSpacing: "-0.01em" },
+    h3: { fontFamily: FONT_HEADING, fontSize: "1.25rem", fontWeight: 600, lineHeight: 1.3 },
+    h4: { fontFamily: FONT_HEADING, fontSize: "1.125rem", fontWeight: 700, lineHeight: 1.35, letterSpacing: "-0.01em" },
+    h5: { fontFamily: FONT_HEADING, fontSize: "1rem", fontWeight: 700, lineHeight: 1.4, letterSpacing: "-0.01em" },
+    h6: { fontFamily: FONT_HEADING, fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.4 },
     body1: { fontSize: "1rem", fontWeight: 400, lineHeight: 1.55 },
     body2: { fontSize: "0.95rem", fontWeight: 400, lineHeight: 1.5, color: color.text.secondary },
     caption: { fontSize: "0.8125rem", fontWeight: 400, lineHeight: 1.45, color: color.text.caption },
@@ -167,8 +169,8 @@ function componentOverrides() {
           borderRadius: radius.sm,
           margin: "2px 8px",
           "&.Mui-selected": {
-            backgroundColor: "rgba(31, 58, 138, 0.1)",
-            "&:hover": { backgroundColor: "rgba(31, 58, 138, 0.14)" },
+            backgroundColor: "rgba(13, 70, 214, 0.1)",
+            "&:hover": { backgroundColor: "rgba(13, 70, 214, 0.14)" },
           },
         },
       },
@@ -188,7 +190,7 @@ export function createLeoTheme(): Theme {
   return createTheme({
     palette: {
       primary: { main: MUI_PRIMARY, light: MUI_PRIMARY_LIGHT, dark: MUI_PRIMARY_DARK },
-      secondary: { main: "#0F766E", light: "#14B8A6", dark: "#0D5D56" },
+      secondary: { main: "#9338ff", light: "#b135ff", dark: "#6600ab" },
       background: { default: color.surface.alt, paper: color.surface.base },
       divider: MUI_DIVIDER,
       text: { primary: color.text.primary, secondary: color.text.secondary },

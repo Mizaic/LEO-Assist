@@ -54,9 +54,9 @@ describe("stateKeyPresence", () => {
       ],
       true,
     );
-    expect(text).toContain("evidence: dysphagia");
+    expect(text).toContain("Code 40739000");
     expect(text).toContain(
-      "evidence_sentence: Reports progressive dysphagia for 6 weeks.",
+      "From the letter: Reports progressive dysphagia for 6 weeks.",
     );
   });
 
@@ -66,9 +66,9 @@ describe("stateKeyPresence", () => {
       true,
       [{ sentence_id: "s-1", text: "Reports progressive dysphagia for 6 weeks." }],
     );
-    expect(text).toContain("evidence: dysphagia");
+    expect(text).toContain("Code 40739000");
     expect(text).toContain(
-      "evidence_sentence: Reports progressive dysphagia for 6 weeks.",
+      "From the letter: Reports progressive dysphagia for 6 weeks.",
     );
   });
 

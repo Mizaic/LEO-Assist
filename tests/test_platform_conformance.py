@@ -151,10 +151,12 @@ def test_referral_plan_has_eleven_step_clinical_chain() -> None:
         "extraction_check",
         "terminology",
         "coding_verifier",
+        "snomed_enrichment",
+        "relation_linking",
         "persist",
+        "referral_reason",
         "compliance",
         "quality_check",
-        "referral_reason",
         "sbar",
     ]
     assert chain == expected

@@ -129,6 +129,8 @@ def test_gp_encounter_chain_matches_clinical_happy_path():
         "condition",
         "terminology",
         "coding_verifier",
+        "snomed_enrichment",
+        "relation_linking",
         "condition",
         "tier_classify",
         "persist",

@@ -8,21 +8,28 @@
  */
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
 import { formatStageLabel } from "../labRunFormat";
 import { plainStageCopy } from "../plainStageCopy";
-import type { LabStageDetail, LabTraceSpan } from "../inspectorTypes";
+import type { LabStageDetail, LabTraceSpan, LabWorkPreview } from "../inspectorTypes";
 import { StageDetailPane } from "./StageDetailPane";
-import { StageIcon, watchStepId } from "./pipelineWizardChrome";
+import {
+  canOpenStep,
+  firstStepId,
+  nextStepId,
+  unlockedIndex,
+} from "../reviewWalk";
+import { StageIcon } from "./pipelineWizardChrome";
 
 interface Props {
   spans: LabTraceSpan[];
   onFixInGuards: (span: LabTraceSpan) => void;
   onMarkWrong?: (text: string) => void;
-  previousHeadlines?: Record<string, string>;
+  /** Previous run's work preview per step_id (retest mode). */
+  previousPreviews?: Record<string, LabWorkPreview>;
   selectedStepId: string | null;
   onSelectStep: (id: string | null) => void;
   stageDetail: LabStageDetail | null;
@@ -33,23 +40,29 @@ export function PipelineWizard({
   spans,
   onFixInGuards,
   onMarkWrong,
-  previousHeadlines,
+  previousPreviews,
   selectedStepId,
   onSelectStep,
   stageDetail,
   stageLoading,
 }: Props) {
-  const userPicked = useRef(false);
+  const [reviewed, setReviewed] = useState<string[]>([]);
   useEffect(() => {
-    if (userPicked.current || !spans.length) return;
-    const next = watchStepId(spans);
-    if (next && next !== selectedStepId) onSelectStep(next);
+    setReviewed([]);
+  }, [spans[0]?.step_id]);
+  useEffect(() => {
+    const first = firstStepId(spans);
+    if (!first) return;
+    if (!selectedStepId || !spans.some((s) => s.step_id === selectedStepId)) {
+      onSelectStep(first);
+    }
   }, [spans, selectedStepId, onSelectStep]);
 
   const selected =
     selectedStepId && spans.some((s) => s.step_id === selectedStepId)
       ? selectedStepId
-      : watchStepId(spans);
+      : firstStepId(spans);
+  const openIndex = unlockedIndex(spans, reviewed);
   const span = spans.find((s) => s.step_id === selected) ?? spans[0];
   const detailReady =
     Boolean(stageDetail) &&
@@ -79,9 +92,10 @@ export function PipelineWizard({
       <StageRail
         spans={spans}
         selected={selected}
+        reviewed={reviewed}
+        openIndex={openIndex}
         onPick={(id) => {
-          userPicked.current = true;
-          onSelectStep(id);
+          if (canOpenStep(spans, id, reviewed)) onSelectStep(id);
         }}
       />
       {span ? (
@@ -92,7 +106,14 @@ export function PipelineWizard({
           stageLoading={stageLoading}
           onFixInGuards={onFixInGuards}
           onMarkWrong={onMarkWrong}
-          previousHeadline={previousHeadlines?.[span.step_id]}
+          previousPreview={previousPreviews?.[span.step_id]}
+          onNext={() => {
+            if (!reviewed.includes(span.step_id)) {
+              setReviewed([...reviewed, span.step_id]);
+            }
+            const next = nextStepId(spans, span.step_id);
+            if (next) onSelectStep(next);
+          }}
         />
       ) : null}
     </Box>
@@ -102,10 +123,14 @@ export function PipelineWizard({
 function StageRail({
   spans,
   selected,
+  reviewed,
+  openIndex,
   onPick,
 }: {
   spans: LabTraceSpan[];
   selected: string;
+  reviewed: string[];
+  openIndex: number;
   onPick: (id: string) => void;
 }) {
   return (
@@ -133,11 +158,13 @@ function StageRail({
       >
         Stages
       </Typography>
-      {spans.map((s) => (
+      {spans.map((s, index) => (
         <StageRailRow
           key={s.step_id}
           span={s}
           active={s.step_id === selected}
+          locked={index > openIndex}
+          seen={reviewed.includes(s.step_id)}
           onPick={onPick}
         />
       ))}
@@ -148,27 +175,38 @@ function StageRail({
 function StageRailRow({
   span,
   active,
+  locked,
+  seen,
   onPick,
 }: {
   span: LabTraceSpan;
   active: boolean;
+  locked: boolean;
+  seen: boolean;
   onPick: (id: string) => void;
 }) {
   const copy = plainStageCopy(span.step_id, span.name);
   return (
     <Box
-      onClick={() => onPick(span.step_id)}
+      onClick={() => {
+        if (!locked) onPick(span.step_id);
+      }}
+      aria-disabled={locked}
+      data-locked={locked ? "true" : "false"}
       sx={{
         display: "flex",
         alignItems: "flex-start",
         gap: 1,
         px: 1.5,
         py: 1,
-        cursor: "pointer",
+        cursor: locked ? "not-allowed" : "pointer",
+        opacity: locked ? 0.42 : 1,
         borderLeft: "3px solid",
         borderLeftColor: active ? "primary.main" : "transparent",
         bgcolor: active ? "primary.50" : "transparent",
-        "&:hover": { bgcolor: active ? "primary.50" : "action.hover" },
+        "&:hover": {
+          bgcolor: locked ? "transparent" : active ? "primary.50" : "action.hover",
+        },
       }}
     >
       <Box sx={{ mt: 0.25, flexShrink: 0 }}>
@@ -188,7 +226,11 @@ function StageRailRow({
           sx={{ fontSize: "0.65rem", color: "text.disabled", display: "block" }}
           noWrap
         >
-          {span.work_preview?.headline || formatStageLabel(span.step_id)}
+          {locked
+            ? "Review earlier steps first"
+            : seen
+              ? "Checked"
+              : span.work_preview?.headline || formatStageLabel(span.step_id)}
         </Typography>
       </Box>
     </Box>

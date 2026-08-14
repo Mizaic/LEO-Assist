@@ -56,6 +56,8 @@ export function listOpenFindings(): Promise<ValidationFinding[]> {
   return apiJson("/api/validation-lab/findings");
 }
 
+export type ClinicalSearchMode = "patient" | "letters";
+
 export interface ClinicalPipelineRun {
   run_id: string;
   status: string;
@@ -66,16 +68,20 @@ export interface ClinicalPipelineRun {
   nhs_number?: string;
   ubrn?: string;
   run_count?: number;
+  matched_on?: string;
+  snippet?: string;
 }
 
 export function listClinicalPipelineRuns(opts?: {
   q?: string;
+  mode?: ClinicalSearchMode;
 }): Promise<ClinicalPipelineRun[]> {
   const q = (opts?.q || "").trim();
-  const path = q
-    ? `/api/validation-lab/pipeline-runs?q=${encodeURIComponent(q)}`
-    : "/api/validation-lab/pipeline-runs";
-  return apiJson(path);
+  const mode = opts?.mode === "letters" ? "letters" : "patient";
+  if (!q) return apiJson("/api/validation-lab/pipeline-runs");
+  return apiJson(
+    `/api/validation-lab/pipeline-runs?q=${encodeURIComponent(q)}&mode=${mode}`,
+  );
 }
 
 export function listClinicalPatients(opts?: {

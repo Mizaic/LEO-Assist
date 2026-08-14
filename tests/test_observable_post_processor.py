@@ -398,6 +398,43 @@ def test_related_concepts_endpoint_returns_family() -> None:
     assert result.component_of_procedures[0].id == "54706004"
 
 
+def test_batch_related_concepts_includes_finding_sites() -> None:
+    from unittest.mock import MagicMock, patch
+    from services.terminology_api.app.routers.concepts import (
+        BatchRelatedRequest,
+        batch_related_concepts,
+    )
+
+    mock_row = {
+        "concept_id": "24199005",
+        "concept_fsn": "Jaundice (finding)",
+        "semantic_tag": "finding",
+        "interpreted_by_findings": [],
+        "component_of_procedures": [],
+        "interprets_observables": [],
+        "has_components": [],
+        "associated_findings": [],
+        "finding_sites": [
+            {
+                "id": "10200004",
+                "fsn": "Liver structure (body structure)",
+                "semantic_tag": "body structure",
+                "rel": "HAS_FINDING_SITE",
+            }
+        ],
+        "procedure_sites": [],
+    }
+    mock_client = MagicMock()
+    mock_client.run.return_value = [mock_row]
+    with patch(
+        "services.terminology_api.app.routers.concepts.KnowledgeGraphClient",
+        return_value=mock_client,
+    ):
+        result = batch_related_concepts(BatchRelatedRequest(concept_ids=["24199005"]))
+    assert "24199005" in result.results
+    assert result.results["24199005"].finding_sites[0].id == "10200004"
+
+
 def test_related_concepts_endpoint_404_for_missing() -> None:
     from unittest.mock import MagicMock, patch
     from fastapi import HTTPException

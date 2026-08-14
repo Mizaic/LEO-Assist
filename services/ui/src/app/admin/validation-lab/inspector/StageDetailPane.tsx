@@ -18,10 +18,12 @@ import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 import { formatStageLabel } from "../labRunFormat";
 import { parseSbarStageError } from "../pipelineStageErrors";
 import { plainStageCopy } from "../plainStageCopy";
-import type { LabStageDetail, LabTraceSpan } from "../inspectorTypes";
+import type { LabStageDetail, LabTraceSpan, LabWorkItem, LabWorkPreview } from "../inspectorTypes";
+import { diffWorkItems } from "../letterHighlight";
+import { isCodingStep, isFirstFactStep } from "../reviewWalk";
 import { StateKeyChips } from "./StateKeyChips";
 import { StageWorkPreview } from "./StageWorkPreview";
-import { workPreviewFromStage } from "./stageWorkItems";
+import { inputWorkItems, workPreviewFromStage } from "./stageWorkItems";
 import { formatMs, StageIcon, stageColor } from "./pipelineWizardChrome";
 
 interface Props {
@@ -31,7 +33,9 @@ interface Props {
   stageLoading: boolean;
   onFixInGuards: (span: LabTraceSpan) => void;
   onMarkWrong?: (text: string) => void;
-  previousHeadline?: string;
+  /** Full work preview from the previous run (retest mode). */
+  previousPreview?: LabWorkPreview;
+  onNext?: () => void;
 }
 
 export function StageDetailPane({
@@ -41,13 +45,20 @@ export function StageDetailPane({
   stageLoading,
   onFixInGuards,
   onMarkWrong,
-  previousHeadline,
+  previousPreview,
+  onNext,
 }: Props) {
   const copy = plainStageCopy(span.step_id, span.name);
   const preview = workPreviewFromStage(
     detailReady ? stageDetail?.output || {} : null,
     detailReady ? stageDetail?.input || {} : null,
     span.work_preview,
+  );
+  const diffedPreview = buildDiffedPreview(
+    preview,
+    previousPreview,
+    detailReady ? inputWorkItems(stageDetail?.input) : [],
+    span.step_id,
   );
   const errorText = stageErrorText(span, detailReady ? stageDetail : null);
   const errorCode = stageErrorCode(span, detailReady ? stageDetail : null);
@@ -63,43 +74,43 @@ export function StageDetailPane({
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         {copy.plain}
       </Typography>
-      <Box
-        sx={{
-          p: 1.25,
-          mb: 1.5,
-          bgcolor: "#EFF6FF",
-          borderLeft: "3px solid",
-          borderColor: "primary.main",
-          borderRadius: "0 8px 8px 0",
-        }}
-      >
-        <Typography variant="body2" fontWeight={600} color="primary.dark">
-          {copy.question}
-        </Typography>
-      </Box>
-      {previousHeadline && previousHeadline !== preview.headline ? (
+      {span.status === "completed" && (
+        <Box
+          sx={{
+            p: 1.25,
+            mb: 1.5,
+            bgcolor: "#EFF6FF",
+            borderLeft: "3px solid",
+            borderColor: "primary.main",
+            borderRadius: "0 8px 8px 0",
+          }}
+        >
+          <Typography variant="body2" fontWeight={600} color="primary.dark">
+            {copy.question}
+          </Typography>
+          <StageYesNo
+            onYes={onNext}
+            onNo={
+              onMarkWrong
+                ? () =>
+                    onMarkWrong(
+                      preview.items?.[0]?.text || preview.headline || span.step_id,
+                    )
+                : undefined
+            }
+          />
+        </Box>
+      )}
+      {previousPreview?.headline && previousPreview.headline !== preview.headline ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-          Before retest: {previousHeadline}
+          Before retest: {previousPreview.headline}
         </Typography>
       ) : null}
       <StageWorkPreview
-        preview={preview}
+        preview={diffedPreview}
         loading={stageLoading && !hasPreview}
         onMarkWrong={onMarkWrong}
       />
-      {onMarkWrong ? (
-        <Button
-          size="small"
-          variant="outlined"
-          sx={{ mb: 1.5 }}
-          data-testid="validation-lab-mark-wrong"
-          onClick={() =>
-            onMarkWrong(preview.items?.[0]?.text || preview.headline || span.step_id)
-          }
-        >
-          Mark as wrong
-        </Button>
-      ) : null}
       <StageTelemetry
         span={span}
         modelLabel={modelLabelFromOutput(
@@ -127,6 +138,59 @@ export function StageDetailPane({
         onFixInGuards={onFixInGuards}
       />
     </Box>
+  );
+}
+
+function buildDiffedPreview(
+  preview: LabWorkPreview,
+  previousPreview: LabWorkPreview | undefined,
+  stageInputItems: LabWorkItem[],
+  stepId: string,
+): LabWorkPreview {
+  const coding = isCodingStep(stepId);
+  const inRetestMode = Boolean(previousPreview);
+  const baseItems: LabWorkItem[] = inRetestMode
+    ? (previousPreview?.items || [])
+    : isFirstFactStep(stepId)
+      ? []
+      : stageInputItems;
+  if (!baseItems.length && !inRetestMode) return preview;
+  return { ...preview, items: diffWorkItems(baseItems, preview.items || [], coding) };
+}
+
+function StageYesNo({
+  onYes,
+  onNo,
+}: {
+  onYes?: () => void;
+  onNo?: () => void;
+}) {
+  if (!onYes && !onNo) return null;
+  return (
+    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+      {onYes ? (
+        <Button
+          size="small"
+          variant="contained"
+          data-testid="validation-lab-next-step"
+          aria-label="Yes, this step looks right"
+          onClick={onYes}
+        >
+          Yes
+        </Button>
+      ) : null}
+      {onNo ? (
+        <Button
+          size="small"
+          variant="outlined"
+          data-testid="validation-lab-mark-wrong"
+          aria-label="No, mark something wrong"
+          onClick={onNo}
+        >
+          No
+        </Button>
+      ) : null}
+    </Stack>
   );
 }
 

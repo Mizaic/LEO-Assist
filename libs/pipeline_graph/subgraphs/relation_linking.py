@@ -1,10 +1,10 @@
 """Relation linking subgraph for extracted entities.
 
 Atlas trace:
-  DO: DO-236545C8
+  DO: DO-49256B13
   Also implements: DO-8620A68B
-  DI: DI-2D9F5064, DI-5A802C83
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-236545C8")
+  DI: DI-044827AD, DI-5A802C83
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-49256B13")
 """
 
 from __future__ import annotations
@@ -48,6 +48,7 @@ class RelationLinkState(TypedDict, total=False):
     model_tier: str
     relation_link_result: dict[str, Any]
     relation_model_result: dict[str, Any]
+    snomed_candidates: list[dict[str, Any]]
     relation_changes: list[dict[str, Any]]
     errors: list[str]
 
@@ -122,10 +123,63 @@ def _parse_relation_linker_result(raw: str) -> dict[str, Any]:
     logger.warning(
         "relation_linker returned invalid JSON; using model-only relations",
     )
-    return {"relations": [], "suppress": []}
+    return {}
 
 
-def _run_linker(state: RelationLinkState) -> dict[str, Any]:
+def _collect_snomed_rows(state: RelationLinkState) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for i, ent in enumerate(state.get("entities") or []):
+        if not isinstance(ent, dict):
+            continue
+        for rel in ent.get("__snomed_relations") or []:
+            if not isinstance(rel, dict):
+                continue
+            tail = rel.get("target_idx")
+            rel_type = str(rel.get("type") or "").strip().lower()
+            if not isinstance(tail, int) or not rel_type:
+                continue
+            rows.append(
+                {
+                    "head_idx": i,
+                    "tail_idx": tail,
+                    "type": rel_type,
+                    "confidence": float(rel.get("confidence") or 0.9),
+                    "extraction_method": "snomed",
+                }
+            )
+    if rows:
+        return rows
+    return [
+        row
+        for row in (state.get("snomed_candidates") or [])
+        if isinstance(row, dict)
+    ]
+
+
+def _normalise_judge_result(
+    parsed: dict[str, Any],
+    snomed_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if not parsed:
+        return {"relations": list(snomed_rows), "suppress": []}
+    if "confirmed" in parsed or "additional" in parsed:
+        confirmed = [r for r in (parsed.get("confirmed") or []) if isinstance(r, dict)]
+        additional = [r for r in (parsed.get("additional") or []) if isinstance(r, dict)]
+        for row in confirmed:
+            row.setdefault("extraction_method", "snomed+llm")
+        for row in additional:
+            row.setdefault("extraction_method", "llm")
+        return {
+            "relations": confirmed + additional,
+            "suppress": [i for i in (parsed.get("suppress") or []) if isinstance(i, int)],
+        }
+    return parsed
+
+
+def _run_linker(
+    state: RelationLinkState,
+    candidates: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     encounter_text = str(state.get("encounter_text") or "")
     entities = list(state.get("entities") or [])
     if not entities:
@@ -136,10 +190,12 @@ def _run_linker(state: RelationLinkState) -> dict[str, Any]:
     llm_entities = entities
     if _RELATION_LINKER_ENTITY_CAP > 0:
         llm_entities = entities[:_RELATION_LINKER_ENTITY_CAP]
-    payload = {
+    payload: dict[str, Any] = {
         "encounter_text": sanitise_for_prompt(encounter_text, max_chars=16_000),
         "entities": llm_entities,
     }
+    if candidates:
+        payload["candidates"] = candidates
     errors = list(state.get("errors") or [])
     try:
         from libs.llm_client.factory import create_llm
@@ -157,7 +213,7 @@ def _run_linker(state: RelationLinkState) -> dict[str, Any]:
         )
         parsed = _parse_relation_linker_result(response.text or "")
         if not isinstance(parsed, dict):
-            parsed = {"relations": [], "suppress": []}
+            parsed = {}
         return {"relation_link_result": parsed, "errors": errors}
     except Exception as exc:
         logger.warning("relation_linker LLM call failed: %s", exc)
@@ -186,12 +242,36 @@ def _load_relation_model() -> dict[str, Any]:
     return _RELATION_MODEL_CACHE
 
 
-def _model_predict_relations(entities: list[dict[str, Any]]) -> dict[str, Any]:
-    """Deterministic relation predictor (model-first path).
+def _pick_relation_type(
+    source: dict[str, Any],
+    target: dict[str, Any],
+    pair_prior: dict[str, Any],
+    allowed_types: list[str],
+) -> tuple[str | None, float]:
+    """Pick a relation type. No-prior pairs only get nearby finding_site."""
+    has_offsets = isinstance(source.get("start"), int) and isinstance(
+        target.get("start"), int
+    )
+    if not pair_prior:
+        if not has_offsets or "finding_site" not in allowed_types:
+            return None, 0.0
+        distance = abs(int(source["start"]) - int(target["start"]))
+        if distance > 500:
+            return None, 0.0
+        return "finding_site", max(0.62, 0.9 - min(distance, 1200) / 3000.0)
 
-    This keeps runtime deterministic and available even when the LLM tier is
-    unavailable. We still run policy validation before persistence.
-    """
+    rel_type = max(allowed_types, key=lambda t: float(pair_prior.get(t) or 0.0))
+    total = sum(float(v) for v in pair_prior.values()) or 1.0
+    prior = float(pair_prior.get(rel_type) or 0.0) / total
+    confidence = max(0.82, min(0.95, 0.55 + prior))
+    if has_offsets:
+        distance = abs(int(source.get("start") or 0) - int(target.get("start") or 0))
+        confidence = max(0.62, 0.9 - min(distance, 1200) / 3000.0)
+    return rel_type, confidence
+
+
+def _model_predict_relations(entities: list[dict[str, Any]]) -> dict[str, Any]:
+    """Deterministic predictor: pair_priors, else nearby finding_site only."""
     relations: list[dict[str, Any]] = []
     model = _load_relation_model()
     pair_priors = dict(model.get("pair_priors") or {})
@@ -206,38 +286,26 @@ def _model_predict_relations(entities: list[dict[str, Any]]) -> dict[str, Any]:
                 f"{str(tgt_label).strip().lower()}"
             )
             pair_prior = dict(pair_priors.get(pair_key) or {})
-            allowed_types: list[str] = []
-            for relation_type in _ALLOWED_RELATION_TYPES:
-                allowed, _ = is_relation_allowed(
-                    source_label=src_label,
-                    target_label=tgt_label,
-                    relation_type=relation_type,
-                )
-                if allowed:
-                    allowed_types.append(relation_type)
+            allowed_types = [
+                rt
+                for rt in _ALLOWED_RELATION_TYPES
+                if is_relation_allowed(
+                    source_label=src_label, target_label=tgt_label, relation_type=rt
+                )[0]
+            ]
             if not allowed_types:
                 continue
-            relation_type = allowed_types[0]
-            if pair_prior:
-                relation_type = max(
-                    allowed_types,
-                    key=lambda item: float(pair_prior.get(item) or 0.0),
-                )
-            # Slight preference for nearby entities when character offsets exist.
-            confidence = 0.82
-            if pair_prior:
-                total = sum(float(v) for v in pair_prior.values()) or 1.0
-                prior = float(pair_prior.get(relation_type) or 0.0) / total
-                confidence = max(confidence, min(0.95, 0.55 + prior))
-            if isinstance(source.get("start"), int) and isinstance(target.get("start"), int):
-                distance = abs(int(source.get("start") or 0) - int(target.get("start") or 0))
-                confidence = max(0.62, 0.9 - min(distance, 1200) / 3000.0)
+            rel_type, conf = _pick_relation_type(
+                source, target, pair_prior, allowed_types
+            )
+            if rel_type is None:
+                continue
             relations.append(
                 {
                     "head_idx": i,
                     "tail_idx": j,
-                    "type": relation_type,
-                    "confidence": round(confidence, 4),
+                    "type": rel_type,
+                    "confidence": round(conf, 4),
                 }
             )
     return {"relations": relations, "suppress": []}
@@ -255,14 +323,7 @@ def _merge_model_and_llm(
     model_rows: list[dict[str, Any]],
     llm_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Merge model and LLM rows, preserving extraction method provenance.
-
-    Per DI-2D9F5064 (runtime relation linking method disclosure), every merged
-    relation carries `extraction_method` = "model" | "llm" | "model+llm" so
-    reviewers can calibrate scepticism. When both sources produce the same
-    (head, tail, type) the higher-confidence row wins and method becomes
-    "model+llm".
-    """
+    """Merge model and LLM rows. Same triple keeps the higher confidence."""
     merged: dict[tuple[int, int, str], dict[str, Any]] = {}
     tagged: list[tuple[dict[str, Any], str]] = (
         [(r, "model") for r in model_rows] + [(r, "llm") for r in llm_rows]
@@ -278,17 +339,18 @@ def _merge_model_and_llm(
         key = (h, t, relation_type)
         confidence = float(row.get("confidence") or 0.0)
         prev = merged.get(key)
+        tagged_method = str(row.get("extraction_method") or method)
         if prev is None:
             merged[key] = {
                 "head_idx": h,
                 "tail_idx": t,
                 "type": relation_type,
                 "confidence": confidence,
-                "extraction_method": method,
+                "extraction_method": tagged_method,
             }
             continue
-        combined_method = prev.get("extraction_method") or method
-        if combined_method != method:
+        combined_method = prev.get("extraction_method") or tagged_method
+        if combined_method != tagged_method:
             combined_method = "model+llm"
         if float(prev.get("confidence") or 0.0) < confidence:
             merged[key] = {
@@ -336,6 +398,15 @@ def _apply_relation_linking(state: RelationLinkState) -> dict[str, Any]:
             continue
         head = entities[head_idx]
         tail = entities[tail_idx]
+        head_label = _entity_label(head)
+        tail_label = _entity_label(tail)
+        label_ok, _ = is_relation_allowed(
+            source_label=head_label,
+            target_label=tail_label,
+            relation_type=relation_type,
+        )
+        if not label_ok:
+            continue
         head_relations = list(head.get("__relations") or [])
         relation = {
             "type": relation_type,
@@ -369,25 +440,44 @@ def _apply_relation_linking(state: RelationLinkState) -> dict[str, Any]:
     return {"entities": entities, "relation_changes": changes}
 
 
-def relation_linking(state: RelationLinkState) -> dict[str, Any]:
-    model_updates = _run_model_first(state)
-    model_rows = list((model_updates.get("relation_model_result") or {}).get("relations") or [])
-    high_conf = [
-        row
-        for row in model_rows
-        if float(row.get("confidence") or 0.0) >= _MODEL_CONFIDENCE_THRESHOLD
-    ]
-    # LLM fallback only when model confidence is low or sparse.
-    updates = (
-        _run_linker(state)
-        if len(high_conf) < max(1, min(3, len(model_rows)))
-        else {"relation_link_result": {"relations": [], "suppress": []}, "errors": []}
-    )
+def _apply_and_return(
+    state: RelationLinkState,
+    model_updates: dict[str, Any],
+    updates: dict[str, Any],
+) -> dict[str, Any]:
     merged = dict(state)
     merged.update(model_updates)
     merged.update(updates)
     merged_state = RelationLinkState(**merged)
     return {**model_updates, **updates, **_apply_relation_linking(merged_state)}
+
+
+def relation_linking(state: RelationLinkState) -> dict[str, Any]:
+    snomed_rows = _collect_snomed_rows(state)
+    if snomed_rows:
+        raw = _run_linker(state, snomed_rows)
+        judged = _normalise_judge_result(
+            raw.get("relation_link_result") or {}, snomed_rows
+        )
+        updates = {**raw, "relation_link_result": judged}
+        model_updates = {"relation_model_result": {"relations": [], "suppress": []}}
+        return _apply_and_return(state, model_updates, updates)
+
+    model_updates = _run_model_first(state)
+    model_rows = list(
+        (model_updates.get("relation_model_result") or {}).get("relations") or []
+    )
+    high_conf = [
+        row
+        for row in model_rows
+        if float(row.get("confidence") or 0.0) >= _MODEL_CONFIDENCE_THRESHOLD
+    ]
+    updates = (
+        _run_linker(state)
+        if len(high_conf) < max(1, min(3, len(model_rows)))
+        else {"relation_link_result": {"relations": [], "suppress": []}, "errors": []}
+    )
+    return _apply_and_return(state, model_updates, updates)
 
 
 def build_relation_linking_subgraph() -> CompiledStateGraph:

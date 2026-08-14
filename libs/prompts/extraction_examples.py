@@ -77,6 +77,13 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "input": "[s0] Reports no nausea, vomiting, or diarrhoea.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "nausea", "lookup_term": "nausea", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "vomiting", "lookup_term": "vomiting", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "diarrhoea", "lookup_term": "diarrhoea", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}]}',
     },
+    {
+        "category": "assertion:absent",
+        "model_scope": "any",
+        "description": "No X reported -- extract as absent, do not skip",
+        "input": "[s0] No recent alcohol excess reported.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "recent alcohol excess", "lookup_term": "alcohol excess", "semantic_tag": "finding", "assertion": "absent", "value": null, "unit": null, "reference_range": null}]}',
+    },
     # -- Assertion: possible --------------------------------------------------
     {
         "category": "assertion:possible",
@@ -128,6 +135,13 @@ EXTRACTION_EXAMPLES: list[dict] = [
         "description": "Awaiting investigation -- confirmed, not yet done",
         "input": "[s0] Awaiting MRI spine.",
         "output": '{"terms": [{"sentence_id": "s0", "text": "MRI spine", "lookup_term": "MRI scan of spine", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}]}',
+    },
+    {
+        "category": "assertion:planned",
+        "model_scope": "any",
+        "description": "Please arrange named imaging and blood tests -- planned procedures",
+        "input": "[s0] Please arrange urgent imaging (CT abdomen/pelvis) and appropriate investigations including liver function tests.",
+        "output": '{"terms": [{"sentence_id": "s0", "text": "CT abdomen/pelvis", "lookup_term": "CT of abdomen and pelvis", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}, {"sentence_id": "s0", "text": "liver function tests", "lookup_term": "liver function test", "semantic_tag": "procedure", "assertion": "planned", "value": null, "unit": null, "reference_range": null}]}',
     },
     # -- Assertion: hypothetical ----------------------------------------------
     {

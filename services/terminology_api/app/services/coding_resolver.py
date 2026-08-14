@@ -249,6 +249,8 @@ def _parse_related_concepts_row(row: dict[str, Any]) -> list[dict[str, str]]:
         "interprets_observables",
         "has_components",
         "associated_findings",
+        "finding_sites",
+        "procedure_sites",
     ):
         for item in row.get(key) or []:
             if item and item.get("id") and item.get("fsn"):

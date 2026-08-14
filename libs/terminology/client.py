@@ -681,8 +681,7 @@ class TerminologyClient:
             return []
 
     def get_related(self, concept_id: str) -> dict[str, Any]:
-        """Retrieve SNOMED ontology family for a concept (INTERPRETS, HAS_COMPONENT,
-        HAS_ASSOCIATED_FINDING relationships).
+        """Retrieve SNOMED ontology family for a concept.
 
         Returns the full RelatedConceptsResult dict, or an empty dict on failure.
         """
@@ -697,6 +696,32 @@ class TerminologyClient:
                 return resp.json()
         except Exception:
             logger.warning("get_related(%s) failed", concept_id, exc_info=True)
+            return {}
+
+    def batch_get_related(self, concept_ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Batch-fetch SNOMED neighbours. Returns {concept_id: related_map}."""
+        ids = [str(cid).strip() for cid in concept_ids if str(cid).strip()]
+        unique = list(dict.fromkeys(ids))
+        if not unique:
+            return {}
+        import httpx
+
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                resp = client.post(
+                    f"{self._base_url}/terminology/concepts/batch-related",
+                    json={"concept_ids": unique},
+                )
+                resp.raise_for_status()
+                data = resp.json() or {}
+                results = data.get("results") or {}
+                return {
+                    str(cid): row
+                    for cid, row in results.items()
+                    if isinstance(row, dict)
+                }
+        except Exception:
+            logger.warning("batch_get_related failed for %d ids", len(unique), exc_info=True)
             return {}
 
     def get_descendants(
@@ -902,3 +927,33 @@ class AsyncTerminologyClient:
             for orig in norm_to_originals.get(norm_key, [norm_key]):
                 rekeyed[orig] = base_clean
         return rekeyed
+
+    async def batch_get_related(
+        self, concept_ids: list[str]
+    ) -> dict[str, dict[str, Any]]:
+        """Batch-fetch SNOMED neighbours (async). Returns {concept_id: related_map}."""
+        ids = [str(cid).strip() for cid in concept_ids if str(cid).strip()]
+        unique = list(dict.fromkeys(ids))
+        if not unique:
+            return {}
+        import httpx
+
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                resp = await client.post(
+                    f"{self._base_url}/terminology/concepts/batch-related",
+                    json={"concept_ids": unique},
+                )
+                resp.raise_for_status()
+                data = resp.json() or {}
+                results = data.get("results") or {}
+                return {
+                    str(cid): row
+                    for cid, row in results.items()
+                    if isinstance(row, dict)
+                }
+        except Exception:
+            logger.warning(
+                "async batch_get_related failed for %d ids", len(unique), exc_info=True
+            )
+            return {}

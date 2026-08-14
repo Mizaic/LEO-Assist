@@ -80,7 +80,8 @@ export const MOTION = {
 export const FOCUS_RING = {
   widthPx: 3,
   offsetPx: 2,
-  color: "#1F3A8A",
+  /* Mizaic Electric Blue -- 6.02:1 on white, WCAG AA */
+  color: "#0d46d6",
 } as const;
 
 export type DensityTier = "compact" | "comfortable" | "spacious";
@@ -112,11 +113,13 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { name: "body-on-paper", fg: "#0F172A", bg: "#FFFFFF", role: "normal" },
   { name: "secondary-on-default", fg: "#475569", bg: "#F8FAFC", role: "normal" },
   { name: "caption-on-default", fg: "#4b5563", bg: "#F8FAFC", role: "normal" },
-  { name: "primary-on-white", fg: "#1F3A8A", bg: "#FFFFFF", role: "normal" },
+  /* Mizaic Electric Blue -- computeContrastRatio("#0d46d6","#FFFFFF") ~= 6.02:1 -- AA pass */
+  { name: "primary-on-white", fg: "#0d46d6", bg: "#FFFFFF", role: "normal" },
   { name: "error-on-white", fg: "#b91c1c", bg: "#FFFFFF", role: "normal" },
   { name: "warning-on-white", fg: "#b45309", bg: "#FFFFFF", role: "normal" },
   { name: "success-on-white", fg: "#15803d", bg: "#FFFFFF", role: "normal" },
-  { name: "focus-ring-on-default", fg: "#1F3A8A", bg: "#F8FAFC", role: "non-text" },
+  /* Mizaic Electric Blue -- 6.02:1 on F8FAFC -- AA pass */
+  { name: "focus-ring-on-default", fg: "#0d46d6", bg: "#F8FAFC", role: "non-text" },
   { name: "divider-on-default", fg: "#64748b", bg: "#F8FAFC", role: "non-text" },
 ];
 

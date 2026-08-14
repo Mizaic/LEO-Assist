@@ -845,6 +845,8 @@ _REFERRAL_STEP_TO_SNAPSHOT_KEY: dict[str, str] = {
     "durable-ref-post-processing": "post_processing",
     "durable-ref-relation-linking": "relation_linking",
     "durable-ref-extraction-check": "extraction_check",
+    "durable-ref-snomed-enrichment": "snomed_enrichment",
+    "durable-ref-snomed-relation-judge": "relation_linking",
 }
 _REFERRAL_SNAPSHOT_STEPS = tuple(_REFERRAL_STEP_TO_SNAPSHOT_KEY.keys())
 

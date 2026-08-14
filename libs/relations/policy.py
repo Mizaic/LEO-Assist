@@ -56,7 +56,7 @@ RELATION_POLICY_RULES: tuple[RelationRule, ...] = (
         snomed_relationships=("HAS_ASSOCIATED_FINDING",),
     ),
     RelationRule(
-        source=("qualifier_value", "finding"),
+        source=("qualifier_value",),
         target=("finding", "disorder", "procedure"),
         relation_type="qualifies",
         snomed_relationships=("METHOD", "HAS_INTERPRETATION", "ASSOCIATED_FINDING"),
@@ -126,6 +126,9 @@ def canonicalise_relations(
             "target_text": str(raw.get("target_text") or "").strip(),
             "confidence": confidence,
         }
+        method = str(raw.get("extraction_method") or "").strip()
+        if method:
+            row["extraction_method"] = method
         key = (rel_type, target_idx)
         prev = dedup.get(key)
         if prev is None or float(prev.get("confidence") or 0.0) < confidence:

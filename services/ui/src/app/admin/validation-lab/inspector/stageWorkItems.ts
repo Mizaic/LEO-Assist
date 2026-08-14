@@ -7,6 +7,7 @@
  */
 
 import type { LabWorkItem, LabWorkPreview } from "../inspectorTypes";
+import { assertionLabel, semanticTagLabel } from "../letterMarkStyle";
 
 const SBAR_KEYS = [
   "situation",
@@ -38,12 +39,24 @@ export function workPreviewFromStage(
   const fromOut = entityItems(payload, sentences);
   const items = fromOut.length ? fromOut : entityItems(source, sentences);
   const sbar = sbarItems(payload);
+
+  const rawEntities = Array.isArray(payload.entities) ? payload.entities : [];
+  const relItems = extractRelationItems(rawEntities);
+  const inferred = items.filter((item) => item.kind === "inferred");
+  if (relItems.length) {
+    const noun = relItems.length === 1 ? "link" : "links";
+    return {
+      headline: `Found ${relItems.length} ${noun}`,
+      items: [...relItems, ...inferred].slice(0, 40),
+    };
+  }
+
   const chosen = items.length ? items : sbar;
   const headline = headlineFor(payload, items, sbar) || fallback?.headline || "";
   if (!headline && !chosen.length) {
     return fallback || { headline: "", items: [] };
   }
-  return { headline, items: chosen.slice(0, 8) };
+  return { headline, items: chosen.slice(0, 40) };
 }
 
 function pickSentences(
@@ -72,10 +85,24 @@ export function itemsFromEntities(
     if (!row || typeof row !== "object") continue;
     const ev = entityEvidence(row as Record<string, unknown>, sentences);
     if (!ev.text) continue;
-    const item: LabWorkItem = { kind: ev.code ? "code" : "fact", text: ev.text };
+    const isObs = ev.semanticTag === "observable_entity";
+    const inferred = Boolean((row as Record<string, unknown>).inferred);
+    const kind = inferred
+      ? "inferred"
+      : ev.code
+        ? "code"
+        : isObs
+          ? "observable"
+          : "fact";
+    const item: LabWorkItem = { kind, text: ev.text };
     if (ev.code) item.code = ev.code;
     if (ev.evidence) item.evidence = ev.evidence;
     if (ev.evidenceSentence) item.evidenceSentence = ev.evidenceSentence;
+    if (ev.assertion) item.assertion = ev.assertion;
+    if (ev.semanticTag) item.semanticTag = ev.semanticTag;
+    if (ev.value) item.value = ev.value;
+    if (ev.unit) item.unit = ev.unit;
+    if (ev.referenceRange) item.referenceRange = ev.referenceRange;
     items.push(item);
   }
   return items;
@@ -89,6 +116,11 @@ export function entityEvidence(
   code: string;
   evidence: string;
   evidenceSentence: string;
+  assertion: string;
+  semanticTag: string;
+  value: string;
+  unit: string;
+  referenceRange: string;
 } {
   const text = firstStr(ent, TEXT_KEYS);
   return {
@@ -97,7 +129,29 @@ export function entityEvidence(
     evidence: firstStr(ent, ["evidence"]) || text,
     evidenceSentence:
       firstStr(ent, SENTENCE_KEYS) || sentenceForId(ent, sentences),
+    assertion: entityAssertion(ent),
+    semanticTag: firstStr(ent, ["semantic_tag", "label"]),
+    value: firstStr(ent, ["value", "numeric_value"]),
+    unit: firstStr(ent, ["unit"]),
+    referenceRange: firstStr(ent, ["reference_range"]),
   };
+}
+
+function entityAssertion(ent: Record<string, unknown>): string {
+  const direct = firstStr(ent, ["assertion"]);
+  if (direct) return direct;
+  const ctx = ent.context;
+  if (ctx && typeof ctx === "object") {
+    return firstStr(ctx as Record<string, unknown>, ["assertion"]);
+  }
+  return "";
+}
+
+export function plainLetterText(raw: string): string {
+  return String(raw || "")
+    .replace(/\*\*/g, "")
+    .replace(/[ \t]+/g, " ")
+    .trim();
 }
 
 export function formatEvidenceTooltip(item: {
@@ -105,12 +159,26 @@ export function formatEvidenceTooltip(item: {
   code?: string;
   evidence?: string;
   evidenceSentence?: string;
+  assertion?: string;
+  semanticTag?: string;
+  value?: string;
+  unit?: string;
+  referenceRange?: string;
 }): string {
-  const lines = [item.code ? `${item.text} -- ${item.code}` : item.text];
-  if (item.evidence) lines.push(`evidence: ${item.evidence}`);
-  if (item.evidenceSentence) {
-    lines.push(`evidence_sentence: ${item.evidenceSentence}`);
+  const title = plainLetterText(item.text);
+  const lines = [title];
+  if (item.code) lines.push(`Code ${item.code}`);
+  const measurement = [item.value, item.unit].filter(Boolean).join(" ");
+  if (measurement) lines.push(`Measurement: ${measurement}`);
+  if (item.referenceRange) lines.push(`Reference range: ${item.referenceRange}`);
+  if (item.assertion) lines.push(`Context: ${assertionLabel(item.assertion)}`);
+  if (item.semanticTag) lines.push(`Kind: ${semanticTagLabel(item.semanticTag)}`);
+  const mention = plainLetterText(item.evidence || "");
+  if (mention && mention.toLowerCase() !== title.toLowerCase()) {
+    lines.push(`Words found: ${mention}`);
   }
+  const sentence = plainLetterText(item.evidenceSentence || "");
+  if (sentence) lines.push(`From the letter: ${sentence}`);
   return lines.join("\n");
 }
 
@@ -131,6 +199,62 @@ function sentenceForId(
     if (id === sid) return String(rec.text || "").trim();
   }
   return "";
+}
+
+const RELATION_LABELS: Record<string, string> = {
+  finding_site: "at site",
+  interprets: "interprets",
+  associated_finding: "linked to",
+  component_of: "part of",
+  qualifies: "qualifies",
+};
+
+function relationLabel(type: string): string {
+  return RELATION_LABELS[type] || type.replace(/_/g, " ");
+}
+
+/**
+ * Extract one work item per semantic relation embedded in output entities.
+ * Used to show what the relation-link step actually created.
+ */
+export function extractRelationItems(
+  entities: unknown[],
+): LabWorkItem[] {
+  const items: LabWorkItem[] = [];
+  for (const ent of entities) {
+    if (!ent || typeof ent !== "object") continue;
+    const e = ent as Record<string, unknown>;
+    const headText = firstStr(e, TEXT_KEYS);
+    if (!headText) continue;
+    const relations = Array.isArray(e.__relations) ? e.__relations : [];
+    for (const rel of relations) {
+      if (!rel || typeof rel !== "object") continue;
+      const r = rel as Record<string, unknown>;
+      const type = String(r.type || "").trim();
+      const target = String(r.target_text || "").trim();
+      if (!type || !target) continue;
+      items.push({
+        kind: "relation",
+        text: headText,
+        assertion: entityAssertion(e),
+        semanticTag: firstStr(e, ["semantic_tag", "label"]),
+        relationType: relationLabel(type),
+        relationTarget: target,
+      });
+    }
+  }
+  return items;
+}
+
+/** Extract LabWorkItem[] from a stage's raw input payload. */
+export function inputWorkItems(
+  input: Record<string, unknown> | null | undefined,
+): LabWorkItem[] {
+  if (!input) return [];
+  const sentences = sentenceList(input);
+  const raw = input.entities;
+  if (!Array.isArray(raw)) return [];
+  return itemsFromEntities(raw, sentences);
 }
 
 export function isEntityList(value: unknown): boolean {

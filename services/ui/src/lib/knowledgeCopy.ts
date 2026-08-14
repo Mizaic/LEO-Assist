@@ -322,9 +322,9 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
     },
     platform_admin: {
       title: "Validation Lab",
-      lede: "Admin surface for :ValidationCase patients and their pipeline runs.",
-      how: "Build a patient with the wizard, then run and promote gold.",
-      what: "Pathway probes stay on the pathway builder for plan authoring only.",
+      lede: "Find a patient and check how LEO read their letter.",
+      how: "Search by NHS number or referral number, or pick someone from the list.",
+      what: "You can mark what went wrong. This does not start a new job.",
     },
   },
 

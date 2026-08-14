@@ -82,6 +82,7 @@ import { useDemoMode } from "@/context/DemoModeContext";
 import { useOrg } from "@/context/OrgContext";
 import { maskOrgName } from "@/lib/demoMode";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import { LeoLogo, LeoO } from "@leo/design-system";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -444,13 +445,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           onClick={() => handleNav(homeRoute)}
           sx={{ width: 40, height: 40, mb: 1.5, p: 0.5 }}
         >
-          <Box
-            component="img"
-            src="/leo-icon.svg"
-            alt=""
-            aria-hidden="true"
-            sx={{ width: 28, height: 28 }}
-          />
+          <LeoO size={26} variant="light" spinning spinDuration={2.4} title="LEO" />
         </IconButton>
       </Tooltip>
       <Divider sx={{ width: "80%", mb: 1 }} />
@@ -483,13 +478,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           onClick={() => handleNav(homeRoute)}
           sx={{ width: 40, height: 40, mb: 0.5, p: 0.5 }}
         >
-          <Box
-            component="img"
-            src="/leo-icon.svg"
-            alt=""
-            aria-hidden="true"
-            sx={{ width: 28, height: 28 }}
-          />
+          <LeoO size={26} variant="light" spinning spinDuration={2.4} title="LEO" />
         </IconButton>
       </Tooltip>
       <Tooltip title="Expand sidebar" placement="right">
@@ -594,23 +583,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <IconButton
           aria-label="LEO by Mizaic - go to home"
           onClick={() => handleNav(homeRoute)}
-          sx={{ p: 0.5 }}
+          sx={{ p: 0.5, flex: 1, justifyContent: "flex-start", borderRadius: 1 }}
         >
-          <Box
-            component="img"
-            src="/leo-icon.svg"
-            alt=""
-            aria-hidden="true"
-            sx={{ width: 32, height: 32 }}
-          />
+          <LeoLogo height={28} variant="light" spinning spinDuration={2.4} />
         </IconButton>
-        <Typography component="span" sx={{ fontSize: "1rem", lineHeight: 1.3, color: "text.primary", fontWeight: 600, flex: 1, minWidth: 0 }}>
-          LEO
-          <br />
-          <Typography component="span" sx={{ fontSize: "0.8rem", color: "text.secondary", fontWeight: 400 }}>
-            by Mizaic
-          </Typography>
-        </Typography>
         {!isMobile && !isEditor && (
           sidebarPref === "expanded" ? (
             <Tooltip title="Unpin sidebar">

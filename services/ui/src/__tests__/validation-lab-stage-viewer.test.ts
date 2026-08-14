@@ -11,6 +11,7 @@ const PANEL = path.join(ROOT, "RunInspectorPanel.tsx");
 const WIZARD = path.join(ROOT, "PipelineWizard.tsx");
 const DETAIL = path.join(ROOT, "StageDetailPane.tsx");
 const WORK = path.join(ROOT, "StageWorkPreview.tsx");
+const TIP = path.join(ROOT, "EvidenceTooltip.tsx");
 const CHIPS = path.join(ROOT, "StateKeyChips.tsx");
 
 describe("RunInspectorPanel -- Pipeline tab with process-mining wizard", () => {
@@ -22,6 +23,7 @@ describe("RunInspectorPanel -- Pipeline tab with process-mining wizard", () => {
       fs.readFileSync(WIZARD, "utf-8"),
       fs.readFileSync(DETAIL, "utf-8"),
       fs.readFileSync(WORK, "utf-8"),
+      fs.readFileSync(TIP, "utf-8"),
     ].join("\n");
     chips = fs.readFileSync(CHIPS, "utf-8");
   });
@@ -32,6 +34,13 @@ describe("RunInspectorPanel -- Pipeline tab with process-mining wizard", () => {
 
   it("renders PipelineWizard in the pipeline tab", () => {
     expect(src).toMatch(/PipelineWizard/);
+  });
+
+  it("walks stages in order and locks later steps", () => {
+    expect(src).toMatch(/validation-lab-next-step/);
+    expect(src).toMatch(/canOpenStep/);
+    expect(src).toMatch(/Review earlier steps first/);
+    expect(src).toMatch(/data-locked/);
   });
 
   it("has a stage rail showing each span", () => {
@@ -88,6 +97,16 @@ describe("RunInspectorPanel -- Pipeline tab with process-mining wizard", () => {
     expect(src).toMatch(/StageWorkPreview/);
     expect(src).toMatch(/work_preview|workPreviewFromStage/);
     expect(src).toMatch(/validation-lab-stage-work/);
+  });
+
+  it("keeps fact-chip tooltip text light on a dark panel", () => {
+    const tip = fs.readFileSync(TIP, "utf-8");
+    expect(tip).toMatch(/#0F172A/);
+    expect(tip).toMatch(/#F8FAFC/);
+    expect(tip).toMatch(/From the letter/);
+    expect(tip).toMatch(/Words found/);
+    expect(tip).toMatch(/Context/);
+    expect(tip).toMatch(/Kind/);
   });
 
   it("shows a classified reason when draft assessment fails", () => {

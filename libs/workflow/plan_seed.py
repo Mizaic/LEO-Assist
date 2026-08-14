@@ -28,7 +28,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 # Bump when built-in PlanDefinition seed content changes (ISO-8601 UTC).
-PLAN_SEED_REVISION = "2026-08-13T16:20:00Z"
+PLAN_SEED_REVISION = "2026-08-14T16:00:00Z"
 
 GET_PLAN_SEED_STATE = """
 MATCH (pd:PlanDefinition {id: $id})

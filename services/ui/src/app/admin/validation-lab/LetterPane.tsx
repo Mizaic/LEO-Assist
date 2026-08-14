@@ -11,10 +11,13 @@ import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
+import { LetterMarkLegend, LetterMarks } from "./LetterMarks";
+import type { LetterMark } from "./letterHighlight";
+
 interface Props {
   referralText: string;
   openedBecause?: string;
-  highlight?: string;
+  highlights?: LetterMark[];
   gpNote?: string;
   pmhText?: string;
 }
@@ -22,12 +25,13 @@ interface Props {
 export default function LetterPane({
   referralText,
   openedBecause,
-  highlight,
+  highlights,
   gpNote,
   pmhText,
 }: Props) {
   const [tab, setTab] = useState(0);
   const letter = referralText || "No letter text on this run.";
+  const marks = highlights || [];
   return (
     <Box
       sx={{
@@ -62,7 +66,16 @@ export default function LetterPane({
             Why you opened this: {openedBecause}
           </Typography>
         ) : null}
-        {tab === 0 ? <HighlightedText text={letter} needle={highlight} /> : null}
+        {tab === 0 ? (
+          <Typography variant="body2" component="div">
+            <LetterMarkLegend marks={marks} />
+            <LetterMarks
+              text={letter}
+              marks={marks}
+              testId="validation-lab-letter-highlight"
+            />
+          </Typography>
+        ) : null}
         {tab === 1 ? (
           <Typography variant="body2">{gpNote || "No GP note on this case."}</Typography>
         ) : null}
@@ -71,32 +84,5 @@ export default function LetterPane({
         ) : null}
       </Box>
     </Box>
-  );
-}
-
-function HighlightedText({ text, needle }: { text: string; needle?: string }) {
-  const q = (needle || "").trim();
-  if (!q) {
-    return <Typography variant="body2">{text}</Typography>;
-  }
-  const idx = text.toLowerCase().indexOf(q.toLowerCase());
-  if (idx < 0) {
-    return <Typography variant="body2">{text}</Typography>;
-  }
-  const before = text.slice(0, idx);
-  const match = text.slice(idx, idx + q.length);
-  const after = text.slice(idx + q.length);
-  return (
-    <Typography variant="body2" component="div">
-      {before}
-      <Box
-        component="mark"
-        sx={{ bgcolor: "#FEF08A", px: 0.25 }}
-        data-testid="validation-lab-letter-highlight"
-      >
-        {match}
-      </Box>
-      {after}
-    </Typography>
   );
 }
