@@ -15,6 +15,7 @@ from libs.cypher.validation_lab_finding_queries import (
     LIST_OPEN_FINDINGS,
     UPSERT_VALIDATION_FINDING,
 )
+from libs.validation_lab.service import _json_safe
 
 FINDING_CATEGORIES = frozenset(
     {"extraction", "context", "guard", "phrase_mapping", "guideline_rule"}
@@ -74,7 +75,7 @@ def create_finding(
     )
     if not rows:
         raise FindingError("Finding was not saved")
-    return dict(rows[0]["finding"])
+    return _finding_row(rows[0]["finding"])
 
 
 def list_findings_for_run(client: Any, run_id: str) -> list[dict[str, Any]]:
@@ -82,7 +83,7 @@ def list_findings_for_run(client: Any, run_id: str) -> list[dict[str, Any]]:
     if not rid:
         return []
     rows = client.run(LIST_FINDINGS_FOR_RUN, run_id=rid)
-    return [dict(row["finding"]) for row in rows if row.get("finding")]
+    return [_finding_row(row["finding"]) for row in rows if row.get("finding")]
 
 
 def list_open_findings(client: Any, *, limit: int = 20) -> list[dict[str, Any]]:
@@ -91,4 +92,8 @@ def list_open_findings(client: Any, *, limit: int = 20) -> list[dict[str, Any]]:
         statuses=["open", "routed"],
         limit=int(limit),
     )
-    return [dict(row["finding"]) for row in rows if row.get("finding")]
+    return [_finding_row(row["finding"]) for row in rows if row.get("finding")]
+
+
+def _finding_row(finding: Any) -> dict[str, Any]:
+    return _json_safe(dict(finding or {}))
