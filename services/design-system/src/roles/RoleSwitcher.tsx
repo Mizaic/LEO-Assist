@@ -34,7 +34,7 @@ const buttonStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 6,
   fontFamily:
-    "var(--font-dm-sans), 'DM Sans', -apple-system, system-ui, sans-serif",
+    "var(--font-albert-sans), 'Albert Sans', -apple-system, system-ui, sans-serif",
 };
 
 const menuStyle: React.CSSProperties = {

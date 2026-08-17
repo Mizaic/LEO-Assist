@@ -24,7 +24,7 @@ import { shortDate } from "./encounterTextUtils";
 const COLOR_LINKED = "#2563eb";
 const COLOR_OTHER = "#cbd5e1";
 const COLOR_OTHER_HOVER = "#94a3b8";
-const COLOR_ACTIVE_RING = "#1d4ed8";
+const COLOR_ACTIVE_RING = "#0d46d6";
 // Amber outline used when free-text search has matches inside this
 // bin. Mirrors the amber palette of milestone markers so the two
 // overlays feel like the same family.

@@ -11,6 +11,7 @@
 import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import { color, typography } from "@leo/design-system/tokens";
 
 interface NodeHeaderProps {
   /** Optional leading icon. */
@@ -37,7 +38,12 @@ export function NodeHeader({ icon, title, trailing }: NodeHeaderProps) {
         component="h3"
         variant="body2"
         fontWeight={700}
-        sx={{ flex: 1, m: 0 }}
+        sx={{
+          flex: 1,
+          m: 0,
+          fontFamily: typography.fontFamily.heading,
+          color: color.text.primary,
+        }}
       >
         {title}
       </Typography>

@@ -36,6 +36,12 @@ export const typography = {
     semibold: 600,
     bold: 700,
   },
+  /* Size-specific tracking. Large display tightens; captions open slightly. */
+  letterSpacing: {
+    display: "-0.02em",
+    body: "0em",
+    caption: "0.02em",
+  },
 } as const;
 
 export type TypographyTokens = typeof typography;

@@ -1,25 +1,29 @@
 /**
  * Family detail dialog -- landscape 16:9.
  * Left: exact rule. Right: with / without example.
+ *
+ * Atlas trace:
+ *   Implements: DO-6413D5BC
+ *   DI: DI-34712A9A, DI-C5A523A7
  */
 "use client";
 
 import { useId, type ReactNode } from "react";
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
+import {
+  frostStyle,
+  SpringSwap,
+  useReducedTransparency,
+} from "@leo/design-system";
+import { color, elevation } from "@leo/design-system/tokens";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CloseIcon from "@mui/icons-material/Close";
 
+import { GuardDialogTitleBar } from "./GuardDialogTitleBar";
 import GuardExamplePanel from "./GuardExamplePanel";
+import { GuardPatternRow } from "./GuardPatternRow";
 import type { GuardFamilyCopy } from "./guardFamilyCopy";
 import { familyKind } from "./guardFamilyCopy";
 import { resolveWorkedExample } from "./guardWorkedExamples";
-import { humanizePattern } from "./humanizePattern";
 import type { NerGuardRule } from "./types";
 
 interface GuardFamilyDialogProps {
@@ -48,76 +52,22 @@ function typeGroups(rules: NerGuardRule[], copy: GuardFamilyCopy) {
   return groups;
 }
 
-function ruleLabel(rule: NerGuardRule): string {
-  return rule.summary || humanizePattern(rule.pattern) || "(no pattern)";
-}
-
-function PatternRow({
-  rule,
-  selected,
-  onSelect,
-}: {
-  rule: NerGuardRule;
-  selected: boolean;
-  onSelect: (rule: NerGuardRule) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(rule)}
-      aria-current={selected ? "true" : undefined}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        width: "100%",
-        textAlign: "left",
-        border: "none",
-        borderRadius: 8,
-        padding: "8px 10px",
-        margin: "2px 0",
-        cursor: "pointer",
-        background: selected ? "rgba(29,78,216,0.08)" : "transparent",
-        font: "inherit",
-      }}
-    >
-      <span
-        style={{
-          flex: 1,
-          fontSize: 13,
-          color: "#0F172A",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {ruleLabel(rule)}
-      </span>
-      <Chip
-        size="small"
-        label={rule.source === "builtin" ? "Built-in" : "Added"}
-        sx={{ height: 18, fontSize: "0.65rem", flexShrink: 0 }}
-      />
-    </button>
-  );
-}
-
 function FamilyDocs({ copy }: { copy: GuardFamilyCopy }) {
   return (
-    <Stack spacing={0.75}>
-      <Typography variant="body2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
+      <p style={{ margin: 0, color: color.text.primary }}>
         <strong>What it does. </strong>
         {copy.what}
-      </Typography>
-      <Typography variant="body2">
+      </p>
+      <p style={{ margin: 0, color: color.text.primary }}>
         <strong>Why it is needed. </strong>
         {copy.why}
-      </Typography>
-      <Typography variant="body2">
+      </p>
+      <p style={{ margin: 0, color: color.text.primary }}>
         <strong>If it is wrong. </strong>
         {copy.ifWrong}
-      </Typography>
-    </Stack>
+      </p>
+    </div>
   );
 }
 
@@ -131,34 +81,110 @@ function PatternGroup({
   onSelect: (rule: NerGuardRule) => void;
 }) {
   return (
-    <Box>
-      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-        {group.label}
-      </Typography>
-      {group.what && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+    <div>
+      <strong style={{ display: "block", fontSize: 13 }}>{group.label}</strong>
+      {group.what ? (
+        <p style={{ margin: "4px 0 6px", fontSize: 14, color: color.text.secondary }}>
           {group.what}
-        </Typography>
-      )}
+        </p>
+      ) : null}
       {group.rules.map((rule) => (
-        <PatternRow
+        <GuardPatternRow
           key={rule.rule_id}
           rule={rule}
           selected={selectedId === rule.rule_id}
           onSelect={onSelect}
         />
       ))}
-    </Box>
+    </div>
   );
 }
 
-const DIALOG_PAPER_SX = {
-  width: "min(96vw, calc(90vh * 16 / 9))",
-  height: "min(90vh, calc(96vw * 9 / 16))",
-  maxWidth: "none",
-  maxHeight: "90vh",
-  aspectRatio: "16 / 9",
-};
+function dialogSlots(frost: ReturnType<typeof frostStyle>) {
+  return {
+    backdrop: {
+      sx: {
+        backgroundColor: color.surface.overlay,
+        backdropFilter: frost.backdropFilter === "none" ? "none" : "blur(16px)",
+      },
+    },
+    paper: {
+      sx: {
+        width: "min(96vw, calc(90vh * 16 / 9))",
+        height: "min(90vh, calc(96vw * 9 / 16))",
+        maxWidth: "none",
+        maxHeight: "90vh",
+        aspectRatio: "16 / 9",
+        borderRadius: "16px",
+        overflow: "hidden",
+        boxShadow: elevation.modal,
+        background: frost.background,
+        backdropFilter: frost.backdropFilter,
+        WebkitBackdropFilter: frost.WebkitBackdropFilter,
+        border: "1px solid rgba(255, 255, 255, 0.7)",
+      },
+    },
+  };
+}
+
+function FamilyDialogBody({
+  copy,
+  rules,
+  selectedRule,
+  onSelect,
+  editor,
+}: {
+  copy: GuardFamilyCopy;
+  rules: NerGuardRule[];
+  selectedRule: NerGuardRule | null;
+  onSelect: (rule: NerGuardRule) => void;
+  editor: ReactNode;
+}) {
+  const example = resolveWorkedExample(
+    copy.key,
+    selectedRule?.rule_type,
+    selectedRule?.pattern,
+    selectedRule?.summary,
+    selectedRule?.rule_id,
+  );
+  return (
+    <DialogContent sx={{ display: "flex", p: 0, overflow: "hidden", height: "100%" }}>
+      <div
+        style={{
+          width: "52%",
+          overflow: "auto",
+          padding: 20,
+          borderRight: "1px solid " + color.text.secondary,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <FamilyDocs copy={copy} />
+          {typeGroups(rules, copy).map((group) => (
+            <PatternGroup
+              key={group.key}
+              group={group}
+              selectedId={selectedRule?.rule_id}
+              onSelect={onSelect}
+            />
+          ))}
+          {editor}
+        </div>
+      </div>
+      <div
+        style={{
+          width: "48%",
+          overflow: "auto",
+          padding: 20,
+          background: color.surface.alt,
+        }}
+      >
+        <SpringSwap swapKey={selectedRule?.rule_id || copy.key}>
+          <GuardExamplePanel example={example} />
+        </SpringSwap>
+      </div>
+    </DialogContent>
+  );
+}
 
 export default function GuardFamilyDialog({
   copy,
@@ -169,62 +195,28 @@ export default function GuardFamilyDialog({
   editor,
 }: GuardFamilyDialogProps) {
   const titleId = useId();
-  const example = resolveWorkedExample(
-    copy.key,
-    selectedRule?.rule_type,
-    selectedRule?.pattern,
-    selectedRule?.summary,
-    selectedRule?.rule_id,
-  );
-
+  const frost = frostStyle(useReducedTransparency(), "pane");
   return (
     <Dialog
       open
       onClose={onClose}
       maxWidth={false}
       aria-labelledby={titleId}
-      PaperProps={{ sx: DIALOG_PAPER_SX }}
+      slotProps={dialogSlots(frost)}
     >
-      <DialogTitle id={titleId} sx={{ pr: 6, py: 1.5 }}>
-        {copy.title}
-        <Chip size="small" label={familyKind(copy.key)} sx={{ ml: 1, height: 22 }} />
-        <IconButton
-          aria-label="Close"
-          onClick={onClose}
-          sx={{ position: "absolute", right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent
-        dividers
-        sx={{ display: "flex", p: 0, overflow: "hidden", height: "100%" }}
-      >
-        <Box
-          sx={{
-            width: "52%",
-            overflow: "auto",
-            p: 2.5,
-            borderRight: "1px solid #E2E8F0",
-          }}
-        >
-          <Stack spacing={1.5}>
-            <FamilyDocs copy={copy} />
-            {typeGroups(rules, copy).map((group) => (
-              <PatternGroup
-                key={group.key}
-                group={group}
-                selectedId={selectedRule?.rule_id}
-                onSelect={onSelect}
-              />
-            ))}
-            {editor}
-          </Stack>
-        </Box>
-        <Box sx={{ width: "48%", overflow: "auto", p: 2.5, bgcolor: "#F8FAFC" }}>
-          <GuardExamplePanel example={example} />
-        </Box>
-      </DialogContent>
+      <GuardDialogTitleBar
+        titleId={titleId}
+        title={copy.title}
+        badge={familyKind(copy.key)}
+        onClose={onClose}
+      />
+      <FamilyDialogBody
+        copy={copy}
+        rules={rules}
+        selectedRule={selectedRule}
+        onSelect={onSelect}
+        editor={editor}
+      />
     </Dialog>
   );
 }

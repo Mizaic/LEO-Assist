@@ -13,6 +13,7 @@ import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { LeoLogo } from "@leo/design-system";
 
 type UnauthorizedVariant = "unauthenticated" | "no-access";
 
@@ -80,12 +81,13 @@ export default function UnauthorizedScreen({
           gap: 2,
         }}
       >
+        <LeoLogo variant="light" height={48} />
         <Box
           sx={{
             width: 72,
             height: 72,
             borderRadius: "50%",
-            bgcolor: "rgba(31, 58, 138, 0.08)",
+            bgcolor: "rgba(13, 70, 214, 0.08)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

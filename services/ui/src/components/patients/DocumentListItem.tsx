@@ -37,7 +37,7 @@ function FileIcon({ kind }: { kind: DocumentFileKind }) {
   }
   if (kind === "word") {
     return (
-      <DescriptionOutlinedIcon sx={{ fontSize: 18, color: "#1E40AF", flexShrink: 0 }} />
+      <DescriptionOutlinedIcon sx={{ fontSize: 18, color: "#002178", flexShrink: 0 }} />
     );
   }
   return <ArticleOutlinedIcon sx={{ fontSize: 18, color: "#64748B", flexShrink: 0 }} />;

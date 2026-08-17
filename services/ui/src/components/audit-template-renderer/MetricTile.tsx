@@ -42,7 +42,7 @@ import {
   type TileStoryConfig,
 } from "@/lib/auditTemplateApi";
 
-const CHART_PALETTE = ["#1E40AF", "#047857", "#9333EA", "#B45309", "#0E7490"];
+const CHART_PALETTE = ["#002178", "#047857", "#9333EA", "#B45309", "#0E7490"];
 const MUTED = "#CBD5E1";
 const HIGHLIGHT = "#DC2626";
 

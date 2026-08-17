@@ -9,6 +9,7 @@
 "use client";
 
 import { useMemo, useEffect, useRef, useState } from "react";
+import { AskLeoBusyMark } from "@/components/AskLeoBusyMark";
 import { searchTerms } from "@/lib/api";
 import { askLeoSmart } from "@/lib/api/legacy";
 import { expandAbbreviations } from "@/lib/abbrev";
@@ -401,7 +402,7 @@ function AskLeoPanel({
 
       {busy && (
         <Stack direction="row" alignItems="center" gap={1} sx={{ py: 0.5 }}>
-          <CircularProgress aria-label="Loading" size={14} />
+          <AskLeoBusyMark />
           <Typography variant="body2" color="text.secondary">{STEP_LABELS[step]}</Typography>
         </Stack>
       )}
@@ -438,7 +439,14 @@ function AskLeoPanel({
 
       <Stack direction="row" gap={1} flexWrap="wrap">
         {!smartResult && (
-          <Button size="small" variant="outlined" onClick={() => handleAsk("small")} disabled={busy}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => handleAsk("small")}
+            disabled={busy}
+            startIcon={busy ? <AskLeoBusyMark /> : undefined}
+            aria-busy={busy}
+          >
             Ask LEO
           </Button>
         )}
@@ -448,7 +456,14 @@ function AskLeoPanel({
           </Button>
         )}
         {nextTier && (
-          <Button size="small" variant="outlined" onClick={() => handleAsk(nextTier)} disabled={busy}>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => handleAsk(nextTier)}
+            disabled={busy}
+            startIcon={busy ? <AskLeoBusyMark /> : undefined}
+            aria-busy={busy}
+          >
             Ask LEO to think harder
           </Button>
         )}

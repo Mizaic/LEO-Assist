@@ -21,7 +21,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from libs.llm_client.json_helper import _extract_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
-from libs.relations.policy import allowed_relation_types
+from libs.relations.policy import policy_relation_types
 from libs.nlp.sentence_splitter import is_referral_procedure_phrase
 from libs.ner.scope_guard import SUPPRESSED, reclassify_assertion
 
@@ -44,7 +44,7 @@ _CONFIRMED_DIAGNOSIS_RE = re.compile(
     re.IGNORECASE,
 )
 
-_ALLOWED_RELATION_TYPES = allowed_relation_types()
+_ALLOWED_RELATION_TYPES = policy_relation_types()
 _LLM_CHECK_MAX_TOKENS = int(os.getenv("LLM_CHECK_MAX_TOKENS", "8000"))
 _LLM_CHECK_ENTITY_CAP = int(os.getenv("LLM_CHECK_ENTITY_CAP", "80"))
 

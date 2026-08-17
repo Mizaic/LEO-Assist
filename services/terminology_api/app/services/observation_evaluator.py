@@ -112,6 +112,7 @@ def observation_matches(
     patient_sex: str | None,
     patient_age: float | None,
     now: datetime | None = None,
+    org_id: str | None = None,
 ) -> bool:
     """Return True when the OBSERVATION leaf fires for this patient.
 
@@ -173,6 +174,7 @@ def observation_matches(
             readings,
             patient_sex=patient_sex,
             patient_age=patient_age,
+            org_id=org_id,
         )
     if mode == "trend":
         return _evaluate_trend(leaf, readings, now=reference_now)
@@ -247,6 +249,7 @@ def _evaluate_reference_range(
     *,
     patient_sex: str | None,
     patient_age: float | None,
+    org_id: str | None = None,
 ) -> bool:
     """Mode: most-recent reading vs the patient's reference range bound."""
     if not readings:
@@ -256,12 +259,13 @@ def _evaluate_reference_range(
     multiple = float(spec.get("multiple_of_range") or 1.0)
 
     observable_id = str(leaf.get("observable_id") or "")
-    config = get_lab_config(observable_id)
+    config = get_lab_config(observable_id, org_id=org_id)
     band = (
         select_lab_reference_range(
             config.reference_ranges,
             sex=patient_sex,
             age_years=patient_age,
+            org_id=org_id,
         )
         if config is not None
         else get_reference_range(

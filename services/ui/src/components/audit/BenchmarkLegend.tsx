@@ -24,7 +24,7 @@ import Typography from "@mui/material/Typography";
  * Alliance to `alliance` (purple) -- that key represents All Patients (today).
  */
 export const BENCHMARK_COLOURS = {
-  practice: "#1D4ED8",
+  practice: "#0d46d6",
   similar: "#0D7C6F",
   alliance: "#7C3AED",
   national: "#92400E",

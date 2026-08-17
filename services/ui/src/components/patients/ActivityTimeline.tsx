@@ -39,7 +39,7 @@ const ITEM_TYPE_CONFIG: Record<
 > = {
   encounter: {
     label: "Encounter",
-    color: "#1E40AF",
+    color: "#002178",
     icon: <MedicalServicesOutlinedIcon fontSize="small" />,
   },
   episode: {

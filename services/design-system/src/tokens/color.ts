@@ -15,6 +15,13 @@ export const color = {
     raised: "#FFFFFF",
     divider: "#E2E8F0",
     overlay: "rgba(15, 23, 42, 0.45)",
+    /* Page ground -- blue-grey so white cards and frost can separate. */
+    canvas: "#D8E0EE",
+    /* Frosted chrome -- one translucent layer over canvas, never over frost. */
+    frost: "rgba(248, 250, 253, 0.78)",
+    frostHeavy: "rgba(232, 238, 248, 0.9)",
+    /* White glass pane -- sits on canvas, never on another frost. */
+    frostPane: "rgba(255, 255, 255, 0.88)",
   },
   text: {
     primary: "#0F172A",
@@ -38,12 +45,16 @@ export const color = {
     success: "#047857",
     warning: "#B45309",
     danger: "#B91C1C",
-    info: "#1D4ED8",
+    info: "#0d46d6",
     neutral: "#475569",
   },
   focus: {
-    ring: "#2563EB",
-    ringAlpha: "rgba(37, 99, 235, 0.35)",
+    ring: "#0d46d6",
+    ringAlpha: "rgba(13, 70, 214, 0.35)",
+  },
+  /* Data-viz series -- distinct from brand/UI chrome conceptually. */
+  chart: {
+    seriesPrimary: "#0d46d6",
   },
 } as const;
 

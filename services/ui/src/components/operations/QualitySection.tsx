@@ -325,7 +325,7 @@ export default function QualitySection() {
                   type="monotone"
                   dataKey="accuracy"
                   name="Coding accuracy (%)"
-                  stroke="#1F3A8A"
+                  stroke="#0d46d6"
                   strokeWidth={2}
                   dot={false}
                 />

@@ -9,9 +9,12 @@
 "use client";
 
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import { motion as fm } from "framer-motion";
 
+import { useMotion } from "../motion";
+import { springOrInstant, springs, tapScale } from "../motion/springs";
 import { color } from "../tokens/color";
-import { radius } from "../tokens/spacing";
+import { elevation, radius } from "../tokens/spacing";
 import { typography } from "../tokens/typography";
 
 export interface FilterChip {
@@ -57,6 +60,7 @@ export function FilterBar({
   trailing,
   onSubmit,
 }: FilterBarProps) {
+  const { reducedMotion } = useMotion();
   return (
     <form
       role="search"
@@ -109,19 +113,21 @@ export function FilterBar({
             height: 40,
             padding: "0 14px 0 32px",
             borderRadius: radius.md,
-            border: "1px solid " + color.surface.divider,
+            border: "1px solid " + color.text.secondary,
             background: color.surface.raised,
+            boxShadow: elevation.card,
             color: color.text.primary,
             outline: "none",
             transition: "box-shadow 120ms ease-out, border-color 120ms ease-out",
           }}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = color.focus.ring;
-            e.currentTarget.style.boxShadow = "0 0 0 3px " + color.focus.ringAlpha;
+            e.currentTarget.style.boxShadow =
+              elevation.card + ", 0 0 0 3px " + color.focus.ringAlpha;
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = color.surface.divider;
-            e.currentTarget.style.boxShadow = "none";
+            e.currentTarget.style.borderColor = color.text.secondary;
+            e.currentTarget.style.boxShadow = elevation.card;
           }}
         />
       </label>
@@ -134,16 +140,18 @@ export function FilterBar({
           style={{ display: "inline-flex", flexWrap: "wrap", gap: 6 }}
         >
           {chips.map((chip) => (
-            <button
+            <fm.button
               key={chip.id}
               type="button"
               aria-pressed={chip.active}
               data-testid={"filter-chip-" + chip.id}
               onClick={chip.onToggle}
+              whileTap={tapScale(reducedMotion)}
+              transition={springOrInstant(reducedMotion, springs.press)}
               style={{
                 appearance: "none",
                 border: "1px solid " +
-                  (chip.active ? color.brand.primary : color.surface.divider),
+                  (chip.active ? color.brand.primary : color.text.secondary),
                 background: chip.active ? color.brand.primary : color.surface.raised,
                 color: chip.active ? color.brand.onBrand : color.text.primary,
                 fontFamily: typography.fontFamily.body,
@@ -152,7 +160,6 @@ export function FilterBar({
                 padding: "6px 12px",
                 borderRadius: radius.pill,
                 cursor: "pointer",
-                transition: "background 120ms ease-out, border-color 120ms ease-out",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
@@ -170,7 +177,7 @@ export function FilterBar({
                   {chip.count}
                 </span>
               ) : null}
-            </button>
+            </fm.button>
           ))}
         </div>
       ) : null}

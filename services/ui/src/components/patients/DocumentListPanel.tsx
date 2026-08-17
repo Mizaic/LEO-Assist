@@ -40,7 +40,7 @@ import {
 import { mergeDocumentsNewestFirst } from "./documentFormat";
 
 const CONDITION_ACCENT: Record<string, string> = {
-  lung: "#1E40AF",
+  lung: "#002178",
   breast: "#9D174D",
   prostate: "#6D28D9",
   colorectal: "#B45309",
@@ -49,7 +49,7 @@ const CONDITION_ACCENT: Record<string, string> = {
   skin: "#047857",
   haematology: "#0369A1",
   gynaecology: "#BE185D",
-  head_and_neck: "#1D4ED8",
+  head_and_neck: "#0d46d6",
   urology: "#4338CA",
 };
 

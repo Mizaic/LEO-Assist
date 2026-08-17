@@ -70,7 +70,7 @@ const ENTITY_LABEL_COLORS: Record<string, { bg: string; border: string }> = {
   event: { bg: "#F3E8FF", border: "#7C3AED" },
   body_structure: { bg: "#FFEDD5", border: "#EA580C" },
   tumor_staging: { bg: "#FECACA", border: "#B91C1C" },
-  assessment_scale: { bg: "#BFDBFE", border: "#1D4ED8" },
+  assessment_scale: { bg: "#BFDBFE", border: "#0d46d6" },
   staging_scale: { bg: "#C4B5FD", border: "#6D28D9" },
   regime_therapy: { bg: "#BBF7D0", border: "#15803D" },
   record_artifact: { bg: "#E5E7EB", border: "#4B5563" },

@@ -244,7 +244,7 @@ function buildGuidelineItem(
     tone: g.recommendation_count === 0 ? "danger" : "neutral",
     title: (
       <Stack direction="row" spacing={1} alignItems="center">
-        <Chip label={g.code} size="small" sx={{ bgcolor: "#DBEAFE", color: "#1D4ED8", border: "1px solid #BFDBFE", fontWeight: 700 }} />
+        <Chip label={g.code} size="small" sx={{ bgcolor: "#DBEAFE", color: "#0d46d6", border: "1px solid #BFDBFE", fontWeight: 700 }} />
         <Chip label={g.guideline_source === "local_guideline" ? "Local" : "NICE"} size="small" variant="outlined" />
         <Typography variant="body2" sx={{ fontWeight: 500 }}>{g.title || g.code}</Typography>
       </Stack>

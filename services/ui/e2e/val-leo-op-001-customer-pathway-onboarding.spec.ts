@@ -37,7 +37,7 @@ const PROTOCOL = [
   "Open /admin/knowledge. Confirm Knowledge sidebar shows NLP and AI, Clinical Knowledge, Data Setup, and Quality sections.",
   "Phase 1: Open Terminology tab. Confirm terminology packages are listed (platform readiness).",
   "Phase 2a: Open Surface Forms tab. Confirm grouped surface form list loads without error.",
-  "Phase 2b: Open Clinical Guidelines tab. Confirm StatHero tiles and jump strip (1. Load / Inspect / 2. Review / 3. Compile).",
+  "Phase 2b: Open Clinical Guidelines tab. Confirm StatHero tiles and jump strip (1. Load / 2. Inspect / 3. Review / 4. Compile).",
   "Phase 3a: Open Domains tab. Confirm StatHero area counts and domain cards load.",
   "Phase 3b: Open domain detail. Click Configure on subdomain. Confirm split panel with Overview / Concepts / Rules tabs.",
   "Phase 3c: Rules tab shows completeness criteria groups for the subdomain.",
@@ -118,8 +118,9 @@ test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
             timeout: 10_000,
           });
           await expect(ctx.page.getByText("1. Load")).toBeVisible();
-          await expect(ctx.page.getByText("2. Review")).toBeVisible();
-          await expect(ctx.page.getByText("3. Compile")).toBeVisible();
+          await expect(ctx.page.getByText("2. Inspect")).toBeVisible();
+          await expect(ctx.page.getByText("3. Review")).toBeVisible();
+          await expect(ctx.page.getByText("4. Compile")).toBeVisible();
 
           await recordProtocolStep({
             request: ctx.request, runId: ctx.runId, valId: ctx.valId,

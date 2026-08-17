@@ -6,6 +6,11 @@ Atlas trace:
   DO: DO-F34C6679
   Risk: R-77E35839
   VT: VT-6A6C90E0
+  UN: UN-15EEDC06
+  DI: DI-6EFB48AB
+  DO: DO-669C4B13
+  Risk: R-B8C4F461
+  VT: VT-F4377BA4
 """
 
 from __future__ import annotations
@@ -13,10 +18,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 import math
-from typing import Any, Iterable
+from typing import Any
 
 from libs.cypher.lab_result_config_queries import GET_LAB_RESULT_CONFIG
 from libs.lab_results.concept_aliases import resolve_lab_config_concept_id
+from libs.lab_results.range_select import LabReferenceRange, select_reference_range
 from libs.neo4j_client.client import KnowledgeGraphClient
 
 logger = logging.getLogger(__name__)
@@ -31,19 +37,6 @@ class UnitConversion:
     unit: str
     factor: float
     offset: float = 0.0
-
-
-@dataclass(frozen=True)
-class LabReferenceRange:
-    range_id: str
-    low: float | None
-    high: float | None
-    critical_low: float | None
-    critical_high: float | None
-    source: str
-    sex: str | None = None
-    age_min: float | None = None
-    age_max: float | None = None
 
 
 @dataclass(frozen=True)
@@ -69,7 +62,7 @@ class LabClassification:
     interpretation_term: str | None
 
 
-_CONFIG_CACHE: dict[str, LabConfig | None] = {}
+_CONFIG_CACHE: dict[tuple[str, str], LabConfig | None] = {}
 
 
 def get_lab_config(
@@ -77,27 +70,35 @@ def get_lab_config(
     *,
     session: Any | None = None,
     use_cache: bool = True,
+    org_id: str | None = None,
 ) -> LabConfig | None:
     """Load one observable's lab metadata from the Knowledge Graph."""
     requested = str(concept_id or "").strip()
     if not requested:
         return None
+    org = str(org_id or "").strip()
     key = resolve_lab_config_concept_id(requested)
-    if use_cache and session is None and requested in _CONFIG_CACHE:
-        return _CONFIG_CACHE[requested]
-    row = _fetch_config_row(key, session=session)
+    cache_key = (requested, org)
+    if use_cache and session is None and cache_key in _CONFIG_CACHE:
+        return _CONFIG_CACHE[cache_key]
+    row = _fetch_config_row(key, session=session, org_id=org)
     if row is None and key != requested:
-        row = _fetch_config_row(requested, session=session)
+        row = _fetch_config_row(requested, session=session, org_id=org)
     config = _row_to_config(row) if row else None
     if use_cache and session is None:
-        _CONFIG_CACHE[requested] = config
+        _CONFIG_CACHE[cache_key] = config
         if key != requested:
-            _CONFIG_CACHE[key] = config
+            _CONFIG_CACHE[(key, org)] = config
     return config
 
 
-def has_lab_config(concept_id: str, *, session: Any | None = None) -> bool:
-    return get_lab_config(concept_id, session=session) is not None
+def has_lab_config(
+    concept_id: str,
+    *,
+    session: Any | None = None,
+    org_id: str | None = None,
+) -> bool:
+    return get_lab_config(concept_id, session=session, org_id=org_id) is not None
 
 
 def classify_lab_result(
@@ -108,9 +109,10 @@ def classify_lab_result(
     patient_sex: str | None,
     patient_age: float | None,
     session: Any | None = None,
+    org_id: str | None = None,
 ) -> LabClassification:
     """Convert and classify one lab result against governed metadata."""
-    config = get_lab_config(concept_id, session=session)
+    config = get_lab_config(concept_id, session=session, org_id=org_id)
     if config is None:
         raise LabConfigError(f"No lab result config for observable {concept_id}.")
     canonical = convert_value(config, value, unit)
@@ -118,6 +120,7 @@ def classify_lab_result(
         config.reference_ranges,
         sex=patient_sex,
         age_years=patient_age,
+        org_id=org_id,
     )
     if band is None:
         raise LabConfigError(f"No reference range for observable {concept_id}.")
@@ -155,25 +158,6 @@ def convert_value(config: LabConfig, value: float, unit: str | None) -> float:
     return numeric * conversion.factor + conversion.offset
 
 
-def select_reference_range(
-    ranges: Iterable[LabReferenceRange],
-    *,
-    sex: str | None,
-    age_years: float | None,
-) -> LabReferenceRange | None:
-    """Return the tightest demographic range matching the patient."""
-    sex_norm = str(sex or "").strip().lower() or None
-    candidates: list[tuple[int, LabReferenceRange]] = []
-    for band in ranges:
-        if not _band_matches(band, sex=sex_norm, age_years=age_years):
-            continue
-        candidates.append((_band_specificity(band), band))
-    if not candidates:
-        return None
-    candidates.sort(key=lambda pair: pair[0], reverse=True)
-    return candidates[0][1]
-
-
 def classify_against_range(value: float, band: LabReferenceRange) -> str:
     """Classify a canonical value against one reference band."""
     if band.critical_low is not None and value < band.critical_low:
@@ -187,14 +171,24 @@ def classify_against_range(value: float, band: LabReferenceRange) -> str:
     return "normal"
 
 
-def _fetch_config_row(concept_id: str, *, session: Any | None) -> dict[str, Any] | None:
+def _fetch_config_row(
+    concept_id: str,
+    *,
+    session: Any | None,
+    org_id: str = "",
+) -> dict[str, Any] | None:
+    params = {
+        "concept_id": concept_id,
+        "include_all": False,
+        "org_id": org_id,
+    }
     if session is not None:
-        rows = list(session.run(GET_LAB_RESULT_CONFIG, concept_id=concept_id) or [])
+        rows = list(session.run(GET_LAB_RESULT_CONFIG, **params) or [])
         return dict(rows[0]) if rows else None
     try:
         client = KnowledgeGraphClient()
         with client.session() as s:
-            row = s.run(GET_LAB_RESULT_CONFIG, concept_id=concept_id).single()
+            row = s.run(GET_LAB_RESULT_CONFIG, **params).single()
             return dict(row) if row else None
     except Exception as exc:
         logger.warning("Lab result config lookup failed for %s: %s", concept_id, exc)
@@ -252,6 +246,7 @@ def _parse_range(raw: dict[str, Any]) -> LabReferenceRange | None:
         critical_low=_float_or_none(raw.get("critical_low")),
         critical_high=_float_or_none(raw.get("critical_high")),
         source=str(raw.get("source") or "manual"),
+        org_id=str(raw.get("org_id") or "").strip(),
     )
 
 
@@ -297,33 +292,6 @@ def _lookup_conversion(
         if candidate.lower() == unit_norm:
             return conversion
     return None
-
-
-def _band_matches(
-    band: LabReferenceRange,
-    *,
-    sex: str | None,
-    age_years: float | None,
-) -> bool:
-    band_sex = _norm_optional(band.sex)
-    if band_sex and band_sex != "all" and band_sex != sex:
-        return False
-    if band.age_min is not None and (age_years is None or age_years < band.age_min):
-        return False
-    if band.age_max is not None and (age_years is None or age_years > band.age_max):
-        return False
-    return True
-
-
-def _band_specificity(band: LabReferenceRange) -> int:
-    score = 0
-    if _norm_optional(band.sex) not in {None, "all"}:
-        score += 2
-    if band.age_min is not None:
-        score += 1
-    if band.age_max is not None:
-        score += 1
-    return score
 
 
 def _float_or_none(value: Any) -> float | None:

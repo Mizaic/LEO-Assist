@@ -10,7 +10,6 @@
 
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
@@ -22,25 +21,33 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { color } from "@leo/design-system/tokens";
 
-import { ToolbarActions } from "@leo/design-system";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { SnomedPickConfirmDialog } from "@/components/SnomedPickConfirmDialog";
+
 import { deleteInterpretation, saveInterpretation } from "./api";
+import { FindingSnomedPicker, type LabSnomedPick } from "./FindingSnomedPicker";
 import type { LabInterpretation } from "./types";
 
 const CLASSIFICATION_OPTIONS = [
-  "high",
-  "low",
-  "critically_high",
-  "critically_low",
-  "out_of_range",
-];
+  { value: "high", label: "High" },
+  { value: "low", label: "Low" },
+  { value: "critically_high", label: "Critically high" },
+  { value: "critically_low", label: "Critically low" },
+  { value: "out_of_range", label: "Out of range" },
+  { value: "normal", label: "Within range" },
+] as const;
+
+function classificationLabel(value: string): string {
+  return CLASSIFICATION_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
 
 interface Props {
   conceptId: string;
+  displayName: string;
   interpretations: LabInterpretation[];
   onRefresh: () => Promise<void>;
   onToast: (msg: string) => void;
@@ -48,19 +55,20 @@ interface Props {
 
 export default function InterpretationsTab({
   conceptId,
+  displayName,
   interpretations,
   onRefresh,
   onToast,
 }: Props) {
   const [classification, setClassification] = useState("high");
-  const [findingConceptId, setFindingConceptId] = useState("");
+  const [pending, setPending] = useState<LabSnomedPick | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteClass, setDeleteClass] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleAdd() {
-    if (!findingConceptId.trim()) {
-      setError("Enter the finding SNOMED code.");
+    if (!pending?.concept_id) {
+      setError("Search SNOMED or Ask LEO, then pick a finding code.");
       return;
     }
     setSaving(true);
@@ -68,9 +76,9 @@ export default function InterpretationsTab({
     try {
       await saveInterpretation(conceptId, {
         classification,
-        finding_concept_id: findingConceptId.trim(),
+        finding_concept_id: pending.concept_id,
       });
-      setFindingConceptId("");
+      setPending(null);
       onToast("Interpretation saved.");
       await onRefresh();
     } catch (exc) {
@@ -92,95 +100,149 @@ export default function InterpretationsTab({
     }
   }
 
+  const seedText = `${classificationLabel(classification)} ${displayName}`.trim();
+
   return (
     <Stack spacing={2}>
-      {error && (
+      {error ? (
         <Alert severity="error" onClose={() => setError(null)}>
           {error}
         </Alert>
-      )}
-      {interpretations.length > 0 ? (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Classification</TableCell>
-              <TableCell>Finding SNOMED</TableCell>
-              <TableCell>Term</TableCell>
-              <TableCell width={48} />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {interpretations.map((i) => (
-              <TableRow key={i.classification}>
-                <TableCell>{i.classification}</TableCell>
-                <TableCell>{i.concept_id}</TableCell>
-                <TableCell>{i.term || "-"}</TableCell>
-                <TableCell align="right">
-                  <IconButton
-                    size="small"
-                    aria-label={"Remove " + i.classification + " interpretation"}
-                    onClick={() => setDeleteClass(i.classification)}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <Typography variant="body2" color="text.secondary">
-          No interpretation SNOMED codes yet.
-        </Typography>
-      )}
-      <Stack direction="row" spacing={1.5} alignItems="flex-start" flexWrap="wrap">
-        <FormControl size="small" sx={{ minWidth: 170 }}>
-          <InputLabel id="classification-label">Classification</InputLabel>
-          <Select
-            labelId="classification-label"
-            label="Classification"
-            value={classification}
-            onChange={(e) => setClassification(e.target.value)}
-          >
-            {CLASSIFICATION_OPTIONS.map((o) => (
-              <MenuItem key={o} value={o}>
-                {o}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <TextField
-          label="Finding SNOMED code"
-          size="small"
-          value={findingConceptId}
-          onChange={(e) => setFindingConceptId(e.target.value)}
-          sx={{ width: 220 }}
-          placeholder="e.g. 75540009"
+      ) : null}
+      <InterpretationTable rows={interpretations} onDelete={setDeleteClass} />
+      <InterpretationForm
+        classification={classification}
+        onClassification={setClassification}
+        seedText={seedText}
+        pending={pending}
+        onPick={setPending}
+      />
+      {pending ? (
+        <SnomedPickConfirmDialog
+          copy={{
+            title: "Save this interpretation?",
+            lead:
+              "Map " +
+              classificationLabel(classification) +
+              " " +
+              displayName +
+              " to this finding.",
+            confirmLabel: "Save interpretation",
+          }}
+          pick={{
+            term: pending.term,
+            conceptId: pending.concept_id,
+            tag: pending.semantic_tag,
+          }}
+          contextRows={[
+            { label: "Classification", value: classificationLabel(classification) },
+            { label: "Test", value: displayName },
+          ]}
+          action={{
+            busy: saving,
+            onConfirm: () => void handleAdd(),
+            onCancel: () => setPending(null),
+          }}
         />
-        <Box sx={{ pt: "4px" }}>
-          <ToolbarActions
-            actions={[
-              {
-                id: "add-interpretation",
-                label: saving ? "Saving..." : "Save interpretation",
-                variant: "secondary",
-                disabled: saving,
-                onClick: handleAdd,
-              },
-            ]}
-          />
-        </Box>
-      </Stack>
-      {deleteClass && (
+      ) : null}
+      {deleteClass ? (
         <ConfirmDialog
           title="Remove interpretation?"
-          body={"Remove the \"" + deleteClass + "\" interpretation mapping? This cannot be undone."}
+          body={'Remove the "' + deleteClass + '" interpretation mapping? This cannot be undone.'}
           confirmLabel="Remove"
           variant="danger"
           onConfirm={() => handleDelete(deleteClass)}
           onCancel={() => setDeleteClass(null)}
         />
-      )}
+      ) : null}
     </Stack>
   );
 }
+
+function InterpretationForm({
+  classification,
+  onClassification,
+  seedText,
+  pending,
+  onPick,
+}: {
+  classification: string;
+  onClassification: (next: string) => void;
+  seedText: string;
+  pending: LabSnomedPick | null;
+  onPick: (pick: LabSnomedPick) => void;
+}) {
+  return (
+    <>
+      <FormControl size="small" sx={{ minWidth: 170, alignSelf: "flex-start" }}>
+        <InputLabel id="classification-label">Classification</InputLabel>
+        <Select
+          labelId="classification-label"
+          label="Classification"
+          value={classification}
+          onChange={(e) => onClassification(e.target.value)}
+        >
+          {CLASSIFICATION_OPTIONS.map((o) => (
+            <MenuItem key={o.value} value={o.value}>
+              {o.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <FindingSnomedPicker
+        seedText={seedText}
+        hintTags={["finding"]}
+        pickedId={pending?.concept_id || ""}
+        onPick={onPick}
+        label="Search SNOMED"
+      />
+    </>
+  );
+}
+
+function InterpretationTable({
+  rows,
+  onDelete,
+}: {
+  rows: LabInterpretation[];
+  onDelete: (cls: string) => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <Typography variant="body2" sx={{ color: color.text.secondary }}>
+        No interpretation SNOMED codes yet.
+      </Typography>
+    );
+  }
+  return (
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>Classification</TableCell>
+          <TableCell>Finding SNOMED</TableCell>
+          <TableCell>Term</TableCell>
+          <TableCell width={48} />
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rows.map((i) => (
+          <TableRow key={i.classification}>
+            <TableCell>{classificationLabel(i.classification)}</TableCell>
+            <TableCell>{i.concept_id}</TableCell>
+            <TableCell>{i.term || "-"}</TableCell>
+            <TableCell align="right">
+              <IconButton
+                size="small"
+                aria-label={"Remove " + i.classification + " interpretation"}
+                onClick={() => onDelete(i.classification)}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+

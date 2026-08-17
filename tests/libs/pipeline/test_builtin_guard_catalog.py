@@ -3,6 +3,7 @@
 Run:
     pytest tests/libs/pipeline/test_builtin_guard_catalog.py -v --no-coverage
 """
+
 from __future__ import annotations
 
 from libs.pipeline.builtin_guard_catalog import (
@@ -21,6 +22,8 @@ _FAMILIES = (
     "checkbox_norm",
     "situation_lookup",
     "term_concept_blocklist",
+    "body_structure_guard",
+    "fact_link_guard",
 )
 
 

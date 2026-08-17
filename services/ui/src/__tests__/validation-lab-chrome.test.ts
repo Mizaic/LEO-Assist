@@ -14,13 +14,13 @@ function readFile(relPath: string): string {
 }
 
 describe("VT-22F3EF6A - Validation Lab chrome", () => {
-  test("TC-001: Validation Lab page mounts the two-door clinical home", () => {
+  test("TC-001: Validation Lab page mounts the three-path clinical home", () => {
     const page = readFile(
       "services/ui/src/app/admin/validation-lab/page.tsx",
     );
-    const home = readFile(
-      "services/ui/src/app/admin/validation-lab/AccuracyLoopHome.tsx",
-    );
+    const home =
+      readFile("services/ui/src/app/admin/validation-lab/AccuracyLoopHome.tsx") +
+      readFile("services/ui/src/app/admin/validation-lab/accuracyLoopDoors.ts");
     const cases = readFile(
       "services/ui/src/app/admin/validation-lab/LabCasesPanel.tsx",
     );
@@ -34,8 +34,10 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(page).toMatch(/AccuracyLoopHome/);
     expect(page).toMatch(/LabCasesPanel/);
     expect(page).not.toMatch(/TestPatientLibraryKnowledgeTab/);
+    expect(home).toMatch(/Investigate a non-conformance/);
+    expect(home).toMatch(/Run baseline tests/);
+    expect(home).toMatch(/Build new tests/);
     expect(home).toMatch(/Test a guideline rule/);
-    expect(home).toMatch(/Investigate a clinical complaint/);
     expect(ruleDoor).toMatch(/CreatePatientWizard/);
     expect(cases).toMatch(/LeoSbarHost/);
     expect(wizard).toMatch(/Submit referral/);
@@ -431,11 +433,14 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
   });
 });
 
-describe("VT-10011926 - Validation Lab two-door home", () => {
-  test("home shows both doors and the gold/findings strip", () => {
-    const home = readFile(
-      "services/ui/src/app/admin/validation-lab/AccuracyLoopHome.tsx",
-    );
+describe("VT-10011926 - Validation Lab three-path home", () => {
+  test("home shows the three paths and the findings strip", () => {
+    const home =
+      readFile("services/ui/src/app/admin/validation-lab/AccuracyLoopHome.tsx") +
+      readFile("services/ui/src/app/admin/validation-lab/accuracyLoopDoors.ts") +
+      readFile(
+        "services/ui/src/app/admin/validation-lab/AccuracyLoopHomeParts.tsx",
+      );
     const page = readFile(
       "services/ui/src/app/admin/validation-lab/page.tsx",
     );
@@ -460,9 +465,10 @@ describe("VT-10011926 - Validation Lab two-door home", () => {
     const used = readFile(
       "services/ui/src/app/admin/validation-lab/clinicalUsedPatients.ts",
     );
-    expect(home).toMatch(/Test a guideline rule/);
-    expect(home).toMatch(/Investigate a clinical complaint/);
-    expect(home).toMatch(/Saved gold cases/);
+    expect(home).toMatch(/Investigate a non-conformance/);
+    expect(home).toMatch(/Run baseline tests/);
+    expect(home).toMatch(/Build new tests/);
+    expect(home).toMatch(/gold cases/);
     expect(home).toMatch(/Open findings/);
     expect(home).toMatch(/validation-lab-home-strip/);
     expect(rule).toMatch(/listGuidanceRules/);
@@ -473,6 +479,7 @@ describe("VT-10011926 - Validation Lab two-door home", () => {
     expect(doorState).toMatch(/searchMode/);
     expect(doorState).toMatch(/listClinicalPipelineRuns\(\{ q, mode \}\)/);
     expect(clinical).toMatch(/does not start a new job/);
+    expect(clinical).toMatch(/ClinicalNcrPanel/);
     expect(clinical).toMatch(/Why did you open this\?/);
     expect(clinical).not.toMatch(/label="Why did you open this\?"/);
     expect(picker).toMatch(/NHS number, or referral number/);
@@ -490,7 +497,7 @@ describe("VT-10011926 - Validation Lab two-door home", () => {
     expect(used).toMatch(/frequentlyUsed/);
     expect(doorState).toMatch(/whyOpened/);
     expect(doorState).not.toMatch(/referralText: why/);
-    expect(home).toMatch(/Enter NHS number or referral number/);
+    expect(home).toMatch(/Look up or open the product NCR/);
     expect(page).toMatch(/AccuracyLoopHome/);
   });
 });

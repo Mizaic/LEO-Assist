@@ -59,7 +59,7 @@ const TRACK_X_END = 880;
 const R = 22;
 /* Cap rendered width so the diagram looks the same size across all panels */
 const SVG_MAX_W = 820;
-const FONT = "'DM Sans',system-ui,sans-serif";
+const FONT = "'Albert Sans',system-ui,sans-serif";
 const PARTICLES = 2;
 const PARTICLE_DUR = 5;
 

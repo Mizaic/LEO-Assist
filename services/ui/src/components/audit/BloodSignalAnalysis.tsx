@@ -263,7 +263,7 @@ function CancerTypeHeatmap({
           texttemplate: "%{text}",
           textfont: { size: 9 },
           colorscale: [
-            [0,    "#1E40AF"],
+            [0,    "#002178"],
             [0.35, "#BFDBFE"],
             [0.5,  "#F9FAFB"],
             [0.65, "#FCA5A5"],
@@ -446,7 +446,7 @@ function CancerTypeTab() {
 
       <Box sx={{ display: "flex", gap: 2.5, mb: 1.5, flexWrap: "wrap" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Box sx={{ width: 20, height: 12, background: "linear-gradient(to right, #1E40AF, #F9FAFB, #991B1B)", borderRadius: 1 }} />
+          <Box sx={{ width: 20, height: 12, background: "linear-gradient(to right, #002178, #F9FAFB, #991B1B)", borderRadius: 1 }} />
           <Typography variant="caption">Heatmap: lower vs benign → higher</Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
@@ -911,7 +911,7 @@ export default function BloodSignalSection() {
             <Chip
               label={`${bloodData.benign_n} benign / no cancer`}
               size="small"
-              sx={{ bgcolor: "#DBEAFE", color: "#1E40AF", fontWeight: 600 }}
+              sx={{ bgcolor: "#DBEAFE", color: "#002178", fontWeight: 600 }}
             />
             <Chip
               label={`${bloodData.feature_keys.length} tests`}
@@ -934,7 +934,7 @@ export default function BloodSignalSection() {
 
             <Box sx={{ display: "flex", gap: 2.5, mb: 1.5, flexWrap: "wrap", alignItems: "center" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <Box sx={{ width: 20, height: 12, background: "linear-gradient(to right, #1E40AF, #F9FAFB, #991B1B)", borderRadius: 1 }} />
+                <Box sx={{ width: 20, height: 12, background: "linear-gradient(to right, #002178, #F9FAFB, #991B1B)", borderRadius: 1 }} />
                 <Typography variant="caption">Lower vs benign -- higher</Typography>
               </Box>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>

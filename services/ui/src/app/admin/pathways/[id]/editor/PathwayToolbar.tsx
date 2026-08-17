@@ -135,8 +135,9 @@ export function PathwayToolbar(props: PathwayToolbarProps) {
         display: "flex",
         alignItems: "center",
         gap: 1.5,
-        borderBottom: 1,
-        borderColor: "divider",
+        borderBottom: "1px solid",
+        borderColor: "text.secondary",
+        backgroundColor: "background.paper",
         overflowX: "auto",
         flexShrink: 0,
       }}

@@ -94,6 +94,13 @@ from app.routers.validation_lab_brainstorm import (
 from app.routers.validation_lab_clinical import (
     router as validation_lab_clinical_router,
 )
+from app.routers.validation_lab_investigation import (
+    router as validation_lab_investigation_router,
+)
+from app.routers.validation_lab_ncr import router as validation_lab_ncr_router
+from app.routers.validation_lab_phone_home import (
+    router as validation_lab_phone_home_router,
+)
 from app.routers.sdk_auth import router as sdk_auth_router
 from app.routers.sdk_governance import router as sdk_governance_router
 from app.routers.sdk_release import router as sdk_release_router
@@ -541,6 +548,9 @@ app.include_router(validation_runs_router)
 app.include_router(validation_lab_router)
 app.include_router(validation_lab_brainstorm_router)
 app.include_router(validation_lab_clinical_router)
+app.include_router(validation_lab_ncr_router)
+app.include_router(validation_lab_investigation_router)
+app.include_router(validation_lab_phone_home_router)
 app.include_router(sdk_auth_router)
 app.include_router(sdk_telemetry_router)
 app.include_router(sdk_release_router)

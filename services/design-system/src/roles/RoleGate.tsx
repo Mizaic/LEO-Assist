@@ -10,19 +10,16 @@
 
 import { useEffect, type ReactNode } from "react";
 
-import { RolePicker, type RolePickerProps } from "./RolePicker";
+import { type RolePickerProps } from "./RolePicker";
 import { useRole } from "./RoleContext";
 
 export interface RoleGateProps
-  extends Pick<RolePickerProps, "userName" | "organizations" | "selectedOrgId" | "onOrgSelect" | "isPlatformAdmin"> {
+  extends Pick<
+    RolePickerProps,
+    "userName" | "organizations" | "selectedOrgId" | "onOrgSelect" | "isPlatformAdmin"
+  > {
   children: ReactNode;
-  // Default true. When false the gate renders children without ever
-  // presenting the picker - useful for unauthenticated routes or when the
-  // role-first feature flag is off.
   enabled?: boolean;
-  // Fire the one-time session fetch on mount. The app shell usually already
-  // manages this via AuthProvider, but supplying it via the gate keeps
-  // stand-alone usage straightforward.
   autoFetch?: boolean;
 }
 
@@ -30,13 +27,8 @@ export function RoleGate({
   children,
   enabled = true,
   autoFetch = false,
-  userName,
-  organizations,
-  selectedOrgId,
-  onOrgSelect,
-  isPlatformAdmin,
 }: RoleGateProps) {
-  const { refetch, selectedRole, allowedRoles, needsSessionRoleChoice, error } =
+  const { refetch, selectedRole, allowedRoles, needsSessionRoleChoice, error, switchRole } =
     useRole();
 
   useEffect(() => {
@@ -45,24 +37,21 @@ export function RoleGate({
     }
   }, [autoFetch, refetch]);
 
-  if (!enabled) return <>{children}</>;
-
-  const pickerNeeded =
-    error == null &&
-    allowedRoles.length > 0 &&
-    (selectedRole == null || needsSessionRoleChoice);
-
-  if (pickerNeeded) {
-    return (
-      <RolePicker
-        userName={userName}
-        organizations={organizations}
-        selectedOrgId={selectedOrgId}
-        onOrgSelect={onOrgSelect}
-        isPlatformAdmin={isPlatformAdmin}
-      />
-    );
-  }
+  useEffect(() => {
+    if (!enabled || error != null) return;
+    if (allowedRoles.length === 0) return;
+    if (selectedRole != null && !needsSessionRoleChoice) return;
+    const next = selectedRole ?? allowedRoles[0];
+    if (!next) return;
+    void switchRole(next);
+  }, [
+    allowedRoles,
+    enabled,
+    error,
+    needsSessionRoleChoice,
+    selectedRole,
+    switchRole,
+  ]);
 
   return <>{children}</>;
 }

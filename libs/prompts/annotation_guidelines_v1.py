@@ -85,6 +85,7 @@ Lines starting with >> show real gold-verified span examples:
 
 8) Only use approved relation types. Do not create new ones.
    Findings and procedures can link to body structures via "finding_site".
+   A reaction or allergy can link to a named drug via "causative_agent".
    Qualifiers link to the thing they describe via "qualifies".
    Keep all valid body-site links even when there are several.
    Example: "breast lump" (finding/89164003) links via finding_site

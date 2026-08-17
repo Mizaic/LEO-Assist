@@ -64,7 +64,7 @@ export function PatientHeader({ detail, loading }: Props) {
   }
 
   const hasAlerts = detail.active_alert_count > 0;
-  const avatarBg = hasAlerts ? "#B45309" : "#1E40AF";
+  const avatarBg = hasAlerts ? "#B45309" : "#002178";
   const age = ageFromBirthDate(detail.birth_date);
   const genderAge = [detail.gender ?? "", age].filter(Boolean).join(" ");
   const displayName =

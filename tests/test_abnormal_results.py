@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from libs.lab_results.classifier import LabClassification, LabConfigError, LabReferenceRange
+from libs.lab_results.classifier import (
+    LabClassification,
+    LabConfigError,
+    LabReferenceRange,
+)
 
 
 def _make_client(
@@ -109,7 +113,9 @@ def test_kg_abnormal_flags_structured_result(monkeypatch):
         detect_abnormal_results,
     )
 
-    def _classify(concept_id, value, unit, *, patient_sex, patient_age, session=None):
+    def _classify(
+        concept_id, value, unit, *, patient_sex, patient_age, session=None, **_kwargs
+    ):
         return _lab_result(
             concept_id=concept_id,
             classification="high",
@@ -151,7 +157,9 @@ def test_structured_value_wins_over_text_regex(monkeypatch):
         detect_abnormal_results,
     )
 
-    def _classify(concept_id, value, unit, *, patient_sex, patient_age, session=None):
+    def _classify(
+        concept_id, value, unit, *, patient_sex, patient_age, session=None, **_kwargs
+    ):
         return _lab_result(
             concept_id=concept_id,
             classification="critically_low",
@@ -208,7 +216,9 @@ def test_no_range_flags_for_manual_review(monkeypatch):
         detect_abnormal_results,
     )
 
-    def _classify(concept_id, value, unit, *, patient_sex, patient_age, session=None):
+    def _classify(
+        concept_id, value, unit, *, patient_sex, patient_age, session=None, **_kwargs
+    ):
         raise LabConfigError(f"No lab result config for observable {concept_id}.")
 
     monkeypatch.setattr(
@@ -263,6 +273,50 @@ def test_text_fallback_still_works_without_structured_values():
     assert len(flagged) == 1
     assert flagged[0]["classification"] == "text_fallback"
     assert flagged[0]["severity"] == "critical"
+
+
+def test_abnormal_results_passes_org_id(monkeypatch):
+    from services.analysis_worker.app.analyzers.abnormal_results import (
+        detect_abnormal_results,
+    )
+
+    seen: dict = {}
+
+    def _classify(
+        concept_id, value, unit, *, patient_sex, patient_age, session=None, **kwargs
+    ):
+        seen.update(kwargs)
+        return _lab_result(
+            concept_id=concept_id,
+            classification="high",
+            value=value,
+        )
+
+    monkeypatch.setattr(
+        "services.analysis_worker.app.analyzers.abnormal_results.classify_lab_result",
+        _classify,
+    )
+    client = _make_client(
+        demographics=[{"sex": "female", "date_of_birth": "1985-02-01"}],
+        structured=[
+            {
+                "encounter_id": "E1",
+                "date": "2024-03-01",
+                "concept_id": "104167008",
+                "value": 6.0,
+                "unit": "mmol/L",
+            }
+        ],
+    )
+    detect_abnormal_results(
+        "P1",
+        "2024-01-01",
+        "2024-12-31",
+        client,
+        org_id="org-A",
+        knowledge_client=_make_kg_client(),
+    )
+    assert seen.get("org_id") == "org-A"
 
 
 def test_text_fallback_skips_follow_up_language():

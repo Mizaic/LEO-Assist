@@ -15,8 +15,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
-import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
+import { LeoLogo, LeoSplash } from "@leo/design-system";
+import { postLoginPath } from "@/lib/postLoginPath";
 
 const ERROR_MESSAGES: Record<string, string> = {
   token_v1_not_allowed:
@@ -43,16 +44,12 @@ function SignInContent() {
 
   useEffect(() => {
     if (session) {
-      router.replace("/care/dashboard");
+      router.replace(postLoginPath(session));
     }
   }, [session, router]);
 
   if (status === "loading") {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-        <CircularProgress aria-label="Loading" />
-      </Box>
-    );
+    return <LeoSplash />;
   }
 
   if (session) return null;
@@ -69,12 +66,7 @@ function SignInContent() {
         px: 3,
       }}
     >
-      <Box
-        component="img"
-        src="/leo-icon.svg"
-        alt="LEO"
-        sx={{ width: 64, height: 64 }}
-      />
+      <LeoLogo variant="light" height={56} />
       <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
         Sign in to LEO
       </Typography>
@@ -107,13 +99,7 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <Suspense
-      fallback={
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-          <CircularProgress aria-label="Loading" />
-        </Box>
-      }
-    >
+    <Suspense fallback={<LeoSplash />}>
       <SignInContent />
     </Suspense>
   );

@@ -11,6 +11,7 @@
 import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
 import type { SxProps, Theme } from "@mui/material/styles";
+import { color, elevation } from "@leo/design-system/tokens";
 
 export type BaseNodeTone =
   | "neutral"
@@ -47,15 +48,15 @@ interface BaseNodeProps {
 }
 
 const PULSE_KEYFRAMES = {
-  "0%": { boxShadow: "0 0 0 0 rgba(25,118,210,0.4)" },
-  "70%": { boxShadow: "0 0 0 8px rgba(25,118,210,0)" },
-  "100%": { boxShadow: "0 0 0 0 rgba(25,118,210,0)" },
+  "0%": { boxShadow: "0 0 0 0 " + color.focus.ringAlpha },
+  "70%": { boxShadow: "0 0 0 8px transparent" },
+  "100%": { boxShadow: "0 0 0 0 transparent" },
 };
 
 const HALT_KEYFRAMES = {
-  "0%": { boxShadow: "0 0 0 0 rgba(211,47,47,0.55)" },
-  "60%": { boxShadow: "0 0 0 10px rgba(211,47,47,0)" },
-  "100%": { boxShadow: "0 0 0 0 rgba(211,47,47,0)" },
+  "0%": { boxShadow: "0 0 0 0 " + color.status.danger },
+  "60%": { boxShadow: "0 0 0 10px transparent" },
+  "100%": { boxShadow: "0 0 0 0 transparent" },
 };
 
 function resolveBorderColor(
@@ -63,15 +64,15 @@ function resolveBorderColor(
   selected: boolean,
   accent: string,
 ): string {
-  if (tone === "halted") return "#D32F2F";
-  if (tone === "running" || selected) return "#1976D2";
+  if (tone === "halted") return color.status.danger;
+  if (tone === "running" || selected) return color.brand.primary;
   return accent;
 }
 
 function resolveBackground(tone: BaseNodeTone): string {
-  if (tone === "halted") return "#FFEBEE";
-  if (tone === "running") return "#E3F2FD";
-  return "#FFFFFF";
+  if (tone === "halted") return color.surface.alt;
+  if (tone === "running") return color.surface.alt;
+  return color.surface.raised;
 }
 
 /**
@@ -127,10 +128,11 @@ export function BaseNode({
         borderRadius: "12px",
         border: `2px ${borderStyle}`,
         borderColor,
-        bgcolor: notReached ? "#F5F5F5" : bgcolor,
+        bgcolor: notReached ? color.surface.alt : bgcolor,
+        boxShadow: elevation.card,
         opacity: notReached ? 0.45 : 1,
         cursor: isInteractive ? "pointer" : "default",
-        transition: "border-color 120ms ease-out, box-shadow 120ms ease-out",
+        transition: "border-color 180ms, box-shadow 180ms",
         ...(runStatus === "running" && {
           animation: "nodePulse 1s ease-in-out infinite",
           "@keyframes nodePulse": PULSE_KEYFRAMES,

@@ -51,6 +51,9 @@ describe("VT-LEO-AI-154 - Pathway editor chrome decomposition", () => {
     expect(src).toMatch(
       /from\s+["']\.\/editor\/dialogs\/EdgeDeleteConfirm["']/,
     );
+    expect(src).toMatch(/from\s+["']\.\/editor\/TriggerContextPanel["']/);
+    expect(src).toMatch(/from\s+["']\.\/editor\/WorkflowModeBar["']/);
+    expect(src).toMatch(/from\s+["']\.\/editor\/ValidationPanel["']/);
   });
 
   it("VT-154-TC-003: page.tsx renders the new components, not inline JSX", () => {

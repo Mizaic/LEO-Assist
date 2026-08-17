@@ -48,7 +48,7 @@ const ALL_TYPES: TileType[] = [
 ];
 
 const TYPE_META: Record<TileType, { Icon: React.ElementType; label: string; colour: string }> = {
-  bar_chart:     { Icon: BarChartIcon,           label: "Bar chart",     colour: "#1E40AF" },
+  bar_chart:     { Icon: BarChartIcon,           label: "Bar chart",     colour: "#002178" },
   line_chart:    { Icon: ShowChartIcon,           label: "Line chart",    colour: "#047857" },
   kpi_strip:     { Icon: NumbersIcon,             label: "KPI strip",     colour: "#7C3AED" },
   table:         { Icon: TableChartOutlinedIcon,  label: "Table",         colour: "#0E7490" },

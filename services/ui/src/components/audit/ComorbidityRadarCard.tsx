@@ -23,7 +23,7 @@ import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 
 import type { AuditComorbidityRadarRow } from "@/lib/analyticsApi";
 
-const COLOUR_LIVE = "#0F766E";
+const COLOUR_LIVE = "#9338ff";
 const COLOUR_BASELINE = "#92400E";
 const COLOUR_GRID = "#E5E7EB";
 const COLOUR_GRID_BOLD = "#9CA3AF";

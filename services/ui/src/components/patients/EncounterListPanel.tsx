@@ -35,8 +35,8 @@ import {
 import { encounterTypeLabel } from "./clinicalLabels";
 
 const TYPE_COLORS: Record<string, string> = {
-  "GP Consultation": "#1E40AF",
-  "GP referral": "#1E40AF",
+  "GP Consultation": "#002178",
+  "GP referral": "#002178",
   Diagnosis: "#9D174D",
   Symptoms: "#B45309",
   Outpatient: "#047857",
@@ -187,7 +187,7 @@ function highlightTerms(text: string, terms: EncounterDetail["coded_terms"]): Re
         <mark
           style={{
             background: "#DBEAFE",
-            color: "#1E40AF",
+            color: "#002178",
             borderRadius: 2,
             padding: "0 2px",
             fontWeight: 500,
@@ -336,7 +336,7 @@ function EncounterViewer({
           background: "none",
           cursor: "pointer",
           p: 0,
-          color: "#1E40AF",
+          color: "#002178",
           fontWeight: 600,
           fontSize: 13,
         }}

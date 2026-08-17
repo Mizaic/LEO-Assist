@@ -64,7 +64,7 @@ const C_EARLY   = "#16A34A";   // green-600
 const C_LATE    = "#EA580C";   // orange-600
 const C_GREY    = "#CBD5E1";   // slate-300 (unstaged)
 const C_BENCH18 = "#92400E";   // amber-900 (2018 NCDA)
-const C_LTP     = "#1D4ED8";   // blue-700  (NHS LTP)
+const C_LTP     = "#0d46d6";   // blue-700  (NHS LTP)
 
 const LTP_TARGET = 75;
 const TRACK_H  = 16;

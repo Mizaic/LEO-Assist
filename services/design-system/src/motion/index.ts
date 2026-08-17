@@ -13,3 +13,10 @@ export {
   type MotionContextValue,
 } from "./MotionProvider";
 export { motion, reducedMotion } from "../tokens/motion";
+export {
+  springs,
+  springOrInstant,
+  tapScale,
+  PRESS_SCALE,
+} from "./springs";
+export { useReducedTransparency } from "./useReducedTransparency";

@@ -20,6 +20,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { AskLeoBusyMark } from "@/components/AskLeoBusyMark";
 import { askLeoSmart, searchTerms } from "@/lib/api/legacy";
 import { ASSERTION_CHIP } from "@/lib/types";
 import type { AskLeoSmartResult, TermSearchResult } from "@/lib/types";
@@ -400,17 +401,18 @@ export default function CaseCard({
             >
               {busy ? "Coding..." : "Code this record"}
             </Button>
-            {leoStep !== "loading" && (
-              <Button
-                variant="outlined"
-                size="small"
-                color="secondary"
-                onClick={handleAskLeo}
-                disabled={busy || suppressing}
-              >
-                Ask LEO
-              </Button>
-            )}
+            <Button
+              variant="outlined"
+              size="small"
+              color="secondary"
+              onClick={handleAskLeo}
+              disabled={busy || suppressing || leoStep === "loading"}
+              startIcon={leoStep === "loading" ? <AskLeoBusyMark /> : undefined}
+              aria-busy={leoStep === "loading"}
+              aria-label={leoStep === "loading" ? "Asking LEO" : "Ask LEO"}
+            >
+              {leoStep === "loading" ? "" : "Ask LEO"}
+            </Button>
           </>
         )}
         {!suppressOpen && (

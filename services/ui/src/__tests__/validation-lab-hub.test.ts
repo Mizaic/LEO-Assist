@@ -1,5 +1,5 @@
 /**
- * Validation Lab home -- two doors, one job, 11-year-old copy.
+ * Validation Lab home -- three paths, one job, 11-year-old copy.
  */
 import * as fs from "fs";
 import * as path from "path";
@@ -7,6 +7,10 @@ import * as path from "path";
 const HOME = path.join(
   __dirname,
   "../app/admin/validation-lab/AccuracyLoopHome.tsx",
+);
+const DOORS = path.join(
+  __dirname,
+  "../app/admin/validation-lab/accuracyLoopDoors.ts",
 );
 const PANEL = path.join(
   __dirname,
@@ -23,16 +27,25 @@ describe("Validation Lab home", () => {
   let plain: string;
 
   beforeAll(() => {
-    home = fs.readFileSync(HOME, "utf-8");
+    home =
+      fs.readFileSync(HOME, "utf-8") + fs.readFileSync(DOORS, "utf-8");
     panel = fs.readFileSync(PANEL, "utf-8");
     plain = fs.readFileSync(PLAIN, "utf-8");
   });
 
-  it("offers two doors: test a guideline rule or investigate a complaint", () => {
-    expect(home).toMatch(/Test a guideline rule/);
-    expect(home).toMatch(/Investigate a clinical complaint/);
-    expect(home).toMatch(/validation-lab-mode-rule/);
+  it("offers three paths in investigation, baseline, then build order", () => {
+    expect(home).toMatch(/Investigate a non-conformance/);
+    expect(home).toMatch(/Run baseline tests/);
+    expect(home).toMatch(/Build new tests/);
     expect(home).toMatch(/validation-lab-mode-clinical/);
+    expect(home).toMatch(/validation-lab-mode-saved/);
+    expect(home).toMatch(/validation-lab-mode-rule/);
+    const clinical = home.indexOf("Investigate a non-conformance");
+    const baseline = home.indexOf("Run baseline tests");
+    const build = home.indexOf("Build new tests");
+    expect(clinical).toBeGreaterThan(-1);
+    expect(baseline).toBeGreaterThan(clinical);
+    expect(build).toBeGreaterThan(baseline);
   });
 
   it("keeps platform admin intro in plain English", () => {
@@ -41,7 +54,7 @@ describe("Validation Lab home", () => {
       "utf-8",
     );
     expect(copy).not.toMatch(/:ValidationCase/);
-    expect(copy).toMatch(/Find a patient and check how LEO read their letter/);
+    expect(copy).toMatch(/Start with a product non-conformance/);
   });
 
   it("does not use Technical or ConText jargon on the home cards", () => {

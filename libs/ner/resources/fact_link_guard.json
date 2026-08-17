@@ -1,0 +1,42 @@
+{
+  "description": "Fact-link guard: relation types the pipeline may apply at runtime.",
+  "family": "fact_link_guard",
+  "rules": [
+    {
+      "rule_id": "fl-001",
+      "rule_type": "allowed_relation",
+      "pattern": "finding_site",
+      "comment": "Finding or procedure to a named body site",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "fl-002",
+      "rule_type": "allowed_relation",
+      "pattern": "interprets",
+      "comment": "Finding interprets an observable on the same lab line",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "fl-003",
+      "rule_type": "allowed_relation",
+      "pattern": "component_of",
+      "comment": "Observable is a component of a named test",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "fl-004",
+      "rule_type": "allowed_relation",
+      "pattern": "causative_agent",
+      "comment": "Reaction or allergy caused by a named drug",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    }
+  ]
+}

@@ -54,6 +54,7 @@ class ReferenceRangeUpsert(BaseModel):
     critical_low: float | None = None
     critical_high: float | None = None
     source: str = "manual"
+    org_id: str = ""
 
 
 class InterpretationUpsert(BaseModel):
@@ -76,6 +77,12 @@ def _clean_config(row: dict[str, Any] | None) -> dict[str, Any] | None:
             row.get("interpretations") or [], "classification"
         ),
     }
+
+
+def _range_read_params(scope: CallerScope) -> dict[str, Any]:
+    if scope.is_admin:
+        return {"include_all": True, "org_id": ""}
+    return {"include_all": False, "org_id": scope.primary_org_id or ""}
 
 
 def _clean_items(
@@ -112,7 +119,11 @@ def get_lab_result_config(
     client = CodingGraphClient()
     try:
         with client.session() as session:
-            row = session.run(GET_LAB_RESULT_CONFIG, concept_id=concept_id).single()
+            row = session.run(
+                GET_LAB_RESULT_CONFIG,
+                concept_id=concept_id,
+                **_range_read_params(scope),
+            ).single()
         item = _clean_config(dict(row) if row else None)
         if item is None:
             raise HTTPException(status_code=404, detail="Lab result config not found")
@@ -187,6 +198,7 @@ def upsert_reference_range(
                 critical_low=body.critical_low,
                 critical_high=body.critical_high,
                 source=body.source,
+                org_id=str(body.org_id or "").strip(),
                 updated_by=scope.email or "unknown",
             )
         return {"range_id": range_id, "status": "updated"}

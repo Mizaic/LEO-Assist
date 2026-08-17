@@ -41,7 +41,7 @@ function EpisodeCard({
   episode: NonNullable<PatientDetail["episodes"][number]>;
 }) {
   const accentColor =
-    episode.inferred_outcome === "cancer" ? "#B45309" : "#1E40AF";
+    episode.inferred_outcome === "cancer" ? "#B45309" : "#002178";
 
   return (
     <Box
@@ -198,7 +198,7 @@ export function PatientDetailPage({ patientId, onBack }: Props) {
                 width: 3,
                 borderRadius: 2,
                 bgcolor:
-                  detail.active_alert_count > 0 ? "#B45309" : "#1E40AF",
+                  detail.active_alert_count > 0 ? "#B45309" : "#002178",
               }}
             />
             <Stack

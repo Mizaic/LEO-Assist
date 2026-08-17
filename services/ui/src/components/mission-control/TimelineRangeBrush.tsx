@@ -37,7 +37,7 @@ const COLOR_RAIL = "#f1f5f9";
 const COLOR_RAIL_BORDER = "#e2e8f0";
 const COLOR_BAND = "rgba(37, 99, 235, 0.18)";
 const COLOR_BAND_BORDER = "rgba(37, 99, 235, 0.40)";
-const COLOR_HANDLE = "#1d4ed8";
+const COLOR_HANDLE = "#0d46d6";
 
 type DragKind = "from" | "to" | "band" | null;
 
@@ -221,7 +221,7 @@ export default function TimelineRangeBrush({
     borderRadius: "3px",
     cursor: "ew-resize",
     boxShadow: "0 1px 4px rgba(15, 23, 42, 0.25)",
-    "&:focus-visible": { outline: "2px solid #1e40af", outlineOffset: 2 },
+    "&:focus-visible": { outline: "2px solid #002178", outlineOffset: 2 },
   };
 
   return (
@@ -255,7 +255,7 @@ export default function TimelineRangeBrush({
             border: `1px solid ${COLOR_BAND_BORDER}`,
             borderRadius: "3px",
             cursor: drag === "band" ? "grabbing" : "grab",
-            "&:focus-visible": { outline: "2px solid #1e40af", outlineOffset: 2 },
+            "&:focus-visible": { outline: "2px solid #002178", outlineOffset: 2 },
           }}
         />
         <Box

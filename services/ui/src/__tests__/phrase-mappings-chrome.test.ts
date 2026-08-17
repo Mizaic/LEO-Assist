@@ -13,6 +13,10 @@ function read(name: string): string {
   return fs.readFileSync(path.join(ROOT, name), "utf8");
 }
 
+function readDetail(): string {
+  return read("PhraseDetailPane.tsx") + read("PhraseMappingEditor.tsx");
+}
+
 describe("Phrase mappings workspace chrome", () => {
   it("has inbox, drafts, review, and live dictionary tabs", () => {
     const src = read("page.tsx");
@@ -25,14 +29,15 @@ describe("Phrase mappings workspace chrome", () => {
 
   it("keeps the SNOMED list empty until search or Ask LEO", () => {
     const src = read("PhraseSnomedPicker.tsx");
+    const hook = read("usePhraseSnomedSearch.ts");
     expect(src).toMatch(/snomed-empty/);
     expect(src).toMatch(/Ask LEO/);
-    expect(src).toMatch(/searchTerms/);
-    expect(src).toMatch(/askLeoSmart/);
+    expect(hook).toMatch(/searchTerms/);
+    expect(hook).toMatch(/askLeoSmart/);
   });
 
   it("shows the saved mapping on My drafts without filling the SNOMED list", () => {
-    const detail = read("PhraseDetailPane.tsx");
+    const detail = readDetail();
     const card = read("DraftMappingCard.tsx");
     const queue = read("PhraseQueueList.tsx");
     const picker = read("PhraseSnomedPicker.tsx");
@@ -69,17 +74,22 @@ describe("Phrase mappings workspace chrome", () => {
     expect(detail).toMatch(/overflow: "hidden"/);
   });
 
-  it("docks save at the bottom of the detail pane", () => {
-    const src = read("PhraseDetailPane.tsx");
-    expect(src).toMatch(/phrase-save-dock/);
-    expect(src).toMatch(/Save mapping draft/);
-    expect(src).toMatch(/Exclude is harder than map/);
+  it("docks exclude save and confirms a SNOMED pick in a dialog", () => {
+    const pane = readDetail();
+    const dock = read("PhraseDetailSaveDock.tsx");
+    expect(pane).toMatch(/PhraseDetailSaveDock/);
+    expect(dock).toMatch(/phrase-save-dock/);
+    expect(dock).toMatch(/Save mapping draft/);
+    expect(pane).toMatch(/Exclude is harder than map/);
+    expect(pane).toMatch(/SnomedPickConfirmDialog/);
+    expect(pane).toMatch(/Save this mapping draft\?/);
+    expect(pane).toMatch(/setPending\(next\)/);
   });
 
   it("shows extraction tag and sample sentence", () => {
-    const src = read("PhraseDetailPane.tsx");
-    expect(src).toMatch(/Extraction tag/);
-    expect(src).toMatch(/sample_sentence/);
+    const header = read("PhraseDetailHeader.tsx");
+    expect(header).toMatch(/Extraction tag/);
+    expect(header).toMatch(/sample_sentence/);
   });
 
   it("publish and submit go through the two-person API", () => {

@@ -9,6 +9,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion as fm } from "framer-motion";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
@@ -21,6 +22,15 @@ import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import ScienceIcon from "@mui/icons-material/Science";
 import SearchIcon from "@mui/icons-material/Search";
+import {
+  frostStyle,
+  springOrInstant,
+  springs,
+  tapScale,
+  useMotion,
+  useReducedTransparency,
+} from "@leo/design-system";
+import { color, elevation, radius, typography } from "@leo/design-system/tokens";
 import type { KnowledgeTabKey } from "@/lib/knowledgeCopy";
 
 interface TabDef {
@@ -74,19 +84,19 @@ interface KnowledgeSidebarProps {
   onSearchClick?: () => void;
 }
 
-const BRAND = "#1D4ED8";
-const BRAND_BG = "rgba(29,78,216,0.08)";
+const BRAND = color.brand.primary;
+const WELL = "rgba(15, 23, 42, 0.06)";
 
 function GroupHeading({ label }: { label: string }) {
   return (
     <div
       style={{
-        padding: "8px 12px 4px",
+        padding: "14px 12px 6px",
         fontSize: 10,
         fontWeight: 700,
-        letterSpacing: "0.08em",
+        letterSpacing: typography.letterSpacing.caption,
         textTransform: "uppercase",
-        color: "#64748B",
+        color: color.text.caption,
         userSelect: "none",
       }}
     >
@@ -99,41 +109,50 @@ function NavItem({
   tab,
   active,
   onClick,
+  reducedMotion,
 }: {
   tab: TabDef;
   active: boolean;
   onClick: () => void;
+  reducedMotion: boolean;
 }) {
   return (
-    <button
+    <fm.button
       type="button"
       onClick={onClick}
       title={tab.label}
+      whileTap={tapScale(reducedMotion)}
+      whileHover={
+        reducedMotion || active ? undefined : { backgroundColor: WELL }
+      }
+      transition={springOrInstant(reducedMotion, springs.press)}
       style={{
         display: "flex",
         alignItems: "center",
         gap: 8,
         width: "100%",
-        padding: "7px 10px 7px 12px",
-        margin: "1px 0",
+        padding: "8px 10px 8px 12px",
+        margin: "2px 0",
         border: "none",
-        borderRadius: 8,
-        background: active ? BRAND_BG : "transparent",
-        color: active ? BRAND : "#475569",
-        fontFamily: "inherit",
+        borderRadius: radius.sm,
+        background: active ? color.surface.raised : "transparent",
+        boxShadow: active ? elevation.card : "none",
+        color: active ? BRAND : color.text.secondary,
+        fontFamily: typography.fontFamily.body,
         fontSize: 13,
         fontWeight: active ? 600 : 400,
         textAlign: "left",
         cursor: "pointer",
-        transition: "background 120ms ease-out, color 120ms ease-out",
         position: "relative",
         outline: "none",
       }}
       aria-current={active ? "page" : undefined}
     >
-      {active && (
-        <span
+      {active ? (
+        <fm.span
+          layoutId={reducedMotion ? undefined : "knowledge-nav-rail"}
           aria-hidden="true"
+          transition={springOrInstant(reducedMotion, springs.ui)}
           style={{
             position: "absolute",
             left: 0,
@@ -144,12 +163,12 @@ function NavItem({
             background: BRAND,
           }}
         />
-      )}
+      ) : null}
       <span style={{ display: "inline-flex", flexShrink: 0 }}>{tab.icon}</span>
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {tab.label}
       </span>
-    </button>
+    </fm.button>
   );
 }
 
@@ -158,53 +177,63 @@ export function KnowledgeSidebar({
   onTabChange,
   onSearchClick,
 }: KnowledgeSidebarProps) {
+  const { reducedMotion } = useMotion();
+  const frost = frostStyle(useReducedTransparency(), "pane");
+
   return (
     <nav
       data-testid="knowledge-sidebar"
       aria-label="Knowledge sections"
       style={{
-        width: 240,
+        width: 248,
         flexShrink: 0,
         position: "sticky",
         top: 0,
         height: "100vh",
         overflowY: "auto",
-        borderRight: "1px solid #E2E8F0",
-        background: "#FFFFFF",
+        borderRight: "1px solid " + color.surface.divider,
+        borderTop: "1px solid rgba(255, 255, 255, 0.7)",
+        boxShadow: "4px 0 24px rgba(15, 23, 42, 0.08)",
+        ...frost,
         display: "flex",
         flexDirection: "column",
-        padding: "12px 8px 24px",
+        padding: "16px 10px 24px",
         boxSizing: "border-box",
       }}
     >
       <div
         style={{
-          fontSize: 15,
+          fontFamily: typography.fontFamily.heading,
+          fontSize: 18,
           fontWeight: 700,
-          color: "#0F172A",
-          padding: "4px 12px 12px",
-          letterSpacing: -0.2,
+          lineHeight: 1.15,
+          color: color.text.primary,
+          padding: "4px 12px 14px",
+          letterSpacing: typography.letterSpacing.display,
         }}
       >
         Knowledge
       </div>
 
-      <button
+      <fm.button
         type="button"
         onClick={onSearchClick}
+        whileTap={tapScale(reducedMotion)}
+        transition={springOrInstant(reducedMotion, springs.press)}
         style={{
           display: "flex",
           alignItems: "center",
           gap: 8,
           width: "100%",
-          padding: "7px 10px",
-          marginBottom: 8,
-          border: "1px solid #E2E8F0",
-          borderRadius: 8,
-          background: "#F8FAFC",
-          color: "#475569",
-          fontFamily: "inherit",
-          fontSize: 12,
+          padding: "8px 12px",
+          marginBottom: 4,
+          border: "none",
+          borderRadius: radius.pill,
+          background: WELL,
+          boxShadow: "inset 0 1px 2px rgba(15, 23, 42, 0.08)",
+          color: color.text.secondary,
+          fontFamily: typography.fontFamily.body,
+          fontSize: 13,
           cursor: "pointer",
           textAlign: "left",
           outline: "none",
@@ -217,17 +246,17 @@ export function KnowledgeSidebar({
           aria-hidden="true"
           style={{
             fontSize: 10,
-            color: "#475569",
-            background: "#E2E8F0",
-            border: "1px solid #CBD5E1",
-            borderRadius: 4,
+            color: color.text.caption,
+            background: color.surface.raised,
+            border: "1px solid " + color.surface.divider,
+            borderRadius: radius.xs,
             padding: "1px 5px",
-            fontFamily: "monospace",
+            fontFamily: typography.fontFamily.mono,
           }}
         >
           {"\u2318"}K
         </span>
-      </button>
+      </fm.button>
 
       {SIDEBAR_GROUPS.map((group) => (
         <div key={group.label} style={{ marginBottom: 4 }}>
@@ -238,6 +267,7 @@ export function KnowledgeSidebar({
               tab={tab}
               active={tab.key === activeKey}
               onClick={() => onTabChange(tab.key)}
+              reducedMotion={reducedMotion}
             />
           ))}
         </div>
@@ -247,7 +277,7 @@ export function KnowledgeSidebar({
         <span
           style={{
             fontSize: 11,
-            color: "#475569",
+            color: color.text.secondary,
             display: "block",
             textAlign: "center",
           }}

@@ -10,6 +10,7 @@
 
 import Tooltip from "@mui/material/Tooltip";
 import { Handle, Position, type HandleType } from "@xyflow/react";
+import { color } from "@leo/design-system/tokens";
 
 export type PortDataType =
   | "string"
@@ -19,11 +20,11 @@ export type PortDataType =
   | "object";
 
 export const PORT_COLORS: Record<PortDataType, string> = {
-  string: "#2196F3",
-  "string[]": "#4CAF50",
-  "object[]": "#FF9800",
-  boolean: "#9C27B0",
-  object: "#607D8B",
+  string: color.brand.primary,
+  "string[]": color.status.success,
+  "object[]": color.status.warning,
+  boolean: color.brand.secondary,
+  object: color.status.neutral,
 };
 
 interface NodeHandleProps {
@@ -75,7 +76,7 @@ export function NodeHandle({
   const resolvedPosition =
     position ?? (type === "target" ? Position.Left : Position.Right);
   const resolvedColor =
-    color ?? (dataType ? PORT_COLORS[dataType] : "#90A4AE");
+    color ?? (dataType ? PORT_COLORS[dataType] : color.text.disabled);
   const direction = type === "target" ? "input" : "output";
   const resolvedAria =
     ariaLabel ?? `${direction} port ${id}${tooltip ? ` - ${tooltip}` : ""}`;

@@ -102,6 +102,9 @@ NER_GUARD_RULE_CONSTRAINTS: list[str] = [
     "CREATE INDEX context_rule_org IF NOT EXISTS FOR (r:ContextRule) ON (r.org_id)",
     "CREATE INDEX context_rule_active IF NOT EXISTS FOR (r:ContextRule) ON (r.active)",
     "CREATE INDEX label_post_processor_rule_active IF NOT EXISTS FOR (r:LabelPostProcessorRule) ON (r.active)",
+    "CREATE INDEX lab_reference_range_org IF NOT EXISTS FOR (rr:LabReferenceRange) ON (rr.org_id)",
+    "CREATE CONSTRAINT ncr_investigation_nc_id IF NOT EXISTS FOR (i:NcrInvestigation) REQUIRE i.nc_id IS UNIQUE",
+    "CREATE CONSTRAINT ncr_investigation_event_id IF NOT EXISTS FOR (e:NcrInvestigationEvent) REQUIRE e.event_id IS UNIQUE",
 ]
 
 CODING_SCHEMA_CONSTRAINTS: list[str] = [

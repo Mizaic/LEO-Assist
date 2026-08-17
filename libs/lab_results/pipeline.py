@@ -55,12 +55,16 @@ def enrich_lab_result_findings(
     *,
     patient_sex: str | None,
     patient_age: float | None,
+    org_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """Append configured abnormal-result finding entities after coding."""
     enriched = list(entities)
     for entity in entities:
         derived = _derived_finding(
-            entity, patient_sex=patient_sex, patient_age=patient_age
+            entity,
+            patient_sex=patient_sex,
+            patient_age=patient_age,
+            org_id=org_id,
         )
         if derived is not None:
             enriched.append(derived)
@@ -72,6 +76,7 @@ def _derived_finding(
     *,
     patient_sex: str | None,
     patient_age: float | None,
+    org_id: str | None = None,
 ) -> dict[str, Any] | None:
     observation = observation_from_entity(entity)
     if observation is None:
@@ -83,11 +88,12 @@ def _derived_finding(
             observation["unit"],
             patient_sex=patient_sex,
             patient_age=patient_age,
+            org_id=org_id,
         )
     except LabConfigError as exc:
         logger.info("Lab result not classified for derived finding: %s", exc)
         return None
-    if result.classification == "normal" or not result.interpretation_concept_id:
+    if not result.interpretation_concept_id:
         return None
     text = (
         result.interpretation_term or f"{result.display_name} {result.classification}"
@@ -112,5 +118,6 @@ def _derived_finding(
             "range_id": (
                 result.reference_range.range_id if result.reference_range else None
             ),
+            "org_id": (result.reference_range.org_id if result.reference_range else ""),
         },
     }

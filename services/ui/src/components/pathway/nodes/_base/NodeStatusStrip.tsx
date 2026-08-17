@@ -11,6 +11,7 @@
 import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { color } from "@leo/design-system/tokens";
 
 export type NodeRunStatus =
   | "idle"
@@ -76,7 +77,7 @@ export function NodeStatusStrip({
               cy="12"
               r="9"
               fill="none"
-              stroke="#1976d2"
+              stroke={color.brand.primary}
               strokeWidth="3"
               strokeDasharray="28 56"
               strokeLinecap="round"

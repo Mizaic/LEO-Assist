@@ -157,7 +157,7 @@ function ReviewProgressBar({
   if (total === 0) return null;
   const segments = [
     { key: "approved", color: "#16a34a" },
-    { key: "pending", color: "#1F3A8A" },
+    { key: "pending", color: "#0d46d6" },
     { key: "rejected", color: "#dc2626" },
     { key: "escalated", color: "#14B8A6" },
   ];

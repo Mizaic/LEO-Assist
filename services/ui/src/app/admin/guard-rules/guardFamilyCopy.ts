@@ -148,12 +148,49 @@ export const GUARD_FAMILY_COPY: Record<string, GuardFamilyCopy> = {
       },
     },
   },
+  body_structure_guard: {
+    key: "body_structure_guard",
+    title: "Body-part guard",
+    what: "Keeps named body sites. Always keeps six reproductive organs.",
+    why: "A finding such as numbness needs its site. A bare \"arm\" with no finding is noise.",
+    ifWrong: "Sites vanish, or leftover anatomy is coded as a fact on its own.",
+    accent: "#00838F",
+    types: {
+      always_keep: {
+        label: "Always keep",
+        what: "Reproductive organs kept for the gender check, even with no finding.",
+      },
+      keep_as_site: {
+        label: "Keep as site",
+        what: "Body parts kept so they can link to a finding or procedure.",
+      },
+      drop_orphan: {
+        label: "Drop orphan",
+        what: "Drops a keep-as-site part that never linked to a finding.",
+      },
+    },
+  },
+  fact_link_guard: {
+    key: "fact_link_guard",
+    title: "Fact-link guard",
+    what: "Lists which fact links the pipeline may apply.",
+    why: "Only same-phrase site, lab, and caused-by links should be stored.",
+    ifWrong: "The letter can gain invented sites, or a real drug-reaction link is dropped.",
+    accent: "#5D4037",
+    types: {
+      allowed_relation: {
+        label: "Allowed link",
+        what: "A relation type the runtime linker may apply, such as finding_site.",
+      },
+    },
+  },
 };
 
 export function familyKind(key: string): string {
   if (key === "situation_lookup") return "Rewrite";
   if (key === "term_concept_blocklist") return "Block";
   if (key === "entity_type_norm") return "Relabel";
+  if (key === "fact_link_guard") return "Allow";
   return "Filter";
 }
 

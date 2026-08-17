@@ -9,7 +9,7 @@
 "use client";
 
 /**
- * Two-door Validation Lab home, then one run review.
+ * Three-path Validation Lab home, then one run review.
  *
  * Atlas: UN-4DCE95C8 / DI-238DA59A / DI-C953EF73 / DI-562F2C9E
  * DO: DO-4FD76836

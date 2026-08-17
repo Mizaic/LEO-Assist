@@ -320,13 +320,13 @@ async function installGuidelineFixtures(
 // -- Protocol ----------------------------------------------------------------
 
 const PROTOCOL = [
-  "Open /admin/knowledge?tab=clinical-guidelines. Confirm page loads with StatHero, jump strip (1. Load / Inspect / 2. Review / 3. Compile), and four step cards.",
+  "Open /admin/knowledge?tab=clinical-guidelines. Confirm page loads with StatHero, jump strip (1. Load / 2. Inspect / 3. Review / 4. Compile), and the Load step card.",
   "Click 'Refresh guideline list'. Confirm sync job completes and success banner shows catalogue count.",
   "Type 'NG12' into the search field. Confirm 'Load this guideline' becomes active. Click it. Confirm progress strip appears then green done banner 'Done. Loaded 14 recommendations.'",
   "In the Inspect card, confirm NG12 row shows code chip, title, chapter count, recommendation count, and 'No rules yet' badge. Click 'Generate rules'. Confirm rule status updates to 'Pending (1)'.",
-  "Click '2. Review' in the jump strip. Confirm Pending review tab is active and the NG12 rule row is visible. Expand the row. Confirm recommendation text and plain-English summary are shown.",
+  "Click '3. Review' in the jump strip. Confirm Pending review tab is active and the NG12 rule row is visible. Expand the row. Confirm recommendation text and plain-English summary are shown.",
   "Click 'Looks right' on the rule. Confirm the Pending review tab shows zero rules. Click 'Active' tab. Confirm the approved rule appears.",
-  "Click '3. Compile' in the jump strip. Confirm compile settings chips show 'Global' and 'Advisory'. Click 'Compile rules'. Confirm progress strip appears and a new version appears in the versions list.",
+  "Click '4. Compile' in the jump strip. Confirm compile settings chips show 'Global' and 'Advisory'. Click 'Compile rules'. Confirm progress strip appears and a new version appears in the versions list.",
   "Click 'Make this live' on the new version. Confirm the Active version stat tile updates to the new version string.",
 ] as const;
 
@@ -371,11 +371,12 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           });
           // Jump strip
           await expect(ctx.page.getByText("1. Load")).toBeVisible();
-          await expect(ctx.page.getByText("2. Review")).toBeVisible();
-          await expect(ctx.page.getByText("3. Compile")).toBeVisible();
-          // Step cards
+          await expect(ctx.page.getByText("2. Inspect")).toBeVisible();
+          await expect(ctx.page.getByText("3. Review")).toBeVisible();
+          await expect(ctx.page.getByText("4. Compile")).toBeVisible();
+          await expect(ctx.page.getByText("Choose a step")).toBeVisible();
+          await expect(ctx.page.getByTestId("guidance-next-step")).toBeVisible();
           await expect(ctx.page.getByText("Find and load a guideline")).toBeVisible();
-          await expect(ctx.page.getByText("What is in the knowledge graph")).toBeVisible();
 
           await recordProtocolStep({
             request: ctx.request, runId: ctx.runId, valId: ctx.valId,
@@ -428,11 +429,7 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           await waitForPageSettled(ctx.page);
 
           // The Inspect card should now show NG12 (stub returns it after reload)
-          // Scroll to inspect card
-          await ctx.page.evaluate(() => {
-            const el = document.querySelector("#loaded-guidelines");
-            el?.scrollIntoView({ behavior: "instant" });
-          });
+          await ctx.page.getByRole("tab", { name: "2. Inspect" }).click();
 
           // Find generate rules button
           await expect(
@@ -455,11 +452,7 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           // -- Step 4: Review queue -- expand rule
           // onRulesGenerated() fires when the generate job completes, which
           // increments ruleRefreshKey and triggers RuleReviewSection.reloadPools().
-          // Scroll to the review section and wait for it to populate.
-          await ctx.page.evaluate(() => {
-            const el = document.querySelector("#rule-review");
-            el?.scrollIntoView({ behavior: "instant" });
-          });
+          await ctx.page.getByRole("tab", { name: "3. Review" }).click();
 
           // "Awaiting review" pool header should be visible (populated via auto-refresh)
           await expect(
@@ -511,10 +504,7 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           ctx.lastCompletedStep.value = 5;
 
           // -- Step 6: Compile
-          await ctx.page.evaluate(() => {
-            const el = document.querySelector("#bitmap-lifecycle");
-            el?.scrollIntoView({ behavior: "instant" });
-          });
+          await ctx.page.getByRole("tab", { name: "4. Compile" }).click();
 
           // Confirm scope chips
           await expect(ctx.page.getByText(/global/i).first()).toBeVisible({ timeout: 5_000 });

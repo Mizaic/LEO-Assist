@@ -61,7 +61,7 @@ Fonts are loaded in `services/ui/src/lib/fonts.ts` and applied to
 
 ## Checking compliance
 
-Static VT `brand-tokens-chrome.test.ts` (TODO: create) asserts:
+Static VT `brand-tokens-chrome.test.ts` asserts:
 1. No file under `services/ui/src` imports `/leo-icon.svg`.
 2. `AppShell.tsx` imports `LeoLogo` / `LeoO` from `@leo/design-system`.
 3. `fonts.ts` uses `Albert_Sans` and `Overpass`, not `DM_Sans`.

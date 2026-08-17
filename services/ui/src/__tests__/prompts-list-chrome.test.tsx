@@ -73,12 +73,17 @@ describe("VT-LEO-AI-146 AI Instructions list on design-system primitives", () =>
   // -- TC-003 Behaviour preserved -----------------------------------------
 
   it("TC-003: pre-existing data + routing handlers stay wired", () => {
-    expect(source).toMatch(
+    const hook = fs.readFileSync(
+      path.resolve(__dirname, "..", "app", "admin", "prompts", "usePromptsList.ts"),
+      "utf8",
+    );
+    const wired = source + hook;
+    expect(wired).toMatch(
       /api[\s\S]*?\.get<\{\s*prompts:\s*PromptConfig\[\]\s*\}>\("\/api\/prompts"\)/,
     );
     expect(source).toMatch(/router\.push\(`\/admin\/prompts\/\$\{[^}]+\}`\)/);
     expect(source).toMatch(/router\.push\("\/admin\/prompts\/new"\)/);
-    expect(source).toMatch(/sortByIsoDateDesc/);
+    expect(hook).toMatch(/sortByIsoDateDesc/);
   });
 
   it("TC-004: grouped browse + flat filtered modes preserved", () => {
@@ -98,11 +103,15 @@ describe("VT-LEO-AI-146 AI Instructions list on design-system primitives", () =>
   // -- TC-006 Body primitive + states -------------------------------------
 
   it("TC-006: body uses ReviewListCard and preserves loading, empty and no-match states", () => {
+    const states = fs.readFileSync(
+      path.resolve(__dirname, "..", "app", "admin", "prompts", "promptListStates.tsx"),
+      "utf8",
+    );
     expect(source).toMatch(/<ReviewListCard\b/);
     expect(source).toMatch(/<SkeletonList\b/);
-    expect(source).toMatch(/data-testid="prompts-skeleton-list"/);
-    expect(source).toMatch(/data-testid="prompts-empty"/);
-    expect(source).toMatch(/data-testid="prompts-no-match"/);
+    expect(states).toMatch(/data-testid="prompts-skeleton-list"/);
+    expect(states).toMatch(/data-testid="prompts-empty"/);
+    expect(states).toMatch(/data-testid="prompts-no-match"/);
   });
 
   // -- TC-007 Stat tiles ---------------------------------------------------

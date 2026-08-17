@@ -7,6 +7,7 @@ the UI cannot drift from proven behaviour.
 Run:
     pytest tests/libs/pipeline/test_guard_worked_examples.py -v --no-coverage
 """
+
 from __future__ import annotations
 
 import json
@@ -122,6 +123,38 @@ def _check_situation_rewrite(example: dict[str, Any]) -> None:
     assert result == example["check"]["expected"]
 
 
+def _check_body_keep(example: dict[str, Any]) -> None:
+    import libs.ner.body_structure_guard as guard
+
+    with patch.object(guard, "_fetch_neo4j_rules", return_value=[]):
+        guard.reload_body_structure_guard()
+        ent = {"text": example["check"]["text"], "label": "body_structure"}
+        cid = example["check"].get("concept_id")
+        if cid:
+            ent["concept_id"] = cid
+        assert guard.should_keep_body_structure(ent)
+
+
+def _check_body_drop(example: dict[str, Any]) -> None:
+    import libs.ner.body_structure_guard as guard
+
+    with patch.object(guard, "_fetch_neo4j_rules", return_value=[]):
+        guard.reload_body_structure_guard()
+        ent = {"text": example["check"]["text"], "label": "body_structure"}
+        assert not guard.should_keep_body_structure(ent)
+
+
+def _check_fact_link_allowed(example: dict[str, Any]) -> None:
+    from libs.relations.policy import allowed_relation_types, reload_fact_link_guard
+
+    with patch(
+        "libs.relations.policy._fetch_fact_link_rows",
+        return_value=[],
+    ):
+        reload_fact_link_guard()
+        assert example["check"]["relation_type"] in allowed_relation_types()
+
+
 def _check_blocklist(example: dict[str, Any]) -> None:
     check = example["check"]
     with patch(
@@ -144,6 +177,9 @@ _HANDLERS = {
     "checkbox_suppress": _check_checkbox_suppress,
     "situation_rewrite": _check_situation_rewrite,
     "blocklist": _check_blocklist,
+    "body_keep": _check_body_keep,
+    "body_drop": _check_body_drop,
+    "fact_link_allowed": _check_fact_link_allowed,
 }
 
 
@@ -169,5 +205,7 @@ def test_catalog_covers_every_guard_family() -> None:
         "checkbox_norm",
         "situation_lookup",
         "term_concept_blocklist",
+        "body_structure_guard",
+        "fact_link_guard",
     }
     assert expected <= set(data["families"])

@@ -73,59 +73,15 @@ async function expectNavHidden(page: Page, label: RegExp | string) {
 
 // -- 1. Role picker display -------------------------------------------------
 
-test.describe("TC-P: Role picker display", () => {
-  test("TC-P01 picker renders when needs_role_choice is true", async ({ page }) => {
+test.describe("TC-P: Role picker retired", () => {
+  test("TC-P01 picker does not render when needs_role_choice is true", async ({ page }) => {
     await withRole(page, "triage_clinician", {
       needsRoleChoice: true,
       allowedRoles: ["triage_clinician", "clinical_coder"],
     });
     await gotoAndSettle(page);
-    await expect(page.getByTestId("role-picker-overlay")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Choose Your Role/i })).toBeVisible();
-  });
-
-  test("TC-P02 roles are grouped by category", async ({ page }) => {
-    await withRole(page, "triage_clinician", {
-      needsRoleChoice: true,
-      allowedRoles: ["triage_clinician", "appointment_booking"],
-    });
-    await gotoAndSettle(page);
-    await expect(page.getByText("Clinical Roles")).toBeVisible();
-    await expect(page.getByText("Administration & Management")).toBeVisible();
-    await expect(page.getByRole("radio", { name: /Triage Clinician/i })).toBeVisible();
-    await expect(page.getByRole("radio", { name: /Appointment Booking/i })).toBeVisible();
-  });
-
-  test("TC-P03 search filters role cards", async ({ page }) => {
-    await withRole(page, "triage_clinician", {
-      needsRoleChoice: true,
-      allowedRoles: ["triage_clinician", "clinical_coder", "auditor"],
-    });
-    await gotoAndSettle(page);
-    await page.getByRole("searchbox", { name: /Search roles/i }).fill("Triage");
-    await expect(page.getByRole("radio", { name: /Triage Clinician/i })).toBeVisible();
-    await expect(page.getByRole("radio", { name: /Clinical Coder/i })).not.toBeVisible();
-  });
-
-  test("TC-P04 org step shown when user has two organisations", async ({ page }) => {
-    await withRole(page, "triage_clinician", {
-      needsRoleChoice: true,
-      allowedRoles: ["triage_clinician"],
-      twoOrgs: true,
-    });
-    await gotoAndSettle(page);
-    await expect(page.getByText(/Choose Your Organisation/i)).toBeVisible();
-    await expect(page.getByText("Trust Site A")).toBeVisible();
-    await expect(page.getByText("Trust Site B")).toBeVisible();
-  });
-
-  test("TC-P05 welcome message includes user name", async ({ page }) => {
-    await withRole(page, "triage_clinician", {
-      needsRoleChoice: true,
-      allowedRoles: ["triage_clinician"],
-    });
-    await gotoAndSettle(page);
-    await expect(page.getByText(/Welcome, E2E User/i)).toBeVisible();
+    await expect(page.getByTestId("role-picker-overlay")).toHaveCount(0);
+    await expect(page.locator("body")).toBeVisible();
   });
 });
 
@@ -156,11 +112,11 @@ test.describe("TC-L: Role landing pages", () => {
     await expect(page.locator("body")).toBeVisible();
   });
 
-  test("TC-L04 platform_admin lands on /admin/platform", async ({ page }) => {
+  test("TC-L04 platform_admin lands on /admin/knowledge", async ({ page }) => {
     await withRole(page, "platform_admin", { isPlatformAdmin: true });
-    await page.goto("/admin/platform");
+    await page.goto("/admin/knowledge");
     await waitForPageSettled(page);
-    await expect(page).toHaveURL(/\/admin\/platform/);
+    await expect(page).toHaveURL(/\/admin\/knowledge/);
     await expect(page.locator("body")).toBeVisible();
   });
 

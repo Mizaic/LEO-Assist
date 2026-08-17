@@ -65,8 +65,8 @@ export function TreeNode({
           padding: "4px 6px",
           borderRadius: 6,
           cursor: "pointer",
-          background: isSelected ? "#1d4ed820" : "transparent",
-          border: isSelected ? "1px solid #1d4ed8" : "1px solid transparent",
+          background: isSelected ? "#0d46d620" : "transparent",
+          border: isSelected ? "1px solid #0d46d6" : "1px solid transparent",
         }}
       >
         <button
@@ -89,7 +89,7 @@ export function TreeNode({
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <span style={{ color: "#1d4ed8", fontWeight: 700, fontFamily: "monospace", fontSize: 12 }}>
+            <span style={{ color: "#0d46d6", fontWeight: 700, fontFamily: "monospace", fontSize: 12 }}>
               {Array.isArray(value) && /^\d+$/.test(label) ? `[${label}]` : label}
             </span>
             <span style={{ color: "#6b7280", fontSize: 12, minWidth: 0 }}>

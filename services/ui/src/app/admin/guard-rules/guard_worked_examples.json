@@ -80,6 +80,28 @@
         "text": "fit",
         "concept_id": "91175000"
       }
+    },
+    "body_structure_guard": {
+      "note": "arm",
+      "without_guard": "Arm is dropped before linking, so numbness has no site.",
+      "with_guard": "Arm is kept as a site so it can link to numbness.",
+      "data_change": "The body-structure span stays in the extract for relation linking.",
+      "source_test": "tests/libs/pipeline/test_body_structure_guard.py::test_keep_as_site_arm",
+      "check": {
+        "kind": "body_keep",
+        "text": "arm"
+      }
+    },
+    "fact_link_guard": {
+      "note": "allergic to penicillin",
+      "without_guard": "The allergy and the drug stay as two unlinked facts.",
+      "with_guard": "Caused-by is an allowed link type. The reaction can point at the drug.",
+      "data_change": "Runtime allowlist includes causative_agent.",
+      "source_test": "tests/libs/pipeline/test_fact_link_guard.py::test_default_runtime_types",
+      "check": {
+        "kind": "fact_link_allowed",
+        "relation_type": "causative_agent"
+      }
     }
   },
   "types": {
@@ -133,6 +155,51 @@
       "check": {
         "kind": "referral_keep",
         "drop_note": "referral submitted"
+      }
+    },
+    "body_structure_guard:always_keep": {
+      "note": "cervix",
+      "without_guard": "A standalone cervix mention can be dropped.",
+      "with_guard": "Cervix is always kept for the gender check.",
+      "data_change": "The reproductive-organ span stays even with no finding.",
+      "source_test": "tests/libs/pipeline/test_body_structure_guard.py::test_always_keep_cervix",
+      "check": {
+        "kind": "body_keep",
+        "text": "cervix",
+        "concept_id": "71252005"
+      }
+    },
+    "body_structure_guard:keep_as_site": {
+      "note": "arm",
+      "without_guard": "Arm is dropped before linking.",
+      "with_guard": "Arm is kept so numbness can link to it.",
+      "data_change": "The site span stays for finding_site linking.",
+      "source_test": "tests/libs/pipeline/test_body_structure_guard.py::test_keep_as_site_arm",
+      "check": {
+        "kind": "body_keep",
+        "text": "arm"
+      }
+    },
+    "body_structure_guard:drop_orphan": {
+      "note": "xiphoid",
+      "without_guard": "Unknown anatomy can be coded as a standalone fact.",
+      "with_guard": "A body part that matches no keep rule is dropped.",
+      "data_change": "The span is suppressed in post-processing.",
+      "source_test": "tests/libs/pipeline/test_body_structure_guard.py::test_unknown_body_part_dropped",
+      "check": {
+        "kind": "body_drop",
+        "text": "xiphoid"
+      }
+    },
+    "fact_link_guard:allowed_relation": {
+      "note": "finding_site",
+      "without_guard": "Any pair of nearby terms can be stored as a link.",
+      "with_guard": "Only configured types such as finding_site are applied.",
+      "data_change": "Runtime allowlist includes finding_site and excludes associated_finding.",
+      "source_test": "tests/libs/pipeline/test_fact_link_guard.py::test_default_runtime_types",
+      "check": {
+        "kind": "fact_link_allowed",
+        "relation_type": "finding_site"
       }
     },
     "referral_routing_guard:keep_action": {

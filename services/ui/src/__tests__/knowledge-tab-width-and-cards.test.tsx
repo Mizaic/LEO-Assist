@@ -98,11 +98,16 @@ describe("VT-LEO-AI-149 - Knowledge tab width + card consistency", () => {
 
   test("TC-006: DomainCard tone chips use the canonical knowledge palette", () => {
     // DomainCard was extracted to _components/DomainCard.tsx in the Wave E split.
-    const src = readFile(
-      "services/ui/src/app/settings/domains/_components/DomainCard.tsx",
-    );
-    expect(src).toMatch(/bgcolor:\s*"#DBEAFE"/);
-    expect(src).toMatch(/bgcolor:\s*"#F1F5F9"/);
-    expect(src).toMatch(/bgcolor:\s*"#ECFDF5"/);
+    const src =
+      readFile("services/ui/src/app/settings/domains/_components/DomainCard.tsx") +
+      readFile("services/ui/src/app/settings/domains/_components/DomainCardParts.tsx");
+    expect(src).toMatch(/label="NICE"/);
+    expect(src).toMatch(/label="Built in"/);
+    expect(src).toMatch(/label="Your org"/);
+    expect(src).toMatch(/color\.brand\.primary/);
+    expect(src).toMatch(/color\.surface\.alt/);
+    expect(src).toMatch(/color\.status\.success/);
+    expect(src).not.toMatch(/#DBEAFE/);
+    expect(src).not.toMatch(/#1D4ED8/i);
   });
 });

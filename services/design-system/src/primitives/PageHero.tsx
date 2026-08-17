@@ -5,10 +5,12 @@
  */
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { motion as fm } from "framer-motion";
 
+import { springOrInstant, springs, tapScale, useMotion } from "../motion";
 import { color } from "../tokens/color";
-import { radius } from "../tokens/spacing";
+import { elevation, radius } from "../tokens/spacing";
 import { typography } from "../tokens/typography";
 
 export interface PageHeroCta {
@@ -71,37 +73,62 @@ function CtaButton({
   cta: PageHeroCta;
   accent: string;
 }) {
+  const { reducedMotion } = useMotion();
+  const disabled = Boolean(cta.disabled);
   return (
-    <button
+    <fm.button
       type="button"
       onClick={cta.onClick}
-      disabled={cta.disabled}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        appearance: "none",
-        border: "none",
-        borderRadius: radius.md,
-        background: accent,
-        color: "#FFFFFF",
-        fontFamily: typography.fontFamily.body,
-        fontSize: 14,
-        fontWeight: 600,
-        padding: "8px 16px",
-        cursor: cta.disabled ? "not-allowed" : "pointer",
-        opacity: cta.disabled ? 0.5 : 1,
-        transition: "opacity 120ms ease-out, box-shadow 120ms ease-out",
-        flexShrink: 0,
-        whiteSpace: "nowrap",
-      }}
+      disabled={disabled}
+      whileTap={disabled ? undefined : tapScale(reducedMotion)}
+      transition={springOrInstant(reducedMotion, springs.press)}
+      style={ctaStyle(accent, disabled)}
     >
       {cta.icon ? (
         <span style={{ fontSize: 16, display: "inline-flex" }}>{cta.icon}</span>
       ) : null}
       {cta.label}
-    </button>
+    </fm.button>
   );
+}
+
+function ctaStyle(accent: string, disabled: boolean): CSSProperties {
+  if (disabled) {
+    return {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      appearance: "none",
+      border: "1px solid " + color.text.secondary,
+      borderRadius: radius.md,
+      background: color.surface.divider,
+      color: color.text.secondary,
+      fontFamily: typography.fontFamily.body,
+      fontSize: 14,
+      fontWeight: 600,
+      padding: "8px 16px",
+      cursor: "not-allowed",
+      flexShrink: 0,
+      whiteSpace: "nowrap",
+    };
+  }
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    appearance: "none",
+    border: "none",
+    borderRadius: radius.md,
+    background: accent,
+    color: color.brand.onBrand,
+    fontFamily: typography.fontFamily.body,
+    fontSize: 14,
+    fontWeight: 600,
+    padding: "8px 16px",
+    cursor: "pointer",
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+  };
 }
 
 export function PageHero({
@@ -119,22 +146,24 @@ export function PageHero({
         display: "flex",
         alignItems: "center",
         gap: 16,
-        background: color.surface.alt,
+        background: color.surface.raised,
         border: "1px solid " + color.surface.divider,
         borderLeft: "3px solid " + accent,
         borderRadius: radius.md,
+        boxShadow: elevation.card,
         padding: "16px 20px",
-        marginBottom: 20,
+        marginBottom: 12,
         fontFamily: typography.fontFamily.body,
       }}
     >
       <IconCircle icon={icon} accent={accent} />
-
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
+            fontFamily: typography.fontFamily.heading,
             fontSize: 18,
             fontWeight: 700,
+            letterSpacing: typography.letterSpacing.display,
             color: color.text.primary,
             lineHeight: 1.25,
             overflow: "hidden",
@@ -157,7 +186,6 @@ export function PageHero({
           </div>
         ) : null}
       </div>
-
       {cta ? <CtaButton cta={cta} accent={accent} /> : null}
     </div>
   );

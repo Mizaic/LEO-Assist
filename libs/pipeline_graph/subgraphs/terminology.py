@@ -400,6 +400,7 @@ def _resolve_terms(state: TerminologyState) -> dict[str, Any]:
             resolved,
             patient_sex=state.get("patient_sex"),
             patient_age=state.get("patient_age"),
+            org_id=state.get("org_id"),
         )
         resolved = dedupe_suspected_malignancy_conflicts(resolved)
         resolved = _dedup_by_concept_id(resolved)

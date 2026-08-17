@@ -1,0 +1,168 @@
+{
+  "description": "Body-part guard: keep six reproductive organs always, and named finding sites.",
+  "family": "body_structure_guard",
+  "rules": [
+    {
+      "rule_id": "bs-keep-001",
+      "rule_type": "always_keep",
+      "pattern": "71252005",
+      "comment": "cervix uteri",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-keep-002",
+      "rule_type": "always_keep",
+      "pattern": "35039007",
+      "comment": "uterus",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-keep-003",
+      "rule_type": "always_keep",
+      "pattern": "15497006",
+      "comment": "ovary structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-keep-004",
+      "rule_type": "always_keep",
+      "pattern": "41216001",
+      "comment": "prostate gland",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-keep-005",
+      "rule_type": "always_keep",
+      "pattern": "40689003",
+      "comment": "testis",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-keep-006",
+      "rule_type": "always_keep",
+      "pattern": "31435000",
+      "comment": "fallopian tube",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-keep-007",
+      "rule_type": "always_keep",
+      "pattern": "cervix|uterus|womb|ovar(?:y|ies)|prostate|test(?:is|es|icle)|fallopian",
+      "comment": "Reproductive organ names for the gender check",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-001",
+      "rule_type": "keep_as_site",
+      "pattern": "breast",
+      "comment": "breast structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-002",
+      "rule_type": "keep_as_site",
+      "pattern": "arm|upper arm",
+      "comment": "upper arm structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-003",
+      "rule_type": "keep_as_site",
+      "pattern": "abdomen|abdominal",
+      "comment": "abdomen structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-004",
+      "rule_type": "keep_as_site",
+      "pattern": "lung|chest",
+      "comment": "lung structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-005",
+      "rule_type": "keep_as_site",
+      "pattern": "liver",
+      "comment": "liver structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-006",
+      "rule_type": "keep_as_site",
+      "pattern": "bowel|colon",
+      "comment": "bowel structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-007",
+      "rule_type": "keep_as_site",
+      "pattern": "kidney",
+      "comment": "kidney structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-008",
+      "rule_type": "keep_as_site",
+      "pattern": "bladder",
+      "comment": "bladder structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-009",
+      "rule_type": "keep_as_site",
+      "pattern": "stomach",
+      "comment": "stomach structure",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-site-010",
+      "rule_type": "keep_as_site",
+      "pattern": "pelvis|neck|back|head|skin|lymph node",
+      "comment": "common finding sites",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    },
+    {
+      "rule_id": "bs-orphan-001",
+      "rule_type": "drop_orphan",
+      "pattern": "true",
+      "comment": "Drop a keep-as-site body part that never linked to a finding",
+      "active": true,
+      "priority": 10,
+      "created_by": "system"
+    }
+  ]
+}

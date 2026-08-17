@@ -18,11 +18,14 @@ import TextFieldsOutlinedIcon from "@mui/icons-material/TextFieldsOutlined";
 import {
   EmptyState,
   SegmentedTabs,
+  SpringSwap,
   StatHero,
+  StickyChrome,
   ToolbarActions,
   type StatTile,
   type ToolbarAction,
 } from "@leo/design-system";
+import { color } from "@leo/design-system/tokens";
 
 import { LiveDictionaryPane } from "./LiveDictionaryPane";
 import { PhraseChangeLogDialog } from "./PhraseChangeLogDialog";
@@ -75,29 +78,30 @@ export default function PhraseMappingsPage() {
   return (
     <div data-testid="phrase-mappings-workspace">
       <StatHero stats={tiles} />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "center",
-          flexWrap: "wrap",
-          margin: "12px 0",
-        }}
-      >
-        <SegmentedTabs
-          aria-label="Workspaces"
-          value={state.mode}
-          onChange={(id) => state.setMode(id as PhraseMode)}
-          tabs={[
-            { id: "inbox", label: "Inbox", count: state.counts.inbox },
-            { id: "drafts", label: "My drafts", count: state.counts.my_drafts },
-            { id: "review", label: "Review", count: state.counts.review },
-            { id: "live", label: "Live dictionary" },
-          ]}
-        />
-        <ToolbarActions actions={toolbarActions} />
-      </div>
+      <StickyChrome testId="phrase-mappings-chrome">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <SegmentedTabs
+            aria-label="Workspaces"
+            value={state.mode}
+            onChange={(id) => state.setMode(id as PhraseMode)}
+            tabs={[
+              { id: "inbox", label: "Inbox", count: state.counts.inbox },
+              { id: "drafts", label: "My drafts", count: state.counts.my_drafts },
+              { id: "review", label: "Review", count: state.counts.review },
+              { id: "live", label: "Live dictionary" },
+            ]}
+          />
+          <ToolbarActions actions={toolbarActions} />
+        </div>
+      </StickyChrome>
       {state.mode === "drafts" ? (
         <DraftsSubmitBar
           saving={state.saving}
@@ -107,13 +111,15 @@ export default function PhraseMappingsPage() {
         />
       ) : null}
       {state.notice ? (
-        <p style={{ color: "#047857", fontSize: 14 }}>{state.notice}</p>
+        <p style={{ color: color.status.success, fontSize: 14 }}>{state.notice}</p>
       ) : null}
-      <WorkspaceBody
-        state={state}
-        liveSearch={liveSearch}
-        onLiveSearch={setLiveSearch}
-      />
+      <SpringSwap swapKey={state.mode}>
+        <WorkspaceBody
+          state={state}
+          liveSearch={liveSearch}
+          onLiveSearch={setLiveSearch}
+        />
+      </SpringSwap>
       <PhraseChangeLogDialog open={auditOpen} onClose={() => setAuditOpen(false)} />
     </div>
   );
@@ -144,7 +150,7 @@ function DraftsSubmitBar({
         ]}
       />
       {termFixCount ? (
-        <p data-testid="term-fix-submit-hint" style={{ color: "#9A3412", fontSize: 14 }}>
+        <p data-testid="term-fix-submit-hint" style={{ color: color.status.warning, fontSize: 14 }}>
           Confirm the preferred term on {termFixCount} draft
           {termFixCount === 1 ? "" : "s"} before submit.
         </p>
@@ -197,15 +203,17 @@ function WorkspaceBody({
         onSelect={state.setSelected}
       />
       {state.selected ? (
-        <PhraseDetailPane
-          phrase={state.selected}
-          mode={state.mode}
-          saving={state.saving}
-          error={state.error}
-          onSave={state.handleSave}
-          onPublish={() => void state.handlePublish()}
-          onSendBack={() => void state.handleSendBack()}
-        />
+        <SpringSwap swapKey={state.selected.phrase_key}>
+          <PhraseDetailPane
+            phrase={state.selected}
+            mode={state.mode}
+            saving={state.saving}
+            error={state.error}
+            onSave={state.handleSave}
+            onPublish={() => void state.handlePublish()}
+            onSendBack={() => void state.handleSendBack()}
+          />
+        </SpringSwap>
       ) : null}
     </div>
   );

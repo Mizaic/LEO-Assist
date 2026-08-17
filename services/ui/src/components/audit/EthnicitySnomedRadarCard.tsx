@@ -21,7 +21,7 @@ import Typography from "@mui/material/Typography";
 
 import type { AuditDemographics } from "@/lib/analyticsApi";
 
-const COLOUR_LIVE = "#1D4ED8";
+const COLOUR_LIVE = "#0d46d6";
 const COLOUR_GRID = "#E5E7EB";
 const COLOUR_GRID_BOLD = "#9CA3AF";
 const COLOUR_LABEL = "#4B5563";

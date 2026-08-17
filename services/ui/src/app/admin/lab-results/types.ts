@@ -22,6 +22,7 @@ export interface LabReferenceRange {
   critical_low?: number | null;
   critical_high?: number | null;
   source?: string | null;
+  org_id?: string | null;
 }
 
 export interface LabInterpretation {

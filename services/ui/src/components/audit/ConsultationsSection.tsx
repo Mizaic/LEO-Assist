@@ -52,7 +52,7 @@ import SectionCard from "./SectionCard";
 import EvolutionYearCard, { EvolutionLegendSwatch } from "./EvolutionYearCard";
 import { useAuditYearWindows, BASELINE_YEAR } from "./_useAuditYearWindows";
 
-const ACCENT = "#0F766E";
+const ACCENT = "#9338ff";
 const C_BENCH18 = "#92400E";
 
 // ---------------------------------------------------------------------------

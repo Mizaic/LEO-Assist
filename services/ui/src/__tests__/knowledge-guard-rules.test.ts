@@ -177,6 +177,8 @@ describe("Guard family copy documents every family", () => {
       "checkbox_norm",
       "situation_lookup",
       "term_concept_blocklist",
+      "body_structure_guard",
+      "fact_link_guard",
     ]) {
       expect(src).toMatch(new RegExp(`${family}:`));
     }
@@ -202,6 +204,8 @@ describe("Guard family copy documents every family", () => {
       "checkbox_norm",
       "situation_lookup",
       "term_concept_blocklist",
+      "body_structure_guard",
+      "fact_link_guard",
     ]) {
       expect(catalog).toMatch(new RegExp(`"${family}"`));
     }

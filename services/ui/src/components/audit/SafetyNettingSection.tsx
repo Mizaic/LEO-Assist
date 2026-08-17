@@ -44,7 +44,7 @@ import EvolutionDetailDialog from "./EvolutionDetailDialog";
 import EvolutionYearCard, { EvolutionLegendSwatch } from "./EvolutionYearCard";
 import { useAuditYearWindows, BASELINE_YEAR } from "./_useAuditYearWindows";
 
-const ACCENT = "#1D4ED8";
+const ACCENT = "#0d46d6";
 const C_BENCH18 = "#92400E";
 
 const MIN_EPISODES_FOR_ZERO = 5;
@@ -56,7 +56,7 @@ const SIGNAL_COLOURS: Record<
   string
 > = {
   strong: "#15803D",       // green: defensible "Yes" for NCDA Section 8
-  medium: "#1D4ED8",       // blue: structured PRISM template only
+  medium: "#0d46d6",       // blue: structured PRISM template only
   advice_only: "#C2410C",  // orange: generic "return if X" -- not counted
   none: "#9CA3AF",         // grey: no safety-net evidence in window
 };

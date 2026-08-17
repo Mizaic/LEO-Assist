@@ -42,7 +42,7 @@ const PAGE_SIZE = 20;
 // ---------------------------------------------------------------------------
 
 const CONDITION_ACCENT: Record<string, string> = {
-  lung: "#1E40AF",
+  lung: "#002178",
   breast: "#9D174D",
   prostate: "#6D28D9",
   colorectal: "#B45309",
@@ -51,7 +51,7 @@ const CONDITION_ACCENT: Record<string, string> = {
   upper_gi: "#7C3AED",
   lower_gi: "#B45309",
   gynaecology: "#BE185D",
-  head_and_neck: "#1D4ED8",
+  head_and_neck: "#0d46d6",
   urology: "#4338CA",
 };
 const ALERT_ACCENT = "#B45309";
@@ -411,7 +411,7 @@ export default function PatientListPage() {
     <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400, mx: "auto" }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2.5 }}>
-        <PeopleOutlineIcon sx={{ color: "#1E40AF" }} />
+        <PeopleOutlineIcon sx={{ color: "#002178" }} />
         <Typography variant="h5" component="h1" fontWeight={700}>
           Patients
         </Typography>

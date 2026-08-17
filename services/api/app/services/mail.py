@@ -154,7 +154,7 @@ def _onboarding_body_html(
   </p>
   <p style="margin:24px 0">
     <a href="{accept_url}"
-       style="background:#1565C0;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">
+       style="background:#0d46d6;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">
       Set up my organisation in LEO
     </a>
   </p>
@@ -183,7 +183,7 @@ def _invite_body_html(to_name: str, to_email: str, invited_by: str) -> str:
   </p>
   <p style="margin:24px 0">
     <a href="{_FRONTEND_URL}"
-       style="background:#1565C0;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">
+       style="background:#0d46d6;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;font-weight:bold">
       Sign in to LEO
     </a>
   </p>

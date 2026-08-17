@@ -23,7 +23,7 @@ import { isRole, type Role } from "./types";
 export interface RoleState {
   selectedRole: Role | null;
   allowedRoles: Role[];
-  /** True until the user confirms a role for this browser session (multi-role only). */
+  /** Legacy session flag. Always false now that the role picker is retired. */
   needsSessionRoleChoice: boolean;
 }
 

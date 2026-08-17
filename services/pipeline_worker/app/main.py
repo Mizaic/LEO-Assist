@@ -213,6 +213,12 @@ def _warm_up() -> None:
 
             reg = get_registry()
             count = len(reg.list_subgraphs())
+            if not reg.has("snomed_enrichment"):
+                logger.error(
+                    "Required subgraph 'snomed_enrichment' is not registered. "
+                    "Available: %s",
+                    [item["id"] for item in reg.list_subgraphs()],
+                )
             logger.info(
                 "Pipeline Worker: subgraph registry ready (%d subgraphs)", count
             )

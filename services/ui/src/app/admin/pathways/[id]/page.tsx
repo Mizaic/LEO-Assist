@@ -32,11 +32,8 @@ import Paper from "@mui/material/Paper";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import HistoryIcon from "@mui/icons-material/History";
 import ReplayIcon from "@mui/icons-material/Replay";
@@ -77,7 +74,6 @@ import {
   WIZARD_STEPS_NO_LLM,
   type SubgraphCategory,
 } from "@/components/pathway/config/subgraphs";
-import { TRIGGER_OPTIONS } from "@/components/pathway/config/triggers";
 import { SOURCE_DEFINITIONS, type SourceType } from "@/components/pathway/nodes/SourceNode";
 import { OUTPUT_DEFINITIONS, type OutputType } from "@/components/pathway/nodes/OutputNode";
 import {
@@ -100,6 +96,10 @@ import { PublishDialog } from "./editor/dialogs/PublishDialog";
 import { type PlanLifecycleStatus } from "./editor/utils";
 import { PathwaySaveBar, type SaveBarState } from "./editor/PathwaySaveBar";
 import { PathwayLoadError } from "./editor/PathwayLoadError";
+import { TriggerContextPanel } from "./editor/TriggerContextPanel";
+import { ValidationPanel } from "./editor/ValidationPanel";
+import { WorkflowModeBar } from "./editor/WorkflowModeBar";
+import { color } from "@leo/design-system/tokens";
 import { useDirtyGuard } from "./editor/hooks/useDirtyGuard";
 import { ConditionRuleBuilder } from "@/components/pathway/panel/ConditionRuleBuilder";
 import type { ConditionRule } from "@/components/pathway/config/types";
@@ -2897,126 +2897,6 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TriggerContextPanel({
-  triggerEvent,
-  onTriggerChange,
-  planId,
-  planDescription,
-  onDescriptionChange,
-}: {
-  triggerEvent: string;
-  onTriggerChange: (v: string) => void;
-  planId: string;
-  planDescription: string;
-  onDescriptionChange: (v: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const selected = TRIGGER_OPTIONS.find((t) => t.id === triggerEvent);
-
-  return (
-    <Paper variant="outlined" sx={{ mx: 2, mt: 1 }}>
-      <Box
-        sx={{ px: 2, py: 1, display: "flex", alignItems: "center", gap: 1, cursor: "pointer" }}
-        onClick={() => setExpanded((e) => !e)}
-      >
-        <InfoOutlinedIcon fontSize="small" color="primary" />
-        <Typography variant="subtitle2" sx={{ flex: 1 }}>
-          Pipeline Context &amp; Trigger
-        </Typography>
-        <Chip
-          size="small"
-          icon={<PlayArrowIcon />}
-          label={selected?.label || triggerEvent || "No trigger set"}
-          color={triggerEvent ? "primary" : "default"}
-          variant="outlined"
-        />
-        {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-      </Box>
-
-      {expanded && (
-        <Box sx={{ px: 2, pb: 2 }}>
-          <Divider sx={{ mb: 2 }} />
-          <Stack spacing={2}>
-            <Typography variant="body2" color="text.secondary">
-              Configure what event triggers this pipeline and what context it requires at runtime.
-            </Typography>
-
-            <FormControl fullWidth size="small">
-              <InputLabel>Trigger Event</InputLabel>
-              <Select
-                value={triggerEvent}
-                label="Trigger Event"
-                onChange={(e) => onTriggerChange(e.target.value)}
-              >
-                {TRIGGER_OPTIONS.map((t) => (
-                  <MenuItem key={t.id} value={t.id}>
-                    <Stack>
-                      <Typography variant="body2">{t.label}</Typography>
-                      <Typography variant="caption" color="text.secondary">{t.description}</Typography>
-                    </Stack>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {selected && (
-              <Alert severity="info" icon={false} sx={{ fontSize: "0.8rem" }}>
-                <strong>How it works:</strong> {selected.description}
-              </Alert>
-            )}
-
-            <TextField
-              label="Pipeline description"
-              size="small"
-              fullWidth
-              multiline
-              minRows={2}
-              value={planDescription}
-              onChange={(e) => onDescriptionChange(e.target.value)}
-              helperText="Describe what this pipeline does in plain English. Shown to users on the pathways list."
-            />
-
-            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
-              <Typography variant="caption" fontWeight={600} gutterBottom>
-                Runtime context required
-              </Typography>
-              <Stack spacing={0.5} sx={{ mt: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  When this pipeline is triggered, the runtime automatically provides:
-                </Typography>
-                <Box component="ul" sx={{ m: 0, pl: 2.5, "& li": { fontSize: "0.75rem", color: "text.secondary" } }}>
-                  <li><strong>patient_id</strong> — The patient whose data triggered the event</li>
-                  <li><strong>encounter_id</strong> — The encounter or document being processed</li>
-                  <li><strong>encounter_text</strong> — The raw clinical text from the encounter</li>
-                  <li><strong>organization_id</strong> — The tenant / practice organisation</li>
-                  {triggerEvent === "training-run-requested" && (
-                    <li><strong>training_batch_id</strong> — The batch ID for grouping gold labels</li>
-                  )}
-                  {triggerEvent === "referral-received" && (
-                    <li><strong>referral_document</strong> — The full referral letter text</li>
-                  )}
-                  {triggerEvent === "results-received" && (
-                    <li><strong>diagnostic_report</strong> — The investigation results (lab, imaging, etc.)</li>
-                  )}
-                </Box>
-              </Stack>
-            </Paper>
-
-            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: "grey.50" }}>
-              <Typography variant="caption" fontWeight={600} gutterBottom>
-                API invocation
-              </Typography>
-              <Box sx={{ mt: 1, fontFamily: "monospace", fontSize: "0.7rem", bgcolor: "grey.100", p: 1, borderRadius: 1, overflowX: "auto" }}>
-                POST /fhir/PlanDefinition/{planId}/$apply<br />
-                {`{ "event_type": "${triggerEvent || "..."}", "patient_id": "..." }`}
-              </Box>
-            </Paper>
-          </Stack>
-        </Box>
-      )}
-    </Paper>
-  );
-}
 
 interface ValidationWarning {
   severity: "error" | "warning" | "info";
@@ -3200,50 +3080,6 @@ function useValidationWarnings(
   }, [nodes, edges, nodeConfigs, triggerEvent, workflowMode]);
 }
 
-function ValidationPanel({ warnings }: { warnings: ValidationWarning[] }) {
-  const [expanded, setExpanded] = useState(false);
-  const errorCount = warnings.filter(w => w.severity === "error").length;
-  const warnCount = warnings.filter(w => w.severity === "warning").length;
-  const allGood = errorCount === 0 && warnCount === 0;
-
-  return (
-    <Paper variant="outlined" sx={{ mx: 2, mt: 1 }}>
-      <Box
-        sx={{ px: 2, py: 1, display: "flex", alignItems: "center", gap: 1, cursor: "pointer" }}
-        onClick={() => setExpanded(e => !e)}
-      >
-        {allGood ? (
-          <CheckCircleOutlineIcon fontSize="small" color="success" />
-        ) : (
-          <WarningAmberIcon fontSize="small" color={errorCount > 0 ? "error" : "warning"} />
-        )}
-        <Typography variant="subtitle2" sx={{ flex: 1 }}>
-          Pipeline Validation
-        </Typography>
-        {errorCount > 0 && <Chip size="small" label={`${errorCount} error${errorCount > 1 ? "s" : ""}`} color="error" variant="outlined" />}
-        {warnCount > 0 && <Chip size="small" label={`${warnCount} warning${warnCount > 1 ? "s" : ""}`} color="warning" variant="outlined" sx={{ ml: 0.5 }} />}
-        {allGood && <Chip size="small" label="Valid" color="success" variant="outlined" />}
-        {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-      </Box>
-      {expanded && (
-        <Box sx={{ px: 2, pb: 2 }}>
-          <Divider sx={{ mb: 1 }} />
-          <Stack spacing={0.5}>
-            {warnings.map((w, i) => (
-              <Alert
-                key={i}
-                severity={w.severity}
-                sx={{ py: 0, fontSize: "0.78rem", "& .MuiAlert-message": { py: 0.5 } }}
-              >
-                {w.message}
-              </Alert>
-            ))}
-          </Stack>
-        </Box>
-      )}
-    </Paper>
-  );
-}
 
 interface VersionEntry {
   versionId: number;
@@ -5078,7 +4914,8 @@ export default function PathwayBuilderPage() {
   );
 
   return (
-    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column", background: color.surface.canvas }}>
+      <div data-testid="pathway-editor-chrome">
       <PathwayToolbar
         planName={planName}
         onPlanNameChange={setPlanName}
@@ -5120,6 +4957,7 @@ export default function PathwayBuilderPage() {
           setDeleteDialogOpen(true);
         }}
       />
+      </div>
 
       {loadError ? (
         <PathwayLoadError
@@ -5140,47 +4978,25 @@ export default function PathwayBuilderPage() {
         onDescriptionChange={setPlanDescription}
       />
 
-      <Paper variant="outlined" sx={{ mx: 2, mt: 1, p: 1.5, borderRadius: 2 }}>
-        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel id="workflow-mode-label">Workflow mode</InputLabel>
-            <Select
-              labelId="workflow-mode-label"
-              label="Workflow mode"
-              value={workflowMode}
-              onChange={(event) => {
-                const value = event.target.value === "durable_pubsub"
-                  ? "durable_pubsub"
-                  : "legacy_in_process";
-                setWorkflowMode(value);
-              }}
-            >
-              <MenuItem value="legacy_in_process">Legacy in-process</MenuItem>
-              <MenuItem value="durable_pubsub">Durable pub/sub</MenuItem>
-            </Select>
-          </FormControl>
-          <Box sx={{ flex: 1, minWidth: 280 }}>
-            <Typography variant="body2" fontWeight={700}>
-              {workflowMode === "durable_pubsub"
-                ? "Edges publish the next event after a persisted stage completes."
-                : "Edges pass in-memory state from one subgraph to the next."}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Durable mode shows graph loads, persisted artefacts, idempotency, and retry metadata for each step.
-            </Typography>
-          </Box>
-          <Chip
-            size="small"
-            color={workflowMode === "durable_pubsub" ? "info" : "default"}
-            label={workflowMode === "durable_pubsub" ? "Durable" : "Legacy"}
-          />
-        </Stack>
-      </Paper>
+      <WorkflowModeBar
+        workflowMode={workflowMode}
+        onChange={setWorkflowMode}
+      />
 
       <ValidationPanel warnings={validationWarnings} />
 
       {selectedNode && (
-        <Paper variant="outlined" sx={{ mx: 2, mt: 1, p: 1.5, borderRadius: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{
+            mx: 2,
+            mt: 1,
+            p: 1.5,
+            borderRadius: 2,
+            borderColor: "text.secondary",
+            bgcolor: "background.paper",
+          }}
+        >
           <Stack direction="row" spacing={2} alignItems="flex-start" sx={{ flexWrap: "wrap" }}>
             <Box sx={{ minWidth: 220 }}>
               <Typography variant="caption" color="text.secondary">Selected step</Typography>
@@ -5252,7 +5068,7 @@ export default function PathwayBuilderPage() {
         </Paper>
       )}
 
-      <Box sx={{ flex: 1, minHeight: 0 }}>
+      <Box sx={{ flex: 1, minHeight: 0, background: color.surface.canvas }}>
         <PipelineTestContext.Provider value={{
           testTrace,
           runningStepId,
@@ -5275,7 +5091,7 @@ export default function PathwayBuilderPage() {
             onConnect={onConnect}
             fitView
           >
-            <Background />
+            <Background color={color.text.disabled} gap={20} size={1} />
             <Controls />
             <MiniMap />
           </ReactFlow>

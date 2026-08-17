@@ -1,9 +1,10 @@
 """Ontology-aware relation policy helpers.
 
 Atlas trace:
-  DO: DO-236545C8
-  DI: DI-2D9F5064
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-236545C8")
+  DO: DO-8E641A9E
+  Also: DO-236545C8
+  DI: DI-6ACD24D2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8E641A9E")
 
 This module centralises relation allowlists and compatibility checks used by:
 - gold review UI/API validation
@@ -13,7 +14,10 @@ This module centralises relation allowlists and compatibility checks used by:
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 def _norm(value: str | None) -> str:
@@ -62,16 +66,73 @@ RELATION_POLICY_RULES: tuple[RelationRule, ...] = (
         snomed_relationships=("METHOD", "HAS_INTERPRETATION", "ASSOCIATED_FINDING"),
         severity="warning",
     ),
+    RelationRule(
+        source=("finding", "disorder", "situation"),
+        target=("substance", "product"),
+        relation_type="causative_agent",
+        snomed_relationships=("CAUSATIVE_AGENT",),
+    ),
 )
 
-_ALLOWED_RELATION_TYPES: frozenset[str] = frozenset(
+_POLICY_RELATION_TYPES: frozenset[str] = frozenset(
     rule.relation_type for rule in RELATION_POLICY_RULES
 )
+DEFAULT_RUNTIME_RELATION_TYPES: frozenset[str] = frozenset(
+    {
+        "finding_site",
+        "interprets",
+        "component_of",
+        "causative_agent",
+    }
+)
+_runtime_extra: frozenset[str] = frozenset()
+_fact_link_loaded = False
+
+
+def policy_relation_types() -> frozenset[str]:
+    """All types gold review and extraction-check may still store."""
+    return _POLICY_RELATION_TYPES
 
 
 def allowed_relation_types() -> frozenset[str]:
-    """Return relation types accepted by policy."""
-    return _ALLOWED_RELATION_TYPES
+    """Relation types the runtime linker may apply."""
+    _ensure_fact_link_loaded()
+    return DEFAULT_RUNTIME_RELATION_TYPES | _runtime_extra
+
+
+def _fetch_fact_link_rows() -> list[dict]:
+    try:
+        from libs.pipeline.config_loader import _fetch_neo4j_rules
+
+        return _fetch_neo4j_rules("fact_link_guard")
+    except Exception:
+        logger.warning(
+            "Could not fetch Neo4j fact-link guard rules -- using defaults",
+            exc_info=True,
+        )
+        return []
+
+
+def reload_fact_link_guard() -> None:
+    """Add custom allowed_relation patterns from Neo4j to the runtime set."""
+    global _runtime_extra, _fact_link_loaded
+    extras: set[str] = set()
+    for row in _fetch_fact_link_rows():
+        if not row.get("active", True):
+            continue
+        if str(row.get("rule_type") or "") != "allowed_relation":
+            continue
+        rel = _norm(str(row.get("pattern") or ""))
+        if rel:
+            extras.add(rel)
+    _runtime_extra = frozenset(extras)
+    _fact_link_loaded = True
+    logger.info("Fact-link guard reloaded: %d extra types", len(_runtime_extra))
+
+
+def _ensure_fact_link_loaded() -> None:
+    if not _fact_link_loaded:
+        reload_fact_link_guard()
 
 
 def _match_label(label: str, candidates: tuple[str, ...]) -> bool:
@@ -115,9 +176,13 @@ def canonicalise_relations(
             continue
         rel_type = _norm(raw.get("type"))
         target_idx = raw.get("target_idx")
-        if rel_type not in _ALLOWED_RELATION_TYPES:
+        if rel_type not in _POLICY_RELATION_TYPES:
             continue
-        if not isinstance(target_idx, int) or target_idx < 0 or target_idx >= entities_count:
+        if (
+            not isinstance(target_idx, int)
+            or target_idx < 0
+            or target_idx >= entities_count
+        ):
             continue
         confidence = float(raw.get("confidence") or 0.6)
         row = {

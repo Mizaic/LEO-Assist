@@ -222,19 +222,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       what: "Sign-off is logged for ISO 13485 design-change evidence. Approve, then compile on this page so patients see it.",
     },
     platform_admin: {
-      title: "Guideline scope per tenant",
-      lede: "Which tenants have which rule sets switched on.",
-      how: "Pick a tenant. Toggle a rule set. Review impact.",
-      what: "Large tenants often pin rule sets to their local pathway.",
+      title: "Clinical Guidelines",
+      lede: "Load a guideline, check the rules, then compile them.",
+      how: "Use the bar to move through Load, Inspect, Review, and Compile.",
+      what: "Patients only see approved rules after you compile.",
     },
   },
 
   pathways: {
     default: {
       title: "Pathways",
-      lede: "Durable workflows made from reusable clinical processing steps.",
-      how: "Open a pathway, check each step's event, graph inputs, and saved outputs.",
-      what: "LEO runs each step independently and records what it produced.",
+      lede: "The steps LEO follows for a condition.",
+      how: "Open a pathway. Check each step. Publish when it is ready.",
+      what: "A live pathway is what LEO uses for the next patient.",
     },
     triage_clinician: {
       title: "Patient pathways",
@@ -322,8 +322,8 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
     },
     platform_admin: {
       title: "Validation Lab",
-      lede: "Find a patient and check how LEO read their letter.",
-      how: "Search by NHS number or referral number, or pick someone from the list.",
+      lede: "Start with a product non-conformance, then check how LEO read the letter.",
+      how: "Open or find the NCR first, then find the patient, run gold cases, or build a new test.",
       what: "You can mark what went wrong. This does not start a new job.",
     },
   },

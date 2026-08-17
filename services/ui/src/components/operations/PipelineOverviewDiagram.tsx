@@ -80,7 +80,7 @@ const ROWS = [75, 160, 245, 330, 415];
 const R = 22;
 const VB_W = 960;
 const VB_H = 550;
-const FONT = "'DM Sans',system-ui,sans-serif";
+const FONT = "'Albert Sans',system-ui,sans-serif";
 
 const INTERCHANGE = new Set(["c2", "c5", "a1", "a5", "t1", "t5"]);
 

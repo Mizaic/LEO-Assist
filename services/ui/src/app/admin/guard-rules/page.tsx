@@ -5,27 +5,28 @@
  *
  * Atlas trace:
  *   Implements: DO-6413D5BC (configurable guard rule conversions)
- *   DI: DI-34712A9A
+ *   DI: DI-34712A9A, DI-C5A523A7
  */
 "use client";
 
 import type { ReactNode } from "react";
+import { useId } from "react";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
-import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import Grid from "@mui/material/Grid";
-import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
 import {
   EmptyState,
   FilterBar,
+  frostStyle,
+  SpringSwap,
+  StickyChrome,
   ToolbarActions,
+  useReducedTransparency,
 } from "@leo/design-system";
+import { color, elevation } from "@leo/design-system/tokens";
 
+import { GuardDialogTitleBar } from "./GuardDialogTitleBar";
 import GuardEditorPanel from "./GuardEditorPanel";
 import GuardFamilyCard from "./GuardFamilyCard";
 import GuardFamilyDialog from "./GuardFamilyDialog";
@@ -51,31 +52,41 @@ function GuardRulesToolbar({
   onAdd: () => void;
 }) {
   return (
-    <Stack direction="row" spacing={1.5} sx={{ mb: 2.5, flexWrap: "wrap" }} alignItems="center">
-      <Box sx={{ flex: 1, minWidth: 240 }}>
-        <FilterBar
-          search={search}
-          onSearchChange={onSearchChange}
-          searchPlaceholder="Search patterns..."
-          aria-label="Search guard rules"
-          chips={GUARD_FAMILIES.map((family) => ({
-            id: family.value,
-            label: family.label,
-            active: familyFilter === family.value,
-            onToggle: () => onFamilyChange(family.value),
-          }))}
+    <StickyChrome testId="guard-rules-chrome">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <FilterBar
+            search={search}
+            onSearchChange={onSearchChange}
+            searchPlaceholder="Search patterns..."
+            aria-label="Search guard rules"
+            chips={GUARD_FAMILIES.map((family) => ({
+              id: family.value,
+              label: family.label,
+              active: familyFilter === family.value,
+              onToggle: () => onFamilyChange(family.value),
+            }))}
+          />
+        </div>
+        <ToolbarActions
+          actions={[{
+            id: "add-rule",
+            label: "Add rule",
+            icon: <AddIcon fontSize="small" />,
+            variant: "primary",
+            onClick: onAdd,
+          }]}
         />
-      </Box>
-      <ToolbarActions
-        actions={[{
-          id: "add-rule",
-          label: "Add rule",
-          icon: <AddIcon fontSize="small" />,
-          variant: "primary",
-          onClick: onAdd,
-        }]}
-      />
-    </Stack>
+      </div>
+    </StickyChrome>
   );
 }
 
@@ -98,19 +109,47 @@ function FamilyCardGrid({
   onOpen: (key: string, firstRule?: NerGuardRule | null) => void;
 }) {
   return (
-    <Grid container spacing={2}>
+    <div
+      data-testid="guard-rules-grid"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+        gap: 16,
+      }}
+    >
       {cards.map((key, index) => (
-        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
-          <GuardFamilyCard
-            copy={GUARD_FAMILY_COPY[key]}
-            rules={filtered.filter((rule) => rule.family === key)}
-            index={index}
-            onOpen={() => onOpen(key, filtered.find((rule) => rule.family === key))}
-          />
-        </Grid>
+        <GuardFamilyCard
+          key={key}
+          copy={GUARD_FAMILY_COPY[key]}
+          rules={filtered.filter((rule) => rule.family === key)}
+          index={index}
+          onOpen={() => onOpen(key, filtered.find((rule) => rule.family === key))}
+        />
       ))}
-    </Grid>
+    </div>
   );
+}
+
+function addDialogSlots(frost: ReturnType<typeof frostStyle>) {
+  return {
+    backdrop: {
+      sx: {
+        backgroundColor: color.surface.overlay,
+        backdropFilter: frost.backdropFilter === "none" ? "none" : "blur(16px)",
+      },
+    },
+    paper: {
+      sx: {
+        borderRadius: "16px",
+        overflow: "hidden",
+        boxShadow: elevation.modal,
+        background: frost.background,
+        backdropFilter: frost.backdropFilter,
+        WebkitBackdropFilter: frost.WebkitBackdropFilter,
+        border: "1px solid rgba(255, 255, 255, 0.7)",
+      },
+    },
+  };
 }
 
 function AddRuleDialog({
@@ -122,19 +161,19 @@ function AddRuleDialog({
   onClose: () => void;
   editor: ReactNode;
 }) {
+  const titleId = useId();
+  const frost = frostStyle(useReducedTransparency(), "pane");
   if (!open) return null;
   return (
-    <Dialog open onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ pr: 6 }}>
-        Add guard rule
-        <IconButton
-          aria-label="Close"
-          onClick={onClose}
-          sx={{ position: "absolute", right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+    <Dialog
+      open
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      aria-labelledby={titleId}
+      slotProps={addDialogSlots(frost)}
+    >
+      <GuardDialogTitleBar titleId={titleId} title="Add guard rule" onClose={onClose} />
       <DialogContent dividers>{editor}</DialogContent>
     </Dialog>
   );
@@ -160,7 +199,7 @@ export default function GuardRulesPage() {
   const page = useGuardRulesPage();
   const editor = boundEditor(page);
   return (
-    <Box>
+    <div data-testid="guard-rules-workspace">
       <GuardRulesToolbar
         search={page.search}
         familyFilter={page.familyFilter}
@@ -179,7 +218,9 @@ export default function GuardRulesPage() {
           }
         />
       ) : (
-        <FamilyCardGrid cards={page.cards} filtered={page.filtered} onOpen={page.openFamily} />
+        <SpringSwap swapKey={page.familyFilter + ":" + page.search}>
+          <FamilyCardGrid cards={page.cards} filtered={page.filtered} onOpen={page.openFamily} />
+        </SpringSwap>
       )}
       {page.openCopy && (
         <GuardFamilyDialog
@@ -192,6 +233,6 @@ export default function GuardRulesPage() {
         />
       )}
       <AddRuleDialog open={page.addingNew} onClose={page.cancelAdd} editor={editor} />
-    </Box>
+    </div>
   );
 }

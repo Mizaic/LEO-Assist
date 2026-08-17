@@ -11,7 +11,8 @@ describe("VT-126 - @leo/design-system resolution", () => {
     expect(tokens.radius.md).toBe(12);
     expect(tokens.motion.default.duration).toBe(180);
     expect(tokens.color.text.primary).toBe("#0F172A");
-    expect(tokens.typography.fontFamily.body).toContain("DM Sans");
+    expect(tokens.typography.fontFamily.body).toContain("Albert Sans");
+    expect(tokens.typography.fontFamily.heading).toContain("Overpass");
     expect(tokens.density.touchTargetMin).toBe(44);
   });
 

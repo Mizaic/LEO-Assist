@@ -15,8 +15,9 @@ import jsPDF from "jspdf";
 import autoTable, { type CellHookData, type HookData } from "jspdf-autotable";
 
 // -- Theme colours (matches services/ui/src/theme.ts) -----------------------
-const PRIMARY   = "#1F3A8A";  // navy
-const LIGHT_BG  = "#F0F4FF";  // pale navy tint for built-in rows
+const PRIMARY   = "#0d46d6";
+const NAVY      = "#00093b";
+const LIGHT_BG  = "#F0F4FF";
 const GREY_TEXT = "#596577";
 const WHITE     = "#FFFFFF";
 
@@ -55,16 +56,6 @@ export interface ContextRuleForExport {
 
 export type FilterView = "all" | "builtin" | "custom";
 
-// -- Logo drawn with primitives (navy circle + "LEO" text) ------------------
-function drawLogo(doc: jsPDF, x: number, y: number, r: number) {
-  doc.setFillColor(PRIMARY);
-  doc.circle(x, y, r, "F");
-  doc.setTextColor(WHITE);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(r * 3.2);
-  doc.text("LEO", x, y + r * 1.1, { align: "center", baseline: "bottom" });
-}
-
 // -- Per-page header --------------------------------------------------------
 function drawHeader(
   doc: jsPDF,
@@ -76,18 +67,15 @@ function drawHeader(
 ) {
   const w = doc.internal.pageSize.getWidth();
 
-  // navy band across the top
-  doc.setFillColor(PRIMARY);
+  doc.setFillColor(NAVY);
   doc.rect(0, 0, w, HEADER_H, "F");
 
-  // logo circle
-  drawLogo(doc, MARGIN - 2, HEADER_H / 2, 4.5);
-
-  // title
   doc.setTextColor(WHITE);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("LEO by Mizaic", MARGIN, HEADER_H / 2 - 2.2, { baseline: "middle" });
   doc.setFontSize(11);
-  doc.text("Context Rules", MARGIN + 8, HEADER_H / 2 - 1, { baseline: "middle" });
+  doc.text("Context Rules", MARGIN, HEADER_H / 2 + 2.4, { baseline: "middle" });
 
   // sub-title (filter label)
   const filterLabel: Record<FilterView, string> = {
@@ -97,7 +85,7 @@ function drawHeader(
   };
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(filterLabel[filter], MARGIN + 8, HEADER_H / 2 + 3.5, { baseline: "middle" });
+  doc.text(filterLabel[filter], MARGIN + 42, HEADER_H / 2 + 2.4, { baseline: "middle" });
 
   // right-hand meta block
   doc.setFontSize(7.5);

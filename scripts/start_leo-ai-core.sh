@@ -454,8 +454,9 @@ if [[ "$NO_WORKERS" -eq 0 ]] && should_start "pipeline_worker"; then
     pipeline_ports+=("$worker_port")
     agent_idx=$(( (i - 1) % ${#pipeline_agent_names[@]} ))
     agent_name="${pipeline_agent_names[$agent_idx]}"
+    kill_listener_on_port "$worker_port" "Pipeline Worker ${agent_name}"
     start_service_window "Pipeline Worker ${agent_name} :${worker_port}" \
-      "export PIPELINE_WORKER_PORT='${worker_port}'; export PIPELINE_WORKER_NAME='${agent_name}'; '$VENV_PYTHON' -m uvicorn services.pipeline_worker.app.main:app --host 0.0.0.0 --port ${worker_port} --log-level info"
+      "export PIPELINE_WORKER_PORT='${worker_port}'; export PIPELINE_WORKER_NAME='${agent_name}'; '$VENV_PYTHON' -m uvicorn services.pipeline_worker.app.main:app --reload --reload-dir services/pipeline_worker --reload-dir libs --host 0.0.0.0 --port ${worker_port} --log-level info"
     worker_port=$((worker_port + 1))
   done
   echo "    Pipeline Workers   (x${PIPELINE_WORKERS} - HTTP :${pipeline_ports[*]} + message bus)"

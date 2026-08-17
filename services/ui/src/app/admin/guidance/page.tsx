@@ -22,20 +22,18 @@
  * Design Controls: DI-LEO-AI-149, DO-LEO-AI-145, VT-LEO-AI-147.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion as fm } from "framer-motion";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Collapse from "@mui/material/Collapse";
-import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { AnimatePresence } from "framer-motion";
+import AddIcon from "@mui/icons-material/Add";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-
-import { SegmentedTabs, StatHero, useMotion, type StatTile } from "@leo/design-system";
+import {
+  SegmentedTabs,
+  SpringSwap,
+  StatHero,
+  StickyChrome,
+  ToolbarActions,
+  type ToolbarAction,
+} from "@leo/design-system";
+import { color, typography } from "@leo/design-system/tokens";
 
 import CoachTour from "@/components/ui/CoachTour";
 
@@ -43,393 +41,254 @@ import NiceLoaderSection from "./NiceLoaderSection";
 import LoadedGuidelinesPanel from "./LoadedGuidelinesPanel";
 import RuleReviewSection from "./RuleReviewSection";
 import BitmapLifecycleSection from "./BitmapLifecycleSection";
-import GuidelineBuilderSplash, {
-  GUIDANCE_SPLASH_SESSION_KEY,
-} from "./GuidelineBuilderSplash";
+import GuidelineBuilderSplash from "./GuidelineBuilderSplash";
 import LocalGuidelineImportDialog from "./LocalGuidelineImportDialog";
+import { PAGE_TOUR_STEPS } from "./guidanceTourSteps";
+import { StepCard } from "./GuidanceStepCard";
 import {
-  PAGE_TOUR_STEPS,
-  pageTourJumpForStep,
-  type TourStep,
-} from "./guidanceTourSteps";
-import { popSpring, staggerDelay } from "./motionPresets";
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
-type StepId = "load" | "inspect" | "review" | "compile";
-
-interface StepCardProps {
-  id: string;
-  step?: number;
-  title: string;
-  description: string;
-  accent: string;
-  index: number;
-  reducedMotion: boolean;
-  /** Controlled open state; defaults closed when omitted. */
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  /** IFU CoachTour / Playwright screenshot anchor id. */
-  dataTour?: string;
-  children: React.ReactNode;
-}
-
-function StepCard({
-  id,
-  step,
-  title,
-  description,
-  accent,
-  index,
-  reducedMotion,
-  open,
-  onOpenChange,
-  dataTour,
-  children,
-}: StepCardProps) {
-  return (
-    <fm.section
-      id={id}
-      aria-labelledby={`${id}-title`}
-      data-tour={dataTour}
-      initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 26, scale: 0.96 }}
-      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-      transition={popSpring(reducedMotion, staggerDelay(index, 0.08, 6))}
-      style={{ position: "relative", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 12, padding: 22, marginBottom: 20 }}
-    >
-          <span aria-hidden="true" style={{ position: "absolute", left: 0, top: 18, bottom: 18, width: 3, borderRadius: 2, background: accent, }} />
-      <Stack
-        component="button"
-        type="button"
-        direction="row"
-        alignItems="flex-start"
-        spacing={1.5}
-        onClick={() => onOpenChange(!open)}
-        aria-expanded={open}
-        aria-controls={`${id}-body`}
-        sx={{
-          mb: open ? 2 : 0,
-          width: "100%",
-          p: 0,
-          border: "none",
-          bgcolor: "transparent",
-          textAlign: "left",
-          cursor: "pointer",
-          "&:focus-visible": {
-            outline: "2px solid",
-            outlineColor: "primary.main",
-            outlineOffset: 2,
-            borderRadius: 1,
-          },
-        }}
-      >
-        {step != null ? (
-          <Box aria-hidden="true" sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: accent, color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.78rem", flexShrink: 0, mt: 0.25 }}>
-            {step}
-          </Box>
-        ) : null}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography id={`${id}-title`} variant="h6" component="h2" sx={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.3, mb: 0.4 }}>
-            {title}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.82rem", lineHeight: 1.5 }}>
-            {description}
-          </Typography>
-        </Box>
-        <Box
-          aria-hidden
-          sx={{
-            mt: 0.25,
-            display: "inline-flex",
-            color: "text.secondary",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 160ms ease",
-          }}
-        >
-          <ExpandMoreRoundedIcon fontSize="small" />
-        </Box>
-      </Stack>
-      <Collapse in={open} timeout={reducedMotion ? 0 : "auto"}>
-        <Box id={`${id}-body`}>
-          <Divider sx={{ mb: 2 }} />
-          {children}
-        </Box>
-      </Collapse>
-    </fm.section>
-  );
-}
-
-const STEP_SECTION_IDS: Record<StepId, string> = {
-  load: "nice-loader",
-  inspect: "loaded-guidelines",
-  review: "rule-review",
-  compile: "bitmap-lifecycle",
-};
-
-const STEP_TABS: ReadonlyArray<{ id: StepId; label: string; href: string }> = [
-  { id: "load", label: "1. Load", href: "#nice-loader" },
-  { id: "inspect", label: "Inspect", href: "#loaded-guidelines" },
-  { id: "review", label: "2. Review", href: "#rule-review" },
-  { id: "compile", label: "3. Compile", href: "#bitmap-lifecycle" },
-];
-
-interface PageStats {
-  guidelinesLoaded: number;
-  rulesPending: number;
-  rulesApproved: number;
-  activeBitmapVersion: string;
-}
-
-async function fetchPageStats(): Promise<PageStats> {
-  const [loadedResp, bitmapResp] = await Promise.allSettled([
-    fetch("/api/nice/loaded"),
-    fetch("/api/terminology/guidelines/bitmap/status?scope_type=global&scope_id=default"),
-  ]);
-
-  let guidelinesLoaded = 0;
-  let rulesPending = 0;
-  let rulesApproved = 0;
-  let activeBitmapVersion = "--";
-
-  if (loadedResp.status === "fulfilled" && loadedResp.value.ok) {
-    const data = (await loadedResp.value.json()) as Array<{ rules_pending?: number; rules_approved?: number }>;
-    guidelinesLoaded = data.length;
-    rulesPending = data.reduce((s, g) => s + (g.rules_pending ?? 0), 0);
-    rulesApproved = data.reduce((s, g) => s + (g.rules_approved ?? 0), 0);
-  }
-  if (bitmapResp.status === "fulfilled" && bitmapResp.value.ok) {
-    const bm = (await bitmapResp.value.json()) as { active_version?: string | null };
-    if (bm.active_version) activeBitmapVersion = bm.active_version;
-  }
-  return { guidelinesLoaded, rulesPending, rulesApproved, activeBitmapVersion };
-}
+  STEP_TABS,
+  useGuidancePage,
+  type StepId,
+} from "./useGuidancePage";
 
 export default function GuidancePage() {
-  const [loadedRefreshKey, setLoadedRefreshKey] = useState(0);
-  const [ruleRefreshKey, setRuleRefreshKey] = useState(0);
-  const [bitmapRefreshKey, setBitmapRefreshKey] = useState(0);
-  const [activeStep, setActiveStep] = useState<StepId>("load");
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-  const [stats, setStats] = useState<PageStats>({ guidelinesLoaded: 0, rulesPending: 0, rulesApproved: 0, activeBitmapVersion: "--" });
-  const [showSplash, setShowSplash] = useState(false);
-  const [showLocalImport, setShowLocalImport] = useState(false);
-  const [tourActive, setTourActive] = useState(false);
-  const { reducedMotion } = useMotion();
-
-  const isSectionOpen = useCallback(
-    (sectionId: string) => openSections[sectionId] === true,
-    [openSections],
-  );
-
-  const setSectionOpen = useCallback((sectionId: string, open: boolean) => {
-    setOpenSections((prev) => ({ ...prev, [sectionId]: open }));
-  }, []);
-
-  useEffect(() => {
-    fetchPageStats().then(setStats).catch(() => {});
-  }, [loadedRefreshKey, ruleRefreshKey, bitmapRefreshKey]);
-
-  useEffect(() => {
-    try {
-      if (!sessionStorage.getItem(GUIDANCE_SPLASH_SESSION_KEY)) {
-        setShowSplash(true);
-      }
-    } catch {
-      // sessionStorage unavailable (e.g. private browsing) -- skip splash.
-    }
-  }, []);
-
-  const dismissSplash = useCallback(() => {
-    try {
-      sessionStorage.setItem(GUIDANCE_SPLASH_SESSION_KEY, "1");
-    } catch {
-      // Best-effort only; not seeing the splash again is not safety-relevant.
-    }
-    setShowSplash(false);
-  }, []);
-
-  const statTiles: StatTile[] = [
-    { id: "loaded", label: "Guidelines loaded", value: stats.guidelinesLoaded },
-    { id: "pending", label: "Rules pending", value: stats.rulesPending },
-    { id: "approved", label: "Rules approved", value: stats.rulesApproved },
-    { id: "bitmap", label: "Active bitmap version", value: stats.activeBitmapVersion },
-  ];
-
-  const handleJump = useCallback((id: string) => {
-    const stepId = id as StepId;
-    setActiveStep(stepId);
-    const sectionId = STEP_SECTION_IDS[stepId];
-    if (sectionId) setSectionOpen(sectionId, true);
-    const target = STEP_TABS.find((t) => t.id === id);
-    if (!target) return;
-    window.setTimeout(() => {
-      const el = document.querySelector(target.href);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
-  }, [setSectionOpen]);
-
-  const preparePageTourStep = useCallback(
-    async (step: TourStep) => {
-      const jump = pageTourJumpForStep(step.id);
-      if (jump) handleJump(jump);
-      await delay(120);
-      if (jump === "review") {
-        const closed = document.querySelector(
-          '[data-testid="rule-pool-pending"] button[aria-expanded="false"]',
-        );
-        if (closed instanceof HTMLElement) closed.click();
-        await delay(80);
-      }
-      if (step.id === "cg-05-card") {
-        const card = document.querySelector('[data-tour="cg-05-card"]');
-        if (!card) return false;
-      }
-      return true;
-    },
-    [handleJump],
-  );
-
-  const finishPageTour = useCallback(() => setTourActive(false), []);
-
+  const page = useGuidancePage();
   return (
-    <Box>
+    <div data-testid="clinical-guidelines-workspace">
       <AnimatePresence>
-        {showSplash && <GuidelineBuilderSplash key="guidance-splash" onDismiss={dismissSplash} />}
+        {page.showSplash ? (
+          <GuidelineBuilderSplash key="guidance-splash" onDismiss={page.dismissSplash} />
+        ) : null}
       </AnimatePresence>
-
-      {/* -- Summary hero ------------------------------------------------- */}
-      <Box sx={{ mb: 2 }}>
-        <StatHero stats={statTiles} />
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }} flexWrap="wrap">
-          <Tooltip title="Paste a local guideline into the knowledge graph so you can make rules from it.">
-            <span>
-              <Button variant="contained" onClick={() => setShowLocalImport(true)}>
-                Import local guideline
-              </Button>
-            </span>
-          </Tooltip>
-          <Button
-            variant="text"
-            size="small"
-            onClick={() => setTourActive(true)}
-            aria-label="Take the guideline tab tour"
-            data-testid="guidance-tour-trigger"
-          >
-            Guide me
-          </Button>
-          <Tooltip title="Replay the guideline tab tour from the start.">
-            <IconButton
-              size="small"
-              onClick={() => setTourActive(true)}
-              aria-label="Replay the guideline tab tour"
-              data-testid="coach-tour-replay"
-            >
-              <ReplayRoundedIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Box>
+      <StatHero stats={page.statTiles} />
+      <GuidanceChrome page={page} />
       <CoachTour
         tourId="guidance-page"
         steps={PAGE_TOUR_STEPS}
-        active={tourActive}
-        onFinish={finishPageTour}
-        prepareStep={preparePageTourStep}
+        active={page.tourActive}
+        onFinish={page.finishPageTour}
+        prepareStep={page.preparePageTourStep}
       />
       <LocalGuidelineImportDialog
-        open={showLocalImport}
-        onClose={() => setShowLocalImport(false)}
+        open={page.showLocalImport}
+        onClose={() => page.setShowLocalImport(false)}
         onImported={() => {
-          setLoadedRefreshKey((n) => n + 1);
-          setActiveStep("inspect");
-          setSectionOpen("loaded-guidelines", true);
-          window.setTimeout(() => {
-            document
-              .querySelector("#loaded-guidelines")
-              ?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }, 100);
+          page.setLoadedRefreshKey((n) => n + 1);
+          page.setActiveStep("inspect");
         }}
       />
+      <SpringSwap swapKey={page.activeStep}>
+        <GuidanceStepBody page={page} />
+      </SpringSwap>
+    </div>
+  );
+}
 
-      {/* -- Jump strip --------------------------------------------------- */}
-      <Box
-        data-testid="guidance-jump-strip"
-        data-tour="cg-01-jump"
-        sx={{ position: "sticky", top: 0, zIndex: 5, mb: 2, py: 1, bgcolor: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid", borderColor: "divider" }}
-      >
-        <SegmentedTabs
-          tabs={STEP_TABS.map((t) => ({ id: t.id, label: t.label }))}
-          value={activeStep}
-          onChange={handleJump}
-          aria-label="Jump to guidance workflow step"
-        />
-      </Box>
+function GuidanceChrome({ page }: { page: ReturnType<typeof useGuidancePage> }) {
+  const actions: ToolbarAction[] = [
+    {
+      id: "import-local",
+      label: "Import local guideline",
+      icon: <AddIcon fontSize="small" />,
+      variant: "primary",
+      onClick: () => page.setShowLocalImport(true),
+    },
+  ];
+  return (
+    <StickyChrome testId="guidance-jump-strip">
+      <div data-tour="cg-01-jump" style={{ position: "sticky" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <ToolbarActions actions={actions} />
+          <TourButtons onStart={() => page.setTourActive(true)} />
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <p
+            style={{
+              margin: "0 0 6px",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: typography.letterSpacing.caption,
+              color: color.text.secondary,
+              fontFamily: typography.fontFamily.body,
+            }}
+          >
+            Choose a step
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <SegmentedTabs
+              tabs={STEP_TABS.map((t) => ({ id: t.id, label: t.label }))}
+              value={page.activeStep}
+              onChange={page.handleJump}
+              aria-label="Jump to guidance workflow step"
+            />
+            <NextStepButton step={page.activeStep} onJump={page.handleJump} />
+          </div>
+        </div>
+        <p style={{ margin: "10px 0 0", fontSize: 13, color: color.text.secondary, fontFamily: typography.fontFamily.body }}>
+          {stepHint(page.activeStep)}
+        </p>
+      </div>
+    </StickyChrome>
+  );
+}
 
-      {/* -- Step 1: Load ------------------------------------------------- */}
-      <StepCard
-        id="nice-loader"
-        index={0}
-        step={1}
-        title="Find and load a guideline"
-        description="Search by condition name or type a NICE code directly. Loading brings the guideline into the system."
-        accent="#1F3A8A"
-        reducedMotion={reducedMotion}
-        open={isSectionOpen("nice-loader")}
-        onOpenChange={(open) => setSectionOpen("nice-loader", open)}
-        dataTour="cg-02-load"
+function TourButtons({ onStart }: { onStart: () => void }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <button
+        type="button"
+        onClick={onStart}
+        aria-label="Take the guideline tab tour"
+        data-testid="guidance-tour-trigger"
+        style={{
+          border: 0,
+          background: "transparent",
+          cursor: "pointer",
+          color: color.brand.primary,
+          fontWeight: 600,
+          fontFamily: typography.fontFamily.body,
+        }}
       >
-        <NiceLoaderSection onGuidelineLoaded={() => setLoadedRefreshKey((n) => n + 1)} />
-      </StepCard>
+        Guide me
+      </button>
+      <button
+        type="button"
+        onClick={onStart}
+        aria-label="Replay the guideline tab tour"
+        data-testid="coach-tour-replay"
+        style={{ border: 0, background: "transparent", cursor: "pointer", color: color.text.secondary }}
+      >
+        <ReplayRoundedIcon fontSize="small" />
+      </button>
+    </div>
+  );
+}
 
-      {/* -- Inspect: What is in the graph -------------------------------- */}
-      <StepCard
-        id="loaded-guidelines"
-        index={1}
-        title="What is in the knowledge graph"
-        description="These are the guidelines already loaded. Check chapters and recommendations are correct, then click 'Generate rules' to ask the AI to write decision criteria for each recommendation."
-        accent="#64748B"
-        reducedMotion={reducedMotion}
-        open={isSectionOpen("loaded-guidelines")}
-        onOpenChange={(open) => setSectionOpen("loaded-guidelines", open)}
-        dataTour="cg-03-inspect"
-      >
-        <LoadedGuidelinesPanel refreshKey={loadedRefreshKey} onRulesGenerated={() => setRuleRefreshKey((n) => n + 1)} />
-      </StepCard>
+function stepHint(step: StepId): string {
+  if (step === "load") return "Step 1 of 4. Find a guideline and load it.";
+  if (step === "inspect") return "Step 2 of 4. Check what loaded, then generate rules.";
+  if (step === "review") return "Step 3 of 4. Read each rule and decide.";
+  return "Step 4 of 4. Compile so patients see the approved rules.";
+}
 
-      {/* -- Step 2: Review ----------------------------------------------- */}
-      <StepCard
-        id="rule-review"
-        index={2}
-        step={2}
-        title="Check and approve AI-generated rules"
-        description="The AI has suggested the criteria for each recommendation. Read each one and click 'Looks right', 'Edit', or 'Reject'."
-        accent="#1F3A8A"
-        reducedMotion={reducedMotion}
-        open={isSectionOpen("rule-review")}
-        onOpenChange={(open) => setSectionOpen("rule-review", open)}
-      >
-        <RuleReviewSection refreshKey={ruleRefreshKey} />
-      </StepCard>
+function nextStep(step: StepId): { id: StepId; label: string } | null {
+  if (step === "load") return { id: "inspect", label: "Next: Inspect" };
+  if (step === "inspect") return { id: "review", label: "Next: Review" };
+  if (step === "review") return { id: "compile", label: "Next: Compile" };
+  return null;
+}
 
-      {/* -- Step 3: Compile ---------------------------------------------- */}
-      <StepCard
-        id="bitmap-lifecycle"
-        index={3}
-        step={3}
-        title="Compile and go live"
-        description="Once you are happy with the rules, compile them into the live lookup index. Only approved rules are included."
-        accent="#14B8A6"
-        reducedMotion={reducedMotion}
-        open={isSectionOpen("bitmap-lifecycle")}
-        onOpenChange={(open) => setSectionOpen("bitmap-lifecycle", open)}
-        dataTour="cg-06-compile"
-      >
-        <BitmapLifecycleSection onVersionActivated={() => setBitmapRefreshKey((n) => n + 1)} />
-      </StepCard>
-    </Box>
+function NextStepButton({
+  step,
+  onJump,
+}: {
+  step: StepId;
+  onJump: (id: string) => void;
+}) {
+  const next = nextStep(step);
+  if (!next) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => onJump(next.id)}
+      data-testid="guidance-next-step"
+      style={{
+        border: 0,
+        borderRadius: 10,
+        padding: "8px 14px",
+        background: color.brand.primary,
+        color: color.brand.onBrand,
+        fontWeight: 600,
+        fontFamily: typography.fontFamily.body,
+        cursor: "pointer",
+      }}
+    >
+      {next.label}
+    </button>
+  );
+}
+
+function GuidanceStepBody({ page }: { page: ReturnType<typeof useGuidancePage> }) {
+  if (page.activeStep === "load") return <LoadStep page={page} />;
+  if (page.activeStep === "inspect") return <InspectStep page={page} />;
+  if (page.activeStep === "review") return <ReviewStep page={page} />;
+  return <CompileStep page={page} />;
+}
+
+function LoadStep({ page }: { page: ReturnType<typeof useGuidancePage> }) {
+  return (
+    <StepCard
+      id="nice-loader"
+      index={0}
+      step={1}
+      title="Find and load a guideline"
+      description="Search by condition name or type a NICE code. Loading brings the guideline into LEO."
+      accent={color.brand.primary}
+      reducedMotion={page.reducedMotion}
+      open
+      onOpenChange={() => undefined}
+      dataTour="cg-02-load"
+    >
+      <NiceLoaderSection onGuidelineLoaded={() => page.setLoadedRefreshKey((n) => n + 1)} />
+    </StepCard>
+  );
+}
+
+function InspectStep({ page }: { page: ReturnType<typeof useGuidancePage> }) {
+  return (
+    <StepCard
+      id="loaded-guidelines"
+      index={1}
+      step={2}
+      title="What is in the knowledge graph"
+      description="These are the guidelines already loaded. Check chapters, then generate rules."
+      accent={color.text.secondary}
+      reducedMotion={page.reducedMotion}
+      open
+      onOpenChange={() => undefined}
+      dataTour="cg-03-inspect"
+    >
+      <LoadedGuidelinesPanel
+        refreshKey={page.loadedRefreshKey}
+        onRulesGenerated={() => page.setRuleRefreshKey((n) => n + 1)}
+      />
+    </StepCard>
+  );
+}
+
+function ReviewStep({ page }: { page: ReturnType<typeof useGuidancePage> }) {
+  return (
+    <StepCard
+      id="rule-review"
+      index={2}
+      step={3}
+      title="Check and approve AI-generated rules"
+      description="Read each suggested rule. Click Looks right, Edit, or Reject."
+      accent={color.brand.primary}
+      reducedMotion={page.reducedMotion}
+      open
+      onOpenChange={() => undefined}
+    >
+      <RuleReviewSection refreshKey={page.ruleRefreshKey} />
+    </StepCard>
+  );
+}
+
+function CompileStep({ page }: { page: ReturnType<typeof useGuidancePage> }) {
+  return (
+    <StepCard
+      id="bitmap-lifecycle"
+      index={3}
+      step={4}
+      title="Compile and go live"
+      description="Compile approved rules into the live lookup index. Save is not live until you do this."
+      accent={color.status.success}
+      reducedMotion={page.reducedMotion}
+      open
+      onOpenChange={() => undefined}
+      dataTour="cg-06-compile"
+    >
+      <BitmapLifecycleSection onVersionActivated={() => page.setBitmapRefreshKey((n) => n + 1)} />
+    </StepCard>
   );
 }

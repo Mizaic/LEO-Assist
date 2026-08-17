@@ -12,6 +12,10 @@ Model:
   (:LabResultConfig)-[:HAS_UNIT_CONVERSION]->(:LabUnitConversion)
   (:LabResultConfig)-[:HAS_REFERENCE_RANGE]->(:LabReferenceRange)
   (:LabResultConfig)-[:INTERPRETS_AS {classification}]->(:Concept)
+
+LabReferenceRange.org_id is empty for the platform default and set
+for an organisation overlay. Runtime GET returns platform ranges plus
+the requested org only. Conversions and INTERPRETS_AS stay platform-wide.
 """
 
 LIST_LAB_RESULT_CONFIGS = """
@@ -41,6 +45,9 @@ MATCH (cfg:LabResultConfig {conceptId: $concept_id})
 OPTIONAL MATCH (cfg)-[:CONFIGURES_OBSERVABLE]->(obs)
 OPTIONAL MATCH (cfg)-[:HAS_UNIT_CONVERSION]->(conv:LabUnitConversion)
 OPTIONAL MATCH (cfg)-[:HAS_REFERENCE_RANGE]->(rr:LabReferenceRange)
+WHERE $include_all
+   OR coalesce(rr.org_id, '') = ''
+   OR rr.org_id = $org_id
 OPTIONAL MATCH (cfg)-[interp:INTERPRETS_AS]->(finding)
 RETURN cfg.conceptId AS concept_id,
        coalesce(cfg.display_name, obs.fsn, obs.preferred_term, cfg.conceptId) AS display_name,
@@ -61,7 +68,8 @@ RETURN cfg.conceptId AS concept_id,
          high: rr.high,
          critical_low: rr.critical_low,
          critical_high: rr.critical_high,
-         source: rr.source
+         source: rr.source,
+         org_id: coalesce(rr.org_id, '')
        }) AS ranges,
        collect(DISTINCT {
          classification: interp.classification,
@@ -113,6 +121,7 @@ SET rr.conceptId = $concept_id,
     rr.critical_low = $critical_low,
     rr.critical_high = $critical_high,
     rr.source = $source,
+    rr.org_id = $org_id,
     rr.updated_by = $updated_by,
     rr.updated_at = datetime()
 RETURN rr.range_id AS range_id

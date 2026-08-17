@@ -20,6 +20,10 @@ import {
   type ClinicalPipelineRun,
   type ClinicalSearchMode,
 } from "./labFindingsApi";
+import {
+  addInvestigationCase,
+  removeInvestigationCase,
+} from "./ncrInvestigationCases";
 import type { RunReviewTarget } from "./RunReviewLightbox";
 
 interface LookupMutators {
@@ -37,6 +41,7 @@ export function useClinicalDoor(onReview: (target: RunReviewTarget) => void) {
   const [patients, setPatients] = useState<ClinicalPipelineRun[]>([]);
   const [used, setUsed] = useState<UsedPatient[]>([]);
   const [picked, setPicked] = useState<ClinicalPipelineRun | null>(null);
+  const [linkedCases, setLinkedCases] = useState<ClinicalPipelineRun[]>([]);
   const [why, setWhy] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -75,6 +80,7 @@ export function useClinicalDoor(onReview: (target: RunReviewTarget) => void) {
     rows,
     patients,
     picked,
+    linkedCases,
     why,
     setWhy,
     error,
@@ -82,9 +88,22 @@ export function useClinicalDoor(onReview: (target: RunReviewTarget) => void) {
     searched,
     recent,
     frequent,
-    onFind: () => void findRuns(query, searchMode, mut),
-    onPick: (row: ClinicalPipelineRun) => void pickPatient(row, mut),
+    onFind: () => void findRuns(query, searchMode, mut, setLinkedCases),
+    onPick: (row: ClinicalPipelineRun) =>
+      void pickPatient(row, mut, setLinkedCases),
+    onSelectCase: (row: ClinicalPipelineRun) => setPicked(row),
+    onRemoveCase: (row: ClinicalPipelineRun) => {
+      setLinkedCases((prev) => removeInvestigationCase(prev, row));
+      setPicked((cur) =>
+        cur && investigationMatch(cur, row) ? null : cur,
+      );
+    },
     onBackPick: () => setPicked(null),
+    onClearInvestigation: () => {
+      setPicked(null);
+      setLinkedCases([]);
+    },
+    hydrateCases: (rows: ClinicalPipelineRun[]) => setLinkedCases(rows),
     onOpen: () => openPicked(picked, why, setUsed, onReview),
   };
 }
@@ -109,6 +128,9 @@ async function findRuns(
   query: string,
   mode: ClinicalSearchMode,
   mut: LookupMutators,
+  setLinkedCases?: (
+    fn: (prev: ClinicalPipelineRun[]) => ClinicalPipelineRun[],
+  ) => void,
 ) {
   const q = query.trim();
   if (!q) return;
@@ -118,7 +140,11 @@ async function findRuns(
     const found = await listClinicalPipelineRuns({ q, mode });
     mut.setRows(found);
     mut.setSearched(true);
-    mut.setPicked(found.length === 1 ? found[0] : null);
+    const only = found.length === 1 ? found[0] : null;
+    mut.setPicked(only);
+    if (only && setLinkedCases) {
+      setLinkedCases((prev) => addInvestigationCase(prev, only));
+    }
   } catch (err: unknown) {
     mut.setError(err instanceof Error ? err.message : "Could not find that case");
   } finally {
@@ -126,17 +152,37 @@ async function findRuns(
   }
 }
 
-async function pickPatient(row: ClinicalPipelineRun, mut: LookupMutators) {
-  if ((row.run_count || 1) <= 1 && row.run_id) {
-    mut.setPicked(row);
+async function pickPatient(
+  row: ClinicalPipelineRun,
+  mut: LookupMutators,
+  setLinkedCases: (
+    fn: (prev: ClinicalPipelineRun[]) => ClinicalPipelineRun[],
+  ) => void,
+) {
+  const chosen =
+    (row.run_count || 1) <= 1 && row.run_id
+      ? row
+      : row.nhs_number || row.patient_id
+        ? null
+        : row;
+  if (chosen) {
+    setLinkedCases((prev) => addInvestigationCase(prev, chosen));
+    mut.setPicked(chosen);
     return;
   }
   const key = row.nhs_number || row.patient_id;
-  if (!key) {
-    mut.setPicked(row);
-    return;
-  }
-  await findRuns(key, "patient", mut);
+  if (!key) return;
+  await findRuns(key, "patient", mut, setLinkedCases);
+}
+
+function investigationMatch(
+  left: ClinicalPipelineRun,
+  right: ClinicalPipelineRun,
+): boolean {
+  return (
+    (left.run_id && left.run_id === right.run_id) ||
+    (!!left.patient_id && left.patient_id === right.patient_id)
+  );
 }
 
 function openPicked(

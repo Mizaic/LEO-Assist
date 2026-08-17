@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "terminology_exact_fsn_v1",
-  "notes": "INTERPRETS_AS mappings verified against Knowledge Graph Concept.fsn via terminology search. Only high/low/out_of_range bands are stored; critically_* fall back to high/low in the classifier. Normal is omitted because derived findings skip normals.",
+  "notes": "INTERPRETS_AS mappings verified against Knowledge Graph Concept.fsn via terminology search. Seeded defaults cover high/low/out_of_range; critically_* fall back to high/low. Authors may also save a normal (within-range) mapping. That finding is emitted only when the mapping exists.",
   "mappings": [
     {
       "concept_ids": ["365616006", "1107511000000100", "271026005"],

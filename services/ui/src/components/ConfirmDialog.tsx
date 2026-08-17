@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
@@ -26,6 +26,8 @@ interface Props {
   /** When true, disable dismiss/actions and show in-progress feedback. */
   busy?: boolean;
   busyLabel?: string;
+  maxWidth?: "xs" | "sm";
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -45,6 +47,8 @@ export default function ConfirmDialog({
   variant = "primary",
   busy = false,
   busyLabel = "Working...",
+  maxWidth = "xs",
+  children,
   onConfirm,
   onCancel,
 }: Props) {
@@ -55,7 +59,7 @@ export default function ConfirmDialog({
       open
       onClose={busy ? undefined : onCancel}
       disableEscapeKeyDown={busy}
-      maxWidth="xs"
+      maxWidth={maxWidth}
       fullWidth
       aria-labelledby={titleId}
       aria-describedby={bodyId}
@@ -65,6 +69,7 @@ export default function ConfirmDialog({
         <DialogContentText id={bodyId} color="text.secondary">
           {body}
         </DialogContentText>
+        {children}
       </DialogContent>
       <DialogActions>
         <Button variant="text" color="inherit" onClick={onCancel} disabled={busy}>

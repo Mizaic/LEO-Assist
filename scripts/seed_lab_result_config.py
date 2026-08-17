@@ -95,6 +95,7 @@ def _seed_registry_specs(client: KnowledgeGraphClient, updated_by: str) -> int:
                 critical_low=None,
                 critical_high=None,
                 source=band.source,
+                org_id="",
                 updated_by=updated_by,
             )
         created += 1
@@ -128,6 +129,7 @@ def _seed_default_ranges(client: KnowledgeGraphClient, updated_by: str) -> int:
             critical_low=entry.get("critical_low"),
             critical_high=entry.get("critical_high"),
             source=entry.get("source") or "nhs_haematology_defaults_v1",
+            org_id="",
             updated_by=updated_by,
         )
         count += 1
@@ -141,7 +143,12 @@ def _clone_config_to_alias(
     alias_id: str,
     updated_by: str,
 ) -> bool:
-    rows = client.run(GET_LAB_RESULT_CONFIG, concept_id=source_id)
+    rows = client.run(
+        GET_LAB_RESULT_CONFIG,
+        concept_id=source_id,
+        include_all=False,
+        org_id="",
+    )
     if not rows:
         logger.warning(
             "[LabResultConfigSeed] Cannot alias %s; source %s missing",
@@ -187,6 +194,7 @@ def _clone_config_to_alias(
             critical_low=band.get("critical_low"),
             critical_high=band.get("critical_high"),
             source=band.get("source") or "uk_observable_alias",
+            org_id="",
             updated_by=updated_by,
         )
     for interp in source.get("interpretations") or []:

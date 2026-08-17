@@ -187,7 +187,7 @@ test.describe("a11y baseline (VT-LEO-AI-115)", () => {
   );
 
   test(
-    "role picker passes WCAG 2.1 AA (VT-934D07ED, DI-FDC9F12F)",
+    "portal entry passes WCAG 2.1 AA with no role picker (VT-934D07ED, DI-FDC9F12F)",
     async ({ page }) => {
       await page.goto("/portal");
       await page.waitForLoadState("load");

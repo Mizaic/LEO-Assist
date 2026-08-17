@@ -110,10 +110,10 @@ REPRODUCTIVE_ANATOMY_SNOMED_IDS: frozenset[int] = frozenset(
 
 
 def is_permitted_body_structure(concept_id: int | str | None) -> bool:
-    """Return True when concept_id is an allowed reproductive anatomy organ.
+    """Return True when concept_id is one of the six reproductive organs.
 
-    Suppresses body_structure entities for all other anatomy to avoid
-    broad body-site noise in the NER pipeline.
+    Pipeline keep/drop for sites uses should_keep_body_structure instead.
+    This helper stays for concept-id-only gender-check callers.
     """
     if concept_id is None:
         return False

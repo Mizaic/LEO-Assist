@@ -122,6 +122,7 @@ describe("VT-141 TC-003 SegmentedTabs", () => {
 
     fireEvent.click(two);
     expect(screen.getByTestId("segmented-tab-two").getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByTestId("segmented-tabs-pill")).toBeTruthy();
   });
 });
 
@@ -275,6 +276,8 @@ describe("VT-141 TC-010 primitives never reach into @mui/material", () => {
     "ReviewListCard",
     "DataGridCard",
     "StatHero",
+    "StickyChrome",
+    "SpringSwap",
   ];
 
   for (const name of files) {

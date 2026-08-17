@@ -54,6 +54,8 @@ describe("GuidelineBuilderSplash.tsx", () => {
 
 describe("guidance/page.tsx -- splash wiring", () => {
   const src = read("page.tsx");
+  const hook = read("useGuidancePage.ts");
+  const card = read("GuidanceStepCard.tsx");
 
   test("imports and mounts GuidelineBuilderSplash", () => {
     expect(src).toMatch(/import GuidelineBuilderSplash/);
@@ -61,8 +63,8 @@ describe("guidance/page.tsx -- splash wiring", () => {
   });
 
   test("gates the splash with a sessionStorage flag", () => {
-    expect(src).toMatch(/sessionStorage\.getItem\(GUIDANCE_SPLASH_SESSION_KEY\)/);
-    expect(src).toMatch(/sessionStorage\.setItem\(GUIDANCE_SPLASH_SESSION_KEY/);
+    expect(hook).toMatch(/sessionStorage\.getItem\(GUIDANCE_SPLASH_SESSION_KEY\)/);
+    expect(hook).toMatch(/sessionStorage\.setItem\(GUIDANCE_SPLASH_SESSION_KEY/);
   });
 
   test("wraps the splash in AnimatePresence so exit animations can run", () => {
@@ -70,20 +72,20 @@ describe("guidance/page.tsx -- splash wiring", () => {
   });
 
   test("StepCard entrance now reads reducedMotion from useMotion()", () => {
-    expect(src).toMatch(/useMotion\(\)/);
-    expect(src).toMatch(/reducedMotion:\s*boolean/);
+    expect(hook).toMatch(/useMotion\(\)/);
+    expect(card).toMatch(/reducedMotion:\s*boolean/);
   });
 
-  test("StepCard uses the shared popSpring/staggerDelay presets", () => {
-    expect(src).toMatch(/import\s*\{\s*popSpring,\s*staggerDelay\s*\}\s*from\s*["']\.\/motionPresets["']/);
-    expect(src).toMatch(/popSpring\(reducedMotion, staggerDelay\(/);
+  test("StepCard uses critically damped springs for chrome", () => {
+    expect(card).toMatch(/springs\.ui/);
+    expect(card).toMatch(/springOrInstant\(reducedMotion/);
   });
 
   test("still preserves the VT-LEO-AI-150 chrome invariants", () => {
-    expect(src).toMatch(/fm\.section/);
-    expect(src).toMatch(/borderRadius:\s*12,/);
-    expect(src).toMatch(/width:\s*3,/);
-    expect(src).toMatch(/background:\s*accent,/);
+    expect(card).toMatch(/fm\.section/);
+    expect(card).toMatch(/borderRadius:\s*12,/);
+    expect(card).toMatch(/width:\s*3,/);
+    expect(card).toMatch(/background:\s*accent,/);
   });
 });
 

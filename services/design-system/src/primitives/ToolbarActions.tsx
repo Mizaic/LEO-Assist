@@ -9,11 +9,13 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion as fm } from "framer-motion";
 
 import { color } from "../tokens/color";
 import { radius } from "../tokens/spacing";
 import { typography } from "../tokens/typography";
 import { useMotion } from "../motion";
+import { springOrInstant, springs, tapScale } from "../motion/springs";
 
 export interface ToolbarAction {
   id: string;
@@ -69,7 +71,6 @@ export function ToolbarActions({
   align = "end",
 }: ToolbarActionsProps) {
   const { reducedMotion } = useMotion();
-  const transitionMs = reducedMotion ? 0 : 120;
 
   return (
     <div
@@ -85,13 +86,15 @@ export function ToolbarActions({
         const variantStyle = styleForVariant(a.variant ?? "secondary");
         const isDisabled = a.disabled || a.loading;
         return (
-          <button
+          <fm.button
             key={a.id}
             type="button"
             onClick={a.onClick}
             disabled={isDisabled}
             title={a.title}
             data-testid={"toolbar-action-" + a.id}
+            whileTap={isDisabled ? undefined : tapScale(reducedMotion)}
+            transition={springOrInstant(reducedMotion, springs.press)}
             style={{
               appearance: "none",
               border: "1px solid",
@@ -106,29 +109,12 @@ export function ToolbarActions({
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              transition:
-                "transform " +
-                transitionMs +
-                "ms ease-out, box-shadow " +
-                transitionMs +
-                "ms ease-out",
               ...variantStyle,
-            }}
-            onMouseDown={(e) => {
-              if (isDisabled) return;
-              e.currentTarget.style.transform = "translateY(1px)";
-            }}
-            onMouseUp={(e) => {
-              if (isDisabled) return;
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
             }}
           >
             {a.icon ?? null}
             <span>{a.loading ? a.label + "\u2026" : a.label}</span>
-          </button>
+          </fm.button>
         );
       })}
     </div>

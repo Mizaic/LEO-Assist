@@ -8,6 +8,7 @@ Built-ins live in JSON seed files and Python constants. This catalog
 exposes them in the same shape as :NerGuardRule list rows so the
 Pipeline Guards page can show what already runs. Rows are read-only.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,6 +26,8 @@ _FAMILIES = (
     "checkbox_norm",
     "situation_lookup",
     "term_concept_blocklist",
+    "body_structure_guard",
+    "fact_link_guard",
 )
 
 
@@ -88,7 +91,9 @@ def _set_to_rows(
     return rows
 
 
-def _json_seed_rows(filename: str, family: str, rule_type: str, pattern_key: str) -> list[dict[str, Any]]:
+def _json_seed_rows(
+    filename: str, family: str, rule_type: str, pattern_key: str
+) -> list[dict[str, Any]]:
     path = _SEED_DIR / filename
     if not path.exists():
         return []
@@ -102,7 +107,8 @@ def _json_seed_rows(filename: str, family: str, rule_type: str, pattern_key: str
         if not rule_id or not pattern:
             continue
         summary = str(item.get("comment") or item.get("canonical") or "")
-        rows.append(_row(rule_id, family, rule_type, pattern, summary=summary))
+        item_type = str(item.get("rule_type") or rule_type)
+        rows.append(_row(rule_id, family, item_type, pattern, summary=summary))
     return rows
 
 
@@ -252,6 +258,18 @@ def list_builtin_guard_rules(family: str | None = None) -> list[dict[str, Any]]:
         "assertion_guard": _assertion_rows,
         "entity_type_norm": _entity_norm_rows,
         "checkbox_norm": _checkbox_rows,
+        "body_structure_guard": lambda: _json_seed_rows(
+            "body_structure_guard.json",
+            "body_structure_guard",
+            "keep_as_site",
+            "pattern",
+        ),
+        "fact_link_guard": lambda: _json_seed_rows(
+            "fact_link_guard.json",
+            "fact_link_guard",
+            "allowed_relation",
+            "pattern",
+        ),
     }
     wanted = [family] if family else list(_FAMILIES)
     rows: list[dict[str, Any]] = []

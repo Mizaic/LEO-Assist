@@ -174,7 +174,7 @@ export default function SuggestionsPanel(props: SuggestionsPanelProps) {
                         height: 18,
                         px: 0.65,
                         bgcolor: "#EFF6FF",
-                        color: "#1D4ED8",
+                        color: "#0d46d6",
                         border: "1px solid #BFDBFE",
                         borderRadius: 0.75,
                         fontSize: "0.62rem",

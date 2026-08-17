@@ -12,7 +12,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import CircularProgress from "@mui/material/CircularProgress";
 import UnauthorizedScreen from "@/components/UnauthorizedScreen";
 import { sessionHasLeoAccess } from "@/lib/sessionAccess";
 import Box from "@mui/material/Box";
@@ -82,7 +81,21 @@ import { useDemoMode } from "@/context/DemoModeContext";
 import { useOrg } from "@/context/OrgContext";
 import { maskOrgName } from "@/lib/demoMode";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
-import { LeoLogo, LeoO } from "@leo/design-system";
+import {
+  drawerPaperSx,
+  fullNavButtonSx,
+  fullNavIconSx,
+  mobileAppBarSx,
+  NAV_ACCENT,
+  NAV_HAIRLINE,
+  NAV_HOVER,
+  NAV_INK,
+  NAV_INK_MUTED,
+  NAV_INK_STRONG,
+  railButtonSx,
+  railIconSx,
+} from "@/components/app-shell/drawerChrome";
+import { LeoLogo, LeoO, LeoSplash } from "@leo/design-system";
 
 const DRAWER_WIDTH = 240;
 const RAIL_WIDTH = 56;
@@ -351,19 +364,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Block ALL protected content until auth state is known.
   // This prevents a hacker briefly seeing page content during the loading window.
   if (status === "loading" && isProtected) {
-    return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          bgcolor: "background.default",
-        }}
-      >
-        <CircularProgress aria-label="Loading" />
-      </Box>
-    );
+    return <LeoSplash />;
   }
 
   // No valid session on a protected route -- show the full unauthorized screen,
@@ -417,14 +418,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => handleNav(item.path)}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={item.label}
-                sx={{
-                  justifyContent: "center",
-                  px: 0,
-                  py: 1,
-                  minHeight: 44,
-                }}
+                sx={railButtonSx(isActive)}
               >
-                <ListItemIcon sx={{ minWidth: 0, color: isActive ? "primary.main" : "text.secondary" }}>
+                <ListItemIcon sx={railIconSx(isActive)}>
                   <Badge badgeContent={badgeCount} color="warning" max={99}>
                     {item.icon}
                   </Badge>
@@ -443,12 +439,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <IconButton
           aria-label="LEO by Mizaic - go to home"
           onClick={() => handleNav(homeRoute)}
-          sx={{ width: 40, height: 40, mb: 1.5, p: 0.5 }}
+          sx={{ width: 40, height: 40, mb: 1.5, p: 0.5, color: NAV_INK_STRONG }}
         >
-          <LeoO size={26} variant="light" spinning spinDuration={2.4} title="LEO" />
+          <LeoO size={26} variant="dark" spinning spinDuration={2.4} title="LEO" />
         </IconButton>
       </Tooltip>
-      <Divider sx={{ width: "80%", mb: 1 }} />
+      <Divider sx={{ width: "80%", mb: 1, borderColor: NAV_HAIRLINE }} />
       {sidebarNavRail}
       {session?.user && (
         <Box sx={{ mt: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, pb: 0.5 }}>
@@ -461,7 +457,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Avatar>
           </Tooltip>
           <Tooltip title="Sign out" placement="right">
-            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()}>
+            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()} sx={{ color: NAV_INK }}>
               <LogoutIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
@@ -476,9 +472,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <IconButton
           aria-label="LEO by Mizaic - go to home"
           onClick={() => handleNav(homeRoute)}
-          sx={{ width: 40, height: 40, mb: 0.5, p: 0.5 }}
+          sx={{ width: 40, height: 40, mb: 0.5, p: 0.5, color: NAV_INK_STRONG }}
         >
-          <LeoO size={26} variant="light" spinning spinDuration={2.4} title="LEO" />
+          <LeoO size={26} variant="dark" spinning spinDuration={2.4} title="LEO" />
         </IconButton>
       </Tooltip>
       <Tooltip title="Expand sidebar" placement="right">
@@ -486,12 +482,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           aria-label="Expand sidebar"
           size="small"
           onClick={() => persistSidebarPref("expanded")}
-          sx={{ mb: 1 }}
+          sx={{ mb: 1, color: NAV_INK }}
         >
           <ChevronRightIcon sx={{ fontSize: 20 }} />
         </IconButton>
       </Tooltip>
-      <Divider sx={{ width: "80%", mb: 1 }} />
+      <Divider sx={{ width: "80%", mb: 1, borderColor: NAV_HAIRLINE }} />
       {(organizations.length > 0 || isPlatformAdmin) && (
         <>
           <Tooltip title="Select organisation" placement="right">
@@ -500,10 +496,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               aria-haspopup="true"
               aria-expanded={orgMenuAnchor ? "true" : "false"}
               size="small"
-              sx={{ mb: 0.5 }}
+              sx={{ mb: 0.5, color: NAV_INK }}
               onClick={(e) => setOrgMenuAnchor(e.currentTarget)}
             >
-              <BusinessOutlinedIcon sx={{ color: "text.secondary" }} />
+              <BusinessOutlinedIcon sx={{ color: NAV_INK }} />
             </IconButton>
           </Tooltip>
           <Menu
@@ -542,7 +538,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Menu>
         </>
       )}
-      {(organizations.length > 0 || isPlatformAdmin) && <Divider sx={{ width: "80%", mb: 1 }} />}
+      {(organizations.length > 0 || isPlatformAdmin) && (
+        <Divider sx={{ width: "80%", mb: 1, borderColor: NAV_HAIRLINE }} />
+      )}
       {sidebarNavRail}
       {isPlatformAdmin && (
         <Box sx={{ mt: 1, display: "flex", justifyContent: "center", width: "100%" }}>
@@ -551,6 +549,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               aria-label={uiMode === "care" ? "Switch to Admin" : "Switch to Care"}
               size="small"
               onClick={toggleUiMode}
+              sx={{ color: NAV_INK }}
             >
               <SwapHorizIcon />
             </IconButton>
@@ -568,7 +567,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Avatar>
           </Tooltip>
           <Tooltip title="Sign out" placement="right">
-            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()}>
+            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()} sx={{ color: NAV_INK }}>
               <LogoutIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
@@ -583,9 +582,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <IconButton
           aria-label="LEO by Mizaic - go to home"
           onClick={() => handleNav(homeRoute)}
-          sx={{ p: 0.5, flex: 1, justifyContent: "flex-start", borderRadius: 1 }}
+          sx={{ p: 0.5, flex: 1, justifyContent: "flex-start", borderRadius: 1, color: NAV_INK_STRONG }}
         >
-          <LeoLogo height={28} variant="light" spinning spinDuration={2.4} />
+          <LeoLogo height={28} variant="dark" spinning spinDuration={2.4} />
         </IconButton>
         {!isMobile && !isEditor && (
           sidebarPref === "expanded" ? (
@@ -594,7 +593,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 aria-label="Unpin sidebar"
                 size="small"
                 onClick={() => persistSidebarPref("follow-breakpoint")}
-                sx={{ flexShrink: 0, color: "primary.main" }}
+                sx={{ flexShrink: 0, color: NAV_ACCENT }}
               >
                 <PushPinIcon sx={{ fontSize: 18 }} />
               </IconButton>
@@ -605,7 +604,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 aria-label="Pin sidebar open"
                 size="small"
                 onClick={() => persistSidebarPref("expanded")}
-                sx={{ flexShrink: 0 }}
+                sx={{ flexShrink: 0, color: NAV_INK }}
               >
                 <PushPinOutlinedIcon sx={{ fontSize: 18 }} />
               </IconButton>
@@ -616,7 +615,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 aria-label="Collapse sidebar"
                 size="small"
                 onClick={() => persistSidebarPref("collapsed")}
-                sx={{ flexShrink: 0 }}
+                sx={{ flexShrink: 0, color: NAV_INK }}
               >
                 <ChevronLeftIcon sx={{ fontSize: 20 }} />
               </IconButton>
@@ -625,7 +624,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </Box>
 
-      <Divider />
+      <Divider sx={{ borderColor: NAV_HAIRLINE }} />
 
       {(organizations.length > 0 || isPlatformAdmin) && (
         <Box sx={{ px: 1.5, py: 1.5 }}>
@@ -633,8 +632,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.5 }}
             aria-hidden="true"
           >
-            <BusinessOutlinedIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, letterSpacing: 0.5 }}>
+            <BusinessOutlinedIcon sx={{ fontSize: 14, color: NAV_INK_MUTED }} />
+            <Typography variant="caption" sx={{ color: NAV_INK_MUTED, fontWeight: 600, letterSpacing: 0.5 }}>
               ORGANISATION
             </Typography>
           </Box>
@@ -662,11 +661,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               displayEmpty
               sx={{
                 fontSize: "0.9rem",
-                bgcolor: "action.hover",
+                bgcolor: NAV_HOVER,
+                color: NAV_INK_STRONG,
                 borderRadius: 2,
                 "& .MuiSelect-select": { py: 0.75, px: 1.5 },
                 "& fieldset": { borderColor: "transparent" },
-                "&:hover fieldset": { borderColor: "divider !important" },
+                "&:hover fieldset": { borderColor: NAV_HAIRLINE + " !important" },
+                "& .MuiSvgIcon-root": { color: NAV_INK },
               }}
             >
               {isPlatformAdmin && (
@@ -686,7 +687,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </Box>
       )}
 
-      <Divider />
+      <Divider sx={{ borderColor: NAV_HAIRLINE }} />
 
       <Box component="nav" aria-label="Main navigation">
         <List sx={{ px: 1, pt: 1 }}>
@@ -705,9 +706,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   selected={isActive}
                   onClick={() => { if (isMobile) setMobileOpen(false); }}
                   aria-current={isActive ? "page" : undefined}
-                  sx={{ py: 1.2 }}
+                  sx={fullNavButtonSx(isActive)}
                 >
-                  <ListItemIcon sx={{ minWidth: 36, color: isActive ? "primary.main" : "text.secondary" }}>
+                  <ListItemIcon sx={fullNavIconSx(isActive)}>
                     <Badge badgeContent={badgeCount} color="warning" max={99}>
                       {item.icon}
                     </Badge>
@@ -717,6 +718,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     primaryTypographyProps={{
                       fontWeight: isActive ? 600 : 400,
                       fontSize: "0.9rem",
+                      color: isActive ? "inherit" : NAV_INK,
                     }}
                   />
                   {badgeCount > 0 && (
@@ -739,7 +741,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             variant="outlined"
             startIcon={<SwapHorizIcon />}
             onClick={toggleUiMode}
-            sx={{ textTransform: "none", fontSize: "0.75rem" }}
+            sx={{
+              textTransform: "none",
+              fontSize: "0.75rem",
+              color: NAV_INK_STRONG,
+              borderColor: NAV_HAIRLINE,
+              "&:hover": { borderColor: NAV_INK, bgcolor: NAV_HOVER },
+            }}
           >
             {uiMode === "care" ? "Switch to Admin" : "Switch to Care"}
           </Button>
@@ -752,7 +760,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             mt: "auto",
             p: 1.5,
             borderTop: "1px solid",
-            borderColor: "divider",
+            borderColor: NAV_HAIRLINE,
             display: "flex",
             alignItems: "center",
             gap: 1,
@@ -767,13 +775,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography
               variant="body2"
-              sx={{ fontWeight: 600, fontSize: "0.8rem", color: "text.primary", lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+              sx={{ fontWeight: 600, fontSize: "0.8rem", color: NAV_INK_STRONG, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
             >
               {session.user.name}
             </Typography>
           </Box>
           <Tooltip title="Sign out">
-            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()}>
+            <IconButton aria-label="Sign out" size="small" onClick={() => signOut()} sx={{ color: NAV_INK }}>
               <LogoutIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Tooltip>
@@ -830,18 +838,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <AppBar
           position="fixed"
           elevation={0}
-          sx={{ bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider" }}
+          sx={mobileAppBarSx}
         >
           <Toolbar variant="dense" sx={{ minHeight: 48 }}>
             <IconButton
               edge="start"
               aria-label="open navigation"
               onClick={() => setMobileOpen(true)}
-              sx={{ color: "text.primary" }}
+              sx={{ color: NAV_INK_STRONG }}
             >
               <MenuIcon />
             </IconButton>
-            <Box component="img" src="/leo-icon.svg" alt="LEO" sx={{ width: 24, height: 24, ml: 1 }} />
+            <Box sx={{ ml: 1, display: "flex", alignItems: "center" }}>
+              <LeoO size={24} variant="dark" spinning spinDuration={2.4} title="LEO" />
+            </Box>
             <Typography variant="subtitle2" sx={{ ml: 1, fontWeight: 600 }}>LEO</Typography>
           </Toolbar>
         </AppBar>
@@ -862,8 +872,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             boxSizing: "border-box",
             display: "flex",
             flexDirection: "column",
-            transition: "width 0.2s ease",
+            transition: "width 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
             overflowX: "hidden",
+            ...drawerPaperSx,
           },
         }}
       >

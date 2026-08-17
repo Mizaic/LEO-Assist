@@ -16,8 +16,15 @@ import {
   type ReactNode,
 } from "react";
 
+import { motion as fm } from "framer-motion";
+
 import { useMotion } from "../motion";
+import { springOrInstant, springs, tapScale } from "../motion/springs";
+import { useReducedTransparency } from "../motion/useReducedTransparency";
 import type { Role } from "../roles/types";
+import { frostStyle } from "../tokens/material";
+import { elevation } from "../tokens/spacing";
+import { typography } from "../tokens/typography";
 
 export interface IntroCopyBlock {
   title: string;
@@ -77,10 +84,12 @@ export function IntroCard({
   children,
 }: IntroCardProps) {
   const { reducedMotion } = useMotion();
+  const reducedTransparency = useReducedTransparency();
   const bodyId = useId();
   const storageKey = STORAGE_PREFIX + screenId;
   const [collapsed, setCollapsed] = useState(false);
   const block = resolveBlock(copy, role);
+  const frost = frostStyle(reducedTransparency, "light");
 
   useEffect(() => {
     setCollapsed(readPersistedCollapse(storageKey));
@@ -101,9 +110,11 @@ export function IntroCard({
       aria-labelledby={screenId + "-intro-title"}
       data-testid={"intro-card-" + screenId}
       style={{
-        background: "#ffffff",
+        ...frost,
         color: "#0f172a",
         border: "1px solid rgba(15, 23, 42, 0.08)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.7)",
+        boxShadow: elevation.card,
         borderRadius: 12,
         padding: "16px 20px",
         marginBottom: 16,
@@ -119,15 +130,25 @@ export function IntroCard({
       >
         <h2
           id={screenId + "-intro-title"}
-          style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "#0f172a" }}
+          style={{
+            margin: 0,
+            fontFamily: typography.fontFamily.heading,
+            fontSize: 20,
+            fontWeight: 600,
+            lineHeight: 1.15,
+            letterSpacing: typography.letterSpacing.display,
+            color: "#0f172a",
+          }}
         >
           {block.title}
         </h2>
-        <button
+        <fm.button
           type="button"
           onClick={toggle}
           aria-expanded={!collapsed}
           aria-controls={bodyId}
+          whileTap={tapScale(reducedMotion)}
+          transition={springOrInstant(reducedMotion, springs.press)}
           style={{
             border: "1px solid rgba(15, 23, 42, 0.14)",
             background: "transparent",
@@ -139,7 +160,7 @@ export function IntroCard({
           }}
         >
           {collapsed ? "Show details" : "Hide details"}
-        </button>
+        </fm.button>
       </div>
       <div
         id={bodyId}

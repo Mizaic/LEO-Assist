@@ -8,9 +8,7 @@
  */
 "use client";
 
-import { useState } from "react";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
@@ -21,11 +19,14 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-
 import { ToolbarActions } from "@leo/design-system";
+import { color } from "@leo/design-system/tokens";
+
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { deleteUnitConversion, saveUnitConversion } from "./api";
+
+import { ConfirmRows, formCardStyle, formGridStyle, spanTwo } from "./labConfigForm";
 import type { LabUnitConversion } from "./types";
+import { useConversionsTab } from "./useConversionsTab";
 
 interface Props {
   conceptId: string;
@@ -40,138 +41,160 @@ export default function ConversionsTab({
   onRefresh,
   onToast,
 }: Props) {
-  const [unit, setUnit] = useState("");
-  const [factor, setFactor] = useState("1");
-  const [offset, setOffset] = useState("0");
-  const [saving, setSaving] = useState(false);
-  const [deleteUnit, setDeleteUnit] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleAdd() {
-    if (!unit.trim()) {
-      setError("Enter a unit abbreviation.");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await saveUnitConversion(conceptId, {
-        unit: unit.trim(),
-        factor: Number(factor),
-        offset: Number(offset),
-      });
-      setUnit("");
-      setFactor("1");
-      setOffset("0");
-      onToast("Conversion added.");
-      await onRefresh();
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Unable to save conversion.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(u: string) {
-    setDeleteUnit(null);
-    setError(null);
-    try {
-      await deleteUnitConversion(conceptId, u);
-      onToast("Conversion removed.");
-      await onRefresh();
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "Unable to remove conversion.");
-    }
-  }
-
+  const page = useConversionsTab({ conceptId, onRefresh, onToast });
   return (
     <Stack spacing={2}>
-      {error && (
-        <Alert severity="error" onClose={() => setError(null)}>
-          {error}
+      {page.error ? (
+        <Alert severity="error" onClose={() => page.setError(null)}>
+          {page.error}
         </Alert>
-      )}
-      {conversions.length > 0 ? (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Unit</TableCell>
-              <TableCell align="right">Factor</TableCell>
-              <TableCell align="right">Offset</TableCell>
-              <TableCell width={48} />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {conversions.map((c) => (
-              <TableRow key={c.unit}>
-                <TableCell>{c.unit}</TableCell>
-                <TableCell align="right">{c.factor}</TableCell>
-                <TableCell align="right">{c.offset}</TableCell>
-                <TableCell align="right">
-                  <IconButton
-                    size="small"
-                    aria-label={"Remove conversion for " + c.unit}
-                    onClick={() => setDeleteUnit(c.unit)}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <Typography variant="body2" color="text.secondary">
-          No conversions yet. Add one below.
-        </Typography>
-      )}
-      <Stack direction="row" spacing={1.5} alignItems="flex-start" flexWrap="wrap">
-        <TextField
-          label="Accepted unit"
-          size="small"
-          value={unit}
-          onChange={(e) => setUnit(e.target.value)}
-          sx={{ width: 160 }}
-          placeholder="e.g. mmol/L"
+      ) : null}
+      <ConversionTable rows={conversions} onDelete={page.setDeleteUnit} />
+      <ConversionForm
+        draft={{ unit: page.unit, factor: page.factor, offset: page.offset }}
+        saving={page.saving}
+        onPatch={(patch) => {
+          if (patch.unit != null) page.setUnit(patch.unit);
+          if (patch.factor != null) page.setFactor(patch.factor);
+          if (patch.offset != null) page.setOffset(patch.offset);
+        }}
+        onSubmit={() => page.setPending(true)}
+      />
+      {page.pending ? (
+        <ConfirmDialog
+          title="Add this conversion?"
+          body="Check the unit maths, then save. Cancel leaves the list unchanged."
+          confirmLabel="Add conversion"
+          busy={page.saving}
+          maxWidth="sm"
+          onConfirm={() => void page.handleAdd()}
+          onCancel={() => page.setPending(false)}
+        >
+          <ConfirmRows
+            rows={[
+              { label: "Unit", value: page.unit.trim() || "Missing" },
+              { label: "Factor", value: page.factor },
+              { label: "Offset", value: page.offset },
+            ]}
+          />
+        </ConfirmDialog>
+      ) : null}
+      {page.deleteUnit ? (
+        <ConfirmDialog
+          title="Remove unit conversion?"
+          body={'Remove the conversion for "' + page.deleteUnit + '"? This cannot be undone.'}
+          confirmLabel="Remove"
+          variant="danger"
+          onConfirm={() => page.handleDelete(page.deleteUnit as string)}
+          onCancel={() => page.setDeleteUnit(null)}
         />
+      ) : null}
+    </Stack>
+  );
+}
+
+function ConversionTable({
+  rows,
+  onDelete,
+}: {
+  rows: LabUnitConversion[];
+  onDelete: (unit: string) => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <Typography variant="body2" sx={{ color: color.text.secondary }}>
+        No conversions yet. Add one below.
+      </Typography>
+    );
+  }
+  return (
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>Unit</TableCell>
+          <TableCell align="right">Factor</TableCell>
+          <TableCell align="right">Offset</TableCell>
+          <TableCell width={48} />
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rows.map((c) => (
+          <TableRow key={c.unit}>
+            <TableCell>{c.unit}</TableCell>
+            <TableCell align="right">{c.factor}</TableCell>
+            <TableCell align="right">{c.offset}</TableCell>
+            <TableCell align="right">
+              <IconButton
+                size="small"
+                aria-label={"Remove conversion for " + c.unit}
+                onClick={() => onDelete(c.unit)}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function ConversionForm({
+  draft,
+  saving,
+  onPatch,
+  onSubmit,
+}: {
+  draft: { unit: string; factor: string; offset: string };
+  saving: boolean;
+  onPatch: (patch: { unit?: string; factor?: string; offset?: string }) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <fieldset data-testid="add-conversion-form" style={formCardStyle}>
+      <legend style={{ padding: "0 6px" }}>Add conversion</legend>
+      <div style={{ ...formGridStyle, marginTop: 8 }}>
+        <div style={spanTwo()}>
+          <TextField
+            label="Accepted unit"
+            size="small"
+            value={draft.unit}
+            onChange={(e) => onPatch({ unit: e.target.value })}
+            placeholder="e.g. mmol/L"
+            fullWidth
+          />
+        </div>
         <TextField
           label="Factor"
           size="small"
-          value={factor}
-          onChange={(e) => setFactor(e.target.value)}
-          sx={{ width: 100 }}
+          value={draft.factor}
+          onChange={(e) => onPatch({ factor: e.target.value })}
+          inputMode="decimal"
+          fullWidth
         />
         <TextField
           label="Offset"
           size="small"
-          value={offset}
-          onChange={(e) => setOffset(e.target.value)}
-          sx={{ width: 100 }}
+          value={draft.offset}
+          onChange={(e) => onPatch({ offset: e.target.value })}
+          inputMode="decimal"
+          fullWidth
         />
-        <Box sx={{ pt: "4px" }}>
-          <ToolbarActions
-            actions={[
-              {
-                id: "add-conversion",
-                label: saving ? "Adding..." : "Add conversion",
-                variant: "secondary",
-                disabled: saving,
-                onClick: handleAdd,
-              },
-            ]}
-          />
-        </Box>
-      </Stack>
-      {deleteUnit && (
-        <ConfirmDialog
-          title="Remove unit conversion?"
-          body={"Remove the conversion for \"" + deleteUnit + "\"? This cannot be undone."}
-          confirmLabel="Remove"
-          variant="danger"
-          onConfirm={() => handleDelete(deleteUnit)}
-          onCancel={() => setDeleteUnit(null)}
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <ToolbarActions
+          align="start"
+          actions={[
+            {
+              id: "add-conversion",
+              label: "Review conversion",
+              variant: "primary",
+              disabled: saving,
+              onClick: onSubmit,
+            },
+          ]}
         />
-      )}
-    </Stack>
+      </div>
+    </fieldset>
   );
 }

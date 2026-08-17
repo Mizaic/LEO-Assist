@@ -41,7 +41,7 @@ type Category = { id: string; label: string; colour: string };
 
 const CATEGORIES: Category[] = [
   { id: "all",      label: "All",       colour: "#64748B" },
-  { id: "patient",  label: "Patient",   colour: "#1E40AF" },
+  { id: "patient",  label: "Patient",   colour: "#002178" },
   { id: "clinical", label: "Clinical",  colour: "#047857" },
   { id: "pathway",  label: "Pathway",   colour: "#7C3AED" },
   { id: "referral", label: "Referral",  colour: "#B45309" },
@@ -62,7 +62,7 @@ function categorise(m: MetricCatalogueEntry): string {
 // ---------------------------------------------------------------------------
 
 const TYPE_META: Record<TileType, { Icon: React.ElementType; label: string; colour: string }> = {
-  bar_chart:     { Icon: BarChartIcon,           label: "Bar",      colour: "#1E40AF" },
+  bar_chart:     { Icon: BarChartIcon,           label: "Bar",      colour: "#002178" },
   line_chart:    { Icon: ShowChartIcon,           label: "Line",     colour: "#047857" },
   kpi_strip:     { Icon: NumbersIcon,             label: "KPI",      colour: "#7C3AED" },
   table:         { Icon: TableChartOutlinedIcon,  label: "Table",    colour: "#0E7490" },

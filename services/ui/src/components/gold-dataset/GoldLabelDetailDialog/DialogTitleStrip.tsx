@@ -97,7 +97,7 @@ function StatusPill({
         px: 0.85,
         borderRadius: 1,
         bgcolor: uncoded > 0 && suggestions === 0 ? "#FEF3C7" : "#EFF6FF",
-        color: uncoded > 0 && suggestions === 0 ? "#92400E" : "#1D4ED8",
+        color: uncoded > 0 && suggestions === 0 ? "#92400E" : "#0d46d6",
         border:
           "1px solid " +
           (uncoded > 0 && suggestions === 0 ? "#FDE68A" : "#BFDBFE"),

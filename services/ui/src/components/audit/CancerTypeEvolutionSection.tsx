@@ -338,7 +338,7 @@ export default function CancerTypeEvolutionSection({
         <Box>
           <Box sx={{ display: "flex", gap: 2, mb: 1.5, flexWrap: "wrap" }}>
             <LegendSwatch colour="#92400E" label="2018 NCDA baseline" dashed />
-            <LegendSwatch colour="#1D4ED8" label="Live year" />
+            <LegendSwatch colour="#0d46d6" label="Live year" />
             <Typography
               variant="caption"
               sx={{ color: "text.secondary", fontSize: "0.75rem" }}

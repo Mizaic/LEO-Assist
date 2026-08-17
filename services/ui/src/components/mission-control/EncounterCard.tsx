@@ -269,7 +269,7 @@ const EncounterCard = forwardRef<HTMLDivElement, EncounterCardProps>(
                   height: 20,
                   fontSize: "0.65rem",
                   bgcolor: "#DBEAFE",
-                  color: "#1E40AF",
+                  color: "#002178",
                   fontWeight: 600,
                 }}
               />

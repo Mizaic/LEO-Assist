@@ -72,7 +72,7 @@ export default function EvolutionYearCard({
   secondaryValue,
   headlineSubLabel,
   caption,
-  accentColor = "#1D4ED8",
+  accentColor = "#0d46d6",
   isBaseline = false,
   loading = false,
   error = null,

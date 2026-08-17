@@ -12,32 +12,37 @@
  * PathwayCard -- restyled Phase 6 card for one PlanDefinition.
  *
  * Visually consistent with the wider Knowledge tab system:
- * 12px radius, 1px divider border, 3px tone-coded left accent strip,
- * tone-tinted status chip, framer-motion stagger entry.
+ * 12px radius, 18px padding, 3px tone-coded left accent strip,
+ * token status chip, spring entry and press.
  *
  * Design Controls: DI-LEO-AI-150, DO-LEO-AI-146, VT-LEO-AI-148.
  */
 
+import type { CSSProperties } from "react";
 import { motion as fm } from "framer-motion";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import ArchiveIcon from "@mui/icons-material/Archive";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
-import ReplayIcon from "@mui/icons-material/Replay";
+import {
+  springOrInstant,
+  springs,
+  tapScale,
+  useMotion,
+} from "@leo/design-system";
+import { color, elevation, typography } from "@leo/design-system/tokens";
 
 import type { PlanDefinition } from "./types";
+import {
+  PathwayCardActions,
+  PathwayMeta,
+  StatusChip,
+  ToneChip,
+  isSeededPathway,
+  statusAccent,
+  workflowModeLabel,
+} from "./PathwayCardParts";
 
 interface CardProps {
   plan: PlanDefinition;
@@ -51,43 +56,6 @@ interface CardProps {
   busy: boolean;
 }
 
-function statusAccent(status: string): string {
-  if (status === "active") return "#16A34A";
-  if (status === "draft") return "#D97706";
-  if (status === "retired") return "#94A3B8";
-  return "#94A3B8";
-}
-
-function statusChipStyle(status: string) {
-  if (status === "active") {
-    return { bg: "#ECFDF5", fg: "#047857", border: "#A7F3D0" };
-  }
-  if (status === "draft") {
-    return { bg: "#FEF3C7", fg: "#92400E", border: "#FDE68A" };
-  }
-  if (status === "retired") {
-    return { bg: "#F1F5F9", fg: "#475569", border: "#E2E8F0" };
-  }
-  return { bg: "#F1F5F9", fg: "#475569", border: "#E2E8F0" };
-}
-
-function statusLabel(status: string): string {
-  if (status === "active") return "Live";
-  if (status === "draft") return "Draft";
-  if (status === "retired") return "Retired";
-  return status;
-}
-
-function isSeededPathway(plan: Pick<PlanDefinition, "meta" | "source">): boolean {
-  return Boolean(plan.meta?.seeded || plan.source === "seed");
-}
-
-function workflowModeLabel(mode: string | undefined): string {
-  if (mode === "durable_pubsub") return "Durable";
-  if (mode === "legacy_in_process") return "Legacy";
-  return mode ? mode.replace(/_/g, " ") : "Legacy";
-}
-
 export default function PathwayCard({
   plan,
   index,
@@ -99,33 +67,24 @@ export default function PathwayCard({
   onDelete,
   busy,
 }: CardProps) {
+  const { reducedMotion } = useMotion();
   const accent = statusAccent(plan.status);
-  const chip = statusChipStyle(plan.status);
-  const actionCount = plan.actionCount ?? plan.actions?.length ?? 0;
-  const durableStepCount = plan._durableSteps?.length ?? 0;
-  const triggerLabel = plan.trigger?.event?.replace(/-/g, " ") ?? null;
   const isSeeded = isSeededPathway(plan);
   const workflowMode = plan._workflowMode || "legacy_in_process";
   const deprecatedCount = plan._deprecatedSubgraphs?.length ?? 0;
+  const enter = springOrInstant(reducedMotion, springs.ui);
 
   return (
     <fm.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.22,
-        ease: "easeOut",
-        delay: Math.min(index, 12) * 0.04,
+        ...enter,
+        delay: reducedMotion ? 0 : Math.min(index, 12) * 0.04,
       }}
-      whileHover={{ boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)" }}
+      whileTap={tapScale(reducedMotion)}
       data-testid={`pathway-card-${plan.id}`}
-      style={{
-        position: "relative",
-        background: "#FFFFFF",
-        border: "1px solid #E2E8F0",
-        borderRadius: 12,
-        padding: 18,
-      }}
+      style={cardStyle()}
     >
       <span
         aria-hidden="true"
@@ -140,71 +99,12 @@ export default function PathwayCard({
         }}
       />
       <Stack direction="row" alignItems="flex-start" spacing={1}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1}
-            flexWrap="wrap"
-            useFlexGap
-          >
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 700, fontSize: "1rem", lineHeight: 1.3 }}
-            >
-              {plan.name || "Untitled pathway"}
-            </Typography>
-            <Chip
-              label={statusLabel(plan.status)}
-              size="small"
-              sx={{
-                height: 22,
-                fontSize: "0.7rem",
-                fontWeight: 600,
-                bgcolor: chip.bg,
-                color: chip.fg,
-                border: `1px solid ${chip.border}`,
-              }}
-            />
-            {isSeeded ? (
-              <Chip
-                label="Seeded"
-                size="small"
-                variant="outlined"
-                sx={{ height: 22, fontSize: "0.7rem" }}
-              />
-            ) : null}
-            <Chip
-              label={workflowModeLabel(workflowMode)}
-              size="small"
-              color={workflowMode === "durable_pubsub" ? "info" : "default"}
-              variant={workflowMode === "durable_pubsub" ? "filled" : "outlined"}
-              sx={{ height: 22, fontSize: "0.7rem" }}
-            />
-            {deprecatedCount > 0 ? (
-              <Chip
-                label={`${deprecatedCount} deprecated step${deprecatedCount !== 1 ? "s" : ""}`}
-                size="small"
-                color="warning"
-                variant="outlined"
-                sx={{ height: 22, fontSize: "0.7rem" }}
-              />
-            ) : null}
-            {plan.version ? (
-              <Typography variant="caption" color="text.disabled">
-                v{plan.version}
-              </Typography>
-            ) : null}
-          </Stack>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 0.6, fontSize: "0.85rem", lineHeight: 1.5 }}
-          >
-            {plan.description || "No description yet."}
-          </Typography>
-        </Box>
-
+        <CardHeader
+          plan={plan}
+          isSeeded={isSeeded}
+          workflowMode={workflowMode}
+          deprecatedCount={deprecatedCount}
+        />
         <Button
           size="small"
           variant="outlined"
@@ -215,154 +115,84 @@ export default function PathwayCard({
           Edit
         </Button>
       </Stack>
+      <PathwayMeta plan={plan} />
+      <Divider sx={{ my: 1.5 }} />
+      <PathwayCardActions
+        plan={plan}
+        busy={busy}
+        isSeeded={isSeeded}
+        onPublish={onPublish}
+        onDuplicate={onDuplicate}
+        onRetire={onRetire}
+        onReactivate={onReactivate}
+        onDelete={onDelete}
+      />
+    </fm.div>
+  );
+}
 
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ mt: 1.25 }}
-        alignItems="center"
-        flexWrap="wrap"
-        useFlexGap
-      >
-        {actionCount > 0 ? (
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <AccountTreeIcon sx={{ fontSize: "0.85rem", color: "text.disabled" }} />
-            <Typography variant="caption" color="text.disabled">
-              {workflowMode === "durable_pubsub" && durableStepCount > 0
-                ? `${durableStepCount} durable step${durableStepCount !== 1 ? "s" : ""}`
-                : `${actionCount} step${actionCount !== 1 ? "s" : ""}`}
-            </Typography>
-          </Stack>
+function CardHeader({
+  plan,
+  isSeeded,
+  workflowMode,
+  deprecatedCount,
+}: {
+  plan: PlanDefinition;
+  isSeeded: boolean;
+  workflowMode: string;
+  deprecatedCount: number;
+}) {
+  return (
+    <Stack sx={{ flex: 1, minWidth: 0 }}>
+      <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 700,
+            fontSize: "1rem",
+            lineHeight: 1.3,
+            fontFamily: typography.fontFamily.heading,
+            color: color.text.primary,
+          }}
+        >
+          {plan.name || "Untitled pathway"}
+        </Typography>
+        <StatusChip status={plan.status} />
+        {isSeeded ? <ToneChip label="Seeded" /> : null}
+        <ToneChip
+          label={workflowModeLabel(workflowMode)}
+          fg={workflowMode === "durable_pubsub" ? color.brand.primary : color.text.secondary}
+        />
+        {deprecatedCount > 0 ? (
+          <ToneChip
+            label={`${deprecatedCount} deprecated step${deprecatedCount !== 1 ? "s" : ""}`}
+            fg={color.status.warning}
+          />
         ) : null}
-        {triggerLabel ? (
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <PlayCircleOutlineIcon sx={{ fontSize: "0.85rem", color: "text.disabled" }} />
-            <Typography
-              variant="caption"
-              color="text.disabled"
-              sx={{ textTransform: "capitalize" }}
-            >
-              {triggerLabel}
-            </Typography>
-          </Stack>
-        ) : null}
-        {plan.date ? (
-          <Typography variant="caption" color="text.disabled">
-            Updated {new Date(plan.date).toLocaleDateString()}
+        {plan.version ? (
+          <Typography variant="caption" sx={{ color: color.text.disabled }}>
+            v{plan.version}
           </Typography>
         ) : null}
       </Stack>
-
-      <Divider sx={{ my: 1.5 }} />
-
-      <Stack direction="row" spacing={0.75} alignItems="center">
-        {plan.status === "draft" ? (
-          <Tooltip title="Publish this draft to live - it will immediately be used by the runtime">
-            <span>
-              <Button
-                size="small"
-                variant="contained"
-                color="success"
-                startIcon={
-                  busy ? (
-                    <CircularProgress size={11} color="inherit" />
-                  ) : (
-                    <CloudUploadIcon sx={{ fontSize: "0.95rem !important" }} />
-                  )
-                }
-                disabled={busy}
-                onClick={onPublish}
-                sx={{ textTransform: "none" }}
-              >
-                Publish to live
-              </Button>
-            </span>
-          </Tooltip>
-        ) : null}
-
-        {plan.status === "active" ? (
-          <Tooltip title="Save a draft copy to edit without affecting the live version">
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<ContentCopyIcon sx={{ fontSize: "0.95rem !important" }} />}
-              onClick={onDuplicate}
-              disabled={busy}
-              sx={{ textTransform: "none" }}
-            >
-              New draft
-            </Button>
-          </Tooltip>
-        ) : null}
-
-        {plan.status !== "active" ? (
-          <Tooltip title="Duplicate as a new draft">
-            <IconButton
-              size="small"
-              onClick={onDuplicate}
-              disabled={busy}
-              sx={{ color: "text.secondary" }}
-            >
-              <ContentCopyIcon sx={{ fontSize: "1rem" }} />
-            </IconButton>
-          </Tooltip>
-        ) : null}
-
-        {plan.status === "retired" ? (
-          <Tooltip title="Reactivate - publish this back to live">
-            <Button
-              size="small"
-              variant="outlined"
-              color="warning"
-              startIcon={<ReplayIcon sx={{ fontSize: "0.95rem !important" }} />}
-              onClick={onReactivate}
-              disabled={busy}
-              sx={{ textTransform: "none" }}
-            >
-              Reactivate
-            </Button>
-          </Tooltip>
-        ) : null}
-
-        <Box sx={{ flex: 1 }} />
-
-        {plan.status !== "retired" ? (
-          <Tooltip
-            title={
-              plan.status === "active"
-                ? "Retire this pathway from live use"
-                : "Mark as retired"
-            }
-          >
-            <IconButton
-              size="small"
-              onClick={onRetire}
-              disabled={busy}
-              sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
-            >
-              <ArchiveIcon sx={{ fontSize: "1rem" }} />
-            </IconButton>
-          </Tooltip>
-        ) : null}
-        <Tooltip
-          title={
-            isSeeded
-              ? "Seeded pathways cannot be deleted from the UI"
-              : "Delete this pathway permanently"
-          }
-        >
-          <span>
-            <IconButton
-              size="small"
-              onClick={onDelete}
-              disabled={busy || isSeeded}
-              sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
-            >
-              <DeleteOutlineIcon sx={{ fontSize: "1rem" }} />
-            </IconButton>
-          </span>
-        </Tooltip>
-      </Stack>
-    </fm.div>
+      <Typography
+        variant="body2"
+        sx={{ mt: 0.6, fontSize: "0.85rem", lineHeight: 1.5, color: color.text.secondary }}
+      >
+        {plan.description || "No description yet."}
+      </Typography>
+    </Stack>
   );
+}
+
+function cardStyle(): CSSProperties {
+  return {
+    position: "relative",
+    background: color.surface.raised,
+    border: 0,
+    borderRadius: 12,
+    padding: 18,
+    boxShadow: elevation.card,
+    fontFamily: typography.fontFamily.body,
+  };
 }

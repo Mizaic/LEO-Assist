@@ -371,7 +371,7 @@ export default function EpisodeTimeline({
                         backgroundColor: m.present
                           ? m.isClosure
                             ? "#9e9e9e"
-                            : "#1F3A8A"
+                            : "#0d46d6"
                           : "transparent",
                         flexShrink: 0,
                       }}

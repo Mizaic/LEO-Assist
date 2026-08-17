@@ -16,9 +16,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   KnowledgePageLayout,
   isRole,
+  springOrInstant,
+  springs,
+  useMotion,
   type KnowledgeLayoutWidth,
   type Role,
 } from "@leo/design-system";
+import { color } from "@leo/design-system/tokens";
 
 import { KNOWLEDGE_TAB_COPY, type KnowledgeTabKey } from "@/lib/knowledgeCopy";
 import { useAuth } from "@/lib/authContext";
@@ -92,6 +96,7 @@ export default function KnowledgePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const auth = useAuth();
+  const { reducedMotion } = useMotion();
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   const rawTab = searchParams.get("tab") ?? "training-data";
@@ -131,7 +136,13 @@ export default function KnowledgePage() {
   }, []);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#FFFFFF" }}>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: color.surface.canvas,
+      }}
+    >
       <KnowledgeSidebar
         activeKey={activeKey}
         onTabChange={handleTabChange}
@@ -142,10 +153,10 @@ export default function KnowledgePage() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeKey}
-            initial={{ opacity: 0, y: 4 }}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={springOrInstant(reducedMotion, springs.ui)}
           >
             <KnowledgePageLayout
               screenId={`knowledge-${activeKey}`}

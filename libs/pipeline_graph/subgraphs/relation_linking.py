@@ -1,11 +1,4 @@
-"""Relation linking subgraph for extracted entities.
-
-Atlas trace:
-  DO: DO-49256B13
-  Also implements: DO-8620A68B
-  DI: DI-044827AD, DI-5A802C83
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-49256B13")
-"""
+"""Relation linking subgraph. Atlas: DO-8E641A9E, DO-49256B13, DI-6ACD24D2."""
 
 from __future__ import annotations
 
@@ -22,6 +15,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from libs.llm_client.json_helper import _extract_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
+from libs.ner.body_structure_guard import suppress_orphan_body_structures
 from libs.relations.policy import (
     allowed_relation_types,
     canonicalise_relations,
@@ -29,8 +23,6 @@ from libs.relations.policy import (
 )
 
 logger = logging.getLogger(__name__)
-
-_ALLOWED_RELATION_TYPES = allowed_relation_types()
 _MODEL_CONFIDENCE_THRESHOLD = float(
     os.getenv("RELATION_MODEL_CONFIDENCE_THRESHOLD", "0.72")
 )
@@ -150,9 +142,7 @@ def _collect_snomed_rows(state: RelationLinkState) -> list[dict[str, Any]]:
     if rows:
         return rows
     return [
-        row
-        for row in (state.get("snomed_candidates") or [])
-        if isinstance(row, dict)
+        row for row in (state.get("snomed_candidates") or []) if isinstance(row, dict)
     ]
 
 
@@ -164,14 +154,18 @@ def _normalise_judge_result(
         return {"relations": list(snomed_rows), "suppress": []}
     if "confirmed" in parsed or "additional" in parsed:
         confirmed = [r for r in (parsed.get("confirmed") or []) if isinstance(r, dict)]
-        additional = [r for r in (parsed.get("additional") or []) if isinstance(r, dict)]
+        additional = [
+            r for r in (parsed.get("additional") or []) if isinstance(r, dict)
+        ]
         for row in confirmed:
             row.setdefault("extraction_method", "snomed+llm")
         for row in additional:
             row.setdefault("extraction_method", "llm")
         return {
             "relations": confirmed + additional,
-            "suppress": [i for i in (parsed.get("suppress") or []) if isinstance(i, int)],
+            "suppress": [
+                i for i in (parsed.get("suppress") or []) if isinstance(i, int)
+            ],
         }
     return parsed
 
@@ -217,7 +211,10 @@ def _run_linker(
         return {"relation_link_result": parsed, "errors": errors}
     except Exception as exc:
         logger.warning("relation_linker LLM call failed: %s", exc)
-        return {"relation_link_result": {"relations": [], "suppress": []}, "errors": errors}
+        return {
+            "relation_link_result": {"relations": [], "suppress": []},
+            "errors": errors,
+        }
 
 
 def _entity_label(entity: dict[str, Any]) -> str:
@@ -288,7 +285,7 @@ def _model_predict_relations(entities: list[dict[str, Any]]) -> dict[str, Any]:
             pair_prior = dict(pair_priors.get(pair_key) or {})
             allowed_types = [
                 rt
-                for rt in _ALLOWED_RELATION_TYPES
+                for rt in allowed_relation_types()
                 if is_relation_allowed(
                     source_label=src_label, target_label=tgt_label, relation_type=rt
                 )[0]
@@ -325,9 +322,9 @@ def _merge_model_and_llm(
 ) -> list[dict[str, Any]]:
     """Merge model and LLM rows. Same triple keeps the higher confidence."""
     merged: dict[tuple[int, int, str], dict[str, Any]] = {}
-    tagged: list[tuple[dict[str, Any], str]] = (
-        [(r, "model") for r in model_rows] + [(r, "llm") for r in llm_rows]
-    )
+    tagged: list[tuple[dict[str, Any], str]] = [(r, "model") for r in model_rows] + [
+        (r, "llm") for r in llm_rows
+    ]
     for row, method in tagged:
         if not isinstance(row, dict):
             continue
@@ -365,10 +362,74 @@ def _merge_model_and_llm(
     return list(merged.values())
 
 
+def _row_indices(row: dict[str, Any], count: int) -> tuple[int, int] | None:
+    head_idx = row.get("head_idx")
+    tail_idx = row.get("tail_idx")
+    if not (
+        isinstance(head_idx, int)
+        and isinstance(tail_idx, int)
+        and 0 <= head_idx < count
+        and 0 <= tail_idx < count
+        and head_idx != tail_idx
+    ):
+        return None
+    return head_idx, tail_idx
+
+
+def _add_entity_relation(
+    entities: list[dict[str, Any]],
+    row: dict[str, Any],
+    runtime_types: frozenset[str],
+    changes: list[dict[str, Any]],
+) -> None:
+    relation_type = str(row.get("type") or "").strip().lower()
+    if relation_type not in runtime_types:
+        return
+    idxs = _row_indices(row, len(entities))
+    if idxs is None:
+        return
+    head_idx, tail_idx = idxs
+    head = entities[head_idx]
+    tail = entities[tail_idx]
+    label_ok, _ = is_relation_allowed(
+        source_label=_entity_label(head),
+        target_label=_entity_label(tail),
+        relation_type=relation_type,
+    )
+    if not label_ok:
+        return
+    head_relations = list(head.get("__relations") or [])
+    relation = {
+        "type": relation_type,
+        "target_text": str(tail.get("text") or ""),
+        "target_idx": tail_idx,
+        "confidence": float(row.get("confidence") or 0.6),
+        "extraction_method": str(row.get("extraction_method") or "model"),
+    }
+    canonical = canonicalise_relations(head_relations + [relation], len(entities))
+    if len(canonical) == len(head_relations):
+        return
+    head["__relations"] = canonical
+    if relation_type == "finding_site":
+        head["body_site"] = str(tail.get("text") or "")
+        head["lookup_term"] = _build_compound_lookup(
+            str(head.get("text") or ""), str(tail.get("text") or "")
+        )
+    changes.append(
+        {
+            "type": "relation_added",
+            "index": head_idx,
+            "relation_type": relation_type,
+            "target_index": tail_idx,
+        }
+    )
+
+
 def _apply_relation_linking(state: RelationLinkState) -> dict[str, Any]:
     entities = deepcopy(state.get("entities") or [])
     model_result = state.get("relation_model_result") or {}
-    llm_result = state.get("relation_link_result") or {}
+    llm_result = _normalise_judge_result(state.get("relation_link_result") or {}, [])
+    runtime_types = allowed_relation_types()
     result_rows = _merge_model_and_llm(
         list(model_result.get("relations") or []),
         list(llm_result.get("relations") or []),
@@ -376,67 +437,17 @@ def _apply_relation_linking(state: RelationLinkState) -> dict[str, Any]:
     changes: list[dict[str, Any]] = []
     suppress = {
         i
-        for i in list(model_result.get("suppress") or []) + list(llm_result.get("suppress") or [])
+        for i in list(model_result.get("suppress") or [])
+        + list(llm_result.get("suppress") or [])
         if isinstance(i, int)
     }
-
     for row in result_rows:
-        if not isinstance(row, dict):
-            continue
-        head_idx = row.get("head_idx")
-        tail_idx = row.get("tail_idx")
-        relation_type = str(row.get("type") or "").strip().lower()
-        if relation_type not in _ALLOWED_RELATION_TYPES:
-            continue
-        if not (
-            isinstance(head_idx, int)
-            and isinstance(tail_idx, int)
-            and 0 <= head_idx < len(entities)
-            and 0 <= tail_idx < len(entities)
-            and head_idx != tail_idx
-        ):
-            continue
-        head = entities[head_idx]
-        tail = entities[tail_idx]
-        head_label = _entity_label(head)
-        tail_label = _entity_label(tail)
-        label_ok, _ = is_relation_allowed(
-            source_label=head_label,
-            target_label=tail_label,
-            relation_type=relation_type,
-        )
-        if not label_ok:
-            continue
-        head_relations = list(head.get("__relations") or [])
-        relation = {
-            "type": relation_type,
-            "target_text": str(tail.get("text") or ""),
-            "target_idx": tail_idx,
-            "confidence": float(row.get("confidence") or 0.6),
-            "extraction_method": str(row.get("extraction_method") or "model"),
-        }
-        canonical = canonicalise_relations(head_relations + [relation], len(entities))
-        if len(canonical) == len(head_relations):
-            continue
-        head["__relations"] = canonical
-        if relation_type == "finding_site":
-            head["body_site"] = str(tail.get("text") or "")
-            head["lookup_term"] = _build_compound_lookup(
-                str(head.get("text") or ""), str(tail.get("text") or "")
-            )
-        changes.append(
-            {
-                "type": "relation_added",
-                "index": head_idx,
-                "relation_type": relation_type,
-                "target_index": tail_idx,
-            }
-        )
-
+        if isinstance(row, dict):
+            _add_entity_relation(entities, row, runtime_types, changes)
     for idx in suppress:
         if 0 <= idx < len(entities):
             entities[idx]["_relation_suppressed"] = True
-
+    suppress_orphan_body_structures(entities)
     return {"entities": entities, "relation_changes": changes}
 
 

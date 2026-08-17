@@ -5,6 +5,7 @@ Atlas trace:
   DI: DI-34712A9A
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-F20DE29D")
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -157,4 +158,29 @@ class CheckboxNormRule(PipelineRuleBase):
     """
 
     rule_type: str = "admin_question"
+    pattern: str = ""
+
+
+@dataclass
+class BodyStructureGuardRule(PipelineRuleBase):
+    """Keep a body-part span as a site, or always keep a reproductive organ.
+
+    rule_type: "always_keep" -- reproductive organ id or name (gender check).
+               "keep_as_site" -- extra body part kept when used as a site.
+               "drop_orphan" -- drop keep-as-site spans with no finding_site.
+    pattern: SNOMED id, regex fragment, or true/false for drop_orphan.
+    """
+
+    rule_type: str = "keep_as_site"
+    pattern: str = ""
+
+
+@dataclass
+class FactLinkGuardRule(PipelineRuleBase):
+    """Allow a relation type at runtime without a code change.
+
+    rule_type: "allowed_relation" -- pattern is the relation type name.
+    """
+
+    rule_type: str = "allowed_relation"
     pattern: str = ""

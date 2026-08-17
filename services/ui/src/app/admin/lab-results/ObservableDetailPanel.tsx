@@ -16,7 +16,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
 
-import { SegmentedTabs, type SegmentedTab } from "@leo/design-system";
+import { SegmentedTabs, SpringSwap, type SegmentedTab } from "@leo/design-system";
+import { color, elevation, typography } from "@leo/design-system/tokens";
 
 import type { LabResultConfig } from "./types";
 import ConversionsTab from "./ConversionsTab";
@@ -55,63 +56,9 @@ export default function ObservableDetailPanel({
   }));
 
   return (
-    <Box
-      sx={{
-        width: 500,
-        flexShrink: 0,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "12px",
-        bgcolor: "background.paper",
-        overflow: "hidden",
-        alignSelf: "flex-start",
-        position: "sticky",
-        top: 16,
-        maxHeight: "calc(100vh - 200px)",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <Stack
-        direction="row"
-        alignItems="flex-start"
-        justifyContent="space-between"
-        sx={{
-          p: 2,
-          pb: 1.5,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Stack spacing={0.75}>
-          <Typography variant="h6" component="h2">
-            {config.display_name}
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Chip label={config.concept_id} size="small" />
-            {config.canonical_unit && (
-              <Chip label={config.canonical_unit} size="small" variant="outlined" />
-            )}
-          </Stack>
-        </Stack>
-        <IconButton
-          size="small"
-          aria-label="Close detail panel"
-          onClick={onClose}
-          sx={{ mt: -0.5 }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Stack>
-
-      <Box
-        sx={{
-          px: 2,
-          py: 1.5,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-        }}
-      >
+    <Box sx={detailShellSx}>
+      <DetailHeader config={config} onClose={onClose} />
+      <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid " + color.surface.divider }}>
         <SegmentedTabs
           tabs={tabs}
           value={activeTab}
@@ -120,33 +67,115 @@ export default function ObservableDetailPanel({
           dense
         />
       </Box>
-
       <Box sx={{ p: 2, overflowY: "auto", flex: 1 }}>
-        {activeTab === "conversions" && (
-          <ConversionsTab
-            conceptId={config.concept_id}
-            conversions={config.conversions}
+        <SpringSwap swapKey={activeTab}>
+          <DetailBody
+            activeTab={activeTab}
+            config={config}
             onRefresh={onRefresh}
             onToast={onToast}
           />
-        )}
-        {activeTab === "ranges" && (
-          <RangesTab
-            conceptId={config.concept_id}
-            ranges={config.ranges}
-            onRefresh={onRefresh}
-            onToast={onToast}
-          />
-        )}
-        {activeTab === "interpretations" && (
-          <InterpretationsTab
-            conceptId={config.concept_id}
-            interpretations={config.interpretations}
-            onRefresh={onRefresh}
-            onToast={onToast}
-          />
-        )}
+        </SpringSwap>
       </Box>
     </Box>
   );
 }
+
+function DetailHeader({
+  config,
+  onClose,
+}: {
+  config: LabResultConfig;
+  onClose: () => void;
+}) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="flex-start"
+      justifyContent="space-between"
+      sx={{ p: 2, pb: 1.5, borderBottom: "1px solid " + color.surface.divider }}
+    >
+      <Stack spacing={0.75}>
+        <Typography
+          variant="h6"
+          component="h2"
+          sx={{
+            fontFamily: typography.fontFamily.heading,
+            fontWeight: 700,
+            letterSpacing: typography.letterSpacing.display,
+            color: color.text.primary,
+          }}
+        >
+          {config.display_name}
+        </Typography>
+        <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Chip label={config.concept_id} size="small" />
+          {config.canonical_unit ? (
+            <Chip label={config.canonical_unit} size="small" variant="outlined" />
+          ) : null}
+        </Stack>
+      </Stack>
+      <IconButton size="small" aria-label="Close detail panel" onClick={onClose} sx={{ mt: -0.5 }}>
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </Stack>
+  );
+}
+
+function DetailBody({
+  activeTab,
+  config,
+  onRefresh,
+  onToast,
+}: {
+  activeTab: string;
+  config: LabResultConfig;
+  onRefresh: () => Promise<void>;
+  onToast: (msg: string) => void;
+}) {
+  if (activeTab === "conversions") {
+    return (
+      <ConversionsTab
+        conceptId={config.concept_id}
+        conversions={config.conversions}
+        onRefresh={onRefresh}
+        onToast={onToast}
+      />
+    );
+  }
+  if (activeTab === "ranges") {
+    return (
+      <RangesTab
+        conceptId={config.concept_id}
+        ranges={config.ranges}
+        onRefresh={onRefresh}
+        onToast={onToast}
+      />
+    );
+  }
+  return (
+    <InterpretationsTab
+      conceptId={config.concept_id}
+      displayName={config.display_name}
+      interpretations={config.interpretations}
+      onRefresh={onRefresh}
+      onToast={onToast}
+    />
+  );
+}
+
+const detailShellSx = {
+  width: 520,
+  flexShrink: 0,
+  border: "1px solid " + color.text.secondary,
+  borderRadius: "12px",
+  bgcolor: color.surface.raised,
+  boxShadow: elevation.card,
+  overflow: "hidden",
+  alignSelf: "flex-start",
+  position: "sticky",
+  top: 16,
+  maxHeight: "calc(100vh - 200px)",
+  display: "flex",
+  flexDirection: "column",
+};

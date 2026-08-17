@@ -126,15 +126,17 @@ describe("VT-LEO-AI-145 CRUD tabs chrome on design-system primitives", () => {
   });
 
   it("TC-003c Domains still wires loadDomains + createDomain", () => {
-    expect(domains).toMatch(/loadDomains\s*\(/);
-    expect(domains).toMatch(/createDomain\s*\(/);
+    const hook = read(path.join(ROOT, "domains", "_components", "useDomainsList.ts"));
+    expect(hook).toMatch(/loadDomains\s*\(/);
+    expect(hook).toMatch(/createDomain\s*\(/);
   });
 
   it("TC-003d Terminology still wires fetchStatus + startSync + cancelSync", () => {
-    expect(terminology).toMatch(/const\s+fetchStatus\s*=\s*useCallback/);
-    expect(terminology).toMatch(/const\s+startSync\s*=\s*useCallback/);
-    expect(terminology).toMatch(/const\s+cancelSync\s*=/);
-    expect(terminology).toMatch(/EventSource\(/);
+    const hook = read(path.join(ROOT, "terminology", "useTerminologyPage.ts"));
+    expect(hook).toMatch(/const\s+fetchStatus\s*=\s*useCallback/);
+    expect(hook).toMatch(/const\s+startSync\s*=\s*useCallback/);
+    expect(hook).toMatch(/const\s+cancelSync\s*=/);
+    expect(hook).toMatch(/EventSource\(/);
   });
 
   // -- TC-004 Single primary action per page -----------------------------

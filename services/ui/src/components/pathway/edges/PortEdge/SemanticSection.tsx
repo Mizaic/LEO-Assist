@@ -66,7 +66,7 @@ export function SemanticSection({ fieldKey, value }: SemanticSectionProps) {
       <div style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, background: "#f8fafc" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>Verification summary</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-          <span style={{ background: "#dbeafe", color: "#1d4ed8", borderRadius: 999, padding: "3px 8px", fontSize: 12, fontWeight: 700 }}>
+          <span style={{ background: "#dbeafe", color: "#0d46d6", borderRadius: 999, padding: "3px 8px", fontSize: 12, fontWeight: 700 }}>
             {status}
           </span>
           {confidence && (

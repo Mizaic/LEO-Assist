@@ -45,6 +45,7 @@ from libs.auth.entra_group_sync import (
     read_current_role_names,
     resolve_and_sync_entra_groups,
 )
+from libs.auth.post_login import post_login_path
 from libs.auth.session_access import may_issue_session
 from libs.auth.practitioner_org_context import fetch_practitioner_org_context
 from libs.auth.density_state import (
@@ -560,9 +561,7 @@ def callback(
         session_id_prefix=session_id,
     )
 
-    normalized_state = state if state.startswith("/") else f"/{state.lstrip('/')}"
-    if normalized_state in {"/", "/sign-in", "/auth/callback"}:
-        normalized_state = "/dashboard"
+    normalized_state = post_login_path(state, is_platform_admin=is_admin)
     redirect_url = f"{fe}{normalized_state}"
     resp = RedirectResponse(url=redirect_url, status_code=302)
     _set_auth_no_store(resp)
@@ -618,15 +617,12 @@ def _unauth_session_payload() -> dict:
     }
 
 
-def _needs_role_choice(session_data: dict, allowed_roles: list[str]) -> bool:
-    """Multi-role users must confirm a UI role once per login session.
+def _needs_role_choice(_session_data: dict, _allowed_roles: list[str]) -> bool:
+    """Role picker is retired -- Mizaic staff use their assigned role.
 
-    Stored in Redis as ``ui_role_confirmed`` (set after PATCH
-    ``/auth/session/role``). Single-role users bypass the picker.
+    Kept so the session payload shape stays stable. Always false.
     """
-    if len(allowed_roles) <= 1:
-        return False
-    return not bool(session_data.get("ui_role_confirmed"))
+    return False
 
 
 def _mark_session_role_confirmed(session_id: str) -> None:

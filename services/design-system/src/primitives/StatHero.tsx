@@ -12,6 +12,7 @@ import { motion as fm } from "framer-motion";
 
 import { MetricTile, type MetricTileProps } from "./MetricTile";
 import { useMotion } from "../motion";
+import { springOrInstant, springs } from "../motion/springs";
 
 // StatTile retains the legacy shape consumers already use (dashboards,
 // knowledge primitives). Everything it carries maps onto MetricTileProps
@@ -78,7 +79,7 @@ export function StatHero({
             visible: {
               opacity: 1,
               y: 0,
-              transition: { duration: reducedMotion ? 0 : 0.22, ease: "easeOut" },
+              transition: springOrInstant(reducedMotion, springs.ui),
             },
           }}
           data-testid={"stat-tile-" + s.id + "-frame"}

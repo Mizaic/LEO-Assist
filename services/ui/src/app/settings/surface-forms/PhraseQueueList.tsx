@@ -5,9 +5,20 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { motion as fm } from "framer-motion";
+import {
+  springOrInstant,
+  springs,
+  tapScale,
+  useMotion,
+} from "@leo/design-system";
+import { color, elevation, radius, typography } from "@leo/design-system/tokens";
 
 import type { UncodedPhrase } from "./phraseMappingsApi";
 import { draftNeedsTermFix } from "./termNeedsFix";
+
+const BRAND = color.brand.primary;
+const WELL = "rgba(15, 23, 42, 0.06)";
 
 export function PhraseQueueList({
   items,
@@ -18,6 +29,7 @@ export function PhraseQueueList({
   selectedKey: string | null;
   onSelect: (row: UncodedPhrase) => void;
 }) {
+  const { reducedMotion } = useMotion();
   return (
     <div
       data-testid="phrase-queue"
@@ -31,8 +43,9 @@ export function PhraseQueueList({
     >
       <div
         style={{
-          background: "#fff",
-          borderRadius: 12,
+          background: color.surface.raised,
+          borderRadius: radius.md,
+          boxShadow: elevation.card,
           overflow: "hidden",
         }}
       >
@@ -41,6 +54,7 @@ export function PhraseQueueList({
             key={row.phrase_key}
             row={row}
             selected={row.phrase_key === selectedKey}
+            reducedMotion={reducedMotion}
             onSelect={onSelect}
           />
         ))}
@@ -60,28 +74,50 @@ function draftLabel(row: UncodedPhrase): string {
 function QueueRow({
   row,
   selected,
+  reducedMotion,
   onSelect,
 }: {
   row: UncodedPhrase;
   selected: boolean;
+  reducedMotion: boolean;
   onSelect: (row: UncodedPhrase) => void;
 }) {
   const notes = row.note_count || 0;
   const mapped = draftLabel(row);
   return (
-    <button
+    <fm.button
       type="button"
       onClick={() => onSelect(row)}
       aria-pressed={selected}
+      whileTap={tapScale(reducedMotion)}
+      whileHover={reducedMotion || selected ? undefined : { backgroundColor: WELL }}
+      transition={springOrInstant(reducedMotion, springs.press)}
       style={queueRowStyle(selected)}
     >
+      {selected ? (
+        <fm.span
+          layoutId={reducedMotion ? undefined : "phrase-queue-rail"}
+          aria-hidden="true"
+          transition={springOrInstant(reducedMotion, springs.ui)}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 8,
+            bottom: 8,
+            width: 3,
+            borderRadius: 999,
+            background: BRAND,
+          }}
+        />
+      ) : null}
       <span style={{ flex: 1, minWidth: 0 }}>
         <span
           style={{
             display: "block",
+            fontFamily: typography.fontFamily.body,
             fontSize: 15,
             fontWeight: 600,
-            color: "#0F172A",
+            color: color.text.primary,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -94,7 +130,7 @@ function QueueRow({
             display: "block",
             marginTop: 2,
             fontSize: 12,
-            color: "#6B7280",
+            color: color.text.caption,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -108,22 +144,26 @@ function QueueRow({
       <DraftChip
         action={draftNeedsTermFix(row) ? "fix term" : row.draft_action}
       />
-    </button>
+    </fm.button>
   );
 }
 
 function queueRowStyle(selected: boolean): CSSProperties {
   return {
     display: "flex",
+    position: "relative",
     width: "100%",
     minWidth: 0,
     gap: 12,
-    padding: "12px 14px",
+    padding: "12px 14px 12px 16px",
     border: 0,
-    borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
-    background: selected ? "rgba(29, 78, 216, 0.08)" : "transparent",
+    borderBottom: "1px solid " + color.surface.divider,
+    background: selected ? color.surface.raised : "transparent",
+    boxShadow: selected ? elevation.card : "none",
+    color: selected ? BRAND : color.text.primary,
     textAlign: "left",
     cursor: "pointer",
+    fontFamily: typography.fontFamily.body,
   };
 }
 
@@ -149,7 +189,11 @@ function DraftChip({ action }: { action?: string }) {
 }
 
 function chipTone(action: string): { background: string; color: string } {
-  if (action === "exclude") return { background: "#FEE2E2", color: "#991B1B" };
-  if (action === "fix term") return { background: "#FFEDD5", color: "#9A3412" };
-  return { background: "#DBEAFE", color: "#1E40AF" };
+  if (action === "exclude") {
+    return { background: "rgba(185, 28, 28, 0.12)", color: color.status.danger };
+  }
+  if (action === "fix term") {
+    return { background: "rgba(180, 83, 9, 0.12)", color: color.status.warning };
+  }
+  return { background: "rgba(13, 70, 214, 0.12)", color: color.brand.primaryHover };
 }

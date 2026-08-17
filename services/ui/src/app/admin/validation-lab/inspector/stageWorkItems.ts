@@ -207,6 +207,7 @@ const RELATION_LABELS: Record<string, string> = {
   associated_finding: "linked to",
   component_of: "part of",
   qualifies: "qualifies",
+  causative_agent: "caused by",
 };
 
 function relationLabel(type: string): string {

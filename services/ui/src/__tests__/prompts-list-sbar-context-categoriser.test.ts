@@ -3,8 +3,8 @@
  * sbar_situation_context_* PromptConfig rows by the [<Group>] prefix
  * in their description.
  *
- * Static-source assertion: the categoriser change in
- * services/ui/src/app/admin/prompts/page.tsx must
+ * Static-source assertion: the categoriser in
+ * services/ui/src/app/admin/prompts/promptCategories.ts must
  *   1. detect the sbar_situation_context_ name prefix; and
  *   2. parse the [<Group>] description prefix and use that as the
  *      category label, so the AI Instructions list shows these rows
@@ -21,6 +21,14 @@
 import fs from "fs";
 import path from "path";
 
+const CATS = path.resolve(
+  __dirname,
+  "..",
+  "app",
+  "admin",
+  "prompts",
+  "promptCategories.ts",
+);
 const PAGE = path.resolve(
   __dirname,
   "..",
@@ -35,7 +43,8 @@ function read(p: string): string {
 }
 
 describe("VT-LEO-AI-509 prompts/page categorise() routes SBAR contexts", () => {
-  const src = read(PAGE);
+  const src = read(CATS);
+  const page = read(PAGE);
 
   it("recognises the sbar_situation_context_ name prefix", () => {
     expect(src).toContain("sbar_situation_context_");
@@ -67,8 +76,11 @@ describe("VT-LEO-AI-509 prompts/page categorise() routes SBAR contexts", () => {
     // must use categoriseFromPrompt so the description is read; bare
     // `categorise(p.name)` calls would leak SBAR-context rows into
     // the General bucket.
-    expect(src).toContain("categoriseFromPrompt");
-    const bareNameOnly = src.match(/categorise\(p\.name\)/g) ?? [];
+    const hook = read(
+      path.resolve(__dirname, "..", "app", "admin", "prompts", "usePromptsList.ts"),
+    );
+    expect(page + hook).toContain("categoriseFromPrompt");
+    const bareNameOnly = (src + page + hook).match(/categorise\(p\.name\)/g) ?? [];
     expect(bareNameOnly.length).toBe(0);
   });
 });

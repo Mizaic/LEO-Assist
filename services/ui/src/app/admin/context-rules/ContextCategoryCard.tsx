@@ -1,12 +1,20 @@
 /**
  * Compact Context Rule category card -- title and type only.
+ *
+ * Atlas trace:
+ *   Implements: DO-CFA1ED55
+ *   DI: DI-340279C1, DI-C5A523A7
  */
 "use client";
 
 import { motion as fm } from "framer-motion";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
+import {
+  springOrInstant,
+  springs,
+  tapScale,
+  useMotion,
+} from "@leo/design-system";
+import { color, elevation, radius, typography } from "@leo/design-system/tokens";
 
 import type { CategoryCopy } from "./categoryCopy";
 import type { ContextRule } from "./types";
@@ -32,41 +40,27 @@ export default function ContextCategoryCard({
   index,
   onOpen,
 }: ContextCategoryCardProps) {
+  const { reducedMotion } = useMotion();
   const countLabel = rules.length === 1 ? "1 phrase" : `${rules.length} phrases`;
+  const enter = springOrInstant(reducedMotion, springs.ui);
   return (
     <fm.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.22,
-        ease: "easeOut",
-        delay: Math.min(index, 12) * 0.04,
+        ...enter,
+        delay: reducedMotion ? 0 : Math.min(index, 12) * 0.04,
       }}
-      whileHover={{ boxShadow: "0 6px 16px rgba(15, 23, 42, 0.08)" }}
       style={{ height: "100%" }}
     >
-      <button
+      <fm.button
         type="button"
         onClick={onOpen}
         data-testid={`context-category-card-${copy.key}`}
         aria-label={`Open ${copy.title} details`}
-        style={{
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          gap: 10,
-          width: "100%",
-          height: "100%",
-          minHeight: 104,
-          textAlign: "left",
-          background: "#FFFFFF",
-          border: "1px solid #E2E8F0",
-          borderRadius: 12,
-          padding: "18px 18px 18px 22px",
-          cursor: "pointer",
-          font: "inherit",
-        }}
+        whileTap={tapScale(reducedMotion)}
+        transition={springOrInstant(reducedMotion, springs.press)}
+        style={cardStyle()}
       >
         <span
           aria-hidden="true"
@@ -76,18 +70,65 @@ export default function ContextCategoryCard({
             top: 14,
             bottom: 14,
             width: 3,
-            borderRadius: 2,
+            borderRadius: 999,
             background: copy.accent,
           }}
         />
-        <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 700, fontSize: "1rem" }}>
+        <span
+          style={{
+            fontFamily: typography.fontFamily.heading,
+            fontSize: 16,
+            fontWeight: 700,
+            lineHeight: 1.2,
+            letterSpacing: typography.letterSpacing.display,
+            color: color.text.primary,
+          }}
+        >
           {copy.title}
-        </Typography>
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          <Chip size="small" label={countLabel} sx={{ height: 22, fontSize: "0.7rem" }} />
-          <Chip size="small" label={sourceType(rules)} sx={{ height: 22, fontSize: "0.7rem" }} />
-        </Stack>
-      </button>
+        </span>
+        <span style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <MetaChip label={countLabel} />
+          <MetaChip label={sourceType(rules)} />
+        </span>
+      </fm.button>
     </fm.div>
+  );
+}
+
+function cardStyle() {
+  return {
+    position: "relative" as const,
+    display: "flex",
+    flexDirection: "column" as const,
+    justifyContent: "center",
+    gap: 10,
+    width: "100%",
+    height: "100%",
+    minHeight: 104,
+    textAlign: "left" as const,
+    background: color.surface.raised,
+    border: 0,
+    boxShadow: elevation.card,
+    borderRadius: radius.md,
+    padding: "18px 18px 18px 22px",
+    cursor: "pointer" as const,
+    fontFamily: typography.fontFamily.body,
+  };
+}
+
+function MetaChip({ label }: { label: string }) {
+  return (
+    <span
+      style={{
+        fontSize: 12,
+        fontWeight: 600,
+        color: color.text.secondary,
+        background: color.surface.alt,
+        borderRadius: 999,
+        padding: "3px 8px",
+      }}
+    >
+      {label}
+    </span>
   );
 }

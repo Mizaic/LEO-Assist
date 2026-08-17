@@ -60,7 +60,7 @@ const PLACE_COLOUR_MAP: Record<string, string> = {
 };
 
 // Fallback palette for place values not in the map above.
-const FALLBACK_COLOURS = ["#0F766E", "#B45309", "#6D28D9", "#BE123C", "#0369A1"];
+const FALLBACK_COLOURS = ["#9338ff", "#B45309", "#6D28D9", "#BE123C", "#0369A1"];
 
 const PLACE_DISPLAY: Record<string, string> = {
   gp_surgery:               "GP Surgery",

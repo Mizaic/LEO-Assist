@@ -36,6 +36,7 @@ import {
   criteriaFromResolvedRows,
   type ResolvedTermRow,
 } from "./conceptExpandResolve";
+import { AskLeoBusyMark } from "@/components/AskLeoBusyMark";
 import { CONCEPT_EXPAND } from "./copy";
 import type { ConceptSearchHit, LogicCriterion } from "./types";
 
@@ -175,14 +176,14 @@ export default function ConceptExpandDialog({
         )}
         {loading && (
           <Stack alignItems="center" spacing={1} sx={{ py: 4 }}>
-            <CircularProgress
-              size={28}
-              aria-label={
-                stage === "tick"
-                  ? CONCEPT_EXPAND.loadingIdeas
-                  : CONCEPT_EXPAND.loadingResolve
-              }
-            />
+            {stage === "tick" ? (
+              <AskLeoBusyMark height={28} title={CONCEPT_EXPAND.loadingIdeas} />
+            ) : (
+              <CircularProgress
+                size={28}
+                aria-label={CONCEPT_EXPAND.loadingResolve}
+              />
+            )}
             <Typography variant="body2" color="text.secondary">
               {stage === "tick"
                 ? CONCEPT_EXPAND.loadingIdeas

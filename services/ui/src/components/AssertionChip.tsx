@@ -46,7 +46,7 @@ const ASSERTION_META: Record<string, AssertionMeta> = {
   },
   planned: {
     label: "Planned / not done",
-    color: "#1d4ed8",
+    color: "#0d46d6",
     bg: "#dbeafe",
     tooltip:
       "This was booked or referred for; it is confirmed but has not happened yet.",

@@ -68,7 +68,9 @@ import {
   FilterBar,
   ProgressStrip,
   SegmentedTabs,
+  SpringSwap,
   StatHero,
+  StickyChrome,
   ToolbarActions,
   type StatTile as DsStatTile,
   type ToolbarAction,
@@ -536,6 +538,12 @@ const RELATION_POLICY_UI: Array<{
     targetLabels: ["procedure"],
     type: "component_of",
     reason: "Use this when an observable (e.g. gamma GT) is a component of a procedure (e.g. LFTs).",
+  },
+  {
+    sourceLabels: ["finding", "disorder", "situation"],
+    targetLabels: ["substance", "product"],
+    type: "causative_agent",
+    reason: "Use this when a reaction or allergy is caused by a named drug.",
   },
 ];
 
@@ -2387,6 +2395,7 @@ export function GoldLabelDetailDialog({
                       interprets: "#00838f",
                       associated_finding: "#2e7d32",
                       component_of: "#6a1b9a",
+                      causative_agent: "#c62828",
                     };
                     const REL_ARC_MARKER: Record<string, string> = {
                       finding_site: "url(#rel-arrow-0)",
@@ -2403,6 +2412,7 @@ export function GoldLabelDetailDialog({
                       interprets: "7 3",
                       associated_finding: "5 2",
                       component_of: "3 3",
+                      causative_agent: "4 2",
                     };
                     const REL_SHORT: Record<string, string> = {
                       finding_site: "site",
@@ -2411,6 +2421,7 @@ export function GoldLabelDetailDialog({
                       interprets: "interprets",
                       associated_finding: "associated",
                       component_of: "component",
+                      causative_agent: "caused by",
                     };
                     const colour = REL_ARC_COLOUR[line.relType] ?? "#64748b";
                     const marker = REL_ARC_MARKER[line.relType] ?? "url(#rel-arrow-0)";
@@ -2516,6 +2527,7 @@ export function GoldLabelDetailDialog({
                       interprets: "#00838f",
                       associated_finding: "#2e7d32",
                       component_of: "#6a1b9a",
+                      causative_agent: "#c62828",
                     };
                     const REL_LINK_LABEL: Record<string, string> = {
                       finding_site: "site",
@@ -2524,6 +2536,7 @@ export function GoldLabelDetailDialog({
                       interprets: "interprets",
                       associated_finding: "associated",
                       component_of: "component of",
+                      causative_agent: "caused by",
                     };
                     const colour = REL_LINK_COLOUR[pair.relationType] ?? "#64748b";
                     const relLabel = REL_LINK_LABEL[pair.relationType] ?? pair.relationType.replace(/_/g, " ");
@@ -4127,8 +4140,9 @@ export default function GoldDatasetPanel() {
   return (
     <Box sx={{ py: 2, px: 2 }}>
 
+      <StickyChrome testId="training-data-chrome">
       {/* Toolbar (Wave E: PageHero provides the h6 title; export demoted to secondary) */}
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2, flexWrap: "wrap" }}>
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 1.5, flexWrap: "wrap" }}>
         <Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25, fontSize: "0.82rem" }}>
             Check each sentence, fix any wrong codes, then mark it as gold.
@@ -4179,6 +4193,28 @@ export default function GoldDatasetPanel() {
         />
       </Box>
 
+      {/* Segmented tabs (design-system SegmentedTabs with keyboard nav + pill styling) */}
+      <Box>
+        <SegmentedTabs
+          aria-label="Training data views"
+          value={tab}
+          onChange={(id) => handleTabChange({} as React.SyntheticEvent, id as typeof tab)}
+          tabs={[
+            {
+              id: "candidates",
+              label: "Candidates",
+              count:
+                candidateStats != null
+                  ? candidateStats.total - candidateStats.completed
+                  : undefined,
+            },
+            { id: "gold", label: "Verified gold", count: goldStats?.total },
+            { id: "synthetic", label: "Synthetic", count: syntheticStats?.synthetic_gold_labels },
+          ]}
+        />
+      </Box>
+      </StickyChrome>
+
       {annotationGuidelines && (
         <Box sx={{ mb: 1.5 }}>
           <AnnotationGuidelinesPanel text={annotationGuidelines} defaultExpanded={false} />
@@ -4216,27 +4252,6 @@ export default function GoldDatasetPanel() {
         </Alert>
       </Snackbar>
 
-      {/* Segmented tabs (design-system SegmentedTabs with keyboard nav + pill styling) */}
-      <Box sx={{ mb: 1.5 }}>
-        <SegmentedTabs
-          aria-label="Training data views"
-          value={tab}
-          onChange={(id) => handleTabChange({} as React.SyntheticEvent, id as typeof tab)}
-          tabs={[
-            {
-              id: "candidates",
-              label: "Candidates",
-              count:
-                candidateStats != null
-                  ? candidateStats.total - candidateStats.completed
-                  : undefined,
-            },
-            { id: "gold", label: "Verified gold", count: goldStats?.total },
-            { id: "synthetic", label: "Synthetic", count: syntheticStats?.synthetic_gold_labels },
-          ]}
-        />
-      </Box>
-
       {/* Tab content (extracted to CandidatesTab / GoldTab / SyntheticTab)
        *
        * When tab === "candidates", CandidatesTab renders:
@@ -4254,6 +4269,7 @@ export default function GoldDatasetPanel() {
        * label: "Ready for training", label: "Failed", label: "Verified gold",
        * label: "Synthetic gold", label: "Avg quality"
        */}
+      <SpringSwap swapKey={tab}>
       {tab === "candidates" && (
         <CandidatesTab
           items={items as Candidate[]}
@@ -4330,6 +4346,7 @@ export default function GoldDatasetPanel() {
           onReset={(item) => requestDeleteGoldLabel(item)}
         />
       )}
+      </SpringSwap>
 
       {/* Detail dialog */}
       {selectedItem && tab === "gold" && (

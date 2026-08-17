@@ -17,7 +17,7 @@ export const PAGE_TOUR_STEPS: TourStep[] = [
   {
     id: "cg-01-jump",
     title: "Four steps on this page",
-    body: "Use this bar anytime to jump to Load, Inspect, Review, or Compile.",
+    body: "This bar switches the page. Pick Load, Inspect, Review, or Compile. You see one step at a time.",
     anchorSelector: '[data-tour="cg-01-jump"]',
   },
   {

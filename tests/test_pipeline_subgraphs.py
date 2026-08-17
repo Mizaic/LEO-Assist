@@ -128,6 +128,7 @@ def test_registered_subgraphs_build():
         "compliance",
         "next_best_action",
         "sbar",
+        "snomed_enrichment",
         "surface_form_validation",
         "rest_connector",
         "queue_publish",

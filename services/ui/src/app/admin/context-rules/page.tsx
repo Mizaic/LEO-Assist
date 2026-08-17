@@ -3,7 +3,7 @@
  *
  * Atlas trace:
  *   Implements: DO-CFA1ED55
- *   DI: DI-340279C1
+ *   DI: DI-340279C1, DI-C5A523A7
  */
 "use client";
 
@@ -11,13 +11,12 @@ import AddIcon from "@mui/icons-material/Add";
 import DownloadIcon from "@mui/icons-material/Download";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
-import Stack from "@mui/material/Stack";
 import {
   EmptyState,
   FilterBar,
   SkeletonList,
+  SpringSwap,
+  StickyChrome,
   ToolbarActions,
 } from "@leo/design-system";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -77,38 +76,70 @@ function ContextRulesToolbar({
   onAdd: () => void;
 }) {
   return (
-    <Stack direction="row" spacing={1.5} sx={{ mb: 2.5, flexWrap: "wrap" }} alignItems="center">
-      <Box sx={{ flex: 1, minWidth: 240 }}>
-        <FilterBar
-          search={search}
-          onSearchChange={onSearchChange}
-          searchPlaceholder="Search phrases..."
-          aria-label="Search context rules"
-          chips={sourceChips(sourceFilter, onSourceChange)}
+    <StickyChrome testId="context-rules-chrome">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <FilterBar
+            search={search}
+            onSearchChange={onSearchChange}
+            searchPlaceholder="Search phrases..."
+            aria-label="Search context rules"
+            chips={sourceChips(sourceFilter, onSourceChange)}
+          />
+        </div>
+        <ToolbarActions
+          actions={toolbarActions({
+            exporting,
+            loading,
+            canExport,
+            onExport,
+            onAdd,
+          })}
         />
-      </Box>
-      <ToolbarActions
-        actions={[
-          {
-            id: "export-pdf",
-            label: exporting ? "Exporting" : "Export PDF",
-            icon: <DownloadIcon fontSize="small" />,
-            variant: "secondary",
-            onClick: onExport,
-            disabled: exporting || loading || !canExport,
-            loading: exporting,
-          },
-          {
-            id: "add-rule",
-            label: "Add rule",
-            icon: <AddIcon fontSize="small" />,
-            variant: "primary",
-            onClick: onAdd,
-          },
-        ]}
-      />
-    </Stack>
+      </div>
+    </StickyChrome>
   );
+}
+
+function toolbarActions({
+  exporting,
+  loading,
+  canExport,
+  onExport,
+  onAdd,
+}: {
+  exporting: boolean;
+  loading: boolean;
+  canExport: boolean;
+  onExport: () => void;
+  onAdd: () => void;
+}) {
+  return [
+    {
+      id: "export-pdf",
+      label: exporting ? "Exporting" : "Export PDF",
+      icon: <DownloadIcon fontSize="small" />,
+      variant: "secondary" as const,
+      onClick: onExport,
+      disabled: exporting || loading || !canExport,
+      loading: exporting,
+    },
+    {
+      id: "add-rule",
+      label: "Add rule",
+      icon: <AddIcon fontSize="small" />,
+      variant: "primary" as const,
+      onClick: onAdd,
+    },
+  ];
 }
 
 function CategoryCardGrid({
@@ -121,21 +152,27 @@ function CategoryCardGrid({
   onOpen: (key: string, first?: ContextRule | null) => void;
 }) {
   return (
-    <Grid container spacing={2}>
+    <div
+      data-testid="context-rules-grid"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+        gap: 16,
+      }}
+    >
       {keys.map((key, index) => {
         const rules = filtered.filter((rule) => rule.category === key);
         return (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
-            <ContextCategoryCard
-              copy={categoryCopyFor(key)}
-              rules={rules}
-              index={index}
-              onOpen={() => onOpen(key, rules[0] ?? null)}
-            />
-          </Grid>
+          <ContextCategoryCard
+            key={key}
+            copy={categoryCopyFor(key)}
+            rules={rules}
+            index={index}
+            onOpen={() => onOpen(key, rules[0] ?? null)}
+          />
         );
       })}
-    </Grid>
+    </div>
   );
 }
 
@@ -208,7 +245,7 @@ function ContextRulesDialogs({ page }: { page: ReturnType<typeof useContextRules
 export default function ContextRulesPage() {
   const page = useContextRulesPage();
   return (
-    <Box>
+    <div data-testid="context-rules-workspace">
       <ContextRulesToolbar
         search={page.search}
         sourceFilter={page.sourceFilter}
@@ -225,8 +262,10 @@ export default function ContextRulesPage() {
           {page.error}
         </Alert>
       ) : null}
-      <ContextRulesBody page={page} />
+      <SpringSwap swapKey={page.sourceFilter + ":" + page.search}>
+        <ContextRulesBody page={page} />
+      </SpringSwap>
       <ContextRulesDialogs page={page} />
-    </Box>
+    </div>
   );
 }

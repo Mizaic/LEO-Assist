@@ -26,6 +26,7 @@ export const REL_TYPE_LABEL: Record<string, string> = {
   qualifies: "qualifies",
   associated_finding: "associated",
   component_of: "component of",
+  causative_agent: "caused by",
 };
 
 // All entity types that can be the SOURCE of any relation in policy.
@@ -46,6 +47,8 @@ const LINKABLE_TARGET_LABELS = new Set([
   "procedure",
   "finding",
   "disorder",
+  "substance",
+  "product",
 ]);
 
 export interface RelTriplet {

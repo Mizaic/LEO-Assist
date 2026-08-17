@@ -25,7 +25,7 @@ interface DataItem {
 // All colours checked against white: minimum 3:1 for UI components (WCAG 1.4.11)
 const COLOURS = [
   "#0D7C6F", "#0F6B60", "#105A52",  // teal family
-  "#1D4ED8", "#1E3A8A", "#1E2D6B",  // blue family
+  "#0d46d6", "#1E3A8A", "#1E2D6B",  // blue family
   "#7C3AED", "#6D28D9", "#5B21B6",  // purple family
   "#B45309", "#92400E", "#78350F",  // amber family
 ];

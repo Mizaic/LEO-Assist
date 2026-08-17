@@ -96,3 +96,5 @@ export {
   type SkeletonGridProps,
   type SkeletonListProps,
 } from "./SkeletonGrid";
+export { StickyChrome, type StickyChromeProps } from "./StickyChrome";
+export { SpringSwap, type SpringSwapProps } from "./SpringSwap";

@@ -9,7 +9,7 @@
 "use client";
 
 import { color } from "../tokens/color";
-import { radius } from "../tokens/spacing";
+import { elevation, radius } from "../tokens/spacing";
 import { typography } from "../tokens/typography";
 import { useMotion } from "../motion";
 import { ProgressStripScanner } from "./ProgressStripScanner";
@@ -75,6 +75,7 @@ export function ProgressStrip({
       style={{
         background: color.surface.raised,
         border: "1px solid " + color.surface.divider,
+        boxShadow: elevation.card,
         borderRadius: radius.md,
         padding: "14px 16px",
         fontFamily: typography.fontFamily.body,

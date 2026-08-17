@@ -189,8 +189,46 @@ RETURN
     t.encounter_id   AS encounter_id,
     t.patient_id     AS patient_id,
     t.task_type      AS task_type,
+    t.reason         AS reason,
     c.sentences_json AS sentences_json
 """
+
+
+def _phone_home_escalated(task_row: Any) -> None:
+    try:
+        from libs.atlas_qms.phone_home import phone_home_escalated
+
+        phone_home_escalated(task_type=str(task_row.get("task_type") or "unknown"))
+    except Exception:
+        logger.warning("phone-home escalate failed -- non-fatal", exc_info=True)
+
+
+def _write_hitl_training_label(task_row: Any, task_id: str, client: Any) -> None:
+    if not task_row or not task_row.get("sentences_json"):
+        return
+    try:
+        import json as _json
+
+        sentences = _json.loads(task_row["sentences_json"] or "[]")
+        for sent in sentences:
+            entities = sent.get("entities", [])
+            if not entities:
+                continue
+            upsert_training_label(
+                encounter_id=task_row["encounter_id"] or "",
+                patient_id=task_row["patient_id"] or "",
+                text=sent.get("text", ""),
+                entities=entities,
+                source="hitl_approval",
+                source_ref=task_id,
+                client=client,
+            )
+    except Exception:
+        logger.warning(
+            "HITL training label write failed for task %s -- non-fatal",
+            task_id,
+            exc_info=True,
+        )
 
 
 @router.post("/tasks/{task_id}/resolve")
@@ -248,31 +286,10 @@ async def resolve_task(
             payload.resolved_by,
         )
 
-        # Write training label for approved resolutions only.
-        if payload.status == "resolved" and task_row and task_row.get("sentences_json"):
-            try:
-                import json as _json
-
-                sentences = _json.loads(task_row["sentences_json"] or "[]")
-                for sent in sentences:
-                    entities = sent.get("entities", [])
-                    if not entities:
-                        continue
-                    upsert_training_label(
-                        encounter_id=task_row["encounter_id"] or "",
-                        patient_id=task_row["patient_id"] or "",
-                        text=sent.get("text", ""),
-                        entities=entities,
-                        source="hitl_approval",
-                        source_ref=task_id,
-                        client=client,
-                    )
-            except Exception:
-                logger.warning(
-                    "HITL training label write failed for task %s — non-fatal",
-                    task_id,
-                    exc_info=True,
-                )
+        if payload.status == "resolved":
+            _write_hitl_training_label(task_row, task_id, client)
+        if payload.status == "escalated" and task_row:
+            _phone_home_escalated(task_row)
 
         return {"task_id": row["task_id"], "status": row["status"]}
     finally:

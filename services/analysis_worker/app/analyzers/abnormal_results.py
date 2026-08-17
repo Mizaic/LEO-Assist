@@ -155,7 +155,6 @@ def detect_abnormal_results(
     org_id: str | None = None,
     knowledge_client: Any | None = None,
 ) -> list[dict[str, Any]]:
-    del org_id  # Lab metadata is platform-wide in the Knowledge Graph.
 
     demographics = list(
         patient_client.run(_GET_PATIENT_DEMOGRAPHICS, patient_id=patient_id) or []
@@ -221,6 +220,7 @@ def detect_abnormal_results(
                     patient_sex=sex,
                     patient_age=age_years,
                     session=kg_session,
+                    org_id=org_id,
                 )
         except LabConfigError as exc:
             _append_range_missing(

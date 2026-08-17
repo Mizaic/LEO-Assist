@@ -9,9 +9,12 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { motion as fm } from "framer-motion";
 
+import { useMotion } from "../motion";
+import { springOrInstant, springs, tapScale } from "../motion/springs";
 import { color } from "../tokens/color";
-import { radius } from "../tokens/spacing";
+import { elevation, radius } from "../tokens/spacing";
 import { typography } from "../tokens/typography";
 
 export type DeltaDirection = "up" | "down" | "flat";
@@ -19,8 +22,6 @@ export type DeltaDirection = "up" | "down" | "flat";
 export interface MetricDelta {
   value: string;
   direction: DeltaDirection;
-  // When true, "up" is rendered in red and "down" in green. Use this
-  // for metrics where a lower value is better (wait times, failures).
   invert?: boolean;
 }
 
@@ -31,25 +32,15 @@ export interface MetricTileProps {
   hint?: string;
   icon?: ReactNode;
   delta?: MetricDelta;
-  // Optional tone to lift the tile for attention without changing its
-  // meaning (positive | warning | danger). Falls back to neutral.
   tone?: "neutral" | "positive" | "warning" | "danger";
   onClick?: () => void;
 }
-
-/**
- * MetricTile - single stat cell used by StatHero and standalone. No
- * @mui imports; all visuals come from the design-system tokens.
- *
- * Design Controls: DI-LEO-AI-142, DO-LEO-AI-139, VT-LEO-AI-141.
- */
 
 function deltaColor(direction: DeltaDirection, invert: boolean): string {
   if (direction === "flat") return color.text.caption;
   const goodIsUp = !invert;
   const isGood =
-    (direction === "up" && goodIsUp) ||
-    (direction === "down" && !goodIsUp);
+    (direction === "up" && goodIsUp) || (direction === "down" && !goodIsUp);
   return isGood ? color.status.success : color.status.danger;
 }
 
@@ -66,6 +57,28 @@ function toneAccent(tone: MetricTileProps["tone"]): string | undefined {
   return undefined;
 }
 
+function tileStyle(interactive: boolean): React.CSSProperties {
+  return {
+    background: color.surface.raised,
+    border: "1px solid " + color.surface.divider,
+    boxShadow: elevation.card,
+    borderRadius: radius.md,
+    padding: "14px 16px",
+    minHeight: 96,
+    textAlign: "left",
+    font: "inherit",
+    fontFamily: typography.fontFamily.body,
+    cursor: interactive ? "pointer" : "default",
+    width: "100%",
+    position: "relative",
+  };
+}
+
+/**
+ * MetricTile - single stat cell used by StatHero and standalone.
+ * Press scale fires on pointer-down. Display figures use heading
+ * tracking so large numbers sit tighter than body copy.
+ */
 export function MetricTile({
   id,
   label,
@@ -76,31 +89,19 @@ export function MetricTile({
   tone = "neutral",
   onClick,
 }: MetricTileProps) {
+  const { reducedMotion } = useMotion();
   const accent = toneAccent(tone);
   const interactive = typeof onClick === "function";
-  const Tag = interactive ? "button" : "div";
-
-  const style: React.CSSProperties = {
-    background: color.surface.raised,
-    border: "1px solid " + color.surface.divider,
-    borderRadius: radius.md,
-    padding: "14px 16px",
-    minHeight: 96,
-    textAlign: "left",
-    font: "inherit",
-    fontFamily: typography.fontFamily.body,
-    cursor: interactive ? "pointer" : "default",
-    width: "100%",
-    transition: "box-shadow 160ms ease-out, transform 160ms ease-out",
-    position: "relative",
-  };
+  const Tag = interactive ? fm.button : fm.div;
 
   return (
     <Tag
       data-testid={"metric-tile-" + id}
       onClick={onClick}
       type={interactive ? "button" : undefined}
-      style={style}
+      whileTap={interactive ? tapScale(reducedMotion) : undefined}
+      transition={springOrInstant(reducedMotion, springs.press)}
+      style={tileStyle(interactive)}
     >
       {accent ? (
         <span
@@ -125,7 +126,7 @@ export function MetricTile({
           color: color.text.caption,
           fontSize: 12,
           fontWeight: 500,
-          letterSpacing: 0.2,
+          letterSpacing: typography.letterSpacing.caption,
           textTransform: "uppercase",
         }}
       >
@@ -136,9 +137,12 @@ export function MetricTile({
       <span
         style={{
           display: "block",
+          fontFamily: typography.fontFamily.heading,
           fontSize: 28,
           fontWeight: 600,
-          lineHeight: 1.1,
+          lineHeight: 1.05,
+          letterSpacing: typography.letterSpacing.display,
+          fontVariantNumeric: "tabular-nums",
           marginTop: 6,
           color: color.text.primary,
         }}
@@ -158,9 +162,7 @@ export function MetricTile({
         }}
       >
         {delta ? (
-          <span
-            style={{ color: deltaColor(delta.direction, delta.invert ?? false) }}
-          >
+          <span style={{ color: deltaColor(delta.direction, delta.invert ?? false) }}>
             {deltaArrow(delta.direction)} {delta.value}
           </span>
         ) : null}

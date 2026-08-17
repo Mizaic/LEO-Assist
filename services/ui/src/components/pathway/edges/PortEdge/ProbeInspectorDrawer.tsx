@@ -120,7 +120,7 @@ export function ProbeInspectorDrawer({
                     borderRadius: 999,
                     border: active ? "1px solid #2563eb" : "1px solid #cbd5e1",
                     background: active ? "#dbeafe" : "#fff",
-                    color: active ? "#1d4ed8" : "#334155",
+                    color: active ? "#0d46d6" : "#334155",
                     padding: "5px 10px",
                     fontSize: 12,
                     cursor: "pointer",
@@ -160,7 +160,7 @@ export function ProbeInspectorDrawer({
                     cursor: "pointer",
                   }}
                 >
-                  <div style={{ fontFamily: "monospace", fontSize: 12, color: "#1d4ed8" }}>{pathToString(match.path)}</div>
+                  <div style={{ fontFamily: "monospace", fontSize: 12, color: "#0d46d6" }}>{pathToString(match.path)}</div>
                   <div style={{ fontSize: 12, color: "#64748b" }}>{match.preview}</div>
                 </button>
               ))}

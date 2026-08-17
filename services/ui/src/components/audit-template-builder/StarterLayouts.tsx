@@ -59,7 +59,7 @@ export const STARTERS: StarterLayout[] = [
     label: "Side-by-side charts",
     description: "Two charts side by side for easy comparison.",
     Icon: BarChartIcon,
-    colour: "#1E40AF",
+    colour: "#002178",
     slots: [
       { tileType: "bar_chart",  layout: { x: 0, y: 0, w: 6, h: 5 } },
       { tileType: "line_chart", layout: { x: 6, y: 0, w: 6, h: 5 } },

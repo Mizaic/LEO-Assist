@@ -15,10 +15,10 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { AskLeoBusyMark } from "@/components/AskLeoBusyMark";
 import TermSearch from "@/components/TermSearch";
 import { askLeoSmart, searchTerms } from "@/lib/api/legacy";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -437,7 +437,8 @@ function CodingActions({
             color="secondary"
             onClick={onAskLeoAll}
             disabled={busy}
-            startIcon={leoRunning ? <CircularProgress aria-label="Loading" size={14} color="inherit" /> : undefined}
+            startIcon={leoRunning ? <AskLeoBusyMark /> : undefined}
+            aria-busy={leoRunning}
           >
             {leoRunning
               ? "LEO working..."

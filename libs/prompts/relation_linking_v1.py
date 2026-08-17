@@ -1,10 +1,10 @@
 """Prompt for relation linking between extracted entities.
 
 Atlas trace:
-  DO: DO-49256B13
-  Also implements: DO-8620A68B
-  DI: DI-044827AD, DI-5A802C83
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-49256B13")
+  DO: DO-8E641A9E
+  Also: DO-49256B13, DO-8620A68B
+  DI: DI-6ACD24D2, DI-044827AD
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8E641A9E")
 """
 
 from libs.llm_client.prompt_safety import INJECTION_GUARD
@@ -23,29 +23,32 @@ Your task:
    supports that the link is about THIS patient.
 2) Reject a candidate when the text does not support it, or when it is
    only a general ontology fact with no wording in this note.
-3) Add text-only relations that SNOMED did not cover (laterality,
-   qualifier words such as severe/mild, or a body site named in the text).
+3) Add text-only relations that SNOMED did not cover when the same
+   phrase names both ends (a body site, a lab line, or a named drug).
 
 Rules:
 1) Create or confirm relations only when the text supports the link.
 2) Use finding_site when an anatomy term specifies where a finding or
-   procedure occurs.
-3) Use qualifies ONLY when a modifier word (severity, frequency, degree --
-   e.g. 'severe', 'mild', 'frequent', 'bilateral') directly modifies a
-   finding, disorder, or procedure. NEVER use qualifies for two
-   co-occurring findings.
-4) Do not invent entities. Do not link two findings just because they
+   procedure occurs in the same phrase.
+3) Use interprets when a finding describes what an observable means
+   on the same lab or vital line.
+4) Use component_of when an observable is part of a named test on
+   the same lab or vital line.
+5) Use causative_agent when a reaction, allergy, or situation is
+   caused by a drug or allergen named in the note.
+6) Do not invent entities. Do not link two findings just because they
    appear in the same note.
-5) Keep relation direction as head_idx -> tail_idx.
-6) If a body structure is only meaningful as a linked site, include it
+7) Do not invent a body site from the code book if the letter did
+   not name that site.
+8) Keep relation direction as head_idx -> tail_idx.
+9) If a body structure is only meaningful as a linked site, include it
    in suppress.
 
 Allowed relation types:
 - finding_site
 - interprets
 - component_of
-- qualifies
-- associated_finding
+- causative_agent
 
 Output JSON:
 {
@@ -64,8 +67,8 @@ If there are no candidates and no text-only links, return
 RELATION_LINKING_EXAMPLES_V1 = [
     {
         "id": "rl-d",
-        "category": "qualifies",
-        "description": "Co-occurring findings must NOT be linked via qualifies",
+        "category": "no_cooccurrence",
+        "description": "Co-occurring findings must NOT be linked",
         "core": True,
         "model_scope": "any",
         "input": (
@@ -111,11 +114,26 @@ RELATION_LINKING_EXAMPLES_V1 = [
     },
     {
         "id": "rl-c",
-        "category": "qualifies",
-        "description": "Qualifier value modifies finding",
+        "category": "finding_site",
+        "description": "Pain linked to abdomen; severity stays in the finding span",
         "core": True,
         "model_scope": "any",
-        "input": "Encounter: severe abdominal pain. Entities: [{text:'pain',label:'finding'},{text:'severe',label:'qualifier value'},{text:'abdomen',label:'body structure'}]",
-        "output": '{"confirmed":[],"rejected":[],"additional":[{"head_idx":0,"tail_idx":1,"type":"qualifies","confidence":0.91},{"head_idx":0,"tail_idx":2,"type":"finding_site","confidence":0.94}],"suppress":[2]}',
+        "input": "Encounter: severe abdominal pain. Entities: [{text:'pain',label:'finding'},{text:'abdomen',label:'body structure'}]",
+        "output": '{"confirmed":[],"rejected":[],"additional":[{"head_idx":0,"tail_idx":1,"type":"finding_site","confidence":0.94}],"suppress":[1]}',
+    },
+    {
+        "id": "rl-f",
+        "category": "causative_agent",
+        "description": "Allergy situation caused by a named drug",
+        "core": True,
+        "model_scope": "any",
+        "input": (
+            "Encounter: allergic to penicillin. "
+            "Entities: [{text:'allergic',label:'situation'},{text:'penicillin',label:'substance'}]"
+        ),
+        "output": (
+            '{"confirmed":[],"rejected":[],"additional":[{"head_idx":0,"tail_idx":1,'
+            '"type":"causative_agent","confidence":0.93}],"suppress":[]}'
+        ),
     },
 ]

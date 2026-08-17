@@ -17,13 +17,17 @@ const PAGE = path.join(
   ROOT,
   "services/ui/src/app/settings/terminology/page.tsx",
 );
+const HOOK = path.join(
+  ROOT,
+  "services/ui/src/app/settings/terminology/useTerminologyPage.ts",
+);
 
-function read(): string {
-  return fs.readFileSync(PAGE, "utf-8");
+function read(p: string): string {
+  return fs.readFileSync(p, "utf-8");
 }
 
 describe("VT-217/218: terminology settings page chrome", () => {
-  const src = read();
+  const src = read(PAGE) + read(HOOK);
 
   it("declares package keys for snomed, dmd, icd10 and opcs4", () => {
     expect(src).toMatch(/PACKAGE_KEYS\s*=\s*\[\s*"snomed"\s*,\s*"dmd"\s*,\s*"icd10"\s*,\s*"opcs4"\s*\]/);

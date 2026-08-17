@@ -54,18 +54,30 @@ describe("Results/Labs Knowledge tab -- design-system chrome", () => {
     const detail = read(
       "services/ui/src/app/admin/lab-results/ObservableDetailPanel.tsx",
     );
-    const tab = read("services/ui/src/app/admin/lab-results/ConversionsTab.tsx");
+    const tab =
+      read("services/ui/src/app/admin/lab-results/ConversionsTab.tsx") +
+      read("services/ui/src/app/admin/lab-results/useConversionsTab.ts") +
+      read("services/ui/src/app/admin/lab-results/labConfigForm.tsx");
 
     expect(detail).toMatch(/Unit conversions/);
     expect(tab).toMatch(/saveUnitConversion/);
     expect(tab).toMatch(/deleteUnitConversion/);
+    expect(tab).toMatch(/gridTemplateColumns/);
+    expect(tab).toMatch(/Add this conversion\?/);
+    expect(tab).not.toMatch(/flexWrap="wrap"/);
   });
 
   it("TC-005: reference ranges tab is present with Select for sex", () => {
     const detail = read(
       "services/ui/src/app/admin/lab-results/ObservableDetailPanel.tsx",
     );
-    const tab = read("services/ui/src/app/admin/lab-results/RangesTab.tsx");
+    const tab =
+      read("services/ui/src/app/admin/lab-results/RangesTab.tsx") +
+      read("services/ui/src/app/admin/lab-results/RangeFormCard.tsx") +
+      read("services/ui/src/app/admin/lab-results/RangeOwnerField.tsx") +
+      read("services/ui/src/app/admin/lab-results/useRangesTab.ts") +
+      read("services/ui/src/app/admin/lab-results/rangeDraft.ts") +
+      read("services/ui/src/app/admin/lab-results/labConfigForm.tsx");
 
     expect(detail).toMatch(/Reference ranges/);
     expect(tab).toMatch(/saveReferenceRange/);
@@ -73,6 +85,18 @@ describe("Results/Labs Knowledge tab -- design-system chrome", () => {
     expect(tab).toMatch(/Select/);
     expect(tab).toMatch(/male/);
     expect(tab).toMatch(/female/);
+    expect(tab).toMatch(/gridTemplateColumns: "minmax\(0, 1fr\) minmax\(0, 1fr\)"/);
+    expect(tab).toMatch(/Who it applies to/);
+    expect(tab).toMatch(/Add this reference range\?/);
+    expect(tab).toMatch(/Platform default/);
+    expect(tab).toMatch(/listOrgs/);
+    expect(tab).toMatch(/Owner/);
+    expect(tab).toMatch(/Autocomplete/);
+    expect(tab).toMatch(/Type a name or ODS code/);
+    expect(tab).toMatch(/filterRangeOrgs/);
+    expect(tab).toMatch(/This overlay applies only to the chosen organisation/);
+    expect(tab).not.toMatch(/orgs\.map\(\(org\) =>/);
+    expect(tab).not.toMatch(/flexWrap="wrap"/);
   });
 
   it("TC-006: interpretations tab uses Select for classification", () => {
@@ -88,7 +112,36 @@ describe("Results/Labs Knowledge tab -- design-system chrome", () => {
     expect(tab).toMatch(/critically_high/);
     expect(tab).toMatch(/critically_low/);
     expect(tab).toMatch(/out_of_range/);
+    expect(tab).toMatch(/value:\s*"normal"/);
+    expect(tab).toMatch(/Within range/);
     expect(tab).toMatch(/finding_concept_id/);
+    expect(tab).toMatch(/FindingSnomedPicker/);
+    expect(tab).toMatch(/Ask LEO/);
+    expect(tab).toMatch(/Search SNOMED/);
+    expect(tab).toMatch(/SnomedPickConfirmDialog/);
+    expect(tab).toMatch(/Save this interpretation\?/);
+    expect(tab).not.toMatch(/id: "add-interpretation"/);
+  });
+
+  it("TC-011: interpretation and add-observable pickers search SNOMED or Ask LEO", () => {
+    const picker = read(
+      "services/ui/src/app/admin/lab-results/FindingSnomedPicker.tsx",
+    );
+    const hook = read(
+      "services/ui/src/app/admin/lab-results/useLabSnomedSearch.ts",
+    );
+    const add = read(
+      "services/ui/src/app/admin/lab-results/AddObservableDialog.tsx",
+    );
+
+    expect(picker).toMatch(/Ask LEO/);
+    expect(picker).toMatch(/data-testid="lab-snomed-empty"/);
+    expect(hook).toMatch(/askLeoSmart/);
+    expect(hook).toMatch(/searchTerms/);
+    expect(add).toMatch(/FindingSnomedPicker/);
+    expect(add).toMatch(/SnomedPickConfirmDialog/);
+    expect(add).toMatch(/Add this observable\?/);
+    expect(add).not.toMatch(/Observable SNOMED code/);
   });
 
   it("TC-007: all delete operations are ConfirmDialog-gated", () => {

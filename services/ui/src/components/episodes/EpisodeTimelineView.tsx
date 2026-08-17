@@ -95,7 +95,7 @@ const MILESTONE_COLORS: Record<string, string> = {
   presentation: "#6366f1",
   referral: "#14B8A6",
   first_clinic: "#f59e0b",
-  diagnosis: "#1F3A8A",
+  diagnosis: "#0d46d6",
   treatment_decision: "#8b5cf6",
   first_treatment: "#16a34a",
 };

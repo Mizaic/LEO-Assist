@@ -1,22 +1,31 @@
 /**
  * Category detail dialog -- landscape 16:9.
  * Left: exact phrases. Right: with / without example.
+ *
+ * Atlas trace:
+ *   Implements: DO-CFA1ED55
+ *   DI: DI-340279C1, DI-C5A523A7
  */
 "use client";
 
 import { useId } from "react";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
+import { motion as fm } from "framer-motion";
+import {
+  frostStyle,
+  SpringSwap,
+  springOrInstant,
+  springs,
+  tapScale,
+  useMotion,
+  useReducedTransparency,
+} from "@leo/design-system";
+import { color, elevation, radius, typography } from "@leo/design-system/tokens";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import CloseIcon from "@mui/icons-material/Close";
 
 import ContextExamplePanel from "./ContextExamplePanel";
+import { ContextDialogTitleBar } from "./ContextDialogTitleBar";
+import { ContextPhraseRow } from "./ContextPhraseRow";
 import type { CategoryCopy } from "./categoryCopy";
 import { directionLabel, resolveContextExample, scopeLabel } from "./categoryCopy";
 import type { ContextRule } from "./types";
@@ -30,70 +39,22 @@ interface ContextCategoryDialogProps {
   onDeactivate: (rule: ContextRule) => void;
 }
 
-function PhraseRow({
-  rule,
-  selected,
-  onSelect,
-}: {
-  rule: ContextRule;
-  selected: boolean;
-  onSelect: (rule: ContextRule) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(rule)}
-      aria-current={selected ? "true" : undefined}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        width: "100%",
-        textAlign: "left",
-        border: "none",
-        borderRadius: 8,
-        padding: "8px 10px",
-        margin: "2px 0",
-        cursor: "pointer",
-        background: selected ? "rgba(29,78,216,0.08)" : "transparent",
-        font: "inherit",
-      }}
-    >
-      <span
-        style={{
-          flex: 1,
-          fontSize: 13,
-          color: "#0F172A",
-          fontFamily: "var(--font-jetbrains-mono), monospace",
-        }}
-      >
-        {rule.literal}
-      </span>
-      <Chip
-        size="small"
-        label={rule.source === "builtin" ? "Built-in" : "Added"}
-        sx={{ height: 18, fontSize: "0.65rem", flexShrink: 0 }}
-      />
-    </button>
-  );
-}
-
 function CategoryDocs({ copy }: { copy: CategoryCopy }) {
   return (
-    <Stack spacing={0.75}>
-      <Typography variant="body2">
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
+      <p style={{ margin: 0, color: color.text.primary }}>
         <strong>What it does. </strong>
         {copy.what}
-      </Typography>
-      <Typography variant="body2">
+      </p>
+      <p style={{ margin: 0, color: color.text.primary }}>
         <strong>Why it is needed. </strong>
         {copy.why}
-      </Typography>
-      <Typography variant="body2">
+      </p>
+      <p style={{ margin: 0, color: color.text.primary }}>
         <strong>If it is wrong. </strong>
         {copy.ifWrong}
-      </Typography>
-    </Stack>
+      </p>
+    </div>
   );
 }
 
@@ -104,36 +65,51 @@ function SelectedRuleDetail({
   rule: ContextRule;
   onDeactivate: (rule: ContextRule) => void;
 }) {
+  const { reducedMotion } = useMotion();
   const canDeactivate = rule.source === "custom" && rule.active && rule.rule_id;
   return (
-    <Box sx={{ p: 1.5, border: "1px solid #E2E8F0", borderRadius: "10px" }}>
-      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75 }}>
-        Exact rule
-      </Typography>
+    <div
+      style={{
+        padding: 14,
+        borderRadius: radius.md,
+        background: color.surface.raised,
+        boxShadow: elevation.card,
+      }}
+    >
+      <strong style={{ display: "block", marginBottom: 6, fontSize: 13 }}>Exact rule</strong>
       {rule.description ? (
-        <Typography variant="body2" sx={{ mb: 0.75 }}>
-          {rule.description}
-        </Typography>
+        <p style={{ margin: "0 0 8px", fontSize: 14 }}>{rule.description}</p>
       ) : null}
-      <Typography variant="body2" color="text.secondary">
+      <p style={{ margin: 0, fontSize: 14, color: color.text.secondary }}>
         {directionLabel(rule.direction)}. {scopeLabel(rule.max_scope)}.
-      </Typography>
+      </p>
       {rule.source === "builtin" ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+        <p style={{ margin: "8px 0 0", fontSize: 14, color: color.text.secondary }}>
           This phrase ships with LEO. You cannot edit it here.
-        </Typography>
+        </p>
       ) : null}
       {canDeactivate ? (
-        <Button
-          size="small"
-          color="warning"
-          sx={{ mt: 1, textTransform: "none" }}
+        <fm.button
+          type="button"
           onClick={() => onDeactivate(rule)}
+          whileTap={tapScale(reducedMotion)}
+          transition={springOrInstant(reducedMotion, springs.press)}
+          style={{
+            marginTop: 10,
+            border: "1px solid " + color.status.warning,
+            background: "rgba(180, 83, 9, 0.1)",
+            color: color.status.warning,
+            borderRadius: 8,
+            padding: "6px 10px",
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: typography.fontFamily.body,
+          }}
         >
           Deactivate
-        </Button>
+        </fm.button>
       ) : null}
-    </Box>
+    </div>
   );
 }
 
@@ -151,22 +127,22 @@ function CategoryLeftColumn({
   onDeactivate: (rule: ContextRule) => void;
 }) {
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         width: "52%",
         overflow: "auto",
-        p: 2.5,
-        borderRight: "1px solid #E2E8F0",
+        padding: 20,
+        borderRight: "1px solid " + color.text.secondary,
       }}
     >
-      <Stack spacing={1.5}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <CategoryDocs copy={copy} />
-        <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+        <div>
+          <strong style={{ display: "block", marginBottom: 6, fontSize: 13 }}>
             Trigger phrases
-          </Typography>
+          </strong>
           {rules.map((rule) => (
-            <PhraseRow
+            <ContextPhraseRow
               key={rule.rule_id ?? rule.literal}
               rule={rule}
               selected={
@@ -176,22 +152,41 @@ function CategoryLeftColumn({
               onSelect={onSelect}
             />
           ))}
-        </Box>
+        </div>
         {selectedRule ? (
           <SelectedRuleDetail rule={selectedRule} onDeactivate={onDeactivate} />
         ) : null}
-      </Stack>
-    </Box>
+      </div>
+    </div>
   );
 }
 
-const DIALOG_PAPER_SX = {
-  width: "min(96vw, calc(90vh * 16 / 9))",
-  height: "min(90vh, calc(96vw * 9 / 16))",
-  maxWidth: "none",
-  maxHeight: "90vh",
-  aspectRatio: "16 / 9",
-};
+function dialogSlots(frost: ReturnType<typeof frostStyle>) {
+  return {
+    backdrop: {
+      sx: {
+        backgroundColor: color.surface.overlay,
+        backdropFilter: frost.backdropFilter === "none" ? "none" : "blur(16px)",
+      },
+    },
+    paper: {
+      sx: {
+        width: "min(96vw, calc(90vh * 16 / 9))",
+        height: "min(90vh, calc(96vw * 9 / 16))",
+        maxWidth: "none",
+        maxHeight: "90vh",
+        aspectRatio: "16 / 9",
+        borderRadius: "16px",
+        overflow: "hidden",
+        boxShadow: elevation.modal,
+        background: frost.background,
+        backdropFilter: frost.backdropFilter,
+        WebkitBackdropFilter: frost.WebkitBackdropFilter,
+        border: "1px solid rgba(255, 255, 255, 0.7)",
+      },
+    },
+  };
+}
 
 export default function ContextCategoryDialog({
   copy,
@@ -202,6 +197,7 @@ export default function ContextCategoryDialog({
   onDeactivate,
 }: ContextCategoryDialogProps) {
   const titleId = useId();
+  const frost = frostStyle(useReducedTransparency(), "pane");
   const example = resolveContextExample(copy, selectedRule);
 
   return (
@@ -210,23 +206,10 @@ export default function ContextCategoryDialog({
       onClose={onClose}
       maxWidth={false}
       aria-labelledby={titleId}
-      PaperProps={{ sx: DIALOG_PAPER_SX }}
+      slotProps={dialogSlots(frost)}
     >
-      <DialogTitle id={titleId} sx={{ pr: 6, py: 1.5 }}>
-        {copy.title}
-        <Chip size="small" label="Context" sx={{ ml: 1, height: 22 }} />
-        <IconButton
-          aria-label="Close"
-          onClick={onClose}
-          sx={{ position: "absolute", right: 8, top: 8 }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent
-        dividers
-        sx={{ display: "flex", p: 0, overflow: "hidden", height: "100%" }}
-      >
+      <ContextDialogTitleBar titleId={titleId} title={copy.title} onClose={onClose} />
+      <DialogContent sx={{ display: "flex", p: 0, overflow: "hidden", height: "100%" }}>
         <CategoryLeftColumn
           copy={copy}
           rules={rules}
@@ -234,9 +217,18 @@ export default function ContextCategoryDialog({
           onSelect={onSelect}
           onDeactivate={onDeactivate}
         />
-        <Box sx={{ width: "48%", overflow: "auto", p: 2.5, bgcolor: "#F8FAFC" }}>
-          <ContextExamplePanel example={example} />
-        </Box>
+        <div
+          style={{
+            width: "48%",
+            overflow: "auto",
+            padding: 20,
+            background: color.surface.alt,
+          }}
+        >
+          <SpringSwap swapKey={selectedRule?.literal || copy.key}>
+            <ContextExamplePanel example={example} />
+          </SpringSwap>
+        </div>
       </DialogContent>
     </Dialog>
   );

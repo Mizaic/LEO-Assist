@@ -153,7 +153,7 @@ function CalloutBlock({ p, editable, onChange }: { p: P; editable: boolean; onCh
 }
 
 function BannerBlock({ p, editable, onChange }: { p: P; editable: boolean; onChange: (key: string, v: string) => void }) {
-  const bg = str(p, "bgColour", "#1E40AF");
+  const bg = str(p, "bgColour", "#002178");
   const tc = str(p, "textColour", "#FFFFFF");
   return (
     <Box sx={{ px: 3, height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", bgcolor: bg }}>

@@ -17,10 +17,10 @@ import { typography } from "../tokens/typography";
 /**
  * Creates the MUI theme for the LEO Intelligence Console. All inputs
  * come from the design-system token set so re-theming happens in one
- * place. DM Sans and JetBrains Mono are loaded via next/font in the
- * consuming app (services/ui/src/lib/fonts.ts) and surface through the
- * --font-dm-sans / --font-jetbrains-mono CSS variables referenced
- * below.
+ * place. Albert Sans, Overpass, and JetBrains Mono are loaded via
+ * next/font in the consuming app (services/ui/src/lib/fonts.ts) and
+ * surface through the --font-albert-sans / --font-overpass /
+ * --font-jetbrains-mono CSS variables referenced below.
  *
  * Design Controls: DI-LEO-AI-141, DO-LEO-AI-138, VT-LEO-AI-140.
  */

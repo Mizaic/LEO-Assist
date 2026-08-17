@@ -378,7 +378,9 @@ describe("VT-062-TC-001: Prompt editor runtime controls (static)", () => {
   // toggle moved into TeachingExamplesTab.tsx and ExampleCard.tsx
   // respectively. Each invariant is asserted against the file that now
   // owns it so this guard tracks the live UI source.
-  const promptEditor = readUISrc("app/admin/prompts/[id]/page.tsx");
+  const promptEditor =
+    readUISrc("app/admin/prompts/[id]/page.tsx") +
+    readUISrc("app/admin/prompts/[id]/_components/usePromptTuner.ts");
   const teachingTab = readUISrc(
     "app/admin/prompts/[id]/_components/TeachingExamplesTab.tsx",
   );
@@ -429,7 +431,7 @@ describe("VT-036-TC-008: Error boundary files exist", () => {
 
   it("loading.tsx exists with accessible spinner", () => {
     const content = readUISrc("app/loading.tsx");
-    expect(content).toContain("CircularProgress");
-    expect(content).toContain("aria-label");
+    expect(content).toContain("LeoTabletFallback");
+    expect(content).toContain("@leo/design-system");
   });
 });

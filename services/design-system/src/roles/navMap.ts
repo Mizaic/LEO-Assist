@@ -86,7 +86,7 @@ export const roleNavMap: RoleNavMap = {
     advanced: [_AUDIT, _REPORTS],
   },
   platform_admin: {
-    landing: "/admin/platform",
+    landing: "/admin/knowledge",
     primary: [_PLATFORM, _USERS, _KNOWLEDGE, _OPERATIONS],
     advanced: [_CARE_DASHBOARD, _AUDIT, _REPORTS],
   },

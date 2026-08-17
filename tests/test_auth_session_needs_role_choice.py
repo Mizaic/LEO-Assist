@@ -50,7 +50,7 @@ def client_session_template(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     return test_client
 
 
-def test_needs_role_choice_true_multi_role_new_session(
+def test_needs_role_choice_false_multi_role_new_session(
     monkeypatch: pytest.MonkeyPatch, client_session_template: TestClient
 ) -> None:
     from app.routers import auth as auth_router
@@ -73,7 +73,7 @@ def test_needs_role_choice_true_multi_role_new_session(
     )
     res = client_session_template.get("/auth/session")
     assert res.status_code == 200
-    assert res.json()["needs_role_choice"] is True
+    assert res.json()["needs_role_choice"] is False
 
 
 def test_needs_role_choice_false_after_session_confirmed(

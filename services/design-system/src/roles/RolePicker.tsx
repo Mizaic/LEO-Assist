@@ -10,8 +10,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { LeoLogo } from "../brand";
+import { color } from "../tokens/color";
 import { CANONICAL_ROLES, ROLE_COPY, type OrgOption, type Role, type RoleCategory } from "./types";
 import { useRole } from "./RoleContext";
+
+const BRAND = color.brand.primary;
 
 export interface RolePickerProps {
   pinned?: boolean;
@@ -33,7 +37,7 @@ const S = {
     background: "#F8FAFC",
     overflowY: "auto" as const,
     zIndex: 1400,
-    fontFamily: "var(--font-dm-sans), 'DM Sans', -apple-system, system-ui, sans-serif",
+    fontFamily: "var(--font-albert-sans), 'Albert Sans', -apple-system, system-ui, sans-serif",
     color: "#0F172A",
   },
   inner: {
@@ -41,19 +45,7 @@ const S = {
     margin: "0 auto",
     padding: "40px 24px 80px",
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: "50%",
-    background: "#1D4ED8",
-    color: "#fff",
-    display: "flex" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    fontWeight: 700,
-    fontSize: 22,
-    margin: "0 auto 12px",
-  },
+  logoWrap: { display: "flex" as const, justifyContent: "center" as const, margin: "0 auto 12px" },
   welcome: { textAlign: "center" as const, marginBottom: 24 },
   welcomeTitle: { fontSize: 22, fontWeight: 700, margin: "0 0 4px" },
   welcomeSub: { fontSize: 14, color: "#64748B", margin: 0 },
@@ -93,11 +85,11 @@ const S = {
   searchWrap: { position: "relative" as const, marginBottom: 24 },
   searchIcon: { position: "absolute" as const, left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", fontSize: 16, pointerEvents: "none" as const },
   category: { marginBottom: 28 },
-  catHeader: { display: "flex" as const, alignItems: "center" as const, gap: 10, borderBottom: "2px solid #1D4ED8", paddingBottom: 8, marginBottom: 14 },
-  catTitle: { fontSize: 15, fontWeight: 700, color: "#1D4ED8", margin: 0 },
+  catHeader: { display: "flex" as const, alignItems: "center" as const, gap: 10, borderBottom: `2px solid ${BRAND}`, paddingBottom: 8, marginBottom: 14 },
+  catTitle: { fontSize: 15, fontWeight: 700, color: BRAND, margin: 0 },
   catBadge: {
     background: "#DBEAFE",
-    color: "#1D4ED8",
+    color: BRAND,
     borderRadius: 20,
     padding: "2px 8px",
     fontSize: 12,
@@ -111,7 +103,7 @@ const S = {
   card: (selected: boolean): React.CSSProperties => ({
     position: "relative",
     background: selected ? "#EFF6FF" : "#fff",
-    border: `1px solid ${selected ? "#1D4ED8" : "#E2E8F0"}`,
+    border: `1px solid ${selected ? BRAND : "#E2E8F0"}`,
     borderRadius: 10,
     padding: "14px 14px 12px",
     cursor: "pointer",
@@ -136,7 +128,7 @@ const S = {
   }),
   footer: { marginTop: 32, display: "flex" as const, justifyContent: "flex-end" as const },
   primaryBtn: (disabled: boolean): React.CSSProperties => ({
-    background: "#1D4ED8",
+    background: BRAND,
     color: "#fff",
     border: "none",
     borderRadius: 8,
@@ -162,7 +154,7 @@ const S = {
   } as React.CSSProperties,
   changeBtn: {
     background: "#fff",
-    color: "#1D4ED8",
+    color: BRAND,
     border: "1px solid #BFDBFE",
     borderRadius: 8,
     padding: "6px 14px",
@@ -183,7 +175,7 @@ function orgLabel(org: OrgOption): string {
 }
 
 function StepPill({ n, label, active, done }: { n: number; label: string; active: boolean; done: boolean }) {
-  const bg = done ? "#22C55E" : active ? "#1D4ED8" : "#E2E8F0";
+  const bg = done ? "#22C55E" : active ? BRAND : "#E2E8F0";
   const fg = done || active ? "#fff" : "#94A3B8";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -236,9 +228,9 @@ function groupByCategory(roles: Role[]): Array<{ category: RoleCategory; roles: 
 
 const ORG_ICON = (
   <svg width="36" height="36" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <rect x="3" y="7" width="18" height="13" rx="2" stroke="#1D4ED8" strokeWidth="1.5" fill="#EFF6FF"/>
-    <path d="M8 20V13h8v7" stroke="#1D4ED8" strokeWidth="1.5" strokeLinejoin="round"/>
-    <path d="M3 9l9-6 9 6" stroke="#1D4ED8" strokeWidth="1.5" strokeLinejoin="round"/>
+    <rect x="3" y="7" width="18" height="13" rx="2" stroke={BRAND} strokeWidth="1.5" fill="#EFF6FF"/>
+    <path d="M8 20V13h8v7" stroke={BRAND} strokeWidth="1.5" strokeLinejoin="round"/>
+    <path d="M3 9l9-6 9 6" stroke={BRAND} strokeWidth="1.5" strokeLinejoin="round"/>
   </svg>
 );
 
@@ -262,14 +254,14 @@ function OrgStep({ orgs, selectedId, onSelect }: { orgs: OrgOption[]; selectedId
                 textAlign: "center",
                 minHeight: 120,
               }}>
-              <span style={{ color: selected ? "#1D4ED8" : "#94A3B8" }}>{ORG_ICON}</span>
+              <span style={{ color: selected ? BRAND : "#94A3B8" }}>{ORG_ICON}</span>
               <span style={{ ...S.cardLabel, textAlign: "center" }}>{o.name}</span>
               {o.odsCode && (
                 <span style={{ ...S.cardDesc, textAlign: "center" }}>
                   {o.odsCode}{o.shortName ? ` (${o.shortName})` : ""}
                 </span>
               )}
-              <span style={{ fontSize: 11, color: selected ? "#1D4ED8" : "#94A3B8", fontWeight: 500, marginTop: 2 }}>
+              <span style={{ fontSize: 11, color: selected ? BRAND : "#94A3B8", fontWeight: 500, marginTop: 2 }}>
                 {selected ? "Selected" : "Click to select"}
               </span>
             </button>
@@ -414,7 +406,9 @@ export function RolePicker({ pinned = false, onConfirm, userName, organizations 
   return (
     <div style={S.page} data-testid="role-picker-overlay" ref={containerRef} tabIndex={-1}>
       <div style={S.inner}>
-        <div style={S.avatar}>LEO</div>
+        <div style={S.logoWrap}>
+          <LeoLogo variant="light" height={40} />
+        </div>
         <div style={S.welcome}>
           <h1 style={S.welcomeTitle}>Welcome, {displayName}!</h1>
           <p style={S.welcomeSub}>Let&apos;s get you started in just {multiOrg ? "2" : "1"} click{multiOrg ? "s" : ""}.</p>

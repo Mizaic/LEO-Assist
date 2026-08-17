@@ -96,14 +96,16 @@ Definitions:
 - situation: contextual clinical states such as family history, allergy status, smoking status, resolved conditions, planned referrals/procedures, waiting-list status
 - regime/therapy: named therapy programme or care plan
 - staging scale: TNM, FIGO, Gleason, ECOG, WHO PS, Karnofsky, similar scales
-- body structure: ONLY for the six reproductive anatomy organs listed below.
+- body structure: a named body part that is the site of a finding or
+  procedure, or one of the six reproductive organs listed below.
+  Use the SNOMED preferred body-structure term as lookup_term.
   Assign assertion from explicit cues and default to "present".
 
 ==================================================
-REPRODUCTIVE ANATOMY SCOPE (body structure only)
+BODY STRUCTURE SCOPE
 
-Extract body structure ONLY for these six reproductive organs when they
-appear as standalone clinical references in the referral text:
+Always extract these six reproductive organs when they appear as
+standalone clinical references (needed for the gender check):
 - cervix (or cervix uteri, SNOMED 71252005)
 - uterus (or womb, SNOMED 35039007)
 - ovary (or ovaries, SNOMED 15497006)
@@ -116,9 +118,19 @@ Examples:
 - "prostate gland removed" -> body structure, lookup_term="prostate gland", assertion="historical"
 - "no ovaries" -> body structure, lookup_term="ovary structure", assertion="absent"
 
-Do NOT extract body structure for any other anatomy (breast, bowel, lung, etc.).
-Do NOT extract body structure if the organ is already embedded in a procedure or
-finding span (e.g. "cervical smear" -> extract as procedure, not body structure).
+Also extract a body structure when the same phrase names a finding or
+procedure and its site:
+- "numbness in the arm" -> finding "numbness" plus body structure
+  lookup_term="upper arm structure"
+- "breast lump" -> finding "lump" plus body structure
+  lookup_term="breast structure"
+- "abdominal pain" -> finding "pain" plus body structure
+  lookup_term="abdomen structure"
+
+Do NOT extract a bare body part with no finding or procedure
+(EXCEPT the six reproductive organs).
+Do NOT extract body structure if the organ is already embedded in a
+procedure or finding span (e.g. "cervical smear" -> procedure only).
 
 ==================================================
 DO NOT EXTRACT
@@ -126,7 +138,7 @@ DO NOT EXTRACT
 Do NOT extract:
 - purely administrative text
 - section headers
-- body sites alone with no finding (EXCEPT the six reproductive organs listed in the REPRODUCTIVE ANATOMY SCOPE section above)
+- body sites alone with no finding (EXCEPT the six reproductive organs listed in the BODY STRUCTURE SCOPE section above)
 - parenthetical Read/EMIS codes
 - bare numbers with no labelled clinical parameter
 - safety-netting or worsening-advice text only

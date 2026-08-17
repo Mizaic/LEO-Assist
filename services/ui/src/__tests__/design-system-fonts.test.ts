@@ -10,12 +10,14 @@ import { FONT_CONFIG, FONT_VARIABLES } from "@leo/design-system/fonts";
 
 describe("VT-128 - next/font wiring + subtitle un-monospace", () => {
   test("TC-001 design-system exposes font config", () => {
-    expect(FONT_VARIABLES.body).toBe("--font-dm-sans");
+    expect(FONT_VARIABLES.body).toBe("--font-albert-sans");
+    expect(FONT_VARIABLES.heading).toBe("--font-overpass");
     expect(FONT_VARIABLES.mono).toBe("--font-jetbrains-mono");
-    expect(FONT_CONFIG.dmSans.subsets).toContain("latin");
-    expect(FONT_CONFIG.dmSans.weights).toEqual(
+    expect(FONT_CONFIG.albertSans.subsets).toContain("latin");
+    expect(FONT_CONFIG.albertSans.weights).toEqual(
       expect.arrayContaining(["400", "600"]),
     );
+    expect(FONT_CONFIG.overpass.subsets).toContain("latin");
   });
 
   test("TC-002 theme.ts subtitles do not reference JetBrains Mono", () => {
@@ -39,16 +41,16 @@ describe("VT-128 - next/font wiring + subtitle un-monospace", () => {
     const block = subtitleBlock![0];
     expect(block).not.toMatch(/JetBrains Mono/);
     expect(block).not.toMatch(/FONT_MONO/);
-    // And they DO reference the body font family (which resolves to DM Sans).
-    expect(block).toMatch(/FONT_BODY|DM Sans|dm-sans/);
+    // And they DO reference the body font family (which resolves to Albert Sans).
+    expect(block).toMatch(/FONT_BODY|Albert Sans|albert-sans/);
   });
 
-  test("TC-002b layout.tsx applies dmSans variable to html", () => {
+  test("TC-002b layout.tsx applies albertSans variable to html", () => {
     const source = readFileSync(
       join(__dirname, "..", "app", "layout.tsx"),
       "utf-8",
     );
-    expect(source).toMatch(/dmSans/);
-    expect(source).toMatch(/dmSans\.variable/);
+    expect(source).toMatch(/albertSans/);
+    expect(source).toMatch(/albertSans\.variable/);
   });
 });

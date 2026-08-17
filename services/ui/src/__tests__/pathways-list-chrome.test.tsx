@@ -21,7 +21,9 @@ import * as path from "path";
 
 const ROOT = path.resolve(__dirname, "../../../..");
 const PAGE = path.join(ROOT, "services/ui/src/app/admin/pathways/page.tsx");
+const HOOK = path.join(ROOT, "services/ui/src/app/admin/pathways/usePathwaysList.ts");
 const CARD = path.join(ROOT, "services/ui/src/app/admin/pathways/PathwayCard.tsx");
+const PARTS = path.join(ROOT, "services/ui/src/app/admin/pathways/PathwayCardParts.tsx");
 const DIALOGS = path.join(ROOT, "services/ui/src/app/admin/pathways/dialogs.tsx");
 const TEMPLATES = path.join(ROOT, "services/ui/src/app/admin/pathways/templates.ts");
 
@@ -31,7 +33,7 @@ function read(p: string): string {
 
 describe("VT-LEO-AI-151 - Pathways list chrome", () => {
   test("TC-001: page imports design-system primitives and sibling modules", () => {
-    const src = read(PAGE);
+    const src = read(PAGE) + read(HOOK);
     expect(src).toMatch(/from\s+["']@leo\/design-system["']/);
     expect(src).toMatch(/StatHero/);
     expect(src).toMatch(/SegmentedTabs/);
@@ -45,11 +47,11 @@ describe("VT-LEO-AI-151 - Pathways list chrome", () => {
   test("TC-002: removes legacy custom h5 page header in favour of StatHero", () => {
     const src = read(PAGE);
     expect(src).not.toMatch(/Typography\s+variant="h5"\s+fontWeight=\{700\}>Clinical Pathways/);
-    expect(src).toMatch(/<StatHero stats=\{stats\}\s*\/>/);
+    expect(src).toMatch(/<StatHero stats=\{(?:page\.)?stats\}\s*\/>/);
   });
 
   test("TC-003: preserves /fhir/PlanDefinition data + routing handlers", () => {
-    const src = read(PAGE);
+    const src = read(PAGE) + read(HOOK);
     expect(src).toMatch(/\.get<[\s\S]*?\(\s*"\/fhir\/PlanDefinition"/);
     expect(src).toMatch(/api\.put\(`\/fhir\/PlanDefinition\/\$\{[^}]+\}`/);
     expect(src).toMatch(/api\.post<[\s\S]*?\(\s*"\/fhir\/PlanDefinition"/);
@@ -62,7 +64,7 @@ describe("VT-LEO-AI-151 - Pathways list chrome", () => {
     const seg = src.match(/<SegmentedTabs[\s\S]*?\/>/);
     expect(seg).not.toBeNull();
     expect(seg![0]).toMatch(/tabs=\{/);
-    expect(seg![0]).toMatch(/value=\{statusFilter\}/);
+    expect(seg![0]).toMatch(/value=\{(?:page\.)?statusFilter\}/);
     expect(seg![0]).toMatch(/aria-label="Filter pathways by status"/);
     expect(seg![0]).not.toMatch(/\bitems=/);
     expect(seg![0]).toMatch(/id:\s*"all"/);
@@ -82,7 +84,7 @@ describe("VT-LEO-AI-151 - Pathways list chrome", () => {
   });
 
   test("TC-006: stats include the four canonical tiles", () => {
-    const src = read(PAGE);
+    const src = read(HOOK);
     const stats = src.match(/computeStats[\s\S]*?return\s*\[[\s\S]*?\];/m);
     expect(stats).not.toBeNull();
     expect(stats![0]).toMatch(/id:\s*"total"/);
@@ -101,7 +103,7 @@ describe("VT-LEO-AI-151 - Pathways list chrome", () => {
   });
 
   test("TC-008: PathwayCard preserves the full action surface", () => {
-    const src = read(CARD);
+    const src = read(CARD) + read(PARTS);
     expect(src).toMatch(/onEdit/);
     expect(src).toMatch(/onPublish/);
     expect(src).toMatch(/onDuplicate/);

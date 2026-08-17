@@ -91,7 +91,7 @@ export default function RuleDoor({ seedPhrases, onBack, onReview }: Props) {
         Back to start
       </Button>
       <Typography variant="h6" fontWeight={700} sx={{ mb: 0.5 }}>
-        Test a guideline rule
+        Build new tests
       </Typography>
       {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
       {step === "pick" ? (

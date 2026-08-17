@@ -47,7 +47,7 @@ const ForceGraph2D: any = dynamic(
     ssr: false,
     loading: () => (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1 }}>
-        <CircularProgress aria-label="Loading" role="status" sx={{ color: "#1E40AF" }} />
+        <CircularProgress aria-label="Loading" role="status" sx={{ color: "#002178" }} />
       </Box>
     ),
   },
@@ -114,14 +114,14 @@ const LINK_COLOR: Record<string, string> = {
 };
 
 const TARGET_GLOW: Record<string, string> = {
-  cancer: "#1E40AF",
+  cancer: "#002178",
   age: "#7C3AED",
   gender: "#0E7490",
 };
 
 function symptomGlow(metric: number): string {
   if (metric >= 75) return "#047857";
-  if (metric >= 50) return "#1D4ED8";
+  if (metric >= 50) return "#0d46d6";
   if (metric >= 25) return "#B45309";
   return "#64748B";
 }
@@ -358,7 +358,7 @@ function Legend({ view }: { view: ViewMode }) {
     entries.push({ c: LINK_COLOR.diagnosis, label: "Diagnosis edge" });
   entries.push(
     { c: "#047857", label: "Prevalence 75%+" },
-    { c: "#1D4ED8", label: "50-74%" },
+    { c: "#0d46d6", label: "50-74%" },
     { c: "#B45309", label: "25-49%" },
   );
   return (
@@ -682,7 +682,7 @@ function SankeyPanel({
             <Chip
               size="small"
               label={`${hoveredLink.metric}% prevalence`}
-              sx={{ bgcolor: "#DBEAFE", color: "#1E40AF", fontWeight: 700 }}
+              sx={{ bgcolor: "#DBEAFE", color: "#002178", fontWeight: 700 }}
             />
           </Stack>
 
@@ -904,7 +904,7 @@ function CancerSelector({
             variant="contained"
             onClick={onAnalyse}
             disabled={selected.size === 0}
-            sx={{ bgcolor: "#1E40AF", "&:hover": { bgcolor: "#1D4ED8" } }}
+            sx={{ bgcolor: "#002178", "&:hover": { bgcolor: "#0d46d6" } }}
           >
             Analyse {selected.size > 0 ? `(${selected.size})` : ""}
           </Button>
@@ -938,14 +938,14 @@ function CancerSelector({
                 minHeight: 168,
                 p: 0,
                 borderRadius: "12px",
-                borderColor: isSelected ? "#1E40AF" : "#E2E8F0",
+                borderColor: isSelected ? "#002178" : "#E2E8F0",
                 bgcolor: isSelected ? "#EFF6FF" : "#FFFFFF",
                 color: "#0F172A",
                 overflow: "hidden",
                 textTransform: "none",
                 boxShadow: isSelected ? "0 10px 24px rgba(30,64,175,0.12)" : "none",
                 "&:hover": {
-                  borderColor: "#1E40AF",
+                  borderColor: "#002178",
                   bgcolor: isSelected ? "#EFF6FF" : "#F8FAFC",
                 },
               }}
@@ -960,7 +960,7 @@ function CancerSelector({
                   bottom: 14,
                   width: 3,
                   borderRadius: 2,
-                  bgcolor: isSelected ? "#1E40AF" : "#CBD5E1",
+                  bgcolor: isSelected ? "#002178" : "#CBD5E1",
                 }}
               />
               <Stack sx={{ p: "18px", width: "100%" }} gap={1.25}>
@@ -973,7 +973,7 @@ function CancerSelector({
                     label={isSelected ? "Selected" : "Select"}
                     sx={{
                       bgcolor: isSelected ? "#DBEAFE" : "#F1F5F9",
-                      color: isSelected ? "#1E40AF" : "#475569",
+                      color: isSelected ? "#002178" : "#475569",
                       fontWeight: 700,
                       fontSize: "0.68rem",
                     }}
@@ -995,7 +995,7 @@ function CancerSelector({
                     <Chip
                       size="small"
                       label={`${option.matchPct}% match`}
-                      sx={{ bgcolor: "#DBEAFE", color: "#1E40AF", fontWeight: 700 }}
+                      sx={{ bgcolor: "#DBEAFE", color: "#002178", fontWeight: 700 }}
                     />
                   ) : null}
                 </Stack>
@@ -1412,7 +1412,7 @@ export default function SymptomsDrilldownDialog({
           </ToggleButton>
           <ToggleButton
             value="compare"
-            sx={{ "&.Mui-selected": { color: "#1E40AF", bgcolor: "#DBEAFE !important" } }}
+            sx={{ "&.Mui-selected": { color: "#002178", bgcolor: "#DBEAFE !important" } }}
           >
             Compare
           </ToggleButton>
@@ -1469,7 +1469,7 @@ export default function SymptomsDrilldownDialog({
               sx={{
                 fontSize: "0.68rem",
                 cursor: "pointer",
-                color: minN === v ? "#1E40AF" : "#475569",
+                color: minN === v ? "#002178" : "#475569",
                 borderColor: "#CBD5E1",
                 bgcolor: minN === v ? "#DBEAFE" : "transparent",
               }}
@@ -1494,7 +1494,7 @@ export default function SymptomsDrilldownDialog({
             onClick={() => setAnalysisStarted(false)}
             size="small"
             variant="outlined"
-            sx={{ color: "#1E40AF", borderColor: "#CBD5E1", flexShrink: 0 }}
+            sx={{ color: "#002178", borderColor: "#CBD5E1", flexShrink: 0 }}
           >
             Change selection
           </Button>
@@ -1503,7 +1503,7 @@ export default function SymptomsDrilldownDialog({
         <Button
           onClick={onClose}
           size="small"
-          sx={{ color: "#1E40AF", borderColor: "#CBD5E1", flexShrink: 0 }}
+          sx={{ color: "#002178", borderColor: "#CBD5E1", flexShrink: 0 }}
           variant="outlined"
         >
           Close
@@ -1514,7 +1514,7 @@ export default function SymptomsDrilldownDialog({
       <Box sx={{ flex: 1, position: "relative", overflow: "hidden", p: 2 }}>
         {loading && (
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-            <CircularProgress aria-label="Loading" role="status" sx={{ color: "#1E40AF" }} />
+            <CircularProgress aria-label="Loading" role="status" sx={{ color: "#002178" }} />
           </Box>
         )}
         {!loading && error && (
@@ -1634,7 +1634,7 @@ export default function SymptomsDrilldownDialog({
             href="https://www.gatewayc.org.uk/cancer-maps/"
             target="_blank"
             rel="noopener noreferrer"
-            sx={{ color: "#1E40AF" }}
+            sx={{ color: "#002178" }}
           >
             Dr Ben Noble&apos;s Cancer Maps
           </Link>{" "}

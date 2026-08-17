@@ -53,7 +53,7 @@ import EthnicitySnomedRadarCard from "./EthnicitySnomedRadarCard";
 const BASELINE_YEAR = 2018;
 const C_MALE = "#2563EB";
 const C_FEMALE = "#DB2777";
-const C_ETH_RADAR_LIVE = "#1D4ED8";
+const C_ETH_RADAR_LIVE = "#0d46d6";
 const C_BENCH18 = "#92400E";
 
 interface LiveYearState {

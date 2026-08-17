@@ -41,7 +41,7 @@ export function ProgressiveReveal({
         style={{
           background: "transparent",
           border: "none",
-          color: "#1e40af",
+          color: "#002178",
           cursor: "pointer",
           padding: "4px 0",
           font: "inherit",

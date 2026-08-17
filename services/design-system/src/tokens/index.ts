@@ -14,6 +14,7 @@ import { typography } from "./typography";
 
 export { color } from "./color";
 export { density } from "./density";
+export { frostStyle } from "./material";
 export {
   motion,
   reducedMotion,

@@ -40,7 +40,7 @@ import { type AuditTile, type TileType } from "@/lib/auditTemplateApi";
 const MotionBox = fm(Box);
 
 const TILE_META: Record<TileType, { Icon: React.ElementType; colour: string; label: string }> = {
-  bar_chart:     { Icon: BarChartIcon,             colour: "#1E40AF", label: "Bar chart" },
+  bar_chart:     { Icon: BarChartIcon,             colour: "#002178", label: "Bar chart" },
   line_chart:    { Icon: ShowChartIcon,            colour: "#047857", label: "Line chart" },
   kpi_strip:     { Icon: NumbersIcon,              colour: "#7C3AED", label: "KPI strip" },
   table:         { Icon: TableChartOutlinedIcon,   colour: "#0E7490", label: "Table" },

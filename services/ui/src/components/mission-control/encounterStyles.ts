@@ -27,9 +27,9 @@ export const TAG_STYLE_MAP: Record<string, TagStyle> = {
   "clinical finding":  { borderColor: "#d946ef", bgcolor: "#fdf4ff", color: "#701a75", label: "Finding" },
   finding:             { borderColor: "#d946ef", bgcolor: "#fdf4ff", color: "#701a75", label: "Finding" },
   // Procedures: blue
-  procedure:           { borderColor: "#3b82f6", bgcolor: "#eff6ff", color: "#1d4ed8", label: "Procedure" },
-  "regime/therapy":    { borderColor: "#3b82f6", bgcolor: "#eff6ff", color: "#1d4ed8", label: "Procedure" },
-  regime_therapy:      { borderColor: "#3b82f6", bgcolor: "#eff6ff", color: "#1d4ed8", label: "Procedure" },
+  procedure:           { borderColor: "#3b82f6", bgcolor: "#eff6ff", color: "#0d46d6", label: "Procedure" },
+  "regime/therapy":    { borderColor: "#3b82f6", bgcolor: "#eff6ff", color: "#0d46d6", label: "Procedure" },
+  regime_therapy:      { borderColor: "#3b82f6", bgcolor: "#eff6ff", color: "#0d46d6", label: "Procedure" },
   // Observables: amber/gold -- lab measurements
   "observable entity": { borderColor: "#b45309", bgcolor: "#fffbeb", color: "#78350f", label: "Observable" },
   observable_entity:   { borderColor: "#b45309", bgcolor: "#fffbeb", color: "#78350f", label: "Observable" },

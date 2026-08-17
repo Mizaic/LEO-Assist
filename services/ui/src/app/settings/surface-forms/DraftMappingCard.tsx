@@ -27,7 +27,7 @@ export function DraftMappingCard({
       style={{
         margin: "0 0 12px",
         padding: 14,
-        border: needsFix ? "2px solid #C2410C" : "2px solid #1D4ED8",
+        border: needsFix ? "2px solid #C2410C" : "2px solid #0d46d6",
         background: needsFix ? "#FFF7ED" : "#EFF6FF",
         borderRadius: 14,
       }}
@@ -39,7 +39,7 @@ export function DraftMappingCard({
           fontWeight: 700,
           letterSpacing: "0.04em",
           textTransform: "uppercase",
-          color: needsFix ? "#9A3412" : "#1E40AF",
+          color: needsFix ? "#9A3412" : "#002178",
         }}
       >
         {needsFix ? "Code saved -- preferred term missing" : "Your mapping"}

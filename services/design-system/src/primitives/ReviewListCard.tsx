@@ -12,9 +12,10 @@ import type { ReactNode } from "react";
 import { AnimatePresence, motion as fm } from "framer-motion";
 
 import { color } from "../tokens/color";
-import { radius } from "../tokens/spacing";
+import { elevation, radius } from "../tokens/spacing";
 import { typography } from "../tokens/typography";
 import { useMotion } from "../motion";
+import { springOrInstant, springs, tapScale } from "../motion/springs";
 
 export interface ReviewListItem {
   id: string;
@@ -77,6 +78,10 @@ function row(
   const animate = { opacity: 1, y: 0 };
   const exit = reducedMotion ? undefined : { opacity: 0, y: -6 };
   const delay = reducedMotion ? 0 : (step * idx) / 1000;
+  const rowTransition = {
+    ...springOrInstant(reducedMotion, springs.ui),
+    delay,
+  };
   const rowPadding =
     density === "compact" ? "8px 12px 8px 16px" : "14px 16px 14px 20px";
   const rowGap = density === "compact" ? 12 : 16;
@@ -106,7 +111,13 @@ function row(
       initial={initial}
       animate={animate}
       exit={exit}
-      transition={{ duration: reducedMotion ? 0 : 0.18, ease: "easeOut", delay }}
+      whileTap={isInteractive ? tapScale(reducedMotion, 0.985) : undefined}
+      whileHover={
+        isInteractive && !reducedMotion
+          ? { boxShadow: elevation.card }
+          : undefined
+      }
+      transition={rowTransition}
       style={{
         position: "relative",
         display: "grid",
@@ -120,6 +131,7 @@ function row(
         padding: rowPadding,
         background: item.selected ? color.surface.alt : color.surface.raised,
         border: "1px solid " + color.surface.divider,
+        boxShadow: elevation.card,
         borderRadius: radius.md,
         cursor: isInteractive ? "pointer" : "default",
         outlineOffset: 2,

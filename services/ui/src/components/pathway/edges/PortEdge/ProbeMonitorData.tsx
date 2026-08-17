@@ -142,7 +142,7 @@ export function ProbeMonitorData(props: DataTabProps) {
           type="button"
           onClick={() => openInspector([entries[0][0]])}
           style={{
-            border: "1px solid #1d4ed8",
+            border: "1px solid #0d46d6",
             background: "transparent",
             color: "#89b4fa",
             borderRadius: 6,

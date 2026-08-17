@@ -17,7 +17,8 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-const PRIMARY = "#1F3A8A";
+const PRIMARY = "#0d46d6";
+const NAVY = "#00093b";
 const WHITE = "#FFFFFF";
 const GREY_TEXT = "#596577";
 
@@ -36,28 +37,20 @@ export interface AuditReportPdfMeta {
   orgName?: string;
 }
 
-function drawLogo(doc: jsPDF, x: number, y: number, r: number) {
-  doc.setFillColor(PRIMARY);
-  doc.circle(x, y, r, "F");
-  doc.setTextColor(WHITE);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(r * 3.2);
-  doc.text("LEO", x, y + r * 1.1, { align: "center", baseline: "bottom" });
-}
-
 function drawHeader(doc: jsPDF, meta: AuditReportPdfMeta, generatedAt: string) {
-  doc.setFillColor(PRIMARY);
+  doc.setFillColor(NAVY);
   doc.rect(0, 0, PAGE_W, HEADER_H, "F");
-  drawLogo(doc, MARGIN - 1, HEADER_H / 2, 4.5);
 
   doc.setTextColor(WHITE);
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("LEO by Mizaic", MARGIN, HEADER_H / 2 - 2.2, { baseline: "middle" });
   doc.setFontSize(11);
-  doc.text(meta.title, MARGIN + 8, HEADER_H / 2 - 1, { baseline: "middle" });
+  doc.text(meta.title, MARGIN, HEADER_H / 2 + 2.4, { baseline: "middle" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(`v${meta.version} - ${meta.status}`, MARGIN + 8, HEADER_H / 2 + 3.5, {
+  doc.text(`v${meta.version} - ${meta.status}`, MARGIN + 62, HEADER_H / 2 + 2.4, {
     baseline: "middle",
   });
 

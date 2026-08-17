@@ -14,7 +14,8 @@
     "./roles": "./src/roles/index.ts",
     "./copy": "./src/copy/index.ts",
     "./primitives": "./src/primitives/index.ts",
-    "./theme": "./src/theme/index.ts"
+    "./theme": "./src/theme/index.ts",
+    "./brand": "./src/brand/index.ts"
   },
   "peerDependencies": {
     "next": ">=15.0.0",

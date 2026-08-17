@@ -277,7 +277,7 @@ export function ProbeMonitor({ sourceId, targetId, x, y, onClose }: MonitorProps
               disabled={isTestRunning}
               title="Run the pipeline only up to this step"
               style={{
-                background: isTestRunning ? "#45475a" : "#1d4ed8",
+                background: isTestRunning ? "#45475a" : "#0d46d6",
                 border: "none",
                 borderRadius: 4,
                 color: isTestRunning ? "#6c7086" : "#fff",
