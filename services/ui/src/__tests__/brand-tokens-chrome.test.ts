@@ -79,7 +79,14 @@ describe("brand tokens and chrome", () => {
     expect(hits.map((file) => relative(REPO_ROOT, file))).toEqual([]);
   });
 
-  test("TC-006: SBAR widget and PDF use Mizaic chrome", () => {
+  test("TC-006: LeoLogo colour overrides stay assignable as CSS strings", () => {
+    const src = readRel("services/design-system/src/brand/LeoLogo.tsx");
+    expect(src).toMatch(/type ResolvedColors/);
+    expect(src).toMatch(/letter:\s*string/);
+    expect(src).toMatch(/letterColor \?\? palette\.letter/);
+  });
+
+  test("TC-007: SBAR widget and PDF use Mizaic chrome", () => {
     const tokens = readRel("services/widget-sdk/src/branding/tokens.ts");
     const pdf = readRel("services/ui/src/lib/exportSbarPdf.ts");
     const markup = readRel("services/ui/src/lib/sbarPdfMarkup.ts");

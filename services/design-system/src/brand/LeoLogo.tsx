@@ -23,7 +23,11 @@ const PALETTE = {
   },
 } as const;
 
-type Palette = (typeof PALETTE)[keyof typeof PALETTE];
+type ResolvedColors = {
+  letter: string;
+  ring: string;
+  accent: string;
+};
 
 function cx(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
@@ -67,7 +71,7 @@ function resolvePalette(
   letterColor?: string,
   ringColor?: string,
   accentColor?: string,
-): Palette {
+): ResolvedColors {
   const palette = PALETTE[variant];
   return {
     letter: letterColor ?? palette.letter,
