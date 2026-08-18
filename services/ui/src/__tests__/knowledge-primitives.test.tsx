@@ -124,6 +124,16 @@ describe("VT-141 TC-003 SegmentedTabs", () => {
     expect(screen.getByTestId("segmented-tab-two").getAttribute("aria-selected")).toBe("true");
     expect(screen.getByTestId("segmented-tabs-pill")).toBeTruthy();
   });
+
+  it("indexes button refs with optional chaining so current may be null", () => {
+    const hook = fs.readFileSync(
+      path.join(PRIMITIVES_DIR, "useSegmentedPill.ts"),
+      "utf-8",
+    );
+    const tabs = readSource("SegmentedTabs");
+    expect(hook).toMatch(/buttonRefs\.current\?\.\[activeIdx\]/);
+    expect(tabs).toMatch(/refs\.current\?\.\[bounded\]/);
+  });
 });
 
 describe("VT-141 TC-004 FilterBar", () => {

@@ -30,7 +30,7 @@ export function useSegmentedPill(
   const [pill, setPill] = useState<PillRect>(HIDDEN);
 
   const measure = useCallback(() => {
-    const btn = buttonRefs.current[activeIdx];
+    const btn = buttonRefs.current?.[activeIdx];
     if (!btn) return;
     setPill({ x: btn.offsetLeft, width: btn.offsetWidth, ready: true });
   }, [activeIdx, buttonRefs]);

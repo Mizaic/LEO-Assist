@@ -100,7 +100,7 @@ export function SegmentedTabs({
     (next: number) => {
       const bounded = (next + tabs.length) % tabs.length;
       setFocusIdx(bounded);
-      const node = refs.current[bounded];
+      const node = refs.current?.[bounded];
       if (node) node.focus();
     },
     [tabs.length],
