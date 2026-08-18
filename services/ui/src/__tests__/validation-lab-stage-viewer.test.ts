@@ -11,6 +11,9 @@ const PANEL = path.join(ROOT, "RunInspectorPanel.tsx");
 const WIZARD = path.join(ROOT, "PipelineWizard.tsx");
 const DETAIL = path.join(ROOT, "StageDetailPane.tsx");
 const WORK = path.join(ROOT, "StageWorkPreview.tsx");
+const EVIDENCE = path.join(ROOT, "StageStoryPanel.tsx");
+const EXTRA = path.join(ROOT, "StageExtraDetail.tsx");
+const STORY = path.join(ROOT, "stageEvidence.ts");
 const TIP = path.join(ROOT, "EvidenceTooltip.tsx");
 const CHIPS = path.join(ROOT, "StateKeyChips.tsx");
 
@@ -23,6 +26,9 @@ describe("RunInspectorPanel -- Pipeline tab with process-mining wizard", () => {
       fs.readFileSync(WIZARD, "utf-8"),
       fs.readFileSync(DETAIL, "utf-8"),
       fs.readFileSync(WORK, "utf-8"),
+      fs.readFileSync(EVIDENCE, "utf-8"),
+      fs.readFileSync(EXTRA, "utf-8"),
+      fs.readFileSync(STORY, "utf-8"),
       fs.readFileSync(TIP, "utf-8"),
     ].join("\n");
     chips = fs.readFileSync(CHIPS, "utf-8");

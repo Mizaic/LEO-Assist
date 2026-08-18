@@ -1,38 +1,14 @@
 """MedSpaCy ConText engine for clinical assertion detection.
 
-Atlas trace:
-  DO: DO-AA3B7FCC
-  DI: DI-9456E5BE
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
-
-Replaces the custom character-window regex detector with the ConText
-graph algorithm, extended with UK primary care rules and custom
-categories:
-
-  DECLINED    -- patient declined or refused (custom)
-  CANCELLED   -- patient cancelled / did not attend / DNA (custom)
-  REFUTED     -- initial impression overridden by investigation (custom)
-  PLANNED     -- booked, awaiting, scheduled, referred for (custom; not done yet)
-  HYPOTHETICAL -- conditional / speculative future (medspaCy built-in)
-
-The distinction between PLANNED and HYPOTHETICAL:
-  - PLANNED:     definitively arranged but not yet completed
-                 ("booked for colonoscopy", "awaiting MRI", "referred for physio")
-  - HYPOTHETICAL: conditional or speculative
-                 ("if symptoms worsen consider CT", "may need surgery")
-
-The spaCy pipeline is initialised once at module level and reused across
-all encounters.
-
-Safety: on any spaCy exception the pipeline raises immediately so that
-callers never silently persist incorrect assertion values.
+Atlas: DO-15449C6E / DI-0F9542BF / VT-A1919820
+Custom categories: DECLINED, CANCELLED, REFUTED, PLANNED.
+PLANNED is a confirmed booking; HYPOTHETICAL is speculative.
+Raises on spaCy errors so callers never persist a silent wrong assertion.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import spacy
@@ -42,10 +18,6 @@ if TYPE_CHECKING:
     from libs.ner.extractor_contract import ExtractionItem
 
 logger = logging.getLogger(__name__)
-
-_UK_RULES_PATH = (
-    Path(__file__).parent / "resources" / "uk_primary_care_context_rules.json"
-)
 
 # Span attribute mapping -- includes the custom DECLINED category.
 # Span.set_extension("is_declined") must be called before ConText is added.
@@ -60,6 +32,29 @@ _SPAN_ATTRS: dict = {
     "REFUTED": {"is_refuted": True},
     "PLANNED": {"is_planned": True},
 }
+
+_CATEGORY_ASSERTION = {
+    "NEGATED_EXISTENCE": "absent",
+    "POSSIBLE_EXISTENCE": "possible",
+    "HISTORICAL": "historical",
+    "HYPOTHETICAL": "hypothetical",
+    "FAMILY": "family",
+    "DECLINED": "declined",
+    "CANCELLED": "cancelled",
+    "REFUTED": "refuted",
+    "PLANNED": "planned",
+}
+_ASSERTION_RANK = (
+    "family",
+    "absent",
+    "refuted",
+    "declined",
+    "cancelled",
+    "planned",
+    "historical",
+    "hypothetical",
+    "possible",
+)
 
 # Module-level singleton -- lazy-initialised on first call.
 # Call reload_nlp() after creating/deactivating Neo4j ContextRule nodes so the
@@ -95,15 +90,11 @@ _CONTEXT_RULE_KEYS = frozenset(
 )
 
 
-def _build_nlp(extra_rules: list[dict] | None = None) -> spacy.language.Language:
-    """Create a blank spaCy pipeline with medspaCy ConText and UK rules.
-
-    Args:
-        extra_rules: Optional list of additional rule dicts (e.g. fetched from
-            Neo4j) to append after the built-in JSON rules.  Each dict must
-            contain at least ``literal``, ``category``, ``direction``, and
-            ``max_scope`` keys — the same shape returned by ``GET_CONTEXT_RULES``.
-    """
+def _build_nlp(
+    extra_rules: list[dict] | None = None,
+    suppressed: set[str] | None = None,
+) -> spacy.language.Language:
+    """Create a blank spaCy pipeline with packaged ConText plus custom rules."""
     from medspacy.context import ConTextRule
 
     _register_extensions()
@@ -117,25 +108,17 @@ def _build_nlp(extra_rules: list[dict] | None = None) -> spacy.language.Language
     nlp.add_pipe("sentencizer")
     context = nlp.add_pipe(
         "medspacy_context",
-        config={"span_attrs": _SPAN_ATTRS, "max_scope": 10, "rules": "default"},
+        config={"span_attrs": _SPAN_ATTRS, "max_scope": 10, "rules": None},
     )
 
-    # ── Built-in rules from the shipped JSON file ────────────────────────────
-    builtin_rules: list[ConTextRule] = []
-    if _UK_RULES_PATH.exists():
-        raw = json.loads(_UK_RULES_PATH.read_text(encoding="utf-8"))
-        for entry in raw.get("context_rules", []):
-            clean = {k: v for k, v in entry.items() if k in _CONTEXT_RULE_KEYS}
-            builtin_rules.append(ConTextRule(**clean))
-        logger.info(
-            "Loaded %d built-in UK ConText rules from %s",
-            len(builtin_rules),
-            _UK_RULES_PATH,
-        )
-    else:
-        logger.warning("Built-in UK ConText rules not found at %s", _UK_RULES_PATH)
+    from libs.ner.context_rule_catalog import packaged_nlp_entries
 
-    # ── Custom rules injected by the caller (e.g. from Neo4j) ───────────────
+    builtin_rules: list[ConTextRule] = []
+    for entry in packaged_nlp_entries(set(suppressed or ())):
+        clean = {k: v for k, v in entry.items() if k in _CONTEXT_RULE_KEYS}
+        builtin_rules.append(ConTextRule(**clean))
+    logger.info("Loaded %d packaged ConText rules", len(builtin_rules))
+
     custom_rules: list[ConTextRule] = []
     for entry in extra_rules or []:
         try:
@@ -156,45 +139,19 @@ def _build_nlp(extra_rules: list[dict] | None = None) -> spacy.language.Language
 
 
 def get_builtin_rules() -> list[dict[str, Any]]:
-    """Return the shipped UK primary-care ConText rules as plain dicts.
+    """Return shipped medspaCy plus UK ConText rules as plain dicts."""
+    from libs.ner.context_rule_catalog import list_packaged_context_rules
 
-    Each entry carries ``source="builtin"`` so callers can distinguish them
-    from user-defined rules stored in Neo4j.
-    """
-    if not _UK_RULES_PATH.exists():
-        logger.warning("Built-in context rules not found at %s", _UK_RULES_PATH)
-        return []
-    try:
-        raw = json.loads(_UK_RULES_PATH.read_text(encoding="utf-8"))
-        return [
-            {
-                "rule_id": None,
-                "literal": r["literal"],
-                "category": r["category"],
-                "direction": r["direction"],
-                "max_scope": r["max_scope"],
-                "description": r.get("description", ""),
-                "example": r.get("example", ""),
-                "created_by": "system",
-                "active": True,
-                "created_at": None,
-                "updated_at": None,
-                "source": "builtin",
-                "org_id": None,
-            }
-            for r in raw.get("context_rules", [])
-        ]
-    except Exception:
-        logger.error("Failed to load built-in context rules", exc_info=True)
-        return []
+    return list_packaged_context_rules()
 
 
-def _fetch_neo4j_rules() -> list[dict]:
-    """Fetch active custom ContextRule nodes from the Patient Graph.
+def _fetch_neo4j_context_state() -> tuple[list[dict], set[str]]:
+    """Active custom rules plus literals that authors have turned off."""
+    from libs.ner.context_rule_catalog import (
+        is_packaged_rule_id,
+        suppressed_literals,
+    )
 
-    Returns an empty list (and logs a warning) if the DB is unreachable so that
-    the engine can still run on built-in rules alone.
-    """
     try:
         from libs.cypher.coding_review_queries import GET_CONTEXT_RULES
         from libs.neo4j_client.client import PatientGraphClient  # noqa: PLC0415
@@ -202,100 +159,117 @@ def _fetch_neo4j_rules() -> list[dict]:
         client = PatientGraphClient()
         try:
             with client.session() as session:
-                rows = list(
-                    session.run(GET_CONTEXT_RULES, active_only=True, org_id=None)
-                )
-            return [dict(r) for r in rows]
+                rows = [
+                    dict(r)
+                    for r in session.run(
+                        GET_CONTEXT_RULES, active_only=False, org_id=None
+                    )
+                ]
         finally:
             client.close()
     except Exception:
         logger.warning(
-            "Could not fetch custom ConText rules from Neo4j — running on built-in rules only",
+            "Could not fetch custom ConText rules from Neo4j -- "
+            "running on built-in rules only",
             exc_info=True,
         )
-        return []
+        return [], set()
+
+    off = suppressed_literals(rows)
+    custom = [
+        row
+        for row in rows
+        if row.get("active", True) and not is_packaged_rule_id(row.get("rule_id"))
+    ]
+    return custom, off
+
+
+def _fetch_neo4j_rules() -> list[dict]:
+    """Fetch active custom ContextRule nodes from the Patient Graph."""
+    custom, _off = _fetch_neo4j_context_state()
+    return custom
 
 
 def _get_nlp() -> spacy.language.Language:
     global _nlp
     if _nlp is None:
-        custom = _fetch_neo4j_rules()
-        _nlp = _build_nlp(extra_rules=custom)
+        custom, off = _fetch_neo4j_context_state()
+        _nlp = _build_nlp(extra_rules=custom, suppressed=off)
     return _nlp
 
 
 def reload_nlp() -> None:
-    """Rebuild the ConText NLP singleton, re-fetching custom rules from Neo4j.
-
-    Call this from the API after a ContextRule is created or deactivated so the
-    pipeline picks up the change without a service restart.
-    """
+    """Rebuild the ConText NLP singleton, re-fetching custom rules from Neo4j."""
     global _nlp
-    custom = _fetch_neo4j_rules()
-    _nlp = _build_nlp(extra_rules=custom)
+    custom, off = _fetch_neo4j_context_state()
+    _nlp = _build_nlp(extra_rules=custom, suppressed=off)
     logger.info("ConText NLP pipeline reloaded")
 
 
-def _span_to_assertion(span: Span) -> str:
-    """Map ConText span boolean flags to a priority-ordered assertion string.
+def _modifier_token_span(modifier: Any) -> tuple[int, int] | None:
+    raw = getattr(modifier, "modifier_span", None)
+    if isinstance(raw, tuple) and len(raw) == 2:
+        return int(raw[0]), int(raw[1])
+    other = getattr(modifier, "span", None)
+    if other is None:
+        return None
+    start = getattr(other, "start", None)
+    end = getattr(other, "end", None)
+    if start is None or end is None:
+        return None
+    return int(start), int(end)
 
-    Priority: family > absent > refuted > declined > cancelled > planned >
-              historical > hypothetical > possible.
 
-    PLANNED (definitively booked/awaiting/scheduled) takes priority over
-    HYPOTHETICAL (conditional/speculative) because a confirmed booking is
-    more specific than a speculative future event.
+def _same_sentence_modifiers(span: Span) -> list[Any]:
+    """Keep ConText cues that sit in the same sentence as the entity.
+
+    medspaCy max_scope uses a token window and can cross a full stop.
     """
-    if span._.is_family:
-        return "family"
-    if span._.is_negated:
-        return "absent"
-    if span._.is_refuted:
-        return "refuted"
-    if span._.is_declined:
-        return "declined"
-    if span._.is_cancelled:
-        return "cancelled"
-    if span._.is_planned:
-        return "planned"
-    if span._.is_historical:
-        return "historical"
-    if span._.is_hypothetical:
-        return "hypothetical"
-    if span._.is_uncertain:
-        return "possible"
+    kept: list[Any] = []
+    doc = span.doc
+    sent_start = span.sent.start
+    for modifier in getattr(span._, "modifiers", None) or []:
+        tokens = _modifier_token_span(modifier)
+        if tokens is None:
+            continue
+        start = tokens[0]
+        if start < 0 or start >= len(doc):
+            continue
+        if doc[start].sent.start == sent_start:
+            kept.append(modifier)
+    return kept
+
+
+def _span_to_assertion(span: Span) -> str:
+    """Map same-sentence ConText cues to a priority-ordered assertion."""
+    found: set[str] = set()
+    for modifier in _same_sentence_modifiers(span):
+        mapped = _CATEGORY_ASSERTION.get(
+            str(getattr(modifier, "category", "") or "").upper()
+        )
+        if mapped:
+            found.add(mapped)
+    for key in _ASSERTION_RANK:
+        if key in found:
+            return key
     return "present"
 
 
 def _trigger_window_from_span(span: Span) -> dict[str, Any] | None:
-    """Extract verbatim trigger text + offsets from the first ConText modifier.
-
-    Supports DI-23822663: reviewers must be able to read the text the assertion
-    model evaluated, without re-reading the full document. medspaCy attaches
-    ``Span._.modifiers`` (list of ConTextModifier) to each target span when a
-    non-default assertion fires. We capture the first modifier's text and
-    absolute character offsets so downstream writers can persist them.
-
-    Returns None when no modifier is available (e.g. default "present").
-    """
-    modifiers = getattr(span._, "modifiers", None) or []
-    for modifier in modifiers:
-        mod_span = getattr(modifier, "modifier_span", None)
-        if mod_span is None:
-            mod_span = getattr(modifier, "span", None)
-        if mod_span is None:
+    """First same-sentence cue text and offsets. Supports DI-23822663."""
+    for modifier in _same_sentence_modifiers(span):
+        tokens = _modifier_token_span(modifier)
+        if tokens is None:
             continue
-        start = getattr(mod_span, "start_char", None)
-        end = getattr(mod_span, "end_char", None)
-        text = getattr(mod_span, "text", None)
-        if start is None or end is None or text is None:
+        start, end = tokens
+        if start < 0 or end > len(span.doc) or start >= end:
             continue
-        category = getattr(modifier, "category", "") or ""
+        piece = span.doc[start:end]
         return {
-            "assertion_trigger_text": text,
-            "assertion_trigger_start": int(start),
-            "assertion_trigger_end": int(end),
-            "assertion_trigger_category": str(category),
+            "assertion_trigger_text": piece.text,
+            "assertion_trigger_start": int(piece.start_char),
+            "assertion_trigger_end": int(piece.end_char),
+            "assertion_trigger_category": str(getattr(modifier, "category", "") or ""),
         }
     return None
 

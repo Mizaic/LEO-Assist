@@ -1165,6 +1165,47 @@ _PMH_NEGATED_RE = re.compile(
     re.IGNORECASE,
 )
 
+_BUILTIN_PMH_CUES: tuple[str, ...] = (
+    "background of",
+    "history of",
+    "hx of",
+    "h/o",
+)
+_CUSTOM_PMH_CUES: tuple[str, ...] = ()
+
+
+def reload_pmh_list_guard() -> None:
+    """Load extra past-history cues from assertion_guard / pmh_list rules."""
+    global _CUSTOM_PMH_CUES
+    import json
+
+    rows = _fetch_neo4j_assertion_rules("assertion_guard")
+    cues: list[str] = []
+    for row in rows:
+        if not row.get("active", True):
+            continue
+        try:
+            payload = json.loads(row.get("payload") or "{}")
+        except (ValueError, TypeError):
+            payload = {}
+        if str(payload.get("rule_type") or "") != "pmh_list":
+            continue
+        pattern = str(payload.get("pattern") or "").strip()
+        if pattern:
+            cues.append(pattern)
+    _CUSTOM_PMH_CUES = tuple(cues)
+    logger.info("PMH list guard reloaded: %d custom cues", len(_CUSTOM_PMH_CUES))
+
+
+def _pmh_positive_match(sentence: str) -> bool:
+    if _PMH_POSITIVE_RE.search(sentence):
+        return True
+    lower = sentence.lower()
+    for cue in _CUSTOM_PMH_CUES:
+        if cue and cue.lower() in lower:
+            return True
+    return False
+
 
 def _lifestyle_status_blob(ent: dict[str, Any]) -> str:
     parts = [
@@ -1219,7 +1260,7 @@ def fix_pmh_list_false_absent(entities: list[dict[str, Any]]) -> None:
             continue
         if _PMH_NEGATED_RE.search(sentence):
             continue
-        if not _PMH_POSITIVE_RE.search(sentence):
+        if not _pmh_positive_match(sentence):
             continue
         ent["assertion"] = "present"
         ent["_assertion_guard"] = "pmh_list_false_absent"

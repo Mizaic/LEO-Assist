@@ -20,7 +20,8 @@
     "test": "jest",
     "test:no-coverage": "jest --no-coverage",
     "e2e": "playwright test",
-    "e2e:val": "playwright test e2e/val-sbar-widget-2d151cfe.spec.ts --workers=1",
+    "e2e:val": "playwright test e2e/val-sbar-widget-2d151cfe.spec.ts e2e/val-sbar-brand-5d90a6f3.spec.ts --workers=1",
+    "e2e:val-brand": "playwright test e2e/val-sbar-brand-5d90a6f3.spec.ts --workers=1",
     "e2e:headed": "playwright test --headed",
     "demo": "vite serve --config vite.demo.config.ts"
   },

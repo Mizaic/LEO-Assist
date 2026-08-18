@@ -24,9 +24,18 @@ const FORBIDDEN = /color|font|typo|palette|disclosure|theme/i;
 describe("VT-011DF831 - tokens are the single source of brand truth", () => {
   test("BRAND exposes the expected shape", () => {
     expect(BRAND.productName).toBe("LEO by Mizaic");
-    expect(BRAND.fontFamily).toContain("Inter");
+    expect(BRAND.fontFamily).toContain("Albert Sans");
+    expect(BRAND.fontFamilyHeading).toContain("Overpass");
+    expect(BRAND.light.primary).toBe("#0d46d6");
+    expect(BRAND.light.markInk).toBe("#00093b");
     expect(BRAND.light.background).toBe("#ffffff");
     expect(BRAND.dark.background).toBe("#0f172a");
+  });
+
+  test("chrome tokens do not use the retired generic blues", () => {
+    const css = buildShadowStylesheet();
+    expect(css).not.toMatch(/#1F3A8A|#1E40AF|#1D4ED8|#0F766E/i);
+    expect(BRAND.light.primary).not.toMatch(/#1e3a8a/i);
   });
 
   test("STAGE_THEME covers all four SBAR stages", () => {
@@ -40,7 +49,9 @@ describe("VT-011DF831 - tokens are the single source of brand truth", () => {
 
   test("MIZAIC_MARK_SVG is an inline SVG bound into the bundle", () => {
     expect(MIZAIC_MARK_SVG).toMatch(/^<svg/);
-    expect(MIZAIC_MARK_SVG).toContain("LEO");
+    expect(MIZAIC_MARK_SVG).toContain("LEO by Mizaic");
+    expect(MIZAIC_MARK_SVG).toContain("#d758ff");
+    expect(MIZAIC_MARK_SVG).toContain("currentColor");
   });
 
   test("BRAND is frozen at runtime - host cannot mutate the palette", () => {

@@ -18,7 +18,14 @@ from libs.cypher.validation_lab_finding_queries import (
 from libs.validation_lab.service import _json_safe
 
 FINDING_CATEGORIES = frozenset(
-    {"extraction", "context", "guard", "phrase_mapping", "guideline_rule"}
+    {
+        "extraction",
+        "context",
+        "semantic_tag",
+        "guard",
+        "phrase_mapping",
+        "guideline_rule",
+    }
 )
 FINDING_STAGES = frozenset(
     {"extract", "post", "terminology", "persist", "compliance", "sbar"}

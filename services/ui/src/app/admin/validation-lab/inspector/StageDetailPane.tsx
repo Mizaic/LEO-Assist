@@ -1,5 +1,5 @@
 /**
- * Selected-stage facts, keys, and error reason.
+ * Selected-stage story, Yes/No, and collapsed extra detail.
  *
  * Atlas trace:
  *   DO: DO-158BE606
@@ -15,14 +15,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import BuildOutlinedIcon from "@mui/icons-material/BuildOutlined";
 
-import { formatStageLabel } from "../labRunFormat";
 import { parseSbarStageError } from "../pipelineStageErrors";
 import { plainStageCopy } from "../plainStageCopy";
 import type { LabStageDetail, LabTraceSpan, LabWorkItem, LabWorkPreview } from "../inspectorTypes";
 import { diffWorkItems } from "../letterHighlight";
 import { isCodingStep, isFirstFactStep } from "../reviewWalk";
-import { StateKeyChips } from "./StateKeyChips";
-import { StageWorkPreview } from "./StageWorkPreview";
+import { StageStoryPanel } from "./StageStoryPanel";
+import { StageExtraDetail } from "./StageExtraDetail";
+import { stageStory } from "./stageEvidence";
 import { inputWorkItems, workPreviewFromStage } from "./stageWorkItems";
 import { formatMs, StageIcon, stageColor } from "./pipelineWizardChrome";
 
@@ -33,109 +33,126 @@ interface Props {
   stageLoading: boolean;
   onFixInGuards: (span: LabTraceSpan) => void;
   onMarkWrong?: (text: string) => void;
-  /** Full work preview from the previous run (retest mode). */
   previousPreview?: LabWorkPreview;
   onNext?: () => void;
+  reviewed?: boolean;
+  isLastStep?: boolean;
+  walkFinished?: boolean;
 }
 
-export function StageDetailPane({
-  span,
-  detailReady,
-  stageDetail,
-  stageLoading,
-  onFixInGuards,
-  onMarkWrong,
-  previousPreview,
-  onNext,
-}: Props) {
+export function StageDetailPane(props: Props) {
+  return <StagePaneBody model={buildPaneModel(props)} />;
+}
+
+type PaneModel = {
+  span: LabTraceSpan;
+  copyName: string;
+  copyPlain: string;
+  copyQuestion: string;
+  walkFinished: boolean;
+  onNext?: () => void;
+  onMarkWrong?: (text: string) => void;
+  markTarget: string;
+  onAdvance?: () => void;
+  retestNote: string;
+  story: ReturnType<typeof stageStory>;
+  items?: LabWorkItem[];
+  loading: boolean;
+  detailReady: boolean;
+  stageDetail: LabStageDetail | null;
+  errorText: string;
+  errorCode: string;
+  onFixInGuards: (span: LabTraceSpan) => void;
+};
+
+function buildPaneModel(props: Props): PaneModel {
+  const {
+    span,
+    detailReady,
+    stageDetail,
+    stageLoading,
+    onFixInGuards,
+    onMarkWrong,
+    previousPreview,
+    onNext,
+    reviewed,
+    isLastStep,
+    walkFinished,
+  } = props;
   const copy = plainStageCopy(span.step_id, span.name);
-  const preview = workPreviewFromStage(
-    detailReady ? stageDetail?.output || {} : null,
-    detailReady ? stageDetail?.input || {} : null,
-    span.work_preview,
-  );
+  const output = detailReady ? stageDetail?.output || {} : null;
+  const input = detailReady ? stageDetail?.input || {} : null;
+  const story = stageStory(span.step_id, output, input);
+  const preview = workPreviewFromStage(output, input, span.work_preview);
   const diffedPreview = buildDiffedPreview(
     preview,
     previousPreview,
     detailReady ? inputWorkItems(stageDetail?.input) : [],
     span.step_id,
   );
-  const errorText = stageErrorText(span, detailReady ? stageDetail : null);
-  const errorCode = stageErrorCode(span, detailReady ? stageDetail : null);
-  const hasPreview = Boolean(
-    span.work_preview?.headline || span.work_preview?.items?.length,
-  );
+  const chipKinds = story.kind === "facts" || story.kind === "codes";
+  const retestNote =
+    previousPreview?.headline && previousPreview.headline !== preview.headline
+      ? `Before retest: ${previousPreview.headline}`
+      : "";
+  return {
+    span,
+    copyName: copy.name,
+    copyPlain: copy.plain,
+    copyQuestion: copy.question,
+    walkFinished: Boolean(walkFinished),
+    onNext,
+    onMarkWrong,
+    markTarget: preview.items?.[0]?.text || preview.headline || span.step_id,
+    onAdvance: reviewed && !isLastStep ? onNext : undefined,
+    retestNote,
+    story,
+    items: chipKinds ? diffedPreview.items : story.items,
+    loading: stageLoading && !span.work_preview?.items?.length,
+    detailReady,
+    stageDetail,
+    errorText: stageErrorText(span, detailReady ? stageDetail : null),
+    errorCode: stageErrorCode(span, detailReady ? stageDetail : null),
+    onFixInGuards,
+  };
+}
+
+function StagePaneBody({ model }: { model: PaneModel }) {
   return (
     <Box sx={{ flex: 1, overflowY: "auto", p: 2, minWidth: 0 }}>
-      <StageHeading span={span} name={copy.name} />
-      <Typography variant="caption" color="text.disabled" sx={{ display: "block", mb: 0.5 }}>
-        {formatStageLabel(span.step_id)}
-      </Typography>
+      <StageHeading span={model.span} name={model.copyName} />
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        {copy.plain}
+        {model.copyPlain}
       </Typography>
-      {span.status === "completed" && (
-        <Box
-          sx={{
-            p: 1.25,
-            mb: 1.5,
-            bgcolor: "#EFF6FF",
-            borderLeft: "3px solid",
-            borderColor: "primary.main",
-            borderRadius: "0 8px 8px 0",
-          }}
-        >
-          <Typography variant="body2" fontWeight={600} color="primary.dark">
-            {copy.question}
-          </Typography>
-          <StageYesNo
-            onYes={onNext}
-            onNo={
-              onMarkWrong
-                ? () =>
-                    onMarkWrong(
-                      preview.items?.[0]?.text || preview.headline || span.step_id,
-                    )
-                : undefined
-            }
-          />
-        </Box>
-      )}
-      {previousPreview?.headline && previousPreview.headline !== preview.headline ? (
+      <FinishedBanner show={model.walkFinished} />
+      <StageQuestionCard
+        status={model.span.status}
+        question={model.copyQuestion}
+        onYes={model.onNext}
+        onNo={model.onMarkWrong ? () => model.onMarkWrong?.(model.markTarget) : undefined}
+        onAdvance={model.onAdvance}
+      />
+      {model.retestNote ? (
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-          Before retest: {previousPreview.headline}
+          {model.retestNote}
         </Typography>
       ) : null}
-      <StageWorkPreview
-        preview={diffedPreview}
-        loading={stageLoading && !hasPreview}
-        onMarkWrong={onMarkWrong}
+      <StageStoryPanel
+        story={model.story}
+        items={model.items}
+        loading={model.loading}
+        onMarkWrong={model.onMarkWrong}
       />
-      <StageTelemetry
-        span={span}
-        modelLabel={modelLabelFromOutput(
-          detailReady ? stageDetail?.output ?? null : null,
-        )}
-      />
-      <StageKeyBlock
-        title="Input keys"
-        keys={span.input_keys}
-        values={detailReady ? stageDetail?.input ?? {} : null}
-        ready={detailReady}
-        tone="input"
-      />
-      <StageKeyBlock
-        title="Output keys"
-        keys={span.output_keys}
-        values={detailReady ? stageDetail?.output ?? {} : null}
-        ready={detailReady}
-        tone="output"
+      <StageExtraDetail
+        span={model.span}
+        detailReady={model.detailReady}
+        stageDetail={model.stageDetail}
       />
       <StageErrorAlert
-        span={span}
-        errorText={errorText}
-        errorCode={errorCode}
-        onFixInGuards={onFixInGuards}
+        span={model.span}
+        errorText={model.errorText}
+        errorCode={model.errorCode}
+        onFixInGuards={model.onFixInGuards}
       />
     </Box>
   );
@@ -158,16 +175,64 @@ function buildDiffedPreview(
   return { ...preview, items: diffWorkItems(baseItems, preview.items || [], coding) };
 }
 
+function FinishedBanner({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <Alert
+      severity="success"
+      data-testid="validation-lab-review-finished"
+      sx={{ mb: 1.5, fontSize: "0.85rem" }}
+    >
+      Review finished. You can save this as gold.
+    </Alert>
+  );
+}
+
+function StageQuestionCard({
+  status,
+  question,
+  onYes,
+  onNo,
+  onAdvance,
+}: {
+  status: string;
+  question: string;
+  onYes?: () => void;
+  onNo?: () => void;
+  onAdvance?: () => void;
+}) {
+  if (status !== "completed") return null;
+  return (
+    <Box
+      sx={{
+        p: 1.25,
+        mb: 1.5,
+        bgcolor: "#EFF6FF",
+        borderLeft: "3px solid",
+        borderColor: "primary.main",
+        borderRadius: "0 8px 8px 0",
+      }}
+    >
+      <Typography variant="body2" fontWeight={600} color="primary.dark">
+        {question}
+      </Typography>
+      <StageYesNo onYes={onYes} onNo={onNo} onAdvance={onAdvance} />
+    </Box>
+  );
+}
+
 function StageYesNo({
   onYes,
   onNo,
+  onAdvance,
 }: {
   onYes?: () => void;
   onNo?: () => void;
+  onAdvance?: () => void;
 }) {
-  if (!onYes && !onNo) return null;
+  if (!onYes && !onNo && !onAdvance) return null;
   return (
-    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+    <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
       {onYes ? (
         <Button
           size="small"
@@ -188,6 +253,17 @@ function StageYesNo({
           onClick={onNo}
         >
           No
+        </Button>
+      ) : null}
+      {onAdvance ? (
+        <Button
+          size="small"
+          variant="text"
+          data-testid="validation-lab-after-finding-next"
+          aria-label="Next step"
+          onClick={onAdvance}
+        >
+          Next step
         </Button>
       ) : null}
     </Stack>
@@ -213,101 +289,6 @@ function StageHeading({ span, name }: { span: LabTraceSpan; name: string }) {
         </Typography>
       ) : null}
     </Stack>
-  );
-}
-
-function StageTelemetry({
-  span,
-  modelLabel,
-}: {
-  span: LabTraceSpan;
-  modelLabel: string;
-}) {
-  if (!span.started_at && !span.worker_id && !modelLabel) return null;
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 2,
-        p: 1.25,
-        mb: 1.5,
-        bgcolor: "#F8FAFC",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "8px",
-        fontSize: "0.72rem",
-      }}
-    >
-      {span.worker_id ? (
-        <Box>
-          <Box component="span" sx={{ color: "text.disabled" }}>Worker </Box>
-          <strong>{span.worker_id}</strong>
-        </Box>
-      ) : null}
-      {span.started_at ? (
-        <Box>
-          <Box component="span" sx={{ color: "text.disabled" }}>Started </Box>
-          <strong>{new Date(span.started_at).toLocaleTimeString()}</strong>
-        </Box>
-      ) : null}
-      {modelLabel ? (
-        <Box>
-          <Box component="span" sx={{ color: "text.disabled" }}>Model </Box>
-          <strong>{modelLabel}</strong>
-        </Box>
-      ) : null}
-      {span.attempt !== undefined && span.attempt > 1 ? (
-        <Box>
-          <Box component="span" sx={{ color: "text.disabled" }}>Attempt </Box>
-          <strong>{span.attempt}</strong>
-        </Box>
-      ) : null}
-    </Box>
-  );
-}
-
-function StageKeyBlock({
-  title,
-  keys,
-  values,
-  ready,
-  tone,
-}: {
-  title: string;
-  keys?: string[];
-  values: Record<string, unknown> | null;
-  ready: boolean;
-  tone: "input" | "output";
-}) {
-  if (!keys?.length) return null;
-  const output = tone === "output";
-  return (
-    <Box
-      sx={{
-        mb: 1.5,
-        p: 1.25,
-        bgcolor: output ? "#F0FDF4" : "#F8FAFC",
-        border: "1px solid",
-        borderColor: output ? "#BBF7D0" : "divider",
-        borderRadius: "8px",
-      }}
-    >
-      <Typography
-        variant="caption"
-        sx={{
-          display: "block",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          color: output ? "#166534" : "text.disabled",
-          mb: 0.75,
-        }}
-      >
-        {title}
-      </Typography>
-      <StateKeyChips keys={keys} values={values} valuesReady={ready} />
-    </Box>
   );
 }
 
@@ -364,14 +345,4 @@ function stageErrorText(span: LabTraceSpan, detail: LabStageDetail | null): stri
 function stageErrorCode(span: LabTraceSpan, detail: LabStageDetail | null): string {
   const raw = detail?.errors?.[0] || span.errors?.[0] || "";
   return parseSbarStageError(raw)?.code || "";
-}
-
-function modelLabelFromOutput(
-  output: Record<string, unknown> | null,
-): string {
-  if (!output) return "";
-  const name = String(output.extraction_model_name || "").trim();
-  const version = String(output.extraction_model_version || "").trim();
-  const route = String(output.extraction_route || "").trim();
-  return [name, version, route].filter(Boolean).join(" -- ");
 }

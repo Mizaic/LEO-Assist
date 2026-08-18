@@ -113,6 +113,12 @@ describe("ContextRulesPage", () => {
     expect(hook).toMatch(/deactivate/);
   });
 
+  it("lets shipped built-in cues be turned off", () => {
+    const dialog = fs.readFileSync(DIALOG_PATH, "utf-8");
+    expect(dialog).toMatch(/canDeactivate = Boolean\(rule\.active && rule\.rule_id\)/);
+    expect(dialog).toMatch(/You can turn it off/);
+  });
+
   it("does not use the deprecated standalone admin URL as a nav target", () => {
     expect(src).not.toMatch(/"\/admin\/context-rules"/);
   });

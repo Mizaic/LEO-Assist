@@ -86,6 +86,24 @@ export const GUARD_FAMILY_COPY: Record<string, GuardFamilyCopy> = {
         label: "Lifestyle status",
         what: "Clinical codes whose preferred term already includes the status.",
       },
+      pmh_list: {
+        label: "Past history list",
+        what: "Phrases such as PMHx or known that introduce a past medical history list.",
+      },
+    },
+  },
+  ignore_phrase: {
+    key: "ignore_phrase",
+    title: "Ignore this phrase",
+    what: "Stops LEO extracting a phrase that reviewers have said is not a clinical fact.",
+    why: "Operations can mark a phrase to ignore. Those rules need a list so authors can review or turn them off.",
+    ifWrong: "A real finding can vanish, or junk wording can keep coming back.",
+    accent: "#455A64",
+    types: {
+      suppress: {
+        label: "Ignore phrase",
+        what: "Drop this wording from later extracts.",
+      },
     },
   },
   entity_type_norm: {

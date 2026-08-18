@@ -39,6 +39,14 @@
         "term": "Ex-smoker"
       }
     },
+    "ignore_phrase": {
+      "note": "nil chest pain",
+      "without_guard": "The phrase is extracted again on the next letter.",
+      "with_guard": "The phrase is dropped. Reviewers already said it is not a fact.",
+      "data_change": "The matching entity is suppressed by a post-processor rule.",
+      "source_test": "tests/test_ignore_phrase_catalog.py::test_maps_post_processor_row_to_ignore_phrase",
+      "check": { "kind": "ignore_phrase" }
+    },
     "entity_type_norm": {
       "note": "new episode",
       "without_guard": "New episode can be coded as a disease.",

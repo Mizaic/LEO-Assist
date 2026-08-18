@@ -66,7 +66,7 @@ function SelectedRuleDetail({
   onDeactivate: (rule: ContextRule) => void;
 }) {
   const { reducedMotion } = useMotion();
-  const canDeactivate = rule.source === "custom" && rule.active && rule.rule_id;
+  const canDeactivate = Boolean(rule.active && rule.rule_id);
   return (
     <div
       style={{
@@ -85,7 +85,7 @@ function SelectedRuleDetail({
       </p>
       {rule.source === "builtin" ? (
         <p style={{ margin: "8px 0 0", fontSize: 14, color: color.text.secondary }}>
-          This phrase ships with LEO. You cannot edit it here.
+          This phrase ships with LEO. You can turn it off if it is wrong.
         </p>
       ) : null}
       {canDeactivate ? (

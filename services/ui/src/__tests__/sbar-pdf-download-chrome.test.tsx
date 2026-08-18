@@ -82,6 +82,18 @@ describe("VT-1BB20B2A - SBAR PDF download chrome", () => {
     );
   });
 
+  test("TC-009: PDF header uses Midnight Navy and LEO by Mizaic", () => {
+    const pdfSrc = readFile(PDF_EXPORT);
+    const markup = readFile(PDF_MARKUP);
+    expect(pdfSrc).toContain("#00093b");
+    expect(pdfSrc).toContain("#0d46d6");
+    expect(pdfSrc).toContain("LEO by Mizaic");
+    expect(pdfSrc).not.toMatch(/#1F3A8A/i);
+    expect(markup).toMatch(/Albert Sans/);
+    expect(markup).toMatch(/#d758ff/);
+    expect(markup).not.toMatch(/#1e3a8a/i);
+  });
+
   test("TC-005: Each PDF page includes the information governance footer", () => {
     const pdfSrc = readFile(PDF_EXPORT);
     expect(pdfSrc).toContain("SBAR_PDF_IG_FOOTER");
@@ -124,7 +136,7 @@ describe("VT-1BB20B2A - SBAR PDF download chrome", () => {
     const src = readFile(HOST);
     expect(src).toContain('data-testid="leo-sbar-download-pdf-error"');
     expect(src).toContain('data-testid="leo-sbar-widget"');
-    expect(src).toMatch(/!loading && token && \([\s\S]*?<leo-sbar/);
+    expect(src).toMatch(/!bootstrapping && widgetReady && token && \([\s\S]*?<leo-sbar/);
     expect(src).not.toMatch(/exportError[\s\S]*return null/);
   });
 

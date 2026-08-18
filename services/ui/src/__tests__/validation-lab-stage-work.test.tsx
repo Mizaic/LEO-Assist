@@ -329,6 +329,9 @@ describe("plainStageCopy", () => {
       "Adding body sites from codes",
     );
     expect(plainStageCopy("act-ref-coding-verify").name).toBe("Checking the codes");
+    expect(plainStageCopy("act-ref-snomed-relation-judge").name).toBe(
+      "Checking links after coding",
+    );
   });
 
   it("uses Yes=good phrasing for all stages (no inverted questions)", () => {
@@ -697,7 +700,7 @@ describe("StageDetailPane -- stage diff chips", () => {
     expect(newChip?.textContent).toContain("weight loss");
   });
 
-  it("marks a stable fact when it appears in both input and output", () => {
+  it("hides unchanged facts on the cleaning step", () => {
     render(
       <StageDetailPane
         span={{ step_id: "act-ref-post-process", status: "completed" }}
@@ -708,9 +711,8 @@ describe("StageDetailPane -- stage diff chips", () => {
         onNext={() => {}}
       />,
     );
-    const stableChip = document.querySelector("[data-change='stable']");
-    expect(stableChip).toBeTruthy();
-    expect(stableChip?.textContent).toContain("jaundice");
+    expect(document.querySelector("[data-change='stable']")).toBeNull();
+    expect(screen.queryByText("jaundice")).toBeNull();
   });
 
   it("shows retest diff when previousPreview is provided", () => {

@@ -29,7 +29,12 @@ router = APIRouter(prefix="/validation-lab", tags=["validation-lab"])
 class CreateFindingBody(BaseModel):
     stage_id: Literal["extract", "post", "terminology", "persist", "compliance", "sbar"]
     category: Literal[
-        "extraction", "context", "guard", "phrase_mapping", "guideline_rule"
+        "extraction",
+        "context",
+        "semantic_tag",
+        "guard",
+        "phrase_mapping",
+        "guideline_rule",
     ]
     target: str = Field(default="", max_length=512)
     note: str = Field(default="", max_length=1000)

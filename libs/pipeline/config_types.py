@@ -104,11 +104,13 @@ class AssertionGuardRule(PipelineRuleBase):
     rule_type: "lifestyle_concept" -- concept_id that should be restored to
                present when ConText marks it absent, because the SNOMED term
                itself encodes the status (e.g. Ex-smoker, Non-drinker).
+               "pmh_list" -- pattern is a past-history cue such as pmhx.
     concept_id: SNOMED concept ID string (digits only, no leading zeros).
     """
 
     rule_type: str = "lifestyle_concept"
     concept_id: str = ""
+    pattern: str = ""
 
 
 @dataclass

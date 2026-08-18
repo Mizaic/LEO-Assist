@@ -119,6 +119,7 @@ function ReviewBody({
   const [markTarget, setMarkTarget] = useState("");
   const [fixCategory, setFixCategory] = useState<FindingCategory | "">("");
   const [goldNotice, setGoldNotice] = useState("");
+  const [findingSavedAt, setFindingSavedAt] = useState(0);
 
   const reloadFindings = useCallback(async () => {
     if (!findingRunId) return;
@@ -141,6 +142,7 @@ function ReviewBody({
       note,
     });
     setFixCategory(category);
+    setFindingSavedAt((tick) => tick + 1);
     await reloadFindings();
   }
 
@@ -243,6 +245,7 @@ function ReviewBody({
                     });
                   }}
                   onMarkWrong={(text) => setMarkTarget(text)}
+                  findingSavedAt={findingSavedAt}
                 />
               ) : null}
               {tab === 1 ? (

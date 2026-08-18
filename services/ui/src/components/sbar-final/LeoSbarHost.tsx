@@ -22,8 +22,8 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import { LeoLoader } from "@leo/design-system";
 
 import {
   composeSbarMarkdownFromAssessment,
@@ -300,9 +300,13 @@ export function LeoSbarHost({
       ))}
 
       {bootstrapping && !error && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 2 }}>
-          <CircularProgress size={20} aria-label="Loading SBAR widget" />
-          <Typography variant="body2">Loading SBAR viewer...</Typography>
+        <Box sx={{ p: 2 }} data-testid="leo-sbar-loading">
+          <LeoLoader
+            layout="inline"
+            size="sm"
+            variant="light"
+            label="Loading SBAR viewer..."
+          />
         </Box>
       )}
 

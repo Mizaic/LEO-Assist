@@ -17,7 +17,7 @@ export interface FixRouteInput {
 
 export function fixHref(input: FixRouteInput): string {
   const target = (input.target || "").trim();
-  if (input.category === "extraction") {
+  if (input.category === "extraction" || input.category === "semantic_tag") {
     const params = new URLSearchParams({ tab: "ai-instructions" });
     if (input.promptName) params.set("prompt_name", input.promptName);
     else if (target) params.set("prompt_name", target);

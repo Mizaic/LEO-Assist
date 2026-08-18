@@ -74,5 +74,6 @@ describe("Validation Lab home", () => {
     expect(plain).toMatch(/Adding medical codes/);
     expect(plain).toMatch(/Checking the guideline/);
     expect(plain).toMatch(/Draft assessment/);
+    expect(plain).toMatch(/Checking links after coding/);
   });
 });

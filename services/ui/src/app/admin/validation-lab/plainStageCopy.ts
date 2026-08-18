@@ -65,6 +65,11 @@ const COPY: Record<string, PlainStageCopy> = {
     plain: "LEO writes the facts and codes into the patient record.",
     question: "Did the facts save as you expect?",
   },
+  "snomed-relation-judge": {
+    name: "Checking links after coding",
+    plain: "LEO checks the links again now that each fact has a medical code.",
+    question: "Are the links still right after coding?",
+  },
   "relation-link": {
     name: "Linking the facts",
     plain: "LEO joins related facts. For example: pain linked to a body site, a finding linked to a condition, or a measurement linked to what it measures.",

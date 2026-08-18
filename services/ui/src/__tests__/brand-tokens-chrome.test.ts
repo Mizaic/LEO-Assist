@@ -19,12 +19,8 @@ const UI_SRC = join(REPO_ROOT, "services/ui/src");
 const DS_SRC = join(REPO_ROOT, "services/design-system/src");
 
 const SKIP_DIR = new Set(["sbar-final", "node_modules", "__tests__"]);
-const SKIP_FILE = new Set([
-  "nerAnnotation.tsx",
-  "letterMarkStyle.ts",
-  "exportSbarPdf.ts",
-  "sbarPdfMarkup.ts",
-]);
+const SKIP_FILE = new Set(["nerAnnotation.tsx", "letterMarkStyle.ts"]);
+const WIDGET_BRAND = join(REPO_ROOT, "services/widget-sdk/src/branding");
 
 const FORBIDDEN_HEX = /#1F3A8A|#1E40AF|#1D4ED8|#0F766E/i;
 
@@ -78,8 +74,25 @@ describe("brand tokens and chrome", () => {
   });
 
   test("TC-005: no forbidden legacy brand hex outside excluded files", () => {
-    const files = [...walk(UI_SRC), ...walk(DS_SRC)];
+    const files = [...walk(UI_SRC), ...walk(DS_SRC), ...walk(WIDGET_BRAND)];
     const hits = files.filter((file) => FORBIDDEN_HEX.test(readFileSync(file, "utf8")));
     expect(hits.map((file) => relative(REPO_ROOT, file))).toEqual([]);
+  });
+
+  test("TC-006: SBAR widget and PDF use Mizaic chrome", () => {
+    const tokens = readRel("services/widget-sdk/src/branding/tokens.ts");
+    const pdf = readRel("services/ui/src/lib/exportSbarPdf.ts");
+    const markup = readRel("services/ui/src/lib/sbarPdfMarkup.ts");
+    const host = readRel("services/ui/src/components/sbar-final/LeoSbarHost.tsx");
+    expect(tokens).toMatch(/Albert Sans/);
+    expect(tokens).toMatch(/Overpass/);
+    expect(tokens).toMatch(/#0d46d6/);
+    expect(tokens).toMatch(/#d758ff/);
+    expect(pdf).toMatch(/#00093b/);
+    expect(pdf).toContain("LEO by Mizaic");
+    expect(pdf).not.toMatch(/#1F3A8A/i);
+    expect(markup).toMatch(/Albert Sans/);
+    expect(markup).toMatch(/#d758ff/);
+    expect(host).toMatch(/LeoLoader/);
   });
 });

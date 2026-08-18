@@ -8,6 +8,7 @@ These routes back the Guards Workbench UI (/admin/workbench/guards).
 They expose the :NerGuardRule nodes created by Phase 1 of the
 configurable pipeline components work.
 """
+
 from __future__ import annotations
 
 import json
@@ -84,6 +85,101 @@ def _reject_builtin_mutation(rule_id: str) -> None:
         )
 
 
+def _reload_assertion_guards() -> None:
+    from libs.pipeline.post_processing import (
+        reload_lifestyle_status_guard,
+        reload_pmh_list_guard,
+    )
+
+    reload_lifestyle_status_guard()
+    reload_pmh_list_guard()
+
+
+def _fetch_ignore_phrase_rules() -> list[dict]:
+    try:
+        from libs.cypher.post_processor_rule_queries import GET_POST_PROCESSOR_RULES
+        from libs.pipeline.ignore_phrase_catalog import as_ignore_phrase_rows
+
+        client = PatientGraphClient()
+        try:
+            rows = [dict(r) for r in client.run(GET_POST_PROCESSOR_RULES)]
+        finally:
+            client.close()
+        return as_ignore_phrase_rows(rows)
+    except Exception:
+        logger.warning(
+            "Could not list ignore-this-phrase rules",
+            exc_info=True,
+        )
+        return []
+
+
+def _create_ignore_phrase(body: CreateRuleRequest, scope: CallerScope) -> dict:
+    from libs.cypher.post_processor_rule_queries import UPSERT_POST_PROCESSOR_RULE
+
+    rule_id = str(uuid.uuid4())
+    client = PatientGraphClient()
+    try:
+        client.run(
+            UPSERT_POST_PROCESSOR_RULE,
+            rule_id=rule_id,
+            active=True,
+            priority=body.priority,
+            action=body.rule_type or "suppress",
+            match_text=body.pattern.strip(),
+            match_label=None,
+            context_regex=None,
+            window_chars=40,
+            rewrite_text=None,
+            rewrite_label=None,
+            created_by=getattr(scope, "email", None) or "workbench",
+            notes="Created from Pipeline Guards",
+        )
+        return {"rule_id": rule_id, "created": True}
+    finally:
+        client.close()
+
+
+def _update_ignore_phrase(rule_id: str, body: UpdateRuleRequest) -> bool:
+    from libs.cypher.post_processor_rule_queries import (
+        GET_POST_PROCESSOR_RULES,
+        UPDATE_POST_PROCESSOR_RULE_ACTIVE,
+        UPSERT_POST_PROCESSOR_RULE,
+    )
+
+    client = PatientGraphClient()
+    try:
+        rows = [dict(r) for r in client.run(GET_POST_PROCESSOR_RULES)]
+        existing = next((r for r in rows if r.get("rule_id") == rule_id), None)
+        if existing is None:
+            return False
+        if body.active is not None and body.pattern is None:
+            client.run(
+                UPDATE_POST_PROCESSOR_RULE_ACTIVE,
+                rule_id=rule_id,
+                active=body.active,
+            )
+            return True
+        client.run(
+            UPSERT_POST_PROCESSOR_RULE,
+            rule_id=rule_id,
+            active=existing.get("active", True) if body.active is None else body.active,
+            priority=existing.get("priority", 100),
+            action=body.rule_type or existing.get("action") or "suppress",
+            match_text=(body.pattern or existing.get("match_text") or "").strip(),
+            match_label=existing.get("match_label"),
+            context_regex=existing.get("context_regex"),
+            window_chars=existing.get("window_chars") or 40,
+            rewrite_text=existing.get("rewrite_text"),
+            rewrite_label=existing.get("rewrite_label"),
+            created_by=existing.get("created_by") or "workbench",
+            notes=existing.get("notes") or "",
+        )
+        return True
+    finally:
+        client.close()
+
+
 def _fetch_custom_rules(family: str | None) -> list[dict]:
     try:
         client = PatientGraphClient()
@@ -133,7 +229,10 @@ def list_guard_rules(
     """List built-in and custom NER guard rules, optionally filtered by family."""
     from libs.pipeline.builtin_guard_catalog import merge_listed_rules
 
-    return merge_listed_rules(_fetch_custom_rules(family), family)
+    custom = _fetch_custom_rules(family)
+    if family in (None, "ignore_phrase"):
+        custom = custom + _fetch_ignore_phrase_rules()
+    return merge_listed_rules(custom, family)
 
 
 @router.post("/guard-rules", status_code=201)
@@ -142,6 +241,8 @@ def create_guard_rule(
     scope: CallerScope = Depends(require_admin),
 ):
     """Create a new NER guard rule."""
+    if body.family == "ignore_phrase":
+        return _create_ignore_phrase(body, scope)
     rule_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     payload = json.dumps({"pattern": body.pattern, "rule_type": body.rule_type})
@@ -160,6 +261,8 @@ def create_guard_rule(
             updated_at=now,
             payload=payload,
         )
+        if body.family == "assertion_guard":
+            _reload_assertion_guards()
         return {"rule_id": rule_id, "created": True}
     finally:
         client.close()
@@ -173,6 +276,8 @@ def update_guard_rule(
 ):
     """Update fields on an existing NER guard rule."""
     _reject_builtin_mutation(rule_id)
+    if _update_ignore_phrase(rule_id, body):
+        return {"rule_id": rule_id, "updated": True}
     client = PatientGraphClient()
     try:
         rows = client.run(GET_RULE_BY_ID, rule_id=rule_id)
@@ -180,9 +285,7 @@ def update_guard_rule(
             raise HTTPException(404, f"Rule {rule_id} not found")
         existing = _row_to_rule(dict(rows[0]))
 
-        pattern = (
-            body.pattern if body.pattern is not None else existing["pattern"]
-        )
+        pattern = body.pattern if body.pattern is not None else existing["pattern"]
         rule_type = (
             body.rule_type if body.rule_type is not None else existing["rule_type"]
         )
@@ -205,6 +308,8 @@ def update_guard_rule(
             updated_at=now,
             payload=payload,
         )
+        if existing.get("family") == "assertion_guard":
+            _reload_assertion_guards()
         return {"rule_id": rule_id, "updated": True}
     finally:
         client.close()
@@ -217,6 +322,8 @@ def deactivate_guard_rule(
 ):
     """Soft-delete (deactivate) a NER guard rule."""
     _reject_builtin_mutation(rule_id)
+    if _update_ignore_phrase(rule_id, UpdateRuleRequest(active=False)):
+        return
     now = datetime.now(timezone.utc).isoformat()
     client = PatientGraphClient()
     try:
@@ -228,6 +335,7 @@ def deactivate_guard_rule(
         )
         if not rows:
             raise HTTPException(404, f"Rule {rule_id} not found")
+        _reload_assertion_guards()
     finally:
         client.close()
 
@@ -244,15 +352,17 @@ def get_guard_rule_history(
         versions = []
         for i, row in enumerate(rows):
             payload = _parse_payload(row.get("payload"))
-            versions.append({
-                "version": row.get("version", len(rows) - i),
-                "changed_at": str(row.get("changed_at") or ""),
-                "changed_by": str(row.get("changed_by") or ""),
-                "pattern": payload.get("pattern", ""),
-                "rule_type": payload.get("rule_type", ""),
-                "active": True,
-                "revert_available": True,
-            })
+            versions.append(
+                {
+                    "version": row.get("version", len(rows) - i),
+                    "changed_at": str(row.get("changed_at") or ""),
+                    "changed_by": str(row.get("changed_by") or ""),
+                    "pattern": payload.get("pattern", ""),
+                    "rule_type": payload.get("rule_type", ""),
+                    "active": True,
+                    "revert_available": True,
+                }
+            )
         return versions
     finally:
         client.close()
@@ -292,9 +402,7 @@ def rule_impact_preview(
 
         client = KnowledgeGraphClient()
         try:
-            rows = client.run(
-                "MATCH (e:Entity) RETURN e.text AS text LIMIT 200"
-            )
+            rows = client.run("MATCH (e:Entity) RETURN e.text AS text LIMIT 200")
         finally:
             client.close()
 

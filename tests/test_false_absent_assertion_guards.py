@@ -7,7 +7,8 @@ Atlas:
   Risk: R-19CAF7E3
 
 Covers treatment-failure ConText PSEUDO rules, lifestyle-status restoration,
-PMH background-of false-absent restoration, and true negation remaining absent.
+PMH background-of false-absent restoration, true negation remaining absent,
+and same-sentence ConText so 'to exclude' does not flip the next sentence.
 """
 
 from __future__ import annotations
@@ -85,6 +86,50 @@ def test_ac3_ex_smoker_absent_restored_to_present() -> None:
     }
     fix_lifestyle_status_assertions([never])
     assert never["assertion"] == "present"
+
+
+_ROBERT_LETTER = (
+    "Dear Colleague,\n\n"
+    "I am writing to refer Robert for urgent direct access ultrasound "
+    "of the abdomen. He has presented with a 2-month history of "
+    "dyspeptic symptoms that have not responded to standard proton "
+    "pump inhibitor therapy. He reports early satiety and a sensation "
+    "of upper abdominal fullness.\n\n"
+    "On examination, I have identified a firm, palpable mass in the "
+    "epigastric region, which is consistent with an enlarged gall "
+    "bladder. Given the clinical findings and the treatment-resistant "
+    "nature of his symptoms, I am concerned about underlying gall "
+    "bladder pathology and would like urgent imaging to exclude "
+    "malignancy.\n\n"
+    "Robert has a background of GORD and obesity. He is otherwise well."
+)
+
+
+def _letter_ent(phrase: str) -> dict[str, Any]:
+    start = _ROBERT_LETTER.index(phrase)
+    return {
+        "text": phrase,
+        "evidence": phrase,
+        "start": start,
+        "end": start + len(phrase),
+        "assertion": "present",
+        "evidence_sentence": _ROBERT_LETTER,
+    }
+
+
+def test_ac5_exclude_does_not_cross_sentence_onto_pmh() -> None:
+    """AC5: to exclude malignancy does not mark GORD or obesity absent."""
+    reload_nlp()
+    ents = [
+        _letter_ent("malignancy"),
+        _letter_ent("GORD"),
+        _letter_ent("obesity"),
+    ]
+    apply_context_detection_to_dicts(_ROBERT_LETTER, ents)
+    by_text = {ent["text"]: ent["assertion"] for ent in ents}
+    assert by_text["malignancy"] == "absent"
+    assert by_text["GORD"] == "historical"
+    assert by_text["obesity"] == "historical"
 
 
 def test_ac4_background_of_gord_false_absent_restored() -> None:

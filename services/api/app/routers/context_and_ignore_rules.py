@@ -38,6 +38,7 @@ from libs.cypher.coding_review_queries import (
     GET_CONTEXT_RULES,
     UPSERT_CODING_IGNORE_RULE,
     UPSERT_CONTEXT_RULE,
+    UPSERT_CONTEXT_SUPPRESS,
 )
 from libs.cypher.surface_form_task_queries import (
     COUNT_SURFACE_FORM_TASKS,
@@ -377,21 +378,31 @@ def list_context_rules(
     Built-in rules (source='builtin') are read-only and global.
     """
     from libs.ner.context_engine import get_builtin_rules
+    from libs.ner.context_rule_catalog import (
+        is_packaged_rule_id,
+        merge_context_rule_list,
+    )
 
     org_id = None if scope.is_admin else scope.primary_org_id
 
     client = PatientGraphClient()
     try:
         with client.session() as session:
-            rows = session.run(
-                GET_CONTEXT_RULES, active_only=active_only, org_id=org_id
-            )
+            rows = session.run(GET_CONTEXT_RULES, active_only=False, org_id=org_id)
             custom = [{**dict(r), "source": "custom"} for r in rows]
     finally:
         client.close()
 
-    builtin = get_builtin_rules() if include_builtin else []
-    return {"rules": builtin + custom}
+    if not include_builtin:
+        visible = [r for r in custom if not is_packaged_rule_id(r.get("rule_id"))]
+        if active_only:
+            visible = [r for r in visible if r.get("active", True)]
+        return {"rules": visible}
+
+    merged = merge_context_rule_list(get_builtin_rules(), custom)
+    if active_only:
+        merged = [r for r in merged if r.get("active", True)]
+    return {"rules": merged}
 
 
 @router.post("/context-rules")
@@ -472,13 +483,36 @@ def deactivate_context_rule(
     rule_id: str,
     scope: CallerScope = Depends(require_admin),
 ) -> dict[str, Any]:
-    """Soft-delete a user-defined ConText rule."""
+    """Turn off a custom or shipped ConText cue."""
+    from libs.ner.context_rule_catalog import find_packaged_rule, is_packaged_rule_id
+
     client = PatientGraphClient()
     try:
         with client.session() as session:
-            row = session.run(DEACTIVATE_CONTEXT_RULE, rule_id=rule_id).single()
-        if not row:
-            raise HTTPException(status_code=404, detail=f"Rule {rule_id!r} not found")
+            if is_packaged_rule_id(rule_id):
+                packed = find_packaged_rule(rule_id)
+                if not packed:
+                    raise HTTPException(
+                        status_code=404, detail=f"Rule {rule_id!r} not found"
+                    )
+                session.run(
+                    UPSERT_CONTEXT_SUPPRESS,
+                    rule_id=rule_id,
+                    literal=packed["literal"],
+                    category=packed["category"],
+                    direction=packed["direction"],
+                    max_scope=packed["max_scope"] or 10,
+                    description=packed.get("description") or "",
+                    example=packed.get("example") or "",
+                    created_by=scope.email,
+                    org_id=scope.primary_org_id,
+                )
+            else:
+                row = session.run(DEACTIVATE_CONTEXT_RULE, rule_id=rule_id).single()
+                if not row:
+                    raise HTTPException(
+                        status_code=404, detail=f"Rule {rule_id!r} not found"
+                    )
         logger.info("ContextRule deactivated: %s", rule_id[:8])
         result = {"rule_id": rule_id, "active": False}
     finally:

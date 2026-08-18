@@ -194,6 +194,20 @@ def test_saving_a_finding_returns_json_safe_timestamps() -> None:
     assert row["updated_at"] == "2026-08-14T08:00:00Z"
 
 
+def test_create_finding_accepts_semantic_tag() -> None:
+    client = FakeFindingClient()
+    row = create_finding(
+        client,
+        run_id="run-1",
+        stage_id="extract",
+        category="semantic_tag",
+        target="standard proton pump inhibitor therapy",
+        note="tagged as Other",
+    )
+    assert row["category"] == "semantic_tag"
+    assert row["target"] == "standard proton pump inhibitor therapy"
+
+
 def test_create_finding_rejects_unknown_category() -> None:
     client = FakeFindingClient()
     with pytest.raises(FindingError):

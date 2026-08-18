@@ -28,6 +28,7 @@ _FAMILIES = (
     "term_concept_blocklist",
     "body_structure_guard",
     "fact_link_guard",
+    "ignore_phrase",
 )
 
 
@@ -182,7 +183,10 @@ def _routing_rows() -> list[dict[str, Any]]:
 
 
 def _assertion_rows() -> list[dict[str, Any]]:
-    from libs.pipeline.post_processing import _BUILTIN_LIFESTYLE_CONCEPT_IDS
+    from libs.pipeline.post_processing import (
+        _BUILTIN_LIFESTYLE_CONCEPT_IDS,
+        _BUILTIN_PMH_CUES,
+    )
 
     labels = {
         "8517006": "Ex-smoker",
@@ -198,6 +202,16 @@ def _assertion_rows() -> list[dict[str, Any]]:
                 "lifestyle_concept",
                 cid,
                 summary=labels.get(cid, cid),
+            )
+        )
+    for i, cue in enumerate(_BUILTIN_PMH_CUES, 1):
+        rows.append(
+            _row(
+                f"builtin-pmh-{i:03d}",
+                "assertion_guard",
+                "pmh_list",
+                cue,
+                summary=cue,
             )
         )
     return rows

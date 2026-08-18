@@ -66,10 +66,11 @@ em, i { font-style: italic; }
   width: 26px;
   height: 26px;
   flex: 0 0 auto;
-  color: ${BRAND.light.primary};
+  color: ${BRAND.light.markInk};
 }
-
+.leo-mark svg { display: block; width: 26px; height: 26px; }
 .leo-product {
+  font-family: ${BRAND.fontFamilyHeading};
   font-weight: 700;
   font-size: 13.5px;
   letter-spacing: 0.1px;
@@ -79,9 +80,9 @@ em, i { font-style: italic; }
 /* ------ AI-generated advisory disclaimer (persistent, non-dismissible) ------ */
 
 .leo-ai-disclaimer {
-  border: 1px solid #3b82f6;
-  background: #eff6ff;
-  color: #1e3a8a;
+  border: 1px solid ${BRAND.light.infoBorder};
+  background: ${BRAND.light.infoBg};
+  color: ${BRAND.light.infoInk};
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 12px;
@@ -122,6 +123,7 @@ em, i { font-style: italic; }
   align-items: center;
   justify-content: space-between;
   padding: 7px 14px;
+  font-family: ${BRAND.fontFamilyHeading};
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.3px;
@@ -454,12 +456,12 @@ em, i { font-style: italic; }
     border-bottom-color: ${BRAND.dark.border};
   }
 
-  .leo-mark { color: ${BRAND.dark.primary}; }
+  .leo-mark { color: ${BRAND.dark.markInk}; }
 
   .leo-ai-disclaimer {
-    border-color: #1d4ed8;
-    background: #1e3a8a;
-    color: #bfdbfe;
+    border-color: ${BRAND.dark.infoBorder};
+    background: ${BRAND.dark.infoBg};
+    color: ${BRAND.dark.infoInk};
   }
 
   .leo-stage {

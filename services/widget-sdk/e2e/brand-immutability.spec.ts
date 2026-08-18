@@ -52,7 +52,7 @@ test.describe("VT-F6F5681E - host CSS does not alter widget brand", () => {
 
     expect(probe.ok).toBe(true);
     expect(probe.shadowRoot).toBe("null");
-    expect(probe.fontFamily.toLowerCase()).toContain("inter");
+    expect(probe.fontFamily.toLowerCase()).toContain("albert sans");
     expect(probe.color).not.toContain("magenta");
   });
 
@@ -83,7 +83,7 @@ test.describe("VT-F6F5681E - host CSS does not alter widget brand", () => {
     });
 
     expect(styles.markColor.toLowerCase()).not.toContain("magenta");
-    expect(styles.productFont.toLowerCase()).toContain("inter");
+    expect(styles.productFont.toLowerCase()).toContain("overpass");
     expect(styles.productFont.toLowerCase()).not.toContain("comic");
     expect(styles.productSize).not.toBe("30px");
     if (styles.toggleFont) {

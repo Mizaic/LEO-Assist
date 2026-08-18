@@ -6,6 +6,7 @@ Tests:
 - Custom concept IDs added via Neo4j are respected
 - Inactive custom rules are ignored
 """
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -55,9 +56,9 @@ class TestAssertionGuardParity:
                 "semantic_tag": "finding",
             }
             fix_lifestyle_status_assertions([ent])
-            assert ent["assertion"] == "present", (
-                f"concept {concept_id} ({label}) should be restored to present"
-            )
+            assert (
+                ent["assertion"] == "present"
+            ), f"concept {concept_id} ({label}) should be restored to present"
 
     def test_unrelated_concept_not_changed(self):
         from libs.pipeline.post_processing import fix_lifestyle_status_assertions
@@ -128,4 +129,60 @@ class TestAssertionGuardConfigurable:
             "assertion": "absent",
         }
         fix_lifestyle_status_assertions([ent])
+        assert ent["assertion"] == "absent"
+
+
+class TestPmhListConfigurable:
+    def test_custom_pmhx_cue_restores_present(self):
+        from libs.pipeline.post_processing import (
+            fix_pmh_list_false_absent,
+            reload_pmh_list_guard,
+        )
+
+        fake_row = {
+            "rule_id": "test-pmh-001",
+            "active": True,
+            "payload": '{"pattern": "pmhx", "rule_type": "pmh_list"}',
+            "family": "assertion_guard",
+        }
+        with patch(
+            "libs.pipeline.post_processing._fetch_neo4j_assertion_rules",
+            return_value=[fake_row],
+        ):
+            reload_pmh_list_guard()
+
+        ent = {
+            "assertion": "absent",
+            "text": "GORD",
+            "evidence": "GORD",
+            "evidence_sentence": "PMHx of GORD",
+        }
+        fix_pmh_list_false_absent([ent])
+        assert ent["assertion"] == "present"
+
+    def test_no_history_of_stays_absent_with_custom_cue(self):
+        from libs.pipeline.post_processing import (
+            fix_pmh_list_false_absent,
+            reload_pmh_list_guard,
+        )
+
+        fake_row = {
+            "rule_id": "test-pmh-002",
+            "active": True,
+            "payload": '{"pattern": "pmhx", "rule_type": "pmh_list"}',
+            "family": "assertion_guard",
+        }
+        with patch(
+            "libs.pipeline.post_processing._fetch_neo4j_assertion_rules",
+            return_value=[fake_row],
+        ):
+            reload_pmh_list_guard()
+
+        ent = {
+            "assertion": "absent",
+            "text": "GORD",
+            "evidence": "GORD",
+            "evidence_sentence": "no history of GORD",
+        }
+        fix_pmh_list_false_absent([ent])
         assert ent["assertion"] == "absent"

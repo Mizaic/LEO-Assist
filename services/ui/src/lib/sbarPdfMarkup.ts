@@ -24,7 +24,14 @@ export const SBAR_PDF_ADVISORY =
   "clinical judgement.";
 
 const FONT =
-  "Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif";
+  '"Albert Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif';
+const FONT_HEADING =
+  '"Overpass", "Albert Sans", system-ui, -apple-system, Segoe UI, sans-serif';
+
+const RING =
+  "M106.508 20.9663C106.547 21.3824 106.577 22.1104 106.577 22.5378C106.577 29.8809 100.675 35.798 93.3446 35.798C86.0147 35.798 80.0722 29.8449 80.0722 22.5019C80.0722 15.1588 86.0147 9.20575 93.3446 9.20575C94.2281 9.20575 95.0889 9.29652 95.9232 9.46104L98.6623 0.601362C96.8992 0.156959 95.2437 0 93.3446 0C80.9406 0 70.8848 10.0738 70.8848 22.5C70.8848 34.9262 80.9406 45 93.3446 45C105.749 45 115.805 34.9262 115.805 22.5C115.805 21.3899 115.721 20.2988 115.567 19.2322L106.509 20.9644L106.508 20.9663Z";
+const ACCENT =
+  "M99.8359 10.9118C102.224 12.2564 104.051 14.3252 105.352 16.8763L114.383 14.5635C112.344 9.11531 108.385 4.87931 103.064 2.21289L99.8359 10.9118Z";
 
 const RULE_TAG_RE = /\[RULE:\s*[^\]]+\]/g;
 const HEADING_RE = /^(#{2,4})\s+(.+)$/;
@@ -186,26 +193,28 @@ function exportStyles(): string {
   padding-bottom: 10px;
   margin-bottom: 10px;
   border-bottom: 1px solid #e2e8f0;
-  color: #1e3a8a;
+  color: #0d46d6;
 }
 .leo-mark {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
-  background: #1e3a8a;
-  color: #ffffff;
+  color: #00093b;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 9px;
   flex: 0 0 auto;
 }
-.leo-product { font-weight: 700; font-size: 13.5px; flex: 1; }
+.leo-mark svg { display: block; width: 26px; height: 26px; }
+.leo-product {
+  font-family: ${FONT_HEADING};
+  font-weight: 700;
+  font-size: 13.5px;
+  flex: 1;
+}
 .leo-advisory {
-  border: 1px solid #93c5fd;
-  background: #eff6ff;
-  color: #1e3a8a;
+  border: 1px solid #0d46d6;
+  background: #e8effc;
+  color: #002178;
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
@@ -222,6 +231,7 @@ function exportStyles(): string {
 }
 .leo-stage-header {
   padding: 7px 14px;
+  font-family: ${FONT_HEADING};
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.3px;
@@ -264,7 +274,11 @@ ${stages}
 }
 
 const LEO_MARK =
-  '<span class="leo-mark" aria-hidden="true">LEO</span>';
+  '<span class="leo-mark" aria-hidden="true">' +
+  '<svg viewBox="70.8848 0 44.9202 45" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LEO by Mizaic">' +
+  `<path d="${RING}" fill="currentColor"/>` +
+  `<path d="${ACCENT}" fill="#d758ff"/>` +
+  "</svg></span>";
 
 function renderStage(stage: SbarStageName, body: string): string {
   const html = markdownBodyToHtml(stripSourceComments(body));

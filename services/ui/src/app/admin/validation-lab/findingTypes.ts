@@ -16,6 +16,11 @@ export const FINDING_CATEGORIES = [
     hint: "LEO treated this as present, past, or family history wrongly.",
   },
   {
+    id: "semantic_tag",
+    label: "Wrong kind of fact",
+    hint: "LEO tagged this as the wrong kind, for example Other instead of a procedure.",
+  },
+  {
     id: "guard",
     label: "Cleaning rule",
     hint: "A cleaning rule dropped or kept this wrongly.",

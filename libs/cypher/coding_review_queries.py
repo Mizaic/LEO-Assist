@@ -421,6 +421,22 @@ SET r.active     = false,
 RETURN r.rule_id AS rule_id
 """
 
+UPSERT_CONTEXT_SUPPRESS = """
+MERGE (r:ContextRule {rule_id: $rule_id})
+ON CREATE SET r.created_at = datetime()
+SET r.literal      = $literal,
+    r.category     = $category,
+    r.direction    = $direction,
+    r.max_scope    = $max_scope,
+    r.description  = $description,
+    r.example      = $example,
+    r.created_by   = coalesce(r.created_by, $created_by),
+    r.org_id       = $org_id,
+    r.active       = false,
+    r.updated_at   = datetime()
+RETURN r.rule_id AS rule_id
+"""
+
 
 # ---------------------------------------------------------------------------
 # Calibration -- override rates per decision tier.

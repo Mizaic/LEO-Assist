@@ -47,9 +47,19 @@ describe("fixHref", () => {
     expect(href).toContain("rule_id=rule");
   });
 
+  test("routes semantic_tag to AI instructions", () => {
+    const href = fixHref({
+      category: "semantic_tag",
+      target: "standard proton pump inhibitor therapy",
+    });
+    expect(href).toContain("tab=ai-instructions");
+    expect(href).toContain("prompt_name=");
+  });
+
   test("inline fix is phrase mapping or guard", () => {
     expect(isInlineFix("phrase_mapping")).toBe(true);
     expect(isInlineFix("guard")).toBe(true);
     expect(isInlineFix("extraction")).toBe(false);
+    expect(isInlineFix("semantic_tag")).toBe(false);
   });
 });

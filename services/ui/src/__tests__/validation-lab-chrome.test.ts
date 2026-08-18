@@ -276,9 +276,13 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(dataTab).toMatch(/TraceWaterfallChart/);
     expect(dataTab).toMatch(/TraceFlowGraph/);
     expect(dataTab).toMatch(/TraceEndpointPanel/);
-    const stagePane = readFile(
-      "services/ui/src/app/admin/validation-lab/inspector/StageDetailPane.tsx",
-    );
+    const stagePane =
+      readFile(
+        "services/ui/src/app/admin/validation-lab/inspector/StageDetailPane.tsx",
+      ) +
+      readFile(
+        "services/ui/src/app/admin/validation-lab/inspector/StageExtraDetail.tsx",
+      );
     expect(stagePane).toMatch(/extraction_model_name/);
     expect(stagePane).toMatch(/Model /);
   });
@@ -510,9 +514,13 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     const letter = readFile(
       "services/ui/src/app/admin/validation-lab/LetterPane.tsx",
     );
-    const pane = readFile(
-      "services/ui/src/app/admin/validation-lab/inspector/StageDetailPane.tsx",
-    );
+    const pane =
+      readFile(
+        "services/ui/src/app/admin/validation-lab/inspector/StageDetailPane.tsx",
+      ) +
+      readFile(
+        "services/ui/src/app/admin/validation-lab/inspector/StageExtraDetail.tsx",
+      );
     const dialog = readFile(
       "services/ui/src/app/admin/validation-lab/MarkWrongDialog.tsx",
     );
@@ -576,11 +584,16 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(pane).toMatch(/No, mark something wrong/);
     expect(pane).toMatch(/validation-lab-next-step/);
     expect(pane).toMatch(/validation-lab-mark-wrong/);
-    expect(pane).not.toMatch(/Next step/);
+    expect(pane).toMatch(/Next step/);
+    expect(pane).toMatch(/Show extra detail/);
     expect(pane).not.toMatch(/Mark as wrong/);
+    expect(lightbox).toMatch(/findingSavedAt/);
     expect(dialog).toMatch(/extraction/);
     expect(types).toMatch(/phrase_mapping/);
     expect(types).toMatch(/guideline_rule/);
+    expect(types).toMatch(/semantic_tag/);
+    expect(types).toMatch(/Wrong kind of fact/);
+    expect(types).toMatch(/Other instead of a procedure/);
     expect(dialog).not.toMatch(/ConText/);
   });
 });
@@ -606,10 +619,12 @@ describe("VT-5E51F5D9 - findings persist and fix routing", () => {
     expect(routes).toMatch(/tab: "guard-rules"/);
     expect(routes).toMatch(/tab: "surface-forms"/);
     expect(routes).toMatch(/tab: "clinical-guidelines"/);
+    expect(routes).toMatch(/semantic_tag/);
     expect(clinical).toMatch(/Does not enqueue/);
     expect(clinical).toMatch(/get_pipeline_inspector/);
     expect(clinical).toMatch(/find_pipeline_runs/);
     expect(clinical).toMatch(/list_clinical_patients/);
     expect(clinical).toMatch(/clinical-patients/);
+    expect(clinical).toMatch(/semantic_tag/);
   });
 });

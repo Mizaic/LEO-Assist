@@ -8,7 +8,7 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
@@ -21,6 +21,7 @@ import {
   firstStepId,
   nextStepId,
   unlockedIndex,
+  walkComplete,
 } from "../reviewWalk";
 import { StageIcon } from "./pipelineWizardChrome";
 
@@ -34,6 +35,8 @@ interface Props {
   onSelectStep: (id: string | null) => void;
   stageDetail: LabStageDetail | null;
   stageLoading: boolean;
+  /** Increments when the reviewer saves a finding for the open step. */
+  findingSavedAt?: number;
 }
 
 export function PipelineWizard({
@@ -45,6 +48,7 @@ export function PipelineWizard({
   onSelectStep,
   stageDetail,
   stageLoading,
+  findingSavedAt,
 }: Props) {
   const [reviewed, setReviewed] = useState<string[]>([]);
   useEffect(() => {
@@ -62,6 +66,14 @@ export function PipelineWizard({
     selectedStepId && spans.some((s) => s.step_id === selectedStepId)
       ? selectedStepId
       : firstStepId(spans);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  useEffect(() => {
+    if (!findingSavedAt) return;
+    const id = selectedRef.current;
+    if (!id) return;
+    setReviewed((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  }, [findingSavedAt]);
   const openIndex = unlockedIndex(spans, reviewed);
   const span = spans.find((s) => s.step_id === selected) ?? spans[0];
   const detailReady =
@@ -107,6 +119,9 @@ export function PipelineWizard({
           onFixInGuards={onFixInGuards}
           onMarkWrong={onMarkWrong}
           previousPreview={previousPreviews?.[span.step_id]}
+          reviewed={reviewed.includes(span.step_id)}
+          isLastStep={!nextStepId(spans, span.step_id)}
+          walkFinished={walkComplete(spans, reviewed)}
           onNext={() => {
             if (!reviewed.includes(span.step_id)) {
               setReviewed([...reviewed, span.step_id]);

@@ -40,6 +40,10 @@ describe("GuardRulesPage", () => {
     const familyCopy = fs.readFileSync(FAMILY_COPY_PATH, "utf-8");
     expect(familyCopy).toMatch(/scope_guard/);
     expect(familyCopy).toMatch(/lab_value_guard/);
+    expect(familyCopy).toMatch(/pmh_list/);
+    expect(familyCopy).toMatch(/Past history list/);
+    expect(familyCopy).toMatch(/ignore_phrase/);
+    expect(familyCopy).toMatch(/Ignore this phrase/);
   });
 
   it("uses RuleEditor for editing", () => {
@@ -173,6 +177,7 @@ describe("Guard family copy documents every family", () => {
       "lab_value_guard",
       "referral_routing_guard",
       "assertion_guard",
+      "ignore_phrase",
       "entity_type_norm",
       "checkbox_norm",
       "situation_lookup",
@@ -200,6 +205,7 @@ describe("Guard family copy documents every family", () => {
       "lab_value_guard",
       "referral_routing_guard",
       "assertion_guard",
+      "ignore_phrase",
       "entity_type_norm",
       "checkbox_norm",
       "situation_lookup",
