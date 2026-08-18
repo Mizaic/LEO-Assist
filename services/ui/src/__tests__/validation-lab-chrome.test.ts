@@ -560,6 +560,9 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(legend).toMatch(/LEGEND_WHEN_KEYS/);
     expect(legend).toMatch(/LEGEND_WHAT_KEYS/);
     expect(legend).toMatch(/the colour means finding. The bar means present/);
+    expect(legend).toMatch(/type MarkStyle/);
+    expect(legend).toMatch(/style: MarkStyle/);
+    expect(legend).toMatch(/style\.bar \|\| style\.fg/);
     expect(style).toMatch(/export const ASSERTION_STYLE/);
     expect(style).toMatch(/export const TAG_STYLE/);
     expect(style).toMatch(/LEGEND_WHEN_KEYS/);

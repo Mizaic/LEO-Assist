@@ -21,6 +21,7 @@ import {
   LEGEND_WHAT_KEYS,
   LEGEND_WHEN_KEYS,
   semanticTagStyle,
+  type MarkStyle,
 } from "./letterMarkStyle";
 
 export function LetterMarkLegend({ marks }: { marks: LetterMark[] }) {
@@ -104,7 +105,7 @@ function LegendGroup({
   variant,
 }: {
   title: string;
-  items: Array<{ key: string; style: { bg: string; fg: string; label: string } }>;
+  items: Array<{ key: string; style: MarkStyle }>;
   variant: "bar" | "fill";
 }) {
   return (
@@ -129,7 +130,7 @@ function LegendRow({
   items,
   variant,
 }: {
-  items: Array<{ key: string; style: { bg: string; fg: string; label: string } }>;
+  items: Array<{ key: string; style: MarkStyle }>;
   variant: "bar" | "fill";
 }) {
   return (
@@ -148,7 +149,7 @@ function LegendRow({
 function LegendBarChip({
   style,
 }: {
-  style: { bg: string; fg: string; label: string };
+  style: MarkStyle;
 }) {
   return (
     <Box
@@ -181,7 +182,7 @@ function LegendBarChip({
 function LegendFillChip({
   style,
 }: {
-  style: { bg: string; fg: string; label: string };
+  style: MarkStyle;
 }) {
   return (
     <Box
