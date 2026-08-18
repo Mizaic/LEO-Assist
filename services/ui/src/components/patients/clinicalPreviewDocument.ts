@@ -1,5 +1,10 @@
-/** Shared clinical document preview styling for inline HTML viewers. */
-
+/** Shared clinical document preview styling for inline HTML viewers.
+ *
+ * Atlas trace:
+ *   DO: DO-5F9A50D8
+ *   DI: DI-1D584D40
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-5F9A50D8")
+ */
 export const CLINICAL_PREVIEW_CSS = `
   :root {
     color-scheme: light;

@@ -1,4 +1,10 @@
-"""Inline patient document file streaming for the Care document viewer."""
+"""Inline patient document file streaming for the Care document viewer.
+
+Atlas trace:
+  DO: DO-31410049
+  DI: DI-F46494AE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-31410049")
+"""
 
 from __future__ import annotations
 

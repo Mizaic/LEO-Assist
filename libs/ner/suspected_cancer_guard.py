@@ -1,5 +1,10 @@
 """Guards against coding suspected referrals as confirmed malignancy disorders.
 
+Atlas trace:
+  DO: DO-8EF2EC20
+  DI: DI-2F963FC6
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-8EF2EC20")
+
 Atlas trace (related):
   DI: DI-95CB940F (situation assertion present)
   DO: DO-847F1ED5

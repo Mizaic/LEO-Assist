@@ -1,5 +1,10 @@
 """Shape and validate product non-conformance records.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Atlas: DI-287FFFD0
 """
 

@@ -1,5 +1,10 @@
 """Map Operations ignore-this-phrase rules onto Pipeline Guards rows.
 
+Atlas trace:
+  DO: DO-7E9AD55B
+  DI: DI-DA60AC55
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-7E9AD55B")
+
 Atlas: DI-DA60AC55 / DO-7E9AD55B / VT-AEA5D045
 """
 

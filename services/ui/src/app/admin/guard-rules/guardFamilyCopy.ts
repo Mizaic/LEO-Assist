@@ -3,6 +3,11 @@
  *
  * Audience: knowledge authors and platform admins.
  * Default blocks target a reading age of about 11.
+ *
+ * Atlas trace:
+ *   DO: DO-7E9AD55B
+ *   DI: DI-DA60AC55
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-7E9AD55B")
  */
 export interface GuardTypeCopy {
   label: string;

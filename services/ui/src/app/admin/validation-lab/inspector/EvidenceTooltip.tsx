@@ -2,6 +2,11 @@
  * Structured evidence tooltip for Validation Lab fact chips.
  *
  * Atlas: DI-257D6883 / DO-158BE606 / VT-825F42CC
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
 "use client";
 

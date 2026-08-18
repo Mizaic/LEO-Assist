@@ -4,6 +4,11 @@
  * bounce 0 ~= damping 1.0 (critically damped). Use for chrome.
  * bounce 0.2 ~= damping 0.8. Use only after a flick / throw.
  * duration here is response, not a fixed timeline -- settle time emerges.
+ *
+ * Atlas trace:
+ *   DO: DO-6DCC699A
+ *   DI: DI-9DDC5471
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-6DCC699A")
  */
 export const springs = {
   ui: { type: "spring" as const, bounce: 0, duration: 0.35 },

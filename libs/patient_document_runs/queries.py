@@ -1,5 +1,10 @@
 """Cypher for patient document pipeline re-runs.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Resolves referral-linked DocumentReference context for production
 referral-received triggers from the Care patient viewer.
 """

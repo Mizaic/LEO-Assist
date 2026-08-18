@@ -1,5 +1,10 @@
 """Sign patient document blob URLs for authenticated browser access.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Referral ingest stores plain Azure blob URLs on DocumentReference nodes.
 Storage accounts with allowBlobPublicAccess=false require a SAS token
 for browser opens. This module adds short-lived read SAS query params

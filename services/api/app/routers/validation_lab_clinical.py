@@ -1,5 +1,10 @@
 """Validation Lab findings and clinical PipelineRun open.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Atlas:
   DI: DI-562F2C9E, DI-C953EF73, DI-238DA59A
   DO: DO-4FD76836

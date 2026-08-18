@@ -1,5 +1,10 @@
 """Stream patient document files through the analytics API.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Browsers cannot embed Azure blob URLs in iframes when the app CSP only
 allows frame-src 'self'. This module resolves a signed blob URL and
 streams bytes back on a same-origin path.

@@ -1,6 +1,11 @@
 /**
  * App shell nav chrome -- midnight navy structural rail.
  * Heavier than page frost. Brand: dark surfaces use white ink.
+ *
+ * Atlas trace:
+ *   DO: DO-30A82196
+ *   DI: DI-85B110A5
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-30A82196")
  */
 import type { SxProps, Theme } from "@mui/material/styles";
 

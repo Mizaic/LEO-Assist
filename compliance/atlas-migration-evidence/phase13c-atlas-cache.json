@@ -931,6 +931,15 @@
       "risks": [],
       "title": "SNOMED CT Resolution Service"
     },
+    "DO-15449C6E": {
+      "dcId": "DO-15449C6E",
+      "design_inputs": [
+        "DI-0F9542BF"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
+    },
     "DO-158BE606": {
       "dcId": "DO-158BE606",
       "design_inputs": [
@@ -1325,6 +1334,15 @@
       "risks": [],
       "title": "Dual Neo4j Database Architecture"
     },
+    "DO-47454249": {
+      "dcId": "DO-47454249",
+      "design_inputs": [
+        "DI-E5FEF0AE"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
+    },
     "DO-4A8227DD": {
       "dcId": "DO-4A8227DD",
       "design_inputs": [
@@ -1681,6 +1699,15 @@
       "design_outputs": [],
       "risks": [],
       "title": "Hybrid Encounter Retrieval Module"
+    },
+    "DO-7E9AD55B": {
+      "dcId": "DO-7E9AD55B",
+      "design_inputs": [
+        "DI-DA60AC55"
+      ],
+      "design_outputs": [],
+      "risks": [],
+      "title": "stamp_untraced_class_b synthetic cache"
     },
     "DO-83EBEE2C": {
       "dcId": "DO-83EBEE2C",

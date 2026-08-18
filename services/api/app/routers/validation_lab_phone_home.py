@@ -1,5 +1,10 @@
 """Validation Lab trigger for gated LEO phone-home.
 
+Atlas trace:
+  DO: DO-EC41233C
+  DI: DI-9D0DF618
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-EC41233C")
+
 Atlas: DI-C7DEF132
 """
 

@@ -1,4 +1,10 @@
-"""Server-side Word document preview for the Care document viewer."""
+"""Server-side Word document preview for the Care document viewer.
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+"""
 
 from __future__ import annotations
 

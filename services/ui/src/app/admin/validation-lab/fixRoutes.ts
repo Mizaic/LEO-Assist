@@ -2,8 +2,12 @@
  * Route a Validation Lab finding to the matching Knowledge tool.
  *
  * Atlas: DI-562F2C9E / DO-4FD76836
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 import type { FindingCategory } from "./findingTypes";
 
 export interface FixRouteInput {

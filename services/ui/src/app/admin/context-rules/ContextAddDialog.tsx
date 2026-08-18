@@ -1,5 +1,10 @@
 /**
  * Add a custom context rule.
+ *
+ * Atlas trace:
+ *   DO: DO-7E9AD55B
+ *   DI: DI-DA60AC55
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-7E9AD55B")
  */
 "use client";
 

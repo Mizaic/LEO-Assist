@@ -109,6 +109,41 @@ _exact(
     ],
 )
 _exact(
+    "DO-7E9AD55B",
+    ["DI-DA60AC55"],
+    [
+        "libs/ner/context_rule_catalog.py",
+        "libs/pipeline/ignore_phrase_catalog.py",
+        "services/ui/src/app/admin/context-rules/ContextAddDialog.tsx",
+        "services/ui/src/app/admin/context-rules/categoryCopy.ts",
+        "services/ui/src/app/admin/context-rules/types.ts",
+        "services/ui/src/app/admin/context-rules/useContextRulesPage.ts",
+        "services/ui/src/app/admin/guard-rules/GuardEditorPanel.tsx",
+        "services/ui/src/app/admin/guard-rules/guardFamilyCopy.ts",
+        "services/ui/src/app/admin/guard-rules/guardWorkedExamples.ts",
+        "services/ui/src/app/admin/guard-rules/humanizePattern.ts",
+        "services/ui/src/app/admin/guard-rules/types.ts",
+        "services/ui/src/app/admin/guard-rules/useGuardRulesPage.ts",
+    ],
+)
+_exact(
+    "DO-15449C6E",
+    ["DI-0F9542BF"],
+    [
+        "libs/ner/context_engine.py",
+    ],
+)
+_exact(
+    "DO-47454249",
+    ["DI-E5FEF0AE"],
+    [
+        "services/design-system/src/brand/LeoLoader.tsx",
+        "services/design-system/src/brand/LeoLogo.tsx",
+        "services/design-system/src/brand/LeoSplash.tsx",
+        "services/design-system/src/brand/index.ts",
+    ],
+)
+_exact(
     "DO-E981C7B1",
     ["DI-D6E5F94E"],
     [
@@ -281,6 +316,9 @@ def ensure_cache_entries(cache: dict) -> None:
         "DO-E981C7B1": ["DI-D6E5F94E"],
         "DO-5C88CA8F": ["DI-A1206416"],
         "DO-728930A1": ["DI-B5C78811"],
+        "DO-7E9AD55B": ["DI-DA60AC55"],
+        "DO-15449C6E": ["DI-0F9542BF"],
+        "DO-47454249": ["DI-E5FEF0AE"],
     }
     for do, dis in extras.items():
         if do not in dos:

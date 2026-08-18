@@ -2,6 +2,11 @@
  * Worked examples for Pipeline Guards.
  *
  * Notes come from the automated tests that already prove each guard.
+ *
+ * Atlas trace:
+ *   DO: DO-7E9AD55B
+ *   DI: DI-DA60AC55
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-7E9AD55B")
  */
 import catalog from "./guard_worked_examples.json";
 

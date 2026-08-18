@@ -1,4 +1,10 @@
-"""Cypher for manual patient document CRUD."""
+"""Cypher for manual patient document CRUD.
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+"""
 
 SOURCE_MANUAL_JOURNEY = "manual_journey"
 

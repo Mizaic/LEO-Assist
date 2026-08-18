@@ -1,3 +1,11 @@
+/**
+ * Auto-stamped Atlas trace.
+ *
+ * Atlas trace:
+ *   DO: DO-47454249
+ *   DI: DI-E5FEF0AE
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-47454249")
+ */
 import "./leo-logo.css";
 
 /** Official LEO wordmark paths (Mizaic brand SVG, viewBox 116x45). */

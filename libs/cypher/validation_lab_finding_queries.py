@@ -1,5 +1,10 @@
 """Cypher for Validation Lab findings and clinical pipeline-run open.
 
+Atlas trace:
+  DO: DO-F8EFEF89
+  DI: DI-E47C3FC2
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
+
 Atlas:
   DI: DI-562F2C9E
   DO: DO-4FD76836

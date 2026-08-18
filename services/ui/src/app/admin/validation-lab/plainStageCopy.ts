@@ -1,8 +1,12 @@
 /**
  * Plain-English names for pipeline stages.
  * Written for a reading age of 9-11 years.
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 export interface PlainStageCopy {
   name: string;
   plain: string;

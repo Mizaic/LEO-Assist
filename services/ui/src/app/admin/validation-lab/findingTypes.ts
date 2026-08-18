@@ -2,8 +2,12 @@
  * Validation Lab finding categories and stages.
  *
  * Atlas: DI-C953EF73 / DI-562F2C9E / DO-4FD76836
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 export const FINDING_CATEGORIES = [
   {
     id: "extraction",

@@ -1,5 +1,10 @@
 """MedSpaCy ConText engine for clinical assertion detection.
 
+Atlas trace:
+  DO: DO-15449C6E
+  DI: DI-0F9542BF
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-15449C6E")
+
 Atlas: DO-15449C6E / DI-0F9542BF / VT-A1919820
 Custom categories: DECLINED, CANCELLED, REFUTED, PLANNED.
 PLANNED is a confirmed booking; HYPOTHETICAL is speculative.

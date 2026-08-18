@@ -2,8 +2,12 @@
  * Recently and frequently used clinical patients for this browser.
  *
  * Atlas: DI-238DA59A / DO-4FD76836
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 import type { ClinicalPipelineRun } from "./labFindingsApi";
 
 export const USED_PATIENTS_KEY = "leo-validation-lab-used-patients";

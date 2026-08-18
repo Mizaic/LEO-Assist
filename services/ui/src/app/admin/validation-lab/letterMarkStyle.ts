@@ -2,8 +2,12 @@
  * Hardcoded mark colours: fill is kind, bar is context.
  *
  * Atlas: DI-C953EF73 / DO-4FD76836 / VT-F0A6B9F4
+ *
+ * Atlas trace:
+ *   DO: DO-158BE606
+ *   DI: DI-2289D095
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-158BE606")
  */
-
 export interface MarkStyle {
   bg: string;
   fg: string;

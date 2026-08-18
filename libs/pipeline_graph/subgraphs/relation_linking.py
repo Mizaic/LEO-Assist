@@ -1,4 +1,10 @@
-"""Relation linking subgraph. Atlas: DO-8E641A9E, DO-49256B13, DI-6ACD24D2."""
+"""Relation linking subgraph. Atlas: DO-8E641A9E, DO-49256B13, DI-6ACD24D2.
+
+Atlas trace:
+  DO: DO-69F520C9
+  DI: DI-F22160C3
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-69F520C9")
+"""
 
 from __future__ import annotations
 

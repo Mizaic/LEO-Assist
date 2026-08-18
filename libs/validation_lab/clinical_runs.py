@@ -1,5 +1,10 @@
 """Open a real PipelineRun in Validation Lab without enqueue.
 
+Atlas trace:
+  DO: DO-3A70C3DD
+  DI: DI-724CD8A5
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-3A70C3DD")
+
 Atlas:
   DI: DI-562F2C9E
   DO: DO-4FD76836

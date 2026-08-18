@@ -1,4 +1,10 @@
-"""Milestone-scoped episode and rollup SBAR for patient journeys."""
+"""Milestone-scoped episode and rollup SBAR for patient journeys.
+
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+"""
 
 from __future__ import annotations
 

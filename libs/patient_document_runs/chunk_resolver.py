@@ -1,5 +1,10 @@
 """Resolve pipeline chunks for referral-linked documents.
 
+Atlas trace:
+  DO: DO-AA3B7FCC
+  DI: DI-9456E5BE
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-AA3B7FCC")
+
 Clinical Information PDFs often have no :Chunk nodes. Chunks usually
 live on the referral bundle ({referral_id}:leo-referral-bundle) or on
 a sibling Word or form DocumentReference under the same ReferralRequest.
