@@ -77,6 +77,8 @@ describe("VT-LEO-AI-155 - Pathway canvas node primitives", () => {
     const src = readBase("NodeHandle.tsx");
     expect(src).toMatch(/aria-label=\{resolvedAria\}/);
     expect(src).toMatch(/resolvedAria/);
+    expect(src).toMatch(/color as colorTokens/);
+    expect(src).toMatch(/colorTokens\.text\.disabled/);
   });
 
   it("VT-155-TC-007: BaseNode unifies onActivate single-click + keyboard", () => {

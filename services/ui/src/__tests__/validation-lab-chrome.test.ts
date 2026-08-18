@@ -542,6 +542,8 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(lightbox).toMatch(/LetterPane/);
     expect(lightbox).toMatch(/source_text/);
     expect(lightbox).toMatch(/stageLetterHighlights/);
+    expect(highlight).toMatch(/selectedStepId: string \| null/);
+    expect(highlight).toMatch(/if \(!selectedStepId\) return \[\]/);
     expect(lightbox).not.toMatch(/items\?\.\[0\]\?\.text/);
     expect(letter).toMatch(/LetterMarks/);
     expect(letter).toMatch(/LetterMarkLegend/);
