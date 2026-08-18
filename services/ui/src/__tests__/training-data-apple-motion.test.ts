@@ -60,6 +60,13 @@ describe("Training Data Apple motion and materials", () => {
     expect(tabs).toMatch(/cursor: "pointer"/);
   });
 
+  it("pill measure does not index a nullable buttonRefs.current", () => {
+    const hook = readFile(
+      "services/design-system/src/primitives/useSegmentedPill.ts",
+    );
+    expect(hook).toMatch(/buttonRefs\.current\?\.\[activeIdx\]/);
+  });
+
   it("reduced motion collapses springs to duration 0", () => {
     expect(springs).toMatch(/reducedMotion \? \{ duration: 0 \}/);
   });
