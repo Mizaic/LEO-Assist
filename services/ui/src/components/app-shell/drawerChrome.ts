@@ -27,7 +27,7 @@ const PRESS: SxProps<Theme> = {
   },
 };
 
-export const drawerPaperSx: SxProps<Theme> = {
+export const drawerPaperSx = {
   backgroundColor: color.brand.primaryDark,
   backgroundImage: "none",
   color: NAV_INK_STRONG,

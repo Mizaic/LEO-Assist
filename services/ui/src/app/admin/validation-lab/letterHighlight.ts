@@ -103,7 +103,7 @@ function mergeMark(existing: LetterMark, next: LetterMark): LetterMark {
 }
 
 export function stageLetterHighlights(
-  selectedStepId: string,
+  selectedStepId: string | null,
   spans: Array<{ step_id: string; work_preview?: LabWorkPreview }>,
   stageDetail: {
     step_id?: string;
@@ -112,6 +112,7 @@ export function stageLetterHighlights(
   } | null,
   focus?: string,
 ): LetterMark[] {
+  if (!selectedStepId) return [];
   const selected = spans.find((row) => row.step_id === selectedStepId);
   const ready = stageDetail?.step_id === selectedStepId;
   const preview = workPreviewFromStage(
