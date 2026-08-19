@@ -1,4 +1,4 @@
-import { compareStringsNatural } from "@/lib/sortNatural";
+import { compareStringsNatural, orgSortLabel } from "@/lib/sortNatural";
 
 describe("compareStringsNatural", () => {
   it("orders embedded numbers by numeric value", () => {
@@ -9,5 +9,27 @@ describe("compareStringsNatural", () => {
 
   it("falls back to locale order for non-numeric segments", () => {
     expect(compareStringsNatural("apple", "Banana")).toBeLessThan(0);
+  });
+});
+
+describe("orgSortLabel", () => {
+  it("prefers shortName over name", () => {
+    expect(orgSortLabel({ shortName: "WMC", name: "Woodbrook" })).toBe("WMC");
+  });
+
+  it("returns empty string when shortName and name are null", () => {
+    expect(orgSortLabel({ shortName: null, name: null })).toBe("");
+  });
+
+  it("sorts organisations that have a null name without throwing", () => {
+    const orgs = [
+      { id: "b", shortName: null, name: null },
+      { id: "a", shortName: null, name: "Alpha Practice" },
+    ];
+    expect(() =>
+      [...orgs].sort((left, right) =>
+        compareStringsNatural(orgSortLabel(left), orgSortLabel(right)),
+      ),
+    ).not.toThrow();
   });
 });

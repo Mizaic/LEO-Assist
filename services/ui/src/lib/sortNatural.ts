@@ -10,3 +10,10 @@
 export function compareStringsNatural(a: string, b: string): number {
   return a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
 }
+
+export function orgSortLabel(org: {
+  shortName?: string | null;
+  name?: string | null;
+}): string {
+  return String(org.shortName || org.name || "");
+}

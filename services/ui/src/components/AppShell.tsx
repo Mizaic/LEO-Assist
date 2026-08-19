@@ -80,6 +80,7 @@ import Menu from "@mui/material/Menu";
 import { useDemoMode } from "@/context/DemoModeContext";
 import { useOrg } from "@/context/OrgContext";
 import { maskOrgName } from "@/lib/demoMode";
+import { compareStringsNatural, orgSortLabel } from "@/lib/sortNatural";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import {
   drawerPaperSx,
@@ -290,9 +291,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const sortedOrganizations = useMemo(
     () =>
       [...organizations].sort((a, b) =>
-        (a.shortName || a.name).localeCompare(b.shortName || b.name, "en", {
-          sensitivity: "base",
-        }),
+        compareStringsNatural(orgSortLabel(a), orgSortLabel(b)),
       ),
     [organizations],
   );
