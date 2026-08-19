@@ -25,5 +25,6 @@ botocore>=1.42.64
 langchain-aws>=0.3
 langchain-openai>=0.3
 openai>=2.0
+jsonschema>=4.23
 langgraph>=0.4
 beautifulsoup4>=4.12
