@@ -11,3 +11,4 @@ azure-keyvault-secrets>=4.8.0
 sentence-transformers>=3.0.0
 pyroaring>=1.0.0
 redis>=5.2.0
+jsonschema>=4.23

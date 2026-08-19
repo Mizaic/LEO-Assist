@@ -109,6 +109,9 @@ async def lifespan(_app: FastAPI):
         logger.info("anyio threadpool ceiling set to %d", _tokens)
     except Exception as exc:
         logger.warning("Failed to lift anyio threadpool ceiling: %s", exc)
+    from libs.startup.preflight import run_analytics_preflight
+
+    run_analytics_preflight()
     _check_service_auth_secret()
     try:
         n = seed_nhs_cohorts()
