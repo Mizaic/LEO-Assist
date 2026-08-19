@@ -1,0 +1,86 @@
+---
+alwaysApply: true
+description: All user-facing agent output must be professional plain English at roughly UK reading age 11 — short sentences, common words, acronyms expanded on first use, action first then regulatory detail.
+---
+# Plain English Output
+
+Everything an agent shows a person must be **professional plain English at
+roughly UK reading age 11**. This covers status messages, errors, summaries,
+prompts, settings copy, MCP tool result text, and catalogue or playbook
+status lines.
+
+This rule supports the QMS UX principle "warm and human first, regulatory
+second" (`40-atlas-qms-ux-principles.mdc`) and the clinical-safety need for
+clear, unambiguous instructions (`07-atlas-clinical-safety.mdc`). It does not
+change *what* is done — only *how it is said*.
+
+## What "plain English" means here
+
+- **Short sentences.** Aim for about 15–20 words. One idea per sentence.
+- **Common words.** Prefer the everyday word over the formal one
+  ("use" not "utilise", "start" not "initiate", "show" not "surface").
+- **Expand acronyms on first use**, then you may use the short form:
+  "Design Input (a requirement the product must meet, DI)".
+- **Action first, detail second.** Lead with what happened and what to do
+  next. Put regulatory or technical detail on a secondary line or tooltip.
+- **No unexplained jargon.** If a term is unavoidable, define it in a few
+  words the first time.
+- **Active voice.** "We saved your changes", not "Your changes have been
+  saved by the system".
+- **Be specific and honest.** Say what failed and the next step. Never hide a
+  blocker behind vague wording.
+
+## Scope
+
+Applies to all user-facing text produced by agents and by Atlas surfaces that
+relay agent output. It does **not** apply to:
+
+- Code, identifiers, file paths, or log lines meant for machines.
+- Controlled regulatory record text where exact wording is mandated (cite the
+  controlled wording verbatim, then add a plain-English explanation alongside).
+
+## Reviewer checklist
+
+Before showing text to a user, confirm:
+
+- [ ] Sentences are short (about 15–20 words) and each carries one idea.
+- [ ] No acronym appears without being expanded on first use.
+- [ ] The first line says what happened and what to do next.
+- [ ] Regulatory or technical detail sits on a secondary line, not buried in
+      the lead.
+- [ ] Common words are used instead of formal or technical synonyms.
+- [ ] Active voice; no needless passive constructions.
+- [ ] A non-specialist could act on the message without extra help.
+
+## Examples
+
+**Good**
+
+```text
+We could not save the risk. It needs a hazard before it can be saved.
+Add a hazard, then try again.
+(Regulatory: ISO 14971 requires each risk to trace to a hazard.)
+```
+
+```text
+Done. We linked your code change to Design Output DO-ATLAS-604-037.
+A Design Output records how a requirement was built.
+```
+
+**Bad**
+
+```text
+Persistence operation aborted: RSK entity failed pre-commit validation due to
+an unsatisfied HAS_RISK cardinality constraint per ISO 14971 §clause traceability.
+```
+
+```text
+The DO has been successfully associated with the referenced WI per the DC
+traceability obligations enumerated in the governing SOP.
+```
+
+## See also
+
+- `40-atlas-qms-ux-principles.mdc` — warm and human first, regulatory second.
+- `07-atlas-clinical-safety.mdc` — clear, unambiguous safety instructions.
+- `35-accessibility.mdc` — readable, accessible content on every surface.

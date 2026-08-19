@@ -1,0 +1,41 @@
+---
+alwaysApply: true
+description: Atlas platform orientation — operating system, trust zones, FHIR for clinical data, ID patterns
+---
+
+# Atlas Platform
+
+Atlas is the **company operating system**. See `atlas-operating-system.mdc`.
+It is **not** a medical device. Tenant products in Atlas may be.
+
+## Clinical data
+
+FHIR R4 is the internal and external model for clinical data. Experiences
+(Zone 2) call the FHIR API only. Every query filters by `organization_id`.
+
+## Trust zones
+
+Zone 1 Auth Proxy → Zone 2 Experiences → Zone 3 Platform → Zone 4 Data →
+Zone 5 AI → Zone 6 Integration.
+
+Zone 2 never touches the database or AI directly. Zone 3 is the only zone
+that talks to Zone 4 and Zone 5.
+
+## Design controls
+
+The Atlas Design Controls MCP is the sole store. See `mcp-sole-source.mdc`.
+The product ID comes from the **home-repo overlay**. Do not guess it.
+
+## ID patterns (Atlas platform product)
+
+User Need `UN-ATLAS-XXX` · Design Input `DI-ATLAS-XXX` · Design Output
+`DO-ATLAS-XXX-YYY` · Verification `VT-ATLAS-XXX` · Validation
+`VAL-ATLAS-XXX` · Risk `R-ATLAS-XXX`. Tenant products may use hex dcIds.
+Do not invent IDs that collide with retired ones.
+
+## Non-negotiables
+
+- Know the safety class (A / B / C) before writing code.
+- Audit every data access and change. Audit is append-only.
+- AI outputs must show confidence, allow override, and create Provenance.
+- New work follows this pack. Secrets from Key Vault only.

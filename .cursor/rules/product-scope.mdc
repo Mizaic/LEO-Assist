@@ -1,0 +1,34 @@
+---
+description: Use before any MCP write — confirm which product ID the home-repo overlay names
+---
+
+# Design Controls — Product Scope
+
+The shared pack does **not** hard-code a product ID.
+
+1. Read the home repo overlay (often `product-scope.mdc` or
+   `42-atlas-product-scope.mdc`).
+2. Use that `product_id` on every MCP create or update.
+3. If the overlay is missing, **stop** and ask. Do not infer from data
+   you read in another product.
+
+## Atlas platform overlay (reference)
+
+When the home repo is MIZAIC-ATLAS (platform work, not a tenant product),
+the overlay is:
+
+```
+PROD-MIZAIC-ATLAS-20260817-6CE20EC4
+```
+
+Atlas platform design controls are Class A QMS tooling. Atlas is not a
+medical device.
+
+## Hard stops
+
+- Do not write design controls on a legacy Atlas product without
+  explicit confirmation.
+- Do not write design controls on another tenant's product because you
+  saw it in a search result.
+- If an Atlas change surfaces a bug in another product, record it in the
+  Atlas rationale. Do not edit the other product's controls.

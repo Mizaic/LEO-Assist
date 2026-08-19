@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+# Clinical Safety
+
+<!-- merged from: atlas/07-atlas-clinical-safety -->
+
+- Safety-critical fields must block form submission if empty. Never silently default.
+- Cross-tenant access is a critical hazard. Treat as a P0 incident.
+- AI outputs must show confidence, allow human override, and log Provenance.
+- Escalation paths must exist for safety netting. Never swallow safety alerts.
+- Class C changes need Clinical Safety Officer (CSO) review before merging.

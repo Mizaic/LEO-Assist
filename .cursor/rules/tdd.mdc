@@ -1,0 +1,46 @@
+---
+alwaysApply: true
+description: Test-Driven Development — red then green before implementation code
+---
+
+# Test-Driven Development
+
+Write the test first. Watch it fail. Then write the code.
+
+This is binding for every behaviour change (Class A/B/C). It is not
+"tests before merge".
+
+## Cycle (do not skip)
+
+1. **Red** — write one failing test for the next behaviour. Run it.
+   Confirm it fails for the right reason (missing code, not a typo).
+2. **Green** — write the smallest production change that makes that
+   test pass.
+3. **Refactor** — clean up with the test still green.
+
+Do not write production code for a behaviour that has no red test.
+
+## Which test
+
+| Change | Red test first |
+|---|---|
+| Unit / service / hook | Vitest or pytest |
+| User journey / page | Playwright |
+| Bug fix | A test that fails on today's code and names the bug |
+
+One behaviour per cycle. Cite the Design Input or User Need when one exists.
+
+## Not TDD
+
+- Cosmetic-only: comments, docs, rule text, formatting.
+- Generated code.
+
+Validation Tests still start red: write the Playwright journey first,
+capture screenshots, then implement. See `platform-validation.mdc`.
+
+## Hard stops
+
+- Do not implement a screen, API, or hook and "add tests after".
+- Do not write a test that already passes.
+- Do not weaken or delete a test to make green.
+- Do not skip the red run because "it would obviously fail".

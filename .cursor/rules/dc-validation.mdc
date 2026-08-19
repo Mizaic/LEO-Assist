@@ -1,0 +1,58 @@
+---
+description: Use before and after calling any Atlas MCP create_* or update_* tool — pre-flight checks and post-call sanity.
+---
+
+# Design Controls — MCP Pre-flight and Post-call Checks
+
+<!-- merged from: leo/atlas-design-controls-validation + leo/design-controls-validation (generalised away from LEO product IDs) -->
+
+Atlas validates schema server-side, but you must verify these things locally first.
+
+## Pre-flight checks (before calling create_* / update_*)
+
+### 1 — ID format
+
+Every Atlas `dcId` you reference must match the 8-hex format:
+`UN-XXXXXXXX`, `DI-XXXXXXXX`, `DO-XXXXXXXX`, `VT-XXXXXXXX`, `VAL-XXXXXXXX`, `R-XXXXXXXX`.
+
+### 2 — Bidirectional traceability intent
+
+Plan every link before calling the create tool:
+
+| New artefact | Link to wire |
+|---|---|
+| DI | `HAS_DESIGN_INPUT` from parent UN |
+| DO | `IMPLEMENTS` to parent DI |
+| VT | `VERIFIES` to DI + `TESTS` to DO |
+| Risk | `MITIGATES` link from each mitigating DI |
+
+Do not call a create tool unless you plan to wire the parent links immediately after.
+
+### 3 — Risk completeness (ISO 14971)
+
+Every `create_risk` / `update_risk` must set: `title`, `hazard_description`, `hazard_category`, `hazardous_situation`, `harm_description`, `harm_severity`, `initial_severity`, `initial_probability`, `initial_detectability`, `initial_risk_score` (= severity × probability × detectability), `mitigation_plan_description`, `mitigation_control_type`, `mitigation_effectiveness`, `residual_severity`, `residual_probability`, `residual_detectability`, `residual_risk_score`, `residual_acceptability`, `residual_justification`, `monitoring_plan`, `status`.
+
+`initial_risk_score` must equal severity × probability × detectability.
+
+### 4 — Risk status enum
+
+Use one of: `Identified`, `Analyzed`, `Control Implemented`, `Residual Accepted`, `Closed`, `Inactive`, `Obsolete`. The legacy value `Mitigated` is not valid in Atlas — map to `Control Implemented`.
+
+### 5 — Severity consistency
+
+`harm_severity` text must match `initial_severity` numeric:
+negligible=1, minor=2, serious=3, critical=4, catastrophic=5.
+
+### 6 — Acceptance criteria shape
+
+`acceptance_criteria` and `protocol_steps` are **arrays of plain strings**, not dicts or nested objects.
+
+### 7 — UUID vs dcId
+
+Some tools take the internal UUID (`id`), not the dcId. Resolve with `get_design_control(...).id` before calling `update_*` or `record_*_run`.
+
+## Post-call sanity (after every create / link)
+
+1. Run `get_traceability_gaps(product_id=...)` — confirm the new artefact does not appear in `orphan_design_inputs` or `orphan_design_outputs`. If it does, the link did not stick; re-call `link_design_controls`.
+2. For VTs: confirm `record_verification_run` was called. Otherwise the VT shows as `not_executed`.
+3. For Risks: confirm the `MITIGATES` link to each mitigating DI is present.

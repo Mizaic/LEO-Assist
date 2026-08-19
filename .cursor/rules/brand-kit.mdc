@@ -1,0 +1,67 @@
+---
+alwaysApply: true
+description: Mizaic-Frontend kit — official brand tokens, voice, logo, and icons for all new UI
+---
+
+# Mizaic-Frontend kit
+
+Source: official **Mizaic Brand Guidelines** (PDF). Do not invent colours,
+fonts, or logo treatments. This is the company kit. Do not call it the
+HCCP-Frontend kit.
+
+New UI uses **MUI** plus these tokens. Do not add Tailwind, Fluent, or a
+second kit on a new file. Old kits are Wave 2 debt.
+
+## Voice
+
+Purpose: revolutionise the clinician : patient experience at the point of care.
+Voice: **clear**, **purposeful**, **passionate**.
+Strapline: The picture is clear with Mizaic.
+Proposition: For the record.
+Write **MediViewer** with capital M and V. MediViewer strapline: Your
+patient data is clear with MediViewer.
+
+## Digital colour (HEX / RGB only)
+
+| Token | HEX | Use |
+|---|---|---|
+| Electric Blue | `#0d46d6` | Primary actions, links, focus |
+| Violet | `#9338ff` | Accent |
+| Royal Blue | `#002178` | Strong headings, dark buttons |
+| Indigo | `#6600ab` | Secondary accent |
+| Midnight Navy | `#00093b` | App shell, dark grounds |
+
+Accents (layouts, not body on white unless AA): `#0071e2` `#0061ed`
+`#0096fd` `#00d0ff` `#a129ff` `#b135ff` `#d13eff` `#ff72ff`.
+Greys: `#000000` `#b5bac4` `#dce0e5` `#eaeef4` `#ffffff`.
+
+In code, `primary.main` **must** be Electric Blue. Never paste HEX in a
+component. Never use NHS Blue `#005eb8`.
+
+## Type
+
+- Headlines: **Overpass** (Light / SemiBold / Bold)
+- UI, titles, body: **Albert Sans**
+- Fallback only: **Arial** (for example PowerPoint)
+- Do not add Inter, Roboto, or Helvetica as a brand face
+
+## Logo
+
+Official artwork only. Do not stretch, recolour, or add effects.
+Clearance = width of the M. Digital minimums: 120px full logo, 80px
+wordmark + mark, 60px wordmark. Top-left first. Drop the strapline only
+when it would be illegible, then put the strapline or proposition nearby.
+On navy: white wordmark + colour brandmark. Mono only when colour is
+impossible. Do not pair the Mizaic brandmark beside the MediViewer logo.
+
+## Icons and toolkit
+
+Icons: 2D, square corners, 40° split, two official colours, part white on
+dark grounds. Toolkit (one at a time, never combine): Clear View,
+Viewfinder, Mizaic M, Data World.
+
+## Accessibility
+
+WCAG 2.1 AA. Text 4.5:1. Large text and UI 3:1. Check new pairs before
+shipping. Clinical red / amber / green is allowed when AA passes. Chrome
+and marketing stay on the Mizaic palette.

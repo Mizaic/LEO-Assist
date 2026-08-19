@@ -1,0 +1,20 @@
+---
+description: Use when reasoning about service boundaries, data flow, or network rules — the Atlas trust-zone architecture.
+---
+
+# Trust Zones
+
+<!-- merged from: atlas/04-atlas-trust-zones -->
+
+- Zone 1: Auth Proxy — authentication, licensing, request headers.
+- Zone 2: Experiences — UI only; calls FHIR API only.
+- Zone 3: Platform services — business logic.
+- Zone 4: Data — Neo4j, Redis, Blob, Service Bus.
+- Zone 5: AI — MHRA boundary; Azure OpenAI / other models.
+- Zone 6: Integration — HL7 / FHIR / Spine connectors.
+
+## Rules
+
+- Zone 2 **never** touches the database or AI directly.
+- Zone 3 is the only zone that talks to Zone 4 and Zone 5.
+- Zone 3 → Zone 5 requires `X-Service-Token`.
