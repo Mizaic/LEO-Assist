@@ -1,0 +1,46 @@
+---
+description: Use when creating, updating, or reviewing Atlas Design Outputs — ground them in real implementation evidence.
+---
+
+# Design Output Implementation Mapping
+
+<!-- merged from: leo/atlas-do-implementation-mapping + leo/atlas-do-mapper (rule component, generalised) -->
+
+## Core Rule
+
+A DO describes **implemented behaviour** in the target repo, not intended or planned behaviour.
+
+Before linking a DO to a DI, find the concrete implementation surface: source files, key functions or classes, API routes, Cypher queries, UI components, scripts, and relevant tests.
+
+## Rules
+
+- `source_reference` MUST list specific file paths separated by `;`. Every path must exist at audit time (verified via `Glob` or `Read`).
+- Provisional DOs are forbidden. If a DI is partial or not implemented, leave the `IMPLEMENTS` gap visible for QA.
+- Cluster DOs by real implementation surface, not one per DI.
+- Do not copy legacy DO wording when the codebase does not contain the same implementation.
+- Do not claim capabilities (OCR, FHIR export, autonomous actions) unless those exact surfaces are present.
+- If only part of a DI is implemented, link a DO only when the gap is not material to the DI's acceptance criteria.
+
+## Workflow
+
+1. Retrieve the target DIs and existing DO links from Atlas.
+2. Use `Glob` and `Grep` to locate the code that satisfies each DI.
+3. Verify every candidate path exists before using it.
+4. Cluster DOs by implementation surface.
+5. Draft DO fields:
+   - `title`: `<cluster> - implementation`
+   - `description`: 1–3 sentences naming key modules and what they do at runtime.
+   - `output_type`: `software` | `test` | `configuration` | `documentation`
+   - `source_reference`: verified paths joined by `;`
+   - `acceptance_criteria`: 2–5 criteria a reviewer can check against runtime behaviour or code.
+   - `safety_class`: match the linked DI.
+6. Flag DIs with no implementation as unsupported — do not draft a DO.
+7. After creation, verify with `get_design_control_stats` that DO status = `implemented`.
+
+## Update workflow
+
+1. Retrieve target DIs and existing DO links.
+2. Build a DI-to-implementation matrix before mutating Atlas.
+3. Update or create DOs with narrow claims and concrete source references.
+4. Remove `IMPLEMENTS` links that overstate coverage.
+5. Run `get_traceability_gaps` after relinking.

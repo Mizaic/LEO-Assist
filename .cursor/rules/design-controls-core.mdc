@@ -1,0 +1,53 @@
+---
+description: Use for ISO 13485 design controls — ID patterns, change classification, traceability chain, and file header citations.
+---
+
+# Design Controls
+
+<!-- merged from: atlas/06-atlas-design-controls -->
+
+> **Source of truth = Atlas Design Controls MCP** (`user-atlas-design-controls`). See `mcp-sole-source.mdc`. All reads and writes go through the MCP.
+
+Traceability chain: `UN → DI → DO (code) → VT → VAL`.
+
+## Document ID Patterns
+
+| Type | Pattern | Example |
+|---|---|---|
+| User Need | `UN-ATLAS-XXX` | `UN-ATLAS-001` |
+| Design Input | `DI-ATLAS-XXX` | `DI-ATLAS-042` |
+| Design Output | `DO-ATLAS-XXX-YYY` | `DO-ATLAS-042-001` |
+| Risk | `R-ATLAS-XXX` | `R-ATLAS-007` |
+| Hazard | `H-ATLAS-XXX` | `H-ATLAS-003` |
+| Verification Test | `VT-ATLAS-XXX` | `VT-ATLAS-003` |
+| Validation Test | `VAL-ATLAS-XXX` | `VAL-ATLAS-001` |
+
+- IDs are stable — never silently delete or renumber.
+- Never reuse a retired ID; mark obsolete IDs as `[OBSOLETE]`.
+- All DI requirements use "The system shall…" wording.
+
+## Change Classification
+
+| Class | Description | Action required |
+|---|---|---|
+| Cosmetic | Whitespace, comments, docs | None |
+| A | Internal refactor, no behaviour change | Update DO |
+| B | New or changed behaviour, non-safety-critical | Update DI + DO + VT |
+| C | Safety-critical change | Full DI → DO → Risk → VT → VAL cycle + CSO review |
+
+## Required on New Work
+
+- Read design controls **before** making any Class B/C change.
+- Add DI / DO / VT references in file headers.
+- Add file headers for Safety Class B/C:
+  ```
+  # UN: UN-ATLAS-XXX | DI: DI-ATLAS-XXX | DO: DO-ATLAS-XXX | Safety Class: B
+  ```
+- Update DO status to `implemented` then `verified` via `update_design_output`.
+- Read the current traceability matrix with `get_traceability_matrix`; check gaps with `get_traceability_gaps`.
+
+## Audit Codebase Before Acting
+
+1. Search the codebase to understand existing patterns and reuse them.
+2. Minimise the change surface — touch only what is necessary.
+3. Duplicate code is a failure; extract and reuse.

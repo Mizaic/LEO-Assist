@@ -1,0 +1,38 @@
+---
+alwaysApply: true
+description: Atlas is the company operating system — owned objects, leadership OKRs, agency law
+---
+
+# Atlas Operating System
+
+Atlas is the company operating system. It is **not** a medical device.
+Tenant products managed in Atlas may be medical devices.
+
+Leadership sets policy and OKRs. Atlas owns every **person**, **team**,
+**process**, **report**, **product**, **event**, **location**, and **object**.
+Atlas uses people to hit those outcomes.
+
+## Agency law
+
+The person must still believe they are using Atlas as the tool for
+**their own OKRs**.
+
+- Home is their next job on an object they own. Never a global list.
+- Policy shows as guardrails, not a command dashboard.
+- OKRs show as their outcomes, even when leadership set them.
+- If a screen, agent, or email makes the person a ticket in someone
+  else's plan, it is wrong.
+
+## What agents must do
+
+1. Put the person on their next owned job. Use the `next-owned-job` skill.
+2. Finish the job **on the product**, not on a dump of every record.
+3. Stay on the thread. Do not invent a second org chart or process.
+4. Write design controls only on the product the overlay names.
+5. New work follows this pack. Old files wait for a Wave 2 change.
+
+## Wave 1 / Wave 2
+
+- **Wave 1** — every new file follows this pack. A breach is a nonconformance.
+- **Wave 2** — refactor old surfaces one unit of work at a time. Do not
+  rewrite a repo in one change.

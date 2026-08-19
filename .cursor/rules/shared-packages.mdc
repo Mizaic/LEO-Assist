@@ -1,0 +1,19 @@
+---
+description: Use before creating a local helper, hook, or component — check shared packages first.
+---
+
+# Shared Packages
+
+<!-- merged from: atlas/18-atlas-shared-packages -->
+
+- Use shared packages before creating local equivalents.
+- Preferred packages:
+  - `@atlas/shared-types`
+  - `@atlas/hooks`
+  - `@atlas/api-client`
+  - `@atlas/ui-components`
+  - `@atlas/service-registry-client` — auth-proxy registration + retry / monitor for Next experiences
+- Do not copy/paste common providers, shells, tables, badges, or API proxy helpers into experiences.
+- Add new cross-experience capability to `packages/` instead of duplicating per app.
+- Experience-specific code is allowed only for domain-specific behaviour.
+- Use `workspace:*` dependencies for internal package references.

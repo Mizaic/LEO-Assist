@@ -1,0 +1,66 @@
+---
+alwaysApply: true
+---
+
+# Security
+
+<!-- merged from: atlas/08-atlas-security + leo/llm-security -->
+
+## Input Validation
+
+- Validate ALL external inputs at service boundaries (route handlers, server actions, env vars, file uploads).
+- Use **Zod** (TypeScript) or **Pydantic v2** (Python) — never trust raw request data.
+- Parameterised queries only for Neo4j and all databases — never string-interpolate user data into queries.
+
+## Data and Tenant Isolation
+
+- Every data query filters by `organization_id`.
+- Legitimate Need enforced in the FHIR API (Zone 3).
+- Never store patient data in `localStorage` or `sessionStorage`.
+- Cross-tenant access is a critical hazard — treat as a P0 incident.
+
+## Secrets Management
+
+- Secrets come from **Azure Key Vault** only — no `.env` secrets, no secrets in the repo.
+- Load from `process.env` / Key Vault at startup; validate with Zod / Pydantic; fail fast if missing.
+- Never log or expose secret values.
+
+## Authentication and Authorisation
+
+- Protect every route with auth middleware (Azure AD / MS Entra ID).
+- Server-side session check on every server action.
+- RBAC: check roles before sensitive operations; use `hasRole()` / `requireRole()` helpers.
+- Never trust client-supplied role or scope claims without server-side verification.
+
+## Audit Logging
+
+- Audit every data access and change: include `userId`, `action`, `resourceType`, `resourceId`, `timestamp`, `outcome`.
+- Audit records must be **append-only** — never update or delete.
+- Minimum retention: clinical records 25 years, auth logs 7 years.
+- No PII in logs, metrics, or client analytics.
+
+## LLM / AI Security
+
+- Prepend an injection guard to all system prompts (e.g. `INJECTION_GUARD` constant).
+- Sanitise all user and clinical text before embedding in prompts — use `sanitise_for_prompt()` or equivalent.
+- Hard iteration cap on agentic loops; enforce cost guardrail before starting each run.
+- Sanitise and validate all tool results before further processing.
+- AI outputs must show confidence, allow override, and log Provenance.
+- `fail_verdict` in autonomous mode must be conservative — never silently suppress clinical entities.
+
+### LLM checklist (before merging a new call site)
+
+- [ ] Injection guard prepended to system prompt.
+- [ ] All clinical / user text through `sanitise_for_prompt()`.
+- [ ] Response length cap in parser; valid verdict set is a `frozenset`.
+- [ ] `max_tokens` set — never default / unlimited.
+- [ ] Cost guardrail checked; hard iteration cap enforced.
+- [ ] All tool results sanitised before LLM re-submission.
+- [ ] Sub-agent system prompts carry injection guard.
+- [ ] Tool calls logged in audit trail.
+- [ ] Unit test covers fail-verdict path and sanitisation.
+
+## Dev Mode
+
+- Must be off by default.
+- Enable only with explicit environment flags.

@@ -1,0 +1,115 @@
+---
+description: Use for naming conventions, TypeScript config, Python style, and import order across all Atlas services and experiences.
+---
+
+# Code Patterns
+
+<!-- merged from: atlas/09-atlas-code-patterns -->
+
+## Naming
+
+| Thing | Convention |
+|---|---|
+| Directories | `kebab-case` |
+| Components / Types / Interfaces | `PascalCase` |
+| Functions / variables | `camelCase` |
+| Constants | `UPPER_SNAKE_CASE` |
+
+## TypeScript
+
+Required `tsconfig` options:
+
+```json
+{
+  "strict": true,
+  "noUncheckedIndexedAccess": true,
+  "noImplicitReturns": true,
+  "noFallthroughCasesInSwitch": true,
+  "exactOptionalPropertyTypes": true,
+  "noUnusedLocals": true,
+  "noUnusedParameters": true
+}
+```
+
+- Never use `any` — use `unknown` and narrow, or define a proper type.
+- `interface` for object shapes; `type` for unions, intersections, and aliases.
+- Explicit return types on all exported functions.
+- Zod schema at every external boundary; derive the TypeScript type from the schema.
+- Use React Query key factories.
+
+## TypeScript Error Handling
+
+```typescript
+// BAD — silent failure
+try { await fetchData(); } catch (_e) {}
+
+// GOOD — explicit, typed error
+try {
+  await fetchData();
+} catch (err) {
+  logger.error('fetchData failed', { error: err });
+  throw new DataFetchError('Unable to retrieve data', { cause: err });
+}
+```
+
+## MUI Styling
+
+- `sx` prop for one-off styles — never `style={{}}`.
+- `styled()` for reusable styled components.
+- Never `makeStyles`, raw CSS-in-JS, or Tailwind classes alongside MUI.
+- Reference theme tokens in `sx`, not hardcoded values:
+
+```tsx
+// BAD
+<Box sx={{ color: '#1F3A8A', padding: '24px' }} />
+
+// GOOD
+<Box sx={{ color: 'primary.main', p: 3 }} />
+```
+
+## React Hook Form with MUI
+
+Always use `Controller` to wrap MUI inputs — never uncontrolled refs:
+
+```tsx
+<Controller
+  name="patientName"
+  control={control}
+  render={({ field, fieldState }) => (
+    <TextField
+      {...field}
+      label="Patient name"
+      error={!!fieldState.error}
+      helperText={fieldState.error?.message}
+    />
+  )}
+/>
+```
+
+## Next.js
+
+- Default to Server Components — add `"use client"` only when you need browser APIs, event handlers, or React hooks.
+- Use `import 'server-only'` at the top of server-only modules.
+- Use parallel fetches: `await Promise.all([...])` instead of sequential awaits.
+- No business logic inside page or component files — extract to services or hooks.
+
+## Import Order (enforced by ESLint)
+
+1. Node built-ins
+2. External packages
+3. Internal aliases (`@/...`)
+4. Relative imports
+5. Type-only imports (`import type`)
+
+## Python
+
+- Python 3.11+; use `list[T]`, `dict[K, V]` (not `List` / `Dict` from `typing`).
+- Formatter: **Black** (line length 88) + **Ruff**; type checker: **mypy** strict in CI, **Pyright** locally.
+- Complete type hints on all functions, including `-> None`.
+- Never use `Any`; use `typing.Protocol` for structural subtyping.
+- Modern union syntax: `X | None` not `Optional[X]`.
+- Pydantic v2 syntax for all external / API data.
+- Use timezone-aware UTC (`datetime.now(timezone.utc)`).
+- Google-style docstrings on all public functions / classes.
+- Constructor injection — never instantiate dependencies inside a class.
+- Never raise bare `Exception`; always use a typed exception with a meaningful message.

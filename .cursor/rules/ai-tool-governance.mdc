@@ -1,0 +1,15 @@
+---
+description: Use when designing or reviewing any AI agent flow, tool-use loop, or automated decision — governance and HITL requirements.
+---
+
+# AI Tool Governance
+
+<!-- merged from: atlas/26-ai-tool-governance -->
+
+- Every agentic loop must have a **hard iteration cap**. Never use an unbounded loop.
+- Tools may only be called from a fixed, approved registry. No dynamic tool dispatch.
+- Tool results must be validated and sanitised before further processing or re-submission to an LLM.
+- All tool calls are recorded in the audit trail: `tool_name`, `tool_input`, `tool_result`.
+- **HITL is mandatory** at design-control approval, risk acceptance, DMR finalise, release gate, and any Class C change.
+- AI drafts and proposes — a human approves. No silent writes to regulated records.
+- Enforce cost guardrails per run; halt on budget breach and log the current spend vs budget.

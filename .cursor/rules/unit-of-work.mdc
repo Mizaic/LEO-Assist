@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+
+# Unit of Work
+
+<!-- merged from: atlas/19-iso13485-unit-of-work-granularity + leo/atomic-sprint-planning -->
+
+## Core rule
+
+One change = one requirement. Each change must be traceable and testable. If it is not traceable or testable, it is not done.
+
+## Planning discipline
+
+Break work into slices that are:
+
+- **Atomic** — independently deployable; no half-finished features.
+- **Small** — each slice is understandable without needing to read five other PRs.
+- **Traceable** — linked to a DI or DO in the Atlas design controls MCP.
+- **Testable** — has an associated VT or at least a unit test that can fail.
+
+Good size for a slice: something a developer can finish in a few hours and a reviewer can understand in one sitting.
+
+## What "done" means
+
+A change is done when:
+
+1. The code is written and passes CI.
+2. The DI / DO is updated in the Atlas MCP (`status: implemented` → `verified`).
+3. At least one VT run is recorded.
+4. The PR is linked to the DO via `link_work_item`.
+
+If any of these are missing, the slice is not done.
