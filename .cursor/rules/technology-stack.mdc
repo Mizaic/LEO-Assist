@@ -1,0 +1,32 @@
+---
+description: Use when making technology choices or adding dependencies — the non-negotiable Atlas stack by zone.
+---
+
+# Atlas Technology Stack
+
+<!-- merged from: atlas/01-atlas-technology-stack -->
+
+Do not change the stack without an explicit architectural decision record.
+
+## Zones
+
+| Zone | Runtime | Key libraries |
+|---|---|---|
+| Zone 2 — Experiences | Next.js 16 App Router, React 19, TypeScript | MUI v5+, React Query, Zustand, RHF + Zod, Playwright |
+| Zone 3 — Platform | Node 20, Fastify, Neo4j driver, Zod, Vitest | |
+| Zone 5 — AI | Python 3.11+, FastAPI, Pydantic v2, pytest | Azure OpenAI |
+| Zone 4 — Data | Neo4j, Blob, Redis, Service Bus | |
+| Zone 1 — Auth Proxy | Node 20, Fastify, MS Entra ID, Redis sessions | |
+
+## AI model rule
+
+- Runtime model and provider selection must come from Neo4j `(:AIModel)` and `(:PromptTemplate)` nodes.
+- Do not hardcode model names, parameters, or provider-specific defaults in application code.
+- Voice uses the Realtime API (WebSocket / WebRTC).
+
+## Hard constraints
+
+- TypeScript strict mode everywhere.
+- Python type hints required on all functions.
+- No stack swaps: no Fluent UI for new code, no Chakra / Redux / Jest / Prisma / Postgres / Auth0 / GraphQL.
+- MUI is the UI library for all new Zone 2 code.

@@ -1,0 +1,64 @@
+---
+description: Use when calling the Atlas Design Controls MCP — when to call which tool, authentication, and tool reference.
+---
+
+# Atlas MCP Design Controls
+
+<!-- merged from: atlas/30-atlas-mcp-design-controls + leo/atlas-control-author (rule entry point) -->
+
+The `user-atlas-design-controls` MCP server is the sole source of truth for design controls. See `mcp-sole-source.mdc` for the binding lock-in.
+
+## Authentication
+
+Cursor on macOS does not load `~/.zprofile`, so MCP bearer tokens cannot rely on shell `export`.
+
+```bash
+python3 tools/atlas-mcp-auth/login.py login
+```
+
+Restart Cursor after login. Refresh expired tokens with:
+
+```bash
+python3 tools/atlas-mcp-auth/login.py refresh
+```
+
+## When to use which tool
+
+| Trigger | Tool to call |
+|---|---|
+| Before modifying a Class B/C DI | `get_change_impact` |
+| Before implementing any DC | `get_traceability_gaps` |
+| After implementing a DO | `link_work_item` |
+| After automated tests pass | `ingest_ci_evidence` |
+| Reading a specific DC | `get_design_control` or `atlas://design-controls/{type}/{id}` |
+| Creating / updating an Initiative | `create_initiative`, `update_initiative` |
+| Creating / updating a Release | `create_release`, `update_release` |
+| Recording a Release gate decision | `record_release_gate_decision` |
+| Creating / updating a Design Review | `create_design_review`, `update_design_review` |
+| Recording a DR decision | `record_design_review_decision` |
+
+## Canonical graph directions
+
+| Field | Relationship | Direction |
+|---|---|---|
+| `userNeeds.linkedToDI` | `HAS_DESIGN_INPUT` | UN → DI |
+| `designInputs.linkedToDO` | `IMPLEMENTS` | DO → DI (incoming to DI) |
+| `designInputs.linkedToVT` | `VERIFIES` | VT → DI (incoming to DI) |
+| `designOutputs.linkedToVT` | `TESTS` | VT → DO (incoming to DO) |
+| `validationTests.linkedToUN` | `VALIDATES` | VAL → UN |
+| `risks.linkedToDI` | `MITIGATES` | DI → Risk (incoming to Risk) |
+
+## Search before create
+
+For every artefact type, call `search_design_controls(query=..., dc_type=...)` first. Inspect near-matches with `get_design_control`. Prefer update over create.
+
+## Write tool permissions
+
+Write tools require `qa-ra-lead`, `developer`, or `admin` role. If you get a permission error, contact your QMS admin.
+
+## Local dev (no token needed)
+
+```bash
+cd services/mcp-design-controls
+DEBUG=true QMS_GRAPH_API_URL=http://localhost:8032 uvicorn app.main:app --port 8040 --reload
+```

@@ -1,0 +1,37 @@
+---
+alwaysApply: true
+description: Authoritative rule precedence when two rules conflict
+---
+
+# Rule Precedence
+
+This pack is the source of truth when rules conflict. Choose the
+**stricter** rule, in this order:
+
+1. Patient safety and tenant isolation
+2. Regulatory compliance and auditability
+3. Security and secrets handling
+4. Architecture constraints (Neo4j, async jobs, workflow graph execution)
+5. Coding standards and style
+
+If a rule is broad and mixed-concern, split it rather than extend it.
+
+## Binding methods
+
+- Frontend UI testing uses Playwright journeys. Do not default to Vitest
+  for UI journeys.
+- Implementation is test-driven (`tdd.mdc`): red, then green, then code.
+- Platform validation (`platform-validation.mdc`): the agent verifies,
+  then validates with Playwright and screenshots. Humans check the pack.
+- AI model and provider come from Neo4j runtime configuration, not
+  hardcoded names.
+- Workflow logic stays data-driven from Neo4j via a generic executor.
+
+## UX
+
+Safety-critical UX wins over expressive-surface rules. Accessibility is
+non-negotiable on every surface. Beauty must never weaken safety,
+security, audit, or accessibility.
+
+The agency law in `atlas-operating-system.mdc` wins over any screen that
+would dump a person onto a global list.

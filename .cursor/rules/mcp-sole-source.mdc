@@ -1,0 +1,46 @@
+---
+description: Use when any design control artefact is involved — the MCP is the only store; no local YAML.
+---
+
+# Design Controls — MCP is the Sole Source of Truth
+
+<!-- merged from: atlas/41-atlas-design-controls-mcp-sole-source (authority) + leo/atlas-design-controls-first -->
+
+The `user-atlas-design-controls` MCP server is the **only** source of truth for every design control artefact. There is no local `design-controls/` YAML or Markdown store in any Atlas-family repo. Do not create one.
+
+## Scope
+
+This applies to: **UN**, **DI**, **DO**, **Risk**, **FMEA**, **VT**, **VAL**, **SAD**, **CR**, **CAPA**, **Provenance**, **Product**, **DDP**, **DMR refs**, **Initiative**, **Release**, **DesignReview**.
+
+## Hard rules
+
+- **Reads** MUST go through: `get_*`, `list_*`, `search_design_controls`, `get_traceability_*`, `get_design_control_stats`.
+- **Writes** MUST go through: `create_*`, `update_*`, `link_design_controls`, `retire_design_control`, `record_*_run`, `upload_validation_evidence`, `ingest_ci_evidence`.
+- **Never** bypass the MCP by writing directly to Neo4j or QMS Graph API HTTP endpoints from agent flows.
+- **Never** create a parallel local store (YAML, JSON, Markdown, spreadsheet) of design control content.
+- **Never** invent friendly IDs that conflict with retired IDs. Call `search_design_controls` first.
+- **PRs** that introduce design control content outside the MCP MUST be rejected in review.
+
+## Workflow for Class B/C changes
+
+Before writing code:
+
+1. `get_traceability_gaps` for the affected product.
+2. `get_design_control` on every artefact you intend to touch.
+3. Create missing artefacts via MCP first — never let implementation code lead the artefact.
+
+After implementing:
+
+4. `link_work_item` to attach the PR/issue to affected DOs.
+5. `ingest_ci_evidence` after CI passes.
+6. For Class C: ensure CSO review queue picks up the change.
+
+## Hard stops
+
+- Do not edit, restore, or recreate any directory named `design-controls/`, `dc/`, or equivalent.
+- Do not re-introduce CI gates that validate local YAML DC files.
+- Do not export DC content from the MCP into the repo for "convenience".
+
+## Precedence
+
+This rule is binding. It takes precedence over any older guidance that named local YAML files as the source of truth.

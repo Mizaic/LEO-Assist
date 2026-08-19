@@ -1,0 +1,14 @@
+---
+description: Use when setting up a new service, package, or experience — repo structure, ports, and documentation standards.
+---
+
+# Repository Standards
+
+<!-- merged from: atlas/13-atlas-repository-standards -->
+
+- Keep the standard Node / Python service layout (see `core/technology-stack.mdc` per zone).
+- Use sequential port ranges per zone (see `27-local-dev-ports.mdc` in Atlas for local dev port map).
+- Each repo needs a clear `README.md` with purpose, setup steps, and design-control links.
+- Use shared packages in `packages/` instead of duplicating code across services or experiences.
+- Docker images use multi-stage builds and must be deployable to Azure Container Apps.
+- Keep frontend / API / worker separation explicit in both repo structure and deployment boundaries.

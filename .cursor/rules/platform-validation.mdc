@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+description: Verify then validate — Playwright journeys, screenshots, human check
+---
+
+# Platform verification and validation
+
+Atlas is **not** a medical device. Platform User Needs are Class A QMS
+tooling. Do not invent a clinic sitting or a second evidence store.
+
+## Order of work
+
+1. **You verify** — red/green Verification Tests (Vitest, pytest, and
+   Playwright that prove the Design Input). Record the VT run.
+2. **You validate** — a Playwright journey walks the User Need, asserts
+   each acceptance criterion, and captures a named screenshot at each
+   step. Record the VAL run and attach the screenshots.
+3. **Humans check your work** — they read the test rules and the
+   screenshot evidence. They approve or reject the run. You do not
+   self-approve.
+
+## Playwright is the Validation Test
+
+For Atlas platform work, the Validation Test protocol **is** the
+Playwright journey. The screenshots **are** the evidence.
+
+Name screenshots by need, test, and step
+(`UN-ATLAS-V3-006__VAL-V3-ETHAN__02-author-in-place.png`).
+Capture on purpose. Failure-only screenshots are not enough.
+
+## What humans check
+
+- Do the assertions match the User Need acceptance criteria?
+- Do the screenshots show the job finished on the product, not a
+  global list?
+- If either fails, raise a nonconformance. Do not silently retest.
+
+## Hard stops
+
+- Do not treat a passing unit suite as validation.
+- Do not record a VAL run with no screenshots.
+- Do not tell the user a User Need is delivered until they have
+  checked the pack.
+- Tenant medical-device products may still need a human sitting.
