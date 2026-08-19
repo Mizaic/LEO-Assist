@@ -28,7 +28,7 @@ import json
 import logging
 import os
 from dataclasses import asdict, dataclass, field
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Literal, NoReturn, Optional
 
 from fastapi import Header, HTTPException
 
@@ -455,6 +455,16 @@ def expand_preview_scope(client: PatientGraphClient, org_id: str) -> list[str]:
     return _expand_gp_scope(client, org_id)
 
 
+def _unauthorized(detail: str, reason: str, **ctx: Any) -> NoReturn:
+    """Raise 401 and log a reason code with no session id or email."""
+    extra = " ".join(f"{key}={value}" for key, value in ctx.items())
+    if extra:
+        logger.warning("auth.401 reason=%s %s", reason, extra)
+    else:
+        logger.warning("auth.401 reason=%s", reason)
+    raise HTTPException(status_code=401, detail=detail)
+
+
 def get_caller_scope(
     leo_session: Optional[str] = Header(default=None, alias="X-Leo-Session"),
 ) -> CallerScope:
@@ -485,16 +495,27 @@ def get_caller_scope(
             primary_org_id=None,
         )
     if not leo_session:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    from libs.redis_client.session import load_session
+        _unauthorized("Not authenticated", "missing_session_header")
+    from libs.redis_client.session import SESSION_NAMESPACE, lookup_session
 
-    data = load_session(leo_session) or {}
-    caller_email = (data.get("email") or "").strip().lower()
+    data, lookup_reason = lookup_session(leo_session)
+    caller_email = ((data or {}).get("email") or "").strip().lower()
     if not caller_email:
-        raise HTTPException(status_code=401, detail="Session has no user email")
+        reason = (
+            "session_missing_email" if lookup_reason == "ok" else lookup_reason
+        )
+        _unauthorized(
+            "Session has no user email",
+            reason,
+            namespace=SESSION_NAMESPACE,
+        )
     client = PatientGraphClient()
     try:
         return resolve_caller_scope(client, caller_email)
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            logger.warning("auth.401 reason=unknown_user")
+        raise
     finally:
         client.close()
 

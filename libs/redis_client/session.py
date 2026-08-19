@@ -92,18 +92,30 @@ def _get_client():
     return _client
 
 
-def load_session(session_id: str) -> dict[str, Any] | None:
-    """Return session data dict, or None if not found / Redis unavailable."""
-    r = _get_client()
-    if r is None:
-        return None
+def lookup_session(session_id: str) -> tuple[dict[str, Any] | None, str]:
+    """Return session data and a machine-readable miss reason.
+
+    Reasons: ok, redis_url_unset, redis_unavailable, session_not_found,
+    session_load_error. Never include the session id in logs.
+    """
+    if not (os.getenv("REDIS_URL") or "").strip():
+        return None, "redis_url_unset"
+    client = _get_client()
+    if client is None:
+        return None, "redis_unavailable"
     try:
         for key in _session_keys(session_id):
-            raw = r.get(key)
+            raw = client.get(key)
             if not raw:
                 continue
-            return json.loads(raw)
-        return None
+            return json.loads(raw), "ok"
+        return None, "session_not_found"
     except Exception as exc:
         logger.warning("Session load error: %s", exc)
-        return None
+        return None, "session_load_error"
+
+
+def load_session(session_id: str) -> dict[str, Any] | None:
+    """Return session data dict, or None if not found / Redis unavailable."""
+    data, _reason = lookup_session(session_id)
+    return data
