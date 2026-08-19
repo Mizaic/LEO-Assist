@@ -99,6 +99,18 @@ describe("AppShell — Tenant Switcher", () => {
     expect(select).toBeInTheDocument();
   });
 
+  it("renders when an organisation has a null name", () => {
+    mockOrgCtx = {
+      ...mockOrgCtx,
+      organizations: [
+        { id: "org-null", name: null, shortName: null, odsCode: "X001" },
+        { id: "org-1", name: "Practice A", odsCode: "A001" },
+      ],
+    };
+    expect(() => renderShell()).not.toThrow();
+    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+  });
+
   it("does not show tenant switcher when no orgs", () => {
     mockOrgCtx = { ...mockOrgCtx, organizations: [], isPlatformAdmin: false };
     renderShell();
