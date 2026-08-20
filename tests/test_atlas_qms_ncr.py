@@ -9,11 +9,13 @@ import pytest
 
 from libs.atlas_qms.ncr_client import facade_headers, list_product_ncrs, qms_base_url
 from libs.atlas_qms.ncr_shape import (
+    LEO_CDS_PRIOR_PRODUCT_ID,
     LEO_CDS_PRODUCT_ID,
     NcrShapeError,
     build_create_description,
     compact_ncr,
     filter_ncrs,
+    is_leo_ncr_product,
     is_open_ncr,
     looks_like_ncr_id,
     validate_ncr_create,
@@ -166,6 +168,67 @@ def test_list_product_ncrs_finds_title_past_first_eight(
     monkeypatch.setattr("libs.atlas_qms.ncr_client._request", fake_request)
     found = list_product_ncrs("deny cue")
     assert [row["id"] for row in found] == ["target-1"]
+
+
+def test_list_product_ncrs_finds_title_on_prior_leo_product(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    current = {
+        "id": "cur-1",
+        "title": "Missed code",
+        "description": "",
+        "status": "identified",
+        "product_id": LEO_CDS_PRODUCT_ID,
+    }
+    prior = {
+        "id": "prior-debug-1",
+        "title": "Debugging extraction mismatch",
+        "description": "Extraction and coding does not match letter",
+        "status": "identified",
+        "product_id": LEO_CDS_PRIOR_PRODUCT_ID,
+    }
+    other = {
+        "id": "other-1",
+        "title": "Debugging eForms",
+        "description": "",
+        "status": "identified",
+        "product_id": "PROD-OTHER-DEVICE",
+    }
+
+    def fake_request(method: str, path: str, body: dict | None = None) -> dict:
+        assert method == "GET"
+        if LEO_CDS_PRIOR_PRODUCT_ID in path:
+            return {"items": [prior, other]}
+        return {"items": [current]}
+
+    monkeypatch.setattr("libs.atlas_qms.ncr_client._request", fake_request)
+    found = list_product_ncrs("debug")
+    assert [row["id"] for row in found] == ["prior-debug-1"]
+    assert is_leo_ncr_product(LEO_CDS_PRIOR_PRODUCT_ID)
+    assert not is_leo_ncr_product("PROD-OTHER-DEVICE")
+
+
+def test_get_product_ncr_allows_prior_leo_product(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from libs.atlas_qms.ncr_client import get_product_ncr
+
+    prior = {
+        "id": "prior-debug-1",
+        "title": "Debugging extraction mismatch",
+        "description": "",
+        "status": "identified",
+        "product_id": LEO_CDS_PRIOR_PRODUCT_ID,
+    }
+
+    def fake_request(method: str, path: str, body: dict | None = None) -> dict:
+        assert method == "GET"
+        assert path.endswith("/prior-debug-1")
+        return prior
+
+    monkeypatch.setattr("libs.atlas_qms.ncr_client._request", fake_request)
+    row = get_product_ncr("prior-debug-1")
+    assert row["id"] == "prior-debug-1"
 
 
 def test_list_product_ncrs_exact_id_uses_get(
