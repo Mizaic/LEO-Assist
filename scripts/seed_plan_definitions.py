@@ -1034,7 +1034,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-ref-referral-reason",
                 "title": "Extract Referral Reason",
-                "_sequence": 8,
+                "_sequence": 10,
                 "_subgraphId": "referral_reason",
                 "_durableEventType": "referral_reason_requested",
                 "relatedAction": [
@@ -1051,7 +1051,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-ref-compliance",
                 "title": "Compliance Check",
-                "_sequence": 9,
+                "_sequence": 11,
                 "_subgraphId": "compliance",
                 "_durableEventType": "compliance_requested",
                 "relatedAction": [
@@ -1071,7 +1071,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-ref-completeness",
                 "title": "Assess Completeness",
-                "_sequence": 10,
+                "_sequence": 12,
                 "_subgraphId": "quality_check",
                 "_durableEventType": "completeness_requested",
                 "relatedAction": [
@@ -1088,7 +1088,7 @@ PLAN_DEFINITIONS = [
             {
                 "id": "act-ref-sbar",
                 "title": "Generate SBAR",
-                "_sequence": 11,
+                "_sequence": 13,
                 "_subgraphId": "sbar",
                 "_durableEventType": "sbar_requested",
                 "_completionQueue": "referral-assessments-output",

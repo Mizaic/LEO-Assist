@@ -83,6 +83,30 @@ describe("stageStory", () => {
     expect(story.items?.[0].code).toBe("394872000");
   });
 
+  it("shows Coded X of Y facts even when entities carry __relations from a prior linking step", () => {
+    const story = stageStory(
+      "act-ref-terminology",
+      {
+        entities: [
+          {
+            text: "dyspepsia",
+            coding: { snomed_concept_id: "162031003" },
+            __relations: [{ type: "finding_site", target_text: "stomach" }],
+          },
+          {
+            text: "weight loss",
+            __relations: [{ type: "associated_finding", target_text: "cancer" }],
+          },
+        ],
+      },
+      {},
+    );
+    expect(story.kind).toBe("codes");
+    expect(story.headline).toBe("Coded 1 of 2 facts");
+    expect(story.items?.length).toBe(1);
+    expect(story.items?.[0].text).toBe("dyspepsia");
+  });
+
   it("lists only inferred body sites", () => {
     const story = stageStory("act-ref-snomed-enrich", {
       entities: [
