@@ -1348,10 +1348,13 @@ def fix_situation_present_assertions(entities: list[dict[str, Any]]) -> None:
 
 
 def apply_false_absent_assertion_guards(entities: list[dict[str, Any]]) -> None:
-    """Run lifestyle-status, PMH, and situation-present guards in shared order."""
+    """Run lifestyle-status, PMH, situation-present, and contrast guards."""
+    from libs.ner.contrast_negation_guard import fix_contrast_positive_false_absent
+
     fix_lifestyle_status_assertions(entities)
     fix_pmh_list_false_absent(entities)
     fix_situation_present_assertions(entities)
+    fix_contrast_positive_false_absent(entities)
 
 
 # ── Layer 8: Situation Lookup Normalisation ──

@@ -1,0 +1,7 @@
+Section A: Gynaecological Cancer type suspected
+(Please put a X in appropriate boxes)
+Ovary [ ] Cervix [ ] Endometrium [ ] Vagina [ ] Vulva [ ]
+Please take a Ca125 by the time of referral for anyone suspected of Ovarian cancer.
+Section B: Signs/symptoms for 14-day rule criteria
+B1. Lesion suspicious of cancer of cervix | Yes [ ] No [ ]
+B2. Lesion on clinical examination of the vulva | Yes [ ] No [ ]

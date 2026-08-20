@@ -91,6 +91,7 @@ PATIENT_SCHEMA_CONSTRAINTS = [
 from libs.cypher.extraction_scenario_queries import (
     EXTRACTION_SCENARIO_CONSTRAINTS,
 )
+from libs.cypher.form_learning_queries import FORM_LEARNING_CONSTRAINTS
 
 # Configurable NER guard rules (P1-A config infrastructure -- DO-F20DE29D)
 NER_GUARD_RULE_CONSTRAINTS: list[str] = [
@@ -126,4 +127,5 @@ CODING_SCHEMA_CONSTRAINTS: list[str] = [
     "CREATE INDEX uncoded_phrase_status IF NOT EXISTS FOR (u:UncodedPhrase) ON (u.status)",
     *EXTRACTION_SCENARIO_CONSTRAINTS,
     *NER_GUARD_RULE_CONSTRAINTS,
+    *FORM_LEARNING_CONSTRAINTS,
 ]

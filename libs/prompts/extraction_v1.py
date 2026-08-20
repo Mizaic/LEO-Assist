@@ -542,6 +542,8 @@ Do NOT mark absent for these common UK referral patterns:
 - "background of X" / "history of X" -- X is present (or historical), never absent
 - "former smoker" / "ex-smoker" / "quit N years ago" -- Ex-smoker is present
 - "has not responded to ... (drug)" -- the drug is present (treatment failure)
+- "denies X, but does have Y, Z" -- X is absent; Y and Z are present.
+  The deny cue stops at the contrast (but / however / although + has/have).
 
 Post-processing may override assertion; still emit the best-supported value.
 

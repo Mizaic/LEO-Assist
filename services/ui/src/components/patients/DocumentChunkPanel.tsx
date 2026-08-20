@@ -3,7 +3,9 @@
  *
  * Atlas trace:
  *   DO: DO-5D3EA371
+ *   DO: DO-158BE606
  *   DI: DI-357A7468
+ *   DI: DI-FE423B8D
  */
 "use client";
 
@@ -33,12 +35,9 @@ import {
   startDocumentRun,
   type DocumentRunResponse,
 } from "@/lib/documentRunApi";
-import {
-  formatTokens,
-  formatUsd,
-  hasLlmUsage,
-} from "@/lib/formatLlmSpend";
-import { LeoSbarHost } from "@/components/sbar-final/LeoSbarHost";
+import RunSheetDialog, {
+  type SingleRunSheet,
+} from "@/app/admin/validation-lab/RunSheetDialog";
 
 interface Props {
   patientId: string;
@@ -57,96 +56,35 @@ function chunkRowKey(chunk: PatientFinderChunk): string {
   return `${chunk.ordinal}:${chunk.id}`;
 }
 
-function RunCostSummary({ run }: { run: DocumentRunResponse }) {
-  const usage = run.llm_usage;
-  if (run.status !== "completed") return null;
-  if (!hasLlmUsage(usage)) {
-    return (
-      <Typography variant="body2" color="text.secondary" data-testid="document-run-cost-na">
-        Cost n/a -- no LLM telemetry on this run yet.
-      </Typography>
-    );
+export function sheetFromDocumentRun(
+  title: string,
+  run: DocumentRunResponse | null,
+): SingleRunSheet {
+  if (!run) {
+    return {
+      mode: "single",
+      caseId: "",
+      title,
+      status: "starting",
+      phases: [],
+      terminal: false,
+    };
   }
-  const cost = Number(usage?.cost_usd || 0);
-  const tokens = Number(usage?.total_tokens || 0);
-  const calls = Number(usage?.llm_calls || 0);
-  return (
-    <Stack direction="row" spacing={2} data-testid="document-run-cost">
-      <Typography variant="body2">
-        Cost: <strong>{formatUsd(cost)}</strong>
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {formatTokens(tokens)} tokens - {calls} call{calls === 1 ? "" : "s"}
-      </Typography>
-    </Stack>
-  );
-}
-
-function RunProgressDialog({
-  open,
-  run,
-  onClose,
-}: {
-  open: boolean;
-  run: DocumentRunResponse | null;
-  onClose: () => void;
-}) {
-  const assessmentId = run?.assessment_id?.trim() || "";
-  const failed = run?.status === "failed";
-  const done = run?.status === "completed";
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Pipeline run</DialogTitle>
-      <DialogContent>
-        {!run ? (
-          <Stack alignItems="center" sx={{ py: 3 }}>
-            <CircularProgress size={28} />
-          </Stack>
-        ) : (
-          <Stack spacing={2}>
-            {run.error_message && <Alert severity="error">{run.error_message}</Alert>}
-            <Typography variant="body2" color="text.secondary">
-              Status: {run.status}
-            </Typography>
-            {run.stage_progress.length > 0 && (
-              <Stack spacing={0.75}>
-                {run.stage_progress.map((stage) => (
-                  <Typography key={stage.step_id} variant="caption">
-                    {stage.step_id}: {stage.status}
-                    {stage.error_summary ? ` -- ${stage.error_summary}` : ""}
-                  </Typography>
-                ))}
-              </Stack>
-            )}
-            <RunCostSummary run={run} />
-            {failed && !run.error_message && (
-              <Alert severity="warning">
-                The pipeline run failed. Check stage errors above.
-              </Alert>
-            )}
-            {done && assessmentId && (
-              <Box data-testid="document-run-sbar">
-                <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
-                  New SBAR assessment
-                </Typography>
-                <LeoSbarHost assessmentId={assessmentId} testId="document-run-sbar-widget" />
-              </Box>
-            )}
-            {done && !assessmentId && (
-              <Alert severity="info">
-                Run completed but no SBAR assessment id was returned yet. Refresh
-                the Documents tab to see updated assessments.
-              </Alert>
-            )}
-          </Stack>
-        )}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
-    </Dialog>
-  );
+  const terminal = run.status === "completed" || run.status === "failed";
+  return {
+    mode: "single",
+    caseId: "",
+    title,
+    runId: run.run_id || undefined,
+    status: run.status,
+    phases: [],
+    stages: run.stage_progress,
+    llmUsage: run.llm_usage,
+    error: run.error_message || undefined,
+    terminal,
+    assessmentId: run.assessment_id,
+    pipelineRunId: run.run_id || undefined,
+  };
 }
 
 export function DocumentChunkPanel({ patientId, doc, open, onClose }: Props) {
@@ -348,7 +286,12 @@ export function DocumentChunkPanel({ patientId, doc, open, onClose }: Props) {
           </Button>
         </DialogActions>
       </Dialog>
-      <RunProgressDialog open={runOpen} run={activeRun} onClose={() => setRunOpen(false)} />
+      {runOpen ? (
+        <RunSheetDialog
+          sheet={sheetFromDocumentRun(doc.title, activeRun)}
+          onClose={() => setRunOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

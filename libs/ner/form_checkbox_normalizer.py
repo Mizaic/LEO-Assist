@@ -52,6 +52,7 @@ _APPENDIX_END = re.compile(
 
 _BUILTIN_ADMIN_QUESTION_ALTS = (
     r"has the patient|"
+    r"does the patient|"
     r"please confirm|"
     r"is the patient|"
     r"is an interpreter|"
@@ -199,15 +200,22 @@ def _needs_normalisation(text: str) -> bool:
         or "referral criteria" in lower
         or "symptoms pathway" in lower
         or "has the patient" in lower
+        or "does the patient" in lower
         or "is an interpreter" in lower
         or "please confirm" in lower
+        or "please take" in lower
+        or "please put" in lower
     )
 
 
 def normalize_form_checkbox_text(text: str) -> str:
     """Mark unchecked / template / admin form rows as non-extractable."""
-    if not text or not _needs_normalisation(text):
+    from libs.ner.form_layout_rules import apply_form_layout_rules
+
+    if not text:
         return text
+    if not _needs_normalisation(text):
+        return apply_form_layout_rules(text)
 
     lines = text.splitlines()
     in_appendix = False
@@ -226,7 +234,7 @@ def normalize_form_checkbox_text(text: str) -> str:
             result.append(_normalise_pipe_cells(line, in_appendix=in_appendix))
         else:
             result.append(_normalise_plain_line(line, in_appendix=in_appendix))
-    return "\n".join(result)
+    return apply_form_layout_rules("\n".join(result))
 
 
 def _fetch_neo4j_checkbox_rules(family: str) -> list[dict]:
@@ -267,7 +275,11 @@ def reload_checkbox_norm() -> None:
         rule_type = payload.get("rule_type") or row.get("rule_type", "admin_question")
         pattern = payload.get("pattern") or row.get("pattern", "")
         if pattern and rule_type == "admin_question":
-            custom.append(re.escape(pattern) if not any(c in pattern for c in r".*+?[](){}^$|\\") else pattern)
+            custom.append(
+                re.escape(pattern)
+                if not any(c in pattern for c in r".*+?[](){}^$|\\")
+                else pattern
+            )
     _ADMIN_QUESTION = _build_admin_question_re(custom)
     logger.info(
         "Checkbox norm reloaded: %d custom admin-question patterns", len(custom)

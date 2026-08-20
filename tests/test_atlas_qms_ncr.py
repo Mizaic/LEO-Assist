@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from libs.atlas_qms.ncr_client import facade_headers, qms_base_url
+from libs.atlas_qms.ncr_client import facade_headers, list_product_ncrs, qms_base_url
 from libs.atlas_qms.ncr_shape import (
     LEO_CDS_PRODUCT_ID,
     NcrShapeError,
@@ -15,6 +15,7 @@ from libs.atlas_qms.ncr_shape import (
     compact_ncr,
     filter_ncrs,
     is_open_ncr,
+    looks_like_ncr_id,
     validate_ncr_create,
 )
 
@@ -27,6 +28,8 @@ def test_validate_create_locks_product_and_rejects_short_title() -> None:
     )
     assert row["product_id"] == LEO_CDS_PRODUCT_ID
     assert row["severity"] == "major"
+    assert row["nc_type"] == "product"
+    assert row["detection_source"] == "testing"
     with pytest.raises(NcrShapeError, match="five characters"):
         validate_ncr_create(title="ncr", description="enough text", severity="minor")
 
@@ -106,3 +109,82 @@ def test_qms_base_url_strips_validation_runs(monkeypatch: pytest.MonkeyPatch) ->
         "https://atlas.example/api/v1/validation-runs",
     )
     assert qms_base_url() == "https://atlas.example/api/v1"
+
+
+def test_filter_ncrs_exact_id_returns_closed() -> None:
+    rows = [
+        {
+            "id": "open-1",
+            "title": "Open miss",
+            "description": "",
+            "status": "identified",
+        },
+        {
+            "id": "6fc09837-4076-4910-a2df-dca92f5dedd3",
+            "title": "Closed SBAR gap",
+            "description": "",
+            "status": "closed",
+        },
+    ]
+    found = filter_ncrs(rows, "6fc09837-4076-4910-a2df-dca92f5dedd3")
+    assert [row["id"] for row in found] == ["6fc09837-4076-4910-a2df-dca92f5dedd3"]
+
+
+def test_looks_like_ncr_id_accepts_uuid_not_title() -> None:
+    assert looks_like_ncr_id("6fc09837-4076-4910-a2df-dca92f5dedd3")
+    assert not looks_like_ncr_id("Deny cue marks later present symptoms")
+
+
+def test_list_product_ncrs_finds_title_past_first_eight(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = [
+        {
+            "id": f"id-{index}",
+            "title": f"Open miss {index}",
+            "description": "",
+            "status": "identified",
+            "product_id": LEO_CDS_PRODUCT_ID,
+        }
+        for index in range(12)
+    ]
+    rows.append(
+        {
+            "id": "target-1",
+            "title": "Deny cue marks later present symptoms",
+            "description": "",
+            "status": "identified",
+            "product_id": LEO_CDS_PRODUCT_ID,
+        }
+    )
+
+    def fake_request(method: str, path: str, body: dict | None = None) -> dict:
+        assert method == "GET"
+        assert "limit=200" in path
+        return {"items": rows}
+
+    monkeypatch.setattr("libs.atlas_qms.ncr_client._request", fake_request)
+    found = list_product_ncrs("deny cue")
+    assert [row["id"] for row in found] == ["target-1"]
+
+
+def test_list_product_ncrs_exact_id_uses_get(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    closed = {
+        "id": "6fc09837-4076-4910-a2df-dca92f5dedd3",
+        "title": "Closed SBAR gap",
+        "description": "",
+        "status": "closed",
+        "product_id": LEO_CDS_PRODUCT_ID,
+    }
+
+    def fake_request(method: str, path: str, body: dict | None = None) -> dict:
+        assert method == "GET"
+        assert path.endswith("/6fc09837-4076-4910-a2df-dca92f5dedd3")
+        return closed
+
+    monkeypatch.setattr("libs.atlas_qms.ncr_client._request", fake_request)
+    found = list_product_ncrs("6fc09837-4076-4910-a2df-dca92f5dedd3")
+    assert [row["id"] for row in found] == [closed["id"]]
+    assert found[0]["status"] == "closed"

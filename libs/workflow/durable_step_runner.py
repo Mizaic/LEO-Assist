@@ -331,6 +331,42 @@ def _capability_provenance(action: _Action) -> StepProvenance:
     )
 
 
+def _step_result_for_output(
+    action: _Action, output: dict[str, Any] | None
+) -> DurableStepResult:
+    payload = dict(output or {})
+    warnings = list(payload.get("warnings") or [])
+    errors = list(payload.get("errors") or [])
+    status = "completed"
+    if action.subgraph_id == "extraction" and not errors:
+        from libs.pipeline.document_quality import DocumentQuality
+        from libs.pipeline.extraction_quality_gate import apply_gate_to_step_output
+
+        raw = payload.get("document_quality")
+        if not raw:
+            return DurableStepResult(
+                status=status, output=payload, warnings=warnings, errors=errors
+            )
+        quality = DocumentQuality(
+            document_quality_score=float(raw.get("document_quality_score") or 0.0),
+            quality_reasons=list(raw.get("quality_reasons") or []),
+            form_fingerprint_id=str(raw.get("form_fingerprint_id") or "unknown"),
+            few_shot_max_similarity=float(raw.get("few_shot_max_similarity") or 0.0),
+        )
+        gated = apply_gate_to_step_output(payload, quality)
+        payload = gated["output"]
+        if gated["decision"].action == "pause":
+            status = "paused"
+            warnings.append("extraction_quality_pause")
+    return DurableStepResult(
+        status=status,
+        output=payload,
+        warnings=warnings,
+        errors=errors,
+        next_event_type=None if status == "paused" else None,
+    )
+
+
 async def _execute_action(action: _Action, state: dict[str, Any]) -> DurableStepResult:
     provenance = _capability_provenance(action)
     if action.node_type == "trigger":
@@ -354,12 +390,7 @@ async def _execute_action(action: _Action, state: dict[str, Any]) -> DurableStep
         graph = get_registry().build(action.subgraph_id)
         output = await asyncio.to_thread(graph.invoke, state)
     return envelope_step_result(
-        DurableStepResult(
-            status="completed",
-            output=dict(output or {}),
-            warnings=list((output or {}).get("warnings") or []),
-            errors=list((output or {}).get("errors") or []),
-        ),
+        _step_result_for_output(action, output),
         provenance,
     )
 
@@ -612,7 +643,9 @@ def _attach_next_event(
 
 
 def _is_stage_failure(result: DurableStepResult) -> bool:
-    return result.status in {"failed", "poisoned", "paused"} or bool(result.errors)
+    if result.status == "paused":
+        return False
+    return result.status in {"failed", "poisoned"} or bool(result.errors)
 
 
 def _coerce_failure_result(result: DurableStepResult) -> DurableStepResult:
@@ -630,6 +663,69 @@ def _coerce_failure_result(result: DurableStepResult) -> DurableStepResult:
         next_event_type=None,
         next_step_id=None,
     )
+
+
+def _enqueue_extraction_quality_review(
+    client: Any,
+    request: StepRequest,
+    result: DurableStepResult,
+    next_ids: list[str],
+) -> None:
+    from libs.pipeline.document_quality import DocumentQuality
+    from libs.pipeline.extraction_review_store import (
+        PersistReviewRequest,
+        persist_extraction_review_task,
+        write_extraction_review_task,
+    )
+
+    raw = (result.output or {}).get("document_quality") or {}
+    quality = DocumentQuality(
+        document_quality_score=float(raw.get("document_quality_score") or 0.0),
+        quality_reasons=list(raw.get("quality_reasons") or []),
+        form_fingerprint_id=str(raw.get("form_fingerprint_id") or "unknown"),
+        few_shot_max_similarity=float(raw.get("few_shot_max_similarity") or 0.0),
+    )
+    task = persist_extraction_review_task(
+        PersistReviewRequest(
+            run_id=request.run_id,
+            patient_id=request.patient_id,
+            plan_definition_id=request.plan_definition_id,
+            step_id=request.step_id or "",
+            next_action_id=next_ids[0] if next_ids else "",
+            quality=quality,
+            draft_entities=list((result.output or {}).get("entities") or []),
+        )
+    )
+    write_extraction_review_task(client, task)
+
+
+async def _finalize_stage_pause(
+    ctx: "_ClaimedStepContext",
+    request: StepRequest,
+    action: _Action,
+    claim: StageClaimResult,
+    result: DurableStepResult,
+    next_ids: list[str],
+) -> DurableStepResult:
+    if action.subgraph_id == "extraction":
+        _enqueue_extraction_quality_review(ctx.client, request, result, next_ids)
+    ctx.store.complete_stage(
+        request,
+        result,
+        next_action_ids=[],
+        lease_owner=claim.lease_owner,
+        lease_generation=claim.lease_generation,
+    )
+    _emit_progress(
+        ctx.publish_progress,
+        request,
+        "durable_step_paused",
+        ctx.action_id,
+        result,
+        action=action,
+        worker_id=claim.lease_owner,
+    )
+    return result
 
 
 async def _finalize_stage_failure(
@@ -915,12 +1011,14 @@ class DurableStepRunner:
             except asyncio.CancelledError:
                 pass
         result = _with_metrics(result, ctx.started, loaded)
-        if _is_stage_failure(result):
-            return await _finalize_stage_failure(
-                ctx, request, action, claim, result
-            )
         outgoing = _build_outgoing_edges(all_actions)
         next_ids = _resolve_next_action_ids(action, result, outgoing)
+        if result.status == "paused":
+            return await _finalize_stage_pause(
+                ctx, request, action, claim, result, next_ids
+            )
+        if _is_stage_failure(result):
+            return await _finalize_stage_failure(ctx, request, action, claim, result)
         result = _attach_next_event(result, next_ids)
         successor_edges = [
             edge

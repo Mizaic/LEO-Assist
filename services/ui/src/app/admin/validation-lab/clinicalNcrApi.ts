@@ -18,7 +18,7 @@ export async function listProductNcrs(query = ""): Promise<ProductNcr[]> {
     ? `/api/validation-lab/ncrs?q=${encodeURIComponent(q)}`
     : "/api/validation-lab/ncrs";
   const body = await apiJson<{ items?: ProductNcr[] }>(url);
-  return filterProductNcrs(body.items || [], "");
+  return filterProductNcrs(body.items || [], q);
 }
 
 export function getProductNcr(ncId: string): Promise<ProductNcr> {

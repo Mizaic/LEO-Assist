@@ -250,6 +250,9 @@ class LLMExtractorAdapter:
             few_shot_examples or [], self._provider
         )
         core_examples, dynamic_pool = _split_core_dynamic(applicable_examples)
+        from libs.pipeline.extraction_learning_store import learned_few_shots
+
+        dynamic_pool = dynamic_pool + learned_few_shots()
         max_core = min(len(core_examples), self._max_few_shot)
         self._core_examples = core_examples[:max_core]
         self._dynamic_budget = max(0, self._max_few_shot - len(self._core_examples))
@@ -359,11 +362,15 @@ class LLMExtractorAdapter:
             f"[{s.sentence_id}] {guard_user_clinical_text(s.text)}" for s in sentences
         )
         dynamic_examples: list[dict] = []
+        few_shot_max_similarity = 0.0
         if self._dynamic_budget > 0:
             query_text = f"{safe_encounter}\n\n{sentence_block}".strip()
-            dynamic_examples = self._few_shot_selector.select(
-                query_text=query_text, k=self._dynamic_budget
+            dynamic_examples, few_shot_max_similarity = (
+                self._few_shot_selector.select_with_scores(
+                    query_text=query_text, k=self._dynamic_budget
+                )
             )
+        self.last_few_shot_max_similarity = few_shot_max_similarity
         relevant_examples_block = _build_relevant_examples_block(dynamic_examples)
         final_user_msg = build_extraction_user_message(
             safe_encounter,
@@ -402,6 +409,7 @@ class LLMExtractorAdapter:
                 for ex in (self._core_examples + dynamic_examples)
                 if isinstance(ex, dict)
             ],
+            "few_shot_max_similarity": few_shot_max_similarity,
         }
 
         raw = guard_llm_extraction_response((resp.text or "").strip())

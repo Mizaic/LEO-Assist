@@ -39,6 +39,7 @@ import {
   isSbarDocument,
   isWordDocumentRow,
   looksLikeHtmlBody,
+  stripDocumentHeader,
 } from "./documentFormat";
 import { DocumentChunkPanel } from "./DocumentChunkPanel";
 import { DocumentAiReadyChip } from "./DocumentAiReadyChip";
@@ -72,11 +73,6 @@ function buildSbarMarkdown(doc: DocumentRow): string {
   return parts.join("\n\n");
 }
 
-const DOC_HEADER_RE = /^--- Document:\s*.+?\s*---\s*\n?/m;
-
-function stripDocHeader(text: string): string {
-  return text.replace(DOC_HEADER_RE, "").trim();
-}
 
 function RawPane({ body }: { body: string }) {
   return (
@@ -169,7 +165,7 @@ export function DocumentViewer({
   const showSbarWidget = Boolean(assessmentId && (linkedSbar || isSbar));
   const sbarMd = buildSbarMarkdown(doc);
   const body = useMemo(
-    () => stripDocHeader(doc.full_text || doc.text_preview || ""),
+    () => stripDocumentHeader(doc.full_text || doc.text_preview || ""),
     [doc.full_text, doc.text_preview],
   );
   const showDocumentBody = Boolean(body) && !(isSbar && assessmentId);

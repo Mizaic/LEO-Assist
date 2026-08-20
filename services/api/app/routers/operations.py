@@ -265,6 +265,16 @@ async def resolve_task(
 
         with client.session() as session:
             task_row = session.run(_FETCH_TASK_FOR_LABEL, task_id=task_id).single()
+            from libs.pipeline.extraction_quality_gate import (
+                generic_hitl_resolve_allowed,
+            )
+
+            task_type = str((task_row and task_row.get("task_type")) or "")
+            if task_row and not generic_hitl_resolve_allowed(task_type):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Use highlight-and-code to unlock this review.",
+                )
 
             result = session.run(
                 RESOLVE_HITL_TASK,

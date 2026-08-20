@@ -21,8 +21,8 @@ import Typography from "@mui/material/Typography";
 import { AskLeoBusyMark } from "@/components/AskLeoBusyMark";
 import TermSearch from "@/components/TermSearch";
 import { askLeoSmart, searchTerms } from "@/lib/api/legacy";
-import ConfirmDialog from "@/components/ConfirmDialog";
 import type { AskLeoSmartResult, DecisionTier, TermSearchResult } from "@/lib/types";
+import HitlActions from "./HitlActions";
 import { TIER_META } from "@/lib/types";
 import CodingReviewCasesModal from "@/components/operations/CodingReviewCasesModal";
 import Tooltip from "@mui/material/Tooltip";
@@ -84,6 +84,7 @@ function typeLabel(item: ReviewItem): TypeLabel {
     exclusion_conflict: { text: "Inclusion check", color: "error" },
     peer_review: { text: "Peer review", color: "info" },
     classification: { text: "Classification check", color: "info" },
+    extraction_quality_review: { text: "Letter check", color: "warning" },
   };
   return map[item.taskType ?? ""] ?? { text: "Review needed", color: "default" };
 }
@@ -139,6 +140,9 @@ export function buildQuestion(item: ReviewItem): string {
   }
   if (item.taskType === "exclusion_conflict") {
     return "Should this patient be in the measure?";
+  }
+  if (item.taskType === "extraction_quality_review") {
+    return "Check the draft facts. This letter did not match our known forms well.";
   }
   return "Does this look right to you?";
 }
@@ -205,6 +209,7 @@ interface Props {
   onAllCasesResolved: (item: ReviewItem) => void;
   busy: boolean;
   onAcceptSuggestion?: (item: ReviewItem) => void;
+  onOpenExtractionReview?: (item: ReviewItem) => void;
 }
 
 export default function ReviewCard({
@@ -215,6 +220,7 @@ export default function ReviewCard({
   onAllCasesResolved,
   busy,
   onAcceptSuggestion,
+  onOpenExtractionReview,
 }: Props) {
   const [termOpen, setTermOpen] = useState(false);
   const [casesModalOpen, setCasesModalOpen] = useState(false);
@@ -347,7 +353,13 @@ export default function ReviewCard({
               onAcceptSuggestion={onAcceptSuggestion ? () => onAcceptSuggestion(item) : undefined}
             />
           ) : (
-            <HitlActions item={item} busy={busy} onResolve={onResolveHitl} onSkip={onSkip} />
+            <HitlActions
+              item={item}
+              busy={busy}
+              onResolve={onResolveHitl}
+              onSkip={onSkip}
+              onOpenLetter={onOpenExtractionReview}
+            />
           )}
         </CardContent>
       </Card>
@@ -458,54 +470,4 @@ function CodingActions({
   );
 }
 
-function HitlActions({
-  item,
-  busy,
-  onResolve,
-  onSkip,
-}: {
-  item: ReviewItem;
-  busy: boolean;
-  onResolve: (item: ReviewItem, status: "resolved" | "dismissed") => void;
-  onSkip: () => void;
-}) {
-  const [confirmDismiss, setConfirmDismiss] = useState(false);
-  return (
-    <>
-      <Stack direction="row" gap={1}>
-        <Button
-          variant="contained"
-          color="success"
-          onClick={() => onResolve(item, "resolved")}
-          disabled={busy}
-          fullWidth
-        >
-          Approve
-        </Button>
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={() => setConfirmDismiss(true)}
-          disabled={busy}
-          fullWidth
-        >
-          Dismiss
-        </Button>
-        <Button variant="outlined" onClick={onSkip} disabled={busy}>
-          Skip
-        </Button>
-      </Stack>
-      {confirmDismiss && (
-        <ConfirmDialog
-          title="Dismiss this review item?"
-          body={`"${item.entityText}" will be removed from the review queue. This cannot be undone.`}
-          confirmLabel="Dismiss"
-          variant="danger"
-          onConfirm={() => { onResolve(item, "dismissed"); setConfirmDismiss(false); }}
-          onCancel={() => setConfirmDismiss(false)}
-        />
-      )}
-    </>
-  );
-}
 

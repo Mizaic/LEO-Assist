@@ -10,11 +10,14 @@ Atlas: DI-287FFFD0
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from libs.atlas_qms.redact import contains_identifiers, redact_for_atlas
 
 LEO_CDS_PRODUCT_ID = "PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4"
+LOCKED_NC_TYPE = "product"
+LOCKED_DETECTION_SOURCE = "testing"
 NCR_SEVERITIES = frozenset({"catastrophic", "major", "minor", "cosmetic"})
 # SOP-18 lifecycle from Atlas advance_non_conformance gates.
 NCR_OPEN_STATUSES = frozenset(
@@ -23,6 +26,10 @@ NCR_OPEN_STATUSES = frozenset(
 NCR_CLOSED_STATUSES = frozenset({"closed", "cancelled", "canceled"})
 _MIN_TITLE = 5
 _MIN_DESCRIPTION = 5
+_UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-" r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+_ID_TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 
 
 class NcrShapeError(ValueError):
@@ -38,6 +45,7 @@ def compact_ncr(raw: dict[str, Any]) -> dict[str, str]:
         "severity": str(raw.get("severity") or ""),
         "status": str(raw.get("status") or ""),
         "created_at": str(raw.get("created_at") or ""),
+        "nc_type": str(raw.get("nc_type") or ""),
         "detection_source": str(raw.get("detection_source") or ""),
         "product_id": str(raw.get("product_id") or ""),
     }
@@ -48,12 +56,30 @@ def is_open_ncr(row: dict[str, str]) -> bool:
     return status not in NCR_CLOSED_STATUSES
 
 
+def looks_like_ncr_id(text: str) -> bool:
+    raw = text.strip()
+    if _UUID_RE.fullmatch(raw):
+        return True
+    return bool(_ID_TOKEN_RE.fullmatch(raw))
+
+
 def filter_ncrs(rows: list[dict[str, str]], query: str) -> list[dict[str, str]]:
-    open_rows = [row for row in rows if is_open_ncr(row)]
     needle = " ".join(query.lower().split())
+    if needle:
+        exact = [row for row in rows if _id_matches(row, needle)]
+        if exact:
+            return exact
+    open_rows = [row for row in rows if is_open_ncr(row)]
     if not needle:
         return open_rows
     return [row for row in open_rows if needle in _haystack(row)]
+
+
+def _id_matches(row: dict[str, str], needle: str) -> bool:
+    return needle in {
+        str(row.get("id") or "").lower(),
+        str(row.get("dc_id") or "").lower(),
+    }
 
 
 def validate_ncr_create(
@@ -73,6 +99,8 @@ def validate_ncr_create(
         "description": clean_desc,
         "severity": clean_sev,
         "product_id": LEO_CDS_PRODUCT_ID,
+        "nc_type": LOCKED_NC_TYPE,
+        "detection_source": LOCKED_DETECTION_SOURCE,
     }
 
 
@@ -100,7 +128,10 @@ def _haystack(row: dict[str, str]) -> str:
             row.get("title", ""),
             row.get("description", ""),
             row.get("id", ""),
+            row.get("dc_id", ""),
             row.get("status", ""),
             row.get("severity", ""),
+            row.get("nc_type", ""),
+            row.get("detection_source", ""),
         ]
     ).lower()
