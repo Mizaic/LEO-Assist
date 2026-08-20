@@ -1,6 +1,6 @@
 """Stop negation leaking past a positive contrast such as 'but does have'.
 
-Atlas:
+Atlas trace:
   DI: DI-0F9542BF
   DO: DO-15449C6E
   VT: VT-A1919820

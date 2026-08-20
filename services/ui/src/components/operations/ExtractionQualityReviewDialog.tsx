@@ -1,7 +1,7 @@
 /**
  * Highlight-and-code editor for a paused extraction review.
  *
- * Atlas: DI-4A012A59 / DO-E7824FED
+ * Atlas trace: DI-4A012A59 / DO-E7824FED
  */
 "use client";
 

@@ -480,11 +480,11 @@ export function detectAtLeastCluster(
 function splitAtListIntroColon(
   cleaned: string,
 ): { leadText: string; listText: string } | null {
-  const whoMatch = /^(.+?)\s+who\s*:\s*(.*)/is.exec(cleaned);
+  const whoMatch = /^(.+?)\s+who\s*:\s*(.*)/i.exec(cleaned);
   if (whoMatch) {
     return { leadText: whoMatch[1].trim(), listText: (whoMatch[2] ?? "").trim() };
   }
-  const andMatch = /^(.+?),\s*and\s*:\s*(.*)/is.exec(cleaned);
+  const andMatch = /^(.+?),\s*and\s*:\s*(.*)/i.exec(cleaned);
   if (andMatch) {
     return { leadText: andMatch[1].trim(), listText: (andMatch[2] ?? "").trim() };
   }
