@@ -906,6 +906,50 @@ describe("resolveAtLeastCluster", () => {
       suggestedMin: 1,
     });
   });
+
+  it("extracts the lead symptom when structureChildren are introduced by 'who:' (NG12 1.5.13 endometrial)", () => {
+    // "unexplained symptoms of vaginal discharge who:" introduces 3 OR criteria.
+    // The lead must appear as a codeable row in Step 3.
+    const boundary = {
+      text: "unexplained symptoms of vaginal discharge who: are presenting with these symptoms for the first time, or have thrombocytosis, or report haematuria",
+      source: "structure" as const,
+      structureChildren: [
+        { text: "are presenting with these symptoms for the first time", start: 0, end: 0 },
+        { text: "have thrombocytosis", start: 0, end: 0 },
+        { text: "report haematuria", start: 0, end: 0 },
+      ],
+    };
+    const cluster = resolveAtLeastCluster(boundary);
+    expect(cluster).not.toBeNull();
+    expect(cluster!.leadText).toBe("unexplained symptoms of vaginal discharge");
+    expect(cluster!.items).toEqual([
+      "are presenting with these symptoms for the first time",
+      "have thrombocytosis",
+      "report haematuria",
+    ]);
+    expect(cluster!.suggestedMin).toBe(1);
+  });
+
+  it("extracts the lead symptom when structureChildren are introduced by ', and:' (NG12 1.5.13 pathway B)", () => {
+    // "visible haematuria, and:" introduces 3 AND criteria.
+    const boundary = {
+      text: "visible haematuria, and: low haemoglobin levels, or thrombocytosis, or high blood glucose levels",
+      source: "structure" as const,
+      structureChildren: [
+        { text: "low haemoglobin levels", start: 0, end: 0 },
+        { text: "thrombocytosis", start: 0, end: 0 },
+        { text: "high blood glucose levels", start: 0, end: 0 },
+      ],
+    };
+    const cluster = resolveAtLeastCluster(boundary);
+    expect(cluster).not.toBeNull();
+    expect(cluster!.leadText).toBe("visible haematuria");
+    expect(cluster!.items).toEqual([
+      "low haemoglobin levels",
+      "thrombocytosis",
+      "high blood glucose levels",
+    ]);
+  });
 });
 
 describe("looksLikeLeadOrCluster", () => {

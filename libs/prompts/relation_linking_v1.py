@@ -43,6 +43,9 @@ Rules:
 8) Keep relation direction as head_idx -> tail_idx.
 9) If a body structure is only meaningful as a linked site, include it
    in suppress.
+10) Do not use an organ-present or in-situ status phrase as finding_site.
+    "has womb insitu" means the womb is still there. It is not the site
+    of discharge, pain, or a polyp.
 
 Allowed relation types:
 - finding_site
@@ -135,5 +138,18 @@ RELATION_LINKING_EXAMPLES_V1 = [
             '{"confirmed":[],"rejected":[],"additional":[{"head_idx":0,"tail_idx":1,'
             '"type":"causative_agent","confidence":0.93}],"suppress":[]}'
         ),
+    },
+    {
+        "id": "rl-g",
+        "category": "finding_site",
+        "description": "Organ-present status is not a finding site",
+        "core": True,
+        "model_scope": "any",
+        "input": (
+            "Encounter: vaginal discharge. has womb insitu. "
+            "Entities: [{text:'vaginal discharge',label:'finding'},"
+            "{text:'has womb insitu',label:'body structure'}]"
+        ),
+        "output": '{"confirmed":[],"rejected":[],"additional":[],"suppress":[]}',
     },
 ]

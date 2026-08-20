@@ -20,9 +20,10 @@ const COPY: Record<string, PlainStageCopy> = {
     question: "Did LEO find every important fact?",
   },
   "extraction-check": {
-    name: "Checking the reading",
-    plain: "LEO checks the facts it just picked out.",
-    question: "Are all the facts still here after checking?",
+    name: "Checking the facts are complete",
+    plain:
+      "LEO checks that no facts were lost or changed during the linking step.",
+    question: "Are all the facts still here after linking?",
   },
   extraction: {
     name: "Reading the letter",
@@ -101,8 +102,48 @@ const COPY: Record<string, PlainStageCopy> = {
   },
 };
 
+/**
+ * Explicit step-id-suffix -> copy key map.
+ * Ordered most-specific first. Any step_id whose last segment matches a key
+ * here is resolved without substring scanning.
+ */
+const SUFFIX_MAP: Record<string, string> = {
+  "extraction-check": "extraction-check",
+  "snomed-relation-judge": "snomed-relation-judge",
+  "snomed-enrich": "snomed-enrich",
+  "snomed-enrichment": "snomed_enrichment",
+  snomed_enrichment: "snomed_enrichment",
+  "coding-verify": "coding-verify",
+  "coding-verifier": "coding-verify",
+  coding_verifier: "coding-verify",
+  "referral-reason": "referral-reason",
+  referral_reason: "referral-reason",
+  "relation-link": "relation-link",
+  relation_linking: "relation-link",
+  "post-process": "post",
+  post_processing: "post_process",
+  post_process: "post_process",
+  extraction: "extraction",
+  extract: "extract",
+  terminology: "terminology",
+  persist: "persist",
+  compliance: "compliance",
+  completeness: "completeness",
+  sbar: "sbar",
+};
+
 function keyFromStepId(stepId: string): string {
-  const lower = stepId.toLowerCase();
+  const lower = stepId.toLowerCase().replace(/_/g, "-");
+  // Try the last hyphen-delimited segment(s) progressively longer
+  const parts = lower.split("-");
+  for (let start = parts.length - 1; start >= 0; start--) {
+    const suffix = parts.slice(start).join("-");
+    if (SUFFIX_MAP[suffix]) return SUFFIX_MAP[suffix];
+    // Also try underscored variant
+    const underscored = parts.slice(start).join("_");
+    if (SUFFIX_MAP[underscored]) return SUFFIX_MAP[underscored];
+  }
+  // Legacy fallback: substring scan (longest key wins)
   const keys = Object.keys(COPY).sort((a, b) => b.length - a.length);
   for (const key of keys) {
     const dash = key.replace(/_/g, "-");

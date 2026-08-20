@@ -16,6 +16,12 @@ from typing import Any
 from libs.atlas_qms.redact import contains_identifiers, redact_for_atlas
 
 LEO_CDS_PRODUCT_ID = "PROD-LEO-CLINICAL-DECISION-SUPPORT-20260515-118182E4"
+# Earlier Atlas product id still used on open NCRs created from Atlas QMS.
+# Search and get may read these. Create always uses LEO_CDS_PRODUCT_ID.
+LEO_CDS_PRIOR_PRODUCT_ID = "PROD-LEO-BY-HEALTHCARE-CO-20251114"
+LEO_NCR_READ_PRODUCT_IDS = frozenset(
+    {LEO_CDS_PRODUCT_ID, LEO_CDS_PRIOR_PRODUCT_ID}
+)
 LOCKED_NC_TYPE = "product"
 LOCKED_DETECTION_SOURCE = "testing"
 NCR_SEVERITIES = frozenset({"catastrophic", "major", "minor", "cosmetic"})
@@ -49,6 +55,14 @@ def compact_ncr(raw: dict[str, Any]) -> dict[str, str]:
         "detection_source": str(raw.get("detection_source") or ""),
         "product_id": str(raw.get("product_id") or ""),
     }
+
+
+def leo_ncr_read_product_ids() -> tuple[str, ...]:
+    return (LEO_CDS_PRODUCT_ID, LEO_CDS_PRIOR_PRODUCT_ID)
+
+
+def is_leo_ncr_product(product_id: str) -> bool:
+    return str(product_id or "") in LEO_NCR_READ_PRODUCT_IDS
 
 
 def is_open_ncr(row: dict[str, str]) -> bool:

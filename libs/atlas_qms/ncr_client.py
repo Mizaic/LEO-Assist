@@ -21,9 +21,10 @@ import urllib.request
 from typing import Any
 
 from libs.atlas_qms.ncr_shape import (
-    LEO_CDS_PRODUCT_ID,
     compact_ncr,
     filter_ncrs,
+    is_leo_ncr_product,
+    leo_ncr_read_product_ids,
     looks_like_ncr_id,
     validate_ncr_create,
 )
@@ -94,11 +95,24 @@ def _try_get_product_ncr(nc_id: str) -> dict[str, str] | None:
 
 
 def _fetch_product_ncrs() -> list[dict[str, str]]:
+    seen: set[str] = set()
+    out: list[dict[str, str]] = []
+    for product_id in leo_ncr_read_product_ids():
+        for row in _pages_for_product(product_id):
+            key = row.get("id") or ""
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            out.append(row)
+    return out
+
+
+def _pages_for_product(product_id: str) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     offset = 0
     page = 200
     while offset < 1000:
-        raw, rows = _fetch_product_page(offset, page)
+        raw, rows = _fetch_product_page(product_id, offset, page)
         out.extend(rows)
         if raw < page:
             return out
@@ -106,13 +120,15 @@ def _fetch_product_ncrs() -> list[dict[str, str]]:
     return out
 
 
-def _fetch_product_page(offset: int, page: int) -> tuple[int, list[dict[str, str]]]:
+def _fetch_product_page(
+    product_id: str, offset: int, page: int
+) -> tuple[int, list[dict[str, str]]]:
     params = urllib.parse.urlencode(
-        {"product_id": LEO_CDS_PRODUCT_ID, "limit": page, "offset": offset}
+        {"product_id": product_id, "limit": page, "offset": offset}
     )
     payload = _request("GET", f"/non-conformances?{params}")
     raw = [compact_ncr(item) for item in _items(payload)]
-    rows = [row for row in raw if row["product_id"] == LEO_CDS_PRODUCT_ID]
+    rows = [row for row in raw if is_leo_ncr_product(row["product_id"])]
     return len(raw), rows
 
 
@@ -124,7 +140,7 @@ def get_product_ncr(nc_id: str) -> dict[str, str]:
     if not isinstance(payload, dict):
         raise NcrClientError("Atlas did not return a non-conformance record.")
     row = compact_ncr(payload)
-    if row["product_id"] and row["product_id"] != LEO_CDS_PRODUCT_ID:
+    if row["product_id"] and not is_leo_ncr_product(row["product_id"]):
         raise NcrClientError("That record is not for this product.")
     return row
 

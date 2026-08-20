@@ -12,6 +12,8 @@ import { assertionLabel } from "../letterMarkStyle";
 import type { LabWorkItem } from "../inspectorTypes";
 import {
   extractRelationItems,
+  itemsFromEntities,
+  sentenceList,
   workPreviewFromStage,
 } from "./stageWorkItems";
 
@@ -157,8 +159,19 @@ function checkStory(kind: StageStoryKind, output: Payload, input: Payload): Stag
   return { kind, lines: [], empty: "LEO did not change anything." };
 }
 
-function codesStory(kind: StageStoryKind, output: Payload, input: Payload): StageStory {
-  return factsStory(kind, output, input);
+function codesStory(kind: StageStoryKind, output: Payload, _input: Payload): StageStory {
+  const sentences = sentenceList(output as Record<string, unknown>);
+  const raw = entityList(output);
+  const items = itemsFromEntities(raw as unknown[], sentences as unknown[]);
+  const nonInferred = items.filter((item) => item.kind !== "inferred");
+  const coded = nonInferred.filter((item) => item.kind === "code");
+  const total = nonInferred.length;
+  if (!total) {
+    return { kind, lines: [], empty: "LEO could not match any facts to medical codes." };
+  }
+  const noun = total === 1 ? "fact" : "facts";
+  const headline = `Coded ${coded.length} of ${total} ${noun}`;
+  return { kind, lines: [], items: coded.slice(0, 8), headline };
 }
 
 function bodySiteStory(kind: StageStoryKind, output: Payload, input: Payload): StageStory {
