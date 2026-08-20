@@ -110,6 +110,49 @@ CALL {
             + c.candidate_id          AS resolve_url,
         NULL                           AS patient_id,
         NULL                           AS episode_id
+
+    UNION ALL
+
+    // -- HITLTask (paused LLM extraction awaiting human review) --
+    MATCH (t:HITLTask)
+    WHERE t.status = 'pending'
+      AND t.task_type = 'extraction_quality_review'
+    WITH t,
+         3 AS severity,
+         duration.inDays(
+             coalesce(t.created_at, datetime()),
+             datetime()
+         ).days AS age_days
+    RETURN
+        'extraction_quality_pause:' + t.task_id AS task_id,
+        'extraction_quality_pause'              AS task_type,
+        severity                                AS severity,
+        'Paused extraction: ' + coalesce(t.patient_id, '(unknown)') AS summary,
+        age_days                                AS age_days,
+        '/admin/operations?tab=review'          AS resolve_url,
+        t.patient_id                            AS patient_id,
+        NULL                                    AS episode_id
+
+    UNION ALL
+
+    // -- SurfaceFormTask (new phrase mapping awaiting approval) --
+    MATCH (t:SurfaceFormTask)
+    WHERE t.status = 'pending'
+    WITH t,
+         2 AS severity,
+         duration.inDays(
+             coalesce(t.created_at, datetime()),
+             datetime()
+         ).days AS age_days
+    RETURN
+        'surface_form_approval:' + t.task_id AS task_id,
+        'surface_form_approval'              AS task_type,
+        severity                             AS severity,
+        'New phrase to approve: ' + coalesce(t.entity_text, '(unknown)') AS summary,
+        age_days                             AS age_days,
+        '/admin/knowledge?tab=surface-forms' AS resolve_url,
+        NULL                                 AS patient_id,
+        NULL                                 AS episode_id
 }
 WITH task_id, task_type, severity, summary, age_days, resolve_url,
      patient_id, episode_id
@@ -139,6 +182,18 @@ CALL {
     MATCH (c:TrainingCandidate)
     WHERE c.status = 'pending'
     RETURN 'gold_label' AS task_type, count(c) AS total
+
+    UNION ALL
+
+    MATCH (t:HITLTask)
+    WHERE t.status = 'pending' AND t.task_type = 'extraction_quality_review'
+    RETURN 'extraction_quality_pause' AS task_type, count(t) AS total
+
+    UNION ALL
+
+    MATCH (t:SurfaceFormTask)
+    WHERE t.status = 'pending'
+    RETURN 'surface_form_approval' AS task_type, count(t) AS total
 }
 RETURN task_type, total
 """

@@ -101,6 +101,26 @@ def _sample_tasks() -> list[dict[str, Any]]:
             "patient_id": None,
             "episode_id": None,
         },
+        {
+            "task_id": "extraction_quality_pause:eq-1",
+            "task_type": "extraction_quality_pause",
+            "severity": 3,
+            "summary": "Paused extraction: pat-3",
+            "age_days": 1,
+            "resolve_url": "/admin/operations?tab=review",
+            "patient_id": "pat-3",
+            "episode_id": None,
+        },
+        {
+            "task_id": "surface_form_approval:sf-1",
+            "task_type": "surface_form_approval",
+            "severity": 2,
+            "summary": "New phrase to approve: sore throat",
+            "age_days": 3,
+            "resolve_url": "/admin/knowledge?tab=surface-forms",
+            "patient_id": None,
+            "episode_id": None,
+        },
     ]
 
 
@@ -109,17 +129,21 @@ def _sample_counts() -> list[dict[str, Any]]:
         {"task_type": "coding_review", "total": 1},
         {"task_type": "safety_net_alert", "total": 1},
         {"task_type": "gold_label", "total": 1},
+        {"task_type": "extraction_quality_pause", "total": 1},
+        {"task_type": "surface_form_approval", "total": 1},
     ]
 
 
 # -- TC-001 -- Cypher union shape ---------------------------------------
 
 
-def test_vt134_tc001_union_covers_three_sources():
+def test_vt134_tc001_union_covers_five_sources():
     assert "CodingReview" in GET_UNIFIED_WORK_TASKS
     assert "SafetyNetAlert" in GET_UNIFIED_WORK_TASKS
     assert "TrainingCandidate" in GET_UNIFIED_WORK_TASKS
-    assert GET_UNIFIED_WORK_TASKS.count("UNION ALL") == 2
+    assert "HITLTask" in GET_UNIFIED_WORK_TASKS
+    assert "SurfaceFormTask" in GET_UNIFIED_WORK_TASKS
+    assert GET_UNIFIED_WORK_TASKS.count("UNION ALL") == 4
     for column in (
         "task_id",
         "task_type",
@@ -136,7 +160,15 @@ def test_vt134_tc001_union_covers_three_sources():
 def test_vt134_tc001_counts_query_returns_task_type_total():
     assert "task_type" in COUNT_WORK_TASKS_BY_SOURCE
     assert "count" in COUNT_WORK_TASKS_BY_SOURCE
-    assert COUNT_WORK_TASKS_BY_SOURCE.count("UNION ALL") == 2
+    assert COUNT_WORK_TASKS_BY_SOURCE.count("UNION ALL") == 4
+
+
+def test_vt134_tc001_extraction_quality_pause_in_valid_sources():
+    assert "extraction_quality_pause" in VALID_SOURCES
+
+
+def test_vt134_tc001_surface_form_approval_in_valid_sources():
+    assert "surface_form_approval" in VALID_SOURCES
 
 
 # -- TC-002 -- Python service normalises rows and filters ---------------
@@ -147,13 +179,15 @@ def test_vt134_tc002_get_work_tasks_normalises_rows():
     page = get_work_tasks(session, WorkTaskFilters(limit=10))
     assert page.limit == 10
     assert page.offset == 0
-    assert len(page.tasks) == 3
+    assert len(page.tasks) == 5
     source_types = {row.task_type for row in page.tasks}
     assert source_types == set(VALID_SOURCES)
     assert page.counts_by_source == {
         "coding_review": 1,
         "safety_net_alert": 1,
         "gold_label": 1,
+        "extraction_quality_pause": 1,
+        "surface_form_approval": 1,
     }
 
 
@@ -175,7 +209,7 @@ def test_vt134_tc002_invalid_sources_are_dropped():
     # With all sources invalid, the service drops the filter entirely
     # so the session still receives a None sources parameter.
     assert session.last_params.get("sources") is None
-    assert len(page.tasks) == 3
+    assert len(page.tasks) == 5
 
 
 def test_vt134_tc002_limit_is_clamped():
@@ -192,6 +226,8 @@ def test_vt134_tc002_counts_fill_zero_for_missing_sources():
         "coding_review": 2,
         "safety_net_alert": 0,
         "gold_label": 0,
+        "extraction_quality_pause": 0,
+        "surface_form_approval": 0,
     }
 
 
@@ -255,6 +291,8 @@ def test_vt134_tc003_get_tasks_returns_tasks_and_counts(client_with_work_router)
         "coding_review": 1,
         "safety_net_alert": 1,
         "gold_label": 1,
+        "extraction_quality_pause": 1,
+        "surface_form_approval": 1,
     }
     # every row is a dict with the canonical keys
     for task in body["tasks"]:
@@ -292,4 +330,6 @@ def test_vt134_tc003_counts_endpoint_returns_counts(client_with_work_router):
         "coding_review": 1,
         "safety_net_alert": 1,
         "gold_label": 1,
+        "extraction_quality_pause": 1,
+        "surface_form_approval": 1,
     }

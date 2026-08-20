@@ -23,6 +23,8 @@ VALID_SOURCES: tuple[str, ...] = (
     "coding_review",
     "safety_net_alert",
     "gold_label",
+    "extraction_quality_pause",
+    "surface_form_approval",
 )
 
 
