@@ -136,6 +136,27 @@ def _append_candidate(
     }
 
 
+def _existing_site_idx(
+    entities: list[dict[str, Any]],
+    neighbour: dict[str, str],
+    by_concept: dict[str, int],
+) -> int | None:
+    cid = neighbour["id"]
+    if cid in by_concept:
+        return by_concept[cid]
+    needle = _strip_fsn(neighbour.get("fsn") or "").lower()
+    if not needle:
+        return None
+    for idx, ent in enumerate(entities):
+        label = str(ent.get("label") or ent.get("semantic_tag") or "")
+        if label.lower().replace(" ", "_") != "body_structure":
+            continue
+        text = str(ent.get("text") or ent.get("term") or "").lower()
+        if text and (text in needle or needle in text):
+            return idx
+    return None
+
+
 def _add_inferred_site(
     entities: list[dict[str, Any]],
     by_concept: dict[str, int],
@@ -203,7 +224,7 @@ def snomed_enrichment(
             rel_type = _REL_TO_TYPE.get(snomed_rel)
             if not rel_type:
                 continue
-            tgt_idx = by_concept.get(neighbour["id"])
+            tgt_idx = _existing_site_idx(entities, neighbour, by_concept)
             if tgt_idx is None and snomed_rel in _SITE_RELS:
                 tgt_idx = _add_inferred_site(entities, by_concept, neighbour)
             if tgt_idx is None:

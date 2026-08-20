@@ -165,9 +165,7 @@ def test_pick_relation_type_allows_finding_site_when_close():
 
 def test_model_predict_relations_no_cartesian_product():
     """Ten co-occurring findings must not produce a wall of qualifies/associated_finding."""
-    findings = [
-        {"text": f"finding_{i}", "label": "finding"} for i in range(10)
-    ]
+    findings = [{"text": f"finding_{i}", "label": "finding"} for i in range(10)]
     result = _model_predict_relations(findings)
     assert result["relations"] == [], (
         "Without pair_priors and no offsets, model must produce zero relations "
@@ -199,9 +197,9 @@ def test_apply_relation_linking_rejects_finding_finding_qualifies(monkeypatch):
     for entity in out["entities"]:
         rels = entity.get("__relations") or []
         for rel in rels:
-            assert rel["type"] != "qualifies", (
-                "finding->finding qualifies must be rejected by apply guard"
-            )
+            assert (
+                rel["type"] != "qualifies"
+            ), "finding->finding qualifies must be rejected by apply guard"
 
 
 def test_relation_linking_tolerates_malformed_llm_json(monkeypatch):
@@ -324,4 +322,45 @@ def test_judge_can_reject_all_snomed_candidates(monkeypatch):
             ],
         }
     )
+    assert not (out["entities"][0].get("__relations") or [])
+    assert not out["entities"][0].get("_relation_suppressed")
+    assert out["entities"][1].get("_relation_suppressed") is True
+
+
+def test_judge_reject_does_not_suppress_letter_named_finding(monkeypatch):
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(
+            '{"confirmed":[],"rejected":[{"head_idx":0,"tail_idx":1,'
+            '"reason":"not in this note"}],"additional":[],"suppress":[0,1]}'
+        ),
+    )
+    graph = build_relation_linking_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": "jaundice. liver mentioned later as a heading.",
+            "entities": [
+                {
+                    "text": "jaundice",
+                    "label": "finding",
+                    "concept_id": "24199005",
+                    "__snomed_relations": [
+                        {
+                            "type": "finding_site",
+                            "target_idx": 1,
+                            "target_text": "liver",
+                            "confidence": 0.9,
+                            "source": "snomed",
+                        }
+                    ],
+                },
+                {
+                    "text": "liver",
+                    "label": "body_structure",
+                    "concept_id": "10200004",
+                },
+            ],
+        }
+    )
+    assert not out["entities"][0].get("_relation_suppressed")
     assert not (out["entities"][0].get("__relations") or [])

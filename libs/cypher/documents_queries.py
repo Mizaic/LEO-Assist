@@ -98,6 +98,24 @@ def _session_run_with_deadlock_retry(session: Any, query: str, **params: Any) ->
     raise RuntimeError("DOCUMENTS write failed after deadlock retries")
 
 
+def _dedupe_pending_writes(pending: list[_PendingDocWrite]) -> list[_PendingDocWrite]:
+    """Keep one write per (source, concept). Higher confidence wins."""
+    best: dict[tuple[str, str], _PendingDocWrite] = {}
+    for item in pending:
+        cid = str(item.params.get("concept_id") or "").strip()
+        src = str(item.params.get("source_id") or "")
+        item.params["concept_id"] = cid
+        key = (src, cid)
+        prev = best.get(key)
+        if prev is None:
+            best[key] = item
+            continue
+        prev_conf = float(prev.params.get("confidence") or 0.0)
+        if float(item.params.get("confidence") or 0.0) > prev_conf:
+            best[key] = item
+    return list(best.values())
+
+
 def _doc_write_sort_key(
     concept_id: str,
     link_source_id: str,
@@ -611,6 +629,7 @@ def _collect_pending_document_writes(
                     surface_form_span=surface_form_span,
                 )
             )
+    pending = _dedupe_pending_writes(pending)
     pending.sort(key=lambda item: item.sort_key)
     return pending
 

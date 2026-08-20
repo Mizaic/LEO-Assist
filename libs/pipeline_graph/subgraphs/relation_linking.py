@@ -227,6 +227,14 @@ def _entity_label(entity: dict[str, Any]) -> str:
     return str(entity.get("label") or entity.get("semantic_tag") or "")
 
 
+def _is_suppressible_site(entity: dict[str, Any]) -> bool:
+    """True for body-structure or inferred sites. Findings stay persistable."""
+    if bool(entity.get("inferred")):
+        return True
+    label = _entity_label(entity).lower().replace(" ", "_")
+    return label == "body_structure"
+
+
 def _load_relation_model() -> dict[str, Any]:
     global _RELATION_MODEL_CACHE
     if _RELATION_MODEL_CACHE is not None:
@@ -451,7 +459,7 @@ def _apply_relation_linking(state: RelationLinkState) -> dict[str, Any]:
         if isinstance(row, dict):
             _add_entity_relation(entities, row, runtime_types, changes)
     for idx in suppress:
-        if 0 <= idx < len(entities):
+        if 0 <= idx < len(entities) and _is_suppressible_site(entities[idx]):
             entities[idx]["_relation_suppressed"] = True
     suppress_orphan_body_structures(entities)
     return {"entities": entities, "relation_changes": changes}
