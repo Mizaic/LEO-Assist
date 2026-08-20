@@ -176,6 +176,91 @@ def _has_coding_qc_hold(changes: list[dict[str, Any]]) -> bool:
     return False
 
 
+def _is_body_structure_entity(entity: dict[str, Any]) -> bool:
+    label = str(entity.get("label") or entity.get("semantic_tag") or "")
+    return label.lower().replace(" ", "_") == "body_structure"
+
+
+def _is_finding_site_target(entity_idx: int, entities: list[dict[str, Any]]) -> bool:
+    for ent in entities:
+        for rel in ent.get("__relations") or []:
+            if not isinstance(rel, dict):
+                continue
+            if str(rel.get("type") or "").strip().lower() != "finding_site":
+                continue
+            if rel.get("target_idx") == entity_idx:
+                return True
+    return False
+
+
+def _has_clinical_fact(entities: list[dict[str, Any]]) -> bool:
+    clinical = {
+        "finding",
+        "disorder",
+        "procedure",
+        "situation",
+        "observable_entity",
+    }
+    for ent in entities:
+        label = str(ent.get("label") or ent.get("semantic_tag") or "")
+        if label.lower().replace(" ", "_") in clinical:
+            return True
+    return False
+
+
+def _should_skip_persist(entity: dict[str, Any], idx: int, entities: list) -> bool:
+    """Skip inferred or already-linked sites. Keep letter-named facts."""
+    if not bool(entity.get("_relation_suppressed")):
+        return False
+    if bool(entity.get("inferred")):
+        return True
+    if not _is_body_structure_entity(entity):
+        return False
+    if _is_finding_site_target(idx, entities):
+        return True
+    return not _has_clinical_fact(entities)
+
+
+def _entity_persist_term(
+    entity: dict[str, Any],
+    idx: int,
+    entities: list[dict[str, Any]],
+    tier_by_index: dict[int, Any],
+) -> dict[str, Any] | None:
+    concept_id = entity.get("concept_id")
+    if not concept_id or entity.get("terminology_unresolved"):
+        return None
+    body_site, body_site_concept_id, body_site_term = _extract_body_site_fields(
+        entity, entities
+    )
+    return {
+        "text": entity.get("text", ""),
+        "semantic_tag": entity.get("semantic_tag") or entity.get("label") or "other",
+        "assertion": entity.get("assertion", "present"),
+        "modifiers": entity.get("modifiers") or {},
+        "body_site": body_site,
+        "body_site_concept_id": body_site_concept_id,
+        "body_site_term": body_site_term,
+        "relations": _canonical_entity_relations(entity, entities),
+        "numeric_value": entity.get("value"),
+        "unit": entity.get("unit"),
+        "reference_range": entity.get("reference_range"),
+        "decision_tier": tier_by_index.get(idx),
+        "coding": {
+            "snomed_concept_id": str(concept_id),
+            "read_code": entity.get("read_code"),
+            "snomed_term": entity.get("term") or entity.get("text", ""),
+            "score": float(entity.get("score") or 0.0),
+            "source": "pipeline",
+        },
+        "extraction_model_name": entity.get("__model_name", ""),
+        "extraction_model_version": entity.get("__model_version", ""),
+        "contract_version": entity.get("__contract_version", ""),
+        "domain": entity.get("domain", "clinical"),
+        "__sentence_id": entity.get("__sentence_id") or "s-fallback",
+    }
+
+
 def _extract_body_site_fields(
     entity: dict[str, Any], entities: list[dict[str, Any]]
 ) -> tuple[str | None, str | None, str | None]:
@@ -230,8 +315,8 @@ def _write_coding_decisions(
 
     n = 0
     patient_hash = hashlib.sha256(patient_id.encode()).hexdigest()[:16]
-    for e in entities:
-        if bool(e.get("_relation_suppressed")):
+    for idx, e in enumerate(entities):
+        if _should_skip_persist(e, idx, entities):
             continue
         text = e.get("text", "")
         unresolved = (not e.get("concept_id")) or bool(e.get("terminology_unresolved"))
@@ -304,47 +389,15 @@ def write_patient_graph(state: PersistState) -> dict[str, Any]:
                     if d.get("entity_index") is not None
                 }
                 terms_by_sentence: dict[str, list[dict[str, Any]]] = {}
-                fallback_sentence_id = "s-fallback"
                 for idx, e in enumerate(entities):
-                    if bool(e.get("_relation_suppressed")):
+                    if _should_skip_persist(e, idx, entities):
                         continue
-                    concept_id = e.get("concept_id")
-                    if not concept_id or e.get("terminology_unresolved"):
+                    term = _entity_persist_term(e, idx, entities, tier_by_index)
+                    if term is None:
                         uncoded.append(e)
                         continue
-                    sentence_id = e.get("__sentence_id") or fallback_sentence_id
-                    body_site, body_site_concept_id, body_site_term = (
-                        _extract_body_site_fields(e, entities)
-                    )
-                    terms_by_sentence.setdefault(sentence_id, []).append(
-                        {
-                            "text": e.get("text", ""),
-                            "semantic_tag": e.get("semantic_tag")
-                            or e.get("label")
-                            or "other",
-                            "assertion": e.get("assertion", "present"),
-                            "modifiers": e.get("modifiers") or {},
-                            "body_site": body_site,
-                            "body_site_concept_id": body_site_concept_id,
-                            "body_site_term": body_site_term,
-                            "relations": _canonical_entity_relations(e, entities),
-                            "numeric_value": e.get("value"),
-                            "unit": e.get("unit"),
-                            "reference_range": e.get("reference_range"),
-                            "decision_tier": tier_by_index.get(idx),
-                            "coding": {
-                                "snomed_concept_id": str(concept_id),
-                                "read_code": e.get("read_code"),
-                                "snomed_term": e.get("term") or e.get("text", ""),
-                                "score": float(e.get("score") or 0.0),
-                                "source": "pipeline",
-                            },
-                            "extraction_model_name": e.get("__model_name", ""),
-                            "extraction_model_version": e.get("__model_version", ""),
-                            "contract_version": e.get("__contract_version", ""),
-                            "domain": e.get("domain", "clinical"),
-                        }
-                    )
+                    sentence_id = str(term.pop("__sentence_id"))
+                    terms_by_sentence.setdefault(sentence_id, []).append(term)
 
                 sentences_payload: list[dict[str, Any]] = []
                 seen_ids: set[str] = set()

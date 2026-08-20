@@ -201,6 +201,106 @@ def test_write_gold_training_splits_multiline_lab_sentence_into_line_candidates(
     )
 
 
+def _persist_term_texts(entities: list[dict]) -> list[str]:
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = False
+    client = MagicMock()
+    client.session.return_value = session
+    captured: list[str] = []
+
+    def _capture(encounter_id, sentences_payload, session, **kwargs):
+        del encounter_id, session, kwargs
+        for sentence in sentences_payload:
+            for term in sentence.get("terms") or []:
+                captured.append(str(term.get("text") or ""))
+        return len(captured)
+
+    with (
+        patch(
+            "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+            return_value=client,
+        ),
+        patch(
+            "libs.cypher.documents_queries.write_documents_from_sentences_payload",
+            side_effect=_capture,
+        ),
+    ):
+        write_patient_graph(
+            {
+                "encounter_id": "enc-1",
+                "patient_id": "pat-1",
+                "encounter_text": "jaundice and liver",
+                "entities": entities,
+                "errors": [],
+            }
+        )
+    return captured
+
+
+def test_write_patient_graph_persists_finding_when_link_rejected() -> None:
+    texts = _persist_term_texts(
+        [
+            {
+                "text": "jaundice",
+                "label": "finding",
+                "concept_id": "24199005",
+                "_relation_suppressed": True,
+            },
+            {
+                "text": "liver",
+                "label": "body_structure",
+                "concept_id": "10200004",
+                "inferred": True,
+                "_relation_suppressed": True,
+            },
+        ]
+    )
+    assert "jaundice" in texts
+    assert "liver" not in texts
+
+
+def test_write_patient_graph_persists_letter_named_site_when_unlinked() -> None:
+    texts = _persist_term_texts(
+        [
+            {
+                "text": "jaundice",
+                "label": "finding",
+                "concept_id": "24199005",
+            },
+            {
+                "text": "liver",
+                "label": "body_structure",
+                "concept_id": "10200004",
+                "_relation_suppressed": True,
+            },
+        ]
+    )
+    assert "jaundice" in texts
+    assert "liver" in texts
+
+
+def test_write_patient_graph_skips_linked_letter_site() -> None:
+    texts = _persist_term_texts(
+        [
+            {
+                "text": "numbness",
+                "label": "finding",
+                "concept_id": "44077006",
+                "__relations": [{"type": "finding_site", "target_idx": 1}],
+            },
+            {
+                "text": "arm",
+                "label": "body_structure",
+                "concept_id": "40983000",
+                "_relation_suppressed": True,
+            },
+        ]
+    )
+    assert "numbness" in texts
+    assert "arm" not in texts
+
+
 def test_write_patient_graph_holds_when_coding_check_flags_issue() -> None:
     out = write_patient_graph(
         {
@@ -262,10 +362,13 @@ def test_write_gold_training_widens_short_sentence_with_context() -> None:
         {"sentence_id": "s2", "text": "O2 sats 96%.", "start": 14, "end": 26},
     ]
 
-    with patch(
-        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
-        return_value=client,
-    ), patch.dict("os.environ", {"NER_SHORT_CONTEXT_THRESHOLD": "50"}):
+    with (
+        patch(
+            "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+            return_value=client,
+        ),
+        patch.dict("os.environ", {"NER_SHORT_CONTEXT_THRESHOLD": "50"}),
+    ):
         out = write_gold_training(
             {
                 "encounter_text": "No cough. SOB O2 sats 96%.",
@@ -293,9 +396,7 @@ def test_write_gold_training_widens_short_sentence_with_context() -> None:
     assert "O2 sats 96%." in stored_text
     stored_entities = json.loads(session.run.call_args.kwargs["entities_json"])
     assert stored_entities[0]["text"] == "SOB"
-    assert stored_text[
-        stored_entities[0]["start"] : stored_entities[0]["end"]
-    ] == "SOB"
+    assert stored_text[stored_entities[0]["start"] : stored_entities[0]["end"]] == "SOB"
 
 
 def test_write_gold_training_leaves_long_sentence_unchanged() -> None:
@@ -313,10 +414,13 @@ def test_write_gold_training_leaves_long_sentence_unchanged() -> None:
         {"sentence_id": "s1", "text": long_text, "start": 6, "end": 6 + len(long_text)},
     ]
 
-    with patch(
-        "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
-        return_value=client,
-    ), patch.dict("os.environ", {"NER_SHORT_CONTEXT_THRESHOLD": "50"}):
+    with (
+        patch(
+            "libs.pipeline_graph.subgraphs.persist._get_patient_graph_client",
+            return_value=client,
+        ),
+        patch.dict("os.environ", {"NER_SHORT_CONTEXT_THRESHOLD": "50"}),
+    ):
         out = write_gold_training(
             {
                 "encounter_text": f"Prev. {long_text}",
@@ -327,7 +431,9 @@ def test_write_gold_training_leaves_long_sentence_unchanged() -> None:
                         "label": "finding",
                         "__sentence_id": "s1",
                         "start": 6 + long_text.index("shortness"),
-                        "end": 6 + long_text.index("shortness") + len("shortness of breath"),
+                        "end": 6
+                        + long_text.index("shortness")
+                        + len("shortness of breath"),
                         "_llm_check_source": "llm_added",
                     }
                 ],

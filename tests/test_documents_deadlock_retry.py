@@ -118,6 +118,50 @@ def test_collect_pending_writes_sorts_by_concept_id() -> None:
     assert concept_ids == ["38341003", "40739000"]
 
 
+def test_collect_pending_writes_dedupes_same_concept_and_stringifies_id() -> None:
+    payload = [
+        {
+            "text": "Patient has hypertension.",
+            "terms": [
+                {
+                    "text": "hypertension",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                    "coding": {
+                        "snomed_concept_id": 38341003,
+                        "snomed_term": "Hypertension",
+                        "score": 0.8,
+                    },
+                },
+                {
+                    "text": "hypertension",
+                    "semantic_tag": "finding",
+                    "assertion": "present",
+                    "coding": {
+                        "snomed_concept_id": "38341003",
+                        "snomed_term": "Hypertension",
+                        "score": 0.95,
+                    },
+                },
+            ],
+        }
+    ]
+    pending = _collect_pending_document_writes(
+        "enc-1",
+        payload,
+        source="pipeline_runtime",
+        model_name="",
+        model_version="",
+        contract_version="",
+        run_id="run-1",
+        source_label="Encounter",
+        active_terms=set(),
+    )
+    assert len(pending) == 1
+    assert pending[0].params["concept_id"] == "38341003"
+    assert pending[0].params["confidence"] == 0.95
+
+
 def test_write_payload_retries_deadlock_and_counts_write() -> None:
     session = MagicMock()
     session.run.side_effect = [_deadlock(), None]

@@ -131,3 +131,24 @@ def test_enrichment_skips_finding_finding_qualifies_style_neighbours():
     rels = out["entities"][0].get("__snomed_relations") or []
     assert rels[0]["type"] == "associated_finding"
     assert rels[0]["target_idx"] == 1
+
+
+def test_enrichment_reuses_letter_named_site_instead_of_inferring():
+    out = snomed_enrichment(
+        {
+            "entities": [
+                {
+                    "text": "jaundice",
+                    "label": "finding",
+                    "concept_id": "24199005",
+                },
+                {"text": "liver", "label": "body_structure"},
+            ]
+        },
+        fetch_related=_jaundice_related,
+    )
+    assert len(out["entities"]) == 2
+    assert not out["entities"][1].get("inferred")
+    rels = out["entities"][0]["__snomed_relations"]
+    assert rels[0]["type"] == "finding_site"
+    assert rels[0]["target_idx"] == 1
