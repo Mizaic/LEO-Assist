@@ -10,6 +10,7 @@ import {
   emptyNcrDraft,
   filterProductNcrs,
   ncrDraftError,
+  visibleProductNcrs,
   type ProductNcr,
 } from "../app/admin/validation-lab/ncrDraft";
 import {
@@ -56,9 +57,13 @@ describe("Validation Lab product NCR", () => {
     expect(panel).toMatch(/Minimum needed/);
     expect(panel).toMatch(/Do not put an NHS number/);
     expect(panel).toMatch(/Product is locked/);
+    expect(panel).toMatch(/Type is locked/);
+    expect(panel).toMatch(/Found during testing/);
     expect(panel).toMatch(/Closed and/);
     expect(panel).toMatch(/cancelled records stay in Atlas/);
     expect(panel).not.toMatch(/product_id/);
+    expect(panel).not.toMatch(/slice\(0,\s*8\)/);
+    expect(panel).toMatch(/visibleProductNcrs/);
   });
 
   it("persists cases locally and logs redacted notes", () => {
@@ -136,6 +141,22 @@ describe("Validation Lab product NCR", () => {
     ];
     expect(filterProductNcrs(rows, "missed").map((row) => row.id)).toEqual(["1"]);
     expect(filterProductNcrs(rows, "").map((row) => row.id)).toEqual(["1"]);
+    expect(
+      filterProductNcrs(rows, "2").map((row) => row.id),
+    ).toEqual(["2"]);
+  });
+
+  it("keeps more than eight search matches on screen", () => {
+    const rows: ProductNcr[] = Array.from({ length: 12 }, (_, index) => ({
+      id: String(index + 1),
+      title: `Open miss ${index + 1}`,
+      description: "",
+      severity: "minor",
+      status: "identified",
+      created_at: "",
+      product_id: "PROD-LEO",
+    }));
+    expect(visibleProductNcrs(rows)).toHaveLength(12);
   });
 
   it("lets one investigation hold more than one case in LEO", () => {

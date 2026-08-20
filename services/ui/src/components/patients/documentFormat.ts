@@ -11,10 +11,15 @@ import type { AssessmentRow, DocumentRow } from "@/lib/patientEprApi";
 export type DocumentFileKind = "pdf" | "word" | "html" | "markdown" | "letter" | "unknown";
 
 const DOC_HEADER_RE = /^--- Document:\s*(.+?)\s*---/m;
+const DOC_HEADER_LINE_RE = /^--- Document:\s*.+?\s*---\s*\n?/m;
 
 export function extractSourceFilename(text: string): string | null {
   const match = text.match(DOC_HEADER_RE);
   return match?.[1]?.trim() ?? null;
+}
+
+export function stripDocumentHeader(text: string): string {
+  return String(text || "").replace(DOC_HEADER_LINE_RE, "").trim();
 }
 
 export function inferFileKind(doc: DocumentRow): DocumentFileKind {

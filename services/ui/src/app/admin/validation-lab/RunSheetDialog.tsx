@@ -58,6 +58,10 @@ export interface SingleRunSheet {
   rulesetVersion?: string | null;
   error?: string;
   terminal: boolean;
+  /** Known SBAR id from a Care document run (skips the Lab lookup). */
+  assessmentId?: string | null;
+  /** Pipeline run id when there is no Validation Lab case. */
+  pipelineRunId?: string;
 }
 
 export type MultiItemStatus =
@@ -345,7 +349,8 @@ export default function RunSheetDialog({ sheet, onClose }: Props) {
   const inspector = useLabRunInspector({
     caseId: single?.caseId || "",
     runId: single?.runId || "",
-    enabled: Boolean(single?.runId),
+    pipelineRunId: single?.pipelineRunId,
+    enabled: Boolean(single?.runId || single?.pipelineRunId),
     pollStages: mergedStages,
     terminal: Boolean(single?.terminal),
   });

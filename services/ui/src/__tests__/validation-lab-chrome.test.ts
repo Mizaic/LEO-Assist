@@ -263,6 +263,12 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(sheet).toMatch(/useLabRunInspector/);
     expect(sheet).toMatch(/liveSpans/);
     expect(sheet).toMatch(/maxWidth="lg"/);
+    expect(sheet).toMatch(/pipelineRunId/);
+    const care = readFile(
+      "services/ui/src/components/patients/DocumentChunkPanel.tsx",
+    );
+    expect(care).toMatch(/RunSheetDialog/);
+    expect(care).toMatch(/sheetFromDocumentRun/);
     const inspectorPanel = readFile(
       "services/ui/src/app/admin/validation-lab/inspector/RunInspectorPanel.tsx",
     );
@@ -355,6 +361,7 @@ describe("VT-22F3EF6A - Validation Lab chrome", () => {
     expect(sbar).toMatch(/validation-lab-run-sheet-sbar-drawer/);
     expect(sbar).toMatch(/LeoSbarHost/);
     expect(sbar).toMatch(/loadSbarAssessmentId/);
+    expect(sbar).toMatch(/sheet\.assessmentId/);
     expect(sbar).toMatch(/sheet\.status !== "completed"/);
     expect(api).toMatch(/export async function loadSbarAssessmentId/);
     expect(api).toMatch(/sbar_assessment_id/);
@@ -547,7 +554,16 @@ describe("VT-F0A6B9F4 - run review mark as wrong", () => {
     expect(lightbox).not.toMatch(/items\?\.\[0\]\?\.text/);
     expect(letter).toMatch(/LetterMarks/);
     expect(letter).toMatch(/LetterMarkLegend/);
+    expect(letter).toMatch(/LetterMarkdownView/);
     expect(letter).toMatch(/marks=\{marks\}/);
+    expect(
+      readFile("services/ui/src/app/admin/validation-lab/letterMarkdown.ts"),
+    ).toMatch(/splitLetterSource/);
+    expect(
+      readFile(
+        "services/ui/src/app/admin/validation-lab/LetterMarkdownView.tsx",
+      ),
+    ).toMatch(/validation-lab-letter-filename/);
     expect(letter).not.toMatch(/HighlightedText/);
     expect(highlight).toMatch(/letterHighlightMarks/);
     expect(highlight).toMatch(/semanticTag/);

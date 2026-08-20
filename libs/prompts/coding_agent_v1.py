@@ -28,7 +28,8 @@ _ASSERTIONS = """\
 ASSERTIONS -- valid values only:
   present   -- condition is active and currently relevant to this patient
   historical -- condition was present in the past; not active now
-  absent    -- explicitly stated as absent (e.g. "no chest pain")
+  absent    -- explicitly stated as absent (e.g. "no chest pain").
+              "denies X, but does have Y" -- X is absent, Y is present.
   refuted   -- a previous coding was later overridden (rare)
   possible  -- uncertain or under investigation (e.g. "? diabetes")
   family    -- present in a family member, not the patient

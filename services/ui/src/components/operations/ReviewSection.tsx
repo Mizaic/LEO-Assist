@@ -24,6 +24,7 @@ import ReviewCard, {
   buildQuestion,
   buildExplanation,
 } from "./ReviewCard";
+import ExtractionQualityReviewDialog from "./ExtractionQualityReviewDialog";
 
 // -- Fetch helpers -----------------------------------------------------------
 
@@ -180,6 +181,7 @@ export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
   const [error, setError] = useState("");
   const [resolved, setResolved] = useState(0);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [letterTaskId, setLetterTaskId] = useState("");
 
   const loadQueue = useCallback(async () => {
     setLoading(true);
@@ -445,19 +447,35 @@ export default function ReviewSection({ onStatsChange, refreshKey }: Props) {
 
       {/* Card */}
       {current ? (
-        <ReviewCard
-          item={current}
-          onResolveCoding={handleResolveCoding}
-          onResolveHitl={handleResolveHitl}
-          onSkip={handleSkip}
-          onAllCasesResolved={advance}
-          busy={busy}
-          onAcceptSuggestion={
-            current.id.startsWith("surface_form:") && current.suggestedConceptId
-              ? handleAcceptSuggestion
-              : undefined
-          }
-        />
+        <>
+          <ReviewCard
+            item={current}
+            onResolveCoding={handleResolveCoding}
+            onResolveHitl={handleResolveHitl}
+            onSkip={handleSkip}
+            onAllCasesResolved={advance}
+            busy={busy}
+            onAcceptSuggestion={
+              current.id.startsWith("surface_form:") && current.suggestedConceptId
+                ? handleAcceptSuggestion
+                : undefined
+            }
+            onOpenExtractionReview={(item) =>
+              setLetterTaskId(item.id.replace("hitl:", ""))
+            }
+          />
+          {letterTaskId ? (
+            <ExtractionQualityReviewDialog
+              taskId={letterTaskId}
+              open
+              onClose={() => setLetterTaskId("")}
+              onUnlocked={() => {
+                setLetterTaskId("");
+                advance();
+              }}
+            />
+          ) : null}
+        </>
       ) : (
         <Card sx={{ p: 4, textAlign: "center" }}>
           <Typography variant="h6" sx={{ mb: 1 }}>

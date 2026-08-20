@@ -16,7 +16,8 @@ import Tabs from "@mui/material/Tabs";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
-import { LetterMarkLegend, LetterMarks } from "./LetterMarks";
+import { LetterMarkLegend } from "./LetterMarks";
+import LetterMarkdownView from "./LetterMarkdownView";
 import type { LetterMark } from "./letterHighlight";
 
 interface Props {
@@ -35,7 +36,6 @@ export default function LetterPane({
   pmhText,
 }: Props) {
   const [tab, setTab] = useState(0);
-  const letter = referralText || "No letter text on this run.";
   const marks = highlights || [];
   return (
     <Box
@@ -60,7 +60,7 @@ export default function LetterPane({
         <Tab label="GP note" />
         <Tab label="Past history" />
       </Tabs>
-      <Box sx={{ flex: 1, overflow: "auto", p: 2, whiteSpace: "pre-wrap" }}>
+      <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
         {openedBecause ? (
           <Typography
             variant="caption"
@@ -72,20 +72,27 @@ export default function LetterPane({
           </Typography>
         ) : null}
         {tab === 0 ? (
-          <Typography variant="body2" component="div">
+          <>
             <LetterMarkLegend marks={marks} />
-            <LetterMarks
-              text={letter}
+            <LetterMarkdownView
+              text={referralText}
               marks={marks}
               testId="validation-lab-letter-highlight"
+              emptyLabel="No letter text on this run."
             />
-          </Typography>
+          </>
         ) : null}
         {tab === 1 ? (
-          <Typography variant="body2">{gpNote || "No GP note on this case."}</Typography>
+          <LetterMarkdownView
+            text={gpNote || ""}
+            emptyLabel="No GP note on this case."
+          />
         ) : null}
         {tab === 2 ? (
-          <Typography variant="body2">{pmhText || "No past history on this case."}</Typography>
+          <LetterMarkdownView
+            text={pmhText || ""}
+            emptyLabel="No past history on this case."
+          />
         ) : null}
       </Box>
     </Box>

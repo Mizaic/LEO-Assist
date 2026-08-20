@@ -200,8 +200,13 @@ class FewShotSelector:
 
     def select(self, query_text: str, k: int) -> list[dict]:
         """Return top-k examples by similarity, with deterministic fallback."""
+        examples, _ = self.select_with_scores(query_text, k)
+        return examples
+
+    def select_with_scores(self, query_text: str, k: int) -> tuple[list[dict], float]:
+        """Return top-k examples and the best cosine similarity."""
         if k <= 0 or not self._pool:
-            return []
+            return [], 0.0
         query = query_text or ""
         routed_pool = self._route_pool_for_query(query)
         if not routed_pool:
@@ -221,9 +226,10 @@ class FewShotSelector:
             ):
                 scores = pool_embeddings @ qv[0]
                 top_idx = np.argsort(-scores)[: min(k, len(self._pool))]
-                return [self._pool[int(i)] for i in top_idx]
+                examples = [self._pool[int(i)] for i in top_idx]
+                best = float(scores[int(top_idx[0])]) if len(top_idx) else 0.0
+                return examples, best
 
-        # Routed subset path: embed only the filtered pool for precision.
         routed_texts = [self._example_text(ex) for ex in routed_pool]
         routed_vectors = self._embedder.encode(routed_texts)
         if routed_vectors is not None:
@@ -235,7 +241,9 @@ class FewShotSelector:
             ):
                 scores = routed_vectors @ qv[0]
                 top_idx = np.argsort(-scores)[: min(k, len(routed_pool))]
-                return [routed_pool[int(i)] for i in top_idx]
+                examples = [routed_pool[int(i)] for i in top_idx]
+                best = float(scores[int(top_idx[0])]) if len(top_idx) else 0.0
+                return examples, best
 
         ordered = sorted(
             routed_pool,
@@ -244,7 +252,7 @@ class FewShotSelector:
                 str(ex.get("description", "")),
             ),
         )
-        return ordered[: min(k, len(ordered))]
+        return ordered[: min(k, len(ordered))], 0.0
 
     def _route_pool_for_query(self, query_text: str) -> list[dict]:
         """Route retrieval by domain so lab-heavy notes prefer lab slices."""

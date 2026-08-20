@@ -19,7 +19,7 @@ import Typography from "@mui/material/Typography";
 import { color, elevation, typography } from "@leo/design-system/tokens";
 
 import { useClinicalNcr } from "./useClinicalNcr";
-import { NCR_SEVERITIES, type ProductNcr } from "./ncrDraft";
+import { NCR_SEVERITIES, visibleProductNcrs, type ProductNcr } from "./ncrDraft";
 import { pressable } from "./clinicalDoorChrome";
 
 export function ClinicalNcrPanel({
@@ -45,7 +45,8 @@ export function ClinicalNcrPanel({
       <Typography sx={headlineSx()}>Product non-conformances</Typography>
       <Typography sx={bodySx()}>
         Look up an open record in Atlas, or submit a new one. Closed and
-        cancelled records stay in Atlas. The product is set for you.
+        cancelled records stay in Atlas unless you search the exact id.
+        The product, type, and detection source are set for you.
       </Typography>
       {ncr.selected ? (
         <Typography data-testid="validation-lab-ncr-selected" sx={bodySx()}>
@@ -63,7 +64,10 @@ export function ClinicalNcrPanel({
           fullWidth
           value={ncr.query}
           onChange={(e) => ncr.setQuery(e.target.value)}
-          placeholder="Search title or status"
+          placeholder="Search title, status, or record id"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") ncr.onSearch();
+          }}
           inputProps={{ "aria-label": "Search product NCRs" }}
         />
         <Button
@@ -105,6 +109,7 @@ function NcrList({
   rows: ProductNcr[];
   onPick: (row: ProductNcr) => void;
 }) {
+  const visible = visibleProductNcrs(rows);
   if (rows.length === 0) {
     return (
       <Typography sx={bodySx()}>No open product records match yet.</Typography>
@@ -112,7 +117,13 @@ function NcrList({
   }
   return (
     <Stack spacing={0.75} data-testid="validation-lab-ncr-list">
-      {rows.slice(0, 8).map((row) => (
+      {rows.length > visible.length ? (
+        <Typography sx={bodySx()}>
+          Showing {visible.length} of {rows.length}. Type more of the title to
+          narrow.
+        </Typography>
+      ) : null}
+      {visible.map((row) => (
         <button
           key={row.id}
           type="button"
@@ -184,6 +195,7 @@ function NcrCreateForm({
       </TextField>
       <Typography sx={bodySx()}>
         Product is locked to LEO Clinical Decision Support.
+        Type is locked to product. Found during testing.
       </Typography>
       <Stack direction="row" spacing={1}>
         <Button

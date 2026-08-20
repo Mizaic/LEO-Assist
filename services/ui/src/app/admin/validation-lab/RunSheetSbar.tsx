@@ -28,6 +28,7 @@ interface Props {
     title: string;
     runId?: string;
     status: string;
+    assessmentId?: string | null;
   };
 }
 
@@ -39,7 +40,13 @@ export function RunSheetSbarActions({ sheet }: Props) {
   if (sheet.status !== "completed" || !sheet.runId) return null;
 
   async function onOpen() {
-    if (!sheet.runId) return;
+    const knownId = (sheet.assessmentId || "").trim();
+    if (knownId) {
+      setError(null);
+      setSbarId(knownId);
+      return;
+    }
+    if (!sheet.runId || !sheet.caseId) return;
     setBusy(true);
     setError(null);
     try {

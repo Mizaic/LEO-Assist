@@ -82,6 +82,8 @@ class ExtractionState(TypedDict, total=False):
     document_reference_id: str
     errors: list[str]
     warnings: list[str]
+    document_quality: dict[str, Any]
+    few_shot_max_similarity: float
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -714,6 +716,9 @@ def _run_llm_extraction(
         "entities": _items_to_dicts(items),
         "llm_tokens": llm_tokens,
         "extraction_route": "llm",
+        "few_shot_max_similarity": float(
+            (llm_tokens or {}).get("few_shot_max_similarity") or 0.0
+        ),
         **_llm_model_fields(state, llm_tokens),
     }
 
@@ -867,6 +872,14 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
     warnings = list(state.get("warnings") or [])
     if not entities and _EMPTY_EXTRACTION_WARNING not in warnings:
         warnings.append(_EMPTY_EXTRACTION_WARNING)
+    from libs.pipeline.document_quality import score_document_quality
+    from libs.pipeline.form_fingerprint_registry import known_fingerprints
+
+    quality = score_document_quality(
+        state.get("encounter_text") or "",
+        few_shot_max_similarity=float(state.get("few_shot_max_similarity") or 0.0),
+        known_fingerprints=known_fingerprints(),
+    )
     return {
         "entities": entities,
         "extraction_model_name": state.get("extraction_model_name", ""),
@@ -880,6 +893,7 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
         "extraction_route": state.get("extraction_route", ""),
         "errors": state.get("errors", []),
         "warnings": warnings,
+        "document_quality": quality.to_dict(),
     }
 
 

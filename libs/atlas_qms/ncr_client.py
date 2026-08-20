@@ -24,6 +24,7 @@ from libs.atlas_qms.ncr_shape import (
     LEO_CDS_PRODUCT_ID,
     compact_ncr,
     filter_ncrs,
+    looks_like_ncr_id,
     validate_ncr_create,
 )
 from libs.atlas_qms.redact import contains_identifiers, redact_for_atlas
@@ -75,12 +76,44 @@ def facade_headers(token: str, org_id: str) -> dict[str, str]:
     }
 
 
-def list_product_ncrs(query: str = "", limit: int = 50) -> list[dict[str, str]]:
-    params = urllib.parse.urlencode({"product_id": LEO_CDS_PRODUCT_ID, "limit": 200})
+def list_product_ncrs(query: str = "", limit: int = 200) -> list[dict[str, str]]:
+    needle = query.strip()
+    if looks_like_ncr_id(needle):
+        found = _try_get_product_ncr(needle)
+        if found:
+            return [found]
+    rows = _fetch_product_ncrs()
+    return filter_ncrs(rows, needle)[: max(1, min(limit, 200))]
+
+
+def _try_get_product_ncr(nc_id: str) -> dict[str, str] | None:
+    try:
+        return get_product_ncr(nc_id)
+    except NcrClientError:
+        return None
+
+
+def _fetch_product_ncrs() -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    offset = 0
+    page = 200
+    while offset < 1000:
+        raw, rows = _fetch_product_page(offset, page)
+        out.extend(rows)
+        if raw < page:
+            return out
+        offset += page
+    return out
+
+
+def _fetch_product_page(offset: int, page: int) -> tuple[int, list[dict[str, str]]]:
+    params = urllib.parse.urlencode(
+        {"product_id": LEO_CDS_PRODUCT_ID, "limit": page, "offset": offset}
+    )
     payload = _request("GET", f"/non-conformances?{params}")
-    rows = [compact_ncr(item) for item in _items(payload)]
-    product_only = [row for row in rows if row["product_id"] == LEO_CDS_PRODUCT_ID]
-    return filter_ncrs(product_only, query)[: max(1, min(limit, 200))]
+    raw = [compact_ncr(item) for item in _items(payload)]
+    rows = [row for row in raw if row["product_id"] == LEO_CDS_PRODUCT_ID]
+    return len(raw), rows
 
 
 def get_product_ncr(nc_id: str) -> dict[str, str]:

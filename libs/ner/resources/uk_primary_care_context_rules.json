@@ -542,6 +542,38 @@
       ],
       "description": "UK 2WW referral forms write the DURATION a presenting symptom has been going on as '<N> wk/mo hx [of] <symptom>' (e.g. '4-wk hx unexplained haematuria', '4 mo hx of persistent vomiting'). This means the symptom is CURRENT and has lasted N weeks/months -- the opposite of medspaCy's default 'history'/'hx' HISTORICAL cue, which assumes hx/history introduces a past-medical-history list. Without this pseudo rule every presenting complaint on these forms was wrongly marked historical. A bare 'hx of <condition>' with no preceding duration number (e.g. 'hx of MI') is unaffected and still resolves to historical via the default rule.",
       "example": "4-wk hx unexplained NV haematuria + dysuria -> haematuria and dysuria are current, present symptoms of 4 weeks' duration, not historical"
+    },
+    {
+      "literal": "but does have",
+      "category": "CONJ",
+      "direction": "TERMINATE",
+      "max_scope": null,
+      "description": "Stops a prior deny or no cue. Findings after this phrase are present, not absent.",
+      "example": "denies chest pain, but does have cough -> cough stays present"
+    },
+    {
+      "literal": "but has",
+      "category": "CONJ",
+      "direction": "TERMINATE",
+      "max_scope": null,
+      "description": "Stops a prior deny or no cue at a contrast. Findings after this phrase are present.",
+      "example": "denies chest pain but has cough -> cough stays present"
+    },
+    {
+      "literal": "but",
+      "category": "CONJ",
+      "direction": "TERMINATE",
+      "max_scope": null,
+      "description": "Standard contrast stop. A deny or no cue before 'but' must not apply after it.",
+      "example": "denies chest pain, but cough and fever -> cough and fever stay present"
+    },
+    {
+      "literal": "however",
+      "category": "CONJ",
+      "direction": "TERMINATE",
+      "max_scope": null,
+      "description": "Contrast stop. A deny or no cue before 'however' must not apply after it.",
+      "example": "denies chest pain, however has cough -> cough stays present"
     }
   ]
 }

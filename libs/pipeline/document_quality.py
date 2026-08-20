@@ -1,0 +1,123 @@
+"""Document-level extraction quality score (not language-model self-rating).
+
+Atlas trace:
+  DI: DI-0C766F85
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-0C766F85")
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+from dataclasses import asdict, dataclass, field
+
+from libs.ner.form_checkbox_normalizer import (
+    NON_EXTRACTABLE_MARKER,
+    extractable_clinical_lines,
+    normalize_form_checkbox_text,
+)
+
+_SECTION = re.compile(r"(?i)^\s*(section\s+[a-z]|appendix\s+[a-z]|referral criteria)")
+_BOX = re.compile(r"\[(?:X|x|\s*)\]")
+_DIGITS = re.compile(r"\b\d[\d\s./-]{3,}\b")
+_WRAPPER = re.compile(
+    r"(?i)(no information provided|see attachment|clinical information summary)"
+)
+_FORMISH = re.compile(r"(?i)(\[|please put|please take|section [a-z]|appendix )")
+
+FEW_SHOT_OOD_THRESHOLD = 0.45
+
+
+@dataclass(frozen=True)
+class DocumentQuality:
+    document_quality_score: float
+    quality_reasons: list[str] = field(default_factory=list)
+    form_fingerprint_id: str = "unknown"
+    few_shot_max_similarity: float = 0.0
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def form_fingerprint(text: str) -> str:
+    """Hash section titles and checkbox labels with patient values stripped."""
+    lines: list[str] = []
+    for raw in (text or "").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        skeleton = _BOX.sub("[]", line)
+        skeleton = _DIGITS.sub("", skeleton)
+        skeleton = re.sub(r"\s+", " ", skeleton).strip().lower()
+        if not skeleton:
+            continue
+        if _SECTION.search(skeleton) or "[]" in skeleton or "please " in skeleton:
+            lines.append(skeleton)
+    payload = "\n".join(sorted(set(lines)))
+    if not payload:
+        payload = re.sub(r"\s+", " ", (text or "").lower())[:400]
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _rule_coverage(text: str) -> float:
+    raw_lines = [ln for ln in (text or "").splitlines() if ln.strip()]
+    form_lines = [ln for ln in raw_lines if _FORMISH.search(ln) or _BOX.search(ln)]
+    if not form_lines:
+        return 1.0
+    normalised = normalize_form_checkbox_text(text)
+    classified = 0
+    for line in form_lines:
+        marked = NON_EXTRACTABLE_MARKER in line or any(
+            NON_EXTRACTABLE_MARKER in nln and line[:12] in nln
+            for nln in normalised.splitlines()
+        )
+        if marked:
+            classified += 1
+            continue
+        extractable = extractable_clinical_lines(line)
+        if extractable != [line.strip()] or NON_EXTRACTABLE_MARKER in normalised:
+            classified += 1
+    return classified / len(form_lines)
+
+
+def _match_fingerprint(fp: str, known: dict[str, str]) -> str:
+    for name, stored in (known or {}).items():
+        if stored == fp:
+            return name
+    return "unknown"
+
+
+def score_document_quality(
+    text: str,
+    *,
+    few_shot_max_similarity: float,
+    known_fingerprints: dict[str, str] | None = None,
+    llm_confidence: float | None = None,
+) -> DocumentQuality:
+    """Score a document. ``llm_confidence`` is accepted and ignored."""
+    _ = llm_confidence
+    few = max(0.0, min(1.0, float(few_shot_max_similarity or 0.0)))
+    fp = form_fingerprint(text)
+    match_id = _match_fingerprint(fp, known_fingerprints or {})
+    coverage = _rule_coverage(text)
+    wrapper = 1.0 if _WRAPPER.search(text or "") else 0.0
+    fp_hit = 1.0 if match_id != "unknown" else 0.0
+    score = max(
+        0.0, min(1.0, 0.4 * few + 0.3 * fp_hit + 0.3 * coverage - 0.25 * wrapper)
+    )
+    reasons: list[str] = []
+    if few < FEW_SHOT_OOD_THRESHOLD:
+        reasons.append("few_shot_ood")
+    form_like = bool(_FORMISH.search(text or "") or _BOX.search(text or ""))
+    if form_like and match_id == "unknown":
+        reasons.append("unknown_form_template")
+    if coverage < 0.6:
+        reasons.append("low_rule_coverage")
+    if wrapper:
+        reasons.append("wrapper_admin_only")
+    return DocumentQuality(
+        document_quality_score=round(score, 4),
+        quality_reasons=reasons,
+        form_fingerprint_id=match_id,
+        few_shot_max_similarity=few,
+    )

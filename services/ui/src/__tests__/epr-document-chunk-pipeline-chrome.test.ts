@@ -18,13 +18,20 @@ describe("EPR document chunk pipeline chrome", () => {
     expect(panel).toMatch(/startDocumentRun/);
     expect(panel).toMatch(/pollDocumentRunUntilTerminal/);
     expect(panel).toMatch(/Run pipeline on selected chunks/);
-    expect(panel).toMatch(/document-run-cost/);
-    expect(panel).toMatch(/formatLlmSpend/);
-    expect(panel).toMatch(/LeoSbarHost/);
     expect(panel).toMatch(/document-reprocess-dialog/);
     expect(panel).toMatch(/Reprocess document/);
     expect(api).toMatch(/\/document-runs/);
     expect(api).toMatch(/llm_usage/);
+  });
+
+  test("Care document reprocess uses the Validation Lab run sheet", () => {
+    const panel = readUi("components/patients/DocumentChunkPanel.tsx");
+    const sheet = readUi("app/admin/validation-lab/RunSheetDialog.tsx");
+    expect(panel).toMatch(/RunSheetDialog/);
+    expect(panel).toMatch(/sheetFromDocumentRun/);
+    expect(panel).not.toMatch(/function RunProgressDialog/);
+    expect(sheet).toMatch(/ProgressStrip/);
+    expect(sheet).toMatch(/TaskList/);
   });
 
   test("DocumentViewer renders linked SBAR on referral documents", () => {

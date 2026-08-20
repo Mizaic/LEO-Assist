@@ -240,9 +240,24 @@ def _same_sentence_modifiers(span: Span) -> list[Any]:
         start = tokens[0]
         if start < 0 or start >= len(doc):
             continue
-        if doc[start].sent.start == sent_start:
-            kept.append(modifier)
+        if doc[start].sent.start != sent_start:
+            continue
+        if _contrast_cuts_modifier(span, start, tokens[1]):
+            continue
+        kept.append(modifier)
     return kept
+
+
+def _contrast_cuts_modifier(span: Span, mod_start: int, mod_end: int) -> bool:
+    """Drop a cue when 'but does have' sits between that cue and the entity."""
+    from libs.ner.contrast_negation_guard import contrast_terminates_modifier
+
+    if mod_start < 0 or mod_end > len(span.doc) or mod_start >= mod_end:
+        return False
+    piece = span.doc[mod_start:mod_end]
+    return contrast_terminates_modifier(
+        span.doc.text, int(piece.end_char), int(span.start_char)
+    )
 
 
 def _span_to_assertion(span: Span) -> str:

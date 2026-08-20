@@ -52,10 +52,18 @@ export function isOpenNcr(row: ProductNcr): boolean {
 }
 
 export function filterProductNcrs(rows: ProductNcr[], query: string): ProductNcr[] {
-  const open = rows.filter(isOpenNcr);
   const needle = query.trim().toLowerCase();
+  if (needle) {
+    const exact = rows.filter((row) => row.id.toLowerCase() === needle);
+    if (exact.length) return exact;
+  }
+  const open = rows.filter(isOpenNcr);
   if (!needle) return open;
   return open.filter((row) => ncrHaystack(row).includes(needle));
+}
+
+export function visibleProductNcrs(rows: ProductNcr[], cap = 40): ProductNcr[] {
+  return rows.slice(0, Math.max(1, cap));
 }
 
 export function ncrDraftError(draft: NcrDraft): string {
