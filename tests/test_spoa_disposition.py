@@ -170,3 +170,92 @@ def test_prepend_spoa_disposition_without_llm_body() -> None:
         "**Advisory SPoA disposition:** Outpatient appointment.\n"
         "_Receiving service guidelines matched._"
     )
+
+
+# -- DI-4AF9CB8D: direct access NG12 actions -> discussion_with_primary_care --
+# Per NHS England Elective SPoA Technical Guidance 2026/27 Annex 3, direct
+# access referrals are GP-arranged; no RTT clock; GP retains responsibility.
+# They must NOT route to straight_to_test (which starts an RTT clock).
+
+def test_direct_access_ultrasound_maps_to_discussion_with_primary_care() -> None:
+    """NG12 'urgent, direct access ultrasound scan' (ovarian, testicular, etc.)
+    must route to discussion_with_primary_care, not straight_to_test."""
+    code, evidence = derive_spoa_disposition(
+        primary_rules=[
+            _rule(
+                "ng12-1.5.3",
+                priority="urgent",
+                action_name="Urgent, direct access ultrasound scan of abdomen and pelvis",
+            )
+        ],
+        alternative_rules=[],
+    )
+    assert code == "discussion_with_primary_care", (
+        f"Expected discussion_with_primary_care, got {code!r}. "
+        "Direct access ultrasound is GP-arranged; it must not start an RTT clock."
+    )
+    assert "ng12-1.5.3" in (evidence or "")
+
+
+def test_direct_access_ct_maps_to_discussion_with_primary_care() -> None:
+    """NG12 'urgent, direct access CT scan' (pancreatic cancer) must not
+    route to straight_to_test."""
+    code, _ = derive_spoa_disposition(
+        primary_rules=[
+            _rule(
+                "ng12-1.2.1",
+                priority="urgent",
+                action_name="Urgent, direct access CT scan to assess for pancreatic cancer",
+            )
+        ],
+        alternative_rules=[],
+    )
+    assert code == "discussion_with_primary_care"
+
+
+def test_direct_access_mri_maps_to_discussion_with_primary_care() -> None:
+    """Direct access MRI (e.g. prostate pathway) must not route to straight_to_test."""
+    code, _ = derive_spoa_disposition(
+        primary_rules=[
+            _rule(
+                "prostate-1.1",
+                priority="urgent",
+                action_name="Urgent, direct access MRI of prostate",
+            )
+        ],
+        alternative_rules=[],
+    )
+    assert code == "discussion_with_primary_care"
+
+
+def test_direct_access_in_recommendation_verbatim_maps_to_discussion() -> None:
+    """The 'direct access' signal may appear in recommendation_verbatim rather than
+    the action name; the check must cover both paths."""
+    rule = {
+        "rule_id": "ng12-gall-bladder",
+        "name": "ng12-gall-bladder",
+        "guideline_title": "NG12",
+        "actions": [{"priority": "urgent", "name": "Ultrasound scan (procedure)"}],
+        "recommendation_verbatim": (
+            "Consider an urgent, direct access ultrasound scan to assess "
+            "for gall bladder cancer in people with an upper abdominal mass."
+        ),
+    }
+    code, _ = derive_spoa_disposition(primary_rules=[rule], alternative_rules=[])
+    assert code == "discussion_with_primary_care"
+
+
+def test_consultant_arranged_ultrasound_without_direct_access_stays_straight_to_test() -> None:
+    """A consultant-arranged ultrasound as part of an STT pathway (no 'direct access'
+    phrase) must continue to map to straight_to_test."""
+    code, _ = derive_spoa_disposition(
+        primary_rules=[
+            _rule(
+                "stt-renal-ultrasound",
+                priority="2ww",
+                action_name="Ultrasound scan of renal tract (procedure)",
+            )
+        ],
+        alternative_rules=[],
+    )
+    assert code == "straight_to_test"

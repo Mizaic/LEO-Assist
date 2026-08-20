@@ -3,6 +3,8 @@
 Atlas trace:
   DO: DO-EBD03C23
   DI: DI-45F32638
+  DO: DO-8DF3E4A3
+  DI: DI-4AF9CB8D
 """
 
 from __future__ import annotations
@@ -62,6 +64,16 @@ _REFERRAL_TOKENS = (
     "refer patients",
 )
 _CLINIC_TOKENS = ("clinic", "outpatient", "appointment", "review")
+
+# Per NHS England Elective SPoA Technical Guidance 2026/27 Annex 3:
+# "direct access" = GP-arranged diagnostic; GP retains responsibility; no RTT
+# clock. This is distinct from consultant-led "straight to test" (RTT clock
+# starts). Must be checked BEFORE _DIAGNOSTIC_TOKENS so that
+# "direct access ultrasound" does not fall through to straight_to_test.
+_DIRECT_ACCESS_PHRASES = (
+    "direct access",
+    "direct-access",
+)
 
 
 def disposition_label(code: str | None) -> str | None:
@@ -137,6 +149,13 @@ def _action_kind(rule: dict[str, Any]) -> str:
         return "outpatient_appointment"
     if any(token in text for token in _PROCEDURE_TOKENS):
         return "procedure"
+    # Direct access diagnostics are GP-arranged; no RTT clock; GP retains
+    # responsibility. Per NG12, 'direct access ultrasound/CT/MRI' means the
+    # GP should arrange the scan and review the result in primary care.
+    # Must be checked before _DIAGNOSTIC_TOKENS so the 'ultrasound' / 'scan'
+    # tokens do not wrongly route to straight_to_test (which starts an RTT).
+    if any(phrase in text for phrase in _DIRECT_ACCESS_PHRASES):
+        return "discussion_with_primary_care"
     if any(token in text for token in _DIAGNOSTIC_TOKENS):
         return "straight_to_test"
     if any(token in text for token in _CLINIC_TOKENS):
