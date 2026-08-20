@@ -163,6 +163,59 @@ def test_pick_relation_type_allows_finding_site_when_close():
     assert conf > 0.62
 
 
+def test_pick_relation_type_skips_in_situ_status_as_site():
+    rel, _ = _pick_relation_type(
+        {"text": "vaginal discharge", "label": "finding", "start": 10},
+        {"text": "has womb insitu", "label": "body_structure", "start": 40},
+        {},
+        ["finding_site"],
+    )
+    assert rel is None, "organ-present status must not be a finding site"
+
+
+def test_pick_relation_type_skips_far_site_without_phrase_overlap():
+    rel, _ = _pick_relation_type(
+        {"text": "vaginal discharge", "label": "finding", "start": 10},
+        {"text": "Cervix", "label": "body_structure", "start": 200},
+        {},
+        ["finding_site"],
+    )
+    assert rel is None, "a named site in another phrase must not be guessed"
+
+
+def test_pick_relation_type_allows_cervical_phrase_to_cervix():
+    rel, _ = _pick_relation_type(
+        {"text": "polyp around cervical opening", "label": "finding", "start": 10},
+        {"text": "Cervix", "label": "body_structure", "start": 400},
+        {},
+        ["finding_site"],
+    )
+    assert rel == "finding_site"
+
+
+def test_model_does_not_link_exam_findings_to_womb_in_situ():
+    result = _model_predict_relations(
+        [
+            {"text": "vaginal discharge", "label": "finding", "start": 10},
+            {"text": "has womb insitu", "label": "body_structure", "start": 40},
+            {"text": "Cervix", "label": "body_structure", "start": 200},
+            {
+                "text": "polyp around cervical opening",
+                "label": "finding",
+                "start": 180,
+            },
+        ]
+    )
+    womb_links = [row for row in result["relations"] if row["tail_idx"] == 1]
+    assert womb_links == [], f"status phrase used as site: {womb_links}"
+    polyp_sites = [
+        row
+        for row in result["relations"]
+        if row["head_idx"] == 3 and row["type"] == "finding_site"
+    ]
+    assert any(row["tail_idx"] == 2 for row in polyp_sites)
+
+
 def test_model_predict_relations_no_cartesian_product():
     """Ten co-occurring findings must not produce a wall of qualifies/associated_finding."""
     findings = [{"text": f"finding_{i}", "label": "finding"} for i in range(10)]
@@ -364,3 +417,30 @@ def test_judge_reject_does_not_suppress_letter_named_finding(monkeypatch):
     )
     assert not out["entities"][0].get("_relation_suppressed")
     assert not (out["entities"][0].get("__relations") or [])
+
+
+def test_apply_rejects_llm_finding_site_to_in_situ_status(monkeypatch):
+    payload = (
+        '{"relations":[{"head_idx":0,"tail_idx":1,"type":"finding_site",'
+        '"confidence":0.95}],"suppress":[]}'
+    )
+    monkeypatch.setattr(
+        "libs.llm_client.factory.create_llm",
+        lambda tier="small": _LLM(payload),
+    )
+    monkeypatch.setattr(relation_linking_mod, "_MODEL_CONFIDENCE_THRESHOLD", 0.99)
+    graph = build_relation_linking_subgraph()
+    out = graph.invoke(
+        {
+            "encounter_text": (
+                "vaginal discharge. has womb insitu. polyp around cervical opening."
+            ),
+            "entities": [
+                {"text": "vaginal discharge", "label": "finding"},
+                {"text": "has womb insitu", "label": "body_structure"},
+            ],
+        }
+    )
+    rels = out["entities"][0].get("__relations") or []
+    assert rels == [], f"LLM must not attach a status phrase as a site: {rels}"
+    assert not out["entities"][0].get("body_site")

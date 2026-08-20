@@ -22,6 +22,11 @@ from langgraph.graph.state import CompiledStateGraph
 from libs.llm_client.json_helper import _extract_json
 from libs.llm_client.prompt_safety import sanitise_for_prompt
 from libs.ner.body_structure_guard import suppress_orphan_body_structures
+from libs.relations.finding_site import (
+    is_usable_finding_site_tail,
+    pick_relation_type,
+    predict_nearby_finding_sites,
+)
 from libs.relations.policy import (
     allowed_relation_types,
     canonicalise_relations,
@@ -253,72 +258,15 @@ def _load_relation_model() -> dict[str, Any]:
     return _RELATION_MODEL_CACHE
 
 
-def _pick_relation_type(
-    source: dict[str, Any],
-    target: dict[str, Any],
-    pair_prior: dict[str, Any],
-    allowed_types: list[str],
-) -> tuple[str | None, float]:
-    """Pick a relation type. No-prior pairs only get nearby finding_site."""
-    has_offsets = isinstance(source.get("start"), int) and isinstance(
-        target.get("start"), int
-    )
-    if not pair_prior:
-        if not has_offsets or "finding_site" not in allowed_types:
-            return None, 0.0
-        distance = abs(int(source["start"]) - int(target["start"]))
-        if distance > 500:
-            return None, 0.0
-        return "finding_site", max(0.62, 0.9 - min(distance, 1200) / 3000.0)
-
-    rel_type = max(allowed_types, key=lambda t: float(pair_prior.get(t) or 0.0))
-    total = sum(float(v) for v in pair_prior.values()) or 1.0
-    prior = float(pair_prior.get(rel_type) or 0.0) / total
-    confidence = max(0.82, min(0.95, 0.55 + prior))
-    if has_offsets:
-        distance = abs(int(source.get("start") or 0) - int(target.get("start") or 0))
-        confidence = max(0.62, 0.9 - min(distance, 1200) / 3000.0)
-    return rel_type, confidence
+_pick_relation_type = pick_relation_type
 
 
 def _model_predict_relations(entities: list[dict[str, Any]]) -> dict[str, Any]:
-    """Deterministic predictor: pair_priors, else nearby finding_site only."""
-    relations: list[dict[str, Any]] = []
+    """Deterministic predictor: pair_priors, else a supported finding_site."""
     model = _load_relation_model()
-    pair_priors = dict(model.get("pair_priors") or {})
-    for i, source in enumerate(entities):
-        src_label = _entity_label(source)
-        for j, target in enumerate(entities):
-            if i == j:
-                continue
-            tgt_label = _entity_label(target)
-            pair_key = (
-                f"{str(src_label).strip().lower()}->"
-                f"{str(tgt_label).strip().lower()}"
-            )
-            pair_prior = dict(pair_priors.get(pair_key) or {})
-            allowed_types = [
-                rt
-                for rt in allowed_relation_types()
-                if is_relation_allowed(
-                    source_label=src_label, target_label=tgt_label, relation_type=rt
-                )[0]
-            ]
-            if not allowed_types:
-                continue
-            rel_type, conf = _pick_relation_type(
-                source, target, pair_prior, allowed_types
-            )
-            if rel_type is None:
-                continue
-            relations.append(
-                {
-                    "head_idx": i,
-                    "tail_idx": j,
-                    "type": rel_type,
-                    "confidence": round(conf, 4),
-                }
-            )
+    relations = predict_nearby_finding_sites(
+        entities, dict(model.get("pair_priors") or {})
+    )
     return {"relations": relations, "suppress": []}
 
 
@@ -411,6 +359,8 @@ def _add_entity_relation(
         relation_type=relation_type,
     )
     if not label_ok:
+        return
+    if relation_type == "finding_site" and not is_usable_finding_site_tail(tail):
         return
     head_relations = list(head.get("__relations") or [])
     relation = {
