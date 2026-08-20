@@ -1,9 +1,10 @@
 """Finding-site tail checks and nearby-site prediction.
 
-Atlas:
+Atlas trace:
   DI: DI-044827AD, DI-6ACD24D2
   DO: DO-49256B13
   Risk: R-1BC83D6A
+  Look up via: get_design_control(dc_type="design-output", dc_id="DO-49256B13")
 """
 
 from __future__ import annotations

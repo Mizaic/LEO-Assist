@@ -1,7 +1,7 @@
 /**
  * HITL buttons on the Operations review card.
  *
- * Atlas: DI-4A012A59
+ * Atlas trace: DI-4A012A59
  */
 "use client";
 
