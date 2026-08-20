@@ -470,6 +470,27 @@ export function detectAtLeastCluster(
  * is split out -- see `nice_list_parser.py`'s `_own_text`), so the
  * marker still needs stripping here exactly as on the heuristic path.
  */
+/**
+ * When structureChildren are present, NICE sometimes introduces the list with
+ * "SYMPTOM who: ..." or "SYMPTOM, and: ..." rather than "any of the following:".
+ * Split at that list-intro phrase so the lead clinical concept is preserved as
+ * a codeable row in Step 3. Only used in the structure-backed path where the
+ * actual items come from structureChildren, not from listText.
+ */
+function splitAtListIntroColon(
+  cleaned: string,
+): { leadText: string; listText: string } | null {
+  const whoMatch = /^(.+?)\s+who\s*:\s*(.*)/is.exec(cleaned);
+  if (whoMatch) {
+    return { leadText: whoMatch[1].trim(), listText: (whoMatch[2] ?? "").trim() };
+  }
+  const andMatch = /^(.+?),\s*and\s*:\s*(.*)/is.exec(cleaned);
+  if (andMatch) {
+    return { leadText: andMatch[1].trim(), listText: (andMatch[2] ?? "").trim() };
+  }
+  return null;
+}
+
 export function resolveAtLeastCluster(
   boundary: Pick<PathwayTextBoundary, "text" | "source" | "structureChildren">,
 ): AtLeastClusterSplit | null {
@@ -487,7 +508,10 @@ export function resolveAtLeastCluster(
     if (items.length === 0) return null;
 
     const cleaned = cleanPathwayText(boundary.text);
-    const split = splitAtMarker(cleaned) ?? splitAtMarkerRelaxed(cleaned);
+    const split =
+      splitAtMarker(cleaned) ??
+      splitAtMarkerRelaxed(cleaned) ??
+      splitAtListIntroColon(cleaned);
     const leadText = split ? split.leadText : cleaned;
     // Prefer the pathway's own marker wording for suggestedMin; when
     // the marker lives only on the sibling situation (shared list on
