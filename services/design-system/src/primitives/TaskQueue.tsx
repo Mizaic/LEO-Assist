@@ -15,7 +15,9 @@ import { useMotion } from "../motion";
 export type WorkTaskType =
   | "coding_review"
   | "safety_net_alert"
-  | "gold_label";
+  | "gold_label"
+  | "extraction_quality_pause"
+  | "surface_form_approval";
 
 export interface WorkTask {
   task_id: string;
@@ -32,6 +34,8 @@ export interface CountsBySource {
   coding_review: number;
   safety_net_alert: number;
   gold_label: number;
+  extraction_quality_pause: number;
+  surface_form_approval: number;
 }
 
 export interface TaskQueueProps {
@@ -47,11 +51,15 @@ const SOURCE_LABELS: Record<WorkTaskType, string> = {
   coding_review: "Code checks",
   safety_net_alert: "Safety alerts",
   gold_label: "Label reviews",
+  extraction_quality_pause: "Paused extractions",
+  surface_form_approval: "Phrase approvals",
 };
 
 const SOURCE_ORDER: ReadonlyArray<WorkTaskType> = [
   "safety_net_alert",
+  "extraction_quality_pause",
   "coding_review",
+  "surface_form_approval",
   "gold_label",
 ];
 

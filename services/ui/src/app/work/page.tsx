@@ -37,6 +37,8 @@ const EMPTY_COUNTS: CountsBySource = {
   coding_review: 0,
   safety_net_alert: 0,
   gold_label: 0,
+  extraction_quality_pause: 0,
+  surface_form_approval: 0,
 };
 
 async function fetchWorkTasks(
