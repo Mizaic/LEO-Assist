@@ -14,7 +14,6 @@
  * Falls back to the seeded UCUM list when no lab config exists.
  */
 import { useEffect, useState } from "react";
-import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 
 import { getLabResultConfig } from "@/app/admin/lab-results/api";
@@ -81,17 +80,17 @@ export default function ObservableUnitSelect({
 
   return (
     <Select
+      native
       size="small"
       value={safeValue}
-      displayEmpty
       onChange={(e) => onChange(String(e.target.value))}
       inputProps={{ "aria-label": ariaLabel }}
       sx={{ minWidth }}
     >
       {options.map((unit) => (
-        <MenuItem key={unit} value={unit}>
+        <option key={unit} value={unit}>
           {unit}
-        </MenuItem>
+        </option>
       ))}
     </Select>
   );
