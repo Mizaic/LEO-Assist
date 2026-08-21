@@ -4,8 +4,8 @@ param environment = 'dev'
 param imageTag = 'latest'
 param acrResourceGroup = 'leo-common-rg'
 param acrName = 'mizaicleoacr'
-param storageAccountResourceGroup = 'leo-test-rg'
-param storageAccountName = 'leoteststoresa'
+param storageAccountResourceGroup = 'leo-ai'
+param storageAccountName = 'leoaimodels'
 
 // Neo4j
 param neo4jUser = 'neo4j'
