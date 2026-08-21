@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 
 import AccuracyLoopHome, { type LabDoor } from "./AccuracyLoopHome";
@@ -28,10 +29,15 @@ import { getCase, listCases, type LabCase } from "./labApi";
 import { listOpenFindings } from "./labFindingsApi";
 import { pollCasePipeline, queueCasePipeline } from "./labRun";
 import type { ValidationFinding } from "./findingTypes";
+import ExtractionQualityReviewDialog from "@/components/operations/ExtractionQualityReviewDialog";
 
 type View = "home" | LabDoor;
 
 export default function ValidationLabPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const hitlTaskId = searchParams.get("hitl_task_id") ?? "";
+
   const [view, setView] = useState<View>("home");
   const [review, setReview] = useState<RunReviewTarget | null>(null);
   const [goldCases, setGoldCases] = useState<LabCase[]>([]);
@@ -50,6 +56,12 @@ export default function ValidationLabPage() {
   useEffect(() => {
     void reloadStrip().catch(() => undefined);
   }, [reloadStrip]);
+
+  function clearHitlParam() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("hitl_task_id");
+    router.replace(`/admin/knowledge?${params.toString()}`);
+  }
 
   async function openGold(caseId: string) {
     const labCase = await getCase(caseId);
@@ -90,6 +102,20 @@ export default function ValidationLabPage() {
 
   return (
     <Box data-testid="validation-lab-page">
+      {hitlTaskId ? (
+        <ExtractionQualityReviewDialog
+          taskId={hitlTaskId}
+          open
+          onClose={() => {
+            clearHitlParam();
+            void reloadStrip();
+          }}
+          onUnlocked={() => {
+            clearHitlParam();
+            void reloadStrip();
+          }}
+        />
+      ) : null}
       {view === "home" ? (
         <AccuracyLoopHome
           goldCases={goldCases}
