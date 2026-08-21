@@ -8,9 +8,9 @@ param acrName = 'mizaicleoacr'
 // -AcrSubscriptionId to deploy.ps1. Same tenant required.
 //   az group show -n leo-common-rg --subscription '<platform-sub>' --query id -o tsv
 param acrSubscriptionId = 'b794024d-800e-452a-89a2-f8cb32af94db'
-param storageAccountResourceGroup = 'leo-test-rg'
-param storageAccountName = 'leoteststoresa'
-// Cross-subscription: set storageAccountSubscriptionId if leo-test-rg is not in the val sub.
+param storageAccountResourceGroup = 'leo-ai'
+param storageAccountName = 'leoaimodels'
+// Cross-subscription: set storageAccountSubscriptionId if leo-ai is not in the val sub.
 // param storageAccountSubscriptionId = '<platform-subscription-guid>'
 
 // Neo4j
