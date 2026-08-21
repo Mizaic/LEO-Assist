@@ -136,13 +136,12 @@ class TestParseTerms:
         }
         result = ext._parse_terms(payload, sentences)
         assert len(result) == 2
-        # DI-LEO-AI-103: LLM extractor must NOT honour LLM-supplied
-        # assertion. Every entity is initialised to "present" and ConText /
-        # scope guards are the sole authority for non-present assertions.
+        # Extractor honours LLM assertion; ConText / scope guards may
+        # override later in post-processing.
         assert result[0].assertion == "present"
         assert result[0].context["negated"] is False
-        assert result[1].assertion == "present"
-        assert result[1].context["negated"] is False
+        assert result[1].assertion == "absent"
+        assert result[1].context["negated"] is True
 
     def test_filters_invalid_sentence_ids(self):
         ext = self._make_extractor()

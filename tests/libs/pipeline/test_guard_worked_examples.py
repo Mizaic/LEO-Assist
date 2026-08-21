@@ -167,6 +167,24 @@ def _check_blocklist(example: dict[str, Any]) -> None:
         assert term_mod._is_blocked_mapping(check["text"], check["concept_id"])
 
 
+def _check_ignore_phrase(example: dict[str, Any]) -> None:
+    from libs.pipeline.ignore_phrase_catalog import as_ignore_phrase_rows
+
+    rows = as_ignore_phrase_rows(
+        [
+            {
+                "rule_id": "ppr-ui",
+                "active": True,
+                "action": "suppress",
+                "match_text": example["note"],
+                "match_label": example["check"].get("match_label", "finding"),
+            }
+        ]
+    )
+    assert rows[0]["family"] == "ignore_phrase"
+    assert rows[0]["pattern"] == example["note"]
+
+
 _HANDLERS = {
     "scope_suppressed": _check_scope_suppressed,
     "scope_hypothetical": _check_scope_hypothetical,
@@ -180,6 +198,7 @@ _HANDLERS = {
     "body_keep": _check_body_keep,
     "body_drop": _check_body_drop,
     "fact_link_allowed": _check_fact_link_allowed,
+    "ignore_phrase": _check_ignore_phrase,
 }
 
 

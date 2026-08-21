@@ -192,6 +192,7 @@ def call_stage(
             messages=[{"role": "user", "content": user}],
             tool_config=build_tool_config(tool_name, schema),
             max_tokens=max_tokens,
+            agent_task=stage,
         )
     except Exception as exc:
         trace.ok = False
@@ -276,6 +277,7 @@ def call_stage(
             messages=[{"role": "user", "content": retry_user}],
             tool_config=build_tool_config(tool_name, schema),
             max_tokens=max_tokens,
+            agent_task=stage,
         )
     except Exception as exc:
         trace.ok = False

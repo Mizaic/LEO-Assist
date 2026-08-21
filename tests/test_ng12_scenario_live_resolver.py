@@ -22,6 +22,16 @@ def _unique_lookup_terms() -> list[str]:
     return sorted(terms, key=str.lower)
 
 
+def _terminology_api_reachable(base_url: str) -> bool:
+    try:
+        import httpx
+
+        httpx.get(base_url, timeout=2.0)
+        return True
+    except Exception:
+        return False
+
+
 @pytest.mark.skipif(
     not os.getenv("TERMINOLOGY_API_URL", "").strip(),
     reason="TERMINOLOGY_API_URL unset -- skip live terminology check",
@@ -31,6 +41,8 @@ def test_resolve_all_fixture_lookup_terms_live() -> None:
     terms = _unique_lookup_terms()
     assert terms
     base = os.environ["TERMINOLOGY_API_URL"].strip()
+    if not _terminology_api_reachable(base):
+        pytest.skip("terminology API not reachable -- skip live resolve")
     client = TerminologyClient(base_url=base, timeout=30.0, max_retries=1)
     batch = 30
     for i in range(0, len(terms), batch):

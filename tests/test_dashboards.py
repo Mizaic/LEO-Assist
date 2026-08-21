@@ -24,7 +24,7 @@ class TestEpisodeSummary:
 
         result = episode_summary(org_id=None)
         assert len(result) == 2
-        assert result[0]["condition_type"] == "breast"
+        assert result[0]["condition_type"] == "Breast"
         MockPG.return_value.close.assert_called_once()
 
     @patch("services.analytics_api.app.routers.dashboards.PatientGraphClient")

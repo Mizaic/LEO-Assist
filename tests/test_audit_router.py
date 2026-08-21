@@ -958,10 +958,11 @@ class TestCypherComposition:
         base, params = _add_date_filters(
             _ORG_PATIENT_MATCH, {"org": "abc"}, "2024-01-01", None
         )
-        # Count WHERE occurrences -- must be exactly 4:
-        # GP filter, episode filter, optional-match milestone filter,
-        # and the trailing WHERE true (now extended with the date filter).
-        assert base.count("WHERE") == 4
+        # Count WHERE occurrences -- must be exactly 5:
+        # patient org scope, nested GP EXISTS filter, episode filter,
+        # optional-match milestone filter, and the trailing WHERE true
+        # (now extended with the date filter).
+        assert base.count("WHERE") == 5
         assert "AND outcome_date >= $date_from" in base
 
 

@@ -78,28 +78,23 @@ describe("GuidancePage", () => {
     });
   });
 
-  it("renders three section headings", async () => {
+  it("renders four workflow step tabs", async () => {
     render(<GuidancePage />);
     await waitFor(() => {
       expect(screen.getByText(/1\. Load/i)).toBeInTheDocument();
-      expect(screen.getByText(/2\. Review/i)).toBeInTheDocument();
-      expect(screen.getByText(/3\. Compile/i)).toBeInTheDocument();
+      expect(screen.getByText(/2\. Inspect/i)).toBeInTheDocument();
+      expect(screen.getByText(/3\. Review/i)).toBeInTheDocument();
+      expect(screen.getByText(/4\. Compile/i)).toBeInTheDocument();
     });
   });
 
-  it("keeps workflow step sections collapsed by default and opens on header click", async () => {
+  it("shows the load step by default with the guideline search", async () => {
     render(<GuidancePage />);
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: /find and load a guideline/i }),
       ).toBeInTheDocument();
     });
-    const loadToggle = screen.getByRole("button", {
-      name: /find and load a guideline/i,
-    });
-    expect(loadToggle).toHaveAttribute("aria-expanded", "false");
-    fireEvent.click(loadToggle);
-    expect(loadToggle).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getByRole("button", { name: /load this guideline/i }),
     ).toBeInTheDocument();

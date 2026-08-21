@@ -71,7 +71,9 @@ def test_deduplication_of_existing_relations():
 # ---------------------------------------------------------------------------
 
 def test_finding_site_for_finding_containing_body_structure():
-    finding = _e("e1", 1, "lump in left breast", ["FINDING"])
+    # Production heuristic requires a prep + "the" (e.g. "in the") or
+    # a body quote at the start of the finding quote.
+    finding = _e("e1", 1, "lump in the left breast", ["FINDING"])
     body    = _e("e2", 1, "left breast", ["BODY_STRUCTURE"])
     rels = add_deterministic_relations([finding, body])
     types = [r["type"] for r in rels]
@@ -97,5 +99,7 @@ def test_needs_llm_pass_with_finding_and_body():
 
 
 def test_no_llm_pass_for_labs_only():
-    ents = [LAB_PROC, LAB_OBS, LAB_FIND]
+    # FINDING + PROCEDURE now requests the LLM linker. A lab pair with
+    # no FINDING still stays on the deterministic path.
+    ents = [LAB_PROC, LAB_OBS]
     assert needs_llm_relation_pass(ents) is False

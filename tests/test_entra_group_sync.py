@@ -121,7 +121,7 @@ def test_empty_groups_list_is_treated_as_missing():
 
 
 def test_single_known_group_resolves_to_one_role_and_writes_edges():
-    rows = [{"entra_object_id": "G-1", "role_name": "clinician"}]
+    rows = [{"entra_object_id": "G-1", "role_name": "triage_clinician"}]
     client = _make_client(resolve_rows=rows)
 
     with patch.object(
@@ -136,7 +136,7 @@ def test_single_known_group_resolves_to_one_role_and_writes_edges():
             client=client,
         )
 
-    assert result.role_names == ["clinician"]
+    assert result.role_names == ["triage_clinician"]
     assert result.unknown_group_ids == []
     assert result.fallthrough is False
 
@@ -148,24 +148,24 @@ def test_single_known_group_resolves_to_one_role_and_writes_edges():
     drop_kwargs = _kwargs_for(client, DROP_STALE_HAS_ROLE)[0]
     add_kwargs = _kwargs_for(client, ADD_HAS_ROLE_EDGES)[0]
     assert drop_kwargs["email"] == "user@example.com"
-    assert drop_kwargs["role_names"] == ["clinician"]
+    assert drop_kwargs["role_names"] == ["triage_clinician"]
     assert add_kwargs["email"] == "user@example.com"
-    assert add_kwargs["role_names"] == ["clinician"]
+    assert add_kwargs["role_names"] == ["triage_clinician"]
 
     mock_resolved.assert_called_once_with(
         email="user@example.com",
         ip="10.0.0.4",
         group_ids=["G-1"],
-        role_names=["clinician"],
+        role_names=["triage_clinician"],
     )
     mock_unknown.assert_not_called()
 
 
 def test_multiple_groups_dedupe_and_sort():
     rows = [
-        {"entra_object_id": "G-1", "role_name": "clinician"},
-        {"entra_object_id": "G-2", "role_name": "clinician"},  # dup role
-        {"entra_object_id": "G-3", "role_name": "qa_ra_lead"},
+        {"entra_object_id": "G-1", "role_name": "triage_clinician"},
+        {"entra_object_id": "G-2", "role_name": "triage_clinician"},  # dup role
+        {"entra_object_id": "G-3", "role_name": "org_admin"},
     ]
     client = _make_client(resolve_rows=rows)
 
@@ -177,12 +177,12 @@ def test_multiple_groups_dedupe_and_sort():
             client=client,
         )
 
-    assert result.role_names == ["clinician", "qa_ra_lead"]  # sorted
+    assert result.role_names == ["org_admin", "triage_clinician"]
     assert result.unknown_group_ids == []
 
 
 def test_unknown_group_is_audited_and_dropped():
-    rows = [{"entra_object_id": "G-KNOWN", "role_name": "clinician"}]
+    rows = [{"entra_object_id": "G-KNOWN", "role_name": "triage_clinician"}]
     client = _make_client(resolve_rows=rows)
 
     with patch.object(
@@ -197,7 +197,7 @@ def test_unknown_group_is_audited_and_dropped():
             client=client,
         )
 
-    assert result.role_names == ["clinician"]
+    assert result.role_names == ["triage_clinician"]
     assert result.unknown_group_ids == ["G-UNKNOWN"]
 
     mock_unknown.assert_called_once_with(
@@ -210,7 +210,7 @@ def test_unknown_group_is_audited_and_dropped():
 
 def test_non_canonical_role_from_catalogue_is_dropped():
     rows = [
-        {"entra_object_id": "G-1", "role_name": "clinician"},
+        {"entra_object_id": "G-1", "role_name": "triage_clinician"},
         {"entra_object_id": "G-2", "role_name": "ghost_role"},  # not canonical
     ]
     client = _make_client(resolve_rows=rows)
@@ -223,7 +223,7 @@ def test_non_canonical_role_from_catalogue_is_dropped():
             client=client,
         )
 
-    assert result.role_names == ["clinician"]
+    assert result.role_names == ["triage_clinician"]
 
 
 def test_drop_stale_runs_even_when_no_roles_resolved():
@@ -252,7 +252,7 @@ def test_drop_stale_runs_even_when_no_roles_resolved():
 
 
 def test_string_groups_claim_is_coerced_to_list():
-    rows = [{"entra_object_id": "G-1", "role_name": "staff"}]
+    rows = [{"entra_object_id": "G-1", "role_name": "clinical_administrator"}]
     client = _make_client(resolve_rows=rows)
 
     with patch.object(entra_group_sync, "emit_entra_groups_resolved"):
@@ -263,7 +263,7 @@ def test_string_groups_claim_is_coerced_to_list():
             client=client,
         )
 
-    assert result.role_names == ["staff"]
+    assert result.role_names == ["clinical_administrator"]
 
 
 def test_email_normalisation_is_applied_to_neo4j_calls():

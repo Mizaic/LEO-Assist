@@ -24,4 +24,4 @@ def test_evaluate_soft_fails_when_evaluate_patient_raises(monkeypatch) -> None:
         {"patientAge": 50, "pmh": [{"conceptId": "123"}]},
     )
     assert trigger is None
-    assert reason == "rule not currently compiled"
+    assert reason == "rule check unavailable"

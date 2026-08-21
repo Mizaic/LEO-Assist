@@ -180,10 +180,7 @@ def validate_nested_start_invariant(
                     "entity": proc,
                 })
                 grouped_ids.add(proc.get("id", ""))
-            else:
-                for m in group:
-                    grouped_ids.add(m.get("id", ""))
-                grouped_ids.add(proc.get("id", ""))
+            # Valid groups stay out of grouped_ids so they land in clean.
 
         for e in ents:
             if e.get("id", "") not in grouped_ids:

@@ -38,10 +38,10 @@ CSO-controlled rollback.
 
 A Mizaic-portfolio product embedding the LEO widget SHALL:
 
-1. Maintain its own DCB0129 deployment safety case covering the
-  workflow in which the LEO widget appears. LEO's DCB0129 covers  
-   the widget itself; the host's DCB0129 covers the host workflow  
-   and the integration boundary.
+1. Maintain its own DCB0129 deployment safety case and DCB0160 clinical
+  safety assessment covering the workflow in which the LEO widget appears.
+  LEO's DCB0129 covers the widget itself; the host's DCB0129 covers the
+  host workflow and the integration boundary.
 2. Allowlist the LEO widget CDN origin and the LEO analytics
   endpoint in the host's Content Security Policy. The widget
    cannot operate behind a CSP that blocks either origin.

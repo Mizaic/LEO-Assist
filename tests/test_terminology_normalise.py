@@ -1,7 +1,7 @@
 """Tests for VT-LEO-AI-080 -- resolver input normalisation and header filtering.
 
-Covers DI-LEO-AI-080 (appointment header filter) and the DI-LEO-AI-004
-bug fix (_normalise_for_resolve strips lab values and EMIS codes).
+Covers DI-LEO-AI-080 (appointment header filter). Lookup keeps Read/EMIS
+codes and lab values; only whitespace is normalised.
 """
 
 from __future__ import annotations
@@ -113,38 +113,41 @@ class TestFilterHeaderSentences:
 
 class TestNormaliseForResolve:
     @pytest.mark.parametrize(
-        "raw,expected",
+        "raw",
         [
-            ("Serum triglyceride 1.05 mmol/L", "Serum triglyceride"),
-            ("Serum cholesterol level 5.3 mmol/L", "Serum cholesterol level"),
-            ("Haemoglobin 160 g/L", "Haemoglobin"),
-            ("Serum TSH level 1.3 mIU/L", "Serum TSH level"),
-            ("Serum folate 4.1 ng/ml", "Serum folate"),
-            ("Serum vitamin B12 631 ng/L", "Serum vitamin B12"),
-            ("BMI 28.4 kg/m2", "BMI"),
-            ("White blood cell count 6.8 10^9/L", "White blood cell count"),
-            ("eGFR 62 mL/min", "eGFR"),
-            ("Platelet count 220 10^9/L", "Platelet count"),
-            ("Serum alkaline phosphatase 78 U/L", "Serum alkaline phosphatase"),
-            ("Serum HDL cholesterol 1.22 mmol/L", "Serum HDL cholesterol"),
+            "Serum triglyceride 1.05 mmol/L",
+            "Serum cholesterol level 5.3 mmol/L",
+            "Haemoglobin 160 g/L",
+            "Serum TSH level 1.3 mIU/L",
+            "Serum folate 4.1 ng/ml",
+            "Serum vitamin B12 631 ng/L",
+            "BMI 28.4 kg/m2",
+            "White blood cell count 6.8 10^9/L",
+            "eGFR 62 mL/min",
+            "Platelet count 220 10^9/L",
+            "Serum alkaline phosphatase 78 U/L",
+            "Serum HDL cholesterol 1.22 mmol/L",
         ],
     )
-    def test_strips_lab_value_and_unit(self, raw, expected):
-        # VT-080-TC-007
-        assert _normalise_for_resolve(raw) == expected
+    def test_keeps_lab_value_and_unit(self, raw):
+        # Surface forms are indexed with values present, so lookup
+        # must keep the full string. Whitespace is the only change.
+        assert _normalise_for_resolve(raw) == raw
 
-    # VT-080-TC-008 -- EMIS local code stripping
     @pytest.mark.parametrize(
-        "raw,expected",
+        "raw",
         [
-            ("Carcinoma of stomach (X78gA)", "Carcinoma of stomach"),
-            ("Chronic Symptoms (Y41c9)", "Chronic Symptoms"),
-            ("Prolapsed intervertebral disc (X70Cg)", "Prolapsed intervertebral disc"),
-            ("Lumbar spinal stenosis (N1402)", "Lumbar spinal stenosis"),
+            "Carcinoma of stomach (X78gA)",
+            "Chronic Symptoms (Y41c9)",
+            "Prolapsed intervertebral disc (X70Cg)",
+            "Lumbar spinal stenosis (N1402)",
         ],
     )
-    def test_strips_emis_code(self, raw, expected):
-        assert _normalise_for_resolve(raw) == expected
+    def test_keeps_emis_code(self, raw):
+        assert _normalise_for_resolve(raw) == raw
+
+    def test_collapses_whitespace_only(self):
+        assert _normalise_for_resolve("  Serum   TSH  ") == "Serum TSH"
 
     # VT-080-TC-009 -- plain clinical terms unchanged
     @pytest.mark.parametrize(
@@ -179,7 +182,7 @@ class TestResolveReKeying:
         from libs.terminology.client import TerminologyClient, ResolvedTerm
 
         fake_candidate = ResolvedTerm(
-            text="Serum triglyceride",
+            text="Serum triglyceride 1.05 mmol/L",
             concept_id="134427008",
             term="Serum triglyceride measurement",
             semantic_tag="observable_entity",
@@ -187,24 +190,22 @@ class TestResolveReKeying:
         )
 
         client = TerminologyClient()
-        # _resolve_batch returns results keyed by the NORMALISED term.
         with patch.object(
             client,
             "_resolve_batch",
-            return_value={"Serum triglyceride": [fake_candidate]},
+            return_value={"Serum triglyceride 1.05 mmol/L": [fake_candidate]},
         ):
             result = client.resolve(["Serum triglyceride 1.05 mmol/L"])
 
-        # Caller must get results keyed by the ORIGINAL term.
         assert "Serum triglyceride 1.05 mmol/L" in result
         assert result["Serum triglyceride 1.05 mmol/L"][0].concept_id == "134427008"
 
-    def test_two_originals_normalising_to_same_key(self):
-        """Two different lab strings that normalise to the same term both get results."""
+    def test_two_whitespace_variants_share_a_key(self):
+        """Whitespace-only variants share one lookup key and both get results."""
         from libs.terminology.client import TerminologyClient, ResolvedTerm
 
         fake = ResolvedTerm(
-            text="Serum triglyceride",
+            text="Serum triglyceride 1.05 mmol/L",
             concept_id="134427008",
             term="Serum triglyceride measurement",
             semantic_tag="observable_entity",
@@ -215,14 +216,14 @@ class TestResolveReKeying:
         with patch.object(
             client,
             "_resolve_batch",
-            return_value={"Serum triglyceride": [fake]},
+            return_value={"Serum triglyceride 1.05 mmol/L": [fake]},
         ):
             result = client.resolve(
                 [
                     "Serum triglyceride 1.05 mmol/L",
-                    "Serum triglyceride 2.3 mmol/L",
+                    "  Serum   triglyceride 1.05 mmol/L  ",
                 ]
             )
 
         assert "Serum triglyceride 1.05 mmol/L" in result
-        assert "Serum triglyceride 2.3 mmol/L" in result
+        assert "  Serum   triglyceride 1.05 mmol/L  " in result

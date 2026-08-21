@@ -299,7 +299,7 @@ function ReviewLetterPane({
         borderColor: "divider",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "#FAFAFA",
+        bgcolor: "grey.50",
         minHeight: 0,
       }}
     >
@@ -309,10 +309,10 @@ function ReviewLetterPane({
           py: 0.75,
           borderBottom: "1px solid",
           borderColor: "divider",
-          bgcolor: "#EFF6FF",
+          bgcolor: "action.hover",
         }}
       >
-        <Typography variant="caption" fontWeight={700} color="#1E40AF">
+        <Typography variant="caption" fontWeight={700} color="primary.main">
           Select any text on the letter to add it as a fact
         </Typography>
       </Box>
@@ -459,7 +459,7 @@ function FactList({
         <Chip
           label={entities.length}
           size="small"
-          sx={{ bgcolor: "#EFF6FF", color: "#1E40AF", fontWeight: 700 }}
+          sx={{ bgcolor: "action.hover", color: "primary.main", fontWeight: 700 }}
         />
       </Stack>
       {entities.length === 0 ? (

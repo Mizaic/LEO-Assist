@@ -32,6 +32,21 @@ class ValidationResult:
     tag_synonym: bool = False
     debug: dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "accepted": self.accepted,
+            "reason": self.reason,
+            "surface_text": self.surface_text,
+            "proposed_label": self.proposed_label,
+            "concept_id": self.concept_id,
+            "snomed_term": self.snomed_term,
+            "semantic_tag": self.semantic_tag,
+            "resolver_score": self.resolver_score,
+            "surface_match": self.surface_match,
+            "tag_synonym": self.tag_synonym,
+            "debug": dict(self.debug),
+        }
+
 
 @dataclass(frozen=True)
 class EntityAuditResult:

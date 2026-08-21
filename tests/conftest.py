@@ -14,10 +14,10 @@ def mock_env(monkeypatch):
     """Set minimal environment for all tests."""
     monkeypatch.setenv("NEO4J_PATIENT_URI", "bolt://localhost:7687")
     monkeypatch.setenv("NEO4J_PATIENT_USER", "neo4j")
-    monkeypatch.setenv("NEO4J_PATIENT_PASSWORD", "test")
+    monkeypatch.setenv("NEO4J_PATIENT_PASSWORD", "patient-dev")
     monkeypatch.setenv("NEO4J_KNOWLEDGE_URI", "bolt://localhost:7688")
     monkeypatch.setenv("NEO4J_KNOWLEDGE_USER", "neo4j")
-    monkeypatch.setenv("NEO4J_KNOWLEDGE_PASSWORD", "test")
+    monkeypatch.setenv("NEO4J_KNOWLEDGE_PASSWORD", "knowledge-dev")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379")
     monkeypatch.setenv("AZURE_AD_TENANT_ID", "test-tenant")
     monkeypatch.setenv("AZURE_AD_CLIENT_ID", "test-client")

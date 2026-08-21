@@ -87,6 +87,7 @@ def _patch_integrity_ok(monkeypatch) -> None:
         "services.pipeline_worker.app.services.sbar_orchestrator.validate_sbar_context",
         lambda _session, _payload: ContextIntegrityResult(ok=True),
     )
+    _patch_gate3_noop(monkeypatch)
 
 
 def _patch_gate3_noop(monkeypatch) -> None:
@@ -96,7 +97,16 @@ def _patch_gate3_noop(monkeypatch) -> None:
     from libs.sbar.situation_source import SituationSourceResult
 
     async def _fake_prepare_gate3_context(**_kw):
-        return Gate3Context(structured=SituationSourceResult(headline=""))
+        return Gate3Context(
+            structured=SituationSourceResult(headline=""),
+            source_accounting={
+                "source_count": 1,
+                "code_count": 1,
+                "total_sentences": 1,
+                "covered_sentences": 1,
+                "uncovered_sentences": 0,
+            },
+        )
 
     monkeypatch.setattr(
         "services.pipeline_worker.app.services.sbar_orchestrator."

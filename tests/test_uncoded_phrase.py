@@ -67,5 +67,5 @@ def test_merge_resolution_keeps_rejected_guess_without_code() -> None:
 def test_persist_queues_uncoded_and_stamps_left_uncoded() -> None:
     persist_source = Path("libs/pipeline_graph/subgraphs/persist.py").read_text()
     assert "record_uncoded_phrases" in persist_source
-    assert 'if not concept_id or e.get("terminology_unresolved"):' in persist_source
+    assert 'if not concept_id or entity.get("terminology_unresolved"):' in persist_source
     assert 'decision = "left_uncoded" if unresolved else "auto_coded"' in persist_source

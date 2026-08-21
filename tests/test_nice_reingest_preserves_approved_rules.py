@@ -18,12 +18,18 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 # nice_graph_upserter.py uses an absolute `from app.services...` import that
 # only resolves once services/api is on sys.path (as it is under uvicorn /
 # the services/api/tests conftest). Root-level tests/ need the same setup.
 _API_ROOT = Path(__file__).resolve().parent.parent / "services" / "api"
 if str(_API_ROOT) not in sys.path:
     sys.path.insert(0, str(_API_ROOT))
+
+# A local `redis` shadow (or a missing extra) breaks collection via
+# app.services.nice_api_client -> redis.asyncio.
+pytest.importorskip("redis.asyncio")
 
 from services.api.app.services import (  # noqa: E402
     nice_graph_upserter as upserter_module,

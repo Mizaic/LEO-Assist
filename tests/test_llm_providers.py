@@ -137,9 +137,13 @@ class TestGetAzureModel:
 
 class TestBedrockModelId:
 
-    def test_default_model_id(self):
+    def test_default_model_id(self, monkeypatch):
         from libs.llm_client.providers import _bedrock_model_id
 
+        monkeypatch.setenv(
+            "AWS_BEDROCK_MODEL",
+            "arn:aws:bedrock:eu-west-2:123:anthropic.claude-sonnet-4",
+        )
         mid = _bedrock_model_id()
         assert "anthropic" in mid or "claude" in mid
 

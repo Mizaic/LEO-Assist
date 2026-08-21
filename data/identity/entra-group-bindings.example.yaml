@@ -24,18 +24,18 @@
 # Entra Object IDs before running the seed script in any environment.
 
 roles:
-  - name: clinician
+  - name: triage_clinician
     description: "Reads and reviews clinical encounters; can approve or reject AI proposals."
     permissions:
       - reviewer.read
       - reviewer.approve
       - reviewer.reject
-  - name: staff
+  - name: clinical_administrator
     description: "Operations / admin support; reads patient pathways, manages alerts, no clinical sign-off."
     permissions:
       - reviewer.read
       - alerts.manage
-  - name: qa_ra_lead
+  - name: auditor
     description: "QA / RA lead; reads everything, can run audits and exports."
     permissions:
       - reviewer.read
@@ -50,20 +50,20 @@ bindings:
   # -------- Acme Trust (example tenant) --------
   - entra_object_id: "00000000-0000-0000-0000-000000000001"
     name: "LEO Clinicians - Acme Trust"
-    description: "Members get the clinician role in LEO."
-    role_name: clinician
+    description: "Members get the triage_clinician role in LEO."
+    role_name: triage_clinician
     org_id: "ORG-ACME"
 
   - entra_object_id: "00000000-0000-0000-0000-000000000002"
     name: "LEO Operations Staff - Acme Trust"
-    description: "Members get the staff role in LEO."
-    role_name: staff
+    description: "Members get the clinical_administrator role in LEO."
+    role_name: clinical_administrator
     org_id: "ORG-ACME"
 
   - entra_object_id: "00000000-0000-0000-0000-000000000003"
     name: "LEO QA / RA Leads - Acme Trust"
-    description: "Members get the qa_ra_lead role in LEO."
-    role_name: qa_ra_lead
+    description: "Members get the auditor role in LEO."
+    role_name: auditor
     org_id: "ORG-ACME"
 
   - entra_object_id: "00000000-0000-0000-0000-000000000099"

@@ -46,9 +46,9 @@ def test_seed_runs_constraint_then_roles_then_bindings():
     client = _client_returning(
         {
             SEED_CANONICAL_ROLES: [
-                {"name": "clinician"},
-                {"name": "staff"},
-                {"name": "qa_ra_lead"},
+                {"name": "triage_clinician"},
+                {"name": "clinical_administrator"},
+                {"name": "auditor"},
                 {"name": "platform_admin"},
             ],
             SEED_GROUP_BINDINGS: expected_catalogue,
@@ -93,9 +93,9 @@ def test_duplicate_entra_object_id_is_rejected(tmp_path: Path):
         "roles: []\n"
         "bindings:\n"
         "  - entra_object_id: g-1\n"
-        "    role_name: clinician\n"
+        "    role_name: triage_clinician\n"
         "  - entra_object_id: g-1\n"
-        "    role_name: staff\n",
+        "    role_name: clinical_coder\n",
         encoding="utf-8",
     )
     client = _client_returning({})
@@ -108,7 +108,7 @@ def test_missing_entra_object_id_is_rejected(tmp_path: Path):
     bad.write_text(
         "roles: []\n"
         "bindings:\n"
-        "  - role_name: clinician\n",
+        "  - role_name: triage_clinician\n",
         encoding="utf-8",
     )
     client = _client_returning({})

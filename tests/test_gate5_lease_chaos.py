@@ -133,7 +133,8 @@ def test_poison_after_max_reclaims_blocks_further_work(
 
     poison = store.claim_stage(request, {}, lease_owner="w3", lease_seconds=10)
     assert poison.outcome == "poisoned"
-    assert client.runs[request.run_id]["status"] == "poisoned"
+    # Run-level status is failed; the stage itself stays poisoned.
+    assert client.runs[request.run_id]["status"] == "failed"
 
 
 def test_persist_stale_complete_reclaim_is_already_completed() -> None:

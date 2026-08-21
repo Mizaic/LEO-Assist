@@ -147,13 +147,15 @@ export function useBitmapLifecycle({ onVersionActivated }: UseBitmapLifecycleArg
         // version is already listed, compile succeeded even when the job
         // endpoint 404s or never flips to done.
         const versionsResp = await fetch(
-          `/api/terminology/guidelines/bitmap/versions?scope_type=${encodeURIComponent(
+          `/api/terminology/guidelines/compiled?scope_type=${encodeURIComponent(
             scopeType,
           )}&scope_id=${encodeURIComponent(scopeId || "default")}`,
         );
         if (versionsResp.ok) {
-          const listed = (await versionsResp.json()) as Array<{ version?: string }>;
-          if (listed.some((v) => v.version === started.version)) {
+          const listed = (await versionsResp.json()) as {
+            versions?: Array<{ version?: string }>;
+          };
+          if ((listed.versions ?? []).some((v) => v.version === started.version)) {
             finishCompile(true);
             return;
           }

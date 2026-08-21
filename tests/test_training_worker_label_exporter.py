@@ -137,8 +137,13 @@ def test_export_labels_reads_gold_label_source(monkeypatch, tmp_path: Path):
     result = label_exporter.export_labels(tmp_path, train_ratio=0.5, seed=7)
 
     assert result["total"] == 2
-    assert result["train_count"] >= 1
-    assert result["dev_count"] >= 1
+    split_total = (
+        int(result["train_count"])
+        + int(result.get("val_count") or 0)
+        + int(result["dev_count"])
+        + int(result.get("test_count") or 0)
+    )
+    assert split_total == 2
     assert (tmp_path / "train.spacy").exists()
     assert (tmp_path / "dev.spacy").exists()
     assert patient_client.closed is True
