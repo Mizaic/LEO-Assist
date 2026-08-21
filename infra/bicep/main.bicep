@@ -73,7 +73,7 @@ param storageAccountResourceGroup string = 'leo-ai'
 param storageAccountName string = 'leoaimodels'
 
 // -- User-assigned managed identity (one per environment) ------------------
-var identityName = 'mizaicai-${environment}-id'
+var identityName = 'leoai-${environment}-id'
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: identityName
   location: location
