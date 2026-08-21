@@ -49,7 +49,7 @@ param frontendUrl string
 // GitHub Actions / az deployment group create does not drop a portal-only binding.
 param uiCustomHostname string = ''
 // ARM resource ID of the managed certificate in this Container Apps environment, e.g.
-// /subscriptions/.../managedEnvironments/mizaicai-dev-cae/managedCertificates/<name>
+// /subscriptions/.../managedEnvironments/leoai-dev-cae/managedCertificates/<name>
 param uiManagedCertificateId string = ''
 param snomedTerminologyServer string = ''
 
@@ -69,7 +69,7 @@ param mailFromAddress string
 // Set to the same value in val and prod when they share one Aura KG instance.
 param knowledgeGraphEnvironment string = environment
 
-var prefix = 'mizaicai-${environment}'
+var prefix = 'leoai-${environment}'
 var caeName = '${prefix}-cae'
 var logWorkspaceName = '${prefix}-logs'
 
