@@ -142,7 +142,7 @@ export default function UnauthorizedScreen({
           variant="caption"
           component="p"
           sx={{
-            color: "text.disabled",
+            color: "text.secondary",
             textAlign: "center",
             lineHeight: 1.7,
             fontSize: "0.72rem",
