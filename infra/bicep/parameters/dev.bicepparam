@@ -2,8 +2,8 @@ using '../main.bicep'
 
 param environment = 'dev'
 param imageTag = 'latest'
-param acrResourceGroup = 'leo-common-rg'
-param acrName = 'mizaicleoacr'
+param acrResourceGroup = 'leo-ai'
+param acrName = 'leoaicr'
 param storageAccountResourceGroup = 'leo-ai'
 param storageAccountName = 'leoaimodels'
 
