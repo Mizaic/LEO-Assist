@@ -43,6 +43,6 @@ describe("extraction quality review chrome", () => {
     );
     expect(dialog).toMatch(/LetterMarkdownView/);
     expect(dialog).toMatch(/extraction-reviews\/complete/);
-    expect(dialog).toMatch(/Unlock referral/);
+    expect(dialog).toMatch(/Approve and unlock/);
   });
 });
