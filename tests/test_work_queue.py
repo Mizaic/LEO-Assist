@@ -107,7 +107,7 @@ def _sample_tasks() -> list[dict[str, Any]]:
             "severity": 3,
             "summary": "Paused extraction: pat-3",
             "age_days": 1,
-            "resolve_url": "/admin/operations?tab=review",
+            "resolve_url": "/admin/knowledge?tab=validation-lab&hitl_task_id=eq-1",
             "patient_id": "pat-3",
             "episode_id": None,
         },

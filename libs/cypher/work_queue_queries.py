@@ -129,7 +129,7 @@ CALL {
         severity                                AS severity,
         'Paused extraction: ' + coalesce(t.patient_id, '(unknown)') AS summary,
         age_days                                AS age_days,
-        '/admin/operations?tab=review'          AS resolve_url,
+        '/admin/knowledge?tab=validation-lab&hitl_task_id=' + t.task_id AS resolve_url,
         t.patient_id                            AS patient_id,
         NULL                                    AS episode_id
 
