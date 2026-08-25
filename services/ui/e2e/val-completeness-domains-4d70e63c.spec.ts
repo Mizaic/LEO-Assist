@@ -118,8 +118,12 @@ test.describe("VAL-4D70E63C completeness domains @val", () => {
           ctx.lastCompletedStep.value = 2;
 
           await ctx.page.getByRole("tab", { name: "Concepts" }).click();
-          await expect(ctx.page.getByText("Breast cancer")).toBeVisible({ timeout: 5_000 });
-          await expect(ctx.page.getByText("Malignant neoplastic disease")).toBeVisible();
+          await expect(
+            ctx.page.getByText("Breast cancer", { exact: true }),
+          ).toBeVisible({ timeout: 5_000 });
+          await expect(
+            ctx.page.getByText("Malignant neoplastic disease", { exact: true }),
+          ).toBeVisible();
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,
@@ -133,9 +137,16 @@ test.describe("VAL-4D70E63C completeness domains @val", () => {
           ctx.lastCompletedStep.value = 3;
 
           await ctx.page.getByRole("tab", { name: "Rules" }).click();
-          await expect(ctx.page.getByText("Diagnosis present")).toBeVisible({ timeout: 5_000 });
+          await expect(
+            ctx.page.getByRole("textbox", { name: "Rule 1 name" }),
+          ).toHaveValue("Diagnosis present", { timeout: 5_000 });
           await expect(ctx.page.getByText("Required")).toBeVisible();
-          await expect(ctx.page.getByText("254837009, 363346000")).toBeVisible();
+          await expect(
+            ctx.page.getByText("Breast cancer", { exact: true }),
+          ).toBeVisible();
+          await expect(
+            ctx.page.getByText("Malignant neoplastic disease", { exact: true }),
+          ).toBeVisible();
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,

@@ -7,7 +7,11 @@
   "anchors": {
     "clinic_seen_snomed": [],
     "confirmed_snomed": [
-      "372244006"
+      "254651007",
+      "302837001",
+      "310498001",
+      "372244006",
+      "402815007"
     ],
     "referral_snomed": [
       "276441000000106"
@@ -48,7 +52,11 @@
       "benign_closure_snomed": [],
       "confirmed_confidence": 0.85,
       "confirmed_snomed": [
-        "372244006"
+        "254651007",
+        "302837001",
+        "310498001",
+        "372244006",
+        "402815007"
       ],
       "suspected_confidence": 0.7,
       "suspected_snomed": [

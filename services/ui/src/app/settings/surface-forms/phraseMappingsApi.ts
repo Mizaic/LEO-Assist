@@ -10,6 +10,7 @@ export interface UncodedPhrase {
   phrase_key: string;
   normalized: string;
   extracted_tag: string;
+  last_extractor?: string;
   note_count: number;
   last_score: number | null;
   last_best_term: string;
@@ -69,6 +70,43 @@ export async function fetchPhraseMappings(
   return readJson<{ items: UncodedPhrase[]; total: number }>(res);
 }
 
+export async function fetchPhraseItem(
+  phrase_key: string,
+): Promise<UncodedPhrase> {
+  const params = new URLSearchParams({ phrase_key });
+  const res = await fetch(`${BASE}/item?${params}`, {
+    credentials: "include",
+    headers: jsonHeaders(),
+  });
+  return readJson<UncodedPhrase>(res);
+}
+
+export async function ensurePhrase(body: {
+  phrase_key: string;
+  extracted_tag?: string;
+  extracted_source?: string;
+  sample_span?: string;
+  sample_sentence?: string;
+}): Promise<UncodedPhrase> {
+  const res = await fetch(`${BASE}/ensure`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders(),
+    body: JSON.stringify(body),
+  });
+  return readJson<UncodedPhrase>(res);
+}
+
+export async function submitPhrase(phrase_key: string): Promise<unknown> {
+  const res = await fetch(`${BASE}/submit`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ phrase_key }),
+  });
+  return readJson(res);
+}
+
 export async function savePhraseDraft(body: {
   phrase_key: string;
   action: string;
@@ -90,6 +128,7 @@ export async function submitPhraseDrafts(): Promise<{ submitted: number }> {
     method: "POST",
     credentials: "include",
     headers: jsonHeaders(),
+    body: JSON.stringify({}),
   });
   return readJson(res);
 }

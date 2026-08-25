@@ -13,7 +13,9 @@ from typing import Any
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 from libs.prompts.sbar_output_schemas import SBAR_RECALL_OUTPUT_SCHEMA
 
-SBAR_RECALL_SYSTEM_V1 = INJECTION_GUARD + """\
+SBAR_RECALL_SYSTEM_V1 = (
+    INJECTION_GUARD
+    + """\
 You are a clinical retrieval assistant for an NHS referral assessment pipeline.
 Your job is to find the referral reason and supporting evidence using ONLY the
 tools provided. You must stay inside the pinned input manifest.
@@ -56,6 +58,7 @@ WORKFLOW
 - When done or out of budget, call submit_recall_result with reason_text,
   optional chunk_id, and missing slot names you could not resolve.
 """
+)
 
 RECALL_TOOL_SPECS: list[dict[str, Any]] = [
     {

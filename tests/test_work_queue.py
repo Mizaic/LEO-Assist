@@ -17,7 +17,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from libs.cypher.work_queue_queries import (
+    COUNT_PHRASE_PUBLISH_TASKS,
     COUNT_WORK_TASKS_BY_SOURCE,
+    GET_PHRASE_PUBLISH_TASKS,
     GET_UNIFIED_WORK_TASKS,
 )
 from libs.work.queue import (
@@ -49,7 +51,7 @@ sys.modules.setdefault(
 
 
 class _StubSession:
-    """Neo4j session stub returning pre-canned rows per query."""
+    """Patient-graph session stub returning pre-canned rows per query."""
 
     def __init__(self, tasks: list[dict[str, Any]], counts: list[dict[str, Any]]):
         self._tasks = tasks
@@ -69,17 +71,37 @@ class _StubSession:
         return self.last_task_params
 
 
+class _StubKgClient:
+    """Knowledge-graph stub for phrase_publish rows."""
+
+    def __init__(
+        self,
+        tasks: list[dict[str, Any]] | None = None,
+        count: int = 0,
+    ):
+        self._tasks = tasks or []
+        self._count = count
+
+    def run(self, query: str, **params: Any) -> Iterable[dict[str, Any]]:
+        if query is GET_PHRASE_PUBLISH_TASKS:
+            return iter(self._tasks)
+        if query is COUNT_PHRASE_PUBLISH_TASKS:
+            return iter([{"total": self._count}])
+        raise AssertionError("unexpected KG cypher query in test stub")
+
+
 def _sample_tasks() -> list[dict[str, Any]]:
     return [
         {
             "task_id": "coding_review:cr-1",
             "task_type": "coding_review",
             "severity": 4,
-            "summary": "Code check: sore throat",
+            "summary": "No safe code yet: sore throat",
             "age_days": 2,
             "resolve_url": "/admin/operations/reviews?review_id=cr-1",
             "patient_id": "pat-1",
             "episode_id": None,
+            "failure_kind": "no_code",
         },
         {
             "task_id": "safety_net_alert:sn-1",
@@ -90,6 +112,7 @@ def _sample_tasks() -> list[dict[str, Any]]:
             "resolve_url": "/safety-netting?alert_id=sn-1",
             "patient_id": "pat-2",
             "episode_id": "ep-2",
+            "failure_kind": "safety_flag",
         },
         {
             "task_id": "gold_label:tc-1",
@@ -100,6 +123,7 @@ def _sample_tasks() -> list[dict[str, Any]]:
             "resolve_url": "/admin/knowledge?tab=training-data&candidate_id=tc-1",
             "patient_id": None,
             "episode_id": None,
+            "failure_kind": "needs_gold_label",
         },
         {
             "task_id": "extraction_quality_pause:eq-1",
@@ -110,6 +134,7 @@ def _sample_tasks() -> list[dict[str, Any]]:
             "resolve_url": "/admin/knowledge?tab=validation-lab&hitl_task_id=eq-1",
             "patient_id": "pat-3",
             "episode_id": None,
+            "failure_kind": "unseen_form",
         },
         {
             "task_id": "surface_form_approval:sf-1",
@@ -120,8 +145,25 @@ def _sample_tasks() -> list[dict[str, Any]]:
             "resolve_url": "/admin/knowledge?tab=surface-forms",
             "patient_id": None,
             "episode_id": None,
+            "failure_kind": "new_phrase",
         },
     ]
+
+
+def _sample_phrase_publish_task() -> dict[str, Any]:
+    return {
+        "task_id": "phrase_publish:hba1c",
+        "task_type": "phrase_publish",
+        "severity": 3,
+        "summary": "Change to publish: raised HbA1c",
+        "age_days": 1,
+        "resolve_url": "/work",
+        "patient_id": None,
+        "episode_id": None,
+        "failure_kind": "change_to_publish",
+        "draft_author": "engineer@example.com",
+        "draft_action": "map",
+    }
 
 
 def _sample_counts() -> list[dict[str, Any]]:
@@ -137,7 +179,7 @@ def _sample_counts() -> list[dict[str, Any]]:
 # -- TC-001 -- Cypher union shape ---------------------------------------
 
 
-def test_vt134_tc001_union_covers_five_sources():
+def test_vt134_tc001_union_covers_patient_graph_sources():
     assert "CodingReview" in GET_UNIFIED_WORK_TASKS
     assert "SafetyNetAlert" in GET_UNIFIED_WORK_TASKS
     assert "TrainingCandidate" in GET_UNIFIED_WORK_TASKS
@@ -153,8 +195,18 @@ def test_vt134_tc001_union_covers_five_sources():
         "resolve_url",
         "patient_id",
         "episode_id",
+        "failure_kind",
     ):
         assert column in GET_UNIFIED_WORK_TASKS
+
+
+def test_vt134_tc001_phrase_publish_uses_kg_query():
+    assert "UncodedPhrase" in GET_PHRASE_PUBLISH_TASKS
+    assert "review" in GET_PHRASE_PUBLISH_TASKS
+    assert "phrase_publish" in GET_PHRASE_PUBLISH_TASKS
+    assert "draft_author" in GET_PHRASE_PUBLISH_TASKS
+    assert "change_to_publish" in GET_PHRASE_PUBLISH_TASKS
+    assert "UncodedPhrase" in COUNT_PHRASE_PUBLISH_TASKS
 
 
 def test_vt134_tc001_counts_query_returns_task_type_total():
@@ -163,12 +215,10 @@ def test_vt134_tc001_counts_query_returns_task_type_total():
     assert COUNT_WORK_TASKS_BY_SOURCE.count("UNION ALL") == 4
 
 
-def test_vt134_tc001_extraction_quality_pause_in_valid_sources():
+def test_vt134_tc001_all_valid_sources_present():
     assert "extraction_quality_pause" in VALID_SOURCES
-
-
-def test_vt134_tc001_surface_form_approval_in_valid_sources():
     assert "surface_form_approval" in VALID_SOURCES
+    assert "phrase_publish" in VALID_SOURCES
 
 
 # -- TC-002 -- Python service normalises rows and filters ---------------
@@ -179,16 +229,41 @@ def test_vt134_tc002_get_work_tasks_normalises_rows():
     page = get_work_tasks(session, WorkTaskFilters(limit=10))
     assert page.limit == 10
     assert page.offset == 0
-    assert len(page.tasks) == 5
+    assert len(page.tasks) == 5  # no KG client passed, phrase_publish empty
     source_types = {row.task_type for row in page.tasks}
-    assert source_types == set(VALID_SOURCES)
-    assert page.counts_by_source == {
-        "coding_review": 1,
-        "safety_net_alert": 1,
-        "gold_label": 1,
-        "extraction_quality_pause": 1,
-        "surface_form_approval": 1,
-    }
+    patient_sources = set(VALID_SOURCES) - {"phrase_publish"}
+    assert source_types == patient_sources
+    assert page.counts_by_source["coding_review"] == 1
+    assert page.counts_by_source["phrase_publish"] == 0
+
+
+def test_vt134_tc002_phrase_publish_rows_merged_from_kg():
+    session = _StubSession(_sample_tasks(), _sample_counts())
+    kg = _StubKgClient(tasks=[_sample_phrase_publish_task()], count=1)
+    page = get_work_tasks(session, WorkTaskFilters(limit=10), kg_session=kg)
+    assert len(page.tasks) == 6
+    types = {row.task_type for row in page.tasks}
+    assert "phrase_publish" in types
+    assert page.counts_by_source["phrase_publish"] == 1
+
+
+def test_vt134_tc002_phrase_publish_row_carries_draft_fields():
+    session = _StubSession([], [])
+    kg = _StubKgClient(tasks=[_sample_phrase_publish_task()], count=1)
+    page = get_work_tasks(session, WorkTaskFilters(limit=10), kg_session=kg)
+    row = page.tasks[0]
+    assert row.draft_author == "engineer@example.com"
+    assert row.draft_action == "map"
+    assert row.failure_kind == "change_to_publish"
+
+
+def test_vt134_tc002_failure_kind_carried_through():
+    session = _StubSession(_sample_tasks(), _sample_counts())
+    page = get_work_tasks(session, WorkTaskFilters(limit=10))
+    kinds = {row.failure_kind for row in page.tasks}
+    assert "no_code" in kinds
+    assert "safety_flag" in kinds
+    assert "unseen_form" in kinds
 
 
 def test_vt134_tc002_summary_fields_are_plain_english():
@@ -222,13 +297,16 @@ def test_vt134_tc002_limit_is_clamped():
 def test_vt134_tc002_counts_fill_zero_for_missing_sources():
     session = _StubSession([], [{"task_type": "coding_review", "total": 2}])
     counts = get_work_counts(session)
-    assert counts == {
-        "coding_review": 2,
-        "safety_net_alert": 0,
-        "gold_label": 0,
-        "extraction_quality_pause": 0,
-        "surface_form_approval": 0,
-    }
+    assert counts["coding_review"] == 2
+    assert counts["safety_net_alert"] == 0
+    assert counts["phrase_publish"] == 0  # no kg_session
+
+
+def test_vt134_tc002_counts_include_kg_phrase_publish():
+    session = _StubSession([], [])
+    kg = _StubKgClient(count=3)
+    counts = get_work_counts(session, kg_session=kg)
+    assert counts["phrase_publish"] == 3
 
 
 # -- TC-003 -- FastAPI router wiring ------------------------------------
@@ -256,13 +334,17 @@ class _SessionCtx:
 @pytest.fixture
 def client_with_work_router(monkeypatch):
     # Build a FastAPI app that mounts the router with the auth cookie
-    # check monkey-patched to always succeed.
+    # check monkey-patched to always succeed and KG client returning None.
     from app.routers import work as work_router
 
     def _no_auth(_request):
         return {"email": "user@example.com"}
 
+    def _no_kg():
+        return None
+
     monkeypatch.setattr(work_router, "_require_authed_session", _no_auth)
+    monkeypatch.setattr(work_router, "_open_kg_client", _no_kg)
 
     session = _StubSession(_sample_tasks(), _sample_counts())
     stub_client = _StubClient(session)
@@ -287,14 +369,9 @@ def test_vt134_tc003_get_tasks_returns_tasks_and_counts(client_with_work_router)
         "limit",
         "offset",
     }
-    assert body["counts_by_source"] == {
-        "coding_review": 1,
-        "safety_net_alert": 1,
-        "gold_label": 1,
-        "extraction_quality_pause": 1,
-        "surface_form_approval": 1,
-    }
-    # every row is a dict with the canonical keys
+    assert body["counts_by_source"]["coding_review"] == 1
+    assert body["counts_by_source"]["phrase_publish"] == 0
+    # every row is a dict with the canonical keys including failure_kind
     for task in body["tasks"]:
         assert set(task.keys()) >= {
             "task_id",
@@ -303,6 +380,7 @@ def test_vt134_tc003_get_tasks_returns_tasks_and_counts(client_with_work_router)
             "summary",
             "age_days",
             "resolve_url",
+            "failure_kind",
         }
 
 
@@ -326,10 +404,7 @@ def test_vt134_tc003_counts_endpoint_returns_counts(client_with_work_router):
     client, _ = client_with_work_router
     response = client.get("/work/counts")
     assert response.status_code == 200
-    assert response.json() == {
-        "coding_review": 1,
-        "safety_net_alert": 1,
-        "gold_label": 1,
-        "extraction_quality_pause": 1,
-        "surface_form_approval": 1,
-    }
+    body = response.json()
+    assert body["coding_review"] == 1
+    assert body["phrase_publish"] == 0  # no KG client in this fixture
+    assert set(body.keys()) == set(VALID_SOURCES)

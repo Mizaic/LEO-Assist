@@ -1,7 +1,7 @@
 """Tests for the Comprehensive Audit Builder changes.
 
 Covers:
-  - libs/cypher/audit_metric_queries.py  (registry refactor, 32 metrics)
+  - libs/cypher/audit_metric_queries.py  (registry refactor, 54 metrics)
   - libs/cypher/_audit_metrics_extended.py (18 new metrics, all tiers)
   - libs/cypher/sbar_assessment_queries.py (completeness_failed_count field)
   - services/pipeline_worker/.../referral_durable_steps.py (_count_completeness_failures)
@@ -35,7 +35,7 @@ class TestMetricRegistry:
         self._EPISODE_ACTIVE = _EPISODE_ACTIVE
 
     def test_total_metric_count(self):
-        assert len(self.METRIC_REGISTRY) == 32
+        assert len(self.METRIC_REGISTRY) == 54
 
     def test_original_14_metrics_still_present(self):
         original_ids = {
@@ -88,7 +88,7 @@ class TestMetricRegistry:
 
     def test_catalogue_excludes_cypher(self):
         cat = self.get_catalogue()
-        assert len(cat) == 32
+        assert len(cat) == 54
         for item in cat:
             assert "cypher" not in item
 
@@ -123,7 +123,7 @@ class TestMetricRegistry:
 
 class TestCountCompletnesFailures:
     def setup_method(self):
-        from services.pipeline_worker.app.services.referral_durable_steps import (
+        from libs.pipeline_graph.subgraphs.sbar import (
             _count_completeness_failures,
         )
         self.fn = _count_completeness_failures

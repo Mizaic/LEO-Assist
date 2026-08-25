@@ -2,9 +2,7 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-65BA6EA0
- *   DI: DI-C0AD09D2
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+ *   DI: DI-6BD7B681
  */
 "use client";
 
@@ -17,7 +15,8 @@ export type WorkTaskType =
   | "safety_net_alert"
   | "gold_label"
   | "extraction_quality_pause"
-  | "surface_form_approval";
+  | "surface_form_approval"
+  | "phrase_publish";
 
 export interface WorkTask {
   task_id: string;
@@ -28,6 +27,9 @@ export interface WorkTask {
   resolve_url: string;
   patient_id?: string | null;
   episode_id?: string | null;
+  failure_kind?: string;
+  draft_author?: string;
+  draft_action?: string;
 }
 
 export interface CountsBySource {
@@ -36,6 +38,7 @@ export interface CountsBySource {
   gold_label: number;
   extraction_quality_pause: number;
   surface_form_approval: number;
+  phrase_publish: number;
 }
 
 export interface TaskQueueProps {
@@ -43,6 +46,7 @@ export interface TaskQueueProps {
   countsBySource: CountsBySource;
   activeSources?: ReadonlyArray<WorkTaskType>;
   onToggleSource?: (source: WorkTaskType) => void;
+  onSelectTask?: (task: WorkTask) => void;
   emptyMessage?: string;
   renderExtra?: (task: WorkTask) => ReactNode;
 }
@@ -53,10 +57,12 @@ const SOURCE_LABELS: Record<WorkTaskType, string> = {
   gold_label: "Label reviews",
   extraction_quality_pause: "Paused extractions",
   surface_form_approval: "Phrase approvals",
+  phrase_publish: "Changes to publish",
 };
 
 const SOURCE_ORDER: ReadonlyArray<WorkTaskType> = [
   "safety_net_alert",
+  "phrase_publish",
   "extraction_quality_pause",
   "coding_review",
   "surface_form_approval",
@@ -96,6 +102,7 @@ export function TaskQueue({
   countsBySource,
   activeSources,
   onToggleSource,
+  onSelectTask,
   emptyMessage = "No open tasks. Great work.",
   renderExtra,
 }: TaskQueueProps) {
@@ -187,6 +194,11 @@ export function TaskQueue({
                 href={task.resolve_url}
                 data-testid={"task-queue-row-" + task.task_id}
                 data-task-type={task.task_type}
+                onClick={(event) => {
+                  if (!onSelectTask) return;
+                  event.preventDefault();
+                  onSelectTask(task);
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",

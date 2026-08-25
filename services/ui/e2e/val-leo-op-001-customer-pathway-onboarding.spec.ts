@@ -101,8 +101,12 @@ test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
 
           // Step 2: Phase 2a surface forms
           await gotoKnowledgeTab(ctx.page, "surface-forms");
+          await expect(ctx.page.getByTestId("phrase-mappings-chrome")).toBeVisible({
+            timeout: 15_000,
+          });
+          await ctx.page.getByTestId("segmented-tab-live").click();
           await expect(
-            ctx.page.getByText(/T2DM|Diabetes mellitus type 2/i).first(),
+            ctx.page.getByText("T2DM", { exact: true }),
           ).toBeVisible({ timeout: 10_000 });
 
           await recordProtocolStep({
@@ -114,6 +118,12 @@ test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
 
           // Step 3: Phase 2b clinical guidelines
           await gotoKnowledgeTab(ctx.page, "clinical-guidelines");
+          await ctx.page
+            .getByRole("button", {
+              name: /skip the guideline builder intro animation/i,
+            })
+            .click({ timeout: 3_000 })
+            .catch(() => undefined);
           await expect(ctx.page.getByTestId("metric-tile-loaded")).toBeVisible({
             timeout: 10_000,
           });
@@ -162,7 +172,9 @@ test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
 
           // Step 6: Phase 3c rules tab
           await ctx.page.getByRole("tab", { name: "Rules" }).click();
-          await expect(ctx.page.getByText("Diagnosis present")).toBeVisible({ timeout: 5_000 });
+          await expect(
+            ctx.page.getByRole("textbox", { name: "Rule 1 name" }),
+          ).toHaveValue("Diagnosis present", { timeout: 5_000 });
           await expect(ctx.page.getByText("Required")).toBeVisible();
 
           await recordProtocolStep({

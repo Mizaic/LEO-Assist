@@ -28,6 +28,7 @@ import {
   liveBackendSkipReason,
   wizardField,
 } from "./helpers/validation-lab-live";
+import { openCreatePatientWizard } from "./helpers/validation-lab-wizard";
 
 loadPlaywrightEnv();
 
@@ -86,11 +87,7 @@ test.describe("G5.9 Validation Lab durable SBAR @val", () => {
 
           await installLiveBackendServiceAuth(ctx.page);
 
-          await ctx.page.goto("/admin/knowledge?tab=validation-lab");
-          await expect(ctx.page.getByTestId("validation-lab-page")).toBeVisible({
-            timeout: 15_000,
-          });
-          await expect(ctx.page.getByTestId("create-patient-wizard")).toBeVisible();
+          await openCreatePatientWizard(ctx.page);
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,

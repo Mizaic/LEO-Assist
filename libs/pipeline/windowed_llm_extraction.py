@@ -251,13 +251,15 @@ def run_windowed_llm_extraction(
     collected["merged_tokens"]["window_usage"] = aggregate_window_usage(
         collected["usages"]
     )
-    result = {
+    window_sims = collected["window_similarities"]
+    result: dict[str, Any] = {
         "entities": merge_window_entities(collected["window_outputs"]),
         "llm_tokens": collected["merged_tokens"],
         "extraction_route": "llm-windowed",
         "extraction_context_mode": context_mode,
         "extraction_window_count": len(windows),
         "extraction_window_truncated_count": collected["truncated_windows"],
+        "few_shot_max_similarity": min(window_sims) if window_sims else None,
         **collected["model_fields"],
     }
     if collected["errors"]:
@@ -273,6 +275,7 @@ def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
     truncated_windows = 0
     model_fields: dict[str, Any] = {}
     errors: list[str] = []
+    window_similarities: list[float] = []
     for window in windows:
         partial, error, was_truncated = _run_one_window(window, ctx)
         if was_truncated:
@@ -290,6 +293,9 @@ def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
             merged_tokens=merged_tokens,
             model_fields=model_fields,
         )
+        sim = partial.get("few_shot_max_similarity")
+        if isinstance(sim, (int, float)):
+            window_similarities.append(float(sim))
     return {
         "window_outputs": window_outputs,
         "usages": usages,
@@ -297,4 +303,5 @@ def _collect_windows(windows: list[Any], ctx: _WindowRun) -> dict[str, Any]:
         "truncated_windows": truncated_windows,
         "model_fields": model_fields,
         "errors": errors,
+        "window_similarities": window_similarities,
     }

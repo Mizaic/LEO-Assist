@@ -273,4 +273,4 @@ def test_timeline_query_includes_referrals_and_documents():
 def test_documents_query_returns_referral_id():
     queries_src = _read(QUERIES)
     assert "AS referral_id" in queries_src
-    assert "WITH doc, full_text, ep, rr, svc, head(collect(a)) AS a" in queries_src
+    assert "WITH doc, full_text, chunk_count, ep, rr, svc, head(collect(a)) AS a" in queries_src

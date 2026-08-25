@@ -33,6 +33,10 @@ from libs.sbar.events import (
     SBARSituationInput,
     SituationArtifactType,
 )
+from libs.sbar.context_integrity import ContextIntegrityResult
+from libs.sbar.orchestrator_gate3 import Gate3Context
+from libs.sbar.policy_runtime import build_runtime
+from libs.sbar.situation_source import SituationSourceResult
 from libs.sbar.source_resolver import (
     ResolvedCode,
     ResolvedSituation,
@@ -41,6 +45,9 @@ from libs.sbar.source_resolver import (
 from services.pipeline_worker.app.services.sbar_orchestrator import (
     SBAROrchestrator,
 )
+from libs.workflow.execution_manifest import build_execution_manifest
+from libs.workflow.plan_manifest import PlanManifest
+from libs.workflow.referral_policy import DEFAULT_REFERRAL_POLICY
 
 
 @pytest.fixture(autouse=True)
@@ -117,6 +124,34 @@ def _record_into_active(agent_task: str, in_tok: int, out_tok: int) -> None:
     )
 
 
+def _policy_runtime():
+    plan = PlanManifest(
+        plan_id="pd-referral-assessment",
+        version_id=1,
+        version_node_id="ver-test-1",
+        policy_version="v1",
+        workflow_mode="durable_pubsub",
+        actions=(),
+        referral_policy=dict(DEFAULT_REFERRAL_POLICY),
+    )
+    manifest = build_execution_manifest(
+        plan,
+        prompt_hashes={
+            "situation": "h1",
+            "background": "h2",
+            "recommendation": "h3",
+            "recall": "h4",
+        },
+        model_config={
+            "key": "aws:big",
+            "provider": "aws",
+            "tier": "big",
+            "modelId": "sonnet-test",
+        },
+    )
+    return build_runtime(manifest)
+
+
 def _build_orchestrator(monkeypatch, session, *, telemetry_failure=False):
     async def _situation_caller(*_a, **_kw):
         _record_into_active("sbar_situation", 200, 50)
@@ -163,10 +198,31 @@ def _build_orchestrator(monkeypatch, session, *, telemetry_failure=False):
             )
         ],
     )
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator.validate_sbar_context",
+        lambda _session, _payload: ContextIntegrityResult(ok=True),
+    )
+
+    async def _fake_prepare_gate3_context(**_kw):
+        return Gate3Context(
+            structured=SituationSourceResult(headline=""),
+            source_accounting={
+                "source_count": 1,
+                "code_count": 1,
+                "total_sentences": 1,
+                "covered_sentences": 1,
+                "uncovered_sentences": 0,
+            },
+        )
+
+    monkeypatch.setattr(
+        "services.pipeline_worker.app.services.sbar_orchestrator."
+        "prepare_gate3_context",
+        _fake_prepare_gate3_context,
+    )
 
     if telemetry_failure:
         session.fail_on.add(SET_ASSESSMENT_USAGE)
-        session.fail_on.add(WRITE_SBAR_AUDIT_EVENT)
 
     return SBAROrchestrator(
         patient_graph_client=_FakeClient(session),
@@ -175,6 +231,7 @@ def _build_orchestrator(monkeypatch, session, *, telemetry_failure=False):
         background_caller=_background_caller,
         recommendation_caller=_recommendation_caller,
         evaluator=_evaluate,
+        policy_runtime=_policy_runtime(),
     )
 
 
@@ -215,7 +272,7 @@ def test_orchestrator_writes_pipeline_run_audit_event(monkeypatch):
     assert audit["llm_output_tokens"] == 50 + 80 + 30
     assert audit["llm_cost_usd"] > 0
     assert audit["status"] == "completed"
-    assert audit["extraction_provider"] == "bedrock"
+    assert audit["extraction_provider"] == "aws"
     assert audit["extraction_prompt_name"] == "sbar"
 
 
@@ -233,5 +290,5 @@ def test_orchestrator_swallows_telemetry_write_failure(monkeypatch, caplog):
     assert any(
         "SBAR usage telemetry" in record.message for record in caplog.records
     ), "expected a WARNING log when telemetry write fails"
-    assert not any(q == WRITE_SBAR_AUDIT_EVENT for q, _ in session.runs)
+    assert any(q == WRITE_SBAR_AUDIT_EVENT for q, _ in session.runs)
     assert not any(q == SET_ASSESSMENT_USAGE for q, _ in session.runs)

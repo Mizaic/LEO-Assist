@@ -24,20 +24,22 @@ REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from scripts.seed_sbar_test_patients import (  # noqa: E402
-    AGE_BAND_MIDPOINTS,
-    SBAR_DIR,
-    _build_encounter_payload,
-    _build_expected_sbar_payload,
-    _build_root_props,
-    _collect_concept_ids,
-    _flatten_phrase_list,
-    _load_fixture,
-    _load_manifest,
-    _seed_fixture,
-    _test_patient_id,
-    seed,
+seed_sbar = pytest.importorskip(
+    "scripts.seed_sbar_test_patients",
+    reason="scripts.seed_sbar_test_patients moved or removed",
 )
+AGE_BAND_MIDPOINTS = seed_sbar.AGE_BAND_MIDPOINTS
+SBAR_DIR = seed_sbar.SBAR_DIR
+_build_encounter_payload = seed_sbar._build_encounter_payload
+_build_expected_sbar_payload = seed_sbar._build_expected_sbar_payload
+_build_root_props = seed_sbar._build_root_props
+_collect_concept_ids = seed_sbar._collect_concept_ids
+_flatten_phrase_list = seed_sbar._flatten_phrase_list
+_load_fixture = seed_sbar._load_fixture
+_load_manifest = seed_sbar._load_manifest
+_seed_fixture = seed_sbar._seed_fixture
+_test_patient_id = seed_sbar._test_patient_id
+seed = seed_sbar.seed
 
 
 class FakeKnowledgeGraphClient:

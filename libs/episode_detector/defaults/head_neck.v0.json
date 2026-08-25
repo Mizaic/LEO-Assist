@@ -9,7 +9,10 @@
       "382621000000103"
     ],
     "confirmed_snomed": [
-      "363375008"
+      "254437001",
+      "255029007",
+      "363375008",
+      "363478007"
     ],
     "referral_snomed": [
       "276421000000104",
@@ -51,7 +54,10 @@
       "benign_closure_snomed": [],
       "confirmed_confidence": 0.85,
       "confirmed_snomed": [
-        "363375008"
+        "254437001",
+        "255029007",
+        "363375008",
+        "363478007"
       ],
       "suspected_confidence": 0.7,
       "suspected_snomed": [

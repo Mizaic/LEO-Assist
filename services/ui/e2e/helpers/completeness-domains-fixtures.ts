@@ -26,7 +26,7 @@ export function domainDetailPayload() {
         semantic_tags: ["disorder"],
         assertion_filter: [],
         constructs: [],
-        use_cases: ["completeness"],
+        use_cases: ["completeness", "episode_detection"],
         completeness_schema: [
           {
             name: "Diagnosis present",
@@ -52,7 +52,7 @@ export function subdomainDetailPayload() {
     semantic_tags: ["disorder"],
     assertion_filter: [],
     constructs: [],
-    use_cases: ["completeness"],
+    use_cases: ["completeness", "episode_detection"],
     completeness_schema: [
       {
         name: "Diagnosis present",

@@ -216,6 +216,7 @@ def test_ensure_gold_label_by_candidate_creates_when_missing(client):
             ),
             MagicMock(single=MagicMock(return_value=None)),
             MagicMock(),  # UPSERT_GOLD_LABEL
+            MagicMock(),  # gold granularity metadata
             MagicMock(
                 single=MagicMock(
                     return_value={
@@ -353,7 +354,7 @@ def test_patch_gold_label_entities_rejects_invalid_relation_policy(client):
     assert "not allowed by relation policy" in r.json()["detail"].lower()
 
 
-def test_patch_gold_label_entities_allows_finding_to_finding_qualifies(client):
+def test_patch_gold_label_entities_rejects_finding_to_finding_qualifies(client):
     with (
         admin_scope_override(client.app),
         patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
@@ -373,6 +374,37 @@ def test_patch_gold_label_entities_allows_finding_to_finding_qualifies(client):
                     {
                         "text": "increased in size",
                         "label": "finding",
+                        "relations": [{"type": "qualifies", "target_idx": 1}],
+                    },
+                    {"text": "multiple lumps", "label": "finding"},
+                ]
+            },
+        )
+
+    assert r.status_code == 422
+    assert "not allowed by relation policy" in r.json()["detail"]
+
+
+def test_patch_gold_label_entities_allows_qualifier_value_qualifies_finding(client):
+    with (
+        admin_scope_override(client.app),
+        patch("app.routers.training_gold_labels.KnowledgeGraphClient") as MockKG,
+    ):
+        kg = MockKG.return_value
+        inner = MagicMock()
+        inner.run.return_value = MagicMock(
+            single=MagicMock(return_value={"label_id": "label-1"})
+        )
+        kg.session.return_value.__enter__ = lambda s: inner
+        kg.session.return_value.__exit__ = MagicMock(return_value=False)
+
+        r = client.patch(
+            "/training/gold-labels/label-1/entities",
+            json={
+                "entities": [
+                    {
+                        "text": "increased in size",
+                        "label": "qualifier_value",
                         "relations": [{"type": "qualifies", "target_idx": 1}],
                     },
                     {"text": "multiple lumps", "label": "finding"},

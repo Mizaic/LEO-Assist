@@ -46,6 +46,7 @@ def test_fallback_loads_service_auth_secret_when_kv_disabled(
 ):
     mod, secrets_file = loader_module
     monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
+    monkeypatch.delenv("NEO4J_URI", raising=False)
     secrets_file.write_text(
         "# comment line\n"
         "SERVICE_AUTH_SECRET=abc123\n"

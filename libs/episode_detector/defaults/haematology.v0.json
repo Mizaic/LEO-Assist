@@ -8,6 +8,9 @@
     "clinic_seen_snomed": [],
     "confirmed_snomed": [
       "118600007",
+      "302841002",
+      "425333006",
+      "92814006",
       "93143009"
     ],
     "referral_snomed": [
@@ -50,6 +53,9 @@
       "confirmed_confidence": 0.85,
       "confirmed_snomed": [
         "118600007",
+        "302841002",
+        "425333006",
+        "92814006",
         "93143009"
       ],
       "suspected_confidence": 0.7,

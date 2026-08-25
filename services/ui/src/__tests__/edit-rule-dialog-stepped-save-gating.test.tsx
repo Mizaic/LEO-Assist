@@ -96,6 +96,7 @@ describe("EditRuleDialog Cancel discards -- VT-511-TC-010", () => {
       target: { value: "Half-finished edit" },
     });
     fireEvent.click(screen.getByRole("button", { name: /^Cancel$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Leave$/i }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSave).not.toHaveBeenCalled();

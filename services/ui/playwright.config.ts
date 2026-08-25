@@ -64,7 +64,7 @@ export default defineConfig({
     {
       name: "stubbed-chromium",
       testMatch:
-        /(local-concepts-wizard|surface-forms-local-concept-wizard|validation-lab-brainstorm-drawer|validation-lab-mark-as-wrong)\.spec\.ts/,
+        /(local-concepts-wizard|surface-forms-local-concept-wizard|validation-lab-brainstorm-drawer|validation-lab-mark-as-wrong|work-task-dialogs-walkthrough)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
         storageState: { cookies: [], origins: [] },

@@ -73,7 +73,7 @@ export function EpisodeLaneCard({
   type NamedDot = { type: string; label: string; date: string; pct: number };
   const namedDots: NamedDot[] = [];
   if (milestones) {
-    for (const step of milestones.steps) {
+    for (const step of milestones.steps ?? []) {
       if (!step.dates.length) continue;
       const d = step.dates[0];
       const ts = dateToTs(d);

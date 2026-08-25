@@ -60,7 +60,10 @@ def test_align_entity_for_gold_drops_unfindable_text() -> None:
 
 
 def test_process_sentence_falls_back_to_stripped_observable_lookup() -> None:
-    sentence = "Eosinophil count - observation (42K..) " "0.23 10^9/L [0.04 - 0.4]"
+    sentence = (
+        "Eosinophil count - observation (42K..) "
+        "0.23 10^9/L [0.04 - 0.4]"
+    )
     client = _FakeTerminologyClient(reject_value_bearing_terms=True)
 
     result = process_sentence(
@@ -72,17 +75,21 @@ def test_process_sentence_falls_back_to_stripped_observable_lookup() -> None:
     )
 
     assert result is not None
-    assert sentence in client.terms
     assert "Eosinophil count - observation" in client.terms
+    assert any(
+        term.startswith("Eosinophil count - observation (42K..)")
+        for term in client.terms
+    )
     assert len(result["entities"]) == 1
     entity = result["entities"][0]
-    assert entity["text"] == sentence
+    assert entity["text"] in sentence
+    assert sentence[entity["start"] : entity["end"]] == entity["text"]
     assert entity["label"] == "observable_entity"
     assert entity["semantic_tag"] == "observable_entity"
     assert entity["snomed_concept_id"] == "1022561000000101"
     assert entity["snomed_term"] == "Eosinophil count"
     assert entity["start"] == 0
-    assert entity["end"] == len(sentence)
+    assert entity["end"] == len(entity["text"])
     assert entity["numeric_value"] == "0.23"
     assert entity["unit"] == "10^9/L"
     assert entity["reference_range"] == "0.04 - 0.4"

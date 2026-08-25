@@ -203,6 +203,35 @@ async function installGuidelineFixtures(
     }),
   );
 
+  // -- Recommendation picker subgraph
+  await page.route("**/api/nice/NG12/subgraph", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        guideline_id: "NG12",
+        guideline_title: LOADED_GUIDELINE.title,
+        chapters: [
+          {
+            chapter_id: "ch-1",
+            chapter_title: "Chapter 1",
+            order: 1,
+            recommendations: [
+              {
+                rec_id: "rec-ng12-1",
+                rec_title: "Urgent chest X-ray",
+                verbatim: PENDING_RULE.recommendation_text,
+                is_normative: true,
+                section_title: "Lung cancer",
+                rules: [],
+              },
+            ],
+          },
+        ],
+      }),
+    }),
+  );
+
   // -- Rule generation
   const generateJobId = "val-cg-job-gen-001";
   await page.route("**/api/guidance/rules/generate", async (route) => {
@@ -364,6 +393,12 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           // -- Step 0: Page loads correctly
           await ctx.page.goto("/admin/knowledge?tab=clinical-guidelines");
           await waitForPageSettled(ctx.page);
+          await ctx.page
+            .getByRole("button", {
+              name: /skip the guideline builder intro animation/i,
+            })
+            .click({ timeout: 3_000 })
+            .catch(() => undefined);
 
           // StatHero must be present
           await expect(ctx.page.getByTestId("metric-tile-loaded")).toBeVisible({
@@ -431,11 +466,20 @@ test.describe("VAL-1963DA04 guideline load, review, compile walkthrough @val", (
           // The Inspect card should now show NG12 (stub returns it after reload)
           await ctx.page.getByRole("tab", { name: "2. Inspect" }).click();
 
-          // Find generate rules button
           await expect(
-            ctx.page.getByRole("button", { name: /generate rules for ng12/i }),
+            ctx.page.getByRole("button", {
+              name: /manage recommendations for ng12/i,
+            }),
           ).toBeVisible({ timeout: 10_000 });
-          await ctx.page.getByRole("button", { name: /generate rules for ng12/i }).click();
+          await ctx.page
+            .getByRole("button", { name: /manage recommendations for ng12/i })
+            .click();
+          const picker = ctx.page.getByRole("dialog");
+          await expect(picker).toBeVisible();
+          await expect(
+            picker.getByRole("button", { name: /generate ai drafts/i }),
+          ).toBeEnabled({ timeout: 10_000 });
+          await picker.getByRole("button", { name: /generate ai drafts/i }).click();
 
           // After generation completes, rule status chip shows Pending
           await expect(

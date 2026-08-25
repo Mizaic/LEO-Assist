@@ -21,6 +21,10 @@ SET u.extracted_tag = $extracted_tag,
     u.last_best_tag = $last_best_tag,
     u.sample_span = $sample_span,
     u.sample_sentence = $sample_sentence,
+    u.last_extractor = CASE
+        WHEN $last_extractor <> '' THEN $last_extractor
+        ELSE coalesce(u.last_extractor, '')
+    END,
     u.last_seen_at = datetime(),
     u.status = CASE
         WHEN u.status IN ['draft', 'review', 'closed'] THEN u.status
@@ -48,6 +52,7 @@ RETURN
     u.phrase_key AS phrase_key,
     u.normalized AS normalized,
     u.extracted_tag AS extracted_tag,
+    u.last_extractor AS last_extractor,
     u.note_count AS note_count,
     u.last_score AS last_score,
     u.last_best_term AS last_best_term,
@@ -79,6 +84,57 @@ RETURN
     u.phrase_key AS phrase_key,
     u.normalized AS normalized,
     u.extracted_tag AS extracted_tag,
+    u.last_extractor AS last_extractor,
+    u.note_count AS note_count,
+    u.last_score AS last_score,
+    u.last_best_term AS last_best_term,
+    u.last_best_concept AS last_best_concept,
+    u.last_best_tag AS last_best_tag,
+    u.sample_span AS sample_span,
+    u.sample_sentence AS sample_sentence,
+    u.status AS status,
+    u.draft_action AS draft_action,
+    u.draft_concept_id AS draft_concept_id,
+    u.draft_concept_term AS draft_concept_term,
+    u.draft_reason AS draft_reason,
+    u.draft_author AS draft_author,
+    toString(u.last_seen_at) AS last_seen_at
+"""
+
+ENSURE_UNCODED_PHRASE = """
+MERGE (u:UncodedPhrase {phrase_key: $phrase_key})
+ON CREATE SET
+    u.normalized = $normalized,
+    u.note_count = 1,
+    u.status = 'inbox',
+    u.created_at = datetime(),
+    u.extracted_tag = $extracted_tag,
+    u.sample_span = $sample_span,
+    u.sample_sentence = $sample_sentence,
+    u.last_extractor = $extracted_source
+ON MATCH SET
+    u.extracted_tag = CASE
+        WHEN $extracted_tag <> '' THEN $extracted_tag ELSE u.extracted_tag
+    END,
+    u.sample_span = CASE
+        WHEN $sample_span <> '' THEN $sample_span ELSE u.sample_span
+    END,
+    u.sample_sentence = CASE
+        WHEN $sample_sentence <> '' THEN $sample_sentence ELSE u.sample_sentence
+    END,
+    u.last_extractor = CASE
+        WHEN $extracted_source <> '' THEN $extracted_source ELSE u.last_extractor
+    END
+SET u.last_seen_at = datetime(),
+    u.status = CASE
+        WHEN u.status IN ['draft', 'review', 'closed'] THEN u.status
+        ELSE 'inbox'
+    END
+RETURN
+    u.phrase_key AS phrase_key,
+    u.normalized AS normalized,
+    u.extracted_tag AS extracted_tag,
+    u.last_extractor AS last_extractor,
     u.note_count AS note_count,
     u.last_score AS last_score,
     u.last_best_term AS last_best_term,
@@ -114,6 +170,14 @@ WHERE u.status = 'draft' AND u.draft_author = $author
 SET u.status = 'review',
     u.updated_at = datetime()
 RETURN count(u) AS submitted
+"""
+
+SUBMIT_ONE_UNCODED_DRAFT = """
+MATCH (u:UncodedPhrase {phrase_key: $phrase_key})
+WHERE u.status = 'draft' AND u.draft_author = $author
+SET u.status = 'review',
+    u.updated_at = datetime()
+RETURN u.phrase_key AS phrase_key, u.status AS status
 """
 
 SEND_BACK_UNCODED_PHRASE = """

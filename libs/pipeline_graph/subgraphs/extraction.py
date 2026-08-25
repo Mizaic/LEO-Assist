@@ -83,7 +83,7 @@ class ExtractionState(TypedDict, total=False):
     errors: list[str]
     warnings: list[str]
     document_quality: dict[str, Any]
-    few_shot_max_similarity: float
+    few_shot_max_similarity: float | None
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -877,7 +877,7 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
 
     quality = score_document_quality(
         state.get("encounter_text") or "",
-        few_shot_max_similarity=float(state.get("few_shot_max_similarity") or 0.0),
+        few_shot_max_similarity=state.get("few_shot_max_similarity"),
         known_fingerprints=known_fingerprints(),
     )
     return {

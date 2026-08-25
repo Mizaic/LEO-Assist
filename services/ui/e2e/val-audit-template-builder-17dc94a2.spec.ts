@@ -81,9 +81,9 @@ test.describe("VAL-17DC94A2 audit template builder walkthrough @val", () => {
         body: async (ctx) => {
           await installAuditTemplateFixtures(ctx.page, state);
           await ctx.page.goto("/admin/audit-templates/new");
-          await expect(
-            ctx.page.getByRole("heading", { name: "Metric library" }).first(),
-          ).toBeVisible({ timeout: 15_000 });
+          await expect(ctx.page.getByRole("tab", { name: "Data" })).toBeVisible({
+            timeout: 15_000,
+          });
           await expect(
             ctx.page.getByText("Referral STT Rate", { exact: true }),
           ).toBeVisible({ timeout: 15_000 });
@@ -220,7 +220,7 @@ test.describe("VAL-17DC94A2 audit template builder walkthrough @val", () => {
           ctx.lastCompletedStep.value = 5;
 
           // Publish to org-A
-          await ctx.page.getByRole("button", { name: "Edit" }).click();
+          await ctx.page.getByRole("button", { name: "Edit", exact: true }).click();
           await ctx.page.getByPlaceholder("Template title...").fill("Referral Assessment Audit");
           const savePostResponse = ctx.page.waitForResponse(
             (resp) =>
@@ -288,9 +288,9 @@ test.describe("VAL-17DC94A2 audit template builder walkthrough @val", () => {
           setAuditAuthRole(state, "qm");
           state.orgBTemplateId = VAL_TEMPLATE_B_ID;
           await ctx.page.goto("/admin/audit-templates/new", { waitUntil: "domcontentloaded" });
-          await expect(
-            ctx.page.getByRole("heading", { name: "Metric library" }).first(),
-          ).toBeVisible({ timeout: 15_000 });
+          await expect(ctx.page.getByRole("tab", { name: "Data" })).toBeVisible({
+            timeout: 15_000,
+          });
           await recordProtocolStep({
             request: ctx.request,
             runId: ctx.runId,

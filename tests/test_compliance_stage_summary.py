@@ -101,7 +101,7 @@ def test_evaluate_compliance_emits_stage_summary(monkeypatch):
     monkeypatch.setattr(
         compliance,
         "_evaluate_guideline",
-        lambda _state, codes: {
+        lambda _state, codes, **kwargs: {
             "matched_rules": [],
             "is_compliant": False,
             "active_version": "v1",
@@ -126,7 +126,7 @@ def test_evaluate_compliance_emits_guideline_diagnostics_in_lab(monkeypatch):
     monkeypatch.setattr(
         compliance,
         "_evaluate_guideline",
-        lambda _state, _codes: {
+        lambda _state, _codes, **kwargs: {
             "matched_rules": [{"rule_id": "NG12:1.1"}],
             "is_compliant": True,
         },

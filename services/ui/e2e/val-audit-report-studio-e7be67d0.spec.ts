@@ -48,7 +48,7 @@ const PROTOCOL = [
 test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
   // 7 steps x 2 Atlas REST calls (recordStep + uploadEvidence) each up to 60s,
   // plus Playwright actions, html2canvas render and PDF download.
-  test.setTimeout(600_000);
+  test.setTimeout(180_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());
@@ -79,8 +79,11 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
           const p = ctx.page;
           await installAuditTemplateFixtures(p, state);
           await p.goto("/admin/audit-templates/new");
+          await expect(p.getByRole("tab", { name: "Data" })).toBeVisible({
+            timeout: 15_000,
+          });
           await expect(
-            p.getByRole("heading", { name: "Metric library" }).first(),
+            p.getByText("Referral STT Rate", { exact: true }),
           ).toBeVisible({ timeout: 15_000 });
 
           // Step 1 -- add a metric tile by click.
@@ -109,7 +112,10 @@ test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
           // Drop onto the CanvasGrid container so the HTML5 onDrop handler
           // fires and converts cursor position to a grid cell.
           const canvasGrid = p.locator("[data-testid='canvas-grid']").first();
-          await guidelineCard.dragTo(canvasGrid, { targetPosition: { x: 260, y: 330 } });
+          await guidelineCard.dragTo(canvasGrid, {
+            targetPosition: { x: 260, y: 330 },
+            timeout: 15_000,
+          });
           await expect(p.locator("[data-testid='canvas-tile']")).toHaveCount(2);
           await recordProtocolStep({
             request: ctx.request,

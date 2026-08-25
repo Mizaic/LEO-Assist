@@ -40,6 +40,15 @@ def _deidentify_sample(sentence: str, span: str) -> str:
         return sentence
 
 
+def extractor_source(entity: dict[str, Any]) -> str:
+    raw = str(entity.get("__source") or entity.get("source") or "").strip().lower()
+    if raw in {"ner", "ner_lab_fallback"}:
+        return "model"
+    if raw in {"llm", "model"}:
+        return raw
+    return ""
+
+
 def unresolved_entities(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
     out = []
     for ent in entities:
@@ -95,6 +104,7 @@ def record_uncoded_phrases(
                 ),
                 sample_span=span,
                 sample_sentence=sample,
+                last_extractor=extractor_source(ent),
             )
             written += 1
     except Exception:

@@ -553,7 +553,9 @@ class TestAdjuvantTherapyInference:
         assert d.get("hitl_required") is True
 
     def test_drug_with_active_care_code_fires(self):
-        text = "Cancer review (XaIyc). On letrozole 2.5mg daily."
+        # Use a non-review active-care code. "Cancer review" is an N4
+        # restatement marker and now suppresses diagnosis emission.
+        text = "Cancer confirmed (XaIph). On letrozole 2.5mg daily."
         _, diagnoses, _, _, _, _, _, _, _ = _classify_one(text)
         assert len(diagnoses) >= 1
         # Active care code beats the drug as the source

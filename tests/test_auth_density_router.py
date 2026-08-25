@@ -46,8 +46,9 @@ def client_with_session(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setattr(
         auth_router,
         "load_session",
-        MagicMock(return_value={"email": "user@example.com"}),
+        MagicMock(return_value={"email": "user@example.com", "idle_timeout_minutes": 30}),
     )
+    monkeypatch.setattr(auth_router, "touch_session", MagicMock(return_value=True))
     monkeypatch.setattr(
         auth_router,
         "fetch_role_state",

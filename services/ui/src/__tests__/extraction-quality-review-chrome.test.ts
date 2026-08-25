@@ -37,6 +37,15 @@ describe("extraction quality review chrome", () => {
     expect(section).toMatch(/ExtractionQualityReviewDialog/);
   });
 
+  test("TC-004: My work opens the letter editor in a modal for paused extractions", () => {
+    const workPage = readFile("services/ui/src/app/work/page.tsx");
+    const dialog = readFile("services/ui/src/app/work/WorkTaskDialog.tsx");
+    expect(workPage).toMatch(/WorkTaskDialog/);
+    expect(dialog).toMatch(/extraction_quality_pause/);
+    expect(dialog).toMatch(/ExtractionQualityReviewDialog/);
+    expect(dialog).toMatch(/Approve and unlock|taskId/);
+  });
+
   test("TC-003: letter editor reuses Validation Lab highlight and complete API", () => {
     const dialog = readFile(
       "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",

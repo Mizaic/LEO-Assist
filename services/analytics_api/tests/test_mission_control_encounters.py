@@ -3,8 +3,6 @@ from __future__ import annotations
 import sys
 import types
 
-import pytest
-
 # Test envs may not have Azure SDK installed; stub required imports used by config.
 azure_mod = types.ModuleType("azure")
 azure_identity_mod = types.ModuleType("azure.identity")
@@ -47,8 +45,7 @@ def test_append_filters_adds_patient_and_date():
     assert params["patient_id"] == "123"
 
 
-@pytest.mark.asyncio
-async def test_encounter_list_without_search_returns_rows(monkeypatch):
+def test_encounter_list_without_search_returns_rows(monkeypatch):
     class _FakeClient:
         def run(self, query, **kwargs):
             if "count(e) AS total" in query:
@@ -71,7 +68,7 @@ async def test_encounter_list_without_search_returns_rows(monkeypatch):
 
     monkeypatch.setattr(mce, "PatientGraphClient", _FakeClient)
 
-    result = await mce.get_mission_control_encounters(
+    result = mce.get_mission_control_encounters(
         org_id="org-1",
         date_from=None,
         date_to=None,
@@ -98,8 +95,7 @@ async def test_encounter_list_without_search_returns_rows(monkeypatch):
     assert result["items"][0]["match_type"] == "none"
 
 
-@pytest.mark.asyncio
-async def test_hybrid_search_fallback_when_indexes_unavailable(monkeypatch):
+def test_hybrid_search_fallback_when_indexes_unavailable(monkeypatch):
     class _FakeClient:
         def run(self, query, **kwargs):
             raise RuntimeError("index unavailable")
@@ -110,7 +106,7 @@ async def test_hybrid_search_fallback_when_indexes_unavailable(monkeypatch):
     monkeypatch.setattr(mce, "PatientGraphClient", _FakeClient)
     monkeypatch.setattr(mce, "_try_embed_query", lambda _q: [0.1, 0.2])
 
-    result = await mce.get_mission_control_encounters(
+    result = mce.get_mission_control_encounters(
         org_id="org-1",
         date_from=None,
         date_to=None,
@@ -136,8 +132,7 @@ async def test_hybrid_search_fallback_when_indexes_unavailable(monkeypatch):
     assert result["items"] == []
 
 
-@pytest.mark.asyncio
-async def test_hybrid_search_returns_query_diagnostics(monkeypatch):
+def test_hybrid_search_returns_query_diagnostics(monkeypatch):
     class _FakeClient:
         def run(self, query, **kwargs):
             if "fulltext.queryNodes" in query:
@@ -173,7 +168,7 @@ async def test_hybrid_search_returns_query_diagnostics(monkeypatch):
     monkeypatch.setattr(mce, "_try_embed_query", lambda _q: [0.1, 0.2])
     monkeypatch.setattr(mce, "_write_query_audit", lambda **kwargs: None)
 
-    result = await mce.get_mission_control_encounters(
+    result = mce.get_mission_control_encounters(
         org_id="org-1",
         date_from=None,
         date_to=None,

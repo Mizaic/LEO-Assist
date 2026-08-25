@@ -105,7 +105,10 @@ class TestDualTolerantReads:
         # Concept and proc are both unlabeled in the production fetch
         # query so canonical AND legacy nodes bind.
         assert "OPTIONAL MATCH (grp)-[hc:HAS_CRITERIA]->(concept)\n" in src
-        assert "OPTIONAL MATCH (rule)-[:HAS_ACTION_GROUP]->(ag:ActionGroup)-[ha:HAS_ACTION]->(proc)\n" in src
+        assert (
+            "MATCH (rule:AppropriatenessRule)-[:HAS_ACTION_GROUP]->(:ActionGroup)-[ha:HAS_ACTION]->(proc)"
+            in src
+        )
         # ID and display projections are coalesced.
         assert "coalesce(concept.id, concept.conceptId)" in src
         assert "coalesce(proc.id, proc.conceptId)" in src

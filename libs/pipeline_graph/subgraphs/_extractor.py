@@ -29,6 +29,8 @@ from libs.ner.extractor_contract import ExtractionItem
 from libs.ner.span_resolver import SpanResolver
 from libs.nlp.sentence_splitter import SentenceChunk
 from libs.pipeline.extraction_response_parse import parse_extraction_terms_response
+from libs.prompts.few_shot_config import FewShotSelectionConfig
+from libs.prompts.few_shot_ranking import order_for_prompt
 from libs.prompts.few_shot_selector import FewShotSelector
 
 _VALID_ASSERTIONS_EXTRACT = {
@@ -162,14 +164,24 @@ def _split_core_dynamic(examples: list[dict]) -> tuple[list[dict], list[dict]]:
     return core_examples, dynamic_examples
 
 
-def _build_relevant_examples_block(examples: list[dict]) -> str:
+def _build_relevant_examples_block(
+    examples: list[dict],
+    config: FewShotSelectionConfig | None = None,
+) -> str:
+    """Render selected examples as the ``## Relevant examples`` block.
+
+    ``examples`` arrives ranked best-first. When ascending order is
+    enabled the block is reversed so the strongest example sits closest
+    to the query text that follows it.
+    """
     if not examples:
         return ""
+    cfg = config if config is not None else FewShotSelectionConfig.from_env()
     lines = ["## Relevant examples", ""]
-    for ex in examples:
+    for ex in order_for_prompt(examples, cfg.ascending_prompt_order):
         desc = ex.get("description", "")
         cat = ex.get("category", "")
-        header = f"# {cat}" + (f" — {desc}" if desc else "")
+        header = f"# {cat}" + (f" - {desc}" if desc else "")
         lines.append(header)
         lines.append(f"Input:  {_guard_example_text(ex.get('input', ''))}")
         lines.append(f"Output: {_guard_example_text(ex.get('output', ''))}")

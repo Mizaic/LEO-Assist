@@ -18,6 +18,8 @@ const COUNTS: CountsBySource = {
   coding_review: 3,
   safety_net_alert: 1,
   gold_label: 7,
+  extraction_quality_pause: 2,
+  surface_form_approval: 0,
 };
 
 const TASKS: WorkTask[] = [
@@ -156,6 +158,30 @@ describe("TaskQueue primitive (VT-LEO-AI-134 TC-004)", () => {
     );
     expect(empty).not.toBeNull();
     expect(empty?.textContent).toMatch(/no open tasks/i);
+  });
+
+  test("row click calls onSelectTask and does not require navigation", () => {
+    const selected: WorkTask[] = [];
+    mountInto(
+      container,
+      <MotionProvider>
+        <TaskQueue
+          tasks={TASKS}
+          countsBySource={COUNTS}
+          onSelectTask={(task) => selected.push(task)}
+        />
+      </MotionProvider>,
+    );
+    const row = container.querySelector(
+      "[data-testid='task-queue-row-safety_net_alert:sn-1']",
+    ) as HTMLAnchorElement;
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    act(() => {
+      row.dispatchEvent(event);
+    });
+    expect(event.defaultPrevented).toBe(true);
+    expect(selected).toHaveLength(1);
+    expect(selected[0]?.task_id).toBe("safety_net_alert:sn-1");
   });
 
   test("counts strip buttons invoke onToggleSource", () => {

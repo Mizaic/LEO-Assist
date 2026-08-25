@@ -118,9 +118,7 @@ def _build_driver(
         "max_connection_lifetime": int(
             os.getenv("NEO4J_MAX_CONNECTION_LIFETIME", "240")
         ),
-        "max_connection_pool_size": int(
-            os.getenv("NEO4J_MAX_POOL_SIZE", "50")
-        ),
+        "max_connection_pool_size": int(os.getenv("NEO4J_MAX_POOL_SIZE", "50")),
         "connection_acquisition_timeout": float(
             os.getenv("NEO4J_ACQUIRE_TIMEOUT", "60")
         ),
@@ -220,7 +218,9 @@ class PatientGraphClient(_BaseClient):
     def __init__(self) -> None:
         super().__init__(
             os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", ""),
-            os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", ""),
+            os.getenv("NEO4J_USER", "")
+            or os.getenv("NEO4J_PATIENT_USER", "")
+            or "neo4j",
             os.getenv("NEO4J_PASSWORD", "") or os.getenv("NEO4J_PATIENT_PASSWORD", ""),
         )
 
@@ -242,7 +242,8 @@ class KnowledgeGraphClient(_BaseClient):
             os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "")
             or os.getenv("NEO4J_KNOWLEDGE_URI", ""),
             os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
-            or os.getenv("NEO4J_KNOWLEDGE_USER", ""),
+            or os.getenv("NEO4J_KNOWLEDGE_USER", "")
+            or "neo4j",
             os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
             or os.getenv("NEO4J_KNOWLEDGE_PASSWORD", ""),
         )
@@ -295,7 +296,7 @@ def get_async_driver():
     than the patient-graph client wrappers above.
     """
     uri = os.getenv("KNOWLEDGE_GRAPH_NEO4J_URI", "")
-    username = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "")
+    username = os.getenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", "") or "neo4j"
     password = os.getenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "")
     if not all([uri, username, password]):
         raise RuntimeError("Neo4j credentials missing for async knowledge graph driver")
@@ -305,7 +306,9 @@ def get_async_driver():
 def get_async_patient_driver():
     """Return an async Neo4j driver for the Patient Graph."""
     uri = os.getenv("NEO4J_URI", "") or os.getenv("NEO4J_PATIENT_URI", "")
-    username = os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", "")
+    username = (
+        os.getenv("NEO4J_USER", "") or os.getenv("NEO4J_PATIENT_USER", "") or "neo4j"
+    )
     password = os.getenv("NEO4J_PASSWORD", "") or os.getenv(
         "NEO4J_PATIENT_PASSWORD", ""
     )

@@ -167,6 +167,21 @@ class TestPatientGraphClient:
         MockGD.driver.assert_called()
         client.close()
 
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_defaults_username_to_neo4j_when_unset(self, MockGD, monkeypatch):
+        monkeypatch.setenv("NEO4J_URI", "bolt://patient:7687")
+        monkeypatch.delenv("NEO4J_USER", raising=False)
+        monkeypatch.delenv("NEO4J_PATIENT_USER", raising=False)
+        monkeypatch.setenv("NEO4J_PASSWORD", "secret")
+
+        from libs.neo4j_client.client import PatientGraphClient
+
+        client = PatientGraphClient()
+        MockGD.driver.assert_called()
+        _uri, kwargs = MockGD.driver.call_args
+        assert kwargs["auth"][0] == "neo4j"
+        client.close()
+
 
 class TestKnowledgeGraphClient:
 
@@ -180,4 +195,19 @@ class TestKnowledgeGraphClient:
 
         client = KnowledgeGraphClient()
         MockGD.driver.assert_called()
+        client.close()
+
+    @patch("libs.neo4j_client.client.GraphDatabase")
+    def test_defaults_username_to_neo4j_when_unset(self, MockGD, monkeypatch):
+        monkeypatch.setenv("KNOWLEDGE_GRAPH_NEO4J_URI", "bolt://knowledge:7688")
+        monkeypatch.delenv("KNOWLEDGE_GRAPH_NEO4J_USERNAME", raising=False)
+        monkeypatch.delenv("NEO4J_KNOWLEDGE_USER", raising=False)
+        monkeypatch.setenv("KNOWLEDGE_GRAPH_NEO4J_PASSWORD", "kgpass")
+
+        from libs.neo4j_client.client import KnowledgeGraphClient
+
+        client = KnowledgeGraphClient()
+        MockGD.driver.assert_called()
+        _args, kwargs = MockGD.driver.call_args
+        assert kwargs["auth"][0] == "neo4j"
         client.close()

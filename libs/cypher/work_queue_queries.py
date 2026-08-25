@@ -1,23 +1,33 @@
-"""Cypher queries for the unified /work task queue (DI-LEO-AI-138).
+"""Cypher queries for the unified /work task queue.
 
 Atlas trace:
-  DO: DO-65BA6EA0
-  DI: DI-C0AD09D2
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+  DI: DI-6BD7B681
+  DO: DO-E12EC9C0
+  VT: VT-76C15B0E
 
-All three sources (CodingReview, SafetyNetAlert, TrainingCandidate pending)
-are returned in one Cypher UNION so the per-source counts on the landing
-page and the page of rendered rows cannot drift against each other.
+All five patient-graph sources are returned in one Cypher UNION so the
+per-source counts on the landing page and the page of rendered rows cannot
+drift against each other.
 
 Row shape:
-    task_id     - str, unique across sources
-    task_type   - one of 'coding_review' | 'safety_net_alert' | 'gold_label'
-    severity    - int 1..5 (5 = most urgent)
-    summary     - plain-English one liner, FK grade <= 9
-    age_days    - int, days since the task became actionable
-    resolve_url - app-relative URL that deep-links to the resolver UI
-    patient_id  - str | null
-    episode_id  - str | null
+    task_id      - str, unique across sources
+    task_type    - one of the VALID_SOURCES values
+    severity     - int 1..5 (5 = most urgent)
+    summary      - plain-English one liner, FK grade <= 9
+    age_days     - int, days since the task became actionable
+    resolve_url  - app-relative URL that deep-links to the resolver UI
+    patient_id   - str | null
+    episode_id   - str | null
+    failure_kind - short machine tag naming what went wrong (see below)
+
+failure_kind values:
+    no_code          - CodingReview: no SNOMED code could be found
+    wrong_kind       - CodingReview: code found but type or tag mismatch
+    assertion_check  - CodingReview: assertion is not 'present'
+    safety_flag      - SafetyNetAlert: open safety alert
+    needs_gold_label - TrainingCandidate: pending expert label
+    unseen_form      - HITLTask: paused extraction (unknown form or OOD)
+    new_phrase       - SurfaceFormTask: new phrase needs approval
 
 Severity mapping:
     CodingReview.decision_tier 3 -> severity 4 (needs human review)
@@ -46,16 +56,33 @@ CALL {
          duration.inDays(
              coalesce(cr.updated_at, cr.created_at, datetime()),
              datetime()
-         ).days AS age_days
+         ).days AS age_days,
+         CASE
+             WHEN coalesce(cr.coded, true) = false THEN 'no_code'
+             WHEN cr.suggested_label IS NOT NULL
+                  OR cr.tag_mismatch_delta IS NOT NULL THEN 'wrong_kind'
+             WHEN coalesce(cr.assertion, 'present') <> 'present' THEN 'assertion_check'
+             ELSE 'no_code'
+         END AS failure_kind
     RETURN
         'coding_review:' + cr.review_id AS task_id,
         'coding_review'                 AS task_type,
         severity                        AS severity,
-        'Code check: ' + coalesce(cr.entity_text, '(empty)') AS summary,
+        CASE
+            WHEN coalesce(cr.coded, true) = false
+                THEN 'No safe code yet: ' + coalesce(cr.entity_text, '(empty)')
+            WHEN cr.suggested_label IS NOT NULL
+                 OR cr.tag_mismatch_delta IS NOT NULL
+                THEN 'Wrong kind of code: ' + coalesce(cr.entity_text, '(empty)')
+            WHEN coalesce(cr.assertion, 'present') <> 'present'
+                THEN 'Check assertion: ' + coalesce(cr.entity_text, '(empty)')
+            ELSE 'Code check: ' + coalesce(cr.entity_text, '(empty)')
+        END AS summary,
         age_days                        AS age_days,
         '/admin/operations/reviews?review_id=' + cr.review_id AS resolve_url,
         p.id                            AS patient_id,
-        ep.episode_id                   AS episode_id
+        ep.episode_id                   AS episode_id,
+        failure_kind                    AS failure_kind
 
     UNION ALL
 
@@ -84,7 +111,8 @@ CALL {
         age_days                         AS age_days,
         '/safety-netting?alert_id=' + a.alert_id AS resolve_url,
         p.id                             AS patient_id,
-        ep.episode_id                    AS episode_id
+        ep.episode_id                    AS episode_id,
+        'safety_flag'                    AS failure_kind
 
     UNION ALL
 
@@ -109,7 +137,8 @@ CALL {
         '/admin/knowledge?tab=training-data&candidate_id='
             + c.candidate_id          AS resolve_url,
         NULL                           AS patient_id,
-        NULL                           AS episode_id
+        NULL                           AS episode_id,
+        'needs_gold_label'             AS failure_kind
 
     UNION ALL
 
@@ -131,7 +160,8 @@ CALL {
         age_days                                AS age_days,
         '/admin/knowledge?tab=validation-lab&hitl_task_id=' + t.task_id AS resolve_url,
         t.patient_id                            AS patient_id,
-        NULL                                    AS episode_id
+        NULL                                    AS episode_id,
+        'unseen_form'                           AS failure_kind
 
     UNION ALL
 
@@ -152,18 +182,56 @@ CALL {
         age_days                             AS age_days,
         '/admin/knowledge?tab=surface-forms' AS resolve_url,
         NULL                                 AS patient_id,
-        NULL                                 AS episode_id
+        NULL                                 AS episode_id,
+        'new_phrase'                         AS failure_kind
 }
 WITH task_id, task_type, severity, summary, age_days, resolve_url,
-     patient_id, episode_id
+     patient_id, episode_id, failure_kind
 WHERE ($sources IS NULL OR task_type IN $sources)
 RETURN task_id, task_type, severity, summary, age_days, resolve_url,
-       patient_id, episode_id
+       patient_id, episode_id, failure_kind
 ORDER BY severity DESC, age_days DESC, task_id
 SKIP $offset
 LIMIT $limit
 """
 
+
+# -- Knowledge-graph queries (run against KnowledgeGraphClient) ---------------
+# UncodedPhrase lives in the knowledge graph, so these cannot be UNION'd
+# into GET_UNIFIED_WORK_TASKS which runs on the patient graph session.
+# libs/work/queue.py merges the results in Python.
+
+GET_PHRASE_PUBLISH_TASKS = """
+MATCH (u:UncodedPhrase)
+WHERE u.status = 'review'
+WITH u,
+     3 AS severity,
+     duration.inDays(
+         coalesce(u.updated_at, u.created_at, datetime()),
+         datetime()
+     ).days AS age_days
+RETURN
+    'phrase_publish:' + u.phrase_key  AS task_id,
+    'phrase_publish'                  AS task_type,
+    severity                          AS severity,
+    'Change to publish: ' + coalesce(u.normalized, u.phrase_key) AS summary,
+    age_days                          AS age_days,
+    '/work'                           AS resolve_url,
+    NULL                              AS patient_id,
+    NULL                              AS episode_id,
+    'change_to_publish'               AS failure_kind,
+    coalesce(u.draft_author, '')      AS draft_author,
+    coalesce(u.draft_action, '')      AS draft_action
+ORDER BY age_days DESC, task_id
+SKIP $offset
+LIMIT $limit
+"""
+
+COUNT_PHRASE_PUBLISH_TASKS = """
+MATCH (u:UncodedPhrase)
+WHERE u.status = 'review'
+RETURN count(u) AS total
+"""
 
 COUNT_WORK_TASKS_BY_SOURCE = """
 CALL {

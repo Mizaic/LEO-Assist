@@ -88,9 +88,9 @@ class TestContainerAppsInternalUrlsUseDefaultDomain:
 
     def test_internal_urls_reference_internal_default_domain(self):
         source = CONTAINER_APPS.read_text()
-        assert "cae.properties.defaultDomain" in source, (
-            "container-apps.bicep must read cae.properties.defaultDomain for mesh URLs"
-        )
+        assert (
+            "cae.properties.defaultDomain" in source
+        ), "container-apps.bicep must read cae.properties.defaultDomain for mesh URLs"
         internal_urls = {
             "terminology-api",
             "fhir-api",
@@ -120,9 +120,13 @@ class TestContainerAppsIngressPolicy:
             external = _ingress_external_flag(block)
             assert external is not None, f"{name}: ingress.external not found"
             if name in _EXPECTED_EXTERNAL_APPS:
-                assert external is True, f"{name}: must use external: true (public entry)"
+                assert (
+                    external is True
+                ), f"{name}: must use external: true (public entry)"
             else:
-                assert external is False, f"{name}: must use external: false (internal only)"
+                assert (
+                    external is False
+                ), f"{name}: must use external: false (internal only)"
 
 
 class TestMessageBusEnvParity:
@@ -157,6 +161,21 @@ class TestCoreApiKnowledgeGraphEnv:
         assert "KNOWLEDGE_GRAPH_NEO4J_USERNAME" in block
 
 
+class TestTrainingWorkerNeo4jUsernameEnv:
+    """training-worker must receive Neo4j usernames, not only KV URI/password.
+
+    KnowledgeGraphClient and PatientGraphClient both require a username.
+    Key Vault does not store usernames. Other apps get them from Bicep.
+    """
+
+    def test_training_worker_sets_neo4j_usernames(self):
+        source = CONTAINER_APPS.read_text()
+        apps = dict(_container_app_blocks(source))
+        block = apps["training-worker"]
+        assert "KNOWLEDGE_GRAPH_NEO4J_USERNAME" in block
+        assert "NEO4J_USER" in block
+
+
 class TestAnalyticsApiImageContents:
     """analytics-api must package runtime SNOMED config used by audit routes."""
 
@@ -177,9 +196,7 @@ class TestPipelineWorkerImageContents:
     def test_pipeline_worker_copies_terminology_api_package(self):
         dockerfile = DOCKERFILES_DIR / "Dockerfile.pipeline-worker"
         source = dockerfile.read_text()
-        assert (
-            "COPY services/terminology_api/ /app/services/terminology_api/" in source
-        )
+        assert "COPY services/terminology_api/ /app/services/terminology_api/" in source
 
 
 class TestServiceAuthSecretDeployment:
@@ -204,7 +221,9 @@ class TestServiceAuthSecretDeployment:
 
     def test_migrate_secrets_generates_if_missing(self):
         """migrate-secrets.ps1 must auto-generate SERVICE_AUTH_SECRET when absent."""
-        script = Path(__file__).parent.parent / "infra" / "scripts" / "migrate-secrets.ps1"
+        script = (
+            Path(__file__).parent.parent / "infra" / "scripts" / "migrate-secrets.ps1"
+        )
         if not script.exists():
             pytest.skip("migrate-secrets.ps1 not found")
         source = script.read_text()
@@ -214,7 +233,9 @@ class TestServiceAuthSecretDeployment:
 
     def test_migrate_secrets_writes_placeholders_for_blank_env(self):
         """Blank .env values must get bootstrap placeholders when missing from KV."""
-        script = Path(__file__).parent.parent / "infra" / "scripts" / "migrate-secrets.ps1"
+        script = (
+            Path(__file__).parent.parent / "infra" / "scripts" / "migrate-secrets.ps1"
+        )
         if not script.exists():
             pytest.skip("migrate-secrets.ps1 not found")
         source = script.read_text()

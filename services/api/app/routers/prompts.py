@@ -507,23 +507,16 @@ def simulate_prompt(
         selected_dyn: list[dict] = []
         selected_scores: list[float] = []
         if budget > 0 and enc:
+            # Go through the public API so the preview applies the same
+            # domain routing and selection policy as the runtime path.
             try:
-                import numpy as np
-
-                if selector._pool_embeddings is not None:
-                    qv = selector._embedder.encode([enc])
-                    if qv is not None:
-                        scores_arr = selector._pool_embeddings @ qv[0]
-                        top_idx = np.argsort(-scores_arr)[
-                            : min(budget, len(dynamic_pool))
-                        ]
-                        selected_dyn = [dynamic_pool[int(i)] for i in top_idx]
-                        selected_scores = [float(scores_arr[int(i)]) for i in top_idx]
-                    else:
-                        selected_dyn = selector.select(enc, budget)
-                else:
+                detailed, _best = selector.select_detailed(enc, budget)
+                selected_dyn = [ex for ex, _ in detailed]
+                selected_scores = [score for _, score in detailed]
+                if not selected_dyn:
                     selected_dyn = selector.select(enc, budget)
             except Exception:
+                logger.warning("Few-shot preview selection failed", exc_info=True)
                 selected_dyn = selector.select(enc, budget)
         sys_prompt = assemble_system_prompt(
             instructions=system_prompt_text,

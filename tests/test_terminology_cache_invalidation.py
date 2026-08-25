@@ -71,9 +71,9 @@ def test_invalidate_deletes_live_resolver_keys(monkeypatch) -> None:
     )
     fake.delete.side_effect = lambda *keys: len(keys)
 
-    redis_mod = MagicMock()
-    redis_mod.from_url.return_value = fake
-    monkeypatch.setitem(sys.modules, "redis", redis_mod)
+    import redis
+
+    monkeypatch.setattr(redis, "from_url", lambda *a, **k: fake)
 
     result = invalidate_terminology_resolution_caches(
         reason="surface_form_upsert:x"

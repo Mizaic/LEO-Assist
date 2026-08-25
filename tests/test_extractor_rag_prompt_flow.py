@@ -17,7 +17,8 @@ class _FakeLLM:
         self.system = ""
         self.messages = []
 
-    def converse(self, system, messages, max_tokens=0, temperature=0.0):  # noqa: ANN001
+    def converse(self, system, messages, **kwargs):  # noqa: ANN001
+        _ = kwargs
         self.system = system
         self.messages = messages
         return _FakeResp('{"terms": []}')
@@ -30,18 +31,22 @@ def test_core_examples_stay_in_system_and_dynamic_go_to_user(monkeypatch) -> Non
         return fake_llm
 
     monkeypatch.setattr("libs.llm_client.factory.create_llm", _fake_create_llm)
+    # _run_llm calls select_with_scores, which also yields the OOD signal.
     monkeypatch.setattr(
-        "libs.pipeline_graph.subgraphs._extractor.FewShotSelector.select",
-        lambda self, query_text, k: [  # noqa: ARG005
-            {
-                "category": "observable",
-                "description": "dynamic example",
-                "input": "[s0] eGFR 42",
-                "output": '{"terms":[]}',
-                "model_scope": "any",
-                "core": False,
-            }
-        ],
+        "libs.pipeline_graph.subgraphs._extractor.FewShotSelector.select_with_scores",
+        lambda self, query_text, k: (  # noqa: ARG005
+            [
+                {
+                    "category": "observable",
+                    "description": "dynamic example",
+                    "input": "[s0] eGFR 42",
+                    "output": '{"terms":[]}',
+                    "model_scope": "any",
+                    "core": False,
+                }
+            ],
+            0.87,
+        ),
     )
 
     adapter = LLMExtractorAdapter(
@@ -90,10 +95,8 @@ def test_invalid_max_few_shot_defaults_to_20() -> None:
 
 def test_llm_extractor_assigns_distinct_spans_for_multiple_terms(monkeypatch) -> None:
     class _SpanFakeLLM:
-        def converse(
-            self, system, messages, max_tokens=0, temperature=0.0
-        ):  # noqa: ANN001
-            _ = (system, messages, max_tokens, temperature)
+        def converse(self, system, messages, **kwargs):  # noqa: ANN001
+            _ = (system, messages, kwargs)
             return _FakeResp(
                 '{"terms": ['
                 '{"sentence_id":"s0","text":"change in bowel habit","lookup_term":"change in bowel habit","semantic_tag":"finding","assertion":"absent"},'

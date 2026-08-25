@@ -2,9 +2,9 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DO: DO-65BA6EA0
- *   DI: DI-C0AD09D2
- *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+ *   DO: DO-E7824FED
+ *   DI: DI-4A012A59, DI-6BD7B681
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-E7824FED")
  */
 "use client";
 
@@ -25,6 +25,7 @@ import {
 } from "@leo/design-system";
 
 import AreaIntro from "@/components/AreaIntro";
+import WorkTaskDialog from "./WorkTaskDialog";
 
 interface WorkPageResponse {
   tasks: WorkTask[];
@@ -39,6 +40,7 @@ const EMPTY_COUNTS: CountsBySource = {
   gold_label: 0,
   extraction_quality_pause: 0,
   surface_form_approval: 0,
+  phrase_publish: 0,
 };
 
 async function fetchWorkTasks(
@@ -63,6 +65,7 @@ export default function WorkPage() {
   const [activeSources, setActiveSources] = useState<WorkTaskType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<WorkTask | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -117,8 +120,17 @@ export default function WorkPage() {
             countsBySource={counts}
             activeSources={activeSources}
             onToggleSource={toggleSource}
+            onSelectTask={setSelectedTask}
           />
         )}
+        <WorkTaskDialog
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onResolved={() => {
+            setSelectedTask(null);
+            void refresh();
+          }}
+        />
       </Stack>
     </Box>
   );

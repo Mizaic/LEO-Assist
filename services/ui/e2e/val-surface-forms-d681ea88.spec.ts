@@ -100,7 +100,7 @@ test.describe("VAL-D681EA88 local wording dictionary @val", () => {
           await gotoSurfaceFormsTab(ctx.page);
           await ctx.page.getByTestId("toolbar-action-audit-log").click();
           await expect(
-            ctx.page.getByRole("dialog", { name: "Surface form change log" }),
+            ctx.page.getByRole("dialog", { name: "Change log" }),
           ).toBeVisible();
           await expect(
             ctx.page.getByText(`approve · ${SURFACE_FORM_NORMALIZED}`),
@@ -115,7 +115,7 @@ test.describe("VAL-D681EA88 local wording dictionary @val", () => {
             protocol: ctx.protocol,
             stepIndex: 5,
             screenshotTarget: ctx.page.getByRole("dialog", {
-              name: "Surface form change log",
+              name: "Change log",
             }),
             notes: "Change log lists approve and upsert audit entries.",
           });
