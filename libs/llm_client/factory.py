@@ -172,6 +172,37 @@ _AZURE_REASONING_EFFORT_BY_TIER: dict[str, str] = {
 }
 _AZURE_REASONING_EFFORT = os.getenv("AZURE_REASONING_EFFORT", "high")  # legacy override
 
+# Per-tier on/off. Effort env vars only apply when the matching flag is true.
+# Small defaults on (low). Big/max default off.
+_AZURE_USE_REASONING_ENV: dict[str, tuple[str, bool]] = {
+    "small": ("AZURE_USE_REASONING_SMALL", True),
+    "big": ("AZURE_USE_REASONING_BIG", False),
+    "max": ("AZURE_USE_REASONING_MAX", False),
+}
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def resolve_azure_use_reasoning(tier: str, explicit: bool | None) -> bool:
+    """Resolve whether Azure reasoning is on for one tier.
+
+    An explicit ``create_llm(use_reasoning=...)`` argument wins. Otherwise
+    read ``AZURE_USE_REASONING_{TIER}``. Unset small defaults to on; big
+    and max default to off.
+    """
+    if explicit is not None:
+        return bool(explicit)
+    tier_lc = (tier or "small").strip().lower()
+    env_name, default = _AZURE_USE_REASONING_ENV.get(
+        tier_lc, ("AZURE_USE_REASONING_BIG", False)
+    )
+    return _env_flag(env_name, default)
+
 
 def _bedrock_cache_read_tokens(usage: dict[str, Any]) -> int:
     """Read Bedrock cache-read tokens across SDK/doc field variants."""
@@ -1036,7 +1067,7 @@ def create_llm(
     *,
     model_id: str | None = None,
     region: str | None = None,
-    use_reasoning: bool = False,
+    use_reasoning: bool | None = None,
     reasoning_budget: int | None = None,
     azure_reasoning_effort: str | None = None,
 ) -> LLMClient:
@@ -1049,15 +1080,16 @@ def create_llm(
         model_id: Explicit model ID (overrides tier lookup).
         region: AWS region (only for Bedrock).
         use_reasoning: Enable reasoning / extended thinking on the model.
+            ``None`` (default) reads ``AZURE_USE_REASONING_{TIER}``. Small
+            defaults to on; big and max default to off. An explicit bool wins.
 
             * **AWS Bedrock (Claude)**: passes ``additionalModelRequestFields`` with
               ``{"thinking": {"type": "enabled", "budget_tokens": N}}``.  Forces
               ``temperature=1.0`` (Bedrock hard requirement).  Incompatible with
               ``tool_config`` -- tools are silently dropped when both are set.
 
-            * **Azure OpenAI (o-series)**: passes ``reasoning_effort`` (default
-              ``"high"``).  Non-o-series deployments that don't support the param
-              fall back gracefully to a standard call.
+            * **Azure OpenAI**: sends ``reasoning.effort`` from
+              ``AZURE_REASONING_EFFORT_{TIER}`` (small=low, big/max=high).
 
         reasoning_budget: AWS thinking-token budget.  Defaults to a tier-appropriate
             value (small=2000, big=8000, max=10000) from env vars.
@@ -1088,15 +1120,16 @@ def create_llm(
     effort = (
         azure_reasoning_effort
         if azure_reasoning_effort is not None
-        else _AZURE_REASONING_EFFORT
+        else _AZURE_REASONING_EFFORT_BY_TIER.get(tier, _AZURE_REASONING_EFFORT)
     )
+    resolved_reasoning = resolve_azure_use_reasoning(tier, use_reasoning)
 
     return _cached_llm_client(
         provider=provider,
         model_id=model_id,
         tier=tier,
         region=region,
-        use_reasoning=use_reasoning,
+        use_reasoning=resolved_reasoning,
         reasoning_budget=budget,
         azure_reasoning_effort=effort,
     )

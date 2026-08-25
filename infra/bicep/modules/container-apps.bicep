@@ -29,6 +29,12 @@ param awsDefaultRegion string
 param azureOpenAiBigModel string
 param azureOpenAiSmallModel string
 param azureOpenAiApiVersion string
+param azureUseReasoningSmall string = 'true'
+param azureUseReasoningBig string = 'false'
+param azureReasoningEffortSmall string = 'low'
+param pipelineModelProvider string = 'azure'
+param azureOpenAiWorkerBigModel string = ''
+param azureOpenAiWorkerSmallModel string = ''
 param codingExtractorBackend string
 param codingExtractorStrict string
 param storageAccountName string
@@ -187,12 +193,15 @@ var sharedEnv = [
   { name: 'AZURE_OPENAI_TRANSPORT', value: 'responses' }
   // Used only when AZURE_OPENAI_TRANSPORT=chat_completions.
   { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
+  { name: 'AZURE_USE_REASONING_SMALL', value: azureUseReasoningSmall }
+  { name: 'AZURE_USE_REASONING_BIG', value: azureUseReasoningBig }
+  { name: 'AZURE_REASONING_EFFORT_SMALL', value: azureReasoningEffortSmall }
 
   // AWS Bedrock (non-secret config)
   { name: 'AWS_DEFAULT_REGION', value: awsDefaultRegion }
 
   // Pipeline and coding extractor
-  { name: 'PIPELINE_MODEL_PROVIDER', value: 'azure' }
+  { name: 'PIPELINE_MODEL_PROVIDER', value: pipelineModelProvider }
   // Bedrock is opt-in only; keep false unless AWS credentials are actively maintained.
   { name: 'AWS_LLM_ENABLED', value: 'false' }
   { name: 'PIPELINE_MODEL_TIER', value: 'small' }
@@ -315,6 +324,13 @@ var sharedEnv = [
   { name: 'SDK_HOST_SHARED_SECRET', secretRef: 'sdk-host-shared-secret' }
   { name: 'SDK_WIDGET_TOKEN_SECRET', secretRef: 'sdk-widget-token-secret' }
 ]
+
+var workerBigModel = !empty(azureOpenAiWorkerBigModel) ? azureOpenAiWorkerBigModel : azureOpenAiBigModel
+var workerSmallModel = !empty(azureOpenAiWorkerSmallModel) ? azureOpenAiWorkerSmallModel : azureOpenAiSmallModel
+var pipelineWorkerSharedEnv = filter(
+  sharedEnv,
+  item => item.name != 'AZURE_OPENAI_BIG_MODEL' && item.name != 'AZURE_OPENAI_SMALL_MODEL'
+)
 
 var sharedSecrets = [
   { name: 'neo4j-patient-password', keyVaultUrl: '${kvUri}secrets/neo4j-patient-password', identity: managedIdentityId }
@@ -778,7 +794,9 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/pipeline-worker:${imageTag}'
         // 2Gi OOMs on first extract: idle BERT/spaCy already ~1.5Gi.
         resources: { cpu: json('2.0'), memory: '4Gi' }
-        env: union(sharedEnv, [
+        env: concat(pipelineWorkerSharedEnv, [
+          { name: 'AZURE_OPENAI_BIG_MODEL', value: workerBigModel }
+          { name: 'AZURE_OPENAI_SMALL_MODEL', value: workerSmallModel }
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
           { name: 'CODING_MODEL_ENDPOINT', value: modelInferenceUrl }

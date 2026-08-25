@@ -146,7 +146,9 @@ class TestMessageBusEnvParity:
         apps = dict(_container_app_blocks(source))
         for name in ("core-api", "pipeline-worker"):
             block = apps[name]
-            assert "sharedEnv" in block, f"{name} must include sharedEnv"
+            assert (
+                "sharedEnv" in block or "pipelineWorkerSharedEnv" in block
+            ), f"{name} must include sharedEnv or the filtered pipelineWorkerSharedEnv"
 
 
 class TestCoreApiKnowledgeGraphEnv:

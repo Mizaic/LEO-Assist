@@ -17,7 +17,15 @@ param awsDefaultRegion string
 param azureOpenAiBigModel string
 param azureOpenAiSmallModel string
 param azureOpenAiApiVersion string
+param azureUseReasoningSmall string = 'true'
+param azureUseReasoningBig string = 'false'
+param azureReasoningEffortSmall string = 'low'
 param azureOpenAiEndpoint string
+// Live prod (2026-08-25): most apps use azureOpenAi* models; pipeline-worker
+// uses the worker overrides. Empty worker values reuse the shared models.
+param pipelineModelProvider string = 'azure'
+param azureOpenAiWorkerBigModel string = ''
+param azureOpenAiWorkerSmallModel string = ''
 param codingExtractorBackend string
 param codingExtractorStrict string
 param modelStoreContainer string
@@ -157,6 +165,12 @@ module containerApps 'modules/container-apps.bicep' = if (deployContainerApps) {
     azureOpenAiBigModel: azureOpenAiBigModel
     azureOpenAiSmallModel: azureOpenAiSmallModel
     azureOpenAiApiVersion: azureOpenAiApiVersion
+    azureUseReasoningSmall: azureUseReasoningSmall
+    azureUseReasoningBig: azureUseReasoningBig
+    azureReasoningEffortSmall: azureReasoningEffortSmall
+    pipelineModelProvider: pipelineModelProvider
+    azureOpenAiWorkerBigModel: azureOpenAiWorkerBigModel
+    azureOpenAiWorkerSmallModel: azureOpenAiWorkerSmallModel
     codingExtractorBackend: codingExtractorBackend
     codingExtractorStrict: codingExtractorStrict
     storageAccountName: storageAccountName

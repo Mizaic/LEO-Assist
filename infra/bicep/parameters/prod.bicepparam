@@ -13,11 +13,20 @@ param neo4jKnowledgeUser = 'neo4j'
 // AWS Bedrock (model ARNs stored in Key Vault as aws-big-model / aws-small-model / aws-max-model)
 param awsDefaultRegion = 'eu-west-2'
 
-// Azure OpenAI - shared account via deploy-openai.ps1; endpoint synced to bicepparam
+// Azure OpenAI - match live leo-ai-prod Container Apps (read 2026-08-25).
+// Most apps: gpt-5.2-chat / gpt-5-mini. pipeline-worker: gpt-5.4 / gpt-5.4-nano.
+// PIPELINE_MODEL_PROVIDER is aws, but AWS_LLM_ENABLED stays false in the module
+// so calls still go to Azure (same as the live apps).
 param azureOpenAiEndpoint = 'https://mizaic-cds-oai.openai.azure.com/'
-param azureOpenAiBigModel = 'gpt-5.4'
+param azureOpenAiBigModel = 'gpt-5.2-chat'
 param azureOpenAiSmallModel = 'gpt-5-mini'
-param azureOpenAiApiVersion = '2025-04-01-preview'
+param azureOpenAiApiVersion = '2024-12-01-preview'
+param pipelineModelProvider = 'aws'
+param azureOpenAiWorkerBigModel = 'gpt-5.4'
+param azureOpenAiWorkerSmallModel = 'gpt-5.4-nano'
+param azureUseReasoningSmall = 'true'
+param azureUseReasoningBig = 'false'
+param azureReasoningEffortSmall = 'low'
 
 // Coding extractor
 param codingExtractorBackend = 'auto'

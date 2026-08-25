@@ -1,6 +1,6 @@
 // -- Azure OpenAI (Cognitive Services account) ------------------------------
-// Shared OpenAI account (mizaicai-aoai) with default RAI policies.
-// Does not include model deployments or testRaiExternalSafetyProvider.
+// Shared OpenAI account (mizaic-cds-oai) plus the three live model
+// deployments on leo-prod-rg (read 2026-08-25).
 param location string = resourceGroup().location
 param skuName string = 'S0'
 param publicNetworkAccess string = 'Enabled'
@@ -146,6 +146,60 @@ resource aoaiAccount 'Microsoft.CognitiveServices/accounts@2026-03-01' = {
 //     contentFilters: concat(standardContentFilters, defaultV2ExtraFilters)
 //   }
 // }
+
+resource gpt54 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01' = {
+  parent: aoaiAccount
+  name: 'gpt-5.4'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 1000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5.4'
+      version: '2026-03-05'
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+  }
+}
+
+resource gpt5Mini 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01' = {
+  parent: aoaiAccount
+  name: 'gpt-5-mini'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 1000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5-mini'
+      version: '2025-08-07'
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+  }
+}
+
+resource gpt54Nano 'Microsoft.CognitiveServices/accounts/deployments@2026-03-01' = {
+  parent: aoaiAccount
+  name: 'gpt-5.4-nano'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 5000
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5.4-nano'
+      version: '2026-03-17'
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+  }
+}
 
 output endpoint string = 'https://${aoaiName}.openai.azure.com/'
 output accountName string = aoaiAccount.name
