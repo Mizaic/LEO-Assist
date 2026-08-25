@@ -10,7 +10,7 @@
  */
 "use client";
 
-import type { ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
 
@@ -27,22 +27,43 @@ import { escapeRegex } from "@/components/mission-control/HighlightedText";
 
 export { LetterMarkLegend } from "./LetterMarkLegend";
 
+const MentionClock = createContext<{ next(term: string): number } | null>(null);
+
+export function MentionClockProvider({
+  resetKey,
+  children,
+}: {
+  resetKey: string;
+  children: ReactNode;
+}) {
+  const clock = useMemo(() => {
+    const counts: Record<string, number> = {};
+    return {
+      next(term: string): number {
+        const key = term.toLowerCase();
+        counts[key] = (counts[key] || 0) + 1;
+        return counts[key];
+      },
+    };
+  }, [resetKey]);
+  return <MentionClock.Provider value={clock}>{children}</MentionClock.Provider>;
+}
+
 export function LetterMarks({
   text,
   marks,
   testId = "validation-lab-letter-highlight",
+  numberMentions = false,
 }: {
   text: string;
   marks: LetterMark[];
   testId?: string;
+  numberMentions?: boolean;
 }): ReactNode {
   if (!text) return text;
   if (!marks.length) return text;
   const byKey = new Map(marks.map((mark) => [mark.term.toLowerCase(), mark]));
-  const pattern = new RegExp(
-    `(${marks.map((mark) => escapeRegex(mark.term)).join("|")})`,
-    "gi",
-  );
+  const pattern = markPattern(marks, numberMentions);
   const parts = text.split(pattern);
   return (
     <Box component="span" sx={MARK_MOTION}>
@@ -57,6 +78,7 @@ export function LetterMarks({
             part={part}
             mark={byKey.get(part.toLowerCase())}
             testId={testId}
+            numberMentions={numberMentions}
           />
         );
       })}
@@ -64,18 +86,32 @@ export function LetterMarks({
   );
 }
 
+function markPattern(marks: LetterMark[], tightWords: boolean): RegExp {
+  const parts = marks.map((mark) => {
+    const escaped = escapeRegex(mark.term);
+    if (tightWords && /^\w+$/.test(mark.term)) return `\\b${escaped}\\b`;
+    return escaped;
+  });
+  return new RegExp(`(${parts.join("|")})`, "gi");
+}
+
 function LetterMarkSpan({
   part,
   mark,
   testId,
+  numberMentions,
 }: {
   part: string;
   mark?: LetterMark;
   testId: string;
+  numberMentions: boolean;
 }) {
+  const clock = useContext(MentionClock);
+  const mentionIndex = numberMentions ? clock?.next(part) ?? 0 : 0;
   const kind = semanticTagLabel(mark?.semanticTag);
   const change = mark?.change || "stable";
   const title = [
+    mentionIndex ? `Mention ${mentionIndex}` : "",
     assertionLabel(mark?.assertion),
     kind,
     mark?.code ? `Code ${mark.code}` : "",
@@ -91,19 +127,52 @@ function LetterMarkSpan({
         data-assertion={String(mark?.assertion || "present").toLowerCase()}
         data-semantic-tag={mark?.semanticTag || ""}
         data-change={change}
+        data-mention-index={mentionIndex || undefined}
+        data-review-focus={mentionIndex === 1 ? "true" : undefined}
         sx={{
           bgcolor: markBackground(mark?.assertion, mark?.semanticTag),
           color: markForeground(mark?.assertion, mark?.semanticTag),
           borderLeft: `${CONTEXT_BAR_PX}px solid ${markContextBar(mark?.assertion)}`,
+          outline: mentionIndex === 1 ? "2px solid" : undefined,
+          outlineColor: mentionIndex === 1 ? "primary.main" : undefined,
+          outlineOffset: mentionIndex === 1 ? "1px" : undefined,
           pl: 0.7,
           borderRadius: "2px",
           fontWeight: 600,
           ...changeSx(change),
         }}
       >
+        {mentionIndex ? <MentionBadge index={mentionIndex} /> : null}
         {part}
       </Box>
     </Tooltip>
+  );
+}
+
+function MentionBadge({ index }: { index: number }) {
+  return (
+    <Box
+      component="span"
+      aria-label={`Mention ${index}`}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: 14,
+        height: 14,
+        mr: 0.4,
+        px: 0.3,
+        borderRadius: "7px",
+        bgcolor: "primary.main",
+        color: "primary.contrastText",
+        fontSize: "0.65rem",
+        fontWeight: 800,
+        lineHeight: 1,
+        verticalAlign: "middle",
+      }}
+    >
+      {index}
+    </Box>
   );
 }
 

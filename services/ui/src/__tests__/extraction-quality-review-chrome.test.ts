@@ -83,4 +83,43 @@ describe("extraction quality review chrome", () => {
     expect(copy).toMatch(/We could not load the letter/);
     expect(dialog).not.toMatch(/No letter text available for this task/);
   });
+
+  test("TC-007: selected fact is the only letter highlight and mentions are numbered", () => {
+    const dialog = readFile(
+      "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
+    );
+    const facts = readFile(
+      "services/ui/src/components/operations/ExtractionReviewFacts.tsx",
+    );
+    const highlight = readFile(
+      "services/ui/src/components/operations/extractionReviewHighlight.ts",
+    );
+    const marks = readFile(
+      "services/ui/src/app/admin/validation-lab/LetterMarks.tsx",
+    );
+    expect(dialog).toMatch(/focusedReviewMarks/);
+    expect(dialog).toMatch(/focusTerm/);
+    expect(facts).toMatch(/mentionCopy/);
+    expect(highlight).toMatch(/countMentions/);
+    expect(marks).toMatch(/data-mention-index/);
+  });
+
+  test("TC-008: engineer debug does not dump the whole letter", () => {
+    const panes = readFile("services/ui/src/app/work/EngineerPanes.tsx");
+    expect(panes).toMatch(/See the letter on the left/);
+    expect(panes).toMatch(/debugLetterSample/);
+  });
+
+  test("TC-009: selected fact can Ask LEO before a tag is applied", () => {
+    const facts = readFile(
+      "services/ui/src/components/operations/ExtractionReviewFacts.tsx",
+    );
+    const ask = readFile(
+      "services/ui/src/components/operations/ExtractionReviewAskLeo.tsx",
+    );
+    expect(facts).toMatch(/ExtractionReviewAskLeo/);
+    expect(ask).toMatch(/askLeoSmart/);
+    expect(ask).toMatch(/Use this tag/);
+    expect(ask).toMatch(/Ask LEO/);
+  });
 });

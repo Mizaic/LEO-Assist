@@ -12,6 +12,7 @@ export const VAL_LETTER_TEXT =
   "Section A: Gynaecological Cancer type suspected\n" +
   "Ovary [ ] Cervix [X] Endometrium [ ]\n" +
   "Section B: Signs/symptoms\n" +
+  "lesion of cervix or vagina\n" +
   "polyp noted\n" +
   "BMI: 20.2 Kg/m2";
 

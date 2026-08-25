@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -19,13 +19,13 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
 import { LetterMarkLegend } from "@/app/admin/validation-lab/LetterMarks";
-import { letterHighlightMarks } from "@/app/admin/validation-lab/letterHighlight";
 import WorkFixPanel from "@/app/work/WorkFixPanel";
 import {
   EMPTY_LETTER_COPY,
   QUALITY_SCORE_HINT,
   pauseReasonLabels,
 } from "./extractionReviewCopy";
+import { focusedReviewMarks } from "./extractionReviewHighlight";
 import {
   FactList,
   draftExtractor,
@@ -57,6 +57,7 @@ export default function ExtractionQualityReviewDialog({
 }: Props) {
   const [data, setData] = useState<ReviewData | null>(null);
   const [entities, setEntities] = useState<DraftEntity[]>([]);
+  const [pickedText, setPickedText] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -81,6 +82,7 @@ export default function ExtractionQualityReviewDialog({
         };
         setData(loaded);
         setEntities(loaded.entities);
+        setPickedText(loaded.entities[0]?.text ?? "");
       })
       .catch(() => setError("Could not load the letter. Try again."));
   }, [open, taskId]);
@@ -130,7 +132,8 @@ export default function ExtractionQualityReviewDialog({
     }
   }
 
-  const marks = letterHighlightMarks(entities);
+  const focusTerm = pickedText || entities[0]?.text || "";
+  const marks = focusedReviewMarks(entities, focusTerm);
   const score = data?.quality.document_quality_score ?? 0;
 
   return (
@@ -161,6 +164,7 @@ export default function ExtractionQualityReviewDialog({
           <ReviewLetterPane
             sourceText={data?.sourceText ?? ""}
             marks={marks}
+            focusTerm={focusTerm}
             onAddSelection={addSelection}
           />
           <ReviewFactsPane
@@ -168,6 +172,8 @@ export default function ExtractionQualityReviewDialog({
             error={error}
             busy={busy}
             encounterText={data?.sourceText ?? ""}
+            pickedText={focusTerm}
+            onPick={setPickedText}
             onRemove={removeEntity}
             onPatch={patchEntity}
             onBack={onClose}
@@ -267,13 +273,22 @@ function ReviewHeader({
 function ReviewLetterPane({
   sourceText,
   marks,
+  focusTerm,
   onAddSelection,
 }: {
   sourceText: string;
-  marks: ReturnType<typeof letterHighlightMarks>;
+  marks: ReturnType<typeof focusedReviewMarks>;
+  focusTerm: string;
   onAddSelection: () => void;
 }) {
   const hasLetter = Boolean(sourceText.trim());
+  const letterRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = letterRef.current?.querySelector("[data-review-focus='true']");
+    if (node instanceof HTMLElement) {
+      node.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [focusTerm, sourceText]);
   return (
     <Box
       sx={{
@@ -298,11 +313,14 @@ function ReviewLetterPane({
       >
         <Typography variant="caption" fontWeight={700} color="primary.main">
           {hasLetter
-            ? "Select any text on the letter to add it as a fact"
+            ? focusTerm
+              ? "Numbers mark each time this fact appears. Select other text to add a fact."
+              : "Select any text on the letter to add it as a fact"
             : "Letter"}
         </Typography>
       </Box>
       <Box
+        ref={letterRef}
         sx={{ flex: 1, overflow: "auto", p: 2, cursor: hasLetter ? "text" : "default" }}
         onMouseUp={hasLetter ? onAddSelection : undefined}
         data-testid="extraction-quality-letter"
@@ -311,6 +329,7 @@ function ReviewLetterPane({
         <LetterMarkdownView
           text={sourceText}
           marks={marks}
+          focusTerm={focusTerm}
           emptyLabel={EMPTY_LETTER_COPY}
         />
       </Box>
@@ -325,6 +344,8 @@ function ReviewFactsPane({
   error,
   busy,
   encounterText,
+  pickedText,
+  onPick,
   onRemove,
   onPatch,
   onBack,
@@ -334,12 +355,13 @@ function ReviewFactsPane({
   error: string;
   busy: boolean;
   encounterText: string;
+  pickedText: string;
+  onPick: (text: string) => void;
   onRemove: (text: string) => void;
   onPatch: (text: string, patch: Partial<DraftEntity>) => void;
   onBack: () => void;
   onUnlock: () => void;
 }) {
-  const [pickedText, setPickedText] = useState(entities[0]?.text ?? "");
   const picked = entities.find((entity) => entity.text === pickedText) ?? entities[0];
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -360,6 +382,14 @@ function ReviewFactsPane({
         </Box>
       ) : null}
       <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+        <FactList
+          entities={entities}
+          letterText={encounterText}
+          pickedText={picked?.text ?? ""}
+          onPick={onPick}
+          onRemove={onRemove}
+          onPatch={onPatch}
+        />
         {picked ? (
           <WorkFixPanel
             entityText={picked.text}
@@ -368,13 +398,6 @@ function ReviewFactsPane({
             extractionSource={draftExtractor(picked)}
           />
         ) : null}
-        <FactList
-          entities={entities}
-          pickedText={picked?.text ?? ""}
-          onPick={setPickedText}
-          onRemove={onRemove}
-          onPatch={onPatch}
-        />
       </Box>
       <Stack
         direction="row"
