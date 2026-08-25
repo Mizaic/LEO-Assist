@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 
 from app.services import phrase_mappings as service
@@ -30,6 +30,14 @@ class DraftRequest(BaseModel):
 
 class PhraseKeyRequest(BaseModel):
     phrase_key: str = Field(min_length=1)
+
+
+class EnsureRequest(BaseModel):
+    phrase_key: str
+    extracted_tag: str = ""
+    extracted_source: str = ""
+    sample_span: str = ""
+    sample_sentence: str = ""
 
 
 @router.get("/phrase-mappings/counts")
@@ -51,6 +59,30 @@ def list_phrase_mappings(
     return service.list_phrases(status, author=author, skip=skip, limit=page_size)
 
 
+@router.get("/phrase-mappings/item")
+def get_phrase_mapping_item(
+    phrase_key: str = Query(min_length=1),
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    _ = scope
+    return service.get_phrase(phrase_key)
+
+
+@router.post("/phrase-mappings/ensure")
+def ensure_phrase_mapping(
+    body: EnsureRequest,
+    scope: CallerScope = Depends(get_caller_scope),
+) -> dict[str, Any]:
+    _ = scope
+    return service.ensure_phrase(
+        body.phrase_key,
+        extracted_tag=body.extracted_tag,
+        extracted_source=body.extracted_source,
+        sample_span=body.sample_span,
+        sample_sentence=body.sample_sentence,
+    )
+
+
 @router.post("/phrase-mappings/draft")
 def save_phrase_mapping_draft(
     body: DraftRequest,
@@ -67,10 +99,24 @@ def save_phrase_mapping_draft(
 
 
 @router.post("/phrase-mappings/submit")
-def submit_phrase_mapping_drafts(
+async def submit_phrase_mapping_drafts(
+    request: Request,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
+    key = await _submit_phrase_key(request)
+    if key:
+        return service.submit_one(key, scope.email)
     return service.submit_drafts(scope.email)
+
+
+async def _submit_phrase_key(request: Request) -> str:
+    try:
+        body = await request.json()
+    except Exception:
+        return ""
+    if not isinstance(body, dict):
+        return ""
+    return str(body.get("phrase_key") or "").strip()
 
 
 @router.post("/phrase-mappings/send-back")

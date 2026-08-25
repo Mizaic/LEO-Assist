@@ -9,40 +9,25 @@
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
-import DeleteIcon from "@mui/icons-material/Delete";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
 import { LetterMarkLegend } from "@/app/admin/validation-lab/LetterMarks";
 import { letterHighlightMarks } from "@/app/admin/validation-lab/letterHighlight";
+import WorkFixPanel from "@/app/work/WorkFixPanel";
 import {
-  assertionLabel,
-  markBackground,
-  markContextBar,
-  markForeground,
-  semanticTagLabel,
-  TAG_STYLE,
-} from "@/app/admin/validation-lab/letterMarkStyle";
-
-// -- types ------------------------------------------------------------------
-
-interface DraftEntity {
-  text: string;
-  semantic_tag?: string;
-  assertion?: string;
-}
-
-interface DocumentQuality {
-  document_quality_score?: number;
-  quality_reasons?: string[];
-}
+  FactList,
+  QualityBanner,
+  draftExtractor,
+  type DocumentQuality,
+  type DraftEntity,
+} from "./ExtractionReviewFacts";
 
 interface ReviewData {
   sourceText: string;
@@ -66,18 +51,6 @@ const REASON_LABELS: Record<string, string> = {
   few_shot_ood: "Letter format is unlike training examples",
   manual_pause: "Manually paused for review",
 };
-
-const TAG_OPTIONS = Object.keys(TAG_STYLE);
-
-const ASSERTION_OPTIONS: [string, string][] = [
-  ["present", "Present"],
-  ["historical", "Historical"],
-  ["absent", "Not present"],
-  ["possible", "Uncertain"],
-  ["planned", "Planned"],
-  ["family", "Family history"],
-  ["declined", "Declined"],
-];
 
 function reasonLabel(r: string) {
   return REASON_LABELS[r] ?? r.replace(/_/g, " ");
@@ -203,6 +176,7 @@ export default function ExtractionQualityReviewDialog({
             quality={data?.quality}
             error={error}
             busy={busy}
+            encounterText={data?.sourceText ?? ""}
             onRemove={removeEntity}
             onPatch={patchEntity}
             onBack={onClose}
@@ -339,6 +313,7 @@ function ReviewFactsPane({
   quality,
   error,
   busy,
+  encounterText,
   onRemove,
   onPatch,
   onBack,
@@ -348,11 +323,14 @@ function ReviewFactsPane({
   quality?: DocumentQuality;
   error: string;
   busy: boolean;
+  encounterText: string;
   onRemove: (text: string) => void;
   onPatch: (text: string, patch: Partial<DraftEntity>) => void;
   onBack: () => void;
   onUnlock: () => void;
 }) {
+  const [pickedText, setPickedText] = useState(entities[0]?.text ?? "");
+  const picked = entities.find((entity) => entity.text === pickedText) ?? entities[0];
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
       <QualityBanner quality={quality} />
@@ -361,9 +339,9 @@ function ReviewFactsPane({
           sx={{
             px: 2,
             py: 1,
-            bgcolor: "#FEF2F2",
+            bgcolor: "error.light",
             borderBottom: "1px solid",
-            borderColor: "#FECACA",
+            borderColor: "error.main",
             flexShrink: 0,
           }}
         >
@@ -373,7 +351,21 @@ function ReviewFactsPane({
         </Box>
       ) : null}
       <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-        <FactList entities={entities} onRemove={onRemove} onPatch={onPatch} />
+        <FactList
+          entities={entities}
+          pickedText={picked?.text ?? ""}
+          onPick={setPickedText}
+          onRemove={onRemove}
+          onPatch={onPatch}
+        />
+        {picked ? (
+          <WorkFixPanel
+            entityText={picked.text}
+            entityLabel={picked.semantic_tag}
+            encounterText={encounterText}
+            extractionSource={draftExtractor(picked)}
+          />
+        ) : null}
       </Box>
       <Stack
         direction="row"
@@ -400,245 +392,6 @@ function ReviewFactsPane({
           {busy ? "Unlocking..." : "Approve and unlock"}
         </Button>
       </Stack>
-    </Box>
-  );
-}
-
-// -- QualityBanner ----------------------------------------------------------
-
-function QualityBanner({ quality }: { quality?: DocumentQuality }) {
-  const reasons = quality?.quality_reasons ?? [];
-  if (!reasons.length) return null;
-  return (
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{
-        px: 2,
-        py: 1.25,
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        bgcolor: "#FFFBEB",
-        flexShrink: 0,
-      }}
-    >
-      <WarningAmberIcon sx={{ color: "#D97706", fontSize: 18, mt: 0.15, flexShrink: 0 }} />
-      <Box>
-        <Typography variant="caption" fontWeight={700} color="#92400E">
-          Why this referral paused
-        </Typography>
-        <Box component="ul" sx={{ m: 0, pl: 2 }}>
-          {reasons.map((r) => (
-            <Typography key={r} component="li" variant="caption" color="#78350F">
-              {r.replace(/_/g, " ")}
-            </Typography>
-          ))}
-        </Box>
-      </Box>
-    </Stack>
-  );
-}
-
-// -- FactList ---------------------------------------------------------------
-
-function FactList({
-  entities,
-  onRemove,
-  onPatch,
-}: {
-  entities: DraftEntity[];
-  onRemove: (text: string) => void;
-  onPatch: (text: string, patch: Partial<DraftEntity>) => void;
-}) {
-  return (
-    <>
-      <Stack direction="row" alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
-          Draft facts
-        </Typography>
-        <Chip
-          label={entities.length}
-          size="small"
-          sx={{ bgcolor: "action.hover", color: "primary.main", fontWeight: 700 }}
-        />
-      </Stack>
-      {entities.length === 0 ? (
-        <Box
-          sx={{
-            border: "2px dashed",
-            borderColor: "divider",
-            borderRadius: "8px",
-            p: 3,
-            textAlign: "center",
-          }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            No facts yet. Select text on the letter to add the key clinical facts.
-          </Typography>
-        </Box>
-      ) : (
-        <Stack spacing={0.75}>
-          {entities.map((entity) => (
-            <FactRow
-              key={entity.text}
-              entity={entity}
-              onRemove={() => onRemove(entity.text)}
-              onPatch={(patch) => onPatch(entity.text, patch)}
-            />
-          ))}
-        </Stack>
-      )}
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-        Fix any wrong tags, then click Approve and unlock. The pipeline will continue from where it paused.
-      </Typography>
-    </>
-  );
-}
-
-// -- FactRow ----------------------------------------------------------------
-
-function FactRow({
-  entity,
-  onRemove,
-  onPatch,
-}: {
-  entity: DraftEntity;
-  onRemove: () => void;
-  onPatch: (patch: Partial<DraftEntity>) => void;
-}) {
-  const bg = markBackground(entity.assertion, entity.semantic_tag);
-  const fg = markForeground(entity.assertion, entity.semantic_tag);
-  const bar = markContextBar(entity.assertion);
-  const tagLabel = semanticTagLabel(entity.semantic_tag) || "Unset";
-  const assertText = assertionLabel(entity.assertion) || "Present";
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "6px",
-        overflow: "hidden",
-        bgcolor: "#FFFFFF",
-        transition: "border-color 0.15s",
-        "&:hover": { borderColor: "primary.main" },
-      }}
-      data-testid="extraction-quality-fact-row"
-    >
-      <Tooltip title={assertText} placement="left">
-        <Box
-          sx={{
-            width: 8,
-            alignSelf: "stretch",
-            bgcolor: bar,
-            flexShrink: 0,
-            cursor: "default",
-          }}
-        />
-      </Tooltip>
-      <Tooltip title="Semantic tag">
-        <Box
-          sx={{
-            bgcolor: bg,
-            color: fg,
-            px: 0.75,
-            py: 0.15,
-            fontSize: "0.7rem",
-            fontWeight: 700,
-            flexShrink: 0,
-            mx: 0.75,
-            borderRadius: "3px",
-          }}
-        >
-          {tagLabel}
-        </Box>
-      </Tooltip>
-      <Typography
-        variant="body2"
-        sx={{
-          flex: 1,
-          fontWeight: 500,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-        title={entity.text}
-      >
-        {entity.text}
-      </Typography>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 0.5 }}>
-        <FactSelect
-          value={entity.semantic_tag ?? ""}
-          label={`Semantic tag for ${entity.text}`}
-          onChange={(v) => onPatch({ semantic_tag: v })}
-        >
-          <option value="">-- tag --</option>
-          {TAG_OPTIONS.map((tag) => (
-            <option key={tag} value={tag}>
-              {tag.replace(/_/g, " ")}
-            </option>
-          ))}
-        </FactSelect>
-        <FactSelect
-          value={entity.assertion ?? "present"}
-          label={`Assertion for ${entity.text}`}
-          onChange={(v) => onPatch({ assertion: v })}
-        >
-          {ASSERTION_OPTIONS.map(([val, lbl]) => (
-            <option key={val} value={val}>
-              {lbl}
-            </option>
-          ))}
-        </FactSelect>
-        <Tooltip title="Remove this fact">
-          <IconButton
-            size="small"
-            onClick={onRemove}
-            aria-label={`Remove ${entity.text}`}
-          >
-            <DeleteIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    </Box>
-  );
-}
-
-// -- FactSelect -------------------------------------------------------------
-
-function FactSelect({
-  value,
-  label,
-  onChange,
-  children,
-}: {
-  value: string;
-  label: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box
-      component="select"
-      value={value}
-      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
-      aria-label={label}
-      sx={{
-        fontSize: "0.72rem",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "4px",
-        px: 0.5,
-        py: 0.25,
-        bgcolor: "transparent",
-        cursor: "pointer",
-        "&:focus": { outline: "2px solid", outlineColor: "primary.main" },
-      }}
-    >
-      {children}
     </Box>
   );
 }

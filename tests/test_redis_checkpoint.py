@@ -21,12 +21,11 @@ import pytest
 
 @pytest.fixture
 def fake_redis(monkeypatch):
-    """Inject a fake `redis` module into sys.modules and yield the mock
-    client returned from `redis.from_url`."""
-    fake_module = MagicMock()
+    """Patch redis.from_url and yield the mock client."""
+    import redis
+
     fake_client = MagicMock()
-    fake_module.from_url = MagicMock(return_value=fake_client)
-    monkeypatch.setitem(sys.modules, "redis", fake_module)
+    monkeypatch.setattr(redis, "from_url", MagicMock(return_value=fake_client))
     yield fake_client
 
 
@@ -153,19 +152,21 @@ class TestPing:
 
 class TestUrlResolution:
     def test_uses_env_var_when_no_url_passed(self, monkeypatch, fake_redis):
+        import redis
         from libs.redis_client.checkpoint import CheckpointStore
 
         monkeypatch.setenv("REDIS_URL", "rediss://prod-host:6380")
         CheckpointStore()
-        fake_redis_call = sys.modules["redis"].from_url
+        fake_redis_call = redis.from_url
         assert fake_redis_call.call_args.args[0] == "rediss://prod-host:6380"
 
     def test_falls_back_to_localhost_when_env_unset(
         self, monkeypatch, fake_redis
     ):
+        import redis
         from libs.redis_client.checkpoint import CheckpointStore
 
         monkeypatch.delenv("REDIS_URL", raising=False)
         CheckpointStore()
-        fake_redis_call = sys.modules["redis"].from_url
+        fake_redis_call = redis.from_url
         assert fake_redis_call.call_args.args[0] == "redis://localhost:6379"

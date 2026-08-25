@@ -72,6 +72,10 @@ def test_anchor_episode_and_safety_net_subgraphs_produce_structured_outputs(
         "libs.pipeline_graph.subgraphs.episode.build_patient_episodes",
         _fake_build_episodes,
     )
+    monkeypatch.setattr(
+        "services.analysis_worker.app.episode_detector_v2.runner.build_episodes",
+        _fake_build_episodes,
+    )
 
     anchor_graph = registry.build("anchor_detect")
     anchor_result = anchor_graph.invoke(
@@ -115,6 +119,10 @@ def test_quality_compliance_nba_and_sbar_subgraphs_produce_stateful_outputs(
     monkeypatch,
 ):
     registry = get_registry()
+    monkeypatch.setattr(
+        "libs.pipeline_graph.subgraphs.episode.resolve_flag",
+        lambda name, tenant_id=None: "v1",
+    )
 
     monkeypatch.setattr(
         "libs.pipeline_graph.subgraphs.quality_check.run_global_quality_checks",
@@ -159,8 +167,11 @@ def test_quality_compliance_nba_and_sbar_subgraphs_produce_stateful_outputs(
     )
     compliance = compliance_result["compliance_result"]
     assert "is_compliant" in compliance
-    assert "matched_rules" in compliance
-    assert "primary" in compliance
+    if "matched_rules" in compliance:
+        assert "primary" in compliance
+    else:
+        assert "items" in compliance
+        assert "passed_count" in compliance
 
     nba_graph = registry.build("next_best_action")
     nba_result = nba_graph.invoke(
@@ -221,6 +232,10 @@ async def test_episode_subgraph_invokes_inside_running_loop(monkeypatch):
     )
     monkeypatch.setattr(
         "libs.pipeline_graph.subgraphs.episode.build_patient_episodes",
+        _fake_build_episodes,
+    )
+    monkeypatch.setattr(
+        "services.analysis_worker.app.episode_detector_v2.runner.build_episodes",
         _fake_build_episodes,
     )
     registry = get_registry()

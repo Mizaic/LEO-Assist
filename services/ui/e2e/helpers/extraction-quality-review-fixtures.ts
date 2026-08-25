@@ -5,6 +5,7 @@
 
 import type { Page } from "@playwright/test";
 import { fulfillJson } from "./surface-forms-fixtures";
+import { stubPhraseMappingInbox } from "./work-task-dialog-fixtures";
 
 export const VAL_TASK_ID = "eqr-val-1";
 export const VAL_LETTER_TEXT =
@@ -19,6 +20,32 @@ export async function stubExtractionQualityReviewRoutes(
   page: Page,
   completeCalls: CompletePayload[],
 ): Promise<void> {
+  await page.route("**/api/work/tasks**", (route) =>
+    fulfillJson(route, {
+      tasks: [
+        {
+          task_id: "extraction_quality_pause:" + VAL_TASK_ID,
+          task_type: "extraction_quality_pause",
+          severity: 3,
+          summary: "Paused extraction: p-val",
+          age_days: 0,
+          resolve_url:
+            "/admin/knowledge?tab=validation-lab&hitl_task_id=" + VAL_TASK_ID,
+          patient_id: "p-val",
+          episode_id: null,
+        },
+      ],
+      counts_by_source: {
+        coding_review: 0,
+        safety_net_alert: 0,
+        gold_label: 0,
+        extraction_quality_pause: 1,
+        surface_form_approval: 0,
+      },
+      limit: 100,
+      offset: 0,
+    }),
+  );
   await page.route("**/api/training/coding-review/grouped**", (route) =>
     fulfillJson(route, { groups: [] }),
   );
@@ -51,6 +78,13 @@ export async function stubExtractionQualityReviewRoutes(
       (route.request().postDataJSON() as CompletePayload) || {},
     );
     return fulfillJson(route, { resume_once: true, already_resumed: false });
+  });
+  await stubPhraseMappingInbox(page, {
+    phrase_key: "cervix",
+    sample_span: "Cervix",
+    sample_sentence: VAL_LETTER_TEXT,
+    extracted_tag: "finding",
+    last_best_term: "",
   });
   await page.route(`**/api/operations/extraction-reviews/${VAL_TASK_ID}`, (route) => {
     if (route.request().method() !== "GET") {

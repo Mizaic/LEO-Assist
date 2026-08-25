@@ -43,4 +43,11 @@ describe("WorkPage integration (VT-LEO-AI-134 TC-005)", () => {
   test("mounts AreaIntro with area='work' so intro copy adapts to staff", () => {
     expect(source).toMatch(/AreaIntro area="work"/);
   });
+
+  test("selecting a row opens an in-page modal instead of leaving /work", () => {
+    expect(source).toMatch(/onSelectTask/);
+    expect(source).toMatch(/WorkTaskDialog/);
+    expect(source).not.toMatch(/window\.location/);
+    expect(source).not.toMatch(/router\.(push|replace)/);
+  });
 });

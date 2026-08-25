@@ -21,6 +21,8 @@ from libs.cypher.uncoded_phrase_queries import (
     LIST_UNCODED_PHRASES,
     SAVE_UNCODED_DRAFT,
     SEND_BACK_UNCODED_PHRASE,
+    ENSURE_UNCODED_PHRASE,
+    SUBMIT_ONE_UNCODED_DRAFT,
     SUBMIT_UNCODED_DRAFTS,
 )
 from libs.pipeline.uncoded_phrase import normalise_phrase
@@ -120,6 +122,71 @@ def save_draft(
             raise HTTPException(
                 status_code=404,
                 detail="Phrase not found or already submitted",
+            )
+        return rows[0]
+    finally:
+        client.close()
+
+
+def get_phrase(phrase_key: str) -> dict[str, Any]:
+    key = normalise_phrase(phrase_key)
+    if not key:
+        raise HTTPException(status_code=400, detail="Phrase is empty")
+    client = _kg_client()
+    try:
+        rows = client.run(GET_UNCODED_PHRASE, phrase_key=key)
+        if not rows:
+            raise HTTPException(status_code=404, detail="Phrase not found")
+        return rows[0]
+    finally:
+        client.close()
+
+
+def ensure_phrase(
+    phrase_key: str,
+    *,
+    extracted_tag: str = "",
+    extracted_source: str = "",
+    sample_span: str = "",
+    sample_sentence: str = "",
+) -> dict[str, Any]:
+    key = normalise_phrase(phrase_key)
+    if not key:
+        raise HTTPException(status_code=400, detail="Phrase is empty")
+    span = (sample_span or phrase_key).strip()
+    client = _kg_client()
+    try:
+        rows = client.run(
+            ENSURE_UNCODED_PHRASE,
+            phrase_key=key,
+            normalized=key,
+            extracted_tag=(extracted_tag or "").strip(),
+            extracted_source=(extracted_source or "").strip(),
+            sample_span=span,
+            sample_sentence=(sample_sentence or "").strip(),
+        )
+        if not rows:
+            raise HTTPException(status_code=404, detail="Phrase not found")
+        return rows[0]
+    finally:
+        client.close()
+
+
+def submit_one(phrase_key: str, author: str) -> dict[str, Any]:
+    key = normalise_phrase(phrase_key)
+    if not key:
+        raise HTTPException(status_code=400, detail="Phrase is empty")
+    client = _kg_client()
+    try:
+        rows = client.run(
+            SUBMIT_ONE_UNCODED_DRAFT,
+            phrase_key=key,
+            author=_actor(author),
+        )
+        if not rows:
+            raise HTTPException(
+                status_code=409,
+                detail="Save a draft first, then submit this phrase",
             )
         return rows[0]
     finally:

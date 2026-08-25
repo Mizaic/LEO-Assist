@@ -130,6 +130,10 @@ class TestCreateLlmBedrockReuse:
         from libs.llm_client.factory import create_llm, reset_llm_cache
 
         monkeypatch.setenv("AWS_SMALL_MODEL", "anthropic.claude-haiku-test")
+        monkeypatch.setenv(
+            "AWS_BEDROCK_MODEL", "arn:aws:bedrock:eu-west-2::anthropic.claude-haiku-test"
+        )
+        monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
         reset_llm_cache()
 
         first = create_llm(provider="aws", tier="small")

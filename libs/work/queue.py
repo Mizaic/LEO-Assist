@@ -1,23 +1,31 @@
-"""Service layer that backs the /work task queue (DI-LEO-AI-138).
+"""Service layer that backs the /work task queue.
 
 Atlas trace:
-  DO: DO-65BA6EA0
-  DI: DI-C0AD09D2
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+  DI: DI-6BD7B681
 
 Wraps libs.cypher.work_queue_queries so the API router never has to
 assemble parameters or normalise source names by hand.
+
+UncodedPhrase nodes live in the knowledge graph, not the patient graph.
+get_work_tasks therefore accepts an optional kg_session for those rows.
+If kg_session is None the phrase_publish bucket is silently skipped so
+My work never hard-fails when the knowledge graph is unreachable.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from typing import Any, Iterable
 
 from libs.cypher.work_queue_queries import (
+    COUNT_PHRASE_PUBLISH_TASKS,
     COUNT_WORK_TASKS_BY_SOURCE,
+    GET_PHRASE_PUBLISH_TASKS,
     GET_UNIFIED_WORK_TASKS,
 )
+
+logger = logging.getLogger(__name__)
 
 VALID_SOURCES: tuple[str, ...] = (
     "coding_review",
@@ -25,6 +33,7 @@ VALID_SOURCES: tuple[str, ...] = (
     "gold_label",
     "extraction_quality_pause",
     "surface_form_approval",
+    "phrase_publish",
 )
 
 
@@ -49,6 +58,9 @@ class WorkTaskRow:
     resolve_url: str
     patient_id: str | None
     episode_id: str | None
+    failure_kind: str = ""
+    draft_author: str = ""
+    draft_action: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -60,6 +72,9 @@ class WorkTaskRow:
             "resolve_url": self.resolve_url,
             "patient_id": self.patient_id,
             "episode_id": self.episode_id,
+            "failure_kind": self.failure_kind,
+            "draft_author": self.draft_author,
+            "draft_action": self.draft_action,
         }
 
 
@@ -102,27 +117,50 @@ def _row_from_record(record: dict[str, Any]) -> WorkTaskRow:
         episode_id=(
             str(record["episode_id"]) if record.get("episode_id") else None
         ),
+        failure_kind=str(record.get("failure_kind") or ""),
+        draft_author=str(record.get("draft_author") or ""),
+        draft_action=str(record.get("draft_action") or ""),
     )
+
+
+def _sort_key(row: WorkTaskRow) -> tuple[int, int, str]:
+    return (-row.severity, -row.age_days, row.task_id)
 
 
 def get_work_tasks(
     session: Any,
     filters: WorkTaskFilters,
+    *,
+    kg_session: Any = None,
 ) -> WorkTasksPage:
-    """Return one page of unified work tasks plus counts-by-source."""
+    """Return one page of unified work tasks plus counts-by-source.
+
+    kg_session is the knowledge-graph Neo4j session. When provided,
+    phrase_publish rows from UncodedPhrase are merged in. When None
+    those rows are silently omitted.
+    """
     sources = _coerce_sources(filters.sources)
     limit = max(1, min(int(filters.limit), 200))
     offset = max(0, int(filters.offset))
 
-    task_records = session.run(
+    # Fetch patient-graph rows; use a ceiling so we can merge before slicing.
+    fetch_limit = offset + limit
+    patient_records = session.run(
         GET_UNIFIED_WORK_TASKS,
         sources=list(sources) if sources else None,
-        limit=limit,
-        offset=offset,
+        limit=fetch_limit,
+        offset=0,
     )
-    rows = [_row_from_record(dict(r)) for r in task_records]
+    rows: list[WorkTaskRow] = [_row_from_record(dict(r)) for r in patient_records]
 
-    counts = get_work_counts(session)
+    # Merge knowledge-graph phrase_publish rows when the bucket is requested.
+    kg_rows = _fetch_phrase_publish_rows(kg_session, sources, fetch_limit)  # kg_session is a KG client
+    rows.extend(kg_rows)
+
+    rows.sort(key=_sort_key)
+    rows = rows[offset : offset + limit]
+
+    counts = get_work_counts(session, kg_session=kg_session)
     return WorkTasksPage(
         tasks=rows,
         counts_by_source=counts,
@@ -131,8 +169,39 @@ def get_work_tasks(
     )
 
 
-def get_work_counts(session: Any) -> dict[str, int]:
-    """Return the counts-by-source map for the queue header strip."""
+def _fetch_phrase_publish_rows(
+    kg_client: Any,
+    sources: tuple[str, ...] | None,
+    fetch_limit: int,
+) -> list[WorkTaskRow]:
+    """Return phrase_publish rows from the knowledge graph, or [] on error.
+
+    kg_client must expose a .run(query, **params) method, as KnowledgeGraphClient does.
+    """
+    bucket_wanted = sources is None or "phrase_publish" in sources
+    if not bucket_wanted or kg_client is None:
+        return []
+    try:
+        records = kg_client.run(
+            GET_PHRASE_PUBLISH_TASKS,
+            offset=0,
+            limit=fetch_limit,
+        )
+        return [_row_from_record(dict(r)) for r in records]
+    except Exception:
+        logger.warning("phrase_publish rows unavailable; knowledge graph unreachable")
+        return []
+
+
+def get_work_counts(
+    session: Any,
+    *,
+    kg_session: Any = None,
+) -> dict[str, int]:
+    """Return the counts-by-source map for the queue header strip.
+
+    kg_session may be a KnowledgeGraphClient instance exposing .run().
+    """
     records = session.run(COUNT_WORK_TASKS_BY_SOURCE)
     counts: dict[str, int] = {src: 0 for src in VALID_SOURCES}
     for record in records:
@@ -140,4 +209,14 @@ def get_work_counts(session: Any) -> dict[str, int]:
         name = str(data.get("task_type") or "")
         if name in counts:
             counts[name] = int(data.get("total") or 0)
+
+    # Add phrase_publish count from knowledge graph.
+    if kg_session is not None:
+        try:
+            result = kg_session.run(COUNT_PHRASE_PUBLISH_TASKS)
+            rows = list(result)
+            counts["phrase_publish"] = int(rows[0]["total"]) if rows else 0
+        except Exception:
+            logger.warning("phrase_publish count unavailable")
+
     return counts

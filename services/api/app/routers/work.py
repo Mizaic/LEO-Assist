@@ -1,13 +1,16 @@
 """Unified work queue endpoints.
 
 Atlas trace:
-  DO: DO-65BA6EA0
-  DI: DI-C0AD09D2
-  Look up via: get_design_control(dc_type="design-output", dc_id="DO-65BA6EA0")
+  DI: DI-6BD7B681
 
-Backs the /work route consumed by the staff role (DI-LEO-AI-138). Every
-row returned here already carries a deep-link resolve_url, so this router
-is read-only and never mutates the underlying task sources.
+Backs the /work route consumed by the staff role. Every row returned here
+already carries a deep-link resolve_url, so this router is read-only and
+never mutates the underlying task sources.
+
+UncodedPhrase nodes live in the knowledge graph. This router opens a
+KnowledgeGraphClient alongside the patient client and passes it to the
+queue service as kg_session. When the knowledge graph is unreachable,
+My work still returns the patient-graph tasks with phrase_publish count = 0.
 """
 
 from __future__ import annotations
@@ -19,6 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.db.neo4j_client import PatientGraphClient
 from app.services.session_store import COOKIE_NAME, load_session, touch_session
+from libs.neo4j_client.client import KnowledgeGraphClient
 from libs.work.queue import (
     VALID_SOURCES,
     WorkTaskFilters,
@@ -68,6 +72,15 @@ def _coerce_sources(
     return tuple(seen.keys())
 
 
+def _open_kg_client() -> KnowledgeGraphClient | None:
+    """Open a KnowledgeGraphClient; return None when credentials are absent."""
+    try:
+        return KnowledgeGraphClient()
+    except RuntimeError:
+        logger.warning("KnowledgeGraphClient unavailable; phrase_publish skipped")
+        return None
+
+
 @router.get("/tasks")
 def list_tasks(
     request: Request,
@@ -80,8 +93,13 @@ def list_tasks(
     _require_authed_session(request)
     sources = _coerce_sources(source)
     filters = WorkTaskFilters(sources=sources, limit=limit, offset=offset)
-    with client.session() as session:
-        page = get_work_tasks(session, filters)
+    kg = _open_kg_client()
+    try:
+        with client.session() as session:
+            page = get_work_tasks(session, filters, kg_session=kg)
+    finally:
+        if kg:
+            kg.close()
     return page.to_dict()
 
 
@@ -92,5 +110,11 @@ def get_counts(
 ) -> dict[str, int]:
     """Return the counts-by-source strip used on the /work landing page."""
     _require_authed_session(request)
-    with client.session() as session:
-        return get_work_counts(session)
+    kg = _open_kg_client()
+    try:
+        with client.session() as session:
+            counts = get_work_counts(session, kg_session=kg)
+    finally:
+        if kg:
+            kg.close()
+    return counts

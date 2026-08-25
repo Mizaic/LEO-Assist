@@ -276,7 +276,7 @@ export async function openEditDialog(
   if (await reviewTab.isVisible().catch(() => false)) {
     await reviewTab.click();
   }
-  await expect(page.locator("#rule-review-body")).toBeVisible({
+  await expect(page.getByTestId("rule-pool-pending")).toBeVisible({
     timeout: 15000,
   });
 

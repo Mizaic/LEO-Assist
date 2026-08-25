@@ -89,7 +89,7 @@ def test_process_sentence_falls_back_to_stripped_observable_lookup() -> None:
     assert entity["snomed_concept_id"] == "1022561000000101"
     assert entity["snomed_term"] == "Eosinophil count"
     assert entity["start"] == 0
-    assert entity["end"] == len(sentence)
+    assert entity["end"] == len(entity["text"])
     assert entity["numeric_value"] == "0.23"
     assert entity["unit"] == "10^9/L"
     assert entity["reference_range"] == "0.04 - 0.4"

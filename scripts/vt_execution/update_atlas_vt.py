@@ -36,6 +36,7 @@ from scripts.vt_execution.atlas_verification_runs_rest import (  # noqa: E402
     VerificationRunClient,
     VerificationRunsNotConfigured,
     is_configured,
+    render_text_png,
 )
 
 
@@ -63,13 +64,14 @@ def _record_via_rest(
     client = VerificationRunClient.from_env()
     client.environment = environment
     run_id = client.create_run(vt_id=vt_uuid, executor=executor)
-    log_bytes = log_full.read_bytes()
+    log_text = log_full.read_text(errors="replace")
+    evidence = render_text_png(log_text)
     client.record_step(run_id, 0, notes, result)
     client.upload_evidence(
-        run_id, 0, log_bytes,
+        run_id, 0, evidence,
         caption=f"Test log for {vt_dcid or vt_uuid}",
-        file_name=log_full.name,
-        content_type="text/plain",
+        file_name=f"{log_full.stem}.png",
+        content_type="image/png",
     )
     client.complete(
         run_id,

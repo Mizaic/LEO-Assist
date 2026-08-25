@@ -20,6 +20,7 @@ from libs.pipeline.extraction_review_store import (
     load_extraction_review_detail,
     resume_extraction_review,
 )
+from libs.pipeline.span_few_shot import save_span_few_shot
 
 router = APIRouter(prefix="/operations", tags=["operations"])
 _PIPELINE_QUEUE = os.getenv("PIPELINE_QUEUE_NAME", "pipeline-jobs")
@@ -30,6 +31,13 @@ class CompleteExtractionReviewRequest(BaseModel):
     source_text: str = ""
     reviewed_entities: list[dict[str, Any]] = Field(default_factory=list)
     resolved_by: str = "unknown"
+
+
+class SpanFewShotRequest(BaseModel):
+    span: str = Field(..., min_length=1)
+    letter: str = ""
+    semantic_tag: str = "finding"
+    assertion: str = "present"
 
 
 async def _publish_resume(message: dict[str, Any]) -> None:
@@ -100,3 +108,20 @@ async def complete_review(
         "next_step_id": result.next_step_id,
         "resolved_by": body.resolved_by,
     }
+
+
+@router.post("/extraction-reviews/few-shot")
+def save_few_shot(
+    body: SpanFewShotRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    _ = scope
+    try:
+        return save_span_few_shot(
+            span=body.span,
+            letter=body.letter,
+            semantic_tag=body.semantic_tag,
+            assertion=body.assertion,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

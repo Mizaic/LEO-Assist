@@ -68,14 +68,28 @@ def test_router_persists_pages_json():
 # DI-AUDIT-PAGES - the Pydantic models accept pages and per-tile page_id and
 # default to single-page (back-compatible) when omitted.
 def test_audit_page_models_roundtrip():
+    import importlib
     import sys
 
-    sys.path.insert(0, str(ROOT / "services" / "analytics_api"))
-    from app.models.audit_template import (  # noqa: E402
-        AuditPage,
-        AuditTemplateCreate,
-        AuditTileCreate,
-    )
+    analytics_root = str(ROOT / "services" / "analytics_api")
+    saved_path = sys.path[:]
+    saved_modules = {
+        name: sys.modules.pop(name)
+        for name in list(sys.modules)
+        if name == "app" or name.startswith("app.")
+    }
+    sys.path.insert(0, analytics_root)
+    try:
+        models = importlib.import_module("app.models.audit_template")
+        AuditPage = models.AuditPage
+        AuditTemplateCreate = models.AuditTemplateCreate
+        AuditTileCreate = models.AuditTileCreate
+    finally:
+        sys.path[:] = saved_path
+        for name in list(sys.modules):
+            if name == "app" or name.startswith("app."):
+                sys.modules.pop(name, None)
+        sys.modules.update(saved_modules)
 
     tile = AuditTileCreate(
         label="STT Rate",

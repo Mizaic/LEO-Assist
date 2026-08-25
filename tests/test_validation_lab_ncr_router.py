@@ -16,23 +16,27 @@ _API_ROOT = Path(__file__).parent.parent / "services" / "api"
 if str(_API_ROOT) not in sys.path:
     sys.path.insert(0, str(_API_ROOT))
 
-from app.routers.validation_lab_ncr import router
 from libs.atlas_qms.ncr_shape import LEO_CDS_PRODUCT_ID
 
 
-def test_list_ncrs_returns_product_only(monkeypatch: Any) -> None:
+def _ncr_app(monkeypatch: Any, **patch_attrs: Any) -> TestClient:
     from app.routers import validation_lab_ncr as mod
-    from app.deps import require_admin_or_service
 
-    monkeypatch.setattr(
-        mod,
-        "list_product_ncrs",
-        lambda query="": [{"id": "n1", "title": "Missed", "product_id": LEO_CDS_PRODUCT_ID}],
-    )
+    for name, value in patch_attrs.items():
+        monkeypatch.setattr(mod, name, value)
     app = FastAPI()
-    app.include_router(router)
-    app.dependency_overrides[require_admin_or_service] = lambda: object()
-    client = TestClient(app)
+    app.include_router(mod.router)
+    app.dependency_overrides[mod.require_admin_or_service] = lambda: object()
+    return TestClient(app)
+
+
+def test_list_ncrs_returns_product_only(monkeypatch: Any) -> None:
+    client = _ncr_app(
+        monkeypatch,
+        list_product_ncrs=lambda query="": [
+            {"id": "n1", "title": "Missed", "product_id": LEO_CDS_PRODUCT_ID}
+        ],
+    )
     res = client.get("/validation-lab/ncrs?q=missed")
     assert res.status_code == 200
     body = res.json()
@@ -41,20 +45,13 @@ def test_list_ncrs_returns_product_only(monkeypatch: Any) -> None:
 
 
 def test_create_ncr_ignores_client_product_id(monkeypatch: Any) -> None:
-    from app.routers import validation_lab_ncr as mod
-    from app.deps import require_admin_or_service
-
     captured: dict[str, str] = {}
 
     def fake_create(**kwargs: str) -> dict[str, str]:
         captured.update(kwargs)
         return {"id": "n2", "title": kwargs["title"], "product_id": LEO_CDS_PRODUCT_ID}
 
-    monkeypatch.setattr(mod, "create_product_ncr", fake_create)
-    app = FastAPI()
-    app.include_router(router)
-    app.dependency_overrides[require_admin_or_service] = lambda: object()
-    client = TestClient(app)
+    client = _ncr_app(monkeypatch, create_product_ncr=fake_create)
     res = client.post(
         "/validation-lab/ncrs",
         json={
@@ -72,18 +69,14 @@ def test_create_ncr_ignores_client_product_id(monkeypatch: Any) -> None:
 
 
 def test_get_ncr_uses_facade_get(monkeypatch: Any) -> None:
-    from app.routers import validation_lab_ncr as mod
-    from app.deps import require_admin_or_service
-
-    monkeypatch.setattr(
-        mod,
-        "get_product_ncr",
-        lambda nc_id: {"id": nc_id, "title": "Missed", "product_id": LEO_CDS_PRODUCT_ID},
+    client = _ncr_app(
+        monkeypatch,
+        get_product_ncr=lambda nc_id: {
+            "id": nc_id,
+            "title": "Missed",
+            "product_id": LEO_CDS_PRODUCT_ID,
+        },
     )
-    app = FastAPI()
-    app.include_router(router)
-    app.dependency_overrides[require_admin_or_service] = lambda: object()
-    client = TestClient(app)
     res = client.get("/validation-lab/ncrs/ncr-9")
     assert res.status_code == 200
     assert res.json()["id"] == "ncr-9"

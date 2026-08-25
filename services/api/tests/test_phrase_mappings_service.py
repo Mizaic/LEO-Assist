@@ -63,6 +63,39 @@ def test_publish_map_calls_upsert_then_close() -> None:
     assert result["status"] == "closed"
 
 
+def test_ensure_creates_inbox_row_without_going_live() -> None:
+    client = MagicMock()
+    client.run.return_value = [_row(status="inbox", draft_action="")]
+    with (
+        patch.object(service, "_kg_client", return_value=client),
+        patch.object(service, "_publish_map") as publish_map,
+    ):
+        result = service.ensure_phrase(
+            "PSA",
+            extracted_tag="procedure",
+            extracted_source="llm",
+            sample_span="PSA",
+            sample_sentence="PSA is raised",
+        )
+    assert result["status"] == "inbox"
+    publish_map.assert_not_called()
+    query = str(client.run.call_args.args[0])
+    assert "MERGE" in query
+    assert "note_count = coalesce" not in query
+    assert client.run.call_args.kwargs["extracted_source"] == "llm"
+
+
+def test_submit_one_moves_only_that_draft() -> None:
+    client = MagicMock()
+    client.run.return_value = [{"phrase_key": "psa", "status": "review"}]
+    with patch.object(service, "_kg_client", return_value=client):
+        result = service.submit_one("psa", "engineer@example.com")
+    assert result["status"] == "review"
+    query = str(client.run.call_args.args[0])
+    assert "phrase_key" in query
+    assert "draft_author" in query
+
+
 def test_publish_exclude_does_not_run_on_save() -> None:
     client = MagicMock()
     client.run.return_value = [{"phrase_key": "psa", "status": "draft"}]

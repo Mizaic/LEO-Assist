@@ -58,6 +58,8 @@ export function authHeaders(): Record<string, string> {
   return {
     Authorization: `Bearer ${requiredEnv("QMS_SERVICE_TOKEN")}`,
     "X-Organization-ID": requiredEnv("ATLAS_ORGANIZATION_ID"),
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
   };
 }
 

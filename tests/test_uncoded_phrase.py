@@ -45,6 +45,35 @@ def test_record_uncoded_phrases_groups_by_normalised_key() -> None:
     assert "12.4" in str(calls[0]["sample_sentence"])
 
 
+def test_record_uncoded_phrases_keeps_llm_and_ner_source() -> None:
+    calls: list[dict] = []
+
+    def run(_query: str, **params: object) -> list[dict]:
+        calls.append(params)
+        return [{"phrase_key": params["phrase_key"], "status": "inbox"}]
+
+    record_uncoded_phrases(
+        [
+            {
+                "text": "HbA1c",
+                "semantic_tag": "finding",
+                "terminology_unresolved": True,
+                "__source": "llm",
+            },
+            {
+                "text": "T2DM",
+                "label": "disorder",
+                "terminology_unresolved": True,
+                "__source": "model",
+            },
+        ],
+        run=run,
+    )
+    sources = {row["phrase_key"]: row["last_extractor"] for row in calls}
+    assert sources["hba1c"] == "llm"
+    assert sources["t2dm"] == "model"
+
+
 def test_merge_resolution_keeps_rejected_guess_without_code() -> None:
     merged = _merge_resolution(
         {"text": "PSA", "label": "procedure"},

@@ -92,7 +92,7 @@ export function PatientShell({
 
   useEffect(() => {
     fetchEprPatientTimeline(patientId)
-      .then(setTimeline)
+      .then((data) => setTimeline(Array.isArray(data) ? data : []))
       .catch(() => {})
       .finally(() => setTimelineLoading(false));
   }, [patientId]);

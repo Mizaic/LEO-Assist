@@ -33,7 +33,7 @@ class DocumentQuality:
     document_quality_score: float
     quality_reasons: list[str] = field(default_factory=list)
     form_fingerprint_id: str = "unknown"
-    few_shot_max_similarity: float = 0.0
+    few_shot_max_similarity: float | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -90,24 +90,34 @@ def _match_fingerprint(fp: str, known: dict[str, str]) -> str:
 def score_document_quality(
     text: str,
     *,
-    few_shot_max_similarity: float,
+    few_shot_max_similarity: float | None,
     known_fingerprints: dict[str, str] | None = None,
     llm_confidence: float | None = None,
 ) -> DocumentQuality:
-    """Score a document. ``llm_confidence`` is accepted and ignored."""
+    """Score a document. ``llm_confidence`` is accepted and ignored.
+
+    When ``few_shot_max_similarity`` is ``None`` the route does not use
+    retrieval-augmented few-shot selection (for example the NER route).
+    The 0.4 weight is redistributed across fingerprint and coverage, and
+    ``few_shot_ood`` is never emitted.
+    """
     _ = llm_confidence
-    few = max(0.0, min(1.0, float(few_shot_max_similarity or 0.0)))
     fp = form_fingerprint(text)
     match_id = _match_fingerprint(fp, known_fingerprints or {})
     coverage = _rule_coverage(text)
     wrapper = 1.0 if _WRAPPER.search(text or "") else 0.0
     fp_hit = 1.0 if match_id != "unknown" else 0.0
-    score = max(
-        0.0, min(1.0, 0.4 * few + 0.3 * fp_hit + 0.3 * coverage - 0.25 * wrapper)
-    )
     reasons: list[str] = []
-    if few < FEW_SHOT_OOD_THRESHOLD:
-        reasons.append("few_shot_ood")
+    if few_shot_max_similarity is None:
+        score = max(0.0, min(1.0, 0.5 * fp_hit + 0.5 * coverage - 0.25 * wrapper))
+    else:
+        few = max(0.0, min(1.0, float(few_shot_max_similarity)))
+        score = max(
+            0.0,
+            min(1.0, 0.4 * few + 0.3 * fp_hit + 0.3 * coverage - 0.25 * wrapper),
+        )
+        if few < FEW_SHOT_OOD_THRESHOLD:
+            reasons.append("few_shot_ood")
     form_like = bool(_FORMISH.search(text or "") or _BOX.search(text or ""))
     if form_like and match_id == "unknown":
         reasons.append("unknown_form_template")
@@ -119,5 +129,5 @@ def score_document_quality(
         document_quality_score=round(score, 4),
         quality_reasons=reasons,
         form_fingerprint_id=match_id,
-        few_shot_max_similarity=few,
+        few_shot_max_similarity=few_shot_max_similarity,
     )

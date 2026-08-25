@@ -726,7 +726,10 @@ resource trainingWorker 'Microsoft.App/containerApps@2024-03-01' = {
         name: 'training-worker'
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/training-worker:${imageTag}'
         resources: { cpu: json('1.0'), memory: '2Gi' }
-        env: sharedEnv
+        env: union(sharedEnv, [
+          { name: 'NEO4J_USER', value: neo4jUser }
+          { name: 'KNOWLEDGE_GRAPH_NEO4J_USERNAME', value: neo4jKnowledgeUser }
+        ])
         probes: [
           {
             type: 'Liveness'

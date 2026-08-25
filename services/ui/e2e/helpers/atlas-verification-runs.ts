@@ -97,7 +97,7 @@ export async function createVerificationRun(
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     timeout: 60_000,
     data: {
-      vt_id: options.vtId,
+      vt_test_id: options.vtId,
       environment: options.environment ?? process.env.TEST_ENV ?? "local",
       executor: options.executor ?? "playwright",
       metadata: {

@@ -194,12 +194,12 @@ function activeTemplateForRole(state: AuditFixtureState) {
 }
 
 export async function clickFirstAvailableMetricAdd(page: Page): Promise<void> {
-  // getByRole resolves to two headings when both edit and hidden sidebar panels
-  // are in the DOM; use .first() to scope to the visible one.
-  const library = page.getByRole("heading", { name: "Metric library" }).first().locator("..");
-  // Wait for the catalogue to finish loading (chips replace skeletons).
-  await library.locator('div[role="button"]:not(.Mui-disabled)').first().waitFor({ state: "visible", timeout: 20_000 });
-  await library.locator('div[role="button"]:not(.Mui-disabled)').first().click();
+  const card = page
+    .locator('[draggable="true"]')
+    .filter({ hasText: "Referral STT Rate" })
+    .first();
+  await card.waitFor({ state: "visible", timeout: 20_000 });
+  await card.locator(".MuiChip-root").first().click({ timeout: 15_000 });
 }
 
 export async function selectOrgInBrowser(
