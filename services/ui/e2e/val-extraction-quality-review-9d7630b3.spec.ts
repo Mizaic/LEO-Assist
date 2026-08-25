@@ -31,10 +31,10 @@ const UN_ID = "UN-89E2AE36";
 const TARGET_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
 const PROTOCOL = [
-  "Open My work.",
-  "Select the paused extraction row. Confirm the letter editor opens on this page.",
-  "Confirm the letter text, Engineer panel, and Approve and unlock are visible.",
-  "Unlock the referral and confirm the complete request is sent.",
+  "Open My work. You should see a paused extraction in the list.",
+  "Click the paused extraction. You should stay on My work and see the letter editor.",
+  "Check the letter against the draft facts. Fix a wrong tag if you see one. You should still see the letter and Approve and unlock.",
+  "Click Approve and unlock. You should stay on My work.",
 ] as const;
 
 test.describe("VAL-9D7630B3 extraction quality review @val", () => {
@@ -80,7 +80,7 @@ test.describe("VAL-9D7630B3 extraction quality review @val", () => {
             testInfo: ctx.testInfo,
             protocol: PROTOCOL,
             stepIndex: 0,
-            notes: "My work is open",
+            notes: "My work is open and a paused extraction is in the list",
           });
           ctx.lastCompletedStep.value = 0;
 
@@ -100,7 +100,7 @@ test.describe("VAL-9D7630B3 extraction quality review @val", () => {
             testInfo: ctx.testInfo,
             protocol: PROTOCOL,
             stepIndex: 1,
-            notes: "Paused row opened the letter editor on My work",
+            notes: "Clicked the paused extraction. The letter editor opened on My work.",
           });
           ctx.lastCompletedStep.value = 1;
 
@@ -108,19 +108,17 @@ test.describe("VAL-9D7630B3 extraction quality review @val", () => {
             ctx.page.getByTestId("extraction-quality-letter"),
           ).toContainText("Cervix");
           await expect(
+            ctx.page.getByText("This form is not one we have seen before"),
+          ).toBeVisible();
+          await expect(ctx.page.getByText("Why this referral paused")).toHaveCount(0);
+          await expect(
             ctx.page.getByRole("button", { name: "Approve and unlock" }),
           ).toBeVisible();
+          await ctx.page.getByLabel("Semantic tag for Cervix").selectOption("finding");
+          await expect(ctx.page.getByLabel("Semantic tag for Cervix")).toHaveValue(
+            "finding",
+          );
           await expect(ctx.page.getByTestId("work-fix-panel")).toBeVisible();
-          await expect(ctx.page.getByText("Engineer panel")).toBeVisible();
-          await expect(ctx.page.getByRole("button", { name: "Debug" })).toBeVisible();
-          await expect(ctx.page.getByRole("button", { name: "Fix" })).toBeVisible();
-          await expect(
-            ctx.page.getByTestId("work-fix-panel").getByRole("button", {
-              name: "Review",
-              exact: true,
-            }),
-          ).toBeVisible();
-          await expect(ctx.page.getByRole("button", { name: "Deploy" })).toBeVisible();
 
           await recordProtocolStep({
             request: ctx.request,
@@ -130,7 +128,7 @@ test.describe("VAL-9D7630B3 extraction quality review @val", () => {
             testInfo: ctx.testInfo,
             protocol: PROTOCOL,
             stepIndex: 2,
-            notes: "Letter editor shows the letter and Approve and unlock",
+            notes: "Checked the letter, changed the Cervix tag, and still saw Approve and unlock",
           });
           ctx.lastCompletedStep.value = 2;
 
@@ -138,7 +136,9 @@ test.describe("VAL-9D7630B3 extraction quality review @val", () => {
           await expect.poll(() => completeCalls.length).toBe(1);
           expect(completeCalls[0]?.task_id).toBe(VAL_TASK_ID);
           expect(
-            completeCalls[0]?.reviewed_entities?.some((row) => row.text === "Cervix"),
+            completeCalls[0]?.reviewed_entities?.some(
+              (row) => row.text === "Cervix" && row.semantic_tag === "finding",
+            ),
           ).toBe(true);
           await expect(ctx.page).toHaveURL(/\/work/);
 
@@ -150,14 +150,14 @@ test.describe("VAL-9D7630B3 extraction quality review @val", () => {
             testInfo: ctx.testInfo,
             protocol: PROTOCOL,
             stepIndex: 3,
-            notes: "Complete request sent and the reviewer stayed on My work",
+            notes: "Clicked Approve and unlock and stayed on My work",
           });
           ctx.lastCompletedStep.value = 3;
 
           await finishValPass(
             ctx.request,
             ctx.runId,
-            "Reviewer opened the letter from My work and unlocked the referral.",
+            "Reviewer opened My work, checked the letter, fixed a tag, and approved.",
           );
         },
       });

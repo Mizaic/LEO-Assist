@@ -12,7 +12,6 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import DeleteIcon from "@mui/icons-material/Delete";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import {
   assertionLabel,
   markBackground,
@@ -50,39 +49,6 @@ const ASSERTION_OPTIONS: [string, string][] = [
   ["family", "Family history"],
   ["declined", "Declined"],
 ];
-
-export function QualityBanner({ quality }: { quality?: DocumentQuality }) {
-  const reasons = quality?.quality_reasons ?? [];
-  if (!reasons.length) return null;
-  return (
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{
-        px: 2,
-        py: 1.25,
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        bgcolor: "warning.light",
-        flexShrink: 0,
-      }}
-    >
-      <WarningAmberIcon color="warning" sx={{ fontSize: 18, mt: 0.15, flexShrink: 0 }} />
-      <Box>
-        <Typography variant="caption" fontWeight={700}>
-          Why this referral paused
-        </Typography>
-        <Box component="ul" sx={{ m: 0, pl: 2 }}>
-          {reasons.map((reason) => (
-            <Typography key={reason} component="li" variant="caption">
-              {reason.replace(/_/g, " ")}
-            </Typography>
-          ))}
-        </Box>
-      </Box>
-    </Stack>
-  );
-}
 
 export function FactList({
   entities,
@@ -138,7 +104,8 @@ export function FactList({
         </Stack>
       )}
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-        Fix any wrong tags, then click Approve and unlock. The pipeline will continue from where it paused.
+        Check each fact against the letter. Fix a wrong tag if you see one. Then
+        click Approve and unlock.
       </Typography>
     </>
   );
@@ -228,39 +195,45 @@ function FactRow({
       >
         {entity.text}
       </Typography>
-      <Box
-        sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 0.5 }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <FactSelect
-          value={entity.semantic_tag ?? ""}
-          label={`Semantic tag for ${entity.text}`}
-          onChange={(value) => onPatch({ semantic_tag: value })}
+      {selected ? (
+        <Box
+          sx={{ display: "flex", alignItems: "center", gap: 0.5, mr: 0.5 }}
+          onClick={(event) => event.stopPropagation()}
         >
-          <option value="">-- tag --</option>
-          {TAG_OPTIONS.map((tag) => (
-            <option key={tag} value={tag}>
-              {tag.replace(/_/g, " ")}
-            </option>
-          ))}
-        </FactSelect>
-        <FactSelect
-          value={entity.assertion ?? "present"}
-          label={`Assertion for ${entity.text}`}
-          onChange={(value) => onPatch({ assertion: value })}
-        >
-          {ASSERTION_OPTIONS.map(([val, lbl]) => (
-            <option key={val} value={val}>
-              {lbl}
-            </option>
-          ))}
-        </FactSelect>
-        <Tooltip title="Remove this fact">
-          <IconButton size="small" onClick={onRemove} aria-label={`Remove ${entity.text}`}>
-            <DeleteIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
+          <FactSelect
+            value={entity.semantic_tag ?? ""}
+            label={`Semantic tag for ${entity.text}`}
+            onChange={(value) => onPatch({ semantic_tag: value })}
+          >
+            <option value="">-- tag --</option>
+            {TAG_OPTIONS.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag.replace(/_/g, " ")}
+              </option>
+            ))}
+          </FactSelect>
+          <FactSelect
+            value={entity.assertion ?? "present"}
+            label={`Assertion for ${entity.text}`}
+            onChange={(value) => onPatch({ assertion: value })}
+          >
+            {ASSERTION_OPTIONS.map(([val, lbl]) => (
+              <option key={val} value={val}>
+                {lbl}
+              </option>
+            ))}
+          </FactSelect>
+          <Tooltip title="Remove this fact">
+            <IconButton size="small" onClick={onRemove} aria-label={`Remove ${entity.text}`}>
+              <DeleteIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      ) : (
+        <Typography variant="caption" color="text.secondary" sx={{ mr: 1, flexShrink: 0 }}>
+          {assertText}
+        </Typography>
+      )}
     </Box>
   );
 }

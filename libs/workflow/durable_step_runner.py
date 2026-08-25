@@ -672,13 +672,15 @@ def _enqueue_extraction_quality_review(
     next_ids: list[str],
 ) -> None:
     from libs.pipeline.document_quality import DocumentQuality
+    from libs.pipeline.extraction_review_letter import letter_from_pause_output
     from libs.pipeline.extraction_review_store import (
         PersistReviewRequest,
         persist_extraction_review_task,
         write_extraction_review_task,
     )
 
-    raw = (result.output or {}).get("document_quality") or {}
+    output = result.output or {}
+    raw = output.get("document_quality") or {}
     quality = DocumentQuality(
         document_quality_score=float(raw.get("document_quality_score") or 0.0),
         quality_reasons=list(raw.get("quality_reasons") or []),
@@ -693,7 +695,8 @@ def _enqueue_extraction_quality_review(
             step_id=request.step_id or "",
             next_action_id=next_ids[0] if next_ids else "",
             quality=quality,
-            draft_entities=list((result.output or {}).get("entities") or []),
+            draft_entities=list(output.get("entities") or []),
+            source_text=letter_from_pause_output(output),
         )
     )
     write_extraction_review_task(client, task)

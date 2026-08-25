@@ -9,11 +9,15 @@ import { stubPhraseMappingInbox } from "./work-task-dialog-fixtures";
 
 export const VAL_TASK_ID = "eqr-val-1";
 export const VAL_LETTER_TEXT =
-  "Section A: Gynaecological Cancer type suspected\nCervix [X]\npolyp noted";
+  "Section A: Gynaecological Cancer type suspected\n" +
+  "Ovary [ ] Cervix [X] Endometrium [ ]\n" +
+  "Section B: Signs/symptoms\n" +
+  "polyp noted\n" +
+  "BMI: 20.2 Kg/m2";
 
 export type CompletePayload = {
   task_id?: string;
-  reviewed_entities?: Array<{ text?: string }>;
+  reviewed_entities?: Array<{ text?: string; semantic_tag?: string }>;
 };
 
 export async function stubExtractionQualityReviewRoutes(
@@ -65,7 +69,7 @@ export async function stubExtractionQualityReviewRoutes(
           patient_id: "p-val",
           status: "pending",
           priority: 10,
-          reason: "unknown_form_template",
+          reason: "few_shot_ood,unknown_form_template,wrapper_admin_only",
         },
       ],
     });
@@ -93,10 +97,18 @@ export async function stubExtractionQualityReviewRoutes(
     return fulfillJson(route, {
       task_id: VAL_TASK_ID,
       source_text: VAL_LETTER_TEXT,
-      draft_entities: [{ text: "Cervix" }],
+      draft_entities: [
+        { text: "Cervix", semantic_tag: "body_structure", assertion: "present" },
+        { text: "polyp noted", semantic_tag: "finding", assertion: "present" },
+        { text: "BMI: 20.2 Kg/m2", semantic_tag: "observable", assertion: "present" },
+      ],
       document_quality: {
-        document_quality_score: 0.31,
-        quality_reasons: ["unknown_form_template"],
+        document_quality_score: 0.05,
+        quality_reasons: [
+          "few_shot_ood",
+          "unknown_form_template",
+          "wrapper_admin_only",
+        ],
       },
     });
   });

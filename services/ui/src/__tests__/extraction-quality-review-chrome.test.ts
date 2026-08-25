@@ -54,4 +54,33 @@ describe("extraction quality review chrome", () => {
     expect(dialog).toMatch(/extraction-reviews\/complete/);
     expect(dialog).toMatch(/Approve and unlock/);
   });
+
+  test("TC-005: pause reasons use plain English once, not raw tokens", () => {
+    const copy = readFile(
+      "services/ui/src/components/operations/extractionReviewCopy.ts",
+    );
+    const dialog = readFile(
+      "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
+    );
+    const facts = readFile(
+      "services/ui/src/components/operations/ExtractionReviewFacts.tsx",
+    );
+    expect(copy).toMatch(/This letter layout is unlike the training examples/);
+    expect(copy).toMatch(/This form is not one we have seen before/);
+    expect(copy).toMatch(/wrapper, not the clinical form/);
+    expect(dialog).toMatch(/pauseReasonLabels/);
+    expect(facts).not.toMatch(/Why this referral paused/);
+  });
+
+  test("TC-006: empty letter does not ask the reviewer to select text", () => {
+    const dialog = readFile(
+      "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
+    );
+    const copy = readFile(
+      "services/ui/src/components/operations/extractionReviewCopy.ts",
+    );
+    expect(dialog).toMatch(/hasLetter/);
+    expect(copy).toMatch(/We could not load the letter/);
+    expect(dialog).not.toMatch(/No letter text available for this task/);
+  });
 });
