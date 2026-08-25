@@ -25,7 +25,9 @@ import {
 } from "@leo/design-system";
 
 import AreaIntro from "@/components/AreaIntro";
+import WorkCancelDialog from "./WorkCancelDialog";
 import WorkTaskDialog from "./WorkTaskDialog";
+import { workTaskSourceId } from "./workTaskSourceId";
 
 interface WorkPageResponse {
   tasks: WorkTask[];
@@ -66,6 +68,7 @@ export default function WorkPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<WorkTask | null>(null);
+  const [cancelTask, setCancelTask] = useState<WorkTask | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -121,6 +124,10 @@ export default function WorkPage() {
             activeSources={activeSources}
             onToggleSource={toggleSource}
             onSelectTask={setSelectedTask}
+            onCancelTask={setCancelTask}
+            canCancelTask={(task) =>
+              task.task_type === "extraction_quality_pause"
+            }
           />
         )}
         <WorkTaskDialog
@@ -131,6 +138,16 @@ export default function WorkPage() {
             void refresh();
           }}
         />
+        {cancelTask ? (
+          <WorkCancelDialog
+            taskId={workTaskSourceId(cancelTask.task_id)}
+            onClose={() => setCancelTask(null)}
+            onCancelled={() => {
+              setCancelTask(null);
+              void refresh();
+            }}
+          />
+        ) : null}
       </Stack>
     </Box>
   );

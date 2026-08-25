@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from libs.cypher.extraction_review_queries import (
+    CANCEL_EXTRACTION_REVIEW_TASK,
+    CANCEL_PAUSED_EXTRACTION_STAGE,
     CREATE_EXTRACTION_REVIEW_TASK,
     GET_EXTRACTION_REVIEW_TASK,
     RESOLVE_EXTRACTION_REVIEW_TASK,
@@ -27,6 +29,7 @@ from libs.pipeline.extraction_quality_gate import (
 from libs.pipeline.extraction_review_letter import resolve_review_letter
 
 DURABLE_STEP_EVENT = "durable_step"
+VALID_CANCEL_REASONS = frozenset({"duplicate", "created_in_error", "no_longer_needed"})
 
 
 @dataclass(frozen=True)
@@ -39,6 +42,24 @@ class PersistReviewRequest:
     quality: DocumentQuality
     draft_entities: list[dict[str, Any]]
     source_text: str = ""
+
+
+@dataclass(frozen=True)
+class CancelResult:
+    status: str
+    reason: str
+    taught: bool = False
+    resumed: bool = False
+    already_cancelled: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "reason": self.reason,
+            "taught": self.taught,
+            "resumed": self.resumed,
+            "already_cancelled": self.already_cancelled,
+        }
 
 
 @dataclass(frozen=True)
@@ -230,4 +251,48 @@ def _persist_learned_form(plan: ResumePlan) -> None:
         fingerprint_name=f"learned-{plan.form_fingerprint_id}",
         fingerprint=plan.form_fingerprint_id,
         few_shot=plan.few_shot,
+    )
+
+
+def cancel_extraction_review(
+    client: Any,
+    *,
+    task_id: str,
+    reason: str,
+    cancelled_by: str = "unknown",
+) -> CancelResult:
+    if reason not in VALID_CANCEL_REASONS:
+        raise ValueError("invalid cancel reason")
+    task = _load_task(client, task_id)
+    status = str(task.get("status") or "")
+    if status == "cancelled":
+        return CancelResult(
+            status="cancelled",
+            reason=reason,
+            already_cancelled=True,
+        )
+    if status != "pending":
+        raise ValueError(f"review task {task_id!r} is not pending")
+    _write_cancel(client, task, reason, cancelled_by)
+    return CancelResult(status="cancelled", reason=reason)
+
+
+def _write_cancel(
+    client: Any,
+    task: dict[str, Any],
+    reason: str,
+    cancelled_by: str,
+) -> None:
+    rows = client.run(
+        CANCEL_EXTRACTION_REVIEW_TASK,
+        task_id=task.get("task_id") or "",
+        reason=reason,
+        cancelled_by=cancelled_by,
+    )
+    if not rows:
+        raise ValueError("review task is not pending")
+    client.run(
+        CANCEL_PAUSED_EXTRACTION_STAGE,
+        run_id=task.get("run_id") or "",
+        step_id=task.get("step_id") or "",
     )

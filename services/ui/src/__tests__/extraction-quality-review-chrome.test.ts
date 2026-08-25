@@ -118,8 +118,38 @@ describe("extraction quality review chrome", () => {
       "services/ui/src/components/operations/ExtractionReviewAskLeo.tsx",
     );
     expect(facts).toMatch(/ExtractionReviewAskLeo/);
+    expect(facts).toMatch(/nextUnsetFact/);
     expect(ask).toMatch(/askLeoSmart/);
     expect(ask).toMatch(/Use this tag/);
     expect(ask).toMatch(/Ask LEO/);
+    expect(ask).toMatch(/This is a label/);
+    expect(ask).toMatch(/setStep\("idle"\)/);
+  });
+
+  test("TC-010: pause reason pills use dark warning text on paper", () => {
+    const dialog = readFile(
+      "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
+    );
+    expect(dialog).toMatch(/color:\s*["']warning\.dark["']/);
+    expect(dialog).toMatch(/bgcolor:\s*["']background\.paper["']/);
+    expect(dialog).not.toMatch(/bgcolor:\s*["']warning\.light["']/);
+  });
+
+  test("TC-011: My work can remove a paused extraction without unlocking", () => {
+    const workPage = readFile("services/ui/src/app/work/page.tsx");
+    const dialog = readFile(
+      "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
+    );
+    const cancelDialog = readFile("services/ui/src/app/work/WorkCancelDialog.tsx");
+    const queue = readFile(
+      "services/design-system/src/primitives/TaskQueueRow.tsx",
+    );
+    expect(workPage).toMatch(/onCancelTask/);
+    expect(workPage).toMatch(/WorkCancelDialog/);
+    expect(queue).toMatch(/Remove/);
+    expect(dialog).toMatch(/Remove this task/);
+    expect(cancelDialog).toMatch(/extraction-reviews\/cancel/);
+    expect(cancelDialog).toMatch(/duplicate/);
+    expect(cancelDialog).not.toMatch(/extraction-reviews\/complete/);
   });
 });

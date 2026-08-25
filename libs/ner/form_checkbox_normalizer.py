@@ -108,13 +108,18 @@ def _is_checked_only(cell: str) -> bool:
     return bool(_CHECKED_ONLY.match(cell.strip()))
 
 
+def _word_before(line: str, index: int) -> str:
+    parts = line[:index].split()
+    return parts[-1].lower() if parts else ""
+
+
 def _suppress_unchecked_yes_no(line: str) -> str:
     def _repl(match: re.Match[str]) -> str:
-        box = match.group(1)
-        label = match.group(2)
-        if _CHECKED.search(box):
+        if _word_before(line, match.start()) in {"yes", "no"}:
             return match.group(0)
-        return f"{NON_EXTRACTABLE_MARKER} {label}"
+        if _CHECKED.search(match.group(1)):
+            return match.group(0)
+        return f"{NON_EXTRACTABLE_MARKER} {match.group(2)}"
 
     return re.sub(
         r"(\[[^\]]*\]|\([^)]*\))\s*(Yes|No)\b",

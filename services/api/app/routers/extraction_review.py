@@ -17,6 +17,8 @@ from libs.auth.org_scope import CallerScope
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.extraction_learning_store import ensure_learning_writers
 from libs.pipeline.extraction_review_store import (
+    VALID_CANCEL_REASONS,
+    cancel_extraction_review,
     load_extraction_review_detail,
     resume_extraction_review,
 )
@@ -38,6 +40,12 @@ class SpanFewShotRequest(BaseModel):
     letter: str = ""
     semantic_tag: str = "finding"
     assertion: str = "present"
+
+
+class CancelExtractionReviewRequest(BaseModel):
+    task_id: str = Field(..., min_length=1)
+    reason: str = Field(..., min_length=1)
+    cancelled_by: str = "unknown"
 
 
 async def _publish_resume(message: dict[str, Any]) -> None:
@@ -108,6 +116,31 @@ async def complete_review(
         "next_step_id": result.next_step_id,
         "resolved_by": body.resolved_by,
     }
+
+
+@router.post("/extraction-reviews/cancel")
+def cancel_review(
+    body: CancelExtractionReviewRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    _ = scope
+    if body.reason not in VALID_CANCEL_REASONS:
+        raise HTTPException(status_code=400, detail="invalid cancel reason")
+    client = PatientGraphClient()
+    try:
+        result = cancel_extraction_review(
+            client,
+            task_id=body.task_id,
+            reason=body.reason,
+            cancelled_by=body.cancelled_by,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        code = 400 if "reason" in detail else 404
+        raise HTTPException(status_code=code, detail=detail) from exc
+    finally:
+        client.close()
+    return result.to_dict()
 
 
 @router.post("/extraction-reviews/few-shot")

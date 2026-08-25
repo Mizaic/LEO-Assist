@@ -5,6 +5,8 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 from libs.cypher.extraction_review_queries import (
+    CANCEL_EXTRACTION_REVIEW_TASK,
+    CANCEL_PAUSED_EXTRACTION_STAGE,
     CREATE_EXTRACTION_REVIEW_TASK,
     UNLOCK_PAUSED_EXTRACTION_STAGE,
 )
@@ -15,6 +17,7 @@ from libs.pipeline.extraction_quality_gate import (
 )
 from libs.pipeline.extraction_review_store import (
     PersistReviewRequest,
+    cancel_extraction_review,
     load_extraction_review_detail,
     persist_extraction_review_task,
     plan_extraction_resume,
@@ -169,3 +172,73 @@ def test_review_detail_returns_letter_and_draft() -> None:
 def test_generic_hitl_resolve_does_not_unlock_extraction_review() -> None:
     assert generic_hitl_resolve_allowed(TASK_TYPE) is False
     assert generic_hitl_resolve_allowed("exclusion_conflict") is True
+
+
+def test_create_query_does_not_reset_cancelled_status() -> None:
+    after_create = CREATE_EXTRACTION_REVIEW_TASK.split("ON CREATE SET", 1)[1]
+    later_set = after_create.split("SET", 1)[1].split("RETURN", 1)[0]
+    assert "t.status" not in later_set
+
+
+def test_cancel_query_does_not_complete_or_teach() -> None:
+    assert "cancelled" in CANCEL_EXTRACTION_REVIEW_TASK
+    assert "pending" in CANCEL_EXTRACTION_REVIEW_TASK
+    assert "cancel_reason" in CANCEL_EXTRACTION_REVIEW_TASK
+    assert "completed" not in CANCEL_PAUSED_EXTRACTION_STAGE
+    assert "cancelled" in CANCEL_PAUSED_EXTRACTION_STAGE
+    assert "running" not in CANCEL_PAUSED_EXTRACTION_STAGE
+
+
+def test_cancel_marks_task_and_does_not_resume() -> None:
+    task = persist_extraction_review_task(_req())
+    client = MagicMock()
+    client.run.side_effect = [
+        [{"status": "pending", "resumed_at": None, **task}],
+        [{"task_id": task["task_id"], "status": "cancelled"}],
+        [{"step_id": "act-ref-extract"}],
+    ]
+    result = cancel_extraction_review(
+        client,
+        task_id=task["task_id"],
+        reason="duplicate",
+        cancelled_by="staff",
+    )
+    assert result.status == "cancelled"
+    assert result.reason == "duplicate"
+    assert result.taught is False
+    assert result.resumed is False
+    queries = [call.args[0] for call in client.run.call_args_list]
+    assert any("cancel_reason" in query for query in queries)
+    assert not any("FormFingerprint" in query for query in queries)
+    assert not any("completed" in query and "paused" in query for query in queries)
+
+
+def test_cancel_requires_a_known_reason() -> None:
+    task = persist_extraction_review_task(_req())
+    client = MagicMock()
+    try:
+        cancel_extraction_review(
+            client,
+            task_id=task["task_id"],
+            reason="not-a-reason",
+            cancelled_by="staff",
+        )
+    except ValueError as exc:
+        assert "reason" in str(exc)
+        return
+    raise AssertionError("expected ValueError")
+
+
+def test_cancel_is_safe_when_already_cancelled() -> None:
+    task = persist_extraction_review_task(_req())
+    client = MagicMock()
+    client.run.side_effect = [[{**task, "status": "cancelled", "resumed_at": None}]]
+    result = cancel_extraction_review(
+        client,
+        task_id=task["task_id"],
+        reason="duplicate",
+        cancelled_by="staff",
+    )
+    assert result.status == "cancelled"
+    assert result.already_cancelled is True
+    assert client.run.call_count == 1

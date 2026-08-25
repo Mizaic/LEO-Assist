@@ -69,5 +69,64 @@ describe("FactList Ask LEO", () => {
       semantic_tag: "finding",
       assertion: "present",
     });
+    expect(
+      screen.queryByText("The letter names vaginal discharge as a current symptom."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("moves to the next unset fact after the reviewer accepts a tag", async () => {
+    const user = userEvent.setup();
+    const onPick = jest.fn();
+    render(
+      <ThemeProvider theme={theme}>
+        <FactList
+          entities={[
+            { text: "vaginal discharge", semantic_tag: "", assertion: "present" },
+            { text: "cervix", semantic_tag: "", assertion: "present" },
+          ]}
+          letterText="vaginal discharge and cervix"
+          pickedText="vaginal discharge"
+          onPick={onPick}
+          onRemove={jest.fn()}
+          onPatch={jest.fn()}
+        />
+      </ThemeProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Ask LEO" }));
+    await screen.findByRole("button", { name: "Use this tag" });
+    await user.click(screen.getByRole("button", { name: "Use this tag" }));
+    expect(onPick).toHaveBeenCalledWith("cervix");
+  });
+
+  it("removes a form label and moves to the next unset fact", async () => {
+    const user = userEvent.setup();
+    const onRemove = jest.fn();
+    const onPick = jest.fn();
+    const onPatch = jest.fn();
+    render(
+      <ThemeProvider theme={theme}>
+        <FactList
+          entities={[
+            {
+              text: "Discharge patient and reassure",
+              semantic_tag: "",
+              assertion: "present",
+            },
+            { text: "BMI: 20.2 Kg/m2", semantic_tag: "", assertion: "present" },
+          ]}
+          letterText="Discharge patient and reassure. BMI: 20.2 Kg/m2"
+          pickedText="Discharge patient and reassure"
+          onPick={onPick}
+          onRemove={onRemove}
+          onPatch={onPatch}
+        />
+      </ThemeProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "This is a label" }));
+    expect(onPatch).not.toHaveBeenCalled();
+    expect(onRemove).toHaveBeenCalledWith("Discharge patient and reassure");
+    expect(onPick).toHaveBeenCalledWith("BMI: 20.2 Kg/m2");
   });
 });

@@ -50,4 +50,11 @@ describe("WorkPage integration (VT-LEO-AI-134 TC-005)", () => {
     expect(source).not.toMatch(/window\.location/);
     expect(source).not.toMatch(/router\.(push|replace)/);
   });
+
+  test("paused extractions can be removed from the list without leaving /work", () => {
+    expect(source).toMatch(/onCancelTask/);
+    expect(source).toMatch(/WorkCancelDialog/);
+    expect(source).toMatch(/extraction_quality_pause/);
+    expect(source).not.toMatch(/extraction-reviews\/complete/);
+  });
 });

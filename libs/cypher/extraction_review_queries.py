@@ -62,3 +62,24 @@ SET s.status = 'completed',
     s.updated_at = datetime()
 RETURN s.step_id AS step_id
 """
+
+CANCEL_EXTRACTION_REVIEW_TASK = """
+MATCH (t:HITLTask {task_id: $task_id})
+WHERE t.status = 'pending'
+  AND t.task_type = 'extraction_quality_review'
+SET t.status = 'cancelled',
+    t.cancel_reason = $reason,
+    t.cancelled_by = $cancelled_by,
+    t.cancelled_at = datetime(),
+    t.updated_at = datetime()
+RETURN t.task_id AS task_id, t.status AS status
+"""
+
+CANCEL_PAUSED_EXTRACTION_STAGE = """
+MATCH (r:PipelineRun {id: $run_id})-[:HAS_STAGE]->(s:PipelineStageRun)
+WHERE s.step_id = $step_id AND s.status = 'paused'
+SET s.status = 'cancelled',
+    r.status = 'cancelled',
+    s.updated_at = datetime()
+RETURN s.step_id AS step_id
+"""
