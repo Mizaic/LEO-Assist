@@ -32,7 +32,6 @@ import SchoolIcon from "@mui/icons-material/School";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 
 import {
-  detectSections,
   type FormSchemaSection,
   type FormSchemaItem,
   type SectionType,
@@ -84,12 +83,15 @@ export default function FormSchemaAnnotator({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/form-schemas/${fingerprint}`, {
+      // First: check if a saved schema already exists.
+      const existing = await fetch(`/api/form-schemas/${fingerprint}`, {
         credentials: "include",
         headers: { "X-Requested-With": "XMLHttpRequest" },
       });
-      if (res.ok) {
-        const payload = await res.json() as { schema: { form_name: string; sections: FormSchemaSection[] } | null };
+      if (existing.ok) {
+        const payload = await existing.json() as {
+          schema: { form_name: string; sections: FormSchemaSection[] } | null;
+        };
         if (payload.schema) {
           setName(payload.schema.form_name);
           setSections(payload.schema.sections);
@@ -97,9 +99,29 @@ export default function FormSchemaAnnotator({
         }
       }
     } catch {
-      // Network error: fall through to auto-detect
+      // Network error: fall through to LLM detect
     }
-    setSections(detectSections(sourceText));
+
+    // No saved schema: ask LEO to analyse the form structure.
+    try {
+      const detect = await fetch("/api/form-schemas/detect", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({ text: sourceText }),
+      });
+      if (detect.ok) {
+        const payload = await detect.json() as { sections: FormSchemaSection[] };
+        setSections(payload.sections ?? []);
+        return;
+      }
+    } catch {
+      // LLM detect failed: show empty sections with manual entry
+    }
+    setSections([]);
   }, [fingerprint, sourceText]);
 
   useEffect(() => {
@@ -201,7 +223,7 @@ export default function FormSchemaAnnotator({
         }}
       >
         <CircularProgress size={18} />
-        <Typography variant="body2">Analysing form structure...</Typography>
+        <Typography variant="body2">LEO is reading the form structure...</Typography>
       </Box>
     );
   }
@@ -233,8 +255,10 @@ export default function FormSchemaAnnotator({
       <Box sx={{ flex: 1, overflow: "auto", px: 2, py: 1 }}>
         {sections.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            No structured sections detected in this letter.
-            The form may be free-text only -- no schema is needed.
+            LEO could not detect sections automatically.
+            The form may be free-text only and may not need a schema.
+            If you can see checkboxes or scales in the original letter,
+            add them manually using the button below.
           </Typography>
         ) : (
           sections.map((section, sIdx) => (

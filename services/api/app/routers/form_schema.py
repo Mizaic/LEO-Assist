@@ -3,6 +3,7 @@
 GET  /form-schemas/{fingerprint}   -- load schema for a fingerprint (or null)
 PUT  /form-schemas/{fingerprint}   -- save / update schema
 GET  /form-schemas                 -- list all saved schemas
+POST /form-schemas/detect          -- LLM auto-detect sections from form text
 
 Atlas trace:
   DI: DI-5C9CA57B  (form checkbox normalisation)
@@ -10,6 +11,8 @@ Atlas trace:
 
 from __future__ import annotations
 
+import asyncio
+from functools import partial
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from app.deps import require_admin
 from libs.auth.org_scope import CallerScope
+from libs.llm_client.form_schema_detector import detect_form_sections
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.form_schema_store import (
     build_sections_from_request,
@@ -143,3 +147,28 @@ def list_schemas(
     finally:
         client.close()
     return {"schemas": schemas}
+
+
+class DetectFormRequest(BaseModel):
+    text: str = Field(..., min_length=10)
+
+
+@router.post("/detect")
+async def detect_schema(
+    body: DetectFormRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    """Use the LLM to auto-detect sections and suggest entity text.
+
+    Runs detect_form_sections (synchronous/CPU-bound consensus call) in
+    a thread pool so the async event loop is not blocked.
+    """
+    _ = scope
+    loop = asyncio.get_event_loop()
+    try:
+        sections = await loop.run_in_executor(
+            None, partial(detect_form_sections, body.text)
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {"sections": sections}

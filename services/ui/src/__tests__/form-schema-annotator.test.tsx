@@ -44,6 +44,15 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
     expect(ANNOTATOR_SRC).toContain("/api/form-schemas/");
   });
 
+  it("calls /api/form-schemas/detect POST for LLM auto-detect", () => {
+    expect(ANNOTATOR_SRC).toContain("/api/form-schemas/detect");
+    expect(ANNOTATOR_SRC).toContain('"POST"');
+  });
+
+  it("shows LEO is reading the form during load", () => {
+    expect(ANNOTATOR_SRC).toContain("LEO is reading the form");
+  });
+
   it("supports PUT to save schema", () => {
     expect(ANNOTATOR_SRC).toContain('"PUT"');
   });
