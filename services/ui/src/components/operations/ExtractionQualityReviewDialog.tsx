@@ -12,10 +12,15 @@ import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CloseIcon from "@mui/icons-material/Close";
+import SchoolIcon from "@mui/icons-material/School";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
+import FormSchemaAnnotator from "./FormSchemaAnnotator";
 
 import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
 import { LetterMarkLegend } from "@/app/admin/validation-lab/LetterMarks";
@@ -39,6 +44,7 @@ interface ReviewData {
   entities: DraftEntity[];
   quality: DocumentQuality;
   reason: string;
+  formFingerprint: string;
 }
 
 interface Props {
@@ -62,6 +68,7 @@ export default function ExtractionQualityReviewDialog({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [rightTab, setRightTab] = useState<"facts" | "teach">("facts");
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -81,6 +88,9 @@ export default function ExtractionQualityReviewDialog({
           entities: Array.isArray(raw.draft_entities) ? (raw.draft_entities as DraftEntity[]) : [],
           quality: (raw.document_quality as DocumentQuality) ?? {},
           reason: String(raw.reason ?? ""),
+          formFingerprint: String(
+            (raw.document_quality as DocumentQuality | undefined)?.form_fingerprint_id ?? "",
+          ),
         };
         setData(loaded);
         setEntities(loaded.entities);
@@ -170,18 +180,26 @@ export default function ExtractionQualityReviewDialog({
             focusTerm={focusTerm}
             onAddSelection={addSelection}
           />
-          <ReviewFactsPane
-            entities={entities}
-            error={error}
-            busy={busy}
-            encounterText={data?.sourceText ?? ""}
-            pickedText={focusTerm}
-            onPick={setPickedText}
-            onRemove={removeEntity}
-            onPatch={patchEntity}
-            onBack={onClose}
-            onUnlock={() => void unlock()}
-          />
+          <ReviewRightPane
+            tab={rightTab}
+            onTabChange={setRightTab}
+            fingerprint={data?.formFingerprint ?? ""}
+            sourceText={data?.sourceText ?? ""}
+            onSchemaSaved={onUnlocked}
+          >
+            <ReviewFactsPane
+              entities={entities}
+              error={error}
+              busy={busy}
+              encounterText={data?.sourceText ?? ""}
+              pickedText={focusTerm}
+              onPick={setPickedText}
+              onRemove={removeEntity}
+              onPatch={patchEntity}
+              onBack={onClose}
+              onUnlock={() => void unlock()}
+            />
+          </ReviewRightPane>
         </Box>
       </Stack>
       {cancelOpen ? (
@@ -357,6 +375,58 @@ function ReviewLetterPane({
           emptyLabel={EMPTY_LETTER_COPY}
         />
       </Box>
+    </Box>
+  );
+}
+
+// -- ReviewRightPane (tab shell) --------------------------------------------
+
+function ReviewRightPane({
+  tab,
+  onTabChange,
+  fingerprint,
+  sourceText,
+  onSchemaSaved,
+  children,
+}: {
+  tab: "facts" | "teach";
+  onTabChange: (v: "facts" | "teach") => void;
+  fingerprint: string;
+  sourceText: string;
+  onSchemaSaved: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <Tabs
+        value={tab}
+        onChange={(_e, v: "facts" | "teach") => onTabChange(v)}
+        sx={{ px: 2, borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}
+        textColor="primary"
+        indicatorColor="primary"
+      >
+        <Tab label="Review facts" value="facts" sx={{ minHeight: 40, textTransform: "none" }} />
+        <Tab
+          label="Teach this form"
+          value="teach"
+          icon={<SchoolIcon sx={{ fontSize: 16 }} />}
+          iconPosition="start"
+          sx={{ minHeight: 40, textTransform: "none" }}
+        />
+      </Tabs>
+      {tab === "facts" ? (
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          {children}
+        </Box>
+      ) : (
+        <Box sx={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 0 }}>
+          <FormSchemaAnnotator
+            fingerprint={fingerprint}
+            sourceText={sourceText}
+            onSaved={onSchemaSaved}
+          />
+        </Box>
+      )}
     </Box>
   );
 }

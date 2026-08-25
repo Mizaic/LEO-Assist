@@ -7,7 +7,6 @@ from libs.pipeline.document_quality import (
     score_document_quality,
 )
 
-
 NSS_FORM = """
 Appendix A: Referral criteria
 | Unexplained DVT | [ ] |
@@ -98,3 +97,51 @@ def test_known_fingerprint_raises_match_id() -> None:
     assert scored.form_fingerprint_id == "gynae-2ww"
     assert "unknown_form_template" not in scored.quality_reasons
     assert scored.document_quality_score >= 0.6
+
+
+# ---------------------------------------------------------------------------
+# known_schema bypass tests (TDD RED -- feature not yet implemented)
+# ---------------------------------------------------------------------------
+
+
+def test_known_schema_returns_score_of_one() -> None:
+    """When a FormSchema is known for this fingerprint, score = 1.0 always."""
+    scored = score_document_quality(
+        GYNAE_FORM,
+        few_shot_max_similarity=0.05,  # would normally trigger OOD pause
+        known_fingerprints={},
+        known_schema=True,
+    )
+    assert scored.document_quality_score == 1.0
+
+
+def test_known_schema_has_no_quality_reasons() -> None:
+    """No pause reasons should be emitted when a schema is known."""
+    scored = score_document_quality(
+        GYNAE_FORM,
+        few_shot_max_similarity=0.05,
+        known_schema=True,
+    )
+    assert scored.quality_reasons == []
+
+
+def test_known_schema_with_wrapper_still_returns_one() -> None:
+    """Even a wrapper-only document should pass when a schema is known."""
+    wrapper_text = "No information provided\n" + GYNAE_FORM
+    scored = score_document_quality(
+        wrapper_text,
+        few_shot_max_similarity=0.05,
+        known_schema=True,
+    )
+    assert scored.document_quality_score == 1.0
+
+
+def test_known_schema_false_uses_normal_scoring() -> None:
+    """Explicitly passing known_schema=False must use the normal formula."""
+    scored = score_document_quality(
+        GYNAE_FORM,
+        few_shot_max_similarity=0.05,
+        known_schema=False,
+    )
+    assert scored.document_quality_score < 1.0
+    assert "few_shot_ood" in scored.quality_reasons

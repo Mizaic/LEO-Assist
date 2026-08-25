@@ -1,0 +1,145 @@
+"""REST endpoints for per-form schema annotation.
+
+GET  /form-schemas/{fingerprint}   -- load schema for a fingerprint (or null)
+PUT  /form-schemas/{fingerprint}   -- save / update schema
+GET  /form-schemas                 -- list all saved schemas
+
+Atlas trace:
+  DI: DI-5C9CA57B  (form checkbox normalisation)
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+
+from app.deps import require_admin
+from libs.auth.org_scope import CallerScope
+from libs.neo4j_client.client import PatientGraphClient
+from libs.pipeline.form_schema_store import (
+    build_sections_from_request,
+    load_form_schema,
+    save_form_schema,
+)
+from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS
+
+router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
+
+
+class FormSchemaItemRequest(BaseModel):
+    pattern: str = Field(..., min_length=1)
+    entity_text: str = Field(..., min_length=1)
+    semantic_tag: str = "finding"
+    assertion: str = "present"
+
+
+class FormSectionRequest(BaseModel):
+    section_id: str = Field(..., min_length=1)
+    section_type: str = Field(..., min_length=1)
+    label: str = ""
+    start_pattern: str = Field(..., min_length=1)
+    items: list[FormSchemaItemRequest] = Field(default_factory=list)
+
+
+class SaveFormSchemaRequest(BaseModel):
+    form_name: str = Field(..., min_length=1)
+    sections: list[FormSectionRequest] = Field(..., min_items=1)
+    saved_by: str = "unknown"
+    status: str = "active"
+
+
+def _schema_to_dict(schema: Any) -> dict[str, Any]:
+    return {
+        "schema_id": schema.schema_id,
+        "fingerprint": schema.fingerprint,
+        "form_name": schema.form_name,
+        "version": schema.version,
+        "status": schema.status,
+        "sections": [
+            {
+                "section_id": s.section_id,
+                "section_type": s.section_type,
+                "label": s.label,
+                "start_pattern": s.start_pattern,
+                "items": [
+                    {
+                        "pattern": i.pattern,
+                        "entity_text": i.entity_text,
+                        "semantic_tag": i.semantic_tag,
+                        "assertion": i.assertion,
+                    }
+                    for i in s.items
+                ],
+            }
+            for s in schema.sections
+        ],
+        "created_at": schema.created_at,
+        "created_by": schema.created_by,
+    }
+
+
+@router.get("/{fingerprint}")
+def get_schema(
+    fingerprint: str,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    _ = scope
+    client = PatientGraphClient()
+    try:
+        schema = load_form_schema(client, fingerprint)
+    finally:
+        client.close()
+    if schema is None:
+        return {"schema": None}
+    return {"schema": _schema_to_dict(schema)}
+
+
+@router.put("/{fingerprint}")
+def save_schema(
+    fingerprint: str,
+    body: SaveFormSchemaRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    _ = scope
+    sections = build_sections_from_request([s.model_dump() for s in body.sections])
+    client = PatientGraphClient()
+    try:
+        schema = save_form_schema(
+            client,
+            fingerprint=fingerprint,
+            form_name=body.form_name,
+            sections=sections,
+            created_by=body.saved_by,
+            status=body.status,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        client.close()
+    return {"schema": _schema_to_dict(schema), "saved": True}
+
+
+@router.get("")
+def list_schemas(
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    _ = scope
+    client = PatientGraphClient()
+    try:
+        rows = client.run(LIST_FORM_SCHEMAS)
+        schemas = [
+            {
+                "schema_id": r["schema_id"],
+                "fingerprint": r["fingerprint"],
+                "form_name": r["form_name"],
+                "version": r["version"],
+                "status": r["status"],
+                "created_at": str(r.get("created_at") or ""),
+            }
+            for r in (rows or [])
+        ]
+    finally:
+        client.close()
+    return {"schemas": schemas}

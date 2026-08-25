@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,18 @@ _BUILTIN_ADMIN_QUESTION_ALTS = (
     r"medication list attached|"
     r"transport:"
 )
+
+
+def _get_schema_for_text(text: str) -> "Any | None":
+    """Return a FormSchema for *text* if one is cached, else ``None``."""
+    try:
+        from libs.pipeline.document_quality import form_fingerprint
+        from libs.pipeline.form_schema_store import get_cached_schema
+
+        fp = form_fingerprint(text)
+        return get_cached_schema(fp)
+    except Exception:
+        return None
 
 
 def _build_admin_question_re(custom: list[str]) -> re.Pattern[str]:
@@ -214,11 +227,22 @@ def _needs_normalisation(text: str) -> bool:
 
 
 def normalize_form_checkbox_text(text: str) -> str:
-    """Mark unchecked / template / admin form rows as non-extractable."""
+    """Mark unchecked / template / admin form rows as non-extractable.
+
+    When a :FormSchema exists for this document's fingerprint the schema
+    normaliser takes priority over the generic regex rules.
+    """
     from libs.ner.form_layout_rules import apply_form_layout_rules
 
     if not text:
         return text
+
+    schema = _get_schema_for_text(text)
+    if schema is not None:
+        from libs.pipeline.form_schema_normalizer import apply_schema_to_text
+
+        return apply_schema_to_text(text, schema)
+
     if not _needs_normalisation(text):
         return apply_form_layout_rules(text)
 

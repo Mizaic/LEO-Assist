@@ -92,9 +92,14 @@ def score_document_quality(
     *,
     few_shot_max_similarity: float | None,
     known_fingerprints: dict[str, str] | None = None,
+    known_schema: bool = False,
     llm_confidence: float | None = None,
 ) -> DocumentQuality:
     """Score a document. ``llm_confidence`` is accepted and ignored.
+
+    When ``known_schema`` is ``True`` the form has a saved :FormSchema in
+    Neo4j. The gate is bypassed and ``document_quality_score`` is 1.0 so
+    the pipeline never pauses on a taught form.
 
     When ``few_shot_max_similarity`` is ``None`` the route does not use
     retrieval-augmented few-shot selection (for example the NER route).
@@ -102,6 +107,12 @@ def score_document_quality(
     ``few_shot_ood`` is never emitted.
     """
     _ = llm_confidence
+    if known_schema:
+        return DocumentQuality(
+            document_quality_score=1.0,
+            quality_reasons=[],
+            form_fingerprint_id=form_fingerprint(text),
+        )
     fp = form_fingerprint(text)
     match_id = _match_fingerprint(fp, known_fingerprints or {})
     coverage = _rule_coverage(text)
