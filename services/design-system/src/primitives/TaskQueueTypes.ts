@@ -20,6 +20,7 @@ export interface WorkTask {
   severity: number;
   summary: string;
   age_days: number;
+  created_at?: string | null;
   resolve_url: string;
   patient_id?: string | null;
   episode_id?: string | null;

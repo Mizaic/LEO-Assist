@@ -60,6 +60,7 @@ export {
 } from "./KnowledgePageLayout";
 export {
   TaskQueue,
+  formatWorkTaskWhen,
   type TaskQueueProps,
   type WorkTask,
   type WorkTaskType,

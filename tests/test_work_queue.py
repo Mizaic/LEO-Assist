@@ -192,6 +192,7 @@ def test_vt134_tc001_union_covers_patient_graph_sources():
         "severity",
         "summary",
         "age_days",
+        "created_at",
         "resolve_url",
         "patient_id",
         "episode_id",
@@ -205,6 +206,7 @@ def test_vt134_tc001_phrase_publish_uses_kg_query():
     assert "review" in GET_PHRASE_PUBLISH_TASKS
     assert "phrase_publish" in GET_PHRASE_PUBLISH_TASKS
     assert "draft_author" in GET_PHRASE_PUBLISH_TASKS
+    assert "created_at" in GET_PHRASE_PUBLISH_TASKS
     assert "change_to_publish" in GET_PHRASE_PUBLISH_TASKS
     assert "UncodedPhrase" in COUNT_PHRASE_PUBLISH_TASKS
 
@@ -255,6 +257,16 @@ def test_vt134_tc002_phrase_publish_row_carries_draft_fields():
     assert row.draft_author == "engineer@example.com"
     assert row.draft_action == "map"
     assert row.failure_kind == "change_to_publish"
+
+
+def test_vt134_tc002_created_at_carried_through():
+    tasks = _sample_tasks()
+    tasks[0]["created_at"] = "2026-08-25T15:34:00Z"
+    session = _StubSession(tasks, _sample_counts())
+    page = get_work_tasks(session, WorkTaskFilters(limit=10))
+    coding = next(row for row in page.tasks if row.task_type == "coding_review")
+    assert coding.created_at == "2026-08-25T15:34:00Z"
+    assert coding.to_dict()["created_at"] == "2026-08-25T15:34:00Z"
 
 
 def test_vt134_tc002_failure_kind_carried_through():
@@ -379,6 +391,7 @@ def test_vt134_tc003_get_tasks_returns_tasks_and_counts(client_with_work_router)
             "severity",
             "summary",
             "age_days",
+            "created_at",
             "resolve_url",
             "failure_kind",
         }

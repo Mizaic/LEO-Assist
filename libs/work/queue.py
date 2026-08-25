@@ -58,6 +58,7 @@ class WorkTaskRow:
     resolve_url: str
     patient_id: str | None
     episode_id: str | None
+    created_at: str = ""
     failure_kind: str = ""
     draft_author: str = ""
     draft_action: str = ""
@@ -69,6 +70,7 @@ class WorkTaskRow:
             "severity": self.severity,
             "summary": self.summary,
             "age_days": self.age_days,
+            "created_at": self.created_at,
             "resolve_url": self.resolve_url,
             "patient_id": self.patient_id,
             "episode_id": self.episode_id,
@@ -103,6 +105,17 @@ def _coerce_sources(sources: Iterable[str] | None) -> tuple[str, ...] | None:
     return picked or None
 
 
+def _iso_timestamp(value: Any) -> str:
+    if value is None:
+        return ""
+    if hasattr(value, "isoformat"):
+        return str(value.isoformat())
+    text = str(value).strip()
+    if not text or text in {"None", "null"}:
+        return ""
+    return text
+
+
 def _row_from_record(record: dict[str, Any]) -> WorkTaskRow:
     return WorkTaskRow(
         task_id=str(record["task_id"]),
@@ -110,6 +123,7 @@ def _row_from_record(record: dict[str, Any]) -> WorkTaskRow:
         severity=int(record.get("severity") or 0),
         summary=str(record.get("summary") or ""),
         age_days=int(record.get("age_days") or 0),
+        created_at=_iso_timestamp(record.get("created_at")),
         resolve_url=str(record.get("resolve_url") or ""),
         patient_id=(
             str(record["patient_id"]) if record.get("patient_id") else None

@@ -10,6 +10,7 @@ import { createRoot, type Root } from "react-dom/client";
 import {
   TaskQueue,
   MotionProvider,
+  formatWorkTaskWhen,
   type CountsBySource,
   type WorkTask,
 } from "@leo/design-system";
@@ -29,6 +30,7 @@ const TASKS: WorkTask[] = [
     severity: 3,
     summary: "Code check: chest pain",
     age_days: 2,
+    created_at: "2026-08-23T09:15:00.000Z",
     resolve_url: "/admin/operations/reviews?review_id=cr-1",
     patient_id: "pat-a",
     episode_id: null,
@@ -39,6 +41,7 @@ const TASKS: WorkTask[] = [
     severity: 5,
     summary: "Safety alert: red flag needs review",
     age_days: 0,
+    created_at: "2026-08-25T15:34:00.000Z",
     resolve_url: "/safety-netting?alert_id=sn-1",
     patient_id: "pat-b",
     episode_id: "ep-1",
@@ -235,5 +238,35 @@ describe("TaskQueue primitive (VT-LEO-AI-134 TC-004)", () => {
       button.click();
     });
     expect(toggled).toEqual(["safety_net_alert"]);
+  });
+
+  test("row subtitle shows date and time instead of Today", () => {
+    mountInto(
+      container,
+      <MotionProvider>
+        <TaskQueue tasks={TASKS} countsBySource={COUNTS} />
+      </MotionProvider>,
+    );
+    const row = container.querySelector(
+      "[data-testid='task-queue-row-safety_net_alert:sn-1']",
+    );
+    const text = row?.textContent ?? "";
+    expect(text).toMatch(/\d{1,2} \w{3} \d{4}/);
+    expect(text).toMatch(/\d{2}:\d{2}/);
+    expect(text).not.toMatch(/Today/);
+  });
+});
+
+describe("formatWorkTaskWhen", () => {
+  test("prints a UK date and 24-hour time from created_at", () => {
+    const label = formatWorkTaskWhen("2026-08-25T15:34:00.000Z", 0);
+    expect(label).toMatch(/25 Aug 2026/);
+    expect(label).toMatch(/\d{2}:\d{2}/);
+    expect(label).not.toBe("Today");
+  });
+
+  test("falls back to age when created_at is missing", () => {
+    expect(formatWorkTaskWhen("", 0)).toBe("Today");
+    expect(formatWorkTaskWhen(undefined, 2)).toBe("2 days old");
   });
 });

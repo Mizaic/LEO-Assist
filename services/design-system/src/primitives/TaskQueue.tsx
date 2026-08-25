@@ -24,6 +24,8 @@ export type {
   WorkTaskType,
 } from "./TaskQueueTypes";
 
+export { formatWorkTaskWhen } from "./TaskQueueRow";
+
 const SOURCE_LABELS: Record<WorkTaskType, string> = {
   coding_review: "Code checks",
   safety_net_alert: "Safety alerts",

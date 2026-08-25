@@ -39,6 +39,23 @@ function ageLabel(age_days: number): string {
   return age_days + " days old";
 }
 
+export function formatWorkTaskWhen(
+  created_at?: string | null,
+  age_days = 0,
+): string {
+  const parsed = Date.parse(created_at || "");
+  if (Number.isNaN(parsed)) return ageLabel(age_days);
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(parsed));
+}
+
 export function canCancelWorkTask(
   task: WorkTask,
   onCancelTask?: (task: WorkTask) => void,
@@ -110,7 +127,7 @@ function TaskRowLink({
         <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
           {SOURCE_LABELS[task.task_type]}
           {" - "}
-          {ageLabel(task.age_days)}
+          {formatWorkTaskWhen(task.created_at, task.age_days)}
           {task.patient_id ? " - patient " + task.patient_id : ""}
         </div>
       </div>

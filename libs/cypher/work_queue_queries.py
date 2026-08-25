@@ -15,6 +15,7 @@ Row shape:
     severity     - int 1..5 (5 = most urgent)
     summary      - plain-English one liner, FK grade <= 9
     age_days     - int, days since the task became actionable
+    created_at   - ISO timestamp when the task became actionable
     resolve_url  - app-relative URL that deep-links to the resolver UI
     patient_id   - str | null
     episode_id   - str | null
@@ -79,6 +80,7 @@ CALL {
             ELSE 'Code check: ' + coalesce(cr.entity_text, '(empty)')
         END AS summary,
         age_days                        AS age_days,
+        toString(coalesce(cr.updated_at, cr.created_at, datetime())) AS created_at,
         '/admin/operations/reviews?review_id=' + cr.review_id AS resolve_url,
         p.id                            AS patient_id,
         ep.episode_id                   AS episode_id,
@@ -109,6 +111,7 @@ CALL {
             a.description, a.alert_type, 'needs review'
         )                                AS summary,
         age_days                         AS age_days,
+        toString(coalesce(a.created_at, datetime())) AS created_at,
         '/safety-netting?alert_id=' + a.alert_id AS resolve_url,
         p.id                             AS patient_id,
         ep.episode_id                    AS episode_id,
@@ -134,6 +137,7 @@ CALL {
             '(no preview)'
         )                              AS summary,
         age_days                       AS age_days,
+        toString(coalesce(c.created_at, datetime())) AS created_at,
         '/admin/knowledge?tab=training-data&candidate_id='
             + c.candidate_id          AS resolve_url,
         NULL                           AS patient_id,
@@ -158,6 +162,7 @@ CALL {
         severity                                AS severity,
         'Paused extraction: ' + coalesce(t.patient_id, '(unknown)') AS summary,
         age_days                                AS age_days,
+        toString(coalesce(t.created_at, datetime())) AS created_at,
         '/admin/knowledge?tab=validation-lab&hitl_task_id=' + t.task_id AS resolve_url,
         t.patient_id                            AS patient_id,
         NULL                                    AS episode_id,
@@ -180,17 +185,18 @@ CALL {
         severity                             AS severity,
         'New phrase to approve: ' + coalesce(t.entity_text, '(unknown)') AS summary,
         age_days                             AS age_days,
+        toString(coalesce(t.created_at, datetime())) AS created_at,
         '/admin/knowledge?tab=surface-forms' AS resolve_url,
         NULL                                 AS patient_id,
         NULL                                 AS episode_id,
         'new_phrase'                         AS failure_kind
 }
-WITH task_id, task_type, severity, summary, age_days, resolve_url,
+WITH task_id, task_type, severity, summary, age_days, created_at, resolve_url,
      patient_id, episode_id, failure_kind
 WHERE ($sources IS NULL OR task_type IN $sources)
-RETURN task_id, task_type, severity, summary, age_days, resolve_url,
+RETURN task_id, task_type, severity, summary, age_days, created_at, resolve_url,
        patient_id, episode_id, failure_kind
-ORDER BY severity DESC, age_days DESC, task_id
+ORDER BY severity DESC, age_days DESC, created_at DESC, task_id
 SKIP $offset
 LIMIT $limit
 """
@@ -216,6 +222,7 @@ RETURN
     severity                          AS severity,
     'Change to publish: ' + coalesce(u.normalized, u.phrase_key) AS summary,
     age_days                          AS age_days,
+    toString(coalesce(u.updated_at, u.created_at, datetime())) AS created_at,
     '/work'                           AS resolve_url,
     NULL                              AS patient_id,
     NULL                              AS episode_id,
