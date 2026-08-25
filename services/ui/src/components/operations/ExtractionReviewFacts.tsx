@@ -39,6 +39,7 @@ export function draftExtractor(entity: DraftEntity): string {
 export interface DocumentQuality {
   document_quality_score?: number;
   quality_reasons?: string[];
+  form_fingerprint_id?: string;
 }
 
 const TAG_OPTIONS = Object.keys(TAG_STYLE);
