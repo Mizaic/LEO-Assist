@@ -33,7 +33,7 @@ const TARGET_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const PROTOCOL = [
   "Open My work. You should see a paused extraction in the list.",
   "Click the paused extraction. You should stay on My work and see the letter editor.",
-  "Check the letter against the draft facts. Fix a wrong tag if you see one. You should still see the letter and Approve and unlock.",
+  "Check the letter against the draft facts. You should see each Cervix mention numbered. Fix a wrong tag if you see one. You should still see the letter and Approve and unlock.",
   "Click Approve and unlock. You should stay on My work.",
 ] as const;
 
@@ -113,6 +113,11 @@ test.describe("VAL-9D7630B3 extraction quality review @val", () => {
           await expect(ctx.page.getByText("Why this referral paused")).toHaveCount(0);
           await expect(
             ctx.page.getByRole("button", { name: "Approve and unlock" }),
+          ).toBeVisible();
+          await expect(ctx.page.getByLabel("Mention 1")).toBeVisible();
+          await expect(ctx.page.getByLabel("Mention 2")).toBeVisible();
+          await expect(
+            ctx.page.getByText("Cervix appears 2 times on the letter"),
           ).toBeVisible();
           await ctx.page.getByLabel("Semantic tag for Cervix").selectOption("finding");
           await expect(ctx.page.getByLabel("Semantic tag for Cervix")).toHaveValue(

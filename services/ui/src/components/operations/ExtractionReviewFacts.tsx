@@ -20,6 +20,8 @@ import {
   semanticTagLabel,
   TAG_STYLE,
 } from "@/app/admin/validation-lab/letterMarkStyle";
+import ExtractionReviewAskLeo from "./ExtractionReviewAskLeo";
+import { countMentions, mentionCopy } from "./extractionReviewHighlight";
 
 export interface DraftEntity {
   text: string;
@@ -52,12 +54,14 @@ const ASSERTION_OPTIONS: [string, string][] = [
 
 export function FactList({
   entities,
+  letterText,
   pickedText,
   onPick,
   onRemove,
   onPatch,
 }: {
   entities: DraftEntity[];
+  letterText: string;
   pickedText: string;
   onPick: (text: string) => void;
   onRemove: (text: string) => void;
@@ -75,6 +79,11 @@ export function FactList({
           sx={{ bgcolor: "action.hover", color: "primary.main", fontWeight: 700 }}
         />
       </Stack>
+      {pickedText ? (
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+          {mentionCopy(pickedText, countMentions(letterText, pickedText))}
+        </Typography>
+      ) : null}
       {entities.length === 0 ? (
         <Box
           sx={{
@@ -92,20 +101,30 @@ export function FactList({
       ) : (
         <Stack spacing={0.75}>
           {entities.map((entity) => (
-            <FactRow
-              key={entity.text}
-              entity={entity}
-              selected={entity.text === pickedText}
-              onPick={() => onPick(entity.text)}
-              onRemove={() => onRemove(entity.text)}
-              onPatch={(patch) => onPatch(entity.text, patch)}
-            />
+            <Box key={entity.text}>
+              <FactRow
+                entity={entity}
+                selected={entity.text === pickedText}
+                mentionCount={countMentions(letterText, entity.text)}
+                onPick={() => onPick(entity.text)}
+                onRemove={() => onRemove(entity.text)}
+                onPatch={(patch) => onPatch(entity.text, patch)}
+              />
+              {entity.text === pickedText ? (
+                <ExtractionReviewAskLeo
+                  entityText={entity.text}
+                  letterText={letterText}
+                  assertion={entity.assertion ?? "present"}
+                  onApply={(patch) => onPatch(entity.text, patch)}
+                />
+              ) : null}
+            </Box>
           ))}
         </Stack>
       )}
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
-        Check each fact against the letter. Fix a wrong tag if you see one. Then
-        click Approve and unlock.
+        Click a fact to number each mention on the letter. Ask LEO if the tag
+        is unclear. Then click Approve and unlock.
       </Typography>
     </>
   );
@@ -114,12 +133,14 @@ export function FactList({
 function FactRow({
   entity,
   selected,
+  mentionCount,
   onPick,
   onRemove,
   onPatch,
 }: {
   entity: DraftEntity;
   selected: boolean;
+  mentionCount: number;
   onPick: () => void;
   onRemove: () => void;
   onPatch: (patch: Partial<DraftEntity>) => void;
@@ -232,6 +253,7 @@ function FactRow({
       ) : (
         <Typography variant="caption" color="text.secondary" sx={{ mr: 1, flexShrink: 0 }}>
           {assertText}
+          {mentionCount ? ` · ${mentionCount}` : ""}
         </Typography>
       )}
     </Box>

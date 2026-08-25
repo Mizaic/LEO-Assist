@@ -32,6 +32,15 @@ export function statusCopy(status: string | undefined): string {
   return "This phrase is not mapped yet.";
 }
 
+const DEBUG_LETTER_LIMIT = 280;
+
+export function debugLetterSample(sample: string): string {
+  const text = sample.trim();
+  if (!text) return "";
+  if (text.length > DEBUG_LETTER_LIMIT) return "See the letter on the left.";
+  return `In the letter: ${text}`;
+}
+
 export function EngineerStepBar({
   step,
   onSelect,
@@ -71,6 +80,7 @@ export function DebugPane({
   failureKind?: string;
 }) {
   const sample = row?.sample_sentence || encounterText || "";
+  const letterHint = debugLetterSample(sample);
   const foundBy = extractorCopy(row?.last_extractor);
   const copy = getFailureCopy(failureKind);
   return (
@@ -96,9 +106,9 @@ export function DebugPane({
           Closest code so far: {row.last_best_term}
         </Typography>
       ) : null}
-      {sample ? (
+      {letterHint ? (
         <Typography variant="caption" color="text.secondary">
-          In the letter: {sample}
+          {letterHint}
         </Typography>
       ) : null}
       {row?.draft_action === "map" && row.draft_concept_term ? (

@@ -15,7 +15,7 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 
-import { LetterMarks } from "./LetterMarks";
+import { LetterMarks, MentionClockProvider } from "./LetterMarks";
 import type { LetterMark } from "./letterHighlight";
 import {
   parseLetterMarkdown,
@@ -29,6 +29,7 @@ interface Props {
   marks?: LetterMark[];
   testId?: string;
   emptyLabel: string;
+  focusTerm?: string;
 }
 
 export default function LetterMarkdownView({
@@ -36,6 +37,7 @@ export default function LetterMarkdownView({
   marks = [],
   testId,
   emptyLabel,
+  focusTerm,
 }: Props): ReactNode {
   if (!text.trim()) {
     return (
@@ -46,7 +48,7 @@ export default function LetterMarkdownView({
   }
   const { filename, body } = splitLetterSource(text);
   const blocks = parseLetterMarkdown(body || text);
-  return (
+  const letter = (
     <Box data-testid="validation-lab-letter-markdown" sx={MARKDOWN_SX}>
       {filename ? (
         <Chip
@@ -58,9 +60,21 @@ export default function LetterMarkdownView({
         />
       ) : null}
       {blocks.map((block, index) => (
-        <BlockView key={`${block.type}-${index}`} block={block} marks={marks} testId={testId} />
+        <BlockView
+          key={`${block.type}-${index}`}
+          block={block}
+          marks={marks}
+          testId={testId}
+          numberMentions={Boolean(focusTerm)}
+        />
       ))}
     </Box>
+  );
+  if (!focusTerm) return letter;
+  return (
+    <MentionClockProvider resetKey={`${focusTerm}:${text.length}`}>
+      {letter}
+    </MentionClockProvider>
   );
 }
 
@@ -68,16 +82,23 @@ function BlockView({
   block,
   marks,
   testId,
+  numberMentions,
 }: {
   block: BlockNode;
   marks: LetterMark[];
   testId?: string;
+  numberMentions?: boolean;
 }): ReactNode {
   if (block.type === "heading") {
     const variant = block.level === 1 ? "h5" : block.level === 2 ? "h6" : "subtitle1";
     return (
       <Typography variant={variant} component={`h${block.level}`} sx={{ fontWeight: 700 }}>
-        <InlineView nodes={block.children} marks={marks} testId={testId} />
+        <InlineView
+          nodes={block.children}
+          marks={marks}
+          testId={testId}
+          numberMentions={numberMentions}
+        />
       </Typography>
     );
   }
@@ -88,19 +109,38 @@ function BlockView({
       <Box component={ListTag}>
         {block.items.map((item, index) => (
           <li key={`li-${index}`}>
-            <InlineView nodes={item} marks={marks} testId={testId} />
+            <InlineView
+              nodes={item}
+              marks={marks}
+              testId={testId}
+              numberMentions={numberMentions}
+            />
           </li>
         ))}
       </Box>
     );
   }
-  if (block.type === "table") return <TableView block={block} marks={marks} testId={testId} />;
+  if (block.type === "table") {
+    return (
+      <TableView
+        block={block}
+        marks={marks}
+        testId={testId}
+        numberMentions={numberMentions}
+      />
+    );
+  }
   return (
     <Typography variant="body2" component="p">
       {block.lines.map((line, index) => (
         <Box component="span" key={`ln-${index}`}>
           {index > 0 ? <br /> : null}
-          <InlineView nodes={line} marks={marks} testId={testId} />
+          <InlineView
+            nodes={line}
+            marks={marks}
+            testId={testId}
+            numberMentions={numberMentions}
+          />
         </Box>
       ))}
     </Typography>
@@ -111,10 +151,12 @@ function TableView({
   block,
   marks,
   testId,
+  numberMentions,
 }: {
   block: Extract<BlockNode, { type: "table" }>;
   marks: LetterMark[];
   testId?: string;
+  numberMentions?: boolean;
 }): ReactNode {
   return (
     <Box component="table">
@@ -122,7 +164,12 @@ function TableView({
         <tr>
           {block.header.map((cell, index) => (
             <Box component="th" scope="col" key={`th-${index}`}>
-              <InlineView nodes={cell} marks={marks} testId={testId} />
+              <InlineView
+                nodes={cell}
+                marks={marks}
+                testId={testId}
+                numberMentions={numberMentions}
+              />
             </Box>
           ))}
         </tr>
@@ -132,7 +179,12 @@ function TableView({
           <tr key={`tr-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
               <Box component="td" key={`td-${rowIndex}-${cellIndex}`}>
-                <InlineView nodes={cell} marks={marks} testId={testId} />
+                <InlineView
+                  nodes={cell}
+                  marks={marks}
+                  testId={testId}
+                  numberMentions={numberMentions}
+                />
               </Box>
             ))}
           </tr>
@@ -146,15 +198,23 @@ function InlineView({
   nodes,
   marks,
   testId,
+  numberMentions,
 }: {
   nodes: InlineNode[];
   marks: LetterMark[];
   testId?: string;
+  numberMentions?: boolean;
 }): ReactNode {
   return nodes.map((node, index) => {
     if (node.type === "text") {
       return (
-        <LetterMarks key={`tx-${index}`} text={node.value} marks={marks} testId={testId} />
+        <LetterMarks
+          key={`tx-${index}`}
+          text={node.value}
+          marks={marks}
+          testId={testId}
+          numberMentions={numberMentions}
+        />
       );
     }
     if (node.type === "code") {
@@ -163,7 +223,12 @@ function InlineView({
     const Tag = node.type === "strong" ? "strong" : "em";
     return (
       <Box component={Tag} key={`${node.type}-${index}`}>
-        <InlineView nodes={node.children} marks={marks} testId={testId} />
+        <InlineView
+          nodes={node.children}
+          marks={marks}
+          testId={testId}
+          numberMentions={numberMentions}
+        />
       </Box>
     );
   });

@@ -136,6 +136,26 @@ describe("WorkFixPanel live", () => {
     expect(screen.getByRole("button", { name: "Deploy" })).toBeInTheDocument();
   });
 
+  it("does not dump the whole letter into debug", async () => {
+    const letter = "Section A Cervix [X] ".repeat(40);
+    jest.mocked(loadWorkPhrase).mockResolvedValue({
+      ...phraseRow("inbox"),
+      sample_sentence: letter,
+    });
+    render(
+      <ThemeProvider theme={theme}>
+        <WorkFixPanel
+          entityText="Cervix"
+          entityLabel="body_structure"
+          encounterText={letter}
+        />
+      </ThemeProvider>,
+    );
+    expect(await screen.findByText("This phrase is not mapped yet.")).toBeInTheDocument();
+    expect(screen.getByText("See the letter on the left.")).toBeInTheDocument();
+    expect(screen.queryByText(/Section A Cervix \[X\] Section A/)).not.toBeInTheDocument();
+  });
+
   it("saves a mapping as a draft", async () => {
     const user = userEvent.setup();
     renderPanel();
