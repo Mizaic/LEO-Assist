@@ -21,6 +21,7 @@ SET
     t.reason = $reason,
     t.draft_entities_json = $draft_entities_json,
     t.document_quality_json = $document_quality_json,
+    t.source_text = $source_text,
     t.updated_at = datetime()
 RETURN t.task_id AS task_id
 """
@@ -38,7 +39,8 @@ RETURN t.task_id AS task_id,
        t.next_action_id AS next_action_id,
        t.reason AS reason,
        t.draft_entities_json AS draft_entities_json,
-       t.document_quality_json AS document_quality_json
+       t.document_quality_json AS document_quality_json,
+       coalesce(t.source_text, '') AS source_text
 """
 
 RESOLVE_EXTRACTION_REVIEW_TASK = """

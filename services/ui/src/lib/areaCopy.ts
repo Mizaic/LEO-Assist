@@ -174,14 +174,14 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
     default: {
       title: "My Work",
       lede: "Every open task for you, in one place.",
-      how: "Start at the top. The red rows go first.",
-      what: "Each row opens a window that clears that task.",
+      how: "Click a row to start that job. Urgent rows sit at the top.",
+      what: "The window shows the letter and the facts you need to check.",
     },
     clinical_coder: {
       title: "My Work",
       lede: "Every open task for you, in one place.",
-      how: "Start at the top. The red rows go first.",
-      what: "Each row opens a window that clears that task.",
+      how: "Click a row to start that job. Urgent rows sit at the top.",
+      what: "The window shows the letter and the facts you need to check.",
     },
     auditor: {
       title: "Team Work",

@@ -24,6 +24,7 @@ from libs.pipeline.extraction_quality_gate import (
     build_review_task,
     complete_extraction_review,
 )
+from libs.pipeline.extraction_review_letter import resolve_review_letter
 
 DURABLE_STEP_EVENT = "durable_step"
 
@@ -37,6 +38,7 @@ class PersistReviewRequest:
     next_action_id: str
     quality: DocumentQuality
     draft_entities: list[dict[str, Any]]
+    source_text: str = ""
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,7 @@ def persist_extraction_review_task(req: PersistReviewRequest) -> dict[str, Any]:
     task["next_action_id"] = req.next_action_id
     task["draft_entities_json"] = json.dumps(draft, ensure_ascii=True)
     task["document_quality_json"] = json.dumps(req.quality.to_dict(), ensure_ascii=True)
+    task["source_text"] = req.source_text or ""
     return task
 
 
@@ -81,6 +84,7 @@ def write_extraction_review_task(client: Any, task: dict[str, Any]) -> None:
         reason=task.get("reason") or "low_document_quality",
         draft_entities_json=task.get("draft_entities_json") or "[]",
         document_quality_json=task.get("document_quality_json") or "{}",
+        source_text=task.get("source_text") or "",
     )
 
 
@@ -181,7 +185,11 @@ def load_extraction_review_detail(
         "reason": task.get("reason") or "",
         "draft_entities": json.loads(draft_raw) if draft_raw else [],
         "document_quality": json.loads(quality_raw) if quality_raw else {},
-        "source_text": str((state or {}).get("encounter_text") or ""),
+        "source_text": resolve_review_letter(
+            client=client,
+            task=task,
+            state=state or {},
+        ),
     }
 
 

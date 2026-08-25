@@ -85,6 +85,7 @@ def test_merge_results_stores_document_quality() -> None:
     assert 0.0 <= quality["document_quality_score"] <= 1.0
     assert "few_shot_ood" in quality["quality_reasons"]
     assert "few_shot_max_similarity" in quality
+    assert out["encounter_text"] == GYNAE_FORM
 
 
 def test_known_fingerprint_raises_match_id() -> None:

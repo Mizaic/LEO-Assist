@@ -58,6 +58,7 @@ def test_write_query_does_not_require_an_episode() -> None:
     assert "HITLTask" in CREATE_EXTRACTION_REVIEW_TASK
     assert "EpisodeOfCare" not in CREATE_EXTRACTION_REVIEW_TASK
     assert "extraction_quality_review" in CREATE_EXTRACTION_REVIEW_TASK
+    assert "source_text" in CREATE_EXTRACTION_REVIEW_TASK
 
 
 def test_unlock_query_completes_paused_stage_only() -> None:
@@ -138,12 +139,19 @@ def test_durable_pause_helper_writes_hitl_task() -> None:
         output={
             "entities": [{"text": "Cervix"}],
             "document_quality": _quality().to_dict(),
+            "encounter_text": "Cervix [X] from document chunks",
+            "chunk_ids": ["c1"],
+            "text_segmentation_mode": "document_chunks",
         },
     )
     _enqueue_extraction_quality_review(client, request, result, ["act-next"])
     assert client.run.called
     assert "HITLTask" in client.run.call_args[0][0]
     assert "EpisodeOfCare" not in client.run.call_args[0][0]
+    assert (
+        client.run.call_args.kwargs.get("source_text")
+        == "Cervix [X] from document chunks"
+    )
 
 
 def test_review_detail_returns_letter_and_draft() -> None:

@@ -22,8 +22,12 @@ import { LetterMarkLegend } from "@/app/admin/validation-lab/LetterMarks";
 import { letterHighlightMarks } from "@/app/admin/validation-lab/letterHighlight";
 import WorkFixPanel from "@/app/work/WorkFixPanel";
 import {
+  EMPTY_LETTER_COPY,
+  QUALITY_SCORE_HINT,
+  pauseReasonLabels,
+} from "./extractionReviewCopy";
+import {
   FactList,
-  QualityBanner,
   draftExtractor,
   type DocumentQuality,
   type DraftEntity,
@@ -41,19 +45,6 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onUnlocked: () => void;
-}
-
-// -- constants --------------------------------------------------------------
-
-const REASON_LABELS: Record<string, string> = {
-  low_document_quality: "Low document quality score",
-  missing_entities: "No facts extracted from the letter",
-  few_shot_ood: "Letter format is unlike training examples",
-  manual_pause: "Manually paused for review",
-};
-
-function reasonLabel(r: string) {
-  return REASON_LABELS[r] ?? r.replace(/_/g, " ");
 }
 
 // -- main component ---------------------------------------------------------
@@ -161,6 +152,7 @@ export default function ExtractionQualityReviewDialog({
       <Stack sx={{ height: "100%", minHeight: 0 }}>
         <ReviewHeader
           reason={data?.reason ?? ""}
+          qualityReasons={data?.quality.quality_reasons ?? []}
           score={score}
           loaded={Boolean(data)}
           onClose={onClose}
@@ -173,7 +165,6 @@ export default function ExtractionQualityReviewDialog({
           />
           <ReviewFactsPane
             entities={entities}
-            quality={data?.quality}
             error={error}
             busy={busy}
             encounterText={data?.sourceText ?? ""}
@@ -192,22 +183,25 @@ export default function ExtractionQualityReviewDialog({
 
 function ReviewHeader({
   reason,
+  qualityReasons,
   score,
   loaded,
   onClose,
 }: {
   reason: string;
+  qualityReasons: string[];
   score: number;
   loaded: boolean;
   onClose: () => void;
 }) {
   const scorePercent = Math.round(score * 100);
   const scoreColor = score > 0.7 ? "#16A34A" : score > 0.4 ? "#D97706" : "#DC2626";
+  const reasons = pauseReasonLabels(reason, qualityReasons);
 
   return (
     <Stack
       direction="row"
-      alignItems="center"
+      alignItems="flex-start"
       sx={{
         px: 2,
         py: 1.5,
@@ -217,31 +211,46 @@ function ReviewHeader({
         flexShrink: 0,
       }}
     >
-      <WarningAmberIcon sx={{ color: "#D97706", mr: 1.5, fontSize: 22 }} />
-      <Box sx={{ flex: 1 }}>
+      <WarningAmberIcon sx={{ color: "#D97706", mr: 1.5, fontSize: 22, mt: 0.25 }} />
+      <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography variant="subtitle1" fontWeight={700}>
           Check paused extraction
         </Typography>
-        {reason ? (
-          <Typography variant="caption" color="text.secondary">
-            {reasonLabel(reason)}
-          </Typography>
+        {reasons.length ? (
+          <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 0.5 }}>
+            {reasons.map((label) => (
+              <Typography
+                key={label}
+                variant="caption"
+                sx={{
+                  px: 1,
+                  py: 0.25,
+                  bgcolor: "warning.light",
+                  borderRadius: "4px",
+                }}
+              >
+                {label}
+              </Typography>
+            ))}
+          </Stack>
         ) : null}
       </Box>
       {loaded && scorePercent > 0 ? (
-        <Tooltip title="Document quality score -- how well-formed the letter was for extraction">
+        <Tooltip title={QUALITY_SCORE_HINT}>
           <Box
             sx={{
               mr: 2,
+              mt: 0.25,
               px: 1.5,
               py: 0.5,
               bgcolor: `${scoreColor}18`,
               border: `1px solid ${scoreColor}`,
               borderRadius: "6px",
+              flexShrink: 0,
             }}
           >
             <Typography variant="caption" fontWeight={700} sx={{ color: scoreColor }}>
-              Quality {scorePercent}%
+              Letter score {scorePercent}%
             </Typography>
           </Box>
         </Tooltip>
@@ -264,6 +273,7 @@ function ReviewLetterPane({
   marks: ReturnType<typeof letterHighlightMarks>;
   onAddSelection: () => void;
 }) {
+  const hasLetter = Boolean(sourceText.trim());
   return (
     <Box
       sx={{
@@ -287,19 +297,21 @@ function ReviewLetterPane({
         }}
       >
         <Typography variant="caption" fontWeight={700} color="primary.main">
-          Select any text on the letter to add it as a fact
+          {hasLetter
+            ? "Select any text on the letter to add it as a fact"
+            : "Letter"}
         </Typography>
       </Box>
       <Box
-        sx={{ flex: 1, overflow: "auto", p: 2, cursor: "text" }}
-        onMouseUp={onAddSelection}
+        sx={{ flex: 1, overflow: "auto", p: 2, cursor: hasLetter ? "text" : "default" }}
+        onMouseUp={hasLetter ? onAddSelection : undefined}
         data-testid="extraction-quality-letter"
       >
-        <LetterMarkLegend marks={marks} />
+        {hasLetter ? <LetterMarkLegend marks={marks} /> : null}
         <LetterMarkdownView
           text={sourceText}
           marks={marks}
-          emptyLabel="No letter text available for this task."
+          emptyLabel={EMPTY_LETTER_COPY}
         />
       </Box>
     </Box>
@@ -310,7 +322,6 @@ function ReviewLetterPane({
 
 function ReviewFactsPane({
   entities,
-  quality,
   error,
   busy,
   encounterText,
@@ -320,7 +331,6 @@ function ReviewFactsPane({
   onUnlock,
 }: {
   entities: DraftEntity[];
-  quality?: DocumentQuality;
   error: string;
   busy: boolean;
   encounterText: string;
@@ -333,7 +343,6 @@ function ReviewFactsPane({
   const picked = entities.find((entity) => entity.text === pickedText) ?? entities[0];
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-      <QualityBanner quality={quality} />
       {error ? (
         <Box
           sx={{
@@ -351,13 +360,6 @@ function ReviewFactsPane({
         </Box>
       ) : null}
       <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-        <FactList
-          entities={entities}
-          pickedText={picked?.text ?? ""}
-          onPick={setPickedText}
-          onRemove={onRemove}
-          onPatch={onPatch}
-        />
         {picked ? (
           <WorkFixPanel
             entityText={picked.text}
@@ -366,6 +368,13 @@ function ReviewFactsPane({
             extractionSource={draftExtractor(picked)}
           />
         ) : null}
+        <FactList
+          entities={entities}
+          pickedText={picked?.text ?? ""}
+          onPick={setPickedText}
+          onRemove={onRemove}
+          onPatch={onPatch}
+        />
       </Box>
       <Stack
         direction="row"

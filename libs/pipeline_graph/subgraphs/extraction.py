@@ -882,6 +882,10 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
     )
     return {
         "entities": entities,
+        "encounter_text": state.get("encounter_text") or "",
+        "chunk_ids": list(state.get("chunk_ids") or []),
+        "document_reference_id": state.get("document_reference_id") or "",
+        "text_segmentation_mode": state.get("text_segmentation_mode") or "",
         "extraction_model_name": state.get("extraction_model_name", ""),
         "extraction_model_version": state.get("extraction_model_version", ""),
         "extraction_model_requested_version": state.get(
