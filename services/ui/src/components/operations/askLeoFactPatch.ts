@@ -1,7 +1,10 @@
 /**
  * Map Ask LEO coding results onto extraction-review fact tags.
  *
- * Atlas: DI-4A012A59 / DO-E7824FED
+ * Atlas trace:
+ *   DO: DO-E7824FED
+ *   DI: DI-4A012A59
+ *   Look up via: get_design_control(dc_type="design-output", dc_id="DO-E7824FED")
  */
 import { semanticTagKey, TAG_STYLE } from "@/app/admin/validation-lab/letterMarkStyle";
 import type { AskLeoSmartResult } from "@/lib/types";
