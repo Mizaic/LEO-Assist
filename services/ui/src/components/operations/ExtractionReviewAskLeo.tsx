@@ -27,11 +27,13 @@ export default function ExtractionReviewAskLeo({
   letterText,
   assertion,
   onApply,
+  onMarkLabel,
 }: {
   entityText: string;
   letterText: string;
   assertion: string;
   onApply: (patch: AskLeoFactPatch) => void;
+  onMarkLabel: () => void;
 }) {
   const [step, setStep] = useState<LeoStep>("idle");
   const [result, setResult] = useState<AskLeoSmartResult | null>(null);
@@ -67,12 +69,29 @@ export default function ExtractionReviewAskLeo({
 
   const patch = result ? applyAskLeoPatch(result) : null;
 
+  function accept(next: AskLeoFactPatch) {
+    onApply(next);
+    setResult(null);
+    setStep("idle");
+  }
+
   return (
     <Stack spacing={0.75} sx={{ mt: 0.75, mb: 1 }} data-testid="extraction-review-ask-leo">
-      <AskButton step={step} onAsk={() => void ask()} />
+      <Stack direction="row" spacing={1} flexWrap="wrap">
+        <AskButton step={step} onAsk={() => void ask()} />
+        <Button size="small" onClick={onMarkLabel}>
+          This is a label
+        </Button>
+      </Stack>
       {step === "error" ? <Alert severity="warning">{error}</Alert> : null}
       {step === "done" && result ? (
-        <AskResult result={result} patch={patch} onApply={onApply} onDismiss={() => setStep("idle")} />
+        <AskResult
+          result={result}
+          patch={patch}
+          onApply={accept}
+          onDismiss={() => setStep("idle")}
+          onMarkLabel={onMarkLabel}
+        />
       ) : null}
     </Stack>
   );
@@ -101,11 +120,13 @@ function AskResult({
   patch,
   onApply,
   onDismiss,
+  onMarkLabel,
 }: {
   result: AskLeoSmartResult;
   patch: AskLeoFactPatch | null;
   onApply: (patch: AskLeoFactPatch) => void;
   onDismiss: () => void;
+  onMarkLabel: () => void;
 }) {
   const match = result.matched_candidate;
   const warning = result.assertion_warning;
@@ -143,6 +164,9 @@ function AskResult({
         ) : null}
         <Button size="small" onClick={onDismiss}>
           Dismiss
+        </Button>
+        <Button size="small" onClick={onMarkLabel}>
+          This is a label
         </Button>
       </Stack>
     </Stack>

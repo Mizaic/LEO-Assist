@@ -20,6 +20,7 @@ import {
   semanticTagLabel,
   TAG_STYLE,
 } from "@/app/admin/validation-lab/letterMarkStyle";
+import { nextUnsetFact } from "./askLeoFactPatch";
 import ExtractionReviewAskLeo from "./ExtractionReviewAskLeo";
 import { countMentions, mentionCopy } from "./extractionReviewHighlight";
 
@@ -115,7 +116,16 @@ export function FactList({
                   entityText={entity.text}
                   letterText={letterText}
                   assertion={entity.assertion ?? "present"}
-                  onApply={(patch) => onPatch(entity.text, patch)}
+                  onApply={(patch) => {
+                    onPatch(entity.text, patch);
+                    const next = nextUnsetFact(entities, entity.text);
+                    if (next) onPick(next);
+                  }}
+                  onMarkLabel={() => {
+                    const next = nextUnsetFact(entities, entity.text);
+                    onRemove(entity.text);
+                    if (next) onPick(next);
+                  }}
                 />
               ) : null}
             </Box>
@@ -124,7 +134,8 @@ export function FactList({
       )}
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 2 }}>
         Click a fact to number each mention on the letter. Ask LEO if the tag
-        is unclear. Then click Approve and unlock.
+        is unclear. Use This is a label for form wording. Then click Approve
+        and unlock.
       </Typography>
     </>
   );

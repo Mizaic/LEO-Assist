@@ -776,7 +776,8 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [{
         name: 'pipeline-worker'
         image: usePlaceholder ? placeholderImage : '${acrLoginServer}/pipeline-worker:${imageTag}'
-        resources: { cpu: json('1.0'), memory: '2Gi' }
+        // 2Gi OOMs on first extract: idle BERT/spaCy already ~1.5Gi.
+        resources: { cpu: json('2.0'), memory: '4Gi' }
         env: union(sharedEnv, [
           { name: 'NEO4J_USER', value: neo4jUser }
           { name: 'TERMINOLOGY_API_URL', value: termApiUrl }
@@ -818,8 +819,8 @@ resource pipelineWorker 'Microsoft.App/containerApps@2024-03-01' = {
         ]
       }]
       scale: {
-        minReplicas: 1
-        maxReplicas: 10
+        minReplicas: 0
+        maxReplicas: 3
         rules: [{
           name: 'pipeline-jobs-keda'
           custom: {

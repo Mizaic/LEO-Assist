@@ -5,6 +5,7 @@
  */
 import {
   applyAskLeoPatch,
+  nextUnsetFact,
   tagFromLeoCandidate,
 } from "../components/operations/askLeoFactPatch";
 import type { AskLeoSmartResult } from "../lib/types";
@@ -67,5 +68,18 @@ describe("Ask LEO on a draft fact", () => {
         }),
       ),
     ).toBeNull();
+  });
+
+  test("the next unset fact is the following empty tag", () => {
+    expect(
+      nextUnsetFact(
+        [
+          { text: "vaginal discharge", semantic_tag: "finding" },
+          { text: "cervix", semantic_tag: "" },
+          { text: "BMI", semantic_tag: "" },
+        ],
+        "vaginal discharge",
+      ),
+    ).toBe("cervix");
   });
 });

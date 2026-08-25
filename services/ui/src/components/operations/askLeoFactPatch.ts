@@ -51,3 +51,16 @@ export function applyAskLeoPatch(
     assertion: result.assertion || "present",
   };
 }
+
+export function nextUnsetFact(
+  entities: Array<{ text: string; semantic_tag?: string }>,
+  currentText: string,
+): string {
+  const start = entities.findIndex((entity) => entity.text === currentText);
+  const rest =
+    start < 0
+      ? entities
+      : [...entities.slice(start + 1), ...entities.slice(0, start)];
+  const next = rest.find((entity) => !String(entity.semantic_tag ?? "").trim());
+  return next?.text ?? "";
+}

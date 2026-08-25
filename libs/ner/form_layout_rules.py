@@ -21,6 +21,12 @@ _YES_NO = re.compile(
     r"No\s+(?P<no>\[\s*\]|\[(?:X|x)\])",
     re.IGNORECASE,
 )
+_YES_NO_DASH = re.compile(
+    r"(?P<crit>(?:B\d+\.\s*)?[A-Za-z][A-Za-z0-9 /+.'-]{1,70}?)\s*[-:]\s*"
+    r"Yes\s+(?P<yes>\[\s*\]|\[(?:X|x)\])\s+"
+    r"No\s+(?P<no>\[\s*\]|\[(?:X|x)\])",
+    re.IGNORECASE,
+)
 _INSTRUCTION = re.compile(r"(?i)^\s*(\(|please\s+(put|take|ensure|confirm|only\s+use))")
 _ADMIN_LINE = re.compile(
     r"(?i)^\s*(does the patient|has the patient been told|"
@@ -61,13 +67,14 @@ def _split_inline_options(line: str) -> str | None:
 
 
 def _normalise_yes_no_row(line: str) -> str | None:
-    match = _YES_NO.search(line)
+    match = _YES_NO.search(line) or _YES_NO_DASH.search(line)
     if not match:
         return None
-    yes_checked = _is_checked(match.group("yes"))
-    if yes_checked:
-        return match.group("crit").strip()
-    return _mark(line)
+    prefix = line[: match.start()].strip()
+    if _is_checked(match.group("yes")):
+        kept = match.group("crit").strip()
+        return f"{prefix} {kept}".strip() if prefix else kept
+    return prefix if prefix else _mark(match.group(0))
 
 
 def _is_empty_lab_line(line: str) -> bool:

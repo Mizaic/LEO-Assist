@@ -19,6 +19,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
 import { LetterMarkLegend } from "@/app/admin/validation-lab/LetterMarks";
+import WorkCancelDialog from "@/app/work/WorkCancelDialog";
 import WorkFixPanel from "@/app/work/WorkFixPanel";
 import {
   EMPTY_LETTER_COPY,
@@ -60,6 +61,7 @@ export default function ExtractionQualityReviewDialog({
   const [pickedText, setPickedText] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -159,6 +161,7 @@ export default function ExtractionQualityReviewDialog({
           score={score}
           loaded={Boolean(data)}
           onClose={onClose}
+          onRemoveTask={() => setCancelOpen(true)}
         />
         <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
           <ReviewLetterPane
@@ -181,6 +184,13 @@ export default function ExtractionQualityReviewDialog({
           />
         </Box>
       </Stack>
+      {cancelOpen ? (
+        <WorkCancelDialog
+          taskId={taskId}
+          onClose={() => setCancelOpen(false)}
+          onCancelled={onUnlocked}
+        />
+      ) : null}
     </Dialog>
   );
 }
@@ -193,12 +203,14 @@ function ReviewHeader({
   score,
   loaded,
   onClose,
+  onRemoveTask,
 }: {
   reason: string;
   qualityReasons: string[];
   score: number;
   loaded: boolean;
   onClose: () => void;
+  onRemoveTask: () => void;
 }) {
   const scorePercent = Math.round(score * 100);
   const scoreColor = score > 0.7 ? "#16A34A" : score > 0.4 ? "#D97706" : "#DC2626";
@@ -231,8 +243,12 @@ function ReviewHeader({
                 sx={{
                   px: 1,
                   py: 0.25,
-                  bgcolor: "warning.light",
+                  color: "warning.dark",
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "warning.dark",
                   borderRadius: "4px",
+                  fontWeight: 600,
                 }}
               >
                 {label}
@@ -261,6 +277,14 @@ function ReviewHeader({
           </Box>
         </Tooltip>
       ) : null}
+      <Button
+        onClick={onRemoveTask}
+        size="small"
+        color="inherit"
+        sx={{ mr: 1, flexShrink: 0 }}
+      >
+        Remove this task
+      </Button>
       <IconButton onClick={onClose} size="small" aria-label="Close review">
         <CloseIcon fontSize="small" />
       </IconButton>

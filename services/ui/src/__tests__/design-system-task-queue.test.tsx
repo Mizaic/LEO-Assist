@@ -184,6 +184,37 @@ describe("TaskQueue primitive (VT-LEO-AI-134 TC-004)", () => {
     expect(selected[0]?.task_id).toBe("safety_net_alert:sn-1");
   });
 
+  test("Remove on a row calls onCancelTask and does not open the task", () => {
+    const selected: WorkTask[] = [];
+    const cancelled: WorkTask[] = [];
+    mountInto(
+      container,
+      <MotionProvider>
+        <TaskQueue
+          tasks={TASKS}
+          countsBySource={COUNTS}
+          onSelectTask={(task) => selected.push(task)}
+          onCancelTask={(task) => cancelled.push(task)}
+          canCancelTask={(task) => task.task_type === "coding_review"}
+        />
+      </MotionProvider>,
+    );
+    const remove = container.querySelector(
+      "[data-testid='task-queue-cancel-coding_review:cr-1']",
+    ) as HTMLButtonElement;
+    const other = container.querySelector(
+      "[data-testid='task-queue-cancel-gold_label:tc-1']",
+    );
+    expect(remove).not.toBeNull();
+    expect(other).toBeNull();
+    act(() => {
+      remove.click();
+    });
+    expect(cancelled).toHaveLength(1);
+    expect(cancelled[0]?.task_id).toBe("coding_review:cr-1");
+    expect(selected).toHaveLength(0);
+  });
+
   test("counts strip buttons invoke onToggleSource", () => {
     const toggled: string[] = [];
     mountInto(

@@ -49,3 +49,14 @@ export const EMPTY_LETTER_COPY =
 
 export const QUALITY_SCORE_HINT =
   "This score says how well the letter matched known forms. A low score means check the facts before the run continues.";
+
+export const CANCEL_TASK_TITLE = "Remove this paused extraction?";
+
+export const CANCEL_TASK_BODY =
+  "This task leaves your list. We will not teach the system from it. We will not unlock the letter. Use this when the task is a duplicate or was created by mistake.";
+
+export const CANCEL_TASK_REASONS = [
+  { value: "duplicate", label: "This is a duplicate" },
+  { value: "created_in_error", label: "Created by mistake" },
+  { value: "no_longer_needed", label: "No longer needed" },
+] as const;

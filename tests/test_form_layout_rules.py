@@ -54,3 +54,19 @@ def test_yes_no_row_keeps_ticked_b1_and_drops_unticked_b2() -> None:
     joined = _joined()
     assert "lesion suspicious of cancer of cervix" in joined
     assert "clinical examination of the vulva" not in joined
+
+
+def test_inline_yes_no_label_dropped_when_no_is_ticked() -> None:
+    text = (
+        "BMI: 20.2 Kg/m2 Co-morbidities including mobility concerns: "
+        "Cognitive Impairment - Yes [ ] No [X]"
+    )
+    joined = " ".join(extractable_clinical_lines(text)).lower()
+    assert "cognitive impairment" not in joined
+    assert "20.2" in joined
+
+
+def test_inline_yes_no_label_kept_when_yes_is_ticked() -> None:
+    text = "Cognitive Impairment - Yes [X] No [ ]"
+    joined = " ".join(extractable_clinical_lines(text)).lower()
+    assert "cognitive impairment" in joined
