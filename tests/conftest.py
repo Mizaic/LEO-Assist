@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -39,14 +38,23 @@ def ensure_default_event_loop():
         asyncio.set_event_loop(asyncio.new_event_loop())
 
 
+def restore_real_redis_module() -> None:
+    """Reload redis after a test stub, or leave it absent if not installed."""
+    redis_mod = sys.modules.get("redis")
+    if redis_mod is not None and callable(getattr(redis_mod, "from_url", None)):
+        return
+    sys.modules.pop("redis", None)
+    try:
+        importlib.import_module("redis")
+    except ModuleNotFoundError:
+        return
+
+
 @pytest.fixture(autouse=True)
 def _restore_real_redis_module():
     """Tests that stub sys.modules['redis'] can leave a fake module behind."""
     yield
-    redis_mod = sys.modules.get("redis")
-    if redis_mod is None or not callable(getattr(redis_mod, "from_url", None)):
-        sys.modules.pop("redis", None)
-        importlib.import_module("redis")
+    restore_real_redis_module()
 
 
 def _purge_analytics_app_modules() -> None:
