@@ -21,7 +21,6 @@ from libs.llm_client.form_schema_detector import (
 )
 from libs.llm_client.prompt_safety import INJECTION_GUARD
 
-
 # ---------------------------------------------------------------------------
 # _parse_response
 # ---------------------------------------------------------------------------
@@ -217,12 +216,12 @@ def test_detect_uses_big_tier_and_single_converse():
     assert kwargs["structured_schema"]["required"] == ["sections"]
 
 
-def test_detect_empty_parse_does_not_retry():
+def test_detect_empty_parse_falls_back_to_splitter():
     patcher, client = _patch_llm("not json at all")
     with patcher:
         result = detect_form_sections(GYNAE_SAMPLE)
 
-    assert result == []
+    assert any(s["section_id"] == "A" for s in result)
     assert client.converse.call_count == 1
 
 
@@ -266,9 +265,17 @@ def test_detect_system_prompt_uses_shared_injection_guard():
     assert system.startswith(INJECTION_GUARD)
 
 
-def test_detect_returns_empty_on_llm_exception():
+def test_detect_returns_empty_on_llm_exception_when_no_headers():
+    patcher, _client = _patch_llm(side_effect=RuntimeError("provider down"))
+    with patcher:
+        result = detect_form_sections("Narrative letter with no tick boxes.")
+
+    assert result == []
+
+
+def test_detect_uses_splitter_on_llm_exception_when_headers_exist():
     patcher, _client = _patch_llm(side_effect=RuntimeError("provider down"))
     with patcher:
         result = detect_form_sections(GYNAE_SAMPLE)
 
-    assert result == []
+    assert any(s["section_id"] == "A" for s in result)

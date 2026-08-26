@@ -11,6 +11,7 @@ import {
 import {
   detectFailureMessage,
   emptySection,
+  isIncompleteSchema,
   localDetectOrEmpty,
 } from "./formSchemaTeach";
 
@@ -32,20 +33,32 @@ export function useFormSchemaTeach(
   const loadOrDetect = useCallback(async () => {
     setLoading(true);
     setError("");
-    if (await tryLoadSaved(fingerprint, setName, setSections)) {
+    const saved = await loadSaved(fingerprint);
+    if (saved && !isIncompleteSchema(saved.sections)) {
+      setName(saved.form_name);
+      setSections(saved.sections);
       return;
     }
-    const detected = await tryDetect(sourceText, setError);
-    if (detected.length > 0) {
-      setSections(detected);
+    if (saved) setName(saved.form_name);
+    const next = await detectWithFallback(sourceText, setError);
+    if (!isIncompleteSchema(next)) {
+      setSections(next);
       return;
     }
-    const local = localDetectOrEmpty(sourceText);
-    setSections(local);
-    if (local.length > 0) {
-      setError("");
-    }
+    setSections(next.length ? next : saved?.sections ?? []);
   }, [fingerprint, sourceText]);
+
+  const retryDetect = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    setSaved(false);
+    try {
+      const next = await detectWithFallback(sourceText, setError);
+      setSections(next);
+    } finally {
+      setLoading(false);
+    }
+  }, [sourceText]);
 
   useEffect(() => {
     void loadOrDetect().finally(() => setLoading(false));
@@ -65,6 +78,7 @@ export function useFormSchemaTeach(
     saving,
     error,
     saved,
+    retryDetect,
   });
 }
 
@@ -82,6 +96,7 @@ function bindTeachActions(state: {
   saving: boolean;
   error: string;
   saved: boolean;
+  retryDetect: () => Promise<void>;
 }) {
   return {
     sections: state.sections,
@@ -92,6 +107,7 @@ function bindTeachActions(state: {
     error: state.error,
     saved: state.saved,
     setSaved: state.setSaved,
+    retryDetect: state.retryDetect,
     addSection: () => {
       state.setSections((prev) => [...prev, emptySection(prev.length)]);
       state.setSaved(false);
@@ -209,27 +225,39 @@ async function saveSchema(args: {
   }
 }
 
-async function tryLoadSaved(
+async function loadSaved(
   fingerprint: string,
-  setName: (name: string) => void,
-  setSections: (sections: FormSchemaSection[]) => void,
-): Promise<boolean> {
+): Promise<{ form_name: string; sections: FormSchemaSection[] } | null> {
   try {
     const existing = await fetch(`/api/form-schemas/${fingerprint}`, {
       credentials: "include",
       headers: FETCH_HDRS,
     });
-    if (!existing.ok) return false;
+    if (!existing.ok) return null;
     const payload = (await existing.json()) as {
       schema: { form_name: string; sections: FormSchemaSection[] } | null;
     };
-    if (!payload.schema) return false;
-    setName(payload.schema.form_name);
-    setSections(payload.schema.sections);
-    return true;
+    return payload.schema;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function detectWithFallback(
+  sourceText: string,
+  setError: (msg: string) => void,
+): Promise<FormSchemaSection[]> {
+  const detected = await tryDetect(sourceText, setError);
+  if (!isIncompleteSchema(detected)) {
+    setError("");
+    return detected;
+  }
+  const local = localDetectOrEmpty(sourceText);
+  if (!isIncompleteSchema(local)) {
+    setError("");
+    return local;
+  }
+  return detected.length ? detected : local;
 }
 
 async function tryDetect(

@@ -21,12 +21,14 @@ from libs.llm_client.prompt_safety import (
     cap_llm_response,
     sanitise_for_prompt,
 )
+from libs.pipeline.form_section_splitter import (
+    is_incomplete_schema,
+    split_form_sections,
+)
 
 log = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = (
-    INJECTION_GUARD
-    + """
+_SYSTEM_PROMPT = INJECTION_GUARD + """
 You are a clinical form structure analyser for NHS referral forms.
 Given raw referral form text, identify every distinct section and classify it.
 
@@ -55,7 +57,6 @@ Use precise clinical language for entity_text. Examples:
 
 Return one JSON object matching the supplied schema. No prose.
 """
-)
 
 _MAX_FORM_CHARS = 6000
 _MAX_RESPONSE_CHARS = 16000
@@ -112,16 +113,22 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
 def detect_form_sections(text: str) -> list[dict[str, Any]]:
     """Call the big-tier LLM once to detect form sections.
 
-    Returns an empty list on parse or provider failure so the UI can fall
-    back to local detect and manual Add section.
+    If the model is missing, the parse is empty, or the result is only
+    admin / skip sections, fall back to the deterministic splitter so
+    Section A / B on a table-wrapped form still appear.
     """
     cleaned = sanitise_for_prompt(text, max_chars=_MAX_FORM_CHARS)
+    sections: list[dict[str, Any]] = []
     try:
         response = _call_detector(cleaned)
+        sections = _parse_response(response.text or "") or []
     except Exception:
         log.warning("form-detect: LLM call failed", exc_info=True)
-        return []
-    sections = _parse_response(response.text or "") or []
+    if is_incomplete_schema(sections):
+        fallback = split_form_sections(text)
+        if not is_incomplete_schema(fallback):
+            log.info("form-detect: splitter fallback found %d sections", len(fallback))
+            return fallback
     log.info("form-detect: %d sections detected by LLM", len(sections))
     return sections
 

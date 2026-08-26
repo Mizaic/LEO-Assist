@@ -82,6 +82,7 @@ export default function FormSchemaAnnotator({
         showAddMore={teach.sections.length > 0}
         onAdd={teach.addSection}
         onSave={teach.saveSchema}
+        onRetry={() => void teach.retryDetect()}
       />
     </Box>
   );
@@ -144,6 +145,7 @@ function TeachFooter({
   showAddMore,
   onAdd,
   onSave,
+  onRetry,
 }: {
   error: string;
   saved: boolean;
@@ -152,6 +154,7 @@ function TeachFooter({
   showAddMore: boolean;
   onAdd: () => void;
   onSave: () => void;
+  onRetry: () => void;
 }) {
   return (
     <Box
@@ -177,7 +180,10 @@ function TeachFooter({
           </Typography>
         </Stack>
       ) : null}
-      <Stack direction="row" gap={1}>
+      <Stack direction="row" gap={1} flexWrap="wrap">
+        <Button variant="outlined" onClick={onRetry} size="small">
+          Ask LEO again
+        </Button>
         {showAddMore ? (
           <Button
             variant="outlined"

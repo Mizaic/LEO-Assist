@@ -107,4 +107,71 @@ describe("FormSchemaAnnotator live empty-state teaching", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/could not detect/i)).not.toBeInTheDocument();
   });
+
+  it("finds Section A in a markdown table when detect fails", async () => {
+    mockDetectFailure();
+    renderAnnotator(
+      [
+        "Minimum Dataset",
+        "| Section A: Gynaecological Cancer type suspected |",
+        "| Ovary [ ] Cervix [X] |",
+      ].join("\n"),
+    );
+
+    expect(
+      await screen.findByDisplayValue(/Section A: Gynaecological Cancer type suspected/),
+    ).toBeInTheDocument();
+  });
+
+  it("still detects when a saved schema is admin-only", async () => {
+    jest.spyOn(global, "fetch").mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = (init?.method || "GET").toUpperCase();
+      if (url.includes("/api/form-schemas/detect") && method === "POST") {
+        return jsonResponse(200, {
+          sections: [
+            {
+              section_id: "A",
+              section_type: "checkbox_single",
+              label: "Section A: Gynaecological Cancer type suspected",
+              start_pattern: "(?i)section\\s+a:",
+              items: [],
+            },
+          ],
+        });
+      }
+      if (url.includes("/api/form-schemas/") && method === "GET") {
+        return jsonResponse(200, {
+          schema: {
+            form_name: "Sherwood Forest 2WW gynae",
+            sections: [
+              {
+                section_id: "MDS",
+                section_type: "admin",
+                label: "Minimum Dataset",
+                start_pattern: "(?i)minimum",
+                items: [],
+              },
+            ],
+          },
+        });
+      }
+      return jsonResponse(200, {});
+    });
+    renderAnnotator(
+      "Minimum Dataset\nSection A: Gynaecological Cancer type suspected\nOvary [ ]",
+    );
+
+    expect(
+      await screen.findByDisplayValue(/Section A: Gynaecological Cancer type suspected/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows Ask LEO again so the reviewer can retry detect", async () => {
+    mockDetectFailure();
+    renderAnnotator();
+    expect(
+      await screen.findByRole("button", { name: /ask leo again/i }),
+    ).toBeVisible();
+  });
 });

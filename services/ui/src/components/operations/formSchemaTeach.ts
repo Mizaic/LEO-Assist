@@ -31,3 +31,12 @@ export function detectFailureMessage(status: number): string {
 export function localDetectOrEmpty(sourceText: string): FormSchemaSection[] {
   return detectSections(sourceText);
 }
+
+const SKIP_TYPES = new Set(["admin", "template_noise"]);
+
+export function isIncompleteSchema(
+  sections: Array<{ section_type: string }>,
+): boolean {
+  if (!sections.length) return true;
+  return sections.every((section) => SKIP_TYPES.has(section.section_type));
+}

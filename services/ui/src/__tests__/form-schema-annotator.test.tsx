@@ -126,9 +126,8 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
       "utf8",
     );
     expect(teachHook).toMatch(/localDetectOrEmpty/);
-    expect(teachHook).toMatch(
-      /if\s*\(\s*local(?:Sections)?\.length\s*>\s*0\s*\)[\s\S]*?setError\(\s*["']["']\s*\)/,
-    );
+    expect(teachHook).toMatch(/isIncompleteSchema/);
+    expect(teachHook).toMatch(/setError\(\s*["']["']\s*\)/);
   });
 });
 
@@ -265,5 +264,78 @@ describe("detectSections auto-detection", () => {
       "Section A Gynaecological Cancer type suspected\nOvary [ ] Cervix [X]";
     const sections = detectSections(text);
     expect(sections.find((s) => s.section_id === "A")).toBeDefined();
+  });
+
+  it("detects Section A and B inside markdown table cells", () => {
+    const text = [
+      "Minimum Dataset",
+      "NHS Number: 718 563 0207",
+      "| Section A: Gynaecological Cancer type suspected |",
+      "| --- |",
+      "| Ovary [ ] Cervix [X] Endometrium [ ] |",
+      "| Section B: Signs/symptoms for 14-day rule criteria |",
+      "| B1. Lesion suspicious of cancer of cervix | Yes [X] No [ ] |",
+    ].join("\n");
+    const sections = detectSections(text);
+    expect(sections.find((s) => s.section_id === "A")).toBeDefined();
+    expect(sections.find((s) => s.section_id === "B")).toBeDefined();
+    expect(sections.find((s) => /minimum dataset/i.test(s.label))).toBeDefined();
+  });
+
+  it("detects Section A inside HTML table markup", () => {
+    const text =
+      "<table><tr><td>Section A: Gynaecological Cancer type suspected</td></tr>" +
+      "<tr><td>Ovary [ ] Cervix [X]</td></tr></table>";
+    const sections = detectSections(text);
+    expect(sections.find((s) => s.section_id === "A")).toBeDefined();
+  });
+
+  it("detects Section A when it is not at the start of a line", () => {
+    const text =
+      "Patient details Joe Bloggs Section A: Gynaecological Cancer type suspected Ovary [ ] Cervix [X]";
+    const sections = detectSections(text);
+    expect(sections.find((s) => s.section_id === "A")).toBeDefined();
+  });
+});
+
+describe("incomplete saved schema helpers", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { isIncompleteSchema } = require(
+    "../components/operations/formSchemaTeach",
+  ) as {
+    isIncompleteSchema: (
+      sections: Array<{ section_type: string }>,
+    ) => boolean;
+  };
+
+  it("treats an admin-only schema as incomplete so detect can retry", () => {
+    expect(
+      isIncompleteSchema([{ section_type: "admin" }]),
+    ).toBe(true);
+  });
+
+  it("treats a schema with a clinical section as complete", () => {
+    expect(
+      isIncompleteSchema([
+        { section_type: "admin" },
+        { section_type: "checkbox_single" },
+      ]),
+    ).toBe(false);
+  });
+});
+
+describe("Ask LEO again control", () => {
+  it("exposes a visible Ask LEO again action on the teach form", () => {
+    expect(TEACH_SRC).toMatch(/Ask LEO again/);
+    expect(TEACH_SRC).toMatch(/retryDetect|askLeoAgain|forceDetect/);
+  });
+
+  it("does not treat an admin-only saved schema as a finished load", () => {
+    const teachHook = fs.readFileSync(
+      path.join(OPS, "useFormSchemaTeach.ts"),
+      "utf8",
+    );
+    expect(teachHook).toMatch(/isIncompleteSchema/);
+    expect(teachHook).toMatch(/tryDetect/);
   });
 });

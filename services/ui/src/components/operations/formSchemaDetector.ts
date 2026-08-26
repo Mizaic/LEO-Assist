@@ -48,6 +48,19 @@ const NAMED_HEADER =
 const ADMIN_HEADER =
   /^(patient details|practice details|minimum dataset|for trust use|hospital number)/i;
 
+export function normalizeFormText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|tr|h[1-6]|li)>/gi, "\n")
+    .replace(/<\/td>/gi, " | ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/^\s*\|\s*/gm, "")
+    .replace(/\s*\|\s*$/gm, "")
+    .replace(/(^|[^A-Za-z])(section\s+[a-z]\b)/gi, "$1\n$2")
+    .replace(/[ \t]+/g, " ");
+}
+
 function _countBoxes(lines: string[]): { checked: number; unchecked: number } {
   let checked = 0;
   let unchecked = 0;
@@ -174,11 +187,11 @@ function _startPattern(label: string): string {
 export function detectSections(text: string): FormSchemaSection[] {
   if (!text.trim()) return [];
 
-  const lines = text.split("\n");
+  const lines = normalizeFormText(text).split("\n");
   const breakpoints: Array<{ idx: number; label: string }> = [];
 
   lines.forEach((ln, idx) => {
-    const stripped = ln.trim();
+    const stripped = ln.replace(/^\s*[#]+\s*/, "").trim();
     if (SECTION_HEADER.test(stripped)) {
       breakpoints.push({ idx, label: stripped });
     } else if (NAMED_HEADER.test(stripped)) {
