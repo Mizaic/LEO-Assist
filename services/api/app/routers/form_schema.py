@@ -28,7 +28,8 @@ from libs.pipeline.form_schema_store import (
     load_form_schema,
     save_form_schema,
 )
-from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS
+from libs.pipeline.form_schema_template import generate_normalised_template
+from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS, SAVE_NORMALISED_TEMPLATE
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
 
@@ -175,6 +176,52 @@ def list_schemas(
     finally:
         client.close()
     return {"schemas": schemas}
+
+
+class GenerateTemplateRequest(BaseModel):
+    text: str = Field(..., min_length=10)
+
+
+@router.post("/{fingerprint}/template")
+def generate_template(
+    fingerprint: str,
+    body: GenerateTemplateRequest,
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    """Generate a de-identified form template and persist it on the schema.
+
+    Returns the normalised_template string for display in the UI.
+    """
+    client = PatientGraphClient()
+    try:
+        schema = load_form_schema(client, fingerprint)
+        if schema is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Schema not found. Save the form schema first.",
+            )
+        template = generate_normalised_template(
+            body.text,
+            [
+                {
+                    "section_id": s.section_id,
+                    "section_type": s.section_type,
+                    "start_pattern": s.start_pattern,
+                }
+                for s in schema.sections
+            ],
+        )
+        client.run(
+            SAVE_NORMALISED_TEMPLATE,
+            {"fingerprint": fingerprint, "normalised_template": template},
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        client.close()
+    return {"normalised_template": template}
 
 
 class DetectFormRequest(BaseModel):

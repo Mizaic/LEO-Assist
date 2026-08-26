@@ -36,6 +36,13 @@ FORM_SCHEMA_CONSTRAINTS = [
     ),
 ]
 
+SAVE_NORMALISED_TEMPLATE = """
+MATCH (s:FormSchema {fingerprint: $fingerprint})
+SET s.normalised_template = $normalised_template,
+    s.updated_at          = datetime()
+RETURN s.schema_id AS schema_id
+"""
+
 UPSERT_FORM_SCHEMA = """
 MERGE (s:FormSchema {fingerprint: $fingerprint})
 ON CREATE SET

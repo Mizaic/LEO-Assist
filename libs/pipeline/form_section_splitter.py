@@ -16,11 +16,21 @@ _SECTION = re.compile(r"(?i)^section\s+([a-z])\b")
 _NAMED = re.compile(
     r"(?i)^(patient details|practice details|minimum dataset|"
     r"for trust use|hospital number|pmb primary care|"
-    r"patient awareness|bmi|blood results)"
+    r"patient awareness|bmi|blood results|medication|allergies|"
+    r"clinical frailty|frailty scale)"
 )
 _ADMIN = re.compile(
     r"(?i)^(patient details|practice details|for trust use|hospital number)"
 )
+# Lines that match _NAMED but contain a measurement or result value after the
+# label -- treat them as data rows, not section headings.
+_DATA_MEAS = re.compile(
+    r":\s*\d[\d\.,]"  # colon then digit, e.g. "BMI: 20.2" or "Medication: 1."
+)
+# Numbered-scale item lines, e.g. "1. Very Fit [X]" or "1. Very Fit [ ]"
+_SCALE_ITEM = re.compile(r"^\d+\.\s+\w[\w\s]{1,40}\[(?:X|x|\*|\s*)\]")
+# ECOG inline ordinal row, e.g. "0 [ ] 1 [X] 2 [ ] 3 [ ]"
+_ECOG_ROW = re.compile(r"(?:\d\s*\[(?:X|x|\*|\s*)\]\s*){2,}")
 _SITE_ENTITY = {
     "cervix": "Cervical cancer suspected",
     "ovary": "Ovarian cancer suspected",
@@ -81,6 +91,24 @@ def split_form_sections(text: str) -> list[dict[str, Any]]:
                 "items": _items(section_type, body),
             }
         )
+        extra = _detect_scale_subsections(body)
+        if extra:
+            for sub_label, sub_body in extra:
+                sub_type = _classify(sub_body) if sub_body else "scale"
+                if sub_type == "free_text":
+                    sub_type = "scale"
+                sections.append(
+                    {
+                        "section_id": (
+                            f"{section_id}_"
+                            f"{re.sub(r'[^A-Za-z]', '', sub_label)[:6]}"
+                        ),
+                        "label": sub_label,
+                        "section_type": sub_type,
+                        "start_pattern": _start_pattern(sub_label),
+                        "items": _items(sub_type, sub_body),
+                    }
+                )
     return _with_extras(text, sections, lines)
 
 
@@ -102,17 +130,70 @@ def is_incomplete_schema(sections: list[dict[str, Any]]) -> bool:
     return all(not str(s.get("label") or "").strip() for s in clinical)
 
 
+def _clean_label(raw: str) -> str:
+    """Strip markdown table artifacts and normalise whitespace from a label."""
+    label = raw.replace("#", " ").strip()
+    # Remove trailing pipe-separated table fragments e.g. "Section E ... | | |"
+    label = re.sub(r"\s*\|.*$", "", label).strip()
+    return label
+
+
+def _is_data_line(label: str) -> bool:
+    """True when a line matching _NAMED looks like a data/measurement row."""
+    return bool(_DATA_MEAS.search(label))
+
+
 def _breakpoints(lines: list[str]) -> list[tuple[int, str]]:
     found: list[tuple[int, str]] = []
     for idx, raw in enumerate(lines):
-        label = raw.replace("#", " ").strip()
+        label = _clean_label(raw)
         if not label:
             continue
-        if _SECTION.match(label) or _NAMED.match(label):
+        if _SECTION.match(label):
+            found.append((idx, label))
+        elif _NAMED.match(label) and not _is_data_line(label):
+            found.append((idx, label))
+        elif re.search(r"(?i)\bclinical frailty|frailty scale\b", label):
             found.append((idx, label))
         elif re.search(r"(?i)\becog\b", label) and not _SECTION.match(label):
             found.append((idx, label))
     return found
+
+
+def _detect_scale_subsections(
+    body: list[str],
+) -> list[tuple[str, list[str]]] | None:
+    """Detect CFS-style numbered scale blocks and ECOG ordinal rows in body.
+
+    Returns a list of (header_label, body_lines) pairs for each sub-block
+    found, or None if no sub-blocks are detected.
+    """
+    subsections: list[tuple[str, list[str]]] = []
+    current_header: str | None = None
+    current_body: list[str] = []
+
+    for ln in body:
+        if re.search(r"(?i)clinical frailty|frailty scale|cfs\b", ln):
+            if current_header is not None:
+                subsections.append((current_header, current_body))
+            current_header = re.sub(r"\s*[:(].*", "", ln).strip() or ln.strip()
+            current_body = []
+        elif re.search(r"(?i)\becog\b|\bwho\s+ps\b|\bperformance status\b", ln):
+            if _ECOG_ROW.search(ln) or re.search(r"\d\s*\[\s*\]", ln):
+                if current_header is not None:
+                    subsections.append((current_header, current_body))
+                current_header = "ECOG / WHO Performance Status"
+                current_body = [ln]
+                subsections.append((current_header, current_body))
+                current_header = None
+                current_body = []
+        elif current_header is not None:
+            current_body.append(ln)
+
+    if current_header is not None and current_body:
+        subsections.append((current_header, current_body))
+
+    return subsections if subsections else None
 
 
 def detect_form_name(text: str) -> str:
@@ -129,8 +210,12 @@ def _section_type(label: str, body: list[str]) -> str:
         return "observable" if _observable_items(body) else "admin"
     if re.search(r"(?i)^bmi\b", label):
         return "observable"
-    if re.search(r"(?i)ecog", label):
+    if re.search(r"(?i)ecog|who\s+ps|performance status", label):
         return "scale"
+    if re.search(r"(?i)clinical frailty|frailty scale|cfs\b", label):
+        return "scale"
+    if re.search(r"(?i)medication|allergies", label):
+        return "admin"
     if re.search(r"(?i)pmb|awareness|holiday", label):
         return "checkbox_multi"
     if _ADMIN.match(label):

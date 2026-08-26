@@ -16,6 +16,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -53,6 +54,7 @@ export function FormSchemaSectionEditor({
   onPatchItem,
   onAddItem,
   onRemoveItem,
+  onRemoveSection,
   focused = false,
   onSelect,
 }: {
@@ -61,12 +63,14 @@ export function FormSchemaSectionEditor({
   onPatchItem: (iIdx: number, patch: Partial<FormSchemaItem>) => void;
   onAddItem: () => void;
   onRemoveItem: (iIdx: number) => void;
+  onRemoveSection?: () => void;
   focused?: boolean;
   onSelect?: () => void;
 }) {
   const [expanded, setExpanded] = useState(
     ITEM_SECTION_TYPES.includes(section.section_type),
   );
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const showItems = ITEM_SECTION_TYPES.includes(section.section_type);
 
   return (
@@ -117,6 +121,41 @@ export function FormSchemaSectionEditor({
             </MenuItem>
           ))}
         </Select>
+        {onRemoveSection ? (
+          confirmDelete ? (
+            <Stack direction="row" alignItems="center" gap={0.5} sx={{ flexShrink: 0 }}>
+              <Typography variant="caption" color="error" sx={{ whiteSpace: "nowrap" }}>
+                Remove section?
+              </Typography>
+              <Button
+                size="small"
+                color="error"
+                variant="contained"
+                sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: "0.7rem" }}
+                onClick={() => { setConfirmDelete(false); onRemoveSection(); }}
+              >
+                Yes
+              </Button>
+              <Button
+                size="small"
+                sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: "0.7rem" }}
+                onClick={() => setConfirmDelete(false)}
+              >
+                No
+              </Button>
+            </Stack>
+          ) : (
+            <Tooltip title="Remove section">
+              <IconButton
+                size="small"
+                aria-label="Remove section"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )
+        ) : null}
       </Stack>
       {showItems ? (
         <Collapse in={expanded}>

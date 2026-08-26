@@ -133,6 +133,10 @@ function bindTeachActions(state: {
       );
       state.setSaved(false);
     },
+    removeSection: (idx: number) => {
+      state.setSections((prev) => prev.filter((_, i) => i !== idx));
+      state.setSaved(false);
+    },
     patchItem: makePatchItem(state.setSections, state.setSaved),
     addItem: makeAddItem(state.setSections),
     addItemWithContent: makeAddItemWithContent(state.setSections, state.setSaved),

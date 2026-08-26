@@ -10,10 +10,13 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import SchoolIcon from "@mui/icons-material/School";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 
@@ -55,6 +58,38 @@ export default function FormSchemaAnnotator({
   const [groups, setGroups] = useState<CompletenessLogicGroup[]>([]);
   const [scopeSaving, setScopeSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [template, setTemplate] = useState<string | null>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateError, setTemplateError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleGenerateTemplate = async () => {
+    setTemplateLoading(true);
+    setTemplateError("");
+    try {
+      const res = await fetch(`/api/form-schemas/${fingerprint}/template`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+        body: JSON.stringify({ text: sourceText }),
+      });
+      if (!res.ok) throw new Error("generate");
+      const data = (await res.json()) as { normalised_template: string };
+      setTemplate(data.normalised_template);
+    } catch {
+      setTemplateError("Could not generate the template. Try again.");
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
+  const handleCopy = () => {
+    if (!template) return;
+    void navigator.clipboard.writeText(template).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   useEffect(() => {
     if (!pendingSelection) return;
@@ -153,6 +188,7 @@ export default function FormSchemaAnnotator({
               onPatchItem={(iIdx, patch) => teach.patchItem(sIdx, iIdx, patch)}
               onAddItem={() => teach.addItem(sIdx)}
               onRemoveItem={(iIdx) => teach.removeItem(sIdx, iIdx)}
+              onRemoveSection={() => teach.removeSection(sIdx)}
             />
           ))
         )}
@@ -163,6 +199,43 @@ export default function FormSchemaAnnotator({
             teach.setSaved(false);
           }}
         />
+        {template ? (
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 0.5 }}>
+              <Typography variant="caption" fontWeight={600} color="text.secondary">
+                De-identified form template
+              </Typography>
+              <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
+                <IconButton size="small" onClick={handleCopy} aria-label="Copy template">
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+            <Box
+              component="pre"
+              sx={{
+                fontFamily: "monospace",
+                fontSize: "0.7rem",
+                bgcolor: "grey.100",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: "4px",
+                p: 1.5,
+                maxHeight: 240,
+                overflow: "auto",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {template}
+            </Box>
+          </Box>
+        ) : null}
+        {templateError ? (
+          <Typography variant="caption" color="error" sx={{ display: "block", mt: 1 }}>
+            {templateError}
+          </Typography>
+        ) : null}
       </Box>
       <TeachFooter
         error={teach.error || saveError}
@@ -170,9 +243,12 @@ export default function FormSchemaAnnotator({
         saving={teach.saving || scopeSaving}
         canSave={canSave}
         showAddMore={teach.sections.length > 0}
+        showGenerateTemplate={teach.saved}
+        templateLoading={templateLoading}
         onAdd={teach.addSection}
         onSave={() => void handleSave()}
         onRetry={() => void teach.retryDetect()}
+        onGenerateTemplate={() => void handleGenerateTemplate()}
       />
     </Box>
   );
@@ -247,18 +323,24 @@ function TeachFooter({
   saving,
   canSave,
   showAddMore,
+  showGenerateTemplate,
+  templateLoading,
   onAdd,
   onSave,
   onRetry,
+  onGenerateTemplate,
 }: {
   error: string;
   saved: boolean;
   saving: boolean;
   canSave: boolean;
   showAddMore: boolean;
+  showGenerateTemplate: boolean;
+  templateLoading: boolean;
   onAdd: () => void;
   onSave: () => void;
   onRetry: () => void;
+  onGenerateTemplate: () => void;
 }) {
   return (
     <Box
@@ -307,6 +389,21 @@ function TeachFooter({
         >
           {saving ? "Saving schema..." : "Save schema"}
         </Button>
+        {showGenerateTemplate ? (
+          <Button
+            variant="outlined"
+            onClick={onGenerateTemplate}
+            disabled={templateLoading}
+            size="small"
+            startIcon={
+              templateLoading ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : undefined
+            }
+          >
+            {templateLoading ? "Generating..." : "Generate template"}
+          </Button>
+        ) : null}
       </Stack>
     </Box>
   );

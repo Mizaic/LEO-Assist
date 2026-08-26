@@ -9,6 +9,7 @@ Atlas trace: DI-5C9CA57B, DO-D0C19842
 from __future__ import annotations
 
 import json
+import re
 from unittest.mock import patch
 
 from libs.llm_client.form_schema_detector import detect_form_sections
@@ -185,6 +186,101 @@ def test_detect_falls_back_when_llm_returns_empty_label_sections() -> None:
     assert "B" in ids
     section_a = next(s for s in result if s["section_id"] == "A")
     assert section_a["label"].strip(), "label must not be empty after fallback"
+
+
+SHERWOOD_SECTION_C_DATA = """
+Section C: Further Clinical details
+BMI: 20.2 Kg/m2 Co-morbidities including mobility concerns
+
+Section D: Investigations performed
+"""
+
+SHERWOOD_SECTION_E_PIPES = """
+Section E: PERFORMANCE STATUS | | | | | | | |
+1. Very Fit [X]
+2. Fit [ ]
+3. Managing well [ ]
+"""
+
+SHERWOOD_MEDICATIONS = """
+Section D: Investigations performed
+FBC [ ]
+
+Medication: 1. Acutes None
+2. Repeats None
+Allergies: None
+
+Section E: PERFORMANCE STATUS
+"""
+
+SHERWOOD_CFS = """
+Section E: PERFORMANCE STATUS
+
+Clinical Frailty Scale (please tick one):
+1. Very Fit [X]
+2. Fit [ ]
+3. Managing well [ ]
+4. Very Mild [ ]
+5. Mild [ ]
+6. Moderate [ ]
+7. Severe [ ]
+8. Very Severe [ ]
+
+Patient summary
+Performance Status
+Patient Fitness (ECOG STATUS): No ECOG 0 [ ] 1 [X] 3 [ ] 4 [ ]
+"""
+
+
+def test_splitter_does_not_treat_bmi_data_line_as_section_header() -> None:
+    """BMI: 20.2 Kg/m2 Co-morbidities... must not become a separate section."""
+    sections = split_form_sections(SHERWOOD_SECTION_C_DATA)
+    labels = [s["label"] for s in sections]
+    assert not any("20.2" in lbl for lbl in labels), (
+        f"data line leaked into section labels: {labels}"
+    )
+    c = next((s for s in sections if "Section C" in s["label"]), None)
+    assert c is not None, "Section C must still be detected"
+
+
+def test_splitter_strips_trailing_pipes_from_section_name() -> None:
+    """Section E name must not contain pipe characters from the table."""
+    sections = split_form_sections(SHERWOOD_SECTION_E_PIPES)
+    e = next((s for s in sections if s["section_id"] == "E"), None)
+    assert e is not None, "Section E must be detected"
+    assert "|" not in e["label"], f"Pipe found in label: {e['label']!r}"
+
+
+def test_splitter_detects_medications_section() -> None:
+    """A Medication / Medications line must produce a section."""
+    sections = split_form_sections(SHERWOOD_MEDICATIONS)
+    ids = {s["section_id"] for s in sections}
+    assert any("med" in s["label"].lower() for s in sections), (
+        f"No medication section found. sections={[s['label'] for s in sections]}"
+    )
+    assert "D" in ids
+    assert "E" in ids
+
+
+def test_splitter_detects_cfs_scale_within_section_e() -> None:
+    """Clinical Frailty Scale items must be captured as an ordinal section."""
+    sections = split_form_sections(SHERWOOD_CFS)
+    cfs = next(
+        (s for s in sections if re.search(r"(?i)frailty|cfs", s["label"])),
+        None,
+    )
+    assert cfs is not None, "Clinical Frailty Scale section must be detected"
+    assert cfs["section_type"] in {"scale", "checkbox_single", "checkbox_multi"}
+
+
+def test_splitter_detects_ecog_ordinal_in_text() -> None:
+    """ECOG ordinal row in Section E body must produce an ordinal section."""
+    sections = split_form_sections(SHERWOOD_CFS)
+    ecog = next(
+        (s for s in sections if re.search(r"(?i)ecog", s["label"])),
+        None,
+    )
+    assert ecog is not None, "ECOG section must be detected"
 
 
 def test_detect_replaces_admin_only_llm_result_with_splitter() -> None:
