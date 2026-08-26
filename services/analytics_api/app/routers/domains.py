@@ -30,6 +30,7 @@ from libs.completeness.evaluator import (
     build_isa_expansion,
     evaluate_completeness_groups,
 )
+from libs.completeness.schema import normalise_completeness_groups
 from libs.cypher.terminology_queries import DESCENDANTS_TEMPLATE
 from libs.domain_config.registry import DomainRegistry
 from libs.neo4j_client.client import KnowledgeGraphClient
@@ -244,21 +245,10 @@ def _parse_completeness_schema_prop(val: Any) -> List[Dict[str, Any]]:
 def _normalise_completeness_schema(
     groups: List[CompletenessConceptGroup],
 ) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    for group in groups:
-        rows.append(
-            {
-                "name": group.name.strip(),
-                "required": bool(group.required),
-                "semantic_categories": [s.strip() for s in group.semantic_categories],
-                "concept_ids": [int(cid) for cid in group.concept_ids if int(cid) > 0],
-            }
-        )
-    if not any(row["required"] for row in rows):
-        raise HTTPException(
-            422, "Completeness schema needs at least one required group"
-        )
-    return rows
+    try:
+        return normalise_completeness_groups(groups)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
 
 
 def _record_domain_config_audit(
@@ -512,8 +502,13 @@ class SubdomainUpdateRequest(BaseModel):
 class CompletenessConceptGroup(BaseModel):
     name: str = Field(..., min_length=1)
     required: bool = True
+    kind: str = ""
+    min_count: int = 1
     semantic_categories: List[str] = []
     concept_ids: List[int] = []
+    members: List[Dict[str, Any]] = []
+    if_group: Optional[Dict[str, Any]] = None
+    then_group: Optional[Dict[str, Any]] = None
 
 
 class CompletenessSchemaRequest(BaseModel):

@@ -18,6 +18,9 @@ import SchoolIcon from "@mui/icons-material/School";
 
 import ExtractionReviewHeader from "./ExtractionReviewHeader";
 import FormSchemaAnnotator from "./FormSchemaAnnotator";
+import type { FormSchemaSection } from "./formSchemaDetector";
+import { regionsFromSections } from "./formSchemaSectionFocus";
+import { useTeachFormSectionFocus } from "./useTeachFormSectionFocus";
 
 import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
 import { LetterMarkLegend } from "@/app/admin/validation-lab/LetterMarks";
@@ -64,6 +67,8 @@ export default function ExtractionQualityReviewDialog({
   const [busy, setBusy] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"facts" | "teach">("facts");
+  const [teachSections, setTeachSections] = useState<FormSchemaSection[]>([]);
+  const teachFocus = useTeachFormSectionFocus();
 
   useEffect(() => {
     if (!open || !taskId) return;
@@ -178,6 +183,12 @@ export default function ExtractionQualityReviewDialog({
             marks={marks}
             focusTerm={focusTerm}
             onAddSelection={addSelection}
+            teachMode={rightTab === "teach"}
+            highlightedRegionId={teachFocus.highlightedRegionId}
+            sectionRegions={regionsFromSections(teachSections)}
+            onSelectRegion={(regionId, clickedText) =>
+              teachFocus.selectLetterText(teachSections, clickedText || regionId)
+            }
           />
           <ReviewRightPane
             tab={rightTab}
@@ -185,6 +196,9 @@ export default function ExtractionQualityReviewDialog({
             fingerprint={data?.formFingerprint ?? ""}
             sourceText={data?.sourceText ?? ""}
             onSchemaSaved={onUnlocked}
+            focusedSectionId={teachFocus.focusedSectionId}
+            onSelectSection={teachFocus.selectSection}
+            onSectionsChange={setTeachSections}
           >
             <ReviewFactsPane
               entities={entities}
@@ -219,11 +233,19 @@ function ReviewLetterPane({
   marks,
   focusTerm,
   onAddSelection,
+  teachMode,
+  highlightedRegionId,
+  sectionRegions,
+  onSelectRegion,
 }: {
   sourceText: string;
   marks: ReturnType<typeof focusedReviewMarks>;
   focusTerm: string;
   onAddSelection: () => void;
+  teachMode: boolean;
+  highlightedRegionId: string | null;
+  sectionRegions: ReturnType<typeof regionsFromSections>;
+  onSelectRegion: (regionId: string, clickedText: string) => void;
 }) {
   const hasLetter = Boolean(sourceText.trim());
   const letterRef = useRef<HTMLDivElement | null>(null);
@@ -233,6 +255,19 @@ function ReviewLetterPane({
       node.scrollIntoView({ block: "center", behavior: "smooth" });
     }
   }, [focusTerm, sourceText]);
+  useEffect(() => {
+    if (!highlightedRegionId) return;
+    const highlighted = letterRef.current?.querySelector(
+      "[data-section-highlight='true']",
+    );
+    const fallback = letterRef.current?.querySelector(
+      `[data-section-region="${highlightedRegionId}"]`,
+    );
+    const node = highlighted ?? fallback;
+    if (node instanceof HTMLElement) {
+      node.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    }
+  }, [highlightedRegionId, sourceText]);
   return (
     <Box
       sx={{
@@ -266,8 +301,9 @@ function ReviewLetterPane({
       <Box
         ref={letterRef}
         sx={{ flex: 1, overflow: "auto", p: 2, cursor: hasLetter ? "text" : "default" }}
-        onMouseUp={hasLetter ? onAddSelection : undefined}
+        onMouseUp={hasLetter && !teachMode ? onAddSelection : undefined}
         data-testid="extraction-quality-letter"
+        data-highlighted-region={highlightedRegionId ?? ""}
       >
         {hasLetter ? <LetterMarkLegend marks={marks} /> : null}
         <LetterMarkdownView
@@ -275,6 +311,9 @@ function ReviewLetterPane({
           marks={marks}
           focusTerm={focusTerm}
           emptyLabel={EMPTY_LETTER_COPY}
+          sectionRegions={teachMode ? sectionRegions : []}
+          highlightedRegionId={teachMode ? highlightedRegionId : null}
+          onSelectRegion={onSelectRegion}
         />
       </Box>
     </Box>
@@ -289,6 +328,9 @@ function ReviewRightPane({
   fingerprint,
   sourceText,
   onSchemaSaved,
+  focusedSectionId,
+  onSelectSection,
+  onSectionsChange,
   children,
 }: {
   tab: "facts" | "teach";
@@ -296,6 +338,9 @@ function ReviewRightPane({
   fingerprint: string;
   sourceText: string;
   onSchemaSaved: () => void;
+  focusedSectionId: string | null;
+  onSelectSection: (section: FormSchemaSection) => void;
+  onSectionsChange: (sections: FormSchemaSection[]) => void;
   children: React.ReactNode;
 }) {
   return (
@@ -326,6 +371,9 @@ function ReviewRightPane({
             fingerprint={fingerprint}
             sourceText={sourceText}
             onSaved={onSchemaSaved}
+            focusedSectionId={focusedSectionId}
+            onSelectSection={onSelectSection}
+            onSectionsChange={onSectionsChange}
           />
         </Box>
       )}

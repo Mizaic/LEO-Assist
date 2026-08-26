@@ -21,6 +21,7 @@ from libs.completeness.evaluator import (
     evaluate_completeness_groups,
     semantic_tags_from_entities,
 )
+from libs.completeness.logic_groups import collect_concept_ids
 from libs.neo4j_client.client import KnowledgeGraphClient
 from services.analysis_worker.app.analyzers.quality_checker import (
     run_quality_checks as run_global_quality_checks,
@@ -112,7 +113,7 @@ def _run_completeness_check(state: QualityCheckState) -> dict[str, Any] | None:
             "missing_groups": [],
         }
     entities = list(state.get("entities") or [])
-    required_ids = _all_required_concept_ids(schema)
+    required_ids = collect_concept_ids(schema)
     result = evaluate_completeness_groups(
         schema,
         present_concept_ids=concept_ids_from_entities(entities),

@@ -89,6 +89,20 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
     ).toBe(true);
   });
 
+  it("lets a teacher pick organisation and service", () => {
+    expect(TEACH_SRC).toMatch(/Organisation/);
+    expect(TEACH_SRC).toMatch(/Service/);
+    expect(TEACH_SRC).toMatch(/\/api\/form-schemas\/scope\/organizations/);
+  });
+
+  it("lets a teacher define completeness logic groups", () => {
+    expect(TEACH_SRC).toMatch(/Completeness rules/);
+    expect(TEACH_SRC).toMatch(/one_of/);
+    expect(TEACH_SRC).toMatch(/if_then/);
+    expect(TEACH_SRC).toMatch(/organization_id/);
+    expect(TEACH_SRC).toMatch(/service_id/);
+  });
+
   it("does not use snapshot testing", () => {
     expect(ANNOTATOR_SRC).not.toContain("toMatchSnapshot");
   });

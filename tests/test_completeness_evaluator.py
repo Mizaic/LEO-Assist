@@ -120,3 +120,140 @@ def test_group_requires_both_concepts_and_semantic_category():
         present_semantic_tags={"finding"},
     )
     assert both["complete"] is True
+
+
+def test_optional_group_does_not_block_completeness():
+    schema = [
+        {
+            "name": "Section A",
+            "kind": "mandatory",
+            "concept_ids": [100],
+        },
+        {
+            "name": "Notes",
+            "kind": "optional",
+            "concept_ids": [200],
+        },
+    ]
+    result = evaluate_completeness_groups(
+        schema,
+        present_concept_ids={100},
+        present_semantic_tags=set(),
+    )
+    assert result["complete"] is True
+
+
+def test_one_of_members_requires_at_least_one():
+    schema = [
+        {
+            "name": "Referral criteria",
+            "kind": "one_of",
+            "members": [
+                {"name": "B1", "concept_ids": [111]},
+                {"name": "B2", "concept_ids": [222]},
+            ],
+        }
+    ]
+    missing = evaluate_completeness_groups(
+        schema,
+        present_concept_ids=set(),
+        present_semantic_tags=set(),
+    )
+    assert missing["complete"] is False
+
+    one = evaluate_completeness_groups(
+        schema,
+        present_concept_ids={222},
+        present_semantic_tags=set(),
+    )
+    assert one["complete"] is True
+    assert one["matched_groups"][0]["matched_member_names"] == ["B2"]
+
+
+def test_n_of_members_requires_minimum_count():
+    schema = [
+        {
+            "name": "Two of three tests",
+            "kind": "n_of",
+            "min_count": 2,
+            "members": [
+                {"name": "FIT", "concept_ids": [11]},
+                {"name": "Blood", "concept_ids": [22]},
+                {"name": "Scan", "concept_ids": [33]},
+            ],
+        }
+    ]
+    one = evaluate_completeness_groups(
+        schema,
+        present_concept_ids={11},
+        present_semantic_tags=set(),
+    )
+    assert one["complete"] is False
+
+    two = evaluate_completeness_groups(
+        schema,
+        present_concept_ids={11, 33},
+        present_semantic_tags=set(),
+    )
+    assert two["complete"] is True
+
+
+def test_if_then_requires_then_group_only_when_if_present():
+    schema = [
+        {
+            "name": "If imaging then report",
+            "kind": "if_then",
+            "if_group": {"name": "Imaging", "concept_ids": [501]},
+            "then_group": {"name": "Report", "concept_ids": [502]},
+        }
+    ]
+    vacant = evaluate_completeness_groups(
+        schema,
+        present_concept_ids=set(),
+        present_semantic_tags=set(),
+    )
+    assert vacant["complete"] is True
+
+    if_only = evaluate_completeness_groups(
+        schema,
+        present_concept_ids={501},
+        present_semantic_tags=set(),
+    )
+    assert if_only["complete"] is False
+
+    both = evaluate_completeness_groups(
+        schema,
+        present_concept_ids={501, 502},
+        present_semantic_tags=set(),
+    )
+    assert both["complete"] is True
+
+
+def test_guideline_kind_aliases_map_to_completeness_logic():
+    schema = [
+        {
+            "name": "Any symptom",
+            "kind": "OR",
+            "members": [
+                {"name": "Cough", "concept_ids": [1]},
+                {"name": "Weight loss", "concept_ids": [2]},
+            ],
+        }
+    ]
+    result = evaluate_completeness_groups(
+        schema,
+        present_concept_ids={2},
+        present_semantic_tags=set(),
+    )
+    assert result["complete"] is True
+
+
+def test_legacy_required_flag_still_means_mandatory():
+    schema = [{"name": "Diagnosis", "required": True, "concept_ids": [9]}]
+    result = evaluate_completeness_groups(
+        schema,
+        present_concept_ids=set(),
+        present_semantic_tags=set(),
+    )
+    assert result["complete"] is False
+    assert result["missing_groups"][0]["kind"] == "mandatory"

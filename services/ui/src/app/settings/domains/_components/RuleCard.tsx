@@ -260,6 +260,18 @@ function RuleSnomedSearch({
   );
 }
 
+function kindSelectValue(group: CompletenessConceptGroup): string {
+  const kind = String(group.kind || "");
+  if (kind === "one_of" || kind === "n_of" || kind === "if_then") return kind;
+  return group.required ? "required" : "optional";
+}
+
+function kindSelectPatch(value: string): Partial<CompletenessConceptGroup> {
+  if (value === "optional") return { required: false, kind: "optional" };
+  if (value === "required") return { required: true, kind: "mandatory" };
+  return { required: true, kind: value };
+}
+
 export interface RuleCardProps {
   group: CompletenessConceptGroup;
   idx: number;
@@ -320,13 +332,16 @@ export default function RuleCard({
 
         <FormControl size="small" sx={{ minWidth: 110 }}>
           <Select
-            value={group.required ? "required" : "optional"}
-            onChange={(e) => onUpdate({ required: e.target.value === "required" })}
+            value={kindSelectValue(group)}
+            onChange={(e) => onUpdate(kindSelectPatch(e.target.value))}
             disabled={!canEdit}
             sx={{ fontSize: "0.75rem", height: 28 }}
           >
             <MenuItem value="required">Required</MenuItem>
             <MenuItem value="optional">Optional</MenuItem>
+            <MenuItem value="one_of">1 of these</MenuItem>
+            <MenuItem value="n_of">At least N</MenuItem>
+            <MenuItem value="if_then">If-then</MenuItem>
           </Select>
         </FormControl>
 

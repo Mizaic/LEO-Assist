@@ -72,6 +72,8 @@ class FormSchema:
     version: int = 1
     status: str = "active"
     created_at: str = ""
+    organization_id: str = ""
+    service_id: str = ""
 
 
 def _mark(line: str) -> str:

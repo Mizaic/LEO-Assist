@@ -648,11 +648,23 @@ export interface SubdomainConstruct {
   roles: SubdomainConstructRole[];
 }
 
+export type CompletenessLogicKind =
+  | "mandatory"
+  | "optional"
+  | "one_of"
+  | "n_of"
+  | "if_then";
+
 export interface CompletenessConceptGroup {
   name: string;
   required: boolean;
+  kind?: CompletenessLogicKind | string;
+  min_count?: number;
   semantic_categories: string[];
   concept_ids: number[];
+  members?: CompletenessConceptGroup[];
+  if_group?: CompletenessConceptGroup | null;
+  then_group?: CompletenessConceptGroup | null;
 }
 
 export interface CompletenessSchema {

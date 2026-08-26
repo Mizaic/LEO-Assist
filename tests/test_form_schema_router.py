@@ -148,7 +148,7 @@ def test_operations_manager_can_save(_mock_pg, mock_save):
     )
     assert resp.status_code == 200
     assert resp.json()["saved"] is True
-    assert mock_save.call_args.kwargs["created_by"] == "operations_manager@example.com"
+    assert mock_save.call_args.args[1].created_by == "operations_manager@example.com"
 
 
 @patch("app.routers.form_schema.detect_form_sections", return_value=[])
@@ -181,3 +181,35 @@ def test_administrator_role_can_save(_mock_pg, mock_save):
     assert resp.status_code == 200
     assert resp.json()["saved"] is True
     mock_save.assert_called_once()
+
+
+@patch("app.routers.form_schema.save_form_schema", return_value=_saved_schema())
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
+def test_save_forwards_organization_service_and_logic_groups(_mock_pg, mock_save):
+    body = {
+        **SAVE_BODY,
+        "organization_id": "org-sfh",
+        "service_id": "svc-gynae",
+        "completeness_groups": [
+            {
+                "name": "Section A",
+                "kind": "mandatory",
+                "concept_ids": [100],
+            },
+            {
+                "name": "Referral criteria",
+                "kind": "one_of",
+                "members": [
+                    {"name": "B1", "concept_ids": [111]},
+                    {"name": "B2", "concept_ids": [222]},
+                ],
+            },
+        ],
+    }
+    resp = _client(_session("validation")).put("/form-schemas/fp-1", json=body)
+    assert resp.status_code == 200
+    write = mock_save.call_args.args[1]
+    assert write.organization_id == "org-sfh"
+    assert write.service_id == "svc-gynae"
+    assert write.completeness_groups[0]["kind"] == "mandatory"
+    assert write.completeness_groups[1]["kind"] == "one_of"

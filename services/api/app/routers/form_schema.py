@@ -22,11 +22,16 @@ from app.deps import require_role
 from libs.llm_client.form_schema_detector import detect_form_sections
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.form_schema_store import (
+    FormSchemaWrite,
     build_sections_from_request,
     load_form_schema,
     save_form_schema,
 )
-from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS
+from libs.cypher.form_schema_queries import (
+    LIST_FORM_SCHEMAS,
+    LIST_SCOPE_ORGANIZATIONS,
+    LIST_SCOPE_SERVICES,
+)
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
 
@@ -56,11 +61,26 @@ class FormSectionRequest(BaseModel):
     items: list[FormSchemaItemRequest] = Field(default_factory=list)
 
 
+class CompletenessGroupRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    kind: str = ""
+    required: bool = True
+    min_count: int = 1
+    semantic_categories: list[str] = Field(default_factory=list)
+    concept_ids: list[int] = Field(default_factory=list)
+    members: list[dict[str, Any]] = Field(default_factory=list)
+    if_group: dict[str, Any] | None = None
+    then_group: dict[str, Any] | None = None
+
+
 class SaveFormSchemaRequest(BaseModel):
     form_name: str = Field(..., min_length=1)
     sections: list[FormSectionRequest] = Field(..., min_items=1)
     saved_by: str = "unknown"
     status: str = "active"
+    organization_id: str = ""
+    service_id: str = ""
+    completeness_groups: list[CompletenessGroupRequest] = Field(default_factory=list)
 
 
 def _schema_to_dict(schema: Any) -> dict[str, Any]:
@@ -90,7 +110,42 @@ def _schema_to_dict(schema: Any) -> dict[str, Any]:
         ],
         "created_at": schema.created_at,
         "created_by": schema.created_by,
+        "organization_id": schema.organization_id,
+        "service_id": schema.service_id,
     }
+
+
+@router.get("/scope/organizations")
+def list_scope_organizations(
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    org_ids = list(_session.get("org_ids") or [])
+    if _session.get("is_platform_admin"):
+        org_ids = []
+    client = PatientGraphClient()
+    try:
+        rows = client.run(LIST_SCOPE_ORGANIZATIONS, org_ids=org_ids)
+        orgs = [{"id": r["id"], "name": r["name"]} for r in (rows or [])]
+    finally:
+        client.close()
+    return {"organizations": orgs}
+
+
+@router.get("/scope/organizations/{org_id}/services")
+def list_scope_services(
+    org_id: str,
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        rows = client.run(LIST_SCOPE_SERVICES, org_id=org_id)
+        services = [
+            {"id": r["id"], "name": r.get("name"), "code": r.get("code")}
+            for r in (rows or [])
+        ]
+    finally:
+        client.close()
+    return {"services": services}
 
 
 @router.get("/{fingerprint}")
@@ -119,13 +174,19 @@ def save_schema(
     try:
         schema = save_form_schema(
             client,
-            fingerprint=fingerprint,
-            form_name=body.form_name,
-            sections=sections,
-            created_by=(_session.get("email") or "").strip()
-            or "unknown",
-            status=body.status,
+            FormSchemaWrite(
+                fingerprint=fingerprint,
+                form_name=body.form_name,
+                sections=sections,
+                created_by=(_session.get("email") or "").strip() or "unknown",
+                status=body.status,
+                organization_id=body.organization_id.strip(),
+                service_id=body.service_id.strip(),
+                completeness_groups=[g.model_dump() for g in body.completeness_groups],
+            ),
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
@@ -148,6 +209,8 @@ def list_schemas(
                 "version": r["version"],
                 "status": r["status"],
                 "created_at": str(r.get("created_at") or ""),
+                "organization_id": r.get("organization_id") or "",
+                "service_id": r.get("service_id") or "",
             }
             for r in (rows or [])
         ]

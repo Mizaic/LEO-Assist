@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -51,12 +51,16 @@ export function FormSchemaSectionEditor({
   onPatchItem,
   onAddItem,
   onRemoveItem,
+  focused = false,
+  onSelect,
 }: {
   section: FormSchemaSection;
   onPatch: (patch: Partial<FormSchemaSection>) => void;
   onPatchItem: (iIdx: number, patch: Partial<FormSchemaItem>) => void;
   onAddItem: () => void;
   onRemoveItem: (iIdx: number) => void;
+  focused?: boolean;
+  onSelect?: () => void;
 }) {
   const [expanded, setExpanded] = useState(
     ITEM_SECTION_TYPES.includes(section.section_type),
@@ -64,14 +68,12 @@ export function FormSchemaSectionEditor({
   const showItems = ITEM_SECTION_TYPES.includes(section.section_type);
 
   return (
-    <Box
-      sx={{
-        mb: 1.5,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "6px",
-        overflow: "hidden",
-      }}
+    <SectionCardFrame
+      section={section}
+      focused={focused}
+      onSelect={onSelect}
+      onExpand={() => setExpanded(true)}
+      onToggleExpand={() => setExpanded((open) => !open)}
     >
       <Stack
         direction="row"
@@ -158,7 +160,78 @@ export function FormSchemaSectionEditor({
         </Collapse>
       )}
       <Divider />
+    </SectionCardFrame>
+  );
+}
+
+function SectionCardFrame({
+  section,
+  focused,
+  onSelect,
+  onExpand,
+  onToggleExpand,
+  children,
+}: {
+  section: FormSchemaSection;
+  focused: boolean;
+  onSelect?: () => void;
+  onExpand: () => void;
+  onToggleExpand: () => void;
+  children: React.ReactNode;
+}) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!focused) return;
+    onExpand();
+    cardRef.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    cardRef.current?.focus();
+    // Only react when focus arrives, not when the expand callback identity changes.
+  }, [focused]);
+
+  return (
+    <Box
+      ref={cardRef}
+      component="article"
+      tabIndex={0}
+      data-testid="form-schema-section-card"
+      data-section-id={section.section_id}
+      aria-label={`Form section ${section.section_id}: ${section.label}`}
+      aria-current={focused ? "true" : undefined}
+      onClick={() => onSelect?.()}
+      onKeyDown={(event) => {
+        if (isTypingTarget(event.target)) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        onToggleExpand();
+        onSelect?.();
+      }}
+      sx={sectionCardSx(focused)}
+    >
+      {children}
     </Box>
+  );
+}
+
+function sectionCardSx(focused: boolean) {
+  return {
+    mb: 1.5,
+    border: "2px solid",
+    borderColor: focused ? "primary.main" : "divider",
+    outline: focused ? "2px solid" : "none",
+    outlineColor: focused ? "primary.main" : undefined,
+    outlineOffset: focused ? "1px" : undefined,
+    borderRadius: "6px",
+    overflow: "hidden",
+  };
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    Boolean(target.closest("[role='combobox']"))
   );
 }
 

@@ -17,8 +17,12 @@ Node: :FormSchema
   created_at    -- datetime
   updated_at    -- datetime
   created_by    -- user / service identity
+  organization_id -- existing :Organization.id
+  service_id    -- existing :Service.id
 
 Relationship: (:FormSchema)-[:SCHEMA_FOR]->(:FormFingerprint)
+Relationship: (:FormSchema)-[:USED_BY_ORG]->(:Organization)
+Relationship: (:FormSchema)-[:USED_BY_SERVICE]->(:Service)
 """
 
 FORM_SCHEMA_CONSTRAINTS = [
@@ -39,14 +43,26 @@ ON CREATE SET
     s.created_at  = datetime(),
     s.version     = 1
 SET
-    s.form_name     = $form_name,
-    s.status        = $status,
-    s.sections_json = $sections_json,
-    s.updated_at    = datetime(),
-    s.created_by    = $created_by
+    s.form_name        = $form_name,
+    s.status           = $status,
+    s.sections_json    = $sections_json,
+    s.organization_id  = $organization_id,
+    s.service_id       = $service_id,
+    s.updated_at       = datetime(),
+    s.created_by       = $created_by
 WITH s
 MERGE (f:FormFingerprint {fingerprint: $fingerprint})
 MERGE (s)-[:SCHEMA_FOR]->(f)
+WITH s
+OPTIONAL MATCH (org:Organization {id: $organization_id})
+FOREACH (_ IN CASE WHEN org IS NOT NULL THEN [1] ELSE [] END |
+    MERGE (s)-[:USED_BY_ORG]->(org)
+)
+WITH s
+OPTIONAL MATCH (svc:Service {id: $service_id})
+FOREACH (_ IN CASE WHEN svc IS NOT NULL THEN [1] ELSE [] END |
+    MERGE (s)-[:USED_BY_SERVICE]->(svc)
+)
 RETURN s.schema_id AS schema_id,
        s.fingerprint AS fingerprint,
        s.form_name AS form_name,
@@ -54,7 +70,9 @@ RETURN s.schema_id AS schema_id,
        s.status AS status,
        s.sections_json AS sections_json,
        s.created_at AS created_at,
-       s.created_by AS created_by
+       s.created_by AS created_by,
+       s.organization_id AS organization_id,
+       s.service_id AS service_id
 """
 
 GET_FORM_SCHEMA_BY_FINGERPRINT = """
@@ -66,7 +84,9 @@ RETURN s.schema_id AS schema_id,
        s.status AS status,
        s.sections_json AS sections_json,
        s.created_at AS created_at,
-       s.created_by AS created_by
+       s.created_by AS created_by,
+       s.organization_id AS organization_id,
+       s.service_id AS service_id
 """
 
 LIST_FORM_SCHEMAS = """
@@ -76,6 +96,22 @@ RETURN s.schema_id AS schema_id,
        s.form_name AS form_name,
        s.version AS version,
        s.status AS status,
-       s.created_at AS created_at
+       s.created_at AS created_at,
+       s.organization_id AS organization_id,
+       s.service_id AS service_id
 ORDER BY s.updated_at DESC
+"""
+
+LIST_SCOPE_ORGANIZATIONS = """
+MATCH (o:Organization)
+WHERE $org_ids IS NULL OR size($org_ids) = 0 OR o.id IN $org_ids
+RETURN o.id AS id, coalesce(o.name, o.id) AS name
+ORDER BY name
+LIMIT 200
+"""
+
+LIST_SCOPE_SERVICES = """
+MATCH (s:Service)-[:PROVIDES_SERVICE]->(o:Organization {id: $org_id})
+RETURN s.id AS id, coalesce(s.name, s.id) AS name, s.code AS code
+ORDER BY name
 """

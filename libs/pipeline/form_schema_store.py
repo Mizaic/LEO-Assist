@@ -2,6 +2,8 @@
 
 Atlas trace:
   DI: DI-5C9CA57B  (form checkbox normalisation)
+  DI: DI-26546721  (organisation and service bind)
+  DO: DO-020C7B5C
 
 The store keeps a process-level cache of known schemas keyed by fingerprint.
 The pipeline normaliser checks this cache before falling back to generic rules.
@@ -12,8 +14,10 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from dataclasses import dataclass, field
 from typing import Any
 
+from libs.completeness.service_domain import ensure_service_completeness_domain
 from libs.cypher.form_schema_queries import (
     GET_FORM_SCHEMA_BY_FINGERPRINT,
     UPSERT_FORM_SCHEMA,
@@ -27,6 +31,21 @@ from libs.pipeline.form_schema_normalizer import (
 logger = logging.getLogger(__name__)
 
 _SCHEMA_CACHE: dict[str, FormSchema | None] = {}
+
+
+@dataclass
+class FormSchemaWrite:
+    """Inputs for persisting a taught form and its service dataset."""
+
+    fingerprint: str
+    form_name: str
+    sections: list[FormSection]
+    created_by: str
+    schema_id: str | None = None
+    status: str = "active"
+    organization_id: str = ""
+    service_id: str = ""
+    completeness_groups: list[dict[str, Any]] = field(default_factory=list)
 
 
 def reset_schema_cache() -> None:
@@ -51,6 +70,8 @@ def _record_to_schema(record: dict[str, Any]) -> FormSchema:
         version=int(record.get("version") or 1),
         status=record.get("status") or "active",
         created_at=str(record.get("created_at") or ""),
+        organization_id=record.get("organization_id") or "",
+        service_id=record.get("service_id") or "",
     )
 
 
@@ -116,43 +137,44 @@ def load_form_schema(client: Any, fingerprint: str) -> FormSchema | None:
         return None
 
 
-def save_form_schema(
-    client: Any,
-    *,
-    fingerprint: str,
-    form_name: str,
-    sections: list[FormSection],
-    created_by: str,
-    schema_id: str | None = None,
-    status: str = "active",
-) -> FormSchema:
-    """Persist or update a :FormSchema in Neo4j.
-
-    Returns the saved :FormSchema dataclass. Also updates the in-process cache
-    so the normaliser picks it up immediately without a reload.
-    """
-    sid = schema_id or str(uuid.uuid4())
-    schema = FormSchema(
-        schema_id=sid,
-        fingerprint=fingerprint,
-        form_name=form_name,
-        sections=sections,
-        created_by=created_by,
-        status=status,
-    )
-    sections_json = _schema_to_sections_json(schema)
+def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
+    """Persist a :FormSchema and, when scoped, its service completeness domain."""
+    schema = _build_schema(write)
     client.run(
         UPSERT_FORM_SCHEMA,
-        schema_id=sid,
-        fingerprint=fingerprint,
-        form_name=form_name,
-        status=status,
-        sections_json=sections_json,
-        created_by=created_by,
+        schema_id=schema.schema_id,
+        fingerprint=schema.fingerprint,
+        form_name=schema.form_name,
+        status=schema.status,
+        sections_json=_schema_to_sections_json(schema),
+        created_by=schema.created_by,
+        organization_id=schema.organization_id,
+        service_id=schema.service_id,
     )
-    _SCHEMA_CACHE[fingerprint] = schema
-    logger.info("Saved FormSchema %s for fingerprint %s", sid, fingerprint)
+    if schema.service_id:
+        ensure_service_completeness_domain(
+            client,
+            organization_id=schema.organization_id,
+            service_id=schema.service_id,
+            form_name=schema.form_name,
+            groups=write.completeness_groups or None,
+        )
+    _SCHEMA_CACHE[schema.fingerprint] = schema
+    logger.info("Saved FormSchema %s for fingerprint %s", schema.schema_id, schema.fingerprint)
     return schema
+
+
+def _build_schema(write: FormSchemaWrite) -> FormSchema:
+    return FormSchema(
+        schema_id=write.schema_id or str(uuid.uuid4()),
+        fingerprint=write.fingerprint,
+        form_name=write.form_name,
+        sections=write.sections,
+        created_by=write.created_by,
+        status=write.status,
+        organization_id=write.organization_id,
+        service_id=write.service_id,
+    )
 
 
 def build_sections_from_request(

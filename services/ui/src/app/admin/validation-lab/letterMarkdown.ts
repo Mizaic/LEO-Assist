@@ -160,6 +160,15 @@ function splitCells(line: string): string[] {
   return body.split("|").map((cell) => cell.trim());
 }
 
+export function inlinePlainText(nodes: InlineNode[]): string {
+  return nodes
+    .map((node) => {
+      if (node.type === "text" || node.type === "code") return node.value;
+      return inlinePlainText(node.children);
+    })
+    .join("");
+}
+
 export function parseInline(text: string): InlineNode[] {
   const out: InlineNode[] = [];
   const pattern = /\*\*(.+?)\*\*|`([^`]+)`|\*([^*\n]+)\*/g;

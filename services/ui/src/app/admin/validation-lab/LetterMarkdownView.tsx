@@ -15,14 +15,20 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 
+import type { LetterSectionRegion } from "@/components/operations/formSchemaSectionFocus";
 import { LetterMarks, MentionClockProvider } from "./LetterMarks";
 import type { LetterMark } from "./letterHighlight";
 import {
+  inlinePlainText,
   parseLetterMarkdown,
   splitLetterSource,
   type BlockNode,
   type InlineNode,
 } from "./letterMarkdown";
+import {
+  LetterRegionFocusContext,
+  LetterRegionWrap,
+} from "./LetterSectionRegion";
 
 interface Props {
   text: string;
@@ -30,6 +36,9 @@ interface Props {
   testId?: string;
   emptyLabel: string;
   focusTerm?: string;
+  sectionRegions?: LetterSectionRegion[];
+  highlightedRegionId?: string | null;
+  onSelectRegion?: (regionId: string, clickedText: string) => void;
 }
 
 export default function LetterMarkdownView({
@@ -38,6 +47,9 @@ export default function LetterMarkdownView({
   testId,
   emptyLabel,
   focusTerm,
+  sectionRegions = [],
+  highlightedRegionId = null,
+  onSelectRegion,
 }: Props): ReactNode {
   if (!text.trim()) {
     return (
@@ -49,26 +61,35 @@ export default function LetterMarkdownView({
   const { filename, body } = splitLetterSource(text);
   const blocks = parseLetterMarkdown(body || text);
   const letter = (
-    <Box data-testid="validation-lab-letter-markdown" sx={MARKDOWN_SX}>
-      {filename ? (
-        <Chip
-          size="small"
-          variant="outlined"
-          label={filename}
-          data-testid="validation-lab-letter-filename"
-          sx={{ mb: 1.5, maxWidth: "100%", height: "auto", py: 0.5 }}
-        />
-      ) : null}
-      {blocks.map((block, index) => (
-        <BlockView
-          key={`${block.type}-${index}`}
-          block={block}
-          marks={marks}
-          testId={testId}
-          numberMentions={Boolean(focusTerm)}
-        />
-      ))}
-    </Box>
+    <LetterRegionFocusContext.Provider
+      value={{
+        regions: sectionRegions,
+        highlightedRegionId,
+        onSelectRegion,
+        firstByRegion: {},
+      }}
+    >
+      <Box data-testid="validation-lab-letter-markdown" sx={MARKDOWN_SX}>
+        {filename ? (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={filename}
+            data-testid="validation-lab-letter-filename"
+            sx={{ mb: 1.5, maxWidth: "100%", height: "auto", py: 0.5 }}
+          />
+        ) : null}
+        {blocks.map((block, index) => (
+          <BlockView
+            key={`${block.type}-${index}`}
+            block={block}
+            marks={marks}
+            testId={testId}
+            numberMentions={Boolean(focusTerm)}
+          />
+        ))}
+      </Box>
+    </LetterRegionFocusContext.Provider>
   );
   if (!focusTerm) return letter;
   return (
@@ -91,15 +112,18 @@ function BlockView({
 }): ReactNode {
   if (block.type === "heading") {
     const variant = block.level === 1 ? "h5" : block.level === 2 ? "h6" : "subtitle1";
+    const headingText = inlinePlainText(block.children);
     return (
-      <Typography variant={variant} component={`h${block.level}`} sx={{ fontWeight: 700 }}>
-        <InlineView
-          nodes={block.children}
-          marks={marks}
-          testId={testId}
-          numberMentions={numberMentions}
-        />
-      </Typography>
+      <LetterRegionWrap text={headingText}>
+        <Typography variant={variant} component={`h${block.level}`} sx={{ fontWeight: 700 }}>
+          <InlineView
+            nodes={block.children}
+            marks={marks}
+            testId={testId}
+            numberMentions={numberMentions}
+          />
+        </Typography>
+      </LetterRegionWrap>
     );
   }
   if (block.type === "hr") return <Box component="hr" />;
@@ -109,12 +133,14 @@ function BlockView({
       <Box component={ListTag}>
         {block.items.map((item, index) => (
           <li key={`li-${index}`}>
-            <InlineView
-              nodes={item}
-              marks={marks}
-              testId={testId}
-              numberMentions={numberMentions}
-            />
+            <LetterRegionWrap text={inlinePlainText(item)}>
+              <InlineView
+                nodes={item}
+                marks={marks}
+                testId={testId}
+                numberMentions={numberMentions}
+              />
+            </LetterRegionWrap>
           </li>
         ))}
       </Box>
@@ -133,15 +159,21 @@ function BlockView({
   return (
     <Typography variant="body2" component="p">
       {block.lines.map((line, index) => (
-        <Box component="span" key={`ln-${index}`}>
-          {index > 0 ? <br /> : null}
-          <InlineView
-            nodes={line}
-            marks={marks}
-            testId={testId}
-            numberMentions={numberMentions}
-          />
-        </Box>
+        <LetterRegionWrap
+          key={`ln-${index}`}
+          text={inlinePlainText(line)}
+          as="span"
+        >
+          <Box component="span">
+            {index > 0 ? <br /> : null}
+            <InlineView
+              nodes={line}
+              marks={marks}
+              testId={testId}
+              numberMentions={numberMentions}
+            />
+          </Box>
+        </LetterRegionWrap>
       ))}
     </Typography>
   );
@@ -164,12 +196,14 @@ function TableView({
         <tr>
           {block.header.map((cell, index) => (
             <Box component="th" scope="col" key={`th-${index}`}>
-              <InlineView
-                nodes={cell}
-                marks={marks}
-                testId={testId}
-                numberMentions={numberMentions}
-              />
+              <LetterRegionWrap text={inlinePlainText(cell)}>
+                <InlineView
+                  nodes={cell}
+                  marks={marks}
+                  testId={testId}
+                  numberMentions={numberMentions}
+                />
+              </LetterRegionWrap>
             </Box>
           ))}
         </tr>
@@ -179,12 +213,14 @@ function TableView({
           <tr key={`tr-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
               <Box component="td" key={`td-${rowIndex}-${cellIndex}`}>
-                <InlineView
-                  nodes={cell}
-                  marks={marks}
-                  testId={testId}
-                  numberMentions={numberMentions}
-                />
+                <LetterRegionWrap text={inlinePlainText(cell)}>
+                  <InlineView
+                    nodes={cell}
+                    marks={marks}
+                    testId={testId}
+                    numberMentions={numberMentions}
+                  />
+                </LetterRegionWrap>
               </Box>
             ))}
           </tr>

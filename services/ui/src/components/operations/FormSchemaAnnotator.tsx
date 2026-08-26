@@ -3,7 +3,7 @@
  *
  * Persists the result as a :FormSchema node via PUT /api/form-schemas/{fingerprint}.
  *
- * Atlas trace: DI-5C9CA57B, DO-D0C19842
+ * Atlas trace: DI-5C9CA57B, DI-26546721, DO-D0C19842, DO-020C7B5C
  */
 "use client";
 
@@ -17,7 +17,12 @@ import AddIcon from "@mui/icons-material/Add";
 import SchoolIcon from "@mui/icons-material/School";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 
+import { useEffect, useState } from "react";
+import { FormSchemaCompletenessEditor } from "./FormSchemaCompletenessEditor";
+import { FormSchemaScopeFields } from "./FormSchemaScopeFields";
 import { FormSchemaSectionEditor } from "./FormSchemaSectionEditor";
+import type { FormSchemaSection } from "./formSchemaDetector";
+import { saveTaughtForm, type CompletenessLogicGroup } from "./formSchemaTeach";
 import { useFormSchemaTeach } from "./useFormSchemaTeach";
 
 interface Props {
@@ -25,6 +30,9 @@ interface Props {
   sourceText: string;
   formName?: string;
   onSaved?: () => void;
+  focusedSectionId?: string | null;
+  onSelectSection?: (section: FormSchemaSection) => void;
+  onSectionsChange?: (sections: FormSchemaSection[]) => void;
 }
 
 export default function FormSchemaAnnotator({
@@ -32,8 +40,43 @@ export default function FormSchemaAnnotator({
   sourceText,
   formName = "Referral form",
   onSaved,
+  focusedSectionId = null,
+  onSelectSection,
+  onSectionsChange,
 }: Props) {
   const teach = useFormSchemaTeach(fingerprint, sourceText, formName, onSaved);
+  const [organizationId, setOrganizationId] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [groups, setGroups] = useState<CompletenessLogicGroup[]>([]);
+  const [scopeSaving, setScopeSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const handleSave = async () => {
+    setScopeSaving(true);
+    setSaveError("");
+    teach.setSaved(false);
+    try {
+      await saveTaughtForm({
+        fingerprint,
+        name: teach.name,
+        sections: teach.sections,
+        organizationId,
+        serviceId,
+        completenessGroups: groups,
+      });
+      teach.setSaved(true);
+      onSaved?.();
+    } catch {
+      setSaveError("Could not save the form schema. Try again.");
+      teach.setSaved(false);
+    } finally {
+      setScopeSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    onSectionsChange?.(teach.sections);
+  }, [teach.sections, onSectionsChange]);
 
   if (teach.loading) {
     return (
@@ -47,14 +90,27 @@ export default function FormSchemaAnnotator({
   }
 
   const canSave =
-    !teach.saving && teach.sections.length > 0 && Boolean(teach.name.trim());
+    !teach.saving &&
+    !scopeSaving &&
+    teach.sections.length > 0 &&
+    Boolean(teach.name.trim());
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       <TeachHeader
         name={teach.name}
+        organizationId={organizationId}
+        serviceId={serviceId}
         onName={(value) => {
           teach.setName(value);
+          teach.setSaved(false);
+        }}
+        onOrganization={(id) => {
+          setOrganizationId(id);
+          teach.setSaved(false);
+        }}
+        onService={(id) => {
+          setServiceId(id);
           teach.setSaved(false);
         }}
       />
@@ -66,6 +122,8 @@ export default function FormSchemaAnnotator({
             <FormSchemaSectionEditor
               key={`${section.section_id}-${sIdx}`}
               section={section}
+              focused={focusedSectionId === section.section_id}
+              onSelect={() => onSelectSection?.(section)}
               onPatch={(patch) => teach.patchSection(sIdx, patch)}
               onPatchItem={(iIdx, patch) => teach.patchItem(sIdx, iIdx, patch)}
               onAddItem={() => teach.addItem(sIdx)}
@@ -73,15 +131,22 @@ export default function FormSchemaAnnotator({
             />
           ))
         )}
+        <FormSchemaCompletenessEditor
+          groups={groups}
+          onChange={(next) => {
+            setGroups(next);
+            teach.setSaved(false);
+          }}
+        />
       </Box>
       <TeachFooter
-        error={teach.error}
+        error={teach.error || saveError}
         saved={teach.saved}
-        saving={teach.saving}
+        saving={teach.saving || scopeSaving}
         canSave={canSave}
         showAddMore={teach.sections.length > 0}
         onAdd={teach.addSection}
-        onSave={teach.saveSchema}
+        onSave={() => void handleSave()}
         onRetry={() => void teach.retryDetect()}
       />
     </Box>
@@ -90,10 +155,18 @@ export default function FormSchemaAnnotator({
 
 function TeachHeader({
   name,
+  organizationId,
+  serviceId,
   onName,
+  onOrganization,
+  onService,
 }: {
   name: string;
+  organizationId: string;
+  serviceId: string;
   onName: (value: string) => void;
+  onOrganization: (id: string) => void;
+  onService: (id: string) => void;
 }) {
   return (
     <Box sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider", flexShrink: 0 }}>
@@ -113,6 +186,12 @@ function TeachHeader({
         size="small"
         fullWidth
         sx={{ mt: 1 }}
+      />
+      <FormSchemaScopeFields
+        organizationId={organizationId}
+        serviceId={serviceId}
+        onOrganization={onOrganization}
+        onService={onService}
       />
     </Box>
   );

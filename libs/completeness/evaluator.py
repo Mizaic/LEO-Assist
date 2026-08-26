@@ -8,8 +8,10 @@ Atlas trace:
 
 from __future__ import annotations
 
+from functools import partial
 from typing import Any, Callable
 
+from libs.completeness.logic_groups import evaluate_logic_group
 from libs.terminology.semantic_tag import normalise_semantic_tag
 
 _ISA_DESCENDANTS_QUERY = (
@@ -85,13 +87,14 @@ def evaluate_completeness_groups(
     """Evaluate completeness groups against present concepts and semantic tags."""
     matched: list[dict[str, Any]] = []
     missing: list[dict[str, Any]] = []
+    leaf = partial(
+        _evaluate_leaf,
+        present_concept_ids=present_concept_ids,
+        present_semantic_tags=present_semantic_tags,
+        isa_expansion=isa_expansion,
+    )
     for group in schema:
-        row = _evaluate_group(
-            group,
-            present_concept_ids=present_concept_ids,
-            present_semantic_tags=present_semantic_tags,
-            isa_expansion=isa_expansion,
-        )
+        row = evaluate_logic_group(group, leaf)
         (matched if row["matched"] else missing).append(row)
     return {
         "matched_groups": matched,
@@ -101,7 +104,7 @@ def evaluate_completeness_groups(
     }
 
 
-def _evaluate_group(
+def _evaluate_leaf(
     group: dict[str, Any],
     *,
     present_concept_ids: set[int],
@@ -119,11 +122,12 @@ def _evaluate_group(
     missing_tags = bool(categories) and not tag_hit
     return {
         "name": str(group.get("name") or ""),
-        "required": bool(group.get("required")),
+        "required": bool(group.get("required", True)),
         "matched": not absent_ids and not missing_tags,
         "matched_concept_ids": id_hits,
         "missing_concept_ids": absent_ids,
         "matched_semantic_category": tag_hit,
+        "matched_member_names": [],
     }
 
 
