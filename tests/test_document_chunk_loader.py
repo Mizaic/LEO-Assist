@@ -7,7 +7,60 @@ from libs.pipeline.document_chunk_loader import (
     build_document_chunk_state,
     is_document_chunks_mode,
     merge_referral_message_fields,
+    strip_pdf_attachments,
 )
+
+# ---------------------------------------------------------------------------
+# strip_pdf_attachments
+# ---------------------------------------------------------------------------
+
+_GP_FORM = (
+    "--- Document: 23 Jun 2026 Two Week Wait Referral to Gynaecology .doc ---\n\n"
+    "Section A: cancer type suspected\n"
+    "Cervix [ ] Ovary [ ]\n"
+    "Section B: 14-day rule criteria\n"
+    "B1 PMB [ ]"
+)
+
+_ERS_WRAPPER = (
+    "--- Document: Clinical Information.pdf ---\n\n"
+    "NHS Confidential\n"
+    "Clinical Information Summary\n"
+    "UBRN: 000481914514\n"
+    "No information provided"
+)
+
+_BUNDLE = _GP_FORM + "\n\n" + _ERS_WRAPPER
+
+
+def test_strip_pdf_attachments_removes_pdf_section() -> None:
+    result = strip_pdf_attachments(_BUNDLE)
+    assert "Clinical Information Summary" not in result
+    assert "UBRN: 000481914514" not in result
+    assert "No information provided" not in result
+
+
+def test_strip_pdf_attachments_keeps_doc_content() -> None:
+    result = strip_pdf_attachments(_BUNDLE)
+    assert "Section A: cancer type suspected" in result
+    assert "Cervix [ ]" in result
+    assert "Section B: 14-day rule criteria" in result
+
+
+def test_strip_pdf_attachments_no_op_when_no_pdf() -> None:
+    text = "Section A\nCervix [ ] Ovary [ ]\nSection B\nB1 PMB [ ]"
+    assert strip_pdf_attachments(text) == text
+
+
+def test_strip_pdf_attachments_case_insensitive() -> None:
+    text = "GP Form content\n\n--- Document: report.PDF ---\nAdmin noise"
+    result = strip_pdf_attachments(text)
+    assert "Admin noise" not in result
+    assert "GP Form content" in result
+
+
+def test_strip_pdf_attachments_empty_string() -> None:
+    assert strip_pdf_attachments("") == ""
 
 
 def test_merge_referral_message_fields_copies_top_level_into_context() -> None:
@@ -24,6 +77,62 @@ def test_merge_referral_message_fields_copies_top_level_into_context() -> None:
     assert context["text_segmentation_mode"] == DOCUMENT_CHUNKS_MODE
     assert context["referral_id"] == "ref-1"
     assert context["patient_id"] == "p1"
+
+
+# ---------------------------------------------------------------------------
+# build_document_chunk_state -- PDF wrapper stripping
+# ---------------------------------------------------------------------------
+
+_DOC_CHUNK = (
+    "--- Document: 23 Jun 2026 Two Week Wait Referral to Gynaecology .doc ---\n"
+    "Section A: cancer type suspected\nCervix [ ] Ovary [ ]"
+)
+_PDF_CHUNK = (
+    "--- Document: Clinical Information.pdf ---\n"
+    "NHS Confidential\nClinical Information Summary\nNo information provided"
+)
+
+
+def _make_rows(*texts: str) -> list[dict]:
+    return [
+        {
+            "chunk_id": f"chunk-{i}",
+            "text": t,
+            "ordinal": i,
+            "char_start": None,
+            "char_end": None,
+        }
+        for i, t in enumerate(texts)
+    ]
+
+
+def test_build_encounter_text_strips_pdf_wrapper() -> None:
+    rows = _make_rows(_DOC_CHUNK, _PDF_CHUNK)
+    state = build_document_chunk_state(rows)
+    assert "Clinical Information Summary" not in state["encounter_text"]
+    assert "No information provided" not in state["encounter_text"]
+
+
+def test_build_encounter_text_keeps_gp_form_content() -> None:
+    rows = _make_rows(_DOC_CHUNK, _PDF_CHUNK)
+    state = build_document_chunk_state(rows)
+    assert "Section A: cancer type suspected" in state["encounter_text"]
+    assert "Cervix" in state["encounter_text"]
+
+
+def test_build_sentences_keeps_all_chunks_including_wrapper() -> None:
+    """Individual sentences must keep wrapper text for SNOMED provenance."""
+    rows = _make_rows(_DOC_CHUNK, _PDF_CHUNK)
+    state = build_document_chunk_state(rows)
+    assert len(state["sentences"]) == 2
+    wrapper_sentence = state["sentences"][1]
+    assert "Clinical Information" in wrapper_sentence["text_raw"]
+
+
+def test_build_encounter_text_unchanged_when_no_pdf_chunk() -> None:
+    rows = _make_rows(_DOC_CHUNK)
+    state = build_document_chunk_state(rows)
+    assert "Section A: cancer type suspected" in state["encounter_text"]
 
 
 def test_build_document_chunk_state_preserves_table_text() -> None:

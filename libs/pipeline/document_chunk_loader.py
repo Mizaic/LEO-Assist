@@ -9,9 +9,22 @@ Atlas trace:
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from libs.ner.form_checkbox_normalizer import normalize_form_checkbox_text
+
+# The HCCP bundle assembler (combine_referral_markdown in HCCP-Agents) writes a
+# header line before each document:  --- Document: {title} ---
+# PDF attachments (e.g. the e-RS "Clinical Information.pdf" wrapper) are
+# administrative boilerplate.  Including them in encounter_text contaminates
+# the form fingerprint, inflates the wrapper penalty, and degrades few-shot
+# similarity -- causing false-positive pauses even after teaching.
+# This pattern strips the first PDF-titled section and everything after it.
+_PDF_BOUNDARY_RE = re.compile(
+    r"\n*---\s*Document:[^\n]+\.pdf\s*---.*$",
+    re.DOTALL | re.IGNORECASE,
+)
 
 DOCUMENT_CHUNKS_MODE = "document_chunks"
 ENCOUNTER_SENTENCES_MODE = "encounter_sentences"
@@ -27,6 +40,20 @@ RETURN c.id AS chunk_id,
        coalesce(c.char_end, 0) AS char_end
 ORDER BY ordinal ASC
 """
+
+
+def strip_pdf_attachments(text: str) -> str:
+    """Remove PDF attachment sections from a referral bundle encounter text.
+
+    The HCCP bundle assembler prefixes every document with a header line:
+        --- Document: {title} ---
+    This function removes the first PDF-titled section and everything after
+    it, keeping only the primary referral form content (the .doc file).
+
+    The individual :Chunk sentences are left untouched so SNOMED concept
+    provenance can still be linked back to the correct chunk node.
+    """
+    return _PDF_BOUNDARY_RE.sub("", text).strip()
 
 
 def merge_referral_message_fields(body: dict[str, Any]) -> dict[str, Any]:
@@ -96,7 +123,7 @@ def build_document_chunk_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
         )
         text_parts.append(text_raw)
 
-    encounter_text = CHUNK_TEXT_SEPARATOR.join(text_parts)
+    encounter_text = strip_pdf_attachments(CHUNK_TEXT_SEPARATOR.join(text_parts))
     return {
         "sentences": sentences,
         "encounter_text": encounter_text,
