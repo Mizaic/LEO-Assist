@@ -8,10 +8,10 @@ import { landingForRole } from "@leo/design-system";
 import { postLoginPath } from "@/lib/postLoginPath";
 
 describe("postLoginPath", () => {
-  it("sends platform_admin to Knowledge", () => {
-    expect(landingForRole("platform_admin")).toBe("/admin/knowledge");
+  it("sends administrator to Knowledge", () => {
+    expect(landingForRole("administrator")).toBe("/admin/knowledge");
     expect(
-      postLoginPath({ selectedRole: "platform_admin", isPlatformAdmin: true }),
+      postLoginPath({ selectedRole: "administrator", isPlatformAdmin: true }),
     ).toBe("/admin/knowledge");
   });
 

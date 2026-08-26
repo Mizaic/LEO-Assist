@@ -49,7 +49,7 @@ from libs.neo4j_client.client import PatientGraphClient
 # from the Mission Control patient drawer. Mirrors the front-end role
 # gate in PatientDetailDrawer / EditEpisodeDialog.
 EOC_CURATOR_ROLES: frozenset[str] = frozenset(
-    {"clinician", "qa_ra_lead", "platform_admin"}
+    {"triage_clinician", "clinician_admin", "regulatory_reviewer", "administrator"}
 )
 
 # Canonical milestone vocabulary -- write-side allow-list shared by
@@ -139,7 +139,7 @@ def require_eoc_curator_role(scope: CallerScope) -> str:
     Returns the effective actor role string (used by audit writes).
     """
     if scope.is_admin:
-        return "platform_admin"
+        return "administrator"
     if not scope.email:
         raise HTTPException(status_code=401, detail="Authentication required")
     # Lazy import to avoid pulling Redis / Neo4j role helpers into
@@ -153,7 +153,8 @@ def require_eoc_curator_role(scope: CallerScope) -> str:
             status_code=403,
             detail=(
                 "Selected role is not authorised to edit episodes of care. "
-                "Allowed roles: clinician, qa_ra_lead, platform_admin."
+                "Allowed roles: triage_clinician, clinician_admin, "
+                "regulatory_reviewer, administrator."
             ),
         )
     return selected

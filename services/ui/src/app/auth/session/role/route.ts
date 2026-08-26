@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest) {
   assertE2eModeNotInProduction();
   if (isE2eAuthMode()) {
     return NextResponse.json(
-      { ...E2E_SESSION_PAYLOAD, selected_role: "platform_admin" },
+      { ...E2E_SESSION_PAYLOAD, selected_role: "administrator" },
       { headers: { "Cache-Control": "no-store" } },
     );
   }

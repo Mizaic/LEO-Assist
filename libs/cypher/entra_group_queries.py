@@ -5,20 +5,16 @@ Atlas trace:
   DI: DI-E47C3FC2
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-F8EFEF89")
 
-Implements the Group -> Role binding catalogue used by core-api to translate
-Entra (Azure AD) security-group object IDs from the OIDC `groups` claim into
-LEO role names. See DI-D9D4BA02 (functional) and DI-3610585D (security) and
-the DO-11B1CC4D / R-A4473229 / VT-67FB9C97 chain in Atlas.
+HCCP graph (source of truth -- do not invent a second RBAC model):
 
-Schema additions
-----------------
-- ``:Group {entra_object_id, name, description, org_id}`` -- mirror of an
-  Entra security group. ``entra_object_id`` is the GUID Entra puts in the
-  ``groups`` token claim.
-- ``(:Group)-[:GRANTS_ROLE {org_id}]->(:Role)`` -- binds an Entra group to
-  a LEO role. ``org_id`` is optional and reserved for future per-tenant
-  scoping; today it is left empty for global roles.
-- Uniqueness: one ``:Group`` per ``entra_object_id``.
+    (:User)-[:IS_MEMBER_OF]->(:Group)-[:HAS_ROLE]->(:Role)
+
+A clinician identity node also carries :Practitioner. RBAC queries use :User.
+Role nodes carry both ``id`` (HCCP) and ``name`` (LEO) set to the same
+canonical role string.
+
+This module never calls Microsoft Graph -- the security DI (DI-3610585D)
+forbids it. The overage path explicitly falls through.
 """
 
 from __future__ import annotations
@@ -32,44 +28,38 @@ FOR (g:Group) REQUIRE g.entra_object_id IS UNIQUE
 # per matched group with the role name; missing IDs simply do not appear.
 RESOLVE_ROLES_FROM_ENTRA_GROUPS = """
 UNWIND $group_object_ids AS oid
-MATCH (g:Group {entra_object_id: oid})-[:GRANTS_ROLE]->(r:Role)
-RETURN DISTINCT oid AS entra_object_id, r.name AS role_name
+MATCH (g:Group {entra_object_id: oid})-[:HAS_ROLE]->(r:Role)
+RETURN DISTINCT oid AS entra_object_id, coalesce(r.id, r.name) AS role_name
 """
 
-# Drop any [:HAS_ROLE] edges from the practitioner whose target Role.name is
-# not in the supplied $role_names list. Safe to run with an empty list (drops
-# every edge). Returns the count of edges removed.
-DROP_STALE_HAS_ROLE = """
-MATCH (pr:Practitioner {email: $email})-[old:HAS_ROLE]->(stale:Role)
-WHERE NOT stale.name IN $role_names
+# Drop Entra-backed group memberships that are no longer in the token.
+# Local groups (no entra_object_id) are left alone.
+DROP_STALE_IS_MEMBER_OF = """
+MATCH (u:User {email: $email})-[old:IS_MEMBER_OF]->(g:Group)
+WHERE g.entra_object_id IS NOT NULL
+  AND NOT g.entra_object_id IN $group_object_ids
 DELETE old
 RETURN count(old) AS removed
 """
 
-# Ensure the practitioner has a [:HAS_ROLE] edge to every Role.name in
-# $role_names. Roles must already exist (seed script guarantees this).
-# Returns the resolved current allowed-role set.
-ADD_HAS_ROLE_EDGES = """
-MATCH (pr:Practitioner {email: $email})
-WITH pr
-UNWIND $role_names AS rn
-MATCH (role:Role {name: rn})
-MERGE (pr)-[:HAS_ROLE]->(role)
-RETURN collect(DISTINCT role.name) AS allowed_roles
+# Ensure the user is a member of every matched Entra group.
+ADD_IS_MEMBER_OF = """
+MATCH (u:User {email: $email})
+WITH u
+UNWIND $group_object_ids AS oid
+MATCH (g:Group {entra_object_id: oid})
+MERGE (u)-[:IS_MEMBER_OF]->(g)
+RETURN collect(DISTINCT g.entra_object_id) AS group_ids
 """
 
-# Read the current allowed-role set without mutating anything. Used after
-# DROP_STALE_HAS_ROLE when the new role set is empty.
-READ_HAS_ROLE = """
-MATCH (pr:Practitioner {email: $email})
-OPTIONAL MATCH (pr)-[:HAS_ROLE]->(role:Role)
-RETURN collect(DISTINCT role.name) AS allowed_roles
+# Read allowed roles via the HCCP group path.
+READ_ROLES_VIA_GROUPS = """
+MATCH (u:User {email: $email})
+OPTIONAL MATCH (u)-[:IS_MEMBER_OF]->(g:Group)-[:HAS_ROLE]->(role:Role)
+RETURN collect(DISTINCT coalesce(role.id, role.name)) AS allowed_roles
 """
 
-# Idempotent seeder for the Entra-group binding catalogue. Each row of
-# $bindings supplies: entra_object_id, name, description, org_id (optional),
-# role_name. The script also seeds the role itself (MERGE) so a binding
-# YAML edit + re-run is enough to add a new role-grant.
+# Idempotent seeder for the Entra-group binding catalogue.
 SEED_GROUP_BINDINGS = """
 UNWIND $bindings AS b
 MERGE (g:Group {entra_object_id: b.entra_object_id})
@@ -81,37 +71,64 @@ SET g.name = b.name,
     g.updated_at = datetime(),
     g.created_at = coalesce(g.created_at, datetime())
 WITH g, b
-MERGE (role:Role {name: b.role_name})
-SET role.description = coalesce(role.description, b.role_name),
+MERGE (role:Role {id: b.role_name})
+SET role.name = coalesce(role.name, b.role_name),
+    role.description = coalesce(role.description, b.role_name),
     role.permissions  = coalesce(role.permissions, [])
-MERGE (g)-[gr:GRANTS_ROLE]->(role)
+MERGE (g)-[gr:HAS_ROLE]->(role)
 SET gr.org_id = coalesce(b.org_id, '')
 RETURN g.entra_object_id AS entra_object_id,
        g.name AS name,
-       role.name AS role_name,
+       coalesce(role.id, role.name) AS role_name,
        gr.org_id AS org_id
 """
 
-# Seeder for canonical Role permission strings. Idempotent. Run before
-# SEED_GROUP_BINDINGS so MERGE on Role above does not overwrite a richer
-# permissions list.
 SEED_ROLE_PERMISSIONS = """
 UNWIND $roles AS r
-MERGE (role:Role {name: r.name})
-SET role.description = r.description,
+MERGE (role:Role {id: r.name})
+SET role.name = r.name,
+    role.description = r.description,
     role.permissions = r.permissions
 RETURN role.name AS name
 """
 
-# Read-only diagnostic: the current catalogue of Entra group bindings.
 LIST_ENTRA_GROUP_BINDINGS = """
-MATCH (g:Group)-[gr:GRANTS_ROLE]->(role:Role)
+MATCH (g:Group)-[gr:HAS_ROLE]->(role:Role)
 WHERE g.entra_object_id IS NOT NULL
 RETURN g.entra_object_id AS entra_object_id,
        g.name AS name,
        g.description AS description,
        g.org_id AS group_org_id,
-       role.name AS role_name,
+       coalesce(role.id, role.name) AS role_name,
        gr.org_id AS grant_org_id
 ORDER BY g.name
+"""
+
+# One-shot alignment for leftover LEO-only edges / labels.
+ENSURE_USER_LABELS = """
+MATCH (pr:Practitioner)
+WHERE NOT pr:User
+SET pr:User
+RETURN count(pr) AS updated
+"""
+
+ENSURE_ROLE_IDS = """
+MATCH (r:Role)
+WHERE r.id IS NULL AND r.name IS NOT NULL
+SET r.id = r.name
+RETURN count(r) AS updated
+"""
+
+REWRITE_GRANTS_ROLE_TO_HAS_ROLE = """
+MATCH (g:Group)-[old:GRANTS_ROLE]->(r:Role)
+MERGE (g)-[:HAS_ROLE]->(r)
+DELETE old
+RETURN count(old) AS updated
+"""
+
+REWRITE_MEMBER_OF_TO_IS_MEMBER_OF = """
+MATCH (n)-[old:MEMBER_OF]->(g:Group)
+MERGE (n)-[:IS_MEMBER_OF]->(g)
+DELETE old
+RETURN count(old) AS updated
 """

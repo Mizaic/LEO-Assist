@@ -39,6 +39,9 @@ PATIENT_SCHEMA_CONSTRAINTS = [
     "CREATE CONSTRAINT system_config_id IF NOT EXISTS FOR (sc:SystemConfig) REQUIRE sc.id IS UNIQUE",
     "CREATE CONSTRAINT practitioner_id IF NOT EXISTS FOR (pr:Practitioner) REQUIRE pr.id IS UNIQUE",
     "CREATE INDEX practitioner_email IF NOT EXISTS FOR (pr:Practitioner) ON (pr.email)",
+    # HCCP identity label. Same node may also be :Practitioner.
+    "CREATE CONSTRAINT user_id IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE",
+    "CREATE INDEX user_email IF NOT EXISTS FOR (u:User) ON (u.email)",
     "CREATE INDEX group_org_id IF NOT EXISTS FOR (g:Group) ON (g.org_id)",
     # PCN (Primary Care Network) — new org tier between ICB and GP Practice
     "CREATE CONSTRAINT pcn_id IF NOT EXISTS FOR (p:PCN) REQUIRE p.id IS UNIQUE",

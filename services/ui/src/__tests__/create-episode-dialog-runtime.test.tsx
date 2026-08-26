@@ -32,7 +32,7 @@ describe("CreateEpisodeDialog runtime", () => {
       <CreateEpisodeDialog
         open
         patientId="pat-1"
-        reviewerRole="clinician"
+        reviewerRole="triage_clinician"
         onClose={onClose}
         onCreated={onCreated}
       />,

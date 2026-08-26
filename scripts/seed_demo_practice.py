@@ -73,7 +73,7 @@ _N_PATIENTS = 80
 _N_CANCER = 35
 _N_BENIGN = 25
 _N_OPEN = 10
-_N_BLOOD = 10   # patients with bf_* blood signal data
+_N_BLOOD = 10  # patients with bf_* blood signal data
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +96,9 @@ def _seed_org_nodes(client: PatientGraphClient) -> None:
             "ON CREATE SET o.name = $name, o.odsCode = $ods, "
             "  o.short_name = $name, o.source = 'demo', "
             "  o.onboarding_status = 'active', o.created_at = datetime()",
-            id=oid, name=name, ods=ods,
+            id=oid,
+            name=name,
+            ods=ods,
         )
 
 
@@ -112,22 +114,26 @@ def _seed_org_relationships(client: PatientGraphClient) -> None:
     client.run(
         "MATCH (gp:GPPractice {id: $gp}), (pcn:PCN {id: $pcn}) "
         "MERGE (gp)-[:PART_OF_PCN]->(pcn)",
-        gp=DEMO_GP_ID, pcn=DEMO_PCN_ID,
+        gp=DEMO_GP_ID,
+        pcn=DEMO_PCN_ID,
     )
     client.run(
         "MATCH (pcn:PCN {id: $pcn}), (icb:ICB {id: $icb}) "
         "MERGE (pcn)-[:COMMISSIONED_BY]->(icb)",
-        pcn=DEMO_PCN_ID, icb=DEMO_ICB_ID,
+        pcn=DEMO_PCN_ID,
+        icb=DEMO_ICB_ID,
     )
     client.run(
         "MATCH (gp:GPPractice {id: $gp}), (icb:ICB {id: $icb}) "
         "MERGE (gp)-[:COMMISSIONED_BY]->(icb)",
-        gp=DEMO_GP_ID, icb=DEMO_ICB_ID,
+        gp=DEMO_GP_ID,
+        icb=DEMO_ICB_ID,
     )
     client.run(
         "MATCH (icb:ICB {id: $icb}), (ca:CancerAlliance {id: $ca}) "
         "MERGE (icb)-[:PART_OF_ALLIANCE]->(ca)",
-        icb=DEMO_ICB_ID, ca=DEMO_ALLIANCE_ID,
+        icb=DEMO_ICB_ID,
+        ca=DEMO_ALLIANCE_ID,
     )
 
 
@@ -141,7 +147,8 @@ def _seed_service(client: PatientGraphClient) -> None:
     client.run(
         "MATCH (sp:ServiceProvider {id: $sp}), (s:Service {id: $sid}) "
         "MERGE (sp)-[:PROVIDES_SERVICE]->(s)",
-        sp=DEMO_SP_ID, sid=DEMO_SERVICE_ID,
+        sp=DEMO_SP_ID,
+        sid=DEMO_SERVICE_ID,
     )
 
 
@@ -149,31 +156,42 @@ def _seed_service(client: PatientGraphClient) -> None:
 # Practitioner
 # ---------------------------------------------------------------------------
 
+
 def _seed_practitioner(client: PatientGraphClient) -> None:
     """Create demo clinician and demo admin linked to the demo GP."""
     users = [
-        ("demo.clinician@demo.nhs.uk", "Demo Clinician", False, "clinician"),
-        ("demo.admin@demo.nhs.uk", "Demo Admin", True, "qa_ra_lead"),
+        ("demo.clinician@demo.nhs.uk", "Demo Clinician", False, "triage_clinician"),
+        ("demo.admin@demo.nhs.uk", "Demo Admin", True, "administrator"),
     ]
     for email, name, is_admin, role_name in users:
         client.run(
-            "MERGE (pr:Practitioner {email: $email}) "
+            "MERGE (pr:Practitioner:User {email: $email}) "
             "ON CREATE SET pr.name = $name, pr.is_platform_admin = $is_admin, "
             "  pr.source = 'demo', pr.selected_role = $role, "
-            "  pr.created_at = datetime()",
-            email=email, name=name, is_admin=is_admin, role=role_name,
+            "  pr.created_at = datetime() "
+            "SET pr:User, pr:Practitioner",
+            email=email,
+            name=name,
+            is_admin=is_admin,
+            role=role_name,
         )
         client.run(
-            "MATCH (pr:Practitioner {email: $email}), (o:Organization {id: $org}) "
+            "MATCH (pr:User {email: $email}), (o:Organization {id: $org}) "
             "MERGE (pr)-[:WORKS_AT]->(o)",
-            email=email, org=DEMO_GP_ID,
+            email=email,
+            org=DEMO_GP_ID,
         )
         client.run(
-            "MATCH (pr:Practitioner {email: $email}) "
-            "MERGE (r:Role {name: $role}) "
-            "ON CREATE SET r.source = 'demo' "
-            "MERGE (pr)-[:HAS_ROLE]->(r)",
-            email=email, role=role_name,
+            "MATCH (pr:User {email: $email}) "
+            "MERGE (r:Role {id: $role}) "
+            "ON CREATE SET r.name = $role, r.source = 'demo' "
+            "MERGE (g:Group {id: $gid}) "
+            "ON CREATE SET g.name = $role, g.source = 'demo' "
+            "MERGE (g)-[:HAS_ROLE]->(r) "
+            "MERGE (pr)-[:IS_MEMBER_OF]->(g)",
+            email=email,
+            role=role_name,
+            gid=f"demo-role-{role_name}",
         )
     print("  [OK] Practitioners seeded (demo.clinician / demo.admin)")
 
@@ -181,6 +199,7 @@ def _seed_practitioner(client: PatientGraphClient) -> None:
 # ---------------------------------------------------------------------------
 # Patients
 # ---------------------------------------------------------------------------
+
 
 def _rand_birth_date(age_min: int = 40, age_max: int = 85) -> str:
     age = _RNG.randint(age_min, age_max)
@@ -198,12 +217,15 @@ def _seed_patients(client: PatientGraphClient) -> None:
             "MERGE (p:Patient {id: $id}) "
             "ON CREATE SET p.gender = $gender, p.birthDate = $dob, "
             "  p.source = 'demo', p.created_at = datetime()",
-            id=pid, gender=genders[i - 1], dob=_rand_birth_date(),
+            id=pid,
+            gender=genders[i - 1],
+            dob=_rand_birth_date(),
         )
         client.run(
             "MATCH (p:Patient {id: $pid}), (gp:GPPractice {id: $gp}) "
             "MERGE (p)-[:HAS_GENERAL_PRACTITIONER]->(gp)",
-            pid=pid, gp=DEMO_GP_ID,
+            pid=pid,
+            gp=DEMO_GP_ID,
         )
     print(f"  [OK] {_N_PATIENTS} patients seeded")
 
@@ -211,6 +233,7 @@ def _seed_patients(client: PatientGraphClient) -> None:
 # ---------------------------------------------------------------------------
 # Episodes
 # ---------------------------------------------------------------------------
+
 
 def _cohort_fields(idx: int) -> tuple:
     """Return (status, cancer_type, staging, early_late, inferred_outcome)."""
@@ -284,7 +307,8 @@ def _seed_episodes(client: PatientGraphClient) -> None:
         client.run(
             "MATCH (p:Patient {id: $pid}), (ep:EpisodeOfCare {episode_id: $ep_id}) "
             "MERGE (p)-[:HAS_EPISODE_OF_CARE]->(ep)",
-            pid=p["patient_id"], ep_id=p["ep_id"],
+            pid=p["patient_id"],
+            ep_id=p["ep_id"],
         )
     print(f"  [OK] {_N_PATIENTS} episodes seeded")
 
@@ -293,13 +317,18 @@ def _seed_episodes(client: PatientGraphClient) -> None:
 # Milestone encounters
 # ---------------------------------------------------------------------------
 
+
 def _seed_milestone_encounters(client: PatientGraphClient) -> None:
     """Create referral + outcome milestone encounters per episode."""
     for i in range(1, _N_PATIENTS + 1):
         p = _episode_props(i)
         _create_milestone(
-            client, i, "referral", p["referral_date"],
-            p["patient_id"], p["ep_id"],
+            client,
+            i,
+            "referral",
+            p["referral_date"],
+            p["patient_id"],
+            p["ep_id"],
         )
         if p["status"] in ("completed",) and p["inferred_outcome"] == "cancer":
             diag_date = (
@@ -307,8 +336,12 @@ def _seed_milestone_encounters(client: PatientGraphClient) -> None:
                 + timedelta(days=_RNG.randint(30, 120))
             ).isoformat()
             _create_milestone(
-                client, i, "diagnosis", diag_date,
-                p["patient_id"], p["ep_id"],
+                client,
+                i,
+                "diagnosis",
+                diag_date,
+                p["patient_id"],
+                p["ep_id"],
             )
         elif p["status"] == "closed_benign":
             close_date = (
@@ -316,8 +349,12 @@ def _seed_milestone_encounters(client: PatientGraphClient) -> None:
                 + timedelta(days=_RNG.randint(20, 90))
             ).isoformat()
             _create_milestone(
-                client, i, "benign_closure", close_date,
-                p["patient_id"], p["ep_id"],
+                client,
+                i,
+                "benign_closure",
+                close_date,
+                p["patient_id"],
+                p["ep_id"],
             )
     print(f"  [OK] Milestone encounters seeded")
 
@@ -335,18 +372,22 @@ def _create_milestone(
         "MERGE (enc:Encounter {id: $enc_id}) "
         "ON CREATE SET enc.date = $date, enc.source = 'demo', "
         "  enc.text = $text, enc.created_at = datetime()",
-        enc_id=enc_id, date=enc_date,
+        enc_id=enc_id,
+        date=enc_date,
         text=f"Demo {milestone_type} encounter",
     )
     client.run(
         "MATCH (p:Patient {id: $pid}), (enc:Encounter {id: $enc_id}) "
         "MERGE (p)-[:HAS_ENCOUNTER]->(enc)",
-        pid=patient_id, enc_id=enc_id,
+        pid=patient_id,
+        enc_id=enc_id,
     )
     client.run(
         "MATCH (enc:Encounter {id: $enc_id}), (ep:EpisodeOfCare {episode_id: $ep_id}) "
         "MERGE (enc)-[r:IS_PART_OF {milestone_type: $mt}]->(ep)",
-        enc_id=enc_id, ep_id=ep_id, mt=milestone_type,
+        enc_id=enc_id,
+        ep_id=ep_id,
+        mt=milestone_type,
     )
 
 
@@ -354,10 +395,12 @@ def _create_milestone(
 # Symptom encounters
 # ---------------------------------------------------------------------------
 
+
 def _fetch_kg_symptom_ids(client: PatientGraphClient) -> list[str]:
     """Try to read valid symptom concept IDs from the Knowledge Graph ValueSet."""
     try:
         from libs.neo4j_client.client import KnowledgeGraphClient
+
         kg = KnowledgeGraphClient()
         try:
             rows = kg.run(
@@ -368,6 +411,7 @@ def _fetch_kg_symptom_ids(client: PatientGraphClient) -> list[str]:
             kg.close()
         if rows and rows[0].get("raw_json"):
             import json
+
             vs = json.loads(rows[0]["raw_json"])
             ids = [
                 str(c.get("code") or c.get("concept_id") or "")
@@ -396,12 +440,14 @@ def _seed_symptom_encounters(client: PatientGraphClient) -> None:
             "MERGE (enc:Encounter {id: $enc_id}) "
             "ON CREATE SET enc.date = $date, enc.source = 'demo', "
             "  enc.text = 'Demo symptom encounter', enc.created_at = datetime()",
-            enc_id=enc_id, date=enc_date,
+            enc_id=enc_id,
+            date=enc_date,
         )
         client.run(
             "MATCH (p:Patient {id: $pid}), (enc:Encounter {id: $enc_id}) "
             "MERGE (p)-[:HAS_ENCOUNTER]->(enc)",
-            pid=p["patient_id"], enc_id=enc_id,
+            pid=p["patient_id"],
+            enc_id=enc_id,
         )
         chosen = _RNG.sample(symptom_ids, min(3, len(symptom_ids)))
         for cid in chosen:
@@ -420,18 +466,23 @@ def _create_documents_edge(
         "MERGE (d:Disorder {id: $nid}) "
         "ON CREATE SET d.conceptId = $cid, d.source = 'demo', "
         "  d.name = $nid, d.created_at = datetime()",
-        nid=node_id, cid=concept_id,
+        nid=node_id,
+        cid=concept_id,
     )
     client.run(
         "MATCH (enc:Encounter {id: $enc_id}), (d:Disorder {id: $nid}) "
         "MERGE (enc)-[:DOCUMENTS {domain: $domain, conceptId: $cid}]->(d)",
-        enc_id=enc_id, nid=node_id, domain=domain, cid=concept_id,
+        enc_id=enc_id,
+        nid=node_id,
+        domain=domain,
+        cid=concept_id,
     )
 
 
 # ---------------------------------------------------------------------------
 # Comorbidities
 # ---------------------------------------------------------------------------
+
 
 def _seed_comorbidities(client: PatientGraphClient) -> None:
     """Add HAS_DISEASE edges from patients to Disorder nodes (SNOMED IDs)."""
@@ -445,12 +496,15 @@ def _seed_comorbidities(client: PatientGraphClient) -> None:
                 "MERGE (d:Disorder {id: $nid}) "
                 "ON CREATE SET d.conceptId = $cid, d.source = 'demo', "
                 "  d.name = $label, d.created_at = datetime()",
-                nid=node_id, cid=cid, label=label,
+                nid=node_id,
+                cid=cid,
+                label=label,
             )
             client.run(
                 "MATCH (p:Patient {id: $pid}), (d:Disorder {id: $nid}) "
                 "MERGE (p)-[:HAS_DISEASE {domain: 'comorbidities'}]->(d)",
-                pid=pid, nid=node_id,
+                pid=pid,
+                nid=node_id,
             )
     print(f"  [OK] Comorbidities seeded ({len(_COMORBIDITY_SNOMED)} SNOMED groups)")
 
@@ -458,6 +512,7 @@ def _seed_comorbidities(client: PatientGraphClient) -> None:
 # ---------------------------------------------------------------------------
 # Blood signal
 # ---------------------------------------------------------------------------
+
 
 def _blood_z() -> float:
     return round(_RNG.gauss(0, 1), 4)
@@ -478,8 +533,13 @@ def _seed_blood_signal(client: PatientGraphClient) -> None:
             "SET ep.bf_cohort_label = $label, ep.bf_anchor_date = $anchor, "
             "  ep.bf_lymphocyte_z = $lz, ep.bf_neutrophil_pct_z = $nz, "
             "  ep.bf_haemoglobin_z = $hz, ep.bf_platelet_z = $pz",
-            ep_id=p["ep_id"], label=cohort, anchor=anchor,
-            lz=_blood_z(), nz=_blood_z(), hz=_blood_z(), pz=_blood_z(),
+            ep_id=p["ep_id"],
+            label=cohort,
+            anchor=anchor,
+            lz=_blood_z(),
+            nz=_blood_z(),
+            hz=_blood_z(),
+            pz=_blood_z(),
         )
         _seed_blood_obs_encounter(client, i, p["patient_id"], anchor)
     print(f"  [OK] Blood signal properties set on {_N_BLOOD} episodes")
@@ -502,12 +562,16 @@ def _link_blood_obs_to_encounter(
             "MERGE (obs:Observable_entity {id: $oid}) "
             "ON CREATE SET obs.name = $name, obs.conceptId = $cid, "
             "  obs.source = 'demo', obs.created_at = datetime()",
-            oid=obs_id, name=obs_name, cid=cid,
+            oid=obs_id,
+            name=obs_name,
+            cid=cid,
         )
         client.run(
             "MATCH (enc:Encounter {id: $enc_id}), (obs:Observable_entity {id: $oid}) "
             "MERGE (enc)-[:DOCUMENTS {domain: 'observations', value: $val}]->(obs)",
-            enc_id=enc_id, oid=obs_id, val=round(_RNG.gauss(5.0, 1.5), 2),
+            enc_id=enc_id,
+            oid=obs_id,
+            val=round(_RNG.gauss(5.0, 1.5), 2),
         )
 
 
@@ -526,12 +590,14 @@ def _seed_blood_obs_encounter(
         "MERGE (enc:Encounter {id: $enc_id}) "
         "ON CREATE SET enc.date = $date, enc.source = 'demo', "
         "  enc.text = 'Demo blood test encounter', enc.created_at = datetime()",
-        enc_id=enc_id, date=enc_date,
+        enc_id=enc_id,
+        date=enc_date,
     )
     client.run(
         "MATCH (p:Patient {id: $pid}), (enc:Encounter {id: $enc_id}) "
         "MERGE (p)-[:HAS_ENCOUNTER]->(enc)",
-        pid=patient_id, enc_id=enc_id,
+        pid=patient_id,
+        enc_id=enc_id,
     )
     _link_blood_obs_to_encounter(client, enc_id)
 
@@ -539,6 +605,7 @@ def _seed_blood_obs_encounter(
 # ---------------------------------------------------------------------------
 # Guard, teardown, list
 # ---------------------------------------------------------------------------
+
 
 def _already_seeded(client: PatientGraphClient) -> bool:
     rows = client.run(
@@ -564,9 +631,7 @@ def _list_demo_data(client: PatientGraphClient) -> None:
     print(f"{'='*60}")
     for r in orgs:
         print(f"  {r['name']} ({r['id']})  {r['labels']}")
-    pts = client.run(
-        "MATCH (p:Patient {source: 'demo'}) RETURN count(p) AS n"
-    )
+    pts = client.run("MATCH (p:Patient {source: 'demo'}) RETURN count(p) AS n")
     print(f"\nPatients: {pts[0]['n'] if pts else 0}")
     eps = client.run(
         "MATCH (ep:EpisodeOfCare {source: 'ncda_detector'}) "
@@ -579,6 +644,7 @@ def _list_demo_data(client: PatientGraphClient) -> None:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def _seed_all(client: PatientGraphClient) -> None:
     print(f"\n{'='*60}")

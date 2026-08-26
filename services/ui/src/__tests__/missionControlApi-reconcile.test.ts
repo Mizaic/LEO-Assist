@@ -51,8 +51,8 @@ describe("missionControlApi -- reconcile + lock client", () => {
 
   test("ReviewerRole matches the server enum 1-for-1", () => {
     const block = sliceTypeAlias(SOURCE, "ReviewerRole");
-    expect(block).toContain('"clinician"');
-    expect(block).toContain('"qa_ra_lead"');
+    expect(block).toContain('"triage_clinician"');
+    expect(block).toContain('"regulatory_reviewer"');
   });
 
   test("LockEntityType covers every lockable entity in libs/locks/models.py", () => {

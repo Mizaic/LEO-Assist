@@ -7,8 +7,8 @@
 //   - Expose 5 sections: details, encounters, review, close, merge.
 //   - Send sparse PATCH bodies (only changed fields).
 //   - Hard-disable destructive controls when the caller's role is
-//     outside the curator set (clinician / qa_ra_lead /
-//     platform_admin).
+//     outside the curator set (triage_clinician / clinician_admin /
+//     regulatory_reviewer / administrator).
 //   - Re-derive episode dates server-side after attach / detach
 //     (the UI only POSTs / DELETEs and refreshes; it never sets
 //     dates locally on attach).
@@ -30,7 +30,7 @@ function read(name: string): string {
   return fs.readFileSync(path.join(COMPONENT_DIR, name), "utf-8");
 }
 
-const CURATOR_ROLES = ["clinician", "qa_ra_lead", "platform_admin"];
+const CURATOR_ROLES = ["triage_clinician", "clinician_admin", "regulatory_reviewer", "administrator"];
 
 describe("VT-79845292 / VT-80AAC194 - EditEpisodeDialog", () => {
   it("VT-MEC-EDIT-001: dialog file exists and is a client component", () => {
@@ -68,7 +68,7 @@ describe("VT-79845292 / VT-80AAC194 - EditEpisodeDialog", () => {
       expect(src).toMatch(new RegExp(`"${role}"`));
     }
     expect(src).toMatch(/CURATOR_ROLES\.has\(reviewerRole\)/);
-    expect(src).toMatch(/Switch to[\s\S]+clinician/i);
+    expect(src).toMatch(/Switch to[\s\S]+clinical/i);
   });
 
   it("VT-MEC-EDIT-005: details panel produces a sparse PATCH body", () => {

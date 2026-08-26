@@ -41,13 +41,13 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Open a tile to see the patients behind it.",
       what: "Click a patient to open the full record.",
     },
-    clinical_coder: {
+    referral_supervisor: {
       title: "Care Overview",
       lede: "Today's open work for your team in one view.",
       how: "Open the red tiles first. They are the most urgent.",
       what: "Each row links to the screen that clears the task.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Care Overview",
       lede: "How the team is coping today, with throughput and safety trends.",
       how: "Open any tile to see the drill down and source filters.",
@@ -61,19 +61,19 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Start a new run or reopen a recent one.",
       what: "Each run produces codes for the team to review.",
     },
-    platform_admin: {
+    administrator: {
       title: "Operations Console",
       lede: "Run coding jobs, watch progress, and check results.",
       how: "Start a run, check the job list, or drill into a batch.",
       what: "Outputs flow to the coding review and audit queues.",
     },
-    clinical_coder: {
+    referral_supervisor: {
       title: "Operations Console",
       lede: "Kick off coding runs and pick up review work as it lands.",
       how: "Start a run, then open the review queue when it finishes.",
       what: "Each finished run adds rows to your work queue.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Operations Console",
       lede: "Oversight of every coding run, with QA drill-downs by site.",
       how: "Filter by site or pathway to focus a review window.",
@@ -93,7 +93,7 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Open a pathway to see which step each patient is at.",
       what: "Click a step to open the patients waiting at it.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Pathway Explorer",
       lede: "Pathway step counts, wait times, and outlier detection.",
       how: "Use the filters to focus on a site or a cohort.",
@@ -107,7 +107,7 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Open a card to change a setting or see a trend.",
       what: "Changes take effect on the next pipeline run.",
     },
-    platform_admin: {
+    administrator: {
       title: "Platform",
       lede: "System health, costs, and settings for this deployment.",
       how: "Drill in for per-service metrics, quotas, and audit logs.",
@@ -121,13 +121,13 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Pick a person to change their role or access.",
       what: "Every change is logged for audit.",
     },
-    platform_admin: {
+    administrator: {
       title: "Users",
       lede: "Manage practitioners, roles, and org access for this site.",
       how: "Open a user to change their role or remove access.",
       what: "Every change writes an append-only audit entry.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Users",
       lede: "Who has access, what role they hold, and when they last signed in.",
       how: "Filter by role or org to prepare an access review.",
@@ -147,7 +147,7 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Pick a section to review or change the patient view.",
       what: "Patient messages land in your inbox for review.",
     },
-    platform_admin: {
+    administrator: {
       title: "Patient Portal",
       lede: "Public-facing portal settings for your organisation.",
       how: "Open the content or access tabs to change what patients see.",
@@ -177,13 +177,13 @@ export const AREA_INTRO_COPY: Record<AreaKey, IntroRoleCopy> = {
       how: "Click a row to start that job. Urgent rows sit at the top.",
       what: "The window shows the letter and the facts you need to check.",
     },
-    clinical_coder: {
+    referral_supervisor: {
       title: "My Work",
       lede: "Every open task for you, in one place.",
       how: "Click a row to start that job. Urgent rows sit at the top.",
       what: "The window shows the letter and the facts you need to check.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Team Work",
       lede: "Tasks your team has open across code, safety, and labels.",
       how: "Filter by source to see one queue at a time.",

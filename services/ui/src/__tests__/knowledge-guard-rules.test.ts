@@ -164,7 +164,7 @@ describe("KnowledgeCopy includes guard-rules", () => {
     expect(src).not.toMatch(/"workbench"/);
   });
 
-  it("has platform_admin copy for guard-rules", () => {
+  it("has administrator copy for guard-rules", () => {
     expect(src).toMatch(/Pipeline guard configuration/);
   });
 });

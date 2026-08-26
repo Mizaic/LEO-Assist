@@ -2,7 +2,7 @@
 
 GET    /api/ncda/pathway-config            list all sites' bands
 GET    /api/ncda/pathway-config/{site_key} read one
-PUT    /api/ncda/pathway-config/{site_key} upsert one (qa-ra-lead role)
+PUT    /api/ncda/pathway-config/{site_key} upsert one (regulatory_reviewer or administrator role)
 
 Stores per-site typical-time bands as :NCDAPathwayConfig nodes. Defaults
 load from libs.domains.ncda_pathway_config.DEFAULT_BANDS when no Neo4j
@@ -35,8 +35,8 @@ from libs.domains.ncda_pathway_config import (
 
 router = APIRouter(prefix="/api/ncda/pathway-config", tags=["ncda-pathway-config"])
 
-# Allowed roles for write operations - keep consistent with plan ("qa-ra-lead").
-_WRITE_ROLES = {"qa-ra-lead", "developer", "admin"}
+# Allowed roles for write operations on NCDA pathway config.
+_WRITE_ROLES = {"regulatory_reviewer", "technical_onboarding", "administrator"}
 
 
 class PathwayBandsBody(BaseModel):
@@ -54,14 +54,14 @@ def _bands_dict(bands: PathwayBands) -> dict[str, Any]:
 
 
 def _check_write_permission(scope: CallerScope) -> None:
-    """Allow developer/admin or anyone whose roles include qa-ra-lead."""
+    """Allow administrator, regulatory_reviewer, or technical_onboarding roles."""
     if scope.is_admin:
         return
     roles = {r.lower() for r in (getattr(scope, "roles", []) or [])}
     if not (_WRITE_ROLES & roles):
         raise HTTPException(
             status_code=403,
-            detail="qa-ra-lead, developer, or admin role required.",
+            detail="regulatory_reviewer, technical_onboarding, or administrator role required.",
         )
 
 

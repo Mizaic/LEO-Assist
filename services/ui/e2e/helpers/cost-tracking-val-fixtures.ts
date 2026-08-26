@@ -74,8 +74,8 @@ function sessionPayload() {
       },
     ],
     idleTimeoutMinutes: 30,
-    selected_role: "platform_admin",
-    allowed_roles: ["platform_admin"],
+    selected_role: "administrator",
+    allowed_roles: ["administrator"],
     needs_role_choice: false,
     density_preference: "comfortable",
   };

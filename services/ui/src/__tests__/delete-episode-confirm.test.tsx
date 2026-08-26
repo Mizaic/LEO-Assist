@@ -23,7 +23,7 @@ function read(name: string): string {
   return fs.readFileSync(path.join(COMPONENT_DIR, name), "utf-8");
 }
 
-const CURATOR_ROLES = ["clinician", "qa_ra_lead", "platform_admin"];
+const CURATOR_ROLES = ["triage_clinician", "clinician_admin", "regulatory_reviewer", "administrator"];
 
 describe("VT-4A333473 - DeleteEpisodeConfirm", () => {
   const src = read("DeleteEpisodeConfirm.tsx");

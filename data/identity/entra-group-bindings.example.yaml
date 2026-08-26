@@ -22,27 +22,30 @@
 #
 # Copy this file to entra-group-bindings.yaml and fill in the real
 # Entra Object IDs before running the seed script in any environment.
+#
+# Role names must match the CANONICAL_ROLES tuple in
+# libs/cypher/role_queries.py (HCCP-aligned catalog).
 
 roles:
   - name: triage_clinician
-    description: "Reads and reviews clinical encounters; can approve or reject AI proposals."
+    description: "Assess and prioritise patient referrals for the pathway."
     permissions:
-      - reviewer.read
-      - reviewer.approve
-      - reviewer.reject
-  - name: clinical_administrator
-    description: "Operations / admin support; reads patient pathways, manages alerts, no clinical sign-off."
+      - clinical:view:tasks
+      - clinical:update:triage
+      - clinical:view:assessment
+  - name: clinician_admin
+    description: "Clinical administration and pathway management."
     permissions:
-      - reviewer.read
-      - alerts.manage
-  - name: auditor
-    description: "QA / RA lead; reads everything, can run audits and exports."
+      - clinical:view:tasks
+      - clinical:manage:pathway
+      - clinical:view:assessment
+  - name: regulatory_reviewer
+    description: "Regulatory compliance and audit access."
     permissions:
-      - reviewer.read
-      - audit.read
-      - audit.export
-  - name: platform_admin
-    description: "Platform administrator across all orgs."
+      - regulatory:view:records
+      - admin:view:audit_logs
+  - name: administrator
+    description: "Full platform access across all orgs."
     permissions:
       - "*"
 
@@ -55,19 +58,19 @@ bindings:
     org_id: "ORG-ACME"
 
   - entra_object_id: "00000000-0000-0000-0000-000000000002"
-    name: "LEO Operations Staff - Acme Trust"
-    description: "Members get the clinical_administrator role in LEO."
-    role_name: clinical_administrator
+    name: "LEO Clinical Admins - Acme Trust"
+    description: "Members get the clinician_admin role in LEO."
+    role_name: clinician_admin
     org_id: "ORG-ACME"
 
   - entra_object_id: "00000000-0000-0000-0000-000000000003"
-    name: "LEO QA / RA Leads - Acme Trust"
-    description: "Members get the auditor role in LEO."
-    role_name: auditor
+    name: "LEO Regulatory Reviewers - Acme Trust"
+    description: "Members get the regulatory_reviewer role in LEO."
+    role_name: regulatory_reviewer
     org_id: "ORG-ACME"
 
   - entra_object_id: "00000000-0000-0000-0000-000000000099"
     name: "LEO Platform Administrators"
-    description: "Members get platform_admin across all orgs."
-    role_name: platform_admin
+    description: "Members get administrator access across all orgs."
+    role_name: administrator
     org_id: ""

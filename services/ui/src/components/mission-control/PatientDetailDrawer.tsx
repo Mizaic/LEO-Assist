@@ -44,9 +44,10 @@ import { maskAge, maskGpName, maskPatientId } from "@/lib/demoMode";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const EPISODE_CURATOR_ROLES = new Set([
-  "clinician",
-  "qa_ra_lead",
-  "platform_admin",
+  "triage_clinician",
+  "clinician_admin",
+  "regulatory_reviewer",
+  "administrator",
 ]);
 
 type DrawerTab = "overview" | "coded" | "encounters" | "audit";
@@ -444,7 +445,7 @@ export default function PatientDetailDrawer({
           title={
             isEpisodeCurator
               ? "Create a new episode"
-              : "Switch to clinician or QA / RA lead to create episodes"
+              : "Switch to a clinical or administrator role to create episodes"
           }
         >
           <span>
@@ -466,7 +467,7 @@ export default function PatientDetailDrawer({
               title={
                 isEpisodeCurator
                   ? `Edit episode ${focusedEpisode.episode_id}`
-                  : "Switch to clinician or QA / RA lead to edit"
+                  : "Switch to a clinical or administrator role to edit"
               }
             >
               <span>
@@ -486,7 +487,7 @@ export default function PatientDetailDrawer({
               title={
                 isEpisodeCurator
                   ? `Delete episode ${focusedEpisode.episode_id}`
-                  : "Switch to clinician or QA / RA lead to delete"
+                  : "Switch to a clinical or administrator role to delete"
               }
             >
               <span>

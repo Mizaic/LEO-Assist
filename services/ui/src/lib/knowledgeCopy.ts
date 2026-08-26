@@ -44,19 +44,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a note, confirm the code or fix it, and save.",
       what: "Your fix helps LEO get coding right for the next patient.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Gold dataset queue",
       lede: "This is the queue of notes waiting for your sign-off.",
       how: "Open the top note. Check the code. Approve or change it.",
       what: "Approved notes move into the gold set used to grade LEO.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Gold dataset (evidence)",
       lede: "Labelled notes used as the ground truth for accuracy scoring.",
       how: "Review inter-rater agreement, sign off on drift, and export the set.",
       what: "Exports feed into the quarterly accuracy report and the risk file.",
     },
-    platform_admin: {
+    administrator: {
       title: "Gold dataset storage",
       lede: "Where labelled notes live and how much space they use.",
       how: "Check counts per tenant and archive old sets if needed.",
@@ -77,19 +77,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Pick the code that fits. Save a draft for a colleague to publish.",
       what: "After publish, LEO reads the phrase as that code.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Phrase mappings queue",
       lede: "Phrases the pipeline could not code, waiting for a mapping.",
       how: "Search for the code. Save a draft. Someone else publishes.",
       what: "A published mapping is what the pipeline uses next time.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Phrase mapping log",
       lede: "Every draft, publish, and exclude for phrases LEO could not code.",
       how: "Check who drafted and who published. They must be different people.",
       what: "This keeps the live dictionary explainable in an inspection.",
     },
-    platform_admin: {
+    administrator: {
       title: "Phrase mapping rules",
       lede: "Inbox size, drafts, and live dictionary for this site.",
       how: "Watch the inbox count and the publish queue.",
@@ -110,19 +110,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Pick a trigger and say what it flips the meaning to.",
       what: "LEO will spot the trigger and not code the patient with it.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Context rule review",
       lede: "ConText rules that flip meaning (negated, history, family).",
       how: "Check the trigger. Approve it or send it back.",
       what: "Approved rules run in the pipeline tonight.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "ConText gate (NegEx + family)",
       lede: "Trigger phrases that flip an observation to negated, historic, family, or suspected.",
       how: "Audit new triggers weekly, verify dual-path parity, log sign-off.",
       what: "Keeps assertion handling consistent across runtime and Ask LEO.",
     },
-    platform_admin: {
+    administrator: {
       title: "Context engine rules",
       lede: "Trigger phrases and the tenants each rule set is scoped to.",
       how: "Review which tenants share rule sets and which override them.",
@@ -143,19 +143,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Check the list. If a rule is wrong, flag it for a platform admin.",
       what: "Each rule stops one kind of error before it reaches your queue.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Guard rule queue",
       lede: "Rules that filter extractions before they become codes.",
       how: "Review new rules. Check the pattern matches your expectations.",
       what: "Approved rules run at the next pipeline trigger.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "NER guard rules (evidence)",
       lede: "Configurable NerGuardRule nodes that extend built-in pipeline guards.",
       how: "Audit rule history, check family and scope, and confirm version evidence.",
       what: "Supports IEC 62304 traceability for DI-34712A9A.",
     },
-    platform_admin: {
+    administrator: {
       title: "Pipeline guard configuration",
       lede: "Extend guard families without a code change. Rules live in Neo4j.",
       how: "Pick a family, add a pattern-based rule, set scope and priority.",
@@ -176,19 +176,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a prompt to see what LEO asks and how it should reply.",
       what: "A clearer prompt means fewer borderline reviews for you.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Prompt library",
       lede: "The prompts you queue for review before a release.",
       how: "Diff the old and new prompt. Approve or send back.",
       what: "Approved prompts ship with the next deploy.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Prompt registry",
       lede: "Versioned prompts with change log, owner, and sign-off.",
       how: "Confirm the diff, record the risk impact, then sign.",
       what: "Sign-off locks the version used in production.",
     },
-    platform_admin: {
+    administrator: {
       title: "Prompt template nodes",
       lede: "Prompts live as Neo4j nodes with version history.",
       how: "Pick a tenant to see which prompts are active for them.",
@@ -209,19 +209,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open the rule. Tick 'approve' if it matches your practice.",
       what: "LEO will show the prompt on the next matching patient.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Guidance rules queue",
       lede: "Rules drafted from NICE and local guides, waiting for sign-off.",
       how: "Read the rule. Check the code link. Approve or amend.",
       what: "Approved rules flag gaps in the next audit sweep. Approve, then compile on this page so patients see it.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Clinical guideline gate",
       lede: "Rule authoring, NICE mapping, and sign-off for safety-netting prompts.",
       how: "Verify citation. Confirm severity. Record approval.",
       what: "Sign-off is logged for ISO 13485 design-change evidence. Approve, then compile on this page so patients see it.",
     },
-    platform_admin: {
+    administrator: {
       title: "Clinical Guidelines",
       lede: "Load a guideline, check the rules, then compile them.",
       how: "Use the bar to move through Load, Inspect, Review, and Compile.",
@@ -242,19 +242,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a pathway to see the steps and the target days.",
       what: "LEO tells you if a patient is behind on a step.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Pathway setup",
       lede: "The durable pathway rules LEO uses for audit, alerts, and referral workflows.",
       how: "Pick a pathway. Check durable step wiring and publish a reviewed version.",
       what: "Each active step reloads data from Neo4j and saves its result.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Durable workflow authoring",
       lede: "FHIR PlanDefinitions that drive pub/sub clinical workflow steps.",
       how: "Review triggers, persisted artefacts, event edges, and the version diff.",
       what: "Publishing a new version changes the governed processing contract.",
     },
-    platform_admin: {
+    administrator: {
       title: "Pathway catalogue",
       lede: "Every pathway a tenant has switched on and its version.",
       how: "Pick a tenant. Check which pathways are live.",
@@ -275,19 +275,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a domain. Add a missing code. Save.",
       what: "The next audit uses the updated group for counts.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Domain lists",
       lede: "SNOMED code lists grouped by meaning for QOF and audit.",
       how: "Search a code. Add it to the domain. Save.",
       what: "Domain changes re-score the next audit run.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Domain set versioning",
       lede: "Versioned SNOMED ECL expressions and enumerated code lists.",
       how: "Check ECL syntax. Diff. Approve or send back.",
       what: "Approved sets are locked and carry a change log.",
     },
-    platform_admin: {
+    administrator: {
       title: "Domain publish state",
       lede: "Which domain versions are live per tenant.",
       how: "Pick a tenant. Confirm the active version.",
@@ -308,19 +308,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Open a case, run it, and review the SBAR in the shared widget.",
       what: "Gold cases stop silent drift when prompts or plans change.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Validation Lab",
       lede: "One patient-building flow with a single gold contract per case.",
       how: "New patient, add PMH and encounters, write the referral, submit.",
       what: "Replaces separate test-patient and harness pages.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Validation Lab (evidence)",
       lede: "Production-shaped patients run through the real referral pipeline.",
       how: "Persist like production by default. Dry-run cannot promote gold.",
       what: "Supports DI-724CD8A5, DI-2289D095, DI-9138BAC9, DI-A898556B.",
     },
-    platform_admin: {
+    administrator: {
       title: "Validation Lab",
       lede: "Start with a product non-conformance, then check how LEO read the letter.",
       how: "Open or find the NCR first, then find the patient, run gold cases, or build a new test.",
@@ -341,19 +341,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Type a word or code. Open the result.",
       what: "You can copy the code into a consult note.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Terminology tools",
       lede: "SNOMED browser, mapping, and release notes.",
       how: "Use the browser to find a code. Check the map to local terms.",
       what: "Mappings feed into the surface form list.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Ontology management",
       lede: "Active SNOMED edition, version, and pending ingest jobs.",
       how: "Verify the edition. Run a release upgrade in staging first.",
       what: "New editions carry breaking changes that need impact review.",
     },
-    platform_admin: {
+    administrator: {
       title: "Terminology subsystem",
       lede: "Which SNOMED edition is live and when the next refresh runs.",
       how: "Trigger a refresh or pin an edition per tenant.",
@@ -374,19 +374,19 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       how: "Check the lab, unit, and SNOMED finding match your practice.",
       what: "Correct ranges help LEO explain why a result is abnormal.",
     },
-    clinical_administrator: {
+    clinician_admin: {
       title: "Lab config queue",
       lede: "Lab ranges, unit conversions, and abnormal finding codes.",
       how: "Add the observable code, accepted units, ranges, and findings.",
       what: "Saved config is used by guideline tests and result alerts.",
     },
-    auditor: {
+    regulatory_reviewer: {
       title: "Lab metadata control",
       lede: "Governed reference ranges and interpretation mappings for lab safety checks.",
       how: "Review source, demographic bands, unit conversion, and derived finding codes.",
       what: "This supports traceable abnormal-result classification evidence.",
     },
-    platform_admin: {
+    administrator: {
       title: "Lab metadata store",
       lede: "Knowledge graph config for result ranges and unit conversions.",
       how: "Seed defaults, review manual edits, and check missing-range warnings.",

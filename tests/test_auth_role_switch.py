@@ -46,7 +46,7 @@ def test_fetch_role_state_platform_admin_fallback_when_no_has_role_edge(
     state = fetch_role_state("rob.smith@healthcarecopilot.ai")
     assert state.is_platform_admin is True
     assert set(state.allowed_roles) == set(CANONICAL_ROLES)
-    assert "platform_admin" in state.allowed_roles
+    assert "administrator" in state.allowed_roles
 
 
 # -----------------------------------------------------------------------------
@@ -60,12 +60,12 @@ def test_fetch_role_state_returns_selected_and_allowed(
     instance.run.return_value = [
         {
             "selected_role": "triage_clinician",
-            "allowed_roles": ["triage_clinician", "clinical_coder"],
+            "allowed_roles": ["triage_clinician", "referral_supervisor"],
         }
     ]
     state = fetch_role_state("Rob@Test.AI ")
     assert state.selected_role == "triage_clinician"
-    assert state.allowed_roles == ["triage_clinician", "clinical_coder"]
+    assert state.allowed_roles == ["triage_clinician", "referral_supervisor"]
 
 
 @patch("libs.auth.role_state.PatientGraphClient")
@@ -74,12 +74,12 @@ def test_fetch_role_state_drops_unknown_roles(MockClient: MagicMock) -> None:
     instance.run.return_value = [
         {
             "selected_role": "admin_v2",
-            "allowed_roles": ["clinical_coder", "admin_v2", None],
+            "allowed_roles": ["referral_supervisor", "admin_v2", None],
         }
     ]
     state = fetch_role_state("user@x.com")
     assert state.selected_role is None
-    assert state.allowed_roles == ["clinical_coder"]
+    assert state.allowed_roles == ["referral_supervisor"]
 
 
 @patch("libs.auth.role_state.PatientGraphClient")
@@ -105,7 +105,7 @@ def test_set_selected_role_writes_audit_and_updates(
     pre_instance.run.return_value = [
         {
             "selected_role": "triage_clinician",
-            "allowed_roles": ["triage_clinician", "clinical_coder"],
+            "allowed_roles": ["triage_clinician", "referral_supervisor"],
         }
     ]
     post_instance = MagicMock()
@@ -113,21 +113,21 @@ def test_set_selected_role_writes_audit_and_updates(
         [{"id": "audit-1"}],
         [
             {
-                "selected_role": "clinical_coder",
-                "allowed_roles": ["triage_clinician", "clinical_coder"],
+                "selected_role": "referral_supervisor",
+                "allowed_roles": ["triage_clinician", "referral_supervisor"],
             }
         ],
     ]
     MockClient.side_effect = [pre_instance, post_instance]
 
-    updated = set_selected_role("rob@test.ai", "clinical_coder", "sess-1")
+    updated = set_selected_role("rob@test.ai", "referral_supervisor", "sess-1")
 
-    assert updated.selected_role == "clinical_coder"
-    assert updated.allowed_roles == ["triage_clinician", "clinical_coder"]
+    assert updated.selected_role == "referral_supervisor"
+    assert updated.allowed_roles == ["triage_clinician", "referral_supervisor"]
     # Audit write and set-role write are the two calls on the post_instance.
     assert post_instance.run.call_count == 2
     first_call = post_instance.run.call_args_list[0]
-    assert first_call.kwargs.get("to_role") == "clinical_coder"
+    assert first_call.kwargs.get("to_role") == "referral_supervisor"
     assert first_call.kwargs.get("from_role") == "triage_clinician"
     assert first_call.kwargs.get("session_id") == "sess-1"
 
@@ -145,7 +145,7 @@ def test_set_selected_role_rejects_role_not_allowed(
         {"selected_role": "triage_clinician", "allowed_roles": ["triage_clinician"]}
     ]
     with pytest.raises(RoleNotAllowedError):
-        set_selected_role("rob@test.ai", "platform_admin", "sess-1")
+        set_selected_role("rob@test.ai", "administrator", "sess-1")
 
 
 # -----------------------------------------------------------------------------

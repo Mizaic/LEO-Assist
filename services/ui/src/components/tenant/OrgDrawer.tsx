@@ -823,11 +823,11 @@ export default function OrgDrawer({ org, onClose, onChanged }: OrgDrawerProps) {
                                   }
                                 >
                                   <MenuItem value=""><em>No role</em></MenuItem>
-                                  <MenuItem value="org_admin">Org admin</MenuItem>
-                                  <MenuItem value="clinical_coder">Clinical coder</MenuItem>
-                                  <MenuItem value="clinical_viewer">Clinical viewer</MenuItem>
-                                  <MenuItem value="read_only">Read only</MenuItem>
-                                  <MenuItem value="auditor">Auditor</MenuItem>
+                                  <MenuItem value="organization_administrator">Org admin</MenuItem>
+                                  <MenuItem value="triage_clinician">Triage clinician</MenuItem>
+                                  <MenuItem value="referral_supervisor">Referral supervisor</MenuItem>
+                                  <MenuItem value="support_agent">Support agent</MenuItem>
+                                  <MenuItem value="regulatory_reviewer">Regulatory reviewer</MenuItem>
                                 </Select>
                               </FormControl>
                               {lastSeen && (

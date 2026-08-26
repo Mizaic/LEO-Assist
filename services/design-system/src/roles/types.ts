@@ -9,7 +9,7 @@
 
 // -- Role catalog -----------------------------------------------------------
 //
-// 14 canonical roles spanning clinical, admin, system, and viewer surfaces.
+// 28 canonical roles aligned to the HCCP platform role catalog.
 // Adding a role requires:
 //   1. A new entry in CANONICAL_ROLES (here)
 //   2. An entry in ROLE_COPY (label, description, category, icon)
@@ -22,21 +22,39 @@ export const CANONICAL_ROLES = [
   // Clinical
   "triage_clinician",
   "admin_triage",
-  "clinical_coder",
-  "auditor",
-  // Administration & management
-  "appointment_booking",
-  "clinical_administrator",
-  "referral_supervisor",
-  "registration_administrator",
-  // System & onboarding
+  "appointment_manual_booking",
+  "advice_and_guidance",
+  "create_referral",
+  "clinician_admin",
+  "referring_clinician",
+  "receptionist",
+  "reporting_sonographer",
+  "sonographer_qa",
+  "validation",
+  // Operations & management
   "pathway_supervisor",
-  "org_admin",
-  "pipeline_operator",
-  "platform_admin",
-  // Other / viewer
-  "clinical_viewer",
-  "read_only",
+  "referral_supervisor",
+  "operations_manager",
+  // Support & compliance
+  "support_agent",
+  "support_supervisor",
+  "regulatory_reviewer",
+  // LMS
+  "lms_admin",
+  "lms_manager",
+  "lms_learner",
+  "lms_training_manager",
+  // Onboarding
+  "customer_onboarding",
+  "technical_onboarding",
+  // Admin
+  "administrator",
+  "organization_administrator",
+  // EDMS
+  "point_of_care_clinician",
+  "medical_records_viewer",
+  // Registration
+  "registration_admin",
 ] as const;
 
 export type Role = (typeof CANONICAL_ROLES)[number];
@@ -73,16 +91,20 @@ export type RoleNavMap = Record<Role, RoleNavConfig>;
 
 // Categories used to group roles in the picker UI.
 export type RoleCategory =
-  | "Clinical Roles"
-  | "Administration & Management"
-  | "System & Onboarding"
-  | "Other";
+  | "Clinical"
+  | "Operations & Management"
+  | "Support & Compliance"
+  | "LMS"
+  | "Onboarding"
+  | "Admin"
+  | "EDMS"
+  | "Registration";
 
 export interface RoleCopyEntry {
   label: string;
   description: string;
   category: RoleCategory;
-  // Emoji icon displayed on the picker card.
+  // ASCII icon key mapped to a concrete MUI icon by the AppShell.
   icon: string;
 }
 
@@ -98,92 +120,180 @@ export interface OrgOption {
 // -- Role copy (plain English, Flesch-Kincaid <=9) -------------------------
 
 export const ROLE_COPY: Record<Role, RoleCopyEntry> = {
-  // -- Clinical Roles -------------------------------------------------------
+  // -- Clinical -------------------------------------------------------------
   triage_clinician: {
     label: "Triage Clinician",
     description: "Assess and prioritise patient referrals for the pathway.",
-    category: "Clinical Roles",
-    icon: "🩺",
+    category: "Clinical",
+    icon: "stethoscope",
   },
   admin_triage: {
     label: "Admin Triage",
     description: "Provide administrative support during patient triage.",
-    category: "Clinical Roles",
-    icon: "🏥",
+    category: "Clinical",
+    icon: "local-hospital",
   },
-  clinical_coder: {
-    label: "Clinical Coder",
-    description: "Code clinical encounters from patient notes.",
-    category: "Clinical Roles",
-    icon: "🏷️",
-  },
-  auditor: {
-    label: "Auditor",
-    description: "Review coding quality and perform clinical audits.",
-    category: "Clinical Roles",
-    icon: "✅",
-  },
-  // -- Administration & Management ------------------------------------------
-  appointment_booking: {
+  appointment_manual_booking: {
     label: "Appointment Booking",
     description: "Manually book and manage patient appointments.",
-    category: "Administration & Management",
-    icon: "📅",
+    category: "Clinical",
+    icon: "calendar-today",
   },
-  clinical_administrator: {
+  advice_and_guidance: {
+    label: "Advice & Guidance",
+    description: "Handle Advice and Guidance requests from referring clinicians.",
+    category: "Clinical",
+    icon: "chat",
+  },
+  create_referral: {
+    label: "Create Referral",
+    description: "Create and submit patient referrals.",
+    category: "Clinical",
+    icon: "send",
+  },
+  clinician_admin: {
     label: "Clinical Administrator",
-    description: "Oversee clinical administration and day-to-day operations.",
-    category: "Administration & Management",
-    icon: "📋",
+    description: "Oversee clinical administration and pathway management.",
+    category: "Clinical",
+    icon: "assignment",
+  },
+  referring_clinician: {
+    label: "Referring Clinician",
+    description: "Create and manage referrals for patients.",
+    category: "Clinical",
+    icon: "person-add",
+  },
+  receptionist: {
+    label: "Receptionist",
+    description: "Manage reception and patient appointment bookings.",
+    category: "Clinical",
+    icon: "desk",
+  },
+  reporting_sonographer: {
+    label: "Reporting Sonographer",
+    description: "Review imaging and produce diagnostic reports.",
+    category: "Clinical",
+    icon: "biotech",
+  },
+  sonographer_qa: {
+    label: "Sonographer QA",
+    description: "Quality assurance for imaging studies.",
+    category: "Clinical",
+    icon: "verified",
+  },
+  validation: {
+    label: "Validation",
+    description: "Validate and verify clinical data.",
+    category: "Clinical",
+    icon: "fact-check",
+  },
+  // -- Operations & Management ----------------------------------------------
+  pathway_supervisor: {
+    label: "Pathway Supervisor",
+    description: "Monitor and manage patient pathways across the service.",
+    category: "Operations & Management",
+    icon: "route",
   },
   referral_supervisor: {
     label: "Referral Supervisor",
     description: "Oversee referral processing and manage workflow queues.",
-    category: "Administration & Management",
-    icon: "🔄",
+    category: "Operations & Management",
+    icon: "swap-horiz",
   },
-  registration_administrator: {
-    label: "Registration Administrator",
+  operations_manager: {
+    label: "Operations Manager",
+    description: "Operational oversight, analytics, and reporting.",
+    category: "Operations & Management",
+    icon: "bar-chart",
+  },
+  // -- Support & Compliance -------------------------------------------------
+  support_agent: {
+    label: "Support Agent",
+    description: "Handle first-line support tickets.",
+    category: "Support & Compliance",
+    icon: "headset-mic",
+  },
+  support_supervisor: {
+    label: "Support Supervisor",
+    description: "Supervise the support team and review all tickets.",
+    category: "Support & Compliance",
+    icon: "supervisor-account",
+  },
+  regulatory_reviewer: {
+    label: "Regulatory Reviewer",
+    description: "Access records for regulatory compliance and audit.",
+    category: "Support & Compliance",
+    icon: "gavel",
+  },
+  // -- LMS ------------------------------------------------------------------
+  lms_admin: {
+    label: "LMS Administrator",
+    description: "Author, approve, and manage all training content.",
+    category: "LMS",
+    icon: "school",
+  },
+  lms_manager: {
+    label: "LMS Training Manager",
+    description: "Oversee team training enrolments and progress.",
+    category: "LMS",
+    icon: "manage-accounts",
+  },
+  lms_learner: {
+    label: "LMS Learner",
+    description: "Access and complete training programmes.",
+    category: "LMS",
+    icon: "menu-book",
+  },
+  lms_training_manager: {
+    label: "LMS Training Manager (legacy)",
+    description: "Deprecated -- use lms_manager.",
+    category: "LMS",
+    icon: "manage-accounts",
+  },
+  // -- Onboarding -----------------------------------------------------------
+  customer_onboarding: {
+    label: "Customer Onboarding",
+    description: "Onboard new customers and manage their users.",
+    category: "Onboarding",
+    icon: "domain-add",
+  },
+  technical_onboarding: {
+    label: "Technical Onboarding",
+    description: "Set up and validate technical system access.",
+    category: "Onboarding",
+    icon: "settings-suggest",
+  },
+  // -- Admin ----------------------------------------------------------------
+  administrator: {
+    label: "System Administrator",
+    description: "Full platform access -- manage tenants, users, and settings.",
+    category: "Admin",
+    icon: "admin-panel-settings",
+  },
+  organization_administrator: {
+    label: "Organisation Administrator",
+    description: "Manage users, groups, and settings within your organisation.",
+    category: "Admin",
+    icon: "business",
+  },
+  // -- EDMS -----------------------------------------------------------------
+  point_of_care_clinician: {
+    label: "Point of Care Clinician",
+    description: "View patient documents at the point of care.",
+    category: "EDMS",
+    icon: "local-hospital",
+  },
+  medical_records_viewer: {
+    label: "Medical Records Viewer",
+    description: "Reactive access to patient medical records.",
+    category: "EDMS",
+    icon: "folder-shared",
+  },
+  // -- Registration ---------------------------------------------------------
+  registration_admin: {
+    label: "Registration Admin",
     description: "Manage patient registration and data quality.",
-    category: "Administration & Management",
-    icon: "👤",
-  },
-  // -- System & Onboarding --------------------------------------------------
-  pathway_supervisor: {
-    label: "Pathway Supervisor",
-    description: "Monitor and manage patient pathways across the service.",
-    category: "System & Onboarding",
-    icon: "👥",
-  },
-  org_admin: {
-    label: "Organisation Admin",
-    description: "Manage users, groups, and sub-organisations in your org.",
-    category: "System & Onboarding",
-    icon: "🏢",
-  },
-  pipeline_operator: {
-    label: "Pipeline Operator",
-    description: "Run and monitor the AI coding pipeline.",
-    category: "System & Onboarding",
-    icon: "⚡",
-  },
-  platform_admin: {
-    label: "Platform Admin",
-    description: "Full platform access — manage tenants, users, and settings.",
-    category: "System & Onboarding",
-    icon: "⚙️",
-  },
-  // -- Other / Viewer -------------------------------------------------------
-  clinical_viewer: {
-    label: "Clinical Viewer",
-    description: "Read-only access to patient data and reports.",
-    category: "Other",
-    icon: "👁️",
-  },
-  read_only: {
-    label: "Read Only",
-    description: "Basic read-only access to the platform.",
-    category: "Other",
-    icon: "🔒",
+    category: "Registration",
+    icon: "how-to-reg",
   },
 };

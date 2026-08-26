@@ -27,7 +27,7 @@ const _PORTAL = { key: "portal", label: "Portal", path: "/care/portal", icon: "p
 const _ADMIN_PORTAL = { key: "admin-portal", label: "Admin", path: "/admin/portal", icon: "settings" };
 
 export const roleNavMap: RoleNavMap = {
-  // -- Clinical Roles -------------------------------------------------------
+  // -- Clinical -------------------------------------------------------------
   triage_clinician: {
     landing: "/care/patients",
     primary: [_CARE_PATIENTS, _CARE_DASHBOARD, _CARE_ENCOUNTERS, _KNOWLEDGE],
@@ -38,25 +38,55 @@ export const roleNavMap: RoleNavMap = {
     primary: [_CARE_PATIENTS, _CARE_DASHBOARD, _KNOWLEDGE],
     advanced: [_REPORTS, _PORTAL],
   },
-  clinical_coder: {
-    landing: "/work",
-    primary: [_WORK, _CARE_DASHBOARD, _KNOWLEDGE],
-    advanced: [_AUDIT, _CARE_PATIENTS, _REPORTS],
-  },
-  auditor: {
-    landing: "/care/audit",
-    primary: [_AUDIT, _CARE_DASHBOARD, _KNOWLEDGE],
-    advanced: [_OPERATIONS, _CARE_PATIENTS, _REPORTS],
-  },
-  // -- Administration & Management ------------------------------------------
-  appointment_booking: {
+  appointment_manual_booking: {
     landing: "/care/patients",
     primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
     advanced: [_REPORTS, _PORTAL],
   },
-  clinical_administrator: {
+  advice_and_guidance: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD, _KNOWLEDGE],
+    advanced: [_AUDIT, _REPORTS],
+  },
+  create_referral: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
+    advanced: [_REPORTS, _PORTAL],
+  },
+  clinician_admin: {
     landing: "/care/dashboard",
     primary: [_CARE_DASHBOARD, _CARE_PATIENTS, _OPERATIONS, _KNOWLEDGE],
+    advanced: [_AUDIT, _REPORTS, _PORTAL],
+  },
+  referring_clinician: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
+    advanced: [_REPORTS, _PORTAL],
+  },
+  receptionist: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
+    advanced: [_REPORTS, _PORTAL],
+  },
+  reporting_sonographer: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD, _KNOWLEDGE],
+    advanced: [_REPORTS],
+  },
+  sonographer_qa: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD, _KNOWLEDGE],
+    advanced: [_AUDIT, _REPORTS],
+  },
+  validation: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD, _KNOWLEDGE],
+    advanced: [_AUDIT, _REPORTS],
+  },
+  // -- Operations & Management ----------------------------------------------
+  pathway_supervisor: {
+    landing: "/care/dashboard",
+    primary: [_CARE_DASHBOARD, _CARE_PATIENTS, _CARE_ENCOUNTERS, _KNOWLEDGE],
     advanced: [_AUDIT, _REPORTS, _PORTAL],
   },
   referral_supervisor: {
@@ -64,42 +94,86 @@ export const roleNavMap: RoleNavMap = {
     primary: [_CARE_PATIENTS, _CARE_ENCOUNTERS, _CARE_DASHBOARD],
     advanced: [_AUDIT, _REPORTS],
   },
-  registration_administrator: {
-    landing: "/care/patients",
-    primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
-    advanced: [_USERS, _REPORTS],
-  },
-  // -- System & Onboarding --------------------------------------------------
-  pathway_supervisor: {
-    landing: "/care/dashboard",
-    primary: [_CARE_DASHBOARD, _CARE_PATIENTS, _CARE_ENCOUNTERS, _KNOWLEDGE],
-    advanced: [_AUDIT, _REPORTS, _PORTAL],
-  },
-  org_admin: {
-    landing: "/admin/portal",
-    primary: [_ADMIN_PORTAL, _USERS, _CARE_DASHBOARD],
-    advanced: [_AUDIT, _REPORTS, _KNOWLEDGE],
-  },
-  pipeline_operator: {
+  operations_manager: {
     landing: "/admin/operations",
-    primary: [_OPERATIONS, _CARE_DASHBOARD, _KNOWLEDGE],
+    primary: [_OPERATIONS, _CARE_DASHBOARD, _REPORTS],
+    advanced: [_AUDIT, _KNOWLEDGE, _USERS],
+  },
+  // -- Support & Compliance -------------------------------------------------
+  support_agent: {
+    landing: "/admin/operations",
+    primary: [_OPERATIONS, _CARE_DASHBOARD],
+    advanced: [_REPORTS],
+  },
+  support_supervisor: {
+    landing: "/admin/operations",
+    primary: [_OPERATIONS, _CARE_DASHBOARD, _USERS],
     advanced: [_AUDIT, _REPORTS],
   },
-  platform_admin: {
+  regulatory_reviewer: {
+    landing: "/care/audit",
+    primary: [_AUDIT, _CARE_PATIENTS, _REPORTS],
+    advanced: [_OPERATIONS],
+  },
+  // -- LMS ------------------------------------------------------------------
+  lms_admin: {
+    landing: "/admin/knowledge",
+    primary: [_KNOWLEDGE, _USERS, _OPERATIONS],
+    advanced: [_AUDIT, _REPORTS],
+  },
+  lms_manager: {
+    landing: "/admin/knowledge",
+    primary: [_KNOWLEDGE, _USERS],
+    advanced: [_REPORTS],
+  },
+  lms_learner: {
+    landing: "/admin/knowledge",
+    primary: [_KNOWLEDGE],
+    advanced: [_PORTAL],
+  },
+  lms_training_manager: {
+    landing: "/admin/knowledge",
+    primary: [_KNOWLEDGE, _USERS],
+    advanced: [_REPORTS],
+  },
+  // -- Onboarding -----------------------------------------------------------
+  customer_onboarding: {
+    landing: "/admin/portal",
+    primary: [_ADMIN_PORTAL, _USERS, _KNOWLEDGE],
+    advanced: [_REPORTS],
+  },
+  technical_onboarding: {
+    landing: "/admin/portal",
+    primary: [_ADMIN_PORTAL, _OPERATIONS],
+    advanced: [_KNOWLEDGE, _REPORTS],
+  },
+  // -- Admin ----------------------------------------------------------------
+  administrator: {
     landing: "/admin/knowledge",
     primary: [_PLATFORM, _USERS, _KNOWLEDGE, _OPERATIONS],
     advanced: [_CARE_DASHBOARD, _AUDIT, _REPORTS],
   },
-  // -- Other / Viewer -------------------------------------------------------
-  clinical_viewer: {
-    landing: "/care/dashboard",
-    primary: [_CARE_DASHBOARD, _CARE_PATIENTS, _REPORTS],
+  organization_administrator: {
+    landing: "/admin/portal",
+    primary: [_ADMIN_PORTAL, _USERS, _CARE_DASHBOARD],
+    advanced: [_AUDIT, _REPORTS, _KNOWLEDGE],
+  },
+  // -- EDMS -----------------------------------------------------------------
+  point_of_care_clinician: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
+    advanced: [_PORTAL],
+  },
+  medical_records_viewer: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
     advanced: [_AUDIT, _PORTAL],
   },
-  read_only: {
-    landing: "/care/dashboard",
-    primary: [_CARE_DASHBOARD, _REPORTS],
-    advanced: [_PORTAL],
+  // -- Registration ---------------------------------------------------------
+  registration_admin: {
+    landing: "/care/patients",
+    primary: [_CARE_PATIENTS, _CARE_DASHBOARD],
+    advanced: [_USERS, _REPORTS],
   },
 };
 

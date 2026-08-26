@@ -67,7 +67,7 @@ def test_needs_role_choice_false_multi_role_new_session(
         MagicMock(
             return_value=RoleState(
                 selected_role="triage_clinician",
-                allowed_roles=["triage_clinician", "clinical_coder"],
+                allowed_roles=["triage_clinician", "referral_supervisor"],
             )
         ),
     )
@@ -98,7 +98,7 @@ def test_needs_role_choice_false_after_session_confirmed(
         MagicMock(
             return_value=RoleState(
                 selected_role="triage_clinician",
-                allowed_roles=["triage_clinician", "clinical_coder"],
+                allowed_roles=["triage_clinician", "referral_supervisor"],
             )
         ),
     )
@@ -153,7 +153,7 @@ def test_patch_session_role_marks_session_confirmed(
         MagicMock(
             return_value=RoleState(
                 selected_role="triage_clinician",
-                allowed_roles=["triage_clinician", "clinical_coder"],
+                allowed_roles=["triage_clinician", "referral_supervisor"],
             )
         ),
     )
@@ -162,8 +162,8 @@ def test_patch_session_role_marks_session_confirmed(
         "set_selected_role",
         MagicMock(
             return_value=RoleState(
-                selected_role="clinical_coder",
-                allowed_roles=["triage_clinician", "clinical_coder"],
+                selected_role="referral_supervisor",
+                allowed_roles=["triage_clinician", "referral_supervisor"],
             )
         ),
     )
@@ -175,11 +175,11 @@ def test_patch_session_role_marks_session_confirmed(
 
     res = client_session_template.patch(
         "/auth/session/role",
-        json={"role": "clinical_coder"},
+        json={"role": "referral_supervisor"},
     )
     assert res.status_code == 200
     body = res.json()
-    assert body["selected_role"] == "clinical_coder"
+    assert body["selected_role"] == "referral_supervisor"
     assert body["needs_role_choice"] is False
     save_mock.assert_called()
     pos = save_mock.call_args[0]

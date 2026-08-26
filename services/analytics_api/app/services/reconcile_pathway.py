@@ -56,7 +56,12 @@ class ReconcileRequest(BaseModel):
 
     actions: list[ReconcileAction] = Field(..., min_length=1)
     reviewed_by: str = Field(..., min_length=1)
-    reviewer_role: Literal["clinician", "qa_ra_lead"]
+    reviewer_role: Literal[
+        "triage_clinician",
+        "clinician_admin",
+        "regulatory_reviewer",
+        "administrator",
+    ]
     reason: str = Field(..., min_length=1, max_length=500)
     confirm_bucket_flip: bool = False
 

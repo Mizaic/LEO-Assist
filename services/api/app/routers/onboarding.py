@@ -12,7 +12,7 @@ atomic-ish saga.  Callable by platform admins (any org type) or org admins
 Saga steps (all idempotent; failures abort with 409 / 502):
   1. ODS validation — confirm ODS code exists and matches the declared type
   2. Neo4j — create org node + subscription node, link to parent
-  3. Neo4j — create Practitioner + org_admin HAS_ROLE
+  3. Neo4j -- create User/Practitioner + organization_administrator via group
   4. Email  — send onboarding invite via Microsoft Graph
   5. Neo4j  — flip onboarding_status → active
   6. Audit  — emit onboarding event
@@ -276,7 +276,7 @@ def onboard(
         client.run(
             aq.ASSIGN_USER_ROLE,
             email=email_lower,
-            role_name="org_admin",
+            role_name="organization_administrator",
             org_id=org_id,
         )
         logger.info(

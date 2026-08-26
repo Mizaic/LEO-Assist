@@ -51,8 +51,9 @@ def seed_practitioner(
     email = email.lower().strip()
 
     client.run(
-        "MERGE (pr:Practitioner {email: $email}) "
-        "SET pr.name = $name, "
+        "MERGE (pr:Practitioner:User {email: $email}) "
+        "SET pr:User, pr:Practitioner, "
+        "    pr.name = $name, "
         "    pr.is_platform_admin = $is_admin, "
         "    pr.updated_at = datetime(), "
         "    pr.id = coalesce(pr.id, $new_id)",

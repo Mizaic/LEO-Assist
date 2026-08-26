@@ -28,7 +28,7 @@ import Typography from "@mui/material/Typography";
 import Close from "@mui/icons-material/Close";
 import { deleteEpisode } from "@/lib/missionControlApi";
 
-const CURATOR_ROLES = new Set(["clinician", "qa_ra_lead", "platform_admin"]);
+const CURATOR_ROLES = new Set(["triage_clinician", "clinician_admin", "regulatory_reviewer", "administrator"]);
 
 interface Props {
   open: boolean;
@@ -112,8 +112,8 @@ export default function DeleteEpisodeConfirm({
       <DialogContent dividers>
         {!isCurator && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Your current role can only view episodes. Switch to clinician
-            or QA / RA lead to delete one.
+            Your current role can only view episodes. Switch to a
+            clinical or administrator role to delete one.
           </Alert>
         )}
         {error && (

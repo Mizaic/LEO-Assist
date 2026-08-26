@@ -1,13 +1,12 @@
 """Seed canonical roles and Entra-group bindings from a YAML catalogue.
 
 This is the Option-A counterpart to ``scripts/seed_canonical_roles.py``: it
-upserts the four canonical LEO roles AND the ``(:Group)-[:GRANTS_ROLE]->(:Role)``
+upserts the canonical HCCP roles AND the ``(:Group)-[:HAS_ROLE]->(:Role)``
 binding catalogue that drives the Entra-group-based RBAC flow.
 
 Idempotent: re-running the script against a populated database only refreshes
-``name`` / ``description`` / ``org_id`` on each :Group node and leaves the
-:Practitioner-[:HAS_ROLE]->:Role edges untouched (those are written at
-sign-in by libs/auth/entra_group_sync.py).
+``name`` / ``description`` / ``org_id`` on each :Group node. Sign-in writes
+``(:User)-[:IS_MEMBER_OF]->(:Group)`` via libs/auth/entra_group_sync.py.
 
 Usage
 -----
@@ -155,9 +154,7 @@ def seed(
             int(backfill_rows[0].get("updated") or 0) if backfill_rows else 0
         )
 
-        canonical = graph.run(
-            SEED_CANONICAL_ROLES, role_names=list(CANONICAL_ROLES)
-        )
+        canonical = graph.run(SEED_CANONICAL_ROLES, role_names=list(CANONICAL_ROLES))
         seeded_canonical = [r.get("name") for r in canonical if r.get("name")]
 
         if roles:
@@ -165,9 +162,7 @@ def seed(
 
         seeded_bindings: list[dict[str, Any]] = []
         if bindings:
-            seeded_bindings = list(
-                graph.run(SEED_GROUP_BINDINGS, bindings=bindings)
-            )
+            seeded_bindings = list(graph.run(SEED_GROUP_BINDINGS, bindings=bindings))
 
         catalogue = list(graph.run(LIST_ENTRA_GROUP_BINDINGS))
     finally:

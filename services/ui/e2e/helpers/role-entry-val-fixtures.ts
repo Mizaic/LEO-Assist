@@ -48,9 +48,9 @@ function isAdmin(): boolean {
 
 function allowedRoles(): string[] {
   if (isAdmin()) {
-    return ["platform_admin", FIRST_ROLE, "clinical_coder"];
+    return ["administrator", FIRST_ROLE, "referral_supervisor"];
   }
-  return [FIRST_ROLE, "clinical_coder"];
+  return [FIRST_ROLE, "referral_supervisor"];
 }
 
 function sessionPayload() {

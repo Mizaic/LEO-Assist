@@ -57,7 +57,7 @@ const CREATE_STATUS_OPTIONS: ReadonlyArray<{
   { value: STATUS_COMPLETED, label: EPISODE_STATUS_LABELS[STATUS_COMPLETED] },
 ];
 
-const CURATOR_ROLES = new Set(["clinician", "qa_ra_lead", "platform_admin"]);
+const CURATOR_ROLES = new Set(["triage_clinician", "clinician_admin", "regulatory_reviewer", "administrator"]);
 
 interface Props {
   open: boolean;
@@ -201,8 +201,8 @@ export default function CreateEpisodeDialog({
       <DialogContent dividers>
         {!isCurator && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Your current role can only view episodes. Switch to clinician
-            or QA / RA lead to create one.
+            Your current role can only view episodes. Switch to a
+            clinical or administrator role to create one.
           </Alert>
         )}
         {error && (

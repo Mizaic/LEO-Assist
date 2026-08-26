@@ -8,8 +8,8 @@
 //   - Exposes three test-id'd buttons in the episode-controls row
 //     so e2e and a11y suites can target them deterministically.
 //   - Disables those buttons unless the caller's selected role is
-//     in the curator set (clinician / qa_ra_lead /
-//     platform_admin).
+//     in the curator set (triage_clinician / clinician_admin /
+//     regulatory_reviewer / administrator).
 //   - No longer imports the legacy ReconcilePathwayDrawer; the
 //     reconcile flow lives in the EditEpisodeDialog "review" tab.
 
@@ -57,9 +57,9 @@ describe("VT-80AAC194 - PatientDetailDrawer episode actions", () => {
 
   it("VT-MEC-DRAWER-003: declares the curator role set and gates the buttons on it", () => {
     expect(drawerSrc).toMatch(/EPISODE_CURATOR_ROLES\s*=\s*new Set\(/);
-    expect(drawerSrc).toMatch(/"clinician"/);
-    expect(drawerSrc).toMatch(/"qa_ra_lead"/);
-    expect(drawerSrc).toMatch(/"platform_admin"/);
+    expect(drawerSrc).toMatch(/"triage_clinician"/);
+    expect(drawerSrc).toMatch(/"clinician_admin"/);
+    expect(drawerSrc).toMatch(/"administrator"/);
     expect(drawerSrc).toMatch(/EPISODE_CURATOR_ROLES\.has\(reviewerRole\)/);
     // Each of the three action buttons must be disabled when the
     // role check fails. We assert the disabled prop binds the same

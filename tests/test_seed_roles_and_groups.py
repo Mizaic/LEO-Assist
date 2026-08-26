@@ -39,7 +39,7 @@ def test_seed_runs_constraint_then_roles_then_bindings():
         {
             "entra_object_id": "00000000-0000-0000-0000-000000000099",
             "name": "LEO Platform Administrators",
-            "role_name": "platform_admin",
+            "role_name": "administrator",
             "grant_org_id": "",
         }
     ]
@@ -47,9 +47,9 @@ def test_seed_runs_constraint_then_roles_then_bindings():
         {
             SEED_CANONICAL_ROLES: [
                 {"name": "triage_clinician"},
-                {"name": "clinical_administrator"},
-                {"name": "auditor"},
-                {"name": "platform_admin"},
+                {"name": "clinician_admin"},
+                {"name": "regulatory_reviewer"},
+                {"name": "administrator"},
             ],
             SEED_GROUP_BINDINGS: expected_catalogue,
             LIST_ENTRA_GROUP_BINDINGS: expected_catalogue,
@@ -68,7 +68,7 @@ def test_seed_runs_constraint_then_roles_then_bindings():
     assert queries[-1] == LIST_ENTRA_GROUP_BINDINGS
 
     assert result["bindings_seeded"] >= 1
-    assert "platform_admin" in result["canonical_roles"]
+    assert "administrator" in result["canonical_roles"]
     assert result["catalogue"] == expected_catalogue
 
 
@@ -95,7 +95,7 @@ def test_duplicate_entra_object_id_is_rejected(tmp_path: Path):
         "  - entra_object_id: g-1\n"
         "    role_name: triage_clinician\n"
         "  - entra_object_id: g-1\n"
-        "    role_name: clinical_coder\n",
+        "    role_name: referral_supervisor\n",
         encoding="utf-8",
     )
     client = _client_returning({})

@@ -214,7 +214,16 @@ function useFavourites() {
 }
 
 function groupByCategory(roles: Role[]): Array<{ category: RoleCategory; roles: Role[] }> {
-  const order: RoleCategory[] = ["Clinical Roles", "Administration & Management", "System & Onboarding", "Other"];
+  const order: RoleCategory[] = [
+    "Clinical",
+    "Operations & Management",
+    "Support & Compliance",
+    "LMS",
+    "Onboarding",
+    "Admin",
+    "EDMS",
+    "Registration",
+  ];
   const map = new Map<RoleCategory, Role[]>();
   for (const r of roles) {
     const cat = ROLE_COPY[r].category;

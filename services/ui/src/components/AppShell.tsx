@@ -258,13 +258,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const isImpersonating =
     isPlatformAdmin &&
     selectedRole !== null &&
-    selectedRole !== "platform_admin";
+    selectedRole !== "administrator";
 
   const exitImpersonation = useCallback(async () => {
     await fetch("/api/auth/session/role", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "platform_admin" }),
+      body: JSON.stringify({ role: "administrator" }),
     });
     await refetchAuth();
     router.push("/");

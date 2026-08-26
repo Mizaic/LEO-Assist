@@ -216,10 +216,13 @@ def require_admin_or_service(
 
 
 def _has_org_admin_role(client: PatientGraphClient, email: str) -> bool:
-    """Return True if the practitioner has the org_admin role for any org."""
+    """Return True if the practitioner has the organization_administrator role."""
     rows = client.run(
-        "MATCH (pr:Practitioner {email: $email})-[r:HAS_ROLE]->(role:Role {name: 'org_admin'}) "
-        "RETURN r.org_id AS org_id LIMIT 1",
+        "MATCH (u:User {email: $email})-[:IS_MEMBER_OF]->(:Group)-[:HAS_ROLE]->"
+        "(role:Role) "
+        "WHERE role.name = 'organization_administrator' "
+        "   OR role.id = 'organization_administrator' "
+        "RETURN 1 AS ok LIMIT 1",
         email=email,
     )
     return bool(rows)
@@ -231,7 +234,7 @@ def require_role(*roles: str):
     Usage::
 
         @router.get("/work")
-        def my_endpoint(scope=Depends(require_role("clinical_coder", "auditor"))):
+        def my_endpoint(scope=Depends(require_role("triage_clinician", "clinician_admin"))):
             ...
 
     Platform admins bypass all role checks.
@@ -270,10 +273,10 @@ def require_any_role(
 def require_admin_or_org_admin(
     session_data: dict = Depends(get_session_data),
 ) -> CallerScope:
-    """Dependency that passes for platform admins or org_admin role holders.
+    """Dependency that passes for platform admins or organization_administrator role holders.
 
     Platform admins receive an unrestricted CallerScope (org_ids=[]).
-    Org admins receive a scope limited to their WORKS_AT hierarchy — list
+    Org admins receive a scope limited to their WORKS_AT hierarchy -- list
     endpoints must filter by scope.org_ids when is_admin is False.
     """
     caller_email = (session_data.get("email") or "").strip().lower()

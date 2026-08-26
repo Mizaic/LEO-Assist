@@ -156,7 +156,7 @@ test.describe("VAL-8AE95F1A staff enter with assigned role @val", () => {
           });
           await banner.getByRole("button", { name: EXIT_LABEL }).click();
           await expect(banner).toHaveCount(0);
-          expect(patchedRoles.at(-1)).toBe("platform_admin");
+          expect(patchedRoles.at(-1)).toBe("administrator");
           ctx.lastCompletedStep.value = 3;
 
           await recordProtocolStep({

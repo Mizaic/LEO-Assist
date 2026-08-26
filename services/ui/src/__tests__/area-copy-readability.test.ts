@@ -43,12 +43,10 @@ describe("AREA_INTRO_COPY (VT-LEO-AI-135)", () => {
     }
   });
 
-  test("TC-002 admin areas include a platform_admin or clinical_coder block", () => {
+  test("TC-002 admin areas include an administrator block", () => {
     for (const key of ["operations", "platform", "users", "portal"] as AreaKey[]) {
       const entry = AREA_INTRO_COPY[key];
-      expect(
-        entry.platform_admin !== undefined || entry.clinical_coder !== undefined,
-      ).toBe(true);
+      expect(entry.administrator).toBeDefined();
     }
   });
 

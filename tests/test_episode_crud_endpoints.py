@@ -45,15 +45,15 @@ def _gp_scope(org_ids=("ORG-1",)) -> CallerScope:
 
 def _curator_role_state() -> RoleState:
     return RoleState(
-        selected_role="clinician",
-        allowed_roles=["clinician"],
+        selected_role="triage_clinician",
+        allowed_roles=["triage_clinician"],
     )
 
 
 def _non_curator_role_state() -> RoleState:
     return RoleState(
-        selected_role="developer",
-        allowed_roles=["developer"],
+        selected_role="lms_learner",
+        allowed_roles=["lms_learner"],
     )
 
 
@@ -133,7 +133,7 @@ class TestCreateEpisode:
 class TestUpdateEpisode:
     @patch(
         "libs.auth.role_state.fetch_role_state",
-        return_value=RoleState(selected_role="clinician", allowed_roles=["clinician"]),
+        return_value=RoleState(selected_role="triage_clinician", allowed_roles=["triage_clinician"]),
     )
     @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_sparse_patch_writes_only_supplied_fields(self, MockPG, _mock_role):
@@ -203,7 +203,7 @@ class TestDeleteEpisode:
 
     @patch(
         "libs.auth.role_state.fetch_role_state",
-        return_value=RoleState(selected_role="clinician", allowed_roles=["clinician"]),
+        return_value=RoleState(selected_role="triage_clinician", allowed_roles=["triage_clinician"]),
     )
     @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_confirm_id_match_proceeds_to_detach_delete(self, MockPG, _mock_role):
@@ -255,7 +255,7 @@ class TestRoleGating:
     @patch(
         "libs.auth.role_state.fetch_role_state",
         return_value=RoleState(
-            selected_role="qa_ra_lead", allowed_roles=["qa_ra_lead"]
+            selected_role="regulatory_reviewer", allowed_roles=["regulatory_reviewer"]
         ),
     )
     @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
@@ -293,7 +293,7 @@ class TestOrgScopeDenial:
 
     @patch(
         "libs.auth.role_state.fetch_role_state",
-        return_value=RoleState(selected_role="clinician", allowed_roles=["clinician"]),
+        return_value=RoleState(selected_role="triage_clinician", allowed_roles=["triage_clinician"]),
     )
     @patch("services.analytics_api.app.routers." "episode_crud.PatientGraphClient")
     def test_update_returns_404_when_gp_id_not_in_scope(self, MockPG, _mock_role):

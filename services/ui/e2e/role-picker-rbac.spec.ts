@@ -1,7 +1,7 @@
 /**
  * Role picker + RBAC acceptance spec.
  *
- * Covers VT for DI-FAF97A8C (role picker UI) and the new unified 14-role
+ * Covers VT for DI-FAF97A8C (role picker UI) and the new unified 28-role
  * RBAC catalog (DI-613A48DA / DO-124AC2C4).
  *
  * Each test injects a mock /auth/session payload via page.route() so we can
@@ -40,7 +40,7 @@ function buildSession(role: string, opts: SessionOpts = {}) {
 
   return {
     user: { email: "e2e.test@example.com", name: "E2E User" },
-    isPlatformAdmin: opts.isPlatformAdmin ?? role === "platform_admin",
+    isPlatformAdmin: opts.isPlatformAdmin ?? role === "administrator",
     organizations: orgs,
     selected_role: opts.needsRoleChoice ? null : role,
     allowed_roles: opts.allowedRoles ?? [role],
@@ -77,7 +77,7 @@ test.describe("TC-P: Role picker retired", () => {
   test("TC-P01 picker does not render when needs_role_choice is true", async ({ page }) => {
     await withRole(page, "triage_clinician", {
       needsRoleChoice: true,
-      allowedRoles: ["triage_clinician", "clinical_coder"],
+      allowedRoles: ["triage_clinician", "referral_supervisor"],
     });
     await gotoAndSettle(page);
     await expect(page.getByTestId("role-picker-overlay")).toHaveCount(0);
@@ -96,32 +96,32 @@ test.describe("TC-L: Role landing pages", () => {
     await expect(page.locator("body")).toBeVisible();
   });
 
-  test("TC-L02 clinical_coder lands on /work", async ({ page }) => {
-    await withRole(page, "clinical_coder");
+  test("TC-L02 referral_supervisor lands on /work", async ({ page }) => {
+    await withRole(page, "referral_supervisor");
     await page.goto("/work");
     await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/work/);
     await expect(page.locator("body")).toBeVisible();
   });
 
-  test("TC-L03 auditor lands on /care/audit", async ({ page }) => {
-    await withRole(page, "auditor");
+  test("TC-L03 regulatory_reviewer lands on /care/audit", async ({ page }) => {
+    await withRole(page, "regulatory_reviewer");
     await page.goto("/care/audit");
     await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/care\/audit/);
     await expect(page.locator("body")).toBeVisible();
   });
 
-  test("TC-L04 platform_admin lands on /admin/knowledge", async ({ page }) => {
-    await withRole(page, "platform_admin", { isPlatformAdmin: true });
+  test("TC-L04 administrator lands on /admin/knowledge", async ({ page }) => {
+    await withRole(page, "administrator", { isPlatformAdmin: true });
     await page.goto("/admin/knowledge");
     await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/admin\/knowledge/);
     await expect(page.locator("body")).toBeVisible();
   });
 
-  test("TC-L05 org_admin lands on /admin/portal", async ({ page }) => {
-    await withRole(page, "org_admin");
+  test("TC-L05 organization_administrator lands on /admin/portal", async ({ page }) => {
+    await withRole(page, "organization_administrator");
     await page.goto("/admin/portal");
     await waitForPageSettled(page);
     await expect(page).toHaveURL(/\/admin\/portal/);
@@ -147,36 +147,36 @@ test.describe("TC-N: Nav item visibility per role", () => {
     await expectNavHidden(page, /Platform/i);
   });
 
-  test("TC-N02 platform_admin sees Platform and Users nav items", async ({ page }) => {
-    await withRole(page, "platform_admin", { isPlatformAdmin: true });
+  test("TC-N02 administrator sees Platform and Users nav items", async ({ page }) => {
+    await withRole(page, "administrator", { isPlatformAdmin: true });
     await gotoAndSettle(page, "/admin/platform");
     await expectNavVisible(page, /Platform/i);
     await expectNavVisible(page, /Users/i);
   });
 
-  test("TC-N03 clinical_coder sees My work, not Platform", async ({ page }) => {
-    await withRole(page, "clinical_coder");
+  test("TC-N03 referral_supervisor sees My work, not Platform", async ({ page }) => {
+    await withRole(page, "referral_supervisor");
     await gotoAndSettle(page, "/work");
     await expectNavVisible(page, /My work/i);
     await expectNavHidden(page, /Platform/i);
   });
 
-  test("TC-N04 org_admin sees Admin nav item", async ({ page }) => {
-    await withRole(page, "org_admin");
+  test("TC-N04 organization_administrator sees Admin nav item", async ({ page }) => {
+    await withRole(page, "organization_administrator");
     await gotoAndSettle(page, "/admin/portal");
     await expectNavVisible(page, /Admin|Organisation/i);
   });
 
-  test("TC-N05 read_only sees only Reports in primary nav", async ({ page }) => {
-    await withRole(page, "read_only");
+  test("TC-N05 support_agent sees only Reports in primary nav", async ({ page }) => {
+    await withRole(page, "support_agent");
     await gotoAndSettle(page, "/care/dashboard");
     await expectNavVisible(page, /Reports/i);
     await expectNavHidden(page, /Platform/i);
     await expectNavHidden(page, /Users/i);
   });
 
-  test("TC-N06 auditor does not see Platform in primary nav", async ({ page }) => {
-    await withRole(page, "auditor");
+  test("TC-N06 regulatory_reviewer does not see Platform in primary nav", async ({ page }) => {
+    await withRole(page, "regulatory_reviewer");
     await gotoAndSettle(page, "/care/audit");
     await expectNavHidden(page, /^Platform$/i);
   });
@@ -192,15 +192,15 @@ test.describe("TC-R: Restricted page access per role", () => {
     await expect(page.locator("body")).toBeVisible();
   });
 
-  test("TC-R02 platform_admin can access /admin/platform", async ({ page }) => {
-    await withRole(page, "platform_admin", { isPlatformAdmin: true });
+  test("TC-R02 administrator can access /admin/platform", async ({ page }) => {
+    await withRole(page, "administrator", { isPlatformAdmin: true });
     const resp = await page.goto("/admin/platform");
     expect(resp?.status()).not.toBe(403);
     await expect(page.locator("body")).toBeVisible();
   });
 
   test("TC-R03 non-admin role is gated from platform admin API endpoint", async ({ page, request }) => {
-    await withRole(page, "clinical_coder");
+    await withRole(page, "referral_supervisor");
     // Probe the platform admin API without a valid session; expect 401/403/404.
     const resp = await request.get("/api/admin/platform/orgs");
     expect([401, 403, 404]).toContain(resp.status());

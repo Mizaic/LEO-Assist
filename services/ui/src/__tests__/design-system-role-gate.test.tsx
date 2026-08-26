@@ -37,7 +37,7 @@ function makeApi(
 
 const MULTI_ROLE_STATE: RoleState = {
   selectedRole: null,
-  allowedRoles: ["triage_clinician", "clinical_coder"],
+  allowedRoles: ["triage_clinician", "referral_supervisor"],
   needsSessionRoleChoice: true,
 };
 
@@ -99,12 +99,12 @@ describe("VT-129 - Role-first primitives", () => {
       <RoleProvider
         initialState={{
           selectedRole: "triage_clinician",
-          allowedRoles: ["triage_clinician", "auditor"],
+          allowedRoles: ["triage_clinician", "referral_supervisor"],
           needsSessionRoleChoice: false,
         }}
         api={makeApi({
           selectedRole: "triage_clinician",
-          allowedRoles: ["triage_clinician", "auditor"],
+          allowedRoles: ["triage_clinician", "referral_supervisor"],
           needsSessionRoleChoice: false,
         })}
       >
@@ -133,7 +133,7 @@ describe("VT-129 - Role-first primitives", () => {
   test("TC-006 RoleGate does not block the app for multi-role sessions", async () => {
     const state: RoleState = {
       selectedRole: "triage_clinician",
-      allowedRoles: ["triage_clinician", "clinical_coder"],
+      allowedRoles: ["triage_clinician", "referral_supervisor"],
       needsSessionRoleChoice: true,
     };
     render(
@@ -152,9 +152,9 @@ describe("VT-129 - Role-first primitives", () => {
       selectedRole: null,
       allowedRoles: [
         "triage_clinician",
-        "auditor",
-        "appointment_booking",
-        "clinical_administrator",
+        "appointment_manual_booking",
+        "referral_supervisor",
+        "operations_manager",
       ],
       needsSessionRoleChoice: true,
     };
@@ -163,15 +163,15 @@ describe("VT-129 - Role-first primitives", () => {
         <RolePicker pinned />
       </RoleProvider>,
     );
-    expect(screen.getByText("Clinical Roles")).toBeInTheDocument();
-    expect(screen.getByText("Administration & Management")).toBeInTheDocument();
+    expect(screen.getByText("Clinical")).toBeInTheDocument();
+    expect(screen.getByText("Operations & Management")).toBeInTheDocument();
     expect(screen.getAllByText(/2 roles/i).length).toBeGreaterThanOrEqual(1);
   });
 
   test("TC-008 search filters roles by label", async () => {
     const state: RoleState = {
       selectedRole: null,
-      allowedRoles: ["triage_clinician", "clinical_coder"],
+      allowedRoles: ["triage_clinician", "referral_supervisor"],
       needsSessionRoleChoice: true,
     };
     const user = userEvent.setup();
@@ -183,6 +183,6 @@ describe("VT-129 - Role-first primitives", () => {
     const search = screen.getByRole("searchbox", { name: /Search roles/i });
     await user.type(search, "Triage Clinician");
     expect(screen.getByText(/Triage Clinician/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Clinical Coder/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Referral Supervisor/i)).not.toBeInTheDocument();
   });
 });

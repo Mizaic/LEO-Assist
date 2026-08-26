@@ -162,7 +162,7 @@ def _snapshot(
 def _request(
     *actions: ReconcileAction,
     confirm_flip: bool = False,
-    role: str = "clinician",
+    role: str = "triage_clinician",
 ) -> ReconcileRequest:
     return ReconcileRequest(
         actions=list(actions),
@@ -263,7 +263,7 @@ def test_reconcile_writes_one_lock_per_action(monkeypatch) -> None:
     for lock in result.locks:
         assert lock.entity_type == "is_part_of_edge"
         assert lock.locked_by == "alice@example.org"
-        assert lock.locked_by_role == "clinician"
+        assert lock.locked_by_role == "triage_clinician"
         assert lock.source == "reconcile_pathway"
 
 
@@ -397,13 +397,13 @@ def test_reconcile_qa_role_stamps_role_on_lock(monkeypatch) -> None:
         episode_id="ep-1",
         request=_request(
             ReconcileAction(slot="diagnosis", action="confirm"),
-            role="qa_ra_lead",
+            role="regulatory_reviewer",
         ),
         snapshot_reader=_stub_reader(snap),
         lock_client=client,
     )
 
-    assert result.locks[0].locked_by_role == "qa_ra_lead"
+    assert result.locks[0].locked_by_role == "regulatory_reviewer"
 
 
 # ---------------------------------------------------------------------------

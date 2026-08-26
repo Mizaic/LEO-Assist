@@ -94,8 +94,8 @@ export async function stubCompletenessDomainRoutes(page: Page) {
       isPlatformAdmin: true,
       organizations: [],
       idleTimeoutMinutes: 30,
-      selected_role: "platform_admin",
-      allowed_roles: ["platform_admin", "developer"],
+      selected_role: "administrator",
+      allowed_roles: ["administrator", "technical_onboarding"],
       needs_role_choice: false,
     }),
   );

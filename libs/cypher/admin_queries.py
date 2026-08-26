@@ -6,7 +6,39 @@ Atlas trace:
   Look up via: get_design_control(dc_type="design-output", dc_id="DO-308DD1A6")
 
 Organisations, practitioners, groups, roles, and system config.
+Identity and RBAC query strings live in hccp_identity_queries.py.
 """
+
+from libs.cypher.hccp_identity_queries import (  # noqa: F401
+    ADD_GROUP_MEMBER,
+    ADD_PRACTITIONER_TO_ORG,
+    ASSIGN_USER_ROLE,
+    BACKFILL_GROUP_SOURCE_LOCAL,
+    BIND_ENTRA_GROUP_TO_ROLE,
+    CREATE_GROUP,
+    CREATE_PRACTITIONER,
+    DEACTIVATE_PRACTITIONER,
+    DELETE_GROUP,
+    GET_ENTRA_SHADOW_GROUP,
+    GET_PRACTITIONER_ORG_IDS,
+    GET_ROLE,
+    LIST_GROUP_MEMBERS,
+    LIST_GROUPS,
+    LIST_GROUPS_SCOPED,
+    LIST_ORG_PRACTITIONERS,
+    LIST_PRACTITIONERS,
+    LIST_PRACTITIONERS_SCOPED,
+    LIST_ROLES,
+    LIST_USER_ROLES,
+    REMOVE_GROUP_MEMBER,
+    REMOVE_PRACTITIONER_FROM_ORG,
+    REMOVE_USER_ROLE,
+    UNBIND_ENTRA_GROUP_ROLE,
+    UPDATE_GROUP,
+    UPDATE_PRACTITIONER,
+    UPDATE_PRACTITIONER_LAST_SEEN,
+    UPSERT_ENTRA_SHADOW_GROUP,
+)
 
 # ------------------------------------------------------------------
 # Organisations
@@ -217,302 +249,6 @@ MATCH (o:Organization {id: $org_id})-[:HAS_SUBSCRIPTION]->(s:Subscription)
 WHERE s.credits_consumed < s.credits_purchased
 SET s.credits_consumed = s.credits_consumed + $amount
 RETURN s.credits_consumed AS credits_consumed, s.credits_purchased AS credits_purchased
-"""
-
-# ------------------------------------------------------------------
-# Practitioners
-# ------------------------------------------------------------------
-
-LIST_PRACTITIONERS = """
-MATCH (pr:Practitioner)
-WHERE (pr.deactivated IS NULL OR pr.deactivated = false)
-OPTIONAL MATCH (pr)-[:WORKS_AT]->(o)
-WITH pr, collect(DISTINCT o.id) AS org_ids, collect(DISTINCT o.name) AS org_names
-OPTIONAL MATCH (pr)-[r:HAS_ROLE]->(role:Role)
-WITH pr, org_ids, org_names, collect(DISTINCT {role: role.name, org_id: r.org_id}) AS roles
-RETURN pr.id AS id, pr.email AS email, pr.name AS name,
-       pr.is_platform_admin AS is_platform_admin,
-       pr.last_seen_at AS last_seen_at, pr.invited_at AS invited_at,
-       org_ids, org_names, roles
-ORDER BY pr.email
-"""
-
-LIST_PRACTITIONERS_SCOPED = """
-MATCH (pr:Practitioner)
-WHERE (pr.deactivated IS NULL OR pr.deactivated = false)
-OPTIONAL MATCH (pr)-[:WORKS_AT]->(o)
-WITH pr, collect(DISTINCT o.id) AS org_ids, collect(DISTINCT o.name) AS org_names
-WHERE any(oid IN org_ids WHERE oid IN $scope_org_ids)
-OPTIONAL MATCH (pr)-[r:HAS_ROLE]->(role:Role)
-WITH pr, org_ids, org_names, collect(DISTINCT {role: role.name, org_id: r.org_id}) AS roles
-RETURN pr.id AS id, pr.email AS email, pr.name AS name,
-       pr.is_platform_admin AS is_platform_admin,
-       pr.last_seen_at AS last_seen_at, pr.invited_at AS invited_at,
-       org_ids, org_names, roles
-ORDER BY pr.email
-"""
-
-LIST_GROUPS_SCOPED = """
-MATCH (g:Group)
-WHERE g.org_id IN $scope_org_ids
-OPTIONAL MATCH (g)-[:BELONGS_TO]->(o)
-OPTIONAL MATCH (g)<-[:MEMBER_OF]-(pr:Practitioner)
-WITH g, o.id AS org_id, o.name AS org_name, count(pr) AS member_count
-RETURN g.id AS id, g.name AS name, g.description AS description,
-       g.org_id AS org_id, org_name, member_count, g.created_at AS created_at,
-       coalesce(g.source, 'local') AS source,
-       g.entra_object_id AS entra_object_id,
-       g.entra_tenant_id AS entra_tenant_id
-ORDER BY g.name
-"""
-
-CREATE_PRACTITIONER = """
-MERGE (pr:Practitioner {email: $email})
-SET pr.name = $name, pr.is_platform_admin = $is_platform_admin,
-    pr.id = coalesce(pr.id, $id), pr.invited_at = datetime()
-WITH pr
-UNWIND $org_ids AS org_id
-OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance
-    OR o:ServiceProvider OR o:Organization) AND o.id = org_id
-FOREACH (_ IN CASE WHEN o IS NOT NULL THEN [1] ELSE [] END |
-  MERGE (pr)-[:WORKS_AT]->(o)
-)
-RETURN pr.email AS email
-"""
-
-UPDATE_PRACTITIONER = """
-MATCH (pr:Practitioner {email: $email})
-SET pr += $updates
-WITH pr
-OPTIONAL MATCH (pr)-[w:WORKS_AT]->()
-DELETE w
-WITH pr
-UNWIND $org_ids AS org_id
-OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance
-    OR o:ServiceProvider OR o:Organization) AND o.id = org_id
-FOREACH (_ IN CASE WHEN o IS NOT NULL THEN [1] ELSE [] END |
-  MERGE (pr)-[:WORKS_AT]->(o)
-)
-RETURN pr.email AS email
-"""
-
-GET_PRACTITIONER_ORG_IDS = """
-MATCH (pr:Practitioner {email: $email})-[:WORKS_AT]->(o)
-RETURN collect(o.id) AS org_ids
-"""
-
-LIST_ORG_PRACTITIONERS = """
-MATCH (pr:Practitioner)-[:WORKS_AT]->(o)
-WHERE o.id = $org_id
-  AND (pr.deactivated IS NULL OR pr.deactivated = false)
-OPTIONAL MATCH (pr)-[r:HAS_ROLE]->(role:Role)
-WHERE r.org_id = $org_id OR r.org_id = '' OR r.org_id IS NULL
-WITH pr, collect(DISTINCT {role: role.name, org_id: r.org_id}) AS roles
-RETURN pr.id AS id, pr.email AS email, pr.name AS name,
-       pr.is_platform_admin AS is_platform_admin,
-       pr.last_seen_at AS last_seen_at, pr.invited_at AS invited_at,
-       roles
-ORDER BY pr.email
-"""
-
-ADD_PRACTITIONER_TO_ORG = """
-MATCH (pr:Practitioner {email: $email})
-MATCH (o) WHERE o.id = $org_id
-MERGE (pr)-[:WORKS_AT]->(o)
-RETURN pr.email AS email
-"""
-
-REMOVE_PRACTITIONER_FROM_ORG = """
-MATCH (pr:Practitioner {email: $email})-[w:WORKS_AT]->(o)
-WHERE o.id = $org_id
-DELETE w
-RETURN pr.email AS email
-"""
-
-DEACTIVATE_PRACTITIONER = """
-MATCH (pr:Practitioner {email: $email})
-SET pr.deactivated = true
-OPTIONAL MATCH (pr)-[r:HAS_ROLE]->()
-DELETE r
-OPTIONAL MATCH (pr)-[m:MEMBER_OF]->()
-DELETE m
-OPTIONAL MATCH (pr)-[w:WORKS_AT]->()
-DELETE w
-RETURN pr.email AS email
-"""
-
-UPDATE_PRACTITIONER_LAST_SEEN = """
-MATCH (pr:Practitioner {email: $email})
-SET pr.last_seen_at = datetime()
-RETURN pr.email AS email
-"""
-
-# ------------------------------------------------------------------
-# Groups
-# ------------------------------------------------------------------
-
-LIST_GROUPS = """
-MATCH (g:Group)
-OPTIONAL MATCH (g)-[:BELONGS_TO]->(o)
-OPTIONAL MATCH (g)<-[:MEMBER_OF]-(pr:Practitioner)
-WITH g, o.id AS org_id, o.name AS org_name, count(pr) AS member_count
-RETURN g.id AS id, g.name AS name, g.description AS description,
-       g.org_id AS org_id, org_name, member_count, g.created_at AS created_at,
-       coalesce(g.source, 'local') AS source,
-       g.entra_object_id AS entra_object_id,
-       g.entra_tenant_id AS entra_tenant_id
-ORDER BY g.name
-"""
-
-CREATE_GROUP = """
-CREATE (g:Group)
-SET g.id = $id, g.name = $name, g.description = $description,
-    g.org_id = $org_id, g.source = coalesce($source, 'local'),
-    g.created_at = datetime()
-WITH g
-OPTIONAL MATCH (o) WHERE (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:Organization) AND o.id = $org_id
-FOREACH (_ IN CASE WHEN o IS NOT NULL THEN [1] ELSE [] END |
-  MERGE (g)-[:BELONGS_TO]->(o)
-)
-RETURN g.id AS id
-"""
-
-# Backfill any pre-existing :Group rows that lack a `source` property to
-# `source='local'`. Run before opening up the new /admin/entra/* router so
-# the dual local/Entra model has clean defaults. Idempotent: re-running on
-# an already-backfilled database returns 0.
-BACKFILL_GROUP_SOURCE_LOCAL = """
-MATCH (g:Group)
-WHERE g.source IS NULL
-SET g.source = 'local'
-RETURN count(g) AS updated
-"""
-
-# Upsert a shadow `:Group` node that mirrors an Entra security group. Used
-# by `/admin/entra/groups` after a successful Microsoft Graph create/import
-# so the binding catalogue (`(:Group {entra_object_id})-[:GRANTS_ROLE]->`)
-# can be populated by `/admin/entra/groups/{id}/bind`.
-UPSERT_ENTRA_SHADOW_GROUP = """
-MERGE (g:Group {entra_object_id: $entra_object_id})
-SET g.name = $name,
-    g.description = coalesce($description, ''),
-    g.entra_tenant_id = $entra_tenant_id,
-    g.source = 'entra',
-    g.org_id = coalesce($org_id, ''),
-    g.updated_at = datetime()
-ON CREATE SET g.created_at = datetime(),
-              g.id = coalesce(g.id, $entra_object_id)
-RETURN g.entra_object_id AS entra_object_id,
-       g.id AS id,
-       g.name AS name,
-       g.description AS description,
-       g.entra_tenant_id AS entra_tenant_id,
-       g.source AS source
-"""
-
-# Read a single :Group by Entra object id, including any [:GRANTS_ROLE]
-# edge it currently carries. Used by the bind endpoint to report what role
-# (if any) is already attached.
-GET_ENTRA_SHADOW_GROUP = """
-MATCH (g:Group {entra_object_id: $entra_object_id})
-OPTIONAL MATCH (g)-[gr:GRANTS_ROLE]->(role:Role)
-RETURN g.entra_object_id AS entra_object_id,
-       g.name AS name,
-       g.entra_tenant_id AS entra_tenant_id,
-       g.source AS source,
-       collect(DISTINCT role.name) AS role_names
-"""
-
-# Bind an existing shadow :Group {entra_object_id} to a :Role by name.
-# The :Role must exist (seeded by scripts/seed_roles_and_groups.py). The
-# optional `org_id` scopes the grant to a specific organisation; pass an
-# empty string for a global grant.
-BIND_ENTRA_GROUP_TO_ROLE = """
-MATCH (g:Group {entra_object_id: $entra_object_id})
-MATCH (role:Role {name: $role_name})
-MERGE (g)-[gr:GRANTS_ROLE]->(role)
-SET gr.org_id = coalesce($org_id, '')
-RETURN g.entra_object_id AS entra_object_id,
-       role.name AS role_name,
-       gr.org_id AS org_id
-"""
-
-# Drop a single [:GRANTS_ROLE] edge between a shadow :Group and a :Role.
-UNBIND_ENTRA_GROUP_ROLE = """
-MATCH (g:Group {entra_object_id: $entra_object_id})-[gr:GRANTS_ROLE]->(role:Role {name: $role_name})
-DELETE gr
-RETURN count(gr) AS removed
-"""
-
-UPDATE_GROUP = """
-MATCH (g:Group {id: $id})
-SET g += $updates
-RETURN g.id AS id
-"""
-
-DELETE_GROUP = """
-MATCH (g:Group {id: $id})
-OPTIONAL MATCH (g)<-[m:MEMBER_OF]-()
-DELETE m
-DETACH DELETE g
-RETURN count(*) AS deleted
-"""
-
-LIST_GROUP_MEMBERS = """
-MATCH (g:Group {id: $id})<-[:MEMBER_OF]-(pr:Practitioner)
-RETURN pr.email AS email, pr.name AS name
-ORDER BY pr.email
-"""
-
-ADD_GROUP_MEMBER = """
-MATCH (g:Group {id: $group_id})
-MATCH (pr:Practitioner {email: $email})
-MERGE (pr)-[:MEMBER_OF]->(g)
-RETURN pr.email AS email
-"""
-
-REMOVE_GROUP_MEMBER = """
-MATCH (g:Group {id: $group_id})<-[m:MEMBER_OF]-(pr:Practitioner {email: $email})
-DELETE m
-RETURN pr.email AS email
-"""
-
-# ------------------------------------------------------------------
-# Roles
-# ------------------------------------------------------------------
-
-LIST_ROLES = """
-MATCH (r:Role)
-RETURN r.name AS name, r.permissions AS permissions, r.description AS description
-ORDER BY r.name
-"""
-
-GET_ROLE = """
-MATCH (r:Role {name: $name})
-RETURN r.name AS name, r.permissions AS permissions, r.description AS description
-"""
-
-# ------------------------------------------------------------------
-# User roles (HAS_ROLE relationship with optional org_id)
-# ------------------------------------------------------------------
-
-LIST_USER_ROLES = """
-MATCH (pr:Practitioner {email: $email})-[r:HAS_ROLE]->(role:Role)
-RETURN role.name AS role, r.org_id AS org_id
-"""
-
-ASSIGN_USER_ROLE = """
-MATCH (pr:Practitioner {email: $email})
-MATCH (role:Role {name: $role_name})
-MERGE (pr)-[r:HAS_ROLE]->(role)
-SET r.org_id = $org_id
-RETURN role.name AS role
-"""
-
-REMOVE_USER_ROLE = """
-MATCH (pr:Practitioner {email: $email})-[r:HAS_ROLE]->(role:Role {name: $role_name})
-DELETE r
-RETURN role.name AS role
 """
 
 # ------------------------------------------------------------------

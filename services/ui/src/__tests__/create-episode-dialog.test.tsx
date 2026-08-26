@@ -8,8 +8,8 @@
 //     condition_type, referral_date, end_date, status, audit_notes.
 //   - Optional initial encounter attachment with a milestone_type
 //     so the server can re-derive the episode dates.
-//   - Local role gate matching the server's clinician / qa_ra_lead /
-//     platform_admin set.
+//   - Local role gate matching the server's triage_clinician / clinician_admin /
+//     regulatory_reviewer / administrator set.
 //
 // Network calls are not exercised; the helpers are imported by name
 // and asserted on directly.
@@ -37,7 +37,7 @@ const REQUIRED_FORM_FIELDS = [
   "audit_notes",
 ];
 
-const CURATOR_ROLES = ["clinician", "qa_ra_lead", "platform_admin"];
+const CURATOR_ROLES = ["triage_clinician", "clinician_admin", "regulatory_reviewer", "administrator"];
 
 describe("VT-26729755 - CreateEpisodeDialog", () => {
   const src = read("CreateEpisodeDialog.tsx");

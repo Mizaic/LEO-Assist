@@ -89,7 +89,7 @@ interface Props {
   onEpisodeRemoved?: (episodeId: string) => void;
 }
 
-const CURATOR_ROLES = new Set(["clinician", "qa_ra_lead", "platform_admin"]);
+const CURATOR_ROLES = new Set(["triage_clinician", "clinician_admin", "regulatory_reviewer", "administrator"]);
 
 export default function EditEpisodeDialog({
   open,
@@ -164,8 +164,8 @@ export default function EditEpisodeDialog({
       <DialogContent dividers>
         {!isCurator && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Your current role can only view this episode. Switch to
-            clinician or QA / RA lead to make changes.
+            Your current role can only view this episode. Switch to a
+            clinical or administrator role to make changes.
           </Alert>
         )}
         {bannerError && (

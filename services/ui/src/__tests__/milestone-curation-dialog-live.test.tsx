@@ -91,7 +91,7 @@ function renderDialog() {
       episodes={[EPISODE]}
       defaultEpisodeId="ep-1"
       existingLinks={[]}
-      reviewerRole="clinician"
+      reviewerRole="triage_clinician"
       onClose={onClose}
       onChanged={onChanged}
     />
@@ -339,7 +339,7 @@ function renderContextDialog() {
       episodes={[CONTEXT_EPISODE]}
       defaultEpisodeId="ep-ctx"
       existingLinks={[]}
-      reviewerRole="clinician"
+      reviewerRole="triage_clinician"
       onClose={onClose}
       onChanged={onChanged}
     />

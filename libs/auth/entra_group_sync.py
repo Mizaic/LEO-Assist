@@ -1,4 +1,4 @@
-"""Resolve LEO roles from the Entra `groups` claim and sync HAS_ROLE edges.
+"""Resolve LEO roles from the Entra `groups` claim and sync group membership.
 
 Atlas trace:
   DO: DO-AA3B7FCC
@@ -8,20 +8,22 @@ Atlas trace:
 Covers the runtime side of DI-D9D4BA02. The seeder side lives in
 ``scripts/seed_roles_and_groups.py``.
 
+HCCP graph: (:User)-[:IS_MEMBER_OF]->(:Group)-[:HAS_ROLE]->(:Role)
+
 Flow on every successful OIDC callback:
 
 1. Inspect the verified ID-token claims for the `groups` array.
 2. If `groups` is missing and `_claim_names.groups` is present (overage),
    audit `groups_claim_overage` and return ``GroupSyncResult.fallthrough``.
 3. If `groups` is missing entirely, audit `groups_claim_missing` and return
-   ``GroupSyncResult.fallthrough``. Roles fall back to existing HAS_ROLE
-   edges so an account that pre-dates this feature still works.
+   ``GroupSyncResult.fallthrough``. Roles fall back to existing group
+   membership so an account that pre-dates this feature still works.
 4. Resolve the group object IDs to role names via the Neo4j catalogue
-   (`:Group {entra_object_id} -[:GRANTS_ROLE]-> :Role`).
+   (`:Group {entra_object_id} -[:HAS_ROLE]-> :Role`).
 5. Audit any unknown group IDs (no `:Group` row) so tenant admins can spot
    stale catalogue entries.
-6. Synchronise the practitioner's outgoing [:HAS_ROLE] edges to exactly the
-   resolved role-name set (delete edges no longer granted, add new ones).
+6. Synchronise the user's [:IS_MEMBER_OF] edges to Entra-backed groups
+   (local groups are left alone).
 
 This module never calls Microsoft Graph -- the security DI (DI-3610585D)
 forbids it. The overage path explicitly falls through.
@@ -40,9 +42,9 @@ from libs.audit.security_log import (
     emit_unknown_entra_group,
 )
 from libs.cypher.entra_group_queries import (
-    ADD_HAS_ROLE_EDGES,
-    DROP_STALE_HAS_ROLE,
-    READ_HAS_ROLE,
+    ADD_IS_MEMBER_OF,
+    DROP_STALE_IS_MEMBER_OF,
+    READ_ROLES_VIA_GROUPS,
     RESOLVE_ROLES_FROM_ENTRA_GROUPS,
 )
 from libs.cypher.role_queries import CANONICAL_ROLES
@@ -102,9 +104,7 @@ def _filter_canonical(names: Iterable[str]) -> list[str]:
         if not isinstance(name, str):
             continue
         if name not in CANONICAL_ROLES:
-            logger.warning(
-                "entra_group_sync.dropping_non_canonical_role role=%s", name
-            )
+            logger.warning("entra_group_sync.dropping_non_canonical_role role=%s", name)
             continue
         if name in seen:
             continue
@@ -112,6 +112,11 @@ def _filter_canonical(names: Iterable[str]) -> list[str]:
         out.append(name)
     out.sort()
     return out
+
+
+def _matched_group_ids(group_ids: list[str], unknown: list[str]) -> list[str]:
+    unknown_set = set(unknown)
+    return [gid for gid in group_ids if gid not in unknown_set]
 
 
 def _resolve_role_names(
@@ -136,15 +141,15 @@ def _resolve_role_names(
     return role_names, unknown
 
 
-def _sync_has_role(
+def _sync_group_membership(
     client: PatientGraphClient,
     email: str,
-    role_names: list[str],
+    group_object_ids: list[str],
 ) -> None:
-    """Synchronise outgoing [:HAS_ROLE] edges to exactly ``role_names``."""
-    client.run(DROP_STALE_HAS_ROLE, email=email, role_names=role_names)
-    if role_names:
-        client.run(ADD_HAS_ROLE_EDGES, email=email, role_names=role_names)
+    """Sync Entra-backed [:IS_MEMBER_OF] edges to the matched group IDs."""
+    client.run(DROP_STALE_IS_MEMBER_OF, email=email, group_object_ids=group_object_ids)
+    if group_object_ids:
+        client.run(ADD_IS_MEMBER_OF, email=email, group_object_ids=group_object_ids)
 
 
 def resolve_and_sync_entra_groups(
@@ -154,11 +159,11 @@ def resolve_and_sync_entra_groups(
     ip: str,
     client: Optional[PatientGraphClient] = None,
 ) -> GroupSyncResult:
-    """Resolve the user's Entra groups to LEO roles and sync HAS_ROLE edges.
+    """Resolve Entra groups to roles and sync [:IS_MEMBER_OF] membership.
 
     Returns a ``GroupSyncResult``. When ``fallthrough=True`` the caller
-    should keep whatever HAS_ROLE edges already exist on the practitioner;
-    no edges have been mutated.
+    should keep whatever group membership already exists; no edges have
+    been mutated.
     """
     normalised = _normalise_email(email)
     if not normalised:
@@ -189,7 +194,9 @@ def resolve_and_sync_entra_groups(
                 ip=ip,
                 group_id=unknown_id,
             )
-        _sync_has_role(graph, normalised, role_names)
+        _sync_group_membership(
+            graph, normalised, _matched_group_ids(group_ids, unknown)
+        )
     finally:
         if own_client:
             graph.close()
@@ -218,7 +225,7 @@ def read_current_role_names(
     own_client = client is None
     graph = client or PatientGraphClient()
     try:
-        rows = graph.run(READ_HAS_ROLE, email=normalised)
+        rows = graph.run(READ_ROLES_VIA_GROUPS, email=normalised)
     finally:
         if own_client:
             graph.close()

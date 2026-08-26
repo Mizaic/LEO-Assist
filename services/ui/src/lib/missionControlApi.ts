@@ -753,7 +753,11 @@ export type ReconcileActionType =
   | "detach"
   | "not_applicable";
 
-export type ReviewerRole = "clinician" | "qa_ra_lead";
+export type ReviewerRole =
+  | "triage_clinician"
+  | "clinician_admin"
+  | "regulatory_reviewer"
+  | "administrator";
 
 export type LockEntityType =
   | "episode"

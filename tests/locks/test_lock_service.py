@@ -315,9 +315,9 @@ def test_apply_with_lock_stamps_role_in_audit_description(monkeypatch) -> None:
     )
     client = _FakeClient()
 
-    _apply(client, locked_by_role="qa_ra_lead", source="qa_override")
+    _apply(client, locked_by_role="regulatory_reviewer", source="qa_override")
 
-    assert "role=qa_ra_lead" in captured[0]["description"]
+    assert "role=regulatory_reviewer" in captured[0]["description"]
     assert "source=qa_override" in captured[0]["description"]
 
 

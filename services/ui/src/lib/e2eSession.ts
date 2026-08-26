@@ -22,8 +22,8 @@ export const E2E_SESSION_PAYLOAD = {
     },
   ],
   idleTimeoutMinutes: 30,
-  selected_role: "platform_admin",
-  allowed_roles: ["platform_admin", "triage_clinician", "auditor"],
+  selected_role: "administrator",
+  allowed_roles: ["administrator", "triage_clinician", "regulatory_reviewer"],
   needs_role_choice: false,
   density_preference: "comfortable",
 };

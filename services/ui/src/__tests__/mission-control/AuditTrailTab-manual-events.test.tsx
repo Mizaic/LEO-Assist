@@ -92,7 +92,7 @@ describe("AuditTrailTab -- Human edits section", () => {
           subtype: "episode_manual_edit",
           created_at: "2026-04-22T09:00:00",
           actor_email: "rob@example.com",
-          actor_role: "qa_ra_lead",
+          actor_role: "regulatory_reviewer",
           episode_id: "ep-001",
           patient_id: "P-1",
           notes:
@@ -108,7 +108,7 @@ describe("AuditTrailTab -- Human edits section", () => {
     await waitFor(() => {
       expect(screen.getByText("Attached encounter")).toBeInTheDocument();
     });
-    expect(screen.getByText(/rob@example.com \(qa_ra_lead\)/)).toBeInTheDocument();
+    expect(screen.getByText(/rob@example.com \(regulatory_reviewer\)/)).toBeInTheDocument();
     expect(
       screen.getByText(/status active -> completed/),
     ).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe("AuditTrailTab -- Human edits section", () => {
           subtype: "episode_manual_edit",
           created_at: "2026-04-22T10:00:00",
           actor_email: "rob@example.com",
-          actor_role: "platform_admin",
+          actor_role: "administrator",
           episode_id: "ep-001",
           patient_id: "P-1",
           notes: "Deleted episode ep-001 (hard delete with detach)",
@@ -153,7 +153,7 @@ describe("AuditTrailTab -- Human edits section", () => {
           subtype: "episode_manual_edit",
           created_at: "2026-04-21T08:00:00",
           actor_email: "old@example.com",
-          actor_role: "clinician",
+          actor_role: "triage_clinician",
           episode_id: "ep-001",
           patient_id: "P-1",
           notes: "Old change",
@@ -166,7 +166,7 @@ describe("AuditTrailTab -- Human edits section", () => {
           subtype: "episode_manual_edit",
           created_at: "2026-04-22T09:00:00",
           actor_email: "new@example.com",
-          actor_role: "qa_ra_lead",
+          actor_role: "regulatory_reviewer",
           episode_id: "ep-001",
           patient_id: "P-1",
           notes: "Recent change",
