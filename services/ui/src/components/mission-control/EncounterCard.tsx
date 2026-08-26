@@ -37,6 +37,7 @@ import {
 } from "@/components/gold-editor";
 import { useDemoMode } from "@/context/DemoModeContext";
 import { maskEncounterText } from "@/lib/demoMode";
+import { reviewerRoleLabel } from "@/lib/missionControlApi";
 import { milestoneLabel } from "./milestoneOptions";
 import type { EncounterEpisodeLink } from "./useMilestoneCuration";
 
@@ -424,7 +425,7 @@ function LockChipInline({
 }: {
   lock: import("@/lib/missionControlApi").VerificationLockSummary;
 }) {
-  const role = lock.locked_by_role === "qa_ra_lead" ? "QA / RA lead" : "clinician";
+  const role = reviewerRoleLabel(lock.locked_by_role);
   const tooltip = `Locked by ${role} ${lock.locked_by}. Reason: ${lock.lock_reason}`;
   return (
     <Chip

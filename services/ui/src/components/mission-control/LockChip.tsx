@@ -18,7 +18,10 @@ import Chip from "@mui/material/Chip";
 import Tooltip from "@mui/material/Tooltip";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import LockOpenOutlined from "@mui/icons-material/LockOpenOutlined";
-import type { VerificationLockSummary } from "@/lib/missionControlApi";
+import {
+  reviewerRoleLabel,
+  type VerificationLockSummary,
+} from "@/lib/missionControlApi";
 
 interface Props {
   /** When provided, renders the locked chip with reviewer info in
@@ -31,8 +34,7 @@ interface Props {
 }
 
 function describe(lock: VerificationLockSummary): string {
-  const role =
-    lock.locked_by_role === "qa_ra_lead" ? "QA / RA lead" : "clinician";
+  const role = reviewerRoleLabel(lock.locked_by_role);
   const when = lock.locked_at?.slice(0, 10) ?? "today";
   return `Locked by ${role} ${lock.locked_by} on ${when}. Reason: ${lock.lock_reason}`;
 }

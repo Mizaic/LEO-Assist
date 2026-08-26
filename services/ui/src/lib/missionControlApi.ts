@@ -759,6 +759,19 @@ export type ReviewerRole =
   | "regulatory_reviewer"
   | "administrator";
 
+export function reviewerRoleLabel(role: ReviewerRole): string {
+  switch (role) {
+    case "triage_clinician":
+      return "Triage clinician";
+    case "clinician_admin":
+      return "Clinical administrator";
+    case "regulatory_reviewer":
+      return "Regulatory reviewer";
+    case "administrator":
+      return "System administrator";
+  }
+}
+
 export type LockEntityType =
   | "episode"
   | "encounter"
@@ -1005,7 +1018,7 @@ export interface EpisodeDetachResponse {
 /**
  * POST /analytics/episodes - manually create an EpisodeOfCare from
  * the patient drawer. The server enforces role gating
- * (clinician / qa_ra_lead / platform_admin) and org-scope on
+ * (triage_clinician / regulatory_reviewer / administrator) and org-scope on
  * `patient_id`. Optional `initial_encounter_links` are attached as
  * IS_PART_OF edges and the episode dates are re-derived from them.
  */

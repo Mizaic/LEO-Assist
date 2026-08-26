@@ -53,6 +53,7 @@ describe("missionControlApi -- reconcile + lock client", () => {
     const block = sliceTypeAlias(SOURCE, "ReviewerRole");
     expect(block).toContain('"triage_clinician"');
     expect(block).toContain('"regulatory_reviewer"');
+    expect(SOURCE).toContain("export function reviewerRoleLabel");
   });
 
   test("LockEntityType covers every lockable entity in libs/locks/models.py", () => {
