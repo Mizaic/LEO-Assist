@@ -83,3 +83,11 @@ SET s.status = 'cancelled',
     s.updated_at = datetime()
 RETURN s.step_id AS step_id
 """
+
+GET_REVIEW_IDENTIFIERS = """
+OPTIONAL MATCH (p:Patient {id: $patient_id})
+OPTIONAL MATCH (rr:ReferralRequest)-[:FOR_PATIENT]->(p)
+WITH p, head(collect(rr)) AS rr
+RETURN coalesce(p.nhsNumber, p.nhs_number, '') AS nhs_number,
+       coalesce(rr.ubrn, '') AS ubrn
+"""

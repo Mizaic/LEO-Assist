@@ -22,6 +22,17 @@ const DETECTOR_SRC = fs.readFileSync(
   path.join(OPS, "formSchemaDetector.ts"),
   "utf8",
 );
+const TEACH_SRC = [
+  ANNOTATOR_SRC,
+  ...fs
+    .readdirSync(OPS)
+    .filter(
+      (name) =>
+        /^(FormSchema|formSchema|useFormSchema)/.test(name) &&
+        (name.endsWith(".tsx") || name.endsWith(".ts")),
+    )
+    .map((name) => fs.readFileSync(path.join(OPS, name), "utf8")),
+].join("\n");
 
 // ---------------------------------------------------------------------------
 // Static-source invariants: FormSchemaAnnotator.tsx
@@ -45,8 +56,8 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
   });
 
   it("calls /api/form-schemas/detect POST for LLM auto-detect", () => {
-    expect(ANNOTATOR_SRC).toContain("/api/form-schemas/detect");
-    expect(ANNOTATOR_SRC).toContain('"POST"');
+    expect(TEACH_SRC).toContain("/api/form-schemas/detect");
+    expect(TEACH_SRC).toContain('"POST"');
   });
 
   it("shows LEO is reading the form during load", () => {
@@ -54,20 +65,20 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
   });
 
   it("supports PUT to save schema", () => {
-    expect(ANNOTATOR_SRC).toContain('"PUT"');
+    expect(TEACH_SRC).toContain('"PUT"');
   });
 
   it("renders a section type selector", () => {
     expect(
-      ANNOTATOR_SRC.includes("section_type") ||
-        ANNOTATOR_SRC.includes("sectionType"),
+      TEACH_SRC.includes("section_type") ||
+        TEACH_SRC.includes("sectionType"),
     ).toBe(true);
   });
 
   it("renders item entity_text fields for checkbox sections", () => {
     expect(
-      ANNOTATOR_SRC.includes("entity_text") ||
-        ANNOTATOR_SRC.includes("entityText"),
+      TEACH_SRC.includes("entity_text") ||
+        TEACH_SRC.includes("entityText"),
     ).toBe(true);
   });
 
@@ -80,6 +91,23 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
 
   it("does not use snapshot testing", () => {
     expect(ANNOTATOR_SRC).not.toContain("toMatchSnapshot");
+  });
+
+  it("shows a visible Add section control when auto-detect finds nothing", () => {
+    expect(TEACH_SRC).toMatch(/Add section/);
+  });
+
+  it("surfaces detect HTTP errors instead of a silent empty state", () => {
+    expect(TEACH_SRC).toMatch(/setError\(/);
+    expect(TEACH_SRC).toMatch(/detect\.ok|!detect\.ok|res\.ok/);
+  });
+
+  it("does not tell the reviewer a missing button will appear below", () => {
+    expect(TEACH_SRC).not.toMatch(/using the button below/);
+  });
+
+  it("does not hide Add section behind a client role gate", () => {
+    expect(TEACH_SRC).not.toMatch(/useRole|RoleGate|selected_role/);
   });
 });
 

@@ -17,8 +17,14 @@ from libs.cypher.extraction_review_queries import (
     CANCEL_PAUSED_EXTRACTION_STAGE,
     CREATE_EXTRACTION_REVIEW_TASK,
     GET_EXTRACTION_REVIEW_TASK,
+    GET_REVIEW_IDENTIFIERS,
     RESOLVE_EXTRACTION_REVIEW_TASK,
     UNLOCK_PAUSED_EXTRACTION_STAGE,
+)
+from libs.pipeline.extraction_review_ids import (
+    extract_review_identifiers,
+    format_nhs_number,
+    format_ubrn,
 )
 from libs.pipeline.document_quality import DocumentQuality
 from libs.pipeline.extraction_learning_store import persist_review_learning
@@ -198,6 +204,19 @@ def load_extraction_review_detail(
 
         stage_store = PipelineStageStore(client)
     state = stage_store.load_accumulated_state(str(task.get("run_id") or ""))
+    letter = resolve_review_letter(
+        client=client,
+        task=task,
+        state=state or {},
+    )
+    graph_nhs, graph_ubrn = _load_graph_identifiers(
+        client, str(task.get("patient_id") or "")
+    )
+    ids = extract_review_identifiers(
+        letter,
+        graph_nhs_number=graph_nhs,
+        graph_ubrn=graph_ubrn,
+    )
     return {
         "task_id": task.get("task_id") or task_id,
         "run_id": task.get("run_id") or "",
@@ -206,12 +225,18 @@ def load_extraction_review_detail(
         "reason": task.get("reason") or "",
         "draft_entities": json.loads(draft_raw) if draft_raw else [],
         "document_quality": json.loads(quality_raw) if quality_raw else {},
-        "source_text": resolve_review_letter(
-            client=client,
-            task=task,
-            state=state or {},
-        ),
+        "source_text": letter,
+        "nhs_number": format_nhs_number(ids.nhs_number),
+        "ubrn": format_ubrn(ids.ubrn),
     }
+
+
+def _load_graph_identifiers(client: Any, patient_id: str) -> tuple[str, str]:
+    if not patient_id:
+        return "", ""
+    rows = client.run(GET_REVIEW_IDENTIFIERS, patient_id=patient_id)
+    row = (rows or [{}])[0] or {}
+    return str(row.get("nhs_number") or ""), str(row.get("ubrn") or "")
 
 
 def resume_extraction_review(

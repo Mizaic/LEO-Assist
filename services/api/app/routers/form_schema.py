@@ -18,8 +18,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.deps import require_admin
-from libs.auth.org_scope import CallerScope
+from app.deps import require_role
 from libs.llm_client.form_schema_detector import detect_form_sections
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.form_schema_store import (
@@ -30,6 +29,16 @@ from libs.pipeline.form_schema_store import (
 from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
+
+# Roles that may teach a paused extraction form. Platform admins bypass
+# via require_role. Do not widen this to any authenticated session.
+FORM_TEACHER_ROLES = (
+    "validation",
+    "operations_manager",
+    "clinician_admin",
+    "administrator",
+)
+require_form_teacher = require_role(*FORM_TEACHER_ROLES)
 
 
 class FormSchemaItemRequest(BaseModel):
@@ -87,9 +96,8 @@ def _schema_to_dict(schema: Any) -> dict[str, Any]:
 @router.get("/{fingerprint}")
 def get_schema(
     fingerprint: str,
-    scope: CallerScope = Depends(require_admin),
+    _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
-    _ = scope
     client = PatientGraphClient()
     try:
         schema = load_form_schema(client, fingerprint)
@@ -104,9 +112,8 @@ def get_schema(
 def save_schema(
     fingerprint: str,
     body: SaveFormSchemaRequest,
-    scope: CallerScope = Depends(require_admin),
+    _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
-    _ = scope
     sections = build_sections_from_request([s.model_dump() for s in body.sections])
     client = PatientGraphClient()
     try:
@@ -115,7 +122,8 @@ def save_schema(
             fingerprint=fingerprint,
             form_name=body.form_name,
             sections=sections,
-            created_by=body.saved_by,
+            created_by=(_session.get("email") or "").strip()
+            or "unknown",
             status=body.status,
         )
     except Exception as exc:
@@ -127,9 +135,8 @@ def save_schema(
 
 @router.get("")
 def list_schemas(
-    scope: CallerScope = Depends(require_admin),
+    _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
-    _ = scope
     client = PatientGraphClient()
     try:
         rows = client.run(LIST_FORM_SCHEMAS)
@@ -156,14 +163,13 @@ class DetectFormRequest(BaseModel):
 @router.post("/detect")
 async def detect_schema(
     body: DetectFormRequest,
-    scope: CallerScope = Depends(require_admin),
+    _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
     """Use the LLM to auto-detect sections and suggest entity text.
 
-    Runs detect_form_sections (synchronous/CPU-bound consensus call) in
-    a thread pool so the async event loop is not blocked.
+    Runs detect_form_sections (one big-tier converse call) in a thread
+    pool so the async event loop is not blocked.
     """
-    _ = scope
     loop = asyncio.get_event_loop()
     try:
         sections = await loop.run_in_executor(

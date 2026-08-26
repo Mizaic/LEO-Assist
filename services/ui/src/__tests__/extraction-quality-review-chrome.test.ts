@@ -59,8 +59,8 @@ describe("extraction quality review chrome", () => {
     const copy = readFile(
       "services/ui/src/components/operations/extractionReviewCopy.ts",
     );
-    const dialog = readFile(
-      "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
+    const header = readFile(
+      "services/ui/src/components/operations/ExtractionReviewHeader.tsx",
     );
     const facts = readFile(
       "services/ui/src/components/operations/ExtractionReviewFacts.tsx",
@@ -68,7 +68,7 @@ describe("extraction quality review chrome", () => {
     expect(copy).toMatch(/This letter layout is unlike the training examples/);
     expect(copy).toMatch(/This form is not one we have seen before/);
     expect(copy).toMatch(/wrapper, not the clinical form/);
-    expect(dialog).toMatch(/pauseReasonLabels/);
+    expect(header).toMatch(/pauseReasonLabels/);
     expect(facts).not.toMatch(/Why this referral paused/);
   });
 
@@ -127,18 +127,37 @@ describe("extraction quality review chrome", () => {
   });
 
   test("TC-010: pause reason pills use dark warning text on paper", () => {
+    const header = readFile(
+      "services/ui/src/components/operations/ExtractionReviewHeader.tsx",
+    );
+    expect(header).toMatch(/color:\s*["']warning\.dark["']/);
+    expect(header).toMatch(/bgcolor:\s*["']background\.paper["']/);
+    expect(header).not.toMatch(/bgcolor:\s*["']warning\.light["']/);
+  });
+
+  test("TC-012: header shows copyable NHS number and UBRN chips", () => {
     const dialog = readFile(
       "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
     );
-    expect(dialog).toMatch(/color:\s*["']warning\.dark["']/);
-    expect(dialog).toMatch(/bgcolor:\s*["']background\.paper["']/);
-    expect(dialog).not.toMatch(/bgcolor:\s*["']warning\.light["']/);
+    const header = readFile(
+      "services/ui/src/components/operations/ExtractionReviewHeader.tsx",
+    );
+    const ids = readFile(
+      "services/ui/src/components/operations/extractionReviewIds.ts",
+    );
+    expect(dialog).toMatch(/nhsNumber|nhs_number/);
+    expect(dialog).toMatch(/ubrn/);
+    expect(header).toMatch(/CopyChip|copy to clipboard|navigator\.clipboard/);
+    expect(header).toMatch(/NHS/);
+    expect(header).toMatch(/UBRN/);
+    expect(ids).toMatch(/formatNhsNumber/);
+    expect(ids).toMatch(/formatUbrn/);
   });
 
   test("TC-011: My work can remove a paused extraction without unlocking", () => {
     const workPage = readFile("services/ui/src/app/work/page.tsx");
-    const dialog = readFile(
-      "services/ui/src/components/operations/ExtractionQualityReviewDialog.tsx",
+    const header = readFile(
+      "services/ui/src/components/operations/ExtractionReviewHeader.tsx",
     );
     const cancelDialog = readFile("services/ui/src/app/work/WorkCancelDialog.tsx");
     const queue = readFile(
@@ -147,7 +166,7 @@ describe("extraction quality review chrome", () => {
     expect(workPage).toMatch(/onCancelTask/);
     expect(workPage).toMatch(/WorkCancelDialog/);
     expect(queue).toMatch(/Remove/);
-    expect(dialog).toMatch(/Remove this task/);
+    expect(header).toMatch(/Remove this task/);
     expect(cancelDialog).toMatch(/extraction-reviews\/cancel/);
     expect(cancelDialog).toMatch(/duplicate/);
     expect(cancelDialog).not.toMatch(/extraction-reviews\/complete/);

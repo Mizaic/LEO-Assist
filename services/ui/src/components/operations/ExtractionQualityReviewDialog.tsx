@@ -10,27 +10,20 @@ import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import CloseIcon from "@mui/icons-material/Close";
 import SchoolIcon from "@mui/icons-material/School";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
+import ExtractionReviewHeader from "./ExtractionReviewHeader";
 import FormSchemaAnnotator from "./FormSchemaAnnotator";
 
 import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
 import { LetterMarkLegend } from "@/app/admin/validation-lab/LetterMarks";
 import WorkCancelDialog from "@/app/work/WorkCancelDialog";
 import WorkFixPanel from "@/app/work/WorkFixPanel";
-import {
-  EMPTY_LETTER_COPY,
-  QUALITY_SCORE_HINT,
-  pauseReasonLabels,
-} from "./extractionReviewCopy";
+import { EMPTY_LETTER_COPY } from "./extractionReviewCopy";
 import { focusedReviewMarks } from "./extractionReviewHighlight";
 import {
   FactList,
@@ -45,6 +38,8 @@ interface ReviewData {
   quality: DocumentQuality;
   reason: string;
   formFingerprint: string;
+  nhsNumber: string;
+  ubrn: string;
 }
 
 interface Props {
@@ -91,6 +86,8 @@ export default function ExtractionQualityReviewDialog({
           formFingerprint: String(
             (raw.document_quality as DocumentQuality | undefined)?.form_fingerprint_id ?? "",
           ),
+          nhsNumber: String(raw.nhs_number ?? ""),
+          ubrn: String(raw.ubrn ?? ""),
         };
         setData(loaded);
         setEntities(loaded.entities);
@@ -165,11 +162,13 @@ export default function ExtractionQualityReviewDialog({
       }}
     >
       <Stack sx={{ height: "100%", minHeight: 0 }}>
-        <ReviewHeader
+        <ExtractionReviewHeader
           reason={data?.reason ?? ""}
           qualityReasons={data?.quality.quality_reasons ?? []}
           score={score}
           loaded={Boolean(data)}
+          nhsNumber={data?.nhsNumber ?? ""}
+          ubrn={data?.ubrn ?? ""}
           onClose={onClose}
           onRemoveTask={() => setCancelOpen(true)}
         />
@@ -210,103 +209,6 @@ export default function ExtractionQualityReviewDialog({
         />
       ) : null}
     </Dialog>
-  );
-}
-
-// -- ReviewHeader -----------------------------------------------------------
-
-function ReviewHeader({
-  reason,
-  qualityReasons,
-  score,
-  loaded,
-  onClose,
-  onRemoveTask,
-}: {
-  reason: string;
-  qualityReasons: string[];
-  score: number;
-  loaded: boolean;
-  onClose: () => void;
-  onRemoveTask: () => void;
-}) {
-  const scorePercent = Math.round(score * 100);
-  const scoreColor = score > 0.7 ? "#16A34A" : score > 0.4 ? "#D97706" : "#DC2626";
-  const reasons = pauseReasonLabels(reason, qualityReasons);
-
-  return (
-    <Stack
-      direction="row"
-      alignItems="flex-start"
-      sx={{
-        px: 2,
-        py: 1.5,
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        bgcolor: "#FAFAFA",
-        flexShrink: 0,
-      }}
-    >
-      <WarningAmberIcon sx={{ color: "#D97706", mr: 1.5, fontSize: 22, mt: 0.25 }} />
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography variant="subtitle1" fontWeight={700}>
-          Check paused extraction
-        </Typography>
-        {reasons.length ? (
-          <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 0.5 }}>
-            {reasons.map((label) => (
-              <Typography
-                key={label}
-                variant="caption"
-                sx={{
-                  px: 1,
-                  py: 0.25,
-                  color: "warning.dark",
-                  bgcolor: "background.paper",
-                  border: "1px solid",
-                  borderColor: "warning.dark",
-                  borderRadius: "4px",
-                  fontWeight: 600,
-                }}
-              >
-                {label}
-              </Typography>
-            ))}
-          </Stack>
-        ) : null}
-      </Box>
-      {loaded && scorePercent > 0 ? (
-        <Tooltip title={QUALITY_SCORE_HINT}>
-          <Box
-            sx={{
-              mr: 2,
-              mt: 0.25,
-              px: 1.5,
-              py: 0.5,
-              bgcolor: `${scoreColor}18`,
-              border: `1px solid ${scoreColor}`,
-              borderRadius: "6px",
-              flexShrink: 0,
-            }}
-          >
-            <Typography variant="caption" fontWeight={700} sx={{ color: scoreColor }}>
-              Letter score {scorePercent}%
-            </Typography>
-          </Box>
-        </Tooltip>
-      ) : null}
-      <Button
-        onClick={onRemoveTask}
-        size="small"
-        color="inherit"
-        sx={{ mr: 1, flexShrink: 0 }}
-      >
-        Remove this task
-      </Button>
-      <IconButton onClick={onClose} size="small" aria-label="Close review">
-        <CloseIcon fontSize="small" />
-      </IconButton>
-    </Stack>
   );
 }
 
