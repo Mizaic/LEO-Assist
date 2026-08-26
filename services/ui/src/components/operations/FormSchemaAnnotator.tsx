@@ -22,6 +22,7 @@ import { FormSchemaCompletenessEditor } from "./FormSchemaCompletenessEditor";
 import { FormSchemaScopeFields } from "./FormSchemaScopeFields";
 import { FormSchemaSectionEditor } from "./FormSchemaSectionEditor";
 import type { FormSchemaSection } from "./formSchemaDetector";
+import { seedCompletenessGroups } from "./formSchemaCompletenessSeed";
 import { saveTaughtForm, type CompletenessLogicGroup } from "./formSchemaTeach";
 import { useFormSchemaTeach } from "./useFormSchemaTeach";
 
@@ -33,6 +34,8 @@ interface Props {
   focusedSectionId?: string | null;
   onSelectSection?: (section: FormSchemaSection) => void;
   onSectionsChange?: (sections: FormSchemaSection[]) => void;
+  pendingSelection?: { pattern: string; entity_text: string; sectionId: string } | null;
+  onPendingConsumed?: () => void;
 }
 
 export default function FormSchemaAnnotator({
@@ -43,6 +46,8 @@ export default function FormSchemaAnnotator({
   focusedSectionId = null,
   onSelectSection,
   onSectionsChange,
+  pendingSelection = null,
+  onPendingConsumed,
 }: Props) {
   const teach = useFormSchemaTeach(fingerprint, sourceText, formName, onSaved);
   const [organizationId, setOrganizationId] = useState("");
@@ -50,6 +55,21 @@ export default function FormSchemaAnnotator({
   const [groups, setGroups] = useState<CompletenessLogicGroup[]>([]);
   const [scopeSaving, setScopeSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    if (!pendingSelection) return;
+    const sIdx = teach.sections.findIndex(
+      (s) => s.section_id === pendingSelection.sectionId,
+    );
+    if (sIdx < 0) return;
+    teach.addItemWithContent(sIdx, {
+      pattern: pendingSelection.pattern,
+      entity_text: pendingSelection.entity_text,
+      semantic_tag: "finding",
+      assertion: "present",
+    });
+    onPendingConsumed?.();
+  }, [pendingSelection]);
 
   const handleSave = async () => {
     setScopeSaving(true);
@@ -77,6 +97,11 @@ export default function FormSchemaAnnotator({
   useEffect(() => {
     onSectionsChange?.(teach.sections);
   }, [teach.sections, onSectionsChange]);
+
+  useEffect(() => {
+    if (!teach.sections.length || groups.length) return;
+    setGroups(seedCompletenessGroups(sourceText, teach.sections));
+  }, [teach.sections, sourceText, groups.length]);
 
   if (teach.loading) {
     return (

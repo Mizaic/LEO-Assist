@@ -34,6 +34,7 @@ export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
   free_text: "Free-text narrative (extract as-is)",
   scale: "Ordinal scale",
   ordered_tests: "Tests ordered (no results yet)",
+  observable: "Measured value (BMI, BP, HR)",
   admin: "Admin / demographics (skip)",
   template_noise: "Template guidance text (skip)",
 };
@@ -43,6 +44,7 @@ const ITEM_SECTION_TYPES: SectionType[] = [
   "checkbox_yesno",
   "checkbox_multi",
   "scale",
+  "observable",
 ];
 
 export function FormSchemaSectionEditor({

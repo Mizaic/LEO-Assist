@@ -92,7 +92,7 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
   it("lets a teacher pick organisation and service", () => {
     expect(TEACH_SRC).toMatch(/Organisation/);
     expect(TEACH_SRC).toMatch(/Service/);
-    expect(TEACH_SRC).toMatch(/\/api\/form-schemas\/scope\/organizations/);
+    expect(TEACH_SRC).toMatch(/listOrgs|listOrgServices/);
   });
 
   it("lets a teacher define completeness logic groups", () => {
@@ -160,6 +160,7 @@ describe("formSchemaDetector.ts static-source invariants", () => {
     expect(DETECTOR_SRC).toContain("free_text");
     expect(DETECTOR_SRC).toContain("ordered_tests");
     expect(DETECTOR_SRC).toContain("scale");
+    expect(DETECTOR_SRC).toContain("observable");
     expect(DETECTOR_SRC).toContain("admin");
     expect(DETECTOR_SRC).toContain("template_noise");
   });

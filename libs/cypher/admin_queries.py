@@ -309,8 +309,12 @@ RETURN o.id AS id
 """
 
 LIST_ORG_SERVICES = """
-MATCH (s:Service)-[:PROVIDES_SERVICE]->(o:Organization {id: $org_id})
-RETURN s.id AS id, s.name AS name, s.code AS code
+MATCH (o)
+WHERE o.id = $org_id
+  AND (o:GPPractice OR o:ICB OR o:CancerAlliance OR o:PCN
+       OR o:ServiceProvider OR o:Organization)
+MATCH (s:Service)-[:PROVIDES_SERVICE]-(o)
+RETURN DISTINCT s.id AS id, s.name AS name, s.code AS code
 ORDER BY s.name
 """
 

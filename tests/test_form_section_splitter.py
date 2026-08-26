@@ -64,11 +64,11 @@ def test_splitter_keeps_yes_no_pipe_on_same_line() -> None:
     assert section_b["section_type"] == "checkbox_yesno"
 
 
-def test_splitter_keeps_minimum_dataset_as_admin() -> None:
+def test_splitter_keeps_minimum_dataset_when_only_admin_fields() -> None:
     sections = split_form_sections(SHERWOOD_TABLE)
-    admin = [s for s in sections if "minimum dataset" in s["label"].lower()]
-    assert admin
-    assert admin[0]["section_type"] == "admin"
+    dataset = [s for s in sections if "minimum dataset" in s["label"].lower()]
+    assert dataset
+    assert dataset[0]["section_type"] == "admin"
 
 
 def test_detect_falls_back_to_splitter_when_llm_returns_empty() -> None:

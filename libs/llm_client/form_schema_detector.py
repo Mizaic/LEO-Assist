@@ -37,9 +37,12 @@ SECTION TYPES -- choose exactly one per section:
 - checkbox_yesno   : Each criterion has a Yes/No pair (e.g. B1 Yes [X] No [ ])
 - scale            : Numbered/labelled scale, one item selected (Frailty, ECOG)
 - free_text        : Narrative clinical prose -- ALWAYS PRESERVE for the LLM
-- ordered_tests    : Table of test names with empty result fields -- SUPPRESS
-- template_noise   : Admin decision trees, patient awareness boxes -- SUPPRESS
-- admin            : Patient demographics, practice details -- SUPPRESS
+- ordered_tests    : Mandatory tests and blood-result stubs -- KEEP
+- observable       : Measured values such as BMI, BP, HR -- KEEP
+- template_noise   : Repeat-print footer only -- skip
+- admin            : Patient demographics, practice details, hospital number -- skip
+Keep PMB pathway, patient awareness, ECOG, and Minimum Dataset vitals as
+their own sections. Do not hide clinical blocks.
 
 ITEMS (only for checkbox_single, checkbox_yesno, scale):
 For each option provide:

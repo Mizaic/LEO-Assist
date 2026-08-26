@@ -10,6 +10,7 @@ import * as path from "path";
 import {
   matchSectionFromLetterText,
   regionsFromSections,
+  cleanLetterSelectionText,
 } from "../components/operations/formSchemaSectionFocus";
 import type { FormSchemaSection } from "../components/operations/formSchemaDetector";
 
@@ -85,6 +86,18 @@ describe("matchSectionFromLetterText", () => {
     expect(matchSectionFromLetterText(SECTIONS, "")).toBeUndefined();
     expect(matchSectionFromLetterText([], "Section A")).toBeUndefined();
   });
+
+  it("matches row identifier prefix B1 to Section B", () => {
+    expect(matchSectionFromLetterText(SECTIONS, "B1. Lesion suspicious")?.section_id).toBe("B");
+  });
+
+  it("matches row identifier B2 (no dot) to Section B", () => {
+    expect(matchSectionFromLetterText(SECTIONS, "B2 Any lesion")?.section_id).toBe("B");
+  });
+
+  it("matches A3. prefix to Section A", () => {
+    expect(matchSectionFromLetterText(SECTIONS, "A3. Ovary (please tick)")?.section_id).toBe("A");
+  });
 });
 
 describe("regionsFromSections", () => {
@@ -93,6 +106,28 @@ describe("regionsFromSections", () => {
     const regionA = regions.find((r) => r.regionId === "A");
     expect(regionA?.label).toMatch(/Section A/);
     expect(regionA?.itemPatterns).toEqual(expect.arrayContaining(["Ovary", "Cervix"]));
+  });
+});
+
+describe("cleanLetterSelectionText", () => {
+  it("strips a B1. row prefix", () => {
+    expect(cleanLetterSelectionText("B1. Lesion site")).toBe("Lesion site");
+  });
+
+  it("strips a B2 row prefix without dot", () => {
+    expect(cleanLetterSelectionText("B2 Any lesion")).toBe("Any lesion");
+  });
+
+  it("strips trailing parenthetical noise", () => {
+    expect(cleanLetterSelectionText("Cervix (please tick)")).toBe("Cervix");
+  });
+
+  it("leaves plain text unchanged", () => {
+    expect(cleanLetterSelectionText("Cervical cancer suspected")).toBe("Cervical cancer suspected");
+  });
+
+  it("strips single-letter-dot prefix like A. ", () => {
+    expect(cleanLetterSelectionText("A. Any lesion")).toBe("Any lesion");
   });
 });
 
@@ -136,5 +171,28 @@ describe("Teach this form section focus wiring", () => {
 
   it("new focus helpers do not paste HEX colours", () => {
     expect(focus).not.toMatch(/#[0-9A-Fa-f]{3,8}/);
+  });
+
+  it("dialog handles teach-mode text selection and routes it to annotator", () => {
+    expect(dialog).toMatch(/pendingSelection/);
+    expect(dialog).toMatch(/onPendingConsumed/);
+    expect(dialog).toMatch(/handleTeachSelection/);
+    expect(dialog).toMatch(/onTeachSelection/);
+  });
+
+  it("dialog shows hint when no section is focused and selection cannot be matched", () => {
+    expect(dialog).toMatch(/selectionHint/);
+    expect(dialog).toMatch(/teach-selection-hint/);
+    expect(dialog).toMatch(/Select a section/);
+  });
+
+  it("annotator accepts pendingSelection and addItemWithContent", () => {
+    expect(annotator).toMatch(/pendingSelection/);
+    expect(annotator).toMatch(/onPendingConsumed/);
+    expect(annotator).toMatch(/addItemWithContent/);
+  });
+
+  it("teach mode mouseup fires onTeachSelection not fact-add", () => {
+    expect(dialog).toMatch(/teachMode.*onTeachSelection|onTeachSelection.*teachMode/);
   });
 });

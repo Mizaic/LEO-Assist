@@ -5,6 +5,7 @@
  */
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import {
+  detectFormName,
   type FormSchemaItem,
   type FormSchemaSection,
 } from "./formSchemaDetector";
@@ -41,6 +42,10 @@ export function useFormSchemaTeach(
     }
     if (saved) setName(saved.form_name);
     const next = await detectWithFallback(sourceText, setError);
+    const detectedName = detectFormName(sourceText);
+    if (!saved?.form_name || saved.form_name === "Referral form") {
+      if (detectedName && detectedName !== "Referral form") setName(detectedName);
+    }
     if (!isIncompleteSchema(next)) {
       setSections(next);
       return;
@@ -130,6 +135,7 @@ function bindTeachActions(state: {
     },
     patchItem: makePatchItem(state.setSections, state.setSaved),
     addItem: makeAddItem(state.setSections),
+    addItemWithContent: makeAddItemWithContent(state.setSections, state.setSaved),
     removeItem: makeRemoveItem(state.setSections, state.setSaved),
   };
 }
@@ -148,6 +154,21 @@ function makePatchItem(
             j === iIdx ? { ...item, ...patch } : item,
           ),
         };
+      }),
+    );
+    setSaved(false);
+  };
+}
+
+function makeAddItemWithContent(
+  setSections: Dispatch<SetStateAction<FormSchemaSection[]>>,
+  setSaved: (saved: boolean) => void,
+) {
+  return (sIdx: number, item: FormSchemaItem) => {
+    setSections((prev) =>
+      prev.map((s, i) => {
+        if (i !== sIdx) return s;
+        return { ...s, items: [...s.items, item] };
       }),
     );
     setSaved(false);

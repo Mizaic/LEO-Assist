@@ -19,7 +19,11 @@ import SchoolIcon from "@mui/icons-material/School";
 import ExtractionReviewHeader from "./ExtractionReviewHeader";
 import FormSchemaAnnotator from "./FormSchemaAnnotator";
 import type { FormSchemaSection } from "./formSchemaDetector";
-import { regionsFromSections } from "./formSchemaSectionFocus";
+import {
+  cleanLetterSelectionText,
+  regionsFromSections,
+  matchSectionFromLetterText,
+} from "./formSchemaSectionFocus";
 import { useTeachFormSectionFocus } from "./useTeachFormSectionFocus";
 
 import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
@@ -68,6 +72,12 @@ export default function ExtractionQualityReviewDialog({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [rightTab, setRightTab] = useState<"facts" | "teach">("facts");
   const [teachSections, setTeachSections] = useState<FormSchemaSection[]>([]);
+  const [pendingSelection, setPendingSelection] = useState<{
+    pattern: string;
+    entity_text: string;
+    sectionId: string;
+  } | null>(null);
+  const [selectionHint, setSelectionHint] = useState("");
   const teachFocus = useTeachFormSectionFocus();
 
   useEffect(() => {
@@ -109,6 +119,38 @@ export default function ExtractionQualityReviewDialog({
         ? prev
         : [...prev, { text, semantic_tag: "", assertion: "present" }],
     );
+  }
+
+  function handleTeachSelection() {
+    const raw = window.getSelection()?.toString().trim() ?? "";
+    if (!raw) return;
+    const cleaned = cleanLetterSelectionText(raw);
+    const pattern = cleaned || raw;
+    const focusedSection = teachSections.find(
+      (s) => s.section_id === teachFocus.focusedSectionId,
+    );
+    if (focusedSection) {
+      setPendingSelection({
+        pattern,
+        entity_text: pattern,
+        sectionId: focusedSection.section_id,
+      });
+      setSelectionHint("");
+      return;
+    }
+    const matched = matchSectionFromLetterText(teachSections, raw);
+    if (matched) {
+      teachFocus.selectSection(matched);
+      setPendingSelection({
+        pattern,
+        entity_text: pattern,
+        sectionId: matched.section_id,
+      });
+      setSelectionHint("");
+      return;
+    }
+    setSelectionHint("Select a section card on the right first, then highlight text.");
+    setTimeout(() => setSelectionHint(""), 4000);
   }
 
   function removeEntity(text: string) {
@@ -183,6 +225,8 @@ export default function ExtractionQualityReviewDialog({
             marks={marks}
             focusTerm={focusTerm}
             onAddSelection={addSelection}
+            onTeachSelection={handleTeachSelection}
+            selectionHint={selectionHint}
             teachMode={rightTab === "teach"}
             highlightedRegionId={teachFocus.highlightedRegionId}
             sectionRegions={regionsFromSections(teachSections)}
@@ -199,6 +243,8 @@ export default function ExtractionQualityReviewDialog({
             focusedSectionId={teachFocus.focusedSectionId}
             onSelectSection={teachFocus.selectSection}
             onSectionsChange={setTeachSections}
+            pendingSelection={pendingSelection}
+            onPendingConsumed={() => setPendingSelection(null)}
           >
             <ReviewFactsPane
               entities={entities}
@@ -233,6 +279,8 @@ function ReviewLetterPane({
   marks,
   focusTerm,
   onAddSelection,
+  onTeachSelection,
+  selectionHint,
   teachMode,
   highlightedRegionId,
   sectionRegions,
@@ -242,6 +290,8 @@ function ReviewLetterPane({
   marks: ReturnType<typeof focusedReviewMarks>;
   focusTerm: string;
   onAddSelection: () => void;
+  onTeachSelection: () => void;
+  selectionHint: string;
   teachMode: boolean;
   highlightedRegionId: string | null;
   sectionRegions: ReturnType<typeof regionsFromSections>;
@@ -291,17 +341,32 @@ function ReviewLetterPane({
         }}
       >
         <Typography variant="caption" fontWeight={700} color="primary.main">
-          {hasLetter
-            ? focusTerm
-              ? "Numbers mark each time this fact appears. Select other text to add a fact."
-              : "Select any text on the letter to add it as a fact"
-            : "Letter"}
+          {hasLetter && teachMode
+            ? "Highlight text on the letter to add it as a label pattern"
+            : hasLetter
+              ? focusTerm
+                ? "Numbers mark each time this fact appears. Select other text to add a fact."
+                : "Select any text on the letter to add it as a fact"
+              : "Letter"}
         </Typography>
+        {selectionHint ? (
+          <Typography
+            variant="caption"
+            color="warning.main"
+            sx={{ display: "block", mt: 0.5 }}
+            role="alert"
+            data-testid="teach-selection-hint"
+          >
+            {selectionHint}
+          </Typography>
+        ) : null}
       </Box>
       <Box
         ref={letterRef}
         sx={{ flex: 1, overflow: "auto", p: 2, cursor: hasLetter ? "text" : "default" }}
-        onMouseUp={hasLetter && !teachMode ? onAddSelection : undefined}
+        onMouseUp={
+          hasLetter ? (teachMode ? onTeachSelection : onAddSelection) : undefined
+        }
         data-testid="extraction-quality-letter"
         data-highlighted-region={highlightedRegionId ?? ""}
       >
@@ -331,6 +396,8 @@ function ReviewRightPane({
   focusedSectionId,
   onSelectSection,
   onSectionsChange,
+  pendingSelection,
+  onPendingConsumed,
   children,
 }: {
   tab: "facts" | "teach";
@@ -341,6 +408,8 @@ function ReviewRightPane({
   focusedSectionId: string | null;
   onSelectSection: (section: FormSchemaSection) => void;
   onSectionsChange: (sections: FormSchemaSection[]) => void;
+  pendingSelection: { pattern: string; entity_text: string; sectionId: string } | null;
+  onPendingConsumed: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -374,6 +443,8 @@ function ReviewRightPane({
             focusedSectionId={focusedSectionId}
             onSelectSection={onSelectSection}
             onSectionsChange={onSectionsChange}
+            pendingSelection={pendingSelection}
+            onPendingConsumed={onPendingConsumed}
           />
         </Box>
       )}

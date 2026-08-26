@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.deps import require_admin, require_admin_or_org_admin, permitted_child_types
+from app.org_catalog_auth import require_org_catalog_reader
 from app.services import mail as mail_svc
 from libs.auth.org_scope import CallerScope, invalidate_caller_scope_cache
 from libs.neo4j_client.client import PatientGraphClient
@@ -187,7 +188,7 @@ def _label_to_type(labels: list[str]) -> str:
 
 @router.get("/orgs")
 async def list_orgs(
-    scope: CallerScope = Depends(require_admin_or_org_admin),
+    scope: CallerScope = Depends(require_org_catalog_reader),
 ) -> list[dict[str, Any]]:
     """List orgs. Platform admins see all; org admins see their subtree only."""
     client = _client()
@@ -406,7 +407,7 @@ async def release_gp_from_pcn(
 @router.get("/orgs/{org_id}/services")
 async def list_org_services(
     org_id: str,
-    scope: CallerScope = Depends(require_admin_or_org_admin),
+    scope: CallerScope = Depends(require_org_catalog_reader),
 ) -> list[dict[str, Any]]:
     """List services linked to a Service Provider org via PROVIDES_SERVICE."""
     if not scope.is_admin and org_id not in scope.org_ids:

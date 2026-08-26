@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.deps import require_role
+from app.org_catalog_auth import FORM_TEACHER_ROLES
 from libs.llm_client.form_schema_detector import detect_form_sections
 from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.form_schema_store import (
@@ -27,22 +28,12 @@ from libs.pipeline.form_schema_store import (
     load_form_schema,
     save_form_schema,
 )
-from libs.cypher.form_schema_queries import (
-    LIST_FORM_SCHEMAS,
-    LIST_SCOPE_ORGANIZATIONS,
-    LIST_SCOPE_SERVICES,
-)
+from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
 
 # Roles that may teach a paused extraction form. Platform admins bypass
 # via require_role. Do not widen this to any authenticated session.
-FORM_TEACHER_ROLES = (
-    "validation",
-    "operations_manager",
-    "clinician_admin",
-    "administrator",
-)
 require_form_teacher = require_role(*FORM_TEACHER_ROLES)
 
 
@@ -113,39 +104,6 @@ def _schema_to_dict(schema: Any) -> dict[str, Any]:
         "organization_id": schema.organization_id,
         "service_id": schema.service_id,
     }
-
-
-@router.get("/scope/organizations")
-def list_scope_organizations(
-    _session: dict = Depends(require_form_teacher),
-) -> dict[str, Any]:
-    org_ids = list(_session.get("org_ids") or [])
-    if _session.get("is_platform_admin"):
-        org_ids = []
-    client = PatientGraphClient()
-    try:
-        rows = client.run(LIST_SCOPE_ORGANIZATIONS, org_ids=org_ids)
-        orgs = [{"id": r["id"], "name": r["name"]} for r in (rows or [])]
-    finally:
-        client.close()
-    return {"organizations": orgs}
-
-
-@router.get("/scope/organizations/{org_id}/services")
-def list_scope_services(
-    org_id: str,
-    _session: dict = Depends(require_form_teacher),
-) -> dict[str, Any]:
-    client = PatientGraphClient()
-    try:
-        rows = client.run(LIST_SCOPE_SERVICES, org_id=org_id)
-        services = [
-            {"id": r["id"], "name": r.get("name"), "code": r.get("code")}
-            for r in (rows or [])
-        ]
-    finally:
-        client.close()
-    return {"services": services}
 
 
 @router.get("/{fingerprint}")

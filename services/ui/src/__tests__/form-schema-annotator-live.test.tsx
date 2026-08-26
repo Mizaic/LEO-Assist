@@ -18,6 +18,7 @@ function jsonResponse(status: number, body: unknown): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers({ "content-type": "application/json" }),
     json: async () => body,
   } as Response;
 }
@@ -31,6 +32,9 @@ function mockDetectFailure() {
     }
     if (url.includes("/api/form-schemas/") && method === "GET") {
       return jsonResponse(403, { detail: "Platform admin access required" });
+    }
+    if (url.includes("/api/admin/orgs")) {
+      return jsonResponse(200, []);
     }
     return jsonResponse(200, {});
   });
@@ -155,6 +159,9 @@ describe("FormSchemaAnnotator live empty-state teaching", () => {
             ],
           },
         });
+      }
+      if (url.includes("/api/admin/orgs")) {
+        return jsonResponse(200, []);
       }
       return jsonResponse(200, {});
     });

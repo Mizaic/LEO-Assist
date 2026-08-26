@@ -101,17 +101,3 @@ RETURN s.schema_id AS schema_id,
        s.service_id AS service_id
 ORDER BY s.updated_at DESC
 """
-
-LIST_SCOPE_ORGANIZATIONS = """
-MATCH (o:Organization)
-WHERE $org_ids IS NULL OR size($org_ids) = 0 OR o.id IN $org_ids
-RETURN o.id AS id, coalesce(o.name, o.id) AS name
-ORDER BY name
-LIMIT 200
-"""
-
-LIST_SCOPE_SERVICES = """
-MATCH (s:Service)-[:PROVIDES_SERVICE]->(o:Organization {id: $org_id})
-RETURN s.id AS id, coalesce(s.name, s.id) AS name, s.code AS code
-ORDER BY name
-"""

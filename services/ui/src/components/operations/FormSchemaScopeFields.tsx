@@ -1,15 +1,17 @@
 /**
  * Organisation and service pickers for Teach this form.
  *
- * Reuses existing /api/form-schemas/scope catalog and graph IDs.
- * Atlas trace: UN-3B25A20E
+ * Reuses the tenant-drawer catalog: listOrgs and listOrgServices.
+ * Atlas trace: UN-3B25A20E, DI-26546721
  */
 "use client";
 
 import Autocomplete from "@mui/material/Autocomplete";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
+import { listOrgServices, listOrgs } from "@/lib/api/admin";
 
 type NamedId = { id: string; name: string };
 
@@ -20,8 +22,6 @@ interface Props {
   onService: (id: string) => void;
 }
 
-const FETCH_HDRS = { "X-Requested-With": "XMLHttpRequest" };
-
 export function FormSchemaScopeFields({
   organizationId,
   serviceId,
@@ -30,20 +30,22 @@ export function FormSchemaScopeFields({
 }: Props) {
   const [orgs, setOrgs] = useState<NamedId[]>([]);
   const [services, setServices] = useState<NamedId[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/form-schemas/scope/organizations", {
-          credentials: "include",
-          headers: FETCH_HDRS,
-        });
-        if (!res.ok) return;
-        const payload = (await res.json()) as { organizations?: NamedId[] };
-        if (!cancelled) setOrgs(payload.organizations ?? []);
+        const rows = await listOrgs();
+        if (!cancelled) {
+          setOrgs(rows.map((org) => ({ id: org.id, name: org.name || org.id })));
+          setError("");
+        }
       } catch {
-        // Keep empty pickers when the catalog is unavailable.
+        if (!cancelled) {
+          setOrgs([]);
+          setError("Could not load organisations. Try again, or open Admin.");
+        }
       }
     })();
     return () => {
@@ -59,15 +61,20 @@ export function FormSchemaScopeFields({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(
-          `/api/form-schemas/scope/organizations/${encodeURIComponent(organizationId)}/services`,
-          { credentials: "include", headers: FETCH_HDRS },
-        );
-        if (!res.ok) return;
-        const payload = (await res.json()) as { services?: NamedId[] };
-        if (!cancelled) setServices(payload.services ?? []);
+        const rows = await listOrgServices(organizationId);
+        if (!cancelled) {
+          setServices(
+            rows.map((svc) => ({
+              id: svc.id,
+              name: svc.name || svc.code || svc.id,
+            })),
+          );
+        }
       } catch {
-        if (!cancelled) setServices([]);
+        if (!cancelled) {
+          setServices([]);
+          setError("Could not load services for this organisation.");
+        }
       }
     })();
     return () => {
@@ -76,23 +83,30 @@ export function FormSchemaScopeFields({
   }, [organizationId]);
 
   return (
-    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
-      <ScopePicker
-        label="Organisation"
-        options={orgs}
-        value={organizationId}
-        onChange={(id) => {
-          onOrganization(id);
-          onService("");
-        }}
-      />
-      <ScopePicker
-        label="Service"
-        options={services}
-        value={serviceId}
-        onChange={onService}
-        disabled={!organizationId}
-      />
+    <Stack spacing={1} sx={{ mt: 1 }}>
+      {error ? (
+        <Typography variant="caption" color="error">
+          {error}
+        </Typography>
+      ) : null}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+        <ScopePicker
+          label="Organisation"
+          options={orgs}
+          value={organizationId}
+          onChange={(id) => {
+            onOrganization(id);
+            onService("");
+          }}
+        />
+        <ScopePicker
+          label="Service"
+          options={services}
+          value={serviceId}
+          onChange={onService}
+          disabled={!organizationId}
+        />
+      </Stack>
     </Stack>
   );
 }
@@ -122,7 +136,11 @@ function ScopePicker({
       isOptionEqualToValue={(a, b) => a.id === b.id}
       onChange={(_event, next) => onChange(next?.id ?? "")}
       renderInput={(params) => (
-        <TextField {...params} label={label} inputProps={{ ...params.inputProps, "aria-label": label }} />
+        <TextField
+          {...params}
+          label={label}
+          inputProps={{ ...params.inputProps, "aria-label": label }}
+        />
       )}
     />
   );
