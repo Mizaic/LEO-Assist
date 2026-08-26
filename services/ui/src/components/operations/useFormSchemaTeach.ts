@@ -40,7 +40,11 @@ export function useFormSchemaTeach(
       setSections(detected);
       return;
     }
-    setSections(localDetectOrEmpty(sourceText));
+    const local = localDetectOrEmpty(sourceText);
+    setSections(local);
+    if (local.length > 0) {
+      setError("");
+    }
   }, [fingerprint, sourceText]);
 
   useEffect(() => {

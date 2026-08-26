@@ -39,7 +39,7 @@ const YES_NO_ROW = /Yes\s*\[(?:X|x)?\s*\]\s*No\s*\[(?:X|x)?\s*\]/i;
 const NUMBERED_SCALE = /\b1\.\s+\w[\w\s]+\[(?:X|\s*)\]/;
 const MANDATORY_TESTS =
   /mandatory|fbc|lft|ues|urea|calcium|creatinine|blood\s+results?/i;
-const SECTION_HEADER = /^section\s+([a-z])(?:\s*[:.])/i;
+const SECTION_HEADER = /^section\s+([a-z])\b(?:\s*[:.])?/i;
 // Named headers are top-level form sections NOT covered by Section X: pattern.
 // Clinical Frailty Scale / ECOG / Performance Status appear as body lines
 // within Section E, not as independent top-level sections.

@@ -109,6 +109,27 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
   it("does not hide Add section behind a client role gate", () => {
     expect(TEACH_SRC).not.toMatch(/useRole|RoleGate|selected_role/);
   });
+
+  it("proxies /api/form-schemas/ to core-api", () => {
+    const proxySrc = fs.readFileSync(
+      path.join(__dirname, "../proxy.ts"),
+      "utf8",
+    );
+    expect(proxySrc).toMatch(/prefix:\s*["']\/api\/form-schemas\//);
+    expect(proxySrc).toMatch(/["']\/api\/form-schemas\/:path\*/);
+    expect(proxySrc).toMatch(/\$\{coreApi\(\)\}\/form-schemas\//);
+  });
+
+  it("clears the hard detect error when local fallback finds sections", () => {
+    const teachHook = fs.readFileSync(
+      path.join(OPS, "useFormSchemaTeach.ts"),
+      "utf8",
+    );
+    expect(teachHook).toMatch(/localDetectOrEmpty/);
+    expect(teachHook).toMatch(
+      /if\s*\(\s*local(?:Sections)?\.length\s*>\s*0\s*\)[\s\S]*?setError\(\s*["']["']\s*\)/,
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -237,5 +258,12 @@ describe("detectSections auto-detection", () => {
     const sections = detectSections(GYNAE_FORM);
     const sectionC = sections.find((s) => s.section_id === "C");
     expect(sectionC?.items).toEqual([]);
+  });
+
+  it("detects Section A without a colon as a section header", () => {
+    const text =
+      "Section A Gynaecological Cancer type suspected\nOvary [ ] Cervix [X]";
+    const sections = detectSections(text);
+    expect(sections.find((s) => s.section_id === "A")).toBeDefined();
   });
 });

@@ -102,5 +102,9 @@ describe("FormSchemaAnnotator live empty-state teaching", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /save schema/i })).toBeEnabled();
     });
+    expect(
+      screen.queryByText(/You are not allowed to auto-detect this form/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/could not detect/i)).not.toBeInTheDocument();
   });
 });
