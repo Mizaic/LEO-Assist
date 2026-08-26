@@ -8,6 +8,8 @@
 import {
   createContext,
   useContext,
+  type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import Box from "@mui/material/Box";
@@ -54,11 +56,11 @@ export function LetterRegionWrap({
       data-section-region={hit.regionId}
       data-section-highlight={showHighlight ? "true" : undefined}
       aria-current={showHighlight ? "true" : undefined}
-      onClick={(event) => {
+      onClick={(event: MouseEvent<HTMLElement>) => {
         event.stopPropagation();
         focus.onSelectRegion?.(hit.regionId, text);
       }}
-      onKeyDown={(event) => {
+      onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         focus.onSelectRegion?.(hit.regionId, text);
