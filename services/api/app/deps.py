@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hmac
 import os
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import Cookie, Depends, HTTPException, Request
 

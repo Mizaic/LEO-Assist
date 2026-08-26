@@ -59,8 +59,8 @@ def _unrestricted(email: str) -> CallerScope:
 
 def _has_org_admin_role(client: PatientGraphClient, email: str) -> bool:
     rows = client.run(
-        "MATCH (u:User {email: $email})-[:IS_MEMBER_OF]->(:Group)-[:HAS_ROLE]->"
-        "(role:Role) "
+        "MATCH (u:User {email: $email})-[:IS_MEMBER_OF]->"
+        "(:Group)-[:HAS_ROLE]->(role:Role) "
         "WHERE role.name = 'organization_administrator' "
         "   OR role.id = 'organization_administrator' "
         "RETURN 1 AS ok LIMIT 1",

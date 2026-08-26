@@ -319,23 +319,61 @@ describe("incomplete saved schema helpers", () => {
     "../components/operations/formSchemaTeach",
   ) as {
     isIncompleteSchema: (
-      sections: Array<{ section_type: string }>,
+      sections: Array<{ section_type: string; label?: string }>,
     ) => boolean;
   };
 
   it("treats an admin-only schema as incomplete so detect can retry", () => {
     expect(
-      isIncompleteSchema([{ section_type: "admin" }]),
+      isIncompleteSchema([{ section_type: "admin", label: "Patient details" }]),
     ).toBe(true);
   });
 
   it("treats a schema with a clinical section as complete", () => {
     expect(
       isIncompleteSchema([
-        { section_type: "admin" },
-        { section_type: "checkbox_single" },
+        { section_type: "admin", label: "Patient details" },
+        { section_type: "checkbox_single", label: "Section A: Cancer type" },
       ]),
     ).toBe(false);
+  });
+
+  it("treats clinical sections with empty labels as incomplete (LLM returned structure only)", () => {
+    expect(
+      isIncompleteSchema([
+        { section_type: "checkbox_single", label: "" },
+        { section_type: "checkbox_yesno", label: "" },
+      ]),
+    ).toBe(true);
+  });
+
+  it("treats clinical sections with whitespace-only labels as incomplete", () => {
+    expect(
+      isIncompleteSchema([{ section_type: "checkbox_single", label: "   " }]),
+    ).toBe(true);
+  });
+
+  it("does not let admin labels rescue an empty clinical block", () => {
+    expect(
+      isIncompleteSchema([
+        { section_type: "admin", label: "Patient details" },
+        { section_type: "checkbox_single", label: "" },
+      ]),
+    ).toBe(true);
+  });
+
+  it("passes when at least one clinical section has a non-empty label", () => {
+    expect(
+      isIncompleteSchema([
+        { section_type: "admin", label: "Patient details" },
+        { section_type: "checkbox_single", label: "" },
+        { section_type: "checkbox_yesno", label: "Section B: Signs/symptoms" },
+      ]),
+    ).toBe(false);
+  });
+
+  it("treats an empty array as incomplete", () => {
+    expect(isIncompleteSchema([])).toBe(true);
   });
 });
 

@@ -34,11 +34,22 @@ export function localDetectOrEmpty(sourceText: string): FormSchemaSection[] {
 
 const SKIP_TYPES = new Set(["admin", "template_noise"]);
 
+/**
+ * True when there are no usable clinical sections.
+ *
+ * A schema is incomplete when:
+ * - It is empty, or
+ * - Every section is an admin/template_noise skip type, or
+ * - Every clinical section has an empty label (the LLM returned the
+ *   right structure but omitted the content strings).
+ */
 export function isIncompleteSchema(
-  sections: Array<{ section_type: string }>,
+  sections: Array<{ section_type: string; label?: string }>,
 ): boolean {
   if (!sections.length) return true;
-  return sections.every((section) => SKIP_TYPES.has(section.section_type));
+  const clinical = sections.filter((s) => !SKIP_TYPES.has(s.section_type));
+  if (!clinical.length) return true;
+  return clinical.every((s) => !(s.label ?? "").trim());
 }
 
 export type CompletenessLogicGroup = {

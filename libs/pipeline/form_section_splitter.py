@@ -85,11 +85,21 @@ def split_form_sections(text: str) -> list[dict[str, Any]]:
 
 
 def is_incomplete_schema(sections: list[dict[str, Any]]) -> bool:
-    """True when there are no clinical sections to teach."""
+    """True when there are no usable clinical sections to teach.
+
+    A schema is incomplete when either:
+    - It is empty, or
+    - Every section is an admin/noise skip type, or
+    - Every clinical section has an empty label (LLM returned structure
+      but omitted the content strings).
+    """
     if not sections:
         return True
     skip = {"admin", "template_noise"}
-    return all(str(s.get("section_type") or "") in skip for s in sections)
+    clinical = [s for s in sections if str(s.get("section_type") or "") not in skip]
+    if not clinical:
+        return True
+    return all(not str(s.get("label") or "").strip() for s in clinical)
 
 
 def _breakpoints(lines: list[str]) -> list[tuple[int, str]]:

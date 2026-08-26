@@ -137,6 +137,68 @@ describe("detectSections Sherwood 2WW gynae", () => {
   });
 });
 
+describe("detect response-to-state mapping -- empty label guard", () => {
+  it("all clinical sections have non-empty labels for the Sherwood letter", () => {
+    const sections = detectSections(SHERWOOD_GYNAE_LETTER);
+    const clinical = sections.filter(
+      (s) => s.section_type !== "admin" && s.section_type !== "template_noise",
+    );
+    expect(clinical.length).toBeGreaterThan(0);
+    for (const section of clinical) {
+      expect(section.label.trim()).not.toBe("");
+    }
+  });
+
+  it("all Section A items have non-empty pattern and entity_text", () => {
+    const sections = detectSections(SHERWOOD_GYNAE_LETTER);
+    const sectionA = sections.find((s) => s.section_id === "A");
+    expect(sectionA).toBeDefined();
+    for (const item of sectionA!.items) {
+      expect(item.pattern.trim()).not.toBe("");
+      expect(item.entity_text.trim()).not.toBe("");
+    }
+  });
+
+  it("all Section B items have non-empty pattern and entity_text", () => {
+    const sections = detectSections(SHERWOOD_GYNAE_LETTER);
+    const sectionB = sections.find((s) => s.section_id === "B");
+    expect(sectionB).toBeDefined();
+    expect(sectionB!.items.length).toBeGreaterThanOrEqual(9);
+    for (const item of sectionB!.items) {
+      expect(item.pattern.trim()).not.toBe("");
+      expect(item.entity_text.trim()).not.toBe("");
+    }
+  });
+
+  it("seedCompletenessGroups Section A group has non-empty member names", () => {
+    const sections = detectSections(SHERWOOD_GYNAE_LETTER);
+    const groups = seedCompletenessGroups(SHERWOOD_GYNAE_LETTER, sections);
+    const group = groups.find((g) => /section a|site/i.test(g.name));
+    expect(group).toBeDefined();
+    expect((group?.members ?? []).length).toBeGreaterThan(0);
+    for (const member of group!.members ?? []) {
+      expect(member.name.trim()).not.toBe("");
+    }
+  });
+
+  it("seedCompletenessGroups does not create Section A group when all item patterns are empty strings", () => {
+    const emptySections = [
+      {
+        section_id: "A",
+        section_type: "checkbox_single" as const,
+        label: "Section A",
+        start_pattern: "",
+        items: [
+          { pattern: "", entity_text: "", semantic_tag: "finding", assertion: "present" },
+        ],
+      },
+    ];
+    const groups = seedCompletenessGroups("text", emptySections);
+    const group = groups.find((g) => /section a|site/i.test(g.name));
+    expect(group).toBeUndefined();
+  });
+});
+
 describe("seedCompletenessGroups Sherwood 2WW gynae", () => {
   const sections = detectSections(SHERWOOD_GYNAE_LETTER);
   const groups = seedCompletenessGroups(SHERWOOD_GYNAE_LETTER, sections);
