@@ -1,8 +1,8 @@
 """Phrase mappings inbox, drafts, review, and two-person publish.
 
 Atlas trace:
-  DI: DI-D90542E5, DI-6BD7B681
-  Look up via: get_design_control(dc_type="design-input", dc_id="DI-6BD7B681")
+  DI: DI-D90542E5, DI-6BD7B681, DI-B00BD595
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-B00BD595")
 
 Mounted under /training by app.routers.training.
 """
@@ -30,6 +30,7 @@ class DraftRequest(BaseModel):
 
 class PhraseKeyRequest(BaseModel):
     phrase_key: str = Field(min_length=1)
+    break_glass_reason: str = Field(default="", max_length=500)
 
 
 class EnsureRequest(BaseModel):
@@ -133,4 +134,9 @@ def publish_phrase_mapping(
     body: PhraseKeyRequest,
     scope: CallerScope = Depends(get_caller_scope),
 ) -> dict[str, Any]:
-    return service.publish(body.phrase_key, scope.email)
+    return service.publish(
+        body.phrase_key,
+        scope.email,
+        is_platform_admin=scope.is_admin,
+        break_glass_reason=body.break_glass_reason,
+    )

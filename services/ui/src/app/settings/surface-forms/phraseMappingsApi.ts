@@ -143,12 +143,20 @@ export async function sendBackPhrase(phrase_key: string): Promise<unknown> {
   return readJson(res);
 }
 
-export async function publishPhrase(phrase_key: string): Promise<unknown> {
+export async function publishPhrase(
+  phrase_key: string,
+  breakGlassReason = "",
+): Promise<unknown> {
+  const body: { phrase_key: string; break_glass_reason?: string } = {
+    phrase_key,
+  };
+  const reason = breakGlassReason.trim();
+  if (reason) body.break_glass_reason = reason;
   const res = await fetch(`${BASE}/publish`, {
     method: "POST",
     credentials: "include",
     headers: jsonHeaders(),
-    body: JSON.stringify({ phrase_key }),
+    body: JSON.stringify(body),
   });
   return readJson(res);
 }

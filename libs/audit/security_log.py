@@ -30,6 +30,7 @@ auth.entra_admin.denied -- /admin/entra/* call rejected by Graph (insufficient c
 auth.entra_admin.error  -- /admin/entra/* call failed at Graph or in OBO (non-2xx)
 authz.denied            -- require_admin or require_scope raised 403/401
 authz.admin_action      -- Privileged mutation executed by an admin
+authz.break_glass       -- Platform admin overrode a two-person process gate
 data.access             -- Patient-level data accessed
 data.modification       -- Patient/entity data mutated
 security.token_rejected -- JWT rejected (v1.0 issuer, bad sig, expired)
@@ -258,6 +259,25 @@ def emit_admin_action(
         action=action,
         resource=resource,
         detail=detail,
+    )
+
+
+def emit_break_glass(
+    *,
+    email: str,
+    gate: str,
+    reason: str,
+    resource_id: str,
+    outcome: str,
+) -> None:
+    """Append-only record of a platform-admin process-gate override."""
+    _emit(
+        "authz.break_glass",
+        email=email,
+        gate=gate,
+        reason=reason,
+        resource_id=resource_id,
+        outcome=outcome,
     )
 
 

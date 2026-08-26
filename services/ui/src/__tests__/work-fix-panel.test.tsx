@@ -245,7 +245,51 @@ describe("WorkFixPanel live", () => {
     await user.click(screen.getByRole("button", { name: "Deploy" }));
     await user.click(screen.getByRole("button", { name: "Publish to live" }));
     await waitFor(() => {
-      expect(deployWorkPhrase).toHaveBeenCalledWith("raised HbA1c");
+      expect(deployWorkPhrase).toHaveBeenCalledWith("raised HbA1c", undefined);
+    });
+  });
+
+  it("lets a platform admin author publish with an emergency reason", async () => {
+    const user = userEvent.setup();
+    const { useAuth } = jest.requireMock("@/lib/authContext") as {
+      useAuth: jest.Mock;
+    };
+    useAuth.mockReturnValue({
+      session: {
+        user: { email: "engineer@example.com" },
+        isPlatformAdmin: true,
+        organizations: [],
+        idleTimeoutMinutes: 30,
+        selectedRole: null,
+        allowedRoles: [],
+        needsRoleChoice: false,
+        densityPreference: null,
+      },
+      status: "authenticated",
+      refreshSession: jest.fn(),
+    });
+    jest.mocked(loadWorkPhrase).mockResolvedValue({
+      ...phraseRow("review"),
+      draft_author: "engineer@example.com",
+    });
+    renderPanel();
+    await user.click(await screen.findByRole("button", { name: "Deploy" }));
+    expect(
+      screen.getByLabelText(/Why do you need this emergency override/),
+    ).toBeInTheDocument();
+    const publish = screen.getByRole("button", { name: "Publish to live" });
+    expect(publish).toBeDisabled();
+    await user.type(
+      screen.getByLabelText(/Why do you need this emergency override/),
+      "No second reviewer on duty tonight",
+    );
+    expect(publish).toBeEnabled();
+    await user.click(publish);
+    await waitFor(() => {
+      expect(deployWorkPhrase).toHaveBeenCalledWith(
+        "raised HbA1c",
+        "No second reviewer on duty tonight",
+      );
     });
   });
 

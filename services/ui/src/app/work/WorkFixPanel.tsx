@@ -95,9 +95,9 @@ function EngineerShell({
             "Submitted for review. A different person can publish.",
           )
         }
-        onDeploy={() =>
+        onDeploy={(reason) =>
           void panel.runAction(
-            () => deployWorkPhrase(phrase),
+            () => deployWorkPhrase(phrase, reason),
             "Published. Live coding will use this fix.",
           )
         }

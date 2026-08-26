@@ -48,6 +48,43 @@ def test_publish_rejects_same_person() -> None:
     assert client.run.call_count == 1
 
 
+def test_publish_rejects_non_admin_same_person_with_reason() -> None:
+    client = MagicMock()
+    client.run.return_value = [_row()]
+    with patch.object(service, "_kg_client", return_value=client):
+        with pytest.raises(HTTPException) as exc:
+            service.publish(
+                "psa",
+                "engineer@example.com",
+                is_platform_admin=False,
+                break_glass_reason="No second reviewer on duty tonight",
+            )
+    assert exc.value.status_code == 403
+    assert client.run.call_count == 1
+
+
+def test_publish_allows_admin_same_person_with_reason() -> None:
+    client = MagicMock()
+    client.run.side_effect = [
+        [_row()],
+        [{"phrase_key": "psa", "status": "closed", "draft_action": "map"}],
+    ]
+    with (
+        patch.object(service, "_kg_client", return_value=client),
+        patch.object(service, "_publish_map") as publish_map,
+        patch("libs.auth.break_glass.emit_break_glass") as audit,
+    ):
+        result = service.publish(
+            "psa",
+            "engineer@example.com",
+            is_platform_admin=True,
+            break_glass_reason="No second reviewer on duty tonight",
+        )
+    publish_map.assert_called_once()
+    audit.assert_called_once()
+    assert result["status"] == "closed"
+
+
 def test_publish_map_calls_upsert_then_close() -> None:
     client = MagicMock()
     client.run.side_effect = [

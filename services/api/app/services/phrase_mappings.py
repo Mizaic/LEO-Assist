@@ -1,8 +1,8 @@
 """Phrase mappings inbox: draft, submit, two-person publish.
 
 Atlas trace:
-  DI: DI-D90542E5, DI-6BD7B681
-  Look up via: get_design_control(dc_type="design-input", dc_id="DI-6BD7B681")
+  DI: DI-D90542E5, DI-6BD7B681, DI-B00BD595
+  Look up via: get_design_control(dc_type="design-input", dc_id="DI-B00BD595")
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
+from libs.auth.break_glass import require_second_person
 from libs.cypher.uncoded_phrase_queries import (
     CLOSE_UNCODED_PHRASE,
     COUNT_MY_DRAFTS,
@@ -270,7 +271,13 @@ def _publish_exclude(row: dict[str, Any], actor: str) -> None:
     )
 
 
-def publish(phrase_key: str, actor: str) -> dict[str, Any]:
+def publish(
+    phrase_key: str,
+    actor: str,
+    *,
+    is_platform_admin: bool = False,
+    break_glass_reason: str = "",
+) -> dict[str, Any]:
     key = normalise_phrase(phrase_key)
     who = _actor(actor)
     if not who:
@@ -287,11 +294,14 @@ def publish(phrase_key: str, actor: str) -> dict[str, Any]:
                 detail="Only a submitted draft can be published",
             )
         author = _actor(str(row.get("draft_author") or ""))
-        if author == who:
-            raise HTTPException(
-                status_code=403,
-                detail="A different person must publish this draft",
-            )
+        require_second_person(
+            author=author,
+            actor=who,
+            is_platform_admin=is_platform_admin,
+            reason=break_glass_reason,
+            gate="phrase_publish",
+            resource_id=key,
+        )
         action = str(row.get("draft_action") or "")
         if action == "map":
             _publish_map(row, who)

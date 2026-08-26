@@ -2,14 +2,16 @@
  * Auto-stamped Atlas trace.
  *
  * Atlas trace:
- *   DI: DI-6BD7B681
+ *   DI: DI-6BD7B681, DI-B00BD595
  */
 "use client";
 
+import { useState } from "react";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useAuth } from "@/lib/authContext";
+import { BreakGlassReason, reasonIsValid } from "./BreakGlassReason";
 import { getFailureCopy } from "./failureCopy";
 import { ActiveFixForm } from "./WorkFixForms";
 import type { UncodedPhrase, WorkFixKind } from "./workFixApi";
@@ -162,27 +164,41 @@ export function DeployPane({
 }: {
   row: UncodedPhrase | null;
   busy: boolean;
-  onDeploy: () => void;
+  onDeploy: (reason?: string) => void;
 }) {
   const { session } = useAuth();
+  const [reason, setReason] = useState("");
   const ready = row?.status === "review";
   const currentEmail = (session?.user.email ?? "").toLowerCase();
   const draftAuthor = (row?.draft_author ?? "").toLowerCase();
   const isAuthor = Boolean(currentEmail && currentEmail === draftAuthor);
+  const canBreakGlass = isAuthor && Boolean(session?.isPlatformAdmin);
+  const blocked =
+    busy ||
+    !ready ||
+    (isAuthor && !canBreakGlass) ||
+    (canBreakGlass && !reasonIsValid(reason));
   return (
     <Stack spacing={1}>
       <Typography variant="caption" color="text.secondary">
         A different person must publish. That is what makes the fix live.
       </Typography>
+      {canBreakGlass && ready ? (
+        <BreakGlassReason
+          value={reason}
+          onChange={setReason}
+          disabled={busy}
+        />
+      ) : null}
       <Button
         size="small"
         variant="contained"
-        disabled={busy || !ready || isAuthor}
-        onClick={onDeploy}
+        disabled={blocked}
+        onClick={() => onDeploy(canBreakGlass ? reason.trim() : undefined)}
       >
         {busy ? "Publishing..." : "Publish to live"}
       </Button>
-      {isAuthor && ready ? (
+      {isAuthor && ready && !canBreakGlass ? (
         <Typography variant="caption" color="text.secondary">
           You drafted this change. A different person must publish it.
         </Typography>
@@ -228,7 +244,7 @@ export function EngineerBody(props: {
   onIdle: () => void;
   onRunFix: (kind: WorkFixKind, action: () => Promise<void>) => Promise<void>;
   onSubmit: () => void;
-  onDeploy: () => void;
+  onDeploy: (reason?: string) => void;
 }) {
   if (props.step === "debug") {
     return (

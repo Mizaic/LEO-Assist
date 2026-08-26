@@ -5,7 +5,7 @@
  * sentence. Two actions: Publish (disabled for the author) and Send back.
  *
  * Atlas trace:
- *   DI: DI-6BD7B681
+ *   DI: DI-6BD7B681, DI-B00BD595
  */
 "use client";
 
@@ -27,6 +27,7 @@ import {
   sendBackPhrase,
   type UncodedPhrase,
 } from "@/app/settings/surface-forms/phraseMappingsApi";
+import { BreakGlassReason, reasonIsValid } from "./BreakGlassReason";
 import { workTaskSourceId } from "./workTaskSourceId";
 
 interface Props {
@@ -70,6 +71,7 @@ export default function PhrasePublishDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -82,13 +84,17 @@ export default function PhrasePublishDialog({
   const currentEmail = (session?.user.email ?? "").toLowerCase();
   const draftAuthor = (phrase?.draft_author ?? task.draft_author ?? "").toLowerCase();
   const isAuthor = Boolean(currentEmail && currentEmail === draftAuthor);
+  const canBreakGlass = isAuthor && Boolean(session?.isPlatformAdmin);
+  const publishBlocked =
+    busy || !phrase || (isAuthor && !canBreakGlass) ||
+    (canBreakGlass && !reasonIsValid(reason));
 
   const handlePublish = useCallback(async () => {
     if (!phrase) return;
     setBusy(true);
     setError(null);
     try {
-      await publishPhrase(phrase.phrase_key);
+      await publishPhrase(phrase.phrase_key, canBreakGlass ? reason.trim() : "");
       setNotice("Published. The pipeline will use this from the next run.");
       onResolved();
     } catch (err) {
@@ -96,7 +102,7 @@ export default function PhrasePublishDialog({
     } finally {
       setBusy(false);
     }
-  }, [phrase, onResolved]);
+  }, [phrase, onResolved, canBreakGlass, reason]);
 
   const handleSendBack = useCallback(async () => {
     if (!phrase) return;
@@ -132,10 +138,17 @@ export default function PhrasePublishDialog({
                 <Typography variant="caption" color="text.secondary">
                   Drafted by {phrase.draft_author || "unknown"}
                 </Typography>
-                {isAuthor ? (
+                {isAuthor && !canBreakGlass ? (
                   <Alert severity="info">
                     You drafted this change. A different person must publish it.
                   </Alert>
+                ) : null}
+                {canBreakGlass ? (
+                  <BreakGlassReason
+                    value={reason}
+                    onChange={setReason}
+                    disabled={busy}
+                  />
                 ) : null}
               </>
             ) : null}
@@ -154,8 +167,8 @@ export default function PhrasePublishDialog({
         <Button
           variant="contained"
           onClick={() => void handlePublish()}
-          disabled={busy || !phrase || isAuthor}
-          aria-disabled={isAuthor}
+          disabled={publishBlocked}
+          aria-disabled={publishBlocked}
         >
           {busy ? "Publishing..." : "Publish to live"}
         </Button>

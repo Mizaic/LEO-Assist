@@ -88,8 +88,11 @@ export async function submitWorkPhrase(phrase: string): Promise<void> {
   await submitPhrase(phrase);
 }
 
-export async function deployWorkPhrase(phrase: string): Promise<void> {
-  await publishPhrase(phrase);
+export async function deployWorkPhrase(
+  phrase: string,
+  reason = "",
+): Promise<void> {
+  await publishPhrase(phrase, reason);
 }
 
 export async function saveContextCue(input: {
