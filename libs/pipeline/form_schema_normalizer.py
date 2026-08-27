@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
+from libs.pipeline.form_pattern_match import safe_search, section_matches
 
 SectionType = Literal[
     "checkbox_single",
@@ -47,8 +48,14 @@ SECTION_TYPE_SEMANTIC_TAG: dict[str, list[str]] = {
 
 _CHECKED_RE = re.compile(r"\[(?:X|x|\*|YES|yes)\]|\((?:X|x)\)")
 _UNCHECKED_RE = re.compile(r"\[\s*\]|\(\s*\)")
-_YES_CHECKED_RE = re.compile(r"Yes\s*\[(?:X|x|\*)\]", re.IGNORECASE)
-_NO_CHECKED_RE = re.compile(r"No\s*\[(?:X|x|\*)\]", re.IGNORECASE)
+# Yes / No rows appear in both box orders on NHS forms: "Yes [X] No [ ]"
+# and "[X] Yes [ ] No". Capture the word and its own box either way so a
+# tick before the word is not mistaken for an unanswered row.
+_YESNO_PAIR_RE = re.compile(
+    r"\b(Yes|No)\b\s*\[([^\]]*)\]|\[([^\]]*)\]\s*\b(Yes|No)\b",
+    re.IGNORECASE,
+)
+_BOX_CHECKED_RE = re.compile(r"^(?:[Xx*]|YES|yes)")
 
 
 @dataclass
@@ -78,7 +85,13 @@ class FormSection:
     semantic_tags: list[str] = field(default_factory=lambda: ["finding"])
 
     def matches_header(self, line: str) -> bool:
-        return bool(re.search(self.start_pattern, line, re.IGNORECASE))
+        """Return True when *line* is this section's heading row.
+
+        Headings usually sit inside a markdown table cell. Separator rows
+        never start a section, and a taught pattern that will not compile
+        falls back to a literal match rather than raising.
+        """
+        return section_matches(self.start_pattern, line)
 
 
 @dataclass
@@ -111,7 +124,7 @@ def _has_any_box(line: str) -> bool:
 
 def _item_is_checked(line: str, item: FormSchemaItem) -> bool | None:
     """Return True if item is checked, False if unchecked, None if not found."""
-    match = re.search(item.pattern, line, re.IGNORECASE)
+    match = safe_search(item.pattern, line)
     if match is None:
         return None
     after = line[match.start() :]
@@ -142,12 +155,34 @@ def _process_checkbox_line(line: str, section: FormSection) -> list[str]:
     return [line]
 
 
+def _yes_no_answer(line: str) -> str | None:
+    """Return "yes", "no", or None for a Yes / No row.
+
+    Reads both box orders, so "[X] Yes [ ] No" answers Yes just like
+    "Yes [X] No [ ]". Returns None when the row has no single clear
+    answer, so an unanswered or contradictory row is never read as Yes.
+    """
+    checked: set[str] = set()
+    found = False
+    for match in _YESNO_PAIR_RE.finditer(line):
+        word = (match.group(1) or match.group(4) or "").lower()
+        if not word:
+            continue
+        found = True
+        box = (match.group(2) if match.group(1) else match.group(3)) or ""
+        if _BOX_CHECKED_RE.match(box.strip()):
+            checked.add(word)
+    if not found or len(checked) != 1:
+        return None
+    return checked.pop()
+
+
 def _process_yesno_line(line: str, section: FormSection) -> list[str]:
     """Handle one line for checkbox_yesno."""
     for item in section.items:
-        if not re.search(item.pattern, line, re.IGNORECASE):
+        if safe_search(item.pattern, line) is None:
             continue
-        if _YES_CHECKED_RE.search(line):
+        if _yes_no_answer(line) == "yes":
             return [item.entity_text, _mark(line)]
         return [_mark(line)]
     if _has_any_box(line):
@@ -177,16 +212,25 @@ def _match_ordered_test_item(
     line: str, items: list[FormSchemaItem]
 ) -> FormSchemaItem | None:
     for item in items:
-        pattern = item.pattern
-        if not pattern:
-            continue
-        try:
-            if re.search(pattern, line, re.IGNORECASE):
-                return item
-        except re.error:
-            if pattern.lower() in line.lower():
-                return item
+        if item.pattern and safe_search(item.pattern, line) is not None:
+            return item
     return None
+
+
+def _match_ordered_test_items(
+    line: str, items: list[FormSchemaItem]
+) -> list[FormSchemaItem]:
+    """Return every taught battery on one row, in taught order.
+
+    The blood results table puts two batteries on a single row, for
+    example "| CRP | | | ESR | |". Matching only the first battery loses
+    the second one and all of its analytes.
+    """
+    return [
+        item
+        for item in items
+        if item.pattern and safe_search(item.pattern, line) is not None
+    ]
 
 
 def _process_ordered_tests_lines(lines: list[str], section: FormSection) -> list[str]:
@@ -201,9 +245,13 @@ def _process_ordered_tests_lines(lines: list[str], section: FormSection) -> list
         if not ln.strip():
             out.append(ln)
             continue
-        item = _match_ordered_test_item(ln, section.items)
-        if item is not None and _item_has_taught_analytes(item):
-            out.append(expand_ordered_tests_row(item))
+        taught = [
+            item
+            for item in _match_ordered_test_items(ln, section.items)
+            if _item_has_taught_analytes(item)
+        ]
+        if taught:
+            out.extend(expand_ordered_tests_row(item) for item in taught)
             continue
         out.append(_mark(ln))
     return out
@@ -249,16 +297,26 @@ def _apply_chunk_text(
     sections: list[FormSection],
     default_section: FormSection | None,
 ) -> str:
-    """Apply schema rules to one text block, honouring interior section headers.
+    """Apply schema rules to one text block."""
+    text, _ = _apply_chunk_text_stateful(chunk, sections, default_section)
+    return text
+
+
+def _apply_chunk_text_stateful(
+    chunk: str,
+    sections: list[FormSection],
+    default_section: FormSection | None,
+) -> tuple[str, FormSection | None]:
+    """Apply schema rules to one block and return the section left active.
 
     NHS forms often place a free-text label on one line and the clinical
     narrative in a box on the following lines inside the same paragraph
-    chunk. When ``default_section`` comes from ``chunk_section_map``, any
-    interior header still starts a new section so body lines are not
-    processed as admin or checkbox noise.
+    chunk. Any interior header still starts a new section so body lines
+    are not processed as admin or checkbox noise. The trailing section is
+    returned so it can carry into the next chunk.
     """
     if not chunk:
-        return chunk
+        return chunk, default_section
     lines = chunk.splitlines()
     out: list[str] = []
     current_section: FormSection | None = default_section
@@ -283,7 +341,7 @@ def _apply_chunk_text(
         else:
             pending.append(line)
     _flush()
-    return "\n".join(out)
+    return "\n".join(out), current_section
 
 
 def _find_matching_section(
@@ -467,43 +525,87 @@ def normalise_with_schema(
     chunks: list[str],
     chunk_section_map: list[dict[str, Any]] | None = None,
 ) -> str:
-    """Normalise ``chunks`` using ``schema``, optionally guided by a map.
+    """Normalise ``chunks`` using ``schema`` and join them into one string.
 
-    When ``chunk_section_map`` is provided (and non-empty), each chunk is
-    routed to its mapped section directly. Falls back to ``apply_schema_to_text``
-    on the joined chunks when the map is absent or empty.
+    Prefer :func:`normalise_chunks_with_schema` when the caller needs the
+    result per chunk. Chunks contain blank lines, so a joined result
+    cannot be split back into the original chunks.
+    """
+    if not chunks:
+        return ""
+    return "\n\n".join(
+        normalise_chunks_with_schema(schema, chunks, chunk_section_map)
+    )
+
+
+def normalise_chunks_with_schema(
+    schema: FormSchema,
+    chunks: list[str],
+    chunk_section_map: list[dict[str, Any]] | None = None,
+) -> list[str]:
+    """Return one normalised string per chunk, guided by an optional map.
 
     Args:
         schema: The FormSchema with section rules.
-        chunks: List of text chunks (one per document segment).
-        chunk_section_map: Optional list of {chunk_idx, section_id} dicts.
+        chunks: Text chunks in stored order, one per document segment.
+        chunk_section_map: Optional ``{chunk_idx, section_id}`` entries.
+            Entries with no ``chunk_idx`` bind to their own position in
+            the list. A map whose indexes do not fit ``chunks`` is
+            ignored, because it was built over a different segmentation.
 
     Returns:
-        Normalised text with schema rules applied.
+        A list the same length as ``chunks``.
     """
-    if not chunk_section_map:
-        return apply_schema_to_text("\n".join(chunks), schema)
-    return _apply_chunk_map(schema, chunks, chunk_section_map)
-
-
-def _apply_chunk_map(
-    schema: FormSchema,
-    chunks: list[str],
-    chunk_section_map: list[dict[str, Any]],
-) -> str:
-    """Route each chunk to its mapped section and apply section rules."""
-    section_by_id = {s.section_id: s for s in schema.sections}
-    idx_to_sid = {
-        entry["chunk_idx"]: entry["section_id"] for entry in chunk_section_map
-    }
-    parts: list[str] = []
+    if not chunks:
+        return []
+    if not schema.sections:
+        return list(chunks)
+    defaults = _resolve_default_sections(schema, len(chunks), chunk_section_map or [])
+    out: list[str] = []
+    carried: FormSection | None = None
     for idx, chunk in enumerate(chunks):
-        section_id = idx_to_sid.get(idx)
-        if section_id is None:
-            parts.append(chunk)
-            continue
-        default_section = section_by_id.get(section_id)
-        parts.append(
-            _apply_chunk_text(chunk, schema.sections, default_section=default_section)
+        text, carried = _apply_chunk_text_stateful(
+            chunk, schema.sections, defaults[idx] or carried
         )
-    return "\n\n".join(parts)
+        out.append(text)
+    return out
+
+
+def _map_index(entry: dict[str, Any], position: int) -> int:
+    """Return the chunk index for a map entry, falling back to its order.
+
+    Stored chunks carry no ``chunk_idx``, so a null value means "the
+    chunk in this position".
+    """
+    raw = entry.get("chunk_idx")
+    if raw is None:
+        return position
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return position
+
+
+def _resolve_default_sections(
+    schema: FormSchema,
+    chunk_count: int,
+    chunk_section_map: list[dict[str, Any]],
+) -> list[FormSection | None]:
+    """Resolve one default section per chunk from ``chunk_section_map``."""
+    defaults: list[FormSection | None] = [None] * chunk_count
+    if not chunk_section_map:
+        return defaults
+    section_by_id = {s.section_id: s for s in schema.sections}
+    resolved: list[tuple[int, str]] = []
+    for position, entry in enumerate(chunk_section_map):
+        idx = _map_index(entry, position)
+        if idx < 0 or idx >= chunk_count:
+            # The map was built over a different segmentation of the
+            # letter. Applying it positionally would route clinical
+            # chunks into admin sections, so ignore it and rely on the
+            # section headings inside each chunk.
+            return [None] * chunk_count
+        resolved.append((idx, str(entry.get("section_id") or "")))
+    for idx, section_id in resolved:
+        defaults[idx] = section_by_id.get(section_id)
+    return defaults

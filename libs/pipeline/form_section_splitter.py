@@ -242,10 +242,15 @@ def _classify(lines: list[str]) -> str:
 
 
 def _start_pattern(label: str) -> str:
+    """Build a start pattern from a heading label.
+
+    Label words are escaped. Headings such as "Blood Results (Last" carry
+    brackets that would otherwise produce an uncompilable pattern.
+    """
     letter = _SECTION.match(label)
     if letter:
         return rf"(?i)section\s+{letter.group(1).lower()}:"
-    first = r"\s+".join(label.split()[:3])
+    first = r"\s+".join(re.escape(word) for word in label.split()[:3])
     return rf"(?i){first}"
 
 

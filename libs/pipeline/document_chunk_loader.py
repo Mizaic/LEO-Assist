@@ -56,6 +56,21 @@ def strip_pdf_attachments(text: str) -> str:
     return _PDF_BOUNDARY_RE.sub("", text).strip()
 
 
+def bundle_fingerprint(chunk_texts: list[str]) -> str:
+    """Return the form fingerprint for a referral bundle's chunk texts.
+
+    The fingerprint covers only the primary referral document. PDF
+    attachments vary between referrals of the same form, so including
+    them would give the same form a different fingerprint each time and
+    the taught :FormSchema would never be found. The teach dialog
+    fingerprints the same stripped text, so both sides agree.
+    """
+    from libs.pipeline.document_quality import form_fingerprint
+
+    joined = CHUNK_TEXT_SEPARATOR.join(chunk_texts)
+    return form_fingerprint(strip_pdf_attachments(joined))
+
+
 def merge_referral_message_fields(body: dict[str, Any]) -> dict[str, Any]:
     """Copy top-level referral chunk fields into context for durable steps."""
     context = dict(body.get("context") or {})
@@ -91,21 +106,19 @@ def _normalise_chunk_texts(raw_texts: list[str]) -> list[str]:
     if not raw_texts:
         return []
     from libs.neo4j_client.client import PatientGraphClient
-    from libs.pipeline.document_quality import form_fingerprint
-    from libs.pipeline.form_schema_normalizer import normalise_with_schema
+    from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
     from libs.pipeline.form_schema_store import load_form_schema
 
-    fingerprint = form_fingerprint(CHUNK_TEXT_SEPARATOR.join(raw_texts))
+    fingerprint = bundle_fingerprint(raw_texts)
     client = PatientGraphClient()
     try:
         schema = load_form_schema(client, fingerprint)
     finally:
         client.close()
-    if schema is not None and schema.chunk_section_map:
-        joined = normalise_with_schema(schema, raw_texts, schema.chunk_section_map)
-        parts = joined.split(CHUNK_TEXT_SEPARATOR)
-        if len(parts) == len(raw_texts):
-            return parts
+    if schema is not None and schema.sections:
+        return normalise_chunks_with_schema(
+            schema, raw_texts, schema.chunk_section_map
+        )
     return [normalize_form_checkbox_text(text) for text in raw_texts]
 
 

@@ -32,6 +32,32 @@ _SYSTEM_PROMPT = INJECTION_GUARD + """
 You are a clinical form structure analyser for NHS referral forms.
 Given raw referral form text, identify every distinct section and classify it.
 
+INPUT FORMAT -- markdown pipe tables:
+The text is almost always a markdown table, not plain lines. Read it as
+cells separated by "|", and apply these rules:
+- Section headings sit INSIDE a table cell, for example
+  "| Section A: Cancer type suspected |". Strip the leading and trailing
+  "|" and any padding spaces before you read the heading.
+- A separator row such as "| --- |" or "| --- | --- |" follows almost
+  every heading. Separator rows are layout only. Never treat one as a
+  heading, an item, or clinical content.
+- A label and its answer are often in DIFFERENT cells of the same row,
+  for example "| B1. Lesion on cervix | Yes [X] No [ ] |". The pattern is
+  the label cell; the boxes are in a later cell.
+- A question row may span three columns while its answer sits on the NEXT
+  row with fewer cells, for example "| Question? | Yes | No |" followed by
+  "| [X] | [ ] |". Treat the question and the row below it as one item.
+- Blood battery rows use empty spacer cells, for example
+  "| FBC |  | Hb , WCC , Plts |  |  |". The battery is the first non-empty
+  cell; the analytes are a comma separated list in a later cell. An
+  analyte may sit in a different column from its battery, for example
+  "| CRP |  |  | ESR |  |".
+- A line such as "--- Document: name.pdf ---" marks the start of a second
+  document appended to the same bundle. Everything after it is an
+  administrative wrapper. Classify it as admin.
+
+start_pattern must be the heading text WITHOUT the surrounding pipes.
+
 SECTION TYPES -- choose exactly one per section:
 - checkbox_single  : Options where ONE is checked (e.g. cancer type tick-boxes)
 - checkbox_yesno   : Each criterion has a Yes/No pair (e.g. B1 Yes [X] No [ ])

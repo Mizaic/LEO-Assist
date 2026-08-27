@@ -1,0 +1,68 @@
+{
+  "deidentified": true,
+  "referral": {
+    "specialty": "2WW",
+    "priority": "TWO_WEEK_WAIT",
+    "pathway_start": "2026-06-23T15:38:16Z",
+    "leo_state": "IN_WORKFLOW"
+  },
+  "document_id": "[UBRN]:leo-referral-bundle",
+  "chunk_count": 11,
+  "chunks": [
+    {
+      "index": 0,
+      "chunk_idx": null,
+      "text": "--- Document: 23 Jun 2026 Two Week Wait Referral to Gynaecology .doc ---\n\n| [ORGANISATION] Hospitals (NHS) Trust [ORGANISATION] and [ORGANISATION] HOSPITAL URGENT SUSPECTED CANCER REFERRAL FOR SUSPECTED GYNAECOLOGICAL MALIGNANCY |\n| --- |\n\n\n\n| For Trust use only – Confirmation of Electronic Referral Information |  |  |\n| --- | --- | --- |\n| Hospital Number: | Date of Appointment: | Time: |\n| Speciality: | Consultant: |  |"
+    },
+    {
+      "index": 1,
+      "chunk_idx": null,
+      "text": "| Patient Details | Practice Details |  |  |\n| --- | --- | --- | --- |\n| NHS No.: | [NHS_NUMBER] | Referring GP: | [NAME] |\n| Surname: | [NAME]  | Registered GP: | [ORGANISATION] C P C C |\n| Forename (s): | [NAME]  | DOB | [DOB] | GP Phone Number: | [PHONE] |\n| Previous Surname: | [NAME] | GP FAX Number: | [PHONE] |\n| Address: Postcode: | [ADDRESS]-in-[ORGANISATION], [ORGANISATION], [ORGANISATION] [POSTCODE] | Date of decision to refer: | 23 Jun 2026 |\n| GP Practice Address: | [ORGANISATION] Community Primary Care Centre [ORGANISATION] Health Village, [ORGANISATION], [ORGANISATION], [ORGANISATION], [ORGANISATION], [POSTCODE] |  |  |\n| Marital Status: | Married | Sex | Female |\n| Tel No. (Home): | [PHONE] |  |  |\n| Tel No. (Work): |  |  |  |\n| Mobile No.: | [PHONE] |  |  |\n| Accessible Information Standards: | Not recorded |  |  |"
+    },
+    {
+      "index": 2,
+      "chunk_idx": null,
+      "text": "| Section A: Gynaecological Cancer type suspected |\n| --- |\n| (Please put a X in appropriate boxes) |\n| Ovary [ ] Cervix [X] Endometrium [ ] Vagina [ ] Vulva [ ] |\n| If referring a suspected endometrial cancer – you MUST have arranged a USC/urgent transvaginal ultrasound scan at the point of referral at the latest, UNLESS there is an obvious lesion on the cervix, vagina or vulva that is likely to be causing the bleeding Please take a Ca125 by the time of referral for anyone suspected of Ovarian cancer. |"
+    },
+    {
+      "index": 3,
+      "chunk_idx": null,
+      "text": "| Section B: Signs/symptoms for 14-day rule criteria Please only use this section if you feel this patient is LIKELY to have a gynaecological cancer |  |\n| --- | --- |\n| (Please put a X in appropriate boxes) |  |\n| B1. Lesion suspicious of cancer of cervix or vagina on speculum examination | Yes [X] No [ ] |\n| B2. Lesion suspicious of cancer on clinical examination of the vulva | Yes [ ] No [ ] |\n| B3. Palpable pelvic mass not obvious fibroids | Yes [ ] No [ ] |\n| B4. Suspicious pelvic mass on pelvic ultrasound | Yes [ ] No [ ] |\n| B5. More than one or a single heavy episode of postmenopausal bleeding (PMB) in woman aged >55 who are NOT on HRT | Yes [ ] No [ ] |\n| B6. Postcoital bleeding (PCB) age >35 years that persists for more than 4 weeks. If smear overdue, do a smear first | Yes [ ] No [ ] |\n| B7. HRT: Unexpected or prolonged bleeding persisting for more than 4 weeks after STOPPING HRT B8. HRT: bleeding persisting AFTER 6 months of HRT use, if on continuous combined HRT. If unsure or patient is on Sequential HRT, please use ‘advice and guidance’ before submitting referral. | Yes [ ] No [ ] |\n| B9. Suspicion of ovarian cancer and increased CA125 postmenopausal | Yes [ ] No [ ] |"
+    },
+    {
+      "index": 4,
+      "chunk_idx": null,
+      "text": "| For post menopausal bleeding patients Consider PRIMARY CARE PATHWAY – if all boxes ticked then no USC referral required |  |\n| --- | --- |\n| (Please put a X in appropriate boxes) |  |\n| New presentation with PMB (first episode – for re-presentations please refer USC | Yes [ ] |\n|  |  |\n| Patient is not taking tamoxifen and BMI less than 40 | Yes [ ] |\n|  |  |\n| Clinical examination including cervix looks normal (refer USC if not sure or unable to examine) | Yes [ ] |\n|  |  |\n| On TV USS the endometrial thickness <4mm and regular (refer USC if not) | Yes [ ] |\n| Discharge patient and reassure. Advise patient to return if persistent (more than 4 weeks from TV USS) or recurrent bleeding. Consider giving patient information sheet |  |"
+    },
+    {
+      "index": 5,
+      "chunk_idx": null,
+      "text": "| Does the patient know? Please ensure the patient is aware of the need to rule out cancer. | [X] Yes, the patient knows or suspects the risk of cancer |\n| --- | --- |\n| Is the patient aware that they have been referred on an urgent basis? | [X] Yes [ ] No |\n| Does the patient have any holiday plans in the next 2 months? | [X] No [ ] Yes |\n\n\n\n| Has the patient been told of the suspicion of cancer? | Yes | No |\n| --- | --- | --- |\n| [X] | [ ] |\n| Has the patient any holidays planned in the next 3 weeks? | [ ] | [X] |\n| If yes to above, patient wishes to defer referral until return from holiday Holiday Dates: | [ ] | [ ] |\n| Is the patient aware that they have been referred on an urgent basis? | [X] | [ ] |\n| It is important the relevant information sheet is given to the patient when they are referred under the USC priority. |  |  |"
+    },
+    {
+      "index": 6,
+      "chunk_idx": null,
+      "text": "| Section C: Further Clinical details |\n| --- |\n| BMI: 20.2 Kg/m² Co-morbidities including mobility concerns: Cognitive Impairment - Yes [ ] No [X] Thank you for seeing this lady with: vaginal discharge- 10/7 yellowish in colour no vaginal itch/dryness no pelvic pain. no pv bleeding. post menopausal for 1.5yrs also reports dyspareunia for 1 year last pap smear nov 2025- no result recorded. no post coital bleeding. had an abdo surgery as a child but she isnt sure what it was. has womb insitu has had same sexual partner for 12 years. para 1+0 Examination: alert, comfortable abdo- surgical healed scar on right iliac fossa. abdo full soft, non tender, nil palp masses vaginal exam- verbal consent given, chaperone offered declined vulva doesnt appear atrophic scanty vaginal discharge- swabs taken polyp noted around 5 oclock around cervical opening. unable to see base. no bleeding noted. whitish patch beside polyp noted |"
+    },
+    {
+      "index": 7,
+      "chunk_idx": null,
+      "text": "| Section D: Investigations performed |\n| --- |\n| MANDATORY – the following tests must be undertaken and results provided with referral:- FBC LFTs, UEs and Calcium See Below BLOODS DONE TODAY 23.6.26 |\n\n\n\n| Medication: 1. Acutes | None |\n| --- | --- |\n| 2. Repeats | None |\n| Allergies: None |  |\n\n\n\n| Section E: PERFORMANCE STATUS |  |  |  |  |  |  |  |  |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Clinical Frailty Scale (please tick one of the following statements about the patient):- |  |  |  |  |  |  |  |  |\n| 1. Very Fit [X] | 2. Fit [ ] | 3.Managing well [ ] | 4. Very Mild [ ] | 5. Mild [ ] | 6. Moderate [ ] | 7. Severe [ ] | 8.Very Severe [ ] | 9.Terminally ill [ ] |\n|  |  |  |  |  |  |  |  |  |"
+    },
+    {
+      "index": 8,
+      "chunk_idx": null,
+      "text": "Points to remember:\n\nRemember endometrial cancer nearly always occurs in post-menopausal women and high BMI is a risk factor.\n\nThink of possible ovarian cancer in a post-menopausal woman with new onset bloating, constipation, abdominal pain, urinary symptoms that do not go away after 3 weeks (Check CA125 and consider scan as per NICE guidelines)\n\nDo not check CA125 in premenopausal women as it is not a reliable marker of ovarian cancer and may result in unnecessary investigations and patient anxiety\n\nPatient summary\n\nPerformance Status\n\n| Patient Fitness (ECOG STATUS) : No ECOG in patient record - consider using tool on 2WW F12 template 0 [ ] 1 [X] 3 [ ] 4 [ ] |\n| --- |\n\n\n\n| Medical Problems: |\n| --- |\n\nMinimum Dataset: (recordings in last 6months)\n\n| Blood Pressure | 140 / 80 mmHg, 24 Nov 2025 |  |  |\n| --- | --- | --- | --- |\n| Heart rate | 70 bpm, |  |  |\n| Height |  | Alcohol Intake | , |\n| Weight |  | Exercise tolerance: |  |\n\n(In last 6 months)\n\nRadiology:"
+    },
+    {
+      "index": 9,
+      "chunk_idx": null,
+      "text": "| Date specimen collected | Battery Headers | Result indicator |\n| --- | --- | --- |\n\nBlood Results (Last ):\n\n12m\n\n| CA 125 |  | USC Gynae |\n| --- | --- | --- |\n\n\n\n| FBC |  | Hb , WCC , Plts , MCV , Neut |  |  |\n| --- | --- | --- | --- | --- |\n| UE |  | Na , K , Urea , Creat , eGFR |  |  |\n| LFT |  | ALT , Alk Phos , Bili , Alb , GGT |  |  |\n| CRP |  |  | ESR |  |\n| TFTs |  | TSH , Free T4 | INR |  |\n| Bone |  | Ca , Ca cor , Ca adj , Phos |  |  |\n| Iron |  | Ferritin , Iron Saturation , TIBC |  |  |\n| Vitamins |  | B12 , Folate |  |  |\n| Lipids |  | Chol , LDL , HDL ,Chol:HDL ratio , Tri |  |  |\n| Random Glucose |  | Fasting Chol. |  |\n| Fasting Glucose |  | HbA1c |  |"
+    },
+    {
+      "index": 10,
+      "chunk_idx": null,
+      "text": "Ms [NAME] [DOB] [NHS_NUMBER] Page\n\n4\n\nof\n\n4\n\n--- Document: Clinical Information.pdf ---\n\nNHS Confidential\nClinical Information Summary\nPatient: [NAME], [NAME] [DOB]\nUBRN: [UBRN] Age: 57 years\nNHS: [NHS_NUMBER] Sex: Female\nUBRN Information\nAppointment Date/Time: Mon 29-Jun-2026 10:15 Referral Created Date: 23-Jun-2026 16:38\nPriority: 2 week wait Clinical Information First 23-Jun-2026 16:39\nSubmitted:\nReferred By: [NAME], [NAME]\n[NAME] Clinical Information Last -\nUpdated:\nReferring Organisation: [ORGANISATION] COMMUNITY\nPRIMARY CARE CENTRE Named Clinician: -\n(3)\nAllocated Clinician: -\nAddress: [ORGANISATION]\nClinical Context: 2WW/2WW Gynaecology\n[ORGANISATION]\nLocation: [ORGANISATION] [HOSPITAL_NUMBER]\n[ORGANISATION] Clinical Term: -\n[POSTCODE]\nTelephone: [PHONE]\nPatient Information\nPatient Address: [ADDRESS]: [ORGANISATION] COMMUNITY\n[ORGANISATION] PRIMARY CARE CENTRE\n[ORGANISATION] (3)\n[ORGANISATION]\nAddress: [ORGANISATION]\n[POSTCODE]\n[ORGANISATION]\nTelephone (Mobile): [PHONE] [ORGANISATION]\n[ORGANISATION]\n[POSTCODE]\nMore contact details available when reviewing online\nAttachments\nFile Description Added By Date/Time Added\n23 Jun 2026 Two Week Wait 23 Jun 2026 Two Week Wait [NAME], [NAME] 23-Jun-2026 16:39\nReferral to Gynaecology .doc Referral to Gynaecology .doc [NAME] (Referring\nClinician)\nRisk to others\nNo Information Provided\nReason for referral\n23/06/2026 Our Ref CE/SW\nReferral to Gynaecology\nDear colleague\nThank you for seeing this 57 year old. Please see attachment for referral\ndetails.\nCONFIDENTIAL PATIENT INFORMATION\nPage 1 of 3\n## Page 1\n\nNHS Confidential\nClinical Information Summary\nPatient: [NAME], [NAME] [DOB]\nUBRN: [UBRN] Age: 57 years\nNHS: [NHS_NUMBER] Sex: Female\nMany thanks [NAME]\n\nNHS Confidential\nService Provider Activity\nPatient: [NAME], [NAME] [DOB]\nUBRN: [UBRN] Age: 57 years\nNHS: [NHS_NUMBER] Sex: Female\nAssessment Summary\nRecorded By: Date/Time:\nName: [NAME] 26-Jun-2026 14:11\n(Miss)\nJob Title: Admin/Clinical Support\nAccess Role\nOrganisation Name: [ORGANISATION]\nHOSPITALS NHS\nFOUNDATION TRUST\nOrganisation Address: [ORGANISATION] HOSPITAL\n[ORGANISATION]\n[ORGANISATION]/England\n[POSTCODE]\nOn Behalf of:\nName: [NAME]\nJob Title: Admin/Clinical Support\nAccess Role\nOrganisation Name: [ORGANISATION]\nHOSPITALS NHS\nFOUNDATION TRUST\nOrganisation Address: [ORGANISATION] HOSPITAL\n[ORGANISATION]\n[ORGANISATION]/England\n[POSTCODE]\nAssessment Outcome: Refer On, Outside NHS e-Referral Service\nAssessment Comments: 2ww opa gynsc booking outside ers\nCONFIDENTIAL PATIENT INFORMATION\nPage 3 of 3\n## Page 3"
+    }
+  ]
+}
