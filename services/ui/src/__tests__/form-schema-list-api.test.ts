@@ -4,6 +4,7 @@
  * Atlas trace: DI-5C9CA57B, DI-26546721
  */
 import {
+  fetchFormSchema,
   fetchFormSchemas,
   seedFormSchemaDefaults,
 } from "../app/settings/form-schemas/formSchemaApi";
@@ -62,6 +63,42 @@ describe("fetchFormSchemas", () => {
     await expect(fetchFormSchemas()).rejects.toThrow(
       "Could not load form templates. Please retry.",
     );
+  });
+});
+
+describe("fetchFormSchema", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("returns a schema from GET /api/form-schemas/{fingerprint}", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        schema: { fingerprint: "sfh-gynae-2ww-v1", form_name: "Gynae", sections: [{}] },
+      }),
+    }) as typeof fetch;
+
+    const schema = await fetchFormSchema("sfh-gynae-2ww-v1");
+    expect(schema?.fingerprint).toBe("sfh-gynae-2ww-v1");
+    expect(schema?.sections).toHaveLength(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/form-schemas/sfh-gynae-2ww-v1",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("returns null when the fingerprint has no schema", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ schema: null }),
+    }) as typeof fetch;
+
+    await expect(fetchFormSchema("missing")).resolves.toBeNull();
   });
 });
 

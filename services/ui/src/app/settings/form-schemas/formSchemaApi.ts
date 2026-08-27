@@ -35,6 +35,29 @@ export async function fetchFormSchemas(): Promise<SchemaSummary[]> {
   return data.schemas ?? [];
 }
 
+export interface FormSchemaDetail {
+  fingerprint: string;
+  form_name: string;
+  organization_id?: string;
+  service_id?: string;
+  sections: unknown[];
+}
+
+export async function fetchFormSchema(
+  fingerprint: string,
+): Promise<FormSchemaDetail | null> {
+  const res = await fetch(
+    `/api/form-schemas/${encodeURIComponent(fingerprint)}`,
+    {
+      credentials: "include",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    },
+  );
+  if (!res.ok) throw new Error(listLoadError(res.status));
+  const data = (await res.json()) as { schema?: FormSchemaDetail | null };
+  return data.schema ?? null;
+}
+
 export async function deleteFormSchema(fingerprint: string): Promise<void> {
   const res = await fetch(`/api/form-schemas/${encodeURIComponent(fingerprint)}`, {
     method: "DELETE",

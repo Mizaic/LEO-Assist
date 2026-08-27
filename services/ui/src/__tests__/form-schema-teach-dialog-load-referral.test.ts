@@ -57,6 +57,30 @@ describe("FormSchemaTeachDialog - Load from referral", () => {
   });
 });
 
+describe("FormSchemaTeachDialog - Edit skips letter step", () => {
+  it("loads the saved schema by fingerprint on open", () => {
+    expect(DIALOG_SRC).toMatch(/fetchFormSchema/);
+    expect(API_SRC).toMatch(/export async function fetchFormSchema/);
+    expect(API_SRC).toMatch(/\/api\/form-schemas\/\$\{/);
+  });
+
+  it("does not gate the schema editor on letter text alone", () => {
+    expect(DIALOG_SRC).not.toMatch(/canTeach && ready/);
+    expect(DIALOG_SRC).not.toMatch(/disabled=\{!canTeach\}/);
+  });
+
+  it("opens the editor when saved sections exist", () => {
+    expect(DIALOG_SRC).toMatch(/sections\.length|savedHasSections|hasSavedSections/);
+    expect(DIALOG_SRC).toMatch(/setReady\(\s*true\s*\)/);
+  });
+
+  it("keeps the letter box as optional help", () => {
+    expect(DIALOG_SRC).toMatch(/highlight sections/);
+    expect(DIALOG_SRC).toContain("Sample referral letter");
+    expect(DIALOG_SRC).toContain("load-from-referral-row");
+  });
+});
+
 describe("formSchemaApi - fetchLetterTextByUbrn", () => {
   it("exports fetchLetterTextByUbrn function", () => {
     expect(API_SRC).toContain("export async function fetchLetterTextByUbrn");
