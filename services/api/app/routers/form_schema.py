@@ -7,6 +7,7 @@ GET  /form-schemas                 -- list all saved schemas
 POST /form-schemas/fingerprint     -- compute content fingerprint from sample text
 POST /form-schemas/detect          -- LLM auto-detect sections from form text
 GET  /form-schemas/letter-text     -- fetch referral letter text by UBRN
+POST /form-schemas/seed-defaults   -- seed built-in templates (skips existing)
 
 Atlas trace:
   DI: DI-5C9CA57B  (form checkbox normalisation)
@@ -15,13 +16,24 @@ Atlas trace:
 from __future__ import annotations
 
 import asyncio
+import sys
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from fastapi import Query
+
+_SCRIPTS_DIR = Path(__file__).parent.parent.parent.parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from seed_sfh_gynae_2ww_template import (  # noqa: E402
+    FINGERPRINT as _SFH_GYNAE_FINGERPRINT,
+    build_payload as _build_sfh_gynae_payload,
+)
 
 from app.deps import require_role
 from app.org_catalog_auth import FORM_TEACHER_ROLES
@@ -46,7 +58,15 @@ from libs.pipeline.form_schema_template import (
     generate_normalised_template,
 )
 from libs.pipeline.document_quality import form_fingerprint
-from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS, SAVE_NORMALISED_TEMPLATE
+from libs.cypher.form_schema_queries import (
+    LIST_FORM_SCHEMAS,
+    LIST_FORM_SCHEMA_SECTIONS,
+    SAVE_NORMALISED_TEMPLATE,
+)
+from libs.pipeline.form_schema_similarity import (
+    find_similar_sections,
+    merge_borrowed_and_detected,
+)
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
 
@@ -249,6 +269,48 @@ def blood_panel_presets(
     }
 
 
+@router.post("/seed-defaults")
+def seed_defaults(
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    """Seed built-in form schema templates.
+
+    Writes the SFH Gynae 2WW schema if it does not already exist.
+    Returns seeded / skipped lists so callers can tell what changed.
+    """
+    client = PatientGraphClient()
+    try:
+        return _seed_sfh_gynae(client)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        client.close()
+
+
+def _seed_sfh_gynae(client: Any) -> dict[str, Any]:
+    """Upsert the SFH Gynae 2WW schema; skip when it already exists."""
+    existing = load_form_schema(client, _SFH_GYNAE_FINGERPRINT)
+    if existing is not None:
+        return {"seeded": [], "skipped": [_SFH_GYNAE_FINGERPRINT]}
+    payload = _build_sfh_gynae_payload()
+    raw_sections = normalize_sections_for_request(payload["sections"])
+    sections = build_sections_from_request(raw_sections)
+    save_form_schema(
+        client,
+        FormSchemaWrite(
+            fingerprint=_SFH_GYNAE_FINGERPRINT,
+            form_name=payload["form_name"],
+            sections=sections,
+            created_by=payload.get("saved_by") or "seed-defaults",
+            status=payload.get("status") or "active",
+            organization_id=payload.get("organization_id") or "",
+            service_id=payload.get("service_id") or "",
+            completeness_groups=payload.get("completeness_groups") or [],
+        ),
+    )
+    return {"seeded": [_SFH_GYNAE_FINGERPRINT], "skipped": []}
+
+
 @router.get("/{fingerprint}")
 def get_schema(
     fingerprint: str,
@@ -388,16 +450,66 @@ async def detect_schema(
     body: DetectFormRequest,
     _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
-    """Use the LLM to auto-detect sections and suggest entity text.
+    """Auto-detect sections, pre-populating any that match a known schema.
 
-    Runs detect_form_sections (one big-tier converse call) in a thread
-    pool so the async event loop is not blocked.
+    Step 1: load all active FormSchema nodes and run fuzzy similarity
+    against the new form text (no LLM cost, instant).
+    Step 2: call the big-tier LLM for the remaining unmatched content.
+    Step 3: merge -- borrowed sections take priority over LLM output for
+    the same heading, but LLM sections for novel headings are kept.
+
+    Borrowed sections carry a ``borrowed_from`` key with org, service,
+    form name, and confidence so the clinician can see provenance and
+    override or skip.
     """
     loop = asyncio.get_event_loop()
+    known_schemas = _load_known_schema_dicts()
     try:
-        sections = await loop.run_in_executor(
+        llm_sections = await loop.run_in_executor(
             None, partial(detect_form_sections, body.text)
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return {"sections": sections}
+
+    if not known_schemas:
+        return {"sections": llm_sections, "borrowed_count": 0}
+
+    chunks = body.text.split("\n\n")
+    borrowed = find_similar_sections(chunks, known_schemas)
+    merged = merge_borrowed_and_detected(borrowed, llm_sections)
+    return {"sections": merged, "borrowed_count": len(borrowed)}
+
+
+def _load_known_schema_dicts() -> list[dict[str, Any]]:
+    """Fetch all active FormSchema section data from Neo4j.
+
+    Returns an empty list on any error so the detect endpoint degrades
+    gracefully to LLM-only detection.
+    """
+    import json as _json
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(LIST_FORM_SCHEMA_SECTIONS) or []
+    except Exception:
+        return []
+    finally:
+        client.close()
+
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        sections_json = row.get("sections_json") or "[]"
+        try:
+            sections = _json.loads(sections_json)
+        except Exception:
+            sections = []
+        result.append(
+            {
+                "fingerprint": row.get("fingerprint") or "",
+                "form_name": row.get("form_name") or "",
+                "organization_id": row.get("organization_id") or "",
+                "service_id": row.get("service_id") or "",
+                "sections": sections,
+            }
+        )
+    return result
