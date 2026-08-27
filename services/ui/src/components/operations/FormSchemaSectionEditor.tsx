@@ -332,6 +332,7 @@ function SnomedTagSelect({
       renderTags={(selected, getTagProps) =>
         selected.map((tag, index) => (
           <Chip
+            {...getTagProps({ index })}
             key={tag}
             label={tag}
             size="small"
@@ -339,7 +340,6 @@ function SnomedTagSelect({
             color="secondary"
             sx={{ fontSize: "0.7rem" }}
             data-testid="snomed-tag-chip"
-            {...getTagProps({ index })}
           />
         ))
       }
