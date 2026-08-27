@@ -38,6 +38,7 @@ const TAB_WIDTH: Record<KnowledgeTabKey, KnowledgeLayoutWidth> = {
   "ai-instructions": "wide",
   "clinical-guidelines": "wide",
   pathways: "wide",
+  "form-templates": "wide",
   domains: "wide",
   terminology: "wide",
   "results-labs": "wide",
@@ -51,6 +52,10 @@ const GuardRulesPage = dynamic(() => import("@/app/admin/guard-rules/page"), { s
 const PromptsPage = dynamic(() => import("@/app/admin/prompts/page"), { ssr: false });
 const GuidancePage = dynamic(() => import("@/app/admin/guidance/page"), { ssr: false });
 const PathwaysPage = dynamic(() => import("@/app/admin/pathways/page"), { ssr: false });
+const FormSchemasPage = dynamic(
+  () => import("@/app/admin/form-schemas/page"),
+  { ssr: false },
+);
 const DomainsPage = dynamic(() => import("@/app/admin/domains/page"), { ssr: false });
 const TerminologyPage = dynamic(() => import("@/app/admin/terminology/page"), { ssr: false });
 const LabResultsPage = dynamic(() => import("@/app/admin/lab-results/page"), { ssr: false });
@@ -67,6 +72,7 @@ const TAB_PANELS: Record<KnowledgeTabKey, React.ComponentType> = {
   "ai-instructions": PromptsPage,
   "clinical-guidelines": GuidancePage,
   pathways: PathwaysPage,
+  "form-templates": FormSchemasPage,
   domains: DomainsPage,
   terminology: TerminologyPage,
   "results-labs": LabResultsPage,
@@ -82,6 +88,7 @@ export const TABS: Array<{ key: KnowledgeTabKey; label: string }> = [
   { key: "ai-instructions", label: "AI Instructions" },
   { key: "clinical-guidelines", label: "Clinical Guidelines" },
   { key: "pathways", label: "Pathways" },
+  { key: "form-templates", label: "Form templates" },
   { key: "domains", label: "Domains" },
   { key: "terminology", label: "Terminology" },
   { key: "results-labs", label: "Results/Labs" },

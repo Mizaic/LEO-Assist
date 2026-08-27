@@ -19,6 +19,7 @@ const KNOWLEDGE_TABS = [
   "ai-instructions",
   "clinical-guidelines",
   "pathways",
+  "form-templates",
   "domains",
   "terminology",
   "results-labs",

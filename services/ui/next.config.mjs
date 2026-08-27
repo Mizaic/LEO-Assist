@@ -148,6 +148,8 @@ const nextConfig = {
       // URL is a permanent redirect so bookmarks self-heal on first click.
       { source: "/admin/clinical", destination: "/admin/knowledge", permanent: true },
       { source: "/admin/pathways", destination: "/admin/knowledge?tab=pathways", permanent: true },
+      { source: "/admin/form-schemas", destination: "/admin/knowledge?tab=form-templates", permanent: true },
+      { source: "/admin/knowledge/form-templates", destination: "/admin/knowledge?tab=form-templates", permanent: true },
       { source: "/admin/domains", destination: "/admin/knowledge?tab=domains", permanent: true },
       { source: "/admin/terminology", destination: "/admin/knowledge?tab=terminology", permanent: true },
       // Platform

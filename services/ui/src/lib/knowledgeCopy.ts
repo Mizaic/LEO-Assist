@@ -25,6 +25,7 @@ export type KnowledgeTabKey =
   | "ai-instructions"
   | "clinical-guidelines"
   | "pathways"
+  | "form-templates"
   | "domains"
   | "terminology"
   | "results-labs"
@@ -259,6 +260,39 @@ export const KNOWLEDGE_TAB_COPY: Record<KnowledgeTabKey, IntroRoleCopy> = {
       lede: "Every pathway a tenant has switched on and its version.",
       how: "Pick a tenant. Check which pathways are live.",
       what: "Tenants can pin a pathway to a version for stability.",
+    },
+  },
+
+  "form-templates": {
+    default: {
+      title: "Form templates",
+      lede: "Teach LEO the shape of referral forms before they pause work.",
+      how: "Add a template. Mark the sections and blood-test tables. Save.",
+      what: "The next matching form can be read without asking again.",
+    },
+    triage_clinician: {
+      title: "Form templates",
+      lede: "The taught shapes of referral forms your site uses.",
+      how: "Open a template to see the sections LEO expects.",
+      what: "A taught form means fewer pauses in your queue.",
+    },
+    clinician_admin: {
+      title: "Form template library",
+      lede: "Section and blood-test templates for referral letters.",
+      how: "Add or edit a template. Check the sections. Save.",
+      what: "Saved templates are used the next time that form arrives.",
+    },
+    regulatory_reviewer: {
+      title: "Form template log",
+      lede: "Taught referral form schemas used before a pipeline pause.",
+      how: "Check who taught the form and which sections were marked.",
+      what: "This keeps form reading explainable at inspection.",
+    },
+    administrator: {
+      title: "Form template store",
+      lede: "Taught form schemas for this site.",
+      how: "Watch the template count. Remove unused forms.",
+      what: "One library is shared. Settings still lists the same page.",
     },
   },
 

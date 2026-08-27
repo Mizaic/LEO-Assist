@@ -18,6 +18,7 @@ import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import RouteOutlinedIcon from "@mui/icons-material/RouteOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import ScienceIcon from "@mui/icons-material/Science";
@@ -61,6 +62,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { key: "domains", label: "Domains", icon: <FolderOpenOutlinedIcon sx={{ fontSize: 18 }} /> },
       { key: "clinical-guidelines", label: "Clinical Guidelines", icon: <MenuBookOutlinedIcon sx={{ fontSize: 18 }} /> },
       { key: "pathways", label: "Pathways", icon: <RouteOutlinedIcon sx={{ fontSize: 18 }} /> },
+      { key: "form-templates", label: "Form templates", icon: <DescriptionOutlinedIcon sx={{ fontSize: 18 }} /> },
     ],
   },
   {
