@@ -26,6 +26,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { SnomedLookupField } from "@/components/SnomedLookupField";
 
 import { BloodPanelPresetButton } from "./BloodPanelPresetButton";
+import { BorrowedFromBadge } from "./BorrowedFromBadge";
 import { mergePresetBatteries } from "./bloodPanelPresets";
 import {
   type AnalyteEntry,
@@ -137,6 +138,12 @@ export function FormSchemaSectionEditor({
           size="small"
           sx={{ flex: 1, minWidth: 0 }}
         />
+        {section.borrowed_from ? (
+          <BorrowedFromBadge
+            borrowedFrom={section.borrowed_from}
+            onDismiss={() => onPatch({ borrowed_from: undefined })}
+          />
+        ) : null}
         <Select
           value={section.section_type}
           onChange={(e) => {

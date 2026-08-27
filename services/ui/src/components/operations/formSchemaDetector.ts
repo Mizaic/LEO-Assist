@@ -42,6 +42,13 @@ export interface FormSchemaItem {
   value_placeholder?: string;
 }
 
+export interface BorrowedFrom {
+  org: string;
+  service: string;
+  form_name: string;
+  confidence: number;
+}
+
 export interface FormSchemaSection {
   section_id: string;
   section_type: SectionType;
@@ -49,6 +56,7 @@ export interface FormSchemaSection {
   start_pattern: string;
   items: FormSchemaItem[];
   semantic_tags?: string[];
+  borrowed_from?: BorrowedFrom;
 }
 
 export { detectFormName } from "./formSchemaDetectExtras";
