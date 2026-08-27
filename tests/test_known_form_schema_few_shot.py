@@ -114,8 +114,8 @@ def test_known_form_schema_keeps_only_form_checkbox_core(monkeypatch) -> None:
 
     assert len(adapter._core_examples) == 1
     assert adapter._core_examples[0]["category"] == "form:checkbox"
-    assert "checkbox core" in fake_llm.system
-    assert "lab core" not in fake_llm.system
+    assert "checkbox core" in adapter._system_prompt
+    assert "lab core" not in adapter._system_prompt
 
 
 def test_run_llm_extraction_passes_known_form_schema(monkeypatch) -> None:

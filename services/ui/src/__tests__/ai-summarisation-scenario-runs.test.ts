@@ -113,5 +113,7 @@ describe("AI summarisation scenario runs", () => {
     expect(source).toContain("ReferralAssessmentCompletedEvent");
     expect(source).toContain("completion_event");
     expect(source).toContain("referral_assessment_completed");
+    expect(source).toContain("ubrn");
+    expect(source).not.toContain("sbar_report");
   });
 });

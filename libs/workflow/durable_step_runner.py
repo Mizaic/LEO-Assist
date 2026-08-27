@@ -63,6 +63,7 @@ from libs.workflow.stage_lease import (
     resolve_lease_owner,
 )
 from libs.workflow.step_contract import StepProvenance, envelope_step_result
+from libs.workflow.completion_event import build_completion_event_body
 from libs.workflow.step_state_loader import load_step_state
 from libs.workflow.version_admission import (
     load_rollout_for_plan,
@@ -247,25 +248,17 @@ async def _publish_completion(
     request: StepRequest,
     result: DurableStepResult,
     action: _Action,
+    store: PipelineStageStore | None = None,
 ) -> None:
     if not action.completion_queue or not action.completion_event_type:
         return
-    status = "completed_with_errors" if result.errors else "completed"
-    body = {
-        "event_type": action.completion_event_type,
-        "run_id": request.run_id,
-        "workflow_id": request.workflow_id,
-        "plan_definition_id": request.plan_definition_id,
-        "patient_id": request.patient_id,
-        "encounter_id": request.encounter_id,
-        "guideline_id": request.guideline_id,
-        "completeness_domain": request.completeness_domain,
-        "completeness_subdomain": request.completeness_subdomain,
-        "status": status,
-        "errors": list(result.errors),
-        "context": dict(request.context),
-        **(result.output or {}),
-    }
+    body = build_completion_event_body(
+        event_type=action.completion_event_type,
+        request=request,
+        result=result,
+    )
+    if store is not None:
+        store.write_completion_event(request.run_id, body)
     await bus.send(
         action.completion_queue,
         Message(
@@ -471,7 +464,7 @@ async def _publish_successors(
     if next_ids:
         await dispatch_stage_outbox(store, bus, request)
         return
-    await _publish_completion(bus, request, result, action)
+    await _publish_completion(bus, request, result, action, store)
 
 
 def _busy_defer(action_id: str, run_id: str) -> None:

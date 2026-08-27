@@ -46,6 +46,7 @@ from libs.cypher.pipeline_stage_queries import (
     RENEW_PIPELINE_STAGE_LEASE,
     START_PIPELINE_STAGE_RUN,
     UPSERT_PIPELINE_RUN,
+    WRITE_PIPELINE_RUN_COMPLETION,
 )
 from libs.workflow.durable_steps import StepRequest, StepResult
 from libs.workflow.pipeline_outbox import build_successor_outbox_events
@@ -303,9 +304,7 @@ class PipelineStageStore:
         stage_status = result.status
         if stage_status == "completed" and result.errors:
             stage_status = "failed"
-        stage_failed = (
-            stage_status in _TERMINAL_STAGE_FAILURE or bool(result.errors)
-        )
+        stage_failed = stage_status in _TERMINAL_STAGE_FAILURE or bool(result.errors)
         effective_next: list[str] = [] if stage_failed else list(next_action_ids or [])
         if stage_failed:
             run_status = "paused" if stage_status == "paused" else "failed"
@@ -583,6 +582,14 @@ class PipelineStageStore:
         if generation is None:
             return None
         return int(generation)
+
+    def write_completion_event(self, run_id: str, event: dict[str, Any]) -> None:
+        """Persist the minimal external completion payload on the pipeline run."""
+        self._client.run(
+            WRITE_PIPELINE_RUN_COMPLETION,
+            run_id=run_id,
+            completion_event_json=json.dumps(event, default=str, sort_keys=True),
+        )
 
     def load_accumulated_state(self, run_id: str) -> dict[str, Any]:
         rows = self._client.run(GET_PIPELINE_STAGE_OUTPUTS, run_id=run_id)

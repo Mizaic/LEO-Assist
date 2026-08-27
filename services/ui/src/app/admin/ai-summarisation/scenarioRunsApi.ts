@@ -23,17 +23,8 @@ export interface ScenarioRunChildStage {
 export interface ReferralAssessmentCompletedEvent {
   event_type: "referral_assessment_completed" | string;
   run_id: string;
-  workflow_id: string;
-  plan_definition_id: string;
-  patient_id: string;
-  encounter_id: string;
-  assessment_id: string | null;
-  guideline_id: string | null;
-  completeness_domain: string | null;
-  completeness_subdomain: string | null;
-  status: "completed" | "completed_with_errors" | string;
-  errors: string[];
-  context: Record<string, unknown>;
+  ubrn?: string;
+  assessment_id?: string;
 }
 
 export interface ScenarioRunChild {

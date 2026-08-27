@@ -406,6 +406,7 @@ async def test_run_step_terminal_publishes_completion():
         "plan_definition_id": "pd-referral-assessment",
         "run_id": "run-003",
         "patient_id": "p-003",
+        "context": {"ubrn": "000481914514"},
     }
 
     with (
@@ -425,6 +426,7 @@ async def test_run_step_terminal_publishes_completion():
                 claim_stage=MagicMock(return_value=StageClaimResult(outcome="claimed")),
                 complete_stage=MagicMock(),
                 mark_next_published=MagicMock(),
+                write_completion_event=MagicMock(),
             ),
         ),
         patch(
@@ -441,7 +443,12 @@ async def test_run_step_terminal_publishes_completion():
     assert result.status == "completed"
     mock_bus.send.assert_called_once()
     sent_body = mock_bus.send.call_args[0][1].body
-    assert sent_body["event_type"] == "referral_assessment_completed"
+    assert sent_body == {
+        "event_type": "referral_assessment_completed",
+        "run_id": "run-003",
+        "ubrn": "000481914514",
+        "assessment_id": "assess-1",
+    }
 
 
 @pytest.mark.asyncio

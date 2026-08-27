@@ -26,6 +26,24 @@ FAKE_CONTEXT = {
     "source": "ai_summarisation_scenario",
     "case_id": "upper_gi_form_001",
     "parent_run_id": "parent-run-123",
+    "ubrn": "000481914514",
+}
+
+_CLINICAL_SBAR_OUTPUT = {
+    "sbar_assessment_id": "assess-xyz",
+    "sbar_sections": {
+        "situation": "Patient has abdominal pain.",
+        "background": "Previous GP visit noted.",
+        "assessment": "Possible upper GI referral.",
+        "recommendation": "Refer under 2WW.",
+    },
+    "sbar_report": {
+        "situation": "Patient has abdominal pain.",
+        "background": "Previous GP visit noted.",
+        "assessment": "Possible upper GI referral.",
+        "recommendation": "Refer under 2WW.",
+        "assessment_id": "assess-xyz",
+    },
 }
 
 
@@ -54,7 +72,7 @@ async def test_terminal_sbar_publishes_completion_to_output_queue() -> None:
     mock_bus = AsyncMock()
     mock_bus.send = AsyncMock()
     mock_graph = MagicMock()
-    mock_graph.invoke = MagicMock(return_value={"sbar_assessment_id": "assess-xyz"})
+    mock_graph.invoke = MagicMock(return_value=dict(_CLINICAL_SBAR_OUTPUT))
 
     body = {
         "event_type": DURABLE_STEP_EVENT,
@@ -83,6 +101,7 @@ async def test_terminal_sbar_publishes_completion_to_output_queue() -> None:
         complete_stage=MagicMock(return_value=StageCompleteResult(outcome="completed")),
         mark_next_published=MagicMock(),
         renew_stage_lease=MagicMock(return_value=True),
+        write_completion_event=MagicMock(),
     )
 
     with (
@@ -113,9 +132,16 @@ async def test_terminal_sbar_publishes_completion_to_output_queue() -> None:
     queue, msg = mock_bus.send.call_args.args
     assert queue == "referral-assessments-output"
     assert isinstance(msg, Message)
-    assert msg.body["event_type"] == "referral_assessment_completed"
-    assert msg.body["sbar_assessment_id"] == "assess-xyz"
-    assert msg.body["context"]["case_id"] == "upper_gi_form_001"
+    assert msg.body == {
+        "event_type": "referral_assessment_completed",
+        "run_id": "run-pubsub-1",
+        "ubrn": "000481914514",
+        "assessment_id": "assess-xyz",
+    }
+    store.write_completion_event.assert_called_once_with(
+        "run-pubsub-1",
+        msg.body,
+    )
 
 
 @pytest.mark.asyncio

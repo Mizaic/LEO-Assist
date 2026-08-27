@@ -370,12 +370,14 @@ queue:
 {
   "event_type": "referral_assessment_completed",
   "run_id": "a1b2c3d4-...",
-  "patient_id": "patient-9990000001",
-  "encounter_id": "enc-20260605-001",
-  "assessment_id": "abcdef1234567890",
-  "status": "completed"
+  "ubrn": "000481914514",
+  "assessment_id": "abcdef1234567890"
 }
 ```
+
+The message carries only identifiers. It does not include patient ids,
+encounter ids, clinical narrative, or SBAR content. Fetch the SBAR
+through the REST API or widget using `assessment_id`.
 
 Subscribe to this queue to know when a run is done without polling.
 
