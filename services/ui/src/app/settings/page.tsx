@@ -24,6 +24,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import DensityMediumOutlinedIcon from "@mui/icons-material/DensityMediumOutlined";
 import AreaIntro from "@/components/AreaIntro";
 
@@ -76,6 +77,14 @@ const SETTINGS_CARDS: SettingsCard[] = [
       "View and edit the minimum dataset rules for each service. Rules are written here when you save a form schema and are read by the pipeline quality check at runtime.",
     icon: <ChecklistOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
     path: "/settings/completeness-domains",
+  },
+  {
+    id: "form-schemas",
+    title: "Form schemas",
+    description:
+      "Edit taught referral forms (sections, checkboxes, blood-test tables) without waiting for a pipeline pause.",
+    icon: <DescriptionOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
+    path: "/settings/form-schemas",
   },
   {
     id: "preferences",
