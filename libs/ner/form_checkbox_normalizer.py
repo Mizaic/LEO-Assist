@@ -239,8 +239,14 @@ def normalize_form_checkbox_text(text: str) -> str:
 
     schema = _get_schema_for_text(text)
     if schema is not None:
-        from libs.pipeline.form_schema_normalizer import apply_schema_to_text
+        from libs.pipeline.form_schema_normalizer import (
+            apply_schema_to_text,
+            normalise_with_schema,
+        )
 
+        if schema.chunk_section_map and "\n\n" in text:
+            chunks = text.split("\n\n")
+            return normalise_with_schema(schema, chunks, schema.chunk_section_map)
         return apply_schema_to_text(text, schema)
 
     if not _needs_normalisation(text):

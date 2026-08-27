@@ -1,0 +1,128 @@
+"""Runtime wiring for taught FormSchema items in the extraction pipeline.
+
+Atlas trace: DI-5C9CA57B, DI-0C766F85
+"""
+
+from __future__ import annotations
+
+import textwrap
+
+import pytest
+
+from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
+from libs.pipeline.document_quality import form_fingerprint
+from libs.pipeline.form_schema_normalizer import (
+    FormSchema,
+    FormSchemaItem,
+    FormSection,
+    apply_schema_to_text,
+)
+from libs.pipeline.form_schema_store import _SCHEMA_CACHE, reset_schema_cache
+from libs.pipeline.post_processing import run_post_processing
+
+FBC_ITEM = FormSchemaItem(
+    pattern="FBC",
+    entity_text="Full blood count",
+    semantic_tag="procedure",
+    assertion="present",
+    procedure_snomed="26604007",
+    procedure_display="Full blood count",
+    analytes=[
+        {"label": "Hb", "snomed_code": "1022280009", "display": "Haemoglobin"},
+        {"label": "WCC", "snomed_code": "413892002", "display": "White cell count"},
+    ],
+    value_placeholder="{{NUMERIC_VALUE}} {{UNIT}}",
+)
+
+ORDERED_TESTS_TEXT = textwrap.dedent(
+    """\
+    Section D: Investigations performed
+    MANDATORY the following tests must be undertaken
+    FBC | 124 g/L | 12.5 |
+    BLOODS DONE TODAY
+    """
+)
+
+ORDERED_TESTS_SCHEMA = FormSchema(
+    schema_id="test-ordered-tests",
+    fingerprint=form_fingerprint(ORDERED_TESTS_TEXT),
+    form_name="Ordered Tests Form",
+    created_by="test",
+    sections=[
+        FormSection(
+            section_id="D",
+            section_type="ordered_tests",
+            label="Section D",
+            start_pattern=r"(?i)section\s+d:",
+            items=[FBC_ITEM],
+        ),
+    ],
+    chunk_section_map=[{"chunk_idx": 0, "section_id": "D"}],
+)
+
+
+def _cache_schema(schema: FormSchema) -> None:
+    _SCHEMA_CACHE[schema.fingerprint] = schema
+
+
+@pytest.fixture(autouse=True)
+def _clear_schema_cache() -> None:
+    reset_schema_cache()
+    yield
+    reset_schema_cache()
+
+
+def test_known_schema_bypass_in_extraction_merge() -> None:
+    """merge_results sets score 1.0 when schema is cached."""
+    from libs.pipeline_graph.subgraphs.extraction import merge_results
+
+    _cache_schema(ORDERED_TESTS_SCHEMA)
+    out = merge_results(
+        {
+            "encounter_text": ORDERED_TESTS_TEXT,
+            "entities": [],
+            "few_shot_max_similarity": 0.05,
+        }
+    )
+    quality = out["document_quality"]
+    assert quality["document_quality_score"] == 1.0
+    assert quality["quality_reasons"] == []
+
+
+def test_ordered_tests_with_analytes_not_fully_suppressed() -> None:
+    """Normalised text contains Hb placeholder, not full-section suppression."""
+    result = apply_schema_to_text(ORDERED_TESTS_TEXT, ORDERED_TESTS_SCHEMA)
+    assert "Hb {{NUMERIC_VALUE}} {{UNIT}}" in result
+    assert "{{NUMERIC_VALUE}}" in result
+    # FBC row with taught analytes must stay extractable
+    fbc_lines = [ln for ln in result.splitlines() if "FBC" in ln]
+    assert fbc_lines, "Expected an FBC row in normalised output"
+    assert all(NON_EXTRACTABLE_MARKER not in ln for ln in fbc_lines)
+    # Admin boilerplate in the same section stays suppressed
+    assert any(NON_EXTRACTABLE_MARKER in ln for ln in result.splitlines())
+
+
+def test_post_processing_applies_taught_analyte_codes() -> None:
+    """Entities get taught snomed_code after run_post_processing."""
+    _cache_schema(ORDERED_TESTS_SCHEMA)
+    entities = [
+        {
+            "text": "Hb",
+            "label": "Hb",
+            "snomed_code": "INFERRED-999",
+            "start": 0,
+            "end": 2,
+        },
+        {
+            "text": "WCC",
+            "label": "WCC",
+            "snomed_code": "INFERRED-888",
+            "start": 10,
+            "end": 13,
+        },
+    ]
+    result = run_post_processing(ORDERED_TESTS_TEXT, entities, enable_disorder_gate=False)
+    hb = next(e for e in result if e.get("label") == "Hb")
+    wcc = next(e for e in result if e.get("label") == "WCC")
+    assert hb["snomed_code"] == "1022280009"
+    assert wcc["snomed_code"] == "413892002"

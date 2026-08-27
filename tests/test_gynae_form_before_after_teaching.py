@@ -309,6 +309,48 @@ def test_after_teaching_section_c_narrative_unchanged() -> None:
     assert "BMI: 20.2" in result
 
 
+def test_after_teaching_section_d_with_analytes_expands_placeholders() -> None:
+    """After teaching analytes: blood rows expand with value placeholders."""
+    reset_schema_cache()
+    schema = FormSchema(
+        schema_id="test-gynae-blood",
+        fingerprint=form_fingerprint(GYNAE_2WW_LETTER),
+        form_name="Gynaecology 2WW Referral",
+        created_by="test",
+        sections=[
+            *GYNAE_SCHEMA.sections[:-3],
+            FormSection(
+                section_id="D",
+                section_type="ordered_tests",
+                label="Section D: Investigations performed",
+                start_pattern=r"(?i)section\s+d:",
+                items=[
+                    FormSchemaItem(
+                        pattern="FBC",
+                        entity_text="Full blood count",
+                        semantic_tag="procedure",
+                        assertion="present",
+                        analytes=[
+                            {
+                                "label": "Hb",
+                                "snomed_code": "1022280009",
+                                "display": "Haemoglobin",
+                            }
+                        ],
+                        value_placeholder="{{NUMERIC_VALUE}} {{UNIT}}",
+                    )
+                ],
+            ),
+            *GYNAE_SCHEMA.sections[-2:],
+        ],
+    )
+    result = apply_schema_to_text(GYNAE_2WW_LETTER, schema)
+    assert "Hb {{NUMERIC_VALUE}} {{UNIT}}" in result
+    fbc_lines = [ln for ln in result.splitlines() if "FBC" in ln]
+    assert fbc_lines
+    assert all(NON_EXTRACTABLE_MARKER not in ln for ln in fbc_lines)
+
+
 def test_after_teaching_section_d_tests_are_non_extractable() -> None:
     """After teaching: Section D test names are non-extractable (ordered, no results)."""
     reset_schema_cache()

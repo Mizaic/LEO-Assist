@@ -165,10 +165,54 @@ def _process_scale_line(line: str, section: FormSection) -> list[str]:
     return [_mark(line)]
 
 
+def _item_has_taught_analytes(item: FormSchemaItem) -> bool:
+    return any(str(a.get("snomed_code") or "").strip() for a in item.analytes)
+
+
+def _section_has_taught_analytes(section: FormSection) -> bool:
+    return any(_item_has_taught_analytes(item) for item in section.items)
+
+
+def _match_ordered_test_item(line: str, items: list[FormSchemaItem]) -> FormSchemaItem | None:
+    for item in items:
+        pattern = item.pattern
+        if not pattern:
+            continue
+        try:
+            if re.search(pattern, line, re.IGNORECASE):
+                return item
+        except re.error:
+            if pattern.lower() in line.lower():
+                return item
+    return None
+
+
+def _process_ordered_tests_lines(lines: list[str], section: FormSection) -> list[str]:
+    """Expand taught blood rows; suppress admin boilerplate when no analytes."""
+    if not _section_has_taught_analytes(section):
+        return [_mark(ln) if ln.strip() else ln for ln in lines]
+
+    from libs.pipeline.form_schema_template import expand_ordered_tests_row
+
+    out: list[str] = []
+    for ln in lines:
+        if not ln.strip():
+            out.append(ln)
+            continue
+        item = _match_ordered_test_item(ln, section.items)
+        if item is not None and _item_has_taught_analytes(item):
+            out.append(expand_ordered_tests_row(item))
+            continue
+        out.append(_mark(ln))
+    return out
+
+
 def _process_section_lines(lines: list[str], section: FormSection) -> list[str]:
     """Apply section-type rules to lines that belong to this section."""
     stype = section.section_type
-    if stype in ("admin", "template_noise", "ordered_tests"):
+    if stype == "ordered_tests":
+        return _process_ordered_tests_lines(lines, section)
+    if stype in ("admin", "template_noise"):
         return [_mark(ln) if ln.strip() else ln for ln in lines]
     if stype == "free_text":
         return list(lines)

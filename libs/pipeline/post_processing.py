@@ -1789,6 +1789,21 @@ def run_post_processing_with_trace(
         lambda current: (normalise_entity_types(current), current)[1],
     )
 
+    # Layer 6b: Taught analyte SNOMED override (FormSchema ordered_tests)
+    def _apply_taught_analyte_codes(current: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        from libs.pipeline.document_quality import form_fingerprint
+        from libs.pipeline.form_schema_normalizer import apply_schema_analyte_codes
+        from libs.pipeline.form_schema_store import get_cached_schema
+
+        schema = get_cached_schema(form_fingerprint(encounter_text))
+        if schema is None or not schema.chunk_section_map:
+            return current
+        return apply_schema_analyte_codes(
+            current, schema, schema.chunk_section_map
+        )
+
+    _run_layer("layer_6b", "Taught Analyte SNOMED Override", _apply_taught_analyte_codes)
+
     # Layer 7: ConText Assertion Detection
     _run_layer(
         "layer_7",

@@ -872,13 +872,19 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
     warnings = list(state.get("warnings") or [])
     if not entities and _EMPTY_EXTRACTION_WARNING not in warnings:
         warnings.append(_EMPTY_EXTRACTION_WARNING)
-    from libs.pipeline.document_quality import score_document_quality
+    from libs.pipeline.document_quality import form_fingerprint, score_document_quality
     from libs.pipeline.form_fingerprint_registry import known_fingerprints
+    from libs.pipeline.form_schema_store import get_cached_schema
+
+    encounter_text = state.get("encounter_text") or ""
+    fingerprint = form_fingerprint(encounter_text)
+    known_schema = get_cached_schema(fingerprint) is not None
 
     quality = score_document_quality(
-        state.get("encounter_text") or "",
+        encounter_text,
         few_shot_max_similarity=state.get("few_shot_max_similarity"),
         known_fingerprints=known_fingerprints(),
+        known_schema=known_schema,
     )
     return {
         "entities": entities,
