@@ -170,7 +170,7 @@ def test_review_detail_returns_letter_and_draft() -> None:
 
 
 def test_review_detail_includes_org_and_service_from_pipeline_state() -> None:
-    """Detail must expose organization_id and service_id for pre-populating teach form."""
+    """Detail must expose org/service ids and names for pre-populating teach form."""
     task = persist_extraction_review_task(_req())
     client = MagicMock()
     client.run.return_value = [task]
@@ -178,59 +178,148 @@ def test_review_detail_includes_org_and_service_from_pipeline_state() -> None:
     store.load_accumulated_state.return_value = {
         "encounter_text": "Cervix [X]",
         "healthcare_service_org_id": "org-spoa-1",
+        "healthcare_service_org_name": "Sherwood Forest Hospitals",
         "healthcare_service_id": "svc-gynaecology",
+        "healthcare_service_name": "2WW Gynaecology",
     }
     detail = load_extraction_review_detail(client, task["task_id"], store=store)
     assert detail["organization_id"] == "org-spoa-1"
+    assert detail["organization_name"] == "Sherwood Forest Hospitals"
     assert detail["service_id"] == "svc-gynaecology"
+    assert detail["service_name"] == "2WW Gynaecology"
 
 
 def test_review_detail_org_and_service_default_to_empty_when_absent() -> None:
     """If both state and graph have no service scope, defaults are empty strings."""
     task = persist_extraction_review_task(_req())
     client = MagicMock()
-    client.run.return_value = [task]
+
+    def _run(query, **_kwargs):
+        if "PipelineRun" in query and "case_id" in query:
+            return [{"case_id": ""}]
+        return [task]
+
+    client.run.side_effect = _run
     store = MagicMock()
     store.load_accumulated_state.return_value = {"encounter_text": "Some letter"}
     detail = load_extraction_review_detail(client, task["task_id"], store=store)
     assert detail["organization_id"] == ""
+    assert detail["organization_name"] == ""
     assert detail["service_id"] == ""
+    assert detail["service_name"] == ""
 
 
 def test_review_detail_falls_back_to_graph_when_state_lacks_org_service() -> None:
-    """When accumulated state has no service scope, the detail falls back to the
-    PipelineRun->ReferralRequest graph path to populate org and service IDs."""
-    from libs.cypher.extraction_review_queries import GET_RUN_ORG_SERVICE_IDS
+    """When accumulated state has no service scope, resolve via ReferralRequest."""
+    from libs.cypher.extraction_review_queries import GET_RUN_CASE_ID
+    from libs.clinical_scoping.healthcare_service import HealthcareServiceScope
 
     task = persist_extraction_review_task(_req())
     task_id = task["task_id"]
 
-    graph_row = {"organization_id": "org-graph-1", "service_id": "svc-graph-gynaecology"}
+    def _run(query, **_kwargs):
+        if query == GET_RUN_CASE_ID:
+            return [{"case_id": "000481914514"}]
+        return [task]
+
+    client = MagicMock()
+    client.run.side_effect = _run
+    store = MagicMock()
+    store.load_accumulated_state.return_value = {
+        "encounter_text": "Referral letter",
+        "ubrn": "000481914514",
+    }
+
+    scope = HealthcareServiceScope(
+        id="svc-graph-gynaecology",
+        name="2WW Gynaecology",
+        specialty="2WW",
+        guideline_ids=["NG12"],
+        organization_id="org-graph-1",
+        organization_name="Sherwood Forest Hospitals",
+    )
+
+    from unittest.mock import patch
+
+    with patch(
+        "libs.pipeline.extraction_review_store.resolve_healthcare_service",
+        return_value=scope,
+    ) as resolve_mock:
+        detail = load_extraction_review_detail(client, task_id, store=store)
+
+    resolve_mock.assert_called_once_with(
+        client,
+        source_node_type="ReferralRequest",
+        source_node_id="000481914514",
+    )
+    assert detail["organization_id"] == "org-graph-1"
+    assert detail["organization_name"] == "Sherwood Forest Hospitals"
+    assert detail["service_id"] == "svc-graph-gynaecology"
+    assert detail["service_name"] == "2WW Gynaecology"
+
+
+def test_review_detail_graph_fallback_prefers_patient_ubrn_match() -> None:
+    from libs.cypher.extraction_review_queries import (
+        GET_REFERRAL_BY_PATIENT_UBRN,
+        GET_REVIEW_IDENTIFIERS,
+        GET_RUN_CASE_ID,
+    )
+    from libs.clinical_scoping.healthcare_service import HealthcareServiceScope
+
+    task = persist_extraction_review_task(_req(patient_id="p-718"))
+    task_id = task["task_id"]
+    calls: list[str] = []
 
     def _run(query, **_kwargs):
-        if query == GET_RUN_ORG_SERVICE_IDS:
-            return [graph_row]
+        calls.append(query)
+        if query == GET_RUN_CASE_ID:
+            return [{"case_id": ""}]
+        if query == GET_REVIEW_IDENTIFIERS:
+            return [{"nhs_number": "", "ubrn": "000481914514"}]
+        if query == GET_REFERRAL_BY_PATIENT_UBRN:
+            return [{"referral_id": "rr-by-ubrn"}]
         return [task]
 
     client = MagicMock()
     client.run.side_effect = _run
     store = MagicMock()
     store.load_accumulated_state.return_value = {"encounter_text": "Referral letter"}
-    detail = load_extraction_review_detail(client, task_id, store=store)
-    assert detail["organization_id"] == "org-graph-1"
-    assert detail["service_id"] == "svc-graph-gynaecology"
+    scope = HealthcareServiceScope(
+        id="6711368",
+        name="Fast track cancer referral",
+        specialty="2WW",
+        guideline_ids=[],
+        organization_id="M0L1I",
+        organization_name="Sherwood Forest Hospitals",
+    )
+
+    from unittest.mock import patch
+
+    with patch(
+        "libs.pipeline.extraction_review_store.resolve_healthcare_service",
+        return_value=scope,
+    ) as resolve_mock:
+        detail = load_extraction_review_detail(client, task_id, store=store)
+
+    assert GET_REFERRAL_BY_PATIENT_UBRN in calls
+    resolve_mock.assert_called_once_with(
+        client,
+        source_node_type="ReferralRequest",
+        source_node_id="rr-by-ubrn",
+    )
+    assert detail["organization_name"] == "Sherwood Forest Hospitals"
 
 
 def test_review_detail_graph_fallback_not_called_when_state_has_both_ids() -> None:
     """When state already has both IDs, the graph fallback query is not called."""
-    from libs.cypher.extraction_review_queries import GET_RUN_ORG_SERVICE_IDS
+    from libs.cypher.extraction_review_queries import GET_RUN_CASE_ID
 
     task = persist_extraction_review_task(_req())
     task_id = task["task_id"]
     fallback_calls: list[str] = []
 
     def _run(query, **_kwargs):
-        if query == GET_RUN_ORG_SERVICE_IDS:
+        if query == GET_RUN_CASE_ID:
             fallback_calls.append("called")
         return [task]
 
@@ -240,11 +329,15 @@ def test_review_detail_graph_fallback_not_called_when_state_has_both_ids() -> No
     store.load_accumulated_state.return_value = {
         "encounter_text": "Letter",
         "healthcare_service_org_id": "org-from-state",
+        "healthcare_service_org_name": "State Org",
         "healthcare_service_id": "svc-from-state",
+        "healthcare_service_name": "State Service",
     }
     detail = load_extraction_review_detail(client, task_id, store=store)
     assert detail["organization_id"] == "org-from-state"
+    assert detail["organization_name"] == "State Org"
     assert detail["service_id"] == "svc-from-state"
+    assert detail["service_name"] == "State Service"
     assert fallback_calls == [], "graph fallback must not be called when state is complete"
 
 

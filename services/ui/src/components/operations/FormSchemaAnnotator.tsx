@@ -41,6 +41,8 @@ interface Props {
   onPendingConsumed?: () => void;
   initialOrganizationId?: string;
   initialServiceId?: string;
+  initialOrganizationName?: string;
+  initialServiceName?: string;
 }
 
 export default function FormSchemaAnnotator({
@@ -55,6 +57,8 @@ export default function FormSchemaAnnotator({
   onPendingConsumed,
   initialOrganizationId = "",
   initialServiceId = "",
+  initialOrganizationName = "",
+  initialServiceName = "",
 }: Props) {
   const teach = useFormSchemaTeach(fingerprint, sourceText, formName, onSaved);
   const [organizationId, setOrganizationId] = useState(initialOrganizationId);
@@ -166,6 +170,8 @@ export default function FormSchemaAnnotator({
         name={teach.name}
         organizationId={organizationId}
         serviceId={serviceId}
+        organizationName={initialOrganizationName}
+        serviceName={initialServiceName}
         locked={scopeLocked}
         onName={(value) => {
           teach.setName(value);
@@ -264,6 +270,8 @@ function TeachHeader({
   name,
   organizationId,
   serviceId,
+  organizationName,
+  serviceName,
   locked,
   onName,
   onOrganization,
@@ -272,6 +280,8 @@ function TeachHeader({
   name: string;
   organizationId: string;
   serviceId: string;
+  organizationName?: string;
+  serviceName?: string;
   locked?: boolean;
   onName: (value: string) => void;
   onOrganization: (id: string) => void;
@@ -299,6 +309,8 @@ function TeachHeader({
       <FormSchemaScopeFields
         organizationId={organizationId}
         serviceId={serviceId}
+        organizationName={organizationName}
+        serviceName={serviceName}
         locked={locked}
         onOrganization={onOrganization}
         onService={onService}

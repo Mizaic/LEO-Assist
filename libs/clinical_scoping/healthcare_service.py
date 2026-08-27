@@ -33,7 +33,8 @@ RETURN svc.id AS id,
        svc.completeness_domain AS completeness_domain,
        svc.completeness_subdomain AS completeness_subdomain,
        svc.spoa_id AS spoa_id,
-       org.id AS organization_id
+       org.id AS organization_id,
+       coalesce(org.name, org.short_name, org.id, '') AS organization_name
 LIMIT 1
 """
 
@@ -50,6 +51,7 @@ class HealthcareServiceScope:
     completeness_subdomain: str | None = None
     spoa_id: str | None = None
     organization_id: str | None = None
+    organization_name: str | None = None
 
 
 def _normalise_guideline_ids(raw: Any) -> list[str]:
@@ -94,6 +96,7 @@ def _row_to_scope(row: dict[str, Any]) -> HealthcareServiceScope | None:
         ),
         spoa_id=str(row.get("spoa_id") or "").strip() or None,
         organization_id=str(row.get("organization_id") or "").strip() or None,
+        organization_name=str(row.get("organization_name") or "").strip() or None,
     )
 
 
@@ -145,6 +148,8 @@ def apply_healthcare_service_scope(
     state["healthcare_service_missing"] = False
     if service.organization_id:
         state["healthcare_service_org_id"] = service.organization_id
+    if service.organization_name:
+        state["healthcare_service_org_name"] = service.organization_name
 
     primary_ids = list(override_ids or service.guideline_ids)
     state["primary_guideline_ids"] = primary_ids

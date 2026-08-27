@@ -22,6 +22,8 @@ type NamedId = { id: string; name: string };
 interface Props {
   organizationId: string;
   serviceId: string;
+  organizationName?: string;
+  serviceName?: string;
   onOrganization: (id: string) => void;
   onService: (id: string) => void;
   locked?: boolean;
@@ -30,6 +32,8 @@ interface Props {
 export function FormSchemaScopeFields({
   organizationId,
   serviceId,
+  organizationName = "",
+  serviceName = "",
   onOrganization,
   onService,
   locked = false,
@@ -92,8 +96,11 @@ export function FormSchemaScopeFields({
   if (locked) {
     return (
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
-        <LockedScopePicker label="Organisation" value={organizationId} />
-        <LockedScopePicker label="Service" value={serviceId} />
+        <LockedScopePicker
+          label="Organisation"
+          value={organizationName || organizationId}
+        />
+        <LockedScopePicker label="Service" value={serviceName || serviceId} />
       </Stack>
     );
   }

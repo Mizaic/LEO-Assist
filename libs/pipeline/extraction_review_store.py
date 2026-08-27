@@ -17,11 +17,14 @@ from libs.cypher.extraction_review_queries import (
     CANCEL_PAUSED_EXTRACTION_STAGE,
     CREATE_EXTRACTION_REVIEW_TASK,
     GET_EXTRACTION_REVIEW_TASK,
+    GET_REFERRAL_BY_PATIENT,
+    GET_REFERRAL_BY_PATIENT_UBRN,
     GET_REVIEW_IDENTIFIERS,
-    GET_RUN_ORG_SERVICE_IDS,
+    GET_RUN_CASE_ID,
     RESOLVE_EXTRACTION_REVIEW_TASK,
     UNLOCK_PAUSED_EXTRACTION_STAGE,
 )
+from libs.clinical_scoping.healthcare_service import resolve_healthcare_service
 from libs.pipeline.extraction_review_ids import (
     extract_review_identifiers,
     format_nhs_number,
@@ -219,16 +222,27 @@ def load_extraction_review_detail(
         graph_ubrn=graph_ubrn,
     )
     run_id = task.get("run_id") or ""
+    patient_id = str(task.get("patient_id") or "")
     organization_id = str((state or {}).get("healthcare_service_org_id") or "")
     service_id = str((state or {}).get("healthcare_service_id") or "")
+    organization_name = str((state or {}).get("healthcare_service_org_name") or "")
+    service_name = str((state or {}).get("healthcare_service_name") or "")
     if not organization_id or not service_id:
-        org_svc = _load_org_service_from_graph(client, run_id)
+        org_svc = _load_org_service_from_graph(
+            client,
+            run_id=run_id,
+            patient_id=patient_id,
+            referral_id=str((state or {}).get("referral_id") or (state or {}).get("case_id") or ""),
+            ubrn=ids.ubrn,
+        )
         organization_id = organization_id or org_svc.get("organization_id") or ""
         service_id = service_id or org_svc.get("service_id") or ""
+        organization_name = organization_name or org_svc.get("organization_name") or ""
+        service_name = service_name or org_svc.get("service_name") or ""
     return {
         "task_id": task.get("task_id") or task_id,
         "run_id": run_id,
-        "patient_id": task.get("patient_id") or "",
+        "patient_id": patient_id,
         "status": task.get("status") or "",
         "reason": task.get("reason") or "",
         "draft_entities": json.loads(draft_raw) if draft_raw else [],
@@ -237,23 +251,79 @@ def load_extraction_review_detail(
         "nhs_number": format_nhs_number(ids.nhs_number),
         "ubrn": format_ubrn(ids.ubrn),
         "organization_id": str(organization_id),
+        "organization_name": str(organization_name),
         "service_id": str(service_id),
+        "service_name": str(service_name),
     }
 
 
-def _load_org_service_from_graph(client: Any, run_id: str) -> dict[str, str]:
-    """Fetch org and service IDs via PipelineRun -> ReferralRequest graph path.
+def _load_org_service_from_graph(
+    client: Any,
+    *,
+    run_id: str,
+    patient_id: str = "",
+    referral_id: str = "",
+    ubrn: str = "",
+) -> dict[str, str]:
+    """Resolve org and service via ReferralRequest -> Service graph path.
 
-    Used as a fallback when accumulated pipeline state lacks these fields.
+    Used when accumulated pipeline state lacks healthcare_service_* fields.
     """
-    if not run_id:
+    resolved_referral_id = _resolve_referral_id_for_run(
+        client,
+        run_id=run_id,
+        patient_id=patient_id,
+        referral_id=referral_id,
+        ubrn=ubrn,
+    )
+    if not resolved_referral_id:
         return {}
-    rows = client.run(GET_RUN_ORG_SERVICE_IDS, run_id=run_id)
-    row = (rows or [{}])[0] or {}
+    service = resolve_healthcare_service(
+        client,
+        source_node_type="ReferralRequest",
+        source_node_id=resolved_referral_id,
+    )
+    if service is None:
+        return {}
     return {
-        "organization_id": str(row.get("organization_id") or ""),
-        "service_id": str(row.get("service_id") or ""),
+        "organization_id": service.organization_id or "",
+        "organization_name": service.organization_name or "",
+        "service_id": service.id,
+        "service_name": service.name,
     }
+
+
+def _resolve_referral_id_for_run(
+    client: Any,
+    *,
+    run_id: str,
+    patient_id: str,
+    referral_id: str,
+    ubrn: str,
+) -> str:
+    explicit = str(referral_id or "").strip()
+    if explicit:
+        return explicit
+    if run_id:
+        rows = client.run(GET_RUN_CASE_ID, run_id=run_id)
+        case_id = str((rows or [{}])[0].get("case_id") or "").strip()
+        if case_id:
+            return case_id
+    patient = str(patient_id or "").strip()
+    if not patient:
+        return ""
+    ubrn_text = str(ubrn or "").strip()
+    if ubrn_text:
+        rows = client.run(
+            GET_REFERRAL_BY_PATIENT_UBRN,
+            patient_id=patient,
+            ubrn=ubrn_text,
+        )
+        matched = str((rows or [{}])[0].get("referral_id") or "").strip()
+        if matched:
+            return matched
+    rows = client.run(GET_REFERRAL_BY_PATIENT, patient_id=patient)
+    return str((rows or [{}])[0].get("referral_id") or "").strip()
 
 
 def _load_graph_identifiers(client: Any, patient_id: str) -> tuple[str, str]:

@@ -48,7 +48,9 @@ interface ReviewData {
   nhsNumber: string;
   ubrn: string;
   organization_id: string;
+  organization_name: string;
   service_id: string;
+  service_name: string;
 }
 
 interface Props {
@@ -106,7 +108,9 @@ export default function ExtractionQualityReviewDialog({
           nhsNumber: String(raw.nhs_number ?? ""),
           ubrn: String(raw.ubrn ?? ""),
           organization_id: String(raw.organization_id ?? ""),
+          organization_name: String(raw.organization_name ?? ""),
           service_id: String(raw.service_id ?? ""),
+          service_name: String(raw.service_name ?? ""),
         };
         setData(loaded);
         setEntities(loaded.entities);
@@ -251,6 +255,8 @@ export default function ExtractionQualityReviewDialog({
             onPendingConsumed={() => setPendingSelection(null)}
             initialOrganizationId={data?.organization_id ?? ""}
             initialServiceId={data?.service_id ?? ""}
+            initialOrganizationName={data?.organization_name ?? ""}
+            initialServiceName={data?.service_name ?? ""}
           >
             <ReviewFactsPane
               entities={entities}
@@ -406,6 +412,8 @@ function ReviewRightPane({
   onPendingConsumed,
   initialOrganizationId,
   initialServiceId,
+  initialOrganizationName,
+  initialServiceName,
   children,
 }: {
   tab: "facts" | "teach";
@@ -420,6 +428,8 @@ function ReviewRightPane({
   onPendingConsumed: () => void;
   initialOrganizationId?: string;
   initialServiceId?: string;
+  initialOrganizationName?: string;
+  initialServiceName?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -457,6 +467,8 @@ function ReviewRightPane({
             onPendingConsumed={onPendingConsumed}
             initialOrganizationId={initialOrganizationId}
             initialServiceId={initialServiceId}
+            initialOrganizationName={initialOrganizationName}
+            initialServiceName={initialServiceName}
           />
         </Box>
       )}

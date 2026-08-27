@@ -92,11 +92,26 @@ RETURN coalesce(p.nhsNumber, p.nhs_number, '') AS nhs_number,
        coalesce(rr.ubrn, '') AS ubrn
 """
 
-GET_RUN_ORG_SERVICE_IDS = """
-MATCH (run:PipelineRun {id: $run_id})-[:FOR]->(rr:ReferralRequest)
-OPTIONAL MATCH (rr)-[:REQUESTED_BY]->(org:Organization)
-OPTIONAL MATCH (rr)-[:FOR_SERVICE]->(svc)
-RETURN coalesce(org.id, '') AS organization_id,
-       coalesce(svc.id, '') AS service_id
+GET_RUN_CASE_ID = """
+MATCH (run:PipelineRun {id: $run_id})
+RETURN coalesce(run.case_id, '') AS case_id
+LIMIT 1
+"""
+
+GET_REFERRAL_BY_PATIENT_UBRN = """
+MATCH (p:Patient)
+WHERE toString(p.id) = $patient_id
+MATCH (p)<-[:FOR_PATIENT]-(rr:ReferralRequest)
+WHERE replace(coalesce(rr.ubrn, ''), ' ', '') = replace($ubrn, ' ', '')
+RETURN rr.id AS referral_id
+LIMIT 1
+"""
+
+GET_REFERRAL_BY_PATIENT = """
+MATCH (p:Patient)
+WHERE toString(p.id) = $patient_id
+MATCH (p)<-[:FOR_PATIENT]-(rr:ReferralRequest)
+RETURN rr.id AS referral_id
+ORDER BY coalesce(rr.createdAt, rr.eReferralPathwayStart, datetime({epochMillis: 0})) DESC
 LIMIT 1
 """

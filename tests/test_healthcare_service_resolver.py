@@ -24,6 +24,7 @@ def test_resolve_healthcare_service_returns_scope() -> None:
             "completeness_subdomain": None,
             "spoa_id": None,
             "organization_id": "M0L1I",
+            "organization_name": "Sherwood Forest Hospitals",
         }
     ]
     scope = resolve_healthcare_service(
@@ -35,6 +36,7 @@ def test_resolve_healthcare_service_returns_scope() -> None:
     assert scope.id == "6711368"
     assert scope.guideline_ids == ["NG12", "val-gardena-default"]
     assert scope.organization_id == "M0L1I"
+    assert scope.organization_name == "Sherwood Forest Hospitals"
 
 
 def test_resolve_healthcare_service_merges_property_and_graph_guidelines() -> None:
@@ -80,10 +82,12 @@ def test_apply_healthcare_service_scope_sets_primary_guidelines() -> None:
         specialty="2WW",
         guideline_ids=["NG12"],
         organization_id="M0L1I",
+        organization_name="Sherwood Forest Hospitals",
     )
     apply_healthcare_service_scope(state, service)
     assert state["healthcare_service_id"] == "6711368"
     assert state["healthcare_service_org_id"] == "M0L1I"
+    assert state["healthcare_service_org_name"] == "Sherwood Forest Hospitals"
     assert state["primary_guideline_ids"] == ["NG12"]
     assert state["guideline_scope_id"] == "NG12"
     assert state["healthcare_service_missing"] is False

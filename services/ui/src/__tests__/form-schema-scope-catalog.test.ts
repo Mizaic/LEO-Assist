@@ -70,6 +70,8 @@ describe("Teach form locked pickers -- pre-population from extraction context", 
   it("FormSchemaAnnotator accepts initialOrganizationId and initialServiceId props", () => {
     expect(ANNOTATOR_SRC).toMatch(/initialOrganizationId/);
     expect(ANNOTATOR_SRC).toMatch(/initialServiceId/);
+    expect(ANNOTATOR_SRC).toMatch(/initialOrganizationName/);
+    expect(ANNOTATOR_SRC).toMatch(/initialServiceName/);
   });
 
   it("FormSchemaAnnotator passes locked flag to FormSchemaScopeFields when initial values set", () => {
@@ -83,16 +85,21 @@ describe("Teach form locked pickers -- pre-population from extraction context", 
   it("FormSchemaScopeFields renders Chip elements in locked mode", () => {
     expect(SCOPE_SRC).toMatch(/Chip/);
     expect(SCOPE_SRC).toMatch(/locked/);
+    expect(SCOPE_SRC).toMatch(/organizationName|serviceName/);
   });
 
   it("ExtractionQualityReviewDialog reads organization_id and service_id from API response", () => {
     expect(DIALOG_SRC).toMatch(/organization_id/);
+    expect(DIALOG_SRC).toMatch(/organization_name/);
     expect(DIALOG_SRC).toMatch(/service_id/);
+    expect(DIALOG_SRC).toMatch(/service_name/);
   });
 
-  it("ExtractionQualityReviewDialog passes initialOrganizationId and initialServiceId to FormSchemaAnnotator", () => {
+  it("ExtractionQualityReviewDialog passes scope ids and names to FormSchemaAnnotator", () => {
     expect(DIALOG_SRC).toMatch(/initialOrganizationId/);
     expect(DIALOG_SRC).toMatch(/initialServiceId/);
+    expect(DIALOG_SRC).toMatch(/initialOrganizationName/);
+    expect(DIALOG_SRC).toMatch(/initialServiceName/);
   });
 
   it("extraction review backend query returns organization_id and service_id fields", () => {
@@ -101,8 +108,17 @@ describe("Teach form locked pickers -- pre-population from extraction context", 
       "utf8",
     );
     expect(storeSrc).toMatch(/organization_id/);
+    expect(storeSrc).toMatch(/organization_name/);
     expect(storeSrc).toMatch(/service_id/);
+    expect(storeSrc).toMatch(/service_name/);
     expect(storeSrc).toMatch(/healthcare_service_org_id/);
     expect(storeSrc).toMatch(/healthcare_service_id/);
+    expect(storeSrc).toMatch(/resolve_healthcare_service/);
+    expect(storeSrc).not.toMatch(/GET_RUN_ORG_SERVICE_IDS/);
+  });
+
+  it("locked scope chips prefer display names over raw ids", () => {
+    expect(SCOPE_SRC).toMatch(/organizationName \|\| organizationId/);
+    expect(SCOPE_SRC).toMatch(/serviceName \|\| serviceId/);
   });
 });
