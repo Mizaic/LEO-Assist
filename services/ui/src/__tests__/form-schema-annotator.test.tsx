@@ -411,4 +411,13 @@ describe("Ask LEO again control", () => {
     expect(teachHook).toMatch(/isIncompleteSchema/);
     expect(teachHook).toMatch(/tryDetect/);
   });
+
+  it("prefers saved schema sections over auto-detect on reload", () => {
+    const teachHook = fs.readFileSync(
+      path.join(OPS, "useFormSchemaTeach.ts"),
+      "utf8",
+    );
+    expect(teachHook).toMatch(/savedSchemaBlocksAutoDetect/);
+    expect(teachHook).toMatch(/setSections\(saved\.sections\)/);
+  });
 });
