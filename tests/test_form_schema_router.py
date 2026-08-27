@@ -235,3 +235,108 @@ def test_save_with_optional_only_completeness_groups(_mock_pg, mock_save):
     resp = _client(_session("validation")).put("/form-schemas/fp-1", json=body)
     assert resp.status_code == 200
     mock_save.assert_called_once()
+
+
+@patch("app.routers.form_schema.save_form_schema", return_value=_saved_schema())
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
+def test_save_accepts_extended_section_and_item_fields(_mock_pg, mock_save):
+    body = {
+        "form_name": "Gynae 2WW",
+        "sections": [
+            {
+                "section_id": "S1",
+                "section_type": "ordered_tests",
+                "label": "Blood Tests",
+                "start_pattern": "Blood Tests",
+                "semantic_tags": ["procedure"],
+                "items": [
+                    {
+                        "pattern": "FBC",
+                        "entity_text": "Full blood count",
+                        "semantic_tag": "procedure",
+                        "assertion": "present",
+                        "procedure_snomed": "26604007",
+                        "procedure_display": "Full blood count",
+                        "analytes": [
+                            {
+                                "label": "Hb",
+                                "snomed_code": "1022280009",
+                                "display": "Haemoglobin",
+                            }
+                        ],
+                        "value_placeholder": "{{NUMERIC_VALUE}} {{UNIT}}",
+                    }
+                ],
+            }
+        ],
+    }
+    resp = _client(_session("validation")).put("/form-schemas/fp-extended", json=body)
+    assert resp.status_code == 200
+    write = mock_save.call_args.args[1]
+    item = write.sections[0].items[0]
+    assert item.procedure_snomed == "26604007"
+    assert item.analytes[0]["label"] == "Hb"
+    assert item.value_placeholder == "{{NUMERIC_VALUE}} {{UNIT}}"
+    assert write.sections[0].semantic_tags == ["procedure"]
+
+
+@patch("app.routers.form_schema.save_form_schema", return_value=_saved_schema())
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
+def test_save_normalizes_empty_start_pattern_from_label(_mock_pg, mock_save):
+    body = {
+        "form_name": "Gynae 2WW",
+        "sections": [
+            {
+                "section_id": "S1",
+                "section_type": "checkbox_single",
+                "label": "Section A",
+                "start_pattern": "",
+                "items": [
+                    {"pattern": "Cervix", "entity_text": "Cervical cancer"},
+                ],
+            }
+        ],
+    }
+    resp = _client(_session("validation")).put("/form-schemas/fp-label", json=body)
+    assert resp.status_code == 200
+    write = mock_save.call_args.args[1]
+    assert write.sections[0].start_pattern == "Section A"
+
+
+@patch("app.routers.form_schema.save_form_schema", return_value=_saved_schema())
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
+def test_save_uses_section_id_when_start_pattern_empty(_mock_pg, mock_save):
+    body = {
+        "form_name": "Gynae 2WW",
+        "sections": [
+            {
+                "section_id": "S1",
+                "section_type": "checkbox_single",
+                "label": "",
+                "start_pattern": "",
+                "items": [
+                    {"pattern": "Cervix", "entity_text": "Cervical cancer"},
+                ],
+            }
+        ],
+    }
+    resp = _client(_session("validation")).put("/form-schemas/fp-section-id", json=body)
+    assert resp.status_code == 200
+    write = mock_save.call_args.args[1]
+    assert write.sections[0].start_pattern == "S1"
+
+
+def test_save_rejects_when_all_sections_normalize_away():
+    from libs.pipeline.form_schema_store import normalize_sections_for_request
+
+    assert normalize_sections_for_request(
+        [
+            {
+                "section_id": "",
+                "section_type": "checkbox_single",
+                "label": "",
+                "start_pattern": "",
+                "items": [],
+            }
+        ]
+    ) == []

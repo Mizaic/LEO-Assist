@@ -26,6 +26,7 @@ from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
     build_sections_from_request,
     load_form_schema,
+    normalize_sections_for_request,
     save_form_schema,
 )
 from libs.pipeline.form_schema_template import (
@@ -41,19 +42,30 @@ router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
 require_form_teacher = require_role(*FORM_TEACHER_ROLES)
 
 
+class AnalyteEntryRequest(BaseModel):
+    label: str = ""
+    snomed_code: str = ""
+    display: str = ""
+
+
 class FormSchemaItemRequest(BaseModel):
     pattern: str = Field(..., min_length=1)
     entity_text: str = Field(..., min_length=1)
     semantic_tag: str = "finding"
     assertion: str = "present"
+    procedure_snomed: str = ""
+    procedure_display: str = ""
+    analytes: list[AnalyteEntryRequest] = Field(default_factory=list)
+    value_placeholder: str = ""
 
 
 class FormSectionRequest(BaseModel):
     section_id: str = Field(..., min_length=1)
     section_type: str = Field(..., min_length=1)
     label: str = ""
-    start_pattern: str = Field(..., min_length=1)
+    start_pattern: str = ""
     items: list[FormSchemaItemRequest] = Field(default_factory=list)
+    semantic_tags: list[str] = Field(default_factory=list)
 
 
 class CompletenessGroupRequest(BaseModel):
@@ -91,12 +103,17 @@ def _schema_to_dict(schema: Any) -> dict[str, Any]:
                 "section_type": s.section_type,
                 "label": s.label,
                 "start_pattern": s.start_pattern,
+                "semantic_tags": list(s.semantic_tags),
                 "items": [
                     {
                         "pattern": i.pattern,
                         "entity_text": i.entity_text,
                         "semantic_tag": i.semantic_tag,
                         "assertion": i.assertion,
+                        "procedure_snomed": i.procedure_snomed,
+                        "procedure_display": i.procedure_display,
+                        "analytes": list(i.analytes),
+                        "value_placeholder": i.value_placeholder,
                     }
                     for i in s.items
                 ],
@@ -131,7 +148,15 @@ def save_schema(
     body: SaveFormSchemaRequest,
     _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
-    sections = build_sections_from_request([s.model_dump() for s in body.sections])
+    raw_sections = normalize_sections_for_request(
+        [s.model_dump() for s in body.sections]
+    )
+    if not raw_sections:
+        raise HTTPException(
+            status_code=422,
+            detail="At least one section with a start pattern is required.",
+        )
+    sections = build_sections_from_request(raw_sections)
     client = PatientGraphClient()
     try:
         schema = save_form_schema(
@@ -222,9 +247,7 @@ def generate_template(
             {
                 "fingerprint": fingerprint,
                 "normalised_template": template,
-                "chunk_section_map": _json.dumps(
-                    chunk_section_map, ensure_ascii=True
-                ),
+                "chunk_section_map": _json.dumps(chunk_section_map, ensure_ascii=True),
             },
         )
     except HTTPException:

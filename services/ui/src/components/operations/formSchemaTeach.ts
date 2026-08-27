@@ -64,6 +64,45 @@ export type CompletenessLogicGroup = {
   then_group?: CompletenessLogicGroup | null;
 };
 
+/** Drop blank items and fill start_pattern before PUT /form-schemas. */
+export function prepareSectionsForSave(
+  sections: FormSchemaSection[],
+): FormSchemaSection[] {
+  return sections
+    .map((section) => {
+      const label = (section.label ?? "").trim();
+      const start =
+        (section.start_pattern ?? "").trim() || label || section.section_id;
+      const items = section.items
+        .map((item) => ({
+          ...item,
+          pattern: (item.pattern ?? "").trim(),
+          entity_text: (item.entity_text ?? "").trim(),
+        }))
+        .filter((item) => item.pattern && item.entity_text);
+      return { ...section, start_pattern: start, items };
+    })
+    .filter((section) => section.start_pattern.trim());
+}
+
+const HEX_FINGERPRINT = /^[a-f0-9]{16}$/i;
+
+/** Prefer content hash; never use document-quality match id "unknown". */
+export function resolveTeachFingerprint(raw: Record<string, unknown>): string {
+  const fromApi = String(raw.form_fingerprint ?? "").trim();
+  if (fromApi && fromApi !== "unknown") {
+    return fromApi;
+  }
+  const quality = (raw.document_quality ?? {}) as {
+    form_fingerprint_id?: string;
+  };
+  const legacy = String(quality.form_fingerprint_id ?? "").trim();
+  if (legacy && legacy !== "unknown" && HEX_FINGERPRINT.test(legacy)) {
+    return legacy;
+  }
+  return fromApi;
+}
+
 export function emptyCompletenessGroup(kind = "mandatory"): CompletenessLogicGroup {
   return {
     name: "New rule",
@@ -86,13 +125,23 @@ export async function saveTaughtForm(args: {
   serviceId: string;
   completenessGroups: CompletenessLogicGroup[];
 }): Promise<void> {
-  const res = await fetch(`/api/form-schemas/${args.fingerprint}`, {
+  const fingerprint = args.fingerprint.trim();
+  if (!fingerprint || fingerprint === "unknown") {
+    throw new Error(
+      "We could not identify this form. Reload the letter and try again.",
+    );
+  }
+  const sections = prepareSectionsForSave(args.sections);
+  if (!sections.length) {
+    throw new Error("Add at least one section with a start pattern before saving.");
+  }
+  const res = await fetch(`/api/form-schemas/${fingerprint}`, {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
     body: JSON.stringify({
       form_name: args.name,
-      sections: args.sections,
+      sections,
       saved_by: "validation_lab",
       organization_id: args.organizationId,
       service_id: args.serviceId,

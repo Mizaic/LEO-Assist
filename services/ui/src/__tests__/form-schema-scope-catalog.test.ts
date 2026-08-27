@@ -103,8 +103,17 @@ describe("Teach form locked pickers -- pre-population from extraction context", 
   });
 
   it("ExtractionQualityReviewDialog uses content hash for teach fingerprint", () => {
-    expect(DIALOG_SRC).toMatch(/raw\.form_fingerprint/);
+    expect(DIALOG_SRC).toMatch(/resolveTeachFingerprint/);
     expect(DIALOG_SRC).not.toMatch(/form_fingerprint_id/);
+  });
+
+  it("formSchemaTeach rejects unknown fingerprint before save", () => {
+    const teachSrc = fs.readFileSync(
+      path.join(ROOT, "services/ui/src/components/operations/formSchemaTeach.ts"),
+      "utf8",
+    );
+    expect(teachSrc).toMatch(/fingerprint === "unknown"/);
+    expect(teachSrc).toMatch(/prepareSectionsForSave/);
   });
 
   it("extraction review backend returns form_fingerprint hash", () => {

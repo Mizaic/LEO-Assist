@@ -13,6 +13,7 @@ from libs.pipeline.form_schema_normalizer import FormSchema, FormSection
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
     _record_to_schema,
+    normalize_sections_for_request,
     save_form_schema,
 )
 
@@ -99,7 +100,9 @@ def test_save_form_schema_ensures_service_completeness_domain():
 
 def test_save_form_schema_allows_optional_only_completeness_groups():
     client = MagicMock()
-    client.run.return_value = [{"domain_id": "svc_svc-gynae", "subdomain": "minimum_dataset"}]
+    client.run.return_value = [
+        {"domain_id": "svc_svc-gynae", "subdomain": "minimum_dataset"}
+    ]
     groups = [
         {
             "name": "Optional note",
@@ -134,3 +137,22 @@ def test_form_schema_dataclass_holds_scope_ids():
     )
     assert schema.organization_id == "org-sfh"
     assert schema.service_id == "svc-gynae"
+
+
+def test_normalize_sections_fills_start_pattern_and_drops_blank_items():
+    raw = [
+        {
+            "section_id": "S1",
+            "section_type": "checkbox_single",
+            "label": "Section A",
+            "start_pattern": "",
+            "items": [
+                {"pattern": "Cervix", "entity_text": "Cervical cancer"},
+                {"pattern": "", "entity_text": "skip me"},
+            ],
+        }
+    ]
+    rows = normalize_sections_for_request(raw)
+    assert len(rows) == 1
+    assert rows[0]["start_pattern"] == "Section A"
+    assert len(rows[0]["items"]) == 1

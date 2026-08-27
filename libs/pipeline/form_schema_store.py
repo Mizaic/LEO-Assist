@@ -212,8 +212,34 @@ def _build_schema(write: FormSchemaWrite) -> FormSchema:
     )
 
 
+def normalize_sections_for_request(
+    raw_sections: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Drop blank items and fill missing start patterns before validation."""
+    normalized: list[dict[str, Any]] = []
+    for section in raw_sections:
+        label = str(section.get("label") or "").strip()
+        section_id = str(section.get("section_id") or "").strip()
+        start = str(section.get("start_pattern") or "").strip()
+        if not start:
+            start = label or section_id
+        if not start:
+            continue
+        items: list[dict[str, Any]] = []
+        for item in section.get("items") or []:
+            if not isinstance(item, dict):
+                continue
+            pattern = str(item.get("pattern") or "").strip()
+            entity_text = str(item.get("entity_text") or "").strip()
+            if not pattern or not entity_text:
+                continue
+            items.append({**item, "pattern": pattern, "entity_text": entity_text})
+        normalized.append({**section, "start_pattern": start, "items": items})
+    return normalized
+
+
 def build_sections_from_request(
     raw_sections: list[dict[str, Any]],
 ) -> list[FormSection]:
     """Convert API request dicts to ``FormSection`` dataclasses."""
-    return [_dict_to_section(s) for s in raw_sections]
+    return [_dict_to_section(s) for s in normalize_sections_for_request(raw_sections)]
