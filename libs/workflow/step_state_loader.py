@@ -149,7 +149,8 @@ def load_document_chunks_into_state(
         if not loaded.get("errors"):
             return
         logger.warning(
-            "validation_lab document_chunks load failed run_id=%s chunk_count=%d errors=%s",
+            "validation_lab document_chunks load failed run_id=%s "
+            "chunk_count=%d errors=%s",
             request.run_id,
             len(chunk_ids),
             loaded.get("errors"),
@@ -163,7 +164,12 @@ def load_document_chunks_into_state(
         state["errors"] = list(state.get("errors") or []) + scope_errors
         state["chunk_scope_failed"] = True
         return
-    loaded = load_document_chunks_from_neo4j(client, chunk_ids)
+    loaded = load_document_chunks_from_neo4j(
+        client,
+        chunk_ids,
+        organization_id=str(state.get("healthcare_service_org_id") or ""),
+        service_id=str(state.get("healthcare_service_id") or ""),
+    )
     state.update(loaded)
     if not loaded.get("errors"):
         return
@@ -424,6 +430,9 @@ def load_step_state(
             "errors": list(state.get("errors") or []),
         }
     )
+    enrich_patient_demographics(client, request.patient_id, state)
+    enrich_patient_org_id(client, request.patient_id, state)
+    _apply_healthcare_service_scope(client, state, request, source_type, source_id)
     if is_document_chunks_mode(state):
         load_document_chunks_into_state(client, state, request)
     elif is_communication_thread_mode(state):
@@ -436,9 +445,6 @@ def load_step_state(
         )
         if rows:
             state["encounter_text"] = rows[0].get("text") or ""
-    enrich_patient_demographics(client, request.patient_id, state)
-    enrich_patient_org_id(client, request.patient_id, state)
-    _apply_healthcare_service_scope(client, state, request, source_type, source_id)
     _load_prompt_config(state, request.run_id)
     _load_execution_manifest(client, request.run_id, state)
     return state

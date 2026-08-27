@@ -84,6 +84,8 @@ class ExtractionState(TypedDict, total=False):
     warnings: list[str]
     document_quality: dict[str, Any]
     few_shot_max_similarity: float | None
+    healthcare_service_org_id: str
+    healthcare_service_id: str
 
 
 _VALID_MODEL_MODES = {"llm", "ner", "auto"}
@@ -417,7 +419,12 @@ def load_document_chunks(state: ExtractionState) -> dict[str, Any]:
 
     from libs.neo4j_client.client import PatientGraphClient
 
-    loaded = load_document_chunks_from_neo4j(PatientGraphClient(), chunk_ids)
+    loaded = load_document_chunks_from_neo4j(
+        PatientGraphClient(),
+        chunk_ids,
+        organization_id=str(state.get("healthcare_service_org_id") or ""),
+        service_id=str(state.get("healthcare_service_id") or ""),
+    )
     if loaded.get("sentences"):
         return {
             "encounter_text": loaded.get("encounter_text") or "",
@@ -723,10 +730,36 @@ def _run_llm_extraction(
     }
 
 
+def _schema_scope(state: dict[str, Any]) -> tuple[str, str]:
+    """Return organisation and service ids used to resolve a taught form."""
+    return (
+        str(state.get("healthcare_service_org_id") or ""),
+        str(state.get("healthcare_service_id") or ""),
+    )
+
+
+def _enrich_from_state(
+    result: dict[str, Any],
+    encounter_text: str,
+    chunks: list[SentenceChunk],
+    state: dict[str, Any],
+) -> dict[str, Any]:
+    org_id, service_id = _schema_scope(state)
+    return _enrich_with_blood_panel_entities(
+        result,
+        encounter_text,
+        chunks,
+        organization_id=org_id,
+        service_id=service_id,
+    )
+
+
 def _enrich_with_blood_panel_entities(
     result: dict[str, Any],
     encounter_text: str,
     chunks: list[SentenceChunk],
+    organization_id: str = "",
+    service_id: str = "",
 ) -> dict[str, Any]:
     from libs.pipeline.blood_panel_table import (
         extract_blood_panel_table_entities,
@@ -734,7 +767,7 @@ def _enrich_with_blood_panel_entities(
     )
     from libs.pipeline.document_quality import form_fingerprint
     from libs.pipeline.form_schema_normalizer import seed_ordered_tests_entities
-    from libs.pipeline.form_schema_store import get_cached_schema, load_form_schema
+    from libs.pipeline.form_schema_store import get_cached_schema, resolve_form_schema
 
     panel = extract_blood_panel_table_entities(encounter_text, chunks)
     merged = merge_blood_panel_entities(list(result.get("entities") or []), panel)
@@ -746,7 +779,12 @@ def _enrich_with_blood_panel_entities(
 
         client = PatientGraphClient()
         try:
-            schema = load_form_schema(client, fingerprint)
+            schema = resolve_form_schema(
+                client,
+                fingerprint,
+                organization_id=organization_id,
+                service_id=service_id,
+            )
         finally:
             client.close()
 
@@ -809,9 +847,7 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                     )
                     result["entities"] = fallback
                     result["extraction_route"] = "ner+lab-fallback"
-            return _enrich_with_blood_panel_entities(
-                result, encounter_text, span_chunks
-            )
+            return _enrich_from_state(result, encounter_text, span_chunks, state)
 
         if model_mode == "auto":
             if _ner_backend_enabled():
@@ -825,8 +861,8 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                 else:
                     if ner_result.get("entities"):
                         ner_result["extraction_route"] = "auto-ner"
-                        return _enrich_with_blood_panel_entities(
-                            ner_result, encounter_text, span_chunks
+                        return _enrich_from_state(
+                            ner_result, encounter_text, span_chunks, state
                         )
                     logger.info(
                         "Auto mode: NER returned 0 entities; falling back to LLM"
@@ -841,9 +877,7 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                 span_sentences=span_chunks,
             )
             llm_result["extraction_route"] = "auto-llm"
-            return _enrich_with_blood_panel_entities(
-                llm_result, encounter_text, span_chunks
-            )
+            return _enrich_from_state(llm_result, encounter_text, span_chunks, state)
 
         # default: model_mode == "llm"
         policy = _extraction_window_policy(state)
@@ -860,9 +894,7 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                 max_window_input_tokens=int(policy["max_window_input_tokens"]),
                 span_chunks=span_chunks,
             )
-            return _enrich_with_blood_panel_entities(
-                result, encounter_text, span_chunks
-            )
+            return _enrich_from_state(result, encounter_text, span_chunks, state)
         result = _run_llm_extraction(
             encounter_text,
             chunks,
@@ -871,7 +903,7 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             span_sentences=span_chunks,
             normalise_forms=is_document_chunks_mode(state),
         )
-        return _enrich_with_blood_panel_entities(result, encounter_text, span_chunks)
+        return _enrich_from_state(result, encounter_text, span_chunks, state)
     except ImportError as e:
         logger.warning("Extractor unavailable: %s", e)
         return {"entities": [], "errors": [str(e)]}
@@ -903,9 +935,15 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
     fingerprint = form_fingerprint(encounter_text)
     from libs.neo4j_client.client import PatientGraphClient
 
+    org_id, service_id = _schema_scope(state)
     graph_client = PatientGraphClient()
     try:
-        known_schema = is_known_schema(graph_client, fingerprint)
+        known_schema = is_known_schema(
+            graph_client,
+            fingerprint,
+            organization_id=org_id,
+            service_id=service_id,
+        )
     finally:
         graph_client.close()
 

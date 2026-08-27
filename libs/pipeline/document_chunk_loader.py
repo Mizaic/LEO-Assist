@@ -101,28 +101,39 @@ def chunk_ids_from_state(state: dict[str, Any]) -> list[str]:
     return [str(item).strip() for item in raw if str(item).strip()]
 
 
-def _normalise_chunk_texts(raw_texts: list[str]) -> list[str]:
+def _normalise_chunk_texts(
+    raw_texts: list[str],
+    organization_id: str = "",
+    service_id: str = "",
+) -> list[str]:
     """Normalise chunk texts, using chunk_section_map when a schema is known."""
     if not raw_texts:
         return []
     from libs.neo4j_client.client import PatientGraphClient
     from libs.pipeline.form_schema_normalizer import normalise_chunks_with_schema
-    from libs.pipeline.form_schema_store import load_form_schema
+    from libs.pipeline.form_schema_store import resolve_form_schema
 
     fingerprint = bundle_fingerprint(raw_texts)
     client = PatientGraphClient()
     try:
-        schema = load_form_schema(client, fingerprint)
+        schema = resolve_form_schema(
+            client,
+            fingerprint,
+            organization_id=organization_id,
+            service_id=service_id,
+        )
     finally:
         client.close()
     if schema is not None and schema.sections:
-        return normalise_chunks_with_schema(
-            schema, raw_texts, schema.chunk_section_map
-        )
+        return normalise_chunks_with_schema(schema, raw_texts, schema.chunk_section_map)
     return [normalize_form_checkbox_text(text) for text in raw_texts]
 
 
-def build_document_chunk_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def build_document_chunk_state(
+    rows: list[dict[str, Any]],
+    organization_id: str = "",
+    service_id: str = "",
+) -> dict[str, Any]:
     """Map Neo4j chunk rows to pipeline state (sentences + encounter_text)."""
     sentences: list[dict[str, Any]] = []
     text_parts: list[str] = []
@@ -136,7 +147,11 @@ def build_document_chunk_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
             continue
         prepared.append({"chunk_id": chunk_id, "text_raw": text_raw, "row": row})
 
-    normalised_texts = _normalise_chunk_texts([p["text_raw"] for p in prepared])
+    normalised_texts = _normalise_chunk_texts(
+        [p["text_raw"] for p in prepared],
+        organization_id=organization_id,
+        service_id=service_id,
+    )
 
     for idx, item in enumerate(prepared):
         chunk_id = item["chunk_id"]
@@ -176,6 +191,8 @@ def build_document_chunk_state(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def load_document_chunks_from_neo4j(
     client: Any,
     chunk_ids: list[str],
+    organization_id: str = "",
+    service_id: str = "",
 ) -> dict[str, Any]:
     if not chunk_ids:
         return {
@@ -185,7 +202,11 @@ def load_document_chunks_from_neo4j(
             "errors": ["document_chunks mode requires non-empty chunk_ids"],
         }
     rows = client.run(GET_CHUNKS_BY_IDS, chunk_ids=chunk_ids)
-    loaded = build_document_chunk_state(rows or [])
+    loaded = build_document_chunk_state(
+        rows or [],
+        organization_id=organization_id,
+        service_id=service_id,
+    )
     if not loaded.get("sentences"):
         loaded["errors"] = ["no Chunk nodes found for supplied chunk_ids"]
     return loaded

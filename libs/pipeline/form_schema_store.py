@@ -20,6 +20,7 @@ from typing import Any
 from libs.completeness.service_domain import ensure_service_completeness_domain
 from libs.cypher.form_schema_queries import (
     DELETE_FORM_SCHEMA,
+    GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
     GET_FORM_SCHEMA_BY_FINGERPRINT,
     UPSERT_FORM_SCHEMA,
 )
@@ -168,9 +169,81 @@ def load_form_schema(client: Any, fingerprint: str) -> FormSchema | None:
         return None
 
 
-def is_known_schema(client: Any, fingerprint: str) -> bool:
+def _load_schema_by_org_service(
+    client: Any,
+    organization_id: str,
+    service_id: str,
+) -> FormSchema | None:
+    """Return the newest active schema for this organisation and service."""
+    org = organization_id.strip()
+    service = service_id.strip()
+    if not org or not service:
+        return None
+    try:
+        rows = client.run(
+            GET_ACTIVE_FORM_SCHEMA_BY_ORG_SERVICE,
+            organization_id=org,
+            service_id=service,
+        )
+        if not rows:
+            return None
+        return _record_to_schema(dict(rows[0]))
+    except Exception:
+        logger.warning(
+            "Could not load FormSchema for org=%s service=%s",
+            org,
+            service,
+            exc_info=True,
+        )
+        return None
+
+
+def resolve_form_schema(
+    client: Any,
+    fingerprint: str,
+    organization_id: str = "",
+    service_id: str = "",
+) -> FormSchema | None:
+    """Load a taught schema by letter hash, then by organisation and service.
+
+    Extraction hashes the letter. Seeded templates may use a stable alias
+    such as ``sfh-gynae-2ww-v1``. When the hash misses, an active schema
+    bound to the same organisation and service is used. The alias is then
+    cached under the letter hash so later in-process lookups hit.
+    """
+    schema = load_form_schema(client, fingerprint)
+    if schema is not None:
+        return schema
+    schema = _load_schema_by_org_service(client, organization_id, service_id)
+    if schema is None:
+        return None
+    _SCHEMA_CACHE[fingerprint] = schema
+    logger.info(
+        "Loaded FormSchema %s by org=%s service=%s for letter hash %s",
+        schema.fingerprint,
+        organization_id,
+        service_id,
+        fingerprint,
+    )
+    return schema
+
+
+def is_known_schema(
+    client: Any,
+    fingerprint: str,
+    organization_id: str = "",
+    service_id: str = "",
+) -> bool:
     """Return True when a taught :FormSchema exists in cache or Neo4j."""
-    return load_form_schema(client, fingerprint) is not None
+    return (
+        resolve_form_schema(
+            client,
+            fingerprint,
+            organization_id=organization_id,
+            service_id=service_id,
+        )
+        is not None
+    )
 
 
 def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
