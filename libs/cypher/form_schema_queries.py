@@ -112,6 +112,16 @@ RETURN s.schema_id AS schema_id,
 ORDER BY s.updated_at DESC
 """
 
+LIST_FORM_SCHEMA_SECTIONS = """
+MATCH (s:FormSchema)
+WHERE s.status = 'active'
+RETURN s.fingerprint      AS fingerprint,
+       s.form_name        AS form_name,
+       s.organization_id  AS organization_id,
+       s.service_id       AS service_id,
+       s.sections_json    AS sections_json
+"""
+
 DELETE_FORM_SCHEMA = """
 MATCH (s:FormSchema {fingerprint: $fingerprint})
 WITH s, s.schema_id AS schema_id
