@@ -167,6 +167,11 @@ def load_form_schema(client: Any, fingerprint: str) -> FormSchema | None:
         return None
 
 
+def is_known_schema(client: Any, fingerprint: str) -> bool:
+    """Return True when a taught :FormSchema exists in cache or Neo4j."""
+    return load_form_schema(client, fingerprint) is not None
+
+
 def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
     """Persist a :FormSchema and, when scoped, its service completeness domain."""
     schema = _build_schema(write)

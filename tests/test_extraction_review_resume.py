@@ -21,6 +21,7 @@ from libs.pipeline.extraction_review_store import (
     load_extraction_review_detail,
     persist_extraction_review_task,
     plan_extraction_resume,
+    rerun_paused_extraction,
     resume_extraction_review,
 )
 
@@ -350,7 +351,9 @@ def test_review_detail_graph_fallback_not_called_when_state_has_both_ids() -> No
     assert detail["organization_name"] == "State Org"
     assert detail["service_id"] == "svc-from-state"
     assert detail["service_name"] == "State Service"
-    assert fallback_calls == [], "graph fallback must not be called when state is complete"
+    assert (
+        fallback_calls == []
+    ), "graph fallback must not be called when state is complete"
 
 
 def test_generic_hitl_resolve_does_not_unlock_extraction_review() -> None:
@@ -426,3 +429,30 @@ def test_cancel_is_safe_when_already_cancelled() -> None:
     assert result.status == "cancelled"
     assert result.already_cancelled is True
     assert client.run.call_count == 1
+
+
+def test_rerun_paused_extraction_resets_stage_and_publishes() -> None:
+    task = persist_extraction_review_task(_req())
+    client = MagicMock()
+    client.run.side_effect = [
+        [{"status": "pending", "resumed_at": None, **task}],
+        [{"step_id": "act-ref-extract"}],
+        [{"task_id": task["task_id"], "status": "superseded"}],
+    ]
+    published: list[dict] = []
+
+    result = rerun_paused_extraction(
+        client,
+        task_id=task["task_id"],
+        publish=published.append,
+        triggered_by="staff",
+    )
+    assert result.published is True
+    assert result.run_id == "run-1"
+    assert result.step_id == "act-ref-extract"
+    assert len(published) == 1
+    assert published[0]["action_id"] == "act-ref-extract"
+    assert published[0]["event_type"] == "durable_step"
+    queries = [call.args[0] for call in client.run.call_args_list]
+    assert any("pending" in query and "paused" in query for query in queries)
+    assert any("superseded" in query for query in queries)

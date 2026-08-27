@@ -20,6 +20,7 @@ from libs.pipeline.extraction_review_store import (
     VALID_CANCEL_REASONS,
     cancel_extraction_review,
     load_extraction_review_detail,
+    rerun_paused_extraction,
     resume_extraction_review,
 )
 from libs.pipeline.span_few_shot import save_span_few_shot
@@ -46,6 +47,11 @@ class CancelExtractionReviewRequest(BaseModel):
     task_id: str = Field(..., min_length=1)
     reason: str = Field(..., min_length=1)
     cancelled_by: str = "unknown"
+
+
+class RerunExtractionReviewRequest(BaseModel):
+    task_id: str = Field(..., min_length=1)
+    triggered_by: str = "unknown"
 
 
 async def _publish_resume(message: dict[str, Any]) -> None:
@@ -116,6 +122,34 @@ async def complete_review(
         "next_step_id": result.next_step_id,
         "resolved_by": body.resolved_by,
     }
+
+
+@router.post("/extraction-reviews/rerun-extraction")
+async def rerun_extraction(
+    body: RerunExtractionReviewRequest,
+    scope: CallerScope = Depends(require_admin),
+) -> dict[str, Any]:
+    _ = scope
+    queued: list[dict[str, Any]] = []
+    client = PatientGraphClient()
+    try:
+        result = rerun_paused_extraction(
+            client,
+            task_id=body.task_id,
+            publish=queued.append,
+            triggered_by=body.triggered_by,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        code = 400 if "not pending" in detail else 404
+        raise HTTPException(status_code=code, detail=detail) from exc
+    finally:
+        client.close()
+    for message in queued:
+        await _publish_resume(message)
+    payload = result.to_dict()
+    payload["triggered_by"] = body.triggered_by
+    return payload
 
 
 @router.post("/extraction-reviews/cancel")

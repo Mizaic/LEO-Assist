@@ -87,18 +87,22 @@ def chunk_ids_from_state(state: dict[str, Any]) -> list[str]:
 
 
 def _normalise_chunk_texts(raw_texts: list[str]) -> list[str]:
-    """Normalise chunk texts, using chunk_section_map when a schema is cached."""
+    """Normalise chunk texts, using chunk_section_map when a schema is known."""
     if not raw_texts:
         return []
+    from libs.neo4j_client.client import PatientGraphClient
     from libs.pipeline.document_quality import form_fingerprint
     from libs.pipeline.form_schema_normalizer import normalise_with_schema
-    from libs.pipeline.form_schema_store import get_cached_schema
+    from libs.pipeline.form_schema_store import load_form_schema
 
-    schema = get_cached_schema(form_fingerprint(CHUNK_TEXT_SEPARATOR.join(raw_texts)))
+    fingerprint = form_fingerprint(CHUNK_TEXT_SEPARATOR.join(raw_texts))
+    client = PatientGraphClient()
+    try:
+        schema = load_form_schema(client, fingerprint)
+    finally:
+        client.close()
     if schema is not None and schema.chunk_section_map:
-        joined = normalise_with_schema(
-            schema, raw_texts, schema.chunk_section_map
-        )
+        joined = normalise_with_schema(schema, raw_texts, schema.chunk_section_map)
         parts = joined.split(CHUNK_TEXT_SEPARATOR)
         if len(parts) == len(raw_texts):
             return parts

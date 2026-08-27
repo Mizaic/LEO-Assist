@@ -89,6 +89,46 @@ def test_known_schema_bypass_in_extraction_merge() -> None:
     assert quality["quality_reasons"] == []
 
 
+def test_merge_results_loads_taught_schema_from_neo4j_when_cache_empty() -> None:
+    """Worker merge_results must load :FormSchema from Neo4j, not only cache."""
+    import json
+    from unittest.mock import MagicMock, patch
+
+    from libs.pipeline.form_schema_store import _schema_to_sections_json
+    from libs.pipeline_graph.subgraphs.extraction import merge_results
+
+    client = MagicMock()
+    client.run.return_value = [
+        {
+            "schema_id": ORDERED_TESTS_SCHEMA.schema_id,
+            "fingerprint": ORDERED_TESTS_SCHEMA.fingerprint,
+            "form_name": ORDERED_TESTS_SCHEMA.form_name,
+            "sections_json": _schema_to_sections_json(ORDERED_TESTS_SCHEMA),
+            "chunk_section_map": json.dumps(ORDERED_TESTS_SCHEMA.chunk_section_map),
+            "created_by": "test",
+            "version": 1,
+            "status": "active",
+        }
+    ]
+
+    with patch(
+        "libs.neo4j_client.client.PatientGraphClient",
+        return_value=client,
+    ):
+        out = merge_results(
+            {
+                "encounter_text": ORDERED_TESTS_TEXT,
+                "entities": [],
+                "few_shot_max_similarity": 0.05,
+            }
+        )
+
+    quality = out["document_quality"]
+    assert quality["document_quality_score"] == 1.0
+    assert quality["quality_reasons"] == []
+    client.close.assert_called_once()
+
+
 def test_ordered_tests_with_analytes_not_fully_suppressed() -> None:
     """Normalised text contains Hb placeholder, not full-section suppression."""
     result = apply_schema_to_text(ORDERED_TESTS_TEXT, ORDERED_TESTS_SCHEMA)
@@ -121,7 +161,9 @@ def test_post_processing_applies_taught_analyte_codes() -> None:
             "end": 13,
         },
     ]
-    result = run_post_processing(ORDERED_TESTS_TEXT, entities, enable_disorder_gate=False)
+    result = run_post_processing(
+        ORDERED_TESTS_TEXT, entities, enable_disorder_gate=False
+    )
     hb = next(e for e in result if e.get("label") == "Hb")
     wcc = next(e for e in result if e.get("label") == "WCC")
     assert hb["snomed_code"] == "1022280009"

@@ -874,11 +874,17 @@ def merge_results(state: ExtractionState) -> dict[str, Any]:
         warnings.append(_EMPTY_EXTRACTION_WARNING)
     from libs.pipeline.document_quality import form_fingerprint, score_document_quality
     from libs.pipeline.form_fingerprint_registry import known_fingerprints
-    from libs.pipeline.form_schema_store import get_cached_schema
+    from libs.pipeline.form_schema_store import is_known_schema
 
     encounter_text = state.get("encounter_text") or ""
     fingerprint = form_fingerprint(encounter_text)
-    known_schema = get_cached_schema(fingerprint) is not None
+    from libs.neo4j_client.client import PatientGraphClient
+
+    graph_client = PatientGraphClient()
+    try:
+        known_schema = is_known_schema(graph_client, fingerprint)
+    finally:
+        graph_client.close()
 
     quality = score_document_quality(
         encounter_text,

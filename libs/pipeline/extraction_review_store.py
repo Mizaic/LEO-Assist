@@ -22,6 +22,8 @@ from libs.cypher.extraction_review_queries import (
     GET_REVIEW_IDENTIFIERS,
     GET_RUN_CASE_ID,
     RESOLVE_EXTRACTION_REVIEW_TASK,
+    RESET_PAUSED_EXTRACTION_FOR_RERUN,
+    SUPERSEDE_EXTRACTION_REVIEW_TASK,
     UNLOCK_PAUSED_EXTRACTION_STAGE,
 )
 from libs.clinical_scoping.healthcare_service import resolve_healthcare_service
@@ -52,6 +54,20 @@ class PersistReviewRequest:
     quality: DocumentQuality
     draft_entities: list[dict[str, Any]]
     source_text: str = ""
+
+
+@dataclass(frozen=True)
+class RerunExtractionResult:
+    run_id: str
+    step_id: str
+    published: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "run_id": self.run_id,
+            "step_id": self.step_id,
+            "published": self.published,
+        }
 
 
 @dataclass(frozen=True)
@@ -167,6 +183,20 @@ def build_resume_message(task: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_rerun_extraction_message(task: dict[str, Any]) -> dict[str, Any]:
+    step_id = str(task.get("step_id") or "")
+    plan_id = str(task.get("plan_definition_id") or "")
+    return {
+        "event_type": DURABLE_STEP_EVENT,
+        "action_id": step_id,
+        "step_id": step_id,
+        "run_id": str(task.get("run_id") or ""),
+        "patient_id": str(task.get("patient_id") or ""),
+        "plan_definition_id": plan_id,
+        "workflow_id": plan_id,
+    }
+
+
 def _load_task(client: Any, task_id: str) -> dict[str, Any]:
     rows = client.run(GET_EXTRACTION_REVIEW_TASK, task_id=task_id)
     row = (rows or [None])[0]
@@ -232,7 +262,9 @@ def load_extraction_review_detail(
             client,
             run_id=run_id,
             patient_id=patient_id,
-            referral_id=str((state or {}).get("referral_id") or (state or {}).get("case_id") or ""),
+            referral_id=str(
+                (state or {}).get("referral_id") or (state or {}).get("case_id") or ""
+            ),
             ubrn=ids.ubrn,
         )
         organization_id = organization_id or org_svc.get("organization_id") or ""
@@ -367,6 +399,41 @@ def resume_extraction_review(
         resolved_by=resolved_by,
     )
     return plan
+
+
+def rerun_paused_extraction(
+    client: Any,
+    *,
+    task_id: str,
+    publish: Callable[[dict[str, Any]], None],
+    triggered_by: str = "unknown",
+) -> RerunExtractionResult:
+    """Re-queue act-ref-extract after a taught :FormSchema is saved."""
+    task = _load_task(client, task_id)
+    status = str(task.get("status") or "")
+    if status != "pending":
+        raise ValueError(f"review task {task_id!r} is not pending")
+    run_id = str(task.get("run_id") or "")
+    step_id = str(task.get("step_id") or "")
+    if not run_id or not step_id:
+        raise ValueError("review task is missing run_id or step_id")
+    rows = client.run(
+        RESET_PAUSED_EXTRACTION_FOR_RERUN,
+        run_id=run_id,
+        step_id=step_id,
+    )
+    if not rows:
+        raise ValueError("paused extraction stage not found")
+    superseded = client.run(
+        SUPERSEDE_EXTRACTION_REVIEW_TASK,
+        task_id=task_id,
+        triggered_by=triggered_by,
+    )
+    if not superseded:
+        raise ValueError("review task is not pending")
+    message = build_rerun_extraction_message(task)
+    publish(message)
+    return RerunExtractionResult(run_id=run_id, step_id=step_id, published=True)
 
 
 def _persist_learned_form(plan: ResumePlan) -> None:

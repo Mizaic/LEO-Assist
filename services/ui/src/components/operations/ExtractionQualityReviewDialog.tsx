@@ -195,6 +195,37 @@ export default function ExtractionQualityReviewDialog({
     }
   }
 
+  async function rerunExtraction() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/operations/extraction-reviews/rerun-extraction", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify({
+          task_id: taskId,
+          triggered_by: "validation_lab",
+        }),
+      });
+      if (!res.ok) throw new Error("rerun");
+      onUnlocked();
+    } catch {
+      setError(
+        "Could not re-run extraction. Save the taught form schema, then try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function onSchemaSaved() {
+    void rerunExtraction();
+  }
+
   const focusTerm = pickedText || entities[0]?.text || "";
   const marks = focusedReviewMarks(entities, focusTerm);
   const score = data?.quality.document_quality_score ?? 0;
@@ -246,7 +277,7 @@ export default function ExtractionQualityReviewDialog({
             onTabChange={setRightTab}
             fingerprint={data?.formFingerprint ?? ""}
             sourceText={data?.sourceText ?? ""}
-            onSchemaSaved={onUnlocked}
+            onSchemaSaved={onSchemaSaved}
             focusedSectionId={teachFocus.focusedSectionId}
             onSelectSection={teachFocus.selectSection}
             onSectionsChange={setTeachSections}
