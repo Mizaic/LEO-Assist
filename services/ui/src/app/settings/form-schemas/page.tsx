@@ -1,5 +1,5 @@
 /**
- * Form schemas -- list and edit taught referral forms without a pipeline pause.
+ * Form template library -- list, create, edit, and delete taught referral forms.
  *
  * Atlas trace: DI-5C9CA57B, DI-26546721
  */
@@ -7,46 +7,38 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditIcon from "@mui/icons-material/Edit";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import EditIcon from "@mui/icons-material/Edit";
-import { StatHero, type StatTile } from "@leo/design-system";
+import { StatHero, ToolbarActions, type StatTile, type ToolbarAction } from "@leo/design-system";
 
+import ConfirmDialog from "@/components/ConfirmDialog";
+import FormSchemaAddDialog from "./FormSchemaAddDialog";
 import FormSchemaTeachDialog from "./FormSchemaTeachDialog";
-
-interface SchemaSummary {
-  schema_id: string;
-  fingerprint: string;
-  form_name: string;
-  status: string;
-  created_at: string;
-  organization_id: string;
-  service_id: string;
-}
-
-async function fetchSchemas(): Promise<SchemaSummary[]> {
-  const res = await fetch("/api/form-schemas", {
-    credentials: "include",
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-  });
-  if (!res.ok) throw new Error("Could not load form schemas. Please retry.");
-  const data = await res.json();
-  return data.schemas ?? [];
-}
+import {
+  deleteFormSchema,
+  fetchFormSchemas,
+  formatSchemaDate,
+  type SchemaSummary,
+} from "./formSchemaApi";
 
 interface SchemaCardProps {
   schema: SchemaSummary;
   onEdit: (schema: SchemaSummary) => void;
+  onDelete: (schema: SchemaSummary) => void;
   index: number;
 }
 
-function SchemaCard({ schema, onEdit, index }: SchemaCardProps) {
+function SchemaCard({ schema, onEdit, onDelete, index }: SchemaCardProps) {
   return (
     <Box
       sx={{
@@ -82,11 +74,14 @@ function SchemaCard({ schema, onEdit, index }: SchemaCardProps) {
           <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
             {schema.fingerprint}
           </Typography>
-          {(schema.service_id || schema.organization_id) && (
+          {(schema.organization_id || schema.service_id) && (
             <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              {schema.service_id || schema.organization_id}
+              {[schema.organization_id, schema.service_id].filter(Boolean).join(" / ")}
             </Typography>
           )}
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+            Updated {formatSchemaDate(schema.updated_at || schema.created_at)}
+          </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexShrink: 0 }}>
           <Chip label={schema.status || "active"} size="small" color="primary" variant="outlined" />
@@ -95,10 +90,17 @@ function SchemaCard({ schema, onEdit, index }: SchemaCardProps) {
             variant="contained"
             startIcon={<EditIcon fontSize="small" />}
             onClick={() => onEdit(schema)}
-            aria-label={`Edit schema for ${schema.form_name}`}
+            aria-label={`Edit template for ${schema.form_name}`}
           >
-            Edit schema
+            Edit
           </Button>
+          <IconButton
+            size="small"
+            aria-label={`Delete template for ${schema.form_name}`}
+            onClick={() => onDelete(schema)}
+          >
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
         </Box>
       </Box>
     </Box>
@@ -112,13 +114,17 @@ export default function FormSchemasPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [editor, setEditor] = useState<SchemaSummary | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SchemaSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const reload = useCallback(() => {
     setLoading(true);
     setError("");
-    fetchSchemas()
+    fetchFormSchemas()
       .then(setSchemas)
-      .catch((err) => setError(err.message ?? "Could not load form schemas."))
+      .catch((err) => setError(err.message ?? "Could not load form templates."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -145,36 +151,90 @@ export default function FormSchemasPage() {
     );
   }, [schemas, search]);
 
+  const fingerprintSet = useMemo(
+    () => new Set(schemas.map((s) => s.fingerprint)),
+    [schemas],
+  );
+
   const stats: StatTile[] = useMemo(
     () => [
       {
         id: "schemas",
         label: "Taught forms",
         value: schemas.length,
-        hint: "Saved form schemas that skip the quality gate pause",
+        hint: "Saved templates that skip the quality gate pause",
       },
       {
         id: "active",
         label: "Active",
         value: schemas.filter((s) => (s.status || "active") === "active").length,
-        hint: "Schemas currently used at extraction time",
+        hint: "Templates currently used at extraction time",
         tone: "positive",
       },
     ],
     [schemas],
   );
 
+  const toolbarActions: ToolbarAction[] = useMemo(
+    () => [
+      {
+        id: "add-template",
+        label: "Add template",
+        icon: <AddIcon fontSize="small" />,
+        variant: "primary",
+        onClick: () => setAddOpen(true),
+      },
+    ],
+    [],
+  );
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await deleteFormSchema(deleteTarget.fingerprint);
+      setDeleteTarget(null);
+      reload();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Box sx={{ p: 3, maxWidth: 900, mx: "auto" }} data-testid="form-schemas-page">
       <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Form schemas
+        Form templates
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Edit taught referral forms without waiting for a pipeline pause. Paste a
-        sample letter, fix sections and blood-test tables, then save.
+        Teach referral forms before they pause the pipeline. Add a template,
+        fix sections and blood-test tables, then save.
       </Typography>
 
       <StatHero stats={stats} />
+
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 2,
+        }}
+      >
+        <TextField
+          size="small"
+          placeholder="Search form templates..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ width: 320 }}
+          inputProps={{ "aria-label": "Search form templates" }}
+        />
+        <ToolbarActions actions={toolbarActions} />
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -182,36 +242,39 @@ export default function FormSchemasPage() {
         </Alert>
       )}
 
-      <TextField
-        size="small"
-        placeholder="Search form schemas..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 2, width: 320 }}
-        inputProps={{ "aria-label": "Search form schemas" }}
-      />
+      {deleteError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {deleteError}
+        </Alert>
+      )}
 
       {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
           <CircularProgress size={18} aria-label="Loading" role="status" />
-          <Typography variant="body2">Loading form schemas...</Typography>
+          <Typography variant="body2">Loading form templates...</Typography>
         </Box>
       )}
 
       {!loading && !error && schemas.length === 0 && (
-        <Alert severity="info">
-          No taught form schemas yet. Teach a form from a paused extraction
-          review, or save one through the API.
+        <Alert severity="info" sx={{ mb: 2 }}>
+          No form templates yet. Add one with a sample letter, or teach a form
+          from a paused extraction review.
         </Alert>
       )}
 
       {!loading && !error && schemas.length > 0 && visible.length === 0 && (
-        <Alert severity="info">No schemas match this search.</Alert>
+        <Alert severity="info">No templates match this search.</Alert>
       )}
 
       <Stack spacing={1.5}>
         {visible.map((schema, idx) => (
-          <SchemaCard key={schema.schema_id} schema={schema} onEdit={setEditor} index={idx} />
+          <SchemaCard
+            key={schema.schema_id}
+            schema={schema}
+            onEdit={setEditor}
+            onDelete={setDeleteTarget}
+            index={idx}
+          />
         ))}
       </Stack>
 
@@ -226,6 +289,46 @@ export default function FormSchemasPage() {
           onSaved={() => {
             setEditor(null);
             reload();
+          }}
+        />
+      ) : null}
+
+      {addOpen ? (
+        <FormSchemaAddDialog
+          open
+          existingFingerprints={fingerprintSet}
+          onClose={() => setAddOpen(false)}
+          onSaved={() => {
+            setAddOpen(false);
+            reload();
+          }}
+          onEditExisting={(fingerprint, formName) => {
+            setAddOpen(false);
+            setEditor({
+              schema_id: "",
+              fingerprint,
+              form_name: formName,
+              status: "active",
+              created_at: "",
+              updated_at: "",
+              organization_id: "",
+              service_id: "",
+            });
+          }}
+        />
+      ) : null}
+
+      {deleteTarget ? (
+        <ConfirmDialog
+          title="Delete this form template?"
+          body={`This removes "${deleteTarget.form_name}" (${deleteTarget.fingerprint}). Live referrals will pause again until you teach the form.`}
+          confirmLabel="Delete template"
+          variant="danger"
+          busy={deleting}
+          busyLabel="Deleting..."
+          onConfirm={() => void handleDelete()}
+          onCancel={() => {
+            if (!deleting) setDeleteTarget(null);
           }}
         />
       ) : null}

@@ -3,6 +3,7 @@
 GET  /form-schemas/{fingerprint}   -- load schema for a fingerprint (or null)
 PUT  /form-schemas/{fingerprint}   -- save / update schema
 GET  /form-schemas                 -- list all saved schemas
+POST /form-schemas/fingerprint     -- compute content fingerprint from sample text
 POST /form-schemas/detect          -- LLM auto-detect sections from form text
 
 Atlas trace:
@@ -34,6 +35,7 @@ from libs.pipeline.form_schema_template import (
     build_chunk_section_map,
     generate_normalised_template,
 )
+from libs.pipeline.document_quality import form_fingerprint
 from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS, SAVE_NORMALISED_TEMPLATE
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
@@ -128,6 +130,45 @@ def _schema_to_dict(schema: Any) -> dict[str, Any]:
     }
 
 
+@router.get("")
+def list_schemas(
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    client = PatientGraphClient()
+    try:
+        rows = client.run(LIST_FORM_SCHEMAS)
+        schemas = [
+            {
+                "schema_id": r["schema_id"],
+                "fingerprint": r["fingerprint"],
+                "form_name": r["form_name"],
+                "version": r["version"],
+                "status": r["status"],
+                "created_at": str(r.get("created_at") or ""),
+                "updated_at": str(r.get("updated_at") or ""),
+                "organization_id": r.get("organization_id") or "",
+                "service_id": r.get("service_id") or "",
+            }
+            for r in (rows or [])
+        ]
+    finally:
+        client.close()
+    return {"schemas": schemas}
+
+
+class FingerprintRequest(BaseModel):
+    text: str = Field(..., min_length=10)
+
+
+@router.post("/fingerprint")
+def compute_fingerprint(
+    body: FingerprintRequest,
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, str]:
+    """Return the content fingerprint for sample referral letter text."""
+    return {"fingerprint": form_fingerprint(body.text)}
+
+
 @router.get("/{fingerprint}")
 def get_schema(
     fingerprint: str,
@@ -189,7 +230,9 @@ def remove_schema(
 ) -> dict[str, Any]:
     fp = fingerprint.strip()
     if not fp or fp == "unknown":
-        raise HTTPException(status_code=422, detail="A valid form fingerprint is required.")
+        raise HTTPException(
+            status_code=422, detail="A valid form fingerprint is required."
+        )
     client = PatientGraphClient()
     try:
         deleted = delete_form_schema(client, fp)
@@ -198,31 +241,6 @@ def remove_schema(
     if not deleted:
         raise HTTPException(status_code=404, detail="Form schema not found.")
     return {"deleted": True, "fingerprint": fp}
-
-
-@router.get("")
-def list_schemas(
-    _session: dict = Depends(require_form_teacher),
-) -> dict[str, Any]:
-    client = PatientGraphClient()
-    try:
-        rows = client.run(LIST_FORM_SCHEMAS)
-        schemas = [
-            {
-                "schema_id": r["schema_id"],
-                "fingerprint": r["fingerprint"],
-                "form_name": r["form_name"],
-                "version": r["version"],
-                "status": r["status"],
-                "created_at": str(r.get("created_at") or ""),
-                "organization_id": r.get("organization_id") or "",
-                "service_id": r.get("service_id") or "",
-            }
-            for r in (rows or [])
-        ]
-    finally:
-        client.close()
-    return {"schemas": schemas}
 
 
 class GenerateTemplateRequest(BaseModel):

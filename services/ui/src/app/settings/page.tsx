@@ -80,9 +80,9 @@ const SETTINGS_CARDS: SettingsCard[] = [
   },
   {
     id: "form-schemas",
-    title: "Form schemas",
+    title: "Form templates",
     description:
-      "Edit taught referral forms (sections, checkboxes, blood-test tables) without waiting for a pipeline pause.",
+      "Teach referral forms before they pause the pipeline. Add, edit, or delete section and blood-test templates.",
     icon: <DescriptionOutlinedIcon sx={{ fontSize: 40, color: "primary.main" }} />,
     path: "/settings/form-schemas",
   },

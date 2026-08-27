@@ -407,3 +407,37 @@ def test_delete_schema_returns_404_when_missing(mock_delete):
     mock_delete.return_value = False
     resp = _client(_session("validation")).delete("/form-schemas/missing-fp")
     assert resp.status_code == 404
+
+
+@patch(
+    "app.routers.form_schema.form_fingerprint",
+    return_value="abc123def4567890",
+)
+def test_compute_fingerprint_returns_hash(mock_fp):
+    resp = _client(_session("validation")).post(
+        "/form-schemas/fingerprint",
+        json={"text": DETECT_BODY["text"]},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["fingerprint"] == "abc123def4567890"
+    mock_fp.assert_called_once_with(DETECT_BODY["text"])
+
+
+def test_compute_fingerprint_rejects_short_text():
+    resp = _client(_session("validation")).post(
+        "/form-schemas/fingerprint",
+        json={"text": "short"},
+    )
+    assert resp.status_code == 422
+
+
+@patch(
+    "app.routers.form_schema.form_fingerprint",
+    return_value="abc123def4567890",
+)
+def test_lms_learner_cannot_compute_fingerprint(_mock_fp):
+    resp = _client(_session("lms_learner")).post(
+        "/form-schemas/fingerprint",
+        json={"text": DETECT_BODY["text"]},
+    )
+    assert resp.status_code == 403

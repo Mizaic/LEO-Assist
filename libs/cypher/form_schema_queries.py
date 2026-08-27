@@ -106,6 +106,7 @@ RETURN s.schema_id AS schema_id,
        s.version AS version,
        s.status AS status,
        s.created_at AS created_at,
+       s.updated_at AS updated_at,
        s.organization_id AS organization_id,
        s.service_id AS service_id
 ORDER BY s.updated_at DESC
