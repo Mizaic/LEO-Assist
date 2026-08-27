@@ -198,7 +198,7 @@ jobs:
             BAD_URLS=$(az containerapp show \
               --name "$APP" \
               --resource-group leo-ai-dev \
-              --query "properties.template.containers[0].env[?(contains(name, '_URL') || contains(name, '_BASE') || contains(name, 'WORKER') || name=='CODING_MODEL_ENDPOINT') && contains(value, '.${ACA_DOMAIN}') && !contains(value, '.internal.${ACA_DOMAIN}')].[name,value]" \
+              --query "properties.template.containers[0].env[?(contains(name, '_URL') || contains(name, '_BASE') || contains(name, 'WORKER') || name=='CODING_MODEL_ENDPOINT') && value != null && contains(value, '.${ACA_DOMAIN}') && !contains(value, '.internal.${ACA_DOMAIN}')].[name,value]" \
               --output tsv)
             if [ -n "$BAD_URLS" ]; then
               echo "${APP} has non-internal ACA service URL envs:"
@@ -326,7 +326,7 @@ jobs:
             BAD_URLS=$(az containerapp show \
               --name "$APP" \
               --resource-group leo-ai-val \
-              --query "properties.template.containers[0].env[?(contains(name, '_URL') || contains(name, '_BASE') || contains(name, 'WORKER') || name=='CODING_MODEL_ENDPOINT') && contains(value, '.${ACA_DOMAIN}') && !contains(value, '.internal.${ACA_DOMAIN}')].[name,value]" \
+              --query "properties.template.containers[0].env[?(contains(name, '_URL') || contains(name, '_BASE') || contains(name, 'WORKER') || name=='CODING_MODEL_ENDPOINT') && value != null && contains(value, '.${ACA_DOMAIN}') && !contains(value, '.internal.${ACA_DOMAIN}')].[name,value]" \
               --output tsv)
             if [ -n "$BAD_URLS" ]; then
               echo "${APP} has non-internal ACA service URL envs:"
@@ -454,7 +454,7 @@ jobs:
             BAD_URLS=$(az containerapp show \
               --name "$APP" \
               --resource-group leo-ai-prod \
-              --query "properties.template.containers[0].env[?(contains(name, '_URL') || contains(name, '_BASE') || contains(name, 'WORKER') || name=='CODING_MODEL_ENDPOINT') && contains(value, '.${ACA_DOMAIN}') && !contains(value, '.internal.${ACA_DOMAIN}')].[name,value]" \
+              --query "properties.template.containers[0].env[?(contains(name, '_URL') || contains(name, '_BASE') || contains(name, 'WORKER') || name=='CODING_MODEL_ENDPOINT') && value != null && contains(value, '.${ACA_DOMAIN}') && !contains(value, '.internal.${ACA_DOMAIN}')].[name,value]" \
               --output tsv)
             if [ -n "$BAD_URLS" ]; then
               echo "${APP} has non-internal ACA service URL envs:"
