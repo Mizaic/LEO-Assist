@@ -58,6 +58,9 @@ SET
     s.sections_json    = $sections_json,
     s.organization_id  = $organization_id,
     s.service_id       = $service_id,
+    s.organization_name = $organization_name,
+    s.service_name     = $service_name,
+    s.organization_ods_code = $organization_ods_code,
     s.updated_at       = datetime(),
     s.created_by       = $created_by
 WITH s
@@ -86,7 +89,10 @@ RETURN s.schema_id AS schema_id,
        s.created_at AS created_at,
        s.created_by AS created_by,
        s.organization_id AS organization_id,
-       s.service_id AS service_id
+       s.service_id AS service_id,
+       s.organization_name AS organization_name,
+       s.service_name AS service_name,
+       s.organization_ods_code AS organization_ods_code
 """
 
 GET_FORM_SCHEMA_BY_FINGERPRINT = """
@@ -101,6 +107,9 @@ RETURN s.schema_id AS schema_id,
        s.created_by AS created_by,
        s.organization_id AS organization_id,
        s.service_id AS service_id,
+       s.organization_name AS organization_name,
+       s.service_name AS service_name,
+       s.organization_ods_code AS organization_ods_code,
        s.chunk_section_map AS chunk_section_map
 """
 
@@ -119,6 +128,9 @@ RETURN s.schema_id AS schema_id,
        s.created_by AS created_by,
        s.organization_id AS organization_id,
        s.service_id AS service_id,
+       s.organization_name AS organization_name,
+       s.service_name AS service_name,
+       s.organization_ods_code AS organization_ods_code,
        s.chunk_section_map AS chunk_section_map
 ORDER BY s.updated_at DESC
 LIMIT 1

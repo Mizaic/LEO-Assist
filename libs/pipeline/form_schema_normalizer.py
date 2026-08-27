@@ -108,6 +108,9 @@ class FormSchema:
     created_at: str = ""
     organization_id: str = ""
     service_id: str = ""
+    organization_name: str = ""
+    service_name: str = ""
+    organization_ods_code: str = ""
     chunk_section_map: list[dict[str, Any]] = field(default_factory=list)
 
 

@@ -159,6 +159,93 @@ export function resolveTeachFingerprint(raw: Record<string, unknown>): string {
   return fromApi;
 }
 
+export type TeachScopeIds = {
+  organizationId?: string;
+  serviceId?: string;
+};
+
+export type LoadedTeachSchema = {
+  form_name: string;
+  fingerprint?: string;
+  sections: FormSchemaSection[];
+};
+
+const FETCH_HDRS = { "X-Requested-With": "XMLHttpRequest" };
+
+export async function loadTaughtLibrarySchema(
+  fingerprint: string,
+  scope?: TeachScopeIds,
+): Promise<LoadedTeachSchema | null> {
+  const byScope = await loadSchemaByOrgService(scope);
+  if (byScope && savedSchemaBlocksAutoDetect(byScope.sections)) {
+    return byScope;
+  }
+  const byHash = await loadSchemaByFingerprint(fingerprint, scope);
+  if (byHash && savedSchemaBlocksAutoDetect(byHash.sections)) {
+    return byHash;
+  }
+  return byScope ?? byHash;
+}
+
+async function loadSchemaByOrgService(
+  scope?: TeachScopeIds,
+): Promise<LoadedTeachSchema | null> {
+  const org = (scope?.organizationId ?? "").trim();
+  const service = (scope?.serviceId ?? "").trim();
+  if (!org || !service) return null;
+  try {
+    const params = new URLSearchParams({
+      organization_id: org,
+      service_id: service,
+    });
+    const listRes = await fetch(`/api/form-schemas?${params.toString()}`, {
+      credentials: "include",
+      headers: FETCH_HDRS,
+    });
+    if (!listRes.ok) return null;
+    const list = (await listRes.json()) as {
+      schemas?: Array<{
+        fingerprint?: string;
+        organization_id?: string;
+        service_id?: string;
+      }>;
+    };
+    const match = (list.schemas ?? []).find(
+      (row) =>
+        (row.organization_id || "") === org && (row.service_id || "") === service,
+    );
+    const libraryFp = (match?.fingerprint || "").trim();
+    if (!libraryFp) return null;
+    return loadSchemaByFingerprint(libraryFp);
+  } catch {
+    return null;
+  }
+}
+
+async function loadSchemaByFingerprint(
+  fingerprint: string,
+  scope?: TeachScopeIds,
+): Promise<LoadedTeachSchema | null> {
+  const fp = fingerprint.trim();
+  if (!fp || fp === "unknown") return null;
+  try {
+    const params = new URLSearchParams();
+    if (scope?.organizationId) params.set("organization_id", scope.organizationId);
+    if (scope?.serviceId) params.set("service_id", scope.serviceId);
+    const query = params.toString();
+    const url = `/api/form-schemas/${encodeURIComponent(fp)}${query ? `?${query}` : ""}`;
+    const existing = await fetch(url, {
+      credentials: "include",
+      headers: FETCH_HDRS,
+    });
+    if (!existing.ok) return null;
+    const payload = (await existing.json()) as { schema: LoadedTeachSchema | null };
+    return payload.schema;
+  } catch {
+    return null;
+  }
+}
+
 export function emptyCompletenessGroup(kind = "mandatory"): CompletenessLogicGroup {
   return {
     name: "New rule",
@@ -179,6 +266,8 @@ export async function saveTaughtForm(args: {
   sections: FormSchemaSection[];
   organizationId: string;
   serviceId: string;
+  organizationName?: string;
+  serviceName?: string;
   completenessGroups: CompletenessLogicGroup[];
 }): Promise<void> {
   const fingerprint = args.fingerprint.trim();
@@ -201,6 +290,8 @@ export async function saveTaughtForm(args: {
       saved_by: "validation_lab",
       organization_id: args.organizationId,
       service_id: args.serviceId,
+      organization_name: args.organizationName ?? "",
+      service_name: args.serviceName ?? "",
       completeness_groups: args.completenessGroups,
     }),
   });

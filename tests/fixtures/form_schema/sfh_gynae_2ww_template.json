@@ -754,8 +754,11 @@
   ],
   "saved_by": "seed_sfh_gynae_2ww_template",
   "status": "active",
-  "organization_id": "sfh-nhs-trust",
-  "service_id": "sfh-gynae-2ww",
+  "organization_id": "RK5",
+  "service_id": "7980224",
+  "organization_ods_code": "RK5",
+  "organization_name": "Sherwood Forest Hospitals NHS Foundation Trust",
+  "service_name": "Sherwood - Gynaecology Urgent Suspected Cancer Pathway",
   "completeness_groups": [
     {
       "name": "cancer_type_required",

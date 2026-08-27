@@ -193,8 +193,8 @@ def test_build_document_chunk_state_writes_loaded_schema_key() -> None:
             )
         ],
         created_by="seed",
-        organization_id="sfh-nhs-trust",
-        service_id="sfh-gynae-2ww",
+        organization_id="RK5",
+        service_id="7980224",
     )
     client = MagicMock()
     client.run.side_effect = [
@@ -222,8 +222,8 @@ def test_build_document_chunk_state_writes_loaded_schema_key() -> None:
         ):
             state = build_document_chunk_state(
                 rows,
-                organization_id="sfh-nhs-trust",
-                service_id="sfh-gynae-2ww",
+                organization_id="RK5",
+                service_id="7980224",
             )
         assert state["form_schema_fingerprint"] == "sfh-gynae-2ww-v1"
         assert state["form_schema_match"] == "org_service"

@@ -1,3 +1,6 @@
+# EXCEPTION: file exceeds 500 because it declares the full SFH Gynae 2WW
+# template sections. Bind ids are not in this file; they live in the fixture.
+
 """Seed the SFH Gynaecology 2WW form schema template.
 
 Sends a PUT to /form-schemas/sfh-gynae-2ww-v1 with the fully-populated
@@ -498,8 +501,35 @@ def build_completeness_groups() -> list:
     ]
 
 
+_SCOPE_KEYS = (
+    "organization_id",
+    "service_id",
+    "organization_ods_code",
+    "organization_name",
+    "service_name",
+)
+
+
+def _scope_from_fixture() -> dict[str, str]:
+    """Read example org/service ids from the fixture, not from code constants."""
+    empty = {key: "" for key in _SCOPE_KEYS}
+    if not FIXTURE_PATH.exists():
+        return empty
+    with open(FIXTURE_PATH, encoding="ascii") as fh:
+        data = json.load(fh)
+    return {key: str(data.get(key) or "") for key in _SCOPE_KEYS}
+
+
 def build_payload() -> dict:
-    """Build the full SaveFormSchemaRequest payload."""
+    """Load the taught template. Bind ids come from the fixture file."""
+    if FIXTURE_PATH.exists():
+        with open(FIXTURE_PATH, encoding="ascii") as fh:
+            return json.load(fh)
+    return _built_template()
+
+
+def _built_template() -> dict:
+    """Rebuild section payload. Overlay bind ids from the fixture if present."""
     return {
         "form_name": (
             "Sherwood Forest Hospitals NHS Foundation Trust -- "
@@ -516,8 +546,7 @@ def build_payload() -> dict:
         ],
         "saved_by": "seed_sfh_gynae_2ww_template",
         "status": "active",
-        "organization_id": "sfh-nhs-trust",
-        "service_id": "sfh-gynae-2ww",
+        **_scope_from_fixture(),
         "completeness_groups": build_completeness_groups(),
     }
 
@@ -566,7 +595,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    payload = build_payload()
+    payload = _built_template()
     save_fixture(payload)
 
     if not args.fixture_only:

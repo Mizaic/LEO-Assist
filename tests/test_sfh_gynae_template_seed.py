@@ -10,6 +10,7 @@ Atlas trace: DI-5C9CA57B, DI-26546721
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -64,8 +65,37 @@ def sections_by_id(template: dict) -> dict:
 def test_fixture_loads(template: dict) -> None:
     assert template["form_name"], "form_name must not be empty"
     assert template["status"] == "active"
-    assert template["organization_id"] == "sfh-nhs-trust"
-    assert template["service_id"] == "sfh-gynae-2ww"
+    assert template["organization_id"] == "RK5"
+    assert template["service_id"] == "7980224"
+
+
+def test_runtime_seed_and_resolver_have_no_live_node_id_literals() -> None:
+    """RK5 / 7980224 are fixture example data, not production constants."""
+    repo = Path(__file__).parent.parent
+    runtime_files = (
+        repo / "scripts/seed_sfh_gynae_2ww_template.py",
+        repo / "libs/pipeline/form_schema_store.py",
+        repo / "services/api/app/routers/form_schema.py",
+        repo / "libs/pipeline_graph/subgraphs/extraction.py",
+    )
+    for path in runtime_files:
+        src = path.read_text(encoding="utf-8")
+        assert "RK5" not in src, f"{path.name} must not hardcode Organization.id"
+        assert "7980224" not in src, f"{path.name} must not hardcode Service.id"
+
+
+def test_build_payload_reads_scope_from_fixture(template: dict) -> None:
+    repo = Path(__file__).parent.parent
+    scripts_dir = repo / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from seed_sfh_gynae_2ww_template import build_payload
+
+    payload = build_payload()
+    assert payload["organization_id"] == template["organization_id"]
+    assert payload["service_id"] == template["service_id"]
+    assert payload["organization_name"] == template["organization_name"]
+    assert payload["service_name"] == template["service_name"]
 
 
 def test_section_count(template: dict) -> None:

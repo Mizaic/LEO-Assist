@@ -16,7 +16,6 @@ from libs.pipeline.form_schema_store import (
     reset_schema_cache,
 )
 
-
 SEEDED_FINGERPRINT = "sfh-gynae-2ww-v1"
 ORG_ID = "RK5"
 SERVICE_ID = "7980224"
@@ -303,8 +302,8 @@ def test_resolve_uses_ers_service_id_when_service_id_differs() -> None:
     assert schema.service_id == SERVICE_ID
 
 
-def test_merge_results_bypasses_gate_for_rk5_and_ers_service() -> None:
-    """Extract treats RK5 + 7980224 as a known taught form."""
+def test_merge_results_bypasses_gate_for_matching_org_and_service() -> None:
+    """Extract treats matching Organization.id + Service.id as a known form."""
     from libs.pipeline_graph.subgraphs.extraction import merge_results
 
     client = MagicMock()

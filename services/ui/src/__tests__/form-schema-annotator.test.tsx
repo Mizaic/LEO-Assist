@@ -64,6 +64,13 @@ describe("FormSchemaAnnotator.tsx static-source invariants", () => {
     expect(ANNOTATOR_SRC).toContain("LEO is reading the form");
   });
 
+  it("preloads a library schema and shows From library banner", () => {
+    expect(TEACH_SRC).toContain("From library:");
+    expect(TEACH_SRC).toContain("organization_id");
+    expect(TEACH_SRC).toContain("service_id");
+    expect(TEACH_SRC).toContain("libraryFingerprint");
+  });
+
   it("supports PUT to save schema", () => {
     expect(TEACH_SRC).toContain('"PUT"');
   });

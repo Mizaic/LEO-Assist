@@ -45,12 +45,19 @@ from libs.pipeline.blood_panel_presets import (
     unverified_preset_codes,
 )
 from libs.pipeline.document_chunk_loader import build_document_chunk_state
+from libs.pipeline.form_schema_request import (
+    build_sections_from_request,
+    filter_schema_summaries,
+    normalize_sections_for_request,
+    schema_summary_from_row,
+    schema_to_dict,
+)
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
-    build_sections_from_request,
     delete_form_schema,
     load_form_schema,
-    normalize_sections_for_request,
+    rebind_form_schema_ids,
+    resolve_form_schema_traced,
     save_form_schema,
 )
 from libs.pipeline.form_schema_template import (
@@ -70,8 +77,6 @@ from libs.pipeline.form_schema_similarity import (
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
 
-# Roles that may teach a paused extraction form. Platform admins bypass
-# via require_role. Do not widen this to any authenticated session.
 require_form_teacher = require_role(*FORM_TEACHER_ROLES)
 
 
@@ -120,70 +125,33 @@ class SaveFormSchemaRequest(BaseModel):
     status: str = "active"
     organization_id: str = ""
     service_id: str = ""
+    organization_name: str = ""
+    service_name: str = ""
     completeness_groups: list[CompletenessGroupRequest] = Field(default_factory=list)
 
 
-def _schema_to_dict(schema: Any) -> dict[str, Any]:
-    return {
-        "schema_id": schema.schema_id,
-        "fingerprint": schema.fingerprint,
-        "form_name": schema.form_name,
-        "version": schema.version,
-        "status": schema.status,
-        "sections": [
-            {
-                "section_id": s.section_id,
-                "section_type": s.section_type,
-                "label": s.label,
-                "start_pattern": s.start_pattern,
-                "semantic_tags": list(s.semantic_tags),
-                "items": [
-                    {
-                        "pattern": i.pattern,
-                        "entity_text": i.entity_text,
-                        "semantic_tag": i.semantic_tag,
-                        "assertion": i.assertion,
-                        "procedure_snomed": i.procedure_snomed,
-                        "procedure_display": i.procedure_display,
-                        "analytes": list(i.analytes),
-                        "value_placeholder": i.value_placeholder,
-                    }
-                    for i in s.items
-                ],
-            }
-            for s in schema.sections
-        ],
-        "created_at": schema.created_at,
-        "created_by": schema.created_by,
-        "organization_id": schema.organization_id,
-        "service_id": schema.service_id,
-    }
+_schema_to_dict = schema_to_dict
 
 
 @router.get("")
 def list_schemas(
+    organization_id: str = Query(""),
+    service_id: str = Query(""),
     _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
     client = PatientGraphClient()
     try:
         rows = client.run(LIST_FORM_SCHEMAS)
-        schemas = [
-            {
-                "schema_id": r["schema_id"],
-                "fingerprint": r["fingerprint"],
-                "form_name": r["form_name"],
-                "version": r["version"],
-                "status": r["status"],
-                "created_at": str(r.get("created_at") or ""),
-                "updated_at": str(r.get("updated_at") or ""),
-                "organization_id": r.get("organization_id") or "",
-                "service_id": r.get("service_id") or "",
-            }
-            for r in (rows or [])
-        ]
+        schemas = [schema_summary_from_row(r) for r in (rows or [])]
     finally:
         client.close()
-    return {"schemas": schemas}
+    return {
+        "schemas": filter_schema_summaries(
+            schemas,
+            organization_id=organization_id,
+            service_id=service_id,
+        )
+    }
 
 
 class FingerprintRequest(BaseModel):
@@ -273,11 +241,7 @@ def blood_panel_presets(
 def seed_defaults(
     _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
-    """Seed built-in form schema templates.
-
-    Writes the SFH Gynae 2WW schema if it does not already exist.
-    Returns seeded / skipped lists so callers can tell what changed.
-    """
+    """Seed built-in templates. Bind ids come from the fixture file."""
     client = PatientGraphClient()
     try:
         return _seed_sfh_gynae(client)
@@ -288,14 +252,11 @@ def seed_defaults(
 
 
 def _seed_sfh_gynae(client: Any) -> dict[str, Any]:
-    """Upsert the SFH Gynae 2WW schema; skip when it already exists."""
-    existing = load_form_schema(client, _SFH_GYNAE_FINGERPRINT)
-    if existing is not None:
-        return {"seeded": [], "skipped": [_SFH_GYNAE_FINGERPRINT]}
+    """Create the SFH Gynae 2WW schema, or rebind live Organization/Service ids."""
     payload = _build_sfh_gynae_payload()
     raw_sections = normalize_sections_for_request(payload["sections"])
     sections = build_sections_from_request(raw_sections)
-    save_form_schema(
+    action = rebind_form_schema_ids(
         client,
         FormSchemaWrite(
             fingerprint=_SFH_GYNAE_FINGERPRINT,
@@ -305,25 +266,42 @@ def _seed_sfh_gynae(client: Any) -> dict[str, Any]:
             status=payload.get("status") or "active",
             organization_id=payload.get("organization_id") or "",
             service_id=payload.get("service_id") or "",
+            organization_name=payload.get("organization_name") or "",
+            service_name=payload.get("service_name") or "",
+            organization_ods_code=payload.get("organization_ods_code") or "",
             completeness_groups=payload.get("completeness_groups") or [],
         ),
     )
-    return {"seeded": [_SFH_GYNAE_FINGERPRINT], "skipped": []}
+    empty: list[str] = []
+    return {
+        "seeded": [_SFH_GYNAE_FINGERPRINT] if action == "seeded" else empty,
+        "skipped": [_SFH_GYNAE_FINGERPRINT] if action == "skipped" else empty,
+        "updated": [_SFH_GYNAE_FINGERPRINT] if action == "updated" else empty,
+    }
 
 
 @router.get("/{fingerprint}")
 def get_schema(
     fingerprint: str,
+    organization_id: str = Query(""),
+    service_id: str = Query(""),
+    ers_service_id: str = Query(""),
     _session: dict = Depends(require_form_teacher),
 ) -> dict[str, Any]:
     client = PatientGraphClient()
     try:
-        schema = load_form_schema(client, fingerprint)
+        schema, match, _key, _label = resolve_form_schema_traced(
+            client,
+            fingerprint,
+            organization_id=organization_id,
+            service_id=service_id,
+            ers_service_id=ers_service_id,
+        )
     finally:
         client.close()
     if schema is None:
-        return {"schema": None}
-    return {"schema": _schema_to_dict(schema)}
+        return {"schema": None, "match": "none"}
+    return {"schema": _schema_to_dict(schema), "match": match}
 
 
 @router.put("/{fingerprint}")
@@ -353,6 +331,9 @@ def save_schema(
                 status=body.status,
                 organization_id=body.organization_id.strip(),
                 service_id=body.service_id.strip(),
+                organization_name=body.organization_name.strip(),
+                service_name=body.service_name.strip(),
+                organization_ods_code=body.organization_id.strip(),
                 completeness_groups=[g.model_dump() for g in body.completeness_groups],
             ),
         )

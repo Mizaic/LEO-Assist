@@ -13,17 +13,22 @@ import {
   detectFailureMessage,
   emptySection,
   isIncompleteSchema,
+  loadTaughtLibrarySchema,
   localDetectOrEmpty,
   savedSchemaBlocksAutoDetect,
+  type TeachScopeIds,
 } from "./formSchemaTeach";
 
 const FETCH_HDRS = { "X-Requested-With": "XMLHttpRequest" };
+
+export type TeachScope = TeachScopeIds;
 
 export function useFormSchemaTeach(
   fingerprint: string,
   sourceText: string,
   formName: string,
   onSaved?: () => void,
+  scope?: TeachScope,
 ) {
   const [sections, setSections] = useState<FormSchemaSection[]>([]);
   const [name, setName] = useState(formName);
@@ -31,15 +36,20 @@ export function useFormSchemaTeach(
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [libraryFingerprint, setLibraryFingerprint] = useState("");
 
   const loadOrDetect = useCallback(async () => {
     setLoading(true);
     setError("");
-    const saved = await loadSaved(fingerprint);
+    setLibraryFingerprint("");
+    const saved = await loadTaughtLibrarySchema(fingerprint, scope);
     if (saved && savedSchemaBlocksAutoDetect(saved.sections)) {
       setName(saved.form_name);
       setSections(saved.sections);
       setSaved(true);
+      if (saved.fingerprint && saved.fingerprint !== fingerprint) {
+        setLibraryFingerprint(saved.fingerprint);
+      }
       return;
     }
     if (saved) setName(saved.form_name);
@@ -53,7 +63,7 @@ export function useFormSchemaTeach(
       return;
     }
     setSections(next.length ? next : saved?.sections ?? []);
-  }, [fingerprint, sourceText]);
+  }, [fingerprint, sourceText, scope?.organizationId, scope?.serviceId]);
 
   const retryDetect = useCallback(async () => {
     setLoading(true);
@@ -85,6 +95,7 @@ export function useFormSchemaTeach(
     saving,
     error,
     saved,
+    libraryFingerprint,
     retryDetect,
   });
 }
@@ -103,6 +114,7 @@ function bindTeachActions(state: {
   saving: boolean;
   error: string;
   saved: boolean;
+  libraryFingerprint: string;
   retryDetect: () => Promise<void>;
 }) {
   return {
@@ -113,6 +125,7 @@ function bindTeachActions(state: {
     saving: state.saving,
     error: state.error,
     saved: state.saved,
+    libraryFingerprint: state.libraryFingerprint,
     setSaved: state.setSaved,
     retryDetect: state.retryDetect,
     addSection: () => {
@@ -249,24 +262,6 @@ async function saveSchema(args: {
     args.setError("Could not save the form schema. Try again.");
   } finally {
     args.setSaving(false);
-  }
-}
-
-async function loadSaved(
-  fingerprint: string,
-): Promise<{ form_name: string; sections: FormSchemaSection[] } | null> {
-  try {
-    const existing = await fetch(`/api/form-schemas/${fingerprint}`, {
-      credentials: "include",
-      headers: FETCH_HDRS,
-    });
-    if (!existing.ok) return null;
-    const payload = (await existing.json()) as {
-      schema: { form_name: string; sections: FormSchemaSection[] } | null;
-    };
-    return payload.schema;
-  } catch {
-    return null;
   }
 }
 

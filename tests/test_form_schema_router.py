@@ -131,13 +131,15 @@ def test_teacher_roles_are_canonical_reviewer_set():
     )
 
 
+@patch("app.routers.form_schema.PatientGraphClient", return_value=MagicMock())
 @patch("app.routers.form_schema.detect_form_sections", return_value=[])
-def test_validation_role_can_detect(mock_detect):
+def test_validation_role_can_detect(mock_detect, mock_pg):
+    mock_pg.return_value.run.return_value = []
     resp = _client(_session("validation")).post(
         "/form-schemas/detect", json=DETECT_BODY
     )
     assert resp.status_code == 200
-    assert resp.json() == {"sections": []}
+    assert resp.json() == {"sections": [], "borrowed_count": 0}
     mock_detect.assert_called_once()
 
 
@@ -494,3 +496,87 @@ def test_list_schemas_maps_rows(mock_pg):
 def test_lms_learner_cannot_list_schemas():
     resp = _client(_session("lms_learner")).get("/form-schemas")
     assert resp.status_code == 403
+
+
+def _list_row(fingerprint: str, organization_id: str, service_id: str) -> dict:
+    return {
+        "schema_id": f"s-{fingerprint}",
+        "fingerprint": fingerprint,
+        "form_name": fingerprint,
+        "version": 1,
+        "status": "active",
+        "created_at": None,
+        "updated_at": None,
+        "organization_id": organization_id,
+        "service_id": service_id,
+    }
+
+
+@patch("app.routers.form_schema.PatientGraphClient")
+def test_list_schemas_filters_by_org_and_service_ids(mock_pg):
+    """List must match Organization.id and Service.id from the caller."""
+    mock_pg.return_value.run.return_value = [
+        _list_row("form-a", "org-trust-x", "svc-clinic-y"),
+        _list_row("form-b", "org-other", "svc-other"),
+        _list_row("sfh-gynae-2ww-v1", "RK5", "7980224"),
+    ]
+    resp = _client(_session("validation")).get(
+        "/form-schemas",
+        params={"organization_id": "org-trust-x", "service_id": "svc-clinic-y"},
+    )
+    assert resp.status_code == 200
+    schemas = resp.json()["schemas"]
+    assert len(schemas) == 1
+    assert schemas[0]["fingerprint"] == "form-a"
+    assert schemas[0]["organization_id"] == "org-trust-x"
+    assert schemas[0]["service_id"] == "svc-clinic-y"
+
+
+@patch("app.routers.form_schema.PatientGraphClient")
+def test_list_schemas_filters_fixture_org_and_service(mock_pg):
+    """RK5 / 7980224 are test fixtures, not production constants."""
+    mock_pg.return_value.run.return_value = [
+        _list_row("form-a", "org-trust-x", "svc-clinic-y"),
+        _list_row("sfh-gynae-2ww-v1", "RK5", "7980224"),
+    ]
+    resp = _client(_session("validation")).get(
+        "/form-schemas",
+        params={"organization_id": "RK5", "service_id": "7980224"},
+    )
+    assert resp.status_code == 200
+    schemas = resp.json()["schemas"]
+    assert [row["fingerprint"] for row in schemas] == ["sfh-gynae-2ww-v1"]
+
+
+def test_list_schemas_source_has_no_hardcoded_trust_ids():
+    src = Path("services/api/app/routers/form_schema.py").read_text()
+    assert "organization_id: str = Query" in src
+    assert "service_id: str = Query" in src
+    assert "RK5" not in src
+    assert "7980224" not in src
+    assert "sfh-nhs-trust" not in src
+
+
+@patch("app.routers.form_schema.resolve_form_schema_traced")
+@patch("app.routers.form_schema.PatientGraphClient")
+def test_get_schema_resolves_by_live_org_and_service_ids(mock_pg, mock_resolve):
+    """GET uses Organization.id and Service.id after a letter-hash miss."""
+    seeded = _saved_schema()
+    seeded.organization_id = "RK5"
+    seeded.service_id = "7980224"
+    seeded.fingerprint = "sfh-gynae-2ww-v1"
+    mock_resolve.return_value = (seeded, "org_service", "sfh-gynae-2ww-v1", "Gynae 2WW")
+
+    resp = _client(_session("validation")).get(
+        "/form-schemas/abc123def4567890",
+        params={"organization_id": "RK5", "service_id": "7980224"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["match"] == "org_service"
+    assert body["schema"]["fingerprint"] == "sfh-gynae-2ww-v1"
+    assert body["schema"]["organization_id"] == "RK5"
+    assert body["schema"]["service_id"] == "7980224"
+    kwargs = mock_resolve.call_args.kwargs
+    assert kwargs["organization_id"] == "RK5"
+    assert kwargs["service_id"] == "7980224"

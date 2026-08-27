@@ -27,6 +27,7 @@ OPTIONAL MATCH (svc)-[:PROVIDES_SERVICE_FOR]->(org:Organization)
 OPTIONAL MATCH (svc)-[:USES_GUIDANCE]->(g)
 RETURN svc.id AS id,
        svc.name AS name,
+       coalesce(svc.ers_service_id, svc.id) AS ers_service_id,
        coalesce(svc.specialty, svc.clinicalType, '') AS specialty,
        svc.guideline_ids AS guideline_ids_prop,
        collect(DISTINCT g.id) AS guidance_ids,
@@ -52,6 +53,7 @@ class HealthcareServiceScope:
     spoa_id: str | None = None
     organization_id: str | None = None
     organization_name: str | None = None
+    ers_service_id: str | None = None
 
 
 def _normalise_guideline_ids(raw: Any) -> list[str]:
@@ -97,6 +99,7 @@ def _row_to_scope(row: dict[str, Any]) -> HealthcareServiceScope | None:
         spoa_id=str(row.get("spoa_id") or "").strip() or None,
         organization_id=str(row.get("organization_id") or "").strip() or None,
         organization_name=str(row.get("organization_name") or "").strip() or None,
+        ers_service_id=str(row.get("ers_service_id") or "").strip() or None,
     )
 
 
@@ -143,6 +146,8 @@ def apply_healthcare_service_scope(
 
     state["healthcare_service_id"] = service.id
     state["healthcare_service_name"] = service.name
+    if service.ers_service_id:
+        state["healthcare_service_ers_id"] = service.ers_service_id
     state["healthcare_service_specialty"] = service.specialty
     state["healthcare_service_spoa_id"] = service.spoa_id
     state["healthcare_service_missing"] = False

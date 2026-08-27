@@ -60,7 +60,10 @@ export default function FormSchemaAnnotator({
   initialOrganizationName = "",
   initialServiceName = "",
 }: Props) {
-  const teach = useFormSchemaTeach(fingerprint, sourceText, formName, onSaved);
+  const teach = useFormSchemaTeach(fingerprint, sourceText, formName, onSaved, {
+    organizationId: initialOrganizationId,
+    serviceId: initialServiceId,
+  });
   const [organizationId, setOrganizationId] = useState(initialOrganizationId);
   const [serviceId, setServiceId] = useState(initialServiceId);
   const scopeLocked = Boolean(initialOrganizationId || initialServiceId);
@@ -126,6 +129,8 @@ export default function FormSchemaAnnotator({
         sections: teach.sections,
         organizationId,
         serviceId,
+        organizationName: initialOrganizationName,
+        serviceName: initialServiceName,
         completenessGroups: groups,
       });
       teach.setSaved(true);
@@ -176,6 +181,7 @@ export default function FormSchemaAnnotator({
         serviceId={serviceId}
         organizationName={initialOrganizationName}
         serviceName={initialServiceName}
+        libraryFingerprint={teach.libraryFingerprint}
         locked={scopeLocked}
         onName={(value) => {
           teach.setName(value);
@@ -276,6 +282,7 @@ function TeachHeader({
   serviceId,
   organizationName,
   serviceName,
+  libraryFingerprint,
   locked,
   onName,
   onOrganization,
@@ -286,6 +293,7 @@ function TeachHeader({
   serviceId: string;
   organizationName?: string;
   serviceName?: string;
+  libraryFingerprint?: string;
   locked?: boolean;
   onName: (value: string) => void;
   onOrganization: (id: string) => void;
@@ -302,6 +310,11 @@ function TeachHeader({
       <Typography variant="caption" color="text.secondary">
         Confirm the sections below. When you save, this form will never pause again.
       </Typography>
+      {libraryFingerprint ? (
+        <Typography variant="caption" color="primary.main" sx={{ display: "block", mt: 0.5 }}>
+          From library: {libraryFingerprint}
+        </Typography>
+      ) : null}
       <TextField
         label="Form name"
         value={name}
