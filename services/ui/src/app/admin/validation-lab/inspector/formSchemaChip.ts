@@ -1,7 +1,7 @@
 /**
  * Form-schema chip helpers for Validation Lab INPUT KEYS.
  *
- * Atlas: DI-FE423B8D / DO-158BE606
+ * Atlas trace: DI-FE423B8D / DO-158BE606
  */
 
 export const FORM_SCHEMA_CHIP_KEYS = new Set([
