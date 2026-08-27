@@ -186,7 +186,7 @@ def test_review_detail_includes_org_and_service_from_pipeline_state() -> None:
 
 
 def test_review_detail_org_and_service_default_to_empty_when_absent() -> None:
-    """If the pipeline state has no service scope, defaults are empty strings."""
+    """If both state and graph have no service scope, defaults are empty strings."""
     task = persist_extraction_review_task(_req())
     client = MagicMock()
     client.run.return_value = [task]
@@ -195,6 +195,57 @@ def test_review_detail_org_and_service_default_to_empty_when_absent() -> None:
     detail = load_extraction_review_detail(client, task["task_id"], store=store)
     assert detail["organization_id"] == ""
     assert detail["service_id"] == ""
+
+
+def test_review_detail_falls_back_to_graph_when_state_lacks_org_service() -> None:
+    """When accumulated state has no service scope, the detail falls back to the
+    PipelineRun->ReferralRequest graph path to populate org and service IDs."""
+    from libs.cypher.extraction_review_queries import GET_RUN_ORG_SERVICE_IDS
+
+    task = persist_extraction_review_task(_req())
+    task_id = task["task_id"]
+
+    graph_row = {"organization_id": "org-graph-1", "service_id": "svc-graph-gynaecology"}
+
+    def _run(query, **_kwargs):
+        if query == GET_RUN_ORG_SERVICE_IDS:
+            return [graph_row]
+        return [task]
+
+    client = MagicMock()
+    client.run.side_effect = _run
+    store = MagicMock()
+    store.load_accumulated_state.return_value = {"encounter_text": "Referral letter"}
+    detail = load_extraction_review_detail(client, task_id, store=store)
+    assert detail["organization_id"] == "org-graph-1"
+    assert detail["service_id"] == "svc-graph-gynaecology"
+
+
+def test_review_detail_graph_fallback_not_called_when_state_has_both_ids() -> None:
+    """When state already has both IDs, the graph fallback query is not called."""
+    from libs.cypher.extraction_review_queries import GET_RUN_ORG_SERVICE_IDS
+
+    task = persist_extraction_review_task(_req())
+    task_id = task["task_id"]
+    fallback_calls: list[str] = []
+
+    def _run(query, **_kwargs):
+        if query == GET_RUN_ORG_SERVICE_IDS:
+            fallback_calls.append("called")
+        return [task]
+
+    client = MagicMock()
+    client.run.side_effect = _run
+    store = MagicMock()
+    store.load_accumulated_state.return_value = {
+        "encounter_text": "Letter",
+        "healthcare_service_org_id": "org-from-state",
+        "healthcare_service_id": "svc-from-state",
+    }
+    detail = load_extraction_review_detail(client, task_id, store=store)
+    assert detail["organization_id"] == "org-from-state"
+    assert detail["service_id"] == "svc-from-state"
+    assert fallback_calls == [], "graph fallback must not be called when state is complete"
 
 
 def test_generic_hitl_resolve_does_not_unlock_extraction_review() -> None:

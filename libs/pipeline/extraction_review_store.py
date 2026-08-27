@@ -18,6 +18,7 @@ from libs.cypher.extraction_review_queries import (
     CREATE_EXTRACTION_REVIEW_TASK,
     GET_EXTRACTION_REVIEW_TASK,
     GET_REVIEW_IDENTIFIERS,
+    GET_RUN_ORG_SERVICE_IDS,
     RESOLVE_EXTRACTION_REVIEW_TASK,
     UNLOCK_PAUSED_EXTRACTION_STAGE,
 )
@@ -217,9 +218,16 @@ def load_extraction_review_detail(
         graph_nhs_number=graph_nhs,
         graph_ubrn=graph_ubrn,
     )
+    run_id = task.get("run_id") or ""
+    organization_id = str((state or {}).get("healthcare_service_org_id") or "")
+    service_id = str((state or {}).get("healthcare_service_id") or "")
+    if not organization_id or not service_id:
+        org_svc = _load_org_service_from_graph(client, run_id)
+        organization_id = organization_id or org_svc.get("organization_id") or ""
+        service_id = service_id or org_svc.get("service_id") or ""
     return {
         "task_id": task.get("task_id") or task_id,
-        "run_id": task.get("run_id") or "",
+        "run_id": run_id,
         "patient_id": task.get("patient_id") or "",
         "status": task.get("status") or "",
         "reason": task.get("reason") or "",
@@ -228,8 +236,23 @@ def load_extraction_review_detail(
         "source_text": letter,
         "nhs_number": format_nhs_number(ids.nhs_number),
         "ubrn": format_ubrn(ids.ubrn),
-        "organization_id": str((state or {}).get("healthcare_service_org_id") or ""),
-        "service_id": str((state or {}).get("healthcare_service_id") or ""),
+        "organization_id": str(organization_id),
+        "service_id": str(service_id),
+    }
+
+
+def _load_org_service_from_graph(client: Any, run_id: str) -> dict[str, str]:
+    """Fetch org and service IDs via PipelineRun -> ReferralRequest graph path.
+
+    Used as a fallback when accumulated pipeline state lacks these fields.
+    """
+    if not run_id:
+        return {}
+    rows = client.run(GET_RUN_ORG_SERVICE_IDS, run_id=run_id)
+    row = (rows or [{}])[0] or {}
+    return {
+        "organization_id": str(row.get("organization_id") or ""),
+        "service_id": str(row.get("service_id") or ""),
     }
 
 
