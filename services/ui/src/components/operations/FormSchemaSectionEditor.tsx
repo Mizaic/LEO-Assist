@@ -40,6 +40,19 @@ export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
   template_noise: "Template guidance text (skip)",
 };
 
+// SNOMED semantic tag inferred from section type. Read-only -- not editable.
+export const SECTION_TYPE_SNOMED_TAG: Record<SectionType, string> = {
+  checkbox_single: "Situation",
+  checkbox_yesno: "Finding",
+  checkbox_multi: "Finding",
+  free_text: "Finding",
+  scale: "Observable",
+  ordered_tests: "Procedure",
+  observable: "Observable",
+  admin: "None",
+  template_noise: "None",
+};
+
 const ITEM_SECTION_TYPES: SectionType[] = [
   "checkbox_single",
   "checkbox_yesno",
@@ -121,6 +134,17 @@ export function FormSchemaSectionEditor({
             </MenuItem>
           ))}
         </Select>
+        <Tooltip title="SNOMED semantic tag inferred from section type">
+          <Chip
+            label={`SNOMED: ${SECTION_TYPE_SNOMED_TAG[section.section_type]}`}
+            size="small"
+            variant="outlined"
+            color="secondary"
+            aria-label={`SNOMED tag: ${SECTION_TYPE_SNOMED_TAG[section.section_type]}`}
+            sx={{ fontSize: "0.7rem", flexShrink: 0 }}
+            data-testid="snomed-tag-chip"
+          />
+        </Tooltip>
         {onRemoveSection ? (
           confirmDelete ? (
             <Stack direction="row" alignItems="center" gap={0.5} sx={{ flexShrink: 0 }}>

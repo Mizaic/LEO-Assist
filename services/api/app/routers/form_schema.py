@@ -28,7 +28,10 @@ from libs.pipeline.form_schema_store import (
     load_form_schema,
     save_form_schema,
 )
-from libs.pipeline.form_schema_template import generate_normalised_template
+from libs.pipeline.form_schema_template import (
+    build_chunk_section_map,
+    generate_normalised_template,
+)
 from libs.cypher.form_schema_queries import LIST_FORM_SCHEMAS, SAVE_NORMALISED_TEMPLATE
 
 router = APIRouter(prefix="/form-schemas", tags=["form-schemas"])
@@ -190,8 +193,11 @@ def generate_template(
 ) -> dict[str, Any]:
     """Generate a de-identified form template and persist it on the schema.
 
-    Returns the normalised_template string for display in the UI.
+    Returns the normalised_template string and chunk_section_map for display
+    in the UI and runtime use in the normaliser.
     """
+    import json as _json
+
     client = PatientGraphClient()
     try:
         schema = load_form_schema(client, fingerprint)
@@ -200,20 +206,26 @@ def generate_template(
                 status_code=404,
                 detail="Schema not found. Save the form schema first.",
             )
-        template = generate_normalised_template(
-            body.text,
-            [
-                {
-                    "section_id": s.section_id,
-                    "section_type": s.section_type,
-                    "start_pattern": s.start_pattern,
-                }
-                for s in schema.sections
-            ],
-        )
+        section_dicts = [
+            {
+                "section_id": s.section_id,
+                "section_type": s.section_type,
+                "start_pattern": s.start_pattern,
+            }
+            for s in schema.sections
+        ]
+        template = generate_normalised_template(body.text, section_dicts)
+        chunks = body.text.split("\n\n")
+        chunk_section_map = build_chunk_section_map(chunks, section_dicts)
         client.run(
             SAVE_NORMALISED_TEMPLATE,
-            {"fingerprint": fingerprint, "normalised_template": template},
+            {
+                "fingerprint": fingerprint,
+                "normalised_template": template,
+                "chunk_section_map": _json.dumps(
+                    chunk_section_map, ensure_ascii=True
+                ),
+            },
         )
     except HTTPException:
         raise
@@ -221,7 +233,10 @@ def generate_template(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         client.close()
-    return {"normalised_template": template}
+    return {
+        "normalised_template": template,
+        "chunk_section_map": chunk_section_map,
+    }
 
 
 class DetectFormRequest(BaseModel):

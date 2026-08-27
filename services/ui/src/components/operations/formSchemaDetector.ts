@@ -37,6 +37,7 @@ export interface FormSchemaSection {
   label: string;
   start_pattern: string;
   items: FormSchemaItem[];
+  semantic_tag?: string;
 }
 
 export { detectFormName } from "./formSchemaDetectExtras";

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
 
@@ -28,7 +28,21 @@ SectionType = Literal[
     "ordered_tests",
     "admin",
     "template_noise",
+    "observable",
 ]
+
+# Default SNOMED semantic tag for each section type archetype.
+SECTION_TYPE_SEMANTIC_TAG: dict[str, str] = {
+    "admin": "none",
+    "template_noise": "none",
+    "checkbox_single": "situation",
+    "checkbox_yesno": "finding",
+    "checkbox_multi": "finding",
+    "free_text": "finding",
+    "scale": "observable",
+    "ordered_tests": "procedure",
+    "observable": "observable",
+}
 
 _CHECKED_RE = re.compile(r"\[(?:X|x|\*|YES|yes)\]|\((?:X|x)\)")
 _UNCHECKED_RE = re.compile(r"\[\s*\]|\(\s*\)")
@@ -55,6 +69,7 @@ class FormSection:
     label: str
     start_pattern: str
     items: list[FormSchemaItem] = field(default_factory=list)
+    semantic_tag: str = "finding"
 
     def matches_header(self, line: str) -> bool:
         return bool(re.search(self.start_pattern, line, re.IGNORECASE))
@@ -74,6 +89,7 @@ class FormSchema:
     created_at: str = ""
     organization_id: str = ""
     service_id: str = ""
+    chunk_section_map: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _mark(line: str) -> str:
@@ -206,3 +222,53 @@ def _find_matching_section(
         if section.matches_header(line):
             return section
     return None
+
+
+def normalise_with_schema(
+    schema: FormSchema,
+    chunks: list[str],
+    chunk_section_map: list[dict[str, Any]] | None = None,
+) -> str:
+    """Normalise ``chunks`` using ``schema``, optionally guided by a map.
+
+    When ``chunk_section_map`` is provided (and non-empty), each chunk is
+    routed to its mapped section directly. Falls back to ``apply_schema_to_text``
+    on the joined chunks when the map is absent or empty.
+
+    Args:
+        schema: The FormSchema with section rules.
+        chunks: List of text chunks (one per document segment).
+        chunk_section_map: Optional list of {chunk_idx, section_id} dicts.
+
+    Returns:
+        Normalised text with schema rules applied.
+    """
+    if not chunk_section_map:
+        return apply_schema_to_text("\n".join(chunks), schema)
+    return _apply_chunk_map(schema, chunks, chunk_section_map)
+
+
+def _apply_chunk_map(
+    schema: FormSchema,
+    chunks: list[str],
+    chunk_section_map: list[dict[str, Any]],
+) -> str:
+    """Route each chunk to its mapped section and apply section rules."""
+    section_by_id = {s.section_id: s for s in schema.sections}
+    idx_to_sid = {
+        entry["chunk_idx"]: entry["section_id"] for entry in chunk_section_map
+    }
+    parts: list[str] = []
+    for idx, chunk in enumerate(chunks):
+        section_id = idx_to_sid.get(idx)
+        if section_id is None:
+            parts.append(chunk)
+            continue
+        section = section_by_id.get(section_id)
+        if section is None:
+            parts.append(chunk)
+            continue
+        lines = chunk.splitlines()
+        processed = _process_section_lines(lines, section)
+        parts.append("\n".join(processed))
+    return "\n\n".join(parts)

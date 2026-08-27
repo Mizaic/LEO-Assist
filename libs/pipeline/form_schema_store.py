@@ -61,6 +61,10 @@ def get_cached_schema(fingerprint: str) -> FormSchema | None:
 def _record_to_schema(record: dict[str, Any]) -> FormSchema:
     raw_sections: list[dict[str, Any]] = json.loads(record.get("sections_json") or "[]")
     sections = [_dict_to_section(s) for s in raw_sections]
+    raw_map = record.get("chunk_section_map") or "[]"
+    chunk_section_map: list[dict[str, Any]] = (
+        json.loads(raw_map) if isinstance(raw_map, str) else []
+    )
     return FormSchema(
         schema_id=record.get("schema_id") or "",
         fingerprint=record.get("fingerprint") or "",
@@ -72,6 +76,7 @@ def _record_to_schema(record: dict[str, Any]) -> FormSchema:
         created_at=str(record.get("created_at") or ""),
         organization_id=record.get("organization_id") or "",
         service_id=record.get("service_id") or "",
+        chunk_section_map=chunk_section_map,
     )
 
 
@@ -83,6 +88,7 @@ def _dict_to_section(raw: dict[str, Any]) -> FormSection:
         label=raw.get("label") or "",
         start_pattern=raw.get("start_pattern") or "",
         items=items,
+        semantic_tag=raw.get("semantic_tag") or "finding",
     )
 
 
@@ -102,6 +108,7 @@ def _schema_to_sections_json(schema: FormSchema) -> str:
             "section_type": s.section_type,
             "label": s.label,
             "start_pattern": s.start_pattern,
+            "semantic_tag": s.semantic_tag,
             "items": [
                 {
                     "pattern": i.pattern,

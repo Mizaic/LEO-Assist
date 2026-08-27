@@ -51,30 +51,35 @@ as a guide. Unknown forms use the same structural vocabulary.
   1. admin_skip
      What it is: Administrative fields that add no clinical value for coding.
      Always classify as: admin (skip)
+     default_semantic_tag: none
      Heading examples: "Patient Details", "GP Details", "Practice Address",
        "Trust Use Only", "For Hospital Use"
 
   2. cancer_type_select
      What it is: Tick-boxes where the referrer picks ONE suspected cancer site.
      Always classify as: checkbox_single
+     default_semantic_tag: situation
      Heading examples: "Suspected Cancer Site", "Type of Cancer Suspected",
        "Please tick the most appropriate cancer type"
 
   3. referral_criteria
      What it is: Numbered NICE or local criteria, each with a Yes/No response.
      Always classify as: checkbox_yesno
+     default_semantic_tag: finding
      Heading examples: "Referral Criteria", "B1", "B2", "Criterion A",
        "Does the patient have...", "Please check the relevant box"
 
   4. primary_care_pathway
      What it is: Conditional pathway flags; all criteria must be met.
      Always classify as: checkbox_yesno
+     default_semantic_tag: finding
      Heading examples: "Primary Care Management Based (PMB) Pathway",
        "Before referring, confirm ALL of the following", "Primary Pathway"
 
   5. patient_awareness_consent
      What it is: Consent, availability, and awareness checks.
      Always classify as: checkbox_yesno
+     default_semantic_tag: situation
      Heading examples: "Patient Awareness", "Patient Information",
        "Is your patient aware", "Date(s) patient unable to attend",
        "Is patient fit for day case investigation?"
@@ -82,6 +87,7 @@ as a guide. Unknown forms use the same structural vocabulary.
   6. clinical_narrative
      What it is: Free-text clinical history and examination findings.
      Always classify as: free_text
+     default_semantic_tag: finding
      Heading examples: "Reasons for Referral", "Clinical History",
        "Clinical Summary", "Presenting Symptoms", "Examination Findings",
        "Significant past and current medical history"
@@ -89,30 +95,35 @@ as a guide. Unknown forms use the same structural vocabulary.
   7. medications_allergies
      What it is: Current medications list and allergy record.
      Always classify as: free_text
+     default_semantic_tag: substance
      Heading examples: "Current Medication", "Medications", "Allergies",
        "Is patient on any of the following medications?"
 
   8. investigations_ordered
      What it is: Tests the GP must order or has already ordered.
      Always classify as: ordered_tests
+     default_semantic_tag: procedure
      Heading examples: "Blood Tests", "Investigations", "FBC, U&Es",
        "FIT Value", "Pathology & Radiology Reports", "Recent blood results"
 
   9. performance_frailty_scale
      What it is: A scored scale with one selection (ECOG or CFS).
      Always classify as: scale
+     default_semantic_tag: observable
      Heading examples: "Performance Status", "ECOG Performance Status",
        "Clinical Frailty Scale", "Please tick as appropriate"
 
   10. minimum_dataset_vitals
       What it is: Measured clinical values entered by the referrer.
       Always classify as: observable
+      default_semantic_tag: observable
       Heading examples: "Minimum Dataset", "Vitals", "BMI", "Blood Pressure",
         "Height", "Weight", "Heart Rate"
 
   11. blood_results_table
       What it is: Blank result stubs for the GP to fill in (not orders).
       Always classify as: ordered_tests
+      default_semantic_tag: procedure
       Heading examples: "Blood Results", "Lab Results", "FBC result",
         "eGFR", "Hb", "MCV", "Ferritin"
 
@@ -153,12 +164,14 @@ _OUTPUT_SCHEMA: dict[str, Any] = {
                     "section_type",
                     "start_pattern",
                     "items",
+                    "default_semantic_tag",
                 ],
                 "properties": {
                     "section_id": {"type": "string"},
                     "label": {"type": "string"},
                     "section_type": {"type": "string"},
                     "start_pattern": {"type": "string"},
+                    "default_semantic_tag": {"type": "string"},
                     "items": {
                         "type": "array",
                         "items": {
@@ -254,6 +267,7 @@ def _validate_section(raw: dict[str, Any]) -> dict[str, Any]:
         "label": str(raw.get("label", "")),
         "section_type": str(raw.get("section_type", "free_text")),
         "start_pattern": str(raw.get("start_pattern", "")),
+        "default_semantic_tag": str(raw.get("default_semantic_tag", "finding")),
         "items": [
             _validate_item(i) for i in raw.get("items", []) if isinstance(i, dict)
         ],

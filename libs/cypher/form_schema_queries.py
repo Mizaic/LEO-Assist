@@ -39,6 +39,7 @@ FORM_SCHEMA_CONSTRAINTS = [
 SAVE_NORMALISED_TEMPLATE = """
 MATCH (s:FormSchema {fingerprint: $fingerprint})
 SET s.normalised_template = $normalised_template,
+    s.chunk_section_map   = $chunk_section_map,
     s.updated_at          = datetime()
 RETURN s.schema_id AS schema_id
 """
@@ -93,7 +94,8 @@ RETURN s.schema_id AS schema_id,
        s.created_at AS created_at,
        s.created_by AS created_by,
        s.organization_id AS organization_id,
-       s.service_id AS service_id
+       s.service_id AS service_id,
+       s.chunk_section_map AS chunk_section_map
 """
 
 LIST_FORM_SCHEMAS = """

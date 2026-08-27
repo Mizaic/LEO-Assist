@@ -148,3 +148,70 @@ def _replace_demographics(line: str) -> str:
     line = _NHS_RE.sub(_T_NHS, line)
     line = _DOB_RE.sub(_T_DOB, line)
     return line
+
+
+# ---------------------------------------------------------------------------
+# Chunk-to-section mapping
+# ---------------------------------------------------------------------------
+
+_CHUNK_SEPARATOR = "\n\n"
+
+
+def build_chunk_section_map(
+    chunks: list[str],
+    sections: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Build a {chunk_idx, section_id} map by scanning section start patterns.
+
+    Walks ``chunks`` in order. When a chunk matches a section's
+    ``start_pattern``, that section becomes active. Every subsequent chunk
+    (until the next section match) is assigned to the same section.
+
+    Args:
+        chunks: List of text segments from the raw letter.
+        sections: Section dicts -- each must have ``section_id`` and
+            ``start_pattern`` keys.
+
+    Returns:
+        List of ``{chunk_idx: int, section_id: str}`` dicts for every chunk
+        that belongs to a known section. Chunks before the first section
+        header are excluded.
+    """
+    compiled = _compile_section_patterns(sections)
+    if not compiled:
+        return []
+    result: list[dict[str, Any]] = []
+    current_section_id: str | None = None
+    for idx, chunk in enumerate(chunks):
+        matched = _match_first_section(chunk, compiled)
+        if matched is not None:
+            current_section_id = matched
+        if current_section_id is not None:
+            result.append({"chunk_idx": idx, "section_id": current_section_id})
+    return result
+
+
+def _compile_section_patterns(
+    sections: list[dict[str, Any]],
+) -> list[tuple[re.Pattern[str], str]]:
+    result: list[tuple[re.Pattern[str], str]] = []
+    for s in sections:
+        raw = s.get("start_pattern") or ""
+        sid = s.get("section_id") or ""
+        if not raw or not sid:
+            continue
+        try:
+            result.append((re.compile(raw, re.IGNORECASE), sid))
+        except re.error:
+            pass
+    return result
+
+
+def _match_first_section(
+    chunk: str,
+    compiled: list[tuple[re.Pattern[str], str]],
+) -> str | None:
+    for pat, sid in compiled:
+        if pat.search(chunk):
+            return sid
+    return None
