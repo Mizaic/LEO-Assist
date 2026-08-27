@@ -219,11 +219,18 @@ export default function CompletenessDomainsPage() {
 
   const stats: StatTile[] = useMemo(
     () => [
-      { label: "Domains", value: domains.length, icon: "Domains" },
       {
+        id: "domains",
+        label: "Domains",
+        value: domains.length,
+        hint: "All service domains with a completeness schema",
+      },
+      {
+        id: "with-rules",
         label: "With rules",
         value: domains.filter((d) => d.completeness_groups.length > 0).length,
-        icon: "Active",
+        hint: "Domains that already have minimum-dataset groups",
+        tone: "positive",
       },
     ],
     [domains]
