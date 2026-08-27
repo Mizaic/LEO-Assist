@@ -370,3 +370,172 @@ def test_merge_results_writes_none_when_schema_misses() -> None:
     assert out["form_schema_fingerprint"] == "none"
     assert out["form_schema_match"] == "none"
     assert out["form_schema_label"] == ""
+
+
+def test_form_schema_state_fields_rejects_match_without_fingerprint() -> None:
+    from libs.pipeline.form_schema_store import form_schema_state_fields
+
+    fields = form_schema_state_fields("org_service", "none", "SFH Gynae 2WW")
+    assert fields == {
+        "form_schema_fingerprint": "none",
+        "form_schema_match": "none",
+        "form_schema_label": "",
+    }
+
+
+def test_form_schema_fields_from_state_re_resolves_orphan_match() -> None:
+    from libs.pipeline.form_schema_store import form_schema_fields_from_state
+
+    client = MagicMock()
+    client.run.side_effect = [[], [_row(_seeded_schema())]]
+
+    from unittest.mock import patch
+
+    with patch(
+        "libs.neo4j_client.client.PatientGraphClient",
+        return_value=client,
+    ):
+        fields = form_schema_fields_from_state(
+            {
+                "form_schema_fingerprint": "none",
+                "form_schema_match": "org_service",
+                "form_schema_label": "",
+            },
+            LETTER,
+            organization_id=ORG_ID,
+            service_id=SERVICE_ID,
+        )
+
+    assert fields["form_schema_fingerprint"] == SEEDED_FINGERPRINT
+    assert fields["form_schema_match"] == "org_service"
+    assert fields["form_schema_label"] == "SFH Gynae 2WW"
+
+
+def test_resolve_form_schema_traced_rejects_empty_fingerprint_on_org_hit() -> None:
+    from libs.pipeline.form_schema_store import resolve_form_schema_traced
+
+    letter_hash = form_fingerprint(LETTER)
+    broken = _seeded_schema()
+    broken = FormSchema(
+        schema_id=broken.schema_id,
+        fingerprint="",
+        form_name=broken.form_name,
+        sections=broken.sections,
+        created_by=broken.created_by,
+        organization_id=broken.organization_id,
+        service_id=broken.service_id,
+    )
+    client = MagicMock()
+    client.run.side_effect = [[], [_row(broken)]]
+
+    schema, match, loaded_key, label = resolve_form_schema_traced(
+        client,
+        letter_hash,
+        organization_id=ORG_ID,
+        service_id=SERVICE_ID,
+    )
+    assert schema is None
+    assert match == "none"
+    assert loaded_key == "none"
+    assert label == ""
+
+
+def test_load_document_chunks_resolves_sfh_gynae_by_healthcare_service_ids() -> None:
+    """RK5 + 7980224 on state must yield sfh-gynae-2ww-v1 at chunk load."""
+    from unittest.mock import MagicMock, patch
+
+    from libs.pipeline.document_chunk_loader import DOCUMENT_CHUNKS_MODE
+    from libs.pipeline_graph.subgraphs.extraction import load_document_chunks
+
+    client = MagicMock()
+    client.run.side_effect = [
+        [{"chunk_id": "c1", "text": LETTER, "ordinal": 0, "char_start": 0, "char_end": len(LETTER)}],
+        [],
+        [_row(_seeded_schema())],
+    ]
+
+    with patch(
+        "libs.neo4j_client.client.PatientGraphClient",
+        return_value=client,
+    ):
+        out = load_document_chunks(
+            {
+                "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
+                "chunk_ids": ["c1"],
+                "healthcare_service_org_id": ORG_ID,
+                "healthcare_service_id": SERVICE_ID,
+            }
+        )
+
+    assert out["form_schema_fingerprint"] == SEEDED_FINGERPRINT
+    assert out["form_schema_match"] == "org_service"
+    assert out["form_schema_label"] == "SFH Gynae 2WW"
+
+
+def test_extract_entities_outputs_resolved_form_schema_fingerprint(monkeypatch) -> None:
+    from unittest.mock import MagicMock, patch
+
+    from libs.pipeline.document_chunk_loader import DOCUMENT_CHUNKS_MODE
+    from libs.pipeline_graph.subgraphs.extraction import extract_entities
+
+    client = MagicMock()
+    client.run.side_effect = [[], [_row(_seeded_schema())]]
+
+    def _fake_llm(*args, **kwargs):  # noqa: ANN002, ANN003
+        return {
+            "entities": [{"text": "PMB", "label": "finding"}],
+            "extraction_route": "llm",
+            "few_shot_max_similarity": 0.0,
+            "extraction_model_name": "llm-small",
+            "extraction_model_version": "extraction v1",
+            "extraction_model_requested_version": "",
+            "extraction_model_version_mismatch": False,
+        }
+
+    monkeypatch.setattr(
+        "libs.pipeline_graph.subgraphs.extraction._run_llm_extraction",
+        _fake_llm,
+    )
+
+    with patch(
+        "libs.neo4j_client.client.PatientGraphClient",
+        return_value=client,
+    ):
+        out = extract_entities(
+            {
+                "text_segmentation_mode": DOCUMENT_CHUNKS_MODE,
+                "encounter_text": LETTER,
+                "sentences": [
+                    {
+                        "sentence_id": "c1",
+                        "text": LETTER,
+                        "text_raw": LETTER,
+                        "start": 0,
+                        "end": len(LETTER),
+                    }
+                ],
+                "healthcare_service_org_id": ORG_ID,
+                "healthcare_service_id": SERVICE_ID,
+                "form_schema_fingerprint": "none",
+                "form_schema_match": "org_service",
+            }
+        )
+
+    assert out["form_schema_fingerprint"] == SEEDED_FINGERPRINT
+    assert out["form_schema_match"] in {"org_service", "exact_hash"}
+
+
+def test_chunk_load_payload_does_not_invent_orphan_match() -> None:
+    from libs.pipeline_graph.subgraphs.extraction import _chunk_load_payload
+
+    payload = _chunk_load_payload(
+        {
+            "encounter_text": LETTER,
+            "sentences": [{"sentence_id": "c1", "text": LETTER}],
+            "form_schema_match": "org_service",
+        },
+        [],
+    )
+    assert payload["form_schema_fingerprint"] == "none"
+    assert payload["form_schema_match"] == "none"
+    assert payload["form_schema_label"] == ""

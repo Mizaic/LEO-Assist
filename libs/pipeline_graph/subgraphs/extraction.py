@@ -394,11 +394,19 @@ def _chunk_load_payload(
     from libs.pipeline.document_chunk_loader import DOCUMENT_CHUNKS_MODE
     from libs.pipeline.form_schema_store import form_schema_state_fields
 
-    fields = form_schema_state_fields(
-        str(loaded.get("form_schema_match") or "none"),
-        str(loaded.get("form_schema_fingerprint") or "none"),
-        str(loaded.get("form_schema_label") or ""),
+    schema_keys = (
+        "form_schema_fingerprint",
+        "form_schema_match",
+        "form_schema_label",
     )
+    if all(key in loaded for key in schema_keys):
+        fields = form_schema_state_fields(
+            str(loaded["form_schema_match"] or "none"),
+            str(loaded["form_schema_fingerprint"] or "none"),
+            str(loaded.get("form_schema_label") or ""),
+        )
+    else:
+        fields = form_schema_state_fields("none")
     return {
         "encounter_text": loaded.get("encounter_text") or "",
         "sentences": loaded.get("sentences") or [],
@@ -723,6 +731,17 @@ def _run_llm_extraction(
     if tier not in {"small", "big", "max"}:
         tier = "small"
 
+    schema_fields = _form_schema_fields_from_state(state, encounter_text)
+    known_form = schema_fields["form_schema_match"] != "none"
+    org_id, service_id, _ers_id = _schema_scope(state)
+    logger.info(
+        "extract_llm form_schema_match=%s fingerprint=%s org=%s service=%s",
+        schema_fields.get("form_schema_match"),
+        schema_fields.get("form_schema_fingerprint"),
+        org_id,
+        service_id,
+    )
+
     extractor = build_extractor(
         system_prompt=system_prompt,
         tier=tier,
@@ -731,6 +750,8 @@ def _run_llm_extraction(
         max_few_shot=max_few_shot,
         prompt_name=str(cfg.get("name") or "extraction"),
         prompt_version=prompt_version,
+        known_form_schema=known_form,
+        taught_form_fingerprint=schema_fields.get("form_schema_fingerprint") or "",
     )
     llm_chunks = _normalise_chunks_for_llm(chunks) if normalise_forms else chunks
     items, llm_tokens = extractor.extract_batch_with_usage(
@@ -748,6 +769,7 @@ def _run_llm_extraction(
             (llm_tokens or {}).get("few_shot_max_similarity") or 0.0
         ),
         **_llm_model_fields(state, llm_tokens),
+        **schema_fields,
     }
 
 
@@ -852,6 +874,22 @@ def _chunks_from_state(
     return llm_chunks, span_chunks
 
 
+def _attach_form_schema_fields(
+    result: dict[str, Any],
+    state: dict[str, Any],
+    encounter_text: str,
+) -> dict[str, Any]:
+    """Resolve taught-form keys and merge them into extraction output state."""
+    fields = _form_schema_fields_from_state(state, encounter_text)
+    logger.info(
+        "extract_entities form_schema_match=%s fingerprint=%s label=%s",
+        fields.get("form_schema_match"),
+        fields.get("form_schema_fingerprint"),
+        fields.get("form_schema_label"),
+    )
+    return {**result, **fields}
+
+
 def extract_entities(state: ExtractionState) -> dict[str, Any]:
     encounter_text = state.get("encounter_text") or ""
     raw_sentences = state.get("sentences") or []
@@ -871,7 +909,11 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                     )
                     result["entities"] = fallback
                     result["extraction_route"] = "ner+lab-fallback"
-            return _enrich_from_state(result, encounter_text, span_chunks, state)
+            return _attach_form_schema_fields(
+                _enrich_from_state(result, encounter_text, span_chunks, state),
+                state,
+                encounter_text,
+            )
 
         if model_mode == "auto":
             if _ner_backend_enabled():
@@ -885,8 +927,12 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                 else:
                     if ner_result.get("entities"):
                         ner_result["extraction_route"] = "auto-ner"
-                        return _enrich_from_state(
-                            ner_result, encounter_text, span_chunks, state
+                        return _attach_form_schema_fields(
+                            _enrich_from_state(
+                                ner_result, encounter_text, span_chunks, state
+                            ),
+                            state,
+                            encounter_text,
                         )
                     logger.info(
                         "Auto mode: NER returned 0 entities; falling back to LLM"
@@ -901,7 +947,11 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                 span_sentences=span_chunks,
             )
             llm_result["extraction_route"] = "auto-llm"
-            return _enrich_from_state(llm_result, encounter_text, span_chunks, state)
+            return _attach_form_schema_fields(
+                _enrich_from_state(llm_result, encounter_text, span_chunks, state),
+                state,
+                encounter_text,
+            )
 
         # default: model_mode == "llm"
         policy = _extraction_window_policy(state)
@@ -918,7 +968,11 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
                 max_window_input_tokens=int(policy["max_window_input_tokens"]),
                 span_chunks=span_chunks,
             )
-            return _enrich_from_state(result, encounter_text, span_chunks, state)
+            return _attach_form_schema_fields(
+                _enrich_from_state(result, encounter_text, span_chunks, state),
+                state,
+                encounter_text,
+            )
         result = _run_llm_extraction(
             encounter_text,
             chunks,
@@ -927,7 +981,11 @@ def extract_entities(state: ExtractionState) -> dict[str, Any]:
             span_sentences=span_chunks,
             normalise_forms=is_document_chunks_mode(state),
         )
-        return _enrich_from_state(result, encounter_text, span_chunks, state)
+        return _attach_form_schema_fields(
+            _enrich_from_state(result, encounter_text, span_chunks, state),
+            state,
+            encounter_text,
+        )
     except ImportError as e:
         logger.warning("Extractor unavailable: %s", e)
         return {"entities": [], "errors": [str(e)]}

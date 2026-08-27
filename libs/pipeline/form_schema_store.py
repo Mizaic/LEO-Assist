@@ -201,16 +201,26 @@ def form_schema_state_fields(
     label: str = "",
 ) -> dict[str, str]:
     """Top-level extraction-state keys for Validation Lab INPUT KEYS chips."""
-    if match == "none":
+    resolved_match = str(match or "none").strip() or "none"
+    resolved_key = str(loaded_key or "").strip()
+    if resolved_match != "none" and (not resolved_key or resolved_key == "none"):
+        logger.warning(
+            "form_schema_state inconsistent match=%s fingerprint=%r; using none",
+            resolved_match,
+            loaded_key,
+        )
+        resolved_match = "none"
+        resolved_key = "none"
+    if resolved_match == "none":
         return {
             "form_schema_fingerprint": "none",
             "form_schema_match": "none",
             "form_schema_label": "",
         }
     return {
-        "form_schema_fingerprint": loaded_key or "none",
-        "form_schema_match": match,
-        "form_schema_label": label,
+        "form_schema_fingerprint": resolved_key,
+        "form_schema_match": resolved_match,
+        "form_schema_label": str(label or ""),
     }
 
 
@@ -222,10 +232,15 @@ def form_schema_fields_from_state(
 ) -> dict[str, str]:
     """Reuse a resolved form key, or look it up from the letter text."""
     existing = str(state.get("form_schema_fingerprint") or "").strip()
-    if existing and existing != "none":
+    existing_match = str(state.get("form_schema_match") or "none").strip() or "none"
+    if (
+        existing
+        and existing != "none"
+        and existing_match != "none"
+    ):
         return {
             "form_schema_fingerprint": existing,
-            "form_schema_match": str(state.get("form_schema_match") or "none"),
+            "form_schema_match": existing_match,
             "form_schema_label": str(state.get("form_schema_label") or ""),
         }
     from libs.neo4j_client.client import PatientGraphClient
@@ -280,6 +295,16 @@ def resolve_form_schema_traced(
             ers_service_id,
         )
         return None, "none", "none", ""
+    loaded_fp = str(schema.fingerprint or "").strip()
+    if not loaded_fp:
+        logger.warning(
+            "form_schema_resolve org_service hit but FormSchema.fingerprint is empty "
+            "org_id=%s service_id=%s schema_id=%s",
+            organization_id,
+            service_id,
+            schema.schema_id,
+        )
+        return None, "none", "none", ""
     _SCHEMA_CACHE[fingerprint] = schema
     logger.info(
         "form_schema_resolve known_schema=true match=org_service "
@@ -289,7 +314,7 @@ def resolve_form_schema_traced(
         organization_id,
         service_id,
     )
-    return schema, "org_service", schema.fingerprint, _schema_label(schema)
+    return schema, "org_service", loaded_fp, _schema_label(schema)
 
 
 def resolve_form_schema(
