@@ -6,6 +6,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -40,18 +41,29 @@ export const SECTION_TYPE_LABELS: Record<SectionType, string> = {
   template_noise: "Template guidance text (skip)",
 };
 
-// SNOMED semantic tag inferred from section type. Read-only -- not editable.
-export const SECTION_TYPE_SNOMED_TAG: Record<SectionType, string> = {
-  checkbox_single: "Situation",
-  checkbox_yesno: "Finding",
-  checkbox_multi: "Finding",
-  free_text: "Finding",
-  scale: "Observable",
-  ordered_tests: "Procedure",
-  observable: "Observable",
-  admin: "None",
-  template_noise: "None",
+// Default SNOMED semantic tags inferred from section type.
+// The user can add or remove tags for a section.
+export const SECTION_TYPE_SNOMED_TAG: Record<SectionType, string[]> = {
+  checkbox_single: ["situation"],
+  checkbox_yesno: ["finding"],
+  checkbox_multi: ["finding"],
+  free_text: ["finding"],
+  scale: ["observable"],
+  ordered_tests: ["procedure"],
+  observable: ["observable"],
+  admin: ["none"],
+  template_noise: ["none"],
 };
+
+const SNOMED_TAG_OPTIONS = [
+  "finding",
+  "observable",
+  "procedure",
+  "situation",
+  "substance",
+  "disorder",
+  "none",
+];
 
 const ITEM_SECTION_TYPES: SectionType[] = [
   "checkbox_single",
@@ -121,9 +133,14 @@ export function FormSchemaSectionEditor({
         />
         <Select
           value={section.section_type}
-          onChange={(e) =>
-            onPatch({ section_type: e.target.value as SectionType, items: [] })
-          }
+          onChange={(e) => {
+            const newType = e.target.value as SectionType;
+            onPatch({
+              section_type: newType,
+              items: [],
+              semantic_tags: SECTION_TYPE_SNOMED_TAG[newType],
+            });
+          }}
           size="small"
           aria-label="Section type"
           sx={{ minWidth: 220, fontSize: "0.75rem" }}
@@ -134,17 +151,13 @@ export function FormSchemaSectionEditor({
             </MenuItem>
           ))}
         </Select>
-        <Tooltip title="SNOMED semantic tag inferred from section type">
-          <Chip
-            label={`SNOMED: ${SECTION_TYPE_SNOMED_TAG[section.section_type]}`}
-            size="small"
-            variant="outlined"
-            color="secondary"
-            aria-label={`SNOMED tag: ${SECTION_TYPE_SNOMED_TAG[section.section_type]}`}
-            sx={{ fontSize: "0.7rem", flexShrink: 0 }}
-            data-testid="snomed-tag-chip"
-          />
-        </Tooltip>
+        <SnomedTagSelect
+          value={
+            section.semantic_tags ??
+            SECTION_TYPE_SNOMED_TAG[section.section_type]
+          }
+          onChange={(tags) => onPatch({ semantic_tags: tags })}
+        />
         {onRemoveSection ? (
           confirmDelete ? (
             <Stack direction="row" alignItems="center" gap={0.5} sx={{ flexShrink: 0 }}>
@@ -297,6 +310,52 @@ function isTypingTarget(target: EventTarget | null): boolean {
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement ||
     Boolean(target.closest("[role='combobox']"))
+  );
+}
+
+function SnomedTagSelect({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (tags: string[]) => void;
+}) {
+  return (
+    <Autocomplete
+      multiple
+      size="small"
+      options={SNOMED_TAG_OPTIONS}
+      value={value}
+      onChange={(_e, newValue) => onChange(newValue)}
+      disableClearable={false}
+      sx={{ minWidth: 220, flexShrink: 0 }}
+      renderTags={(selected, getTagProps) =>
+        selected.map((tag, index) => (
+          <Chip
+            key={tag}
+            label={tag}
+            size="small"
+            variant="outlined"
+            color="secondary"
+            sx={{ fontSize: "0.7rem" }}
+            data-testid="snomed-tag-chip"
+            {...getTagProps({ index })}
+          />
+        ))
+      }
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label="SNOMED tags"
+          size="small"
+          sx={{ fontSize: "0.75rem" }}
+          inputProps={{
+            ...params.inputProps,
+            "aria-label": "SNOMED tags",
+          }}
+        />
+      )}
+    />
   );
 }
 

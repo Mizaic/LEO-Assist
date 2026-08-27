@@ -402,3 +402,92 @@ def test_schema_with_no_sections_returns_text_unchanged() -> None:
     )
     result = apply_schema_to_text(text, schema)
     assert result == text
+
+
+# ---------------------------------------------------------------------------
+# semantic_tags -- plural list field
+# ---------------------------------------------------------------------------
+
+
+def test_form_section_has_semantic_tags_list() -> None:
+    """FormSection.semantic_tags must be a list of strings."""
+    section = FormSection(
+        section_id="X",
+        section_type="ordered_tests",
+        label="Blood Results",
+        start_pattern="Blood Results",
+        items=[],
+        semantic_tags=["procedure", "observable", "finding"],
+    )
+    assert section.semantic_tags == ["procedure", "observable", "finding"]
+
+
+def test_form_section_semantic_tags_default_is_list() -> None:
+    """FormSection created with no explicit tags defaults to a one-element list."""
+    section = FormSection(
+        section_id="X",
+        section_type="checkbox_yesno",
+        label="Criteria",
+        start_pattern="Criteria",
+        items=[],
+    )
+    assert isinstance(section.semantic_tags, list)
+    assert len(section.semantic_tags) >= 1
+
+
+def test_form_section_backward_compat_singular_tag() -> None:
+    """When loaded from an old record with semantic_tag (singular), it wraps to list."""
+    from libs.pipeline.form_schema_store import _dict_to_section
+
+    raw = {
+        "section_id": "A",
+        "section_type": "checkbox_single",
+        "label": "Cancer type",
+        "start_pattern": "Cancer type",
+        "items": [],
+        "semantic_tag": "situation",
+    }
+    section = _dict_to_section(raw)
+    assert section.semantic_tags == ["situation"]
+
+
+def test_form_section_store_roundtrip_semantic_tags() -> None:
+    """semantic_tags list survives a store serialise/deserialise round-trip."""
+    from libs.pipeline.form_schema_store import _dict_to_section, _schema_to_sections_json
+    import json
+
+    tags = ["procedure", "observable"]
+    section = FormSection(
+        section_id="B",
+        section_type="ordered_tests",
+        label="Blood Results",
+        start_pattern="Blood Results",
+        items=[],
+        semantic_tags=tags,
+    )
+    schema = FormSchema(
+        schema_id="s1",
+        fingerprint="fp1",
+        form_name="Test form",
+        sections=[section],
+        created_by="test",
+    )
+    raw_json = _schema_to_sections_json(schema)
+    parsed = json.loads(raw_json)
+    reloaded = _dict_to_section(parsed[0])
+    assert reloaded.semantic_tags == tags
+
+
+def test_form_section_store_singular_absent_uses_default() -> None:
+    """If neither semantic_tags nor semantic_tag is present, default to ['finding']."""
+    from libs.pipeline.form_schema_store import _dict_to_section
+
+    raw = {
+        "section_id": "C",
+        "section_type": "free_text",
+        "label": "History",
+        "start_pattern": "History",
+        "items": [],
+    }
+    section = _dict_to_section(raw)
+    assert section.semantic_tags == ["finding"]

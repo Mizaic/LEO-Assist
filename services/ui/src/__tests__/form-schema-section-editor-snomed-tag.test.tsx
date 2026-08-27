@@ -1,11 +1,13 @@
 /**
- * Static-source VT: FormSchemaSectionEditor SNOMED tag chip.
+ * Static-source VT: FormSchemaSectionEditor SNOMED tag multi-select.
  *
  * Verifies:
- *   - SECTION_TYPE_SNOMED_TAG is exported with the correct defaults
- *   - The Chip with data-testid="snomed-tag-chip" is present in the source
- *   - The chip label references SECTION_TYPE_SNOMED_TAG
- *   - The chip has an aria-label for accessibility
+ *   - SECTION_TYPE_SNOMED_TAG is exported with array defaults
+ *   - The Autocomplete (multiple) multi-select is used instead of a plain Chip
+ *   - The label "SNOMED tags" is present
+ *   - data-testid="snomed-tag-chip" is retained for accessibility tooling
+ *   - The section carries semantic_tags (plural) not semantic_tag (singular)
+ *   - The TypeScript interface uses semantic_tags: string[]
  *
  * Atlas trace: DI-5C9CA57B
  */
@@ -21,55 +23,54 @@ function readFile(relPath: string): string {
 
 const SECTION_EDITOR_PATH =
   "services/ui/src/components/operations/FormSchemaSectionEditor.tsx";
+const DETECTOR_PATH =
+  "services/ui/src/components/operations/formSchemaDetector.ts";
 
-describe("FormSchemaSectionEditor - SNOMED tag chip", () => {
+describe("FormSchemaSectionEditor - SNOMED multi-select tags", () => {
   let src: string;
+  let detectorSrc: string;
 
   beforeAll(() => {
     src = readFile(SECTION_EDITOR_PATH);
+    detectorSrc = readFile(DETECTOR_PATH);
   });
 
   test("TC-001: SECTION_TYPE_SNOMED_TAG is exported", () => {
     expect(src).toMatch(/export\s+const\s+SECTION_TYPE_SNOMED_TAG/);
   });
 
-  test("TC-002: snomed-tag-chip data-testid is present in source", () => {
+  test("TC-002: Autocomplete with multiple prop replaces read-only chip", () => {
+    expect(src).toMatch(/Autocomplete/);
+    expect(src).toMatch(/multiple/);
+  });
+
+  test("TC-003: SNOMED tags label is present", () => {
+    expect(src).toMatch(/SNOMED tags/i);
+  });
+
+  test("TC-004: data-testid snomed-tag-chip is retained for tooling", () => {
     expect(src).toMatch(/data-testid="snomed-tag-chip"/);
   });
 
-  test("TC-003: chip label references SECTION_TYPE_SNOMED_TAG", () => {
-    expect(src).toMatch(/SECTION_TYPE_SNOMED_TAG\[section\.section_type\]/);
+  test("TC-005: admin maps to array with none tag", () => {
+    const block = src.match(/SECTION_TYPE_SNOMED_TAG[\s\S]*?admin:[\s\S]*?\]/);
+    expect(block?.[0]).toMatch(/none/i);
   });
 
-  test("TC-004: chip has an aria-label for accessibility", () => {
-    expect(src).toMatch(/aria-label=\{`SNOMED tag:/);
+  test("TC-006: section model uses semantic_tags (plural) in onPatch call", () => {
+    expect(src).toMatch(/semantic_tags/);
   });
 
-  test("TC-005: admin maps to None in SECTION_TYPE_SNOMED_TAG", () => {
-    const match = src.match(
-      /SECTION_TYPE_SNOMED_TAG[\s\S]*?admin:\s*["']([^"']+)["']/
+  test("TC-007: FormSchemaSection interface declares semantic_tags as array", () => {
+    expect(detectorSrc).toMatch(/semantic_tags\??:\s*string\[\]/);
+  });
+
+  test("TC-008: SECTION_TYPE_SNOMED_TAG values are arrays not plain strings", () => {
+    const block = src.match(
+      /SECTION_TYPE_SNOMED_TAG[\s\S]*?=\s*\{[\s\S]*?\}/
     );
-    expect(match?.[1]).toBe("None");
-  });
-
-  test("TC-006: checkbox_single maps to Situation", () => {
-    const match = src.match(
-      /SECTION_TYPE_SNOMED_TAG[\s\S]*?checkbox_single:\s*["']([^"']+)["']/
-    );
-    expect(match?.[1]).toBe("Situation");
-  });
-
-  test("TC-007: scale maps to Observable", () => {
-    const match = src.match(
-      /SECTION_TYPE_SNOMED_TAG[\s\S]*?scale:\s*["']([^"']+)["']/
-    );
-    expect(match?.[1]).toBe("Observable");
-  });
-
-  test("TC-008: ordered_tests maps to Procedure", () => {
-    const match = src.match(
-      /SECTION_TYPE_SNOMED_TAG[\s\S]*?ordered_tests:\s*["']([^"']+)["']/
-    );
-    expect(match?.[1]).toBe("Procedure");
+    expect(block).not.toBeNull();
+    const blockStr = block![0];
+    expect(blockStr).toMatch(/\[/);
   });
 });

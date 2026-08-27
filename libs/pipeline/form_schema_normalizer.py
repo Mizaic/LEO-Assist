@@ -31,17 +31,18 @@ SectionType = Literal[
     "observable",
 ]
 
-# Default SNOMED semantic tag for each section type archetype.
-SECTION_TYPE_SEMANTIC_TAG: dict[str, str] = {
-    "admin": "none",
-    "template_noise": "none",
-    "checkbox_single": "situation",
-    "checkbox_yesno": "finding",
-    "checkbox_multi": "finding",
-    "free_text": "finding",
-    "scale": "observable",
-    "ordered_tests": "procedure",
-    "observable": "observable",
+# Default SNOMED semantic tags for each section type archetype.
+# Each entry is a list; sections like blood results may carry multiple tags.
+SECTION_TYPE_SEMANTIC_TAG: dict[str, list[str]] = {
+    "admin": ["none"],
+    "template_noise": ["none"],
+    "checkbox_single": ["situation"],
+    "checkbox_yesno": ["finding"],
+    "checkbox_multi": ["finding"],
+    "free_text": ["finding"],
+    "scale": ["observable"],
+    "ordered_tests": ["procedure"],
+    "observable": ["observable"],
 }
 
 _CHECKED_RE = re.compile(r"\[(?:X|x|\*|YES|yes)\]|\((?:X|x)\)")
@@ -69,7 +70,7 @@ class FormSection:
     label: str
     start_pattern: str
     items: list[FormSchemaItem] = field(default_factory=list)
-    semantic_tag: str = "finding"
+    semantic_tags: list[str] = field(default_factory=lambda: ["finding"])
 
     def matches_header(self, line: str) -> bool:
         return bool(re.search(self.start_pattern, line, re.IGNORECASE))

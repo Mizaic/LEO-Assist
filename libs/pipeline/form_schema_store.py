@@ -82,14 +82,26 @@ def _record_to_schema(record: dict[str, Any]) -> FormSchema:
 
 def _dict_to_section(raw: dict[str, Any]) -> FormSection:
     items = [_dict_to_item(i) for i in (raw.get("items") or [])]
+    semantic_tags = _load_semantic_tags(raw)
     return FormSection(
         section_id=raw.get("section_id") or "",
         section_type=raw.get("section_type") or "free_text",  # type: ignore[arg-type]
         label=raw.get("label") or "",
         start_pattern=raw.get("start_pattern") or "",
         items=items,
-        semantic_tag=raw.get("semantic_tag") or "finding",
+        semantic_tags=semantic_tags,
     )
+
+
+def _load_semantic_tags(raw: dict[str, Any]) -> list[str]:
+    """Return semantic_tags list, handling the old singular semantic_tag field."""
+    if "semantic_tags" in raw and raw["semantic_tags"]:
+        val = raw["semantic_tags"]
+        if isinstance(val, list):
+            return [str(t) for t in val]
+    if "semantic_tag" in raw and raw["semantic_tag"]:
+        return [str(raw["semantic_tag"])]
+    return ["finding"]
 
 
 def _dict_to_item(raw: dict[str, Any]) -> FormSchemaItem:
@@ -108,7 +120,7 @@ def _schema_to_sections_json(schema: FormSchema) -> str:
             "section_type": s.section_type,
             "label": s.label,
             "start_pattern": s.start_pattern,
-            "semantic_tag": s.semantic_tag,
+            "semantic_tags": s.semantic_tags,
             "items": [
                 {
                     "pattern": i.pattern,

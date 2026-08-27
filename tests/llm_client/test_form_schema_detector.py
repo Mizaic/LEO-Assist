@@ -279,3 +279,55 @@ def test_detect_uses_splitter_on_llm_exception_when_headers_exist():
         result = detect_form_sections(GYNAE_SAMPLE)
 
     assert any(s["section_id"] == "A" for s in result)
+
+
+def test_validate_section_produces_semantic_tags_list() -> None:
+    """_validate_section must return semantic_tags as a list, not a string."""
+    raw = {
+        "section_id": "A",
+        "label": "Blood Results",
+        "section_type": "ordered_tests",
+        "start_pattern": "Blood Results",
+        "items": [],
+        "default_semantic_tags": ["procedure", "observable"],
+    }
+    result = _validate_section(raw)
+    assert isinstance(result["default_semantic_tags"], list)
+    assert result["default_semantic_tags"] == ["procedure", "observable"]
+
+
+def test_validate_section_wraps_old_single_tag() -> None:
+    """_validate_section wraps a legacy default_semantic_tag string to a list."""
+    raw = {
+        "section_id": "A",
+        "label": "History",
+        "section_type": "free_text",
+        "start_pattern": "History",
+        "items": [],
+        "default_semantic_tag": "finding",
+    }
+    result = _validate_section(raw)
+    assert isinstance(result["default_semantic_tags"], list)
+    assert result["default_semantic_tags"] == ["finding"]
+
+
+def test_validate_section_defaults_to_finding_when_absent() -> None:
+    """_validate_section defaults to ['finding'] when no tag field is present."""
+    raw = {
+        "section_id": "A",
+        "label": "Criteria",
+        "section_type": "checkbox_yesno",
+        "start_pattern": "Criteria",
+        "items": [],
+    }
+    result = _validate_section(raw)
+    assert result["default_semantic_tags"] == ["finding"]
+
+
+def test_output_schema_uses_array_for_semantic_tags() -> None:
+    """The LLM output schema must declare default_semantic_tags as an array."""
+    from libs.llm_client.form_schema_detector import _OUTPUT_SCHEMA
+
+    section_props = _OUTPUT_SCHEMA["properties"]["sections"]["items"]["properties"]
+    assert "default_semantic_tags" in section_props
+    assert section_props["default_semantic_tags"]["type"] == "array"
