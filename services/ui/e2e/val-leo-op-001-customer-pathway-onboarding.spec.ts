@@ -74,10 +74,11 @@ test.describe("VAL-C73DD43E customer pathway onboarding @val", () => {
 
           // Step 0: Knowledge hub shell
           await gotoKnowledgeTab(ctx.page, "terminology");
-          await expect(ctx.page.getByText("NLP & AI")).toBeVisible({ timeout: 10_000 });
-          await expect(ctx.page.getByText("Clinical Knowledge")).toBeVisible();
-          await expect(ctx.page.getByText("Data Setup")).toBeVisible();
-          await expect(ctx.page.getByText("Quality")).toBeVisible();
+          const sidebar = ctx.page.getByTestId("knowledge-sidebar");
+          await expect(sidebar.getByText("NLP & AI")).toBeVisible({ timeout: 10_000 });
+          await expect(sidebar.getByText("Clinical Knowledge")).toBeVisible();
+          await expect(sidebar.getByText("Data Setup")).toBeVisible();
+          await expect(sidebar.getByText("Quality")).toBeVisible();
 
           await recordProtocolStep({
             request: ctx.request, runId: ctx.runId, valId: ctx.valId,

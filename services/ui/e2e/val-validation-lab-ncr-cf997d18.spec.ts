@@ -134,7 +134,12 @@ test.describe("VAL-CF997D18 Validation Lab product records @val", () => {
           const form = ctx.page.getByTestId("validation-lab-ncr-form");
           await expect(form).toContainText("Product is locked");
           await expect(form).not.toContainText("Pick a product");
-          await expect(ctx.page.getByLabel("Product")).toHaveCount(0);
+          await expect(
+            form.getByRole("combobox", { name: /^Product$/ }),
+          ).toHaveCount(0);
+          await expect(
+            form.getByLabel(/^Product$/, { exact: true }),
+          ).toHaveCount(0);
 
           await recordProtocolStep({
             request: ctx.request,

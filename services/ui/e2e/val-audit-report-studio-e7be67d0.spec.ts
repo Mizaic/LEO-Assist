@@ -48,7 +48,7 @@ const PROTOCOL = [
 test.describe("VAL-E7BE67D0 audit report studio walkthrough @val", () => {
   // 7 steps x 2 Atlas REST calls (recordStep + uploadEvidence) each up to 60s,
   // plus Playwright actions, html2canvas render and PDF download.
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
 
   test.beforeAll(() => {
     test.skip(!isAtlasValidationConfigured(), atlasValidationSkipReason());

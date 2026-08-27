@@ -248,11 +248,17 @@ class LLMExtractorAdapter:
         provider: str | None = None,
         prompt_name: str = "extraction",
         prompt_version: int = 1,
+        known_form_schema: bool = False,
+        taught_form_fingerprint: str = "",
     ) -> None:
         self._tier = tier
         self._provider = provider or _active_provider()
         self._prompt_name = prompt_name
         self._prompt_version = prompt_version
+        taught_fp = str(taught_form_fingerprint or "").strip()
+        self._taught_form_fingerprint = (
+            taught_fp if known_form_schema and taught_fp and taught_fp != "none" else ""
+        )
         try:
             parsed_max = int(max_few_shot or 20)
         except (TypeError, ValueError):
@@ -265,9 +271,17 @@ class LLMExtractorAdapter:
         from libs.pipeline.extraction_learning_store import learned_few_shots
 
         dynamic_pool = dynamic_pool + learned_few_shots()
-        max_core = min(len(core_examples), self._max_few_shot)
-        self._core_examples = core_examples[:max_core]
-        self._dynamic_budget = max(0, self._max_few_shot - len(self._core_examples))
+        if known_form_schema:
+            core_examples = [
+                ex for ex in core_examples if ex.get("category") == "form:checkbox"
+            ]
+            max_core = min(len(core_examples), self._max_few_shot)
+            self._core_examples = core_examples[:max_core]
+            self._dynamic_budget = 0
+        else:
+            max_core = min(len(core_examples), self._max_few_shot)
+            self._core_examples = core_examples[:max_core]
+            self._dynamic_budget = max(0, self._max_few_shot - len(self._core_examples))
         self._few_shot_selector = FewShotSelector(dynamic_pool=dynamic_pool)
         self._few_shot_selector.warm()
         from libs.prompts.registry import compose_prompt_with_annotation_guidelines
@@ -389,6 +403,7 @@ class LLMExtractorAdapter:
             sentence_block,
             context_mode=context_mode,
             relevant_examples_block=relevant_examples_block,
+            taught_form_fingerprint=self._taught_form_fingerprint,
         )
         resp = llm.converse(
             system=self._system_prompt,
@@ -493,6 +508,8 @@ def build_extractor(
     provider: str | None = None,
     prompt_name: str = "extraction",
     prompt_version: int = 1,
+    known_form_schema: bool = False,
+    taught_form_fingerprint: str = "",
 ) -> LLMExtractorAdapter:
     """Build an LLM extractor, assembling the full system prompt from its parts.
 
@@ -517,6 +534,8 @@ def build_extractor(
         provider=provider,
         prompt_name=prompt_name,
         prompt_version=prompt_version,
+        known_form_schema=known_form_schema,
+        taught_form_fingerprint=taught_form_fingerprint,
     )
 
 

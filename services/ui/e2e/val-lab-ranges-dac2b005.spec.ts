@@ -74,7 +74,7 @@ test.describe("VAL-DAC2B005 default and organisation lab ranges @val", () => {
           await ctx.page.goto("/admin/knowledge?tab=results-labs");
           await expect(ctx.page).toHaveURL(/tab=results-labs/);
           await expect(
-            ctx.page.getByText("Lab metadata store"),
+            ctx.page.getByTestId("results-labs-chrome"),
           ).toBeVisible({ timeout: 15_000 });
           await ctx.page.getByTestId("data-grid-row-" + CONCEPT_ID).click();
           await expect(ctx.page.getByRole("heading", { name: DISPLAY_NAME })).toBeVisible();

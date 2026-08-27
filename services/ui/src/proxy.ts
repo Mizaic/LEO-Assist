@@ -264,6 +264,11 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/auth/session",
+    "/auth/session/:path*",
+    "/auth/login",
+    "/auth/logout",
+    "/auth/callback",
     "/api/admin/:path*",
     "/api/mail/:path*",
     "/api/proxy/:path*",

@@ -41,12 +41,18 @@ def build_extraction_user_message(
     *,
     context_mode: str = CONTEXT_MODE_WINDOW_LOCAL,
     relevant_examples_block: str = "",
+    taught_form_fingerprint: str = "",
 ) -> str:
     """Build the extractor user message shared by pipeline and coding_worker."""
     label = context_label(context_mode)
     user_msg = (
         f"{label}:\n{context_text}\n\n" f"Sentences to process:\n{sentence_block}"
     )
+    taught_fp = str(taught_form_fingerprint or "").strip()
+    if taught_fp and taught_fp != "none":
+        user_msg = (
+            f"Input was normalized from taught form {taught_fp}.\n\n{user_msg}"
+        )
     if relevant_examples_block:
         return f"{relevant_examples_block}\n\n{user_msg}"
     return user_msg

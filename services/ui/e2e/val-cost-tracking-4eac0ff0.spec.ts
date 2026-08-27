@@ -82,7 +82,6 @@ test.describe("VAL-4EAC0FF0 AI and cloud costs per patient case @val", () => {
             name: "AI model spend",
           });
           await expect(spendHeading).toBeVisible({ timeout: 15_000 });
-          await spendHeading.scrollIntoViewIfNeeded();
           await expect(ctx.page.getByText(PATIENT_ID)).toBeVisible();
           await expect(ctx.page.getByText(PATIENT_COST).first()).toBeVisible();
           await recordProtocolStep({
@@ -166,7 +165,6 @@ test.describe("VAL-4EAC0FF0 AI and cloud costs per patient case @val", () => {
           ctx.lastCompletedStep.value = 3;
 
           const platformCard = ctx.page.getByText("Platform operating costs");
-          await platformCard.scrollIntoViewIfNeeded();
           await expect(platformCard).toBeVisible();
           await expect(ctx.page.getByText("not billed to tenants")).toBeVisible();
           await expect(ctx.page.getByText(PLATFORM_TYPE)).toBeVisible();
