@@ -161,6 +161,10 @@ const PREFIX_RULES: PrefixRule[] = [
     rewrite: (r) => `${coreApi()}/form-schemas/${r}`,
   },
   {
+    prefix: "/api/form-schemas",
+    rewrite: () => `${coreApi()}/form-schemas`,
+  },
+  {
     prefix: "/api/completeness-domains/",
     rewrite: (r) => `${coreApi()}/completeness-domains/${r}`,
   },
@@ -298,6 +302,7 @@ export const config = {
     "/api/guidance/:path*",
     "/api/validation-lab",
     "/api/validation-lab/:path*",
+    "/api/form-schemas",
     "/api/form-schemas/:path*",
     "/api/completeness-domains",
     "/api/completeness-domains/:path*",

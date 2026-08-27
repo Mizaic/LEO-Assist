@@ -125,3 +125,20 @@ describe("form template library CRUD chrome", () => {
     expect(src).toMatch(/updated_at/);
   });
 });
+
+describe("form template list proxy and errors", () => {
+  const PROXY = "services/ui/src/proxy.ts";
+
+  test("TC-018: proxy rewrites exact GET /api/form-schemas to core API", () => {
+    const src = read(PROXY);
+    expect(src).toMatch(/prefix:\s*["']\/api\/form-schemas["']/);
+    expect(src).toMatch(/["']\/api\/form-schemas["']/);
+    expect(src).toMatch(/\$\{coreApi\(\)\}\/form-schemas/);
+  });
+
+  test("TC-019: list fetch names the form teacher role on 403", () => {
+    const src = read(API);
+    expect(src).toMatch(/status === 403|res\.status === 403/);
+    expect(src).toMatch(/form teacher role/);
+  });
+});

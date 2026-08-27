@@ -26,6 +26,7 @@ from app.routers.form_schema import (
     FORM_TEACHER_ROLES,
     detect_schema,
     get_schema,
+    list_schemas,
     require_form_teacher,
     save_schema,
 )
@@ -440,4 +441,56 @@ def test_lms_learner_cannot_compute_fingerprint(_mock_fp):
         "/form-schemas/fingerprint",
         json={"text": DETECT_BODY["text"]},
     )
+    assert resp.status_code == 403
+
+
+def test_list_schemas_uses_form_teacher_role():
+    deps = _dep_callables(list_schemas)
+    assert require_form_teacher in deps
+    assert get_caller_scope_from_request not in deps
+    assert require_admin not in deps
+
+
+@patch("app.routers.form_schema.PatientGraphClient")
+def test_list_schemas_returns_empty_array_when_none(mock_pg):
+    mock_pg.return_value.run.return_value = []
+    resp = _client(_session("validation")).get("/form-schemas")
+    assert resp.status_code == 200
+    assert resp.json() == {"schemas": []}
+
+
+@patch("app.routers.form_schema.PatientGraphClient")
+def test_list_schemas_maps_rows(mock_pg):
+    mock_pg.return_value.run.return_value = [
+        {
+            "schema_id": "s1",
+            "fingerprint": "fp-1",
+            "form_name": "Gynae 2WW",
+            "version": 1,
+            "status": "active",
+            "created_at": None,
+            "updated_at": None,
+            "organization_id": "org-sfh",
+            "service_id": "svc-gynae",
+        }
+    ]
+    resp = _client(_session("validation")).get("/form-schemas")
+    assert resp.status_code == 200
+    assert resp.json()["schemas"] == [
+        {
+            "schema_id": "s1",
+            "fingerprint": "fp-1",
+            "form_name": "Gynae 2WW",
+            "version": 1,
+            "status": "active",
+            "created_at": "",
+            "updated_at": "",
+            "organization_id": "org-sfh",
+            "service_id": "svc-gynae",
+        }
+    ]
+
+
+def test_lms_learner_cannot_list_schemas():
+    resp = _client(_session("lms_learner")).get("/form-schemas")
     assert resp.status_code == 403

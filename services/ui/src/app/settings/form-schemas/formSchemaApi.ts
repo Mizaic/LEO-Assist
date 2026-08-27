@@ -15,12 +15,22 @@ export interface SchemaSummary {
   service_id: string;
 }
 
+function listLoadError(status: number): string {
+  if (status === 403) {
+    return (
+      "You need the form teacher role to load form templates. " +
+      "Ask an administrator if you should have this role."
+    );
+  }
+  return "Could not load form templates. Please retry.";
+}
+
 export async function fetchFormSchemas(): Promise<SchemaSummary[]> {
   const res = await fetch("/api/form-schemas", {
     credentials: "include",
     headers: { "X-Requested-With": "XMLHttpRequest" },
   });
-  if (!res.ok) throw new Error("Could not load form templates. Please retry.");
+  if (!res.ok) throw new Error(listLoadError(res.status));
   const data = await res.json();
   return data.schemas ?? [];
 }
