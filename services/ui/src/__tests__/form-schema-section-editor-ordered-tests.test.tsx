@@ -4,8 +4,10 @@
  * Verifies:
  *   - ordered_tests section type renders analyte sub-list editor.
  *   - Other section types render the simple pattern / entity-text editor.
- *   - Procedure SNOMED code field is present for ordered_tests items.
- *   - Analyte row fields (label, snomed_code, display) are present.
+ *   - Procedure SNOMED uses async SNOMED lookup (not manual TextField).
+ *   - Analyte SNOMED uses observable-filtered lookup.
+ *   - searchTerms calls terminology API with semantic_tag filters.
+ *   - Analyte row fields (label, display) are present.
  *   - Add analyte and Remove analyte controls are accessible.
  *
  * Atlas trace: DI-5C9CA57B
@@ -22,6 +24,7 @@ function readComponent(relPath: string): string {
 
 const EDITOR_PATH =
   "services/ui/src/components/operations/FormSchemaSectionEditor.tsx";
+const LOOKUP_PATH = "services/ui/src/components/SnomedLookupField.tsx";
 const TYPES_PATH =
   "services/ui/src/components/operations/formSchemaDetector.ts";
 
@@ -47,9 +50,29 @@ describe("FormSchemaSectionEditor -- ordered_tests analyte editor", () => {
     expect(src).toMatch(/function ItemRow/);
   });
 
-  test("TC-005: Procedure SNOMED code field is rendered with aria-label", () => {
-    expect(src).toMatch(/Procedure SNOMED code/);
-    expect(src).toMatch(/"aria-label":\s*"Procedure SNOMED code"/);
+  test("TC-005: Procedure SNOMED uses SnomedLookupField with procedure filter", () => {
+    expect(src).toMatch(/SnomedLookupField/);
+    expect(src).toMatch(/semanticTags=\{\["procedure"\]\}/);
+    expect(src).toMatch(/testId="procedure-snomed-lookup"/);
+    expect(src).toMatch(/procedure_snomed/);
+    expect(src).toMatch(/procedure_display/);
+    expect(src).not.toMatch(/label="Procedure SNOMED code"/);
+  });
+
+  test("TC-005b: SnomedLookupField calls searchTerms on terminology API", () => {
+    const lookup = readComponent(LOOKUP_PATH);
+    expect(lookup).toMatch(/searchTerms/);
+    expect(lookup).toMatch(/semanticTags/);
+    expect(lookup).toMatch(/Autocomplete/);
+    const legacy = readComponent("services/ui/src/lib/api/legacy.ts");
+    expect(legacy).toMatch(/\/api\/terminology\/search/);
+  });
+
+  test("TC-005c: Analyte SNOMED uses observable-filtered SnomedLookupField", () => {
+    expect(src).toMatch(/semanticTags=\{\["observable"\]\}/);
+    expect(src).toMatch(/testId="analyte-snomed-lookup"/);
+    expect(src).toMatch(/snomed_code/);
+    expect(src).not.toMatch(/label="SNOMED code"/);
   });
 
   test("TC-006: analyte row data-testid is present for accessibility", () => {

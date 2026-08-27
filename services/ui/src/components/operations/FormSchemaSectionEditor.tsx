@@ -23,6 +23,8 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
+import { SnomedLookupField } from "@/components/SnomedLookupField";
+
 import {
   type AnalyteEntry,
   type FormSchemaItem,
@@ -456,14 +458,22 @@ function OrderedTestsItemEditor({
           sx={{ flex: 1 }}
           placeholder="e.g. FBC"
         />
-        <TextField
-          label="Procedure SNOMED code"
-          value={item.procedure_snomed ?? ""}
-          onChange={(e) => onPatch({ procedure_snomed: e.target.value })}
-          size="small"
-          sx={{ flex: 1 }}
-          placeholder="e.g. 26604007"
-          inputProps={{ "aria-label": "Procedure SNOMED code" }}
+        <SnomedLookupField
+          label="Procedure SNOMED"
+          ariaLabel="Procedure SNOMED code"
+          semanticTags={["procedure"]}
+          testId="procedure-snomed-lookup"
+          placeholder="e.g. full blood count"
+          value={{
+            conceptId: item.procedure_snomed ?? "",
+            display: item.procedure_display ?? "",
+          }}
+          onChange={(next) =>
+            onPatch({
+              procedure_snomed: next.conceptId,
+              procedure_display: next.display,
+            })
+          }
         />
         <TextField
           label="Procedure display name"
@@ -498,14 +508,22 @@ function OrderedTestsItemEditor({
             placeholder="e.g. Hb"
             inputProps={{ "aria-label": "Analyte short label" }}
           />
-          <TextField
-            label="SNOMED code"
-            value={analyte.snomed_code}
-            onChange={(e) => patchAnalyte(aIdx, { snomed_code: e.target.value })}
-            size="small"
-            sx={{ flex: 1 }}
-            placeholder="e.g. 1022280009"
-            inputProps={{ "aria-label": "Analyte SNOMED code" }}
+          <SnomedLookupField
+            label="Analyte SNOMED"
+            ariaLabel="Analyte SNOMED code"
+            semanticTags={["observable"]}
+            testId="analyte-snomed-lookup"
+            placeholder="e.g. haemoglobin"
+            value={{
+              conceptId: analyte.snomed_code,
+              display: analyte.display,
+            }}
+            onChange={(next) =>
+              patchAnalyte(aIdx, {
+                snomed_code: next.conceptId,
+                display: next.display,
+              })
+            }
           />
           <TextField
             label="Display name"
