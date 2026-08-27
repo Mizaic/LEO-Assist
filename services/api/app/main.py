@@ -53,6 +53,7 @@ from app.routers.exports import router as exports_router
 from app.routers.games import router as games_router
 from app.routers.operations import router as operations_router
 from app.routers.extraction_review import router as extraction_review_router
+from app.routers.completeness_domains import router as completeness_domains_router
 from app.routers.form_schema import router as form_schema_router
 from app.routers.model_registry import router as model_registry_router
 from app.routers.devices import router as devices_router
@@ -523,6 +524,7 @@ app.include_router(terminology_admin_router)
 app.include_router(games_router)
 app.include_router(operations_router)
 app.include_router(extraction_review_router)
+app.include_router(completeness_domains_router)
 app.include_router(form_schema_router)
 app.include_router(model_registry_router)
 app.include_router(devices_router)

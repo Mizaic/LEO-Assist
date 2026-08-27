@@ -160,6 +160,10 @@ const PREFIX_RULES: PrefixRule[] = [
     prefix: "/api/form-schemas/",
     rewrite: (r) => `${coreApi()}/form-schemas/${r}`,
   },
+  {
+    prefix: "/api/completeness-domains/",
+    rewrite: (r) => `${coreApi()}/completeness-domains/${r}`,
+  },
 ];
 
 function proxyRewrite(request: NextRequest, dest: string): NextResponse {
@@ -295,5 +299,7 @@ export const config = {
     "/api/validation-lab",
     "/api/validation-lab/:path*",
     "/api/form-schemas/:path*",
+    "/api/completeness-domains",
+    "/api/completeness-domains/:path*",
   ],
 };
