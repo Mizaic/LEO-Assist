@@ -19,6 +19,7 @@ from typing import Any
 
 from libs.completeness.service_domain import ensure_service_completeness_domain
 from libs.cypher.form_schema_queries import (
+    DELETE_FORM_SCHEMA,
     GET_FORM_SCHEMA_BY_FINGERPRINT,
     UPSERT_FORM_SCHEMA,
 )
@@ -202,6 +203,19 @@ def save_form_schema(client: Any, write: FormSchemaWrite) -> FormSchema:
         schema.fingerprint,
     )
     return schema
+
+
+def delete_form_schema(client: Any, fingerprint: str) -> bool:
+    """Remove a taught :FormSchema and drop it from the in-process cache."""
+    fp = fingerprint.strip()
+    if not fp or fp == "unknown":
+        return False
+    rows = client.run(DELETE_FORM_SCHEMA, {"fingerprint": fp})
+    deleted = bool(rows and rows[0].get("schema_id"))
+    _SCHEMA_CACHE.pop(fp, None)
+    if deleted:
+        logger.info("Deleted FormSchema for fingerprint %s", fp)
+    return deleted
 
 
 def _build_schema(write: FormSchemaWrite) -> FormSchema:

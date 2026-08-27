@@ -25,6 +25,7 @@ from libs.neo4j_client.client import PatientGraphClient
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
     build_sections_from_request,
+    delete_form_schema,
     load_form_schema,
     normalize_sections_for_request,
     save_form_schema,
@@ -179,6 +180,24 @@ def save_schema(
     finally:
         client.close()
     return {"schema": _schema_to_dict(schema), "saved": True}
+
+
+@router.delete("/{fingerprint}")
+def remove_schema(
+    fingerprint: str,
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    fp = fingerprint.strip()
+    if not fp or fp == "unknown":
+        raise HTTPException(status_code=422, detail="A valid form fingerprint is required.")
+    client = PatientGraphClient()
+    try:
+        deleted = delete_form_schema(client, fp)
+    finally:
+        client.close()
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Form schema not found.")
+    return {"deleted": True, "fingerprint": fp}
 
 
 @router.get("")

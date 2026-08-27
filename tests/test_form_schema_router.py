@@ -383,3 +383,27 @@ def test_save_rejects_when_all_sections_normalize_away():
         )
         == []
     )
+
+
+@patch("app.routers.form_schema.delete_form_schema")
+def test_delete_schema_requires_teacher_role(mock_delete):
+    mock_delete.return_value = True
+    resp = _client(_session("clinician")).delete("/form-schemas/fp-1")
+    assert resp.status_code == 403
+    mock_delete.assert_not_called()
+
+
+@patch("app.routers.form_schema.delete_form_schema")
+def test_delete_schema_removes_by_fingerprint(mock_delete):
+    mock_delete.return_value = True
+    resp = _client(_session("validation")).delete("/form-schemas/fp-1")
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] is True
+    mock_delete.assert_called_once()
+
+
+@patch("app.routers.form_schema.delete_form_schema")
+def test_delete_schema_returns_404_when_missing(mock_delete):
+    mock_delete.return_value = False
+    resp = _client(_session("validation")).delete("/form-schemas/missing-fp")
+    assert resp.status_code == 404

@@ -110,3 +110,10 @@ RETURN s.schema_id AS schema_id,
        s.service_id AS service_id
 ORDER BY s.updated_at DESC
 """
+
+DELETE_FORM_SCHEMA = """
+MATCH (s:FormSchema {fingerprint: $fingerprint})
+WITH s, s.schema_id AS schema_id
+DETACH DELETE s
+RETURN schema_id
+"""
