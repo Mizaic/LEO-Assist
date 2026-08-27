@@ -25,6 +25,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import { SnomedLookupField } from "@/components/SnomedLookupField";
 
+import { BloodPanelPresetButton } from "./BloodPanelPresetButton";
+import { mergePresetBatteries } from "./bloodPanelPresets";
 import {
   type AnalyteEntry,
   type FormSchemaItem,
@@ -211,6 +213,13 @@ export function FormSchemaSectionEditor({
                   For each blood test battery: enter the label, procedure
                   SNOMED code, and the individual analytes (test result rows).
                 </Typography>
+                <BloodPanelPresetButton
+                  onAdd={(items) =>
+                    onPatch({
+                      items: mergePresetBatteries(section.items, items),
+                    })
+                  }
+                />
                 {section.items.map((item, iIdx) => (
                   <OrderedTestsItemEditor
                     key={iIdx}

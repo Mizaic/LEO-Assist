@@ -1,5 +1,6 @@
 """REST endpoints for per-form schema annotation.
 
+GET  /form-schemas/blood-panel-presets -- standard NHS blood table preset
 GET  /form-schemas/{fingerprint}   -- load schema for a fingerprint (or null)
 PUT  /form-schemas/{fingerprint}   -- save / update schema
 GET  /form-schemas                 -- list all saved schemas
@@ -27,6 +28,10 @@ from app.org_catalog_auth import FORM_TEACHER_ROLES
 from libs.cypher.chunk_queries import GET_CHUNKS_BY_UBRN
 from libs.llm_client.form_schema_detector import detect_form_sections
 from libs.neo4j_client.client import PatientGraphClient
+from libs.pipeline.blood_panel_presets import (
+    blood_panel_preset_payload,
+    unverified_preset_codes,
+)
 from libs.pipeline.document_chunk_loader import build_document_chunk_state
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
@@ -226,6 +231,21 @@ def get_letter_text_by_ubrn(
         "text": text,
         "fingerprint": form_fingerprint(text),
         "chunk_count": len(state.get("sentences") or []),
+    }
+
+
+@router.get("/blood-panel-presets")
+def blood_panel_presets(
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    """Return the standard NHS blood table as ordered_tests rows.
+
+    Declared before ``GET /{fingerprint}`` so the literal path is not
+    read as a form fingerprint.
+    """
+    return {
+        "batteries": blood_panel_preset_payload(),
+        "needs_clinical_review": unverified_preset_codes(),
     }
 
 
