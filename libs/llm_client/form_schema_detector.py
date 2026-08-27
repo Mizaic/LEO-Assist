@@ -90,7 +90,12 @@ as a guide. Unknown forms use the same structural vocabulary.
      default_semantic_tags: ["finding"]
      Heading examples: "Reasons for Referral", "Clinical History",
        "Clinical Summary", "Presenting Symptoms", "Examination Findings",
-       "Significant past and current medical history"
+       "Significant past and current medical history", "Additional clinical
+       information"
+     The heading is often on its own line; the narrative usually sits in a
+     box or field on the lines below, not on the same line as the label.
+     Treat every line from after the heading until the next section header
+     as part of the same free_text section. Do not stop at the header line.
 
   7. medications_allergies
      What it is: Current medications list and allergy record.

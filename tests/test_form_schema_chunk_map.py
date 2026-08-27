@@ -18,7 +18,6 @@ from libs.pipeline.form_schema_normalizer import (
 )
 from libs.pipeline.form_schema_template import build_chunk_section_map
 
-
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
@@ -194,6 +193,64 @@ def test_normalise_with_schema_unmapped_chunk_passes_through() -> None:
     result = normalise_with_schema(schema, chunks, chunk_section_map)
     assert "HEADER TEXT" in result
     assert "Cervical cancer suspected" in result
+
+
+FREE_TEXT_SECTION = FormSection(
+    section_id="ACI",
+    section_type="free_text",
+    label="Additional clinical information",
+    start_pattern=r"(?i)additional\s+clinical\s+information",
+    items=[],
+)
+
+ADMIN_SECTION = FormSection(
+    section_id="ADMIN",
+    section_type="admin",
+    label="Patient details",
+    start_pattern=r"(?i)patient\s+details",
+    items=[],
+)
+
+
+def test_free_text_body_below_header_stays_extractable_in_chunk_map() -> None:
+    """Interior free_text headers inside an admin-mapped chunk keep body lines."""
+    from libs.ner.form_checkbox_normalizer import NON_EXTRACTABLE_MARKER
+
+    text = (
+        "Patient details\n"
+        "Name: John Smith\n"
+        "Additional clinical information\n"
+        "Patient has postmenopausal bleeding for 3 months.\n"
+        "Polyp noted on examination."
+    )
+    chunks = [text]
+    chunk_section_map = [{"chunk_idx": 0, "section_id": "ADMIN"}]
+    schema = _make_schema(ADMIN_SECTION, FREE_TEXT_SECTION)
+    result = normalise_with_schema(schema, chunks, chunk_section_map)
+    assert "postmenopausal bleeding" in result
+    assert "Polyp noted" in result
+    clinical_lines = [
+        ln
+        for ln in result.splitlines()
+        if "postmenopausal" in ln or "Polyp noted" in ln
+    ]
+    assert clinical_lines
+    assert all(NON_EXTRACTABLE_MARKER not in ln for ln in clinical_lines)
+
+
+def test_free_text_header_with_body_on_following_lines_in_same_chunk() -> None:
+    """A free_text label on one line and prose on the next lines stays intact."""
+    text = (
+        "Additional clinical information\n"
+        "Patient has postmenopausal bleeding for 3 months.\n"
+        "Polyp noted on examination."
+    )
+    chunks = [text]
+    chunk_section_map = [{"chunk_idx": 0, "section_id": "ACI"}]
+    schema = _make_schema(FREE_TEXT_SECTION)
+    result = normalise_with_schema(schema, chunks, chunk_section_map)
+    assert "postmenopausal bleeding" in result
+    assert "Polyp noted" in result
 
 
 # ---------------------------------------------------------------------------

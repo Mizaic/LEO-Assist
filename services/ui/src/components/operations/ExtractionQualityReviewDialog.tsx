@@ -268,6 +268,7 @@ export default function ExtractionQualityReviewDialog({
             teachMode={rightTab === "teach"}
             highlightedRegionId={teachFocus.highlightedRegionId}
             sectionRegions={regionsFromSections(teachSections)}
+            teachSections={teachSections}
             onSelectRegion={(regionId, clickedText) =>
               teachFocus.selectLetterText(teachSections, clickedText || regionId)
             }
@@ -326,6 +327,7 @@ function ReviewLetterPane({
   teachMode,
   highlightedRegionId,
   sectionRegions,
+  teachSections,
   onSelectRegion,
 }: {
   sourceText: string;
@@ -337,6 +339,7 @@ function ReviewLetterPane({
   teachMode: boolean;
   highlightedRegionId: string | null;
   sectionRegions: ReturnType<typeof regionsFromSections>;
+  teachSections: FormSchemaSection[];
   onSelectRegion: (regionId: string, clickedText: string) => void;
 }) {
   const hasLetter = Boolean(sourceText.trim());
@@ -419,6 +422,7 @@ function ReviewLetterPane({
           focusTerm={focusTerm}
           emptyLabel={EMPTY_LETTER_COPY}
           sectionRegions={teachMode ? sectionRegions : []}
+          teachSections={teachMode ? teachSections : []}
           highlightedRegionId={teachMode ? highlightedRegionId : null}
           onSelectRegion={onSelectRegion}
         />

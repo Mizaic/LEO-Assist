@@ -73,4 +73,10 @@ describe("FormSchemaSectionEditor - SNOMED multi-select tags", () => {
     const blockStr = block![0];
     expect(blockStr).toMatch(/\[/);
   });
+
+  test("TC-009: free_text section explains body text below the heading", () => {
+    expect(src).toMatch(/section\.section_type === "free_text"/);
+    expect(src).toMatch(/lines below/i);
+    expect(src).toMatch(/kept for extraction/i);
+  });
 });

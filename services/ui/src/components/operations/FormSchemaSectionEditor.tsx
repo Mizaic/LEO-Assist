@@ -261,6 +261,13 @@ export function FormSchemaSectionEditor({
                 section.section_type === "free_text" ? "primary" : "default"
               }
             />
+            {section.section_type === "free_text" ? (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                The heading is often on one line and the clinical text sits in a
+                box on the lines below. All lines after the heading until the
+                next section are kept for extraction.
+              </Typography>
+            ) : null}
           </Box>
         </Collapse>
       )}

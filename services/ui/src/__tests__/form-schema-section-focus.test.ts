@@ -8,7 +8,9 @@ import * as fs from "fs";
 import * as path from "path";
 
 import {
+  buildFreeTextBodyLineOwners,
   matchSectionFromLetterText,
+  regionHitForText,
   regionsFromSections,
   cleanLetterSelectionText,
 } from "../components/operations/formSchemaSectionFocus";
@@ -106,6 +108,47 @@ describe("regionsFromSections", () => {
     const regionA = regions.find((r) => r.regionId === "A");
     expect(regionA?.label).toMatch(/Section A/);
     expect(regionA?.itemPatterns).toEqual(expect.arrayContaining(["Ovary", "Cervix"]));
+  });
+});
+
+describe("buildFreeTextBodyLineOwners", () => {
+  const freeTextSections: FormSchemaSection[] = [
+    {
+      section_id: "ACI",
+      section_type: "free_text",
+      label: "Additional clinical information",
+      start_pattern: "(?i)additional\\s+clinical\\s+information",
+      items: [],
+    },
+  ];
+
+  it("maps prose lines below a free_text heading to that section", () => {
+    const letter = [
+      "Additional clinical information",
+      "Patient has postmenopausal bleeding for 3 months.",
+      "Polyp noted on examination.",
+    ].join("\n");
+    const owners = buildFreeTextBodyLineOwners(letter, freeTextSections);
+    expect(owners.get("Patient has postmenopausal bleeding for 3 months.")).toBe(
+      "ACI",
+    );
+    expect(owners.get("Polyp noted on examination.")).toBe("ACI");
+  });
+
+  it("regionHitForText resolves free_text body lines via the owner map", () => {
+    const letter = [
+      "Additional clinical information",
+      "Patient has postmenopausal bleeding for 3 months.",
+    ].join("\n");
+    const regions = regionsFromSections(freeTextSections);
+    const owners = buildFreeTextBodyLineOwners(letter, freeTextSections);
+    const hit = regionHitForText(
+      regions,
+      "Patient has postmenopausal bleeding for 3 months.",
+      owners,
+    );
+    expect(hit?.regionId).toBe("ACI");
+    expect(hit?.primary).toBe(false);
   });
 });
 

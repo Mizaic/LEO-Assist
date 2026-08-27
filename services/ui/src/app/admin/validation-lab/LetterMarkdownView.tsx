@@ -16,6 +16,8 @@ import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 
 import type { LetterSectionRegion } from "@/components/operations/formSchemaSectionFocus";
+import { buildFreeTextBodyLineOwners } from "@/components/operations/formSchemaSectionFocus";
+import type { FormSchemaSection } from "@/components/operations/formSchemaDetector";
 import { LetterMarks, MentionClockProvider } from "./LetterMarks";
 import type { LetterMark } from "./letterHighlight";
 import {
@@ -37,6 +39,7 @@ interface Props {
   emptyLabel: string;
   focusTerm?: string;
   sectionRegions?: LetterSectionRegion[];
+  teachSections?: FormSchemaSection[];
   highlightedRegionId?: string | null;
   onSelectRegion?: (regionId: string, clickedText: string) => void;
 }
@@ -48,6 +51,7 @@ export default function LetterMarkdownView({
   emptyLabel,
   focusTerm,
   sectionRegions = [],
+  teachSections = [],
   highlightedRegionId = null,
   onSelectRegion,
 }: Props): ReactNode {
@@ -60,6 +64,10 @@ export default function LetterMarkdownView({
   }
   const { filename, body } = splitLetterSource(text);
   const blocks = parseLetterMarkdown(body || text);
+  const freeTextBodyOwners = buildFreeTextBodyLineOwners(
+    body || text,
+    teachSections,
+  );
   const letter = (
     <LetterRegionFocusContext.Provider
       value={{
@@ -67,6 +75,7 @@ export default function LetterMarkdownView({
         highlightedRegionId,
         onSelectRegion,
         firstByRegion: {},
+        freeTextBodyOwners,
       }}
     >
       <Box data-testid="validation-lab-letter-markdown" sx={MARKDOWN_SX}>

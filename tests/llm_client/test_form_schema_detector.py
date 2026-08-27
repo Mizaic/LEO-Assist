@@ -265,6 +265,14 @@ def test_detect_system_prompt_uses_shared_injection_guard():
     assert system.startswith(INJECTION_GUARD)
 
 
+def test_detect_prompt_covers_free_text_body_below_heading():
+    from libs.llm_client import form_schema_detector as fsd
+
+    prompt = fsd._SYSTEM_PROMPT.lower()
+    assert "additional clinical" in prompt
+    assert "lines below" in prompt or "box" in prompt
+
+
 def test_detect_returns_empty_on_llm_exception_when_no_headers():
     patcher, _client = _patch_llm(side_effect=RuntimeError("provider down"))
     with patcher:

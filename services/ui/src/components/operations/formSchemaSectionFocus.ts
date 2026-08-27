@@ -10,6 +10,8 @@ export interface LetterSectionRegion {
   regionId: string;
   label: string;
   itemPatterns: string[];
+  sectionType?: string;
+  startPattern?: string;
 }
 
 export function regionsFromSections(
@@ -21,7 +23,48 @@ export function regionsFromSections(
     itemPatterns: section.items
       .map((item) => item.pattern.trim())
       .filter(Boolean),
+    sectionType: section.section_type,
+    startPattern: section.start_pattern,
   }));
+}
+
+function compileStartPattern(pattern: string): RegExp | null {
+  const trimmed = pattern.trim();
+  if (!trimmed) return null;
+  const inline = trimmed.match(/^\(\?i\)(.*)$/);
+  const source = inline ? inline[1] : trimmed;
+  try {
+    return new RegExp(source, inline ? "i" : "i");
+  } catch {
+    return null;
+  }
+}
+
+/** Walk letter lines and map free_text body lines to their section id. */
+export function buildFreeTextBodyLineOwners(
+  text: string,
+  sections: FormSchemaSection[],
+): Map<string, string> {
+  const owners = new Map<string, string>();
+  let activeFreeText: FormSchemaSection | undefined;
+  for (const raw of text.replace(/\r\n/g, "\n").split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    const header = sections.find((section) => {
+      const compiled = section.start_pattern
+        ? compileStartPattern(section.start_pattern)
+        : null;
+      return compiled?.test(line);
+    });
+    if (header) {
+      activeFreeText = header.section_type === "free_text" ? header : undefined;
+      continue;
+    }
+    if (activeFreeText) {
+      owners.set(line, activeFreeText.section_id);
+    }
+  }
+  return owners;
 }
 
 export function matchSectionFromLetterText(
@@ -40,7 +83,13 @@ export function matchSectionFromLetterText(
 export function regionHitForText(
   regions: LetterSectionRegion[],
   text: string,
+  freeTextBodyOwners?: Map<string, string>,
 ): { regionId: string; primary: boolean } | undefined {
+  const trimmed = text.trim();
+  const owned = trimmed ? freeTextBodyOwners?.get(trimmed) : undefined;
+  if (owned) {
+    return { regionId: owned, primary: false };
+  }
   const sections = regions.map(regionToSection);
   const match = matchSectionFromLetterText(sections, text);
   if (!match) return undefined;

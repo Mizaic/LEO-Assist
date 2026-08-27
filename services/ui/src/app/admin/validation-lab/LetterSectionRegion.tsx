@@ -24,6 +24,7 @@ export interface LetterRegionFocus {
   highlightedRegionId?: string | null;
   onSelectRegion?: (regionId: string, clickedText: string) => void;
   firstByRegion: Record<string, string>;
+  freeTextBodyOwners?: Map<string, string>;
 }
 
 export const LetterRegionFocusContext =
@@ -40,7 +41,7 @@ export function LetterRegionWrap({
 }): ReactNode {
   const focus = useContext(LetterRegionFocusContext);
   if (!focus?.regions.length) return children;
-  const hit = regionHitForText(focus.regions, text);
+  const hit = regionHitForText(focus.regions, text, focus.freeTextBodyOwners);
   if (!hit) return children;
   const highlighted = focus.highlightedRegionId === hit.regionId;
   if (highlighted && !focus.firstByRegion[hit.regionId]) {

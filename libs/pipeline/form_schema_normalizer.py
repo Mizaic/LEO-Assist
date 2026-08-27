@@ -241,29 +241,48 @@ def apply_schema_to_text(text: str, schema: FormSchema) -> str:
         return text
     if not schema.sections:
         return text
+    return _apply_chunk_text(text, schema.sections, default_section=None)
 
-    lines = text.splitlines()
+
+def _apply_chunk_text(
+    chunk: str,
+    sections: list[FormSection],
+    default_section: FormSection | None,
+) -> str:
+    """Apply schema rules to one text block, honouring interior section headers.
+
+    NHS forms often place a free-text label on one line and the clinical
+    narrative in a box on the following lines inside the same paragraph
+    chunk. When ``default_section`` comes from ``chunk_section_map``, any
+    interior header still starts a new section so body lines are not
+    processed as admin or checkbox noise.
+    """
+    if not chunk:
+        return chunk
+    lines = chunk.splitlines()
     out: list[str] = []
-    current_section: FormSection | None = None
+    current_section: FormSection | None = default_section
     pending: list[str] = []
 
-    def _flush(section: FormSection | None, buf: list[str]) -> None:
-        if section is None:
-            out.extend(buf)
+    def _flush() -> None:
+        nonlocal pending
+        if not pending:
+            return
+        if current_section is None:
+            out.extend(pending)
         else:
-            out.extend(_process_section_lines(buf, section))
-        buf.clear()
+            out.extend(_process_section_lines(pending, current_section))
+        pending = []
 
     for line in lines:
-        matched = _find_matching_section(line, schema.sections)
+        matched = _find_matching_section(line, sections)
         if matched is not None:
-            _flush(current_section, pending)
+            _flush()
             current_section = matched
             out.append(line)
         else:
             pending.append(line)
-
-    _flush(current_section, pending)
+    _flush()
     return "\n".join(out)
 
 
@@ -483,11 +502,8 @@ def _apply_chunk_map(
         if section_id is None:
             parts.append(chunk)
             continue
-        section = section_by_id.get(section_id)
-        if section is None:
-            parts.append(chunk)
-            continue
-        lines = chunk.splitlines()
-        processed = _process_section_lines(lines, section)
-        parts.append("\n".join(processed))
+        default_section = section_by_id.get(section_id)
+        parts.append(
+            _apply_chunk_text(chunk, schema.sections, default_section=default_section)
+        )
     return "\n\n".join(parts)
