@@ -90,6 +90,8 @@ describe("Phrase mappings workspace chrome", () => {
     const header = read("PhraseDetailHeader.tsx");
     expect(header).toMatch(/Extraction tag/);
     expect(header).toMatch(/sample_sentence/);
+    expect(header).toMatch(/LetterMarkdownView/);
+    expect(header).toMatch(/phrase-sample-context/);
   });
 
   it("publish and submit go through the two-person API", () => {

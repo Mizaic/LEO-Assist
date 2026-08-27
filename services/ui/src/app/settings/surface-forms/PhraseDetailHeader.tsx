@@ -4,33 +4,25 @@
  */
 "use client";
 
+import Box from "@mui/material/Box";
 import { color, typography } from "@leo/design-system/tokens";
+
+import LetterMarkdownView from "@/app/admin/validation-lab/LetterMarkdownView";
+import type { LetterMark } from "@/app/admin/validation-lab/letterHighlight";
 
 import type { UncodedPhrase } from "./phraseMappingsApi";
 
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) => {
-    const map: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-    return map[ch] || ch;
-  });
-}
-
-function highlight(sentence: string, span: string): string {
-  const text = sentence || "";
-  const safe = escapeHtml(text);
-  if (!span) return safe;
-  const idx = text.toLowerCase().indexOf(span.toLowerCase());
-  if (idx < 0) return safe;
-  const before = escapeHtml(text.slice(0, idx));
-  const match = escapeHtml(text.slice(idx, idx + span.length));
-  const after = escapeHtml(text.slice(idx + span.length));
-  return before + "<strong>" + match + "</strong>" + after;
+function sampleMarks(phrase: UncodedPhrase): LetterMark[] {
+  const term = (phrase.sample_span || phrase.normalized || "").trim();
+  if (!term) return [];
+  return [
+    {
+      term,
+      assertion: "present",
+      semanticTag: phrase.extracted_tag || "",
+      change: "uncoded",
+    },
+  ];
 }
 
 export function PhraseDetailHeader({ phrase }: { phrase: UncodedPhrase }) {
@@ -40,6 +32,7 @@ export function PhraseDetailHeader({ phrase }: { phrase: UncodedPhrase }) {
     phrase.extracted_tag &&
     phrase.last_best_tag &&
     phrase.extracted_tag.toLowerCase() !== phrase.last_best_tag.toLowerCase();
+  const highlight = phrase.sample_span || phrase.normalized;
   return (
     <>
       <p
@@ -69,22 +62,28 @@ export function PhraseDetailHeader({ phrase }: { phrase: UncodedPhrase }) {
         {phrase.normalized}
       </h2>
       {phrase.sample_sentence ? (
-        <p
-          style={{
-            margin: "14px 0",
-            padding: "12px 14px",
-            borderRadius: 10,
-            background: color.surface.alt,
+        <Box
+          data-testid="phrase-sample-context"
+          sx={{
+            mt: 1.75,
+            mb: 1.75,
+            p: "12px 14px",
+            borderRadius: "10px",
+            bgcolor: color.surface.alt,
             color: color.text.secondary,
             fontSize: 14,
+            maxHeight: 420,
+            overflow: "auto",
           }}
-          dangerouslySetInnerHTML={{
-            __html: highlight(
-              phrase.sample_sentence,
-              phrase.sample_span || phrase.normalized,
-            ),
-          }}
-        />
+        >
+          <LetterMarkdownView
+            text={phrase.sample_sentence}
+            marks={sampleMarks(phrase)}
+            focusTerm={highlight}
+            emptyLabel=""
+            testId="phrase-sample-highlight"
+          />
+        </Box>
       ) : null}
       <PhraseFacts
         phrase={phrase}

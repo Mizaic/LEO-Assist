@@ -6,6 +6,13 @@ from libs.nlp.sentence_splitter import SentenceChunk
 from libs.pipeline_graph.subgraphs._extractor import LLMExtractorAdapter
 
 
+def _mock_compose_prompt(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "libs.prompts.registry.compose_prompt_with_annotation_guidelines",
+        lambda _name, instructions: instructions,
+    )
+
+
 class _FakeResp:
     def __init__(self, text: str) -> None:
         self.text = text
@@ -27,6 +34,7 @@ class _FakeLLM:
 
 
 def test_known_form_schema_skips_dynamic_few_shot(monkeypatch) -> None:
+    _mock_compose_prompt(monkeypatch)
     fake_llm = _FakeLLM()
     select_called: list[int] = []
 
@@ -74,6 +82,7 @@ def test_known_form_schema_skips_dynamic_few_shot(monkeypatch) -> None:
 
 
 def test_known_form_schema_keeps_only_form_checkbox_core(monkeypatch) -> None:
+    _mock_compose_prompt(monkeypatch)
     fake_llm = _FakeLLM()
     monkeypatch.setattr("libs.llm_client.factory.create_llm", lambda tier="small": fake_llm)
 
@@ -112,6 +121,7 @@ def test_known_form_schema_keeps_only_form_checkbox_core(monkeypatch) -> None:
 def test_run_llm_extraction_passes_known_form_schema(monkeypatch) -> None:
     from libs.pipeline_graph.subgraphs.extraction import _run_llm_extraction
 
+    _mock_compose_prompt(monkeypatch)
     captured: dict[str, bool] = {}
 
     class _StubAdapter:
@@ -127,10 +137,13 @@ def test_run_llm_extraction_passes_known_form_schema(monkeypatch) -> None:
         _fake_build_extractor,
     )
 
+    prompt_state = {"prompt_config": {"systemPrompt": "Extract clinical terms."}}
+
     _run_llm_extraction(
         "letter text",
         [SentenceChunk("s0", "line", 0, 4)],
         {
+            **prompt_state,
             "form_schema_match": "org_service",
             "form_schema_fingerprint": "sfh-gynae-2ww-v1",
         },
@@ -140,12 +153,13 @@ def test_run_llm_extraction_passes_known_form_schema(monkeypatch) -> None:
     _run_llm_extraction(
         "letter text",
         [SentenceChunk("s0", "line", 0, 4)],
-        {"form_schema_match": "none"},
+        {**prompt_state, "form_schema_match": "none"},
     )
     assert captured["known_form_schema"] is False
 
 
 def test_known_form_schema_adds_taught_form_hint(monkeypatch) -> None:
+    _mock_compose_prompt(monkeypatch)
     fake_llm = _FakeLLM()
     monkeypatch.setattr("libs.llm_client.factory.create_llm", lambda tier="small": fake_llm)
 

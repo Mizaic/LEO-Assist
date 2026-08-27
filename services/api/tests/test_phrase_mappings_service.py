@@ -122,6 +122,30 @@ def test_ensure_creates_inbox_row_without_going_live() -> None:
     assert client.run.call_args.kwargs["extracted_source"] == "llm"
 
 
+def test_ensure_deidentifies_sample_sentence_before_write() -> None:
+    client = MagicMock()
+    client.run.return_value = [
+        {
+            "phrase_key": "psa",
+            "status": "inbox",
+            "sample_sentence": "NHS No.: 718 563 0207. PSA is raised.",
+        }
+    ]
+    with (
+        patch.object(service, "_kg_client", return_value=client),
+        patch.object(service, "_publish_map") as publish_map,
+    ):
+        result = service.ensure_phrase(
+            "PSA",
+            sample_sentence="NHS No.: 718 563 0207. PSA is raised.",
+        )
+    publish_map.assert_not_called()
+    stored = client.run.call_args.kwargs["sample_sentence"]
+    assert "718 563 0207" not in stored
+    assert "[NHS_NUMBER]" in stored
+    assert "718 563 0207" not in result["sample_sentence"]
+
+
 def test_submit_one_moves_only_that_draft() -> None:
     client = MagicMock()
     client.run.return_value = [{"phrase_key": "psa", "status": "review"}]

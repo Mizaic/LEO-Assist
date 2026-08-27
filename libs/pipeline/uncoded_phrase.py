@@ -28,16 +28,23 @@ def _sentence_for(entity: dict[str, Any], sentences: list[dict[str, Any]]) -> st
     return str(entity.get("sentence_text") or "")
 
 
-def _deidentify_sample(sentence: str, span: str) -> str:
+def sanitize_sample_sentence(sentence: str) -> str:
+    """De-identify phrase sample text before it is stored or shown."""
     if not sentence:
-        return span
+        return ""
     try:
         from libs.utils.deidentify import deidentify_text
 
-        return deidentify_text(sentence, ner=False)
+        return deidentify_text(sentence, ner=True)
     except Exception:
         logger.debug("Uncoded phrase de-identify failed", exc_info=True)
         return sentence
+
+
+def _deidentify_sample(sentence: str, span: str) -> str:
+    if not sentence:
+        return span
+    return sanitize_sample_sentence(sentence)
 
 
 def extractor_source(entity: dict[str, Any]) -> str:

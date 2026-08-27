@@ -26,7 +26,7 @@ from libs.cypher.uncoded_phrase_queries import (
     SUBMIT_ONE_UNCODED_DRAFT,
     SUBMIT_UNCODED_DRAFTS,
 )
-from libs.pipeline.uncoded_phrase import normalise_phrase
+from libs.pipeline.uncoded_phrase import normalise_phrase, sanitize_sample_sentence
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,15 @@ _VALID_ACTIONS = {"map", "exclude"}
 
 def _actor(email: str) -> str:
     return (email or "").strip().lower()
+
+
+def _sanitize_phrase_row(row: dict[str, Any]) -> dict[str, Any]:
+    sample = str(row.get("sample_sentence") or "")
+    if not sample:
+        return row
+    out = dict(row)
+    out["sample_sentence"] = sanitize_sample_sentence(sample)
+    return out
 
 
 def _kg_client():
@@ -73,13 +82,16 @@ def list_phrases(
         raise HTTPException(status_code=400, detail="Unknown queue status")
     client = _kg_client()
     try:
-        items = client.run(
-            LIST_UNCODED_PHRASES,
-            status=status,
-            author=_actor(author) if status == "draft" else "",
-            skip=skip,
-            limit=limit,
-        )
+        items = [
+            _sanitize_phrase_row(row)
+            for row in client.run(
+                LIST_UNCODED_PHRASES,
+                status=status,
+                author=_actor(author) if status == "draft" else "",
+                skip=skip,
+                limit=limit,
+            )
+        ]
         if status == "draft" and author:
             total_rows = client.run(COUNT_MY_DRAFTS, author=_actor(author))
         else:
@@ -138,7 +150,7 @@ def get_phrase(phrase_key: str) -> dict[str, Any]:
         rows = client.run(GET_UNCODED_PHRASE, phrase_key=key)
         if not rows:
             raise HTTPException(status_code=404, detail="Phrase not found")
-        return rows[0]
+        return _sanitize_phrase_row(rows[0])
     finally:
         client.close()
 
@@ -164,11 +176,13 @@ def ensure_phrase(
             extracted_tag=(extracted_tag or "").strip(),
             extracted_source=(extracted_source or "").strip(),
             sample_span=span,
-            sample_sentence=(sample_sentence or "").strip(),
+            sample_sentence=sanitize_sample_sentence(
+                (sample_sentence or "").strip()
+            ),
         )
         if not rows:
             raise HTTPException(status_code=404, detail="Phrase not found")
-        return rows[0]
+        return _sanitize_phrase_row(rows[0])
     finally:
         client.close()
 
