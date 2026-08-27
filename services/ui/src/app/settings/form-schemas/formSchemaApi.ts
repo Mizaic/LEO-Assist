@@ -49,6 +49,33 @@ async function readErrorDetail(res: Response): Promise<string> {
   return "";
 }
 
+export interface LetterTextResult {
+  text: string;
+  fingerprint: string;
+  chunk_count: number;
+}
+
+export async function fetchLetterTextByUbrn(
+  ubrn: string,
+  organizationId: string,
+): Promise<LetterTextResult> {
+  const params = new URLSearchParams({
+    ubrn,
+    organization_id: organizationId,
+  });
+  const res = await fetch(`/api/form-schemas/letter-text?${params.toString()}`, {
+    credentials: "include",
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+  });
+  if (!res.ok) {
+    const detail = await readErrorDetail(res);
+    throw new Error(
+      detail || "Could not load the referral letter. Check the UBRN and try again.",
+    );
+  }
+  return res.json() as Promise<LetterTextResult>;
+}
+
 export function formatSchemaDate(raw: string): string {
   if (!raw) return "Not saved yet";
   const parsed = new Date(raw);

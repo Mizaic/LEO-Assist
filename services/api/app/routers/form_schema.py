@@ -5,6 +5,7 @@ PUT  /form-schemas/{fingerprint}   -- save / update schema
 GET  /form-schemas                 -- list all saved schemas
 POST /form-schemas/fingerprint     -- compute content fingerprint from sample text
 POST /form-schemas/detect          -- LLM auto-detect sections from form text
+GET  /form-schemas/letter-text     -- fetch referral letter text by UBRN
 
 Atlas trace:
   DI: DI-5C9CA57B  (form checkbox normalisation)
@@ -19,10 +20,14 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from fastapi import Query
+
 from app.deps import require_role
 from app.org_catalog_auth import FORM_TEACHER_ROLES
+from libs.cypher.chunk_queries import GET_CHUNKS_BY_UBRN
 from libs.llm_client.form_schema_detector import detect_form_sections
 from libs.neo4j_client.client import PatientGraphClient
+from libs.pipeline.document_chunk_loader import build_document_chunk_state
 from libs.pipeline.form_schema_store import (
     FormSchemaWrite,
     build_sections_from_request,
@@ -167,6 +172,61 @@ def compute_fingerprint(
 ) -> dict[str, str]:
     """Return the content fingerprint for sample referral letter text."""
     return {"fingerprint": form_fingerprint(body.text)}
+
+
+@router.get("/letter-text")
+def get_letter_text_by_ubrn(
+    ubrn: str = Query(..., description="UBRN or referral identifier"),
+    organization_id: str = Query(..., description="Tenant organisation ID"),
+    _session: dict = Depends(require_form_teacher),
+) -> dict[str, Any]:
+    """Return joined referral letter text from Neo4j for a given UBRN.
+
+    Fetches :Chunk nodes linked via :HAS_DOCUMENT->:DocumentReference->:HAS_CHUNK,
+    joins them in ordinal order, and strips PDF attachments.  The caller can
+    use the returned ``text`` and ``fingerprint`` to auto-populate the teach
+    dialog without manual copy-paste.
+
+    Returns 404 when no chunks are found for the UBRN.
+    """
+    ubrn_clean = ubrn.strip()
+    org_clean = organization_id.strip()
+    if not ubrn_clean:
+        raise HTTPException(status_code=400, detail="ubrn must not be empty")
+    if not org_clean:
+        raise HTTPException(status_code=400, detail="organization_id must not be empty")
+
+    client = PatientGraphClient()
+    try:
+        rows = client.run(
+            GET_CHUNKS_BY_UBRN,
+            ubrn=ubrn_clean,
+            organization_id=org_clean,
+        )
+    finally:
+        client.close()
+
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No referral letter found for UBRN {ubrn_clean!r}. "
+            "Check the UBRN and organisation ID, then try again.",
+        )
+
+    state = build_document_chunk_state(rows)
+    text = state.get("encounter_text") or ""
+    if not text.strip():
+        raise HTTPException(
+            status_code=404,
+            detail="Referral found but it contains no readable text. "
+            "The document may not have been ingested yet.",
+        )
+
+    return {
+        "text": text,
+        "fingerprint": form_fingerprint(text),
+        "chunk_count": len(state.get("sentences") or []),
+    }
 
 
 @router.get("/{fingerprint}")

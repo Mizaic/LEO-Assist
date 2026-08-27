@@ -84,6 +84,19 @@ RETURN c.id          AS chunk_id,
 ORDER BY r.ordinal ASC
 """
 
+GET_CHUNKS_BY_UBRN = """
+MATCH (rr:ReferralRequest)
+WHERE replace(coalesce(rr.ubrn, ''), ' ', '') = replace($ubrn, ' ', '')
+  AND toString(rr.organization_id) = $organization_id
+MATCH (rr)-[:HAS_DOCUMENT]->(dr:DocumentReference)-[r:HAS_CHUNK]->(c:Chunk)
+RETURN c.id                        AS chunk_id,
+       c.text                      AS text,
+       coalesce(r.ordinal, 0)      AS ordinal,
+       coalesce(r.char_start, 0)   AS char_start,
+       coalesce(r.char_end, 0)     AS char_end
+ORDER BY r.ordinal ASC
+"""
+
 
 GET_CHUNKS_BY_IDS = """
 UNWIND $chunk_ids AS cid
