@@ -142,3 +142,21 @@ describe("form template list proxy and errors", () => {
     expect(src).toMatch(/form teacher role/);
   });
 });
+
+describe("form template seed defaults action", () => {
+  test("TC-020: page shows Seed Sherwood Gynae 2WW", () => {
+    const src = read(PAGE);
+    expect(src).toMatch(/Seed Sherwood Gynae 2WW/);
+  });
+
+  test("TC-021: posts to /api/form-schemas/seed-defaults", () => {
+    const src = read(API);
+    expect(src).toMatch(/\/api\/form-schemas\/seed-defaults/);
+    expect(src).toMatch(/method:\s*["']POST["']/);
+  });
+
+  test("TC-022: skipped seed shows Already present", () => {
+    const src = read(PAGE);
+    expect(src).toMatch(/Already present/);
+  });
+});

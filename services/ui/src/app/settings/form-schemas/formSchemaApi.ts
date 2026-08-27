@@ -86,6 +86,38 @@ export async function fetchLetterTextByUbrn(
   return res.json() as Promise<LetterTextResult>;
 }
 
+export interface SeedDefaultsResult {
+  seeded: string[];
+  skipped: string[];
+}
+
+function seedError(status: number, detail: string): string {
+  if (status === 403) {
+    return (
+      "You need the form teacher role to seed form templates. " +
+      "Ask an administrator if you should have this role."
+    );
+  }
+  return detail || "Could not seed the Sherwood Gynae 2WW template. Please retry.";
+}
+
+export async function seedFormSchemaDefaults(): Promise<SeedDefaultsResult> {
+  const res = await fetch("/api/form-schemas/seed-defaults", {
+    method: "POST",
+    credentials: "include",
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+  });
+  if (!res.ok) {
+    const detail = await readErrorDetail(res);
+    throw new Error(seedError(res.status, detail));
+  }
+  const data = (await res.json()) as SeedDefaultsResult;
+  return {
+    seeded: data.seeded ?? [],
+    skipped: data.skipped ?? [],
+  };
+}
+
 export function formatSchemaDate(raw: string): string {
   if (!raw) return "Not saved yet";
   const parsed = new Date(raw);

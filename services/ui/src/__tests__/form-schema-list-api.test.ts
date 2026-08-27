@@ -3,7 +3,10 @@
  *
  * Atlas trace: DI-5C9CA57B, DI-26546721
  */
-import { fetchFormSchemas } from "../app/settings/form-schemas/formSchemaApi";
+import {
+  fetchFormSchemas,
+  seedFormSchemaDefaults,
+} from "../app/settings/form-schemas/formSchemaApi";
 
 describe("fetchFormSchemas", () => {
   const originalFetch = global.fetch;
@@ -59,5 +62,57 @@ describe("fetchFormSchemas", () => {
     await expect(fetchFormSchemas()).rejects.toThrow(
       "Could not load form templates. Please retry.",
     );
+  });
+});
+
+describe("seedFormSchemaDefaults", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("POSTs /api/form-schemas/seed-defaults with credentials", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ seeded: ["sfh-gynae-2ww-v1"], skipped: [] }),
+    }) as typeof fetch;
+
+    const result = await seedFormSchemaDefaults();
+    expect(result).toEqual({ seeded: ["sfh-gynae-2ww-v1"], skipped: [] });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/form-schemas/seed-defaults",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      }),
+    );
+  });
+
+  it("returns skipped when the template already exists", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ seeded: [], skipped: ["sfh-gynae-2ww-v1"] }),
+    }) as typeof fetch;
+
+    await expect(seedFormSchemaDefaults()).resolves.toEqual({
+      seeded: [],
+      skipped: ["sfh-gynae-2ww-v1"],
+    });
+  });
+
+  it("names the form teacher role on 403", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({
+        detail: "One of these roles is required: validation, operations_manager",
+      }),
+    }) as typeof fetch;
+
+    await expect(seedFormSchemaDefaults()).rejects.toThrow(/form teacher role/);
   });
 });

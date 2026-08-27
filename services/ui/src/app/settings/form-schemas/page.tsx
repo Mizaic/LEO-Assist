@@ -16,6 +16,7 @@ import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
+import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -28,6 +29,7 @@ import {
   deleteFormSchema,
   fetchFormSchemas,
   formatSchemaDate,
+  seedFormSchemaDefaults,
   type SchemaSummary,
 } from "./formSchemaApi";
 
@@ -118,6 +120,9 @@ export default function FormSchemasPage() {
   const [deleteTarget, setDeleteTarget] = useState<SchemaSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [seeding, setSeeding] = useState(false);
+  const [seedError, setSeedError] = useState("");
+  const [seedNotice, setSeedNotice] = useState("");
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -175,8 +180,34 @@ export default function FormSchemasPage() {
     [schemas],
   );
 
+  const handleSeedDefaults = useCallback(async () => {
+    setSeeding(true);
+    setSeedError("");
+    setSeedNotice("");
+    try {
+      const result = await seedFormSchemaDefaults();
+      if (result.skipped.length > 0 && result.seeded.length === 0) {
+        setSeedNotice("Already present");
+      }
+      reload();
+    } catch (err) {
+      setSeedError(
+        err instanceof Error ? err.message : "Could not seed the template.",
+      );
+    } finally {
+      setSeeding(false);
+    }
+  }, [reload]);
+
   const toolbarActions: ToolbarAction[] = useMemo(
     () => [
+      {
+        id: "seed-sherwood-gynae-2ww",
+        label: "Seed Sherwood Gynae 2WW",
+        variant: "secondary",
+        disabled: seeding,
+        onClick: () => void handleSeedDefaults(),
+      },
       {
         id: "add-template",
         label: "Add template",
@@ -185,7 +216,7 @@ export default function FormSchemasPage() {
         onClick: () => setAddOpen(true),
       },
     ],
-    [],
+    [handleSeedDefaults, seeding],
   );
 
   const handleDelete = async () => {
@@ -248,6 +279,12 @@ export default function FormSchemasPage() {
         </Alert>
       )}
 
+      {seedError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {seedError}
+        </Alert>
+      )}
+
       {loading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
           <CircularProgress size={18} aria-label="Loading" role="status" />
@@ -257,8 +294,17 @@ export default function FormSchemasPage() {
 
       {!loading && !error && schemas.length === 0 && (
         <Alert severity="info" sx={{ mb: 2 }}>
-          No form templates yet. Add one with a sample letter, or teach a form
-          from a paused extraction review.
+          <Typography variant="body2" sx={{ mb: 1.5 }}>
+            No form templates yet. Add one with a sample letter, or seed the
+            Sherwood Gynae 2WW template.
+          </Typography>
+          <Button
+            variant="contained"
+            disabled={seeding}
+            onClick={() => void handleSeedDefaults()}
+          >
+            Seed Sherwood Gynae 2WW
+          </Button>
         </Alert>
       )}
 
@@ -332,6 +378,13 @@ export default function FormSchemasPage() {
           }}
         />
       ) : null}
+
+      <Snackbar
+        open={Boolean(seedNotice)}
+        autoHideDuration={4000}
+        onClose={() => setSeedNotice("")}
+        message={seedNotice}
+      />
     </Box>
   );
 }
